@@ -18,6 +18,10 @@ UniSS has the following features:
 - **Single-stage and unified**: UniSS uses only one language model to handle both text and speech, eliminating the need for additional generation models such as non-autoregressive models or flow matching models.
 - **Efficient-Quality tradeoff**: UniSS supports a selection of tasks, including Quality mode and Performance mode. Performance mode can achieve up to 1.07x speedup with minimal reduction in speech fidelity. Additionally, we provide a smaller 0.5B version for low-resource scenarios.
 
+## News
+⭐ We released the dataset UniST for public use in https://huggingface.co/datasets/cmots/UniST
+⭐ UniSS is accepted by ICLR 2026!
+
 ### Performance
 UniSS outperforms both end-to-end S2ST systems and cascaded systems on translation fidelity, expressiveness preservation, duration consistency and speech quality.
 
