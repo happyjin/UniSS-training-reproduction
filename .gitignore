@@ -2,3 +2,35 @@ __pycache__
 audios
 pretrained_models
 /outputs
+
+# Local datasets and generated training artifacts
+data/
+checkpoints/
+third_party/
+runs/
+wandb/
+tensorboard/
+logs/
+outputs/
+temp_infer/
+
+# Large model/data files
+*.parquet
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.idx
+*.npy
+*.npz
+
+# Generated audio/video artifacts
+*.flac
+*.mp3
+*.mp4
+output_audio.wav
+
+# Download/cache noise
+.cache/
+*.log
