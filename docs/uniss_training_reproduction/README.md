@@ -962,7 +962,10 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 
 - `third_party/Megatron-LM` commit：`4bf7fca050ae55ef58e299003fd12d769aac81e0`，已记录在 `training/MEGATRON_COMMIT`。
 - 该 checkout 包含 GPT-OSS 示例引用 `megatron.bridge.AutoBridge`，但本地源码树和 conda env 中当前没有 `megatron.bridge` / `megatron-bridge` 包。
-- 因此 HF Qwen2 -> Megatron checkpoint conversion 暂不能直接执行；下一步必须安装/引入 Megatron Bridge，或补一个 Qwen2 HF loader/saver，并先完成 tiny Qwen2 round-trip logits 验证。
+- 已浅克隆 Megatron-Bridge 到 ignored 目录 `third_party/Megatron-Bridge`，commit：`c70593623dd8f25474d58740815e6bf48d4c6ef2`，已记录在 `training/MEGATRON_BRIDGE_COMMIT`。
+- Megatron-Bridge README/文档显示其支持 Qwen2/Qwen2.5 和 `AutoBridge` HF↔Megatron conversion。
+- 当前 shell 无可见 CUDA driver/NVML，直接 `PYTHONPATH=third_party/Megatron-Bridge/src:third_party/Megatron-LM` import `AutoBridge` 会触发 Megatron-LM Mamba/Triton import，并报 `RuntimeError: 0 active drivers`。这需要在真实 GPU 训练环境重测，或继续做 lazy-import/禁用 Mamba 路径 patch。
+- 因此 HF Qwen2 -> Megatron checkpoint conversion 暂不能直接执行；下一步必须在 GPU 环境完成 Megatron Bridge import + tiny Qwen2 round-trip logits 验证，或补一个不触发该 import 路径的 Qwen2 HF loader/saver。
 
 ### 5.11 Megatron-LM 集成策略
 
@@ -1035,6 +1038,12 @@ git diff > ../../training/patches/local_megatron_changes.patch
 
 ```text
 4bf7fca050ae55ef58e299003fd12d769aac81e0
+```
+
+Megatron-Bridge 当前已记录 commit：
+
+```text
+c70593623dd8f25474d58740815e6bf48d4c6ef2
 ```
 
 ### 5.12 当前已实现的 Megatron 入口
