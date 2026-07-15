@@ -41,6 +41,7 @@
 - `training/megatron_uniss_dataset.py`：把 packed JSONL 转成 Megatron `pretrain_gpt.py` 可消费的 tensors。
 - `training/pretrain_uniss_megatron.py`：复用 Megatron-LM `pretrain_gpt.py` 的 model/forward/loss/training loop，只替换 UniSS dataset provider。
 - `scripts/download_hf_assets.sh`：使用正确 conda env 的 `huggingface-cli` 下载 UniSS、Qwen2.5、UniST，显式设置 HF cache/tmp 到 `/opt/dlami/nvme/jasonleeeli`。
+- `scripts/download_uniss_with_curl.sh`：HF CLI/Xet 卡在大文件时的 fallback；按远端 24 个文件顺序用 `curl -L -C -` 续传 UniSS 资产。
 - `scripts/train_phase1.sh`、`scripts/train_phase2.sh`、`scripts/train_phase3.sh`：按论文 Implementation Details 设置 Megatron 启动参数；支持 `--dry-run` 打印命令。
 
 已执行验证：
@@ -58,6 +59,7 @@ bash -n scripts/train_phase1.sh
 bash -n scripts/train_phase2.sh
 bash -n scripts/train_phase3.sh
 scripts/download_hf_assets.sh --dry-run uniss
+scripts/download_uniss_with_curl.sh --dry-run
 scripts/train_phase1.sh --dry-run --exit-duration-in-mins 1
 scripts/train_phase2.sh --dry-run --exit-duration-in-mins 1
 scripts/train_phase3.sh --dry-run --exit-duration-in-mins 1
