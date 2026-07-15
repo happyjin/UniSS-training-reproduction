@@ -846,6 +846,73 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 - 或使用 Megatron-LM 中已有 LLaMA/Mistral-style decoder 作为基底，补 Qwen2 config 差异。
 - 必须验证 HF Qwen2 -> Megatron -> HF round trip 后，同一输入 logits 误差足够小，再启动大规模训练。
 
+### 5.10 Megatron-LM 集成策略
+
+需要 clone Megatron-LM，但不建议把当前 UniSS repo 搬进 Megatron-LM 里重构。当前开源 UniSS 仓库是推理/tokenizer 发布包，不是 Megatron-LM fork；最稳的工程策略是保留当前 repo 作为 UniSS-specific 适配层，把 Megatron-LM 当外部训练引擎。
+
+推荐职责划分：
+
+```text
+UniSS 当前 repo
+  uniss/                         # 原推理/tokenizer 代码，尽量不动
+  training/                      # UniSS -> Megatron 的适配层
+    constants_uniss.py           # speech/control token ID
+    prepare_unist_s2st.py        # UniST parquet -> task samples
+    prepare_phase1_alignment.py  # ASR/TTS/S2TT/MT samples
+    pack_sequences.py            # 18k packing + boundary/loss masks
+    pretrain_uniss_megatron.py   # Megatron training entry wrapper
+    checkpointing/
+      convert_hf_qwen2_to_megatron.py
+      convert_megatron_to_hf.py
+    patches/
+      megatron_qwen2.patch
+      megatron_packed_uniss.patch
+
+third_party/Megatron-LM
+  Megatron 原始框架代码，默认不提交到本 repo
+```
+
+训练时通过 `PYTHONPATH` 使用外部 Megatron-LM：
+
+```bash
+PYTHONPATH=third_party/Megatron-LM:$PYTHONPATH \
+torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
+```
+
+这样做的原因：
+
+1. UniSS-specific 逻辑与 Megatron 训练基础设施解耦：
+   - UniSS 负责 prompt/token/data/loss mask/checkpoint conversion。
+   - Megatron-LM 负责 distributed training、parallelism、optimizer、scheduler、checkpoint sharding。
+2. Megatron-LM 体量很大，直接复制/大改会让 diff 难维护，也不利于跟进上游。
+3. 当前 UniSS 推理代码仍保持干净，后续导出 HF checkpoint 后可继续复用 `infer.py` 和 `vllm_example.py`。
+4. 如果 Megatron-LM 版本升级，只需要重新验证适配层和少量 patch。
+
+只有下面情况才修改 Megatron-LM 文件：
+
+- 当前 Megatron-LM 没有 Qwen2 architecture/GQA/RoPE theta/RMSNorm 支持。
+- dataset/training loop 不支持传入 `loss_mask`、`position_ids`、packed sequence boundary。
+- attention mask 无法实现 packed sample 间互相不可见。
+- checkpoint converter 不支持 Qwen2 HF <-> Megatron。
+
+如果必须修改 Megatron-LM：
+
+- 优先把改动做成 `training/patches/*.patch`，而不是直接在 `third_party/Megatron-LM` 中留下不可追踪修改。
+- 每个 patch 都要配一个验证脚本：
+  - Qwen2 forward logits round-trip test。
+  - packed attention boundary test。
+  - masked CE loss alignment test。
+  - small overfit test。
+- 在 README 或脚本中记录 Megatron-LM commit hash，确保训练可复现。
+
+推荐记录：
+
+```bash
+cd third_party/Megatron-LM
+git rev-parse HEAD > ../../training/MEGATRON_COMMIT
+git diff > ../../training/patches/local_megatron_changes.patch
+```
+
 ## 6. Loss 设计
 
 论文训练目标是标准 autoregressive next-token prediction。UniSS 没有额外训练 BiCodec decoder、GLM4 tokenizer 或声学重建 loss；这些 tokenizer/decoder 在 LLM 训练时视为冻结的离散 token 产生器/还原器。因此所有训练阶段的核心 loss 都是 masked token-level cross entropy。
