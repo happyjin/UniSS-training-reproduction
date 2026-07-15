@@ -2,7 +2,7 @@
 
 本文档整理 UniSS 论文、附录、公开 GitHub/Hugging Face 信息和当前仓库推理代码，目标是给出一个可以落地到 Megatron-LM 的训练脚本设计计划。由于官方训练代码尚未开放，本文把严格论文复现和公开数据可复现版本分开说明。
 
-最后更新：2026-07-15 09:10:00 UTC
+最后更新：2026-07-15 12:15:31 UTC
 
 ## 1. 复现边界与依据
 
@@ -33,22 +33,35 @@
 
 - `training/constants_uniss.py`：UniSS vocab/token ID 常量与合法性校验。
 - `training/sample_builders.py`：ASR、S2TT、TTS、MT、Quality、Performance、Direct S2ST prompt/target 构造。
+- `training/prepare_phase1_alignment.py`：读取公开 UniST parquet，派生 Phase 1 ASR/S2TT/TTS speech alignment JSONL 样本。
+- `training/build_mt_wmt17.py`：读取已下载的 WMT17-style 平行文本或 JSONL，生成 Phase 1 MT JSONL 样本。
 - `training/prepare_unist_s2st.py`：读取 HF `cmots/UniST` parquet，生成 Phase 2/3 S2ST JSONL 样本。
+- `training/mix_sample_jsonl.py`：按整数比例确定性混合样本 JSONL，例如 Phase 2 的 `UniST S2ST : Phase1 replay = 2 : 1`。
 - `training/pack_sequences.py`：next-token shift、loss mask 对齐、position reset、packed sample boundary。
 - `training/megatron_uniss_dataset.py`：把 packed JSONL 转成 Megatron `pretrain_gpt.py` 可消费的 tensors。
 - `training/pretrain_uniss_megatron.py`：复用 Megatron-LM `pretrain_gpt.py` 的 model/forward/loss/training loop，只替换 UniSS dataset provider。
+- `scripts/train_phase1.sh`、`scripts/train_phase2.sh`、`scripts/train_phase3.sh`：按论文 Implementation Details 设置 Megatron 启动参数；支持 `--dry-run` 打印命令。
 
 已执行验证：
 
 ```bash
 python training/prepare_unist_s2st.py --help
+python training/prepare_phase1_alignment.py --help
+python training/build_mt_wmt17.py --help
+python training/mix_sample_jsonl.py --help
 python training/pack_sequences.py --help
 python training/pretrain_uniss_megatron.py --help
 python -m unittest discover training/tests -v
 python -m py_compile training/*.py training/tests/*.py
+bash -n scripts/train_phase1.sh
+bash -n scripts/train_phase2.sh
+bash -n scripts/train_phase3.sh
+scripts/train_phase1.sh --dry-run --exit-duration-in-mins 1
+scripts/train_phase2.sh --dry-run --exit-duration-in-mins 1
+scripts/train_phase3.sh --dry-run --exit-duration-in-mins 1
 ```
 
-当前验证结果：29 个单元测试通过，所有训练工具脚本通过语法编译。`data/raw/UniST` 下载已在 `tmux` session `unist_download` 中后台执行，数据目录已被 `.gitignore` 排除。
+当前验证结果：42 个单元测试通过，所有训练工具脚本通过语法编译；三个 Megatron phase 启动脚本通过 shell 语法检查和 dry-run 命令构造检查。`data/raw/UniST` 下载已在 `tmux` session `unist_download` 中后台执行，数据目录已被 `.gitignore` 排除。
 
 ## 2. 模型与 tokenizer 设计
 
@@ -589,6 +602,7 @@ training/
   prepare_phase1_alignment.py
   prepare_unist_s2st.py
   build_mt_wmt17.py
+  mix_sample_jsonl.py
   pack_sequences.py
   pretrain_uniss_megatron.py
   export_megatron_to_hf.py
@@ -672,37 +686,49 @@ TOKEN_PAD = 151643
 - 生成 ASR/TTS/S2TT 训练样本。
 - 可选执行原始音频 tokenization。
 
-输入模式：
+当前已实现输入模式：
 
-1. `--input-manifest`：原始音频 manifest。
-2. `--unist-parquet`：直接用公开 UniST token parquet 派生。
+1. `--input`：公开 UniST token parquet 或 glob，直接派生 ASR/S2TT/TTS。
+2. `--tasks`：可选 `asr s2tt tts` 子集；如果启用 `tts`，输入必须包含 `source_bicodec`。
+
+严格论文复现中的原始音频 manifest tokenization 尚未实现；该部分需要先完成 ASR 清洗、SparkTTS 合成、GLM4/BiCodec tokenization 后，再落成同 schema 的 parquet/JSONL。
 
 输出：
 
 ```text
-data/processed/phase1/asr/*.jsonl
-data/processed/phase1/tts/*.jsonl
-data/processed/phase1/s2tt/*.jsonl
+data/processed/phase1/alignment.jsonl
 ```
 
 每行包含：
 
 ```json
 {
+  "phase": "phase1",
   "task": "asr",
   "id": "...",
   "prompt_ids": [180376, 180373, "..."],
   "target_ids": [1234, 5678, 180390, 151645],
-  "num_prompt_tokens": 456,
-  "num_target_tokens": 32
+  "prompt_length": 456,
+  "target_length": 32,
+  "segment_spans": {"transcription_text": [0, 30]}
 }
+```
+
+当前可执行命令：
+
+```bash
+python training/prepare_phase1_alignment.py \
+  --input "data/raw/UniST/train-*.parquet" \
+  --tokenizer pretrained_models/UniSS \
+  --tasks asr s2tt tts \
+  --output data/processed/phase1/alignment.jsonl
 ```
 
 ### 5.4 `build_mt_wmt17.py`
 
 职责：
 
-- 下载或读取 WMT17 中英 MT text pair。
+- 读取已下载的 WMT17 中英 MT text pair；不在脚本内联网下载。
 - 使用 UniSS/Qwen tokenizer 编码文本。
 - 生成 MT prompt/target。
 - 控制 MT token 总量接近论文的 2.3B tokens。
@@ -713,6 +739,28 @@ data/processed/phase1/s2tt/*.jsonl
 - 删除长度过长 pair。
 - 过滤目标/源语言异常混杂。
 - 限制 max sample length，避免单条样本过长影响 packing。
+
+当前可执行命令：
+
+```bash
+python training/build_mt_wmt17.py \
+  --source-text data/raw/WMT17/train.en \
+  --target-text data/raw/WMT17/train.zh \
+  --src-lang eng \
+  --tgt-lang cmn \
+  --tokenizer pretrained_models/UniSS \
+  --max-sample-tokens 18000 \
+  --output data/processed/phase1/mt.jsonl
+```
+
+也支持预先整理好的 JSONL：
+
+```bash
+python training/build_mt_wmt17.py \
+  --input-jsonl data/raw/WMT17/train_pairs.jsonl \
+  --tokenizer pretrained_models/UniSS \
+  --output data/processed/phase1/mt.jsonl
+```
 
 ### 5.5 `prepare_unist_s2st.py`
 
@@ -751,7 +799,24 @@ python training/prepare_unist_s2st.py \
 - `src_lang != tgt_lang`。
 - 生成后的 target 至少包含一个可学习 token。
 
-### 5.6 `pack_sequences.py`
+### 5.6 `mix_sample_jsonl.py`
+
+职责：
+
+- 在 packing 前按整数比例混合不同来源的 sample JSONL。
+- Phase 2 使用 `UniST S2ST : Phase1 replay = 2 : 1`，对应论文的 new data mixed with Phase 1 data at a 2:1 ratio。
+- 输出仍然是标准 sample JSONL，只额外添加 `mix_group` 审计字段；`pack_sequences.py` 会忽略该字段。
+
+当前可执行命令：
+
+```bash
+python training/mix_sample_jsonl.py \
+  --group unist=2:data/processed/phase2/unist_s2st.jsonl \
+  --group phase1=1:data/processed/phase1/alignment.jsonl,data/processed/phase1/mt.jsonl \
+  --output data/processed/phase2/phase2_mixed.jsonl
+```
+
+### 5.7 `pack_sequences.py`
 
 职责：
 
@@ -788,7 +853,7 @@ data/megatron/phase1_boundaries.npy
 
 或者直接使用 WebDataset/Arrow + custom Megatron dataset，减少 sidecar 对齐风险。
 
-### 5.7 `pretrain_uniss_megatron.py`
+### 5.8 `pretrain_uniss_megatron.py`
 
 职责：
 
@@ -807,7 +872,7 @@ loss = (loss * loss_mask).sum() / loss_mask.sum()
 
 不要对 prompt、padding 或跨样本 boundary 后的无效位置算 loss。
 
-### 5.8 `export_megatron_to_hf.py`
+### 5.9 `export_megatron_to_hf.py`
 
 职责：
 
@@ -823,7 +888,7 @@ python infer.py
 python vllm_example.py --task Quality --target_language zh --input_path ... --output_path ...
 ```
 
-### 5.9 Megatron-LM Framework 使用方式
+### 5.10 Megatron-LM Framework 使用方式
 
 完整实现计划明确使用论文中提到的 Megatron-LM Framework，而不是只用普通 HF Trainer。建议做法是 fork 或 vendor 官方 Megatron-LM：
 
@@ -872,7 +937,7 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 - 或使用 Megatron-LM 中已有 LLaMA/Mistral-style decoder 作为基底，补 Qwen2 config 差异。
 - 必须验证 HF Qwen2 -> Megatron -> HF round trip 后，同一输入 logits 误差足够小，再启动大规模训练。
 
-### 5.10 Megatron-LM 集成策略
+### 5.11 Megatron-LM 集成策略
 
 需要 clone Megatron-LM，但不建议把当前 UniSS repo 搬进 Megatron-LM 里重构。当前开源 UniSS 仓库是推理/tokenizer 发布包，不是 Megatron-LM fork；最稳的工程策略是保留当前 repo 作为 UniSS-specific 适配层，把 Megatron-LM 当外部训练引擎。
 
@@ -939,7 +1004,7 @@ git rev-parse HEAD > ../../training/MEGATRON_COMMIT
 git diff > ../../training/patches/local_megatron_changes.patch
 ```
 
-### 5.11 当前已实现的 Megatron 入口
+### 5.12 当前已实现的 Megatron 入口
 
 当前实现采用 `training/pretrain_uniss_megatron.py`，不直接修改 `third_party/Megatron-LM`。入口脚本做法：
 
@@ -1714,16 +1779,25 @@ python training/convert_qwen2_hf_to_megatron.py \
 
 # 8. Phase 1: 从 UniST 派生 alignment + WMT17 MT
 python training/prepare_phase1_alignment.py \
-  --unist "data/raw/UniST/train-*.parquet" \
-  --output data/processed/phase1
+  --input "data/raw/UniST/train-*.parquet" \
+  --tokenizer pretrained_models/UniSS \
+  --tasks asr s2tt tts \
+  --output data/processed/phase1/alignment.jsonl
 
 python training/build_mt_wmt17.py \
-  --output data/processed/phase1/mt
+  --source-text data/raw/WMT17/train.en \
+  --target-text data/raw/WMT17/train.zh \
+  --src-lang eng \
+  --tgt-lang cmn \
+  --tokenizer pretrained_models/UniSS \
+  --max-sample-tokens 18000 \
+  --output data/processed/phase1/mt.jsonl
 
 python training/pack_sequences.py \
-  --input data/processed/phase1/phase1_samples.jsonl \
+  --input data/processed/phase1/alignment.jsonl data/processed/phase1/mt.jsonl \
   --seq-length 18000 \
-  --output data/megatron/phase1/packed_train.jsonl
+  --output data/megatron/phase1/packed_train.jsonl \
+  --drop-overlong
 
 bash scripts/train_phase1.sh
 
@@ -1734,10 +1808,13 @@ python training/prepare_unist_s2st.py \
   --tokenizer pretrained_models/UniSS \
   --output data/processed/phase2/unist_s2st.jsonl
 
-# Phase 2 的 2:1 混合应在 sample list 生成阶段完成；
-# 当前 pack_sequences.py 只负责把给定 JSONL packing 成 Megatron JSONL。
+python training/mix_sample_jsonl.py \
+  --group unist=2:data/processed/phase2/unist_s2st.jsonl \
+  --group phase1=1:data/processed/phase1/alignment.jsonl,data/processed/phase1/mt.jsonl \
+  --output data/processed/phase2/phase2_mixed.jsonl
+
 python training/pack_sequences.py \
-  --input data/processed/phase2/unist_s2st.jsonl data/processed/phase1/phase1_replay.jsonl \
+  --input data/processed/phase2/phase2_mixed.jsonl \
   --seq-length 18000 \
   --output data/megatron/phase2_mix/packed_train.jsonl \
   --drop-overlong
