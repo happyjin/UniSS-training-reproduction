@@ -13,6 +13,7 @@ import os
 import sys
 import time
 from datetime import timedelta
+from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -74,13 +75,50 @@ ensure_megatron_import_path()
 from training import constants_uniss as c  # noqa: E402
 from training.megatron_uniss_dataset import UniSSPackedJsonlDataset  # noqa: E402
 
-from megatron.core.datasets.utils import Split  # noqa: E402
-from megatron.core.enums import ModelType  # noqa: E402
-from megatron.training import inprocess_restart, pretrain, print_rank_0, set_startup_timestamps  # noqa: E402
-from megatron.training.argument_utils import gpt_config_from_args, pretrain_cfg_container_from_args  # noqa: E402
-from megatron.training.arguments import parse_and_validate_args  # noqa: E402
 
-import pretrain_gpt as megatron_gpt  # noqa: E402
+class Split(Enum):
+    train = "train"
+    valid = "valid"
+    test = "test"
+
+
+_MEGATRON_RUNTIME: SimpleNamespace | None = None
+
+
+def load_megatron_runtime() -> SimpleNamespace:
+    """Import Megatron only when a real training path needs it.
+
+    Some Megatron-LM versions import Triton Mamba kernels at module import time.
+    In CPU-only validation environments with CUDA wheels installed, Triton can
+    fail before tests reach UniSS code. Lazy imports keep preprocessing and
+    dataset tests independent from the CUDA driver while preserving the real
+    Megatron runtime for ``main``.
+    """
+
+    global _MEGATRON_RUNTIME
+    if _MEGATRON_RUNTIME is not None:
+        return _MEGATRON_RUNTIME
+
+    ensure_megatron_import_path()
+    from megatron.core.enums import ModelType
+    from megatron.training import inprocess_restart, pretrain, print_rank_0, set_startup_timestamps
+    from megatron.training.argument_utils import gpt_config_from_args, pretrain_cfg_container_from_args
+    from megatron.training.arguments import parse_and_validate_args
+
+    import pretrain_gpt as megatron_gpt
+
+    _MEGATRON_RUNTIME = SimpleNamespace(
+        ModelType=ModelType,
+        gpt_config_from_args=gpt_config_from_args,
+        inprocess_restart=inprocess_restart,
+        megatron_gpt=megatron_gpt,
+        parse_and_validate_args=parse_and_validate_args,
+        pretrain=pretrain,
+        pretrain_cfg_container_from_args=pretrain_cfg_container_from_args,
+        print_rank_0=print_rank_0,
+        set_startup_timestamps=set_startup_timestamps,
+    )
+    return _MEGATRON_RUNTIME
 
 
 def add_uniss_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -112,6 +150,7 @@ def add_uniss_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
 
 def add_extra_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    megatron_gpt = load_megatron_runtime().megatron_gpt
     if megatron_gpt.has_nvidia_modelopt:
         parser = megatron_gpt.add_modelopt_args(parser)
     return add_uniss_args(parser)
@@ -167,18 +206,21 @@ def build_uniss_packed_datasets(args: SimpleNamespace):
 
 def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
     del train_val_test_num_samples, vp_stage
+    runtime = load_megatron_runtime()
+    megatron_gpt = runtime.megatron_gpt
     args = megatron_gpt.get_args()
-    print_rank_0("> building UniSS packed JSONL datasets ...")
+    runtime.print_rank_0("> building UniSS packed JSONL datasets ...")
     datasets = build_uniss_packed_datasets(args)
-    print_rank_0("> finished creating UniSS packed JSONL datasets ...")
+    runtime.print_rank_0("> finished creating UniSS packed JSONL datasets ...")
     return datasets
 
 
-def maybe_wrap_pretrain_after_parse(args: SimpleNamespace):
+def maybe_wrap_pretrain_after_parse(args: SimpleNamespace, runtime: SimpleNamespace | None = None):
+    runtime = runtime or load_megatron_runtime()
     if not getattr(args, "inprocess_restart", False):
-        return pretrain, None
+        return runtime.pretrain, None
 
-    wrapped_pretrain = inprocess_restart.inprocess_restart(pretrain, args)
+    wrapped_pretrain = runtime.inprocess_restart.inprocess_restart(runtime.pretrain, args)
     import torch
 
     store = torch.distributed.TCPStore(
@@ -194,27 +236,29 @@ def maybe_wrap_pretrain_after_parse(args: SimpleNamespace):
 
 
 def main() -> None:
-    set_startup_timestamps(program_start=_PROGRAM_START_TIME, main_entry=time.time())
+    runtime = load_megatron_runtime()
+    megatron_gpt = runtime.megatron_gpt
+    runtime.set_startup_timestamps(program_start=_PROGRAM_START_TIME, main_entry=time.time())
 
-    args = parse_and_validate_args(
+    args = runtime.parse_and_validate_args(
         extra_args_provider=add_extra_args,
         args_defaults={"tokenizer_type": "GPT2BPETokenizer"},
     )
     validate_uniss_args(args)
-    wrapped_pretrain, store = maybe_wrap_pretrain_after_parse(args)
+    wrapped_pretrain, store = maybe_wrap_pretrain_after_parse(args, runtime=runtime)
 
     if megatron_gpt.has_nvidia_modelopt:
         megatron_gpt.maybe_enable_modelopt(args)
     if megatron_gpt.has_nvidia_modelopt and getattr(args, "modelopt_enabled", False):
-        model_cfg = gpt_config_from_args(args, model_config_cls=megatron_gpt.ModelOptModelConfig)
+        model_cfg = runtime.gpt_config_from_args(args, model_config_cls=megatron_gpt.ModelOptModelConfig)
     else:
-        model_cfg = gpt_config_from_args(args)
+        model_cfg = runtime.gpt_config_from_args(args)
 
-    full_config = pretrain_cfg_container_from_args(args, model_cfg)
+    full_config = runtime.pretrain_cfg_container_from_args(args, model_cfg)
     wrapped_pretrain(
         full_config,
         train_valid_test_datasets_provider,
-        ModelType.encoder_or_decoder,
+        runtime.ModelType.encoder_or_decoder,
         megatron_gpt.forward_step,
         store=store,
         get_embedding_ranks=megatron_gpt.get_embedding_ranks,
