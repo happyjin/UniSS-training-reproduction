@@ -958,6 +958,12 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 - 或使用 Megatron-LM 中已有 LLaMA/Mistral-style decoder 作为基底，补 Qwen2 config 差异。
 - 必须验证 HF Qwen2 -> Megatron -> HF round trip 后，同一输入 logits 误差足够小，再启动大规模训练。
 
+当前本地检查结果：
+
+- `third_party/Megatron-LM` commit：`4bf7fca050ae55ef58e299003fd12d769aac81e0`，已记录在 `training/MEGATRON_COMMIT`。
+- 该 checkout 包含 GPT-OSS 示例引用 `megatron.bridge.AutoBridge`，但本地源码树和 conda env 中当前没有 `megatron.bridge` / `megatron-bridge` 包。
+- 因此 HF Qwen2 -> Megatron checkpoint conversion 暂不能直接执行；下一步必须安装/引入 Megatron Bridge，或补一个 Qwen2 HF loader/saver，并先完成 tiny Qwen2 round-trip logits 验证。
+
 ### 5.11 Megatron-LM 集成策略
 
 需要 clone Megatron-LM，但不建议把当前 UniSS repo 搬进 Megatron-LM 里重构。当前开源 UniSS 仓库是推理/tokenizer 发布包，不是 Megatron-LM fork；最稳的工程策略是保留当前 repo 作为 UniSS-specific 适配层，把 Megatron-LM 当外部训练引擎。
@@ -1023,6 +1029,12 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 cd third_party/Megatron-LM
 git rev-parse HEAD > ../../training/MEGATRON_COMMIT
 git diff > ../../training/patches/local_megatron_changes.patch
+```
+
+当前已记录 commit：
+
+```text
+4bf7fca050ae55ef58e299003fd12d769aac81e0
 ```
 
 ### 5.12 当前已实现的 Megatron 入口
