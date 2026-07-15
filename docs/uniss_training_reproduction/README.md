@@ -40,6 +40,7 @@
 - `training/pack_sequences.py`：next-token shift、loss mask 对齐、position reset、packed sample boundary。
 - `training/megatron_uniss_dataset.py`：把 packed JSONL 转成 Megatron `pretrain_gpt.py` 可消费的 tensors。
 - `training/pretrain_uniss_megatron.py`：复用 Megatron-LM `pretrain_gpt.py` 的 model/forward/loss/training loop，只替换 UniSS dataset provider。
+- `training/initialize_uniss_hf_checkpoint.py`：从本地 Qwen2.5 HF checkpoint 初始化 UniSS vocab 版 HF checkpoint；保留原 Qwen rows，新增 speech/control token embedding 用 Qwen initializer 初始化，并保存 UniSS tokenizer。
 - `scripts/download_hf_assets.sh`：使用正确 conda env 的 `huggingface-cli` 下载 UniSS、Qwen2.5、UniST，显式设置 HF cache/tmp 到 `/opt/dlami/nvme/jasonleeeli`。
 - `scripts/download_uniss_with_curl.sh`：HF CLI/Xet 卡在大文件时的 fallback；按远端 24 个文件顺序用 `curl -L -C -` 续传 UniSS 资产。
 - `scripts/train_phase1.sh`、`scripts/train_phase2.sh`、`scripts/train_phase3.sh`：按论文 Implementation Details 设置 Megatron 启动参数；支持 `--dry-run` 打印命令。
@@ -53,6 +54,7 @@ python training/build_mt_wmt17.py --help
 python training/mix_sample_jsonl.py --help
 python training/pack_sequences.py --help
 python training/pretrain_uniss_megatron.py --help
+python training/initialize_uniss_hf_checkpoint.py --help
 python -m unittest discover training/tests -v
 python -m py_compile training/*.py training/tests/*.py
 bash -n scripts/train_phase1.sh
@@ -65,7 +67,7 @@ scripts/train_phase2.sh --dry-run --exit-duration-in-mins 1
 scripts/train_phase3.sh --dry-run --exit-duration-in-mins 1
 ```
 
-当前验证结果：42 个单元测试通过，所有训练工具脚本通过语法编译；三个 Megatron phase 启动脚本通过 shell 语法检查和 dry-run 命令构造检查。`data/raw/UniST` 下载已在 `tmux` session `unist_download` 中后台执行，数据目录已被 `.gitignore` 排除。
+当前验证结果：48 个单元测试通过，所有训练工具脚本通过语法编译；三个 Megatron phase 启动脚本通过 shell 语法检查和 dry-run 命令构造检查。`training/initialize_uniss_hf_checkpoint.py` 已用 tiny Qwen2 本地 checkpoint 做端到端保存/重载 smoke。`data/raw/UniST` 下载已在 `tmux` session `unist_download` 中后台执行，数据目录已被 `.gitignore` 排除。
 
 ## 2. 模型与 tokenizer 设计
 
@@ -601,7 +603,7 @@ Phase 3 只使用 UniST High-quality，并训练完整 S2ST task 的 CoT prompti
 ```text
 training/
   constants_uniss.py
-  build_tokenizer_and_init.py
+  initialize_uniss_hf_checkpoint.py
   convert_qwen2_hf_to_megatron.py
   prepare_phase1_alignment.py
   prepare_unist_s2st.py
@@ -666,7 +668,7 @@ TOKEN_PAD = 151643
 - GLM token 必须在 `[0, 16383]`。
 - `bicodec_global` 长度必须为 32。
 
-### 5.2 `build_tokenizer_and_init.py`
+### 5.2 `initialize_uniss_hf_checkpoint.py`
 
 职责：
 
@@ -681,6 +683,21 @@ TOKEN_PAD = 151643
 - 直接下载 `cmots/UniSS` 的 `tokenizer.json/vocab.json/merges.txt/tokenizer_config.json`。
 - 使用 base Qwen2.5-1.5B weights 初始化 model，然后套用 UniSS tokenizer。
 - 这样能保证 token ID 与推理仓库完全一致。
+
+已实现脚本：
+
+```bash
+python training/initialize_uniss_hf_checkpoint.py \
+  --base-model pretrained_models/Qwen2.5-1.5B-Instruct \
+  --uniss-tokenizer pretrained_models/UniSS \
+  --output checkpoints/qwen2_1p5b_uniss_vocab_hf
+```
+
+注意：
+
+- 该脚本只读本地 checkpoint/tokenizer，不下载文件。
+- 默认强制 `vocab_size=180407`，与论文 Implementation Details 和公开 UniSS tokenizer 对齐。
+- 新增 token rows 使用 `initializer_range=0.02`，保留原始 Qwen token embedding/lm_head rows。
 
 ### 5.3 `prepare_phase1_alignment.py`
 
@@ -1771,7 +1788,7 @@ print("Megatron-LM:", Path("third_party/Megatron-LM").exists())
 PY
 
 # 6. 准备 tokenizer/model init
-python training/build_tokenizer_and_init.py \
+python training/initialize_uniss_hf_checkpoint.py \
   --base-model pretrained_models/Qwen2.5-1.5B-Instruct \
   --uniss-tokenizer pretrained_models/UniSS \
   --output checkpoints/qwen2_1p5b_uniss_vocab_hf
