@@ -9,11 +9,16 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Sequence
 
 import pyarrow.parquet as pq
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from training import sample_builders as builders
 

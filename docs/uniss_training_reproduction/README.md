@@ -2,7 +2,7 @@
 
 本文档整理 UniSS 论文、附录、公开 GitHub/Hugging Face 信息和当前仓库推理代码，目标是给出一个可以落地到 Megatron-LM 的训练脚本设计计划。由于官方训练代码尚未开放，本文把严格论文复现和公开数据可复现版本分开说明。
 
-最后更新：2026-07-14 19:52:47 UTC
+最后更新：2026-07-15 09:10:00 UTC
 
 ## 1. 复现边界与依据
 
@@ -26,6 +26,29 @@
    - 公开 UniST 数据不是原始音频，而是 tokenized training data，字段包括 `transcription`、`translation`、`source_glm`、`target_glm`、`source_bicodec`、`target_bicodec`、`bicodec_global` 等。
    - Phase 2/3 可以直接构造 S2ST 样本；Phase 1 可从公开 UniST 派生 ASR/TTS/S2TT 样本，再混入 WMT17 MT 数据。
    - 这个版本不能完全等价于论文 Phase 1 的 77.1k 小时 speech alignment 数据，但工程上最可执行。
+
+### 1.3 当前实现进度
+
+截至 2026-07-15，当前 repo 已经落地并验证了公开 UniST -> Megatron packed JSONL 的核心链路：
+
+- `training/constants_uniss.py`：UniSS vocab/token ID 常量与合法性校验。
+- `training/sample_builders.py`：ASR、S2TT、TTS、MT、Quality、Performance、Direct S2ST prompt/target 构造。
+- `training/prepare_unist_s2st.py`：读取 HF `cmots/UniST` parquet，生成 Phase 2/3 S2ST JSONL 样本。
+- `training/pack_sequences.py`：next-token shift、loss mask 对齐、position reset、packed sample boundary。
+- `training/megatron_uniss_dataset.py`：把 packed JSONL 转成 Megatron `pretrain_gpt.py` 可消费的 tensors。
+- `training/pretrain_uniss_megatron.py`：复用 Megatron-LM `pretrain_gpt.py` 的 model/forward/loss/training loop，只替换 UniSS dataset provider。
+
+已执行验证：
+
+```bash
+python training/prepare_unist_s2st.py --help
+python training/pack_sequences.py --help
+python training/pretrain_uniss_megatron.py --help
+python -m unittest discover training/tests -v
+python -m py_compile training/*.py training/tests/*.py
+```
+
+当前验证结果：29 个单元测试通过，所有训练工具脚本通过语法编译。`data/raw/UniST` 下载已在 `tmux` session `unist_download` 中后台执行，数据目录已被 `.gitignore` 排除。
 
 ## 2. 模型与 tokenizer 设计
 
@@ -708,13 +731,16 @@ data/processed/phase1/s2tt/*.jsonl
 python training/prepare_unist_s2st.py \
   --input "data/raw/UniST/train-*.parquet" \
   --phase phase2 \
-  --output data/processed/phase2/unist_s2st \
-  --quality-ratio 1 \
-  --performance-ratio 1 \
-  --direct-ratio 1 \
-  --max-unpacked-length 18000 \
-  --tokenizer pretrained_models/UniSS
+  --tokenizer pretrained_models/UniSS \
+  --output data/processed/phase2/unist_s2st.jsonl
 ```
+
+后续需要补的采样参数：
+
+- `--quality-ratio`
+- `--performance-ratio`
+- `--direct-ratio`
+- `--max-unpacked-length`
 
 质量检查：
 
@@ -911,6 +937,84 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py ...
 cd third_party/Megatron-LM
 git rev-parse HEAD > ../../training/MEGATRON_COMMIT
 git diff > ../../training/patches/local_megatron_changes.patch
+```
+
+### 5.11 当前已实现的 Megatron 入口
+
+当前实现采用 `training/pretrain_uniss_megatron.py`，不直接修改 `third_party/Megatron-LM`。入口脚本做法：
+
+- 启动时把当前 repo 和 `third_party/Megatron-LM` 加入 `PYTHONPATH`。
+- 导入并复用 Megatron-LM `pretrain_gpt.py` 的 `model_provider`、`forward_step`、`loss_func`、`get_embedding_ranks`。
+- 自定义 `train_valid_test_datasets_provider`，返回 `UniSSPackedJsonlDataset`。
+- 依赖 Megatron 的 `--sft` packed sequence 路径，让 `cu_seqlens` 进入 `PackedSeqParams`，从而避免 packed samples 互相 attention。
+- 保留 Megatron 的 distributed 初始化、optimizer、LR scheduler、checkpointing、tensor/pipeline/data parallel。
+
+当前 dataset item schema：
+
+```python
+{
+    "tokens": int64[seq_length],
+    "labels": int64[seq_length],
+    "loss_mask": float32[seq_length],
+    "position_ids": int64[seq_length],
+    "cu_seqlens": int32[seq_length + 1],
+    "max_seqlen": int32[],
+}
+```
+
+必须传入的 UniSS 参数：
+
+```bash
+--sft
+--uniss-packed-train data/megatron/phaseX/packed_train.jsonl
+--uniss-packed-valid data/megatron/phaseX/packed_valid.jsonl   # 如果 eval_iters > 0
+--vocab-size 180407
+--seq-length 18000
+--global-batch-size 128
+```
+
+如果暂时不做验证集评估，需要显式关闭 Megatron 默认 eval：
+
+```bash
+--eval-iters 0
+```
+
+建议正式复现实验加：
+
+```bash
+--uniss-strict-paper-config
+```
+
+它会检查 `seq_length=18000` 和 `global_batch_size=128`，对应论文的 18k packing 和 2.304M tokens/global step。
+
+当前限制：
+
+- `context_parallel_size` 暂时限制为 1；如果后续要启用 context parallel，需要补 `cu_seqlens_padded` 与 CP 切分验证。
+- dataset 不生成 dense attention mask，因此不能启用 `--create-attention-mask-in-dataloader`。
+- 当前环境 Python 是 3.14，入口脚本里包含两个 argparse 兼容 shim，用于绕过当前 Megatron-LM 参数定义中的 `BooleanOptionalAction(type=bool)` 和未转义 `%` help 文案问题。真实训练建议新建独立 conda 环境，使用 Python 3.12、Megatron-LM 要求的 `torch>=2.6`、Transformer Engine/Apex/NCCL 组合。
+
+最小执行链路：
+
+```bash
+python training/prepare_unist_s2st.py \
+  --input "data/raw/UniST/train-*.parquet" \
+  --phase phase2 \
+  --tokenizer pretrained_models/UniSS \
+  --output data/processed/phase2/unist_s2st.jsonl
+
+python training/pack_sequences.py \
+  --input data/processed/phase2/unist_s2st.jsonl \
+  --output data/megatron/phase2/packed_train.jsonl \
+  --seq-length 18000 \
+  --drop-overlong
+
+PYTHONPATH=third_party/Megatron-LM:$PYTHONPATH \
+torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
+  --sft \
+  --uniss-packed-train data/megatron/phase2/packed_train.jsonl \
+  --eval-iters 0 \
+  --uniss-strict-paper-config \
+  ...
 ```
 
 ## 6. Loss 设计
@@ -1222,6 +1326,11 @@ tokens_per_step = 128 sequences * 18000 tokens = 2,304,000 tokens
 
 ```bash
 torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
+  --sft \
+  --uniss-packed-train data/megatron/phase1/packed_train.jsonl \
+  --uniss-packed-valid data/megatron/phase1/packed_valid.jsonl \
+  --uniss-strict-paper-config \
+  --vocab-size 180407 \
   --tensor-model-parallel-size 1 \
   --pipeline-model-parallel-size 1 \
   --num-layers 28 \
@@ -1245,7 +1354,6 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
   --bf16 \
   --use-flash-attn \
   --recompute-activations \
-  --data-path data/megatron/phase1 \
   --save checkpoints/uniss_phase1 \
   --load checkpoints/qwen2_1p5b_uniss_vocab
 ```
@@ -1273,6 +1381,11 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
 
 ```bash
 torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
+  --sft \
+  --uniss-packed-train data/megatron/phase2_mix/packed_train.jsonl \
+  --uniss-packed-valid data/megatron/phase2_mix/packed_valid.jsonl \
+  --uniss-strict-paper-config \
+  --vocab-size 180407 \
   --tensor-model-parallel-size 1 \
   --pipeline-model-parallel-size 1 \
   --seq-length 18000 \
@@ -1289,7 +1402,6 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
   --bf16 \
   --use-flash-attn \
   --recompute-activations \
-  --data-path data/megatron/phase2_mix \
   --load checkpoints/uniss_phase1 \
   --save checkpoints/uniss_phase2
 ```
@@ -1314,6 +1426,11 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
 
 ```bash
 torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
+  --sft \
+  --uniss-packed-train data/megatron/phase3_hq/packed_train.jsonl \
+  --uniss-packed-valid data/megatron/phase3_hq/packed_valid.jsonl \
+  --uniss-strict-paper-config \
+  --vocab-size 180407 \
   --tensor-model-parallel-size 1 \
   --pipeline-model-parallel-size 1 \
   --seq-length 18000 \
@@ -1330,7 +1447,6 @@ torchrun --nproc_per_node=16 training/pretrain_uniss_megatron.py \
   --bf16 \
   --use-flash-attn \
   --recompute-activations \
-  --data-path data/megatron/phase3_hq \
   --load checkpoints/uniss_phase2 \
   --save checkpoints/uniss_phase3
 ```
@@ -1605,9 +1721,9 @@ python training/build_mt_wmt17.py \
   --output data/processed/phase1/mt
 
 python training/pack_sequences.py \
-  --inputs data/processed/phase1 \
+  --input data/processed/phase1/phase1_samples.jsonl \
   --seq-length 18000 \
-  --output data/megatron/phase1
+  --output data/megatron/phase1/packed_train.jsonl
 
 bash scripts/train_phase1.sh
 
@@ -1615,13 +1731,16 @@ bash scripts/train_phase1.sh
 python training/prepare_unist_s2st.py \
   --input "data/raw/UniST/train-*.parquet" \
   --phase phase2 \
-  --output data/processed/phase2
+  --tokenizer pretrained_models/UniSS \
+  --output data/processed/phase2/unist_s2st.jsonl
 
+# Phase 2 的 2:1 混合应在 sample list 生成阶段完成；
+# 当前 pack_sequences.py 只负责把给定 JSONL packing 成 Megatron JSONL。
 python training/pack_sequences.py \
-  --inputs data/processed/phase2 data/processed/phase1 \
-  --mix-ratio 2,1 \
+  --input data/processed/phase2/unist_s2st.jsonl data/processed/phase1/phase1_replay.jsonl \
   --seq-length 18000 \
-  --output data/megatron/phase2_mix
+  --output data/megatron/phase2_mix/packed_train.jsonl \
+  --drop-overlong
 
 bash scripts/train_phase2.sh
 
@@ -1629,12 +1748,14 @@ bash scripts/train_phase2.sh
 python training/prepare_unist_s2st.py \
   --input "data/raw/UniST/train-*.parquet" \
   --phase phase3 \
-  --output data/processed/phase3
+  --tokenizer pretrained_models/UniSS \
+  --output data/processed/phase3/unist_s2st.jsonl
 
 python training/pack_sequences.py \
-  --inputs data/processed/phase3 \
+  --input data/processed/phase3/unist_s2st.jsonl \
   --seq-length 18000 \
-  --output data/megatron/phase3_hq
+  --output data/megatron/phase3_hq/packed_train.jsonl \
+  --drop-overlong
 
 bash scripts/train_phase3.sh
 
