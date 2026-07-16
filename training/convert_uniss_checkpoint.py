@@ -8,6 +8,7 @@ conversion commands reproducible and local-path only for the UniSS runs.
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import sys
@@ -65,9 +66,83 @@ def torch_dtype_from_name(name: str | None) -> torch.dtype | None:
         raise ValueError(f"Unsupported dtype {name!r}") from exc
 
 
+def patch_torch_distributed_checkpoint_no_dist() -> None:
+    """Ignore Megatron's legacy ``no_dist`` kwarg on newer PyTorch versions."""
+
+    try:
+        import torch.distributed.checkpoint as checkpoint
+    except Exception:
+        return
+
+    load_fn = checkpoint.load
+    if getattr(load_fn, "_uniss_no_dist_compat", False):
+        return
+    if "no_dist" in inspect.signature(load_fn).parameters:
+        return
+
+    def load_no_dist_compat(*args, **kwargs):
+        kwargs.pop("no_dist", None)
+        return load_fn(*args, **kwargs)
+
+    load_no_dist_compat._uniss_no_dist_compat = True
+    checkpoint.load = load_no_dist_compat
+
+
 def require_path(path: Path, label: str) -> None:
     if not path.exists():
         raise FileNotFoundError(f"{label} does not exist: {path}")
+
+
+def resolve_latest_iter_dir(path: Path) -> Path:
+    if path.name.startswith("iter_"):
+        return path
+    iter_dirs = [child for child in path.iterdir() if child.is_dir() and child.name.startswith("iter_")]
+    if not iter_dirs:
+        return path
+
+    def iter_number(iter_dir: Path) -> int:
+        try:
+            return int(iter_dir.name.replace("iter_", ""))
+        except ValueError:
+            return -1
+
+    return max(iter_dirs, key=iter_number)
+
+
+def infer_exported_vocab_size(hf_dir: Path) -> int | None:
+    try:
+        from safetensors import safe_open
+    except ImportError:
+        return None
+
+    candidate_keys = (
+        "model.embed_tokens.weight",
+        "transformer.word_embeddings.weight",
+        "lm_head.weight",
+    )
+    for safetensors_path in sorted(hf_dir.glob("*.safetensors")):
+        with safe_open(safetensors_path, framework="pt", device="cpu") as handle:
+            keys = set(handle.keys())
+            for key in candidate_keys:
+                if key not in keys:
+                    continue
+                tensor_slice = handle.get_slice(key)
+                return int(tensor_slice.get_shape()[0])
+    return None
+
+
+def sync_hf_config_vocab_size(hf_dir: Path) -> int | None:
+    config_path = hf_dir / "config.json"
+    if not config_path.exists():
+        return None
+    vocab_size = infer_exported_vocab_size(hf_dir)
+    if vocab_size is None:
+        return None
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    if int(config.get("vocab_size", -1)) != vocab_size:
+        config["vocab_size"] = vocab_size
+        config_path.write_text(json.dumps(config, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    return vocab_size
 
 
 def load_autobridge():
@@ -187,6 +262,16 @@ def ensure_bridge_model_symbols() -> None:
         bridge_models.T5ModelProvider = bridge_models.GPTModelProvider
 
 
+def ensure_default_bridge_runtime() -> None:
+    """Apply local compatibility shims before Bridge imports broad modules."""
+
+    patch_torch_distributed_checkpoint_no_dist()
+    ensure_modelopt_checkpoint_plugin_exports()
+    ensure_transformers_bridge_symbols()
+    ensure_bridge_training_data_import_stubs()
+    ensure_bridge_model_symbols()
+
+
 def build_summary(args: argparse.Namespace) -> ConversionSummary:
     hf_output = getattr(args, "hf_output", None)
     return ConversionSummary(
@@ -240,10 +325,7 @@ def import_hf_to_megatron(args: argparse.Namespace, *, autobridge: Any | None = 
         hf_tokenizer_kwargs.setdefault("trust_remote_code", True)
 
     if uses_default_bridge:
-        ensure_modelopt_checkpoint_plugin_exports()
-        ensure_transformers_bridge_symbols()
-        ensure_bridge_training_data_import_stubs()
-        ensure_bridge_model_symbols()
+        ensure_default_bridge_runtime()
     bridge.save_megatron_model(
         megatron_model,
         str(args.megatron_path),
@@ -264,18 +346,42 @@ def export_megatron_to_hf(args: argparse.Namespace, *, autobridge: Any | None = 
     if args.dry_run:
         return summary
 
-    bridge_cls = autobridge or load_autobridge()
+    uses_default_bridge = autobridge is None
+    bridge_cls = load_autobridge() if uses_default_bridge else autobridge
     bridge = bridge_cls.from_hf_pretrained(
         str(args.hf_model),
         local_files_only=True,
         trust_remote_code=bool(args.trust_remote_code),
     )
-    bridge.export_ckpt(
-        megatron_path=str(args.megatron_path),
-        hf_path=str(args.hf_output),
-        show_progress=not args.no_progress,
-        strict=bool(args.strict),
-    )
+    if uses_default_bridge:
+        ensure_default_bridge_runtime()
+    if args.model_type is not None:
+        from megatron.bridge.training.model_load_save import load_megatron_model, temporary_distributed_context
+
+        checkpoint_path = resolve_latest_iter_dir(args.megatron_path)
+        with temporary_distributed_context(backend="gloo"):
+            megatron_model = load_megatron_model(
+                str(checkpoint_path),
+                model_type=args.model_type,
+                use_cpu_init=True,
+                skip_temp_dist_context=True,
+            )
+            if not isinstance(megatron_model, list):
+                megatron_model = [megatron_model]
+            bridge.save_hf_pretrained(
+                megatron_model,
+                str(args.hf_output),
+                show_progress=not args.no_progress,
+                strict=bool(args.strict),
+            )
+    else:
+        bridge.export_ckpt(
+            megatron_path=str(args.megatron_path),
+            hf_path=str(args.hf_output),
+            show_progress=not args.no_progress,
+            strict=bool(args.strict),
+        )
+    sync_hf_config_vocab_size(args.hf_output)
     return summary
 
 
@@ -305,6 +411,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     export_parser = subparsers.add_parser("export", parents=[common], help="Megatron checkpoint -> HF checkpoint")
     export_parser.add_argument("--hf-output", type=Path, default=DEFAULT_HF_EXPORT)
     export_parser.add_argument("--torch-dtype", choices=["float32", "float16", "bfloat16"], default=None)
+    export_parser.add_argument("--model-type", choices=["gpt", "hybrid", "mamba"], default=None)
     export_parser.add_argument("--strict", action="store_true")
     export_parser.add_argument("--no-progress", action="store_true")
 

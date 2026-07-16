@@ -74,6 +74,7 @@ run_cmd "${REPO_ROOT}/scripts/convert_uniss_checkpoint.sh" export \
   --hf-model "${HF_REFERENCE}" \
   --megatron-path "${PHASE1_CHECKPOINT}" \
   --hf-output "${HF_OUTPUT}" \
+  --model-type gpt \
   --no-progress
 
 run_cmd env \
