@@ -23,6 +23,8 @@ class PretrainUniSSMegatronTest(unittest.TestCase):
             "uniss_strict_paper_config": False,
             "seq_length": 6,
             "global_batch_size": 1,
+            "add_bias_linear": False,
+            "add_qkv_bias": True,
         }
         values.update(overrides)
         return SimpleNamespace(**values)
@@ -58,9 +60,34 @@ class PretrainUniSSMegatronTest(unittest.TestCase):
         parser.add_argument("--warmup", help="Use 5% warm-up.")
         self.assertIn("Use 5% warm-up.", parser.format_help())
 
+    def test_torch_checkpoint_no_dist_compat_drops_legacy_kwarg(self):
+        import torch.distributed.checkpoint as checkpoint
+
+        original_load = checkpoint.load
+        calls = []
+
+        def fake_load(state_dict, *, storage_reader=None):
+            calls.append((state_dict, storage_reader))
+            return "loaded"
+
+        try:
+            checkpoint.load = fake_load
+            m.patch_torch_distributed_checkpoint_no_dist()
+            result = checkpoint.load({"common": object()}, storage_reader="reader", no_dist=True)
+        finally:
+            checkpoint.load = original_load
+
+        self.assertEqual(result, "loaded")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1], "reader")
+
     def test_validate_requires_sft(self):
         with self.assertRaisesRegex(ValueError, "--sft"):
             m.validate_uniss_args(self._args(sft=False))
+
+    def test_validate_rejects_dense_attention_mask(self):
+        with self.assertRaisesRegex(ValueError, "dense attention masks"):
+            m.validate_uniss_args(self._args(create_attention_mask_in_dataloader=True))
 
     def test_validate_requires_valid_when_eval_is_enabled(self):
         with self.assertRaisesRegex(ValueError, "--uniss-packed-valid"):
@@ -69,6 +96,17 @@ class PretrainUniSSMegatronTest(unittest.TestCase):
     def test_validate_strict_paper_config(self):
         with self.assertRaisesRegex(ValueError, "--seq-length 18000"):
             m.validate_uniss_args(self._args(uniss_strict_paper_config=True))
+
+    def test_validate_strict_paper_config_rejects_qwen_bias_mismatch(self):
+        strict_args = {
+            "uniss_strict_paper_config": True,
+            "seq_length": m.PAPER_SEQ_LENGTH,
+            "global_batch_size": m.PAPER_GLOBAL_BATCH_SEQUENCES,
+        }
+        with self.assertRaisesRegex(ValueError, "--disable-bias-linear"):
+            m.validate_uniss_args(self._args(**strict_args, add_bias_linear=True))
+        with self.assertRaisesRegex(ValueError, "--add-qkv-bias"):
+            m.validate_uniss_args(self._args(**strict_args, add_qkv_bias=False))
 
     def test_build_uniss_packed_datasets(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -80,12 +118,13 @@ class PretrainUniSSMegatronTest(unittest.TestCase):
                 eval_iters=1,
             )
             m.validate_uniss_args(args)
-            train_ds, valid_ds, test_ds = m.build_uniss_packed_datasets(args)
-            self.assertEqual(len(train_ds), 1)
-            self.assertEqual(len(valid_ds), 1)
+            train_ds, valid_ds, test_ds = m.build_uniss_packed_datasets(args, train_val_test_num_samples=[3, 2, 1])
+            self.assertEqual(len(train_ds), 3)
+            self.assertEqual(len(valid_ds), 2)
             self.assertIsNone(test_ds)
             self.assertEqual(train_ds.split, m.Split.train)
             self.assertEqual(valid_ds.split, m.Split.valid)
+            self.assertEqual(train_ds[0]["tokens"].tolist(), train_ds[2]["tokens"].tolist())
 
 
 if __name__ == "__main__":

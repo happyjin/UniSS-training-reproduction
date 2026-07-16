@@ -47,6 +47,25 @@ class PreparePhase1AlignmentTest(unittest.TestCase):
             self.assertGreater(samples[0]["prompt_length"], 0)
             self.assertGreater(samples[0]["target_length"], 0)
 
+    def test_convert_phase1_can_include_unist_mt_proxy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parquet_path = Path(tmp) / "sample.parquet"
+            self._write_parquet(parquet_path)
+
+            records = list(prep.iter_alignment_records([parquet_path], limit_records=1))
+            samples = list(
+                prep.convert_records_to_samples(
+                    records,
+                    fake_text_encoder,
+                    tasks=["asr", "s2tt", "tts", "mt"],
+                )
+            )
+            self.assertEqual([sample["task"] for sample in samples], ["asr", "s2tt", "tts", "mt"])
+            mt_sample = samples[-1]
+            self.assertEqual(mt_sample["phase"], "phase1")
+            self.assertGreater(mt_sample["prompt_length"], 0)
+            self.assertGreater(mt_sample["target_length"], 0)
+
     def test_selected_tasks_can_skip_tts_when_source_bicodec_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
             parquet_path = Path(tmp) / "sample.parquet"
@@ -81,6 +100,7 @@ class PreparePhase1AlignmentTest(unittest.TestCase):
             text=True,
         )
         self.assertIn("--tasks", result.stdout)
+        self.assertIn("--include-mt-proxy", result.stdout)
 
 
 if __name__ == "__main__":

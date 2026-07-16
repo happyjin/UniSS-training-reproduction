@@ -53,6 +53,15 @@ class MegatronUniSSDatasetTest(unittest.TestCase):
             self.assertEqual(batch["cu_seqlens"].shape, (1, 7))
             self.assertEqual(batch["max_seqlen"].shape, (1,))
 
+    def test_repeat_to_length_dataset_wraps_by_modulo(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "packed.jsonl"
+            path.write_text(json.dumps(self._packed_item()) + "\n", encoding="utf-8")
+            dataset = d.UniSSPackedJsonlDataset(path, seq_length=6)
+            repeated = d.RepeatToLengthDataset(dataset, length=3)
+            self.assertEqual(len(repeated), 3)
+            self.assertEqual(repeated[0]["tokens"].tolist(), repeated[2]["tokens"].tolist())
+
     def test_invalid_boundaries(self):
         with self.assertRaises(ValueError):
             d.boundaries_to_padded_cu_seqlens([[0, 3], [4, 5]], 6)

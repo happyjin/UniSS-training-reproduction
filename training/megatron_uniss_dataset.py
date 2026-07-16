@@ -52,6 +52,25 @@ class UniSSPackedJsonlDataset(Dataset):
         return packed_json_to_megatron_item(item, seq_length=self.seq_length)
 
 
+class RepeatToLengthDataset(Dataset):
+    """Repeat a finite map-style dataset until it reaches Megatron's target size."""
+
+    def __init__(self, dataset: Dataset, length: int) -> None:
+        if length <= 0:
+            raise ValueError("length must be positive")
+        if len(dataset) == 0:
+            raise ValueError("dataset must be non-empty")
+        self.dataset = dataset
+        self.length = length
+        self.split = getattr(dataset, "split", None)
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __getitem__(self, index: int):
+        return self.dataset[index % len(self.dataset)]
+
+
 def _tensor_from_int_list(item: Mapping[str, object], key: str, length: int, dtype: torch.dtype) -> torch.Tensor:
     value = item[key]
     if not isinstance(value, list):

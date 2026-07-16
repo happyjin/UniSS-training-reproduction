@@ -2,8 +2,8 @@
 
 The paper's first stage uses ASR, TTS, S2TT, and MT objectives. This script
 implements the speech-side objectives from tokenized UniST-style parquet files:
-ASR, S2TT, and TTS. MT is handled separately by ``build_mt_wmt17.py`` because it
-comes from parallel text corpora such as WMT17.
+ASR, S2TT, and TTS. For UniST-only bring-up runs, it can also emit an MT proxy
+from the same row's transcription/translation pair.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from training import sample_builders as builders
 
 
 SPEECH_TASKS = ("asr", "s2tt", "tts")
+PHASE1_TASKS = (*SPEECH_TASKS, "mt")
 REQUIRED_COLUMNS = {
     "id",
     "transcription",
@@ -128,7 +129,7 @@ def build_task_samples(
     tasks: Sequence[str],
 ) -> list[builders.TrainingSample]:
     selected = set(tasks)
-    unknown = selected - set(SPEECH_TASKS)
+    unknown = selected - set(PHASE1_TASKS)
     if unknown:
         raise ValueError(f"Unsupported Phase 1 speech tasks: {sorted(unknown)}")
 
@@ -165,6 +166,17 @@ def build_task_samples(
                 src_lang=str(record["src_lang"]),
                 transcription=str(record["transcription"]),
                 source_bicodec=record["source_bicodec"],  # type: ignore[arg-type]
+                text_encoder=text_encoder,
+                source_id=source_id,
+            )
+        )
+    if "mt" in selected:
+        samples.append(
+            builders.build_mt_sample(
+                src_lang=str(record["src_lang"]),
+                tgt_lang=str(record["tgt_lang"]),
+                source_text=str(record["transcription"]),
+                target_text=str(record["translation"]),
                 text_encoder=text_encoder,
                 source_id=source_id,
             )
@@ -211,7 +223,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", nargs="+", required=True, help="UniST-style parquet files or glob patterns")
     parser.add_argument("--output", required=True, help="Output JSONL path")
     parser.add_argument("--tokenizer", required=True, help="HF/UniSS tokenizer path")
-    parser.add_argument("--tasks", nargs="+", default=list(SPEECH_TASKS), choices=SPEECH_TASKS)
+    parser.add_argument("--tasks", nargs="+", default=list(SPEECH_TASKS), choices=PHASE1_TASKS)
+    parser.add_argument(
+        "--include-mt-proxy",
+        action="store_true",
+        help="Also emit an MT proxy sample from UniST transcription -> translation.",
+    )
     parser.add_argument("--limit-records", type=int, default=None)
     return parser.parse_args()
 
@@ -220,8 +237,11 @@ def main() -> None:
     args = parse_args()
     paths = expand_input_paths(args.input)
     text_encoder = load_hf_text_encoder(args.tokenizer)
+    tasks = list(args.tasks)
+    if args.include_mt_proxy and "mt" not in tasks:
+        tasks.append("mt")
     records = iter_alignment_records(paths, limit_records=args.limit_records)
-    samples = convert_records_to_samples(records, text_encoder=text_encoder, tasks=args.tasks)
+    samples = convert_records_to_samples(records, text_encoder=text_encoder, tasks=tasks)
     counts = write_jsonl(samples, Path(args.output))
     print(json.dumps({"output": args.output, "counts": counts}, ensure_ascii=False, sort_keys=True))
 

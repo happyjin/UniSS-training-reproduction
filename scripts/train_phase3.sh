@@ -15,6 +15,7 @@ export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_HOME}/transformers}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-${USER_ROOT}/cache/pip}"
 export TMPDIR="${TMPDIR:-${USER_ROOT}/tmp}"
 export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
+export CUDA_DEVICE_MAX_CONNECTIONS="${CUDA_DEVICE_MAX_CONNECTIONS:-1}"
 
 mkdir -p "${HF_HOME}" "${HUGGINGFACE_HUB_CACHE}" "${TRANSFORMERS_CACHE}" \
   "${PIP_CACHE_DIR}" "${TMPDIR}" "${REPO_ROOT}/logs" "${REPO_ROOT}/runs"
@@ -25,6 +26,9 @@ LOAD_CHECKPOINT="${LOAD_CHECKPOINT:-${REPO_ROOT}/checkpoints/uniss_phase2}"
 SAVE_DIR="${SAVE_DIR:-${REPO_ROOT}/checkpoints/uniss_phase3}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-16}"
 MASTER_PORT="${MASTER_PORT:-29503}"
+LOAD_OPTIM="${LOAD_OPTIM:-0}"
+LOAD_RNG="${LOAD_RNG:-0}"
+FINETUNE="${FINETUNE:-1}"
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
   echo "Missing TRAIN_DATA: ${TRAIN_DATA}" >&2
@@ -50,6 +54,8 @@ cmd=(torchrun
   --num-query-groups 2
   --normalization RMSNorm
   --swiglu
+  --disable-bias-linear
+  --add-qkv-bias
   --position-embedding-type rope
   --rotary-base 1000000
   --seq-length 18000
@@ -66,12 +72,24 @@ cmd=(torchrun
   --adam-beta2 0.95
   --bf16
   --use-flash-attn
+  --no-create-attention-mask-in-dataloader
+  --no-gradient-accumulation-fusion
   --recompute-activations
   --save "${SAVE_DIR}"
   --load "${LOAD_CHECKPOINT}"
   --save-interval "${SAVE_INTERVAL:-500}"
   --log-interval "${LOG_INTERVAL:-10}"
 )
+
+if [[ "${LOAD_OPTIM}" != "1" ]]; then
+  cmd+=(--no-load-optim)
+fi
+if [[ "${LOAD_RNG}" != "1" ]]; then
+  cmd+=(--no-load-rng)
+fi
+if [[ "${FINETUNE}" == "1" ]]; then
+  cmd+=(--finetune)
+fi
 
 if [[ -n "${VALID_DATA}" ]]; then
   cmd+=(--uniss-packed-valid "${VALID_DATA}" --eval-iters "${EVAL_ITERS:-10}" --eval-interval "${EVAL_INTERVAL:-500}")

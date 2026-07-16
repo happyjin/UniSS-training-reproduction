@@ -68,12 +68,35 @@ def ensure_megatron_import_path(megatron_root: Path = DEFAULT_MEGATRON_ROOT) -> 
             sys.path.insert(0, path_str)
 
 
+def patch_torch_distributed_checkpoint_no_dist() -> None:
+    """Ignore Megatron's legacy ``no_dist`` kwarg on PyTorch versions without it."""
+
+    try:
+        import torch.distributed.checkpoint as checkpoint
+    except Exception:
+        return
+
+    load_fn = checkpoint.load
+    if getattr(load_fn, "_uniss_no_dist_compat", False):
+        return
+    if "no_dist" in inspect.signature(load_fn).parameters:
+        return
+
+    def load_no_dist_compat(*args, **kwargs):
+        kwargs.pop("no_dist", None)
+        return load_fn(*args, **kwargs)
+
+    load_no_dist_compat._uniss_no_dist_compat = True
+    checkpoint.load = load_no_dist_compat
+
+
 patch_argparse_boolean_optional_action()
 patch_argparse_help_formatter_percent()
 ensure_megatron_import_path()
+patch_torch_distributed_checkpoint_no_dist()
 
 from training import constants_uniss as c  # noqa: E402
-from training.megatron_uniss_dataset import UniSSPackedJsonlDataset  # noqa: E402
+from training.megatron_uniss_dataset import RepeatToLengthDataset, UniSSPackedJsonlDataset  # noqa: E402
 
 
 class Split(Enum):
@@ -186,31 +209,47 @@ def validate_uniss_args(args: SimpleNamespace) -> None:
                 "Paper config requires --global-batch-size "
                 f"{PAPER_GLOBAL_BATCH_SEQUENCES} packed sequences, got {global_batch_size}."
             )
+        if bool(getattr(args, "add_bias_linear", True)):
+            raise ValueError("Qwen2.5 backbone checkpoint requires --disable-bias-linear.")
+        if not bool(getattr(args, "add_qkv_bias", False)):
+            raise ValueError("Qwen2.5 backbone checkpoint requires --add-qkv-bias.")
 
 
-def _dataset(path: str | None, seq_length: int, split: Split) -> UniSSPackedJsonlDataset | None:
+def _target_sample_count(train_val_test_num_samples, index: int) -> int | None:
+    if train_val_test_num_samples is None:
+        return None
+    if index >= len(train_val_test_num_samples):
+        return None
+    value = train_val_test_num_samples[index]
+    return int(value) if value is not None else None
+
+
+def _dataset(path: str | None, seq_length: int, split: Split, target_samples: int | None = None):
     if path is None:
         return None
     dataset = UniSSPackedJsonlDataset(path, seq_length=seq_length)
     dataset.split = split
+    if target_samples is not None and target_samples > len(dataset):
+        dataset = RepeatToLengthDataset(dataset, target_samples)
+        dataset.split = split
     return dataset
 
 
-def build_uniss_packed_datasets(args: SimpleNamespace):
+def build_uniss_packed_datasets(args: SimpleNamespace, train_val_test_num_samples=None):
     seq_length = int(args.seq_length)
-    train_ds = _dataset(args.uniss_packed_train, seq_length, Split.train)
-    valid_ds = _dataset(args.uniss_packed_valid, seq_length, Split.valid)
-    test_ds = _dataset(args.uniss_packed_test, seq_length, Split.test)
+    train_ds = _dataset(args.uniss_packed_train, seq_length, Split.train, _target_sample_count(train_val_test_num_samples, 0))
+    valid_ds = _dataset(args.uniss_packed_valid, seq_length, Split.valid, _target_sample_count(train_val_test_num_samples, 1))
+    test_ds = _dataset(args.uniss_packed_test, seq_length, Split.test, _target_sample_count(train_val_test_num_samples, 2))
     return train_ds, valid_ds, test_ds
 
 
 def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
-    del train_val_test_num_samples, vp_stage
+    del vp_stage
     runtime = load_megatron_runtime()
     megatron_gpt = runtime.megatron_gpt
     args = megatron_gpt.get_args()
     runtime.print_rank_0("> building UniSS packed JSONL datasets ...")
-    datasets = build_uniss_packed_datasets(args)
+    datasets = build_uniss_packed_datasets(args, train_val_test_num_samples=train_val_test_num_samples)
     runtime.print_rank_0("> finished creating UniSS packed JSONL datasets ...")
     return datasets
 
