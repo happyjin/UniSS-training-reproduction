@@ -244,6 +244,7 @@ find checkpoints/qwen2_0p5b_uniss_vocab -maxdepth 2 -type f | head
 scripts/train_phase1_qwen0p5b.sh
 scripts/train_phase2_qwen0p5b.sh
 scripts/train_phase3_qwen0p5b.sh
+scripts/run_qwen0p5b_unist13_all_phases.sh
 ```
 
 它们从现有 phase 脚本复制，但替换默认 checkpoint 与模型结构参数：
@@ -347,6 +348,18 @@ Phase 3 保持现有 Phase 3 脚本的论文复现实验设置，只替换 backb
 
 脚本必须支持 `--dry-run`，用于验证命令行。
 
+另外新增 `scripts/run_qwen0p5b_unist13_all_phases.sh` 串联 Phase 1/2/3，默认：
+
+- `CUDA_VISIBLE_DEVICES=4,5,6,7`
+- `NPROC_PER_NODE=4`
+- `TP=1`
+- `PP=1`
+- `MICRO_BATCH_SIZE=1`
+- Phase 1 使用 `data/megatron/phase1_unist13/packed_train.jsonl`
+- Phase 2 使用 `data/megatron/phase2_unist13_mix/packed_train.jsonl`
+- Phase 3 在当前 snapshot 中复用 Phase 2 mix 数据
+- checkpoint/log 均写入 `uniss_qwen0p5b_*` 独立路径
+
 ## 5. 单元测试计划
 
 新增或扩展测试：
@@ -377,6 +390,8 @@ training/tests/test_train_scripts_qwen0p5b.py
    - `--num-attention-heads 12`
    - `--num-query-groups 2`
    - `checkpoints/qwen2_1p5b_uniss_vocab`
+
+4. `scripts/run_qwen0p5b_unist13_all_phases.sh --dry-run` 输出必须包含三阶段独立 checkpoint/log 路径，并且不包含 1.5B full-run checkpoint 名。
 
 执行：
 

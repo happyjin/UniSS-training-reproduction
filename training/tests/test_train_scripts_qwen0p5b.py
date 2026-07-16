@@ -73,6 +73,21 @@ class Qwen0p5BTrainScriptsTest(unittest.TestCase):
         self.assertIn("checkpoints/qwen2_1p5b_uniss_vocab", output)
         self.assertNotIn("qwen2_0p5b_uniss_vocab", output)
 
+    def test_all_phase_runner_dry_run_uses_separate_qwen0p5b_paths(self):
+        output = run_script("scripts/run_qwen0p5b_unist13_all_phases.sh", "--dry-run")
+        self.assertIn("phase1", output)
+        self.assertIn("phase2", output)
+        self.assertIn("phase3", output)
+        self.assertIn("CUDA_VISIBLE_DEVICES", output)
+        self.assertIn("checkpoints/qwen2_0p5b_uniss_vocab", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase1_unist13_full", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase2_unist13_full", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase3_unist13_full", output)
+        self.assertIn("data/megatron/phase1_unist13/packed_train.jsonl", output)
+        self.assertIn("data/megatron/phase2_unist13_mix/packed_train.jsonl", output)
+        self.assertNotIn("uniss_phase1_unist13_full", output)
+        self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
+
 
 if __name__ == "__main__":
     unittest.main()
