@@ -88,6 +88,16 @@ class Qwen0p5BTrainScriptsTest(unittest.TestCase):
         self.assertNotIn("uniss_phase1_unist13_full", output)
         self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
 
+    def test_phase1_audio_eval_dry_run_uses_qwen0p5b_checkpoint(self):
+        output = run_script("scripts/export_and_generate_qwen0p5b_phase1_audio_eval.sh", "--dry-run")
+        self.assertIn("convert_uniss_checkpoint.sh", output)
+        self.assertIn("generate_unist_audio_eval.sh", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase1_unist13_full", output)
+        self.assertIn("checkpoints/qwen2_0p5b_uniss_vocab_hf", output)
+        self.assertIn("qwen0p5b_phase1_unist13_validation_audio", output)
+        self.assertIn("SAVE_SOURCE_AUDIO=1", output)
+        self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
+
 
 if __name__ == "__main__":
     unittest.main()

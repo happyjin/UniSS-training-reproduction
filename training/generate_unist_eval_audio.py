@@ -28,7 +28,7 @@ from training import sample_builders as builders
 from training.prepare_unist_s2st import normalize_unist_record
 
 
-EVAL_MODES = ("quality", "performance", "direct_s2st")
+EVAL_MODES = ("quality", "performance", "direct_s2st", "tts")
 
 
 def expand_input_paths(patterns: Sequence[str]) -> list[Path]:
@@ -101,7 +101,22 @@ def build_eval_sample(
             target_bicodec=record["target_bicodec"],  # type: ignore[arg-type]
             source_id=str(record.get("id", "")) or None,
         )
+    if mode == "tts":
+        return builders.build_tts_sample(
+            bicodec_global=record["bicodec_global"],  # type: ignore[arg-type]
+            src_lang=str(record["src_lang"]),
+            transcription=str(record["transcription"]),
+            source_bicodec=record["source_bicodec"],  # type: ignore[arg-type]
+            text_encoder=text_encoder,
+            source_id=str(record.get("id", "")) or None,
+        )
     raise ValueError(f"Unsupported eval mode {mode!r}")
+
+
+def reference_bicodec_values(record: Mapping[str, object], mode: str) -> Sequence[int]:
+    if mode == "tts":
+        return record["source_bicodec"]  # type: ignore[return-value]
+    return record["target_bicodec"]  # type: ignore[return-value]
 
 
 def truncate_at_eos(token_ids: Sequence[int], eos_token_id: int = c.TOKEN_EOS) -> list[int]:
@@ -162,9 +177,12 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     device = torch.device(args.device)
     output_dir = Path(args.output_dir)
     wav_dir = output_dir / "wav"
+    source_dir = output_dir / "source_wav"
     ref_dir = output_dir / "reference_wav"
     output_dir.mkdir(parents=True, exist_ok=True)
     wav_dir.mkdir(parents=True, exist_ok=True)
+    if args.save_source_audio:
+        source_dir.mkdir(parents=True, exist_ok=True)
     if args.save_reference_audio:
         ref_dir.mkdir(parents=True, exist_ok=True)
 
@@ -193,7 +211,7 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
 
     paths = expand_input_paths(args.input)
     records = iter_unist_records(paths, limit_records=args.limit_records)
-    counts = {"total": 0, "generated_audio": 0, "reference_audio": 0, "failed": 0}
+    counts = {"total": 0, "generated_audio": 0, "source_audio": 0, "reference_audio": 0, "failed": 0}
 
     for record_index, record in enumerate(records):
         for mode in args.mode:
@@ -228,11 +246,23 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 )
 
             reference_audio_path = None
+            source_audio_path = None
+            if args.save_source_audio and speech_tokenizer is not None:
+                source_audio_path, source_error = maybe_decode_audio(
+                    speech_tokenizer=speech_tokenizer,
+                    global_values=record["bicodec_global"],  # type: ignore[arg-type]
+                    semantic_values=record["source_bicodec"],  # type: ignore[arg-type]
+                    output_path=source_dir / f"{name}.wav",
+                    device=device,
+                )
+                if source_error is None:
+                    counts["source_audio"] += 1
+
             if args.save_reference_audio and speech_tokenizer is not None:
                 reference_audio_path, reference_error = maybe_decode_audio(
                     speech_tokenizer=speech_tokenizer,
                     global_values=record["bicodec_global"],  # type: ignore[arg-type]
-                    semantic_values=record["target_bicodec"],  # type: ignore[arg-type]
+                    semantic_values=reference_bicodec_values(record, mode),
                     output_path=ref_dir / f"{name}.wav",
                     device=device,
                 )
@@ -252,6 +282,7 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 "generated_text_clean": clean_generated_text(generated_text),
                 "semantic_token_count": len(semantic_values),
                 "audio_path": audio_path,
+                "source_audio_path": source_audio_path,
                 "reference_audio_path": reference_audio_path,
                 "error": error,
                 "checkpoint": str(args.model),
@@ -268,7 +299,7 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     return counts
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", nargs="+", required=True, help="UniST parquet files or glob patterns")
     parser.add_argument("--model", required=True, help="HF checkpoint path to evaluate")
@@ -284,9 +315,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--skip-audio-decode", action="store_true")
+    parser.add_argument("--save-source-audio", action="store_true")
     parser.add_argument("--save-reference-audio", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def main() -> None:

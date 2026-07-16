@@ -27,6 +27,12 @@ TEMPERATURE="${TEMPERATURE:-0.7}"
 TOP_P="${TOP_P:-0.8}"
 REPETITION_PENALTY="${REPETITION_PENALTY:-1.1}"
 DTYPE="${DTYPE:-bfloat16}"
+SAVE_SOURCE_AUDIO="${SAVE_SOURCE_AUDIO:-0}"
+
+EXTRA_ARGS=(--local-files-only --save-reference-audio --overwrite)
+if [[ "${SAVE_SOURCE_AUDIO}" == "1" ]]; then
+  EXTRA_ARGS+=(--save-source-audio)
+fi
 
 case "${SPLIT}" in
   dev)
@@ -56,6 +62,4 @@ CUDA_VISIBLE_DEVICES="${EVAL_CUDA_VISIBLE_DEVICES}" \
   --repetition-penalty "${REPETITION_PENALTY}" \
   --dtype "${DTYPE}" \
   --device cuda:0 \
-  --local-files-only \
-  --save-reference-audio \
-  --overwrite
+  "${EXTRA_ARGS[@]}"
