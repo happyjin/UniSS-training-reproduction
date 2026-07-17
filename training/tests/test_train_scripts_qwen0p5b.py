@@ -7,9 +7,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def run_script(*args: str) -> str:
+def run_script(*args: str, extra_env: dict[str, str] | None = None) -> str:
     env = os.environ.copy()
     env.setdefault("USER_ROOT", "/opt/dlami/nvme/jasonleeeli")
+    if extra_env:
+        env.update(extra_env)
     result = subprocess.run(
         [str(REPO_ROOT / args[0]), *args[1:]],
         cwd=REPO_ROOT,
@@ -96,6 +98,33 @@ class Qwen0p5BTrainScriptsTest(unittest.TestCase):
         self.assertIn("checkpoints/qwen2_0p5b_uniss_vocab_hf", output)
         self.assertIn("qwen0p5b_phase1_unist13_validation_audio", output)
         self.assertIn("SAVE_SOURCE_AUDIO=1", output)
+        self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
+
+    def test_phase2_audio_eval_dry_run_uses_phase2_s2st_checkpoint(self):
+        output = run_script("scripts/export_and_generate_qwen0p5b_phase2_audio_eval.sh", "--dry-run")
+        self.assertIn("convert_uniss_checkpoint.sh", output)
+        self.assertIn("generate_unist_audio_eval.sh", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase2_unist13_full", output)
+        self.assertIn("checkpoints/exported_hf/qwen0p5b_phase2_unist13_full_hf", output)
+        self.assertIn("qwen0p5b_phase2_unist13_s2st_dev_", output)
+        self.assertIn("quality\\ performance\\ direct_s2st", output)
+        self.assertIn("SAVE_SOURCE_AUDIO=1", output)
+        self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
+
+    def test_phase3_audio_eval_dry_run_isolated_from_phase2_outputs(self):
+        output = run_script(
+            "scripts/export_and_generate_qwen0p5b_phase3_audio_eval.sh",
+            "--dry-run",
+            extra_env={"PHASE3_ITERATION": "4100"},
+        )
+        self.assertIn("convert_uniss_checkpoint.sh", output)
+        self.assertIn("generate_unist_audio_eval.sh", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase3_unist13_full/iter_0004100", output)
+        self.assertIn("checkpoints/exported_hf/qwen0p5b_phase3_unist13_iter_0004100_hf", output)
+        self.assertIn("qwen0p5b_phase3_unist13_s2st_dev_", output)
+        self.assertIn("quality\\ performance\\ direct_s2st", output)
+        self.assertIn("SAVE_SOURCE_AUDIO=1", output)
+        self.assertNotIn("qwen0p5b_phase2_unist13_full_hf", output)
         self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
 
 
