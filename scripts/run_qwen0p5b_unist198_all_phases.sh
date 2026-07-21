@@ -290,6 +290,7 @@ run_phase() {
     "MASTER_PORT=${master_port}" "FINETUNE=${finetune}"
     "LOAD_OPTIM=${load_optim}" "LOAD_RNG=${load_rng}"
     "${script}"
+    --attention-backend flash
     --tensorboard-dir "${tb_dir}"
     --tensorboard-log-interval "${TENSORBOARD_LOG_INTERVAL}"
     --log-timers-to-tensorboard

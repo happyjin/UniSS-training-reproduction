@@ -69,6 +69,7 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn(r"CUDA_VISIBLE_DEVICES=0\,1\,2\,3\,4\,5\,6\,7", output)
         self.assertIn("NPROC_PER_NODE=8", output)
         self.assertIn("MICRO_BATCH_SIZE=2", output)
+        self.assertEqual(output.count("--attention-backend flash"), 3)
         self.assertIn("TRAIN_ITERS=6", output)
         self.assertIn("TRAIN_ITERS=2", output)
         self.assertIn("TRAIN_ITERS=1", output)
