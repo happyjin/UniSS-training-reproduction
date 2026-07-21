@@ -71,10 +71,18 @@ pack_one() {
   local report="${PACK_RUN_DIR}/${label}_packer_report.$$.json"
   local count_file="${output}.count"
   local preserved
+  local workers="${PACK_WORKERS:-1}"
+  if [[ "${label}" == *validation* ]]; then
+    workers=1
+  fi
+  local packer=(python "${REPO_ROOT}/training/pack_sequences.py")
+  if (( workers > 1 )); then
+    packer=(python "${REPO_ROOT}/training/pack_sequences_parallel.py" --workers "${workers}")
+  fi
 
   if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "[dry-run] pack ${label} -> ${output}"
-    print_cmd python "${REPO_ROOT}/training/pack_sequences.py" \
+    echo "[dry-run] pack ${label} with ${workers} worker(s) -> ${output}"
+    print_cmd "${packer[@]}" \
       --input "${inputs[@]}" --output "${tmp}" \
       --seq-length "${SEQ_LENGTH}" --drop-overlong
     print_cmd python "${REPO_ROOT}/training/validate_packed_jsonl.py" \
@@ -89,8 +97,8 @@ pack_one() {
   fi
 
   mkdir -p "$(dirname "${output}")" "${PACK_RUN_DIR}"
-  echo "[$(date -u +%FT%TZ)] packing ${label}; temporary output: ${tmp}"
-  python "${REPO_ROOT}/training/pack_sequences.py" \
+  echo "[$(date -u +%FT%TZ)] packing ${label} with ${workers} worker(s); temporary output: ${tmp}"
+  "${packer[@]}" \
     --input "${inputs[@]}" --output "${tmp}" \
     --seq-length "${SEQ_LENGTH}" --drop-overlong | tee "${report}"
 

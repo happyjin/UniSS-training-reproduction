@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from training import validate_packed_jsonl
+from training import pack_sequences_parallel
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -134,6 +135,7 @@ class UniST198FullScriptsTest(unittest.TestCase):
                     "PACK_RUN_DIR": str(marker.parent),
                     "PACKING_COMPLETE_MARKER": str(marker),
                     "SEQ_LENGTH": "6",
+                    "PACK_WORKERS": "2",
                 },
             )
             for output in (phase1_output, phase2_output, phase3_output, phase3_valid):
@@ -141,6 +143,46 @@ class UniST198FullScriptsTest(unittest.TestCase):
                 self.assertTrue(Path(f"{output}.count").is_file())
                 validate_packed_jsonl.validate_file(output, seq_length=6)
             self.assertTrue(marker.is_file())
+
+    def test_parallel_packer_preserves_every_sample_in_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_a = root / "source-a.jsonl"
+            source_b = root / "source-b.jsonl"
+            output = root / "packed.jsonl"
+            samples = [
+                {
+                    "id": f"sample-{index:03d}",
+                    "task": "quality",
+                    "prompt_ids": [index + 1],
+                    "target_ids": [1000 + index, 2000 + index],
+                }
+                for index in range(37)
+            ]
+            source_a.write_text(
+                "".join(json.dumps(sample) + "\n" for sample in samples[:19]),
+                encoding="utf-8",
+            )
+            source_b.write_text(
+                "".join(json.dumps(sample) + "\n" for sample in samples[19:]),
+                encoding="utf-8",
+            )
+            report = pack_sequences_parallel.parallel_pack(
+                paths=[source_a, source_b],
+                output=output,
+                seq_length=6,
+                workers=4,
+            )
+            packed = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+            source_ids = [source_id for item in packed for source_id in item["source_ids"]]
+            self.assertEqual(source_ids, [sample["id"] for sample in samples])
+            self.assertEqual(report["packed_sequences"], len(packed))
+            self.assertEqual(report["workers"], 4)
+            self.assertLessEqual(
+                len(packed),
+                13 + report["boundary_padding_records_at_most"],
+            )
+            validate_packed_jsonl.validate_file(output, seq_length=6)
 
     def test_pipeline_and_tensorboard_dry_runs_are_isolated(self):
         pipeline = run_script("scripts/run_unist198_full_pipeline.sh", "--dry-run")
