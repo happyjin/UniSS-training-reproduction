@@ -4,11 +4,13 @@ set -euo pipefail
 DRY_RUN=0
 CONFIG_FILE=""
 START_PHASE="${START_PHASE:-phase1}"
+END_PHASE="${END_PHASE:-phase3}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --config) CONFIG_FILE="$2"; shift 2 ;;
     --start-phase) START_PHASE="$2"; shift 2 ;;
+    --end-phase) END_PHASE="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -22,6 +24,21 @@ case "${START_PHASE}" in
   phase1|phase2|phase3) ;;
   *) echo "START_PHASE must be phase1, phase2, or phase3" >&2; exit 2 ;;
 esac
+case "${END_PHASE}" in
+  phase1|phase2|phase3) ;;
+  *) echo "END_PHASE must be phase1, phase2, or phase3" >&2; exit 2 ;;
+esac
+
+phase_rank() {
+  case "$1" in phase1) echo 1 ;; phase2) echo 2 ;; phase3) echo 3 ;; esac
+}
+
+START_RANK="$(phase_rank "${START_PHASE}")"
+END_RANK="$(phase_rank "${END_PHASE}")"
+if (( START_RANK > END_RANK )); then
+  echo "START_PHASE=${START_PHASE} cannot be after END_PHASE=${END_PHASE}" >&2
+  exit 2
+fi
 if [[ "${GLOBAL_BATCH_SIZE}" != "128" ]]; then
   echo "GLOBAL_BATCH_SIZE must remain 128 for this reproduction, got ${GLOBAL_BATCH_SIZE}" >&2
   exit 1
@@ -63,12 +80,24 @@ read_count() {
 }
 
 P1_COUNT="$(read_count phase1 "${PHASE1_TRAIN}")"
-P2_COUNT="$(read_count phase2 "${PHASE2_TRAIN}")"
-P3_COUNT="$(read_count phase3 "${PHASE3_TRAIN}")"
+P2_COUNT=0
+P3_COUNT=0
+if (( END_RANK >= 2 )); then
+  P2_COUNT="$(read_count phase2 "${PHASE2_TRAIN}")"
+fi
+if (( END_RANK >= 3 )); then
+  P3_COUNT="$(read_count phase3 "${PHASE3_TRAIN}")"
+fi
 
 P1_EPOCH_ITERS="$(ceil_div "${P1_COUNT}" "${GLOBAL_BATCH_SIZE}")"
-P2_EPOCH_ITERS="$(ceil_div "${P2_COUNT}" "${GLOBAL_BATCH_SIZE}")"
-P3_EPOCH_ITERS="$(ceil_div "${P3_COUNT}" "${GLOBAL_BATCH_SIZE}")"
+P2_EPOCH_ITERS=0
+P3_EPOCH_ITERS=0
+if (( END_RANK >= 2 )); then
+  P2_EPOCH_ITERS="$(ceil_div "${P2_COUNT}" "${GLOBAL_BATCH_SIZE}")"
+fi
+if (( END_RANK >= 3 )); then
+  P3_EPOCH_ITERS="$(ceil_div "${P3_COUNT}" "${GLOBAL_BATCH_SIZE}")"
+fi
 PHASE1_TRAIN_ITERS="${PHASE1_TRAIN_ITERS:-$((3 * P1_EPOCH_ITERS))}"
 PHASE1_LR_WARMUP_ITERS="${PHASE1_LR_WARMUP_ITERS:-${P1_EPOCH_ITERS}}"
 PHASE2_TRAIN_ITERS="${PHASE2_TRAIN_ITERS:-${P2_EPOCH_ITERS}}"
@@ -124,9 +153,15 @@ write_manifest() {
     echo "micro_batch_size=${MICRO_BATCH_SIZE}"
     echo "global_batch_size=${GLOBAL_BATCH_SIZE}"
     echo "seq_length=${SEQ_LENGTH}"
+    echo "start_phase=${START_PHASE}"
+    echo "end_phase=${END_PHASE}"
     echo "phase1_packed=${PHASE1_TRAIN} count=${P1_COUNT} train_iters=${PHASE1_TRAIN_ITERS} warmup_iters=${PHASE1_LR_WARMUP_ITERS}"
-    echo "phase2_packed=${PHASE2_TRAIN} count=${P2_COUNT} train_iters=${PHASE2_TRAIN_ITERS} warmup_iters=${PHASE2_LR_WARMUP_ITERS}"
-    echo "phase3_packed=${PHASE3_TRAIN} count=${P3_COUNT} train_iters=${PHASE3_TRAIN_ITERS} warmup_iters=${PHASE3_LR_WARMUP_ITERS} ninety_percent_iter=${PHASE3_NINETY_PERCENT_ITER}"
+    if (( END_RANK >= 2 )); then
+      echo "phase2_packed=${PHASE2_TRAIN} count=${P2_COUNT} train_iters=${PHASE2_TRAIN_ITERS} warmup_iters=${PHASE2_LR_WARMUP_ITERS}"
+    fi
+    if (( END_RANK >= 3 )); then
+      echo "phase3_packed=${PHASE3_TRAIN} count=${P3_COUNT} train_iters=${PHASE3_TRAIN_ITERS} warmup_iters=${PHASE3_LR_WARMUP_ITERS} ninety_percent_iter=${PHASE3_NINETY_PERCENT_ITER}"
+    fi
     python - <<'PY'
 import platform
 import torch
@@ -146,30 +181,44 @@ PY
 }
 
 if [[ "${DRY_RUN}" == "0" ]]; then
-  require_file "${PACKING_COMPLETE_MARKER}"
-  for path in "${PHASE1_TRAIN}" "${PHASE1_VALID}" "${PHASE2_TRAIN}" "${PHASE2_VALID}" "${PHASE3_TRAIN}" "${PHASE3_VALID}"; do
-    require_file "${path}"
-  done
-  require_file "${BASE_CHECKPOINT}/latest_checkpointed_iteration.txt"
+  if (( END_RANK >= 3 )); then
+    require_file "${PACKING_COMPLETE_MARKER}"
+  fi
+  if (( START_RANK <= 1 && END_RANK >= 1 )); then
+    require_file "${PHASE1_TRAIN}"
+    require_file "${PHASE1_VALID}"
+    require_file "${BASE_CHECKPOINT}/latest_checkpointed_iteration.txt"
+  fi
+  if (( START_RANK <= 2 && END_RANK >= 2 )); then
+    require_file "${PHASE2_TRAIN}"
+    require_file "${PHASE2_VALID}"
+  fi
+  if (( START_RANK <= 3 && END_RANK >= 3 )); then
+    require_file "${PHASE3_TRAIN}"
+    require_file "${PHASE3_VALID}"
+  fi
   gpu_count="$(python -c 'import torch; print(torch.cuda.device_count())')"
   [[ "${gpu_count}" == "8" ]] || { echo "Expected 8 visible GPUs, found ${gpu_count}" >&2; exit 1; }
   write_manifest
 else
-  echo "[dry-run] ${EXPERIMENT_NAME}: P1=${P1_COUNT}, P2=${P2_COUNT}, P3=${P3_COUNT}"
+  echo "[dry-run] ${EXPERIMENT_NAME}: START=${START_PHASE}, END=${END_PHASE}, P1=${P1_COUNT}, P2=${P2_COUNT}, P3=${P3_COUNT}"
   echo "[dry-run] schedule: phase1=${PHASE1_TRAIN_ITERS}/${PHASE1_LR_WARMUP_ITERS}, phase2=${PHASE2_TRAIN_ITERS}/${PHASE2_LR_WARMUP_ITERS}, phase3=${PHASE3_TRAIN_ITERS}/${PHASE3_LR_WARMUP_ITERS}"
 fi
-
-phase_rank() {
-  case "$1" in phase1) echo 1 ;; phase2) echo 2 ;; phase3) echo 3 ;; esac
-}
 
 run_phase() {
   local phase="$1" script="$2" train_data="$3" valid_data="$4"
   local previous_checkpoint="$5" save_dir="$6" log_path="$7"
   local target_iters="$8" warmup_iters="$9" master_port="${10}"
   local tb_dir="${TENSORBOARD_ROOT}/${phase}"
+  local rank
+  rank="$(phase_rank "${phase}")"
 
-  if (( $(phase_rank "${phase}") < $(phase_rank "${START_PHASE}") )); then
+  if (( rank > END_RANK )); then
+    echo "${phase} skipped because END_PHASE=${END_PHASE}"
+    return 0
+  fi
+
+  if (( rank < START_RANK )); then
     if [[ "${DRY_RUN}" == "1" ]]; then
       echo "[dry-run] skip ${phase} because START_PHASE=${START_PHASE}"
       return 0
@@ -248,7 +297,7 @@ run_phase phase3 "${REPO_ROOT}/scripts/train_phase3_qwen0p5b.sh" \
   "${PHASE3_TRAIN}" "${PHASE3_VALID}" "${PHASE2_SAVE}" "${PHASE3_SAVE}" \
   "${PHASE3_LOG}" "${PHASE3_TRAIN_ITERS}" "${PHASE3_LR_WARMUP_ITERS}" "${PHASE3_MASTER_PORT}"
 
-if [[ "${DRY_RUN}" == "0" ]]; then
+if [[ "${DRY_RUN}" == "0" && "${END_PHASE}" == "phase3" ]]; then
   completion_tmp="${RUN_DIR}/TRAINING_COMPLETE.tmp.$$"
   {
     echo "completed_at=$(date -u +%FT%TZ)"
@@ -258,4 +307,15 @@ if [[ "${DRY_RUN}" == "0" ]]; then
   } > "${completion_tmp}"
   mv "${completion_tmp}" "${RUN_DIR}/TRAINING_COMPLETE"
   echo "All three phases complete: ${RUN_DIR}/TRAINING_COMPLETE"
+elif [[ "${DRY_RUN}" == "0" ]]; then
+  stage_marker="${RUN_DIR}/${END_PHASE^^}_TRAINING_COMPLETE"
+  case "${END_PHASE}" in
+    phase1) stage_save="${PHASE1_SAVE}" ;;
+    phase2) stage_save="${PHASE2_SAVE}" ;;
+  esac
+  printf 'completed_at=%s\niteration=%s\n' \
+    "$(date -u +%FT%TZ)" \
+    "$(tracker_iteration "${stage_save}")" > "${stage_marker}.tmp.$$"
+  mv "${stage_marker}.tmp.$$" "${stage_marker}"
+  echo "Training through ${END_PHASE} complete: ${stage_marker}"
 fi

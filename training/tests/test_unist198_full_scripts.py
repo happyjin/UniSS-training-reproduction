@@ -80,6 +80,23 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("uniss_qwen0p5b_phase3_unist198_full_v1", output)
         self.assertNotIn("unist13_full", output)
 
+    def test_runner_can_stop_after_phase1_without_future_packed_files(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_all_phases.sh",
+            "--dry-run",
+            "--start-phase",
+            "phase1",
+            "--end-phase",
+            "phase1",
+            extra_env={"PHASE1_PACKED_COUNT_OVERRIDE": "256"},
+        )
+        self.assertIn("START=phase1, END=phase1", output)
+        self.assertIn("phase1=6/2", output)
+        self.assertIn("TRAIN_ITERS=6", output)
+        self.assertIn("phase2 skipped because END_PHASE=phase1", output)
+        self.assertIn("phase3 skipped because END_PHASE=phase1", output)
+        self.assertNotIn("Missing packed count sidecar", output)
+
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
