@@ -187,6 +187,16 @@ class UniST198FullScriptsTest(unittest.TestCase):
     def test_pipeline_and_tensorboard_dry_runs_are_isolated(self):
         pipeline = run_script("scripts/run_unist198_full_pipeline.sh", "--dry-run")
         self.assertLess(pipeline.index("pack_unist198_full.sh"), pipeline.index("run_qwen0p5b_unist198_all_phases.sh"))
+        self.assertEqual(pipeline.count("--start-phase phase1"), 2)
+
+        resumed = run_script(
+            "scripts/run_unist198_full_pipeline.sh",
+            "--dry-run",
+            extra_env={"PACK_START_PHASE": "phase2", "TRAIN_START_PHASE": "phase1"},
+        )
+        self.assertIn("pack_unist198_full.sh", resumed)
+        self.assertIn("--start-phase phase2", resumed.splitlines()[0])
+        self.assertIn("--start-phase phase1", resumed.splitlines()[1])
 
         tensorboard = run_script("scripts/start_unist198_tensorboard.sh", "--dry-run")
         self.assertIn("tensorboard", tensorboard)
