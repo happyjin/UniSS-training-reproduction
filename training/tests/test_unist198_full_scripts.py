@@ -198,6 +198,12 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--start-phase phase2", resumed.splitlines()[0])
         self.assertIn("--start-phase phase1", resumed.splitlines()[1])
 
+        pack_dry_run = run_script(
+            "scripts/pack_unist198_full.sh", "--dry-run", "--start-phase", "phase2"
+        )
+        self.assertIn("pack phase2 with 16 worker(s)", pack_dry_run)
+        self.assertIn("pack_sequences_parallel.py --workers 16", pack_dry_run)
+
         tensorboard = run_script("scripts/start_unist198_tensorboard.sh", "--dry-run")
         self.assertIn("tensorboard", tensorboard)
         self.assertIn("uniss_qwen0p5b_unist198_full_v1/tensorboard", tensorboard)
