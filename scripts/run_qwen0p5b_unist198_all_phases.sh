@@ -56,14 +56,24 @@ fi
 
 configure_python_nvidia_libraries() {
   local library_dirs=()
-  local directory
+  local cuda_root directory site_packages
+  if command -v nvcc >/dev/null 2>&1; then
+    cuda_root="$(cd "$(dirname "$(command -v nvcc)")/.." && pwd -P)"
+    for directory in \
+      "${cuda_root}/lib" \
+      "${cuda_root}/lib64" \
+      "${cuda_root}/targets/x86_64-linux/lib"; do
+      [[ -d "${directory}" ]] && library_dirs+=("${directory}")
+    done
+  fi
+  site_packages="$(python -c 'import site; print(site.getsitepackages()[0])')"
   shopt -s nullglob
-  for directory in "${ENV_ROOT}"/lib/python*/site-packages/nvidia/*/lib; do
+  for directory in "${site_packages}"/nvidia/*/lib; do
     [[ -d "${directory}" ]] && library_dirs+=("${directory}")
   done
   shopt -u nullglob
   if (( ${#library_dirs[@]} == 0 )); then
-    echo "No pip NVIDIA library directories found under ${ENV_ROOT}" >&2
+    echo "No CUDA or pip NVIDIA library directories found" >&2
     return 1
   fi
   local joined
@@ -290,7 +300,7 @@ run_phase() {
     "MASTER_PORT=${master_port}" "FINETUNE=${finetune}"
     "LOAD_OPTIM=${load_optim}" "LOAD_RNG=${load_rng}"
     "${script}"
-    --attention-backend flash
+    --attention-backend fused
     --tensorboard-dir "${tb_dir}"
     --tensorboard-log-interval "${TENSORBOARD_LOG_INTERVAL}"
     --log-timers-to-tensorboard
