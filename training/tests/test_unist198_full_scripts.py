@@ -228,6 +228,15 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--host 0.0.0.0", tensorboard)
         self.assertIn("--port 6006", tensorboard)
 
+        guard = run_script(
+            "scripts/guard_unist198_parallel_stages.sh",
+            "--dry-run",
+            extra_env={"PHASE1_PACKED_COUNT_OVERRIDE": "256"},
+        )
+        self.assertIn("run in parallel", guard)
+        self.assertIn("Phase1 iteration 6", guard)
+        self.assertIn("start unist198_phase23_train at phase2", guard)
+
 
 if __name__ == "__main__":
     unittest.main()
