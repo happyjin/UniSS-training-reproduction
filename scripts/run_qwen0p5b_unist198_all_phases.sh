@@ -54,6 +54,33 @@ if [[ "${DRY_RUN}" == "0" ]]; then
   source "${ACTIVATE_SCRIPT}"
 fi
 
+configure_python_nvidia_libraries() {
+  local library_dirs=()
+  local directory
+  shopt -s nullglob
+  for directory in "${ENV_ROOT}"/lib/python*/site-packages/nvidia/*/lib; do
+    [[ -d "${directory}" ]] && library_dirs+=("${directory}")
+  done
+  shopt -u nullglob
+  if (( ${#library_dirs[@]} == 0 )); then
+    echo "No pip NVIDIA library directories found under ${ENV_ROOT}" >&2
+    return 1
+  fi
+  local joined
+  joined="$(IFS=:; echo "${library_dirs[*]}")"
+  export LD_LIBRARY_PATH="${joined}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+}
+
+if [[ "${DRY_RUN}" == "0" ]]; then
+  configure_python_nvidia_libraries
+  python - <<'PY'
+import ctypes
+
+ctypes.CDLL("libcudnn_graph.so.9")
+import transformer_engine.pytorch  # noqa: F401,E402
+PY
+fi
+
 export CUDA_VISIBLE_DEVICES NPROC_PER_NODE TP PP MICRO_BATCH_SIZE
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
@@ -153,6 +180,7 @@ write_manifest() {
     echo "micro_batch_size=${MICRO_BATCH_SIZE}"
     echo "global_batch_size=${GLOBAL_BATCH_SIZE}"
     echo "seq_length=${SEQ_LENGTH}"
+    echo "ld_library_path=${LD_LIBRARY_PATH:-}"
     echo "start_phase=${START_PHASE}"
     echo "end_phase=${END_PHASE}"
     echo "phase1_packed=${PHASE1_TRAIN} count=${P1_COUNT} train_iters=${PHASE1_TRAIN_ITERS} warmup_iters=${PHASE1_LR_WARMUP_ITERS}"
