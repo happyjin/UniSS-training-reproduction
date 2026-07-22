@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +28,21 @@ def packed_item(seq_length: int) -> dict[str, object]:
 
 
 class PretrainSimulUniSSTests(unittest.TestCase):
+    def test_absolute_entrypoint_bootstraps_repository_imports(self) -> None:
+        entrypoint = Path(__file__).resolve().parents[1] / "pretrain_simul_uniss_megatron.py"
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [sys.executable, "-c", "import runpy; runpy.run_path(%r)" % str(entrypoint)],
+            cwd="/tmp",
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_validate(self) -> None:
         args = SimpleNamespace(
             sft=True,

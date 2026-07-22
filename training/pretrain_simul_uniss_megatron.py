@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
+
+
+# torchrun executes this file by absolute path, which otherwise places only
+# ``training/`` (not the repository root) on sys.path. Bootstrap the root
+# before importing the ``training`` package.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from training import constants_uniss as c
 from training.megatron_uniss_dataset import RepeatToLengthDataset

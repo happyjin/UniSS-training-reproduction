@@ -25,6 +25,7 @@ CONFIG_FILE="${CONFIG_FILE:-${REPO_ROOT}/configs/experiments/simul_uniss_v1/boot
 source "${CONFIG_FILE}"
 # shellcheck source=/dev/null
 source "${ACTIVATE_SCRIPT}"
+export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
 
 if [[ "${STAGE}" == "action" ]]; then
   TRAIN_DATA="${ACTION_PACKED_TRAIN}"
