@@ -33,6 +33,7 @@ if [[ "${STAGE}" == "action" ]]; then
   MASTER_PORT="${STAGE3_MASTER_PORT}"
   TRAIN_ITERS="${STAGE3_TRAIN_ITERS}"
   STAGE_TENSORBOARD_DIR="${STAGE3_TENSORBOARD_DIR}"
+  VALID_DATA="${VALID_PACKED_ACTION}"
 elif [[ "${STAGE}" == "interleaved" ]]; then
   TRAIN_DATA="${PACKED_TRAIN}"
   LOAD_ROOT="${STAGE4_LOAD_ROOT}"
@@ -40,6 +41,7 @@ elif [[ "${STAGE}" == "interleaved" ]]; then
   MASTER_PORT="${STAGE4_MASTER_PORT}"
   TRAIN_ITERS="${STAGE4_TRAIN_ITERS}"
   STAGE_TENSORBOARD_DIR="${STAGE4_TENSORBOARD_DIR}"
+  VALID_DATA="${VALID_PACKED_INTERLEAVED}"
 else
   TRAIN_DATA="${PACKED_TRAIN}"
   LOAD_ROOT="${STAGE6_LOAD_ROOT}"
@@ -47,6 +49,7 @@ else
   MASTER_PORT="${STAGE6_MASTER_PORT}"
   TRAIN_ITERS="${STAGE6_TRAIN_ITERS}"
   STAGE_TENSORBOARD_DIR="${STAGE6_TENSORBOARD_DIR}"
+  VALID_DATA="${VALID_PACKED_INTERLEAVED}"
 fi
 
 NPROC="${SIMUL_NPROC_PER_NODE}"
@@ -54,6 +57,8 @@ MICRO_BATCH="${SIMUL_MICRO_BATCH_SIZE}"
 GLOBAL_BATCH="${SIMUL_GLOBAL_BATCH_SIZE}"
 WARMUP_ITERS="${SIMUL_QWEN_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
+EVAL_INTERVAL="${SIMUL_QWEN_EVAL_INTERVAL}"
+EVAL_ITERS="${SIMUL_QWEN_EVAL_ITERS}"
 QWEN_LR="${SIMUL_QWEN_LR}"
 QWEN_MIN_LR="${SIMUL_QWEN_MIN_LR}"
 if [[ "${STAGE}" == "joint" ]]; then
@@ -67,6 +72,8 @@ if [[ "${SMOKE}" == "1" ]]; then
   TRAIN_ITERS=2
   WARMUP_ITERS=0
   SAVE_INTERVAL=1
+  EVAL_INTERVAL=1
+  EVAL_ITERS=1
 fi
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
@@ -75,6 +82,10 @@ if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
 fi
 if [[ "${DRY_RUN}" == "0" && ! -f "${LOAD_ROOT}/latest_checkpointed_iteration.txt" ]]; then
   echo "Missing load checkpoint pointer: ${LOAD_ROOT}/latest_checkpointed_iteration.txt" >&2
+  exit 1
+fi
+if [[ "${DRY_RUN}" == "0" && ! -f "${VALID_DATA}" ]]; then
+  echo "Missing validation data: ${VALID_DATA}" >&2
   exit 1
 fi
 
@@ -124,13 +135,16 @@ cmd=(torchrun
   --load "${LOAD_ROOT}"
   --save-interval "${SAVE_INTERVAL}"
   --log-interval 1
-  --eval-iters 0
+  --simul-packed-valid "${VALID_DATA}"
+  --eval-iters "${EVAL_ITERS}"
+  --eval-interval "${EVAL_INTERVAL}"
   --no-load-optim
   --no-load-rng
   --finetune
   --tensorboard-dir "${STAGE_TENSORBOARD_DIR}"
   --tensorboard-log-interval 1
   --log-timers-to-tensorboard
+  --log-validation-ppl-to-tensorboard
   --log-memory-to-tensorboard
   --log-memory-interval 1
   --log-throughput
