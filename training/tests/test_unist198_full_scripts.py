@@ -54,15 +54,19 @@ class UniST198FullScriptsTest(unittest.TestCase):
                 validate_packed_jsonl.validate_file(path, seq_length=6)
 
     def test_runner_dry_run_calculates_schedule_and_uses_eight_gpus(self):
-        output = run_script(
-            "scripts/run_qwen0p5b_unist198_all_phases.sh",
-            "--dry-run",
-            extra_env={
-                "PHASE1_PACKED_COUNT_OVERRIDE": "256",
-                "PHASE2_PACKED_COUNT_OVERRIDE": "129",
-                "PHASE3_PACKED_COUNT_OVERRIDE": "128",
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            output = run_script(
+                "scripts/run_qwen0p5b_unist198_all_phases.sh",
+                "--dry-run",
+                extra_env={
+                    "PHASE1_PACKED_COUNT_OVERRIDE": "256",
+                    "PHASE2_PACKED_COUNT_OVERRIDE": "129",
+                    "PHASE3_PACKED_COUNT_OVERRIDE": "128",
+                    "PHASE1_SAVE": str(Path(tmp) / "phase1"),
+                    "PHASE2_SAVE": str(Path(tmp) / "phase2"),
+                    "PHASE3_SAVE": str(Path(tmp) / "phase3"),
+                },
+            )
         self.assertIn("phase1=6/2", output)
         self.assertIn("phase2=2/1", output)
         self.assertIn("phase3=1/0", output)
@@ -82,21 +86,52 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertNotIn("unist13_full", output)
 
     def test_runner_can_stop_after_phase1_without_future_packed_files(self):
-        output = run_script(
-            "scripts/run_qwen0p5b_unist198_all_phases.sh",
-            "--dry-run",
-            "--start-phase",
-            "phase1",
-            "--end-phase",
-            "phase1",
-            extra_env={"PHASE1_PACKED_COUNT_OVERRIDE": "256"},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            output = run_script(
+                "scripts/run_qwen0p5b_unist198_all_phases.sh",
+                "--dry-run",
+                "--start-phase",
+                "phase1",
+                "--end-phase",
+                "phase1",
+                extra_env={
+                    "PHASE1_PACKED_COUNT_OVERRIDE": "256",
+                    "PHASE1_SAVE": str(Path(tmp) / "phase1"),
+                },
+            )
         self.assertIn("START=phase1, END=phase1", output)
         self.assertIn("phase1=6/2", output)
         self.assertIn("TRAIN_ITERS=6", output)
         self.assertIn("phase2 skipped because END_PHASE=phase1", output)
         self.assertIn("phase3 skipped because END_PHASE=phase1", output)
         self.assertNotIn("Missing packed count sidecar", output)
+
+    def test_phase1_recovery_b_dry_run_is_isolated_shuffled_and_low_lr(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_phase1_recovery_b.sh",
+            "--dry-run",
+        )
+        self.assertIn("source_iteration=3300", output)
+        self.assertIn("checkpoints/candidates/uniss_qwen0p5b_phase1_unist198_iter3300", output)
+        self.assertIn("checkpoints/uniss_qwen0p5b_phase1_unist198_recovery_b1_v2", output)
+        self.assertIn("runs/uniss_qwen0p5b_phase1_unist198_recovery_b1_v2/tensorboard", output)
+        self.assertIn("TRAIN_ITERS=500", output)
+        self.assertIn("--lr 1e-4", output)
+        self.assertIn("--min-lr 1e-5", output)
+        self.assertIn("--lr-warmup-iters 200", output)
+        self.assertIn("--lr-decay-style cosine", output)
+        self.assertIn("--lr-decay-iters 500", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--eval-iters 10", output)
+        self.assertNotIn("--full-validation", output)
+        self.assertIn("--attention-backend fused", output)
+        self.assertIn("--finetune", output)
+        self.assertIn("--no-load-optim", output)
+        self.assertIn("--no-load-rng", output)
+        self.assertIn("FINETUNE=1 LOAD_OPTIM=0 LOAD_RNG=0", output)
+        self.assertIn(r"CUDA_VISIBLE_DEVICES=0\,1\,2\,3\,4\,5\,6\,7", output)
+        self.assertIn("NPROC_PER_NODE=8", output)
+        self.assertNotIn("logs/uniss_qwen0p5b_phase1_unist198_full_v1.log", output)
 
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
