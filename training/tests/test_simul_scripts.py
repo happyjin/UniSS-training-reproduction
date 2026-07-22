@@ -85,6 +85,28 @@ class SimulScriptsTests(unittest.TestCase):
         ):
             self.assertIn(expected, output)
 
+    def test_action_preparation_publishes_a_completion_marker(self) -> None:
+        output = run_script("scripts/simul_uniss/prepare_action_data.sh", "--dry-run")
+        self.assertIn("packed_action_train.jsonl", output)
+        self.assertIn("ACTION_PREPARE_COMPLETE", output)
+        self.assertIn("atomically publish", output)
+
+    def test_gpu_launcher_does_not_match_its_own_command_line(self) -> None:
+        output = run_script(
+            "scripts/simul_uniss/launch_gpu_smoke_when_ready.sh", "--dry-run"
+        )
+        self.assertIn("iteration >= 15465", output)
+        self.assertIn("[p]ython", output)
+        self.assertIn("run_gpu_smoke_pipeline.sh", output)
+
+    def test_short_training_launcher_waits_for_durable_markers(self) -> None:
+        output = run_script(
+            "scripts/simul_uniss/launch_short_training_when_ready.sh", "--dry-run"
+        )
+        self.assertIn("GPU_SMOKE_COMPLETE", output)
+        self.assertIn("ACTION_PREPARE_COMPLETE", output)
+        self.assertIn("run_short_training_pipeline.sh", output)
+
 
 if __name__ == "__main__":
     unittest.main()

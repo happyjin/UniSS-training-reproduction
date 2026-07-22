@@ -31,11 +31,25 @@ pack_cmd=(python -m training.simul_uniss.pack_sequences
 if [[ "${DRY_RUN}" == "1" ]]; then
   printf '%q ' "${mask_cmd[@]}"; printf '\n'
   printf '%q ' "${pack_cmd[@]}"; printf '\n'
+  printf 'atomically publish %q and write %q\n' "${ACTION_PACKED_TRAIN}" "${ACTION_PREPARE_MARKER}"
   exit 0
 fi
 
 mkdir -p "$(dirname "${ACTION_SAMPLES_JSONL}")" "$(dirname "${ACTION_PACKED_TRAIN}")" "${LOG_DIR}"
+temporary_packed="${ACTION_PACKED_TRAIN}.tmp.$$"
+rm -f "${ACTION_PREPARE_MARKER}" "${temporary_packed}"
+cleanup() {
+  rm -f "${temporary_packed}"
+}
+trap cleanup EXIT
 {
   "${mask_cmd[@]}"
-  "${pack_cmd[@]}"
+  python -m training.simul_uniss.pack_sequences \
+    --input "${ACTION_SAMPLES_JSONL}" \
+    --output "${temporary_packed}" \
+    --seq-length "${SEQ_LENGTH}" \
+    --drop-overlong
+  mv "${temporary_packed}" "${ACTION_PACKED_TRAIN}"
+  printf 'completed_at=%s\npacked_train=%s\n' \
+    "$(date -u +%FT%TZ)" "${ACTION_PACKED_TRAIN}" > "${ACTION_PREPARE_MARKER}"
 } 2>&1 | tee -a "${LOG_DIR}/prepare_action_data.log"

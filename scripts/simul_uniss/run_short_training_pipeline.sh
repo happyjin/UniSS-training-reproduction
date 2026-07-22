@@ -39,7 +39,7 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   exit 0
 fi
 
-for required in "${GPU_SMOKE_MARKER}" "${PACKED_TRAIN}" "${ACTION_PACKED_TRAIN}" "${VALID_PACKED_INTERLEAVED}" "${VALID_PACKED_ACTION}" "${POLICY_TOKENIZER_MODEL}"; do
+for required in "${GPU_SMOKE_MARKER}" "${ACTION_PREPARE_MARKER}" "${PACKED_TRAIN}" "${ACTION_PACKED_TRAIN}" "${VALID_PACKED_INTERLEAVED}" "${VALID_PACKED_ACTION}" "${POLICY_TOKENIZER_MODEL}"; do
   [[ -f "${required}" ]] || { echo "Missing short-training prerequisite: ${required}" >&2; exit 1; }
 done
 
