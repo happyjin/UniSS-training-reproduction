@@ -26,6 +26,44 @@ source "${CONFIG_FILE}"
 # shellcheck source=/dev/null
 source "${ACTIVATE_SCRIPT}"
 export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
+export CUDA_DEVICE_MAX_CONNECTIONS="${CUDA_DEVICE_MAX_CONNECTIONS:-1}"
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
+configure_python_nvidia_libraries() {
+  local library_dirs=()
+  local cuda_root directory site_packages joined
+  if command -v nvcc >/dev/null 2>&1; then
+    cuda_root="$(cd "$(dirname "$(command -v nvcc)")/.." && pwd -P)"
+    for directory in \
+      "${cuda_root}/lib" \
+      "${cuda_root}/lib64" \
+      "${cuda_root}/targets/x86_64-linux/lib"; do
+      [[ -d "${directory}" ]] && library_dirs+=("${directory}")
+    done
+  fi
+  site_packages="$(python -c 'import site; print(site.getsitepackages()[0])')"
+  shopt -s nullglob
+  for directory in "${site_packages}"/nvidia/*/lib; do
+    [[ -d "${directory}" ]] && library_dirs+=("${directory}")
+  done
+  shopt -u nullglob
+  (( ${#library_dirs[@]} > 0 )) || {
+    echo "No CUDA or pip NVIDIA library directories found" >&2
+    return 1
+  }
+  joined="$(IFS=:; echo "${library_dirs[*]}")"
+  export LD_LIBRARY_PATH="${joined}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+}
+
+if [[ "${DRY_RUN}" == "0" ]]; then
+  configure_python_nvidia_libraries
+  python - <<'PY'
+import ctypes
+
+ctypes.CDLL("libcudnn_graph.so.9")
+import transformer_engine.pytorch  # noqa: F401,E402
+PY
+fi
 
 if [[ "${STAGE}" == "action" ]]; then
   TRAIN_DATA="${ACTION_PACKED_TRAIN}"

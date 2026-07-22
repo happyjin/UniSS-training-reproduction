@@ -59,6 +59,14 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage6_joint", joint)
         self.assertIn("--lr 3e-6", joint)
 
+    def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
+        script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('nvidia/*/lib', script)
+        self.assertIn('libcudnn_graph.so.9', script)
+        self.assertIn('transformer_engine.pytorch', script)
+
     def test_gpu_smoke_pipeline_covers_real_components(self) -> None:
         output = run_script("scripts/simul_uniss/run_gpu_smoke_pipeline.sh", "--dry-run")
         self.assertIn("run_stage0_prefix_baseline.sh", output)
