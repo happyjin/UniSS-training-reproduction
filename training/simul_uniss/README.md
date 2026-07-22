@@ -33,3 +33,13 @@ Start its TensorBoard service:
 ```bash
 scripts/simul_uniss/start_tensorboard.sh
 ```
+
+Train the causal token bootstrap student and Source/Target CTC heads:
+
+```bash
+scripts/simul_uniss/train_stage1_bootstrap_student.sh
+```
+
+The Stage1 bootstrap consumes 50 Hz `source_bicodec` tokens and distills the
+existing `source_glm` targets. This is a runnable plumbing and loss-validation
+stage, not a substitute for the later audio Streaming GLM student.
