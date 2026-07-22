@@ -25,7 +25,7 @@ python -m training.simul_uniss.reconstruct_unist_audio \
   --bicodec-model-dir "${BICODEC_MODEL_DIR}" \
   --device "${STAGE0_DEVICE}" \
   --limit-records "${RECORDS}" \
-  --side source 2>&1 | tee -a "${LOG_DIR}/stage0_reconstruct.log"
+  --side both 2>&1 | tee -a "${LOG_DIR}/stage0_reconstruct.log"
 
 for ((index=0; index<RECORDS; index++)); do
   python -m training.simul_uniss.prefix_reencode_baseline \

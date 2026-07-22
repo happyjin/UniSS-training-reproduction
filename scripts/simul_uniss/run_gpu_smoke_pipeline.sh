@@ -32,6 +32,7 @@ steps=(
   "scripts/simul_uniss/train_qwen_stage.sh --stage action --smoke"
   "scripts/simul_uniss/train_qwen_stage.sh --stage interleaved --smoke"
   "scripts/simul_uniss/train_qwen_stage.sh --stage joint --smoke"
+  "scripts/simul_uniss/train_stage5_bicodec_refinement.sh --smoke"
   "scripts/simul_uniss/run_stage5_streaming_replay.sh --decoder bicodec --record-index 0"
 )
 
@@ -69,6 +70,8 @@ export STAGE6_SAVE_ROOT="${SMOKE_ROOT}/stage6_joint"
 export STAGE6_TENSORBOARD_DIR="${TENSORBOARD_DIR}/gpu_smoke_stage6_joint"
 export STAGE5_OUTPUT_DIR="${SMOKE_RUN}/stage5_bicodec"
 export STAGE5_TENSORBOARD_DIR="${TENSORBOARD_DIR}/gpu_smoke_stage5_bicodec"
+export STAGE5_REFINEMENT_OUTPUT_DIR="${SMOKE_ROOT}/stage5_bicodec_refinement"
+export STAGE5_REFINEMENT_TENSORBOARD_DIR="${TENSORBOARD_DIR}/gpu_smoke_stage5_bicodec_refinement"
 export BICODEC_DEVICE=cuda:0
 
 {
@@ -87,6 +90,7 @@ export BICODEC_DEVICE=cuda:0
   scripts/simul_uniss/train_qwen_stage.sh --stage action --smoke
   scripts/simul_uniss/train_qwen_stage.sh --stage interleaved --smoke
   scripts/simul_uniss/train_qwen_stage.sh --stage joint --smoke
+  scripts/simul_uniss/train_stage5_bicodec_refinement.sh --smoke
   scripts/simul_uniss/run_stage5_streaming_replay.sh --decoder bicodec --record-index 0
   printf 'completed_at=%s\nphase1_anchor=%s\n' "$(date -u +%FT%TZ)" "${iteration}" > "${SMOKE_RUN}/GPU_SMOKE_COMPLETE"
   echo "[$(date -u +%FT%TZ)] Simul-UniSS GPU smoke complete"

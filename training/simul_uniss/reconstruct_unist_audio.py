@@ -67,6 +67,8 @@ def main() -> None:
                         "transcription": str(row["transcription"]),
                         "translation": str(row["translation"]),
                         "source_glm": row["source_glm"],
+                        "target_bicodec": row["target_bicodec"],
+                        "bicodec_global": row["bicodec_global"],
                         "source_parquet": str(Path(input_value).resolve()),
                     }
                     name = f"{count:06d}_{safe_name(str(row['id']))}"

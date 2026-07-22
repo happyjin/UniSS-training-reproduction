@@ -67,6 +67,7 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("--stage action", output)
         self.assertIn("--stage interleaved", output)
         self.assertIn("--stage joint", output)
+        self.assertIn("train_stage5_bicodec_refinement.sh", output)
         self.assertIn("--decoder bicodec", output)
 
 
