@@ -272,6 +272,20 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("Phase1 iteration 6", guard)
         self.assertIn("start unist198_phase23_train at phase2", guard)
 
+        monitor = run_script(
+            "scripts/monitor_unist198_phase2_phase3.sh",
+            "--dry-run",
+            extra_env={
+                "PHASE2_PACKED_COUNT_OVERRIDE": "129",
+                "PHASE3_PACKED_COUNT_OVERRIDE": "128",
+                "MIN_PHASE3_ITERATION": "1",
+            },
+        )
+        self.assertIn("without starting, stopping, or modifying training", monitor)
+        self.assertIn("Phase2 target=2", monitor)
+        self.assertIn("Phase3 target=1", monitor)
+        self.assertIn("finite TensorBoard lm loss", monitor)
+
 
 if __name__ == "__main__":
     unittest.main()
