@@ -6,6 +6,7 @@ from pathlib import Path
 
 from training import constants_uniss as c
 from training.simul_uniss.dataset import packed_json_to_item
+from training.simul_uniss.mask_action_samples import mask_action_sample
 from training.simul_uniss.pack_sequences import make_shifted_sample, pack_samples
 from training.simul_uniss.sample_builders import ACTION_WEIGHT, SEMANTIC_WEIGHT, build_interleaved_sample
 from training.simul_uniss.schedule import build_pseudo_schedule
@@ -72,6 +73,14 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(tuple(item["tokens"].shape), (seq_length,))
         self.assertEqual(item["loss_mask"].dtype.is_floating_point, True)
         self.assertEqual(int(item["cu_seqlens"][1]), shifted.length)
+
+    def test_action_curriculum_masks_non_actions(self) -> None:
+        schedule = build_pseudo_schedule(fake_record(), fake_encoder, chunk_ms=640, wait_k_chunks=1)
+        sample = build_interleaved_sample(schedule).to_json()
+        action = mask_action_sample(sample)
+        for token, weight in zip(action["input_ids"], action["token_weights"]):
+            expected = ACTION_WEIGHT if token in {c.TOKEN_WAIT_READ, c.TOKEN_WRITE_GENERATE} else 0.0
+            self.assertEqual(weight, expected)
 
 
 if __name__ == "__main__":
