@@ -43,3 +43,25 @@ scripts/simul_uniss/train_stage1_bootstrap_student.sh
 The Stage1 bootstrap consumes 50 Hz `source_bicodec` tokens and distills the
 existing `source_glm` targets. This is a runnable plumbing and loss-validation
 stage, not a substitute for the later audio Streaming GLM student.
+
+Prepare the action-only curriculum and launch the isolated Qwen stages:
+
+```bash
+scripts/simul_uniss/prepare_action_data.sh
+scripts/simul_uniss/train_qwen_stage.sh --stage action
+scripts/simul_uniss/train_qwen_stage.sh --stage interleaved
+scripts/simul_uniss/train_qwen_stage.sh --stage joint
+```
+
+Run streaming codec replay, GRPO reward plumbing, and optional NAR semantic
+generation:
+
+```bash
+scripts/simul_uniss/run_stage5_streaming_replay.sh --decoder synthetic
+scripts/simul_uniss/train_stage7_grpo.sh
+scripts/simul_uniss/train_stage8_nar.sh
+```
+
+The lightweight GRPO and NAR modules validate rollout rewards, group-relative
+advantages, CTC blank/repeat training, checkpoints, and TensorBoard before those
+components are connected to the full Qwen and audio front end.

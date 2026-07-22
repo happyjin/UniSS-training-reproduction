@@ -14,8 +14,8 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
-if [[ "${STAGE}" != "action" && "${STAGE}" != "interleaved" ]]; then
-  echo "--stage must be action or interleaved" >&2
+if [[ "${STAGE}" != "action" && "${STAGE}" != "interleaved" && "${STAGE}" != "joint" ]]; then
+  echo "--stage must be action, interleaved, or joint" >&2
   exit 2
 fi
 
@@ -33,13 +33,20 @@ if [[ "${STAGE}" == "action" ]]; then
   MASTER_PORT="${STAGE3_MASTER_PORT}"
   TRAIN_ITERS="${STAGE3_TRAIN_ITERS}"
   STAGE_TENSORBOARD_DIR="${STAGE3_TENSORBOARD_DIR}"
-else
+elif [[ "${STAGE}" == "interleaved" ]]; then
   TRAIN_DATA="${PACKED_TRAIN}"
   LOAD_ROOT="${STAGE4_LOAD_ROOT}"
   SAVE_ROOT="${STAGE4_SAVE_ROOT}"
   MASTER_PORT="${STAGE4_MASTER_PORT}"
   TRAIN_ITERS="${STAGE4_TRAIN_ITERS}"
   STAGE_TENSORBOARD_DIR="${STAGE4_TENSORBOARD_DIR}"
+else
+  TRAIN_DATA="${PACKED_TRAIN}"
+  LOAD_ROOT="${STAGE6_LOAD_ROOT}"
+  SAVE_ROOT="${STAGE6_SAVE_ROOT}"
+  MASTER_PORT="${STAGE6_MASTER_PORT}"
+  TRAIN_ITERS="${STAGE6_TRAIN_ITERS}"
+  STAGE_TENSORBOARD_DIR="${STAGE6_TENSORBOARD_DIR}"
 fi
 
 NPROC="${SIMUL_NPROC_PER_NODE}"
@@ -47,6 +54,12 @@ MICRO_BATCH="${SIMUL_MICRO_BATCH_SIZE}"
 GLOBAL_BATCH="${SIMUL_GLOBAL_BATCH_SIZE}"
 WARMUP_ITERS="${SIMUL_QWEN_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
+QWEN_LR="${SIMUL_QWEN_LR}"
+QWEN_MIN_LR="${SIMUL_QWEN_MIN_LR}"
+if [[ "${STAGE}" == "joint" ]]; then
+  QWEN_LR="${STAGE6_QWEN_LR}"
+  QWEN_MIN_LR="${STAGE6_QWEN_MIN_LR}"
+fi
 if [[ "${SMOKE}" == "1" ]]; then
   NPROC=1
   MICRO_BATCH=1
@@ -93,8 +106,8 @@ cmd=(torchrun
   --micro-batch-size "${MICRO_BATCH}"
   --global-batch-size "${GLOBAL_BATCH}"
   --train-iters "${TRAIN_ITERS}"
-  --lr "${SIMUL_QWEN_LR}"
-  --min-lr "${SIMUL_QWEN_MIN_LR}"
+  --lr "${QWEN_LR}"
+  --min-lr "${QWEN_MIN_LR}"
   --lr-warmup-iters "${WARMUP_ITERS}"
   --lr-decay-style cosine
   --lr-decay-iters "${TRAIN_ITERS}"
