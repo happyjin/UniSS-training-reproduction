@@ -59,6 +59,16 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage6_joint", joint)
         self.assertIn("--lr 3e-6", joint)
 
+    def test_gpu_smoke_pipeline_covers_real_components(self) -> None:
+        output = run_script("scripts/simul_uniss/run_gpu_smoke_pipeline.sh", "--dry-run")
+        self.assertIn("run_stage0_prefix_baseline.sh", output)
+        self.assertIn("train_stage1_audio_student.sh", output)
+        self.assertIn("train_streaming_student", output)
+        self.assertIn("--stage action", output)
+        self.assertIn("--stage interleaved", output)
+        self.assertIn("--stage joint", output)
+        self.assertIn("--decoder bicodec", output)
+
 
 if __name__ == "__main__":
     unittest.main()
