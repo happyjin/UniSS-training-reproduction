@@ -47,13 +47,26 @@ def main() -> None:
     with manifest_path.open("w", encoding="utf-8") as manifest:
         for input_value in args.input:
             parquet = pq.ParquetFile(input_value)
-            columns = ["id", "source_bicodec", "target_bicodec", "bicodec_global", "src_lang", "tgt_lang"]
+            columns = [
+                "id",
+                "transcription",
+                "translation",
+                "source_glm",
+                "source_bicodec",
+                "target_bicodec",
+                "bicodec_global",
+                "src_lang",
+                "tgt_lang",
+            ]
             for batch in parquet.iter_batches(columns=columns, batch_size=16):
                 for row in batch.to_pylist():
                     item: dict[str, object] = {
                         "id": str(row["id"]),
                         "src_lang": str(row["src_lang"]),
                         "tgt_lang": str(row["tgt_lang"]),
+                        "transcription": str(row["transcription"]),
+                        "translation": str(row["translation"]),
+                        "source_glm": row["source_glm"],
                         "source_parquet": str(Path(input_value).resolve()),
                     }
                     name = f"{count:06d}_{safe_name(str(row['id']))}"
