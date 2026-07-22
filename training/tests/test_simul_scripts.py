@@ -70,6 +70,21 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("train_stage5_bicodec_refinement.sh", output)
         self.assertIn("--decoder bicodec", output)
 
+    def test_short_training_pipeline_covers_all_training_stages(self) -> None:
+        output = run_script("scripts/simul_uniss/run_short_training_pipeline.sh", "--dry-run")
+        for expected in (
+            "token streaming student",
+            "audio streaming student",
+            "action Qwen",
+            "interleaved Qwen",
+            "low-LR joint Qwen",
+            "BiCodec boundary refinement",
+            "GRPO policy",
+            "NAR semantic generator",
+            "real BiCodec streaming replay",
+        ):
+            self.assertIn(expected, output)
+
 
 if __name__ == "__main__":
     unittest.main()
