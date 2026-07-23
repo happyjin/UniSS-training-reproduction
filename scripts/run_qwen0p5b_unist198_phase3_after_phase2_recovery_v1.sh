@@ -108,6 +108,7 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   echo "[dry-run] wait for Phase2 checkpoint ${PHASE2_TRAIN_ITERS} and marker ${PHASE2_COMPLETE_MARKER}"
   echo "[dry-run] validate final Phase2 TensorBoard/log before allocating GPUs"
   echo "[dry-run] Phase3 packed count=1161587 target=${PHASE3_TRAIN_ITERS} dataloader=${DATALOADER_TYPE} seed=${SEED}"
+  echo "[dry-run] Phase3 TensorBoard=${PHASE3_TENSORBOARD_DIR} port=${PHASE3_TENSORBOARD_PORT}"
   printf '[dry-run] '
   printf '%q ' "${phase3_cmd[@]}" --dry-run "${phase3_args[@]}"
   printf '\n'

@@ -179,6 +179,11 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--dataloader-type cyclic", output)
         self.assertIn("--lr-decay-iters 9075", output)
         self.assertIn("phase3_unist198_from_phase2_recovery_v1", output)
+        self.assertIn("port=6010", output)
+        self.assertIn(
+            "runs/uniss_qwen0p5b_phase3_unist198_from_phase2_recovery_v1/tensorboard",
+            output,
+        )
         self.assertIn("--load", output)
         self.assertIn("phase2_unist198_recovery_shuffle_lr5e5_v1/full", output)
         self.assertNotIn("uniss_qwen0p5b_phase3_unist198_full_v1", output)
