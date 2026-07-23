@@ -163,6 +163,26 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("mode=full", pipeline)
         self.assertIn("--train-iters 15381", pipeline)
 
+    def test_phase3_waiter_uses_recovered_phase2_and_cyclic_full_data(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_phase3_after_phase2_recovery_v1.sh",
+            "--dry-run",
+        )
+        self.assertIn("wait for Phase2 checkpoint 15381", output)
+        self.assertIn("validate final Phase2 TensorBoard/log", output)
+        self.assertIn("phase3_unist198/packed_train.jsonl", output)
+        self.assertIn("Phase3 packed count=1161587", output)
+        self.assertIn("TRAIN_ITERS=9075", output)
+        self.assertIn("NPROC_PER_NODE=8", output)
+        self.assertIn("MICRO_BATCH_SIZE=2", output)
+        self.assertIn("DATALOADER_TYPE=cyclic", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--lr-decay-iters 9075", output)
+        self.assertIn("phase3_unist198_from_phase2_recovery_v1", output)
+        self.assertIn("--load", output)
+        self.assertIn("phase2_unist198_recovery_shuffle_lr5e5_v1/full", output)
+        self.assertNotIn("uniss_qwen0p5b_phase3_unist198_full_v1", output)
+
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
