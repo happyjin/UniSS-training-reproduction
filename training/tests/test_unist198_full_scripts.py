@@ -188,6 +188,8 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--dataloader-type cyclic", output)
         self.assertIn("--no-data-sharding", output)
         self.assertIn("--full-validation", output)
+        self.assertIn("--eval-micro-batch-size 1", output)
+        self.assertIn("--eval-global-batch-size 8", output)
         self.assertIn("--clip-grad 0.5", output)
         self.assertIn("absolute grad norm <= 20.0", output)
         self.assertIn("full continuation budget=10781", output)
@@ -237,6 +239,8 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--dataloader-type cyclic", output)
         self.assertIn("--no-data-sharding", output)
         self.assertIn("--full-validation", output)
+        self.assertIn("--eval-micro-batch-size 1", output)
+        self.assertIn("--eval-global-batch-size 8", output)
         self.assertIn("TRAIN_ITERS=9075", output)
         self.assertIn("port=6010", output)
 

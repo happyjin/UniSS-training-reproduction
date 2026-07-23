@@ -61,6 +61,16 @@ LR_DECAY_ITERS="${TRAIN_ITERS}"
   echo "FULL_VALIDATION must be 0 or 1" >&2
   exit 1
 }
+if [[ "${FULL_VALIDATION}" == "1" ]]; then
+  [[ "${EVAL_MICRO_BATCH_SIZE}" == "1" ]] || {
+    echo "Full validation requires EVAL_MICRO_BATCH_SIZE=1" >&2
+    exit 1
+  }
+  [[ "${EVAL_GLOBAL_BATCH_SIZE}" == "${NPROC_PER_NODE}" ]] || {
+    echo "Full validation requires one sample per data-parallel rank: EVAL_GLOBAL_BATCH_SIZE=${NPROC_PER_NODE}" >&2
+    exit 1
+  }
+fi
 
 SOURCE_ITER_DIR="${SOURCE_CHECKPOINT_ROOT}/iter_$(printf '%07d' "${SOURCE_ITERATION}")"
 
@@ -175,6 +185,12 @@ base_args=()
 train_extra_args=()
 [[ "${NO_DATA_SHARDING}" == "1" ]] && train_extra_args+=(--no-data-sharding)
 [[ "${FULL_VALIDATION}" == "1" ]] && train_extra_args+=(--full-validation)
+if [[ -n "${EVAL_MICRO_BATCH_SIZE}" ]]; then
+  train_extra_args+=(--eval-micro-batch-size "${EVAL_MICRO_BATCH_SIZE}")
+fi
+if [[ -n "${EVAL_GLOBAL_BATCH_SIZE}" ]]; then
+  train_extra_args+=(--eval-global-batch-size "${EVAL_GLOBAL_BATCH_SIZE}")
+fi
 
 cmd=(env
   "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
@@ -230,6 +246,8 @@ if [[ "${RUN_KIND}" == "fresh" ]]; then
     echo "dataloader_type=${DATALOADER_TYPE}"
     echo "no_data_sharding=${NO_DATA_SHARDING}"
     echo "full_validation=${FULL_VALIDATION}"
+    echo "eval_micro_batch_size=${EVAL_MICRO_BATCH_SIZE}"
+    echo "eval_global_batch_size=${EVAL_GLOBAL_BATCH_SIZE}"
     echo "clip_grad=${CLIP_GRAD}"
     echo "finetune=1"
     echo "load_optim=0"

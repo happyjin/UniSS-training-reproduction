@@ -40,6 +40,16 @@ WAIT_LOG="${PHASE3_RUN_DIR}/wait_and_train.log"
   echo "FULL_VALIDATION must be 0 or 1" >&2
   exit 1
 }
+if [[ "${FULL_VALIDATION}" == "1" ]]; then
+  [[ "${EVAL_MICRO_BATCH_SIZE}" == "1" ]] || {
+    echo "Full validation requires EVAL_MICRO_BATCH_SIZE=1" >&2
+    exit 1
+  }
+  [[ "${EVAL_GLOBAL_BATCH_SIZE}" == "${NPROC_PER_NODE}" ]] || {
+    echo "Full validation requires one sample per data-parallel rank: EVAL_GLOBAL_BATCH_SIZE=${NPROC_PER_NODE}" >&2
+    exit 1
+  }
+fi
 
 tracker_iteration() {
   local tracker="$1"
@@ -116,6 +126,12 @@ phase3_args=(
 )
 [[ "${NO_DATA_SHARDING}" == "1" ]] && phase3_args+=(--no-data-sharding)
 [[ "${FULL_VALIDATION}" == "1" ]] && phase3_args+=(--full-validation)
+if [[ -n "${EVAL_MICRO_BATCH_SIZE}" ]]; then
+  phase3_args+=(--eval-micro-batch-size "${EVAL_MICRO_BATCH_SIZE}")
+fi
+if [[ -n "${EVAL_GLOBAL_BATCH_SIZE}" ]]; then
+  phase3_args+=(--eval-global-batch-size "${EVAL_GLOBAL_BATCH_SIZE}")
+fi
 
 if [[ "${DRY_RUN}" == "1" ]]; then
   echo "[dry-run] wait for Phase2 local checkpoint ${PHASE2_TRAIN_ITERS} (source=${PHASE2_SOURCE_ITERATION}, effective=${PHASE2_EFFECTIVE_FINAL_ITERATION}) and marker ${PHASE2_COMPLETE_MARKER}"
@@ -242,6 +258,8 @@ if [[ "${run_kind}" == "fresh" ]]; then
     echo "dataloader_type=${DATALOADER_TYPE}"
     echo "no_data_sharding=${NO_DATA_SHARDING}"
     echo "full_validation=${FULL_VALIDATION}"
+    echo "eval_micro_batch_size=${EVAL_MICRO_BATCH_SIZE}"
+    echo "eval_global_batch_size=${EVAL_GLOBAL_BATCH_SIZE}"
     echo "seed=${SEED}"
     echo "nproc_per_node=${NPROC_PER_NODE}"
     echo "micro_batch_size=${MICRO_BATCH_SIZE}"
