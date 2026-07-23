@@ -144,6 +144,9 @@ else
 fi
 
 if [[ "${DRY_RUN}" == "0" ]]; then
+  if [[ "${FULL_VALIDATION}" == "1" ]]; then
+    "${REPO_ROOT}/scripts/apply_megatron_full_validation_patch.sh"
+  fi
   require_file "${ACTIVATE_SCRIPT}"
   require_file "${TRAIN_DATA}"
   require_file "${VALID_DATA}"

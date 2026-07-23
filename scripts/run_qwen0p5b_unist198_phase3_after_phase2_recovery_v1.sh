@@ -129,6 +129,10 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   exit 0
 fi
 
+if [[ "${FULL_VALIDATION}" == "1" ]]; then
+  "${REPO_ROOT}/scripts/apply_megatron_full_validation_patch.sh"
+fi
+
 for required in "${ACTIVATE_SCRIPT}" "${PHASE3_TRAIN}" "${PHASE3_VALID}" "${PHASE3_TRAIN}.count"; do
   [[ -f "${required}" ]] || { echo "Missing required file: ${required}" >&2; exit 1; }
 done
