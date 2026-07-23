@@ -16,6 +16,9 @@ CONFIG_FILE="${CONFIG_FILE:-${REPO_ROOT}/configs/experiments/uniss_qwen0p5b_unis
 # shellcheck source=/dev/null
 source "${CONFIG_FILE}"
 
+PHASE3_LR="${PHASE3_LR:-}"
+PHASE3_MIN_LR="${PHASE3_MIN_LR:-}"
+
 PHASE2_TRACKER="${PHASE2_SAVE_DIR}/latest_checkpointed_iteration.txt"
 PHASE2_COMPLETE_MARKER="${PHASE2_RUN_DIR}/TRAINING_COMPLETE"
 PHASE2_GATE_OUTPUT="${PHASE3_RUN_DIR}/PHASE2_FINAL_GATE.json"
@@ -47,6 +50,12 @@ if [[ "${FULL_VALIDATION}" == "1" ]]; then
   }
   [[ "${EVAL_GLOBAL_BATCH_SIZE}" == "${NPROC_PER_NODE}" ]] || {
     echo "Full validation requires one sample per data-parallel rank: EVAL_GLOBAL_BATCH_SIZE=${NPROC_PER_NODE}" >&2
+    exit 1
+  }
+fi
+if [[ -n "${PHASE3_LR}" || -n "${PHASE3_MIN_LR}" ]]; then
+  [[ -n "${PHASE3_LR}" && -n "${PHASE3_MIN_LR}" ]] || {
+    echo "PHASE3_LR and PHASE3_MIN_LR must be set together" >&2
     exit 1
   }
 fi
@@ -101,6 +110,7 @@ phase3_cmd=(env
   "TP=${TP}" "PP=${PP}" "MICRO_BATCH_SIZE=${MICRO_BATCH_SIZE}"
   "TRAIN_DATA=${PHASE3_TRAIN}" "VALID_DATA=${PHASE3_VALID}"
   "SAVE_DIR=${PHASE3_SAVE_DIR}" "TRAIN_ITERS=${PHASE3_TRAIN_ITERS}"
+  "LR=${PHASE3_LR}" "MIN_LR=${PHASE3_MIN_LR}"
   "LR_WARMUP_ITERS=${PHASE3_LR_WARMUP_ITERS}"
   "DATALOADER_TYPE=${DATALOADER_TYPE}"
   "SAVE_INTERVAL=${SAVE_INTERVAL}" "EVAL_INTERVAL=${EVAL_INTERVAL}"
@@ -217,6 +227,7 @@ elif (( current_phase3_iteration >= 0 && current_phase3_iteration < PHASE3_TRAIN
     "TP=${TP}" "PP=${PP}" "MICRO_BATCH_SIZE=${MICRO_BATCH_SIZE}"
     "TRAIN_DATA=${PHASE3_TRAIN}" "VALID_DATA=${PHASE3_VALID}"
     "SAVE_DIR=${PHASE3_SAVE_DIR}" "TRAIN_ITERS=${PHASE3_TRAIN_ITERS}"
+    "LR=${PHASE3_LR}" "MIN_LR=${PHASE3_MIN_LR}"
     "LR_WARMUP_ITERS=${PHASE3_LR_WARMUP_ITERS}"
     "DATALOADER_TYPE=${DATALOADER_TYPE}"
     "SAVE_INTERVAL=${SAVE_INTERVAL}" "EVAL_INTERVAL=${EVAL_INTERVAL}"
@@ -255,6 +266,9 @@ if [[ "${run_kind}" == "fresh" ]]; then
     echo "train_data=${PHASE3_TRAIN}"
     echo "valid_data=${PHASE3_VALID}"
     echo "train_iters=${PHASE3_TRAIN_ITERS}"
+    echo "lr=${PHASE3_LR:-default}"
+    echo "min_lr=${PHASE3_MIN_LR:-default}"
+    echo "lr_warmup_iters=${PHASE3_LR_WARMUP_ITERS}"
     echo "dataloader_type=${DATALOADER_TYPE}"
     echo "no_data_sharding=${NO_DATA_SHARDING}"
     echo "full_validation=${FULL_VALIDATION}"

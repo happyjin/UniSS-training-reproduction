@@ -32,6 +32,9 @@ LOAD_OPTIM="${LOAD_OPTIM:-0}"
 LOAD_RNG="${LOAD_RNG:-0}"
 FINETUNE="${FINETUNE:-1}"
 DATALOADER_TYPE="${DATALOADER_TYPE:-cyclic}"
+LR="${LR:-5e-5}"
+MIN_LR="${MIN_LR:-5e-6}"
+LR_DECAY_STYLE="${LR_DECAY_STYLE:-cosine}"
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
   echo "Missing TRAIN_DATA: ${TRAIN_DATA}" >&2
@@ -66,10 +69,10 @@ cmd=(torchrun
   --micro-batch-size "${MICRO_BATCH_SIZE:-1}"
   --global-batch-size 128
   --train-iters "${TRAIN_ITERS:-4341}"
-  --lr 5e-5
-  --min-lr 5e-6
+  --lr "${LR}"
+  --min-lr "${MIN_LR}"
   --lr-warmup-iters "${LR_WARMUP_ITERS:-0}"
-  --lr-decay-style cosine
+  --lr-decay-style "${LR_DECAY_STYLE}"
   --dataloader-type "${DATALOADER_TYPE}"
   --weight-decay "${WEIGHT_DECAY:-0.1}"
   --adam-beta1 0.9

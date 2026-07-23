@@ -244,6 +244,49 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("TRAIN_ITERS=9075", output)
         self.assertIn("port=6010", output)
 
+    def test_phase2_recovery_v3_halves_lr_without_early_stop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = run_script(
+                "scripts/run_qwen0p5b_unist198_phase2_recovery_v3_pipeline.sh",
+                "--dry-run",
+                extra_env={
+                    "PILOT_SAVE_DIR": str(Path(tmp) / "pilot"),
+                    "FULL_SAVE_DIR": str(Path(tmp) / "full"),
+                },
+            )
+        self.assertIn("source_iteration=4600", output)
+        self.assertIn("--lr 1e-5", output)
+        self.assertIn("--min-lr 1e-6", output)
+        self.assertIn("--lr-warmup-iters 200", output)
+        self.assertIn("--clip-grad 0.5", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("--eval-micro-batch-size 1", output)
+        self.assertIn("--eval-global-batch-size 8", output)
+        self.assertIn("no early stop", output)
+        self.assertIn("--train-iters 10781", output)
+
+    def test_phase3_v3_uses_low_lr_warmup_and_strict_data_path(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_phase3_after_phase2_recovery_v1.sh",
+            "--dry-run",
+            "--config",
+            str(
+                REPO_ROOT
+                / "configs/experiments/uniss_qwen0p5b_unist198_phase3_after_phase2_recovery_v3.env"
+            ),
+        )
+        self.assertIn("local checkpoint 10781", output)
+        self.assertIn("phase2_unist198_recovery_global_shuffle_lr1e5_v3/full", output)
+        self.assertIn("phase3_unist198_from_phase2_recovery_v3", output)
+        self.assertIn("--lr 1e-5", output)
+        self.assertIn("--min-lr 1e-6", output)
+        self.assertIn("--lr-warmup-iters 200", output)
+        self.assertIn("--clip-grad 0.5", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("port=6013", output)
+
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
