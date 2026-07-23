@@ -27,6 +27,7 @@ def validate(
     max_last_valid_loss: float,
     grad_spike_threshold: float,
     max_consecutive_grad_spikes: int,
+    absolute_max_grad_norm: float | None = None,
 ) -> dict[str, object]:
     events = EventAccumulator(str(tensorboard_dir))
     events.Reload()
@@ -56,6 +57,11 @@ def validate(
         raise ValueError(
             f"grad norm exceeded {grad_spike_threshold} for {grad_spike_run} consecutive log points"
         )
+    maximum_grad_norm = max(value.value for value in gradients)
+    if absolute_max_grad_norm is not None and maximum_grad_norm > absolute_max_grad_norm:
+        raise ValueError(
+            f"maximum grad norm {maximum_grad_norm} exceeds {absolute_max_grad_norm}"
+        )
 
     log_text = log_path.read_text(encoding="utf-8", errors="replace")
     fatal_patterns = (
@@ -75,7 +81,7 @@ def validate(
         "last_validation_loss": validation[-1].value,
         "best_validation_loss": min(value.value for value in validation),
         "max_consecutive_high_validation": high_validation_run,
-        "max_grad_norm": max(value.value for value in gradients),
+        "max_grad_norm": maximum_grad_norm,
         "max_consecutive_grad_spikes": grad_spike_run,
     }
 
@@ -89,6 +95,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-last-valid-loss", required=True, type=float)
     parser.add_argument("--grad-spike-threshold", required=True, type=float)
     parser.add_argument("--max-consecutive-grad-spikes", required=True, type=int)
+    parser.add_argument("--absolute-max-grad-norm", type=float)
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
@@ -103,6 +110,7 @@ def main() -> None:
         args.max_last_valid_loss,
         args.grad_spike_threshold,
         args.max_consecutive_grad_spikes,
+        args.absolute_max_grad_norm,
     )
     rendered = json.dumps(result, indent=2, sort_keys=True)
     if args.output:

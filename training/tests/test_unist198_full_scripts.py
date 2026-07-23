@@ -134,12 +134,23 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertNotIn("logs/uniss_qwen0p5b_phase1_unist198_full_v1.log", output)
 
     def test_phase2_recovery_dry_run_is_isolated_shuffled_and_stops_before_phase3(self):
-        pilot = run_script(
-            "scripts/run_qwen0p5b_unist198_phase2_recovery_v1.sh",
-            "--dry-run",
-            "--mode",
-            "pilot",
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            isolated_dirs = {
+                "PILOT_SAVE_DIR": str(Path(tmp) / "pilot"),
+                "FULL_SAVE_DIR": str(Path(tmp) / "full"),
+            }
+            pilot = run_script(
+                "scripts/run_qwen0p5b_unist198_phase2_recovery_v1.sh",
+                "--dry-run",
+                "--mode",
+                "pilot",
+                extra_env=isolated_dirs,
+            )
+            pipeline = run_script(
+                "scripts/run_qwen0p5b_unist198_phase2_recovery_pipeline.sh",
+                "--dry-run",
+                extra_env=isolated_dirs,
+            )
         self.assertIn("mode=pilot", pilot)
         self.assertIn("source_iteration=2300", pilot)
         self.assertIn("--train-iters 500", pilot)
@@ -154,21 +165,42 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--no-load-rng", pilot)
         self.assertNotIn("phase3", pilot.lower())
 
-        pipeline = run_script(
-            "scripts/run_qwen0p5b_unist198_phase2_recovery_pipeline.sh",
-            "--dry-run",
-        )
         self.assertIn("validate pilot TensorBoard through step 500", pipeline)
         self.assertIn("Phase3 remains disabled", pipeline)
         self.assertIn("mode=full", pipeline)
         self.assertIn("--train-iters 15381", pipeline)
+
+    def test_phase2_recovery_v2_uses_global_shuffle_full_validation_and_low_lr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = run_script(
+                "scripts/run_qwen0p5b_unist198_phase2_recovery_v2_pipeline.sh",
+                "--dry-run",
+                extra_env={
+                    "PILOT_SAVE_DIR": str(Path(tmp) / "pilot"),
+                    "FULL_SAVE_DIR": str(Path(tmp) / "full"),
+                },
+            )
+        self.assertIn("source_iteration=4600", output)
+        self.assertIn("--train-iters 1000", output)
+        self.assertIn("--lr 2e-5", output)
+        self.assertIn("--min-lr 2e-6", output)
+        self.assertIn("--lr-warmup-iters 200", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("--clip-grad 0.5", output)
+        self.assertIn("absolute grad norm <= 20.0", output)
+        self.assertIn("full continuation budget=10781", output)
+        self.assertIn("effective final iteration=15381", output)
+        self.assertIn("--train-iters 10781", output)
+        self.assertIn("--nproc_per_node 8", output)
 
     def test_phase3_waiter_uses_recovered_phase2_and_cyclic_full_data(self):
         output = run_script(
             "scripts/run_qwen0p5b_unist198_phase3_after_phase2_recovery_v1.sh",
             "--dry-run",
         )
-        self.assertIn("wait for Phase2 checkpoint 15381", output)
+        self.assertIn("wait for Phase2 local checkpoint 15381", output)
         self.assertIn("validate final Phase2 TensorBoard/log", output)
         self.assertIn("phase3_unist198/packed_train.jsonl", output)
         self.assertIn("Phase3 packed count=1161587", output)
@@ -187,6 +219,26 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--load", output)
         self.assertIn("phase2_unist198_recovery_shuffle_lr5e5_v1/full", output)
         self.assertNotIn("uniss_qwen0p5b_phase3_unist198_full_v1", output)
+
+    def test_phase3_v2_waiter_targets_global_shuffle_recovery(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_phase3_after_phase2_recovery_v1.sh",
+            "--dry-run",
+            "--config",
+            str(
+                REPO_ROOT
+                / "configs/experiments/uniss_qwen0p5b_unist198_phase3_after_phase2_recovery_v2.env"
+            ),
+        )
+        self.assertIn("local checkpoint 10781", output)
+        self.assertIn("source=4600, effective=15381", output)
+        self.assertIn("phase2_unist198_recovery_global_shuffle_lr2e5_v2/full", output)
+        self.assertIn("phase3_unist198_from_phase2_recovery_v2", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("TRAIN_ITERS=9075", output)
+        self.assertIn("port=6010", output)
 
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:

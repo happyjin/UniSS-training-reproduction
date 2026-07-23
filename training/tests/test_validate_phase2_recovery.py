@@ -43,6 +43,19 @@ class ValidatePhase2RecoveryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "last validation"):
                 validate(tensorboard, log, 500, 5.3, 5.0, 20.0, 4)
 
+    def test_rejects_absolute_gradient_spike(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tensorboard = root / "tensorboard"
+            log = root / "pilot.log"
+            self._write_events(tensorboard)
+            writer = SummaryWriter(tensorboard)
+            writer.add_scalar("grad-norm", 25.0, 500)
+            writer.close()
+            log.write_text("healthy\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "maximum grad norm"):
+                validate(tensorboard, log, 500, 5.3, 5.0, 20.0, 4, 20.0)
+
 
 if __name__ == "__main__":
     unittest.main()

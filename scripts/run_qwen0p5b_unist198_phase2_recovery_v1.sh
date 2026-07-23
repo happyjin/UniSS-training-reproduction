@@ -48,8 +48,19 @@ LR_DECAY_ITERS="${TRAIN_ITERS}"
 
 [[ "${NPROC_PER_NODE}" == "8" ]] || { echo "Recovery requires 8 GPUs" >&2; exit 1; }
 [[ "${GLOBAL_BATCH_SIZE}" == "128" ]] || { echo "Recovery requires global batch size 128" >&2; exit 1; }
-[[ "${SOURCE_ITERATION}" == "2300" ]] || { echo "Recovery must start at iteration 2300" >&2; exit 1; }
+[[ "${SOURCE_ITERATION}" == "${EXPECTED_SOURCE_ITERATION}" ]] || {
+  echo "Recovery source ${SOURCE_ITERATION} does not match expected ${EXPECTED_SOURCE_ITERATION}" >&2
+  exit 1
+}
 [[ "${DATALOADER_TYPE}" == "cyclic" ]] || { echo "Recovery requires cyclic dataloader" >&2; exit 1; }
+[[ "${NO_DATA_SHARDING}" == "0" || "${NO_DATA_SHARDING}" == "1" ]] || {
+  echo "NO_DATA_SHARDING must be 0 or 1" >&2
+  exit 1
+}
+[[ "${FULL_VALIDATION}" == "0" || "${FULL_VALIDATION}" == "1" ]] || {
+  echo "FULL_VALIDATION must be 0 or 1" >&2
+  exit 1
+}
 
 SOURCE_ITER_DIR="${SOURCE_CHECKPOINT_ROOT}/iter_$(printf '%07d' "${SOURCE_ITERATION}")"
 
@@ -158,6 +169,9 @@ fi
 
 base_args=()
 [[ "${DRY_RUN}" == "1" ]] && base_args+=(--dry-run)
+train_extra_args=()
+[[ "${NO_DATA_SHARDING}" == "1" ]] && train_extra_args+=(--no-data-sharding)
+[[ "${FULL_VALIDATION}" == "1" ]] && train_extra_args+=(--full-validation)
 
 cmd=(env
   "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
@@ -174,6 +188,7 @@ cmd=(env
   "FINETUNE=${FINETUNE}" "LOAD_OPTIM=${LOAD_OPTIM}" "LOAD_RNG=${LOAD_RNG}"
   "${REPO_ROOT}/scripts/train_phase2_qwen0p5b.sh"
   "${base_args[@]}"
+  "${train_extra_args[@]}"
   --seed "${SEED}"
   --attention-backend fused
   --tensorboard-dir "${TENSORBOARD_DIR}"
@@ -210,6 +225,8 @@ if [[ "${RUN_KIND}" == "fresh" ]]; then
     echo "lr_decay_style=${LR_DECAY_STYLE}"
     echo "lr_decay_iters=${LR_DECAY_ITERS}"
     echo "dataloader_type=${DATALOADER_TYPE}"
+    echo "no_data_sharding=${NO_DATA_SHARDING}"
+    echo "full_validation=${FULL_VALIDATION}"
     echo "clip_grad=${CLIP_GRAD}"
     echo "finetune=1"
     echo "load_optim=0"

@@ -27,8 +27,19 @@ WAIT_LOG="${PHASE3_RUN_DIR}/wait_and_train.log"
 [[ "${NPROC_PER_NODE}" == "8" ]] || { echo "Phase3 requires 8 processes" >&2; exit 1; }
 [[ "${GLOBAL_BATCH_SIZE}" == "128" ]] || { echo "Phase3 requires global batch size 128" >&2; exit 1; }
 [[ "${DATALOADER_TYPE}" == "cyclic" ]] || { echo "Phase3 requires cyclic shuffled loading" >&2; exit 1; }
-[[ "${PHASE2_TRAIN_ITERS}" == "15381" ]] || { echo "Unexpected Phase2 target: ${PHASE2_TRAIN_ITERS}" >&2; exit 1; }
+[[ "$((PHASE2_SOURCE_ITERATION + PHASE2_TRAIN_ITERS))" == "${PHASE2_EFFECTIVE_FINAL_ITERATION}" ]] || {
+  echo "Phase2 source ${PHASE2_SOURCE_ITERATION} + local target ${PHASE2_TRAIN_ITERS} does not equal effective target ${PHASE2_EFFECTIVE_FINAL_ITERATION}" >&2
+  exit 1
+}
 [[ "${PHASE3_TRAIN_ITERS}" == "9075" ]] || { echo "Unexpected Phase3 target: ${PHASE3_TRAIN_ITERS}" >&2; exit 1; }
+[[ "${NO_DATA_SHARDING}" == "0" || "${NO_DATA_SHARDING}" == "1" ]] || {
+  echo "NO_DATA_SHARDING must be 0 or 1" >&2
+  exit 1
+}
+[[ "${FULL_VALIDATION}" == "0" || "${FULL_VALIDATION}" == "1" ]] || {
+  echo "FULL_VALIDATION must be 0 or 1" >&2
+  exit 1
+}
 
 tracker_iteration() {
   local tracker="$1"
@@ -43,7 +54,7 @@ tracker_iteration() {
 }
 
 phase2_pipeline_is_alive() {
-  pgrep -af '[r]un_qwen0p5b_unist198_phase2_recovery_pipeline.sh' >/dev/null 2>&1
+  pgrep -af "${PHASE2_PIPELINE_PATTERN}" >/dev/null 2>&1
 }
 
 phase3_training_is_alive() {
@@ -103,9 +114,11 @@ phase3_args=(
   --log-world-size-to-tensorboard
   --log-throughput
 )
+[[ "${NO_DATA_SHARDING}" == "1" ]] && phase3_args+=(--no-data-sharding)
+[[ "${FULL_VALIDATION}" == "1" ]] && phase3_args+=(--full-validation)
 
 if [[ "${DRY_RUN}" == "1" ]]; then
-  echo "[dry-run] wait for Phase2 checkpoint ${PHASE2_TRAIN_ITERS} and marker ${PHASE2_COMPLETE_MARKER}"
+  echo "[dry-run] wait for Phase2 local checkpoint ${PHASE2_TRAIN_ITERS} (source=${PHASE2_SOURCE_ITERATION}, effective=${PHASE2_EFFECTIVE_FINAL_ITERATION}) and marker ${PHASE2_COMPLETE_MARKER}"
   echo "[dry-run] validate final Phase2 TensorBoard/log before allocating GPUs"
   echo "[dry-run] Phase3 packed count=1161587 target=${PHASE3_TRAIN_ITERS} dataloader=${DATALOADER_TYPE} seed=${SEED}"
   echo "[dry-run] Phase3 TensorBoard=${PHASE3_TENSORBOARD_DIR} port=${PHASE3_TENSORBOARD_PORT}"
@@ -153,7 +166,7 @@ done
 log "Phase2 final checkpoint and completion marker confirmed; running final health gate"
 # shellcheck source=/dev/null
 source "${ACTIVATE_SCRIPT}"
-"${ENV_ROOT}/bin/python" -m training.validate_phase2_recovery \
+phase2_gate_args=(
   --tensorboard-dir "${PHASE2_TENSORBOARD_DIR}" \
   --log "${PHASE2_LOG_PATH}" \
   --required-step "${PHASE2_TRAIN_ITERS}" \
@@ -162,6 +175,10 @@ source "${ACTIVATE_SCRIPT}"
   --grad-spike-threshold "${PHASE2_GRAD_SPIKE_THRESHOLD}" \
   --max-consecutive-grad-spikes "${PHASE2_MAX_CONSECUTIVE_GRAD_SPIKES}" \
   --output "${PHASE2_GATE_OUTPUT}"
+)
+[[ -n "${PHASE2_ABSOLUTE_MAX_GRAD_NORM}" ]] && \
+  phase2_gate_args+=(--absolute-max-grad-norm "${PHASE2_ABSOLUTE_MAX_GRAD_NORM}")
+"${ENV_ROOT}/bin/python" -m training.validate_phase2_recovery "${phase2_gate_args[@]}"
 printf 'passed_at=%s\n' "$(date -u +%FT%TZ)" > "${PHASE2_GATE_MARKER}"
 
 if phase3_training_is_alive; then
@@ -213,10 +230,14 @@ if [[ "${run_kind}" == "fresh" ]]; then
     echo "repo_commit=$(git -C "${REPO_ROOT}" rev-parse HEAD)"
     echo "source_phase2=${PHASE2_SAVE_DIR}"
     echo "source_phase2_iteration=${PHASE2_TRAIN_ITERS}"
+    echo "source_phase2_base_iteration=${PHASE2_SOURCE_ITERATION}"
+    echo "source_phase2_effective_iteration=${PHASE2_EFFECTIVE_FINAL_ITERATION}"
     echo "train_data=${PHASE3_TRAIN}"
     echo "valid_data=${PHASE3_VALID}"
     echo "train_iters=${PHASE3_TRAIN_ITERS}"
     echo "dataloader_type=${DATALOADER_TYPE}"
+    echo "no_data_sharding=${NO_DATA_SHARDING}"
+    echo "full_validation=${FULL_VALIDATION}"
     echo "seed=${SEED}"
     echo "nproc_per_node=${NPROC_PER_NODE}"
     echo "micro_batch_size=${MICRO_BATCH_SIZE}"
