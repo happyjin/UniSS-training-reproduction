@@ -94,6 +94,7 @@ fi
 NPROC="${SIMUL_NPROC_PER_NODE}"
 MICRO_BATCH="${SIMUL_MICRO_BATCH_SIZE}"
 GLOBAL_BATCH="${SIMUL_GLOBAL_BATCH_SIZE}"
+DATALOADER_TYPE="${SIMUL_DATALOADER_TYPE}"
 WARMUP_ITERS="${SIMUL_QWEN_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
 EVAL_INTERVAL="${SIMUL_QWEN_EVAL_INTERVAL}"
@@ -155,6 +156,8 @@ cmd=(torchrun
   --max-position-embeddings 32768
   --micro-batch-size "${MICRO_BATCH}"
   --global-batch-size "${GLOBAL_BATCH}"
+  --dataloader-type "${DATALOADER_TYPE}"
+  --seed "${SIMUL_DATA_SEED}"
   --train-iters "${TRAIN_ITERS}"
   --lr "${QWEN_LR}"
   --min-lr "${QWEN_MIN_LR}"

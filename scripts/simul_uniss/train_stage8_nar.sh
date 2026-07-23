@@ -25,6 +25,8 @@ cmd=(python -m training.simul_uniss.nar_semantic
   --device "${STAGE8_DEVICE}"
   --batch-size "${STAGE8_BATCH_SIZE}"
   --max-steps "${STAGE8_MAX_STEPS}"
+  --shuffle-buffer-size "${SIMUL_ITERABLE_SHUFFLE_BUFFER_SIZE}"
+  --seed "${SIMUL_DATA_SEED}"
 )
 if [[ "${SMOKE}" == "1" ]]; then
   cmd=(python -m training.simul_uniss.nar_semantic
@@ -39,6 +41,8 @@ if [[ "${SMOKE}" == "1" ]]; then
     --num-heads 4
     --max-text-tokens 16
     --max-semantic-tokens 32
+    --shuffle-buffer-size 32
+    --seed "${SIMUL_DATA_SEED}"
     --log-interval 1
   )
 fi

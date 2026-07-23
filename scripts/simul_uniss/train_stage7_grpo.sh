@@ -27,6 +27,8 @@ cmd=(python -m training.simul_uniss.policy_grpo
   --sft-steps "${STAGE7_SFT_STEPS}"
   --grpo-steps "${STAGE7_GRPO_STEPS}"
   --group-size "${STAGE7_GROUP_SIZE}"
+  --shuffle-buffer-size "${SIMUL_ITERABLE_SHUFFLE_BUFFER_SIZE}"
+  --seed "${SIMUL_DATA_SEED}"
 )
 if [[ "${SMOKE}" == "1" ]]; then
   cmd=(python -m training.simul_uniss.policy_grpo
@@ -38,6 +40,8 @@ if [[ "${SMOKE}" == "1" ]]; then
     --sft-steps 2
     --grpo-steps 2
     --group-size 4
+    --shuffle-buffer-size 32
+    --seed "${SIMUL_DATA_SEED}"
     --log-interval 1
   )
 fi

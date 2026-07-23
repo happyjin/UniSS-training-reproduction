@@ -15,12 +15,19 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, IterableDataset
 from torch.utils.tensorboard import SummaryWriter
 
+from training.simul_uniss.shuffle import buffered_shuffle
+
 
 class ScheduleActionDataset(IterableDataset):
-    def __init__(self, schedule_path: str | Path) -> None:
+    def __init__(
+        self, schedule_path: str | Path, shuffle_buffer_size: int = 8192, seed: int = 0
+    ) -> None:
         self.path = Path(schedule_path)
+        self.shuffle_buffer_size = shuffle_buffer_size
+        self.seed = seed
+        self.epoch = 0
 
-    def __iter__(self) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+    def _ordered_items(self) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
         with self.path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 if not line.strip():
@@ -44,11 +51,20 @@ class ScheduleActionDataset(IterableDataset):
                         ],
                         dtype=torch.float32,
                     )
-                    label = torch.tensor(1 if event["action"] == "write" else 0, dtype=torch.long)
+                    label = torch.tensor(
+                        1 if event["action"] == "write" else 0, dtype=torch.long
+                    )
                     yield features, label
                     if event["action"] == "write":
                         committed += len(event["target_text_ids"])
                     previous_source = source_count
+
+    def __iter__(self) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+        epoch = self.epoch
+        self.epoch += 1
+        yield from buffered_shuffle(
+            self._ordered_items(), self.shuffle_buffer_size, self.seed + epoch
+        )
 
 
 class ActionPolicy(nn.Module):
@@ -99,20 +115,27 @@ def grpo_loss(
     std = rewards.std(dim=1, keepdim=True, unbiased=False).clamp_min(1e-4)
     advantages = (rewards - mean) / std
     log_probs = F.log_softmax(logits, dim=-1)
-    sampled_log_probs = log_probs.unsqueeze(1).expand(-1, group_size, -1).gather(
-        2, actions.unsqueeze(-1)
-    ).squeeze(-1)
+    sampled_log_probs = (
+        log_probs.unsqueeze(1)
+        .expand(-1, group_size, -1)
+        .gather(2, actions.unsqueeze(-1))
+        .squeeze(-1)
+    )
     with torch.no_grad():
         reference_logits = reference(features)
     reference_probs = F.softmax(reference_logits, dim=-1)
-    kl = F.kl_div(F.log_softmax(logits, dim=-1), reference_probs, reduction="batchmean").clamp_min(0.0)
+    kl = F.kl_div(
+        F.log_softmax(logits, dim=-1), reference_probs, reduction="batchmean"
+    ).clamp_min(0.0)
     loss = -(advantages.detach() * sampled_log_probs).mean() + kl_beta * kl
     metrics = {
         "reward_mean": float(rewards.mean()),
         "reward_max": float(rewards.max()),
         "kl": float(kl),
         "write_rate": float((actions == 1).float().mean()),
-        "premature_write_rate": float(((actions == 1) & (labels.unsqueeze(1) == 0)).float().mean()),
+        "premature_write_rate": float(
+            ((actions == 1) & (labels.unsqueeze(1) == 0)).float().mean()
+        ),
     }
     return loss, metrics
 
@@ -127,7 +150,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--schedules", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--tensorboard-dir", required=True)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device", default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     parser.add_argument("--hidden-size", type=int, default=64)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--sft-steps", type=int, default=200)
@@ -136,6 +161,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--kl-beta", type=float, default=0.02)
     parser.add_argument("--log-interval", type=int, default=10)
+    parser.add_argument("--shuffle-buffer-size", type=int, default=8192)
     parser.add_argument("--seed", type=int, default=20260722)
     return parser.parse_args()
 
@@ -146,7 +172,11 @@ def main() -> None:
         raise ValueError("group_size must be at least 2")
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
-    loader = DataLoader(ScheduleActionDataset(args.schedules), batch_size=args.batch_size, num_workers=0)
+    loader = DataLoader(
+        ScheduleActionDataset(args.schedules, args.shuffle_buffer_size, args.seed),
+        batch_size=args.batch_size,
+        num_workers=0,
+    )
     batches = infinite_batches(loader)
     policy = ActionPolicy(args.hidden_size).to(device)
     optimizer = torch.optim.AdamW(policy.parameters(), lr=args.learning_rate)
@@ -183,16 +213,27 @@ def main() -> None:
             for name, value in metrics.items():
                 writer.add_scalar(f"stage7/{name}", value, global_step)
             writer.flush()
-            print(json.dumps({"step": step, "loss": float(loss), **metrics}, sort_keys=True), flush=True)
+            print(
+                json.dumps(
+                    {"step": step, "loss": float(loss), **metrics}, sort_keys=True
+                ),
+                flush=True,
+            )
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     torch.save(
-        {"model": policy.state_dict(), "reference": reference.state_dict(), "args": vars(args)},
+        {
+            "model": policy.state_dict(),
+            "reference": reference.state_dict(),
+            "args": vars(args),
+        },
         output_dir / "policy_grpo.pt",
     )
     writer.close()
-    print(json.dumps({"status": "complete", "output": str(output_dir / "policy_grpo.pt")}))
+    print(
+        json.dumps({"status": "complete", "output": str(output_dir / "policy_grpo.pt")})
+    )
 
 
 if __name__ == "__main__":

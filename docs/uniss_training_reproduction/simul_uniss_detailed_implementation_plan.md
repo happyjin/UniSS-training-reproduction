@@ -679,6 +679,12 @@ source chunk → WRITE → target phrase
 
 不要一开始就让大量 semantic tokens 淹没稀疏 action 标签。
 
+Stage 3、4、6 的 Megatron 训练统一使用 `--dataloader-type cyclic`，随机采样 packed
+sequence，禁止按 15 个 shard 写入 JSONL 的原始顺序训练。Stage 1 token/audio student
+与 Stage 5 refinement 使用 PyTorch random sampler；Stage 7/8 的 iterable 数据使用
+固定 seed 的有界 shuffle buffer（默认 8192），每轮更换 epoch seed。validation 始终保持
+固定顺序，便于不同 checkpoint 做可重复比较。
+
 ### Stage 4：Phrase-level interleaved S2ST SFT
 
 完整序列：
