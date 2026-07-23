@@ -29,6 +29,12 @@ MASTER_PORT="${MASTER_PORT:-29512}"
 LOAD_OPTIM="${LOAD_OPTIM:-0}"
 LOAD_RNG="${LOAD_RNG:-0}"
 FINETUNE="${FINETUNE:-1}"
+LR="${LR:-2e-4}"
+MIN_LR="${MIN_LR:-2e-4}"
+LR_DECAY_STYLE="${LR_DECAY_STYLE:-constant}"
+LR_DECAY_ITERS="${LR_DECAY_ITERS:-}"
+DATALOADER_TYPE="${DATALOADER_TYPE:-single}"
+CLIP_GRAD="${CLIP_GRAD:-1.0}"
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
   echo "Missing TRAIN_DATA: ${TRAIN_DATA}" >&2
@@ -63,10 +69,12 @@ cmd=(torchrun
   --micro-batch-size "${MICRO_BATCH_SIZE:-1}"
   --global-batch-size 128
   --train-iters "${TRAIN_ITERS:-1045}"
-  --lr 2e-4
-  --min-lr 2e-4
+  --lr "${LR}"
+  --min-lr "${MIN_LR}"
   --lr-warmup-iters "${LR_WARMUP_ITERS:-53}"
-  --lr-decay-style constant
+  --lr-decay-style "${LR_DECAY_STYLE}"
+  --dataloader-type "${DATALOADER_TYPE}"
+  --clip-grad "${CLIP_GRAD}"
   --weight-decay "${WEIGHT_DECAY:-0.1}"
   --adam-beta1 0.9
   --adam-beta2 0.95
@@ -80,6 +88,10 @@ cmd=(torchrun
   --save-interval "${SAVE_INTERVAL:-100}"
   --log-interval "${LOG_INTERVAL:-10}"
 )
+
+if [[ -n "${LR_DECAY_ITERS}" ]]; then
+  cmd+=(--lr-decay-iters "${LR_DECAY_ITERS}")
+fi
 
 if [[ "${LOAD_OPTIM}" != "1" ]]; then
   cmd+=(--no-load-optim)

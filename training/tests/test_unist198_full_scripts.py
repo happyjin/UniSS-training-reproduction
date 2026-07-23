@@ -133,6 +133,36 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("NPROC_PER_NODE=8", output)
         self.assertNotIn("logs/uniss_qwen0p5b_phase1_unist198_full_v1.log", output)
 
+    def test_phase2_recovery_dry_run_is_isolated_shuffled_and_stops_before_phase3(self):
+        pilot = run_script(
+            "scripts/run_qwen0p5b_unist198_phase2_recovery_v1.sh",
+            "--dry-run",
+            "--mode",
+            "pilot",
+        )
+        self.assertIn("mode=pilot", pilot)
+        self.assertIn("source_iteration=2300", pilot)
+        self.assertIn("--train-iters 500", pilot)
+        self.assertIn("--lr 5e-5", pilot)
+        self.assertIn("--min-lr 5e-6", pilot)
+        self.assertIn("--lr-warmup-iters 100", pilot)
+        self.assertIn("--lr-decay-style cosine", pilot)
+        self.assertIn("--lr-decay-iters 500", pilot)
+        self.assertIn("--dataloader-type cyclic", pilot)
+        self.assertIn("--finetune", pilot)
+        self.assertIn("--no-load-optim", pilot)
+        self.assertIn("--no-load-rng", pilot)
+        self.assertNotIn("phase3", pilot.lower())
+
+        pipeline = run_script(
+            "scripts/run_qwen0p5b_unist198_phase2_recovery_pipeline.sh",
+            "--dry-run",
+        )
+        self.assertIn("validate pilot TensorBoard through step 500", pipeline)
+        self.assertIn("Phase3 remains disabled", pipeline)
+        self.assertIn("mode=full", pipeline)
+        self.assertIn("--train-iters 15381", pipeline)
+
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

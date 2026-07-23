@@ -31,6 +31,7 @@ MASTER_PORT="${MASTER_PORT:-29513}"
 LOAD_OPTIM="${LOAD_OPTIM:-0}"
 LOAD_RNG="${LOAD_RNG:-0}"
 FINETUNE="${FINETUNE:-1}"
+DATALOADER_TYPE="${DATALOADER_TYPE:-cyclic}"
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
   echo "Missing TRAIN_DATA: ${TRAIN_DATA}" >&2
@@ -69,6 +70,7 @@ cmd=(torchrun
   --min-lr 5e-6
   --lr-warmup-iters "${LR_WARMUP_ITERS:-0}"
   --lr-decay-style cosine
+  --dataloader-type "${DATALOADER_TYPE}"
   --weight-decay "${WEIGHT_DECAY:-0.1}"
   --adam-beta1 0.9
   --adam-beta2 0.95

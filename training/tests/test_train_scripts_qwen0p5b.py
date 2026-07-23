@@ -52,6 +52,7 @@ class Qwen0p5BTrainScriptsTest(unittest.TestCase):
         self.assertIn("checkpoints/uniss_qwen0p5b_phase1", output)
         self.assertIn("checkpoints/uniss_qwen0p5b_phase2", output)
         self.assertIn("data/megatron/phase2_unist13_mix/packed_train.jsonl", output)
+        self.assertIn("--dataloader-type single", output)
         self.assertNotIn("qwen2_1p5b_uniss_vocab", output)
 
     def test_phase3_qwen0p5b_reuses_current_phase2_data(self):
@@ -61,6 +62,7 @@ class Qwen0p5BTrainScriptsTest(unittest.TestCase):
         self.assertIn("--ffn-hidden-size 4864", output)
         self.assertIn("--lr 5e-5", output)
         self.assertIn("--lr-decay-style cosine", output)
+        self.assertIn("--dataloader-type cyclic", output)
         self.assertIn("checkpoints/uniss_qwen0p5b_phase2", output)
         self.assertIn("checkpoints/uniss_qwen0p5b_phase3", output)
         self.assertIn("data/megatron/phase2_unist13_mix/packed_train.jsonl", output)
