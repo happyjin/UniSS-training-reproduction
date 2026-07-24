@@ -287,6 +287,32 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--full-validation", output)
         self.assertIn("port=6013", output)
 
+    def test_phase3_after_v4_waits_for_clean_phase2_and_keeps_global_shuffle(self):
+        output = run_script(
+            "scripts/run_qwen0p5b_unist198_phase3_after_phase2_recovery_v1.sh",
+            "--dry-run",
+            "--config",
+            str(
+                REPO_ROOT
+                / "configs/experiments/uniss_qwen0p5b_unist198_phase3_after_phase2_v4.env"
+            ),
+        )
+        self.assertIn("local checkpoint 15381", output)
+        self.assertIn("source=0, effective=15381", output)
+        self.assertIn("phase2_unist198_from_phase1_fast_decay_v4", output)
+        self.assertIn("phase3_unist198_after_phase2_v4", output)
+        self.assertIn("--lr 1e-5", output)
+        self.assertIn("--min-lr 1e-6", output)
+        self.assertIn("--lr-warmup-iters 200", output)
+        self.assertIn("--clip-grad 0.5", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("--eval-micro-batch-size 1", output)
+        self.assertIn("--eval-global-batch-size 8", output)
+        self.assertIn("TRAIN_ITERS=9075", output)
+        self.assertIn("port=6015", output)
+
     def test_phase2_v4_starts_from_phase1_and_preserves_pilot_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = run_script(
