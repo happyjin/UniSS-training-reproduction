@@ -56,6 +56,25 @@ class ValidatePhase2RecoveryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "maximum grad norm"):
                 validate(tensorboard, log, 500, 5.3, 5.0, 20.0, 4, 20.0)
 
+    def test_rejects_regression_from_best_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tensorboard = root / "tensorboard"
+            log = root / "pilot.log"
+            self._write_events(tensorboard, last_validation=4.9)
+            log.write_text("healthy\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "regressed"):
+                validate(
+                    tensorboard,
+                    log,
+                    500,
+                    5.3,
+                    5.0,
+                    20.0,
+                    4,
+                    max_last_minus_best=0.05,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

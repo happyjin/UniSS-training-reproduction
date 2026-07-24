@@ -28,6 +28,7 @@ def validate(
     grad_spike_threshold: float,
     max_consecutive_grad_spikes: int,
     absolute_max_grad_norm: float | None = None,
+    max_last_minus_best: float | None = None,
 ) -> dict[str, object]:
     events = EventAccumulator(str(tensorboard_dir))
     events.Reload()
@@ -50,6 +51,12 @@ def validate(
         raise ValueError(f"validation exceeded {max_valid_loss} for {high_validation_run} consecutive evaluations")
     if validation[-1].value > max_last_valid_loss:
         raise ValueError(f"last validation {validation[-1].value} exceeds {max_last_valid_loss}")
+    best_validation_loss = min(value.value for value in validation)
+    last_minus_best = validation[-1].value - best_validation_loss
+    if max_last_minus_best is not None and last_minus_best > max_last_minus_best:
+        raise ValueError(
+            f"last validation regressed {last_minus_best} from best, exceeding {max_last_minus_best}"
+        )
 
     gradients = [value for value in events.Scalars("grad-norm") if value.step > 0]
     grad_spike_run = max_consecutive([value.value > grad_spike_threshold for value in gradients])
@@ -79,7 +86,8 @@ def validate(
         "required_step": required_step,
         "last_validation_step": validation[-1].step,
         "last_validation_loss": validation[-1].value,
-        "best_validation_loss": min(value.value for value in validation),
+        "best_validation_loss": best_validation_loss,
+        "last_minus_best": last_minus_best,
         "max_consecutive_high_validation": high_validation_run,
         "max_grad_norm": maximum_grad_norm,
         "max_consecutive_grad_spikes": grad_spike_run,
@@ -96,6 +104,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--grad-spike-threshold", required=True, type=float)
     parser.add_argument("--max-consecutive-grad-spikes", required=True, type=int)
     parser.add_argument("--absolute-max-grad-norm", type=float)
+    parser.add_argument("--max-last-minus-best", type=float)
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
@@ -111,6 +120,7 @@ def main() -> None:
         args.grad_spike_threshold,
         args.max_consecutive_grad_spikes,
         args.absolute_max_grad_norm,
+        args.max_last_minus_best,
     )
     rendered = json.dumps(result, indent=2, sort_keys=True)
     if args.output:

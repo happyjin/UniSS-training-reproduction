@@ -287,6 +287,41 @@ class UniST198FullScriptsTest(unittest.TestCase):
         self.assertIn("--full-validation", output)
         self.assertIn("port=6013", output)
 
+    def test_phase2_v4_starts_from_phase1_and_preserves_pilot_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = run_script(
+                "scripts/run_qwen0p5b_unist198_phase2_from_phase1_v4.sh",
+                "--dry-run",
+                extra_env={
+                    "SAVE_DIR": str(Path(tmp) / "checkpoints"),
+                    "RUN_DIR": str(Path(tmp) / "run"),
+                    "TENSORBOARD_DIR": str(Path(tmp) / "tensorboard"),
+                },
+            )
+        self.assertIn("clean Phase1 source iteration=15465", output)
+        self.assertIn("no Phase2 recovery checkpoint", output)
+        self.assertIn("--train-iters 15381", output)
+        self.assertIn("--exit-interval 3000", output)
+        self.assertIn("--lr 1e-5", output)
+        self.assertIn("--min-lr 1e-6", output)
+        self.assertIn("--lr-warmup-iters 400", output)
+        self.assertIn("--lr-decay-iters 3000", output)
+        self.assertIn("--clip-grad 0.5", output)
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+        self.assertIn("--eval-micro-batch-size 1", output)
+        self.assertIn("--eval-global-batch-size 8", output)
+        self.assertIn("FINETUNE=1", output)
+        self.assertIn("LOAD_OPTIM=0", output)
+        self.assertIn("LOAD_RNG=0", output)
+        self.assertIn("FINETUNE=0", output)
+        self.assertIn("LOAD_OPTIM=1", output)
+        self.assertIn("LOAD_RNG=1", output)
+        self.assertEqual(output.count("--exit-interval 3000"), 1)
+        self.assertIn("preserve optimizer/RNG/data cursor", output)
+        self.assertIn("port=6014", output)
+
     def test_packing_runner_completes_small_isolated_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
