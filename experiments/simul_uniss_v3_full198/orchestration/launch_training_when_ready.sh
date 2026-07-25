@@ -79,6 +79,6 @@ tmux has-session -t "${SESSION}" 2>/dev/null && {
   exit 1
 }
 mkdir -p "$(dirname "${LOG}")"
-command="${wait_and_launch} 2>&1 | tee -a $(printf '%q' "${LOG}")"
+printf -v command '{\n%s\n} 2>&1 | tee -a %q' "${wait_and_launch}" "${LOG}"
 tmux new-session -d -s "${SESSION}" "bash -lc $(printf '%q' "${command}")"
 echo "Started ${SESSION}; log=${LOG}"

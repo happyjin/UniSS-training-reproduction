@@ -269,6 +269,11 @@ class FullDataScriptTests(unittest.TestCase):
         self.assertLess(tensorboard, qwen)
         self.assertLess(qwen, components)
         self.assertNotIn("stage08_nar_optional", output)
+        source = (
+            REPO_ROOT
+            / "experiments/simul_uniss_v3_full198/orchestration/launch_training_when_ready.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("printf -v command '{\\n%s\\n} 2>&1 | tee -a %q'", source)
 
 
 if __name__ == "__main__":
