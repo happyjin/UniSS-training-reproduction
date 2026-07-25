@@ -102,6 +102,36 @@ class SimulScriptsTests(unittest.TestCase):
         )
         self.assertNotIn("--no-data-sharding", output)
 
+    def test_v2_qwen_stages_are_isolated_eight_gpu_global_shuffle_runs(self) -> None:
+        experiment = "experiments/simul_uniss_v2_15shard"
+        expected_loads = {
+            "stage03_action_sft": "checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4",
+            "stage04_interleaved_s2st": "checkpoints/simul_uniss_v2_15shard/stage03_action_sft",
+            "stage06_joint_refinement": "checkpoints/simul_uniss_v2_15shard/stage04_interleaved_s2st",
+        }
+        for stage, expected_load in expected_loads.items():
+            output = run_script(f"{experiment}/{stage}/run.sh", "--dry-run")
+            self.assertIn("--nproc_per_node 8", output)
+            self.assertIn("--dataloader-type cyclic", output)
+            self.assertIn("--no-data-sharding", output)
+            self.assertIn("--full-validation", output)
+            self.assertIn("--seed 20260725", output)
+            self.assertIn("checkpoints/simul_uniss_v2_15shard", output)
+            self.assertIn(expected_load, output)
+            self.assertNotIn("checkpoints/simul_uniss_v1/stage", output)
+
+    def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertEqual(output.count("--nproc_per_node 8"), 3)
+        self.assertEqual(output.count("--no-data-sharding"), 3)
+        self.assertEqual(output.count("--full-validation"), 3)
+        self.assertIn("shuffle_smoke_8gpu/stage03_action_sft", output)
+        self.assertIn("shuffle_smoke_8gpu/stage04_interleaved_s2st", output)
+        self.assertIn("shuffle_smoke_8gpu/stage06_joint_refinement", output)
+
     def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
         script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(
             encoding="utf-8"
