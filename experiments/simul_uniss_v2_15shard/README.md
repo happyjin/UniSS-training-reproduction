@@ -54,12 +54,18 @@ their original behavior.
 experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh
 experiments/simul_uniss_v2_15shard/orchestration/start_tensorboard.sh
 experiments/simul_uniss_v2_15shard/orchestration/launch_qwen_pipeline_tmux.sh
+experiments/simul_uniss_v2_15shard/orchestration/launch_component_pipeline_when_ready.sh
 ```
 
 The smoke must finish before the formal Stage 3 → Stage 4 → Stage 6 pipeline
 can start. Every stage has an independent output directory and completion
 marker; an existing partial directory causes a safe failure instead of an
 overwrite.
+
+The component waiter does not contend with Qwen training. It starts Stage 0,
+Stage 1/2, Stage 5, and the Stage 7 policy bootstrap only after the formal Qwen
+pipeline writes its completion marker. Stage 8 remains profiling-gated and is
+never auto-started.
 
 The first live eight-GPU attempt is preserved under `shuffle_smoke_8gpu`; it
 stopped before iteration 1 because a two-step smoke inherited ten warmup steps.

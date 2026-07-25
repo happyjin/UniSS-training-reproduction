@@ -186,6 +186,20 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage08_nar_semantic_optional", output)
         self.assertIn("--seed 20260725", output)
 
+    def test_v2_component_pipeline_covers_required_non_qwen_stages(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/orchestration/run_component_pipeline_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("reconstruct_unist_audio", output)
+        self.assertIn("prefix_reencode_baseline", output)
+        self.assertIn("train_streaming_student", output)
+        self.assertIn("train_audio_student", output)
+        self.assertIn("run_stage5_streaming_replay", output)
+        self.assertIn("train_bicodec_refinement", output)
+        self.assertIn("policy_grpo", output)
+        self.assertIn("stage08_nar_optional=profiling-gated-not-auto-started", output)
+
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
         output = run_script(
             "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",
