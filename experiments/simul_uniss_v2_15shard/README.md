@@ -26,10 +26,12 @@ Simul-UniSS experiments. It never writes into the previous
 - `stage05_streaming_bicodec/`: overlap baseline and eight-GPU boundary refinement.
 - `stage06_joint_refinement/`: low-learning-rate joint refinement.
 - `stage07_grpo/`: eight-GPU WAIT/WRITE policy GRPO bootstrap.
+- `stage08_nar_optional/`: profiling-gated eight-GPU NAR semantic branch.
 - `orchestration/`: eight-GPU smoke, sequential training, and TensorBoard launchers.
 
-Additional Stage 8 folders are added only with their distributed
-training adapters, so a folder never suggests an unsupported eight-GPU path.
+Every implemented training stage now has an isolated local folder and an
+eight-GPU launcher. Scope limitations of bootstrap implementations are stated
+inside the corresponding stage README instead of being hidden.
 
 ## Shuffle invariant
 

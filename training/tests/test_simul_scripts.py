@@ -174,6 +174,18 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage07_grpo_policy_bootstrap", output)
         self.assertIn("--seed 20260725", output)
 
+    def test_v2_stage8_nar_uses_eight_gpu_torchrun(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/stage08_nar_optional/run_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--master_addr 127.0.0.1", output)
+        self.assertIn("training.simul_uniss.nar_semantic", output)
+        self.assertIn("--shuffle-buffer-size 8192", output)
+        self.assertIn("stage08_nar_semantic_optional", output)
+        self.assertIn("--seed 20260725", output)
+
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
         output = run_script(
             "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",

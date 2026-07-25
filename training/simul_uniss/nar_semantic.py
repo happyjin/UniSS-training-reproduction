@@ -15,7 +15,8 @@ from torch.utils.data import DataLoader, IterableDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from training import constants_uniss as c
-from training.simul_uniss.shuffle import buffered_shuffle
+from training.simul_uniss.distributed import DistributedContext
+from training.simul_uniss.shuffle import buffered_shuffle, distributed_stride
 
 
 class SemanticWriteDataset(IterableDataset):
@@ -26,12 +27,16 @@ class SemanticWriteDataset(IterableDataset):
         max_semantic_tokens: int,
         shuffle_buffer_size: int = 8192,
         seed: int = 0,
+        rank: int = 0,
+        world_size: int = 1,
     ) -> None:
         self.path = Path(schedule_path)
         self.max_text_tokens = max_text_tokens
         self.max_semantic_tokens = max_semantic_tokens
         self.shuffle_buffer_size = shuffle_buffer_size
         self.seed = seed
+        self.rank = rank
+        self.world_size = world_size
         self.epoch = 0
 
     def _ordered_items(self) -> Iterator[dict[str, torch.Tensor]]:
@@ -62,8 +67,12 @@ class SemanticWriteDataset(IterableDataset):
     def __iter__(self) -> Iterator[dict[str, torch.Tensor]]:
         epoch = self.epoch
         self.epoch += 1
-        yield from buffered_shuffle(
-            self._ordered_items(), self.shuffle_buffer_size, self.seed + epoch
+        yield from distributed_stride(
+            buffered_shuffle(
+                self._ordered_items(), self.shuffle_buffer_size, self.seed + epoch
+            ),
+            self.rank,
+            self.world_size,
         )
 
 
@@ -133,13 +142,13 @@ class NARSemanticGenerator(nn.Module):
         }
 
 
-def nar_losses(
-    model: NARSemanticGenerator, batch: dict[str, torch.Tensor]
-) -> dict[str, torch.Tensor]:
+def nar_losses(model: nn.Module, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     outputs = model(batch["text"], batch["text_lengths"])
-    semantic_lengths = batch["semantic_lengths"].clamp_max(model.max_output_tokens)
+    base_model = DistributedContext.unwrap(model)
+    max_output_tokens = int(base_model.max_output_tokens)
+    semantic_lengths = batch["semantic_lengths"].clamp_max(max_output_tokens)
     input_lengths = torch.minimum(
-        torch.full_like(semantic_lengths, model.max_output_tokens),
+        torch.full_like(semantic_lengths, max_output_tokens),
         semantic_lengths
         + torch.maximum(torch.ones_like(semantic_lengths) * 2, semantic_lengths // 5),
     )
@@ -187,27 +196,31 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    torch.manual_seed(args.seed)
-    device = torch.device(args.device)
+    distributed = DistributedContext.initialize(args.device)
+    torch.manual_seed(args.seed + distributed.rank)
+    device = distributed.device
     dataset = SemanticWriteDataset(
         args.schedules,
         args.max_text_tokens,
         args.max_semantic_tokens,
         args.shuffle_buffer_size,
         args.seed,
+        distributed.rank,
+        distributed.world_size,
     )
     loader = DataLoader(
         dataset, batch_size=args.batch_size, collate_fn=collate_nar, num_workers=0
     )
     batches = infinite_batches(loader)
-    model = NARSemanticGenerator(
+    base_model = NARSemanticGenerator(
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         num_heads=args.num_heads,
         max_output_tokens=args.max_semantic_tokens,
     ).to(device)
+    model = distributed.wrap(base_model)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
-    writer = SummaryWriter(args.tensorboard_dir)
+    writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
     for step in range(1, args.max_steps + 1):
         batch = {key: value.to(device) for key, value in next(batches).items()}
         optimizer.zero_grad(set_to_none=True)
@@ -216,31 +229,37 @@ def main() -> None:
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         if step % args.log_interval == 0 or step == 1:
-            for name, value in losses.items():
-                writer.add_scalar(f"stage8/{name}_loss", float(value), step)
-            writer.add_scalar("stage8/grad_norm", float(grad_norm), step)
-            writer.flush()
-            print(
-                json.dumps(
-                    {
-                        "step": step,
-                        **{name: float(value) for name, value in losses.items()},
-                    }
-                ),
-                flush=True,
+            names = tuple(losses)
+            reduced = distributed.reduce_sums(
+                [*(float(losses[name]) for name in names), float(grad_norm)]
             )
+            averaged = [value / distributed.world_size for value in reduced]
+            if writer is not None:
+                for index, name in enumerate(names):
+                    writer.add_scalar(f"stage8/{name}_loss", averaged[index], step)
+                writer.add_scalar("stage8/grad_norm", averaged[-1], step)
+                writer.flush()
+                print(
+                    json.dumps(
+                        {"step": step, **dict(zip(names, averaged[:-1])), "grad_norm": averaged[-1]}
+                    ),
+                    flush=True,
+                )
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {"model": model.state_dict(), "args": vars(args)},
-        output_dir / "nar_semantic.pt",
-    )
-    writer.close()
-    print(
-        json.dumps(
-            {"status": "complete", "output": str(output_dir / "nar_semantic.pt")}
+    if distributed.is_main:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(
+            {"model": distributed.unwrap(model).state_dict(), "args": vars(args)},
+            output_dir / "nar_semantic.pt",
         )
-    )
+        assert writer is not None
+        writer.close()
+        print(
+            json.dumps(
+                {"status": "complete", "output": str(output_dir / "nar_semantic.pt")}
+            )
+        )
+    distributed.close()
 
 
 if __name__ == "__main__":
