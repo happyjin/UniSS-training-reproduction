@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import Dataset
 
 from training.simul_uniss import PACKED_SCHEMA_VERSION
+from training.simul_uniss.jsonl_index import load_index
 
 
 def _tensor(item: Mapping[str, object], key: str, length: int, dtype: torch.dtype) -> torch.Tensor:
@@ -66,13 +67,19 @@ class SimulPackedJsonlDataset(Dataset):
         self.seq_length = seq_length
         if not self.path.is_file():
             raise FileNotFoundError(self.path)
-        self.offsets: list[int] = []
-        offset = 0
-        with self.path.open("rb") as handle:
-            for line in handle:
-                if line.strip():
-                    self.offsets.append(offset)
-                offset += len(line)
+        indexed_offsets = load_index(self.path)
+        self.offsets: Sequence[int]
+        if indexed_offsets is not None:
+            self.offsets = indexed_offsets
+        else:
+            offsets: list[int] = []
+            offset = 0
+            with self.path.open("rb") as handle:
+                for line in handle:
+                    if line.strip():
+                        offsets.append(offset)
+                    offset += len(line)
+            self.offsets = offsets
         if not self.offsets:
             raise ValueError(f"{self.path} contains no samples")
 

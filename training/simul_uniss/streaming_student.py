@@ -14,6 +14,7 @@ from torch.utils.data import Dataset
 
 from training import constants_uniss as c
 from training.simul_uniss.policy_tokenizer import PolicyTokenizer
+from training.simul_uniss.jsonl_index import load_index
 
 
 class CausalConv1d(nn.Module):
@@ -112,13 +113,18 @@ class StreamingStudentDataset(Dataset):
         self.policy_tokenizer = policy_tokenizer
         self.max_source_tokens = max_source_tokens
         self.prefix_training = prefix_training
-        self.offsets: list[int] = []
-        offset = 0
-        with self.path.open("rb") as handle:
-            for line in handle:
-                if line.strip():
-                    self.offsets.append(offset)
-                offset += len(line)
+        indexed_offsets = load_index(self.path)
+        if indexed_offsets is not None:
+            self.offsets = indexed_offsets
+        else:
+            offsets: list[int] = []
+            offset = 0
+            with self.path.open("rb") as handle:
+                for line in handle:
+                    if line.strip():
+                        offsets.append(offset)
+                    offset += len(line)
+            self.offsets = offsets
         if not self.offsets:
             raise ValueError(f"{self.path} contains no schedules")
 

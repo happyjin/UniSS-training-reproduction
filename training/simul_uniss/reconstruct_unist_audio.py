@@ -30,6 +30,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bicodec-model-dir", required=True)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--limit-records", type=int, default=1)
+    parser.add_argument(
+        "--records-per-shard",
+        type=int,
+        default=None,
+        help="Optional stratified cap per input parquet; the legacy default remains sequential.",
+    )
     parser.add_argument("--side", choices=["source", "target", "both"], default="both")
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -37,6 +43,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.records_per_shard is not None and args.records_per_shard <= 0:
+        raise ValueError("--records-per-shard must be positive")
     from uniss.speech_tokenizer.bicodec.bicodec_tokenizer import BiCodecTokenizer
 
     output_dir = Path(args.output_dir)
@@ -47,6 +55,7 @@ def main() -> None:
     with manifest_path.open("w", encoding="utf-8") as manifest:
         for input_value in args.input:
             parquet = pq.ParquetFile(input_value)
+            shard_count = 0
             columns = [
                 "id",
                 "transcription",
@@ -86,10 +95,15 @@ def main() -> None:
                         item["target_audio"] = str(path.resolve())
                     manifest.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n")
                     count += 1
+                    shard_count += 1
                     print(json.dumps({"reconstructed": count, "id": row["id"]}), flush=True)
                     if args.limit_records is not None and count >= args.limit_records:
                         print(json.dumps({"manifest": str(manifest_path), "records": count}, sort_keys=True))
                         return
+                    if args.records_per_shard is not None and shard_count >= args.records_per_shard:
+                        break
+                if args.records_per_shard is not None and shard_count >= args.records_per_shard:
+                    break
     print(json.dumps({"manifest": str(manifest_path), "records": count}, sort_keys=True))
 
 
