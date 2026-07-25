@@ -59,3 +59,14 @@ The first live eight-GPU attempt is preserved under `shuffle_smoke_8gpu`; it
 stopped before iteration 1 because a two-step smoke inherited ten warmup steps.
 The corrected non-overwriting attempt uses `shuffle_smoke_8gpu_v2` with zero
 warmup steps.
+
+If the controlling shell is disconnected after all three checkpoints finish,
+recover only the completion state without retraining or overwriting outputs:
+
+```bash
+experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh \
+  --verify-existing
+```
+
+This mode rechecks iteration, sampler, seed, full-validation, skipped-iteration,
+and NaN invariants before writing the completion marker.

@@ -133,6 +133,17 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("shuffle_smoke_8gpu_v2/stage04_interleaved_s2st", output)
         self.assertIn("shuffle_smoke_8gpu_v2/stage06_joint_refinement", output)
 
+    def test_v2_shuffle_smoke_has_safe_existing_result_verification(self) -> None:
+        script = (
+            REPO_ROOT
+            / "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--verify-existing", script)
+        self.assertIn("verify_stage stage03", script)
+        self.assertIn("verify_stage stage04", script)
+        self.assertIn("verify_stage stage06", script)
+        self.assertIn("write_complete_marker", script)
+
     def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
         script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(
             encoding="utf-8"

@@ -2,11 +2,18 @@
 set -euo pipefail
 
 DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
-  shift
+VERIFY_EXISTING=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1; shift ;;
+    --verify-existing) VERIFY_EXISTING=1; shift ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+if [[ "${DRY_RUN}" == "1" && "${VERIFY_EXISTING}" == "1" ]]; then
+  echo "--dry-run and --verify-existing are mutually exclusive" >&2
+  exit 2
 fi
-[[ $# -eq 0 ]] || { echo "Unknown argument: $1" >&2; exit 2; }
 
 EXPERIMENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${EXPERIMENT_DIR}/../.." && pwd)"
@@ -62,16 +69,6 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   exit 0
 fi
 
-if [[ -e "${SMOKE_ROOT}" || -e "${SMOKE_RUN_DIR}" || -e "${SMOKE_LOG_DIR}" ]]; then
-  echo "Refusing to overwrite an existing shuffle smoke directory." >&2
-  echo "checkpoint=${SMOKE_ROOT}" >&2
-  echo "run=${SMOKE_RUN_DIR}" >&2
-  echo "log=${SMOKE_LOG_DIR}" >&2
-  exit 1
-fi
-
-mkdir -p "${SMOKE_RUN_DIR}" "${SMOKE_LOG_DIR}"
-
 verify_stage() {
   local stage="$1" root="$2" log_file="$3"
   local iteration
@@ -88,8 +85,35 @@ verify_stage() {
   rg -q 'dataloader_type[. ]+cyclic' "${log_file}"
   rg -q 'full_validation[. ]+True' "${log_file}"
   rg -q 'seed[. ]+20260725' "${log_file}"
+  rg -q 'number of skipped iterations:[ ]+0' "${log_file}"
   rg -q 'number of nan iterations:[ ]+0' "${log_file}"
 }
+
+write_complete_marker() {
+  mkdir -p "${SMOKE_RUN_DIR}"
+  printf 'completed_at=%s\nanchor=%s\ngpus=%s\n' \
+    "$(date -u +%FT%TZ)" "${QWEN_CHECKPOINT_ROOT}" "${SIMUL_CUDA_VISIBLE_DEVICES}" \
+    > "${COMPLETE_MARKER}"
+  echo "Eight-GPU global-shuffle smoke completed: ${COMPLETE_MARKER}"
+}
+
+if [[ "${VERIFY_EXISTING}" == "1" ]]; then
+  verify_stage stage03 "${stage03_root}" "${SMOKE_LOG_DIR}/stage_action_qwen.log"
+  verify_stage stage04 "${stage04_root}" "${SMOKE_LOG_DIR}/stage_interleaved_qwen.log"
+  verify_stage stage06 "${stage06_root}" "${SMOKE_LOG_DIR}/stage_joint_qwen.log"
+  write_complete_marker
+  exit 0
+fi
+
+if [[ -e "${SMOKE_ROOT}" || -e "${SMOKE_RUN_DIR}" || -e "${SMOKE_LOG_DIR}" ]]; then
+  echo "Refusing to overwrite an existing shuffle smoke directory." >&2
+  echo "checkpoint=${SMOKE_ROOT}" >&2
+  echo "run=${SMOKE_RUN_DIR}" >&2
+  echo "log=${SMOKE_LOG_DIR}" >&2
+  exit 1
+fi
+
+mkdir -p "${SMOKE_RUN_DIR}" "${SMOKE_LOG_DIR}"
 
 "${stage03_cmd[@]}"
 verify_stage stage03 "${stage03_root}" "${SMOKE_LOG_DIR}/stage_action_qwen.log"
@@ -98,7 +122,4 @@ verify_stage stage04 "${stage04_root}" "${SMOKE_LOG_DIR}/stage_interleaved_qwen.
 "${stage06_cmd[@]}"
 verify_stage stage06 "${stage06_root}" "${SMOKE_LOG_DIR}/stage_joint_qwen.log"
 
-printf 'completed_at=%s\nanchor=%s\ngpus=%s\n' \
-  "$(date -u +%FT%TZ)" "${QWEN_CHECKPOINT_ROOT}" "${SIMUL_CUDA_VISIBLE_DEVICES}" \
-  > "${COMPLETE_MARKER}"
-echo "Eight-GPU global-shuffle smoke completed: ${COMPLETE_MARKER}"
+write_complete_marker
