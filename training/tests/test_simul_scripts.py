@@ -128,9 +128,10 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertEqual(output.count("--nproc_per_node 8"), 3)
         self.assertEqual(output.count("--no-data-sharding"), 3)
         self.assertEqual(output.count("--full-validation"), 3)
-        self.assertIn("shuffle_smoke_8gpu/stage03_action_sft", output)
-        self.assertIn("shuffle_smoke_8gpu/stage04_interleaved_s2st", output)
-        self.assertIn("shuffle_smoke_8gpu/stage06_joint_refinement", output)
+        self.assertEqual(output.count("--lr-warmup-iters 0"), 3)
+        self.assertIn("shuffle_smoke_8gpu_v2/stage03_action_sft", output)
+        self.assertIn("shuffle_smoke_8gpu_v2/stage04_interleaved_s2st", output)
+        self.assertIn("shuffle_smoke_8gpu_v2/stage06_joint_refinement", output)
 
     def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
         script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(

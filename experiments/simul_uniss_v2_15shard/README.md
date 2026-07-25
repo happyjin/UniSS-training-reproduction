@@ -55,3 +55,7 @@ can start. Every stage has an independent output directory and completion
 marker; an existing partial directory causes a safe failure instead of an
 overwrite.
 
+The first live eight-GPU attempt is preserved under `shuffle_smoke_8gpu`; it
+stopped before iteration 1 because a two-step smoke inherited ten warmup steps.
+The corrected non-overwriting attempt uses `shuffle_smoke_8gpu_v2` with zero
+warmup steps.

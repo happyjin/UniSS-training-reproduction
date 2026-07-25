@@ -14,10 +14,11 @@ CONFIG_FILE="${EXPERIMENT_DIR}/experiment.env"
 # shellcheck source=/dev/null
 source "${CONFIG_FILE}"
 
-SMOKE_ROOT="${SIMUL_CHECKPOINT_ROOT}/shuffle_smoke_8gpu"
-SMOKE_RUN_DIR="${RUN_DIR}/shuffle_smoke_8gpu"
-SMOKE_LOG_DIR="${LOG_DIR}/shuffle_smoke_8gpu"
-SMOKE_TENSORBOARD_DIR="${TENSORBOARD_DIR}/shuffle_smoke_8gpu"
+SMOKE_NAME="${SHUFFLE_SMOKE_NAME:-shuffle_smoke_8gpu_v2}"
+SMOKE_ROOT="${SIMUL_CHECKPOINT_ROOT}/${SMOKE_NAME}"
+SMOKE_RUN_DIR="${RUN_DIR}/${SMOKE_NAME}"
+SMOKE_LOG_DIR="${LOG_DIR}/${SMOKE_NAME}"
+SMOKE_TENSORBOARD_DIR="${TENSORBOARD_DIR}/${SMOKE_NAME}"
 COMPLETE_MARKER="${SMOKE_RUN_DIR}/SHUFFLE_SMOKE_COMPLETE"
 
 stage03_root="${SMOKE_ROOT}/stage03_action_sft"
@@ -29,6 +30,7 @@ stage03_cmd=(env
   STAGE3_SAVE_ROOT="${stage03_root}"
   STAGE3_TENSORBOARD_DIR="${SMOKE_TENSORBOARD_DIR}/stage03_action_sft"
   STAGE3_TRAIN_ITERS=2
+  SIMUL_QWEN_WARMUP_ITERS=0
   SIMUL_QWEN_SAVE_INTERVAL=2
   SIMUL_QWEN_EVAL_INTERVAL=2
   "${EXPERIMENT_DIR}/stage03_action_sft/run.sh")
@@ -38,6 +40,7 @@ stage04_cmd=(env
   STAGE4_SAVE_ROOT="${stage04_root}"
   STAGE4_TENSORBOARD_DIR="${SMOKE_TENSORBOARD_DIR}/stage04_interleaved_s2st"
   STAGE4_TRAIN_ITERS=2
+  SIMUL_QWEN_WARMUP_ITERS=0
   SIMUL_QWEN_SAVE_INTERVAL=2
   SIMUL_QWEN_EVAL_INTERVAL=2
   "${EXPERIMENT_DIR}/stage04_interleaved_s2st/run.sh")
@@ -47,6 +50,7 @@ stage06_cmd=(env
   STAGE6_SAVE_ROOT="${stage06_root}"
   STAGE6_TENSORBOARD_DIR="${SMOKE_TENSORBOARD_DIR}/stage06_joint_refinement"
   STAGE6_TRAIN_ITERS=2
+  SIMUL_QWEN_WARMUP_ITERS=0
   SIMUL_QWEN_SAVE_INTERVAL=2
   SIMUL_QWEN_EVAL_INTERVAL=2
   "${EXPERIMENT_DIR}/stage06_joint_refinement/run.sh")
@@ -98,4 +102,3 @@ printf 'completed_at=%s\nanchor=%s\ngpus=%s\n' \
   "$(date -u +%FT%TZ)" "${QWEN_CHECKPOINT_ROOT}" "${SIMUL_CUDA_VISIBLE_DEVICES}" \
   > "${COMPLETE_MARKER}"
 echo "Eight-GPU global-shuffle smoke completed: ${COMPLETE_MARKER}"
-

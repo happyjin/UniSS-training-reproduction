@@ -15,7 +15,8 @@ CONFIG_FILE="${EXPERIMENT_DIR}/experiment.env"
 source "${CONFIG_FILE}"
 
 PIPELINE_DIR="${RUN_DIR}/qwen_pipeline_8gpu"
-SMOKE_MARKER="${RUN_DIR}/shuffle_smoke_8gpu/SHUFFLE_SMOKE_COMPLETE"
+SMOKE_NAME="${SHUFFLE_SMOKE_NAME:-shuffle_smoke_8gpu_v2}"
+SMOKE_MARKER="${RUN_DIR}/${SMOKE_NAME}/SHUFFLE_SMOKE_COMPLETE"
 PIPELINE_MARKER="${PIPELINE_DIR}/QWEN_PIPELINE_COMPLETE"
 
 stages=(
@@ -67,4 +68,3 @@ done
 printf 'completed_at=%s\nanchor=%s\n' \
   "$(date -u +%FT%TZ)" "${QWEN_CHECKPOINT_ROOT}" > "${PIPELINE_MARKER}"
 echo "Eight-GPU Qwen pipeline completed: ${PIPELINE_MARKER}"
-
