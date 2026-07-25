@@ -126,6 +126,7 @@ class SimulScriptsTests(unittest.TestCase):
             "--dry-run",
         )
         self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--master_addr 127.0.0.1", output)
         self.assertIn("training.simul_uniss.train_streaming_student", output)
         self.assertIn("--device cuda", output)
         self.assertIn("stage01_02_streaming_token_student", output)
@@ -143,6 +144,7 @@ class SimulScriptsTests(unittest.TestCase):
             "--dry-run",
         )
         self.assertIn("--nproc_per_node 8", audio)
+        self.assertIn("--master_addr 127.0.0.1", audio)
         self.assertIn("training.simul_uniss.train_audio_student", audio)
         self.assertIn("--device cuda", audio)
         self.assertIn("stage01_02_streaming_audio_student", audio)
@@ -154,9 +156,22 @@ class SimulScriptsTests(unittest.TestCase):
             "--dry-run",
         )
         self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--master_addr 127.0.0.1", output)
         self.assertIn("training.simul_uniss.train_bicodec_refinement", output)
         self.assertIn("--device cuda", output)
         self.assertIn("stage05_bicodec_refinement", output)
+        self.assertIn("--seed 20260725", output)
+
+    def test_v2_stage7_grpo_bootstrap_uses_eight_gpu_torchrun(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/stage07_grpo/run_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--master_addr 127.0.0.1", output)
+        self.assertIn("training.simul_uniss.policy_grpo", output)
+        self.assertIn("--shuffle-buffer-size 8192", output)
+        self.assertIn("stage07_grpo_policy_bootstrap", output)
         self.assertIn("--seed 20260725", output)
 
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:

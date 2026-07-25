@@ -15,6 +15,7 @@ source "${ACTIVATE_SCRIPT}"
 manifest="${STAGE0_AUDIO_DIR}/audio_manifest.jsonl"
 cmd=(torchrun
   --nproc_per_node "${SIMUL_NPROC_PER_NODE}"
+  --master_addr "${SIMUL_MASTER_ADDR}"
   --master_port "${STAGE5_REFINEMENT_MASTER_PORT}"
   -m training.simul_uniss.train_bicodec_refinement
   --manifest "${manifest}"

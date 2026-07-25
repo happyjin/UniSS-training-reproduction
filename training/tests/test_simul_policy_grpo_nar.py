@@ -6,7 +6,7 @@ import torch
 
 from training.simul_uniss.nar_semantic import NARSemanticGenerator, nar_losses
 from training.simul_uniss.policy_grpo import ActionPolicy, grpo_loss, rollout_rewards
-from training.simul_uniss.shuffle import buffered_shuffle
+from training.simul_uniss.shuffle import buffered_shuffle, distributed_stride
 
 
 class PolicyGrpoNarTests(unittest.TestCase):
@@ -17,6 +17,14 @@ class PolicyGrpoNarTests(unittest.TestCase):
         self.assertEqual(first, repeated)
         self.assertCountEqual(first, ordered)
         self.assertNotEqual(first, ordered)
+
+    def test_distributed_stride_is_disjoint_and_complete(self) -> None:
+        ordered = list(range(23))
+        shards = [list(distributed_stride(ordered, rank, 4)) for rank in range(4)]
+        self.assertEqual(sorted(item for shard in shards for item in shard), ordered)
+        for left in range(4):
+            for right in range(left + 1, 4):
+                self.assertTrue(set(shards[left]).isdisjoint(shards[right]))
 
     def test_rollout_reward_penalizes_premature_write(self) -> None:
         actions = torch.tensor([[0, 1]])

@@ -29,3 +29,15 @@ def buffered_shuffle(items: Iterable[T], buffer_size: int, seed: int) -> Iterato
         buffer[index] = item
     rng.shuffle(buffer)
     yield from buffer
+
+
+def distributed_stride(items: Iterable[T], rank: int, world_size: int) -> Iterator[T]:
+    """Partition one deterministic iterable across ranks without overlap."""
+
+    if world_size < 1:
+        raise ValueError("world_size must be positive")
+    if rank < 0 or rank >= world_size:
+        raise ValueError("rank must satisfy 0 <= rank < world_size")
+    for index, item in enumerate(items):
+        if index % world_size == rank:
+            yield item

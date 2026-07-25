@@ -15,16 +15,24 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, IterableDataset
 from torch.utils.tensorboard import SummaryWriter
 
-from training.simul_uniss.shuffle import buffered_shuffle
+from training.simul_uniss.distributed import DistributedContext
+from training.simul_uniss.shuffle import buffered_shuffle, distributed_stride
 
 
 class ScheduleActionDataset(IterableDataset):
     def __init__(
-        self, schedule_path: str | Path, shuffle_buffer_size: int = 8192, seed: int = 0
+        self,
+        schedule_path: str | Path,
+        shuffle_buffer_size: int = 8192,
+        seed: int = 0,
+        rank: int = 0,
+        world_size: int = 1,
     ) -> None:
         self.path = Path(schedule_path)
         self.shuffle_buffer_size = shuffle_buffer_size
         self.seed = seed
+        self.rank = rank
+        self.world_size = world_size
         self.epoch = 0
 
     def _ordered_items(self) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
@@ -62,8 +70,12 @@ class ScheduleActionDataset(IterableDataset):
     def __iter__(self) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
         epoch = self.epoch
         self.epoch += 1
-        yield from buffered_shuffle(
-            self._ordered_items(), self.shuffle_buffer_size, self.seed + epoch
+        yield from distributed_stride(
+            buffered_shuffle(
+                self._ordered_items(), self.shuffle_buffer_size, self.seed + epoch
+            ),
+            self.rank,
+            self.world_size,
         )
 
 
@@ -100,7 +112,7 @@ def rollout_rewards(
 
 
 def grpo_loss(
-    policy: ActionPolicy,
+    policy: nn.Module,
     reference: ActionPolicy,
     features: torch.Tensor,
     labels: torch.Tensor,
@@ -170,17 +182,25 @@ def main() -> None:
     args = parse_args()
     if args.group_size < 2:
         raise ValueError("group_size must be at least 2")
-    torch.manual_seed(args.seed)
-    device = torch.device(args.device)
+    distributed = DistributedContext.initialize(args.device)
+    torch.manual_seed(args.seed + distributed.rank)
+    device = distributed.device
     loader = DataLoader(
-        ScheduleActionDataset(args.schedules, args.shuffle_buffer_size, args.seed),
+        ScheduleActionDataset(
+            args.schedules,
+            args.shuffle_buffer_size,
+            args.seed,
+            distributed.rank,
+            distributed.world_size,
+        ),
         batch_size=args.batch_size,
         num_workers=0,
     )
     batches = infinite_batches(loader)
-    policy = ActionPolicy(args.hidden_size).to(device)
+    base_policy = ActionPolicy(args.hidden_size).to(device)
+    policy = distributed.wrap(base_policy)
     optimizer = torch.optim.AdamW(policy.parameters(), lr=args.learning_rate)
-    writer = SummaryWriter(args.tensorboard_dir)
+    writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
 
     for step in range(1, args.sft_steps + 1):
         features, labels = next(batches)
@@ -191,10 +211,12 @@ def main() -> None:
         optimizer.step()
         if step % args.log_interval == 0 or step == 1:
             accuracy = (policy(features).argmax(dim=-1) == labels).float().mean()
-            writer.add_scalar("stage7/sft_loss", float(loss), step)
-            writer.add_scalar("stage7/sft_accuracy", float(accuracy), step)
+            reduced = distributed.reduce_sums([float(loss), float(accuracy)])
+            if writer is not None:
+                writer.add_scalar("stage7/sft_loss", reduced[0] / distributed.world_size, step)
+                writer.add_scalar("stage7/sft_accuracy", reduced[1] / distributed.world_size, step)
 
-    reference = copy.deepcopy(policy).eval()
+    reference = copy.deepcopy(distributed.unwrap(policy)).to(device).eval()
     for parameter in reference.parameters():
         parameter.requires_grad = False
     for step in range(1, args.grpo_steps + 1):
@@ -209,31 +231,39 @@ def main() -> None:
         optimizer.step()
         global_step = args.sft_steps + step
         if step % args.log_interval == 0 or step == 1:
-            writer.add_scalar("stage7/grpo_loss", float(loss), global_step)
-            for name, value in metrics.items():
-                writer.add_scalar(f"stage7/{name}", value, global_step)
-            writer.flush()
-            print(
-                json.dumps(
-                    {"step": step, "loss": float(loss), **metrics}, sort_keys=True
-                ),
-                flush=True,
-            )
+            names = tuple(metrics)
+            reduced = distributed.reduce_sums([float(loss), *(metrics[name] for name in names)])
+            averaged = [value / distributed.world_size for value in reduced]
+            if writer is not None:
+                writer.add_scalar("stage7/grpo_loss", averaged[0], global_step)
+                for index, name in enumerate(names, start=1):
+                    writer.add_scalar(f"stage7/{name}", averaged[index], global_step)
+                writer.flush()
+                print(
+                    json.dumps(
+                        {"step": step, "loss": averaged[0], **dict(zip(names, averaged[1:]))},
+                        sort_keys=True,
+                    ),
+                    flush=True,
+                )
 
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "model": policy.state_dict(),
-            "reference": reference.state_dict(),
-            "args": vars(args),
-        },
-        output_dir / "policy_grpo.pt",
-    )
-    writer.close()
-    print(
-        json.dumps({"status": "complete", "output": str(output_dir / "policy_grpo.pt")})
-    )
+    if distributed.is_main:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(
+            {
+                "model": distributed.unwrap(policy).state_dict(),
+                "reference": reference.state_dict(),
+                "args": vars(args),
+            },
+            output_dir / "policy_grpo.pt",
+        )
+        assert writer is not None
+        writer.close()
+        print(
+            json.dumps({"status": "complete", "output": str(output_dir / "policy_grpo.pt")})
+        )
+    distributed.close()
 
 
 if __name__ == "__main__":

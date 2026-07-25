@@ -18,6 +18,7 @@ source "${ACTIVATE_SCRIPT}"
 
 cmd=(torchrun
   --nproc_per_node "${SIMUL_NPROC_PER_NODE}"
+  --master_addr "${SIMUL_MASTER_ADDR}"
   --master_port "${STAGE1_TOKEN_MASTER_PORT}"
   -m training.simul_uniss.train_streaming_student
   --schedules "${SCHEDULES_JSONL}"

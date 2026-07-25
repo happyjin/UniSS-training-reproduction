@@ -25,9 +25,10 @@ Simul-UniSS experiments. It never writes into the previous
 - `stage04_interleaved_s2st/`: phrase-level interleaved S2ST SFT.
 - `stage05_streaming_bicodec/`: overlap baseline and eight-GPU boundary refinement.
 - `stage06_joint_refinement/`: low-learning-rate joint refinement.
+- `stage07_grpo/`: eight-GPU WAIT/WRITE policy GRPO bootstrap.
 - `orchestration/`: eight-GPU smoke, sequential training, and TensorBoard launchers.
 
-Additional Stage 7/8 folders are added only with their distributed
+Additional Stage 8 folders are added only with their distributed
 training adapters, so a folder never suggests an unsupported eight-GPU path.
 
 ## Shuffle invariant
