@@ -148,6 +148,17 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage01_02_streaming_audio_student", audio)
         self.assertIn("--seed 20260725", audio)
 
+    def test_v2_stage5_refinement_uses_eight_gpu_torchrun(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/stage05_streaming_bicodec/run_refinement_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("training.simul_uniss.train_bicodec_refinement", output)
+        self.assertIn("--device cuda", output)
+        self.assertIn("stage05_bicodec_refinement", output)
+        self.assertIn("--seed 20260725", output)
+
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
         output = run_script(
             "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",

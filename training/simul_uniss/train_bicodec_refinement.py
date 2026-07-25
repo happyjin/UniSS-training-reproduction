@@ -10,8 +10,10 @@ import torch
 import torchaudio
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, DistributedSampler, Subset
 from torch.utils.tensorboard import SummaryWriter
+
+from training.simul_uniss.distributed import DistributedContext
 
 
 class BiCodecChunkDataset(Dataset):
@@ -108,6 +110,60 @@ def differentiable_detokenize(model, semantic: torch.Tensor, global_tokens: torc
     return model.decoder(x).squeeze(1)
 
 
+class BiCodecRefinementModel(nn.Module):
+    """Expose BiCodec's trainable refinement path through a DDP forward."""
+
+    def __init__(self, bicodec: nn.Module) -> None:
+        super().__init__()
+        self.bicodec = bicodec
+
+    def forward(self, semantic: torch.Tensor, global_tokens: torch.Tensor) -> torch.Tensor:
+        return differentiable_detokenize(self.bicodec, semantic, global_tokens)
+
+
+def refinement_losses(
+    model: nn.Module, batch: dict[str, torch.Tensor]
+) -> dict[str, torch.Tensor]:
+    prediction = model(batch["semantic"], batch["global"])
+    common = min(prediction.shape[-1], batch["reference"].shape[-1])
+    prediction = prediction[..., :common]
+    reference = batch["reference"][..., :common]
+    waveform = F.l1_loss(prediction, reference)
+    stft = multi_resolution_stft_loss(prediction, reference)
+    boundary = boundary_loss(prediction, reference)
+    return {
+        "total": waveform + stft + 0.5 * boundary,
+        "waveform": waveform,
+        "stft": stft,
+        "boundary": boundary,
+    }
+
+
+@torch.no_grad()
+def evaluate(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    max_batches: int,
+    distributed: DistributedContext,
+) -> dict[str, float]:
+    model.eval()
+    names = ("total", "waveform", "stft", "boundary")
+    sums = {name: 0.0 for name in names}
+    count = 0
+    for batch in loader:
+        batch = {key: value.to(device) for key, value in batch.items()}
+        losses = refinement_losses(model, batch)
+        for name in names:
+            sums[name] += float(losses[name])
+        count += 1
+        if count >= max_batches:
+            break
+    reduced = distributed.reduce_sums([*(sums[name] for name in names), float(count)])
+    count = int(reduced[-1])
+    return {name: reduced[index] / max(count, 1) for index, name in enumerate(names)}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True)
@@ -121,6 +177,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--save-interval", type=int, default=100)
+    parser.add_argument("--validation-records", type=int, default=128)
+    parser.add_argument("--eval-interval", type=int, default=100)
+    parser.add_argument("--eval-batches", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260722)
     return parser.parse_args()
 
@@ -129,73 +188,123 @@ def main() -> None:
     args = parse_args()
     from uniss.speech_tokenizer.bicodec.models.bicodec import BiCodec
 
-    torch.manual_seed(args.seed)
-    device = torch.device(args.device)
-    model = BiCodec.load_from_checkpoint(Path(args.bicodec_checkpoint)).to(device)
-    for parameter in model.parameters():
+    distributed = DistributedContext.initialize(args.device)
+    torch.manual_seed(args.seed + distributed.rank)
+    device = distributed.device
+    bicodec = BiCodec.load_from_checkpoint(Path(args.bicodec_checkpoint)).to(device)
+    for parameter in bicodec.parameters():
         parameter.requires_grad = False
-    for module in (model.prenet, model.decoder):
+    for module in (bicodec.prenet, bicodec.decoder):
         module.train()
         for parameter in module.parameters():
             parameter.requires_grad = True
-    trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
+    trainable = [parameter for parameter in bicodec.parameters() if parameter.requires_grad]
+    base_model = BiCodecRefinementModel(bicodec).to(device)
+    model = distributed.wrap(base_model)
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate)
     dataset = BiCodecChunkDataset(args.manifest, args.chunk_tokens)
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_bicodec)
-    writer = SummaryWriter(args.tensorboard_dir)
+    validation_records = min(max(1, args.validation_records), max(1, len(dataset) // 5))
+    valid_indices = list(range(validation_records))
+    train_indices = list(range(validation_records, len(dataset))) or valid_indices
+    train_subset = Subset(dataset, train_indices)
+    valid_subset = Subset(dataset, valid_indices)
+    train_sampler = (
+        DistributedSampler(
+            train_subset,
+            num_replicas=distributed.world_size,
+            rank=distributed.rank,
+            shuffle=True,
+            seed=args.seed,
+        )
+        if distributed.enabled
+        else None
+    )
+    valid_sampler = (
+        DistributedSampler(
+            valid_subset,
+            num_replicas=distributed.world_size,
+            rank=distributed.rank,
+            shuffle=False,
+        )
+        if distributed.enabled
+        else None
+    )
+    train_loader = DataLoader(
+        train_subset,
+        batch_size=args.batch_size,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
+        collate_fn=collate_bicodec,
+    )
+    valid_loader = DataLoader(
+        valid_subset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        sampler=valid_sampler,
+        collate_fn=collate_bicodec,
+    )
+    writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if distributed.is_main:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    distributed.barrier()
 
     step = 0
+    epoch = 0
+    best_validation = float("inf")
     while step < args.max_steps:
-        for batch in loader:
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+        epoch += 1
+        for batch in train_loader:
             step += 1
             batch = {key: value.to(device) for key, value in batch.items()}
             optimizer.zero_grad(set_to_none=True)
-            prediction = differentiable_detokenize(model, batch["semantic"], batch["global"])
-            common = min(prediction.shape[-1], batch["reference"].shape[-1])
-            prediction = prediction[..., :common]
-            reference = batch["reference"][..., :common]
-            waveform_loss = F.l1_loss(prediction, reference)
-            stft_loss = multi_resolution_stft_loss(prediction, reference)
-            edge_loss = boundary_loss(prediction, reference)
-            total = waveform_loss + stft_loss + 0.5 * edge_loss
-            total.backward()
+            losses = refinement_losses(model, batch)
+            losses["total"].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(trainable, 1.0)
             optimizer.step()
-            if step % args.log_interval == 0 or step == 1:
-                writer.add_scalar("stage5_refine/total_loss", float(total), step)
-                writer.add_scalar("stage5_refine/waveform_loss", float(waveform_loss), step)
-                writer.add_scalar("stage5_refine/stft_loss", float(stft_loss), step)
-                writer.add_scalar("stage5_refine/boundary_loss", float(edge_loss), step)
+            if distributed.is_main and (step % args.log_interval == 0 or step == 1):
+                assert writer is not None
+                for name, value in losses.items():
+                    writer.add_scalar(f"stage5_refine/train_{name}_loss", float(value), step)
                 writer.add_scalar("stage5_refine/grad_norm", float(grad_norm), step)
                 writer.flush()
                 print(
                     json.dumps(
                         {
                             "step": step,
-                            "total": float(total),
-                            "waveform": float(waveform_loss),
-                            "stft": float(stft_loss),
-                            "boundary": float(edge_loss),
+                            **{name: float(value) for name, value in losses.items()},
                         }
                     ),
                     flush=True,
                 )
-            if step % args.save_interval == 0 or step == args.max_steps:
+            if step % args.eval_interval == 0 or step == args.max_steps:
+                metrics = evaluate(model, valid_loader, device, args.eval_batches, distributed)
+                if writer is not None:
+                    for name, value in metrics.items():
+                        writer.add_scalar(f"stage5_refine/valid_{name}_loss", value, step)
+                    writer.flush()
+                best_validation = min(best_validation, metrics["total"])
+                model.train()
+            if distributed.is_main and (step % args.save_interval == 0 or step == args.max_steps):
                 torch.save(
                     {
-                        "prenet": model.prenet.state_dict(),
-                        "decoder": model.decoder.state_dict(),
+                        "prenet": bicodec.prenet.state_dict(),
+                        "decoder": bicodec.decoder.state_dict(),
                         "step": step,
                         "args": vars(args),
+                        "best_validation": best_validation,
                     },
                     output_dir / "bicodec_streaming_refinement.pt",
                 )
             if step >= args.max_steps:
                 break
-    writer.close()
-    print(json.dumps({"status": "complete", "step": step}))
+    if writer is not None:
+        writer.close()
+    if distributed.is_main:
+        print(json.dumps({"status": "complete", "step": step, "best_validation": best_validation}))
+    distributed.close()
 
 
 if __name__ == "__main__":

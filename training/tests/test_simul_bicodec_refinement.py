@@ -4,7 +4,12 @@ import unittest
 
 import torch
 
-from training.simul_uniss.train_bicodec_refinement import boundary_loss, multi_resolution_stft_loss
+from training.simul_uniss.train_bicodec_refinement import (
+    BiCodecRefinementModel,
+    boundary_loss,
+    multi_resolution_stft_loss,
+    refinement_losses,
+)
 
 
 class BiCodecRefinementTests(unittest.TestCase):
@@ -18,6 +23,23 @@ class BiCodecRefinementTests(unittest.TestCase):
         prediction = reference.clone()
         prediction[:, :20] = 1.0
         self.assertGreater(float(boundary_loss(prediction, reference)), 0.0)
+
+    def test_refinement_wrapper_is_differentiable(self) -> None:
+        class FakeBiCodec(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.scale = torch.nn.Parameter(torch.tensor(1.0))
+
+        model = BiCodecRefinementModel(FakeBiCodec())
+        model.forward = lambda semantic, global_tokens: semantic.float() * model.bicodec.scale
+        batch = {
+            "semantic": torch.ones(1, 2048, dtype=torch.long),
+            "global": torch.ones(1, 1, dtype=torch.long),
+            "reference": torch.zeros(1, 2048),
+        }
+        losses = refinement_losses(model, batch)
+        losses["total"].backward()
+        self.assertIsNotNone(model.bicodec.scale.grad)
 
 
 if __name__ == "__main__":
