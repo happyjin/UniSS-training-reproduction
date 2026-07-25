@@ -242,6 +242,17 @@ class SimulScriptsTests(unittest.TestCase):
             self.assertIn("SIMUL_ITERABLE_SHUFFLE_BUFFER_SIZE", script)
             self.assertIn("--seed", script)
 
+    def test_historical_non_megatron_stages_keep_validation_opt_in(self) -> None:
+        audio = (REPO_ROOT / "training/simul_uniss/train_audio_student.py").read_text(
+            encoding="utf-8"
+        )
+        bicodec = (
+            REPO_ROOT / "training/simul_uniss/train_bicodec_refinement.py"
+        ).read_text(encoding="utf-8")
+        for source in (audio, bicodec):
+            self.assertIn('default=0,', source)
+            self.assertIn("preserves historical all-train behavior", source)
+
     def test_gpu_smoke_pipeline_covers_real_components(self) -> None:
         output = run_script(
             "scripts/simul_uniss/run_gpu_smoke_pipeline.sh", "--dry-run"

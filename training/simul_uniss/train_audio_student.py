@@ -61,7 +61,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-audio-seconds", type=float, default=12.0)
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--save-interval", type=int, default=100)
-    parser.add_argument("--validation-records", type=int, default=128)
+    parser.add_argument(
+        "--validation-records",
+        type=int,
+        default=0,
+        help="Opt-in validation split; zero preserves historical all-train behavior.",
+    )
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--eval-batches", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260722)
@@ -80,11 +85,13 @@ def main() -> None:
         max_audio_seconds=args.max_audio_seconds,
         prefix_training=True,
     )
-    validation_records = min(max(1, args.validation_records), max(1, len(dataset) // 5))
+    validation_records = min(max(0, args.validation_records), max(0, len(dataset) // 5))
     valid_indices = list(range(validation_records))
-    train_indices = list(range(validation_records, len(dataset))) or valid_indices
+    train_indices = list(range(validation_records, len(dataset)))
+    if not train_indices:
+        train_indices = valid_indices
     train_subset = Subset(dataset, train_indices)
-    valid_subset = Subset(dataset, valid_indices)
+    valid_subset = Subset(dataset, valid_indices) if valid_indices else None
     train_sampler = (
         DistributedSampler(
             train_subset,
@@ -103,7 +110,7 @@ def main() -> None:
             rank=distributed.rank,
             shuffle=False,
         )
-        if distributed.enabled
+        if distributed.enabled and valid_subset is not None
         else None
     )
     train_loader = DataLoader(
@@ -113,12 +120,16 @@ def main() -> None:
         sampler=train_sampler,
         collate_fn=collate_audio_student,
     )
-    valid_loader = DataLoader(
-        valid_subset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        sampler=valid_sampler,
-        collate_fn=collate_audio_student,
+    valid_loader = (
+        DataLoader(
+            valid_subset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            sampler=valid_sampler,
+            collate_fn=collate_audio_student,
+        )
+        if valid_subset is not None
+        else None
     )
     base_model = AudioStreamingStudent(
         tokenizer.ctc_vocab_size,
@@ -151,6 +162,7 @@ def main() -> None:
             if distributed.is_main and (step % args.log_interval == 0 or step == 1):
                 assert writer is not None
                 for name, value in losses.items():
+                    writer.add_scalar(f"stage1_audio/{name}_loss", float(value), step)
                     writer.add_scalar(f"stage1_audio/train_{name}_loss", float(value), step)
                 writer.add_scalar("stage1_audio/grad_norm", float(grad_norm), step)
                 writer.flush()
@@ -158,7 +170,7 @@ def main() -> None:
                     json.dumps({"step": step, **{name: float(value) for name, value in losses.items()}}),
                     flush=True,
                 )
-            if step % args.eval_interval == 0 or step == args.max_steps:
+            if valid_loader is not None and (step % args.eval_interval == 0 or step == args.max_steps):
                 metrics = evaluate(model, valid_loader, device, args.eval_batches, distributed)
                 if writer is not None:
                     for name, value in metrics.items():
@@ -192,11 +204,10 @@ def main() -> None:
     if writer is not None:
         writer.close()
     if distributed.is_main:
-        print(
-            json.dumps(
-                {"status": "complete", "output": str(output_dir / "last.pt"), "best_validation": best_validation}
-            )
-        )
+        result = {"status": "complete", "output": str(output_dir / "last.pt")}
+        if valid_loader is not None:
+            result["best_validation"] = best_validation
+        print(json.dumps(result))
     distributed.close()
 
 

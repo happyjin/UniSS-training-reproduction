@@ -177,7 +177,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--save-interval", type=int, default=100)
-    parser.add_argument("--validation-records", type=int, default=128)
+    parser.add_argument(
+        "--validation-records",
+        type=int,
+        default=0,
+        help="Opt-in validation split; zero preserves historical all-train behavior.",
+    )
     parser.add_argument("--eval-interval", type=int, default=100)
     parser.add_argument("--eval-batches", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260722)
@@ -203,11 +208,13 @@ def main() -> None:
     model = distributed.wrap(base_model)
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate)
     dataset = BiCodecChunkDataset(args.manifest, args.chunk_tokens)
-    validation_records = min(max(1, args.validation_records), max(1, len(dataset) // 5))
+    validation_records = min(max(0, args.validation_records), max(0, len(dataset) // 5))
     valid_indices = list(range(validation_records))
-    train_indices = list(range(validation_records, len(dataset))) or valid_indices
+    train_indices = list(range(validation_records, len(dataset)))
+    if not train_indices:
+        train_indices = valid_indices
     train_subset = Subset(dataset, train_indices)
-    valid_subset = Subset(dataset, valid_indices)
+    valid_subset = Subset(dataset, valid_indices) if valid_indices else None
     train_sampler = (
         DistributedSampler(
             train_subset,
@@ -216,7 +223,7 @@ def main() -> None:
             shuffle=True,
             seed=args.seed,
         )
-        if distributed.enabled
+        if distributed.enabled and valid_subset is not None
         else None
     )
     valid_sampler = (
@@ -236,12 +243,16 @@ def main() -> None:
         sampler=train_sampler,
         collate_fn=collate_bicodec,
     )
-    valid_loader = DataLoader(
-        valid_subset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        sampler=valid_sampler,
-        collate_fn=collate_bicodec,
+    valid_loader = (
+        DataLoader(
+            valid_subset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            sampler=valid_sampler,
+            collate_fn=collate_bicodec,
+        )
+        if valid_subset is not None
+        else None
     )
     writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
     output_dir = Path(args.output_dir)
@@ -267,6 +278,7 @@ def main() -> None:
             if distributed.is_main and (step % args.log_interval == 0 or step == 1):
                 assert writer is not None
                 for name, value in losses.items():
+                    writer.add_scalar(f"stage5_refine/{name}_loss", float(value), step)
                     writer.add_scalar(f"stage5_refine/train_{name}_loss", float(value), step)
                 writer.add_scalar("stage5_refine/grad_norm", float(grad_norm), step)
                 writer.flush()
@@ -279,7 +291,7 @@ def main() -> None:
                     ),
                     flush=True,
                 )
-            if step % args.eval_interval == 0 or step == args.max_steps:
+            if valid_loader is not None and (step % args.eval_interval == 0 or step == args.max_steps):
                 metrics = evaluate(model, valid_loader, device, args.eval_batches, distributed)
                 if writer is not None:
                     for name, value in metrics.items():
@@ -294,7 +306,7 @@ def main() -> None:
                         "decoder": bicodec.decoder.state_dict(),
                         "step": step,
                         "args": vars(args),
-                        "best_validation": best_validation,
+                        "best_validation": best_validation if valid_loader is not None else None,
                     },
                     output_dir / "bicodec_streaming_refinement.pt",
                 )
@@ -303,7 +315,10 @@ def main() -> None:
     if writer is not None:
         writer.close()
     if distributed.is_main:
-        print(json.dumps({"status": "complete", "step": step, "best_validation": best_validation}))
+        result: dict[str, object] = {"status": "complete", "step": step}
+        if valid_loader is not None:
+            result["best_validation"] = best_validation
+        print(json.dumps(result))
     distributed.close()
 
 
