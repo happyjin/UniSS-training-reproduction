@@ -19,12 +19,13 @@ Simul-UniSS experiments. It never writes into the previous
 
 ## Stage layout
 
+- `stage01_02_streaming_student/`: eight-GPU causal student plus Source/Target CTC heads.
 - `stage03_action_sft/`: WAIT/WRITE action SFT.
 - `stage04_interleaved_s2st/`: phrase-level interleaved S2ST SFT.
 - `stage06_joint_refinement/`: low-learning-rate joint refinement.
 - `orchestration/`: eight-GPU smoke, sequential training, and TensorBoard launchers.
 
-Additional Stage 0/1/2/5/7/8 folders are added only with their distributed
+Additional Stage 0/5/7/8 folders are added only with their distributed
 training adapters, so a folder never suggests an unsupported eight-GPU path.
 
 ## Shuffle invariant

@@ -8,9 +8,11 @@ import random
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, Subset
 from torch.utils.tensorboard import SummaryWriter
 
+from training.simul_uniss.distributed import DistributedContext
 from training.simul_uniss.policy_tokenizer import PolicyTokenizer
 from training.simul_uniss.streaming_student import (
     StreamingStudentDataset,
@@ -35,7 +37,7 @@ def move_batch(batch: dict[str, torch.Tensor], device: torch.device) -> dict[str
     return {key: value.to(device) for key, value in batch.items()}
 
 
-def compute_losses(model: StreamingTokenStudent, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+def compute_losses(model: nn.Module, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     outputs = model(batch["source_bicodec"], batch["input_lengths"])
     lengths = outputs["output_lengths"]
     teacher = ctc_loss(
@@ -57,6 +59,7 @@ def evaluate(
     loader: DataLoader,
     device: torch.device,
     max_batches: int,
+    distributed: DistributedContext | None = None,
 ) -> dict[str, float]:
     model.eval()
     sums = {"total": 0.0, "teacher_ctc": 0.0, "source_ctc": 0.0, "target_ctc": 0.0}
@@ -68,6 +71,10 @@ def evaluate(
         count += 1
         if count >= max_batches:
             break
+    if distributed is not None:
+        reduced = distributed.reduce_sums([*(sums[name] for name in sums), float(count)])
+        count = int(reduced[-1])
+        sums = {name: reduced[index] for index, name in enumerate(sums)}
     return {name: value / max(count, 1) for name, value in sums.items()}
 
 
@@ -97,9 +104,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    device = torch.device(args.device)
+    distributed = DistributedContext.initialize(args.device)
+    random.seed(args.seed + distributed.rank)
+    torch.manual_seed(args.seed + distributed.rank)
+    device = distributed.device
     tokenizer = PolicyTokenizer(args.policy_tokenizer)
     dataset = StreamingStudentDataset(
         args.schedules,
@@ -110,29 +118,54 @@ def main() -> None:
     validation_records = min(max(1, args.validation_records), max(1, len(dataset) // 5))
     valid_indices = list(range(validation_records))
     train_indices = list(range(validation_records, len(dataset))) or valid_indices
+    train_subset = Subset(dataset, train_indices)
+    valid_subset = Subset(dataset, valid_indices)
+    train_sampler = (
+        DistributedSampler(
+            train_subset,
+            num_replicas=distributed.world_size,
+            rank=distributed.rank,
+            shuffle=True,
+            seed=args.seed,
+        )
+        if distributed.enabled
+        else None
+    )
+    valid_sampler = (
+        DistributedSampler(
+            valid_subset,
+            num_replicas=distributed.world_size,
+            rank=distributed.rank,
+            shuffle=False,
+        )
+        if distributed.enabled
+        else None
+    )
     train_loader = DataLoader(
-        Subset(dataset, train_indices),
+        train_subset,
         batch_size=args.batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         collate_fn=collate_student_batch,
         num_workers=0,
     )
     valid_loader = DataLoader(
-        Subset(dataset, valid_indices),
+        valid_subset,
         batch_size=args.batch_size,
         shuffle=False,
+        sampler=valid_sampler,
         collate_fn=collate_student_batch,
         num_workers=0,
     )
-    model = StreamingTokenStudent(
+    base_model = StreamingTokenStudent(
         tokenizer.ctc_vocab_size,
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
         num_heads=args.num_heads,
     ).to(device)
+    model = distributed.wrap(base_model)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=0.01)
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
     anchor = resolve_checkpoint_anchor(Path(args.qwen_checkpoint_root))
     metadata = {
         "schema_version": "simul_uniss_streaming_student_bootstrap_v1",
@@ -141,15 +174,22 @@ def main() -> None:
         "args": vars(args),
         "note": "Bootstrap input is source_bicodec; formal student input will be source audio.",
     }
-    (output_dir / "run_metadata.json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    if distributed.is_main:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "run_metadata.json").write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    distributed.barrier()
 
-    writer = SummaryWriter(args.tensorboard_dir)
+    writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
     step = 0
+    epoch = 0
     best_validation = float("inf")
     model.train()
     while step < args.max_steps:
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+        epoch += 1
         for batch in train_loader:
             step += 1
             optimizer.zero_grad(set_to_none=True)
@@ -157,7 +197,8 @@ def main() -> None:
             losses["total"].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            if step % args.log_interval == 0 or step == 1:
+            if distributed.is_main and (step % args.log_interval == 0 or step == 1):
+                assert writer is not None
                 for name, value in losses.items():
                     writer.add_scalar(f"stage1/train_{name}", float(value), step)
                 writer.add_scalar("stage1/grad_norm", float(grad_norm), step)
@@ -171,26 +212,41 @@ def main() -> None:
                     flush=True,
                 )
             if step % args.eval_interval == 0 or step == args.max_steps:
-                metrics = evaluate(model, valid_loader, device, args.eval_batches)
-                for name, value in metrics.items():
-                    writer.add_scalar(f"stage1/valid_{name}", value, step)
-                writer.flush()
+                metrics = evaluate(model, valid_loader, device, args.eval_batches, distributed)
+                if writer is not None:
+                    for name, value in metrics.items():
+                        writer.add_scalar(f"stage1/valid_{name}", value, step)
+                    writer.flush()
                 if metrics["total"] < best_validation:
                     best_validation = metrics["total"]
-                    torch.save(
-                        {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "step": step, "metadata": metadata},
-                        output_dir / "best.pt",
-                    )
+                    if distributed.is_main:
+                        torch.save(
+                            {
+                                "model": distributed.unwrap(model).state_dict(),
+                                "optimizer": optimizer.state_dict(),
+                                "step": step,
+                                "metadata": metadata,
+                            },
+                            output_dir / "best.pt",
+                        )
                 model.train()
-            if step % args.save_interval == 0 or step == args.max_steps:
+            if distributed.is_main and (step % args.save_interval == 0 or step == args.max_steps):
                 torch.save(
-                    {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "step": step, "metadata": metadata},
+                    {
+                        "model": distributed.unwrap(model).state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "step": step,
+                        "metadata": metadata,
+                    },
                     output_dir / "last.pt",
                 )
             if step >= args.max_steps:
                 break
-    writer.close()
-    print(json.dumps({"status": "complete", "step": step, "best_validation": best_validation}))
+    if writer is not None:
+        writer.close()
+    if distributed.is_main:
+        print(json.dumps({"status": "complete", "step": step, "best_validation": best_validation}))
+    distributed.close()
 
 
 if __name__ == "__main__":

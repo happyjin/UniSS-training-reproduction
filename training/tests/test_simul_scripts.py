@@ -120,6 +120,17 @@ class SimulScriptsTests(unittest.TestCase):
             self.assertIn(expected_load, output)
             self.assertNotIn("checkpoints/simul_uniss_v1/stage", output)
 
+    def test_v2_stage1_token_student_uses_eight_gpu_torchrun(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v2_15shard/stage01_02_streaming_student/run_token_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("training.simul_uniss.train_streaming_student", output)
+        self.assertIn("--device cuda", output)
+        self.assertIn("stage01_02_streaming_token_student", output)
+        self.assertIn("--seed 20260725", output)
+
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
         output = run_script(
             "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",
