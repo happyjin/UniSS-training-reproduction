@@ -53,6 +53,11 @@ experiments/simul_uniss_v3_full198/orchestration/run_shuffle_smoke_8gpu.sh
 # 5. Start TensorBoard and the formal Stage 3 -> 4 -> 6 pipeline.
 experiments/simul_uniss_v3_full198/orchestration/start_tensorboard.sh
 experiments/simul_uniss_v3_full198/orchestration/launch_qwen_pipeline_tmux.sh
+
+# Or launch one non-overwriting waiter while data preparation is still running.
+# It performs the eight-GPU smoke after FULL_DATA_READY.json appears, then starts
+# TensorBoard, Stage 3 -> 4 -> 6, and the component pipeline in the safe order.
+experiments/simul_uniss_v3_full198/orchestration/launch_training_when_ready.sh
 ```
 
 Stage 3 and Stage 4 initially target one true packed-data epoch. Stage 6 is a

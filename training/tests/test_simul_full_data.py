@@ -254,6 +254,22 @@ class FullDataScriptTests(unittest.TestCase):
         self.assertIn("stage08_nar_optional=profiling-gated-not-auto-started", output)
         self.assertIn("--shuffle-buffer-size 65536", output)
 
+    def test_full_training_waiter_enforces_safe_launch_order(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v3_full198/orchestration/launch_training_when_ready.sh",
+            "--dry-run",
+        )
+        ready = output.index("FULL_DATA_READY.json")
+        smoke = output.index("run_shuffle_smoke_8gpu.sh")
+        tensorboard = output.index("start_tensorboard.sh")
+        qwen = output.index("launch_qwen_pipeline_tmux.sh")
+        components = output.index("launch_component_pipeline_when_ready.sh")
+        self.assertLess(ready, smoke)
+        self.assertLess(smoke, tensorboard)
+        self.assertLess(tensorboard, qwen)
+        self.assertLess(qwen, components)
+        self.assertNotIn("stage08_nar_optional", output)
+
 
 if __name__ == "__main__":
     unittest.main()
