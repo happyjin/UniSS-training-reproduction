@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -223,6 +224,58 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("verify_stage stage04", script)
         self.assertIn("verify_stage stage06", script)
         self.assertIn("write_complete_marker", script)
+
+    def test_v2_qwen_pipeline_can_recover_only_verified_completed_stages(self) -> None:
+        experiment = REPO_ROOT / "experiments/simul_uniss_v2_15shard"
+        script = experiment / "orchestration/run_qwen_pipeline_8gpu.sh"
+        source = script.read_text(encoding="utf-8")
+        self.assertIn("--recover-completed", source)
+        self.assertIn("verify_completed_stage", source)
+        self.assertIn("distributed checkpoint shards", source)
+        self.assertIn("number of nan iterations", source)
+
+        with tempfile.TemporaryDirectory() as value:
+            root = Path(value)
+            run_dir = root / "runs"
+            log_dir = root / "logs"
+            checkpoint_root = root / "checkpoints"
+            (run_dir / "shuffle_smoke_8gpu_v2").mkdir(parents=True)
+            (run_dir / "shuffle_smoke_8gpu_v2/SHUFFLE_SMOKE_COMPLETE").write_text("ok\n")
+            stage_specs = (
+                ("STAGE3", "stage03", 2, "stage_action_qwen.log"),
+                ("STAGE4", "stage04", 3, "stage_interleaved_qwen.log"),
+                ("STAGE6", "stage06", 4, "stage_joint_qwen.log"),
+            )
+            environment = {
+                "RUN_DIR": str(run_dir),
+                "LOG_DIR": str(log_dir),
+                "SIMUL_CHECKPOINT_ROOT": str(checkpoint_root),
+                "SIMUL_NPROC_PER_NODE": "8",
+                "QWEN_CHECKPOINT_ROOT": str(root / "anchor"),
+            }
+            log_dir.mkdir(parents=True)
+            for prefix, name, iteration, log_name in stage_specs:
+                stage_root = checkpoint_root / name
+                iteration_dir = stage_root / f"iter_{iteration:07d}"
+                iteration_dir.mkdir(parents=True)
+                (stage_root / "latest_checkpointed_iteration.txt").write_text(f"{iteration}\n")
+                for rank in range(8):
+                    (iteration_dir / f"__{rank}_0.distcp").write_bytes(b"checkpoint")
+                (log_dir / log_name).write_text(
+                    f"iteration      {iteration}/     {iteration} | number of skipped iterations: 0 | "
+                    "number of nan iterations: 0 |\n"
+                    f"validation loss at iteration {iteration} | lm loss value: 1.0 |\n"
+                )
+                environment[f"{prefix}_SAVE_ROOT"] = str(stage_root)
+                environment[f"{prefix}_TRAIN_ITERS"] = str(iteration)
+
+            output = run_script(
+                "experiments/simul_uniss_v2_15shard/orchestration/run_qwen_pipeline_8gpu.sh",
+                "--recover-completed",
+                extra_env=environment,
+            )
+            self.assertEqual(output.count("Recovered verified completed"), 3)
+            self.assertTrue((run_dir / "qwen_pipeline_8gpu/QWEN_PIPELINE_COMPLETE").is_file())
 
     def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
         script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(

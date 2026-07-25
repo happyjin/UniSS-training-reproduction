@@ -82,3 +82,17 @@ experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh \
 
 This mode rechecks iteration, sampler, seed, full-validation, skipped-iteration,
 and NaN invariants before writing the completion marker.
+
+If a formal stage reached its target checkpoint and validation but the launcher
+ended before writing its pipeline marker, recover only after verifying all
+eight distributed checkpoint shards, the final training iteration, final
+validation, and zero skipped/NaN iterations:
+
+```bash
+experiments/simul_uniss_v2_15shard/orchestration/launch_qwen_pipeline_tmux.sh \
+  --recover-completed
+```
+
+This never overwrites or resumes a completed stage. Missing later stages still
+run normally, and a nonzero post-training launcher status is accepted only when
+the completed checkpoint and log pass the same verification.
