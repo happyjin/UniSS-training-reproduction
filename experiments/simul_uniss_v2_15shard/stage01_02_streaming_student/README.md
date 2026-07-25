@@ -9,3 +9,6 @@ uses a distributed random sampler; validation uses a deterministic distributed
 sampler and aggregates metrics across all ranks. Only rank 0 writes checkpoints
 and TensorBoard events.
 
+`run_audio_8gpu.sh` applies the same distributed behavior to the formal audio
+student. It requires Stage 0's isolated reconstructed-audio manifest and adds a
+fixed validation split plus globally aggregated validation losses.

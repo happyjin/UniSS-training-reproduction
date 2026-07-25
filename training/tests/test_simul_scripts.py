@@ -131,6 +131,23 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage01_02_streaming_token_student", output)
         self.assertIn("--seed 20260725", output)
 
+    def test_v2_stage0_and_audio_student_are_isolated(self) -> None:
+        prepare = run_script(
+            "experiments/simul_uniss_v2_15shard/stage00_baselines/prepare_audio.sh",
+            "--dry-run",
+        )
+        self.assertIn("--limit-records 1000", prepare)
+        self.assertIn("simul_uniss_v2_15shard/stage00_audio_reconstruction", prepare)
+        audio = run_script(
+            "experiments/simul_uniss_v2_15shard/stage01_02_streaming_student/run_audio_8gpu.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", audio)
+        self.assertIn("training.simul_uniss.train_audio_student", audio)
+        self.assertIn("--device cuda", audio)
+        self.assertIn("stage01_02_streaming_audio_student", audio)
+        self.assertIn("--seed 20260725", audio)
+
     def test_v2_shuffle_smoke_dry_run_covers_all_qwen_stages(self) -> None:
         output = run_script(
             "experiments/simul_uniss_v2_15shard/orchestration/run_shuffle_smoke_8gpu.sh",

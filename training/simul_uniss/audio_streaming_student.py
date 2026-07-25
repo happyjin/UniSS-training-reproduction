@@ -162,7 +162,7 @@ def collate_audio_student(batch: list[Mapping[str, torch.Tensor]]) -> dict[str, 
 
 
 def audio_student_losses(
-    model: AudioStreamingStudent, batch: dict[str, torch.Tensor]
+    model: nn.Module, batch: dict[str, torch.Tensor]
 ) -> dict[str, torch.Tensor]:
     outputs = model(batch["waveform"], batch["waveform_lengths"])
     lengths = outputs["output_lengths"]

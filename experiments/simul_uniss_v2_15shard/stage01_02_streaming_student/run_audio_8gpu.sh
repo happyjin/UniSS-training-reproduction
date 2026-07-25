@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DRY_RUN=0
+if [[ "${1:-}" == "--dry-run" ]]; then DRY_RUN=1; shift; fi
+[[ $# -eq 0 ]] || { echo "Unknown argument: $1" >&2; exit 2; }
+
+EXPERIMENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "${EXPERIMENT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${EXPERIMENT_DIR}/experiment.env"
+# shellcheck source=/dev/null
+source "${ACTIVATE_SCRIPT}"
+
+manifest="${STAGE0_AUDIO_DIR}/audio_manifest.jsonl"
+cmd=(torchrun
+  --nproc_per_node "${SIMUL_NPROC_PER_NODE}"
+  --master_port "${STAGE1_AUDIO_MASTER_PORT}"
+  -m training.simul_uniss.train_audio_student
+  --manifest "${manifest}"
+  --policy-tokenizer "${POLICY_TOKENIZER_MODEL}"
+  --output-dir "${STAGE1_AUDIO_OUTPUT_DIR}"
+  --tensorboard-dir "${STAGE1_AUDIO_TENSORBOARD_DIR}"
+  --device cuda
+  --batch-size "${STAGE1_AUDIO_BATCH_SIZE}"
+  --max-steps "${STAGE1_AUDIO_MAX_STEPS}"
+  --validation-records "${STAGE1_VALIDATION_RECORDS}"
+  --eval-interval "${STAGE1_EVAL_INTERVAL}"
+  --save-interval "${STAGE1_SAVE_INTERVAL}"
+  --seed "${SIMUL_DATA_SEED}")
+if [[ "${DRY_RUN}" == "1" ]]; then printf '%q ' "${cmd[@]}"; printf '\n'; exit 0; fi
+[[ -f "${manifest}" ]] || { echo "Missing manifest: ${manifest}" >&2; exit 1; }
+[[ ! -e "${STAGE1_AUDIO_OUTPUT_DIR}" ]] || { echo "Refusing to overwrite ${STAGE1_AUDIO_OUTPUT_DIR}" >&2; exit 1; }
+mkdir -p "${LOG_DIR}" "${STAGE1_AUDIO_TENSORBOARD_DIR}"
+export CUDA_VISIBLE_DEVICES="${SIMUL_CUDA_VISIBLE_DEVICES}"
+"${cmd[@]}" 2>&1 | tee -a "${LOG_DIR}/stage01_02_streaming_audio_student.log"
