@@ -33,11 +33,16 @@ def load_text_encoder(tokenizer_path: str):
 
 
 def iter_records(paths: Sequence[Path], batch_size: int = 256) -> Iterator[dict[str, object]]:
+    for raw in iter_raw_records(paths, batch_size=batch_size):
+        yield normalize_record(raw)
+
+
+def iter_raw_records(paths: Sequence[Path], batch_size: int = 256) -> Iterator[dict[str, object]]:
     for path in paths:
         parquet = pq.ParquetFile(path)
         for batch in parquet.iter_batches(batch_size=batch_size):
             for row in batch.to_pylist():
-                yield normalize_record(row)
+                yield row
 
 
 def build_manifest(paths: Sequence[Path], args: argparse.Namespace) -> dict[str, object]:
@@ -51,6 +56,7 @@ def build_manifest(paths: Sequence[Path], args: argparse.Namespace) -> dict[str,
         "wait_k_chunks": args.wait_k_chunks,
         "max_phrase_tokens": args.max_phrase_tokens,
         "limit_records": args.limit_records,
+        "skip_invalid_records": args.skip_invalid_records,
         "shards": [
             {
                 "path": str(path.resolve()),
@@ -73,6 +79,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit-records", type=int, default=None)
     parser.add_argument("--progress-interval", type=int, default=1000)
     parser.add_argument("--skip-sha256", action="store_true")
+    parser.add_argument(
+        "--skip-invalid-records",
+        action="store_true",
+        help="Skip and count malformed rows instead of changing the historical fail-fast default.",
+    )
     return parser.parse_args()
 
 
@@ -91,20 +102,43 @@ def main() -> None:
 
     text_encoder = load_text_encoder(args.tokenizer)
     counts: Counter[str] = Counter()
+    invalid_reasons: Counter[str] = Counter()
     total_events = 0
     started = time.time()
     with schedules_path.open("w", encoding="utf-8") as schedule_handle, samples_path.open(
         "w", encoding="utf-8"
     ) as sample_handle:
-        for index, record in enumerate(iter_records(paths), start=1):
-            schedule = build_pseudo_schedule(
-                record,
-                text_encoder,
-                chunk_ms=args.chunk_ms,
-                wait_k_chunks=args.wait_k_chunks,
-                max_phrase_tokens=args.max_phrase_tokens,
-            )
-            sample = build_interleaved_sample(schedule)
+        for input_index, raw in enumerate(iter_raw_records(paths), start=1):
+            counts["input_records"] += 1
+            try:
+                record = normalize_record(raw)
+                schedule = build_pseudo_schedule(
+                    record,
+                    text_encoder,
+                    chunk_ms=args.chunk_ms,
+                    wait_k_chunks=args.wait_k_chunks,
+                    max_phrase_tokens=args.max_phrase_tokens,
+                )
+                sample = build_interleaved_sample(schedule)
+            except (KeyError, TypeError, ValueError) as exc:
+                if not args.skip_invalid_records:
+                    raise
+                counts["skipped_invalid_records"] += 1
+                invalid_reasons[f"{type(exc).__name__}: {exc}"] += 1
+                if counts["skipped_invalid_records"] <= 10:
+                    print(
+                        json.dumps(
+                            {
+                                "skipped_invalid_record": counts["skipped_invalid_records"],
+                                "input_index": input_index,
+                                "id": str(raw.get("id", "")),
+                                "reason": f"{type(exc).__name__}: {exc}",
+                            },
+                            ensure_ascii=False,
+                        ),
+                        flush=True,
+                    )
+                continue
             schedule_handle.write(json.dumps(schedule, ensure_ascii=False, separators=(",", ":")) + "\n")
             sample_handle.write(json.dumps(sample.to_json(), ensure_ascii=False, separators=(",", ":")) + "\n")
             counts["records"] += 1
@@ -112,16 +146,29 @@ def main() -> None:
             total_events += len(events)  # type: ignore[arg-type]
             for event in events:  # type: ignore[assignment]
                 counts[str(event["action"])] += 1
-            if args.progress_interval and index % args.progress_interval == 0:
+            if args.progress_interval and input_index % args.progress_interval == 0:
                 elapsed = max(time.time() - started, 1e-6)
-                print(json.dumps({"records": index, "records_per_second": index / elapsed}), flush=True)
-            if args.limit_records is not None and index >= args.limit_records:
+                print(
+                    json.dumps(
+                        {
+                            "input_records": input_index,
+                            "records": counts["records"],
+                            "skipped_invalid_records": counts["skipped_invalid_records"],
+                            "input_records_per_second": input_index / elapsed,
+                        }
+                    ),
+                    flush=True,
+                )
+            if args.limit_records is not None and counts["records"] >= args.limit_records:
                 break
 
     manifest = build_manifest(paths, args)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     stats = {
         "records": counts["records"],
+        "input_records": counts["input_records"],
+        "skipped_invalid_records": counts["skipped_invalid_records"],
+        "invalid_reasons": dict(sorted(invalid_reasons.items())),
         "events": total_events,
         "wait_events": counts["wait"],
         "write_events": counts["write"],

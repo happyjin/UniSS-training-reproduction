@@ -41,7 +41,8 @@ prepare_cmd=(python -m training.simul_uniss.prepare_data
   --tokenizer "${TOKENIZER_DIR}"
   --chunk-ms "${CHUNK_MS}"
   --wait-k-chunks "${WAIT_K_CHUNKS}"
-  --max-phrase-tokens "${MAX_PHRASE_TOKENS}")
+  --max-phrase-tokens "${MAX_PHRASE_TOKENS}"
+  --skip-invalid-records)
 if [[ -n "${LIMIT_RECORDS}" ]]; then
   prepare_cmd+=(--limit-records "${LIMIT_RECORDS}")
 fi

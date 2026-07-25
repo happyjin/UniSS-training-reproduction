@@ -4,7 +4,9 @@ This pipeline prepares all UniST train shards `00000` through `00197` without
 writing into the v1/v2 data directories.
 
 1. `prepare_shards.sh` creates one atomic, checksummed schedule/sample part per
-   parquet. Completed parts are verified and skipped on restart.
+   parquet. Completed parts are verified and skipped on restart. Rows with
+   missing/invalid token streams are skipped only in this full-data experiment
+   and counted by reason; the shared historical default remains fail-fast.
 2. `pack_shards.sh` independently creates interleaved and action-only packed
    parts. The large temporary action sample is deleted after its packed part is
    published.

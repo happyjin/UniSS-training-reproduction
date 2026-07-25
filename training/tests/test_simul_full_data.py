@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from array import array
 from pathlib import Path
+from unittest.mock import patch
 
 from training.simul_uniss import PACKED_SCHEMA_VERSION
 from training.simul_uniss.full_data_pipeline import (
@@ -20,6 +21,7 @@ from training.simul_uniss.full_data_pipeline import (
 )
 from training.simul_uniss.dataset import SimulPackedJsonlDataset
 from training.simul_uniss.jsonl_index import load_index
+from training.simul_uniss import prepare_data
 from training.simul_uniss.schema import sha256_file
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,6 +48,66 @@ def write_json(path: Path, value: object) -> None:
 
 
 class FullDataPipelineTests(unittest.TestCase):
+    def test_full_prepare_can_skip_invalid_rows_without_changing_strict_default(self) -> None:
+        valid = {
+            "id": "valid",
+            "transcription": "hello",
+            "translation": "world",
+            "source_glm": list(range(16)),
+            "source_bicodec": list(range(64)),
+            "target_bicodec": list(range(48)),
+            "bicodec_global": list(range(32)),
+            "src_lang": "eng",
+            "tgt_lang": "eng",
+        }
+        invalid = {**valid, "id": "invalid", "target_bicodec": []}
+        with tempfile.TemporaryDirectory() as value:
+            root = Path(value)
+            source = root / "input.parquet"
+            source.write_bytes(b"fixture")
+            output = root / "output"
+            argv = [
+                "prepare_data",
+                "--input",
+                str(source),
+                "--output-dir",
+                str(output),
+                "--tokenizer",
+                str(root / "tokenizer"),
+                "--skip-sha256",
+                "--skip-invalid-records",
+            ]
+            with (
+                patch.object(prepare_data, "iter_raw_records", return_value=iter((valid, invalid))),
+                patch.object(prepare_data, "load_text_encoder", return_value=lambda text: [1, 2]),
+                patch("sys.argv", argv),
+            ):
+                prepare_data.main()
+            stats = json.loads((output / "stats.json").read_text(encoding="utf-8"))
+            self.assertEqual(stats["records"], 1)
+            self.assertEqual(stats["input_records"], 2)
+            self.assertEqual(stats["skipped_invalid_records"], 1)
+            self.assertIn("must be non-empty", next(iter(stats["invalid_reasons"])))
+
+            strict_output = root / "strict"
+            strict_argv = [
+                "prepare_data",
+                "--input",
+                str(source),
+                "--output-dir",
+                str(strict_output),
+                "--tokenizer",
+                str(root / "tokenizer"),
+                "--skip-sha256",
+            ]
+            with (
+                patch.object(prepare_data, "iter_raw_records", return_value=iter((invalid,))),
+                patch.object(prepare_data, "load_text_encoder", return_value=lambda text: [1, 2]),
+                patch("sys.argv", strict_argv),
+                self.assertRaisesRegex(ValueError, "must be non-empty"),
+            ):
+                prepare_data.main()
+
     def create_parts(self, root: Path, index: int) -> tuple[Path, Path, Path]:
         source = root / f"train-{index:05d}.parquet"
         source.write_bytes(f"source-{index}".encode())
@@ -147,6 +209,7 @@ class FullDataScriptTests(unittest.TestCase):
         self.assertIn("train-00197.parquet", output)
         self.assertIn("full_data_pipeline assemble", output)
         self.assertIn("training_schedule.env", output)
+        self.assertIn("--skip-invalid-records", output)
 
     def test_full_qwen_stages_reuse_reader_with_isolated_paths(self) -> None:
         experiment = "experiments/simul_uniss_v3_full198"

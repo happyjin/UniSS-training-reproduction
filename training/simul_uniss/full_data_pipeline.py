@@ -125,6 +125,9 @@ def mark_prepared_part(
         "shard_index": shard_index,
         "source": {**file_metadata(source), "sha256": source_sha256},
         "records": records,
+        "input_records": int(stats.get("input_records", records)),
+        "skipped_invalid_records": int(stats.get("skipped_invalid_records", 0)),
+        "invalid_reasons": stats.get("invalid_reasons", {}),
         "events": int(stats.get("events", 0)),
         "wait_events": int(stats.get("wait_events", 0)),
         "write_events": int(stats.get("write_events", 0)),
@@ -304,6 +307,10 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
         "shard_start": args.shard_start,
         "shard_count": args.shard_count,
         "source_records": sum(int(value["records"]) for value in prepared_markers),
+        "input_records": sum(int(value.get("input_records", value["records"])) for value in prepared_markers),
+        "skipped_invalid_records": sum(
+            int(value.get("skipped_invalid_records", 0)) for value in prepared_markers
+        ),
         "schedules_records": sum(int(value["records"]) for value in prepared_markers),
         "packed_interleaved_records": sum(
             int(value["packed_interleaved_records"]) for value in packed_markers
