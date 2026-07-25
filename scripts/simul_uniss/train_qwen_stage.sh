@@ -95,6 +95,8 @@ NPROC="${SIMUL_NPROC_PER_NODE}"
 MICRO_BATCH="${SIMUL_MICRO_BATCH_SIZE}"
 GLOBAL_BATCH="${SIMUL_GLOBAL_BATCH_SIZE}"
 DATALOADER_TYPE="${SIMUL_DATALOADER_TYPE}"
+NO_DATA_SHARDING="${SIMUL_NO_DATA_SHARDING:-0}"
+FULL_VALIDATION="${SIMUL_FULL_VALIDATION:-0}"
 WARMUP_ITERS="${SIMUL_QWEN_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
 EVAL_INTERVAL="${SIMUL_QWEN_EVAL_INTERVAL}"
@@ -104,6 +106,14 @@ QWEN_MIN_LR="${SIMUL_QWEN_MIN_LR}"
 if [[ "${STAGE}" == "joint" ]]; then
   QWEN_LR="${STAGE6_QWEN_LR}"
   QWEN_MIN_LR="${STAGE6_QWEN_MIN_LR}"
+fi
+if [[ "${NO_DATA_SHARDING}" != "0" && "${NO_DATA_SHARDING}" != "1" ]]; then
+  echo "SIMUL_NO_DATA_SHARDING must be 0 or 1" >&2
+  exit 2
+fi
+if [[ "${FULL_VALIDATION}" != "0" && "${FULL_VALIDATION}" != "1" ]]; then
+  echo "SIMUL_FULL_VALIDATION must be 0 or 1" >&2
+  exit 2
 fi
 if [[ "${SMOKE}" == "1" ]]; then
   NPROC=1
@@ -191,6 +201,16 @@ cmd=(torchrun
   --log-memory-interval 1
   --log-throughput
 )
+
+# Keep these opt-in so historical experiment configs continue to reproduce
+# their original sampler and validation behavior. New experiments can request
+# full-dataset random sampling and stable full validation independently.
+if [[ "${NO_DATA_SHARDING}" == "1" ]]; then
+  cmd+=(--no-data-sharding)
+fi
+if [[ "${FULL_VALIDATION}" == "1" ]]; then
+  cmd+=(--full-validation)
+fi
 
 if [[ "${DRY_RUN}" == "1" ]]; then
   printf '%q ' "${cmd[@]}"; printf '\n'

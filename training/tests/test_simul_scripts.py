@@ -8,11 +8,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def run_script(path: str, *args: str) -> str:
+def run_script(path: str, *args: str, extra_env: dict[str, str] | None = None) -> str:
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
     result = subprocess.run(
         [str(REPO_ROOT / path), *args],
         cwd=REPO_ROOT,
-        env=os.environ.copy(),
+        env=env,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -72,6 +75,32 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("stage4_interleaved", interleaved)
         self.assertIn("stage6_joint", joint)
         self.assertIn("--lr 3e-6", joint)
+
+    def test_qwen_stage_supports_opt_in_global_shuffle_and_full_validation(self) -> None:
+        output = run_script(
+            "scripts/simul_uniss/train_qwen_stage.sh",
+            "--stage",
+            "action",
+            "--dry-run",
+            "--smoke",
+            extra_env={
+                "SIMUL_NO_DATA_SHARDING": "1",
+                "SIMUL_FULL_VALIDATION": "1",
+            },
+        )
+        self.assertIn("--dataloader-type cyclic", output)
+        self.assertIn("--no-data-sharding", output)
+        self.assertIn("--full-validation", output)
+
+    def test_historical_qwen_config_keeps_original_data_sharding_default(self) -> None:
+        output = run_script(
+            "scripts/simul_uniss/train_qwen_stage.sh",
+            "--stage",
+            "action",
+            "--dry-run",
+            "--smoke",
+        )
+        self.assertNotIn("--no-data-sharding", output)
 
     def test_qwen_stage_restores_pip_nvidia_library_paths(self) -> None:
         script = (REPO_ROOT / "scripts/simul_uniss/train_qwen_stage.sh").read_text(
