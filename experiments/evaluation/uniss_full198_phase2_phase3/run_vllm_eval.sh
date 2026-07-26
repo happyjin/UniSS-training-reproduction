@@ -35,7 +35,18 @@ if [[ "${ALLOW_GENERATED_FAILURES:-0}" == "1" ]]; then
   VERIFY_ARGS+=(--allow-generated-failures)
 fi
 
-"${ENV_ROOT}/bin/python" -m evaluation.vllm_generate \
+# EVAL_GPU_LIST may contain the four physical GPUs reserved for this phase.
+# Generation/audio decode remain single-process here and use the first GPU;
+# objective metrics safely data-parallelize over the complete list.
+GPU_LIST_VALUE="${EVAL_GPU_LIST:-}"
+PRIMARY_GPU="${GPU_LIST_VALUE%%,*}"
+if [[ -z "${PRIMARY_GPU}" ]]; then
+  VISIBLE_GPU_LIST="${CUDA_VISIBLE_DEVICES:-}"
+  PRIMARY_GPU="${VISIBLE_GPU_LIST%%,*}"
+fi
+PRIMARY_GPU="${PRIMARY_GPU:-0}"
+
+CUDA_VISIBLE_DEVICES="${PRIMARY_GPU}" "${ENV_ROOT}/bin/python" -m evaluation.vllm_generate \
   --manifest "${MANIFEST}" \
   --model "${HF_CHECKPOINT}" \
   --output-dir "${OUTPUT_ROOT}/vllm" \
@@ -53,7 +64,7 @@ fi
   --dtype bfloat16 \
   "${RESUME_ARGS[@]}"
 
-"${ENV_ROOT}/bin/python" -m evaluation.decode_audio \
+CUDA_VISIBLE_DEVICES="${PRIMARY_GPU}" "${ENV_ROOT}/bin/python" -m evaluation.decode_audio \
   --input "${OUTPUT_ROOT}/vllm/generation_results.jsonl" \
   --manifest "${MANIFEST}" \
   --speech-tokenizer "${SPEECH_TOKENIZER}" \

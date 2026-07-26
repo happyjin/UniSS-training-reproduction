@@ -119,13 +119,13 @@ run_full_one() {
   if [[ -e "${output}" ]]; then
     resume=1
   fi
-  CUDA_VISIBLE_DEVICES="${gpu}" \
+  EVAL_GPU_LIST="${gpu}" \
   ENV_ROOT="${ENV_ROOT}" \
   RESUME="${resume}" \
   ALLOW_GENERATED_FAILURES="${allow_generated_failures}" \
     "${EVAL_ROOT}/run_vllm_eval.sh" "${stage}" "${checkpoint}" "${manifest}" "${output}" \
     >"${log}" 2>&1
-  CUDA_VISIBLE_DEVICES="${gpu}" \
+  EVAL_GPU_LIST="${gpu}" \
   ENV_ROOT="${ENV_ROOT}" \
   DEVICE="cuda:0" \
     "${EVAL_ROOT}/run_objective_metrics.sh" "${output}" \
@@ -229,6 +229,10 @@ run_hf_kind smoke "${P2_SMOKE}" "${P3_SMOKE}"
 run_pair vllm_smoke "${SMOKE_MANIFEST}" "${P2_VLLM_SMOKE}" "${P3_VLLM_SMOKE}" \
   "${VLLM_SMOKE_PHASE2_GPU:-0}" "${VLLM_SMOKE_PHASE3_GPU:-1}"
 run_hf_kind listen "${P2_LISTEN}" "${P3_LISTEN}"
-run_pair dev "${DEV_MANIFEST}" "${P2_DEV}" "${P3_DEV}" "${DEV_PHASE2_GPU:-0}" "${DEV_PHASE3_GPU:-1}"
-run_pair test "${TEST_MANIFEST}" "${P2_TEST}" "${P3_TEST}" "${TEST_PHASE2_GPU:-0}" "${TEST_PHASE3_GPU:-1}"
+run_pair dev "${DEV_MANIFEST}" "${P2_DEV}" "${P3_DEV}" \
+  "${DEV_PHASE2_GPUS:-${DEV_PHASE2_GPU:-0,1,2,3}}" \
+  "${DEV_PHASE3_GPUS:-${DEV_PHASE3_GPU:-4,5,6,7}}"
+run_pair test "${TEST_MANIFEST}" "${P2_TEST}" "${P3_TEST}" \
+  "${TEST_PHASE2_GPUS:-${TEST_PHASE2_GPU:-0,1,2,3}}" \
+  "${TEST_PHASE3_GPUS:-${TEST_PHASE3_GPU:-4,5,6,7}}"
 aggregate

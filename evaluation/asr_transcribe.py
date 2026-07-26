@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Sequence
 
 from evaluation.io_utils import iter_jsonl, write_json
+from evaluation.sharding import load_keys, select_shard
 from training.constants_uniss import normalize_language
 from training.generate_unist_eval_audio import write_jsonl_row
 
@@ -87,13 +88,17 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
     output_path = Path(args.output)
     if output_path.exists() and not args.resume:
         raise FileExistsError(f"Refusing to overwrite ASR output: {output_path}")
-    completed: set[tuple[str, str]] = set()
+    completed: set[tuple[str, str]] = load_keys(args.completed_input)
     if args.resume and output_path.exists():
-        completed = {(str(row["id"]), str(row["mode"])) for row in iter_jsonl(output_path)}
+        completed.update((str(row["id"]), str(row["mode"])) for row in iter_jsonl(output_path))
 
     rows = [
         row
-        for row in iter_jsonl(input_path)
+        for row in select_shard(
+            iter_jsonl(input_path),
+            num_shards=args.num_shards,
+            shard_index=args.shard_index,
+        )
         if (str(row["id"]), str(row["mode"])) not in completed and row.get("audio_path") and not row.get("error")
     ]
     by_backend = {
@@ -140,6 +145,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--num-shards", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--completed-input", action="append", default=[])
     return parser.parse_args(argv)
 
 

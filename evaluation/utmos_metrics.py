@@ -13,6 +13,7 @@ import torch
 import torchaudio
 
 from evaluation.io_utils import iter_jsonl, write_json
+from evaluation.sharding import load_keys, select_shard
 from training.generate_unist_eval_audio import write_jsonl_row
 
 
@@ -47,20 +48,24 @@ def run_utmos(args: argparse.Namespace) -> dict[str, object]:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     per_sample_path = output_dir / "per_sample_utmos.jsonl"
-    completed: set[tuple[str, str]] = set()
+    completed: set[tuple[str, str]] = load_keys(args.completed_input)
     existing_rows: list[dict[str, object]] = []
     if per_sample_path.exists():
         if not args.resume:
             raise FileExistsError(f"Refusing to overwrite UTMOS output: {per_sample_path}")
         existing_rows = list(iter_jsonl(per_sample_path))
-        completed = {(str(row["id"]), str(row["mode"])) for row in existing_rows}
+        completed.update((str(row["id"]), str(row["mode"])) for row in existing_rows)
 
     device = torch.device(args.device)
     predictor = torch.hub.load(args.torch_hub_repo, args.model_name, trust_repo=True)
     predictor.to(device).eval()
     scored = list(existing_rows)
     failures = 0
-    for row in iter_jsonl(input_path):
+    for row in select_shard(
+        iter_jsonl(input_path),
+        num_shards=args.num_shards,
+        shard_index=args.shard_index,
+    ):
         key = (str(row["id"]), str(row["mode"]))
         if key in completed or not row.get("audio_path") or row.get("error"):
             continue
@@ -102,6 +107,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--model-name", default="utmos22_strong")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--num-shards", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--completed-input", action="append", default=[])
     return parser.parse_args(argv)
 
 
