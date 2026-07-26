@@ -8,6 +8,11 @@ ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval}"
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 WAIT_FOR_IDLE_GPUS="${WAIT_FOR_IDLE_GPUS:-1}"
 GPU_WAIT_INTERVAL="${GPU_WAIT_INTERVAL:-60}"
+# Four independent H200 workers leave ample memory at the generic adapter
+# default of 8.  Batch 32 materially improves Whisper throughput while staying
+# well below the 140 GB capacity measured by this full198 evaluation.
+ASR_BATCH_SIZE="${ASR_BATCH_SIZE:-32}"
+export ASR_BATCH_SIZE
 
 PHASE2_ITERATION="${PHASE2_ITERATION:-15381}"
 PHASE3_ITERATION="${PHASE3_ITERATION:-9075}"
@@ -217,6 +222,7 @@ P3_DEV=${P3_DEV}
 P2_TEST=${P2_TEST}
 P3_TEST=${P3_TEST}
 REPORT=${CONTROL_ROOT}/report
+ASR_BATCH_SIZE=${ASR_BATCH_SIZE}
 EOF
 
 status "initialized"
