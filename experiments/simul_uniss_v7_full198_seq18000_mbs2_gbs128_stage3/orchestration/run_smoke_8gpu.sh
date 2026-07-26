@@ -4,7 +4,7 @@ EXPERIMENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${EXPERIMENT_DIR}/../.." && pwd)"
 # shellcheck source=/dev/null
 source "${EXPERIMENT_DIR}/experiment.env"
-NAME="stage03_seq18000_mbs2_gbs128_smoke_v1"
+NAME="stage03_seq18000_mbs2_gbs128_smoke_v2_fresh_phase3_base"
 ROOT="${SIMUL_CHECKPOINT_ROOT}/${NAME}"
 SMOKE_RUN="${RUN_DIR}/${NAME}"
 SMOKE_LOG="${LOG_DIR}/${NAME}"

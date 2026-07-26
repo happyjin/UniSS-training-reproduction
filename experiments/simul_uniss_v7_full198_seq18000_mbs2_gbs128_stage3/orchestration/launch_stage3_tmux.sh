@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "${EXPERIMENT_DIR}/../.." && pwd)"
 source "${EXPERIMENT_DIR}/experiment.env"
 SESSION="simul_uniss_v7_seq18000_stage3_8gpu"
 LOG="${LOG_DIR}/stage3_launcher.log"
-SMOKE_MARKER="${RUN_DIR}/stage03_seq18000_mbs2_gbs128_smoke_v1/SMOKE_COMPLETE"
+SMOKE_MARKER="${RUN_DIR}/stage03_seq18000_mbs2_gbs128_smoke_v2_fresh_phase3_base/SMOKE_COMPLETE"
 [[ -f "${FULL_DATA_READY_MARKER}" && -f "${SMOKE_MARKER}" ]] || { echo "Data or smoke not ready" >&2; exit 1; }
 [[ -f "${STAGE3_LOAD_ROOT}/latest_checkpointed_iteration.txt" ]] || { echo "Missing load checkpoint" >&2; exit 1; }
 tmux has-session -t "${SESSION}" 2>/dev/null && { echo "tmux session exists: ${SESSION}" >&2; exit 1; }

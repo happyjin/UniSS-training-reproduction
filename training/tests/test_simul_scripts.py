@@ -151,6 +151,8 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("--no-load-optim", output)
         self.assertIn("--no-load-rng", output)
         self.assertIn("--finetune", output)
+        self.assertIn("uniss_qwen0p5b_phase3_unist198_after_phase2_v4", output)
+        self.assertNotIn("simul_uniss_v6_full198_phase3_index_scan_stage3", output)
         self.assertIn("simul_uniss_v7_full198_seq18000_mbs2_gbs128_stage3", output)
 
     def test_v7_action_only_repack_dry_run_is_isolated(self) -> None:
