@@ -92,10 +92,11 @@ tmux new-session -d -s uniss_full198_evaluation \
 ```
 
 The pipeline waits until all local GPU compute processes have exited. It then
-runs the fixed Phase2/Phase3 smoke matrix, validates every objective metric on
-the smoke audio, runs the 50-record listening matrix, full UniST dev, full UniST
-test, objective metrics, and the aggregate report. Dev is completed before
-test. Full generation and objective metrics are resumable; an
+runs the fixed Phase2/Phase3 HF smoke matrix, validates every objective metric
+on the smoke audio, repeats the same smoke set through the vLLM and BiCodec
+pipeline, and only then runs the 50-record listening matrix, full UniST dev,
+full UniST test, objective metrics, and the aggregate report. Dev is completed
+before test. Full generation and objective metrics are resumable; an
 incomplete HF smoke/listening directory is preserved and requires a new
 `RUN_ID`. Set `PREFLIGHT_ONLY=1` to validate and freeze inputs without starting
 GPU work.

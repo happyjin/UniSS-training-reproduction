@@ -22,9 +22,12 @@ STATUS_FILE="${CONTROL_ROOT}/status.txt"
 
 DEV_MANIFEST="${MANIFEST_ROOT}/unist_dev_all.jsonl"
 TEST_MANIFEST="${MANIFEST_ROOT}/unist_test_all.jsonl"
+SMOKE_MANIFEST="${MANIFEST_ROOT}/unist_dev_smoke_3.jsonl"
 
 P2_SMOKE="${REPO_ROOT}/eval_outputs/qwen0p5b_phase2_unist198_${PHASE2_TAG}_unist_dev_smoke_${RUN_ID}"
 P3_SMOKE="${REPO_ROOT}/eval_outputs/qwen0p5b_phase3_unist198_${PHASE3_TAG}_unist_dev_smoke_${RUN_ID}"
+P2_VLLM_SMOKE="${REPO_ROOT}/eval_outputs/qwen0p5b_phase2_unist198_${PHASE2_TAG}_unist_dev_vllm_smoke_${RUN_ID}"
+P3_VLLM_SMOKE="${REPO_ROOT}/eval_outputs/qwen0p5b_phase3_unist198_${PHASE3_TAG}_unist_dev_vllm_smoke_${RUN_ID}"
 P2_LISTEN="${REPO_ROOT}/eval_outputs/qwen0p5b_phase2_unist198_${PHASE2_TAG}_unist_dev_listen_${RUN_ID}"
 P3_LISTEN="${REPO_ROOT}/eval_outputs/qwen0p5b_phase3_unist198_${PHASE3_TAG}_unist_dev_listen_${RUN_ID}"
 P2_DEV="${REPO_ROOT}/eval_outputs/qwen0p5b_phase2_unist198_${PHASE2_TAG}_unist_dev_full_${RUN_ID}"
@@ -158,6 +161,7 @@ aggregate() {
   "${ENV_ROOT}/bin/python" -m evaluation.aggregate_report \
     --run \
       "${P2_SMOKE}" "${P3_SMOKE}" \
+      "${P2_VLLM_SMOKE}" "${P3_VLLM_SMOKE}" \
       "${P2_LISTEN}" "${P3_LISTEN}" \
       "${P2_DEV}" "${P3_DEV}" \
       "${P2_TEST}" "${P3_TEST}" \
@@ -171,7 +175,7 @@ require_dir "${PHASE2_HF}"
 require_dir "${PHASE3_HF}"
 require_file "${DEV_MANIFEST}"
 require_file "${TEST_MANIFEST}"
-require_file "${MANIFEST_ROOT}/unist_dev_smoke_3.jsonl"
+require_file "${SMOKE_MANIFEST}"
 require_file "${MANIFEST_ROOT}/unist_dev_listen_50.jsonl"
 require_file "${MANIFEST_ROOT}/cvss_t_manifest_summary.json"
 
@@ -183,7 +187,7 @@ nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv \
 sha256sum \
   "${PHASE2_HF}/model.safetensors" \
   "${PHASE3_HF}/model.safetensors" \
-  "${MANIFEST_ROOT}/unist_dev_smoke_3.jsonl" \
+  "${SMOKE_MANIFEST}" \
   "${MANIFEST_ROOT}/unist_dev_listen_50.jsonl" \
   "${DEV_MANIFEST}" \
   "${TEST_MANIFEST}" \
@@ -198,6 +202,8 @@ PHASE2_HF=${PHASE2_HF}
 PHASE3_HF=${PHASE3_HF}
 P2_SMOKE=${P2_SMOKE}
 P3_SMOKE=${P3_SMOKE}
+P2_VLLM_SMOKE=${P2_VLLM_SMOKE}
+P3_VLLM_SMOKE=${P3_VLLM_SMOKE}
 P2_LISTEN=${P2_LISTEN}
 P3_LISTEN=${P3_LISTEN}
 P2_DEV=${P2_DEV}
@@ -214,6 +220,8 @@ if [[ "${PREFLIGHT_ONLY:-0}" == "1" ]]; then
 fi
 wait_for_idle_gpus
 run_hf_kind smoke "${P2_SMOKE}" "${P3_SMOKE}"
+run_pair vllm_smoke "${SMOKE_MANIFEST}" "${P2_VLLM_SMOKE}" "${P3_VLLM_SMOKE}" \
+  "${VLLM_SMOKE_PHASE2_GPU:-0}" "${VLLM_SMOKE_PHASE3_GPU:-1}"
 run_hf_kind listen "${P2_LISTEN}" "${P3_LISTEN}"
 run_pair dev "${DEV_MANIFEST}" "${P2_DEV}" "${P3_DEV}" "${DEV_PHASE2_GPU:-0}" "${DEV_PHASE3_GPU:-1}"
 run_pair test "${TEST_MANIFEST}" "${P2_TEST}" "${P3_TEST}" "${TEST_PHASE2_GPU:-0}" "${TEST_PHASE3_GPU:-1}"
