@@ -275,6 +275,50 @@ class FullDataScriptTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("printf -v command '{\\n%s\\n} 2>&1 | tee -a %q'", source)
 
+    def test_gbs128_restart_is_isolated_and_uses_phase3_batch_geometry(self) -> None:
+        experiment = "experiments/simul_uniss_v4_full198_gbs128"
+        schedule = run_script(f"{experiment}/data_preparation/generate_schedule.sh", "--dry-run")
+        self.assertIn("--global-batch-size 128", schedule)
+        self.assertIn("simul_uniss_v4_full198_gbs128/training_schedule.env", schedule)
+        output = run_script(
+            f"{experiment}/stage03_action_sft/run.sh",
+            "--dry-run",
+            extra_env={"STAGE3_TRAIN_ITERS": "22652", "STAGE3_QWEN_WARMUP_ITERS": "1133"},
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--micro-batch-size 2", output)
+        self.assertIn("--global-batch-size 128", output)
+        self.assertIn("--train-iters 22652", output)
+        self.assertIn("--lr-warmup-iters 1133", output)
+        self.assertIn("data/megatron/simul_uniss_v3_full198/packed_action_train.jsonl", output)
+        self.assertIn("checkpoints/simul_uniss_v4_full198_gbs128/stage03_action_sft", output)
+        self.assertNotIn("checkpoints/simul_uniss_v3_full198/stage03_action_sft", output)
+
+    def test_gbs128_smoke_covers_all_qwen_stages_without_old_outputs(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v4_full198_gbs128/orchestration/run_shuffle_smoke_8gpu.sh",
+            "--dry-run",
+            extra_env={
+                "STAGE3_TRAIN_ITERS": "22652",
+                "STAGE4_TRAIN_ITERS": "22652",
+                "STAGE6_TRAIN_ITERS": "5663",
+                "STAGE3_QWEN_WARMUP_ITERS": "1133",
+                "STAGE4_QWEN_WARMUP_ITERS": "1133",
+                "STAGE6_QWEN_WARMUP_ITERS": "284",
+            },
+        )
+        self.assertEqual(output.count("--nproc_per_node 8"), 3)
+        self.assertEqual(output.count("--micro-batch-size 2"), 3)
+        self.assertEqual(output.count("--global-batch-size 128"), 3)
+        self.assertIn("simul_uniss_v4_full198_gbs128", output)
+        self.assertNotIn("checkpoints/simul_uniss_v3_full198/stage03_action_sft", output)
+        pipeline = (
+            REPO_ROOT
+            / "experiments/simul_uniss_v4_full198_gbs128/orchestration/run_qwen_pipeline_8gpu.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Skipping verified completed", pipeline)
+        self.assertIn("Refusing existing stage output", pipeline)
+
 
 if __name__ == "__main__":
     unittest.main()
