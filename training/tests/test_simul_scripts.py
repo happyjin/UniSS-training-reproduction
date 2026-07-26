@@ -168,6 +168,50 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("packed_action_train.jsonl", output)
         self.assertNotIn("packed_interleaved_train.jsonl", output)
 
+    def test_v8_long_context_stage4_stage6_use_isolated_interleaved_data(self) -> None:
+        experiment = (
+            "experiments/"
+            "simul_uniss_v8_full198_seq18000_mbs2_gbs128_stage4_stage6"
+        )
+        output = run_script(
+            f"{experiment}/orchestration/run_stage4_stage6_8gpu.sh", "--dry-run"
+        )
+        self.assertEqual(output.count("--seq-length 18000"), 2)
+        self.assertEqual(output.count("--micro-batch-size 2"), 2)
+        self.assertEqual(output.count("--global-batch-size 128"), 2)
+        self.assertEqual(output.count("--simul-offset-index-mode sidecar"), 2)
+        self.assertEqual(output.count("--no-data-sharding"), 2)
+        self.assertEqual(output.count("--full-validation"), 2)
+        self.assertEqual(output.count("packed_interleaved_train.jsonl"), 2)
+        self.assertIn("stage04_interleaved_s2st", output)
+        self.assertIn("stage06_joint_refinement", output)
+        self.assertIn("simul_uniss_v7_full198_seq18000_mbs2_gbs128_stage3", output)
+        self.assertIn("simul_uniss_v8_full198_seq18000_mbs2_gbs128_stage4_stage6", output)
+        self.assertIn("--lr 3e-6", output)
+
+        data = run_script(f"{experiment}/data_preparation/run.sh", "--dry-run")
+        self.assertIn("pack_workers=8", data)
+        self.assertIn("--seq-length 18000", data)
+        self.assertIn("repack_interleaved", data)
+        self.assertIn("train-00000", data)
+        self.assertIn("train-00197", data)
+        self.assertIn("packed_interleaved_train.jsonl", data)
+        self.assertNotIn("repack_action_only", data)
+
+    def test_v8_pipeline_waits_for_final_v7_stage3_and_verifies_outputs(self) -> None:
+        path = (
+            REPO_ROOT
+            / "experiments/simul_uniss_v8_full198_seq18000_mbs2_gbs128_stage4_stage6"
+            / "orchestration/run_stage4_stage6_8gpu.sh"
+        )
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("V7_STAGE3_REQUIRED_ITERATION", source)
+        self.assertIn("verify_stage stage04", source)
+        self.assertIn("verify_stage stage06", source)
+        self.assertIn("*.distcp", source)
+        self.assertIn("number of (skipped|nan) iterations", source)
+        self.assertIn("--recover-completed", source)
+
     def test_v2_qwen_stages_are_isolated_eight_gpu_global_shuffle_runs(self) -> None:
         experiment = "experiments/simul_uniss_v2_15shard"
         expected_loads = {
