@@ -138,6 +138,34 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertNotIn("--no-load-rng", output)
         self.assertNotIn("--finetune", output)
 
+    def test_v7_long_context_uses_phase3_batch_and_sidecar_index(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v7_full198_seq18000_mbs2_gbs128_stage3/stage03_action_sft/run.sh",
+            "--dry-run",
+            extra_env={"STAGE3_TRAIN_ITERS": "100", "STAGE3_QWEN_WARMUP_ITERS": "5"},
+        )
+        self.assertIn("--seq-length 18000", output)
+        self.assertIn("--micro-batch-size 2", output)
+        self.assertIn("--global-batch-size 128", output)
+        self.assertIn("--simul-offset-index-mode sidecar", output)
+        self.assertIn("--no-load-optim", output)
+        self.assertIn("--no-load-rng", output)
+        self.assertIn("--finetune", output)
+        self.assertIn("simul_uniss_v7_full198_seq18000_mbs2_gbs128_stage3", output)
+
+    def test_v7_action_only_repack_dry_run_is_isolated(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v7_full198_seq18000_mbs2_gbs128_stage3/data_preparation/run.sh",
+            "--dry-run",
+        )
+        self.assertIn("pack_workers=8", output)
+        self.assertIn("--seq-length 18000", output)
+        self.assertIn("repack_action_only", output)
+        self.assertIn("train-00000", output)
+        self.assertIn("train-00197", output)
+        self.assertIn("packed_action_train.jsonl", output)
+        self.assertNotIn("packed_interleaved_train.jsonl", output)
+
     def test_v2_qwen_stages_are_isolated_eight_gpu_global_shuffle_runs(self) -> None:
         experiment = "experiments/simul_uniss_v2_15shard"
         expected_loads = {
