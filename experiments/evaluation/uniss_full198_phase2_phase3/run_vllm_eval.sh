@@ -68,6 +68,9 @@ run_generate_decode_one() {
     if [[ -e "${output_root}/vllm" ]]; then
       generation_resume+=(--resume)
     fi
+    # UniSS requires its padded-vocabulary logits processor. vLLM V0 rejects
+    # custom logits processors with multi-step decoding, so keep one scheduler
+    # step while increasing queue depth and active sequence concurrency.
     CUDA_VISIBLE_DEVICES="${gpu}" "${ENV_ROOT}/bin/python" -m evaluation.vllm_generate \
       --manifest "${manifest}" \
       --model "${HF_CHECKPOINT}" \
@@ -82,7 +85,12 @@ run_generate_decode_one() {
       --seed "${SEED:-20260726}" \
       --tensor-parallel-size "${TENSOR_PARALLEL_SIZE:-1}" \
       --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION:-0.8}" \
-      --request-batch-size "${REQUEST_BATCH_SIZE:-256}" \
+      --max-model-len "${MAX_MODEL_LEN:-2048}" \
+      --max-num-seqs "${MAX_NUM_SEQS:-512}" \
+      --max-num-batched-tokens "${MAX_NUM_BATCHED_TOKENS:-65536}" \
+      --num-scheduler-steps "${NUM_SCHEDULER_STEPS:-1}" \
+      --max-seq-len-to-capture "${MAX_SEQ_LEN_TO_CAPTURE:-2048}" \
+      --request-batch-size "${REQUEST_BATCH_SIZE:-2048}" \
       --dtype bfloat16 \
       "${generation_resume[@]}"
   fi
@@ -97,6 +105,7 @@ run_generate_decode_one() {
       --device cuda:0 \
       --save-source-audio \
       --save-reference-audio \
+      --batch-size "${DECODE_BATCH_SIZE:-32}" \
       --resume
   fi
 }

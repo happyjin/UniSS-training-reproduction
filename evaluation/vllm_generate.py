@@ -136,6 +136,10 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
         "tensor_parallel_size": args.tensor_parallel_size,
         "gpu_memory_utilization": args.gpu_memory_utilization,
         "max_model_len": args.max_model_len,
+        "max_num_seqs": args.max_num_seqs,
+        "max_num_batched_tokens": args.max_num_batched_tokens,
+        "num_scheduler_steps": args.num_scheduler_steps,
+        "max_seq_len_to_capture": args.max_seq_len_to_capture,
         "request_batch_size": args.request_batch_size,
         "dtype": args.dtype,
     }
@@ -162,6 +166,10 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
         gpu_memory_utilization=args.gpu_memory_utilization,
         dtype=args.dtype,
         max_model_len=args.max_model_len,
+        max_num_seqs=args.max_num_seqs,
+        max_num_batched_tokens=args.max_num_batched_tokens,
+        num_scheduler_steps=args.num_scheduler_steps,
+        max_seq_len_to_capture=args.max_seq_len_to_capture,
         trust_remote_code=False,
         enforce_eager=args.enforce_eager,
         seed=args.seed,
@@ -266,6 +274,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--tensor-parallel-size", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.8)
     parser.add_argument("--max-model-len", type=int, default=32768)
+    parser.add_argument("--max-num-seqs", type=int, default=256)
+    parser.add_argument("--max-num-batched-tokens", type=int, default=8192)
+    parser.add_argument("--num-scheduler-steps", type=int, default=1)
+    parser.add_argument("--max-seq-len-to-capture", type=int, default=8192)
     parser.add_argument("--request-batch-size", type=int, default=256)
     parser.add_argument("--dtype", choices=("bfloat16", "float16", "auto"), default="bfloat16")
     parser.add_argument("--enforce-eager", action="store_true")

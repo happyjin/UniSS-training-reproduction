@@ -66,6 +66,27 @@ class VLLMGenerateTest(unittest.TestCase):
             self.assertTrue((output / "generation_results.jsonl").is_file())
         self.assertEqual(completed, set())
 
+    def test_higher_concurrency_arguments_parse(self):
+        args = vllm_generate.parse_args(
+            [
+                "--manifest", "manifest.jsonl",
+                "--model", "model",
+                "--output-dir", "output",
+                "--max-model-len", "2048",
+                "--max-num-seqs", "512",
+                "--max-num-batched-tokens", "65536",
+                "--num-scheduler-steps", "1",
+                "--max-seq-len-to-capture", "2048",
+                "--request-batch-size", "2048",
+            ]
+        )
+        self.assertEqual(args.max_model_len, 2048)
+        self.assertEqual(args.max_num_seqs, 512)
+        self.assertEqual(args.max_num_batched_tokens, 65536)
+        self.assertEqual(args.num_scheduler_steps, 1)
+        self.assertEqual(args.max_seq_len_to_capture, 2048)
+        self.assertEqual(args.request_batch_size, 2048)
+
 
 if __name__ == "__main__":
     unittest.main()
