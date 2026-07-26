@@ -13,6 +13,7 @@ import glob
 import json
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Sequence
 
@@ -26,6 +27,8 @@ if str(REPO_ROOT) not in sys.path:
 from training import constants_uniss as c
 from training import sample_builders as builders
 from training.prepare_unist_s2st import normalize_unist_record
+from evaluation.io_utils import iter_jsonl, write_json
+from evaluation.uniss_outputs import parse_with_tokenizer
 
 
 EVAL_MODES = ("quality", "performance", "direct_s2st", "tts")
@@ -47,7 +50,14 @@ def expand_input_paths(patterns: Sequence[str]) -> list[Path]:
     return unique_paths
 
 
+def normalized_limit(limit_records: int | None) -> int | None:
+    if limit_records is None or limit_records <= 0:
+        return None
+    return limit_records
+
+
 def iter_unist_records(paths: Sequence[Path], limit_records: int | None = None) -> Iterator[dict[str, object]]:
+    limit_records = normalized_limit(limit_records)
     emitted = 0
     for path in paths:
         table = pq.read_table(path)
@@ -56,6 +66,43 @@ def iter_unist_records(paths: Sequence[Path], limit_records: int | None = None) 
             emitted += 1
             if limit_records is not None and emitted >= limit_records:
                 return
+
+
+def resolve_manifest_parquet_path(value: object, *, manifest_path: Path) -> Path:
+    path = Path(str(value))
+    if path.is_absolute():
+        return path
+    repo_candidate = REPO_ROOT / path
+    if repo_candidate.exists():
+        return repo_candidate
+    return manifest_path.parent / path
+
+
+def iter_manifest_records(manifest_path: Path, limit_records: int | None = None) -> Iterator[dict[str, object]]:
+    limit_records = normalized_limit(limit_records)
+    tables: dict[Path, object] = {}
+    emitted = 0
+    for entry in iter_jsonl(manifest_path):
+        parquet_path = resolve_manifest_parquet_path(entry["parquet_path"], manifest_path=manifest_path)
+        table = tables.get(parquet_path)
+        if table is None:
+            if not parquet_path.exists():
+                raise FileNotFoundError(f"Manifest parquet does not exist: {parquet_path}")
+            table = pq.read_table(parquet_path)
+            tables[parquet_path] = table
+        row_index = int(entry["row_index"])
+        if row_index < 0 or row_index >= table.num_rows:  # type: ignore[union-attr]
+            raise IndexError(f"Manifest row_index {row_index} is invalid for {parquet_path}")
+        raw = table.slice(row_index, 1).to_pylist()[0]  # type: ignore[union-attr]
+        if str(raw.get("id")) != str(entry.get("id")):
+            raise ValueError(
+                f"Manifest id mismatch at {parquet_path}:{row_index}: "
+                f"expected {entry.get('id')!r}, found {raw.get('id')!r}"
+            )
+        yield normalize_unist_record(raw)
+        emitted += 1
+        if limit_records is not None and emitted >= limit_records:
+            return
 
 
 def load_hf_text_encoder(tokenizer) -> builders.TextEncoder:
@@ -170,12 +217,39 @@ def write_jsonl_row(path: Path, row: Mapping[str, object]) -> None:
         handle.write("\n")
 
 
+def audio_duration_seconds(path: str | None) -> float | None:
+    if path is None:
+        return None
+    try:
+        import soundfile as sf
+
+        info = sf.info(path)
+        return float(info.frames / info.samplerate)
+    except Exception:
+        return None
+
+
+def ensure_safe_output_dir(output_dir: Path, *, overwrite: bool) -> None:
+    if not output_dir.exists():
+        return
+    if overwrite:
+        return
+    protected_names = ("results.jsonl", "summary.json", "run_config.json", "wav", "source_wav", "reference_wav")
+    if any((output_dir / name).exists() for name in protected_names):
+        raise FileExistsError(
+            f"Refusing to reuse non-empty evaluation output directory without --overwrite: {output_dir}"
+        )
+
+
 def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import set_seed
     from uniss import UniSSTokenizer
 
+    set_seed(args.seed)
     device = torch.device(args.device)
     output_dir = Path(args.output_dir)
+    ensure_safe_output_dir(output_dir, overwrite=args.overwrite)
     wav_dir = output_dir / "wav"
     source_dir = output_dir / "source_wav"
     ref_dir = output_dir / "reference_wav"
@@ -189,6 +263,27 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     metadata_path = output_dir / "results.jsonl"
     if metadata_path.exists() and args.overwrite:
         metadata_path.unlink()
+
+    run_config = {
+        "model": str(Path(args.model).resolve()),
+        "speech_tokenizer": str(Path(args.speech_tokenizer).resolve()),
+        "input": list(args.input or []),
+        "manifest": str(Path(args.manifest).resolve()) if args.manifest else None,
+        "modes": list(args.mode),
+        "limit_records": args.limit_records,
+        "max_new_tokens": args.max_new_tokens,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "repetition_penalty": args.repetition_penalty,
+        "seed": args.seed,
+        "dtype": args.dtype,
+        "device": args.device,
+        "save_source_audio": args.save_source_audio,
+        "save_reference_audio": args.save_reference_audio,
+        "skip_audio_decode": args.skip_audio_decode,
+    }
+    write_json(output_dir / "run_config.json", run_config)
 
     tokenizer = AutoTokenizer.from_pretrained(
         args.model,
@@ -209,9 +304,19 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     if not args.skip_audio_decode:
         speech_tokenizer = UniSSTokenizer.from_pretrained(args.speech_tokenizer, device=device)
 
-    paths = expand_input_paths(args.input)
-    records = iter_unist_records(paths, limit_records=args.limit_records)
-    counts = {"total": 0, "generated_audio": 0, "source_audio": 0, "reference_audio": 0, "failed": 0}
+    if args.manifest:
+        records = iter_manifest_records(Path(args.manifest), limit_records=args.limit_records)
+    else:
+        paths = expand_input_paths(args.input)
+        records = iter_unist_records(paths, limit_records=args.limit_records)
+    counts = {
+        "total": 0,
+        "generated_audio": 0,
+        "source_audio": 0,
+        "reference_audio": 0,
+        "failed": 0,
+        "no_semantic_tokens": 0,
+    }
 
     for record_index, record in enumerate(records):
         for mode in args.mode:
@@ -227,10 +332,14 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
             if args.temperature > 0:
                 generate_kwargs["temperature"] = args.temperature
                 generate_kwargs["top_p"] = args.top_p
+                generate_kwargs["top_k"] = 0 if args.top_k < 0 else args.top_k
+            started = time.perf_counter()
             with torch.inference_mode():
                 generated = model.generate(prompt_ids, **generate_kwargs)
+            generation_seconds = time.perf_counter() - started
             generated_tail = truncate_at_eos(generated[0, prompt_ids.shape[1] :].tolist())
-            semantic_values = extract_bicodec_semantic_values(generated_tail)
+            parsed = parse_with_tokenizer(generated_tail, mode=mode, tokenizer=tokenizer)
+            semantic_values = parsed["semantic_values"]
             generated_text = tokenizer.decode(generated_tail, skip_special_tokens=False)
             name = safe_sample_name(record_index, record.get("id"), mode)
 
@@ -247,6 +356,8 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
 
             reference_audio_path = None
             source_audio_path = None
+            source_error = None
+            reference_error = None
             if args.save_source_audio and speech_tokenizer is not None:
                 source_audio_path, source_error = maybe_decode_audio(
                     speech_tokenizer=speech_tokenizer,
@@ -280,12 +391,29 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 "translation_ref": record.get("translation"),
                 "generated_text_raw": generated_text,
                 "generated_text_clean": clean_generated_text(generated_text),
+                "generated_transcription": parsed["generated_transcription"],
+                "generated_translation": parsed["generated_translation"],
+                "generated_token_ids": generated_tail if args.save_generated_token_ids else None,
                 "semantic_token_count": len(semantic_values),
+                "has_semantic_start": parsed["has_semantic_start"],
+                "has_semantic_end": parsed["has_semantic_end"],
+                "has_eos": parsed["has_eos"],
+                "generation_seconds": generation_seconds,
                 "audio_path": audio_path,
+                "audio_duration_seconds": audio_duration_seconds(audio_path),
                 "source_audio_path": source_audio_path,
+                "source_audio_duration_seconds": audio_duration_seconds(source_audio_path),
+                "source_audio_error": source_error,
                 "reference_audio_path": reference_audio_path,
+                "reference_audio_duration_seconds": audio_duration_seconds(reference_audio_path),
+                "reference_audio_error": reference_error,
                 "error": error,
                 "checkpoint": str(args.model),
+                "seed": args.seed,
+                "temperature": args.temperature,
+                "top_p": args.top_p,
+                "top_k": args.top_k,
+                "repetition_penalty": args.repetition_penalty,
             }
             write_jsonl_row(metadata_path, row)
             counts["total"] += 1
@@ -293,6 +421,8 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 counts["generated_audio"] += 1
             if error:
                 counts["failed"] += 1
+            if not semantic_values:
+                counts["no_semantic_tokens"] += 1
 
     summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps(counts, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -301,7 +431,9 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", nargs="+", required=True, help="UniST parquet files or glob patterns")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--input", nargs="+", help="UniST parquet files or glob patterns")
+    source.add_argument("--manifest", help="Fixed manifest containing parquet_path, row_index, and id")
     parser.add_argument("--model", required=True, help="HF checkpoint path to evaluate")
     parser.add_argument("--speech-tokenizer", default="pretrained_models/UniSS")
     parser.add_argument("--output-dir", required=True)
@@ -310,13 +442,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-new-tokens", type=int, default=1500)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top-p", type=float, default=0.8)
+    parser.add_argument("--top-k", type=int, default=-1, help="-1 disables top-k filtering, matching the paper")
     parser.add_argument("--repetition-penalty", type=float, default=1.1)
+    parser.add_argument("--seed", type=int, default=20260726)
     parser.add_argument("--dtype", choices=["auto", "bfloat16", "float16"], default="bfloat16")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--skip-audio-decode", action="store_true")
     parser.add_argument("--save-source-audio", action="store_true")
     parser.add_argument("--save-reference-audio", action="store_true")
+    parser.add_argument(
+        "--save-generated-token-ids",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args(argv)
 

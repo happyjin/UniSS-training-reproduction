@@ -2,6 +2,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import torch
 
 from training import constants_uniss as c
@@ -45,6 +47,44 @@ class GenerateUniSTEvalAudioTest(unittest.TestCase):
             ]
         )
         self.assertTrue(args.save_source_audio)
+        self.assertEqual(args.top_k, -1)
+        self.assertEqual(args.seed, 20260726)
+
+    def test_iter_manifest_records_validates_id_and_row(self):
+        rows = [
+            {
+                "id": "dev-1",
+                "dataset_name": "fixture",
+                "src_lang": "eng",
+                "tgt_lang": "cmn",
+                "transcription": "hello",
+                "translation": "你好",
+                "source_glm": [1],
+                "source_bicodec": [2],
+                "target_glm": [3],
+                "target_bicodec": [4],
+                "bicodec_global": list(range(32)),
+                "duration_ratio": 1.0,
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            parquet_path = root / "dev.parquet"
+            manifest_path = root / "manifest.jsonl"
+            pq.write_table(pa.Table.from_pylist(rows), parquet_path)
+            manifest_path.write_text(
+                '{"id":"dev-1","parquet_path":"dev.parquet","row_index":0}\n',
+                encoding="utf-8",
+            )
+            records = list(eval_audio.iter_manifest_records(manifest_path))
+        self.assertEqual(records[0]["id"], "dev-1")
+
+    def test_safe_output_dir_rejects_existing_results(self):
+        with TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir)
+            (output / "results.jsonl").write_text("{}\n", encoding="utf-8")
+            with self.assertRaises(FileExistsError):
+                eval_audio.ensure_safe_output_dir(output, overwrite=False)
 
     def test_maybe_decode_audio_passes_global_then_semantic_tokens(self):
         class FakeSpeechTokenizer:

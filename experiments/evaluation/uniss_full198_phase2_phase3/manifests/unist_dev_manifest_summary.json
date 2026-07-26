@@ -1,0 +1,44 @@
+{
+  "all": {
+    "count": 7965,
+    "dataset_counts": {
+      "gigaspeech": 1434,
+      "magicdata": 6531
+    },
+    "direction_counts": {
+      "cmn->eng": 6531,
+      "eng->cmn": 1434
+    },
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/experiments/evaluation/uniss_full198_phase2_phase3/manifests/unist_dev_all.jsonl",
+    "unique_id_count": 7965
+  },
+  "input": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/raw/UniST/dev-00000.parquet",
+  "listen": {
+    "count": 50,
+    "dataset_counts": {
+      "gigaspeech": 25,
+      "magicdata": 25
+    },
+    "direction_counts": {
+      "cmn->eng": 25,
+      "eng->cmn": 25
+    },
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/experiments/evaluation/uniss_full198_phase2_phase3/manifests/unist_dev_listen_50.jsonl",
+    "unique_id_count": 50
+  },
+  "seed": 20260726,
+  "smoke": {
+    "count": 3,
+    "dataset_counts": {
+      "gigaspeech": 1,
+      "magicdata": 2
+    },
+    "direction_counts": {
+      "cmn->eng": 2,
+      "eng->cmn": 1
+    },
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/experiments/evaluation/uniss_full198_phase2_phase3/manifests/unist_dev_smoke_3.jsonl",
+    "unique_id_count": 3
+  },
+  "split": "dev"
+}
