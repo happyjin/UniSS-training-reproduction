@@ -483,8 +483,8 @@ checkpoints/exported_hf/qwen0p5b_phase3_unist198_iterXXXXXXX_hf/
 
 导出后验证：
 
-- config vocabulary size 为 180,407；
-- tokenizer/control token ID 与训练配置一致；
+- tokenizer/control token 逻辑词表为 180,407，且 token ID 与训练配置一致；
+- Megatron 导出的 embedding/config 词表为补齐后的 180,480（额外 73 个 dummy rows），与已有 13-shard HF export 一致；
 - 权重能被 `AutoModelForCausalLM.from_pretrained` 加载；
 - 用固定 prompt 做一次 forward/generate；
 - 记录源 Megatron checkpoint 路径和导出日志。

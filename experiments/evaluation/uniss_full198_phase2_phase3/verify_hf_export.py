@@ -22,15 +22,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--source-checkpoint", type=Path, required=True)
-    parser.add_argument("--expected-vocab-size", type=int, required=True)
+    parser.add_argument("--expected-model-vocab-size", type=int, required=True)
+    parser.add_argument("--expected-tokenizer-size", type=int, required=True)
     args = parser.parse_args()
 
     config = AutoConfig.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
-    if int(config.vocab_size) != args.expected_vocab_size:
-        raise ValueError(f"config vocab_size={config.vocab_size}, expected {args.expected_vocab_size}")
-    if len(tokenizer) != args.expected_vocab_size:
-        raise ValueError(f"tokenizer size={len(tokenizer)}, expected {args.expected_vocab_size}")
+    if int(config.vocab_size) != args.expected_model_vocab_size:
+        raise ValueError(
+            f"config vocab_size={config.vocab_size}, expected padded model size "
+            f"{args.expected_model_vocab_size}"
+        )
+    if len(tokenizer) != args.expected_tokenizer_size:
+        raise ValueError(
+            f"tokenizer size={len(tokenizer)}, expected logical size {args.expected_tokenizer_size}"
+        )
     weight_files = sorted([*args.model.glob("*.safetensors"), *args.model.glob("*.bin")])
     if not weight_files:
         raise FileNotFoundError(f"No HF weight files found under {args.model}")
@@ -40,6 +46,7 @@ def main() -> None:
         "source_checkpoint": str(args.source_checkpoint.resolve()),
         "vocab_size": int(config.vocab_size),
         "tokenizer_size": len(tokenizer),
+        "padding_token_rows": int(config.vocab_size) - len(tokenizer),
         "config_sha256": sha256(args.model / "config.json"),
         "weight_files": [{"name": path.name, "size": path.stat().st_size} for path in weight_files],
     }

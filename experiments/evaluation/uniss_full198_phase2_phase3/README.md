@@ -26,6 +26,11 @@ weights are initialized and converted on CPU. Do not run export with an empty
 `CUDA_VISIBLE_DEVICES`; exposing one GPU is sufficient and does not place the
 checkpoint weights on that GPU.
 
+The logical UniSS tokenizer contains 180,407 tokens. Megatron pads the embedding
+matrix to 180,480 rows (73 dummy rows), so a valid exported checkpoint has
+`tokenizer_size=180407` and `config.vocab_size=180480`. This matches the existing
+13-shard exports.
+
 ## Commands
 
 Prepare deterministic manifests:

@@ -78,7 +78,8 @@ FINAL_CREATED=1
 "${ENV_ROOT}/bin/python" "${REPO_ROOT}/experiments/evaluation/uniss_full198_phase2_phase3/verify_hf_export.py" \
   --model "${HF_OUTPUT}" \
   --source-checkpoint "${MEGATRON_PATH}" \
-  --expected-vocab-size 180407
+  --expected-model-vocab-size 180480 \
+  --expected-tokenizer-size 180407
 
 COMPLETED=1
 echo "HF_OUTPUT=${HF_OUTPUT}"
