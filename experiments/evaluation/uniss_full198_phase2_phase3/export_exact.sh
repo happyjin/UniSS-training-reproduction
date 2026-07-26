@@ -32,7 +32,7 @@ if [[ ! -f "${TRACKER}" ]]; then
   exit 1
 fi
 if [[ -z "${REQUESTED_ITERATION}" ]]; then
-  read -r REQUESTED_ITERATION < "${TRACKER}"
+  REQUESTED_ITERATION="$(<"${TRACKER}")"
 fi
 if [[ ! "${REQUESTED_ITERATION}" =~ ^[0-9]+$ ]]; then
   echo "Invalid checkpoint iteration: ${REQUESTED_ITERATION}" >&2
