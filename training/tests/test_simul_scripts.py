@@ -212,6 +212,37 @@ class SimulScriptsTests(unittest.TestCase):
         self.assertIn("number of (skipped|nan) iterations", source)
         self.assertIn("--recover-completed", source)
 
+    def test_v8_stage4_after_evaluation_handoff_is_18k_and_stage4_only(self) -> None:
+        experiment = (
+            "experiments/"
+            "simul_uniss_v8_full198_seq18000_mbs2_gbs128_stage4_stage6"
+        )
+        output = run_script(
+            f"{experiment}/orchestration/run_stage4_after_evaluation.sh",
+            "--evaluation-root",
+            "eval_outputs/frozen_evaluation_run",
+            "--dry-run",
+        )
+        self.assertIn("evaluation_complete=", output)
+        self.assertIn("phase2_phase3_detailed_evaluation_report.md", output)
+        self.assertIn("seq_length=18000 micro_batch=2 global_batch=128", output)
+        self.assertIn("--seq-length 18000", output)
+        self.assertIn("--micro-batch-size 2", output)
+        self.assertIn("--global-batch-size 128", output)
+        self.assertIn("stage04_interleaved_s2st", output)
+        self.assertNotIn("stage06_joint_refinement", output)
+
+        source = (
+            REPO_ROOT
+            / experiment
+            / "orchestration/run_stage4_after_evaluation.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("EVALUATION_ROOT}/COMPLETE", source)
+        self.assertIn("FULL_DATA_READY_MARKER", source)
+        self.assertIn("V7_STAGE3_REQUIRED_ITERATION", source)
+        self.assertIn("waiting_for_idle_gpus", source)
+        self.assertIn("verify_stage4", source)
+
     def test_v2_qwen_stages_are_isolated_eight_gpu_global_shuffle_runs(self) -> None:
         experiment = "experiments/simul_uniss_v2_15shard"
         expected_loads = {

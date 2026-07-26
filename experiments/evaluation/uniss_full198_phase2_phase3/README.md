@@ -104,3 +104,17 @@ GPU work.
 Common Voice v4 Chinese source speech is license-gated and is not available on
 this host. The pipeline copies the audited CVSS-T blocked-state manifest into
 the final report; it does not mislabel UniST results as CVSS-T paper results.
+
+The final report is written to both:
+
+```text
+report/aggregate_report.md
+report/phase2_phase3_detailed_evaluation_report.md
+```
+
+It contains Phase2-vs-Phase3 Q/P and direction-specific deltas, generation and
+failure audits, artifact paths, the exact UniSS paper CVSS-T Table 1 baseline
+values, and the paper's 0.5B efficiency reference. Direct paper deltas are
+enabled only when the local run is detected as full CVSS-T test evaluation;
+UniST dev/test results are explicitly marked as cross-dataset and are never
+ranked against CVSS-T numbers.

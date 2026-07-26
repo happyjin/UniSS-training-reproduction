@@ -1,0 +1,140 @@
+{
+  "paper": {
+    "title": "UniSS: Unified Expressive Speech-to-Speech Translation with Your Voice",
+    "arxiv": "2509.21144",
+    "url": "https://arxiv.org/pdf/2509.21144",
+    "table": "Table 1",
+    "dataset": "CVSS-T test",
+    "sample_pairs": 4897,
+    "direction_order": ["eng->cmn", "cmn->eng"],
+    "reported_as": "EN-ZH | ZH-EN"
+  },
+  "models": [
+    {
+      "category": "Cascaded",
+      "model": "3-Stage",
+      "size": "2.6B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 25.02, "cmn->eng": 16.62},
+        "text_bleu": {"eng->cmn": 25.80, "cmn->eng": 17.08},
+        "autopcp": {"eng->cmn": 2.80, "cmn->eng": 2.85},
+        "slc_0_2": {"eng->cmn": 0.56, "cmn->eng": 0.54},
+        "slc_0_4": {"eng->cmn": 0.82, "cmn->eng": 0.88},
+        "utmos": {"eng->cmn": 3.76, "cmn->eng": 3.50}
+      }
+    },
+    {
+      "category": "Cascaded",
+      "model": "2-Stage",
+      "size": "2.8B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 26.94, "cmn->eng": 20.86},
+        "text_bleu": {"eng->cmn": 27.38, "cmn->eng": 22.20},
+        "autopcp": {"eng->cmn": 2.87, "cmn->eng": 2.64},
+        "slc_0_2": {"eng->cmn": 0.67, "cmn->eng": 0.52},
+        "slc_0_4": {"eng->cmn": 0.93, "cmn->eng": 0.70},
+        "utmos": {"eng->cmn": 3.79, "cmn->eng": 3.48}
+      }
+    },
+    {
+      "category": "MLLM",
+      "model": "GPT-4o",
+      "size": "-",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 31.64, "cmn->eng": 19.27},
+        "text_bleu": {"eng->cmn": null, "cmn->eng": null},
+        "autopcp": {"eng->cmn": 2.66, "cmn->eng": 2.58},
+        "slc_0_2": {"eng->cmn": 0.47, "cmn->eng": 0.37},
+        "slc_0_4": {"eng->cmn": 0.71, "cmn->eng": 0.61},
+        "utmos": {"eng->cmn": 3.46, "cmn->eng": 4.18}
+      }
+    },
+    {
+      "category": "MLLM",
+      "model": "Qwen2.5-O",
+      "size": "7B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 7.10, "cmn->eng": 22.66},
+        "text_bleu": {"eng->cmn": 34.85, "cmn->eng": 24.39},
+        "autopcp": {"eng->cmn": 1.90, "cmn->eng": 1.92},
+        "slc_0_2": {"eng->cmn": 0.31, "cmn->eng": 0.35},
+        "slc_0_4": {"eng->cmn": 0.57, "cmn->eng": 0.61},
+        "utmos": {"eng->cmn": 3.23, "cmn->eng": 4.30}
+      }
+    },
+    {
+      "category": "S2ST",
+      "model": "Seamless-M",
+      "size": "1.2B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 14.53, "cmn->eng": 14.36},
+        "text_bleu": {"eng->cmn": 24.80, "cmn->eng": 18.44},
+        "autopcp": {"eng->cmn": 2.34, "cmn->eng": 2.29},
+        "slc_0_2": {"eng->cmn": 0.54, "cmn->eng": 0.22},
+        "slc_0_4": {"eng->cmn": 0.82, "cmn->eng": 0.45},
+        "utmos": {"eng->cmn": 2.73, "cmn->eng": 3.59}
+      }
+    },
+    {
+      "category": "S2ST",
+      "model": "Seamless-L",
+      "size": "2.3B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 25.05, "cmn->eng": 17.67},
+        "text_bleu": {"eng->cmn": 27.61, "cmn->eng": 21.95},
+        "autopcp": {"eng->cmn": 2.41, "cmn->eng": 2.15},
+        "slc_0_2": {"eng->cmn": 0.67, "cmn->eng": 0.36},
+        "slc_0_4": {"eng->cmn": 0.95, "cmn->eng": 0.62},
+        "utmos": {"eng->cmn": 2.69, "cmn->eng": 4.04}
+      }
+    },
+    {
+      "category": "S2ST",
+      "model": "Seamless-Ex",
+      "size": "1.7B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 24.45, "cmn->eng": 15.84},
+        "text_bleu": {"eng->cmn": 26.59, "cmn->eng": 16.74},
+        "autopcp": {"eng->cmn": 2.83, "cmn->eng": 2.87},
+        "slc_0_2": {"eng->cmn": 0.68, "cmn->eng": 0.52},
+        "slc_0_4": {"eng->cmn": 0.94, "cmn->eng": 0.77},
+        "utmos": {"eng->cmn": 2.46, "cmn->eng": 2.90}
+      }
+    },
+    {
+      "category": "S2ST",
+      "model": "UniSS (P)",
+      "size": "1.5B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 30.28, "cmn->eng": 23.61},
+        "text_bleu": {"eng->cmn": 30.93, "cmn->eng": 24.45},
+        "autopcp": {"eng->cmn": 2.73, "cmn->eng": 2.75},
+        "slc_0_2": {"eng->cmn": 0.98, "cmn->eng": 0.84},
+        "slc_0_4": {"eng->cmn": 0.99, "cmn->eng": 0.97},
+        "utmos": {"eng->cmn": 3.77, "cmn->eng": 3.86}
+      }
+    },
+    {
+      "category": "S2ST",
+      "model": "UniSS (Q)",
+      "size": "1.5B",
+      "metrics": {
+        "speech_bleu": {"eng->cmn": 32.20, "cmn->eng": 24.28},
+        "text_bleu": {"eng->cmn": 32.95, "cmn->eng": 26.28},
+        "autopcp": {"eng->cmn": 2.71, "cmn->eng": 2.74},
+        "slc_0_2": {"eng->cmn": 0.98, "cmn->eng": 0.87},
+        "slc_0_4": {"eng->cmn": 0.99, "cmn->eng": 0.97},
+        "utmos": {"eng->cmn": 3.76, "cmn->eng": 3.86}
+      }
+    }
+  ],
+  "small_model_efficiency_reference": {
+    "paper_table": "Table 3",
+    "dataset": "CVSS-T, 400 utterances (200 per direction)",
+    "hardware": "single H800, Transformers, no batching",
+    "models": [
+      {"model": "UniSS-Small (Q)", "size": "0.5B", "average_speech_bleu": 28.17, "time_seconds": 1339.24},
+      {"model": "UniSS-Small (P)", "size": "0.5B", "average_speech_bleu": 25.68, "time_seconds": 1212.65}
+    ]
+  }
+}

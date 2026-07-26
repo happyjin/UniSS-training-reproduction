@@ -41,3 +41,17 @@ the final v7 Stage3 checkpoint are complete. Existing outputs are never
 overwritten; `--recover-completed` only accepts stages whose final iteration,
 eight distributed checkpoint shards, validation log, and zero NaN/skipped
 status can all be verified.
+
+For the Phase2/Phase3 evaluation-gated continuation, start only Stage4 after the
+detailed evaluation report has completed:
+
+```bash
+experiments/simul_uniss_v8_full198_seq18000_mbs2_gbs128_stage4_stage6/\
+  orchestration/launch_stage4_after_evaluation_tmux.sh \
+  eval_outputs/uniss_full198_phase2_phase3_<RUN_ID>
+```
+
+This handoff waits for the evaluation `COMPLETE` marker, the detailed Markdown
+report, the final v7 Stage3 iteration 4753, prepared 18k interleaved data, and
+idle GPUs. It starts **Stage4 only**. Stage5A/5B remains the required streaming
+BiCodec gate before Stage6, so this path does not silently skip Stage5.
