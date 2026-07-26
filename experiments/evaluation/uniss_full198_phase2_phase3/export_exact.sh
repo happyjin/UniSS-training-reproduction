@@ -52,16 +52,33 @@ if [[ -e "${HF_OUTPUT}" ]]; then
   exit 1
 fi
 
+PARTIAL_OUTPUT="${HF_OUTPUT}.partial.$$"
+FINAL_CREATED=0
+COMPLETED=0
+cleanup() {
+  if [[ -d "${PARTIAL_OUTPUT}" ]]; then
+    rm -rf -- "${PARTIAL_OUTPUT}"
+  fi
+  if [[ "${FINAL_CREATED}" == "1" && "${COMPLETED}" != "1" && -d "${HF_OUTPUT}" ]]; then
+    rm -rf -- "${HF_OUTPUT}"
+  fi
+}
+trap cleanup EXIT
+
 "${REPO_ROOT}/scripts/convert_uniss_checkpoint.sh" export \
   --hf-model "${HF_REFERENCE}" \
   --megatron-path "${MEGATRON_PATH}" \
-  --hf-output "${HF_OUTPUT}" \
+  --hf-output "${PARTIAL_OUTPUT}" \
   --model-type gpt \
   --no-progress
+
+mv "${PARTIAL_OUTPUT}" "${HF_OUTPUT}"
+FINAL_CREATED=1
 
 "${ENV_ROOT}/bin/python" "${REPO_ROOT}/experiments/evaluation/uniss_full198_phase2_phase3/verify_hf_export.py" \
   --model "${HF_OUTPUT}" \
   --source-checkpoint "${MEGATRON_PATH}" \
   --expected-vocab-size 180407
 
+COMPLETED=1
 echo "HF_OUTPUT=${HF_OUTPUT}"

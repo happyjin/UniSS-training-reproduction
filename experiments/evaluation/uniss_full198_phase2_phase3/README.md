@@ -17,7 +17,14 @@ Phase3: checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075
 ```
 
 Every export command reads the tracker again and writes the exact iteration into
-the export directory name. An existing export/output directory is rejected.
+the export directory name. An existing export/output directory is rejected. The
+conversion first writes to a process-specific `.partial` directory and removes
+it automatically on failure before atomically publishing the verified export.
+
+Megatron/Triton import requires a visible CUDA driver even though checkpoint
+weights are initialized and converted on CPU. Do not run export with an empty
+`CUDA_VISIBLE_DEVICES`; exposing one GPU is sufficient and does not place the
+checkpoint weights on that GPU.
 
 ## Commands
 
