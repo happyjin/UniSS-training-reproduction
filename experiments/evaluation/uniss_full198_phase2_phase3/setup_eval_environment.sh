@@ -8,7 +8,7 @@ CONDA_BIN="${CONDA_BIN:-${USER_ROOT}/softwares/miniforge3-recovered/bin/conda}"
 STOPES_ROOT="${STOPES_ROOT:-${USER_ROOT}/evaluation_deps/stopes-a4e75e8}"
 STOPES_COMMIT="a4e75e8cb5b8eed629ac0056f301d32d8f194db2"
 
-export CONDA_PKGS_DIRS="${CONDA_PKGS_DIRS:-${USER_ROOT}/conda_pkgs}"
+export CONDA_PKGS_DIRS="${CONDA_PKGS_DIRS:-${USER_ROOT}/conda_pkgs_eval}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-${USER_ROOT}/cache/pip}"
 export HF_HOME="${HF_HOME:-${USER_ROOT}/cache/huggingface}"
 
@@ -16,9 +16,8 @@ if [[ ! -d "${EVAL_ENV}" ]]; then
   "${CONDA_BIN}" create -y -p "${EVAL_ENV}" --clone "${TRAIN_ENV}"
 fi
 
-"${CONDA_BIN}" install -y -p "${EVAL_ENV}" -c conda-forge ffmpeg
-
 "${EVAL_ENV}/bin/python" -m pip install \
+  imageio-ffmpeg==0.6.0 \
   sacrebleu==2.5.1 \
   opencc-python-reimplemented==0.1.7 \
   vllm==0.8.5.post1 \
@@ -39,9 +38,11 @@ git -C "${STOPES_ROOT}" checkout "${STOPES_COMMIT}"
 
 "${EVAL_ENV}/bin/python" - <<'PY'
 import funasr
+import imageio_ffmpeg
 import modelscope
 import stopes
 import vllm
+print("ffmpeg", imageio_ffmpeg.get_ffmpeg_exe())
 print("vllm", vllm.__version__)
 print("funasr", funasr.__version__)
 print("modelscope", modelscope.__version__)
