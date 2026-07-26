@@ -71,8 +71,8 @@ def run_autopcp(args: argparse.Namespace) -> dict[str, object]:
         and not row.get("error")
     ]
     use_cuda = args.device.startswith("cuda") and torch.cuda.is_available()
-    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(args.encoder_model)
-    encoder = Wav2Vec2Model.from_pretrained(args.encoder_model)
+    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(args.encoder_model, local_files_only=True)
+    encoder = Wav2Vec2Model.from_pretrained(args.encoder_model, local_files_only=True)
     comparator = Comparator.load(args.comparator_path, use_gpu=use_cuda)
     if use_cuda:
         encoder.to(args.device)
@@ -147,7 +147,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--chunk-size", type=int, default=1024)
-    parser.add_argument("--num-process", type=int, default=4)
+    # stopes commit a4e75e8 resets torch.multiprocessing's global start method
+    # without force after each parallel read, which raises RuntimeError in this
+    # mixed ASR/UTMOS/AutoPCP process stack. A single reader is deterministic
+    # and avoids mutating global multiprocessing state; GPU encoding remains
+    # batched independently through --batch-size.
+    parser.add_argument("--num-process", type=int, default=1)
     parser.add_argument("--show-progress", action="store_true")
     parser.add_argument("--resume", action="store_true")
     return parser.parse_args(argv)

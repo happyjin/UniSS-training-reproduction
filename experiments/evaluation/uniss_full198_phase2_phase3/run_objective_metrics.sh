@@ -48,5 +48,5 @@ mkdir -p "${OUTPUT_ROOT}/metrics"
   --symmetrize \
   --batch-size "${AUTOPCP_BATCH_SIZE:-16}" \
   --chunk-size "${AUTOPCP_CHUNK_SIZE:-1024}" \
-  --num-process "${AUTOPCP_NUM_PROCESS:-4}" \
+  --num-process "${AUTOPCP_NUM_PROCESS:-1}" \
   --resume

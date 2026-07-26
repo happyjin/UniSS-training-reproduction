@@ -12,6 +12,10 @@ class EvaluationScriptsTest(unittest.TestCase):
             source = (SCRIPT_ROOT / name).read_text(encoding="utf-8")
             self.assertIn('export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"', source, name)
 
+    def test_autopcp_uses_local_metric_encoder_cache(self):
+        source = (REPO_ROOT / "evaluation/autopcp_metrics.py").read_text(encoding="utf-8")
+        self.assertEqual(source.count("local_files_only=True"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -45,6 +45,12 @@ class MetricAdaptersTest(unittest.TestCase):
         report = autopcp_metrics.aggregate_scores(autopcp_rows)
         self.assertEqual(report["groups"]["performance:cmn->eng"]["mean"], 3.0)
 
+    def test_autopcp_defaults_to_single_audio_reader(self):
+        args = autopcp_metrics.parse_args(
+            ["--input", "results.jsonl", "--output-dir", "metrics", "--comparator-path", "model"]
+        )
+        self.assertEqual(args.num_process, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
