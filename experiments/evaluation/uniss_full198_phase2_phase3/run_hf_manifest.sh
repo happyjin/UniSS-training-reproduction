@@ -14,6 +14,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-train}"
 SPEECH_TOKENIZER="${SPEECH_TOKENIZER:-${REPO_ROOT}/pretrained_models/UniSS}"
 EVAL_CUDA_VISIBLE_DEVICES="${EVAL_CUDA_VISIBLE_DEVICES:-0}"
+export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 if [[ -e "${OUTPUT_DIR}" ]]; then
   echo "Refusing to overwrite evaluation output: ${OUTPUT_DIR}" >&2
