@@ -14,6 +14,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval}"
 SPEECH_TOKENIZER="${SPEECH_TOKENIZER:-${REPO_ROOT}/pretrained_models/UniSS}"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
+# vLLM 0.8.5 defaults to the V1 engine, which rejects per-request logits
+# processors. UniSS must mask Megatron's 73 padded vocabulary rows, so use the
+# compatible V0 engine until V1 supports this sampling hook.
+export VLLM_USE_V1="${VLLM_USE_V1:-0}"
 
 if [[ -e "${OUTPUT_ROOT}" && "${RESUME:-0}" != "1" ]]; then
   echo "Refusing to overwrite output root: ${OUTPUT_ROOT}" >&2

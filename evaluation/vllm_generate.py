@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from itertools import islice
 from pathlib import Path
@@ -70,6 +71,7 @@ def validate_resume_config(existing: Mapping[str, object], current: Mapping[str,
         "repetition_penalty",
         "max_new_tokens",
         "seed",
+        "vllm_use_v1",
     )
     mismatches = {key: (existing.get(key), current.get(key)) for key in keys if existing.get(key) != current.get(key)}
     if mismatches:
@@ -86,6 +88,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
     current_config = {
         "backend": "vllm",
         "vllm_version": vllm_version,
+        "vllm_use_v1": os.environ.get("VLLM_USE_V1", ""),
         "model": str(Path(args.model).resolve()),
         "manifest": str(Path(args.manifest).resolve()),
         "modes": list(args.mode),

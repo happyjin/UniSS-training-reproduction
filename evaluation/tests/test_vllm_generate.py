@@ -20,10 +20,15 @@ class VLLMGenerateTest(unittest.TestCase):
             "repetition_penalty": 1.1,
             "max_new_tokens": 10,
             "seed": 1,
+            "vllm_use_v1": "0",
         }
         vllm_generate.validate_resume_config(config, dict(config))
         changed = dict(config)
         changed["seed"] = 2
+        with self.assertRaises(ValueError):
+            vllm_generate.validate_resume_config(config, changed)
+        changed = dict(config)
+        changed["vllm_use_v1"] = "1"
         with self.assertRaises(ValueError):
             vllm_generate.validate_resume_config(config, changed)
 
