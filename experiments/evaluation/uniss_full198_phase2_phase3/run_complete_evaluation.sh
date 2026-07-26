@@ -120,21 +120,11 @@ run_full_one() {
   local gpu="$5"
   local log="$6"
   local allow_generated_failures="$7"
-  local resume=0
-  if [[ -e "${output}" ]]; then
-    resume=1
-  fi
-  EVAL_GPU_LIST="${gpu}" \
-  ENV_ROOT="${ENV_ROOT}" \
-  RESUME="${resume}" \
   ALLOW_GENERATED_FAILURES="${allow_generated_failures}" \
-    "${EVAL_ROOT}/run_vllm_eval.sh" "${stage}" "${checkpoint}" "${manifest}" "${output}" \
-    >"${log}" 2>&1
-  EVAL_GPU_LIST="${gpu}" \
   ENV_ROOT="${ENV_ROOT}" \
-  DEVICE="cuda:0" \
-    "${EVAL_ROOT}/run_objective_metrics.sh" "${output}" \
-    >>"${log}" 2>&1
+    "${EVAL_ROOT}/run_full_one_locked.sh" \
+      "${stage}" "${checkpoint}" "${manifest}" "${output}" "${gpu}" \
+      >"${log}" 2>&1
 }
 
 run_pair() {
@@ -165,6 +155,52 @@ run_pair() {
     return 1
   fi
   status "${split}_full_complete"
+}
+
+write_phase_status() {
+  local phase="$1"
+  local message="$2"
+  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${message}" \
+    | tee "${CONTROL_ROOT}/${phase}_status.txt"
+}
+
+run_phase_dev_then_test() {
+  local phase="$1"
+  local checkpoint="$2"
+  local dev_output="$3"
+  local test_output="$4"
+  local dev_gpu_list="$5"
+  local test_gpu_list="$6"
+  write_phase_status "${phase}" "${phase}_dev_started"
+  run_full_one "${phase}" "${checkpoint}" "${DEV_MANIFEST}" "${dev_output}" "${dev_gpu_list}" \
+    "${CONTROL_ROOT}/logs/${phase}_dev.log" 1
+  write_phase_status "${phase}" "${phase}_dev_complete_${phase}_test_started"
+  run_full_one "${phase}" "${checkpoint}" "${TEST_MANIFEST}" "${test_output}" "${test_gpu_list}" \
+    "${CONTROL_ROOT}/logs/${phase}_test.log" 1
+  write_phase_status "${phase}" "${phase}_test_complete"
+}
+
+run_dev_test_phase_chains() {
+  local phase2_gpus="${DEV_PHASE2_GPUS:-${DEV_PHASE2_GPU:-0,1,2,3}}"
+  local phase3_gpus="${DEV_PHASE3_GPUS:-${DEV_PHASE3_GPU:-4,5,6,7}}"
+  local phase2_test_gpus="${TEST_PHASE2_GPUS:-${TEST_PHASE2_GPU:-0,1,2,3}}"
+  local phase3_test_gpus="${TEST_PHASE3_GPUS:-${TEST_PHASE3_GPU:-4,5,6,7}}"
+  status "dev_test_phase_chains_started"
+  run_phase_dev_then_test phase2 "${PHASE2_HF}" "${P2_DEV}" "${P2_TEST}" \
+    "${phase2_gpus}" "${phase2_test_gpus}" &
+  local phase2_pid=$!
+  run_phase_dev_then_test phase3 "${PHASE3_HF}" "${P3_DEV}" "${P3_TEST}" \
+    "${phase3_gpus}" "${phase3_test_gpus}" &
+  local phase3_pid=$!
+  local phase2_status=0
+  local phase3_status=0
+  wait "${phase2_pid}" || phase2_status=$?
+  wait "${phase3_pid}" || phase3_status=$?
+  if [[ "${phase2_status}" -ne 0 || "${phase3_status}" -ne 0 ]]; then
+    status "dev_test_phase_chains_failed phase2_status=${phase2_status} phase3_status=${phase3_status}"
+    return 1
+  fi
+  status "dev_test_phase_chains_complete"
 }
 
 aggregate() {
@@ -235,10 +271,5 @@ run_hf_kind smoke "${P2_SMOKE}" "${P3_SMOKE}"
 run_pair vllm_smoke "${SMOKE_MANIFEST}" "${P2_VLLM_SMOKE}" "${P3_VLLM_SMOKE}" \
   "${VLLM_SMOKE_PHASE2_GPU:-0}" "${VLLM_SMOKE_PHASE3_GPU:-1}"
 run_hf_kind listen "${P2_LISTEN}" "${P3_LISTEN}"
-run_pair dev "${DEV_MANIFEST}" "${P2_DEV}" "${P3_DEV}" \
-  "${DEV_PHASE2_GPUS:-${DEV_PHASE2_GPU:-0,1,2,3}}" \
-  "${DEV_PHASE3_GPUS:-${DEV_PHASE3_GPU:-4,5,6,7}}"
-run_pair test "${TEST_MANIFEST}" "${P2_TEST}" "${P3_TEST}" \
-  "${TEST_PHASE2_GPUS:-${TEST_PHASE2_GPU:-0,1,2,3}}" \
-  "${TEST_PHASE3_GPUS:-${TEST_PHASE3_GPU:-4,5,6,7}}"
+run_dev_test_phase_chains
 aggregate
