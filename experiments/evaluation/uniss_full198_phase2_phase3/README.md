@@ -81,3 +81,24 @@ Recreate the isolated environment and download metric models with:
 experiments/evaluation/uniss_full198_phase2_phase3/setup_eval_environment.sh
 experiments/evaluation/uniss_full198_phase2_phase3/prepare_metric_models.sh
 ```
+
+After metric-model preparation succeeds and while any existing training job is
+still allowed to finish normally, start the complete non-overwriting pipeline:
+
+```bash
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)" \
+tmux new-session -d -s uniss_full198_evaluation \
+  "cd ${PWD} && RUN_ID=${RUN_ID} experiments/evaluation/uniss_full198_phase2_phase3/run_complete_evaluation.sh"
+```
+
+The pipeline waits until all local GPU compute processes have exited. It then
+runs the fixed Phase2/Phase3 smoke matrix, the 50-record listening matrix, full
+UniST dev, full UniST test, objective metrics, and the aggregate report. Dev is
+completed before test. Full generation and objective metrics are resumable; an
+incomplete HF smoke/listening directory is preserved and requires a new
+`RUN_ID`. Set `PREFLIGHT_ONLY=1` to validate and freeze inputs without starting
+GPU work.
+
+Common Voice v4 Chinese source speech is license-gated and is not available on
+this host. The pipeline copies the audited CVSS-T blocked-state manifest into
+the final report; it does not mislabel UniST results as CVSS-T paper results.

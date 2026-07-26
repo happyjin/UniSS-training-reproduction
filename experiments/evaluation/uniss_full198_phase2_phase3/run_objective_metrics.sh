@@ -13,6 +13,10 @@ MODEL_ROOT="${MODEL_ROOT:-/opt/dlami/nvme/jasonleeeli/evaluation_models}"
 AUTOPCP_COMPARATOR="${AUTOPCP_COMPARATOR:-${MODEL_ROOT}/AutoPCP-multilingual-v2}"
 DEVICE="${DEVICE:-cuda:0}"
 
+export HF_HOME="${HF_HOME:-/opt/dlami/nvme/jasonleeeli/cache/huggingface}"
+export MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-/opt/dlami/nvme/jasonleeeli/cache/modelscope}"
+export TORCH_HOME="${TORCH_HOME:-/opt/dlami/nvme/jasonleeeli/cache/torch}"
+
 mkdir -p "${OUTPUT_ROOT}/metrics"
 
 "${ENV_ROOT}/bin/python" -m evaluation.asr_transcribe \
@@ -28,7 +32,6 @@ mkdir -p "${OUTPUT_ROOT}/metrics"
   --hypothesis-field asr_text \
   --reference-field translation_ref
 
-TORCH_HOME="${TORCH_HOME:-/opt/dlami/nvme/jasonleeeli/cache/torch}" \
 "${ENV_ROOT}/bin/python" -m evaluation.utmos_metrics \
   --input "${OUTPUT_ROOT}/results.jsonl" \
   --output-dir "${OUTPUT_ROOT}/metrics" \
