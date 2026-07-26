@@ -13,6 +13,16 @@ class MetricAdaptersTest(unittest.TestCase):
         self.assertEqual(asr_transcribe.target_asr_backend("eng"), "whisper-large-v3")
         self.assertEqual(asr_transcribe.target_asr_backend("cmn"), "paraformer-zh")
 
+    def test_asr_duration_sort_puts_unknown_lengths_last(self):
+        rows = [
+            {"audio_duration_seconds": 3.0},
+            {},
+            {"audio_duration_seconds": 1.5},
+            {"audio_duration_seconds": 0},
+        ]
+        ordered = sorted(rows, key=asr_transcribe.audio_duration_sort_key)
+        self.assertEqual([row.get("audio_duration_seconds") for row in ordered], [1.5, 3.0, None, 0])
+
     def test_whisper_audio_loader_uses_soundfile_and_mixes_to_mono(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stereo.wav"

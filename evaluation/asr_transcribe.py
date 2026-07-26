@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from itertools import islice
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Sequence
@@ -22,6 +23,16 @@ def chunks(values: Iterable[Mapping[str, object]], size: int) -> Iterator[list[M
 
 def target_asr_backend(language: str) -> str:
     return "whisper-large-v3" if normalize_language(language) == "eng" else "paraformer-zh"
+
+
+def audio_duration_sort_key(row: Mapping[str, object]) -> float:
+    """Sort ASR inputs by duration to minimize variable-length padding."""
+
+    try:
+        duration = float(row.get("audio_duration_seconds", math.inf))
+    except (TypeError, ValueError):
+        return math.inf
+    return duration if duration > 0 and math.isfinite(duration) else math.inf
 
 
 def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
@@ -105,6 +116,8 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
         "whisper-large-v3": [row for row in rows if target_asr_backend(str(row["tgt_lang"])) == "whisper-large-v3"],
         "paraformer-zh": [row for row in rows if target_asr_backend(str(row["tgt_lang"])) == "paraformer-zh"],
     }
+    for backend_rows in by_backend.values():
+        backend_rows.sort(key=audio_duration_sort_key)
     counts = {"transcribed": 0, "empty": 0, "skipped_existing": len(completed)}
     if by_backend["whisper-large-v3"]:
         for row, text in transcribe_whisper(

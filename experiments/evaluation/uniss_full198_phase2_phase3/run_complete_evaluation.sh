@@ -8,10 +8,10 @@ ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval}"
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 WAIT_FOR_IDLE_GPUS="${WAIT_FOR_IDLE_GPUS:-1}"
 GPU_WAIT_INTERVAL="${GPU_WAIT_INTERVAL:-60}"
-# Four independent H200 workers leave ample memory at the generic adapter
-# default of 8.  Full-corpus timing found that 32 saturates compute but loses
-# throughput to variable-length audio padding; 16 is the balanced H200 default.
-ASR_BATCH_SIZE="${ASR_BATCH_SIZE:-16}"
+# Four independent H200 workers sort each backend by generated-audio duration,
+# removing the variable-length padding penalty seen in the original order.
+# Batch 32 then saturates H200 compute while retaining high useful throughput.
+ASR_BATCH_SIZE="${ASR_BATCH_SIZE:-32}"
 export ASR_BATCH_SIZE
 
 PHASE2_ITERATION="${PHASE2_ITERATION:-15381}"
