@@ -319,6 +319,29 @@ class FullDataScriptTests(unittest.TestCase):
         self.assertIn("Skipping verified completed", pipeline)
         self.assertIn("Refusing existing stage output", pipeline)
 
+    def test_mbs4_stage3_utilization_run_is_isolated_and_logs_less_often(self) -> None:
+        experiment = "experiments/simul_uniss_v5_full198_mbs4_gbs128_stage3"
+        output = run_script(
+            f"{experiment}/stage03_action_sft/run.sh",
+            "--dry-run",
+            extra_env={"STAGE3_TRAIN_ITERS": "22652", "STAGE3_QWEN_WARMUP_ITERS": "1133"},
+        )
+        self.assertIn("--micro-batch-size 4", output)
+        self.assertIn("--global-batch-size 128", output)
+        self.assertIn("--log-interval 10", output)
+        self.assertIn("--tensorboard-log-interval 10", output)
+        self.assertIn("--log-memory-interval 10", output)
+        self.assertIn("checkpoints/simul_uniss_v5_full198_mbs4_gbs128_stage3", output)
+        self.assertNotIn("checkpoints/simul_uniss_v4_full198_gbs128/stage03_action_sft", output)
+
+        historical = run_script(
+            "experiments/simul_uniss_v3_full198/stage03_action_sft/run.sh",
+            "--dry-run",
+            extra_env={"STAGE3_TRAIN_ITERS": "2", "STAGE3_QWEN_WARMUP_ITERS": "0"},
+        )
+        self.assertIn("--log-interval 1", historical)
+        self.assertIn("--tensorboard-log-interval 1", historical)
+
 
 if __name__ == "__main__":
     unittest.main()

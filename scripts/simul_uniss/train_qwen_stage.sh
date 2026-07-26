@@ -104,6 +104,9 @@ WARMUP_ITERS="${STAGE_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
 EVAL_INTERVAL="${SIMUL_QWEN_EVAL_INTERVAL}"
 EVAL_ITERS="${SIMUL_QWEN_EVAL_ITERS}"
+LOG_INTERVAL="${SIMUL_QWEN_LOG_INTERVAL:-1}"
+TENSORBOARD_LOG_INTERVAL="${SIMUL_QWEN_TENSORBOARD_LOG_INTERVAL:-1}"
+TENSORBOARD_MEMORY_INTERVAL="${SIMUL_QWEN_TENSORBOARD_MEMORY_INTERVAL:-1}"
 QWEN_LR="${SIMUL_QWEN_LR}"
 QWEN_MIN_LR="${SIMUL_QWEN_MIN_LR}"
 if [[ "${STAGE}" == "joint" ]]; then
@@ -127,6 +130,9 @@ if [[ "${SMOKE}" == "1" ]]; then
   SAVE_INTERVAL=1
   EVAL_INTERVAL=1
   EVAL_ITERS=1
+  LOG_INTERVAL=1
+  TENSORBOARD_LOG_INTERVAL=1
+  TENSORBOARD_MEMORY_INTERVAL=1
 fi
 
 if [[ "${DRY_RUN}" == "0" && ! -f "${TRAIN_DATA}" ]]; then
@@ -189,7 +195,7 @@ cmd=(torchrun
   --save "${SAVE_ROOT}"
   --load "${LOAD_ROOT}"
   --save-interval "${SAVE_INTERVAL}"
-  --log-interval 1
+  --log-interval "${LOG_INTERVAL}"
   --simul-packed-valid "${VALID_DATA}"
   --eval-iters "${EVAL_ITERS}"
   --eval-interval "${EVAL_INTERVAL}"
@@ -197,11 +203,11 @@ cmd=(torchrun
   --no-load-rng
   --finetune
   --tensorboard-dir "${STAGE_TENSORBOARD_DIR}"
-  --tensorboard-log-interval 1
+  --tensorboard-log-interval "${TENSORBOARD_LOG_INTERVAL}"
   --log-timers-to-tensorboard
   --log-validation-ppl-to-tensorboard
   --log-memory-to-tensorboard
-  --log-memory-interval 1
+  --log-memory-interval "${TENSORBOARD_MEMORY_INTERVAL}"
   --log-throughput
 )
 
