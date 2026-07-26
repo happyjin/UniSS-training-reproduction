@@ -24,6 +24,7 @@ STAGE4_LOG="${LOG_DIR}/stage_interleaved_qwen.log"
 HANDOFF_MARKER="${RUN_DIR}/STAGE4_AFTER_EVALUATION_COMPLETE"
 
 verify_stage4() {
+  [[ -n "${STAGE4_TRAIN_ITERS:-}" ]] || return 1
   local pointer="${STAGE4_SAVE_ROOT}/latest_checkpointed_iteration.txt"
   [[ -f "${pointer}" ]] || return 1
   [[ "$(tr -d '[:space:]' < "${pointer}")" == "${STAGE4_TRAIN_ITERS}" ]] || return 1
@@ -32,7 +33,9 @@ verify_stage4() {
   [[ -d "${iteration_dir}" ]] || return 1
   [[ "$(find "${iteration_dir}" -maxdepth 1 -type f -name '*.distcp' | wc -l)" -ge 8 ]] || return 1
   [[ -f "${STAGE4_LOG}" ]] || return 1
-  grep -Eq "iteration +${STAGE4_TRAIN_ITERS}/ +${STAGE4_TRAIN_ITERS}" "${STAGE4_LOG}" || return 1
+  if ! grep -Eq "iteration +${STAGE4_TRAIN_ITERS}/ +${STAGE4_TRAIN_ITERS}" "${STAGE4_LOG}"; then
+    grep -Eq "successfully saved checkpoint from iteration +${STAGE4_TRAIN_ITERS}" "${STAGE4_LOG}" || return 1
+  fi
   grep -Eq "validation loss at iteration +${STAGE4_TRAIN_ITERS}" "${STAGE4_LOG}" || return 1
   ! grep -Eq 'number of (skipped|nan) iterations: +[1-9]' "${STAGE4_LOG}"
 }
@@ -69,6 +72,16 @@ mkdir -p "${RUN_DIR}" "${LOG_DIR}"
 wait_for_file "${EVALUATION_ROOT}/COMPLETE" evaluation_complete
 wait_for_file "${EVALUATION_ROOT}/report/phase2_phase3_detailed_evaluation_report.md" detailed_report
 wait_for_file "${FULL_DATA_READY_MARKER}" interleaved_18k_data
+wait_for_file "${TRAINING_SCHEDULE_FILE}" training_schedule
+# The launcher may start before data preparation creates training_schedule.env.
+# Reload it after the ready marker so completion verification has the final
+# iteration counts in this parent shell as well as in the training subprocess.
+# shellcheck source=/dev/null
+source "${TRAINING_SCHEDULE_FILE}"
+[[ "${STAGE4_TRAIN_ITERS:-}" =~ ^[1-9][0-9]*$ ]] || {
+  echo "Invalid or missing STAGE4_TRAIN_ITERS in ${TRAINING_SCHEDULE_FILE}" >&2
+  exit 1
+}
 wait_for_file "${V7_STAGE3_ROOT}/latest_checkpointed_iteration.txt" v7_stage3_checkpoint
 [[ "$(tr -d '[:space:]' < "${V7_STAGE3_ROOT}/latest_checkpointed_iteration.txt")" == "${V7_STAGE3_REQUIRED_ITERATION}" ]] || {
   echo "v7 Stage3 did not finish at required iteration ${V7_STAGE3_REQUIRED_ITERATION}" >&2

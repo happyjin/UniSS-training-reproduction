@@ -24,7 +24,9 @@ verify_stage() {
   [[ -d "${iteration_dir}" ]] || return 1
   [[ "$(find "${iteration_dir}" -maxdepth 1 -type f -name '*.distcp' | wc -l)" -ge 8 ]] || return 1
   [[ -f "${log}" ]] || return 1
-  grep -Eq "iteration +${expected}/ +${expected}" "${log}" || return 1
+  if ! grep -Eq "iteration +${expected}/ +${expected}" "${log}"; then
+    grep -Eq "successfully saved checkpoint from iteration +${expected}" "${log}" || return 1
+  fi
   grep -Eq "validation loss at iteration +${expected}" "${log}" || return 1
   ! grep -Eq 'number of (skipped|nan) iterations: +[1-9]' "${log}"
 }
