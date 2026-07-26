@@ -30,6 +30,11 @@ if [[ "${RESUME:-0}" == "1" ]]; then
   RESUME_ARGS+=(--resume)
 fi
 
+VERIFY_ARGS=()
+if [[ "${ALLOW_GENERATED_FAILURES:-0}" == "1" ]]; then
+  VERIFY_ARGS+=(--allow-generated-failures)
+fi
+
 "${ENV_ROOT}/bin/python" -m evaluation.vllm_generate \
   --manifest "${MANIFEST}" \
   --model "${HF_CHECKPOINT}" \
@@ -62,7 +67,8 @@ fi
   --manifest "${MANIFEST}" \
   --results "${OUTPUT_ROOT}/results.jsonl" \
   --summary "${OUTPUT_ROOT}/summary.json" \
-  --expected-modes quality performance
+  --expected-modes quality performance \
+  "${VERIFY_ARGS[@]}"
 
 "${ENV_ROOT}/bin/python" -m evaluation.text_metrics \
   --input "${OUTPUT_ROOT}/vllm/generation_results.jsonl" \

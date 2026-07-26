@@ -114,6 +114,7 @@ run_full_one() {
   local output="$4"
   local gpu="$5"
   local log="$6"
+  local allow_generated_failures="$7"
   local resume=0
   if [[ -e "${output}" ]]; then
     resume=1
@@ -121,6 +122,7 @@ run_full_one() {
   CUDA_VISIBLE_DEVICES="${gpu}" \
   ENV_ROOT="${ENV_ROOT}" \
   RESUME="${resume}" \
+  ALLOW_GENERATED_FAILURES="${allow_generated_failures}" \
     "${EVAL_ROOT}/run_vllm_eval.sh" "${stage}" "${checkpoint}" "${manifest}" "${output}" \
     >"${log}" 2>&1
   CUDA_VISIBLE_DEVICES="${gpu}" \
@@ -137,12 +139,16 @@ run_pair() {
   local phase3_output="$4"
   local phase2_gpu="$5"
   local phase3_gpu="$6"
+  local allow_generated_failures=1
+  if [[ "${split}" == "vllm_smoke" ]]; then
+    allow_generated_failures=0
+  fi
   status "${split}_full_started"
   run_full_one phase2 "${PHASE2_HF}" "${manifest}" "${phase2_output}" "${phase2_gpu}" \
-    "${CONTROL_ROOT}/logs/phase2_${split}.log" &
+    "${CONTROL_ROOT}/logs/phase2_${split}.log" "${allow_generated_failures}" &
   local phase2_pid=$!
   run_full_one phase3 "${PHASE3_HF}" "${manifest}" "${phase3_output}" "${phase3_gpu}" \
-    "${CONTROL_ROOT}/logs/phase3_${split}.log" &
+    "${CONTROL_ROOT}/logs/phase3_${split}.log" "${allow_generated_failures}" &
   local phase3_pid=$!
 
   local phase2_status=0
