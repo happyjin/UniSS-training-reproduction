@@ -74,23 +74,34 @@ run_hf_kind() {
   local kind="$1"
   local phase2_output="$2"
   local phase3_output="$3"
-  if [[ -f "${phase2_output}/summary.json" && -f "${phase3_output}/summary.json" ]]; then
-    status "${kind}_already_complete"
-    return
+  if [[ ! -f "${phase2_output}/summary.json" || ! -f "${phase3_output}/summary.json" ]]; then
+    if [[ -e "${phase2_output}" || -e "${phase3_output}" ]]; then
+      echo "Incomplete ${kind} output already exists; use a new RUN_ID to preserve it." >&2
+      exit 1
+    fi
+    status "${kind}_started"
+    RUN_ID="${RUN_ID}" \
+    PHASE2_ITERATION="${PHASE2_ITERATION}" \
+    PHASE3_ITERATION="${PHASE3_ITERATION}" \
+    PHASE2_HF="${PHASE2_HF}" \
+    PHASE3_HF="${PHASE3_HF}" \
+    EVAL_CUDA_VISIBLE_DEVICES="${HF_GPU:-0}" \
+      "${EVAL_ROOT}/run_hf_matrix.sh" "${kind}"
+    status "${kind}_complete"
+  else
+    status "${kind}_generation_already_complete"
   fi
-  if [[ -e "${phase2_output}" || -e "${phase3_output}" ]]; then
-    echo "Incomplete ${kind} output already exists; use a new RUN_ID to preserve it." >&2
-    exit 1
+
+  if [[ "${kind}" == "smoke" ]]; then
+    status "smoke_objective_metrics_started"
+    CUDA_VISIBLE_DEVICES="${HF_GPU:-0}" ENV_ROOT="${ENV_ROOT}" DEVICE="cuda:0" \
+      "${EVAL_ROOT}/run_objective_metrics.sh" "${phase2_output}" \
+      >"${CONTROL_ROOT}/logs/phase2_smoke_objective.log" 2>&1
+    CUDA_VISIBLE_DEVICES="${HF_GPU:-0}" ENV_ROOT="${ENV_ROOT}" DEVICE="cuda:0" \
+      "${EVAL_ROOT}/run_objective_metrics.sh" "${phase3_output}" \
+      >"${CONTROL_ROOT}/logs/phase3_smoke_objective.log" 2>&1
+    status "smoke_objective_metrics_complete"
   fi
-  status "${kind}_started"
-  RUN_ID="${RUN_ID}" \
-  PHASE2_ITERATION="${PHASE2_ITERATION}" \
-  PHASE3_ITERATION="${PHASE3_ITERATION}" \
-  PHASE2_HF="${PHASE2_HF}" \
-  PHASE3_HF="${PHASE3_HF}" \
-  EVAL_CUDA_VISIBLE_DEVICES="${HF_GPU:-0}" \
-    "${EVAL_ROOT}/run_hf_matrix.sh" "${kind}"
-  status "${kind}_complete"
 }
 
 run_full_one() {
