@@ -39,6 +39,9 @@ def main() -> None:
         if int(row.get("semantic_token_count", 0)) <= 0:
             failures.append({"id": row.get("id"), "mode": row.get("mode"), "reason": "no_semantic_tokens"})
             continue
+        if int(row.get("dummy_token_count", 0)) != 0:
+            failures.append({"id": row.get("id"), "mode": row.get("mode"), "reason": "dummy_vocab_token"})
+            continue
         for field in ("audio_path", "source_audio_path", "reference_audio_path"):
             path = Path(str(row.get(field)))
             if not path.is_file():

@@ -63,3 +63,21 @@ experiments/evaluation/uniss_full198_phase2_phase3/run_hf_matrix.sh listen
 The HF path is intentionally limited to smoke/listening evaluation. Full dev
 and test generation use the separate vLLM runner after its isolated runtime is
 validated.
+
+The isolated full-evaluation environment is:
+
+```text
+/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval
+```
+
+The official repository tested vLLM 0.8.0. Its pinned `xgrammar==0.1.16`
+artifact is no longer available from the active package index, so this run uses
+the API-compatible `vllm==0.8.5.post1` and records that version in every vLLM
+`run_config.json`.
+
+Recreate the isolated environment and download metric models with:
+
+```bash
+experiments/evaluation/uniss_full198_phase2_phase3/setup_eval_environment.sh
+experiments/evaluation/uniss_full198_phase2_phase3/prepare_metric_models.sh
+```

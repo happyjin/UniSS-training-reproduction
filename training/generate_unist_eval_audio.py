@@ -299,6 +299,7 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
     )
     model.to(device)
     model.eval()
+    suppressed_dummy_token_ids = list(range(c.VOCAB_SIZE, int(model.config.vocab_size)))
 
     speech_tokenizer = None
     if not args.skip_audio_decode:
@@ -329,6 +330,8 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 "pad_token_id": c.TOKEN_PAD,
                 "eos_token_id": c.TOKEN_EOS,
             }
+            if suppressed_dummy_token_ids:
+                generate_kwargs["suppress_tokens"] = suppressed_dummy_token_ids
             if args.temperature > 0:
                 generate_kwargs["temperature"] = args.temperature
                 generate_kwargs["top_p"] = args.top_p
@@ -414,6 +417,7 @@ def generate_audio(args: argparse.Namespace) -> dict[str, int]:
                 "top_p": args.top_p,
                 "top_k": args.top_k,
                 "repetition_penalty": args.repetition_penalty,
+                "dummy_token_count": sum(token_id >= c.VOCAB_SIZE for token_id in generated_tail),
             }
             write_jsonl_row(metadata_path, row)
             counts["total"] += 1

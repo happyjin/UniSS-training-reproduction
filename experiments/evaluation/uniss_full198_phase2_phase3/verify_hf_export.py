@@ -48,7 +48,10 @@ def main() -> None:
         "tokenizer_size": len(tokenizer),
         "padding_token_rows": int(config.vocab_size) - len(tokenizer),
         "config_sha256": sha256(args.model / "config.json"),
-        "weight_files": [{"name": path.name, "size": path.stat().st_size} for path in weight_files],
+        "weight_files": [
+            {"name": path.name, "size": path.stat().st_size, "sha256": sha256(path)}
+            for path in weight_files
+        ],
     }
     (args.model / "export_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
