@@ -40,8 +40,21 @@ def read_optional(path: Path):
 def classify_run(path: Path, run_config: Mapping[str, object] | None) -> dict[str, str]:
     name = path.name.lower()
     manifest = str((run_config or {}).get("manifest", "")).lower()
+    model = str((run_config or {}).get("model", "")).lower()
     combined = f"{name} {manifest}"
-    stage = "phase2" if "phase2" in combined else "phase3" if "phase3" in combined else "unknown"
+    # Determine the checkpoint stage only from the run name/model. The shared
+    # manifest directory is named ``uniss_full198_phase2_phase3`` and therefore
+    # cannot disambiguate Phase2 from Phase3.
+    if "phase3" in name:
+        stage = "phase3"
+    elif "phase2" in name:
+        stage = "phase2"
+    elif "phase3" in model:
+        stage = "phase3"
+    elif "phase2" in model:
+        stage = "phase2"
+    else:
+        stage = "unknown"
     dataset = "cvss_t" if "cvss" in combined else "unist" if "unist" in combined else "unknown"
     split = "test" if "test" in combined else "dev" if "dev" in combined else "unknown"
     if "vllm_smoke" in combined:

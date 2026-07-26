@@ -12,7 +12,13 @@ class AggregateReportTest(unittest.TestCase):
         (run / "metrics").mkdir(parents=True)
         (run / "vllm").mkdir()
         (run / "vllm/run_config.json").write_text(
-            json.dumps({"manifest": "/data/manifests/unist_dev_all.jsonl"}), encoding="utf-8"
+            json.dumps(
+                {
+                    "manifest": "/experiments/uniss_full198_phase2_phase3/manifests/unist_dev_all.jsonl",
+                    "model": f"/checkpoints/qwen_{stage}",
+                }
+            ),
+            encoding="utf-8",
         )
         metric = {
             "groups": {
