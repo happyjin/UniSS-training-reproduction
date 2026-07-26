@@ -28,6 +28,15 @@ def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
     return path if path.is_absolute() else results_path.parent / path
 
 
+def load_audio_array(path: Path, *, expected_sample_rate: int):
+    import soundfile as sf
+
+    audio, sample_rate = sf.read(path, dtype="float32", always_2d=True)
+    if sample_rate != expected_sample_rate:
+        raise ValueError(f"Expected {expected_sample_rate} Hz audio, got {sample_rate} Hz: {path}")
+    return audio.mean(axis=1)
+
+
 def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str, batch_size: int):
     import torch
     from transformers import pipeline
@@ -43,8 +52,12 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
     )
     for batch in chunks(rows, batch_size):
         paths = [str(audio_path(row, results_path=results_path)) for row in batch]
+        inputs = [
+            load_audio_array(Path(path), expected_sample_rate=recognizer.feature_extractor.sampling_rate)
+            for path in paths
+        ]
         outputs = recognizer(
-            paths,
+            inputs,
             batch_size=batch_size,
             generate_kwargs={"language": "english", "task": "transcribe"},
         )

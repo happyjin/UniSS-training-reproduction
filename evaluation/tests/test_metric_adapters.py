@@ -1,4 +1,9 @@
+import tempfile
 import unittest
+from pathlib import Path
+
+import numpy as np
+import soundfile as sf
 
 from evaluation import asr_transcribe, autopcp_metrics, utmos_metrics
 
@@ -7,6 +12,24 @@ class MetricAdaptersTest(unittest.TestCase):
     def test_asr_backend_routing(self):
         self.assertEqual(asr_transcribe.target_asr_backend("eng"), "whisper-large-v3")
         self.assertEqual(asr_transcribe.target_asr_backend("cmn"), "paraformer-zh")
+
+    def test_whisper_audio_loader_uses_soundfile_and_mixes_to_mono(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "stereo.wav"
+            stereo = np.column_stack(
+                [np.full(160, 0.25, dtype=np.float32), np.full(160, 0.75, dtype=np.float32)]
+            )
+            sf.write(path, stereo, 16000, subtype="FLOAT")
+            audio = asr_transcribe.load_audio_array(path, expected_sample_rate=16000)
+        self.assertEqual(audio.shape, (160,))
+        np.testing.assert_allclose(audio, 0.5)
+
+    def test_whisper_audio_loader_rejects_wrong_sample_rate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "wrong_rate.wav"
+            sf.write(path, np.zeros(80, dtype=np.float32), 8000)
+            with self.assertRaisesRegex(ValueError, "Expected 16000 Hz"):
+                asr_transcribe.load_audio_array(path, expected_sample_rate=16000)
 
     def test_score_aggregation(self):
         rows = [
