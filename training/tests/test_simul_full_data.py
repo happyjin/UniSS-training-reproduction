@@ -195,6 +195,13 @@ class FullDataPipelineTests(unittest.TestCase):
             dataset = SimulPackedJsonlDataset(output / "interleaved.jsonl", 4096)
             self.assertIsInstance(dataset.offsets, array)
             self.assertEqual(len(dataset), 2)
+            phase3_dataset = SimulPackedJsonlDataset(
+                output / "interleaved.jsonl",
+                4096,
+                offset_index_mode="phase3-scan",
+            )
+            self.assertIsInstance(phase3_dataset.offsets, list)
+            self.assertEqual(len(phase3_dataset), 2)
             self.assertEqual(len(load_index(output / "schedules.jsonl") or []), 2)
 
 

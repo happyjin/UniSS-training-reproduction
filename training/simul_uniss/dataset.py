@@ -62,12 +62,23 @@ def packed_json_to_item(item: Mapping[str, object], seq_length: int) -> dict[str
 
 
 class SimulPackedJsonlDataset(Dataset):
-    def __init__(self, path: str | Path, seq_length: int) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        seq_length: int,
+        offset_index_mode: str = "sidecar",
+    ) -> None:
         self.path = Path(path)
         self.seq_length = seq_length
+        if offset_index_mode not in {"sidecar", "phase3-scan"}:
+            raise ValueError(
+                "offset_index_mode must be 'sidecar' or 'phase3-scan', "
+                f"got {offset_index_mode!r}"
+            )
+        self.offset_index_mode = offset_index_mode
         if not self.path.is_file():
             raise FileNotFoundError(self.path)
-        indexed_offsets = load_index(self.path)
+        indexed_offsets = load_index(self.path) if offset_index_mode == "sidecar" else None
         self.offsets: Sequence[int]
         if indexed_offsets is not None:
             self.offsets = indexed_offsets

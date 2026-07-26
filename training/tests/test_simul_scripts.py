@@ -102,6 +102,41 @@ class SimulScriptsTests(unittest.TestCase):
             "--smoke",
         )
         self.assertNotIn("--no-data-sharding", output)
+        self.assertIn("--simul-offset-index-mode sidecar", output)
+
+    def test_qwen_stage_can_reproduce_phase3_scan_and_resume_state(self) -> None:
+        output = run_script(
+            "scripts/simul_uniss/train_qwen_stage.sh",
+            "--stage",
+            "action",
+            "--dry-run",
+            "--smoke",
+            extra_env={
+                "SIMUL_OFFSET_INDEX_MODE": "phase3-scan",
+                "SIMUL_NO_LOAD_OPTIM": "0",
+                "SIMUL_NO_LOAD_RNG": "0",
+                "SIMUL_FINETUNE": "0",
+            },
+        )
+        self.assertIn("--simul-offset-index-mode phase3-scan", output)
+        self.assertNotIn("--no-load-optim", output)
+        self.assertNotIn("--no-load-rng", output)
+        self.assertNotIn("--finetune", output)
+
+    def test_v6_phase3_index_scan_resumes_v5_in_isolated_paths(self) -> None:
+        output = run_script(
+            "experiments/simul_uniss_v6_full198_phase3_index_scan_stage3/stage03_action_sft/run.sh",
+            "--dry-run",
+        )
+        self.assertIn("--nproc_per_node 8", output)
+        self.assertIn("--micro-batch-size 4", output)
+        self.assertIn("--global-batch-size 128", output)
+        self.assertIn("--simul-offset-index-mode phase3-scan", output)
+        self.assertIn("simul_uniss_v5_full198_mbs4_gbs128_stage3", output)
+        self.assertIn("simul_uniss_v6_full198_phase3_index_scan_stage3", output)
+        self.assertNotIn("--no-load-optim", output)
+        self.assertNotIn("--no-load-rng", output)
+        self.assertNotIn("--finetune", output)
 
     def test_v2_qwen_stages_are_isolated_eight_gpu_global_shuffle_runs(self) -> None:
         experiment = "experiments/simul_uniss_v2_15shard"

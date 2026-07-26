@@ -100,6 +100,10 @@ GLOBAL_BATCH="${SIMUL_GLOBAL_BATCH_SIZE}"
 DATALOADER_TYPE="${SIMUL_DATALOADER_TYPE}"
 NO_DATA_SHARDING="${SIMUL_NO_DATA_SHARDING:-0}"
 FULL_VALIDATION="${SIMUL_FULL_VALIDATION:-0}"
+OFFSET_INDEX_MODE="${SIMUL_OFFSET_INDEX_MODE:-sidecar}"
+NO_LOAD_OPTIM="${SIMUL_NO_LOAD_OPTIM:-1}"
+NO_LOAD_RNG="${SIMUL_NO_LOAD_RNG:-1}"
+FINETUNE="${SIMUL_FINETUNE:-1}"
 WARMUP_ITERS="${STAGE_WARMUP_ITERS}"
 SAVE_INTERVAL="${SIMUL_QWEN_SAVE_INTERVAL}"
 EVAL_INTERVAL="${SIMUL_QWEN_EVAL_INTERVAL}"
@@ -121,6 +125,17 @@ if [[ "${FULL_VALIDATION}" != "0" && "${FULL_VALIDATION}" != "1" ]]; then
   echo "SIMUL_FULL_VALIDATION must be 0 or 1" >&2
   exit 2
 fi
+if [[ "${OFFSET_INDEX_MODE}" != "sidecar" && "${OFFSET_INDEX_MODE}" != "phase3-scan" ]]; then
+  echo "SIMUL_OFFSET_INDEX_MODE must be sidecar or phase3-scan" >&2
+  exit 2
+fi
+for flag_name in NO_LOAD_OPTIM NO_LOAD_RNG FINETUNE; do
+  flag_value="${!flag_name}"
+  if [[ "${flag_value}" != "0" && "${flag_value}" != "1" ]]; then
+    echo "SIMUL_${flag_name} must be 0 or 1" >&2
+    exit 2
+  fi
+done
 if [[ "${SMOKE}" == "1" ]]; then
   NPROC=1
   MICRO_BATCH=1
@@ -155,6 +170,7 @@ cmd=(torchrun
   --sft
   --simul-packed-train "${TRAIN_DATA}"
   --simul-schema-version simul_uniss_packed_v1
+  --simul-offset-index-mode "${OFFSET_INDEX_MODE}"
   --tokenizer-type NullTokenizer
   --vocab-size 180407
   --tensor-model-parallel-size 1
@@ -199,9 +215,6 @@ cmd=(torchrun
   --simul-packed-valid "${VALID_DATA}"
   --eval-iters "${EVAL_ITERS}"
   --eval-interval "${EVAL_INTERVAL}"
-  --no-load-optim
-  --no-load-rng
-  --finetune
   --tensorboard-dir "${STAGE_TENSORBOARD_DIR}"
   --tensorboard-log-interval "${TENSORBOARD_LOG_INTERVAL}"
   --log-timers-to-tensorboard
@@ -210,6 +223,16 @@ cmd=(torchrun
   --log-memory-interval "${TENSORBOARD_MEMORY_INTERVAL}"
   --log-throughput
 )
+
+if [[ "${NO_LOAD_OPTIM}" == "1" ]]; then
+  cmd+=(--no-load-optim)
+fi
+if [[ "${NO_LOAD_RNG}" == "1" ]]; then
+  cmd+=(--no-load-rng)
+fi
+if [[ "${FINETUNE}" == "1" ]]; then
+  cmd+=(--finetune)
+fi
 
 # Keep these opt-in so historical experiment configs continue to reproduce
 # their original sampler and validation behavior. New experiments can request

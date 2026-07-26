@@ -39,6 +39,15 @@ def add_simul_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--simul-packed-valid", default=None)
     group.add_argument("--simul-packed-test", default=None)
     group.add_argument("--simul-schema-version", default=PACKED_SCHEMA_VERSION)
+    group.add_argument(
+        "--simul-offset-index-mode",
+        choices=("sidecar", "phase3-scan"),
+        default="sidecar",
+        help=(
+            "Use the pre-generated compact sidecar index, or reproduce the "
+            "non-simultaneous Phase3 startup scan into a Python offset list."
+        ),
+    )
     return parser
 
 
@@ -69,10 +78,20 @@ def validate_simul_args(args: SimpleNamespace) -> None:
         raise ValueError("Qwen2.5 checkpoint requires --add-qkv-bias")
 
 
-def _dataset(path: str | None, seq_length: int, split: Split, target_samples: int | None):
+def _dataset(
+    path: str | None,
+    seq_length: int,
+    split: Split,
+    target_samples: int | None,
+    offset_index_mode: str,
+):
     if path is None:
         return None
-    dataset = SimulPackedJsonlDataset(path, seq_length)
+    dataset = SimulPackedJsonlDataset(
+        path,
+        seq_length,
+        offset_index_mode=offset_index_mode,
+    )
     dataset.split = split
     if target_samples is not None and target_samples > len(dataset):
         dataset = RepeatToLengthDataset(dataset, target_samples)
@@ -82,24 +101,28 @@ def _dataset(path: str | None, seq_length: int, split: Split, target_samples: in
 
 def build_simul_datasets(args: SimpleNamespace, train_val_test_num_samples=None):
     seq_length = int(args.seq_length)
+    offset_index_mode = str(getattr(args, "simul_offset_index_mode", "sidecar"))
     return (
         _dataset(
             args.simul_packed_train,
             seq_length,
             Split.train,
             _target_sample_count(train_val_test_num_samples, 0),
+            offset_index_mode,
         ),
         _dataset(
             args.simul_packed_valid,
             seq_length,
             Split.valid,
             _target_sample_count(train_val_test_num_samples, 1),
+            offset_index_mode,
         ),
         _dataset(
             args.simul_packed_test,
             seq_length,
             Split.test,
             _target_sample_count(train_val_test_num_samples, 2),
+            offset_index_mode,
         ),
     )
 

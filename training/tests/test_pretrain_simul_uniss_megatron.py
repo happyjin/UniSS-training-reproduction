@@ -67,11 +67,14 @@ class PretrainSimulUniSSTests(unittest.TestCase):
                 simul_packed_train=str(path),
                 simul_packed_valid=None,
                 simul_packed_test=None,
+                simul_offset_index_mode="phase3-scan",
             )
             train, valid, test = build_simul_datasets(args)
             self.assertIsNone(valid)
             self.assertIsNone(test)
             self.assertEqual(train[0]["loss_mask"].tolist()[:2], [0.0, 4.0])
+            self.assertEqual(train.offset_index_mode, "phase3-scan")
+            self.assertIsInstance(train.offsets, list)
 
 
 if __name__ == "__main__":
