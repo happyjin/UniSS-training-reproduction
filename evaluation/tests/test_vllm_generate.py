@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 import torch
 
@@ -38,6 +40,31 @@ class VLLMGenerateTest(unittest.TestCase):
         output = processor([], logits)
         self.assertTrue(torch.isfinite(output[:5]).all())
         self.assertTrue(torch.isneginf(output[5:]).all())
+
+    def test_resume_after_config_before_first_result(self):
+        config = {
+            "model": "m",
+            "manifest": "x",
+            "modes": ["quality"],
+            "temperature": 0.7,
+            "top_p": 0.8,
+            "top_k": -1,
+            "repetition_penalty": 1.1,
+            "max_new_tokens": 10,
+            "seed": 1,
+            "vllm_use_v1": "0",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "vllm"
+            output.mkdir()
+            vllm_generate.write_json(output / "run_config.json", config)
+            completed = vllm_generate.prepare_output_directory(
+                output,
+                current_config=config,
+                resume=True,
+            )
+            self.assertTrue((output / "generation_results.jsonl").is_file())
+        self.assertEqual(completed, set())
 
 
 if __name__ == "__main__":

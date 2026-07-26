@@ -78,6 +78,41 @@ def validate_resume_config(existing: Mapping[str, object], current: Mapping[str,
         raise ValueError(f"Resume configuration mismatch: {mismatches}")
 
 
+def prepare_output_directory(
+    output_dir: Path,
+    *,
+    current_config: Mapping[str, object],
+    resume: bool,
+) -> set[tuple[str, str]]:
+    """Initialize or resume output, including a pre-first-batch interruption.
+
+    The run config is written before vLLM model initialization. If the process
+    is interrupted during initialization, the directory and config exist but
+    no result file has been created yet. That state is a valid zero-result
+    checkpoint and should resume without deleting or overwriting the directory.
+    """
+
+    results_path = output_dir / "generation_results.jsonl"
+    config_path = output_dir / "run_config.json"
+    if output_dir.exists():
+        if not resume:
+            raise FileExistsError(f"Refusing to reuse vLLM output without --resume: {output_dir}")
+        if config_path.is_file():
+            existing_config = json.loads(config_path.read_text(encoding="utf-8"))
+            validate_resume_config(existing_config, current_config)
+        elif any(output_dir.iterdir()):
+            raise ValueError(f"Cannot resume output without run config: {output_dir}")
+        else:
+            write_json(config_path, current_config)
+        results_path.touch(exist_ok=True)
+        return {result_key(row) for row in iter_jsonl(results_path)}
+
+    output_dir.mkdir(parents=True)
+    write_json(config_path, current_config)
+    results_path.touch()
+    return set()
+
+
 def run_generation(args: argparse.Namespace) -> dict[str, object]:
     from vllm import LLM, SamplingParams, __version__ as vllm_version
 
@@ -105,18 +140,11 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
         "dtype": args.dtype,
     }
 
-    completed: set[tuple[str, str]] = set()
-    if output_dir.exists():
-        if not args.resume:
-            raise FileExistsError(f"Refusing to reuse vLLM output without --resume: {output_dir}")
-        if not config_path.is_file() or not results_path.is_file():
-            raise ValueError(f"Cannot resume incomplete output directory: {output_dir}")
-        existing_config = json.loads(config_path.read_text(encoding="utf-8"))
-        validate_resume_config(existing_config, current_config)
-        completed = {result_key(row) for row in iter_jsonl(results_path)}
-    else:
-        output_dir.mkdir(parents=True)
-        write_json(config_path, current_config)
+    completed = prepare_output_directory(
+        output_dir,
+        current_config=current_config,
+        resume=args.resume,
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
     text_encoder = load_hf_text_encoder(tokenizer)
