@@ -1,11 +1,24 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 
+from evaluation.simultaneous_streaming.stage4_aggregate import (
+    common_comparisons,
+    flatten_common,
+    parse_args,
+)
 from evaluation.simultaneous_streaming.stage4_metrics import (
     playback_metrics,
     policy_metrics,
     token_latency_metrics,
+)
+from evaluation.simultaneous_streaming.stage4_streaming_decode import (
+    boundary_metrics,
+    completed_decode_summary,
+    decode_streaming_row,
 )
 from evaluation.simultaneous_streaming.stage4_streaming_generate import (
     GenerationState,
@@ -14,15 +27,6 @@ from evaluation.simultaneous_streaming.stage4_streaming_generate import (
     parse_write_tokens,
     source_chunk_tokens,
     stage4_header,
-)
-from evaluation.simultaneous_streaming.stage4_streaming_decode import (
-    boundary_metrics,
-    decode_streaming_row,
-)
-from evaluation.simultaneous_streaming.stage4_aggregate import (
-    common_comparisons,
-    flatten_common,
-    parse_args,
 )
 from training import constants_uniss as c
 
@@ -34,6 +38,19 @@ class FakeTokenizer:
 
 
 class Stage4StreamingTest(unittest.TestCase):
+    def test_completed_decode_resume_returns_saved_summary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            summary = {"rank": 0, "decoded": 12, "failed": 0}
+            (output_dir / "decode_summary.rank000.json").write_text(
+                json.dumps(summary), encoding="utf-8"
+            )
+            (output_dir / "DECODE_COMPLETE.rank000").write_text(
+                "complete\n", encoding="utf-8"
+            )
+            self.assertEqual(completed_decode_summary(output_dir, 0, True), summary)
+            self.assertIsNone(completed_decode_summary(output_dir, 0, False))
+
     def test_prompt_header_and_source_chunk_match_training_format(self):
         schedule = {"tgt_lang": "eng", "speaker_tokens": list(range(32))}
         header = stage4_header(schedule)

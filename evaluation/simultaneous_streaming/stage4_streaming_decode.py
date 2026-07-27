@@ -6,9 +6,9 @@ import argparse
 import json
 import math
 import time
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from itertools import islice
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 import soundfile as sf
@@ -17,8 +17,15 @@ import torch
 from evaluation.decode_audio import decode_token_batch
 from evaluation.io_utils import iter_jsonl, write_json
 from evaluation.simultaneous_streaming.stage4_metrics import per_sample_metrics
-from training.generate_unist_eval_audio import audio_duration_seconds, safe_sample_name, write_jsonl_row
-from uniss.streaming.bicodec_streamer import StreamingBiCodecDecoder, bicodec_decode_function
+from training.generate_unist_eval_audio import (
+    audio_duration_seconds,
+    safe_sample_name,
+    write_jsonl_row,
+)
+from uniss.streaming.bicodec_streamer import (
+    StreamingBiCodecDecoder,
+    bicodec_decode_function,
+)
 
 
 def batched(values: Iterable[object], size: int) -> Iterator[list[object]]:
@@ -37,7 +44,7 @@ def boundary_metrics(previous: np.ndarray, current: np.ndarray, sample_rate: int
             "spectral_distance": 0.0,
             "click": 0.0,
         }
-    window = max(16, int(round(sample_rate * 0.02)))
+    window = max(16, round(sample_rate * 0.02))
     left = previous[-window:].astype(np.float32, copy=False)
     right = current[:window].astype(np.float32, copy=False)
     size = min(len(left), len(right))
@@ -139,14 +146,29 @@ def prepare_output(output_dir: Path, rank: int, resume: bool) -> tuple[Path, set
     return result_path, {int(row["index"]) for row in iter_jsonl(result_path)}
 
 
-def run_decode(args: argparse.Namespace) -> dict[str, object]:
-    from uniss import UniSSTokenizer
+def completed_decode_summary(
+    output_dir: Path, rank: int, resume: bool
+) -> dict[str, object] | None:
+    if not resume or not (output_dir / f"DECODE_COMPLETE.rank{rank:03d}").is_file():
+        return None
+    summary_path = output_dir / f"decode_summary.rank{rank:03d}.json"
+    if not summary_path.is_file():
+        raise FileNotFoundError(f"decode marker exists without summary: {summary_path}")
+    return json.loads(summary_path.read_text(encoding="utf-8"))
 
+
+def run_decode(args: argparse.Namespace) -> dict[str, object]:
     rank = args.rank
     world_size = args.world_size
     if not 0 <= rank < world_size:
         raise ValueError(f"invalid rank/world_size: {rank}/{world_size}")
     output_dir = Path(args.output_dir)
+    completed_summary = completed_decode_summary(output_dir, rank, args.resume)
+    if completed_summary is not None:
+        return completed_summary
+
+    from uniss import UniSSTokenizer
+
     result_path, completed = prepare_output(output_dir, rank, args.resume)
     wav_dir = output_dir / "wav"
     source_dir = output_dir / "source_wav"
@@ -194,7 +216,7 @@ def run_decode(args: argparse.Namespace) -> dict[str, object]:
                     raise ValueError("streaming decode produced empty waveform")
                 sf.write(output_path, waveform, args.sample_rate)
                 streaming[index] = (str(output_path.resolve()), None, traces, stream_summary)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - preserve per-sample decode failures
                 streaming[index] = (
                     None,
                     f"streaming_decode_error:{type(exc).__name__}:{exc}",
