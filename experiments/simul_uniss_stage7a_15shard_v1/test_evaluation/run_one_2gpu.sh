@@ -135,7 +135,12 @@ if [[ ! -f "${RUN_DIR}/metrics/slc.json" ]]; then
     --input "${RUN_DIR}/results.jsonl" --output-dir "${RUN_DIR}/metrics"
 fi
 if [[ "${RUN_OBJECTIVE_METRICS}" == 1 ]]; then
-  EVAL_GPU_LIST="${GPU_LIST}" METRIC_NUM_GPUS=2 ENV_ROOT="${EVAL_ENV}" \
+  METRIC_GPU_LIST="${GPU_LIST}"
+  for ((worker_copy = 1; worker_copy < METRIC_WORKERS_PER_GPU; worker_copy++)); do
+    METRIC_GPU_LIST="${METRIC_GPU_LIST},${GPU_LIST}"
+  done
+  METRIC_NUM_WORKERS=$((2 * METRIC_WORKERS_PER_GPU))
+  EVAL_GPU_LIST="${METRIC_GPU_LIST}" METRIC_NUM_GPUS="${METRIC_NUM_WORKERS}" ENV_ROOT="${EVAL_ENV}" \
   ASR_BATCH_SIZE="${ASR_BATCH_SIZE}" AUTOPCP_BATCH_SIZE="${AUTOPCP_BATCH_SIZE}" \
   AUTOPCP_CHUNK_SIZE="${AUTOPCP_CHUNK_SIZE}" \
     "${REPO_ROOT}/experiments/evaluation/uniss_full198_phase2_phase3/run_objective_metrics.sh" "${RUN_DIR}"

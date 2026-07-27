@@ -72,4 +72,7 @@ tmux new-session -d -s simul_stage7a_test_compare \
 
 The H200 throughput profile uses 1,024 active records/rank, 524,288 batched
 tokens, and 94% vLLM memory budget. GPU utilization and power are reported but
-never inflated with dummy computation or invalid padding.
+never inflated with dummy computation or invalid padding. Objective metrics use
+four logical shards on each experiment's two physical GPUs (two workers/GPU),
+which fills otherwise idle H200 capacity without changing sample ownership or
+metric definitions.
