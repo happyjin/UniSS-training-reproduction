@@ -68,6 +68,8 @@ offline Phase3 comparison, and a 200-sample batch-one latency audit. Run:
 experiments/simul_uniss_stage7a_15shard_v1/test_evaluation/launch_all_tmux.sh
 tmux new-session -d -s simul_stage7a_test_compare \
   experiments/simul_uniss_stage7a_15shard_v1/test_evaluation/wait_and_compare.sh
+tmux new-session -d -s simul_stage7a_test_finalize_commit \
+  experiments/simul_uniss_stage7a_15shard_v1/test_evaluation/wait_validate_commit.sh
 ```
 
 The H200 throughput profile uses 1,024 active records/rank, 524,288 batched
@@ -76,3 +78,8 @@ never inflated with dummy computation or invalid padding. Objective metrics use
 four logical shards on each experiment's two physical GPUs (two workers/GPU),
 which fills otherwise idle H200 capacity without changing sample ownership or
 metric definitions.
+
+The finalizer waits for all per-experiment full and batch-one completion
+markers, validates the four-way comparison payload, and commits only the final
+Markdown report and comparison JSON. It does not stage unrelated worktree
+changes.
