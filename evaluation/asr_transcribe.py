@@ -49,6 +49,15 @@ def whisper_duration_bucket(row: Mapping[str, object], *, max_duration_seconds: 
     return "long" if duration > max_duration_seconds else "short"
 
 
+def whisper_call_options(bucket_name: str) -> dict[str, object]:
+    options: dict[str, object] = {
+        "generate_kwargs": {"language": "english", "task": "transcribe"}
+    }
+    if bucket_name != "short":
+        options["return_timestamps"] = True
+    return options
+
+
 def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
     path = Path(str(row["audio_path"]))
     return path if path.is_absolute() else results_path.parent / path
@@ -97,7 +106,7 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
             outputs = recognizer(
                 inputs,
                 batch_size=effective_batch_size,
-                generate_kwargs={"language": "english", "task": "transcribe"},
+                **whisper_call_options(bucket_name),
             )
             if isinstance(outputs, dict):
                 outputs = [outputs]

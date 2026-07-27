@@ -40,6 +40,9 @@ class MetricAdaptersTest(unittest.TestCase):
             asr_transcribe.whisper_duration_bucket({}, max_duration_seconds=30.0),
             "unknown",
         )
+        self.assertNotIn("return_timestamps", asr_transcribe.whisper_call_options("short"))
+        self.assertTrue(asr_transcribe.whisper_call_options("long")["return_timestamps"])
+        self.assertTrue(asr_transcribe.whisper_call_options("unknown")["return_timestamps"])
 
     def test_whisper_audio_loader_uses_soundfile_and_mixes_to_mono(self):
         with tempfile.TemporaryDirectory() as directory:
