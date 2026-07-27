@@ -32,5 +32,18 @@ semantic generation weights, and it must not be reported as semantic-token or
 full-Qwen GRPO. End-to-end free-running generation is a separate evaluation
 step after choosing each experiment's best dev checkpoint.
 
+After E1-E3 complete, the post-training watcher exports each best action head
+as an untied HF/vLLM model and evaluates the fixed dev/test action schedules:
+
+```bash
+tmux new-session -d -s simul_stage7a_post_eval \
+  experiments/simul_uniss_stage7a_15shard_v1/post_training/wait_export_and_evaluate.sh
+```
+
+The exporter keeps the Stage6 input embeddings unchanged and changes only the
+WAIT/WRITE rows of a newly untied output LM head. Consequently the existing
+Stage4/6 free-running generator can consume the export without changing its
+default code path.
+
 The public Phase3 demo must remain stopped while GPU0 participates in E0 latency
 and throughput measurements.

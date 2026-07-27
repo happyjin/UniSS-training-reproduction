@@ -83,8 +83,11 @@ def parse_action_sample(
 ) -> ActionSample:
     if item.get("schema_version") != SAMPLE_SCHEMA_VERSION:
         raise ValueError(f"expected schema_version={SAMPLE_SCHEMA_VERSION}")
-    if item.get("task") != "simul_action":
-        raise ValueError(f"expected task=simul_action, got {item.get('task')!r}")
+    if item.get("task") not in {"simul_action", "simul_s2st"}:
+        raise ValueError(
+            "expected task=simul_action or simul_s2st, "
+            f"got {item.get('task')!r}"
+        )
     values = item.get("input_ids")
     if not isinstance(values, list) or not all(
         isinstance(value, int) for value in values

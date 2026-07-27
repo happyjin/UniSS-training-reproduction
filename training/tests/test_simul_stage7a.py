@@ -15,8 +15,10 @@ from training.simul_uniss.stage7a.data import (
     iter_action_samples_once,
     parse_action_sample,
 )
+from training.simul_uniss.stage7a.export_policy_model import install_action_head
 from training.simul_uniss.stage7a.fixed_policy import fixed_wait_k_actions
 from training.simul_uniss.stage7a.policy import (
+    ACTION_IDS,
     ActionHead,
     grpo_action_loss,
     rollout_rewards,
@@ -80,6 +82,12 @@ class Stage7ADataTest(unittest.TestCase):
         with self.assertRaises(OverflowError):
             parse_action_sample(sample_item(), max_sequence_length=4)
 
+    def test_full_s2st_sample_can_be_used_for_action_evaluation(self):
+        item = sample_item()
+        item["task"] = "simul_s2st"
+        sample = parse_action_sample(item, max_sequence_length=32)
+        self.assertEqual(sample.labels, [0, 1])
+
 
 class Stage7APolicyTest(unittest.TestCase):
     def test_head_initializes_from_exact_lm_rows(self):
@@ -93,6 +101,35 @@ class Stage7APolicyTest(unittest.TestCase):
                 head.projection.weight,
                 torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
             )
+        )
+
+    def test_export_installs_untied_output_without_changing_input(self):
+        class TinyModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.config = type("Config", (), {"tie_word_embeddings": True})()
+                self.embedding = nn.Embedding(c.TOKEN_WRITE_GENERATE + 2, 3)
+                self.head = nn.Linear(3, c.TOKEN_WRITE_GENERATE + 2, bias=False)
+                self.head.weight = self.embedding.weight
+
+            def get_input_embeddings(self):
+                return self.embedding
+
+            def get_output_embeddings(self):
+                return self.head
+
+            def set_output_embeddings(self, value):
+                self.head = value
+
+        model = TinyModel()
+        input_before = model.embedding.weight.detach().clone()
+        action_weight = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        install_action_head(model, {"projection.weight": action_weight})
+        self.assertFalse(model.config.tie_word_embeddings)
+        self.assertNotEqual(model.head.weight.data_ptr(), model.embedding.weight.data_ptr())
+        self.assertTrue(torch.equal(model.embedding.weight, input_before))
+        self.assertTrue(
+            torch.equal(model.head.weight[list(ACTION_IDS)], action_weight)
         )
 
     def test_reward_prefers_correct_safe_trajectory(self):
