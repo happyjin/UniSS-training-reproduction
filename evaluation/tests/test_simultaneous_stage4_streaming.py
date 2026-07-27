@@ -19,7 +19,7 @@ from evaluation.simultaneous_streaming.stage4_streaming_decode import (
     boundary_metrics,
     decode_streaming_row,
 )
-from evaluation.simultaneous_streaming.stage4_aggregate import flatten_common
+from evaluation.simultaneous_streaming.stage4_aggregate import flatten_common, parse_args
 from training import constants_uniss as c
 
 
@@ -160,6 +160,23 @@ class Stage4StreamingTest(unittest.TestCase):
         )
         self.assertEqual(values[("text_bleu", "streaming_stage4", "cmn->eng")], 12.5)
         self.assertEqual(values[("slc_0_4", "streaming_stage4", "cmn->eng")], 0.7)
+
+    def test_report_cli_accepts_test_split_and_later_gpus(self):
+        args = parse_args(
+            [
+                "report",
+                "--run-dir", "/tmp/run",
+                "--results", "/tmp/results.jsonl",
+                "--offline-phase3-root", "/tmp/offline",
+                "--output-json", "/tmp/aggregate.json",
+                "--report", "/tmp/report.md",
+                "--expected-records", "23",
+                "--gpu-ids", "4,5,6,7",
+                "--split-label", "test",
+            ]
+        )
+        self.assertEqual(args.gpu_ids, "4,5,6,7")
+        self.assertEqual(args.split_label, "test")
 
 
 if __name__ == "__main__":

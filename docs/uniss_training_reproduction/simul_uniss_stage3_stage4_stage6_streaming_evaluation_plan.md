@@ -1179,3 +1179,40 @@ streaming event/latency/continuity 指标。
 6. Textless Streaming Speech-to-Speech Translation using Semantic Speech Tokens. ICASSP 2025. [arXiv:2410.03298](https://arxiv.org/abs/2410.03298)
 7. SimulEval: An Evaluation Toolkit for Simultaneous Translation. [GitHub](https://github.com/facebookresearch/SimulEval)
 8. BLASER 2.0 / Seamless communication evaluation resources. [GitHub](https://github.com/facebookresearch/seamless_communication)
+
+## 20. Stage4 full-test 与 dev 4+4 GPU 并行执行补充（2026-07-27）
+
+UniST test 原始 parquet 已按与 dev 完全相同的冻结 operating point 生成独立 schedule：
+
+```text
+input = data/raw/UniST/test-00000.parquet
+output = data/processed/simul_uniss_v1/evaluation_test/
+records = 23,369
+directions = cmn->eng 14,257; eng->cmn 9,112
+events = 175,848
+chunk_ms = 640
+wait_k_chunks = 2
+max_phrase_tokens = 16
+```
+
+schedule ID 顺序与 offline `unist_test_all.jsonl` 完全一致，无重复或无效记录。若每个
+source chunk 都产生最大700-token WRITE，保守最长上下文约24,980，仍低于Qwen原生32K
+上下文；超过18K训练边界的实际自由运行样本继续单独计数。
+
+正式4+4并行资源划分：
+
+| 任务 | GPU | 输出根目录 | 隔离要求 |
+| --- | --- | --- | --- |
+| Stage4 dev | 0,1,2,3 | `eval_outputs/simul_uniss_stage4_streaming_v1/` | 保持当前运行不变 |
+| Stage4 test/eval | 4,5,6,7 | `eval_outputs/simul_uniss_stage4_streaming_test_v1/` | 不复用dev shard、marker或报告 |
+
+test入口：
+
+```bash
+experiments/evaluation/simul_uniss_stage4_streaming_test_v1/run_full_test_4gpu.sh
+```
+
+test执行完整 generation、streaming BiCodec、Text/Speech-BLEU、SLC、UTMOS、AutoPCP、
+batch=1 latency audit 和与 offline Phase3 test 的公共指标比较。GPU监控只聚合4–7，避免
+把并行dev负载误计入test功率。吞吐生成固定每GPU最多512 active records；已验证1024
+配置更慢，因此禁止通过增大无效batch或重复计算伪造功率。

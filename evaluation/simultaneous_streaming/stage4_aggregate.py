@@ -173,8 +173,9 @@ def build_report(aggregate: Mapping[str, object]) -> str:
     assert isinstance(means, Mapping) and isinstance(p95, Mapping)
     integrity = aggregate["integrity"]
     assert isinstance(integrity, Mapping)
+    split_label = str(aggregate.get("split_label", "dev"))
     lines = [
-        "# Simul-UniSS full198 Stage4 end-to-end streaming dev report",
+        f"# Simul-UniSS full198 Stage4 end-to-end streaming {split_label} report",
         "",
         f"> Run directory: `{aggregate['run_dir']}`",
         "> Model: Stage4 phrase-level interleaved S2ST iteration 4753",
@@ -359,9 +360,14 @@ def report(args: argparse.Namespace) -> dict[str, object]:
         "training_context_exceeded": sum(bool(row.get("training_context_exceeded")) for row in rows),
         "max_prompt_tokens": max(int(row.get("max_prompt_tokens", 0)) for row in rows),
     }
-    gpu = load_gpu_monitor(Path(args.gpu_monitor), set(range(4))) if args.gpu_monitor else {"available": False}
+    gpu_ids = {int(value) for value in args.gpu_ids.split(",") if value.strip()}
+    if not gpu_ids:
+        raise ValueError("--gpu-ids must contain at least one GPU index")
+    gpu = load_gpu_monitor(Path(args.gpu_monitor), gpu_ids) if args.gpu_monitor else {"available": False}
     aggregate = {
         "schema_version": "simul_uniss_stage4_end_to_end_aggregate_v1",
+        "split_label": args.split_label,
+        "gpu_ids": sorted(gpu_ids),
         "run_dir": str(run_dir.resolve()),
         "results_path": str(results_path.resolve()),
         "output_json": str(Path(args.output_json).resolve()),
@@ -394,6 +400,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     make_report.add_argument("--output-json", required=True)
     make_report.add_argument("--report", required=True)
     make_report.add_argument("--gpu-monitor", default=None)
+    make_report.add_argument("--gpu-ids", default="0,1,2,3")
+    make_report.add_argument("--split-label", default="dev")
     make_report.add_argument("--expected-records", type=int, required=True)
     return parser.parse_args(argv)
 
