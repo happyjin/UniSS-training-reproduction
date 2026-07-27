@@ -47,3 +47,29 @@ default code path.
 
 The public Phase3 demo must remain stopped while GPU0 participates in E0 latency
 and throughput measurements.
+
+## Full four-way test evaluation
+
+The isolated full free-running test workflow is under `test_evaluation/`. It
+assigns exactly two H200 GPUs to each experiment:
+
+```text
+GPU 0,1: E0 frozen Stage6
+GPU 2,3: E1 continued SFT best
+GPU 4,5: E2 GRPO G4 best
+GPU 6,7: E3 GRPO G8 best
+```
+
+It runs the same 23,369 test schedules through greedy streaming generation,
+BiCodec audio decode, Text/Speech BLEU, SLC, UTMOS, AutoPCP, streaming latency,
+offline Phase3 comparison, and a 200-sample batch-one latency audit. Run:
+
+```bash
+experiments/simul_uniss_stage7a_15shard_v1/test_evaluation/launch_all_tmux.sh
+tmux new-session -d -s simul_stage7a_test_compare \
+  experiments/simul_uniss_stage7a_15shard_v1/test_evaluation/wait_and_compare.sh
+```
+
+The H200 throughput profile uses 1,024 active records/rank, 524,288 batched
+tokens, and 94% vLLM memory budget. GPU utilization and power are reported but
+never inflated with dummy computation or invalid padding.
