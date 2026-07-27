@@ -58,6 +58,25 @@ class AppContractTest(unittest.TestCase):
         self.assertIsNone(inputs[0].format)
         self.assertEqual(set(inputs[0].sources), {"microphone", "upload"})
 
+    def test_generated_audio_is_playable_and_downloadable(self):
+        demo = build_demo(DemoConfig(), object())
+        players = [
+            block
+            for block in demo.blocks.values()
+            if isinstance(block, gr.Audio)
+            and block.label == "翻译语音 / Generated speech"
+        ]
+        self.assertEqual(len(players), 1)
+        self.assertEqual(players[0].format, "wav")
+        self.assertTrue(players[0].autoplay)
+        self.assertTrue(players[0].show_download_button)
+        downloads = [
+            block
+            for block in demo.blocks.values()
+            if isinstance(block, gr.File) and block.label == "下载翻译语音 WAV"
+        ]
+        self.assertEqual(len(downloads), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

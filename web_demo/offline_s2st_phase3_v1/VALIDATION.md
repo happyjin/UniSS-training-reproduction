@@ -65,3 +65,13 @@ decoding to the demo's bundled `imageio-ffmpeg` path. Public authenticated
 end-to-end requests were repeated with both WebM/Opus and WAV inputs. Both
 returned the expected transcription, translation, playable WAV, result JSON,
 and no model warnings.
+
+## Browser audio playback regression
+
+Two real browser microphone requests generated valid, non-silent 16 kHz PCM WAV
+outputs, but the original page only referred to a player and did not offer a
+separate audio-file fallback. The generated-audio component now explicitly uses
+WAV, requests autoplay, exposes its download control, and is accompanied by a
+separate `下载翻译语音 WAV` file output. The authenticated public smoke test now
+checks both returned audio paths and validates the player WAV sample rate and
+non-zero duration.

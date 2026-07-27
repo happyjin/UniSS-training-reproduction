@@ -44,7 +44,8 @@ def append_history(
                 "content": (
                     f"**源语音转写 / Source transcription**  \n{result.transcription or '⚠️ 未生成'}"
                     f"\n\n**翻译文本 / Translation**  \n{result.translation or '⚠️ 未生成'}"
-                    f"\n\n🔊 翻译语音已显示在下方播放器中。"
+                    f"\n\n🔊 翻译语音已显示在本消息上方的播放器中；"
+                    f"如果浏览器阻止自动播放，请点击播放按钮或下载 WAV。"
                 ),
             },
         ]
@@ -85,6 +86,7 @@ def translate_request(
         result.transcription,
         result.translation,
         result.output_audio_path,
+        result.output_audio_path,
         result.result_json_path,
         format_status(result),
         append_history(history, result),
@@ -92,7 +94,7 @@ def translate_request(
 
 
 def clear_outputs():
-    return None, "", "", None, None, "等待输入音频。", []
+    return None, "", "", None, None, None, "等待输入音频。", []
 
 
 def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
@@ -151,8 +153,13 @@ def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
                 output_audio = gr.Audio(
                     label="翻译语音 / Generated speech",
                     type="filepath",
+                    format="wav",
                     interactive=False,
+                    autoplay=True,
+                    show_download_button=True,
+                    show_share_button=False,
                 )
+                output_audio_download = gr.File(label="下载翻译语音 WAV")
                 result_json = gr.File(label="下载本轮JSON")
         chatbot = gr.Chatbot(
             label="本次浏览器会话",
@@ -171,6 +178,7 @@ def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
                 transcription,
                 translation,
                 output_audio,
+                output_audio_download,
                 result_json,
                 status,
                 chatbot,
@@ -184,6 +192,7 @@ def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
                 transcription,
                 translation,
                 output_audio,
+                output_audio_download,
                 result_json,
                 status,
                 chatbot,

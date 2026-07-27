@@ -7,6 +7,7 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
+import soundfile as sf
 from gradio_client import Client, handle_file
 
 
@@ -37,7 +38,15 @@ def main(argv: Sequence[str] | None = None) -> None:
         True,
         api_name="/translate_phase3_quality",
     )
-    transcription, translation, output_audio, result_json, status, chat = result
+    (
+        transcription,
+        translation,
+        output_audio,
+        output_audio_download,
+        result_json,
+        status,
+        chat,
+    ) = result
     if not str(transcription).strip():
         raise RuntimeError("Public demo returned an empty transcription")
     if args.expected_transcription and transcription != args.expected_transcription:
@@ -48,6 +57,13 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise RuntimeError("Public demo returned an empty translation")
     if not Path(output_audio).is_file():
         raise RuntimeError(f"Public demo audio was not downloaded: {output_audio}")
+    audio_info = sf.info(output_audio)
+    if audio_info.frames <= 0 or audio_info.samplerate != 16_000:
+        raise RuntimeError(f"Public demo returned invalid audio: {audio_info}")
+    if not Path(output_audio_download).is_file():
+        raise RuntimeError(
+            f"Public demo audio download was not returned: {output_audio_download}"
+        )
     if not Path(result_json).is_file():
         raise RuntimeError(f"Public demo JSON was not downloaded: {result_json}")
     print(
@@ -58,6 +74,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "transcription": transcription,
                 "translation": translation,
                 "output_audio": output_audio,
+                "output_audio_download": output_audio_download,
+                "output_audio_seconds": audio_info.duration,
                 "result_json": result_json,
                 "status": status,
                 "chat_messages": len(chat),
