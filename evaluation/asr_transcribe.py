@@ -83,7 +83,11 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
         buckets[whisper_duration_bucket(row, max_duration_seconds=max_duration_seconds)].append(row)
     for bucket_name in ("short", "long", "unknown"):
         bucket_rows = buckets[bucket_name]
-        effective_batch_size = 1 if bucket_name == "unknown" else batch_size
+        # The pipeline collator can pad normal <=30s Whisper features, but its
+        # long-form feature tensors have independently sized time axes and fail
+        # when more than one is collated.  Preserve batching for the common
+        # short case and process only the long/unknown tail one at a time.
+        effective_batch_size = batch_size if bucket_name == "short" else 1
         for batch in chunks(bucket_rows, effective_batch_size):
             paths = [str(audio_path(row, results_path=results_path)) for row in batch]
             inputs = [
