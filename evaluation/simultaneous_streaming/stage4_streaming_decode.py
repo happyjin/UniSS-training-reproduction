@@ -178,7 +178,7 @@ def run_decode(args: argparse.Namespace) -> dict[str, object]:
         streaming: dict[int, tuple[str | None, str | None, list[dict[str, object]], dict[str, object]]] = {}
         for row in batch:
             index = int(row["index"])
-            name = safe_sample_name(index, row["id"], "streaming_stage4")
+            name = safe_sample_name(index, row["id"], args.artifact_prefix)
             output_path = wav_dir / f"{name}.wav"
             try:
                 waveform, traces, stream_summary = decode_streaming_row(
@@ -205,7 +205,7 @@ def run_decode(args: argparse.Namespace) -> dict[str, object]:
         source_items = []
         reference_items = []
         for slot, row in enumerate(batch):
-            name = safe_sample_name(int(row["index"]), row["id"], "streaming_stage4")
+            name = safe_sample_name(int(row["index"]), row["id"], args.artifact_prefix)
             source_items.append(
                 {
                     "index": slot,
@@ -297,6 +297,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--left-context-tokens", type=int, default=50)
     parser.add_argument("--holdback-tokens", type=int, default=5)
     parser.add_argument("--overlap-ms", type=float, default=80.0)
+    parser.add_argument("--artifact-prefix", default="streaming_stage4")
     parser.add_argument("--resume", action="store_true")
     return parser.parse_args(argv)
 

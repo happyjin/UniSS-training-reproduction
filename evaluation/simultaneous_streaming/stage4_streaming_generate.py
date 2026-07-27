@@ -219,6 +219,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
     output_dir = Path(args.output_dir)
     config = {
         "schema_version": "simul_uniss_stage4_generation_config_v1",
+        "streaming_mode": args.streaming_mode,
         "model": str(Path(args.model).resolve()),
         "schedules": str(Path(args.schedules).resolve()),
         "rank": rank,
@@ -489,7 +490,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
                 "schema_version": "simul_uniss_stage4_generation_result_v1",
                 "index": state.index,
                 "id": schedule["id"],
-                "mode": "streaming_stage4",
+                "mode": args.streaming_mode,
                 "split": schedule.get("split", "dev"),
                 "src_lang": schedule["src_lang"],
                 "tgt_lang": schedule["tgt_lang"],
@@ -563,6 +564,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-seq-len-to-capture", type=int, default=2048)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
     parser.add_argument("--repetition-penalty", type=float, default=1.1)
+    parser.add_argument("--streaming-mode", default="streaming_stage4")
     parser.add_argument("--dtype", choices=("bfloat16", "float16", "auto"), default="bfloat16")
     parser.add_argument("--seed", type=int, default=20260727)
     parser.add_argument("--enforce-eager", action="store_true")

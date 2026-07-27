@@ -91,12 +91,14 @@ def flatten_common(metrics: Mapping[str, object]) -> dict[tuple[str, str, str], 
 def common_comparisons(
     streaming: Mapping[str, object],
     offline: Mapping[str, object],
+    *,
+    streaming_mode: str = "streaming_stage4",
 ) -> list[dict[str, object]]:
     stream_values = flatten_common(streaming)
     offline_values = flatten_common(offline)
     rows: list[dict[str, object]] = []
     for (metric, mode, direction), value in sorted(stream_values.items()):
-        if mode != "streaming_stage4":
+        if mode != streaming_mode:
             continue
         for offline_mode in ("quality", "performance"):
             reference = offline_values.get((metric, offline_mode, direction))
@@ -174,16 +176,22 @@ def build_report(aggregate: Mapping[str, object]) -> str:
     integrity = aggregate["integrity"]
     assert isinstance(integrity, Mapping)
     split_label = str(aggregate.get("split_label", "dev"))
+    stage_label = str(aggregate.get("stage_label", "Stage4"))
+    stage_iteration = int(aggregate.get("stage_iteration", 4753))
+    stage_description = str(
+        aggregate.get("stage_description", "phrase-level interleaved S2ST")
+    )
+    streaming_mode = str(aggregate.get("streaming_mode", "streaming_stage4"))
     lines = [
-        f"# Simul-UniSS full198 Stage4 end-to-end streaming {split_label} report",
+        f"# Simul-UniSS full198 {stage_label} end-to-end streaming {split_label} report",
         "",
         f"> Run directory: `{aggregate['run_dir']}`",
-        "> Model: Stage4 phrase-level interleaved S2ST iteration 4753",
+        f"> Model: {stage_label} {stage_description} iteration {stage_iteration}",
         "> Scope: free-running Qwen actions/text/semantic + real streaming BiCodec waveform",
         "",
         "## 1. 结论边界",
         "",
-        "本运行使用真实 Stage4 自由运行输出和真实 BiCodec waveform，但 source chunk boundary",
+        f"本运行使用真实 {stage_label} 自由运行输出和真实 BiCodec waveform，但 source chunk boundary",
         "仍来自 UniST 的 pseudo proportional schedule。NCA latency 是策略时间轴，CA latency",
         "加入 vLLM request 与 BiCodec wall time。批量4-GPU吞吐和 batch=1 latency 必须分开解释。",
         "",
@@ -294,17 +302,17 @@ def build_report(aggregate: Mapping[str, object]) -> str:
             "",
             "## 6. 与 offline 相同的最终质量指标",
             "",
-            "| 指标 | 方向 | Stage4 streaming |",
+            f"| 指标 | 方向 | {stage_label} streaming |",
             "| --- | --- | ---: |",
         ]
     )
     for (metric, mode, direction), value in sorted(flattened.items()):
-        if mode == "streaming_stage4":
+        if mode == streaming_mode:
             lines.append(f"| {metric} | {direction} | {fmt(value)} |")
     lines.extend(
         [
             "",
-            "## 7. Stage4 streaming vs offline Phase3",
+            f"## 7. {stage_label} streaming vs offline Phase3",
             "",
             "| 指标 | 方向 | Streaming | Offline mode | Offline | Δ |",
             "| --- | --- | ---: | --- | ---: | ---: |",
@@ -351,7 +359,11 @@ def report(args: argparse.Namespace) -> dict[str, object]:
     run_dir = Path(args.run_dir)
     common = load_common_metrics(run_dir)
     offline = load_common_metrics(Path(args.offline_phase3_root))
-    comparisons = common_comparisons(common, offline)
+    comparisons = common_comparisons(
+        common,
+        offline,
+        streaming_mode=args.streaming_mode,
+    )
     integrity = {
         "samples": len(rows),
         "decode_failures": sum(bool(row.get("error")) for row in rows),
@@ -366,6 +378,10 @@ def report(args: argparse.Namespace) -> dict[str, object]:
     gpu = load_gpu_monitor(Path(args.gpu_monitor), gpu_ids) if args.gpu_monitor else {"available": False}
     aggregate = {
         "schema_version": "simul_uniss_stage4_end_to_end_aggregate_v1",
+        "stage_label": args.stage_label,
+        "stage_iteration": args.stage_iteration,
+        "stage_description": args.stage_description,
+        "streaming_mode": args.streaming_mode,
         "split_label": args.split_label,
         "gpu_ids": sorted(gpu_ids),
         "run_dir": str(run_dir.resolve()),
@@ -402,6 +418,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     make_report.add_argument("--gpu-monitor", default=None)
     make_report.add_argument("--gpu-ids", default="0,1,2,3")
     make_report.add_argument("--split-label", default="dev")
+    make_report.add_argument("--stage-label", default="Stage4")
+    make_report.add_argument("--stage-iteration", type=int, default=4753)
+    make_report.add_argument(
+        "--stage-description",
+        default="phrase-level interleaved S2ST",
+    )
+    make_report.add_argument("--streaming-mode", default="streaming_stage4")
     make_report.add_argument("--expected-records", type=int, required=True)
     return parser.parse_args(argv)
 

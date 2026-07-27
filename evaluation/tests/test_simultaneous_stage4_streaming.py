@@ -19,7 +19,11 @@ from evaluation.simultaneous_streaming.stage4_streaming_decode import (
     boundary_metrics,
     decode_streaming_row,
 )
-from evaluation.simultaneous_streaming.stage4_aggregate import flatten_common, parse_args
+from evaluation.simultaneous_streaming.stage4_aggregate import (
+    common_comparisons,
+    flatten_common,
+    parse_args,
+)
 from training import constants_uniss as c
 
 
@@ -177,6 +181,51 @@ class Stage4StreamingTest(unittest.TestCase):
         )
         self.assertEqual(args.gpu_ids, "4,5,6,7")
         self.assertEqual(args.split_label, "test")
+
+    def test_report_cli_accepts_stage6_identity(self):
+        args = parse_args(
+            [
+                "report",
+                "--run-dir", "/tmp/run",
+                "--results", "/tmp/results.jsonl",
+                "--offline-phase3-root", "/tmp/offline",
+                "--output-json", "/tmp/aggregate.json",
+                "--report", "/tmp/report.md",
+                "--expected-records", "23",
+                "--stage-label", "Stage6",
+                "--stage-iteration", "1189",
+                "--stage-description", "joint low-LR refinement",
+                "--streaming-mode", "streaming_stage6",
+            ]
+        )
+        self.assertEqual(args.stage_label, "Stage6")
+        self.assertEqual(args.stage_iteration, 1189)
+        self.assertEqual(args.streaming_mode, "streaming_stage6")
+
+    def test_common_comparison_filters_requested_stage_mode(self):
+        streaming = {
+            "text_bleu": {
+                "groups": {
+                    "streaming_stage4:cmn->eng": {"score": 1.0},
+                    "streaming_stage6:cmn->eng": {"score": 3.0},
+                }
+            }
+        }
+        offline = {
+            "text_bleu": {
+                "groups": {
+                    "quality:cmn->eng": {"score": 4.0},
+                    "performance:cmn->eng": {"score": 2.0},
+                }
+            }
+        }
+        rows = common_comparisons(
+            streaming,
+            offline,
+            streaming_mode="streaming_stage6",
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row["streaming_value"] == 3.0 for row in rows))
 
 
 if __name__ == "__main__":
