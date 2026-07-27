@@ -50,6 +50,18 @@ The public URL is also written to `public_url.txt`. A Gradio share URL is
 temporary and may change after restart. A fixed permanent URL requires a user
 domain, DNS, TLS, and a reverse proxy.
 
+Authenticated public smoke test:
+
+```bash
+/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-offline-demo/bin/python \
+  web_demo/offline_s2st_phase3_v1/smoke_public.py \
+  --url "$(cat web_demo/offline_s2st_phase3_v1/public_url.txt)" \
+  --username uniss \
+  --password '<password printed by launch_public_tmux.sh>' \
+  --audio /path/to/input.wav \
+  --direction '中文 → 英文'
+```
+
 ## Tests
 
 ```bash
