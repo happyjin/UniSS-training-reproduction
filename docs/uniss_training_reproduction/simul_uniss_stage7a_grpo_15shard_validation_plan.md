@@ -1,6 +1,6 @@
 # Simul-UniSS Stage7A：15-shard Action-only GRPO 快速验证计划
 
-> 文档状态：Stage7A action-head v1 已实现并通过 2-GPU smoke；不代表 full-Qwen/semantic-token GRPO
+> 文档状态：Stage7A action-head v1、E0–E3 训练和 23,369 条 full test 已完成；第 17 章记录 E3 复盘与 Reward v2 路线；不代表 full-Qwen/semantic-token GRPO
 >
 > 生成日期：2026-07-27
 >
@@ -37,7 +37,7 @@ training/tests/test_simul_stage7a.py
 
 E0、E1、E2、E3 的 2-GPU smoke 均已完成；checkpoint、TensorBoard、validation、固定 wait-k 和 GPU monitor 均正常，无 OOM/NaN。Stage7A 样本长度中位数约 387、p95 约 602，故不把短样本补齐到 Megatron 的 13000/18000。正式 H200 参数采用每卡动态 `524288` padded tokens、最多 `1024` samples，同时保留 `max_sequence_length=18000` 作为异常长样本安全上限。实测稳态 GPU utility 为 100%，功率约 631–686 W/700 W，resident memory 约 38–40 GiB/卡。
 
-当前 v1 的边界必须如实表述：冻结 Stage6 backbone，只训练由 Stage6 LM head 初始化的二分类 action head；GRPO reward 使用 pseudo-alignment action、early-safe-WRITE、final flush 和结构 proxy。它是 action-policy proof，不是 semantic-token GRPO，也不更新翻译内容或声音生成权重。是否真正改善端到端质量–延迟 Pareto，必须由后续 free-running streaming dev/test 评估决定，不能由训练 reward 单独下结论。
+当前 v1 的边界必须如实表述：冻结 Stage6 backbone，只训练由 Stage6 LM head 初始化的二分类 action head；实际 GRPO reward 使用 pseudo-alignment action、很小的 early-safe-WRITE bonus 和 final-WAIT penalty，尚未接入真实翻译质量、显式 First-WRITE/ATD/LAAL、结构或音频 reward。它是 action-policy proof，不是 semantic-token GRPO，也不更新翻译内容或声音生成权重。是否真正改善端到端质量–延迟 Pareto，必须由后续 free-running streaming dev/test 评估决定，不能由训练 reward 单独下结论。
 
 有效性的核心判据不是训练 reward 或 GRPO loss，而是独立 dev/test 上：
 
@@ -681,3 +681,533 @@ Stage7A 不涉及 NAR。只有在经过 GRPO 后，真实 batch-one p95 RTF 仍�
 ```
 
 如果只看到 reward 上升、loss 下降或训练集动作准确率提高，不能据此宣称 GRPO 改善 simultaneous speech-to-speech translation。
+
+## 17. 2026-07-27 Full-test 复盘与 Reward v2 优化路线
+
+### 17.1 本章目的、证据范围与追踪入口
+
+本章把 Stage7A v1 的实验结果、失败机制、reward 实现差异、优化 motivation、下一轮消融矩阵和验收规则放在同一个位置，避免后续只看到某个 TensorBoard reward 上升就误判方法有效。
+
+本章结论基于：
+
+- E0 Stage6、E1 continued SFT、E2 GRPO G4、E3 GRPO G8；
+- 完全相同的 `23,369` 条 free-running streaming S2ST test schedules；
+- 完整的文本生成、BiCodec 音频解码、ASR、Text/Speech BLEU、UTMOS、AutoPCP；
+- streaming policy/latency 指标和每组 200 条 batch-one latency audit；
+- E1/E2/E3 相同数据、初始化、训练步数范围、action-head 容量和评估协议。
+
+完整结果入口：
+
+```text
+eval_outputs/simul_uniss_stage7a_15shard_v1/full_test_e2e_v1/
+├── stage7a_four_way_full_test_report.md
+├── comparison.json
+├── e0_stage6/full_test_v1/
+├── e1_continued_sft/full_test_v1/
+├── e2_grpo_g4/full_test_v1/
+└── e3_grpo_g8/full_test_v1/
+```
+
+对应结果 commit：
+
+```text
+4055697 Add Stage7A four-way full test results
+```
+
+必须注意：本轮已经查看并使用 test aggregate 诊断 Reward v1，因此后续 Reward v2 不能反复用同一个 test 调权重。Reward、checkpoint、WRITE bias 和阈值只能在 dev 上选择；正式确认最好使用新的冻结 holdout。如果没有新 holdout，后续结果必须标注为 iterative test，而不能再称完全独立的 confirmatory test。
+
+### 17.2 四组 full-test 结果与 E3 定位
+
+#### 17.2.1 质量
+
+| Experiment | Text BLEU zh→en | Text BLEU en→zh | Speech BLEU zh→en | Speech BLEU en→zh | UTMOS zh→en | UTMOS en→zh |
+|---|---:|---:|---:|---:|---:|---:|
+| E0 Stage6 | 26.378 | 40.560 | 1.155 | 37.251 | 3.558 | 3.362 |
+| E1 continued SFT | 26.240 | 40.480 | 1.164 | 37.187 | 3.560 | 3.361 |
+| E2 GRPO G4 | 27.587 | 40.224 | 1.127 | 36.990 | 3.556 | 3.361 |
+| E3 GRPO G8 | **28.109** | 40.355 | **1.215** | 37.010 | **3.561** | **3.362** |
+
+E3 相对 matched E1：
+
+- zh→en Text BLEU `+1.869`；
+- en→zh Text BLEU `-0.126`；
+- zh→en Speech BLEU `+0.050`；
+- en→zh Speech BLEU `-0.176`；
+- UTMOS/AutoPCP 基本不变。
+
+因此 E3 不是“完全没有作用”。更大的 group exploration 确实产生了可测量的 policy shift，并在 zh→en 上改善质量；但收益具有明显方向不对称，不能用 zh→en 的提升掩盖 en→zh 的下降。
+
+#### 17.2.2 同传时延和 action 行为
+
+| Experiment | First WRITE ms | ATD ms | LAAL proxy | Premature WRITE | Unnecessary WAIT | Reported final flush | Forced final flush |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| E0 Stage6 | **3986.4** | **1807.3** | 44.58 | 0.031 | 0.158 | 1.000 | 10.065% |
+| E1 continued SFT | 3991.0 | 1808.4 | **44.54** | 0.030 | **0.157** | 1.000 | 9.945% |
+| E2 GRPO G4 | 4055.4 | 1839.0 | 45.54 | **0.027** | 0.164 | 1.000 | 9.530% |
+| E3 GRPO G8 | 4032.8 | 1827.5 | 45.10 | 0.029 | 0.162 | 1.000 | **9.187%** |
+
+E3 相对 E1：
+
+- First WRITE `+41.8 ms`，更慢；
+- ATD `+19.1 ms`，更慢；
+- LAAL proxy `+0.564`，更差；
+- premature WRITE `-0.002`，略好；
+- unnecessary WAIT `+0.005`，更差；
+- forced final flush 从 `9.945%` 降到 `9.187%`，说明 E3 对最终 WRITE 有小幅正作用，但仍有约 `9%` 的样本依赖 runtime 强制恢复；
+- batch-one source RTF `0.167`，计算速度不是主要瓶颈。
+
+结论不是“GRPO 没学习”，而是“GRPO 学到了错误的 trade-off”：它更保守，减少了少量 premature WRITE，却通过更多 WAIT 换取安全性和部分 zh→en 质量，因而没有实现降低 simultaneous latency 的主要目标。
+
+#### 17.2.3 Action validation 暴露的隐藏问题
+
+best checkpoint 的 512 条 action validation：
+
+| Metric | E1 | E2 G4 | E3 G8 |
+|---|---:|---:|---:|
+| First-write MAE ms | **498.89** | 526.73 | 526.98 |
+| Premature given WAIT | 0.01288 | **0.01090** | 0.01255 |
+| Unnecessary WAIT given WRITE | **0.32050** | 0.32600 | 0.32187 |
+| Predicted writes/sample | **1.041** | 1.021 | 1.037 |
+| Reference writes/sample | 1.420 | 1.420 | 1.420 |
+| Predicted final-flush success | 0.867 | 0.875 | **0.877** |
+
+这里有两个不能被 full-test aggregate 掩盖的问题：
+
+1. E3 平均只预测约 `1.037` 次 WRITE，而 reference 为 `1.420`，说明策略存在 under-WRITE/过度等待倾向。
+2. action head 在 512 条 validation 上的 final-flush success 只有约 `87.7%`；full test 中 E3 仍有 `2,147/23,369=9.187%` 的样本由 runtime 把 final WAIT 强制改为 WRITE。full-test 报告的 `1.000` 是强制恢复后的结构成功率，不是 policy 原始 final-WRITE 成功率。下一轮必须单独报告 `predicted_final_flush` 与 `forced_final_flush`，不能把强制恢复算作 policy 自己成功。
+
+### 17.3 当前代码中的实际 Reward v1
+
+第 7.2 节描述的是目标形态，但 Stage7A v1 代码实际实现的是简化 action-only pseudo-label reward。当前默认权重为：
+
+```text
+correct          = +1.0
+incorrect        = -1.0
+premature_write  = -2.0
+unnecessary_wait = -0.5
+final_wait       = -5.0
+safe_early_write = +0.2 * (1 - event_fraction)
+```
+
+由于 `incorrect` 会与 action-specific penalty 相加，实际单事件收益大致为：
+
+| Action case | 实际 reward |
+|---|---:|
+| 正确 WAIT | `+1.0` |
+| 正确 WRITE | `+1.0` 到 `+1.2` |
+| premature WRITE | `-1.0 - 2.0 = -3.0` |
+| unnecessary WAIT | `-1.0 - 0.5 = -1.5` |
+| final WAIT | 约 `-1.0 - 0.5 - 5.0 = -6.5` |
+
+训练还使用：
+
+```text
+group size: E2=4, E3=8
+KL beta: 0.02
+SFT replay weight: 0.2
+前 100 steps: SFT warmup
+```
+
+Reward v1 没有直接使用：
+
+- free-running First WRITE；
+- StartOffset、ATD、LAAL、DAL；
+- 最终 Text/Speech BLEU、COMET 或 teacher translation score；
+- prefix consistency/歧义解除时间；
+- under-translation、重复和真实 forced recovery；
+- 音频 continuity/UTMOS/AutoPCP。
+
+因此不能期待只靠当前 reward 自动优化完整 quality-latency Pareto。它本质上是在模仿 pseudo WAIT/WRITE label，并对两类错误施加不对称 cost。
+
+### 17.4 为什么 Reward v1 会得到当前 E3 结果
+
+#### 17.4.1 Premature 与 unnecessary 的惩罚不对称
+
+premature WRITE 的有效 cost 是约 `-3.0`，unnecessary WAIT 只有约 `-1.5`。在存在不确定性时，WAIT 的最坏风险明显更低，最容易学到的策略就是“宁可晚一点，不要早写”。
+
+这与 full test 完全一致：
+
+```text
+premature WRITE: 0.030 → 0.029
+unnecessary WAIT: 0.157 → 0.162
+First WRITE:     3991 → 4033 ms
+ATD:             1808 → 1828 ms
+```
+
+#### 17.4.2 没有真正的 trajectory latency reward
+
+`safe_early_write` 只在 pseudo label 已经是 WRITE 时给最多 `0.2` 的小 bonus。它不能奖励“比 pseudo schedule 更早但依然语义安全”的 WRITE，也没有直接比较 rollout 与 E1/Stage6 的 First WRITE、ATD 或 LAAL。
+
+换句话说，Reward v1 能学“不要违反 pseudo label”，却缺少“在安全边界出现后立即写”的强梯度。
+
+#### 17.4.3 事件平均稀释关键决策
+
+当前把一条 trajectory 的 event reward 按事件数取平均，再把整条 trajectory 的 log probability 也按事件平均。长句中一个关键 first-WRITE 或 final-flush 决策会被大量普通 WAIT 事件稀释；同一个 trajectory advantage 又被平均分配给所有 action，credit assignment 不够精确。
+
+#### 17.4.4 Pseudo label 不是最终目标
+
+Pseudo action label 只能表示“当前处理流程认为何时可以写”，不是端到端翻译质量和 latency 的真实 Pareto optimum。模型把 pseudo accuracy 做高，不等于 streaming BLEU、First WRITE 或 ATD 会更好。
+
+#### 17.4.5 Checkpoint selection 没有选择端到端 latency
+
+当前 best score 是：
+
+```text
+write_f1
+- 0.25 * premature_write_given_wait
+- 0.10 * unnecessary_wait_given_write
+```
+
+虽然 validation 已经计算 `first_write_mae_ms`，selection score 并未使用它，也没有使用 predicted/forced final flush、writes/sample、Text BLEU 或 free-running ATD。E3 best step 700 因而是 action proxy 最优，不保证是端到端 quality-latency 最优。
+
+#### 17.4.6 Group size 8 只改善探索，不修正 reward 方向
+
+G8 比 G4 有更多组内候选，E3 的质量和 latency 都比 E2 更好，说明增加 exploration 有价值。但 group size 只能更充分地优化当前 reward；如果 reward 偏向保守，G8 不会自动把目标改成低延迟。
+
+### 17.5 Reward v2 优化原则
+
+Reward v2 的目标不应是“最小化 latency，不管质量”，也不应继续用一个固定大 premature penalty 把模型锁成 always-WAIT。推荐把问题定义为：
+
+```text
+在 translation quality、premature、coverage 和 final flush 约束通过的前提下，
+最大化相对 matched E1 的 First-WRITE / ATD / LAAL 改善。
+```
+
+也就是 constrained quality-latency optimization，而不是把所有指标随意相加成一个无法解释的总分。
+
+### 17.6 优化方向一：重构 mutually-exclusive action cost
+
+不要再让 `incorrect=-1` 与 premature/unnecessary penalty 隐式重复叠加。改成互斥 case，使每个数字的意义清楚：
+
+```text
+correct WAIT       → +r_wait_correct
+correct WRITE      → +r_write_correct
+premature WRITE    → -lambda_premature
+unnecessary WAIT   → -lambda_unnecessary
+final WAIT         → -lambda_final
+```
+
+首轮不应直接固定一个“最优”数字，而应在 dev 做小网格：
+
+```text
+lambda_premature  ∈ {1.0, 1.5, 2.0}
+lambda_unnecessary∈ {1.0, 1.5, 2.0, 3.0}
+lambda_final      ∈ {3.0, 5.0}
+```
+
+核心是把 `lambda_unnecessary / lambda_premature` 从当前约 `0.5` 提高到 `0.75–1.5` 区间，同时用独立 premature gate 防止策略变成 always-WRITE。
+
+Motivation：当前失败不是 premature 太高，而是 unnecessary WAIT 和 first-WRITE 没有改善；继续增大 premature penalty 只会加重保守行为。
+
+### 17.7 优化方向二：加入显式 trajectory-level latency delta
+
+每条 rollout 应与同一 utterance 的 matched reference/E1 schedule 比较，而不是使用跨句绝对毫秒值：
+
+```text
+R_first = clip((FirstWrite_ref - FirstWrite_rollout) / scale_first, -1, 1)
+R_atd   = clip((ATD_ref - ATD_rollout) / scale_atd, -1, 1)
+R_laal  = clip((LAAL_ref - LAAL_rollout) / scale_laal, -1, 1)
+
+R_latency = 0.4 * R_first + 0.35 * R_atd + 0.25 * R_laal
+```
+
+这里的系数只是首轮可解释起点，必须在 dev 冻结。使用 per-utterance delta 有三点好处：
+
+1. 消除长短句绝对时长差异；
+2. 直接优化要超过的 matched E1；
+3. group 内候选能明确排序“同质量下谁更早写”。
+
+First WRITE 不能单独占全部 reward，否则模型可能尽早写一个 token 后长期 WAIT。ATD/LAAL 和 coverage 必须同时存在。
+
+### 17.8 优化方向三：safe-boundary 后的递增 WAIT penalty
+
+一旦 contextual/pseudo eligibility gate 判断当前可以安全 WRITE，继续 WAIT 的 cost 应随连续等待次数递增：
+
+```text
+eligible_wait_count = 从首个 safe boundary 起连续 WAIT 的次数
+
+R_late_wait = -lambda_wait * min(eligible_wait_count, cap)
+```
+
+在首个或较早 safe boundary WRITE 时给 potential-based bonus：
+
+```text
+R_safe_commit = +lambda_commit / (1 + eligible_wait_count)
+```
+
+这比当前 `0.2 * (1-event_fraction)` 更准确，因为它奖励的是“歧义已经解除后的立即提交”，不是简单奖励 utterance 前半段的所有 label-WRITE。
+
+### 17.9 优化方向四：用约束而不是固定大 penalty 保证安全
+
+推荐使用 Lagrangian/dual update：
+
+```text
+maximize  E[R_latency + R_quality + R_coverage]
+
+subject to:
+  premature_write <= E1 + 0.01
+  Text BLEU(direction) >= E1(direction) - 0.5
+  predicted_final_flush >= 0.99
+  forced_recovery <= 0.01
+```
+
+当某个约束超标时自动提高对应 multiplier；约束满足后不再持续用过大的固定 penalty 压制 WRITE。
+
+Motivation：当前固定 premature cost 即使 premature 已经低于 E1，仍持续推动模型更保守。自适应约束只在真正违规时施压，更适合寻找 Pareto frontier。
+
+### 17.10 优化方向五：加入 coverage、under-WRITE 和真实 final-flush reward
+
+E3 的 `predicted_writes/sample=1.037`，明显低于 reference `1.420`。Reward v2 应包含：
+
+```text
+R_write_coverage = -abs(num_writes - target_writes) / max(1, target_writes)
+R_max_wait       = -normalized_max_consecutive_wait
+R_under_trans    = -under_translation_or_missing_prefix_score
+R_forced_flush   = -I(runtime had to force final WRITE)
+R_structure      = -I(empty/repetition/missing EOS/recovery)
+```
+
+`target_writes` 不能机械要求等于 reference 每个点位，可以使用允许区间；但必须防止模型用“一次很晚的 WRITE + runtime forced flush”伪装成结构正确。
+
+下一轮报告必须同时列出：
+
+- predicted final flush；
+- forced final flush；
+- writes/sample；
+- max consecutive WAIT；
+- audio chunks/sample；
+- under-translation 和 repetition。
+
+### 17.11 优化方向六：加入双语平衡的质量 reward
+
+E3 呈现 zh→en 改善、en→zh 下降，说明单一全局 reward/采样分布可能偏向某个方向。建议：
+
+1. 分方向计算 reward mean/std，再做 group normalization；
+2. batch 内强制 zh→en 与 en→zh 平衡；
+3. checkpoint selection 使用 worst-direction retention，而不是双向平均掩盖下降；
+4. 使用 prefix teacher score、chrF/BLEU 或冻结翻译模型 log-prob 作为快速质量 reward；
+5. 每个 eval interval 在固定 dev subset 上运行真实 free-running Text/Speech BLEU。
+
+推荐的质量项：
+
+```text
+R_quality = 0.6 * R_final_translation
+          + 0.4 * R_prefix_consistency
+          - R_under_translation
+          - R_repetition
+```
+
+对于 action-only GRPO，backbone 虽然冻结，action schedule 仍会影响 prefix commit、截断、重复和最终音频内容，因此质量 reward 仍然必要。
+
+### 17.12 优化方向七：改善 trajectory credit assignment
+
+当前整条 trajectory 共享一个 sample-level advantage。Reward v2 建议增加 event-level return-to-go：
+
+```text
+G_t = r_t + gamma * r_{t+1} + ... + gamma^(T-t) * r_T
+```
+
+并对关键事件单独加权：
+
+- first safe boundary；
+- first WRITE；
+- 每个 unnecessary WAIT；
+- ambiguity-resolution boundary；
+- final predicted flush。
+
+这样模型能知道“哪一个 WAIT 导致了额外 640 ms”，而不是把整个句子的好坏平均归因到所有 WAIT/WRITE。
+
+如果完整 event-level GRPO 改动过大，可以先使用两段式 advantage：
+
+```text
+A_trajectory：最终质量、coverage、结构
+A_event：当前 action 的 premature/unnecessary/latency shaping
+
+L = L_trajectory + alpha_event * L_event
+```
+
+### 17.13 优化方向八：KL、SFT replay 与探索强度
+
+Reward v1 使用 `KL beta=0.02`、`SFT replay=0.2`。E3 与 E1 的 action 指标差异很小，可能同时受到 reward 信号弱和 reference anchor 偏强影响。
+
+在 Reward v2 主体正确后，dev 上做以下小网格：
+
+```text
+KL beta          ∈ {0.005, 0.01, 0.02}
+SFT replay weight∈ {0.05, 0.10, 0.20}
+group size       = 8 优先；G4 只保留成本对照
+sampling temp    ∈ {0.8, 1.0, 1.2}
+```
+
+必须记录：
+
+- group reward std；
+- unique action trajectories/group；
+- action entropy；
+- KL；
+- always-WAIT/always-WRITE 比例。
+
+如果 group 内轨迹几乎相同，GRPO advantage 接近零，单纯继续增加训练步数没有意义。可以使用温度 curriculum：早期略高温探索，后期降温稳定。
+
+KL 最好改为 target-KL adaptive controller，而不是固定 beta：偏离过小时降低 beta，偏离过大或 safety gate 变差时提高 beta。
+
+### 17.14 优化方向九：两级 multi-fidelity reward
+
+每条 rollout 都运行 ASR、COMET、UTMOS 会过慢，因此采用两级 reward：
+
+#### Fast reward：每 step
+
+- pseudo/contextual eligibility；
+- explicit latency delta；
+- prefix teacher score；
+- coverage、repetition、structure；
+- predicted/forced final flush；
+- KL 和 action constraints。
+
+#### Full reward：每个 eval interval 的固定 dev subset
+
+- free-running Text BLEU/chrF；
+- Speech BLEU；
+- First WRITE、StartOffset、ATD、LAAL；
+- UTMOS/AutoPCP；
+- forced recovery、under-translation、repetition；
+- batch-one RTF/TTFT。
+
+Fast reward 只负责训练吞吐，Full reward 负责 checkpoint 选择和校准。二者相关性必须记录；如果 fast reward 上升而 full dev Pareto 变差，应停止训练并修改 proxy。
+
+### 17.15 优化方向十：先做 WRITE-logit bias sweep
+
+在重新训练前，先对 E3 G8 checkpoint 在 dev 扫描 WRITE logit bias：
+
+```text
+logit(WRITE) = logit(WRITE) + b
+b ∈ {0.00, 0.10, 0.20, 0.30, 0.50}
+```
+
+这是最低成本诊断，不是最终 reward 方案：
+
+- 如果小正 bias 就能降低 First WRITE/ATD，且 BLEU/premature 仍通过，说明 E3 已学到可用 representation，只是 operating point 过保守；
+- 如果 bias 一增加就出现 premature、漏译或结构错误，说明必须修改训练 reward/eligibility，而不能只调阈值；
+- bias 只能在 dev 选择，不能根据已查看的 test 反复调整。
+
+### 17.16 推荐 Reward v2 形式
+
+建议把 reward 明确拆成可记录分量：
+
+```text
+R_v2 = lambda_latency   * R_latency_delta
+     + lambda_commit    * R_safe_commit
+     + lambda_quality   * R_quality
+     + lambda_coverage  * R_coverage
+     + lambda_structure * R_structure
+     + lambda_audio     * R_audio_proxy
+     - beta_kl          * KL
+
+constraints:
+  premature <= threshold
+  BLEU retention per direction >= threshold
+  predicted final flush >= threshold
+  forced recovery <= threshold
+```
+
+首轮实现优先级：
+
+1. `R_latency_delta`；
+2. safe-boundary 后递增 WAIT penalty；
+3. mutually-exclusive premature/unnecessary cost；
+4. coverage、predicted/forced final flush；
+5. dev free-running checkpoint selection；
+6. 双语 quality constraint；
+7. event-level credit assignment；
+8. 更昂贵的 audio/full-quality reward。
+
+不要第一轮同时加入十几个无法解释的分量。每新增一类 reward，都必须有单独 ablation 和 TensorBoard scalar。
+
+### 17.17 下一轮最小可归因实验矩阵
+
+保留 E1 和 E3 v1 作为冻结对照，不覆盖任何历史目录：
+
+| ID | 训练 | 主要改动 | 要回答的问题 |
+|---|---|---|---|
+| R0 | 不训练 | E3 v1 WRITE-bias sweep | 当前 checkpoint 是否只是 operating point 过保守？ |
+| R1 | G8 | 重平衡 premature/unnecessary + coverage/final-flush | 是否能减少 unnecessary WAIT 而不提高 premature？ |
+| R2 | G8 | R1 + explicit First-WRITE/ATD/LAAL delta | 直接 latency reward 是否进入端到端指标？ |
+| R3 | G8 | R2 + bilingual quality constraints + adaptive KL | 能否同时保持双向质量并降低延迟？ |
+
+只有 R2 在 dev 明显改善后才运行 R3。G4 不作为首轮主实验，因为 E2 在质量与 latency 上整体弱于 E3；它只在需要验证 group-size 成本时补跑。
+
+每个训练实验至少保存：
+
+```text
+reward component curves
+group reward std / unique trajectories / entropy
+predicted vs forced final flush
+writes/sample / max consecutive WAIT
+dev Text/Speech BLEU by direction
+dev First WRITE / ATD / LAAL
+Pareto checkpoints: best-quality, best-latency-under-gate, non-dominated
+```
+
+### 17.18 Reward v2 checkpoint 选择
+
+禁止继续只用 action F1 标量选 best。每个 eval interval 在固定 dev subset 产生候选点：
+
+```text
+quality = 双向 Text/Speech BLEU retention
+latency = First WRITE + ATD + LAAL
+safety  = premature + forced recovery + final flush
+coverage= writes/sample + under-translation
+```
+
+保存三类不可变 checkpoint：
+
+1. `best_quality`；
+2. `best_latency_under_quality_gate`；
+3. `pareto_non_dominated`。
+
+推荐主 checkpoint 的 gate：
+
+```text
+双向 Text BLEU 相对 E1 最差下降 <= 0.5
+premature WRITE <= E1 + 0.01
+predicted final flush >= 0.99
+forced recovery <= 0.01
+batch-one RTF < 1
+```
+
+在通过 gate 的 checkpoint 中最小化 First WRITE/ATD/LAAL。test 只评估 dev 冻结后的最多三个 Pareto checkpoints。
+
+### 17.19 Reward v2 分阶段验收目标
+
+#### 15-shard pilot gate
+
+| Metric | 相对 E1 的最低目标 |
+|---|---:|
+| First WRITE | 降低 ≥5% |
+| ATD/LAAL | 降低 ≥5% |
+| Unnecessary WAIT | 相对降低 ≥20%，或绝对 ≤0.12 |
+| Text BLEU | 每个方向下降 ≤0.5 |
+| Premature WRITE | 增加 ≤0.01 |
+| Predicted final flush | ≥0.99 |
+| Forced recovery | ≤0.01 |
+| Batch-one RTF | `<1` |
+
+#### 扩大训练前的正式 gate
+
+| Metric | 目标 |
+|---|---:|
+| First WRITE | 降低 ≥10%–15%，或 ≥500 ms |
+| ATD/LAAL | 降低 ≥10% |
+| Unnecessary WAIT | 进入 0.08–0.12 |
+| 双向质量 | 均通过 retention gate |
+| Paired bootstrap | latency 95% CI 不跨 0 |
+| 随机种子 | 至少 3 个方向一致 |
+| Fixed wait-k | 至少一个点位于 frontier 上或之外 |
+
+### 17.20 当前明确结论
+
+1. E3 G8 是 Reward v1 中最值得保留的起点，因为它优于 E2，且证明 group size 8 的探索能改善部分质量。
+2. E3 不能称为 latency improvement：First WRITE、ATD、LAAL 和 unnecessary WAIT 均未超过 E1。
+3. 当前失败的首要原因不是 GPU、RTF 或 group size，而是 reward 与 checkpoint selection 没有直接优化端到端 latency，且 premature/unnecessary cost 把策略推向保守。
+4. 下一轮先做 E3 WRITE-bias dev sweep，再做 R1/R2；不要立即扩大 full198，也不要覆盖 E0–E3 v1。
+5. 只有在 matched E1 上形成质量保持且 latency 更低的 Pareto 点，才能声称 GRPO 对 simultaneous S2ST 有独立贡献。
