@@ -11,7 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/experiment.env"
 
 LATENCY_RECORDS="${LATENCY_RECORDS:-200}"
-RUN_DIR="${PARENT_RUN_DIR}/latency_batch1"
+LATENCY_RUN_NAME="${LATENCY_RUN_NAME:-latency_batch1_v2}"
+RUN_DIR="${PARENT_RUN_DIR}/${LATENCY_RUN_NAME}"
 mkdir -p "${RUN_DIR}/logs"
 nvidia-smi \
   --query-gpu=timestamp,index,memory.used,utilization.gpu,power.draw,power.limit \
@@ -23,7 +24,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-BATCH_RECORDS=1 MAX_NUM_SEQS=1 MAX_NUM_BATCHED_TOKENS=4096 \
+BATCH_RECORDS=1 MAX_NUM_SEQS=1 MAX_NUM_BATCHED_TOKENS="${MAX_MODEL_LEN}" \
 MAX_SEQ_LEN_TO_CAPTURE=4096 GPU_MEMORY_UTILIZATION=0.50 \
   "${SCRIPT_DIR}/run_generation_4gpu.sh" "${RUN_DIR}" "${LATENCY_RECORDS}"
 DECODE_BATCH_SIZE=1 \
