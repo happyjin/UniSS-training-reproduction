@@ -23,6 +23,24 @@ class MetricAdaptersTest(unittest.TestCase):
         ordered = sorted(rows, key=asr_transcribe.audio_duration_sort_key)
         self.assertEqual([row.get("audio_duration_seconds") for row in ordered], [1.5, 3.0, None, 0])
 
+    def test_whisper_duration_buckets_do_not_mix_preprocess_schemas(self):
+        self.assertEqual(
+            asr_transcribe.whisper_duration_bucket(
+                {"audio_duration_seconds": 30.0}, max_duration_seconds=30.0
+            ),
+            "short",
+        )
+        self.assertEqual(
+            asr_transcribe.whisper_duration_bucket(
+                {"audio_duration_seconds": 30.01}, max_duration_seconds=30.0
+            ),
+            "long",
+        )
+        self.assertEqual(
+            asr_transcribe.whisper_duration_bucket({}, max_duration_seconds=30.0),
+            "unknown",
+        )
+
     def test_whisper_audio_loader_uses_soundfile_and_mixes_to_mono(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stereo.wav"

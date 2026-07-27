@@ -35,6 +35,20 @@ def audio_duration_sort_key(row: Mapping[str, object]) -> float:
     return duration if duration > 0 and math.isfinite(duration) else math.inf
 
 
+def whisper_duration_bucket(row: Mapping[str, object], *, max_duration_seconds: float) -> str:
+    """Keep Whisper pipeline batches on one preprocessing schema.
+
+    Transformers adds ``num_frames`` to short Whisper inputs but omits it for
+    inputs longer than the feature extractor window.  Mixing both schemas in a
+    single pipeline batch makes its collator fail before inference.
+    """
+
+    duration = audio_duration_sort_key(row)
+    if not math.isfinite(duration):
+        return "unknown"
+    return "long" if duration > max_duration_seconds else "short"
+
+
 def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
     path = Path(str(row["audio_path"]))
     return path if path.is_absolute() else results_path.parent / path
@@ -62,21 +76,29 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
         device=device_index,
         model_kwargs={"local_files_only": False},
     )
-    for batch in chunks(rows, batch_size):
-        paths = [str(audio_path(row, results_path=results_path)) for row in batch]
-        inputs = [
-            load_audio_array(Path(path), expected_sample_rate=recognizer.feature_extractor.sampling_rate)
-            for path in paths
-        ]
-        outputs = recognizer(
-            inputs,
-            batch_size=batch_size,
-            generate_kwargs={"language": "english", "task": "transcribe"},
-        )
-        if isinstance(outputs, dict):
-            outputs = [outputs]
-        for row, output in zip(batch, outputs):
-            yield row, str(output.get("text", "")).strip()
+    sampling_rate = recognizer.feature_extractor.sampling_rate
+    max_duration_seconds = recognizer.feature_extractor.n_samples / sampling_rate
+    buckets = {"short": [], "long": [], "unknown": []}
+    for row in rows:
+        buckets[whisper_duration_bucket(row, max_duration_seconds=max_duration_seconds)].append(row)
+    for bucket_name in ("short", "long", "unknown"):
+        bucket_rows = buckets[bucket_name]
+        effective_batch_size = 1 if bucket_name == "unknown" else batch_size
+        for batch in chunks(bucket_rows, effective_batch_size):
+            paths = [str(audio_path(row, results_path=results_path)) for row in batch]
+            inputs = [
+                load_audio_array(Path(path), expected_sample_rate=sampling_rate)
+                for path in paths
+            ]
+            outputs = recognizer(
+                inputs,
+                batch_size=effective_batch_size,
+                generate_kwargs={"language": "english", "task": "transcribe"},
+            )
+            if isinstance(outputs, dict):
+                outputs = [outputs]
+            for row, output in zip(batch, outputs):
+                yield row, str(output.get("text", "")).strip()
 
 
 def transcribe_paraformer(rows, *, results_path: Path, model_name: str, device: str, batch_size: int):
