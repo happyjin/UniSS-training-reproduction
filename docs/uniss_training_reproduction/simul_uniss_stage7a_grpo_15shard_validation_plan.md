@@ -1,6 +1,6 @@
 # Simul-UniSS Stage7A：15-shard Action-only GRPO 快速验证计划
 
-> 文档状态：实验设计，不代表 full-Qwen GRPO 已实现或已经开始训练
+> 文档状态：Stage7A action-head v1 已实现并通过 2-GPU smoke；不代表 full-Qwen/semantic-token GRPO
 >
 > 生成日期：2026-07-27
 >
@@ -13,7 +13,7 @@
 
 可以使用 8 张 H200 同时运行四个 2-GPU 实验，但需要满足两个前提：
 
-1. 先实现真正从 Stage6 Qwen/Hugging Face checkpoint 初始化的 action-only LoRA/adapter GRPO；当前 `training/simul_uniss/policy_grpo.py` 只是 5 维输入的小型 MLP bootstrap，不能作为正式 Stage7A。
+1. 使用从 Stage6 Qwen/Hugging Face checkpoint 的 WAIT/WRITE LM-head 两行精确初始化的 action head；旧 `training/simul_uniss/policy_grpo.py` 的 5 维 MLP bootstrap 不用于本实验。
 2. 正式计时前临时停止 GPU0 上的公网 Phase3 demo。demo 只占约 5.8 GiB，但并发训练会争用 GPU0 计算资源，使 baseline 延迟和 RTF 不可比较，也会让网页推理变慢。
 
 四个最重要的首轮实验为：
@@ -24,6 +24,20 @@
 | E1：Stage6 + continued action SFT | 2,3 | 训练后评估 | 改善是否仅来自多训练、LoRA 或额外数据？ |
 | E2：Stage6 + GRPO，group size 4 | 4,5 | 训练后评估 | 小 group GRPO 是否已能减少不必要 WAIT？ |
 | E3：Stage6 + GRPO，group size 8 | 6,7 | 训练后评估 | 更大的组内探索是否带来更稳定的 Pareto 改善？ |
+
+### 1.1 2026-07-27 实现与压测记录
+
+独立实现路径：
+
+```text
+training/simul_uniss/stage7a/
+experiments/simul_uniss_stage7a_15shard_v1/
+training/tests/test_simul_stage7a.py
+```
+
+E0、E1、E2、E3 的 2-GPU smoke 均已完成；checkpoint、TensorBoard、validation、固定 wait-k 和 GPU monitor 均正常，无 OOM/NaN。Stage7A 样本长度中位数约 387、p95 约 602，故不把短样本补齐到 Megatron 的 13000/18000。正式 H200 参数采用每卡动态 `524288` padded tokens、最多 `1024` samples，同时保留 `max_sequence_length=18000` 作为异常长样本安全上限。实测稳态 GPU utility 为 100%，功率约 631–686 W/700 W，resident memory 约 38–40 GiB/卡。
+
+当前 v1 的边界必须如实表述：冻结 Stage6 backbone，只训练由 Stage6 LM head 初始化的二分类 action head；GRPO reward 使用 pseudo-alignment action、early-safe-WRITE、final flush 和结构 proxy。它是 action-policy proof，不是 semantic-token GRPO，也不更新翻译内容或声音生成权重。是否真正改善端到端质量–延迟 Pareto，必须由后续 free-running streaming dev/test 评估决定，不能由训练 reward 单独下结论。
 
 有效性的核心判据不是训练 reward 或 GRPO loss，而是独立 dev/test 上：
 
