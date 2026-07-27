@@ -23,7 +23,12 @@ from training.simul_uniss.stage7a.policy import (
     grpo_action_loss,
     rollout_rewards,
 )
-from training.simul_uniss.stage7a.train import learning_rate_factor
+from training.simul_uniss.stage7a.reward_v2 import (
+    grpo_action_loss_v2,
+    reward_v2_config,
+    rollout_rewards_v2,
+)
+from training.simul_uniss.stage7a.train import learning_rate_factor, parse_args
 
 
 def sample_item(sample_id: str = "sample") -> dict[str, object]:
@@ -88,6 +93,12 @@ class Stage7ADataTest(unittest.TestCase):
         sample = parse_action_sample(item, max_sequence_length=32)
         self.assertEqual(sample.labels, [0, 1])
 
+    def test_target_language_is_preserved_for_balanced_reward(self):
+        item = sample_item()
+        item["input_ids"].insert(1, c.TOKEN_ENG)
+        sample = parse_action_sample(item, max_sequence_length=32)
+        self.assertEqual(sample.target_language_id, 1)
+
 
 class Stage7APolicyTest(unittest.TestCase):
     def test_head_initializes_from_exact_lm_rows(self):
@@ -126,11 +137,11 @@ class Stage7APolicyTest(unittest.TestCase):
         action_weight = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
         install_action_head(model, {"projection.weight": action_weight})
         self.assertFalse(model.config.tie_word_embeddings)
-        self.assertNotEqual(model.head.weight.data_ptr(), model.embedding.weight.data_ptr())
-        self.assertTrue(torch.equal(model.embedding.weight, input_before))
-        self.assertTrue(
-            torch.equal(model.head.weight[list(ACTION_IDS)], action_weight)
+        self.assertNotEqual(
+            model.head.weight.data_ptr(), model.embedding.weight.data_ptr()
         )
+        self.assertTrue(torch.equal(model.embedding.weight, input_before))
+        self.assertTrue(torch.equal(model.head.weight[list(ACTION_IDS)], action_weight))
 
     def test_reward_prefers_correct_safe_trajectory(self):
         labels = torch.tensor([0, 1, 1])
@@ -181,6 +192,80 @@ class Stage7APolicyTest(unittest.TestCase):
         self.assertIn("reward_mean", metrics)
         loss.backward()
         self.assertIsNotNone(logits.grad)
+
+    def test_reward_v2_prefers_safe_early_write_over_late_wait(self):
+        labels = torch.tensor([0, 1, 1])
+        sample_ids = torch.tensor([0, 0, 0])
+        fractions = torch.tensor([1 / 3, 2 / 3, 1.0])
+        final = torch.tensor([False, False, True])
+        actions = torch.tensor(
+            [
+                [0, 0],
+                [1, 0],
+                [1, 1],
+            ]
+        )
+        rewards, components = rollout_rewards_v2(
+            actions,
+            labels,
+            sample_ids,
+            fractions,
+            final,
+            sample_count=1,
+            config=reward_v2_config("r2"),
+        )
+        self.assertGreater(float(rewards[0, 0]), float(rewards[0, 1]))
+        self.assertGreater(
+            float(components["first_write_delta"][0, 0]),
+            float(components["first_write_delta"][0, 1]),
+        )
+
+    def test_reward_v2_loss_is_finite_and_direction_aware(self):
+        logits = torch.tensor(
+            [[2.0, -1.0], [-0.2, 0.3], [-1.0, 2.0]], requires_grad=True
+        )
+        labels = torch.tensor([0, 1, 1])
+        sample_ids = torch.tensor([0, 0, 0])
+        fractions = torch.tensor([1 / 3, 2 / 3, 1.0])
+        final = torch.tensor([False, False, True])
+        torch.manual_seed(11)
+        loss, metrics = grpo_action_loss_v2(
+            logits,
+            logits.detach().clone(),
+            labels,
+            sample_ids,
+            fractions,
+            final,
+            torch.tensor([1]),
+            sample_count=1,
+            group_size=8,
+            kl_beta=0.02,
+            sft_weight=0.2,
+            config=reward_v2_config("r3"),
+        )
+        self.assertTrue(torch.isfinite(loss))
+        self.assertIn("reward_first_write_delta", metrics)
+        loss.backward()
+        self.assertIsNotNone(logits.grad)
+
+    def test_reward_v1_remains_default_cli_path(self):
+        args = parse_args(
+            [
+                "--mode",
+                "grpo",
+                "--model",
+                "model",
+                "--train-samples",
+                "train.jsonl",
+                "--valid-samples",
+                "dev.jsonl",
+                "--output-dir",
+                "output",
+                "--tensorboard-dir",
+                "tb",
+            ]
+        )
+        self.assertEqual(args.reward_version, "v1")
 
     def test_learning_rate_schedule(self):
         self.assertAlmostEqual(

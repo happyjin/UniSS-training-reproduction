@@ -28,6 +28,9 @@ from evaluation.simultaneous_streaming.stage4_streaming_generate import (
     source_chunk_tokens,
     stage4_header,
 )
+from evaluation.simultaneous_streaming.stage4_streaming_generate import (
+    parse_args as parse_generation_args,
+)
 from training import constants_uniss as c
 
 
@@ -38,6 +41,27 @@ class FakeTokenizer:
 
 
 class Stage4StreamingTest(unittest.TestCase):
+    def test_generation_write_bias_defaults_to_zero_and_is_configurable(self):
+        required = [
+            "--model",
+            "model",
+            "--schedules",
+            "schedules.jsonl",
+            "--output-dir",
+            "output",
+            "--rank",
+            "0",
+            "--world-size",
+            "1",
+        ]
+        self.assertEqual(parse_generation_args(required).write_logit_bias, 0.0)
+        self.assertEqual(
+            parse_generation_args(
+                [*required, "--write-logit-bias", "0.3"]
+            ).write_logit_bias,
+            0.3,
+        )
+
     def test_completed_decode_resume_returns_saved_summary(self):
         with tempfile.TemporaryDirectory() as directory:
             output_dir = Path(directory)
@@ -54,17 +78,25 @@ class Stage4StreamingTest(unittest.TestCase):
     def test_prompt_header_and_source_chunk_match_training_format(self):
         schedule = {"tgt_lang": "eng", "speaker_tokens": list(range(32))}
         header = stage4_header(schedule)
-        self.assertEqual(header[:5], [
-            c.TOKEN_TASK_STREAMING_S2ST,
-            c.TOKEN_STREAMING_MODE,
-            c.TOKEN_DYNAMIC_MODE,
-            c.TOKEN_ENG,
-            c.speed_token_id(1.0),
-        ])
+        self.assertEqual(
+            header[:5],
+            [
+                c.TOKEN_TASK_STREAMING_S2ST,
+                c.TOKEN_STREAMING_MODE,
+                c.TOKEN_DYNAMIC_MODE,
+                c.TOKEN_ENG,
+                c.speed_token_id(1.0),
+            ],
+        )
         chunk = source_chunk_tokens({"source_glm": [1, 2]})
         self.assertEqual(
             chunk,
-            [c.TOKEN_START_GLM, c.glm_semantic_id(1), c.glm_semantic_id(2), c.TOKEN_END_GLM],
+            [
+                c.TOKEN_START_GLM,
+                c.glm_semantic_id(1),
+                c.glm_semantic_id(2),
+                c.TOKEN_END_GLM,
+            ],
         )
 
     def test_parse_and_normalize_write(self):
@@ -186,14 +218,22 @@ class Stage4StreamingTest(unittest.TestCase):
         args = parse_args(
             [
                 "report",
-                "--run-dir", "/tmp/run",
-                "--results", "/tmp/results.jsonl",
-                "--offline-phase3-root", "/tmp/offline",
-                "--output-json", "/tmp/aggregate.json",
-                "--report", "/tmp/report.md",
-                "--expected-records", "23",
-                "--gpu-ids", "4,5,6,7",
-                "--split-label", "test",
+                "--run-dir",
+                "/tmp/run",
+                "--results",
+                "/tmp/results.jsonl",
+                "--offline-phase3-root",
+                "/tmp/offline",
+                "--output-json",
+                "/tmp/aggregate.json",
+                "--report",
+                "/tmp/report.md",
+                "--expected-records",
+                "23",
+                "--gpu-ids",
+                "4,5,6,7",
+                "--split-label",
+                "test",
             ]
         )
         self.assertEqual(args.gpu_ids, "4,5,6,7")
@@ -203,16 +243,26 @@ class Stage4StreamingTest(unittest.TestCase):
         args = parse_args(
             [
                 "report",
-                "--run-dir", "/tmp/run",
-                "--results", "/tmp/results.jsonl",
-                "--offline-phase3-root", "/tmp/offline",
-                "--output-json", "/tmp/aggregate.json",
-                "--report", "/tmp/report.md",
-                "--expected-records", "23",
-                "--stage-label", "Stage6",
-                "--stage-iteration", "1189",
-                "--stage-description", "joint low-LR refinement",
-                "--streaming-mode", "streaming_stage6",
+                "--run-dir",
+                "/tmp/run",
+                "--results",
+                "/tmp/results.jsonl",
+                "--offline-phase3-root",
+                "/tmp/offline",
+                "--output-json",
+                "/tmp/aggregate.json",
+                "--report",
+                "/tmp/report.md",
+                "--expected-records",
+                "23",
+                "--stage-label",
+                "Stage6",
+                "--stage-iteration",
+                "1189",
+                "--stage-description",
+                "joint low-LR refinement",
+                "--streaming-mode",
+                "streaming_stage6",
             ]
         )
         self.assertEqual(args.stage_label, "Stage6")

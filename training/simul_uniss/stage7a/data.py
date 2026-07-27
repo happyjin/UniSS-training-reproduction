@@ -27,6 +27,7 @@ class ActionSample:
     labels: list[int]
     event_fractions: list[float]
     final_flags: list[bool]
+    target_language_id: int
 
     @property
     def length(self) -> int:
@@ -47,6 +48,7 @@ class ActionBatch:
     event_sample_ids: torch.Tensor
     event_fractions: torch.Tensor
     final_flags: torch.Tensor
+    sample_target_language_ids: torch.Tensor
     sample_ids: list[str]
     sample_event_counts: list[int]
     actual_tokens: int
@@ -73,6 +75,7 @@ class ActionBatch:
             "event_sample_ids",
             "event_fractions",
             "final_flags",
+            "sample_target_language_ids",
         ):
             setattr(self, name, getattr(self, name).to(device, non_blocking=True))
         return self
@@ -85,8 +88,7 @@ def parse_action_sample(
         raise ValueError(f"expected schema_version={SAMPLE_SCHEMA_VERSION}")
     if item.get("task") not in {"simul_action", "simul_s2st"}:
         raise ValueError(
-            "expected task=simul_action or simul_s2st, "
-            f"got {item.get('task')!r}"
+            f"expected task=simul_action or simul_s2st, got {item.get('task')!r}"
         )
     values = item.get("input_ids")
     if not isinstance(values, list) or not all(
@@ -107,6 +109,12 @@ def parse_action_sample(
         raise ValueError(f"sample {item.get('id')} contains no valid action positions")
     labels = [ACTION_TO_BINARY[input_ids[index]] for index in action_positions]
     event_count = len(labels)
+    if c.TOKEN_ENG in input_ids:
+        target_language_id = 1
+    elif c.TOKEN_CMN in input_ids:
+        target_language_id = 0
+    else:
+        target_language_id = -1
     return ActionSample(
         sample_id=str(item.get("id", "")),
         input_ids=input_ids,
@@ -114,6 +122,7 @@ def parse_action_sample(
         labels=labels,
         event_fractions=[(index + 1) / event_count for index in range(event_count)],
         final_flags=[index == event_count - 1 for index in range(event_count)],
+        target_language_id=target_language_id,
     )
 
 
@@ -197,6 +206,7 @@ def collate_action_samples(samples: list[ActionSample]) -> ActionBatch:
     event_sample_ids: list[int] = []
     event_fractions: list[float] = []
     final_flags: list[bool] = []
+    sample_target_language_ids: list[int] = []
     actual_tokens = 0
     for row, sample in enumerate(samples):
         length = sample.length
@@ -209,6 +219,7 @@ def collate_action_samples(samples: list[ActionSample]) -> ActionBatch:
         event_sample_ids.extend([row] * sample.events)
         event_fractions.extend(sample.event_fractions)
         final_flags.extend(sample.final_flags)
+        sample_target_language_ids.append(sample.target_language_id)
     return ActionBatch(
         input_ids=input_ids,
         attention_mask=attention_mask,
@@ -218,6 +229,9 @@ def collate_action_samples(samples: list[ActionSample]) -> ActionBatch:
         event_sample_ids=torch.tensor(event_sample_ids, dtype=torch.long),
         event_fractions=torch.tensor(event_fractions, dtype=torch.float32),
         final_flags=torch.tensor(final_flags, dtype=torch.bool),
+        sample_target_language_ids=torch.tensor(
+            sample_target_language_ids, dtype=torch.long
+        ),
         sample_ids=[sample.sample_id for sample in samples],
         sample_event_counts=[sample.events for sample in samples],
         actual_tokens=actual_tokens,

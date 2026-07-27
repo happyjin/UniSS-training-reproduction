@@ -44,6 +44,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         max_batch_size=args.max_batch_size,
         limit_records=args.limit_records,
         chunk_ms=args.chunk_ms,
+        write_logit_bias=args.write_logit_bias,
     )
     result = {
         "schema_version": "simul_uniss_stage7a_action_evaluation_v1",
@@ -51,6 +52,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         "model": str(model_path.resolve()),
         "samples": str(Path(args.samples).resolve()),
         "world_size": distributed.world_size,
+        "write_logit_bias": args.write_logit_bias,
         "metrics": metrics,
     }
     if distributed.is_main:
@@ -79,6 +81,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-batch-size", type=int, default=256)
     parser.add_argument("--limit-records", type=int, default=0)
     parser.add_argument("--chunk-ms", type=float, default=640.0)
+    parser.add_argument("--write-logit-bias", type=float, default=0.0)
     return parser.parse_args(argv)
 
 

@@ -24,6 +24,10 @@ from training.simul_uniss.stage7a.data import (
     iter_action_samples_once,
 )
 from training.simul_uniss.stage7a.policy import ActionHead, grpo_action_loss
+from training.simul_uniss.stage7a.reward_v2 import (
+    grpo_action_loss_v2,
+    reward_v2_config,
+)
 
 CHECKPOINT_SCHEMA = "simul_uniss_stage7a_action_head_v1"
 
@@ -107,6 +111,7 @@ def evaluate_policy(
     max_batch_size: int,
     limit_records: int,
     chunk_ms: float,
+    write_logit_bias: float = 0.0,
 ) -> dict[str, float]:
     once = iter_action_samples_once(
         samples_path,
@@ -148,6 +153,7 @@ def evaluate_policy(
         "final_correct": 0.0,
         "samples": 0.0,
         "first_write_abs_ms_sum": 0.0,
+        "first_write_delta_ms_sum": 0.0,
         "first_write_pairs": 0.0,
         "predicted_writes": 0.0,
         "reference_writes": 0.0,
@@ -158,6 +164,8 @@ def evaluate_policy(
             batch.to(distributed.device)
             hidden = encode_action_hidden(model, batch)
             logits = head(hidden)
+            if write_logit_bias:
+                logits[:, 1] += write_logit_bias
             predictions = logits.argmax(dim=-1)
             losses = F.cross_entropy(logits, batch.labels, reduction="none")
             labels = batch.labels
@@ -188,6 +196,8 @@ def evaluate_policy(
                 if predicted_indexes.numel() and reference_indexes.numel():
                     delta = abs(int(predicted_indexes[0]) - int(reference_indexes[0]))
                     sums["first_write_abs_ms_sum"] += delta * chunk_ms
+                    signed_delta = int(predicted_indexes[0]) - int(reference_indexes[0])
+                    sums["first_write_delta_ms_sum"] += signed_delta * chunk_ms
                     sums["first_write_pairs"] += 1.0
                 offset += event_count
             del hidden, logits, predictions, losses
@@ -207,6 +217,8 @@ def evaluate_policy(
         / max(1.0, total["reference_write"]),
         "final_flush_success": total["final_correct"] / samples_count,
         "first_write_mae_ms": total["first_write_abs_ms_sum"]
+        / max(1.0, total["first_write_pairs"]),
+        "first_write_delta_ms": total["first_write_delta_ms_sum"]
         / max(1.0, total["first_write_pairs"]),
         "predicted_writes_per_sample": total["predicted_writes"] / samples_count,
         "reference_writes_per_sample": total["reference_writes"] / samples_count,
@@ -332,6 +344,7 @@ def train(args: argparse.Namespace) -> None:
         )
     )
     best_score = -math.inf
+    current_kl_beta = args.kl_beta
     last_valid_metrics: dict[str, float] = {}
     run_started = time.perf_counter()
     for step in range(1, args.train_steps + 1):
@@ -358,22 +371,44 @@ def train(args: argparse.Namespace) -> None:
         else:
             with torch.no_grad():
                 reference_logits = reference(hidden)
-            loss, metrics = grpo_action_loss(
-                logits,
-                reference_logits,
-                batch.labels,
-                batch.event_sample_ids,
-                batch.event_fractions,
-                batch.final_flags,
-                sample_count=batch.samples,
-                group_size=args.group_size,
-                kl_beta=args.kl_beta,
-                sft_weight=args.sft_replay_weight,
-            )
+            if args.reward_version == "v1":
+                loss, metrics = grpo_action_loss(
+                    logits,
+                    reference_logits,
+                    batch.labels,
+                    batch.event_sample_ids,
+                    batch.event_fractions,
+                    batch.final_flags,
+                    sample_count=batch.samples,
+                    group_size=args.group_size,
+                    kl_beta=current_kl_beta,
+                    sft_weight=args.sft_replay_weight,
+                )
+            else:
+                loss, metrics = grpo_action_loss_v2(
+                    logits,
+                    reference_logits,
+                    batch.labels,
+                    batch.event_sample_ids,
+                    batch.event_fractions,
+                    batch.final_flags,
+                    batch.sample_target_language_ids,
+                    sample_count=batch.samples,
+                    group_size=args.group_size,
+                    kl_beta=current_kl_beta,
+                    sft_weight=args.sft_replay_weight,
+                    config=reward_v2_config(args.reward_version),
+                )
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(head.parameters(), args.grad_clip)
         optimizer.step()
         scheduler.step()
+        if not use_sft and args.adaptive_kl_target > 0:
+            observed_kl = float(metrics["kl"])
+            if observed_kl > args.adaptive_kl_target * 1.25:
+                current_kl_beta = min(args.adaptive_kl_max, current_kl_beta * 1.05)
+            elif observed_kl < args.adaptive_kl_target * 0.80:
+                current_kl_beta = max(args.adaptive_kl_min, current_kl_beta / 1.05)
         if distributed.device.type == "cuda":
             torch.cuda.synchronize(distributed.device)
         step_seconds = time.perf_counter() - step_started
@@ -445,13 +480,29 @@ def train(args: argparse.Namespace) -> None:
                 max_batch_size=args.eval_max_batch_size,
                 limit_records=args.validation_records,
                 chunk_ms=args.chunk_ms,
+                write_logit_bias=0.0,
             )
             last_valid_metrics = valid_metrics
-            score = (
-                valid_metrics["write_f1"]
-                - 0.25 * valid_metrics["premature_write_given_wait"]
-                - 0.1 * valid_metrics["unnecessary_wait_given_write"]
-            )
+            if args.reward_version == "v1":
+                score = (
+                    valid_metrics["write_f1"]
+                    - 0.25 * valid_metrics["premature_write_given_wait"]
+                    - 0.1 * valid_metrics["unnecessary_wait_given_write"]
+                )
+            else:
+                coverage_ratio = min(
+                    1.0,
+                    valid_metrics["predicted_writes_per_sample"]
+                    / max(1e-9, valid_metrics["reference_writes_per_sample"]),
+                )
+                score = (
+                    -valid_metrics["first_write_delta_ms"] / 1000.0
+                    - 0.75 * valid_metrics["unnecessary_wait_given_write"]
+                    - 2.0 * valid_metrics["premature_write_given_wait"]
+                    + 0.35 * valid_metrics["final_flush_success"]
+                    + 0.25 * coverage_ratio
+                    + 0.10 * valid_metrics["write_f1"]
+                )
             if writer is not None:
                 for name, value in valid_metrics.items():
                     writer.add_scalar(f"stage7a/valid_{name}", value, step)
@@ -529,7 +580,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--kl-beta", type=float, default=0.02)
+    parser.add_argument("--adaptive-kl-target", type=float, default=0.0)
+    parser.add_argument("--adaptive-kl-min", type=float, default=0.001)
+    parser.add_argument("--adaptive-kl-max", type=float, default=0.1)
     parser.add_argument("--sft-replay-weight", type=float, default=0.2)
+    parser.add_argument(
+        "--reward-version", choices=("v1", "r1", "r2", "r3"), default="v1"
+    )
     parser.add_argument("--grad-clip", type=float, default=1.0)
     parser.add_argument("--max-sequence-length", type=int, default=18_000)
     parser.add_argument("--max-batch-tokens", type=int, default=131_072)
@@ -551,6 +608,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("training steps must be positive")
     if args.sft_warmup_steps > args.train_steps:
         parser.error("sft warmup cannot exceed total training steps")
+    if not 0 <= args.adaptive_kl_min <= args.adaptive_kl_max:
+        parser.error("adaptive KL bounds are invalid")
     return args
 
 

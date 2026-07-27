@@ -13,10 +13,10 @@ import argparse
 import json
 import os
 import time
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping, Sequence
 
 from transformers import AutoTokenizer
 
@@ -24,7 +24,6 @@ from evaluation.io_utils import iter_jsonl, write_json
 from evaluation.vllm_generate import SuppressPaddedVocabulary
 from training import constants_uniss as c
 from training.generate_unist_eval_audio import write_jsonl_row
-
 
 ACTION_IDS = (c.TOKEN_WAIT_READ, c.TOKEN_WRITE_GENERATE)
 
@@ -210,7 +209,8 @@ def prepare_output(
 
 
 def run_generation(args: argparse.Namespace) -> dict[str, object]:
-    from vllm import LLM, SamplingParams, __version__ as vllm_version
+    from vllm import LLM, SamplingParams
+    from vllm import __version__ as vllm_version
 
     rank = args.rank
     world_size = args.world_size
@@ -233,6 +233,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
         "max_num_batched_tokens": args.max_num_batched_tokens,
         "gpu_memory_utilization": args.gpu_memory_utilization,
         "repetition_penalty": args.repetition_penalty,
+        "write_logit_bias": args.write_logit_bias,
         "dtype": args.dtype,
         "seed": args.seed,
         "vllm_version": vllm_version,
@@ -296,6 +297,11 @@ def run_generation(args: argparse.Namespace) -> dict[str, object]:
         temperature=0.0,
         max_tokens=1,
         seed=args.seed,
+        logit_bias=(
+            {c.TOKEN_WRITE_GENERATE: args.write_logit_bias}
+            if args.write_logit_bias
+            else None
+        ),
         logits_processors=[SuppressPaddedVocabulary(c.VOCAB_SIZE)],
     )
     write_sampling = SamplingParams(
@@ -564,6 +570,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-seq-len-to-capture", type=int, default=2048)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
     parser.add_argument("--repetition-penalty", type=float, default=1.1)
+    parser.add_argument("--write-logit-bias", type=float, default=0.0)
     parser.add_argument("--streaming-mode", default="streaming_stage4")
     parser.add_argument("--dtype", choices=("bfloat16", "float16", "auto"), default="bfloat16")
     parser.add_argument("--seed", type=int, default=20260727)
