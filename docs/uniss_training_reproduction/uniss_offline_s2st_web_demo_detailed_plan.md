@@ -1,7 +1,7 @@
 # UniSS full198 Offline Speech-to-Speech Web Demo 详细设计与实施计划
 
-> 日期：2026-07-27  
-> 目标：只使用当前效果最好的 UniSS full198 Phase3 checkpoint，建立独立的、非 simultaneous 的 speech-to-speech Gradio Web Demo，并提供一个可从公网打开的实际网址。  
+> 日期：2026-07-27
+> 目标：只使用当前效果最好的 UniSS full198 Phase3 checkpoint，建立独立的、非 simultaneous 的 speech-to-speech Gradio Web Demo，并提供一个可从公网打开的实际网址。
 > 约束：不修改或覆盖现有 `web_demo/web_demo.py`、训练脚本、checkpoint、评估结果和 historical demo；所有新代码、日志和输出使用独立目录。
 
 ## 1. 结论摘要

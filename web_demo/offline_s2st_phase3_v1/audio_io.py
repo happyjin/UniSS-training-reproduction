@@ -8,13 +8,12 @@ import shutil
 import subprocess
 import time
 import uuid
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, Sequence
 
 import librosa
 import numpy as np
 import soundfile as sf
-
 
 SAMPLE_RATE = 16_000
 ALLOWED_SUFFIXES = {".wav", ".flac", ".ogg", ".mp3", ".m4a", ".aac", ".webm"}
@@ -32,7 +31,7 @@ def _ffmpeg_executable() -> str | None:
         import imageio_ffmpeg
 
         return imageio_ffmpeg.get_ffmpeg_exe()
-    except Exception:
+    except (ImportError, RuntimeError):
         return None
 
 
@@ -62,7 +61,9 @@ def _decode_with_ffmpeg(source: Path, destination: Path) -> None:
     try:
         subprocess.run(command, check=True, timeout=60)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        raise AudioValidationError(f"ffmpeg could not decode the uploaded audio: {exc}") from exc
+        raise AudioValidationError(
+            f"ffmpeg could not decode the uploaded audio: {exc}"
+        ) from exc
 
 
 def decode_audio(path: str | Path) -> tuple[np.ndarray, int]:
@@ -71,7 +72,7 @@ def decode_audio(path: str | Path) -> tuple[np.ndarray, int]:
         audio, sample_rate = sf.read(source, dtype="float32", always_2d=True)
         mono = audio.mean(axis=1)
         return np.asarray(mono, dtype=np.float32), int(sample_rate)
-    except Exception:
+    except (RuntimeError, sf.LibsndfileError):
         temporary = source.with_name(f".{source.stem}.{uuid.uuid4().hex}.decoded.wav")
         try:
             _decode_with_ffmpeg(source, temporary)
@@ -103,9 +104,13 @@ def normalize_uploaded_audio(
         )
     waveform, sample_rate = decode_audio(source_path)
     if waveform.size == 0 or not np.isfinite(waveform).all():
-        raise AudioValidationError("Decoded audio is empty or contains non-finite samples")
+        raise AudioValidationError(
+            "Decoded audio is empty or contains non-finite samples"
+        )
     if sample_rate != SAMPLE_RATE:
-        waveform = librosa.resample(waveform, orig_sr=sample_rate, target_sr=SAMPLE_RATE)
+        waveform = librosa.resample(
+            waveform, orig_sr=sample_rate, target_sr=SAMPLE_RATE
+        )
     waveform = np.asarray(waveform, dtype=np.float32)
     duration = waveform.size / SAMPLE_RATE
     if duration < min_audio_seconds or duration > max_audio_seconds:
@@ -150,13 +155,17 @@ def split_on_silence(
     values = np.asarray(waveform, dtype=np.float32).reshape(-1)
     if values.size == 0:
         return []
-    maximum = max(1, int(round(max_chunk_seconds * sample_rate)))
+    maximum = max(1, round(max_chunk_seconds * sample_rate))
     if values.size <= maximum:
         return [values]
-    intervals = librosa.effects.split(values, top_db=top_db, frame_length=1024, hop_length=256)
+    intervals = librosa.effects.split(
+        values, top_db=top_db, frame_length=1024, hop_length=256
+    )
     if len(intervals) == 0:
-        return [values[start:end] for start, end in _fixed_windows(0, values.size, maximum)]
-    padding = int(round(0.08 * sample_rate))
+        return [
+            values[start:end] for start, end in _fixed_windows(0, values.size, maximum)
+        ]
+    padding = round(0.08 * sample_rate)
     merged: list[tuple[int, int]] = []
     for raw_start, raw_end in intervals:
         start = max(0, int(raw_start) - padding)
@@ -166,7 +175,9 @@ def split_on_silence(
         else:
             merged.extend(_fixed_windows(start, end, maximum))
     chunks = [values[start:end] for start, end in merged if end > start]
-    return chunks or [values[start:end] for start, end in _fixed_windows(0, values.size, maximum)]
+    return chunks or [
+        values[start:end] for start, end in _fixed_windows(0, values.size, maximum)
+    ]
 
 
 def stitch_audio(
@@ -175,10 +186,14 @@ def stitch_audio(
     sample_rate: int = SAMPLE_RATE,
     silence_seconds: float = 0.12,
 ) -> np.ndarray:
-    valid = [np.asarray(chunk, dtype=np.float32).reshape(-1) for chunk in chunks if len(chunk)]
+    valid = [
+        np.asarray(chunk, dtype=np.float32).reshape(-1)
+        for chunk in chunks
+        if len(chunk)
+    ]
     if not valid:
         return np.zeros(0, dtype=np.float32)
-    silence = np.zeros(max(0, int(round(silence_seconds * sample_rate))), dtype=np.float32)
+    silence = np.zeros(max(0, round(silence_seconds * sample_rate)), dtype=np.float32)
     pieces: list[np.ndarray] = []
     for index, chunk in enumerate(valid):
         if index and silence.size:
@@ -216,5 +231,7 @@ def cleanup_expired(output_root: str | Path, ttl_hours: float) -> int:
 def write_json(path: str | Path, value: object) -> None:
     destination = Path(path)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     os.replace(temporary, destination)

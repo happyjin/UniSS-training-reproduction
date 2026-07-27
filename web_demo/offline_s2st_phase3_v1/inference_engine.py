@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import threading
 import time
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 import numpy as np
 import soundfile as sf
@@ -28,7 +28,6 @@ from .audio_io import (
     write_json,
 )
 from .config import DemoConfig
-
 
 ProgressCallback = Callable[[float, str], None]
 
@@ -120,7 +119,9 @@ class Phase3QualityEngine:
     def __init__(self, config: DemoConfig):
         config.validate()
         self.config = config
-        self.device = torch.device(config.device if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            config.device if torch.cuda.is_available() else "cpu"
+        )
         self.model = None
         self.tokenizer = None
         self.speech_tokenizer: UniSSTokenizer | None = None
@@ -129,7 +130,11 @@ class Phase3QualityEngine:
 
     @property
     def loaded(self) -> bool:
-        return self.model is not None and self.tokenizer is not None and self.speech_tokenizer is not None
+        return (
+            self.model is not None
+            and self.tokenizer is not None
+            and self.speech_tokenizer is not None
+        )
 
     def load(self, progress: ProgressCallback | None = None) -> None:
         if self.loaded:
@@ -158,7 +163,9 @@ class Phase3QualityEngine:
             device=self.device,
         )
         self.export_manifest = json.loads(
-            (self.config.model_path / "export_manifest.json").read_text(encoding="utf-8")
+            (self.config.model_path / "export_manifest.json").read_text(
+                encoding="utf-8"
+            )
         )
         notify(0.2, "Phase3 Quality 模型加载完成")
 
@@ -170,7 +177,11 @@ class Phase3QualityEngine:
         chunk_index: int,
         output_path: Path,
     ) -> ChunkResult:
-        assert self.model is not None and self.tokenizer is not None and self.speech_tokenizer is not None
+        assert (
+            self.model is not None
+            and self.tokenizer is not None
+            and self.speech_tokenizer is not None
+        )
         target_tag = target_language_tag(direction)
         started = time.perf_counter()
         linguistic_tokens, bicodec_tokens = self.speech_tokenizer.tokenize(chunk_path)
@@ -203,7 +214,9 @@ class Phase3QualityEngine:
             generated = self.model.generate(prompt_ids, **generation_kwargs)
         generation_seconds = time.perf_counter() - started
         generated_tail = truncate_at_eos(generated[0, prompt_ids.shape[1] :].tolist())
-        parsed = parse_with_tokenizer(generated_tail, mode=self.config.mode, tokenizer=self.tokenizer)
+        parsed = parse_with_tokenizer(
+            generated_tail, mode=self.config.mode, tokenizer=self.tokenizer
+        )
         semantic_values = [int(value) for value in parsed.get("semantic_values") or []]
         warnings = quality_output_warnings(parsed)
         max_run = maximum_identical_run(semantic_values)
@@ -303,7 +316,9 @@ class Phase3QualityEngine:
                 if result.output_path
             ]
             if not generated_waves:
-                raise RuntimeError("Phase3 did not produce any playable translated speech")
+                raise RuntimeError(
+                    "Phase3 did not produce any playable translated speech"
+                )
             combined = stitch_audio(
                 generated_waves,
                 sample_rate=SAMPLE_RATE,
@@ -312,8 +327,12 @@ class Phase3QualityEngine:
             output_path = request_dir / "output_translation.wav"
             sf.write(output_path, combined, SAMPLE_RATE, subtype="PCM_16")
             total_seconds = time.perf_counter() - started
-        transcription = " ".join(result.transcription for result in results if result.transcription).strip()
-        translation = " ".join(result.translation for result in results if result.translation).strip()
+        transcription = " ".join(
+            result.transcription for result in results if result.transcription
+        ).strip()
+        translation = " ".join(
+            result.translation for result in results if result.translation
+        ).strip()
         warnings = [warning for result in results for warning in result.warnings]
         output_duration = combined.size / SAMPLE_RATE
         result = InferenceResult(

@@ -6,7 +6,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
 DEMO_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = DEMO_ROOT.parents[1]
 
@@ -20,7 +19,9 @@ class DemoConfig:
 
     repo_root: Path = REPO_ROOT
     demo_root: Path = DEMO_ROOT
-    model_path: Path = REPO_ROOT / "checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf"
+    model_path: Path = (
+        REPO_ROOT / "checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf"
+    )
     speech_tokenizer_path: Path = REPO_ROOT / "pretrained_models/UniSS"
     output_root: Path = DEMO_ROOT / "runtime_outputs"
     device: str = "cuda:0"
@@ -39,10 +40,12 @@ class DemoConfig:
     output_ttl_hours: float = 24.0
 
     @classmethod
-    def from_env(cls) -> "DemoConfig":
+    def from_env(cls) -> DemoConfig:
         return cls(
             device=os.environ.get("UNISS_DEMO_DEVICE", "cuda:0"),
-            max_audio_seconds=float(os.environ.get("UNISS_DEMO_MAX_AUDIO_SECONDS", "60")),
+            max_audio_seconds=float(
+                os.environ.get("UNISS_DEMO_MAX_AUDIO_SECONDS", "60")
+            ),
             output_ttl_hours=float(os.environ.get("UNISS_DEMO_OUTPUT_TTL_HOURS", "24")),
         )
 
