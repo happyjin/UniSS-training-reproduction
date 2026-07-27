@@ -96,9 +96,11 @@ for rank in 0 1; do
 done
 status=0; for pid in "${pids[@]}"; do wait "${pid}" || status=$?; done
 if [[ "${status}" -ne 0 ]]; then tail -n 100 "${RUN_DIR}/logs/generation_rank"*.log >&2 || true; exit "${status}"; fi
-"${EVAL_ENV}/bin/python" -m evaluation.simultaneous_streaming.stage4_aggregate merge \
-  --input-dir "${RUN_DIR}/generation" --pattern 'generation.rank*.jsonl' \
-  --output "${RUN_DIR}/generation_results.jsonl" --expected-records "${EXPECTED}" --expected-ranks 2
+if [[ ! -f "${RUN_DIR}/generation_results.jsonl" ]]; then
+  "${EVAL_ENV}/bin/python" -m evaluation.simultaneous_streaming.stage4_aggregate merge \
+    --input-dir "${RUN_DIR}/generation" --pattern 'generation.rank*.jsonl' \
+    --output "${RUN_DIR}/generation_results.jsonl" --expected-records "${EXPECTED}" --expected-ranks 2
+fi
 
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] ${LABEL}: audio decode"
 mkdir -p "${RUN_DIR}/audio"
@@ -116,16 +118,22 @@ for rank in 0 1; do
 done
 status=0; for pid in "${pids[@]}"; do wait "${pid}" || status=$?; done
 if [[ "${status}" -ne 0 ]]; then tail -n 100 "${RUN_DIR}/logs/decode_rank"*.log >&2 || true; exit "${status}"; fi
-"${EVAL_ENV}/bin/python" -m evaluation.simultaneous_streaming.stage4_aggregate merge \
-  --input-dir "${RUN_DIR}/audio" --pattern 'results.rank*.jsonl' \
-  --output "${RUN_DIR}/results.jsonl" --expected-records "${EXPECTED}" --expected-ranks 2
+if [[ ! -f "${RUN_DIR}/results.jsonl" ]]; then
+  "${EVAL_ENV}/bin/python" -m evaluation.simultaneous_streaming.stage4_aggregate merge \
+    --input-dir "${RUN_DIR}/audio" --pattern 'results.rank*.jsonl' \
+    --output "${RUN_DIR}/results.jsonl" --expected-records "${EXPECTED}" --expected-ranks 2
+fi
 
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] ${LABEL}: quality and streaming metrics"
 mkdir -p "${RUN_DIR}/metrics"
-"${EVAL_ENV}/bin/python" -m evaluation.text_metrics \
-  --input "${RUN_DIR}/generation_results.jsonl" --output "${RUN_DIR}/metrics/text_bleu.json"
-"${EVAL_ENV}/bin/python" -m evaluation.slc_metrics \
-  --input "${RUN_DIR}/results.jsonl" --output-dir "${RUN_DIR}/metrics"
+if [[ ! -f "${RUN_DIR}/metrics/text_bleu.json" ]]; then
+  "${EVAL_ENV}/bin/python" -m evaluation.text_metrics \
+    --input "${RUN_DIR}/generation_results.jsonl" --output "${RUN_DIR}/metrics/text_bleu.json"
+fi
+if [[ ! -f "${RUN_DIR}/metrics/slc.json" ]]; then
+  "${EVAL_ENV}/bin/python" -m evaluation.slc_metrics \
+    --input "${RUN_DIR}/results.jsonl" --output-dir "${RUN_DIR}/metrics"
+fi
 if [[ "${RUN_OBJECTIVE_METRICS}" == 1 ]]; then
   EVAL_GPU_LIST="${GPU_LIST}" METRIC_NUM_GPUS=2 ENV_ROOT="${EVAL_ENV}" \
   ASR_BATCH_SIZE="${ASR_BATCH_SIZE}" AUTOPCP_BATCH_SIZE="${AUTOPCP_BATCH_SIZE}" \
