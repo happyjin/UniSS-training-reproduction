@@ -1043,7 +1043,133 @@ codec：left_context=50、holdback=5、overlap=80ms
 
 第一轮通过后再扩展全 test、采样 seed、codec grid 和 long-form。这样可以先确认 Qwen streaming adapter 与 metric pipeline 正确，避免在全量生成后才发现时间戳或 action parsing 错误。
 
-## 18. 参考文献与代码
+## 18. Stage4 full-dev 端到端执行补充（2026-07-27）
+
+当前第一轮 Stage4 正式执行固定为一个训练分布内 operating point：
+
+```text
+dataset = UniST dev 7,965 raw records
+checkpoint = Stage4 iter_0004753
+source schedule = 640 ms, pseudo proportional alignment, wait-k training distribution 2
+policy = Stage4 free-running learned WAIT/WRITE
+Qwen decode = greedy, repetition_penalty 1.1, max WRITE 700 tokens
+Stage4 training context boundary = 18,000; native Qwen inference envelope = 32,768; no truncation
+BiCodec = left_context 50, holdback 5, overlap 80 ms, equal-power cross-fade
+quality/throughput GPUs = 0,1,2,3 data parallel
+```
+
+所有输出进入新的时间戳目录：
+
+```text
+eval_outputs/simul_uniss_stage4_streaming_v1/<RUN_ID>/
+```
+
+Stage3、offline Phase2/Phase3、Stage4/6 checkpoint 和历史 eval_outputs 不允许被覆盖。
+
+### 18.1 两条独立评估轨道
+
+为了同时满足高 GPU 吞吐和真实 latency 定义，禁止把一个运行同时解释成两者：
+
+| 轨道 | Batch | 用途 | 允许解释的结果 |
+| --- | ---: | --- | --- |
+| Full-dev quality/throughput | 每 GPU 最多512 active sequences | 跑完整7,965条、生成全部WAV、GPU利用率和公共质量指标 | corpus quality、失败率、批量吞吐、批量服务CA latency |
+| Batch=1 latency audit | 每 GPU 一条独立stream | 排除大batch排队/调度影响 | request TTFT、每chunk ACT、first-audio、CA RTF、CA Start/EndOffset |
+
+正式执行前的负载审计比较了每 GPU 512 与 1,024 active records。1,024 配置没有提高
+H200 利用率，且单位样本吞吐略有下降；原因是0.5B Qwen的逐chunk单action解码和Python/CPU
+调度占主导，而不是显存或KV cache不足。因此正式点固定512，不允许通过重复样本或重复计算
+伪造高功率。GPU利用率、功率及其峰值必须作为实测结果如实报告。
+
+负载审计还发现，自由运行生成历史可能长于teacher-forced reference：至少一条dev样本达到
+4,108 tokens。保守上界审计表明，若模型在每个chunk都WRITE，最长样本可能达到约27,568
+tokens。Stage4训练序列上限仍为18,000，但Qwen原生上下文为32,768，因此正式评估使用
+`max_model_len=32768`防止崩溃，并逐样本记录`max_prompt_tokens`和
+`training_context_exceeded`。超过18,000必须在报告中作为out-of-training-context告警，
+不能把长样本截断、跳过或仅在4,096上下文内报告选择性结果。
+
+正式报告必须把两条轨道分栏，不能用 full-dev batch 吞吐声称单会话 latency，也不能用
+batch=1 低 GPU 利用率否定 full-dev 吞吐实现。
+
+### 18.2 Stage4 实际自由运行协议
+
+每条样本只保留一个 append-only prompt：
+
+```text
+streaming header
+→ append source chunk
+→ model generates one action
+→ WAIT: append WAIT and read next chunk
+→ WRITE: autoregressively generate target phrase + BiCodec semantic chunk
+→ append next source chunk
+→ final source forces a recorded final-WRITE recovery only when model仍WAIT
+```
+
+任何 invalid action、缺少 content/semantic delimiter、达到 max-write-token 上限、空文本、空
+semantic 或重复循环都必须保留 reason code。允许为后续 prompt 规范化 delimiter 以继续评估，
+但该样本仍计入 structural recovery/failure，不能静默当作成功。
+
+### 18.3 本轮必须输出的 streaming 指标
+
+策略与结构：
+
+- WAIT/WRITE accuracy、Macro-F1、WAIT/WRITE precision/recall/F1；
+- premature WRITE、unnecessary WAIT、forced final flush；
+- invalid action、structural recovery、empty text/semantic、write count；
+- prefix append-only、prefix BLEU、final Text-BLEU；
+- semantic length ratio、aligned token accuracy、unigram/bigram F1、重复 run。
+
+NCA/CA 延迟：
+
+- first-WRITE、StartOffset、EndOffset；
+- AL、AP、DAL、LAAL、ATD token/schedule proxy；
+- action/write request TTFT、queue time、request wall time；
+- per-WRITE BiCodec ACT；
+- Qwen RTF、codec RTF、联合 RTF；
+- batch throughput 与 batch=1 latency 分开。
+
+连续性：
+
+- NumChunks；
+- playback gap count/sum/mean，NCA 和 CA 分开；
+- boundary amplitude jump mean/p95/max；
+- boundary RMS jump、spectral distance、click rate；
+- semantic dropped/duplicated/repeated diagnostics；
+- 原始和 silence-removed ASR-BLEU 在生成真实 gap waveform 后分开报告。
+
+### 18.4 与 offline Phase3 完全相同的指标
+
+Streaming 最终 WAV 仍可使用 offline 完全相同的指标。对比必须使用相同 7,965 个 raw ID、
+相同 target reference、相同 ASR、相同 normalizer 和相同 metric model：
+
+| 公共指标 | Streaming 输入 | Offline Phase3 输入 | 是否直接计算差值 |
+| --- | --- | --- | --- |
+| Text-BLEU | Stage4 最终 committed text | Phase3 Q/P generated translation | 是，分别对Q/P作差 |
+| Speech-BLEU | Streaming BiCodec WAV→同ASR | Offline WAV→同ASR | 是 |
+| SLC-0.2/0.4 | Streaming WAV/source WAV duration | Offline 同口径 | 是 |
+| UTMOS | Streaming WAV | Offline WAV | 是 |
+| AutoPCP | source/streaming WAV | source/offline WAV | 是 |
+| Speaker similarity | source/streaming WAV | source/offline WAV | 只有同一encoder完成两侧后才比较 |
+
+Offline Phase3 是质量上界，不参与 learned WAIT/WRITE、AL/LAAL/ATD 排名。最终必须报告：
+
+```text
+ΔText-BLEU
+ΔSpeech-BLEU
+ΔUTMOS
+ΔAutoPCP
+ΔSLC-0.2 / ΔSLC-0.4
+quality-retention vs NCA/CA latency Pareto
+```
+
+### 18.5 当前外部模型边界
+
+本机已缓存并验证 Whisper large-v3、中文 Paraformer、UTMOS 和 AutoPCP，可直接用于全量。
+XCOMET/COMET、BLASER 2.0、第二 speaker encoder 当前未安装或缓存；在这些模型被固定版本、
+下载校验并对 offline/streaming 两侧同时重跑前，报告中必须标记为 `not measured`，不能用
+其他指标冒名替代。该边界不影响 Text/Speech-BLEU、SLC、UTMOS、AutoPCP 和全部内部
+streaming event/latency/continuity 指标。
+
+## 19. 参考文献与代码
 
 1. SimulS2S-LLM: Unlocking Simultaneous Inference of Speech LLMs for Speech-to-Speech Translation. ACL 2025. [arXiv:2504.15509](https://arxiv.org/abs/2504.15509)
 2. High-Fidelity Simultaneous Speech-to-Speech Translation. [arXiv:2502.03382](https://arxiv.org/abs/2502.03382). [GitHub](https://github.com/kyutai-labs/hibiki)
