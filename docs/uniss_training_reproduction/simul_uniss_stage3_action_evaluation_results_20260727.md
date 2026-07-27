@@ -381,3 +381,80 @@ Stage3 policy proxy 已完成，但整个 simultaneous S2ST 评估计划尚未�
    pseudo alignment 与真实 boundary-aware policy。
 
 在完成第 4 步之前，不应把当前结果命名为“完整 simultaneous speech-to-speech 性能”。
+
+## 10. 高功率 4+4 GPU 完整复跑审计
+
+为确认 Stage3 确实完整使用 dev 和 test/eval，并观察更接近 H200 满载时的行为，随后使用
+更大的、已验证质量一致的 batch 配置进行了第二次独立完整复跑。该运行没有覆盖第 8 节的
+第一次结果。
+
+运行目录：
+
+```text
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/
+  simul_uniss_stage3_action_v1/full_stage3_power_live_20260727T032735Z/
+```
+
+高功率配置：
+
+```text
+max_batch_tokens = 524288
+max_batch_size = 1024
+logit_event_batch = 512
+dev GPUs = 0,1,2,3
+eval GPUs = 4,5,6,7
+```
+
+### 10.1 完整性和吞吐
+
+| 项目 | Dev | Test/eval |
+| --- | ---: | ---: |
+| Expected / actual samples | 7,965 / 7,965 | 23,369 / 23,369 |
+| Action events | 62,688 | 175,848 |
+| Completed ranks | 4/4 | 4/4 |
+| 4-GPU inference wall time | 4.48 s | 11.88 s |
+| Aggregate real tokens/s | 690,613 | 737,562 |
+| Padding efficiency | 67.40% | 77.31% |
+
+### 10.2 GPU 利用率和功率
+
+| GPU | Split | Util mean | Util p95 | Power mean | Power p95 / observed peak |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 0 | dev | 66.7% | 100% | 467.7 W | 608.8 W |
+| 1 | dev | 75.0% | 100% | 403.0 W | 585.7 W |
+| 2 | dev | 55.5% | 100% | 338.9 W | 514.1 W |
+| 3 | dev | 50.0% | 100% | 426.9 W | 664.3 W |
+| 4 | eval | 45.3% | 100% | 328.3 W | 453.4 W |
+| 5 | eval | 31.2% | 100% | 265.6 W | 542.3 W |
+| 6 | eval | 26.4% | 100% | 258.3 W | 537.3 W |
+| 7 | eval | 29.9% | 100% | 254.7 W | 539.4 W |
+
+所有 GPU 的计算采样 p95 都达到 100% utilization；最高观测功率为 `664.3W / 700W`，
+即功率上限的约 94.9%。全局 active-sample 平均 utilization 为 41.4%、p95 为 100%；
+平均功率为 313.9W、p95 为 585.7W。
+
+平均值低于峰值并不代表漏用 GPU。完整 eval 的 GPU forward 只有约 12 秒，dev 只有约
+4.5 秒；采样中同时包含模型加载、batch 间 CPU/JSON 写入、dev 提前结束后等待 eval、
+聚合前后的空档。Stage3 action-only 模型约 0.5B，不能像 seq=18000 的训练一样持续产生
+足以让 H200 长时间保持 700W 的有效计算。继续提高平均功率只能依赖重复样本、无效 padding
+或重复 forward，这些做法会伪造吞吐，因此没有采用。
+
+### 10.3 与第一次完整评估的一致性
+
+第二次复跑与第一次 262,144-token 正式运行相比：
+
+```text
+Dev/Eval binary predictions       完全一致
+Dev/Eval full-vocab top1          完全一致
+Accuracy / Macro-F1 / WRITE F1    差值为 0
+First-WRITE / final flush         差值为 0
+Dev mean CE difference            +5.416e-9
+Eval mean CE difference           +4.772e-9
+```
+
+因此本次更高功率复跑没有改变任何离散质量结论。其自动生成的详细报告为：
+
+```text
+eval_outputs/simul_uniss_stage3_action_v1/
+  full_stage3_power_live_20260727T032735Z/stage3_action_evaluation_report.md
+```
