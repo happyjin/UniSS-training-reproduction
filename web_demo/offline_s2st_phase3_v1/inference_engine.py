@@ -196,8 +196,10 @@ class Phase3QualityEngine:
         prompt_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
         model_vocab_size = int(self.model.config.vocab_size)
         suppressed_dummy_ids = list(range(c.VOCAB_SIZE, model_vocab_size))
-        generator = torch.Generator(device=self.device)
-        generator.manual_seed(self.config.seed + chunk_index)
+        chunk_seed = self.config.seed + chunk_index
+        torch.manual_seed(chunk_seed)
+        if self.device.type == "cuda":
+            torch.cuda.manual_seed_all(chunk_seed)
         generation_kwargs: dict[str, object] = {
             "max_new_tokens": self.config.max_new_tokens,
             "do_sample": self.config.temperature > 0,
@@ -207,7 +209,6 @@ class Phase3QualityEngine:
             "pad_token_id": c.TOKEN_PAD,
             "eos_token_id": c.TOKEN_EOS,
             "suppress_tokens": suppressed_dummy_ids,
-            "generator": generator,
         }
         started = time.perf_counter()
         with torch.inference_mode():
