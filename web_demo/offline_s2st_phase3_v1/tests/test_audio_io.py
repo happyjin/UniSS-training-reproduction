@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import tempfile
 import time
 import unittest
@@ -11,6 +12,7 @@ import soundfile as sf
 from web_demo.offline_s2st_phase3_v1.audio_io import (
     SAMPLE_RATE,
     AudioValidationError,
+    _ffmpeg_executable,
     cleanup_expired,
     create_request_directory,
     normalize_uploaded_audio,
@@ -54,6 +56,46 @@ class AudioIOTest(unittest.TestCase):
                     min_audio_seconds=0.25,
                     max_audio_seconds=2.0,
                 )
+
+    def test_normalize_browser_webm_audio(self):
+        executable = _ffmpeg_executable()
+        if executable is None:
+            self.skipTest("ffmpeg is unavailable")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_wav = root / "microphone.wav"
+            source_webm = root / "microphone.webm"
+            destination = root / "normalized.wav"
+            samples = np.sin(np.linspace(0, 80, SAMPLE_RATE)).astype(np.float32)
+            sf.write(source_wav, samples, SAMPLE_RATE)
+            subprocess.run(
+                [
+                    executable,
+                    "-nostdin",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(source_wav),
+                    "-c:a",
+                    "libopus",
+                    str(source_webm),
+                ],
+                check=True,
+                timeout=30,
+            )
+            metadata = normalize_uploaded_audio(
+                source_webm,
+                destination,
+                max_upload_bytes=1_000_000,
+                min_audio_seconds=0.2,
+                max_audio_seconds=2.0,
+            )
+            info = sf.info(destination)
+            self.assertEqual(info.samplerate, SAMPLE_RATE)
+            self.assertEqual(info.channels, 1)
+            self.assertAlmostEqual(metadata["duration_seconds"], 1.0, places=1)
 
     def test_split_and_stitch_preserve_order(self):
         first = np.ones(SAMPLE_RATE * 2, dtype=np.float32) * 0.1

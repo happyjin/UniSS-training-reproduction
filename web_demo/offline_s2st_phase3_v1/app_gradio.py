@@ -119,7 +119,10 @@ def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
                     label="输入语音 / Record or upload",
                     sources=["microphone", "upload"],
                     type="filepath",
-                    format="wav",
+                    # Keep browser microphone WebM/Opus files unchanged here.
+                    # audio_io.py decodes them with the bundled imageio-ffmpeg;
+                    # forcing Gradio to WAV would require a system ffprobe.
+                    format=None,
                 )
                 direction = gr.Radio(
                     choices=["中文 → 英文", "英文 → 中文"],

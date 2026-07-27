@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import unittest
 
-from web_demo.offline_s2st_phase3_v1.app_gradio import append_history, format_status
+import gradio as gr
+
+from web_demo.offline_s2st_phase3_v1.app_gradio import (
+    append_history,
+    build_demo,
+    format_status,
+)
+from web_demo.offline_s2st_phase3_v1.config import DemoConfig
 from web_demo.offline_s2st_phase3_v1.inference_engine import InferenceResult
 
 
@@ -37,6 +44,19 @@ class AppContractTest(unittest.TestCase):
         status = format_status(self.sample_result())
         self.assertIn("Phase3 full198 iter_0009075", status)
         self.assertIn("Quality", status)
+
+    def test_microphone_keeps_browser_format_for_backend_decoder(self):
+        demo = build_demo(DemoConfig(), object())
+        inputs = [
+            block
+            for block in demo.blocks.values()
+            if isinstance(block, gr.Audio)
+            and block.label == "输入语音 / Record or upload"
+        ]
+        self.assertEqual(len(inputs), 1)
+        self.assertEqual(inputs[0].type, "filepath")
+        self.assertIsNone(inputs[0].format)
+        self.assertEqual(set(inputs[0].sources), {"microphone", "upload"})
 
 
 if __name__ == "__main__":

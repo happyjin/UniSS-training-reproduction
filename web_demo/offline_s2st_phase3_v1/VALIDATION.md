@@ -52,3 +52,16 @@ playable 16 kHz WAV. Runtime files remain below the ignored
 The live URL and credentials are intentionally not committed. They are written
 with mode 0600 to `access_info.json`; the temporary URL is also written to
 `public_url.txt`.
+
+## Browser microphone regression
+
+Validated on 2026-07-27 after reproducing a browser microphone failure with a
+WebM/Opus input. Gradio had been forced to convert every recording to WAV before
+the request reached the demo backend, which failed when the host did not expose
+`ffprobe` on `PATH`.
+
+The input component now preserves the original browser recording and delegates
+decoding to the demo's bundled `imageio-ffmpeg` path. Public authenticated
+end-to-end requests were repeated with both WebM/Opus and WAV inputs. Both
+returned the expected transcription, translation, playable WAV, result JSON,
+and no model warnings.
