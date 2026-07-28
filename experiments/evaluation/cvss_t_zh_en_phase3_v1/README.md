@@ -140,6 +140,11 @@ EVAL_GPU_LIST=0,1,2,3,4,5,6,7 \
 
 The two directions run sequentially, with all selected GPUs used as independent
 data-parallel workers for each stage. Every per-sample GPU metric is resumable.
+Formal orchestration defaults to `ALLOW_GENERATED_FAILURES=1`: model outputs
+without semantic audio tokens are retained as explicit failures rather than
+being replaced or hidden. Metrics score only valid generated WAVs, and the
+report remains non-formal/incomplete whenever a metric cell has fewer than
+4,897 samples. Set `ALLOW_GENERATED_FAILURES=0` to use fail-fast diagnostics.
 The formal output is:
 
 ```text

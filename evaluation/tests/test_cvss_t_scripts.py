@@ -45,6 +45,7 @@ class CvssScriptsTest(unittest.TestCase):
         self.assertIn('"cmn->eng"', source)
         self.assertIn('"eng->cmn"', source)
         self.assertIn("build_report.sh", source)
+        self.assertIn('ALLOW_FAILURES_VALUE="${ALLOW_GENERATED_FAILURES:-1}"', source)
 
 
 if __name__ == "__main__":
