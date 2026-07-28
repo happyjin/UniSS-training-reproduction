@@ -104,9 +104,10 @@ def build_demo(config: DemoConfig, engine: Phase3QualityEngine) -> gr.Blocks:
     .model-card {border: 1px solid #dbeafe; border-radius: 12px; padding: 12px; background: #eff6ff;}
     .footer-note {font-size: 0.88rem; color: #64748b;}
     """
-    with gr.Blocks(title="UniSS Phase3 Offline S2ST", css=css) as demo:
+    page_title = "Offline Speech-to-Speech from jasonleeeli(李琎) Intern"
+    with gr.Blocks(title=page_title, css=css) as demo:
         gr.Markdown(
-            "# UniSS Phase3 Offline Speech-to-Speech\n"
+            f"# {page_title}\n"
             "录音或上传一句中文/英文语音，查看模型自身ASR转写、翻译文本，并播放生成的翻译语音。"
         )
         gr.Markdown(
