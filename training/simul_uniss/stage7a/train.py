@@ -403,7 +403,11 @@ def train(args: argparse.Namespace) -> None:
         grad_norm = torch.nn.utils.clip_grad_norm_(head.parameters(), args.grad_clip)
         optimizer.step()
         scheduler.step()
-        if not use_sft and args.adaptive_kl_target > 0:
+        if (
+            not use_sft
+            and args.adaptive_kl_target > 0
+            and step % args.log_interval == 0
+        ):
             observed_kl = float(metrics["kl"])
             if observed_kl > args.adaptive_kl_target * 1.25:
                 current_kl_beta = min(args.adaptive_kl_max, current_kl_beta * 1.05)
