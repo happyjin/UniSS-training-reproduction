@@ -144,6 +144,35 @@ def matching_paper_deltas(
     return output
 
 
+def table1_rankings(
+    records: Sequence[Mapping[str, object]], paper: Mapping[str, object]
+) -> list[dict[str, object]]:
+    """Rank each local cell among all numeric Table 1 methods plus local."""
+
+    rankings: list[dict[str, object]] = []
+    for row in records:
+        references = []
+        for model in paper["models"]:  # type: ignore[index]
+            value = model["metrics"].get(row["metric"], {}).get(row["direction"])
+            if value is not None:
+                references.append({"model": str(model["model"]), "value": float(value)})
+        if not references:
+            continue
+        local_value = float(row["value"])
+        ordered = sorted(references, key=lambda item: float(item["value"]), reverse=True)
+        rankings.append(
+            {
+                **row,
+                "rank": 1 + sum(float(item["value"]) > local_value for item in references),
+                "rank_total": len(references) + 1,
+                "paper_best_model": ordered[0]["model"],
+                "paper_best_value": ordered[0]["value"],
+                "delta_local_minus_paper_best": local_value - float(ordered[0]["value"]),
+            }
+        )
+    return rankings
+
+
 def fmt(value: object) -> str:
     return "-" if value is None else f"{float(value):.4f}"
 
@@ -264,6 +293,68 @@ def analysis_section(
     return lines
 
 
+def ranking_section(rankings: Sequence[Mapping[str, object]]) -> list[str]:
+    index = {
+        (str(row["mode"]), str(row["direction"]), str(row["metric"])): row
+        for row in rankings
+    }
+    lines = [
+        "排名口径：把一个本地结果加入论文 Table 1 的所有可用数值方法中，按 higher-is-better 排名；"
+        "例如 `8/10` 表示本地加上九个论文方法后排第 8。该排名只描述数值位置，不消除模型规模和训练数据差异。",
+        "",
+        "| Mode | 方向 | 指标 | 本地值 | Table 1 相对排名 | 论文最佳方法/数值 | 距最佳 |",
+        "| --- | --- | --- | ---: | ---: | --- | ---: |",
+    ]
+    for row in sorted(
+        rankings,
+        key=lambda item: (
+            str(item["mode"]),
+            str(item["direction"]),
+            METRIC_COLUMNS.index(str(item["metric"])),
+        ),
+    ):
+        lines.append(
+            f"| {MODE_LABELS.get(str(row['mode']), row['mode'])} | "
+            f"{DIRECTION_LABELS.get(str(row['direction']), row['direction'])} | "
+            f"{METRIC_LABELS.get(str(row['metric']), row['metric'])} | {fmt(row['value'])} | "
+            f"{row['rank']}/{row['rank_total']} | {row['paper_best_model']} / {fmt(row['paper_best_value'])} | "
+            f"{float(row['delta_local_minus_paper_best']):+.4f} |"
+        )
+
+    lines.extend(["", "Table 1 整体判断：", ""])
+    for mode in ("performance", "quality"):
+        en_speech = index.get((mode, "eng->cmn", "speech_bleu"))
+        en_text = index.get((mode, "eng->cmn", "text_bleu"))
+        zh_speech = index.get((mode, "cmn->eng", "speech_bleu"))
+        zh_text = index.get((mode, "cmn->eng", "text_bleu"))
+        if all((en_speech, en_text, zh_speech, zh_text)):
+            lines.append(
+                f"- {MODE_LABELS[mode]} 翻译/可懂度排名：EN→ZH Speech/Text = "
+                f"{en_speech['rank']}/{en_speech['rank_total']}、{en_text['rank']}/{en_text['rank_total']}；"
+                f"ZH→EN = {zh_speech['rank']}/{zh_speech['rank_total']}、{zh_text['rank']}/{zh_text['rank_total']}。"
+            )
+    for mode in ("performance", "quality"):
+        en_auto = index.get((mode, "eng->cmn", "autopcp"))
+        zh_auto = index.get((mode, "cmn->eng", "autopcp"))
+        en_utmos = index.get((mode, "eng->cmn", "utmos"))
+        zh_utmos = index.get((mode, "cmn->eng", "utmos"))
+        if all((en_auto, zh_auto, en_utmos, zh_utmos)):
+            lines.append(
+                f"- {MODE_LABELS[mode]} 说话人/音质排名：AutoPCP EN→ZH/ZH→EN = "
+                f"{en_auto['rank']}/{en_auto['rank_total']}、{zh_auto['rank']}/{zh_auto['rank_total']}；"
+                f"UTMOS = {en_utmos['rank']}/{en_utmos['rank_total']}、{zh_utmos['rank']}/{zh_utmos['rank_total']}。"
+            )
+    lines.extend(
+        [
+            "- 综合结论：当前 checkpoint **没有达到原文 Table 1 的整体 UniSS P/Q 水平**。"
+            "EN→ZH 的 Quality 是相对最可用结果，但 BLEU 仍处于 Table 1 后段；ZH→EN 的 BLEU 位于末位。",
+            "- 与此同时，ZH→EN AutoPCP 位于首位、EN→ZH UTMOS 位于首位，说明模型能保留部分说话人/韵律和表面音质，"
+            "但语义翻译正确性及英文生成语音可懂度是决定整体性能的主要短板。",
+        ]
+    )
+    return lines
+
+
 def markdown_report(
     runs: Mapping[str, Mapping[str, object]],
     records: Sequence[Mapping[str, object]],
@@ -271,6 +362,7 @@ def markdown_report(
     deltas: Sequence[Mapping[str, object]],
     paper: Mapping[str, object],
     leakage: Mapping[str, object] | None,
+    rankings: Sequence[Mapping[str, object]] = (),
     *,
     expected_pairs: int,
 ) -> str:
@@ -335,7 +427,11 @@ def markdown_report(
             "",
             *analysis_section(records, runs, deltas),
             "",
-            "## 4. 与原论文 UniSS P/Q 的同协议差值",
+            "## 4. 当前结果在原文 Table 1 全部方法中的位置",
+            "",
+            *ranking_section(rankings),
+            "",
+            "## 5. 与原论文 UniSS P/Q 的同协议差值",
             "",
             "仅在同一 CVSS-T test、同方向、同 mode、同指标下计算 Δ(本地−论文)。"
             "解码 seed、checkpoint 大小/训练数据和 metric 软件版本仍会带来差异。",
@@ -358,7 +454,7 @@ def markdown_report(
     lines.extend(
         [
             "",
-            "## 5. 原论文 Table 1 完整基线",
+            "## 6. 原论文 Table 1 完整基线",
             "",
             "表中每格为 EN→ZH / ZH→EN。",
             "",
@@ -374,10 +470,10 @@ def markdown_report(
             f"{paper_pair(model, 'slc_0_4')} | {paper_pair(model, 'utmos')} |"
         )
 
-    lines.extend(["", "## 6. 数据泄漏审计", "", *leakage_section(leakage), ""])
+    lines.extend(["", "## 7. 数据泄漏审计", "", *leakage_section(leakage), ""])
     lines.extend(
         [
-            "## 7. 协议与可解释性边界",
+            "## 8. 协议与可解释性边界",
             "",
             "- 解码参数：temperature 0.7、top-p 0.8、top-k -1、repetition penalty 1.1；Q/P 分开生成。",
             "- Text-BLEU 使用模型生成翻译文本；Speech-BLEU 使用生成语音经目标语言 ASR 后的文本。",
@@ -386,7 +482,7 @@ def markdown_report(
             "- source/reference 均保留 canonical 官方 WAV；只对模型 semantic tokens 解码生成 WAV，避免 BiCodec 重建 reference 污染指标。",
             "- SimulS2ST-Omni 的 greedy unified re-score 是另一套协议，不能与本报告的 UniSS 采样协议混成一张主表。",
             "",
-            "## 8. 运行完整性与产物路径",
+            "## 9. 运行完整性与产物路径",
             "",
             "| Run | decoded | failed | generated | no semantic | missing text | integrity | path |",
             "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |",
@@ -418,6 +514,7 @@ def build_report(args: argparse.Namespace) -> dict[str, object]:
         raise TypeError("leakage audit must be a JSON object")
     status = completeness(records, expected_pairs=args.expected_pairs)
     deltas = matching_paper_deltas(records, paper)
+    rankings = table1_rankings(records, paper)
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "expected_pairs": args.expected_pairs,
@@ -425,6 +522,7 @@ def build_report(args: argparse.Namespace) -> dict[str, object]:
         "runs": runs,
         "metric_records": records,
         "paper_deltas": deltas,
+        "table1_rankings": rankings,
         "leakage_audit": leakage,
         "paper_reference": paper,
     }
@@ -437,6 +535,7 @@ def build_report(args: argparse.Namespace) -> dict[str, object]:
         deltas,
         paper,
         leakage,
+        rankings,
         expected_pairs=args.expected_pairs,
     )
     (args.output_dir / "cvss_t_phase3_table1_report.md").write_text(markdown, encoding="utf-8")

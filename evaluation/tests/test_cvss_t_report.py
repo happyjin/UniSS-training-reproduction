@@ -45,6 +45,7 @@ class CvssReportTest(unittest.TestCase):
             status = report.completeness(records, expected_pairs=1)
             paper = json.loads(report.PAPER_REFERENCE.read_text(encoding="utf-8"))
             deltas = report.matching_paper_deltas(records, paper)
+            rankings = report.table1_rankings(records, paper)
             markdown = report.markdown_report(
                 runs,
                 records,
@@ -58,6 +59,7 @@ class CvssReportTest(unittest.TestCase):
                     "matched_train_record_count": 3,
                     "audio_exact_overlap_status": "deferred_until_cvss_tokenization",
                 },
+                rankings,
                 expected_pairs=1,
             )
         self.assertTrue(status["protocol_complete"])
@@ -75,6 +77,15 @@ class CvssReportTest(unittest.TestCase):
         self.assertIn("EN→ZH / ZH→EN", markdown)
         self.assertIn("Quality / Performance 与失败模式分析", markdown)
         self.assertIn("raw-audio exact overlap remains unavailable", markdown)
+        self.assertIn("当前结果在原文 Table 1 全部方法中的位置", markdown)
+        self.assertIn("没有达到原文 Table 1 的整体 UniSS P/Q 水平", markdown)
+        quality_en_zh_rank = [
+            row
+            for row in rankings
+            if row["mode"] == "quality" and row["direction"] == "eng->cmn" and row["metric"] == "speech_bleu"
+        ][0]
+        self.assertEqual(quality_en_zh_rank["rank"], 4)
+        self.assertEqual(quality_en_zh_rank["rank_total"], 10)
 
 
 if __name__ == "__main__":
