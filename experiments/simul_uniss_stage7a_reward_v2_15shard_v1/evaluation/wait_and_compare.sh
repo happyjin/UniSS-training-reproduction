@@ -13,4 +13,6 @@ done
   --report "${DEV_ROOT}/reward_v2_four_way_full_dev_report.md"
 touch "${DEV_ROOT}/COMPLETE"
 echo "REPORT=${DEV_ROOT}/reward_v2_four_way_full_dev_report.md"
-
+if [[ "${AUTO_START_FULL_TEST:-1}" == 1 ]]; then
+  "${ROOT}/test_evaluation/launch_all_tmux.sh"
+fi

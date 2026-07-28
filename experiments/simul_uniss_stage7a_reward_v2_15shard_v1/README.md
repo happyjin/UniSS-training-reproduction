@@ -47,3 +47,21 @@ eval_outputs/simul_uniss_stage7a_reward_v2_15shard_v1/full_dev_e2e_v1/
 ├── comparison.json
 └── reward_v2_four_way_full_dev_report.md
 ```
+
+The four operating points are then frozen and evaluated once on the independent
+23,369-sample UniST test split. This is the same generation, BiCodec, objective
+metric, streaming-latency, batch-one latency, and two-GPU-per-experiment protocol
+used by the earlier E0–E3 full-test report. Test is never used to reselect the
+checkpoint or WRITE bias.
+
+```text
+eval_outputs/simul_uniss_stage7a_reward_v2_15shard_v1/full_test_e2e_v1/
+├── comparison.json
+└── reward_v2_four_way_full_test_report.md
+```
+
+The final comparison also updates Chapter 18 of
+`docs/uniss_training_reproduction/simul_uniss_stage7a_grpo_15shard_validation_plan.md`
+between idempotent markers, keeping the E0–E3 diagnosis and Reward-v2 evidence
+in one continuous report. All Reward-v2 test artifacts use new paths and never
+overwrite the E0–E3 outputs.

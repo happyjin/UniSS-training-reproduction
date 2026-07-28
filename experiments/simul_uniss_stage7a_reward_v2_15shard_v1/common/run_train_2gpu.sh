@@ -82,10 +82,25 @@ CUDA_VISIBLE_DEVICES="${GPU_LIST}" "${TRAIN_ENV}/bin/torchrun" \
 cleanup; trap - EXIT
 if [[ "${SMOKE}" != "--smoke" ]]; then
   EXPORT_DIR="${EXPORT_ROOT}/${LABEL}_best_hf"
-  [[ -d "${EXPORT_DIR}" ]] || "${TRAIN_ENV}/bin/python" \
-    -m training.simul_uniss.stage7a.export_policy_model \
-    --checkpoint "${OUTPUT_DIR}/best.pt" --output-dir "${EXPORT_DIR}"
-  "${ROOT}/evaluation/run_dev_2gpu.sh" "${LABEL}" "${EXPORT_DIR}" "${GPU_LIST}" 0.0
+  POST_LOG="${LOG_DIR}/post_training.log"
+  {
+    mkdir -p "${EXPORT_ROOT}"
+    # Concurrent policy exports can contend while materializing the shared base
+    # checkpoint/tokenizer. Serialize only the short export step; dev evaluation
+    # starts immediately after the lock is released on the run's own two GPUs.
+    (
+      flock -x 9
+      if [[ ! -f "${EXPORT_DIR}/EXPORT_COMPLETE" ]]; then
+        [[ ! -e "${EXPORT_DIR}" ]] || {
+          echo "Refusing incomplete export directory: ${EXPORT_DIR}" >&2
+          exit 1
+        }
+        "${TRAIN_ENV}/bin/python" -m training.simul_uniss.stage7a.export_policy_model \
+          --checkpoint "${OUTPUT_DIR}/best.pt" --output-dir "${EXPORT_DIR}"
+      fi
+    ) 9>"${EXPORT_ROOT}/.policy_export.lock"
+    "${ROOT}/evaluation/run_dev_2gpu.sh" "${LABEL}" "${EXPORT_DIR}" "${GPU_LIST}" 0.0
+  } 2>&1 | tee "${POST_LOG}"
 fi
 echo "OUTPUT_DIR=${OUTPUT_DIR}"
 echo "TENSORBOARD_DIR=${TENSORBOARD_DIR}"
