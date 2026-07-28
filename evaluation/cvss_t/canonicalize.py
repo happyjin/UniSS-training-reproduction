@@ -73,15 +73,21 @@ def is_valid_canonical(path: Path) -> bool:
 
 
 def convert_audio(input_path: Path, output_path: Path, *, resume: bool) -> dict[str, object]:
-    if output_path.exists():
-        if resume and is_valid_canonical(output_path):
-            metadata = audio_metadata(output_path)
-            return {**metadata, "sha256": sha256_file(output_path), "reused": True}
-        raise FileExistsError(f"Refusing to overwrite canonical audio: {output_path}")
-
     waveform, sample_rate = sf.read(input_path, dtype="float32", always_2d=True)
     if waveform.size == 0 or sample_rate <= 0:
         raise ValueError(f"Empty or invalid input audio: {input_path}")
+    decoded_input_duration = float(waveform.shape[0] / sample_rate)
+    if output_path.exists():
+        if resume and is_valid_canonical(output_path):
+            metadata = audio_metadata(output_path)
+            return {
+                **metadata,
+                "sha256": sha256_file(output_path),
+                "reused": True,
+                "decoded_input_duration_seconds": decoded_input_duration,
+            }
+        raise FileExistsError(f"Refusing to overwrite canonical audio: {output_path}")
+
     mono = waveform.mean(axis=1, dtype=np.float32)
     if not np.isfinite(mono).all():
         raise ValueError(f"Non-finite samples in input audio: {input_path}")
@@ -101,7 +107,12 @@ def convert_audio(input_path: Path, output_path: Path, *, resume: bool) -> dict[
     if not is_valid_canonical(output_path):
         raise ValueError(f"Canonical output validation failed: {output_path}")
     metadata = audio_metadata(output_path)
-    return {**metadata, "sha256": sha256_file(output_path), "reused": False}
+    return {
+        **metadata,
+        "sha256": sha256_file(output_path),
+        "reused": False,
+        "decoded_input_duration_seconds": decoded_input_duration,
+    }
 
 
 def _canonicalize_task(task: CanonicalTask) -> dict[str, object]:
@@ -115,10 +126,10 @@ def _canonicalize_task(task: CanonicalTask) -> dict[str, object]:
     target = convert_audio(target_input, target_output, resume=task.resume)
     max_duration_error = 2.0 / CANONICAL_SAMPLE_RATE
     source_duration_error = abs(
-        float(source["duration_seconds"]) - float(source_input_metadata["duration_seconds"])
+        float(source["duration_seconds"]) - float(source["decoded_input_duration_seconds"])
     )
     target_duration_error = abs(
-        float(target["duration_seconds"]) - float(target_input_metadata["duration_seconds"])
+        float(target["duration_seconds"]) - float(target["decoded_input_duration_seconds"])
     )
     if source_duration_error > max_duration_error or target_duration_error > max_duration_error:
         raise ValueError(

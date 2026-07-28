@@ -33,6 +33,7 @@ class CvssCanonicalizeTest(unittest.TestCase):
             self.assertEqual(result["sample_rate"], CANONICAL_SAMPLE_RATE)
             self.assertEqual(result["channels"], 1)
             self.assertAlmostEqual(float(result["duration_seconds"]), 1.0, places=4)
+            self.assertAlmostEqual(float(result["decoded_input_duration_seconds"]), 1.0, places=4)
             reused = convert_audio(input_path, output_path, resume=True)
             self.assertTrue(reused["reused"])
             self.assertEqual(result["sha256"], reused["sha256"])
