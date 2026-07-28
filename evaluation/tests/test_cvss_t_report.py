@@ -51,7 +51,13 @@ class CvssReportTest(unittest.TestCase):
                 status,
                 deltas,
                 paper,
-                {"train_shard_count": 198, "train_row_count": 100, "id_match_count": 0, "matched_train_record_count": 3},
+                {
+                    "train_shard_count": 198,
+                    "train_row_count": 100,
+                    "id_match_count": 0,
+                    "matched_train_record_count": 3,
+                    "audio_exact_overlap_status": "deferred_until_cvss_tokenization",
+                },
                 expected_pairs=1,
             )
         self.assertTrue(status["protocol_complete"])
@@ -67,6 +73,8 @@ class CvssReportTest(unittest.TestCase):
         self.assertIn("归一化文本命中的训练记录：3", markdown)
         self.assertIn("主观 MOS", markdown)
         self.assertIn("EN→ZH / ZH→EN", markdown)
+        self.assertIn("Quality / Performance 与失败模式分析", markdown)
+        self.assertIn("raw-audio exact overlap remains unavailable", markdown)
 
 
 if __name__ == "__main__":

@@ -82,6 +82,8 @@ def metric_records(runs: Mapping[str, Mapping[str, object]]) -> list[dict[str, o
                             "metric": metric,
                             "value": float(value),
                             "sample_count": values.get("sample_count"),
+                            "sys_len": values.get("sys_len"),
+                            "ref_len": values.get("ref_len"),
                         }
                     )
     return records
@@ -156,17 +158,109 @@ def leakage_section(leakage: Mapping[str, object] | None) -> list[str]:
         return ["泄漏审计文件未提供；正式发布结果前必须补充训练集重合检查。"]
     text_counts = leakage.get("text_match_counts", {})
     dataset_counts = leakage.get("dataset_match_counts", {})
+    audio_status = str(leakage.get("audio_exact_overlap_status", "unknown"))
+    if audio_status == "deferred_until_cvss_tokenization":
+        audio_status = (
+            "raw-audio exact overlap remains unavailable after CVSS tokenization: "
+            "UniST training parquet has speech tokens but no original audio hash/path"
+        )
     lines = [
         f"- 训练集扫描：{leakage.get('train_shard_count', '-')} shards，{leakage.get('train_row_count', '-')} rows。",
         f"- CVSS ID 精确命中：{leakage.get('id_match_count', '-')}。",
         f"- 归一化文本命中的训练记录：{leakage.get('matched_train_record_count', '-')}。",
         f"- 文本字段分布：`{json.dumps(text_counts, ensure_ascii=False, sort_keys=True)}`。",
         f"- 训练数据来源分布：`{json.dumps(dataset_counts, ensure_ascii=False, sort_keys=True)}`。",
-        f"- 音频 exact-overlap：{leakage.get('audio_exact_overlap_status', 'unknown')}。",
+        f"- 音频 exact-overlap：{audio_status}。",
         "",
         "文本命中不等于音频逐字节泄漏，但它说明本地分数不能被解释为完全无重合的 held-out 泛化。"
         "正式结论必须同时报告该审计；训练 parquet 没有原始音频 hash，音频重合仍是当前协议的限制。",
     ]
+    return lines
+
+
+def analysis_section(
+    records: Sequence[Mapping[str, object]],
+    runs: Mapping[str, Mapping[str, object]],
+    deltas: Sequence[Mapping[str, object]],
+) -> list[str]:
+    index = {(str(row["mode"]), str(row["direction"]), str(row["metric"])): row for row in records}
+    lines = [
+        "| 方向 | 指标 | Performance | Quality | Δ(Q-P) |",
+        "| --- | --- | ---: | ---: | ---: |",
+    ]
+    for direction in ("eng->cmn", "cmn->eng"):
+        for metric in METRIC_COLUMNS:
+            performance = index.get(("performance", direction, metric))
+            quality = index.get(("quality", direction, metric))
+            if not performance or not quality:
+                continue
+            delta = float(quality["value"]) - float(performance["value"])
+            lines.append(
+                f"| {DIRECTION_LABELS[direction]} | {METRIC_LABELS[metric]} | "
+                f"{fmt(performance['value'])} | {fmt(quality['value'])} | {delta:+.4f} |"
+            )
+
+    lines.extend(["", "关键观察：", ""])
+    for direction in ("eng->cmn", "cmn->eng"):
+        p_speech = index.get(("performance", direction, "speech_bleu"))
+        q_speech = index.get(("quality", direction, "speech_bleu"))
+        p_text = index.get(("performance", direction, "text_bleu"))
+        q_text = index.get(("quality", direction, "text_bleu"))
+        if p_speech and q_speech and p_text and q_text:
+            lines.append(
+                f"- {DIRECTION_LABELS[direction]}：Quality 相对 Performance 的 Speech-BLEU "
+                f"{float(q_speech['value']) - float(p_speech['value']):+.4f}，Text-BLEU "
+                f"{float(q_text['value']) - float(p_text['value']):+.4f}。"
+            )
+
+    def length_ratio(mode: str, direction: str, metric: str) -> float | None:
+        row = index.get((mode, direction, metric))
+        if not row or not row.get("ref_len"):
+            return None
+        return float(row["sys_len"]) / float(row["ref_len"])
+
+    zh_p_speech = length_ratio("performance", "cmn->eng", "speech_bleu")
+    zh_q_speech = length_ratio("quality", "cmn->eng", "speech_bleu")
+    zh_p_text = length_ratio("performance", "cmn->eng", "text_bleu")
+    zh_q_text = length_ratio("quality", "cmn->eng", "text_bleu")
+    if all(value is not None for value in (zh_p_speech, zh_q_speech, zh_p_text, zh_q_text)):
+        lines.append(
+            "- ZH→EN 的生成文本长度接近 reference "
+            f"(P {zh_p_text:.2f}×, Q {zh_q_text:.2f}×)，但生成音频的 Whisper ASR token 长度达到 "
+            f"P {zh_p_speech:.2f}× / Q {zh_q_speech:.2f}×。结合 SLC 平均时长接近 1×，"
+            "更像英文生成音频可懂度不足、局部重复或 ASR hallucination，而不是整段音频简单变成 4–5 倍长。"
+        )
+
+    failures = []
+    for name, run in sorted(runs.items()):
+        summary = run.get("summary") if isinstance(run.get("summary"), Mapping) else {}
+        generation = run.get("generation_summary") if isinstance(run.get("generation_summary"), Mapping) else {}
+        failures.append(
+            f"{name}: audio failures={summary.get('failed', '-')}, missing text={generation.get('missing_translation', '-')}"
+        )
+    lines.append("- 完整性：" + "; ".join(failures) + "。失败被保留并从相应指标分母中排除。")
+    autopcp_deltas = [float(row["delta_local_minus_paper"]) for row in deltas if row["metric"] == "autopcp"]
+    en_zh_utmos_deltas = [
+        float(row["delta_local_minus_paper"])
+        for row in deltas
+        if row["metric"] == "utmos" and row["direction"] == "eng->cmn"
+    ]
+    if autopcp_deltas:
+        positive_autopcp = sum(value > 0 for value in autopcp_deltas)
+        utmos_text = (
+            f"；EN→ZH UTMOS 两个单元平均差值 {sum(en_zh_utmos_deltas) / len(en_zh_utmos_deltas):+.4f}"
+            if en_zh_utmos_deltas
+            else ""
+        )
+        lines.append(
+            f"- 相对论文 UniSS P/Q，AutoPCP 上升 {positive_autopcp}/{len(autopcp_deltas)} 个单元{utmos_text}。"
+            "这说明说话人/韵律和预测音质与翻译/可懂度可能不是同一个瓶颈；仍不能用 AutoPCP 或 UTMOS"
+            " 掩盖 BLEU 与严格 SLC-0.2 的差距。"
+        )
+    lines.append(
+        "- 以上差值还受到模型规模、训练数据、checkpoint 和已报告训练文本重合记录影响，"
+        "不能被解释为严格同模型消融或完全无泄漏泛化。"
+    )
     return lines
 
 
@@ -237,7 +331,11 @@ def markdown_report(
     lines.extend(
         [
             "",
-            "## 3. 与原论文 UniSS P/Q 的同协议差值",
+            "## 3. Quality / Performance 与失败模式分析",
+            "",
+            *analysis_section(records, runs, deltas),
+            "",
+            "## 4. 与原论文 UniSS P/Q 的同协议差值",
             "",
             "仅在同一 CVSS-T test、同方向、同 mode、同指标下计算 Δ(本地−论文)。"
             "解码 seed、checkpoint 大小/训练数据和 metric 软件版本仍会带来差异。",
@@ -260,7 +358,7 @@ def markdown_report(
     lines.extend(
         [
             "",
-            "## 4. 原论文 Table 1 完整基线",
+            "## 5. 原论文 Table 1 完整基线",
             "",
             "表中每格为 EN→ZH / ZH→EN。",
             "",
@@ -276,10 +374,10 @@ def markdown_report(
             f"{paper_pair(model, 'slc_0_4')} | {paper_pair(model, 'utmos')} |"
         )
 
-    lines.extend(["", "## 5. 数据泄漏审计", "", *leakage_section(leakage), ""])
+    lines.extend(["", "## 6. 数据泄漏审计", "", *leakage_section(leakage), ""])
     lines.extend(
         [
-            "## 6. 协议与可解释性边界",
+            "## 7. 协议与可解释性边界",
             "",
             "- 解码参数：temperature 0.7、top-p 0.8、top-k -1、repetition penalty 1.1；Q/P 分开生成。",
             "- Text-BLEU 使用模型生成翻译文本；Speech-BLEU 使用生成语音经目标语言 ASR 后的文本。",
@@ -288,7 +386,7 @@ def markdown_report(
             "- source/reference 均保留 canonical 官方 WAV；只对模型 semantic tokens 解码生成 WAV，避免 BiCodec 重建 reference 污染指标。",
             "- SimulS2ST-Omni 的 greedy unified re-score 是另一套协议，不能与本报告的 UniSS 采样协议混成一张主表。",
             "",
-            "## 7. 运行完整性与产物路径",
+            "## 8. 运行完整性与产物路径",
             "",
             "| Run | decoded | failed | generated | no semantic | missing text | integrity | path |",
             "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |",
