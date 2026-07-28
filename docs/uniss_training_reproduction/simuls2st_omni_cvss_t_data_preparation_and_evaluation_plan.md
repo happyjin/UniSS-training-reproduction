@@ -27,19 +27,22 @@
   sha256 = 00904f6f952a308024f6d1d8af8127b01bac8d78d46ee69ffc3715e3376c21b2
   ```
 
-- 但是 CVSS 官方 archive 只提供目标英文语音和规范化英文翻译文本。它不包含对应的真实中文源语音和中文 transcript；这些内容必须来自 **Common Voice release v4 的 zh-CN 数据**，并按文件名逐条配对。
-- 当前本机在这 4,897 条 test pair 中：
-  - Common Voice v4 中文源音频：`0 / 4,897`
-  - 中文源文本：`0 / 4,897`
-  - 所以当前不能进行完整的 ZH→EN，也不能进行论文中的反向 EN→ZH CVSS-T 评估。
+- CVSS 官方 archive 只提供目标英文语音和规范化英文翻译文本。对应的真实中文源语音和中文 transcript 必须来自 **Common Voice release v4 的 zh-CN 数据**，并按文件名逐条配对。
+- 2026-07-28 已补齐 CVSS-T test 所需的最小 Common Voice v4 / CoVoST 2 中文源数据：
+  - 中文源音频：`4,897 / 4,897`
+  - 中文源文本：`4,897 / 4,897`
+  - 全部源音频可读，为 `48 kHz / mono / MP3`，总时长约 `8.2519 h`
+  - 两个独立公开 CoVoST 2 镜像中，这 4,897 条音频的 SHA256 逐条一致
+  - 两个镜像共同多出 `common_voice_zh-CN_18747192.mp3` 一条，因不在 CVSS-T test ID 集中而被严格排除
+- 当前具备完整 ZH→EN 与论文反向 EN→ZH CVSS-T 数据条件；但保存的是 CVSS-T test 所需的可验证最小子集，不是完整 Common Voice v4 zh-CN archive。
 
-已有机器审计文件：
+旧的阻塞状态审计文件为：
 
 ```text
 experiments/evaluation/uniss_full198_phase2_phase3/manifests/cvss_t_manifest_summary.json
 ```
 
-其中关键状态为：
+它记录了补齐源数据之前的历史状态：
 
 ```json
 {
@@ -53,7 +56,27 @@ experiments/evaluation/uniss_full198_phase2_phase3/manifests/cvss_t_manifest_sum
 }
 ```
 
-因此正确的执行顺序是：先补齐严格匹配的 Common Voice v4 zh-CN，再制作不可变 canonical audio、双向 manifest 和 UniSS tokenized parquet，最后分别运行 UniSS 原协议和 SimulS2ST-Omni 统一协议。
+新的可评估状态审计文件为：
+
+```text
+/opt/dlami/nvme/jasonleeeli/CVSS/manifests/cvss_t_zh_en_v1/cvss_t_manifest_summary.json
+```
+
+关键状态：
+
+```json
+{
+  "pair_count": 4897,
+  "target_wav_count": 4897,
+  "missing_source_count": 0,
+  "missing_source_text_count": 0,
+  "target_en_hours": 6.2916875,
+  "source_zh_hours": 8.2518970,
+  "ready_for_bidirectional_evaluation": true
+}
+```
+
+下一步不再是下载 CVSS-T test 数据，而是制作不可变 canonical audio、UniSS tokenized parquet，并分别运行 UniSS 原协议和 SimulS2ST-Omni 统一协议。
 
 ## 2. 本计划要回答的问题
 
@@ -253,7 +276,7 @@ UniSS 和 SimulS2ST-Omni 都报告双向结果，因此论文复现 track 应保
 - unreadable target WAV = 0
 - target duration 约 6.3 h
 
-### P1：补齐 Common Voice v4 zh-CN
+### P1：补齐 Common Voice v4 zh-CN（test 所需子集已完成）
 
 必须获取 **release v4** 的 zh-CN 包。推荐目录：
 
@@ -268,7 +291,23 @@ clips/<4,897 个目标 filename 对应的 MP3>
 test.tsv 或 validated.tsv
 ```
 
-但为了可审计性，建议保留完整 v4 zh-CN metadata。获取时需要注意 Common Voice 的使用条款和下载渠道；如果官方页面不再直接暴露旧版 v4，应使用能明确证明 snapshot/version 的归档来源。不能用 Common Voice 新版本的数据直接冒充 v4。
+完整 v4 zh-CN archive 仍然需要 Common Voice/Hugging Face 授权。当前为优先完成 CVSS-T evaluation，使用公开 CoVoST 2 test parquet 镜像抽取严格匹配的 4,897 条 v4 音频、中文 transcript 和 client ID。来源固定到具体 repository revision，并使用两个独立镜像逐条校验音频 hash。不能用 Common Voice 新版本的数据替代 v4。
+
+当前数据来源与下载产物：
+
+```text
+官方 CoVoST 2 metadata:
+/opt/dlami/nvme/jasonleeeli/CVSS/metadata/covost_v2.zh-CN_en
+
+主镜像（含 audio / sentence / client_id）:
+/opt/dlami/nvme/jasonleeeli/CVSS/source/common_voice_v4_zh-CN_test_fixie_parquet
+
+交叉验证镜像（含 audio / original filename）:
+/opt/dlami/nvme/jasonleeeli/CVSS/source/common_voice_v4_zh-CN_test_mirror
+
+严格抽取后的 4,897 条评估源数据:
+/opt/dlami/nvme/jasonleeeli/CVSS/source/common_voice_v4_zh-CN
+```
 
 下载完成后的验收：
 
@@ -886,7 +925,7 @@ per-sample metrics
 
 ### 15.1 Common Voice v4 获取困难
 
-旧版 Common Voice 可能不再通过当前网页直接下载。处理原则是寻找可验证的 v4 snapshot，而不是用新版本静默替换。若只能获得 4,897 个匹配 clips，也必须保存来源、hash 和 metadata，并在报告声明不是完整 v4 archive。
+旧版 Common Voice 的完整 archive 需要授权，匿名请求不可用。当前已经通过两个公开 CoVoST 2 test 镜像补齐并交叉验证 CVSS-T 所需的 4,897 个 v4 clips；报告必须声明这是可验证的 test 最小子集，不是完整 v4 archive。若未来获得官方完整包，应逐条比较音频 hash，不静默替换当前数据。
 
 ### 15.2 EN→ZH 合成输入偏置
 
@@ -912,17 +951,18 @@ CVSS-T streaming 只能作为 sentence-level 附加诊断。长时连续输入�
 
 推荐按以下顺序实施：
 
-1. 获取并验证 Common Voice v4 zh-CN。
-2. 完成 metadata join、canonical audio 和 leakage audit。
-3. 实现可恢复的 8-GPU CVSS tokenization adapter。
-4. 先跑 20 条 smoke，再跑每方向 100 条 pilot。
-5. 对 full198 Phase3 iter 9075 跑 Track A 全量。
-6. 对同一 checkpoint 跑 Track B greedy 全量。
-7. 补 SIM-O、bootstrap CI 和最终报告。
-8. 再决定是否做 Track C 扩展指标。
-9. CVSS-T streaming diagnostic 最后做；正式 streaming 主结果仍以 RealSI/ACL60/60-dev 为准。
+1. 已完成：获取并验证 CVSS-T 所需的 Common Voice v4 zh-CN test 最小子集。
+2. 已完成：严格 filename join 和双向 raw-audio manifest。
+3. 下一步：建立 canonical audio，并完成训练数据 leakage audit。
+4. 实现可恢复的 8-GPU CVSS tokenization adapter。
+5. 先跑 20 条 smoke，再跑每方向 100 条 pilot。
+6. 对 full198 Phase3 iter 9075 跑 Track A 全量。
+7. 对同一 checkpoint 跑 Track B greedy 全量。
+8. 补 SIM-O、bootstrap CI 和最终报告。
+9. 再决定是否做 Track C 扩展指标。
+10. CVSS-T streaming diagnostic 最后做；正式 streaming 主结果仍以 RealSI/ACL60/60-dev 为准。
 
-当前唯一阻塞完整 CVSS-T 评估的首要条件不是 GPU，也不是 Phase3 checkpoint，而是缺少与 4,897 个 filename 严格匹配的 Common Voice v4 zh-CN source audio 和 source transcript。
+当前 CVSS-T test 数据下载不再构成阻塞。剩余工作是数据转换、泄漏审计、推理和指标实现。
 
 ## 17. 参考资料
 
