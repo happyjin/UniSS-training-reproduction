@@ -34,9 +34,17 @@ class CvssScriptsTest(unittest.TestCase):
             self.assertIn(fragment, source)
 
     def test_cvss_scripts_export_repository_pythonpath(self) -> None:
-        for name in ("run_vllm_eval.sh", "run_objective_metrics.sh"):
+        for name in ("run_vllm_eval.sh", "run_objective_metrics.sh", "build_report.sh"):
             source = (SCRIPT_ROOT / name).read_text(encoding="utf-8")
             self.assertIn('export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"', source, name)
+
+    def test_full_runner_keeps_directions_separate_and_reports_both(self) -> None:
+        source = (SCRIPT_ROOT / "run_full_evaluation.sh").read_text(encoding="utf-8")
+        self.assertIn("cvss_t_phase3_full_cmn_to_eng", source)
+        self.assertIn("cvss_t_phase3_full_eng_to_cmn", source)
+        self.assertIn('"cmn->eng"', source)
+        self.assertIn('"eng->cmn"', source)
+        self.assertIn("build_report.sh", source)
 
 
 if __name__ == "__main__":
