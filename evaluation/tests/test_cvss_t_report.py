@@ -79,6 +79,9 @@ class CvssReportTest(unittest.TestCase):
         self.assertIn("raw-audio exact overlap remains unavailable", markdown)
         self.assertIn("当前结果在原文 Table 1 全部方法中的位置", markdown)
         self.assertIn("没有达到原文 Table 1 的整体 UniSS P/Q 水平", markdown)
+        self.assertIn("原文 UniSS 与当前 Phase3 结果同表对照", markdown)
+        self.assertIn("Δ(当前-原文)", markdown)
+        self.assertIn("当前 Phase3", markdown)
         quality_en_zh_rank = [
             row
             for row in rankings

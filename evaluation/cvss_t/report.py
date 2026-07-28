@@ -355,6 +355,50 @@ def ranking_section(rankings: Sequence[Mapping[str, object]]) -> list[str]:
     return lines
 
 
+def paired_paper_local_table(
+    records: Sequence[Mapping[str, object]],
+    paper: Mapping[str, object],
+) -> list[str]:
+    """Put matching paper UniSS P/Q and local results in one compact table."""
+
+    index = {(str(row["mode"]), str(row["direction"]), str(row["metric"])): row for row in records}
+    paper_models = {str(row["model"]): row for row in paper["models"]}  # type: ignore[index]
+    lines = [
+        "所有指标均为 higher-is-better。`Δ` 为当前减原文；原文 UniSS 为约 1.5B，当前 checkpoint 使用 0.5B 基座。",
+        "",
+        "| Mode | 方向 | 来源 | Speech-BLEU | Text-BLEU | AutoPCP | SLC-0.2 | SLC-0.4 | UTMOS | N |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for mode in ("performance", "quality"):
+        paper_name = "UniSS (P)" if mode == "performance" else "UniSS (Q)"
+        paper_metrics = paper_models[paper_name]["metrics"]
+        for direction in ("eng->cmn", "cmn->eng"):
+            local_rows = [index.get((mode, direction, metric)) for metric in METRIC_COLUMNS]
+            local_values = [row.get("value") if row else None for row in local_rows]
+            paper_values = [paper_metrics.get(metric, {}).get(direction) for metric in METRIC_COLUMNS]
+            counts = [row.get("sample_count") for row in local_rows if row and row.get("sample_count") is not None]
+            local_count = min(int(value) for value in counts) if counts else None
+            lines.append(
+                f"| {MODE_LABELS[mode]} | {DIRECTION_LABELS[direction]} | 原文 {paper_name} | "
+                + " | ".join(fmt(value) for value in paper_values)
+                + " | 4897 |"
+            )
+            lines.append(
+                f"| {MODE_LABELS[mode]} | {DIRECTION_LABELS[direction]} | 当前 Phase3 | "
+                + " | ".join(fmt(value) for value in local_values)
+                + f" | {local_count if local_count is not None else '-'} |"
+            )
+            lines.append(
+                f"| {MODE_LABELS[mode]} | {DIRECTION_LABELS[direction]} | Δ(当前-原文) | "
+                + " | ".join(
+                    "-" if local is None or reference is None else f"{float(local) - float(reference):+.4f}"
+                    for local, reference in zip(local_values, paper_values)
+                )
+                + " | - |"
+            )
+    return lines
+
+
 def markdown_report(
     runs: Mapping[str, Mapping[str, object]],
     records: Sequence[Mapping[str, object]],
@@ -400,7 +444,11 @@ def markdown_report(
             "",
             "本地自动评估不包含论文主观 MOS。MOS 需要六名双语评分者和 webMUSHRA，不能用 UTMOS 替代。",
             "",
-            "## 2. 本地 CVSS-T 客观指标",
+            "## 2. 原文 UniSS 与当前 Phase3 结果同表对照",
+            "",
+            *paired_paper_local_table(records, paper),
+            "",
+            "## 3. 本地 CVSS-T 客观指标",
             "",
             "所有指标均为 higher-is-better。方向顺序与论文一致；EN→ZH 的英文输入是 CVSS-T 合成语音，"
             "ZH→EN 的中文输入是真实 Common Voice v4 语音。",
@@ -423,15 +471,15 @@ def markdown_report(
     lines.extend(
         [
             "",
-            "## 3. Quality / Performance 与失败模式分析",
+            "## 4. Quality / Performance 与失败模式分析",
             "",
             *analysis_section(records, runs, deltas),
             "",
-            "## 4. 当前结果在原文 Table 1 全部方法中的位置",
+            "## 5. 当前结果在原文 Table 1 全部方法中的位置",
             "",
             *ranking_section(rankings),
             "",
-            "## 5. 与原论文 UniSS P/Q 的同协议差值",
+            "## 6. 与原论文 UniSS P/Q 的同协议差值",
             "",
             "仅在同一 CVSS-T test、同方向、同 mode、同指标下计算 Δ(本地−论文)。"
             "解码 seed、checkpoint 大小/训练数据和 metric 软件版本仍会带来差异。",
@@ -454,7 +502,7 @@ def markdown_report(
     lines.extend(
         [
             "",
-            "## 6. 原论文 Table 1 完整基线",
+            "## 7. 原论文 Table 1 完整基线",
             "",
             "表中每格为 EN→ZH / ZH→EN。",
             "",
@@ -470,10 +518,10 @@ def markdown_report(
             f"{paper_pair(model, 'slc_0_4')} | {paper_pair(model, 'utmos')} |"
         )
 
-    lines.extend(["", "## 7. 数据泄漏审计", "", *leakage_section(leakage), ""])
+    lines.extend(["", "## 8. 数据泄漏审计", "", *leakage_section(leakage), ""])
     lines.extend(
         [
-            "## 8. 协议与可解释性边界",
+            "## 9. 协议与可解释性边界",
             "",
             "- 解码参数：temperature 0.7、top-p 0.8、top-k -1、repetition penalty 1.1；Q/P 分开生成。",
             "- Text-BLEU 使用模型生成翻译文本；Speech-BLEU 使用生成语音经目标语言 ASR 后的文本。",
@@ -482,7 +530,7 @@ def markdown_report(
             "- source/reference 均保留 canonical 官方 WAV；只对模型 semantic tokens 解码生成 WAV，避免 BiCodec 重建 reference 污染指标。",
             "- SimulS2ST-Omni 的 greedy unified re-score 是另一套协议，不能与本报告的 UniSS 采样协议混成一张主表。",
             "",
-            "## 9. 运行完整性与产物路径",
+            "## 10. 运行完整性与产物路径",
             "",
             "| Run | decoded | failed | generated | no semantic | missing text | integrity | path |",
             "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |",
