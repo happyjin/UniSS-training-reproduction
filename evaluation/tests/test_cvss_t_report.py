@@ -54,7 +54,9 @@ class CvssReportTest(unittest.TestCase):
                 {"train_shard_count": 198, "train_row_count": 100, "id_match_count": 0, "matched_train_record_count": 3},
                 expected_pairs=1,
             )
-        self.assertTrue(status["formal_complete"])
+        self.assertTrue(status["protocol_complete"])
+        self.assertFalse(status["formal_complete"])
+        self.assertEqual(status["evaluation_scope"], "smoke_or_subset")
         self.assertEqual(status["observed_metric_cells"], 24)
         quality_en_zh = [
             row

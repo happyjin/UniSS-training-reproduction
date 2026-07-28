@@ -87,7 +87,12 @@ def metric_records(runs: Mapping[str, Mapping[str, object]]) -> list[dict[str, o
     return records
 
 
-def completeness(records: Sequence[Mapping[str, object]], *, expected_pairs: int) -> dict[str, object]:
+def completeness(
+    records: Sequence[Mapping[str, object]],
+    *,
+    expected_pairs: int,
+    formal_pair_count: int = 4897,
+) -> dict[str, object]:
     index = {(str(row["mode"]), str(row["direction"]), str(row["metric"])): row for row in records}
     expected = {
         (mode, direction, metric)
@@ -102,8 +107,12 @@ def completeness(records: Sequence[Mapping[str, object]], *, expected_pairs: int
         sample_count = row.get("sample_count")
         if sample_count is not None and int(sample_count) != expected_pairs:
             wrong_sample_counts.append({"cell": list(key), "actual": int(sample_count), "expected": expected_pairs})
+    protocol_complete = not missing and not unexpected and not wrong_sample_counts
     return {
-        "formal_complete": not missing and not unexpected and not wrong_sample_counts,
+        "protocol_complete": protocol_complete,
+        "formal_complete": protocol_complete and expected_pairs == formal_pair_count,
+        "evaluation_scope": "formal" if expected_pairs == formal_pair_count else "smoke_or_subset",
+        "formal_pair_count": formal_pair_count,
         "expected_metric_cells": len(expected),
         "observed_metric_cells": len(index),
         "missing_cells": [list(key) for key in missing],
@@ -185,6 +194,13 @@ def markdown_report(
     ]
     if status["formal_complete"]:
         lines.append("全部 24 个正式指标单元均已生成，且每个单元的样本数与 CVSS-T test 一致。")
+    elif status["protocol_complete"]:
+        lines.extend(
+            [
+                "双方向 Q/P 的 24 个指标单元均已跑通，但当前是 **smoke/subset 功能验证**，不是正式 Table 1 结果。",
+                f"当前每个单元 {expected_pairs} 条；正式 CVSS-T test 要求 {status['formal_pair_count']} 条。",
+            ]
+        )
     else:
         lines.extend(
             [
