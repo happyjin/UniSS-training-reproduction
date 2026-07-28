@@ -290,8 +290,8 @@ def markdown_report(
             "",
             "## 7. 运行完整性与产物路径",
             "",
-            "| Run | decoded | failed | generated | no semantic | integrity | path |",
-            "| --- | ---: | ---: | ---: | ---: | --- | --- |",
+            "| Run | decoded | failed | generated | no semantic | missing text | integrity | path |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |",
         ]
     )
     for name, run in sorted(runs.items()):
@@ -301,7 +301,8 @@ def markdown_report(
         lines.append(
             f"| {name} | {summary.get('decoded', '-')} | {summary.get('failed', '-')} | "
             f"{generation.get('total_results', generation.get('generated', '-'))} | "
-            f"{generation.get('no_semantic_tokens', '-')} | {integrity.get('valid', '-')} | `{run['path']}` |"
+            f"{generation.get('no_semantic_tokens', '-')} | {generation.get('missing_translation', '-')} | "
+            f"{integrity.get('valid', '-')} | `{run['path']}` |"
         )
     if status["missing_cells"]:
         lines.extend(["", "缺失指标单元：", "", f"`{json.dumps(status['missing_cells'], ensure_ascii=False)}`"])

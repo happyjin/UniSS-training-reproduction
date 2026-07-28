@@ -11,6 +11,10 @@ from evaluation.io_utils import iter_jsonl, write_json
 from evaluation.sharding import merge_jsonl_by_key, row_key
 
 
+def missing_text(value: object) -> bool:
+    return not isinstance(value, str) or not value.strip()
+
+
 def expected_keys(manifest: Path, modes: Sequence[str]) -> set[tuple[str, str]]:
     keys: set[tuple[str, str]] = set()
     for row in iter_jsonl(manifest):
@@ -70,7 +74,7 @@ def merge_shards(args: argparse.Namespace) -> dict[str, object]:
         "completed_before_resume": 0,
         "generated": len(generation_rows),
         "no_semantic_tokens": sum(int(row.get("semantic_token_count", 0)) == 0 for row in generation_rows),
-        "missing_translation": sum(not str(row.get("generated_translation", "")).strip() for row in generation_rows),
+        "missing_translation": sum(missing_text(row.get("generated_translation")) for row in generation_rows),
         "dummy_generated_tokens": sum(int(row.get("dummy_token_count", 0)) for row in generation_rows),
         "total_results": len(generation_rows),
         "num_data_parallel_shards": args.num_shards,

@@ -69,6 +69,8 @@ class EvaluationShardingTest(unittest.TestCase):
                         "dummy_token_count": 0,
                         "generated_translation": "ok",
                     }
+                    if sample_id == "b" and mode == "quality":
+                        generation["generated_translation"] = None
                     generation_rows.append(generation)
                     result_rows.append(
                         {
@@ -96,6 +98,7 @@ class EvaluationShardingTest(unittest.TestCase):
             merged = list(iter_jsonl(output / "results.jsonl"))
         self.assertEqual(report["expected"], 4)
         self.assertEqual(report["generation_summary"]["dummy_generated_tokens"], 0)
+        self.assertEqual(report["generation_summary"]["missing_translation"], 1)
         self.assertEqual(report["decode_summary"]["decoded"], 4)
         self.assertEqual(len(merged), 4)
 
