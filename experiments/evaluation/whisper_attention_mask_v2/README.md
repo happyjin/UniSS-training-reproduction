@@ -29,6 +29,11 @@ experiments/evaluation/whisper_attention_mask_v2/launch_all_tmux.sh
 The run manifest intentionally contains only full evaluation runs whose
 published reports used the affected batched Whisper protocol.
 
+The default Whisper batch size is 8.  Any transcript that violates the
+duration-aware length guard is automatically retried with batch size 1; a
+result that is still implausible after that retry stops the run instead of
+contaminating BLEU.  The retry count is recorded in `verification.json`.
+
 After all runs finish, build a checked legacy/corrected comparison table with:
 
 ```bash

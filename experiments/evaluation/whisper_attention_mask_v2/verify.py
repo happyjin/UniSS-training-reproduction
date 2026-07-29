@@ -32,6 +32,7 @@ def main() -> None:
     seen: set[tuple[str, str]] = set()
     suspicious: list[dict[str, object]] = []
     wrong_protocol: list[dict[str, object]] = []
+    single_item_retry_count = 0
     for row in iter_jsonl(args.asr):
         key = (str(row["id"]), str(row["mode"]))
         if key in seen:
@@ -41,6 +42,7 @@ def main() -> None:
             "asr_attention_mask"
         ):
             wrong_protocol.append({"id": key[0], "mode": key[1]})
+        single_item_retry_count += int(bool(row.get("asr_single_item_retry")))
         duration = float(row.get("audio_duration_seconds") or 0.0)
         word_count = len(str(row.get("asr_text") or "").split())
         if duration > 0 and word_count > max(64, math.ceil(duration * 12.0)):
@@ -61,6 +63,7 @@ def main() -> None:
         "extra_count": len(extra),
         "suspicious_count": len(suspicious),
         "wrong_protocol_count": len(wrong_protocol),
+        "single_item_retry_count": single_item_retry_count,
         "protocol": WHISPER_ASR_PROTOCOL,
         "complete": not missing and not extra and not suspicious and not wrong_protocol,
         "missing_preview": missing[:20],

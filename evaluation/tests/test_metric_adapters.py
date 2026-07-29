@@ -92,6 +92,37 @@ class MetricAdaptersTest(unittest.TestCase):
             asr_transcribe.whisper_transcript_is_suspicious({}, "word " * 200)
         )
 
+    def test_whisper_suspicious_batch_result_can_retry_as_single_item(self):
+        class FakeRecognizer:
+            def __call__(self, inputs, *, batch_size, **kwargs):
+                self.inputs = inputs
+                self.batch_size = batch_size
+                self.kwargs = kwargs
+                return [{"text": "a short corrected transcript"}]
+
+        recognizer = FakeRecognizer()
+        text = asr_transcribe.retry_suspicious_whisper_transcript(
+            recognizer,
+            row={"id": "sample", "mode": "quality", "audio_duration_seconds": 0.3},
+            audio=np.zeros(160, dtype=np.float32),
+            call_options={"generate_kwargs": {"language": "english"}},
+        )
+        self.assertEqual(text, "a short corrected transcript")
+        self.assertEqual(recognizer.batch_size, 1)
+
+    def test_whisper_single_item_retry_preserves_length_guard(self):
+        class HallucinatingRecognizer:
+            def __call__(self, inputs, *, batch_size, **kwargs):
+                return [{"text": "word " * 200}]
+
+        with self.assertRaisesRegex(RuntimeError, "single-item retry"):
+            asr_transcribe.retry_suspicious_whisper_transcript(
+                HallucinatingRecognizer(),
+                row={"id": "sample", "mode": "quality", "audio_duration_seconds": 0.3},
+                audio=np.zeros(160, dtype=np.float32),
+                call_options={},
+            )
+
     def test_asr_target_language_filter_argument(self):
         args = asr_transcribe.parse_args(
             [

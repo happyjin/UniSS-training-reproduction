@@ -43,7 +43,7 @@ CUDA_VISIBLE_DEVICES="${GPU_ID}" "${ENV_ROOT}/bin/python" -m evaluation.asr_tran
   --output "${OUTPUT_DIR}/asr_results_eng.jsonl" \
   --whisper-model "${WHISPER_MODEL:-openai/whisper-large-v3}" \
   --device cuda:0 \
-  --batch-size "${WHISPER_BATCH_SIZE:-32}" \
+  --batch-size "${WHISPER_BATCH_SIZE:-8}" \
   --target-language eng \
   --resume
 
