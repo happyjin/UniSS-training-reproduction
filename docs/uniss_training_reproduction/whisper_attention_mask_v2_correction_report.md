@@ -110,7 +110,7 @@ metrics_whisper_attention_mask_v2/
 - 没有未经 rejection 处理的异常词速；
 - rejection 必须来自 single-item retry 且 hypothesis 为空。
 
-21 个主评估使用 GPU 1--7，每卡两个独立 worker；GPU 0 保留给公网 Phase3 Demo。各 worker 处理互斥 run，`--resume` 支持安全断点续跑。
+21 个主评估使用 GPU 1--7，每卡三个独立 worker；GPU 0 保留给公网 Phase3 Demo。各 worker 处理互斥 run，`--resume` 支持安全断点续跑。
 
 ## 4. 全量旧值与修正值
 
@@ -149,4 +149,5 @@ metrics_whisper_attention_mask_v2/
 - `d9b17d8`：加入隔离的修正评估流水线；
 - `9f9b651`：可疑批输出自动 single-item retry；
 - `915cece`：不可懂结果以空 hypothesis 计入 BLEU；
-- `54a64c6`：H200 双 worker 并行重算。
+- `54a64c6`：加入 H200 多 worker 并行重算；
+- 后续并发调优：每卡三个互斥 worker，21 个 run 同时断点重算。

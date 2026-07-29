@@ -26,7 +26,7 @@ Launch the full correction while leaving GPU 0 for the public demo:
 experiments/evaluation/whisper_attention_mask_v2/launch_all_tmux.sh
 ```
 
-The launcher uses two independent workers on each of GPUs 1--7.  Workers are
+The launcher uses three independent workers on each of GPUs 1--7.  Workers are
 assigned disjoint manifest slots, and each GPU remains well below H200 memory
 capacity with batch size 8.  Override `WHISPER_V2_GPU_LIST` if a different
 allocation is required.
