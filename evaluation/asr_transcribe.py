@@ -15,6 +15,11 @@ from training.constants_uniss import normalize_language
 from training.generate_unist_eval_audio import write_jsonl_row
 
 
+WHISPER_ASR_PROTOCOL = "whisper-large-v3-attention-mask-v2"
+WHISPER_MAX_WORDS_PER_SECOND = 12.0
+WHISPER_MIN_LENGTH_GUARD_WORDS = 64
+
+
 def chunks(values: Iterable[Mapping[str, object]], size: int) -> Iterator[list[Mapping[str, object]]]:
     source = iter(values)
     while batch := list(islice(source, size)):
@@ -58,6 +63,37 @@ def whisper_call_options(bucket_name: str) -> dict[str, object]:
     return options
 
 
+def configure_whisper_attention_mask(recognizer: object) -> None:
+    """Make batched Whisper ignore padded audio frames during generation.
+
+    Whisper uses the same token for padding and EOS, so its generation code
+    cannot infer an attention mask reliably.  Without an explicit mask,
+    batched short utterances can continue decoding over padded frames and
+    repeat a phrase until the decoder limit even when batch=1 is correct.
+    """
+
+    feature_extractor = getattr(recognizer, "feature_extractor", None)
+    if feature_extractor is None:
+        raise TypeError("Whisper recognizer does not expose a feature_extractor")
+    feature_extractor.return_attention_mask = True
+
+
+def whisper_transcript_is_suspicious(
+    row: Mapping[str, object],
+    text: str,
+    *,
+    max_words_per_second: float = WHISPER_MAX_WORDS_PER_SECOND,
+    minimum_words: int = WHISPER_MIN_LENGTH_GUARD_WORDS,
+) -> bool:
+    """Detect decoder-limit hallucinations before they contaminate BLEU."""
+
+    duration = audio_duration_sort_key(row)
+    if not math.isfinite(duration):
+        return False
+    maximum_words = max(minimum_words, math.ceil(duration * max_words_per_second))
+    return len(text.split()) > maximum_words
+
+
 def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
     path = Path(str(row["audio_path"]))
     return path if path.is_absolute() else results_path.parent / path
@@ -85,6 +121,7 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
         device=device_index,
         model_kwargs={"local_files_only": False},
     )
+    configure_whisper_attention_mask(recognizer)
     sampling_rate = recognizer.feature_extractor.sampling_rate
     max_duration_seconds = recognizer.feature_extractor.n_samples / sampling_rate
     buckets = {"short": [], "long": [], "unknown": []}
@@ -111,7 +148,16 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
             if isinstance(outputs, dict):
                 outputs = [outputs]
             for row, output in zip(batch, outputs):
-                yield row, str(output.get("text", "")).strip()
+                text = str(output.get("text", "")).strip()
+                if whisper_transcript_is_suspicious(row, text):
+                    raise RuntimeError(
+                        "Whisper transcript length guard triggered for "
+                        f"id={row.get('id')} mode={row.get('mode')} "
+                        f"duration={row.get('audio_duration_seconds')} "
+                        f"words={len(text.split())}; refusing to write a likely "
+                        "padding hallucination"
+                    )
+                yield row, text
 
 
 def transcribe_paraformer(rows, *, results_path: Path, model_name: str, device: str, batch_size: int):
@@ -138,6 +184,10 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
     if args.resume and output_path.exists():
         completed.update((str(row["id"]), str(row["mode"])) for row in iter_jsonl(output_path))
 
+    requested_target_languages = {
+        normalize_language(language)
+        for language in (getattr(args, "target_language", None) or [])
+    }
     rows = [
         row
         for row in select_shard(
@@ -145,7 +195,13 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
             num_shards=args.num_shards,
             shard_index=args.shard_index,
         )
-        if (str(row["id"]), str(row["mode"])) not in completed and row.get("audio_path") and not row.get("error")
+        if (str(row["id"]), str(row["mode"])) not in completed
+        and row.get("audio_path")
+        and not row.get("error")
+        and (
+            not requested_target_languages
+            or normalize_language(str(row["tgt_lang"])) in requested_target_languages
+        )
     ]
     by_backend = {
         "whisper-large-v3": [row for row in rows if target_asr_backend(str(row["tgt_lang"])) == "whisper-large-v3"],
@@ -162,7 +218,17 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
             device=args.device,
             batch_size=args.batch_size,
         ):
-            write_jsonl_row(output_path, {**row, "asr_text": text, "asr_model": args.whisper_model})
+            write_jsonl_row(
+                output_path,
+                {
+                    **row,
+                    "asr_text": text,
+                    "asr_model": args.whisper_model,
+                    "asr_protocol": WHISPER_ASR_PROTOCOL,
+                    "asr_attention_mask": True,
+                    "asr_batch_size": args.batch_size,
+                },
+            )
             counts["transcribed"] += 1
             counts["empty"] += int(not text)
             write_json(output_path.with_suffix(".summary.json"), counts)
@@ -192,6 +258,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument(
+        "--target-language",
+        action="append",
+        choices=("eng", "cmn"),
+        help="Only transcribe rows with this normalized target language; repeat for multiple languages.",
+    )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--num-shards", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)

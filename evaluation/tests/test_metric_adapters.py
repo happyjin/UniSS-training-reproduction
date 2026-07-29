@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import soundfile as sf
@@ -61,6 +62,48 @@ class MetricAdaptersTest(unittest.TestCase):
             sf.write(path, np.zeros(80, dtype=np.float32), 8000)
             with self.assertRaisesRegex(ValueError, "Expected 16000 Hz"):
                 asr_transcribe.load_audio_array(path, expected_sample_rate=16000)
+
+    def test_whisper_attention_mask_is_enabled_for_batched_inference(self):
+        recognizer = SimpleNamespace(
+            feature_extractor=SimpleNamespace(return_attention_mask=False)
+        )
+        asr_transcribe.configure_whisper_attention_mask(recognizer)
+        self.assertTrue(recognizer.feature_extractor.return_attention_mask)
+
+    def test_whisper_attention_mask_requires_feature_extractor(self):
+        with self.assertRaisesRegex(TypeError, "feature_extractor"):
+            asr_transcribe.configure_whisper_attention_mask(SimpleNamespace())
+
+    def test_whisper_length_guard_rejects_decoder_limit_hallucination(self):
+        row = {"audio_duration_seconds": 4.0}
+        self.assertTrue(
+            asr_transcribe.whisper_transcript_is_suspicious(
+                row, "word " * 200
+            )
+        )
+        self.assertFalse(
+            asr_transcribe.whisper_transcript_is_suspicious(
+                row, "a normal short transcript"
+            )
+        )
+
+    def test_whisper_length_guard_skips_unknown_duration(self):
+        self.assertFalse(
+            asr_transcribe.whisper_transcript_is_suspicious({}, "word " * 200)
+        )
+
+    def test_asr_target_language_filter_argument(self):
+        args = asr_transcribe.parse_args(
+            [
+                "--input",
+                "results.jsonl",
+                "--output",
+                "asr.jsonl",
+                "--target-language",
+                "eng",
+            ]
+        )
+        self.assertEqual(args.target_language, ["eng"])
 
     def test_score_aggregation(self):
         rows = [
