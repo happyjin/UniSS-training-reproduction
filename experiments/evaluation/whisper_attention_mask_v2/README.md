@@ -28,3 +28,13 @@ experiments/evaluation/whisper_attention_mask_v2/launch_all_tmux.sh
 
 The run manifest intentionally contains only full evaluation runs whose
 published reports used the affected batched Whisper protocol.
+
+After all runs finish, build a checked legacy/corrected comparison table with:
+
+```bash
+python experiments/evaluation/whisper_attention_mask_v2/summarize.py \
+  --manifest experiments/evaluation/whisper_attention_mask_v2/runs.tsv \
+  --repo-root "$PWD" \
+  --output-json /tmp/whisper_attention_mask_v2_summary.json \
+  --output-markdown /tmp/whisper_attention_mask_v2_table.md
+```
