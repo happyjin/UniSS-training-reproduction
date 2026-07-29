@@ -91,13 +91,17 @@ def compute_grouped_bleu(
     *,
     hypothesis_field: str,
     reference_field: str,
+    score_empty_hypotheses: bool = False,
 ) -> dict[str, object]:
     groups: dict[tuple[str, str, str], list[Mapping[str, object]]] = defaultdict(list)
     skipped: list[dict[str, object]] = []
     for row in rows:
         hypothesis = row.get(hypothesis_field)
         reference = row.get(reference_field)
-        if not isinstance(hypothesis, str) or not hypothesis.strip() or not isinstance(reference, str) or not reference.strip():
+        hypothesis_missing = not isinstance(hypothesis, str) or (
+            not hypothesis.strip() and not score_empty_hypotheses
+        )
+        if hypothesis_missing or not isinstance(reference, str) or not reference.strip():
             skipped.append({"id": row.get("id"), "mode": row.get("mode"), "reason": "missing_text"})
             continue
         key = (str(row.get("mode", "unknown")), str(row.get("src_lang")), str(row.get("tgt_lang")))
@@ -115,6 +119,7 @@ def compute_grouped_bleu(
     return {
         "hypothesis_field": hypothesis_field,
         "reference_field": reference_field,
+        "score_empty_hypotheses": score_empty_hypotheses,
         "groups": output_groups,
         "input_count": len(rows),
         "scored_count": sum(int(group["sample_count"]) for group in output_groups.values()),  # type: ignore[index,union-attr]
@@ -129,6 +134,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hypothesis-field", default="generated_translation")
     parser.add_argument("--reference-field", default="translation_ref")
+    parser.add_argument(
+        "--score-empty-hypotheses",
+        action="store_true",
+        help="Include explicit empty hypotheses so failed outputs are penalized instead of skipped.",
+    )
     return parser.parse_args(argv)
 
 
@@ -139,6 +149,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         rows,
         hypothesis_field=args.hypothesis_field,
         reference_field=args.reference_field,
+        score_empty_hypotheses=args.score_empty_hypotheses,
     )
     write_json(args.output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

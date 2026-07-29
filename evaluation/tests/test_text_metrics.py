@@ -39,6 +39,43 @@ class TextMetricsTest(unittest.TestCase):
         for group in report["groups"].values():
             self.assertAlmostEqual(group["score"], 100.0)
 
+    def test_explicit_empty_hypothesis_is_scored_when_requested(self):
+        rows = [
+            {
+                "id": "ok",
+                "mode": "quality",
+                "src_lang": "cmn",
+                "tgt_lang": "eng",
+                "asr_text": "the correct translation",
+                "translation_ref": "the correct translation",
+            },
+            {
+                "id": "unintelligible",
+                "mode": "quality",
+                "src_lang": "cmn",
+                "tgt_lang": "eng",
+                "asr_text": "",
+                "translation_ref": "another valid reference sentence",
+            },
+        ]
+        default_report = text_metrics.compute_grouped_bleu(
+            rows,
+            hypothesis_field="asr_text",
+            reference_field="translation_ref",
+        )
+        corrected_report = text_metrics.compute_grouped_bleu(
+            rows,
+            hypothesis_field="asr_text",
+            reference_field="translation_ref",
+            score_empty_hypotheses=True,
+        )
+        self.assertEqual(default_report["scored_count"], 1)
+        self.assertEqual(corrected_report["scored_count"], 2)
+        self.assertEqual(corrected_report["skipped_count"], 0)
+        self.assertEqual(
+            corrected_report["groups"]["quality:cmn->eng"]["sample_count"], 2
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

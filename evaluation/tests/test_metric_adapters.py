@@ -101,27 +101,29 @@ class MetricAdaptersTest(unittest.TestCase):
                 return [{"text": "a short corrected transcript"}]
 
         recognizer = FakeRecognizer()
-        text = asr_transcribe.retry_suspicious_whisper_transcript(
+        text, rejected_reason = asr_transcribe.retry_suspicious_whisper_transcript(
             recognizer,
             row={"id": "sample", "mode": "quality", "audio_duration_seconds": 0.3},
             audio=np.zeros(160, dtype=np.float32),
             call_options={"generate_kwargs": {"language": "english"}},
         )
         self.assertEqual(text, "a short corrected transcript")
+        self.assertIsNone(rejected_reason)
         self.assertEqual(recognizer.batch_size, 1)
 
-    def test_whisper_single_item_retry_preserves_length_guard(self):
+    def test_whisper_single_item_retry_marks_persistent_hallucination(self):
         class HallucinatingRecognizer:
             def __call__(self, inputs, *, batch_size, **kwargs):
                 return [{"text": "word " * 200}]
 
-        with self.assertRaisesRegex(RuntimeError, "single-item retry"):
-            asr_transcribe.retry_suspicious_whisper_transcript(
-                HallucinatingRecognizer(),
-                row={"id": "sample", "mode": "quality", "audio_duration_seconds": 0.3},
-                audio=np.zeros(160, dtype=np.float32),
-                call_options={},
-            )
+        text, rejected_reason = asr_transcribe.retry_suspicious_whisper_transcript(
+            HallucinatingRecognizer(),
+            row={"id": "sample", "mode": "quality", "audio_duration_seconds": 0.3},
+            audio=np.zeros(160, dtype=np.float32),
+            call_options={},
+        )
+        self.assertEqual(text, "")
+        self.assertEqual(rejected_reason, asr_transcribe.WHISPER_REJECTED_REASON)
 
     def test_asr_target_language_filter_argument(self):
         args = asr_transcribe.parse_args(

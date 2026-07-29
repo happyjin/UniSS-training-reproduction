@@ -32,7 +32,9 @@ def main() -> None:
     seen: set[tuple[str, str]] = set()
     suspicious: list[dict[str, object]] = []
     wrong_protocol: list[dict[str, object]] = []
+    malformed_rejections: list[dict[str, object]] = []
     single_item_retry_count = 0
+    rejected_suspicious_count = 0
     for row in iter_jsonl(args.asr):
         key = (str(row["id"]), str(row["mode"]))
         if key in seen:
@@ -43,6 +45,13 @@ def main() -> None:
         ):
             wrong_protocol.append({"id": key[0], "mode": key[1]})
         single_item_retry_count += int(bool(row.get("asr_single_item_retry")))
+        rejected_reason = row.get("asr_rejected_reason")
+        if rejected_reason:
+            rejected_suspicious_count += 1
+            if str(row.get("asr_text") or "").strip() or not row.get(
+                "asr_single_item_retry"
+            ):
+                malformed_rejections.append({"id": key[0], "mode": key[1]})
         duration = float(row.get("audio_duration_seconds") or 0.0)
         word_count = len(str(row.get("asr_text") or "").split())
         if duration > 0 and word_count > max(64, math.ceil(duration * 12.0)):
@@ -64,12 +73,19 @@ def main() -> None:
         "suspicious_count": len(suspicious),
         "wrong_protocol_count": len(wrong_protocol),
         "single_item_retry_count": single_item_retry_count,
+        "rejected_suspicious_count": rejected_suspicious_count,
+        "malformed_rejection_count": len(malformed_rejections),
         "protocol": WHISPER_ASR_PROTOCOL,
-        "complete": not missing and not extra and not suspicious and not wrong_protocol,
+        "complete": not missing
+        and not extra
+        and not suspicious
+        and not wrong_protocol
+        and not malformed_rejections,
         "missing_preview": missing[:20],
         "extra_preview": extra[:20],
         "suspicious_preview": suspicious[:20],
         "wrong_protocol_preview": wrong_protocol[:20],
+        "malformed_rejection_preview": malformed_rejections[:20],
     }
     write_json(args.output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

@@ -18,6 +18,7 @@ from training.generate_unist_eval_audio import write_jsonl_row
 WHISPER_ASR_PROTOCOL = "whisper-large-v3-attention-mask-v2"
 WHISPER_MAX_WORDS_PER_SECOND = 12.0
 WHISPER_MIN_LENGTH_GUARD_WORDS = 64
+WHISPER_REJECTED_REASON = "implausible_after_single_item_retry"
 
 
 def chunks(values: Iterable[Mapping[str, object]], size: int) -> Iterator[list[Mapping[str, object]]]:
@@ -100,7 +101,7 @@ def retry_suspicious_whisper_transcript(
     row: Mapping[str, object],
     audio: object,
     call_options: Mapping[str, object],
-) -> str:
+) -> tuple[str, str | None]:
     """Retry a padding-sensitive batch result as an isolated utterance."""
 
     output = recognizer([audio], batch_size=1, **call_options)
@@ -112,15 +113,8 @@ def retry_suspicious_whisper_transcript(
         output = output[0]
     text = str(output.get("text", "")).strip()
     if whisper_transcript_is_suspicious(row, text):
-        raise RuntimeError(
-            "Whisper transcript length guard still triggered after a "
-            "single-item retry for "
-            f"id={row.get('id')} mode={row.get('mode')} "
-            f"duration={row.get('audio_duration_seconds')} "
-            f"words={len(text.split())}; refusing to write a likely "
-            "decoder hallucination"
-        )
-    return text
+        return "", WHISPER_REJECTED_REASON
+    return text, None
 
 
 def audio_path(row: Mapping[str, object], *, results_path: Path) -> Path:
@@ -185,14 +179,16 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
                 text = str(output.get("text", "")).strip()
                 retried_single = False
                 if whisper_transcript_is_suspicious(row, text):
-                    text = retry_suspicious_whisper_transcript(
+                    text, rejected_reason = retry_suspicious_whisper_transcript(
                         recognizer,
                         row=row,
                         audio=audio,
                         call_options=call_options,
                     )
                     retried_single = True
-                yield row, text, retried_single
+                else:
+                    rejected_reason = None
+                yield row, text, retried_single, rejected_reason
 
 
 def transcribe_paraformer(rows, *, results_path: Path, model_name: str, device: str, batch_size: int):
@@ -246,7 +242,7 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
         backend_rows.sort(key=audio_duration_sort_key)
     counts = {"transcribed": 0, "empty": 0, "skipped_existing": len(completed)}
     if by_backend["whisper-large-v3"]:
-        for row, text, retried_single in transcribe_whisper(
+        for row, text, retried_single, rejected_reason in transcribe_whisper(
             by_backend["whisper-large-v3"],
             results_path=input_path,
             model_name=args.whisper_model,
@@ -264,12 +260,16 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
                     "asr_batch_size": args.batch_size,
                     "asr_effective_batch_size": 1 if retried_single else args.batch_size,
                     "asr_single_item_retry": retried_single,
+                    "asr_rejected_reason": rejected_reason,
                 },
             )
             counts["transcribed"] += 1
             counts["empty"] += int(not text)
             counts["single_item_retries"] = counts.get("single_item_retries", 0) + int(
                 retried_single
+            )
+            counts["rejected_suspicious"] = counts.get("rejected_suspicious", 0) + int(
+                rejected_reason is not None
             )
             write_json(output_path.with_suffix(".summary.json"), counts)
     if by_backend["paraformer-zh"]:

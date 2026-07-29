@@ -51,7 +51,8 @@ CUDA_VISIBLE_DEVICES="${GPU_ID}" "${ENV_ROOT}/bin/python" -m evaluation.asr_tran
   --input "${OUTPUT_DIR}/asr_results_eng.jsonl" \
   --output "${OUTPUT_DIR}/speech_bleu_eng.json" \
   --hypothesis-field asr_text \
-  --reference-field translation_ref
+  --reference-field translation_ref \
+  --score-empty-hypotheses
 
 "${ENV_ROOT}/bin/python" \
   "${REPO_ROOT}/experiments/evaluation/whisper_attention_mask_v2/verify.py" \

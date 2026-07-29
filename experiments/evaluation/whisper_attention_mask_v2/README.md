@@ -30,9 +30,11 @@ The run manifest intentionally contains only full evaluation runs whose
 published reports used the affected batched Whisper protocol.
 
 The default Whisper batch size is 8.  Any transcript that violates the
-duration-aware length guard is automatically retried with batch size 1; a
-result that is still implausible after that retry stops the run instead of
-contaminating BLEU.  The retry count is recorded in `verification.json`.
+duration-aware length guard is automatically retried with batch size 1.  A
+result that is still implausible after that retry is recorded as an explicit
+empty, unintelligible hypothesis and remains in corpus BLEU instead of being
+skipped or contaminating the metric with repeated text.  Retry and rejection
+counts are recorded in `verification.json`.
 
 After all runs finish, build a checked legacy/corrected comparison table with:
 
