@@ -43,6 +43,10 @@ empty, unintelligible hypothesis and remains in corpus BLEU instead of being
 skipped or contaminating the metric with repeated text.  Retry and rejection
 counts are recorded in `verification.json`.
 
+The verifier also enforces the final batch policy (`requested=8`, and
+`effective=1` for clips up to 2 seconds), preventing experimental partial
+outputs from being mixed into a formal result.
+
 After all runs finish, build a checked legacy/corrected comparison table with:
 
 ```bash

@@ -7,7 +7,10 @@ import json
 import math
 from pathlib import Path
 
-from evaluation.asr_transcribe import WHISPER_ASR_PROTOCOL
+from evaluation.asr_transcribe import (
+    WHISPER_ASR_PROTOCOL,
+    WHISPER_DIRECT_SINGLE_MAX_DURATION_SECONDS,
+)
 from evaluation.io_utils import iter_jsonl, write_json
 from training.constants_uniss import normalize_language
 
@@ -17,6 +20,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--asr", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--expected-batch-size", type=int, default=8)
+    parser.add_argument(
+        "--direct-single-max-duration-seconds",
+        type=float,
+        default=WHISPER_DIRECT_SINGLE_MAX_DURATION_SECONDS,
+    )
     return parser.parse_args()
 
 
@@ -33,6 +42,7 @@ def main() -> None:
     suspicious: list[dict[str, object]] = []
     wrong_protocol: list[dict[str, object]] = []
     malformed_rejections: list[dict[str, object]] = []
+    wrong_batch_policy: list[dict[str, object]] = []
     single_item_retry_count = 0
     direct_single_item_count = 0
     rejected_suspicious_count = 0
@@ -58,6 +68,28 @@ def main() -> None:
             ):
                 malformed_rejections.append({"id": key[0], "mode": key[1]})
         duration = float(row.get("audio_duration_seconds") or 0.0)
+        requested_batch_size = row.get("asr_batch_size")
+        effective_batch_size = row.get("asr_effective_batch_size")
+        if (
+            requested_batch_size != args.expected_batch_size
+            or not isinstance(effective_batch_size, int)
+            or effective_batch_size < 1
+            or (
+                0 < duration <= args.direct_single_max_duration_seconds
+                and effective_batch_size != 1
+            )
+            or (row.get("asr_single_item_retry") and effective_batch_size != 1)
+        ):
+            wrong_batch_policy.append(
+                {
+                    "id": key[0],
+                    "mode": key[1],
+                    "duration_seconds": duration,
+                    "requested_batch_size": requested_batch_size,
+                    "effective_batch_size": effective_batch_size,
+                    "retried": bool(row.get("asr_single_item_retry")),
+                }
+            )
         word_count = len(str(row.get("asr_text") or "").split())
         if duration > 0 and word_count > max(64, math.ceil(duration * 12.0)):
             suspicious.append(
@@ -81,17 +113,21 @@ def main() -> None:
         "direct_single_item_count": direct_single_item_count,
         "rejected_suspicious_count": rejected_suspicious_count,
         "malformed_rejection_count": len(malformed_rejections),
+        "wrong_batch_policy_count": len(wrong_batch_policy),
         "protocol": WHISPER_ASR_PROTOCOL,
         "complete": not missing
         and not extra
         and not suspicious
         and not wrong_protocol
-        and not malformed_rejections,
+        and not malformed_rejections
+        and not wrong_batch_policy,
+        "batch_policy_complete": not wrong_batch_policy,
         "missing_preview": missing[:20],
         "extra_preview": extra[:20],
         "suspicious_preview": suspicious[:20],
         "wrong_protocol_preview": wrong_protocol[:20],
         "malformed_rejection_preview": malformed_rejections[:20],
+        "wrong_batch_policy_preview": wrong_batch_policy[:20],
     }
     write_json(args.output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

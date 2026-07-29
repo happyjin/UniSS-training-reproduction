@@ -109,6 +109,7 @@ metrics_whisper_attention_mask_v2/
 - protocol 与 attention-mask 标记正确；
 - 没有未经 rejection 处理的异常词速；
 - rejection 必须来自 single-item retry 且 hypothesis 为空。
+- requested batch 必须为 8，且 `≤2 s` 的样本 effective batch 必须为 1。
 
 21 个主评估使用 GPU 1--7，每卡三个独立 worker；GPU 0 保留给公网 Phase3 Demo。各 worker 处理互斥 run，`--resume` 支持安全断点续跑。
 
