@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SESSION="${WHISPER_V2_TMUX_SESSION:-whisper_attention_mask_v2}"
-GPU_LIST_VALUE="${WHISPER_V2_GPU_LIST:-1,2,3,4,5,6,7}"
+GPU_LIST_VALUE="${WHISPER_V2_GPU_LIST:-1,1,2,2,3,3,4,4,5,5,6,6,7,7}"
 IFS=',' read -r -a GPUS <<<"${GPU_LIST_VALUE}"
 
 if tmux has-session -t "${SESSION}" 2>/dev/null; then
