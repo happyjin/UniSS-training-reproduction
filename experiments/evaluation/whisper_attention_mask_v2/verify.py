@@ -34,6 +34,7 @@ def main() -> None:
     wrong_protocol: list[dict[str, object]] = []
     malformed_rejections: list[dict[str, object]] = []
     single_item_retry_count = 0
+    direct_single_item_count = 0
     rejected_suspicious_count = 0
     for row in iter_jsonl(args.asr):
         key = (str(row["id"]), str(row["mode"]))
@@ -45,6 +46,10 @@ def main() -> None:
         ):
             wrong_protocol.append({"id": key[0], "mode": key[1]})
         single_item_retry_count += int(bool(row.get("asr_single_item_retry")))
+        direct_single_item_count += int(
+            row.get("asr_effective_batch_size") == 1
+            and not row.get("asr_single_item_retry")
+        )
         rejected_reason = row.get("asr_rejected_reason")
         if rejected_reason:
             rejected_suspicious_count += 1
@@ -73,6 +78,7 @@ def main() -> None:
         "suspicious_count": len(suspicious),
         "wrong_protocol_count": len(wrong_protocol),
         "single_item_retry_count": single_item_retry_count,
+        "direct_single_item_count": direct_single_item_count,
         "rejected_suspicious_count": rejected_suspicious_count,
         "malformed_rejection_count": len(malformed_rejections),
         "protocol": WHISPER_ASR_PROTOCOL,

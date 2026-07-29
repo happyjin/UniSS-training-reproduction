@@ -45,6 +45,21 @@ class MetricAdaptersTest(unittest.TestCase):
         self.assertTrue(asr_transcribe.whisper_call_options("long")["return_timestamps"])
         self.assertTrue(asr_transcribe.whisper_call_options("unknown")["return_timestamps"])
 
+    def test_whisper_very_short_audio_is_not_batched(self):
+        rows = [
+            {"id": "very-short", "audio_duration_seconds": 0.4},
+            {"id": "short-boundary", "audio_duration_seconds": 2.0},
+            {"id": "normal-1", "audio_duration_seconds": 2.1},
+            {"id": "normal-2", "audio_duration_seconds": 2.2},
+            {"id": "normal-3", "audio_duration_seconds": 2.3},
+        ]
+        batches = list(asr_transcribe.whisper_batches(rows, batch_size=8))
+        self.assertEqual([[row["id"] for row in batch] for batch in batches], [
+            ["very-short"],
+            ["short-boundary"],
+            ["normal-1", "normal-2", "normal-3"],
+        ])
+
     def test_whisper_audio_loader_uses_soundfile_and_mixes_to_mono(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "stereo.wav"

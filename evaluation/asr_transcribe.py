@@ -19,6 +19,7 @@ WHISPER_ASR_PROTOCOL = "whisper-large-v3-attention-mask-v2"
 WHISPER_MAX_WORDS_PER_SECOND = 12.0
 WHISPER_MIN_LENGTH_GUARD_WORDS = 64
 WHISPER_REJECTED_REASON = "implausible_after_single_item_retry"
+WHISPER_DIRECT_SINGLE_MAX_DURATION_SECONDS = 2.0
 
 
 def chunks(values: Iterable[Mapping[str, object]], size: int) -> Iterator[list[Mapping[str, object]]]:
@@ -62,6 +63,26 @@ def whisper_call_options(bucket_name: str) -> dict[str, object]:
     if bucket_name != "short":
         options["return_timestamps"] = True
     return options
+
+
+def whisper_batches(
+    rows: Sequence[Mapping[str, object]],
+    *,
+    batch_size: int,
+    direct_single_max_duration_seconds: float = WHISPER_DIRECT_SINGLE_MAX_DURATION_SECONDS,
+) -> Iterator[list[Mapping[str, object]]]:
+    """Avoid batching very short clips where Whisper padding is least stable."""
+
+    index = 0
+    while index < len(rows):
+        effective_batch_size = (
+            1
+            if audio_duration_sort_key(rows[index])
+            <= direct_single_max_duration_seconds
+            else batch_size
+        )
+        yield list(rows[index : index + effective_batch_size])
+        index += effective_batch_size
 
 
 def configure_whisper_attention_mask(recognizer: object) -> None:
@@ -156,8 +177,9 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
         # long-form feature tensors have independently sized time axes and fail
         # when more than one is collated.  Preserve batching for the common
         # short case and process only the long/unknown tail one at a time.
-        effective_batch_size = batch_size if bucket_name == "short" else 1
-        for batch in chunks(bucket_rows, effective_batch_size):
+        requested_batch_size = batch_size if bucket_name == "short" else 1
+        for batch in whisper_batches(bucket_rows, batch_size=requested_batch_size):
+            effective_batch_size = len(batch)
             paths = [str(audio_path(row, results_path=results_path)) for row in batch]
             inputs = [
                 load_audio_array(Path(path), expected_sample_rate=sampling_rate)
@@ -188,7 +210,7 @@ def transcribe_whisper(rows, *, results_path: Path, model_name: str, device: str
                     retried_single = True
                 else:
                     rejected_reason = None
-                yield row, text, retried_single, rejected_reason
+                yield row, text, retried_single, rejected_reason, effective_batch_size
 
 
 def transcribe_paraformer(rows, *, results_path: Path, model_name: str, device: str, batch_size: int):
@@ -242,7 +264,7 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
         backend_rows.sort(key=audio_duration_sort_key)
     counts = {"transcribed": 0, "empty": 0, "skipped_existing": len(completed)}
     if by_backend["whisper-large-v3"]:
-        for row, text, retried_single, rejected_reason in transcribe_whisper(
+        for row, text, retried_single, rejected_reason, effective_batch_size in transcribe_whisper(
             by_backend["whisper-large-v3"],
             results_path=input_path,
             model_name=args.whisper_model,
@@ -258,7 +280,7 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
                     "asr_protocol": WHISPER_ASR_PROTOCOL,
                     "asr_attention_mask": True,
                     "asr_batch_size": args.batch_size,
-                    "asr_effective_batch_size": 1 if retried_single else args.batch_size,
+                    "asr_effective_batch_size": 1 if retried_single else effective_batch_size,
                     "asr_single_item_retry": retried_single,
                     "asr_rejected_reason": rejected_reason,
                 },
@@ -270,6 +292,9 @@ def run_asr(args: argparse.Namespace) -> dict[str, int]:
             )
             counts["rejected_suspicious"] = counts.get("rejected_suspicious", 0) + int(
                 rejected_reason is not None
+            )
+            counts["direct_single_items"] = counts.get("direct_single_items", 0) + int(
+                effective_batch_size == 1 and not retried_single
             )
             write_json(output_path.with_suffix(".summary.json"), counts)
     if by_backend["paraformer-zh"]:
