@@ -47,6 +47,18 @@ The verifier also enforces the final batch policy (`requested=8`, and
 `effective=1` for clips up to 2 seconds), preventing experimental partial
 outputs from being mixed into a formal result.
 
+For large reruns, use the deterministic two-shard launcher:
+
+```bash
+experiments/evaluation/whisper_attention_mask_v2/launch_sharded_tmux.sh
+```
+
+Each run gets two disjoint `num_shards/shard_index` workers.  Existing
+canonical rows are passed as `--completed-input`; shard files are independent,
+then atomically merged under a file lock.  BLEU, verification, and `COMPLETE`
+are written only after both shards finish.  With seven H200s this creates six
+workers per GPU and remains below memory capacity at batch size 8.
+
 After all runs finish, build a checked legacy/corrected comparison table with:
 
 ```bash

@@ -111,7 +111,7 @@ metrics_whisper_attention_mask_v2/
 - rejection 必须来自 single-item retry 且 hypothesis 为空。
 - requested batch 必须为 8，且 `≤2 s` 的样本 effective batch 必须为 1。
 
-21 个主评估使用 GPU 1--7，每卡三个独立 worker；GPU 0 保留给公网 Phase3 Demo。各 worker 处理互斥 run，`--resume` 支持安全断点续跑。
+21 个主评估使用 GPU 1--7，每个 run 再确定性拆成两个互斥 shard，共 42 个 worker、每卡 6 个模型；GPU 0 保留给公网 Phase3 Demo。已有 canonical rows 作为 `completed-input`，两个 shard 写独立 JSONL，完成后加文件锁原子合并，再统一计算 BLEU、运行 verifier 和写 `COMPLETE`。
 
 ## 4. 全量旧值与修正值
 
