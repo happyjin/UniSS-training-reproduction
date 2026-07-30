@@ -5,7 +5,11 @@ import torch
 
 from training import constants_uniss as c
 from uniss.streaming.policy import PolicyDecision
-from web_demo.streaming_s2st_r2_v1.engine.qwen_live_adapter import QwenLiveAdapter
+from web_demo.streaming_s2st_r2_v1.engine.qwen_live_adapter import (
+    QwenLiveAdapter,
+    SemanticAntiCollapseProcessor,
+    semantic_rejection_reason,
+)
 
 
 class FakeTokenizer:
@@ -72,6 +76,20 @@ class QwenLiveAdapterTest(unittest.TestCase):
         self.assertEqual(adapter.choose_action(is_final=True), PolicyDecision.WRITE)
         self.assertEqual(adapter.last_action.forced_reason, "final_flush")
         self.assertEqual(adapter.forced_actions, 1)
+
+    def test_semantic_quality_gate_rejects_static_collapse(self):
+        self.assertIsNotNone(semantic_rejection_reason([848] * 64))
+        self.assertIsNone(semantic_rejection_reason(list(range(64))))
+
+    def test_anti_collapse_processor_masks_repeated_semantic_token(self):
+        repeated = c.bicodec_semantic_id(848)
+        prompt = [c.TOKEN_WRITE_GENERATE]
+        generated = [c.TOKEN_START_SEMANTIC, *([repeated] * 6)]
+        input_ids = torch.tensor([[*prompt, *generated]], dtype=torch.long)
+        scores = torch.zeros((1, c.VOCAB_SIZE), dtype=torch.float32)
+        adjusted = SemanticAntiCollapseProcessor(len(prompt))(input_ids, scores)
+        self.assertTrue(torch.isneginf(adjusted[0, repeated]))
+        self.assertEqual(float(adjusted[0, c.bicodec_semantic_id(1)]), 0.0)
 
 
 if __name__ == "__main__":

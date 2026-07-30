@@ -13,6 +13,12 @@ historical evaluation outputs.
   R2 WAIT/WRITE and streaming BiCodec. This is online pseudo-streaming, not a
   causal Whisper encoder.
 
+Every WRITE passes a semantic anti-collapse processor and a post-generation
+quality gate before BiCodec decoding. Repeated-token collapse is never sent to
+the browser. If streaming semantic still fails the gate, the request is
+completed with the frozen full198 Phase3 Quality model and the UI/JSON records
+that fallback explicitly.
+
 ## Launch
 
 ```bash

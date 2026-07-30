@@ -24,6 +24,9 @@ class StreamingDemoConfig:
     demo_root: Path = DEMO_ROOT
     primary_model_path: Path = MODEL_ROOT / "r2_explicit_latency_best_hf"
     fallback_model_path: Path = MODEL_ROOT / "r3_bilingual_adaptive_best_hf"
+    offline_fallback_model_path: Path = (
+        REPO_ROOT / "checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf"
+    )
     speech_tokenizer_path: Path = REPO_ROOT / "pretrained_models/UniSS"
     output_root: Path = DEMO_ROOT / "runtime_outputs"
     log_root: Path = DEMO_ROOT / "runtime_logs"
@@ -97,6 +100,10 @@ class StreamingDemoConfig:
         for name in ("glm4_tokenizer", "bicodec"):
             path = self.speech_tokenizer_path / name
             if not path.is_dir():
+                missing.append(str(path))
+        for name in ("config.json", "model.safetensors", "tokenizer.json", "export_manifest.json"):
+            path = self.offline_fallback_model_path / name
+            if not path.is_file():
                 missing.append(str(path))
         if missing:
             raise FileNotFoundError(f"Missing frozen streaming demo assets: {missing}")

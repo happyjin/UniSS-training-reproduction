@@ -73,3 +73,38 @@ Gradio streaming audio uses both `ffmpeg` and `ffprobe`. Private wrappers in
 `bin/` run the already recovered FFmpeg 8 pair with only its recovered Conda
 libraries. The Python/PyTorch process does not inherit that library path, and
 the implementation installs no system packages or modifies the old demo.
+
+## Semantic collapse/noise regression (2026-07-30)
+
+A real public upload produced intelligible R2 text but a buzzing waveform. The
+saved trace proved that this was model semantic collapse rather than a browser
+or FFmpeg failure:
+
+```text
+source duration = 5.16 s
+old target duration = 32.94 s
+old semantic count / unique = 1647 / 13
+old maximum identical run = 1634
+old waveform RMS / ZCR = 0.0053 / 0.647
+```
+
+The fix adds a semantic-only logits processor, blocks a token after six
+identical BiCodec IDs, guards low-diversity sliding windows and rejects any
+remaining collapse before waveform decoding. The same exact saved source then
+produced:
+
+```text
+target duration = 6.40 s
+semantic count = 320
+per-WRITE unique ratio = 0.875, 1.000, 0.992
+maximum identical run = 6
+waveform RMS / peak / ZCR = 0.0734 / 0.7012 / 0.209
+fallback used = false
+Whisper-large-v3 ASR = Xi Shashuo said I enjoy being single, but if I encounter
+someone suitable for me, I would also consider it a day.
+```
+
+The separately tested Phase3 safety fallback produced 271 semantic tokens,
+maximum run 3, unique ratio 0.970 and waveform RMS 0.0727. It remains lazy-loaded
+and is used only if the R2 quality gate rejects a WRITE or no safe streaming
+audio is available.

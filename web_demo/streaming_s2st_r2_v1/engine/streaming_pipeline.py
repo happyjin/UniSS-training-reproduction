@@ -13,8 +13,11 @@ import numpy as np
 import soundfile as sf
 import torch
 
+from evaluation.uniss_outputs import parse_with_tokenizer
+from training import constants_uniss as c
+from training.generate_unist_eval_audio import truncate_at_eos
 from training.simul_uniss.schema import chunk_spans, tokens_per_chunk
-from uniss import UniSSTokenizer
+from uniss import UniSSTokenizer, process_input
 from uniss.streaming.bicodec_streamer import (
     StreamingBiCodecDecoder,
     bicodec_decode_function,
@@ -32,12 +35,17 @@ from ..audio_io import (
 from ..config import StreamingDemoConfig
 from ..session_manager import BrowserSession
 from .prefix_frontend import CumulativePrefixFrontend
-from .qwen_live_adapter import QwenLiveAdapter
+from .qwen_live_adapter import QwenLiveAdapter, semantic_rejection_reason
 
 
 DIRECTION_TO_LANGUAGES = {
     "中文 → 英文": ("cmn", "eng"),
     "英文 → 中文": ("eng", "cmn"),
+}
+
+DIRECTION_TO_TARGET_TAG = {
+    "中文 → 英文": "<|eng|>",
+    "英文 → 中文": "<|cmn|>",
 }
 
 
@@ -57,6 +65,10 @@ class StreamingEvent:
     codec_seconds: float = 0.0
     audio_samples: int = 0
     write_structurally_valid: bool | None = None
+    semantic_unique_count: int = 0
+    semantic_max_identical_run: int = 0
+    semantic_unique_ratio: float = 0.0
+    quality_rejected_reason: str | None = None
 
 
 @dataclass
@@ -71,6 +83,10 @@ class StreamingResult:
     aligned_stereo_path: str
     result_json_path: str
     translation: str
+    policy_translation: str
+    fallback_used: bool
+    fallback_reason: str | None
+    fallback_transcription: str
     source_duration_seconds: float
     translation_duration_seconds: float
     total_seconds: float
@@ -101,6 +117,16 @@ class StreamingUpdate:
 
 
 @dataclass
+class OfflineFallbackResult:
+    waveform: np.ndarray
+    transcription: str
+    translation: str
+    semantic_values: list[int]
+    semantic_max_identical_run: int
+    semantic_unique_ratio: float
+
+
+@dataclass
 class LiveEngineState:
     direction: str
     request_dir: Path
@@ -115,6 +141,7 @@ class LiveEngineState:
     total_frontend_seconds: float = 0.0
     first_write_ms: float | None = None
     first_audio_ms: float | None = None
+    fallback_reason: str | None = None
     started_at: float = field(default_factory=time.perf_counter)
     finalized: bool = False
 
@@ -129,6 +156,8 @@ class StreamingDemoEngine:
         self.model = None
         self.tokenizer = None
         self.speech_tokenizer: UniSSTokenizer | None = None
+        self.offline_fallback_model = None
+        self.offline_fallback_tokenizer = None
         self.lock = threading.Lock()
         self.loaded_at: float | None = None
 
@@ -165,6 +194,116 @@ class StreamingDemoEngine:
             return DIRECTION_TO_LANGUAGES[direction][1]
         except KeyError as exc:
             raise ValueError(f"Unsupported translation direction: {direction!r}") from exc
+
+    def _target_tag(self, direction: str) -> str:
+        try:
+            return DIRECTION_TO_TARGET_TAG[direction]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported translation direction: {direction!r}") from exc
+
+    def _load_offline_fallback(self) -> None:
+        if (
+            self.offline_fallback_model is not None
+            and self.offline_fallback_tokenizer is not None
+        ):
+            return
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        self.offline_fallback_tokenizer = AutoTokenizer.from_pretrained(
+            self.config.offline_fallback_model_path,
+            local_files_only=True,
+            trust_remote_code=False,
+        )
+        dtype = torch.bfloat16 if self.device.type == "cuda" else torch.float32
+        self.offline_fallback_model = AutoModelForCausalLM.from_pretrained(
+            self.config.offline_fallback_model_path,
+            local_files_only=True,
+            trust_remote_code=False,
+            torch_dtype=dtype,
+        ).to(self.device)
+        self.offline_fallback_model.eval()
+
+    def _offline_quality_fallback(
+        self,
+        *,
+        source_glm: Sequence[int],
+        source_bicodec: Sequence[int],
+        direction: str,
+    ) -> OfflineFallbackResult:
+        assert self.speech_tokenizer is not None
+        self._load_offline_fallback()
+        assert self.offline_fallback_model is not None
+        assert self.offline_fallback_tokenizer is not None
+        prompt = process_input(
+            [int(value) for value in source_glm],
+            [int(value) for value in source_bicodec],
+            "Quality",
+            self._target_tag(direction),
+            speed=1.0,
+        )
+        prompt_ids = self.offline_fallback_tokenizer.encode(
+            prompt, return_tensors="pt"
+        ).to(self.device)
+        model_vocab_size = int(self.offline_fallback_model.config.vocab_size)
+        suppressed_dummy_ids = list(range(c.VOCAB_SIZE, model_vocab_size))
+        torch.manual_seed(self.config.seed)
+        if self.device.type == "cuda":
+            torch.cuda.manual_seed_all(self.config.seed)
+        with torch.inference_mode():
+            generated = self.offline_fallback_model.generate(
+                prompt_ids,
+                max_new_tokens=1500,
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.8,
+                repetition_penalty=1.1,
+                pad_token_id=c.TOKEN_PAD,
+                eos_token_id=c.TOKEN_EOS,
+                suppress_tokens=suppressed_dummy_ids,
+            )
+        generated_tail = truncate_at_eos(
+            generated[0, prompt_ids.shape[1] :].tolist()
+        )
+        parsed = parse_with_tokenizer(
+            generated_tail,
+            mode="quality",
+            tokenizer=self.offline_fallback_tokenizer,
+        )
+        semantic_values = [int(value) for value in parsed.get("semantic_values") or []]
+        rejection = semantic_rejection_reason(semantic_values)
+        if rejection is not None:
+            raise RuntimeError(f"Phase3 fallback semantic rejected: {rejection}")
+        if not parsed.get("has_semantic_start") or not parsed.get("has_semantic_end"):
+            raise RuntimeError("Phase3 fallback semantic delimiters are incomplete")
+        decode_tokens = torch.tensor(
+            [*map(int, source_bicodec[:32]), *semantic_values],
+            dtype=torch.long,
+            device=self.device,
+        )
+        with torch.inference_mode():
+            waveform = self.speech_tokenizer.decode(decode_tokens)
+        values = np.asarray(waveform, dtype=np.float32).reshape(-1)
+        if values.size == 0 or not np.isfinite(values).all():
+            raise RuntimeError("Phase3 fallback decoded an empty or invalid waveform")
+        unique_ratio = len(set(semantic_values)) / max(1, len(semantic_values))
+        max_run = 0
+        current = 0
+        previous = object()
+        for value in semantic_values:
+            if value == previous:
+                current += 1
+            else:
+                current = 1
+                previous = value
+            max_run = max(max_run, current)
+        return OfflineFallbackResult(
+            waveform=values,
+            transcription=str(parsed.get("generated_transcription") or "").strip(),
+            translation=str(parsed.get("generated_translation") or "").strip(),
+            semantic_values=semantic_values,
+            semantic_max_identical_run=max_run,
+            semantic_unique_ratio=unique_ratio,
+        )
 
     def _adapter(self, direction: str, speaker_tokens: Sequence[int]) -> QwenLiveAdapter:
         assert self.model is not None and self.tokenizer is not None
@@ -222,6 +361,12 @@ class StreamingDemoEngine:
         event.generated_semantic_values = list(write.semantic_tokens)
         event.write_seconds = adapter.last_write.seconds
         event.write_structurally_valid = adapter.last_write.structurally_valid
+        event.semantic_unique_count = adapter.last_write.semantic_unique_count
+        event.semantic_max_identical_run = adapter.last_write.semantic_max_identical_run
+        event.semantic_unique_ratio = adapter.last_write.semantic_unique_ratio
+        event.quality_rejected_reason = adapter.last_write.quality_rejected_reason
+        if event.quality_rejected_reason is not None:
+            return event, np.zeros(0, dtype=np.float32)
         started = time.perf_counter()
         waveform = codec.push(
             write.semantic_tokens,
@@ -290,6 +435,8 @@ class StreamingDemoEngine:
             event_chunks: list[tuple[float, np.ndarray]] = []
             first_write_ms: float | None = None
             first_audio_ms: float | None = None
+            fallback_reason: str | None = None
+            fallback_result: OfflineFallbackResult | None = None
             spans = chunk_spans(len(source_glm), tokens_per_chunk(self.config.chunk_ms))
             source_duration_ms = float(metadata["duration_seconds"]) * 1000.0
             for index, span in enumerate(spans):
@@ -311,6 +458,17 @@ class StreamingDemoEngine:
                 events.append(event)
                 if event.action == "write" and first_write_ms is None:
                     first_write_ms = source_end_ms
+                if event.quality_rejected_reason is not None:
+                    fallback_reason = event.quality_rejected_reason
+                    yield StreamingUpdate(
+                        status=(
+                            "检测到 R2 semantic collapse，已阻止噪声音频并切换 "
+                            f"Phase3 Quality 回退：{fallback_reason}"
+                        ),
+                        translation=event.generated_text,
+                        event=event,
+                    )
+                    break
                 if waveform.size:
                     event_chunks.append((source_end_ms, waveform))
                     if first_audio_ms is None:
@@ -324,9 +482,27 @@ class StreamingDemoEngine:
                     event=event,
                     audio_chunk=waveform,
                 )
-            translation_audio = concatenate_audio([chunk for _, chunk in event_chunks])
+            policy_translation = adapter.translation
+            if fallback_reason is not None or not event_chunks:
+                fallback_reason = fallback_reason or "empty_streaming_audio"
+                yield StreamingUpdate(
+                    "正在使用 full198 Phase3 Quality 重新生成安全的翻译语音…",
+                    policy_translation,
+                )
+                fallback_result = self._offline_quality_fallback(
+                    source_glm=source_glm,
+                    source_bicodec=source_bicodec,
+                    direction=direction,
+                )
+                translation_audio = fallback_result.waveform
+                event_chunks = [(source_duration_ms, translation_audio)]
+                first_audio_ms = source_duration_ms
+                final_translation = fallback_result.translation
+            else:
+                translation_audio = concatenate_audio([chunk for _, chunk in event_chunks])
+                final_translation = policy_translation
             if translation_audio.size == 0:
-                raise RuntimeError("R2/R3 completed without a decodable translation waveform")
+                raise RuntimeError("streaming and Phase3 fallback produced no audio")
             source_waveform, _ = sf.read(source_path, dtype="float32", always_2d=False)
             target_timeline = self._timeline_audio(event_chunks)
             translation_path = request_dir / "translation.wav"
@@ -337,17 +513,32 @@ class StreamingDemoEngine:
             self._write_stereo(source_waveform, target_timeline, stereo_path)
             result_path = request_dir / "session_summary.json"
             total_seconds = time.perf_counter() - started
+            fallback_used = fallback_result is not None
             result = StreamingResult(
                 request_dir=str(request_dir.resolve()),
-                mode="evaluation-compatible replay (pseudo-streaming)",
+                mode=(
+                    "evaluation-compatible replay with Phase3 Quality audio fallback"
+                    if fallback_used
+                    else "evaluation-compatible replay (pseudo-streaming)"
+                ),
                 direction=direction,
-                model_label=self.config.model_label,
+                model_label=(
+                    f"{self.config.model_label} + Phase3 full198 Quality fallback"
+                    if fallback_used
+                    else self.config.model_label
+                ),
                 source_audio_path=str(source_path.resolve()),
                 translation_audio_path=str(translation_path.resolve()),
                 timeline_audio_path=str(timeline_path.resolve()),
                 aligned_stereo_path=str(stereo_path.resolve()),
                 result_json_path=str(result_path.resolve()),
-                translation=adapter.translation,
+                translation=final_translation,
+                policy_translation=policy_translation,
+                fallback_used=fallback_used,
+                fallback_reason=fallback_reason if fallback_used else None,
+                fallback_transcription=(
+                    fallback_result.transcription if fallback_result is not None else ""
+                ),
                 source_duration_seconds=float(metadata["duration_seconds"]),
                 translation_duration_seconds=len(translation_audio) / SAMPLE_RATE,
                 total_seconds=total_seconds,
@@ -372,10 +563,22 @@ class StreamingDemoEngine:
                 "codec_holdback_tokens": self.config.codec_holdback_tokens,
                 "codec_overlap_ms": self.config.codec_overlap_ms,
             }
+            if fallback_result is not None:
+                payload["fallback"] = {
+                    "model": str(self.config.offline_fallback_model_path),
+                    "reason": fallback_reason,
+                    "semantic_count": len(fallback_result.semantic_values),
+                    "semantic_max_identical_run": fallback_result.semantic_max_identical_run,
+                    "semantic_unique_ratio": fallback_result.semantic_unique_ratio,
+                }
             write_json(result_path, payload)
             yield StreamingUpdate(
-                "完成：右侧时间线音频保留模型实际 WAIT/WRITE 起点。",
-                adapter.translation,
+                (
+                    "完成：R2 semantic collapse 已被拦截，当前播放 Phase3 Quality 安全回退语音。"
+                    if fallback_used
+                    else "完成：右侧时间线音频保留模型实际 WAIT/WRITE 起点。"
+                ),
+                final_translation,
                 result=result,
             )
 
@@ -455,7 +658,7 @@ class StreamingDemoEngine:
                     )
                     state.adapter = self._adapter(direction, state.speaker_tokens)
                     state.codec = self._codec()
-                if state.adapter is not None:
+                if state.adapter is not None and state.fallback_reason is None:
                     new_committed = frontend.committed_tokens[state.appended_committed_tokens :]
                     state.adapter.append_source(new_committed)
                     state.appended_committed_tokens = len(frontend.committed_tokens)
@@ -470,6 +673,8 @@ class StreamingDemoEngine:
                     state.events.append(event)
                     if event.action == "write" and state.first_write_ms is None:
                         state.first_write_ms = event.source_end_ms
+                    if event.quality_rejected_reason is not None:
+                        state.fallback_reason = event.quality_rejected_reason
                     if target_audio.size:
                         state.audio_chunks.append(target_audio)
                         if state.first_audio_ms is None:
@@ -477,8 +682,12 @@ class StreamingDemoEngine:
                     updates.append(
                         StreamingUpdate(
                             status=(
-                                f"Online pseudo-streaming · {event.action.upper()} · "
-                                f"source={event.source_end_ms:.0f} ms"
+                                "已阻止 semantic collapse，录音结束后将使用 Phase3 Quality 回退。"
+                                if event.quality_rejected_reason is not None
+                                else (
+                                    f"Online pseudo-streaming · {event.action.upper()} · "
+                                    f"source={event.source_end_ms:.0f} ms"
+                                )
                             ),
                             translation=state.adapter.translation,
                             event=event,
@@ -490,6 +699,18 @@ class StreamingDemoEngine:
                                 "frontend_seconds": frontend.encode_seconds,
                                 "frontend_rtf": state.total_frontend_seconds
                                 / max(end_sample / SAMPLE_RATE, 1e-6),
+                            },
+                        )
+                    )
+                elif state.fallback_reason is not None:
+                    updates.append(
+                        StreamingUpdate(
+                            "R2 semantic 已退化；继续接收源音频，停止后生成安全回退语音。",
+                            state.adapter.translation if state.adapter else "",
+                            frontend={
+                                "candidate_tokens": len(frontend.candidate_tokens),
+                                "committed_tokens": len(frontend.committed_tokens),
+                                "revision_events": frontend.revision_events,
                             },
                         )
                     )
@@ -512,34 +733,70 @@ class StreamingDemoEngine:
                 source_path = state.request_dir / "source_16k.wav"
                 sf.write(source_path, waveform, SAMPLE_RATE, subtype="PCM_16")
                 translation_audio = concatenate_audio(state.audio_chunks)
-                if translation_audio.size == 0:
-                    raise RuntimeError("live session produced no decodable translation audio")
+                policy_translation = state.adapter.translation
+                fallback_result: OfflineFallbackResult | None = None
+                if state.fallback_reason is not None or translation_audio.size == 0:
+                    state.fallback_reason = state.fallback_reason or "empty_streaming_audio"
+                    linguistic_tokens, bicodec_tokens = self.speech_tokenizer.tokenize(
+                        source_path
+                    )
+                    fallback_result = self._offline_quality_fallback(
+                        source_glm=[int(value) for value in linguistic_tokens],
+                        source_bicodec=[int(value) for value in bicodec_tokens],
+                        direction=direction,
+                    )
+                    translation_audio = fallback_result.waveform
+                    final_translation = fallback_result.translation
+                    state.first_audio_ms = len(waveform) * 1000.0 / SAMPLE_RATE
+                else:
+                    final_translation = policy_translation
                 translation_path = state.request_dir / "translation.wav"
                 timeline_path = state.request_dir / "translation_timeline.wav"
                 stereo_path = state.request_dir / "aligned_stereo.wav"
                 sf.write(translation_path, translation_audio, SAMPLE_RATE, subtype="PCM_16")
-                event_chunks = [
-                    (event.source_end_ms, chunk)
-                    for event, chunk in zip(
-                        [event for event in state.events if event.audio_samples > 0],
-                        state.audio_chunks,
-                    )
-                ]
+                if fallback_result is not None:
+                    event_chunks = [
+                        (len(waveform) * 1000.0 / SAMPLE_RATE, translation_audio)
+                    ]
+                else:
+                    event_chunks = [
+                        (event.source_end_ms, chunk)
+                        for event, chunk in zip(
+                            [event for event in state.events if event.audio_samples > 0],
+                            state.audio_chunks,
+                        )
+                    ]
                 target_timeline = self._timeline_audio(event_chunks)
                 sf.write(timeline_path, target_timeline, SAMPLE_RATE, subtype="PCM_16")
                 self._write_stereo(waveform, target_timeline, stereo_path)
                 result_path = state.request_dir / "session_summary.json"
                 result = StreamingResult(
                     request_dir=str(state.request_dir.resolve()),
-                    mode="online WhisperVQ cumulative-prefix pseudo-streaming",
+                    mode=(
+                        "online prefix with Phase3 Quality audio fallback"
+                        if fallback_result is not None
+                        else "online WhisperVQ cumulative-prefix pseudo-streaming"
+                    ),
                     direction=direction,
-                    model_label=self.config.model_label,
+                    model_label=(
+                        f"{self.config.model_label} + Phase3 full198 Quality fallback"
+                        if fallback_result is not None
+                        else self.config.model_label
+                    ),
                     source_audio_path=str(source_path.resolve()),
                     translation_audio_path=str(translation_path.resolve()),
                     timeline_audio_path=str(timeline_path.resolve()),
                     aligned_stereo_path=str(stereo_path.resolve()),
                     result_json_path=str(result_path.resolve()),
-                    translation=state.adapter.translation,
+                    translation=final_translation,
+                    policy_translation=policy_translation,
+                    fallback_used=fallback_result is not None,
+                    fallback_reason=(
+                        state.fallback_reason if fallback_result is not None else None
+                    ),
+                    fallback_transcription=(
+                        fallback_result.transcription if fallback_result is not None else ""
+                    ),
                     source_duration_seconds=len(waveform) / SAMPLE_RATE,
                     translation_duration_seconds=len(translation_audio) / SAMPLE_RATE,
                     total_seconds=time.perf_counter() - state.started_at,
@@ -558,12 +815,27 @@ class StreamingDemoEngine:
                         "source_frontend": "WhisperVQ cumulative-prefix re-encoding",
                         "frontend_total_seconds": state.total_frontend_seconds,
                         "prefix_revision_events": state.frontend.committer.revision_events,
+                        "fallback": (
+                            {
+                                "model": str(self.config.offline_fallback_model_path),
+                                "reason": state.fallback_reason,
+                                "semantic_count": len(fallback_result.semantic_values),
+                                "semantic_max_identical_run": fallback_result.semantic_max_identical_run,
+                                "semantic_unique_ratio": fallback_result.semantic_unique_ratio,
+                            }
+                            if fallback_result is not None
+                            else None
+                        ),
                     },
                 )
                 updates.append(
                     StreamingUpdate(
-                        "麦克风同传完成并已 final flush。",
-                        state.adapter.translation,
+                        (
+                            "麦克风同传完成：semantic collapse 已拦截并使用 Phase3 Quality 回退。"
+                            if fallback_result is not None
+                            else "麦克风同传完成并已 final flush。"
+                        ),
+                        final_translation,
                         result=result,
                     )
                 )

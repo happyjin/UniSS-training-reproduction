@@ -31,7 +31,13 @@ def event_timeline_html(updates: list[dict[str, object]] | None) -> str:
         action = str(event.get("action", "")).upper()
         css_class = "write" if action == "WRITE" else "wait"
         text = html.escape(str(event.get("generated_text", "")))
-        forced = html.escape(str(event.get("forced_reason") or ""))
+        forced = html.escape(
+            str(
+                event.get("quality_rejected_reason")
+                or event.get("forced_reason")
+                or ""
+            )
+        )
         rows.append(
             "<tr>"
             f"<td>{int(event.get('event_index', 0)) + 1}</td>"
@@ -64,6 +70,11 @@ def _audio_value(update: StreamingUpdate):
 
 
 def format_final_status(result: StreamingResult) -> str:
+    fallback = (
+        f"  \n音频安全回退：`Phase3 full198 Quality` · 原因：`{result.fallback_reason}`"
+        if result.fallback_used
+        else ""
+    )
     return (
         f"**完成** · `{result.model_label}`  \n"
         f"模式：`{result.mode}`  \n"
@@ -73,6 +84,7 @@ def format_final_status(result: StreamingResult) -> str:
         f"First WRITE：{result.first_write_ms if result.first_write_ms is not None else 'N/A'} ms · "
         f"First audio：{result.first_audio_ms if result.first_audio_ms is not None else 'N/A'} ms · "
         f"forced={result.forced_actions} · recovery={result.structural_recoveries}"
+        f"{fallback}"
     )
 
 

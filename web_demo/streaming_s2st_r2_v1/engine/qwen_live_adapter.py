@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Sequence
 
 import torch
+from transformers import LogitsProcessor, LogitsProcessorList
 
 from evaluation.simultaneous_streaming.stage4_streaming_generate import (
     normalized_write_tail,
@@ -34,7 +35,84 @@ class AdapterWrite:
     raw_token_ids: list[int]
     normalized_token_ids: list[int]
     structurally_valid: bool
+    semantic_unique_count: int
+    semantic_max_identical_run: int
+    semantic_unique_ratio: float
+    quality_rejected_reason: str | None
     seconds: float
+
+
+def maximum_identical_run(values: Sequence[int]) -> int:
+    best = current = 0
+    previous = object()
+    for value in values:
+        if value == previous:
+            current += 1
+        else:
+            current = 1
+            previous = value
+        best = max(best, current)
+    return best
+
+
+def semantic_rejection_reason(values: Sequence[int]) -> str | None:
+    tokens = [int(value) for value in values]
+    if not tokens:
+        return "empty_semantic"
+    unique_count = len(set(tokens))
+    unique_ratio = unique_count / len(tokens)
+    max_run = maximum_identical_run(tokens)
+    if len(tokens) >= 32 and max_run >= 16:
+        return f"semantic_identical_run:{max_run}"
+    if len(tokens) >= 64 and unique_ratio < 0.10:
+        return f"semantic_unique_ratio:{unique_ratio:.4f}"
+    return None
+
+
+class SemanticAntiCollapseProcessor(LogitsProcessor):
+    """Block a semantic token after a clearly non-speech repetition pattern."""
+
+    def __init__(self, prompt_length: int, run_limit: int = 6, window: int = 24):
+        self.prompt_length = prompt_length
+        self.run_limit = run_limit
+        self.window = window
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor):
+        adjusted = scores.clone()
+        for row_index, row in enumerate(input_ids):
+            generated = [int(value) for value in row[self.prompt_length :].tolist()]
+            try:
+                semantic_start = len(generated) - 1 - generated[::-1].index(
+                    c.TOKEN_START_SEMANTIC
+                )
+            except ValueError:
+                continue
+            semantic_ids = generated[semantic_start + 1 :]
+            if not semantic_ids or any(
+                value in {c.TOKEN_END_SEMANTIC, c.TOKEN_WAIT_READ, c.TOKEN_WRITE_GENERATE, c.TOKEN_EOS}
+                for value in semantic_ids
+            ):
+                continue
+            semantic_ids = [
+                value
+                for value in semantic_ids
+                if c.BICODEC_SEMANTIC_OFFSET <= value <= c.BICODEC_SEMANTIC_SPAN.last_id
+            ]
+            if not semantic_ids:
+                continue
+            last = semantic_ids[-1]
+            run = 0
+            for value in reversed(semantic_ids):
+                if value != last:
+                    break
+                run += 1
+            if run >= self.run_limit:
+                adjusted[row_index, last] = float("-inf")
+            tail = semantic_ids[-self.window :]
+            if len(tail) == self.window and len(set(tail)) <= 2:
+                for value in set(tail):
+                    adjusted[row_index, value] = float("-inf")
+        return adjusted
 
 
 @dataclass
@@ -154,6 +232,9 @@ class QwenLiveAdapter:
                     c.TOKEN_EOS,
                 ],
                 suppress_tokens=suppressed_dummy_ids,
+                logits_processor=LogitsProcessorList(
+                    [SemanticAntiCollapseProcessor(input_ids.shape[1])]
+                ),
             )
         raw_tail = [int(value) for value in generated[0, input_ids.shape[1] :].tolist()]
         parsed = parse_write_tokens(raw_tail, self.tokenizer)
@@ -167,11 +248,16 @@ class QwenLiveAdapter:
         )
         if raw_tail != normalized:
             self.structural_recoveries += 1
-        self.prompt_ids.extend(normalized)
-        self._account_prompt()
         text_ids = [int(value) for value in parsed["text_ids"]]
         semantic_values = [int(value) for value in parsed["semantic_values"]]
-        self.generated_text_ids.extend(text_ids)
+        semantic_unique_count = len(set(semantic_values))
+        semantic_max_run = maximum_identical_run(semantic_values)
+        semantic_unique_ratio = semantic_unique_count / max(1, len(semantic_values))
+        quality_rejected_reason = semantic_rejection_reason(semantic_values)
+        if quality_rejected_reason is None:
+            self.prompt_ids.extend(normalized)
+            self._account_prompt()
+            self.generated_text_ids.extend(text_ids)
         self.last_write = AdapterWrite(
             text=str(parsed["text"]),
             text_ids=text_ids,
@@ -179,6 +265,10 @@ class QwenLiveAdapter:
             raw_token_ids=raw_tail,
             normalized_token_ids=normalized,
             structurally_valid=structurally_valid,
+            semantic_unique_count=semantic_unique_count,
+            semantic_max_identical_run=semantic_max_run,
+            semantic_unique_ratio=semantic_unique_ratio,
+            quality_rejected_reason=quality_rejected_reason,
             seconds=time.perf_counter() - started,
         )
         return WriteResult(text_ids, semantic_values)
