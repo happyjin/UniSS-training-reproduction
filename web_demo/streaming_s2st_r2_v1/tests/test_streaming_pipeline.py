@@ -4,11 +4,28 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
+import torch
 
+from web_demo.streaming_s2st_r2_v1.engine.prefix_frontend import CumulativePrefixFrontend
 from web_demo.streaming_s2st_r2_v1.engine.streaming_pipeline import StreamingDemoEngine
 
 
 class StreamingPipelineHelpersTest(unittest.TestCase):
+    def test_speaker_extraction_flattens_batched_bicodec_tokens(self):
+        class FakeBiCodec:
+            def encode_wav_to_tokens(self, _path):
+                return torch.arange(40, dtype=torch.long).reshape(1, 40)
+
+        class FakeSpeechTokenizer:
+            bicodec = FakeBiCodec()
+
+        with tempfile.TemporaryDirectory() as directory:
+            frontend = CumulativePrefixFrontend(FakeSpeechTokenizer())
+            values = frontend.extract_speaker_tokens(
+                np.zeros(1600, dtype=np.float32), Path(directory) / "speaker.wav"
+            )
+            self.assertEqual(values, list(range(32)))
+
     def test_timeline_preserves_wait_gaps_and_serializes_overlaps(self):
         first = np.ones(1600, dtype=np.float32) * 0.1
         second = np.ones(1600, dtype=np.float32) * 0.2

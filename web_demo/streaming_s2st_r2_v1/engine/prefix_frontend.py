@@ -52,7 +52,8 @@ class CumulativePrefixFrontend:
         temporary_path.parent.mkdir(parents=True, exist_ok=True)
         sf.write(temporary_path, values, SAMPLE_RATE, subtype="PCM_16")
         tokens = self.speech_tokenizer.bicodec.encode_wav_to_tokens(str(temporary_path))
-        speaker = [int(value) for value in tokens[:32].detach().cpu().tolist()]
+        flattened = tokens.detach().reshape(-1).cpu()
+        speaker = [int(value) for value in flattened[:32].tolist()]
         if len(speaker) != 32:
             raise ValueError(f"BiCodec returned {len(speaker)} speaker tokens, expected 32")
         return speaker
