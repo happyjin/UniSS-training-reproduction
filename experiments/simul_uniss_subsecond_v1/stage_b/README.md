@@ -23,6 +23,29 @@ the GPU that also hosted the demo. Batch 32 achieved about 82%, 100%, 283 W,
 and 25 GB respectively. The larger batch was selected for the formal pilot;
 the historical experiments are unaffected.
 
+The later full-manifest profile measured the original batch-64 implementation
+at about 7,800 audio seconds/s, 91.8% active utility, and 459 W active power.
+Increasing the audio cap to 16 seconds raised resident memory beyond 100 GB on
+some ranks but reduced throughput to about 4,300 audio seconds/s. Batch 128
+only reached about 8,300 audio seconds/s and changed the global batch to 1,024.
+A 1,024-wide student reduced throughput to about 6,300 audio seconds/s. These
+variants were rejected.
+
+The selected v2 removes the per-example GPU Python loop used to pack variable
+utterance and right-context frames. A batched mask/gather implementation is
+forward- and gradient-identical to the reference implementation and reaches
+about 8,450--8,590 audio seconds/s at 92--100% utility. Power remains roughly
+440--500 W because 160 ms Emformer segments are sequential, small-kernel
+streaming work; the 700 W board limit is not a meaningful utilization target
+for this architecture. The best full198 Phase3 used Qwen sequence length
+18,000 (not 13,000), which is a different dense long-token workload.
+
+The isolated continuation config is:
+
+```text
+configs/experiments/simul_uniss_subsecond_v1/stage_ab_vectorized_v2.env
+```
+
 ## Eight-GPU smoke
 
 ```bash

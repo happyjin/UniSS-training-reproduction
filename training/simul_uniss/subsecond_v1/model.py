@@ -100,25 +100,43 @@ class CausalAudioStudentV2(nn.Module):
         )
         return self.input_projection(stacked)
 
+    @staticmethod
+    def _pack_emformer_input(
+        projected: torch.Tensor,
+        total_lengths: torch.Tensor,
+        utterance_lengths: torch.Tensor,
+        right: int,
+    ) -> torch.Tensor:
+        max_utterance = int(utterance_lengths.max())
+        time = torch.arange(max_utterance, device=projected.device).unsqueeze(0)
+        left_mask = time < utterance_lengths.unsqueeze(1)
+        left = projected[:, :max_utterance].masked_fill(~left_mask.unsqueeze(-1), 0)
+
+        if right:
+            offsets = torch.arange(right, device=projected.device).unsqueeze(0)
+            right_indices = utterance_lengths.unsqueeze(1) + offsets
+            right_indices = right_indices.clamp_max(projected.shape[1] - 1)
+            right_values = projected.gather(
+                1, right_indices.unsqueeze(-1).expand(-1, -1, projected.shape[-1])
+            )
+            available_right = (total_lengths - utterance_lengths).clamp(min=0, max=right)
+            right_mask = offsets < available_right.unsqueeze(1)
+            right_values = right_values.masked_fill(~right_mask.unsqueeze(-1), 0)
+            return torch.cat((left, right_values), dim=1)
+        return left
+
     def _emformer_batch(
         self,
         projected: torch.Tensor,
         total_lengths: torch.Tensor,
         utterance_lengths: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        batch = projected.shape[0]
-        max_utterance = int(utterance_lengths.max())
-        right = self.config.right_context_frames
-        encoder_input = projected.new_zeros(batch, max_utterance + right, projected.shape[-1])
-        for row in range(batch):
-            utterance = int(utterance_lengths[row])
-            total = int(total_lengths[row])
-            encoder_input[row, :utterance] = projected[row, :utterance]
-            available_right = min(right, max(0, total - utterance))
-            if available_right:
-                encoder_input[row, max_utterance : max_utterance + available_right] = projected[
-                    row, utterance : utterance + available_right
-                ]
+        encoder_input = self._pack_emformer_input(
+            projected,
+            total_lengths,
+            utterance_lengths,
+            self.config.right_context_frames,
+        )
         encoded, output_lengths = self.encoder(encoder_input, utterance_lengths)
         return self.output_norm(encoded), output_lengths
 
