@@ -17,6 +17,8 @@ import tempfile
 import time
 from array import array
 from collections import Counter
+from concurrent.futures import Future, ThreadPoolExecutor
+from collections import deque
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -119,6 +121,10 @@ def _glm_end_times(duration_ms: int, token_count: int) -> list[int]:
     return [min(duration_ms, round(duration_ms * (index + 1) / token_count)) for index in range(token_count)]
 
 
+def _write_flac(path: Path, waveform: torch.Tensor, sample_rate: int) -> None:
+    sf.write(path, waveform.numpy(), sample_rate, format="FLAC")
+
+
 def _part_is_current(marker_path: Path, source: Path, limit_records: int | None, side: str) -> bool:
     if not marker_path.is_file():
         return False
@@ -171,8 +177,17 @@ def prepare_part(args: argparse.Namespace) -> dict[str, object]:
     offset = 0
     counts: Counter[str] = Counter()
     started = time.time()
+    pending_writes: deque[Future[None]] = deque()
+
+    def submit_write(executor: ThreadPoolExecutor, path: Path, waveform: torch.Tensor) -> None:
+        pending_writes.append(executor.submit(_write_flac, path, waveform, args.sample_rate))
+        while len(pending_writes) >= max(1, args.io_workers * 2):
+            pending_writes.popleft().result()
+
     try:
-        with temporary_manifest.open("wb") as manifest:
+        with ThreadPoolExecutor(max_workers=args.io_workers) as executor, temporary_manifest.open(
+            "wb"
+        ) as manifest:
             for row_index, row in enumerate(_iter_rows(source, args.batch_size)):
                 if args.limit_records is not None and counts["records"] >= args.limit_records:
                     break
@@ -187,21 +202,25 @@ def prepare_part(args: argparse.Namespace) -> dict[str, object]:
 
                 name = f"{row_index:07d}_{_safe_name(identifier)}"
                 source_audio = source_audio_dir / f"{name}.flac"
-                if not source_audio.is_file():
-                    waveform = decoder.decode(global_tokens, source_bicodec)
-                    sf.write(source_audio, waveform.numpy(), args.sample_rate, format="FLAC")
-                source_info = sf.info(source_audio)
-                source_duration_ms = round(1000 * source_info.frames / source_info.samplerate)
+                if source_audio.is_file():
+                    source_info = sf.info(source_audio)
+                    source_duration_ms = round(1000 * source_info.frames / source_info.samplerate)
+                else:
+                    source_waveform = decoder.decode(global_tokens, source_bicodec)
+                    source_duration_ms = round(1000 * len(source_waveform) / args.sample_rate)
+                    submit_write(executor, source_audio, source_waveform)
 
                 target_audio: Path | None = None
                 target_duration_ms: int | None = None
                 if args.side == "both":
                     target_audio = target_audio_dir / f"{name}.flac"
-                    if not target_audio.is_file():
-                        waveform = decoder.decode(global_tokens, target_bicodec)
-                        sf.write(target_audio, waveform.numpy(), args.sample_rate, format="FLAC")
-                    target_info = sf.info(target_audio)
-                    target_duration_ms = round(1000 * target_info.frames / target_info.samplerate)
+                    if target_audio.is_file():
+                        target_info = sf.info(target_audio)
+                        target_duration_ms = round(1000 * target_info.frames / target_info.samplerate)
+                    else:
+                        target_waveform = decoder.decode(global_tokens, target_bicodec)
+                        target_duration_ms = round(1000 * len(target_waveform) / args.sample_rate)
+                        submit_write(executor, target_audio, target_waveform)
 
                 item: dict[str, object] = {
                     "schema_version": STAGE_A_SOURCE_SCHEMA,
@@ -244,6 +263,8 @@ def prepare_part(args: argparse.Namespace) -> dict[str, object]:
                         ),
                         flush=True,
                     )
+            while pending_writes:
+                pending_writes.popleft().result()
             manifest.flush()
             os.fsync(manifest.fileno())
         os.replace(temporary_manifest, manifest_path)
@@ -406,6 +427,7 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--side", choices=("source", "both"), default="source")
     prepare.add_argument("--limit-records", type=int, default=None)
     prepare.add_argument("--batch-size", type=int, default=64)
+    prepare.add_argument("--io-workers", type=int, default=4)
     prepare.add_argument("--sample-rate", type=int, default=16000)
     prepare.add_argument("--progress-interval", type=int, default=100)
     prepare.add_argument("--skip-sha256", action="store_true")

@@ -41,6 +41,7 @@ cmd=(python -m training.simul_uniss.subsecond_v1.stage_a prepare-part
   --bicodec-checkpoint "${BICODEC_CHECKPOINT}"
   --device cuda:0
   --side "${SIDE}"
+  --io-workers "${STAGE_A_IO_WORKERS}"
 )
 if [[ -n "${LIMIT_RECORDS}" ]]; then
   cmd+=(--limit-records "${LIMIT_RECORDS}")

@@ -41,5 +41,6 @@ data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/
 ```
 
 Each parquet shard is independently resumable. The launcher processes up to
-eight shards in parallel and assembles the manifest only after all requested
-part markers are valid.
+eight shards in parallel, one BiCodec decoder per GPU. Every decoder overlaps
+GPU inference with a configurable CPU FLAC I/O thread pool. Assembly starts
+only after all requested part markers are valid.
