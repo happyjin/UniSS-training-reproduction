@@ -31,6 +31,42 @@ CUDA OOM = 0
 The smoke output is under the new directory's gitignored `runtime_outputs/` and
 does not overwrite formal evaluation results.
 
+## Public Gradio upload smoke
+
+The no-login `https://*.gradio.live` endpoint was tested from a fresh
+`gradio_client.Client` without credentials. It returned:
+
+```text
+HTTP page health = 200
+translation = I want to search for text messages in Baidu.
+HLS playlist = accessible
+timeline WAV = HTTP 200
+aligned stereo WAV = HTTP 200
+WAIT/WRITE HTML = contains WRITE
+auth metadata = public_no_login, username/password null
+```
+
+## Microphone-prefix engine smoke
+
+The live engine was exercised with the same 5.46 s waveform as one simulated
+browser stream followed by a separate final flush:
+
+```text
+prefix updates before final = 8
+First WRITE = 4480 ms
+First playable audio = 4480 ms
+translation = I like it. Search for text messages in Baidu.
+forced actions = 1 (final flush)
+structural recoveries = 0
+continuous/timeline/stereo audio = non-empty
+```
+
+The cumulative-prefix result is intentionally different from upload replay and
+demonstrates the documented pseudo-streaming quality trade-off. The Gradio
+5.49.1 Python client does not understand the browser streaming-input SSE status
+`process_streaming`; therefore microphone UI verification must use a real
+browser, while the server-side engine and output audio are validated directly.
+
 ## Gradio streaming audio dependency
 
 Gradio streaming audio uses both `ffmpeg` and `ffprobe`. Private wrappers in
