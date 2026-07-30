@@ -30,3 +30,10 @@ CUDA OOM = 0
 
 The smoke output is under the new directory's gitignored `runtime_outputs/` and
 does not overwrite formal evaluation results.
+
+## Gradio streaming audio dependency
+
+Gradio streaming audio uses both `ffmpeg` and `ffprobe`. The launch script adds
+the already recovered pair below `/opt/dlami/nvme/jasonleeeli/conda_pkgs_recovered/`
+to this demo process's `PATH`; it does not install system packages or modify the
+old offline demo environment.
