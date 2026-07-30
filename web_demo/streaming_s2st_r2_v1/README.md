@@ -19,6 +19,12 @@ the browser. If streaming semantic still fails the gate, the request is
 completed with the frozen full198 Phase3 Quality model and the UI/JSON records
 that fallback explicitly.
 
+Both upload and microphone-completion tabs expose the aligned stereo result as
+an in-page audio player, not only as a download. With headphones, the left
+channel is the original source and the right channel is the translated speech
+placed at its real WAIT/WRITE timeline; silence on the right is the audible
+translation delay.
+
 ## Launch
 
 ```bash

@@ -110,6 +110,7 @@ def stream_upload_request(
                     None,
                     None,
                     None,
+                    None,
                     update.status,
                     event_timeline_html(current_trace),
                     current_trace,
@@ -120,6 +121,7 @@ def stream_upload_request(
                 result.translation,
                 None,
                 result.timeline_audio_path,
+                result.aligned_stereo_path,
                 result.translation_audio_path,
                 result.aligned_stereo_path,
                 result.result_json_path,
@@ -182,6 +184,7 @@ def microphone_step(
                 None,
                 None,
                 None,
+                None,
             )
     except Exception as exc:
         raise gr.Error(f"麦克风流式处理失败：{type(exc).__name__}: {exc}") from exc
@@ -215,6 +218,7 @@ def microphone_finalize(
                 session.session_id,
                 current_trace,
                 result.timeline_audio_path if result else None,
+                result.aligned_stereo_path if result else None,
                 result.translation_audio_path if result else None,
                 result.aligned_stereo_path if result else None,
                 result.result_json_path if result else None,
@@ -230,7 +234,19 @@ def reset_microphone(session_id: str | None):
         except KeyError:
             pass
         REGISTRY.discard(session_id)
-    return None, None, "等待点击录音。", event_timeline_html([]), None, [], None, None, None, None
+    return (
+        None,
+        None,
+        "等待点击录音。",
+        event_timeline_html([]),
+        None,
+        [],
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 
 
 def build_demo(
@@ -309,6 +325,18 @@ def build_demo(
                         elem_id="upload-target",
                     )
                     sync_button = gr.Button("从 0 秒同步播放左右音频")
+            gr.Markdown(
+                "### 🎧 双声道延迟对比\n"
+                "建议佩戴耳机：左声道播放源语言；右声道按照实际 WAIT/WRITE 时间线播放翻译语言。"
+                "开头和 WRITE 之间的静音就是模型等待延迟。手机或单声道扬声器可能自动混音。"
+            )
+            upload_stereo_player = gr.Audio(
+                label="同步双声道播放（左=源语言，右=翻译语言）",
+                type="filepath",
+                autoplay=False,
+                interactive=False,
+                show_download_button=True,
+            )
             upload_timeline = gr.HTML(event_timeline_html([]))
             with gr.Row():
                 upload_raw_audio = gr.File(label="连续目标语音 WAV")
@@ -322,6 +350,7 @@ def build_demo(
                     upload_translation,
                     upload_live_audio,
                     upload_target,
+                    upload_stereo_player,
                     upload_raw_audio,
                     upload_stereo,
                     upload_json,
@@ -372,6 +401,16 @@ def build_demo(
                     mic_timeline_audio = gr.Audio(
                         label="完成后的同传时间线", type="filepath", interactive=False
                     )
+                    mic_stereo_player = gr.Audio(
+                        label="完成后的双声道延迟对比（左=源语言，右=翻译语言）",
+                        type="filepath",
+                        autoplay=False,
+                        interactive=False,
+                        show_download_button=True,
+                    )
+                    gr.Markdown(
+                        "佩戴耳机播放双声道结果，可以直接听出从左耳源语音到右耳翻译语音的延迟。"
+                    )
             mic_timeline = gr.HTML(event_timeline_html([]))
             with gr.Row():
                 mic_raw_audio = gr.File(label="连续目标语音 WAV")
@@ -385,6 +424,7 @@ def build_demo(
                 mic_session_id,
                 mic_trace,
                 mic_timeline_audio,
+                mic_stereo_player,
                 mic_raw_audio,
                 mic_stereo,
                 mic_json,

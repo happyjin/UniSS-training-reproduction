@@ -4,11 +4,14 @@ import unittest
 from pathlib import Path
 
 from web_demo.streaming_s2st_r2_v1.app_gradio import (
+    build_demo,
     event_timeline_html,
     parse_args,
     write_access_files,
 )
 from web_demo.streaming_s2st_r2_v1.config import StreamingDemoConfig
+from web_demo.streaming_s2st_r2_v1.engine import StreamingDemoEngine
+from web_demo.streaming_s2st_r2_v1.session_manager import SessionRegistry
 
 
 class GradioAppContractTest(unittest.TestCase):
@@ -42,6 +45,21 @@ class GradioAppContractTest(unittest.TestCase):
         )
         self.assertIn("&lt;x&gt;", value)
         self.assertNotIn("<x>", value)
+
+    def test_upload_and_microphone_expose_stereo_players(self):
+        config = StreamingDemoConfig()
+        demo = build_demo(
+            config,
+            StreamingDemoEngine(config),
+            SessionRegistry(config.output_root, config.microphone_max_audio_seconds),
+        )
+        labels = {
+            component.get("props", {}).get("label")
+            for component in demo.get_config_file()["components"]
+        }
+        self.assertIn("同步双声道播放（左=源语言，右=翻译语言）", labels)
+        self.assertIn("完成后的双声道延迟对比（左=源语言，右=翻译语言）", labels)
+        demo.close(verbose=False)
 
 
 if __name__ == "__main__":

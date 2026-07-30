@@ -108,3 +108,22 @@ The separately tested Phase3 safety fallback produced 271 semantic tokens,
 maximum run 3, unique ratio 0.970 and waveform RMS 0.0727. It remains lazy-loaded
 and is used only if the R2 quality gate rejects a WRITE or no safe streaming
 audio is available.
+
+## In-page stereo latency player
+
+Upload and microphone completion now return `aligned_stereo.wav` to both an
+in-page `gr.Audio` player and a download component. Public Gradio validation on
+the semantic-collapse regression sample confirmed:
+
+```text
+stereo player HTTP = 200
+channels = 2
+left channel = source speech
+right channel = translated speech on WAIT/WRITE timeline
+left first sound = 0.213 s
+right first sound = 3.393 s
+audible channel delay = 3.180 s
+```
+
+Headphones are recommended because phones and mono speakers may downmix both
+channels and make the left/right distinction less obvious.
