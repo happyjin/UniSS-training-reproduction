@@ -44,6 +44,7 @@ cd "${REPO_ROOT}"
 export CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export PYTHONUNBUFFERED=1
+export GLOO_SOCKET_IFNAME="${GLOO_SOCKET_IFNAME:-lo}"
 
 ARGS=(
   --checkpoint "${CHECKPOINT}"
@@ -63,9 +64,10 @@ fi
   echo "CONFIGS=${CONFIGS}"
   echo "LIMIT_RECORDS=${LIMIT_RECORDS:-all}"
   "${CONDA_PREFIX}/bin/torchrun" \
-    --standalone \
-    --nnodes=1 \
-    --nproc-per-node=8 \
+    --nnodes 1 \
+    --node-rank 0 \
+    --nproc-per-node 8 \
+    --master-addr 127.0.0.1 \
     --master-port="${MASTER_PORT}" \
     -m training.simul_uniss.subsecond_v1.evaluate_e2 \
     "${ARGS[@]}"
