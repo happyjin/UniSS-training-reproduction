@@ -23,5 +23,9 @@ else
   echo "Access info not ready"
 fi
 if [[ -f "${SCRIPT_DIR}/runtime_logs/public_server.log" ]]; then
-  tail -n 30 "${SCRIPT_DIR}/runtime_logs/public_server.log"
+  awk '
+    /Loading GLM4 tokenizer from:/ { current = "" }
+    { current = current $0 ORS }
+    END { printf "%s", current }
+  ' "${SCRIPT_DIR}/runtime_logs/public_server.log" | tail -n 40
 fi
