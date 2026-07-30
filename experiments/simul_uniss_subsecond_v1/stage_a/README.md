@@ -44,3 +44,8 @@ Each parquet shard is independently resumable. The launcher processes up to
 eight shards in parallel, one BiCodec decoder per GPU. Every decoder overlaps
 GPU inference with a configurable CPU FLAC I/O thread pool. Assembly starts
 only after all requested part markers are valid.
+
+The default is four CPU FLAC workers per GPU decoder (32 output workers in
+total). Stage A is therefore a mixed GPU/CPU pipeline rather than a CPU-only
+job. The GPU performs BiCodec decoding; CPU threads write and validate FLAC,
+JSONL, indexes, and completion metadata.
