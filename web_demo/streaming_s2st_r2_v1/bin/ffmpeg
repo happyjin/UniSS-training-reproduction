@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+USER_ROOT="${USER_ROOT:-/opt/dlami/nvme/jasonleeeli}"
+PACKAGE_ROOT="${UNISS_STREAMING_CONDA_PACKAGE_ROOT:-${USER_ROOT}/conda_pkgs_recovered}"
+FFMPEG_ROOT="${UNISS_STREAMING_FFMPEG_ROOT:-${PACKAGE_ROOT}/ffmpeg-8.1.2-gpl_h1bf8424_901}"
+library_path="$(find "${PACKAGE_ROOT}" -mindepth 2 -maxdepth 2 -type d -name lib -print | paste -sd: -)"
+[[ -x "${FFMPEG_ROOT}/bin/ffmpeg" ]] || { echo "Missing recovered ffmpeg" >&2; exit 1; }
+export LD_LIBRARY_PATH="${library_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+exec "${FFMPEG_ROOT}/bin/ffmpeg" "$@"

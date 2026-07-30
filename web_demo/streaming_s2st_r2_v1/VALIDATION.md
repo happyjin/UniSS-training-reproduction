@@ -33,7 +33,7 @@ does not overwrite formal evaluation results.
 
 ## Gradio streaming audio dependency
 
-Gradio streaming audio uses both `ffmpeg` and `ffprobe`. The launch script adds
-the already recovered pair below `/opt/dlami/nvme/jasonleeeli/conda_pkgs_recovered/`
-to this demo process's `PATH`; it does not install system packages or modify the
-old offline demo environment.
+Gradio streaming audio uses both `ffmpeg` and `ffprobe`. Private wrappers in
+`bin/` run the already recovered FFmpeg 8 pair with only its recovered Conda
+libraries. The Python/PyTorch process does not inherit that library path, and
+the implementation installs no system packages or modifies the old demo.
