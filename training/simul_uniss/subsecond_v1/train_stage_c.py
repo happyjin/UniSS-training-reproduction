@@ -29,6 +29,18 @@ from training.simul_uniss.subsecond_v1.stage_c_data import (
     StageCSourceCommitDataset,
     collate_stage_c,
 )
+from training.simul_uniss.subsecond_v2.stage_c_data import (
+    StageCFormalCommitDataset,
+    collate_stage_c_formal,
+)
+
+
+def _scope(args: argparse.Namespace) -> str:
+    return (
+        "formal_target_microphrase_safe_commit_v2"
+        if args.formal_target_support
+        else "source_glm_commit_proxy_not_target_microphrase_safe_commit"
+    )
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -241,7 +253,7 @@ def _save_checkpoint(
             "gate_config": gate_config.to_dict(),
             "args": vars(args),
             "student_checkpoint": str(Path(args.student_checkpoint).resolve()),
-            "scope": "source_glm_commit_proxy_not_target_microphrase_safe_commit",
+            "scope": _scope(args),
             "step": step,
             "epoch": epoch,
             "best_validation": best_validation,
@@ -279,6 +291,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20260731)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--formal-target-support", action="store_true")
     return parser.parse_args()
 
 
@@ -315,19 +328,35 @@ def main() -> None:
         return minimum_ratio + (1.0 - minimum_ratio) * cosine
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-    train_dataset = StageCSourceCommitDataset(
-        args.train_manifest,
-        max_audio_seconds=args.max_audio_seconds,
-        safety_margin_ms=args.safety_margin_ms,
-        random_prefix=True,
-    )
-    valid_dataset = StageCSourceCommitDataset(
-        args.valid_manifest,
-        max_audio_seconds=args.max_audio_seconds,
-        safety_margin_ms=args.safety_margin_ms,
-        prefixes_per_record=args.valid_prefixes_per_record,
-        random_prefix=False,
-    )
+    if args.formal_target_support:
+        train_dataset = StageCFormalCommitDataset(
+            args.train_manifest,
+            max_audio_seconds=args.max_audio_seconds,
+            prefixes_per_record=2,
+            random_prefix=True,
+        )
+        valid_dataset = StageCFormalCommitDataset(
+            args.valid_manifest,
+            max_audio_seconds=args.max_audio_seconds,
+            prefixes_per_record=args.valid_prefixes_per_record,
+            random_prefix=False,
+        )
+        collate_fn = collate_stage_c_formal
+    else:
+        train_dataset = StageCSourceCommitDataset(
+            args.train_manifest,
+            max_audio_seconds=args.max_audio_seconds,
+            safety_margin_ms=args.safety_margin_ms,
+            random_prefix=True,
+        )
+        valid_dataset = StageCSourceCommitDataset(
+            args.valid_manifest,
+            max_audio_seconds=args.max_audio_seconds,
+            safety_margin_ms=args.safety_margin_ms,
+            prefixes_per_record=args.valid_prefixes_per_record,
+            random_prefix=False,
+        )
+        collate_fn = collate_stage_c
     train_sampler = DistributedSampler(
         train_dataset,
         num_replicas=distributed.world_size,
@@ -343,7 +372,7 @@ def main() -> None:
     )
     loader_kwargs = {
         "batch_size": args.batch_size,
-        "collate_fn": collate_stage_c,
+        "collate_fn": collate_fn,
         "num_workers": args.num_workers,
         "pin_memory": device.type == "cuda",
         "persistent_workers": args.num_workers > 0,
@@ -454,16 +483,32 @@ def main() -> None:
     )
     if distributed.is_main and calibration_values is not None:
         calibration = calibrate(*calibration_values)
+        if args.formal_target_support:
+            calibration["schema_version"] = "simul_uniss_stage_c_formal_calibration_v2"
+            calibration["scope"] = _scope(args)
         calibration["student_checkpoint"] = str(Path(args.student_checkpoint).resolve())
         calibration["gate_checkpoint"] = str(best_checkpoint.resolve())
         _atomic_json(output_dir / "calibration.json", calibration)
+        completion_name = (
+            "STAGE_C_FORMAL_COMPLETE.json"
+            if args.formal_target_support
+            else "STAGE_C_SOURCE_PROXY_COMPLETE.json"
+        )
         _atomic_json(
-            output_dir / "STAGE_C_SOURCE_PROXY_COMPLETE.json",
+            output_dir / completion_name,
             {
-                "schema_version": "simul_uniss_stage_c_source_proxy_complete_v1",
+                "schema_version": (
+                    "simul_uniss_stage_c_formal_complete_v2"
+                    if args.formal_target_support
+                    else "simul_uniss_stage_c_source_proxy_complete_v1"
+                ),
                 "status": "complete",
-                "scope": "source_glm_commit_proxy_not_target_microphrase_safe_commit",
-                "warning": "Formal Stage C still requires bilingual target-support alignment.",
+                "scope": _scope(args),
+                "warning": (
+                    None
+                    if args.formal_target_support
+                    else "Formal Stage C still requires bilingual target-support alignment."
+                ),
                 "step": step,
                 "best_validation": best_validation,
                 "checkpoint": str(best_checkpoint.resolve()),

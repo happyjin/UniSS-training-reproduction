@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -75,6 +76,49 @@ def _concatenate(paths: Iterable[Path], output: Path, *, accepted_only: bool = F
     }
 
 
+def _split_accepted(path: Path, output_dir: Path, validation_modulus: int) -> dict[str, object]:
+    outputs = {
+        "train": output_dir / "formal_train_manifest.jsonl",
+        "valid": output_dir / "formal_valid_manifest.jsonl",
+    }
+    temporaries = {name: output_dir / f".{value.name}.tmp.{os.getpid()}" for name, value in outputs.items()}
+    handles = {name: value.open("wb") for name, value in temporaries.items()}
+    offsets = {name: array("Q") for name in outputs}
+    positions = {name: 0 for name in outputs}
+    counts = {name: 0 for name in outputs}
+    try:
+        with path.open("rb") as source:
+            for line in source:
+                value = json.loads(line)
+                digest = int(hashlib.sha256(str(value.get("id", "")).encode()).hexdigest()[:16], 16)
+                split = "valid" if digest % validation_modulus == 0 else "train"
+                offsets[split].append(positions[split])
+                handles[split].write(line)
+                positions[split] += len(line)
+                counts[split] += 1
+        for handle in handles.values():
+            handle.flush()
+            os.fsync(handle.fileno())
+            handle.close()
+        for name, temporary in temporaries.items():
+            os.replace(temporary, outputs[name])
+    finally:
+        for handle in handles.values():
+            if not handle.closed:
+                handle.close()
+        for temporary in temporaries.values():
+            temporary.unlink(missing_ok=True)
+    return {
+        name: {
+            "path": str(outputs[name]),
+            "records": counts[name],
+            "bytes": outputs[name].stat().st_size,
+            "index": write_index(outputs[name], offsets[name]),
+        }
+        for name in outputs
+    }
+
+
 def assemble(args: argparse.Namespace) -> dict[str, object]:
     a45_root = Path(args.a45_root).resolve()
     a68_root = Path(args.a68_root).resolve()
@@ -100,6 +144,9 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
         output_dir / "formal_accepted_manifest.jsonl",
         accepted_only=True,
     )
+    splits = _split_accepted(
+        Path(str(accepted["path"])), output_dir, args.validation_modulus
+    )
     if int(a45["records"]) != args.expected_records:
         raise ValueError(f"A4/A5 record count {a45['records']} != expected {args.expected_records}")
     if int(formal["records"]) != args.expected_records:
@@ -117,6 +164,8 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
         "a45": a45,
         "formal_all": formal,
         "formal_accepted": accepted,
+        "formal_splits": splits,
+        "validation_modulus": args.validation_modulus,
         "formal_acceptance_rate": int(accepted["records"]) / max(1, int(formal["records"])),
         "a45_part_markers": [str(value["output_manifest"]) for value in a45_markers],
         "a68_part_markers": [str(value["output_manifest"]) for value in a68_markers],
@@ -134,6 +183,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--expected-parts", type=int, default=30)
     parser.add_argument("--expected-records", type=int, default=1_500_000)
+    parser.add_argument("--validation-modulus", type=int, default=100)
     return parser.parse_args()
 
 
@@ -143,4 +193,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

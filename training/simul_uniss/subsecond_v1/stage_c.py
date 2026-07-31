@@ -165,7 +165,10 @@ def extract_gate_inputs(
         lcp_values.append(_longest_common_prefix(predicted, reference))
     lcp = torch.tensor(lcp_values, dtype=torch.long, device=logits.device)
     support_ready = batch["support_count"] >= minimum_commit_tokens
-    labels = support_ready & (lcp >= minimum_commit_tokens)
+    if "safe_label" in batch:
+        labels = batch["safe_label"].bool()
+    else:
+        labels = support_ready & (lcp >= minimum_commit_tokens)
     return {
         "context": context,
         "evidence": evidence,

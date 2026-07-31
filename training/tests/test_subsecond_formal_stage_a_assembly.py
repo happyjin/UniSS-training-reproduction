@@ -42,6 +42,7 @@ class FormalStageAAssemblyTest(unittest.TestCase):
                     output_dir=str(root / "output"),
                     expected_parts=2,
                     expected_records=2,
+                    validation_modulus=100,
                 )
             )
             self.assertEqual(value["a45"]["records"], 2)
