@@ -16,20 +16,33 @@ start_tensorboard() {
     "cd '${REPO_ROOT}' && scripts/simul_uniss_subsecond_v2/start_formal_tensorboard.sh '${stage}'"
 }
 
-while [[ "$(marker_count "${A45_ROOT}" STAGE_A_A45_COMPLETE.json)" -lt "${expected_parts}" ]]; do
-  count="$(marker_count "${A45_ROOT}" STAGE_A_A45_COMPLETE.json)"
-  log "waiting for formal A4/A5: ${count}/${expected_parts} parts"
-  if ! pgrep -f 'training.simul_uniss.subsecond_v2.prepare_a45' >/dev/null; then
-    log "A4/A5 workers are absent; resuming incomplete parts"
-    bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/run_formal_stage_a_15shard.sh" "${FORMAL_CONFIG}" a45 \
-      2>&1 | tee -a "${PIPELINE_LOG}"
-  fi
-  sleep 30
-done
+wait_or_resume_stage_a() {
+  local phase="$1" root="$2" marker="$3" module="$4" label="$5"
+  local count
+  while [[ "$(marker_count "${root}" "${marker}")" -lt "${expected_parts}" ]]; do
+    count="$(marker_count "${root}" "${marker}")"
+    if pgrep -f "${module}" >/dev/null; then
+      log "waiting for formal ${label}: ${count}/${expected_parts} parts"
+    else
+      log "formal ${label} workers are absent at ${count}/${expected_parts}; resuming incomplete parts"
+      if ! bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/run_formal_stage_a_15shard.sh" \
+        "${FORMAL_CONFIG}" "${phase}" 2>&1 | tee -a "${PIPELINE_LOG}"; then
+        log "formal ${label} attempt failed; retrying incomplete parts in 30 seconds"
+      fi
+    fi
+    [[ "$(marker_count "${root}" "${marker}")" -ge "${expected_parts}" ]] || sleep 30
+  done
+  log "formal ${label} complete: ${expected_parts}/${expected_parts} parts"
+}
+
+wait_or_resume_stage_a \
+  a45 "${A45_ROOT}" STAGE_A_A45_COMPLETE.json \
+  training.simul_uniss.subsecond_v2.prepare_a45 A4/A5
 
 log "formal A4/A5 complete; starting A6/A8 bilingual alignment"
-bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/run_formal_stage_a_15shard.sh" "${FORMAL_CONFIG}" a68 \
-  2>&1 | tee -a "${PIPELINE_LOG}"
+wait_or_resume_stage_a \
+  a68 "${A68_ROOT}" STAGE_A_A68_COMPLETE.json \
+  training.simul_uniss.subsecond_v2.prepare_a68 A6/A8
 log "assembling deterministic formal train/valid manifests"
 bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/run_formal_stage_a_15shard.sh" "${FORMAL_CONFIG}" assemble \
   2>&1 | tee -a "${PIPELINE_LOG}"
