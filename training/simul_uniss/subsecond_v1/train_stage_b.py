@@ -188,6 +188,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--save-interval", type=int, default=500)
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--teacher-glm-field", default="source_glm")
+    parser.add_argument("--teacher-glm-end-field", default="source_glm_end_ms")
     parser.add_argument("--source-weight", type=float, default=0.1)
     parser.add_argument("--capacity-weight", type=float, default=0.0)
     parser.add_argument("--stability-weight", type=float, default=0.2)
@@ -213,12 +215,16 @@ def main() -> None:
         tokenizer,
         max_audio_seconds=args.max_audio_seconds,
         prefix_training=True,
+        teacher_glm_field=args.teacher_glm_field,
+        teacher_glm_end_field=args.teacher_glm_end_field,
     )
     valid_dataset = StageBAudioDataset(
         args.manifest,
         tokenizer,
         max_audio_seconds=args.max_audio_seconds,
         prefix_training=False,
+        teacher_glm_field=args.teacher_glm_field,
+        teacher_glm_end_field=args.teacher_glm_end_field,
     )
     validation_records = min(args.validation_records, max(1, len(train_dataset) // 5))
     valid_indices = list(range(validation_records))

@@ -27,6 +27,8 @@ class StageBAudioDataset(Dataset):
         chunk_ms: int = 160,
         right_context_ms: int = 80,
         prefix_training: bool = True,
+        teacher_glm_field: str = "source_glm",
+        teacher_glm_end_field: str = "source_glm_end_ms",
     ) -> None:
         self.path = Path(manifest)
         offsets = load_index(self.path)
@@ -39,6 +41,8 @@ class StageBAudioDataset(Dataset):
         self.chunk_samples = int(round(chunk_ms * 16))
         self.right_context_samples = int(round(right_context_ms * 16))
         self.prefix_training = prefix_training
+        self.teacher_glm_field = teacher_glm_field
+        self.teacher_glm_end_field = teacher_glm_end_field
 
     def __len__(self) -> int:
         return len(self.offsets)
@@ -74,26 +78,58 @@ class StageBAudioDataset(Dataset):
             visible = torch.nn.functional.pad(visible, (0, required_samples - len(visible)))
 
         utterance_ms = round(utterance_samples / 16)
-        teacher_glm = [int(value) + 1 for value in item["source_glm"]]
-        teacher_ends = [int(value) for value in item["source_glm_end_ms"]]
+        if self.teacher_glm_field not in item or self.teacher_glm_end_field not in item:
+            raise KeyError(
+                f"formal Stage-B fields are missing: {self.teacher_glm_field}, "
+                f"{self.teacher_glm_end_field}"
+            )
+        teacher_values = [int(value) for value in item[self.teacher_glm_field]]
+        teacher_glm = [value + 1 for value in teacher_values]
+        teacher_ends = [int(value) for value in item[self.teacher_glm_end_field]]
+        if len(teacher_glm) != len(teacher_ends):
+            raise ValueError("teacher GLM token/time lengths differ")
         teacher_count = bisect.bisect_right(teacher_ends, utterance_ms)
         max_output_frames = max(1, math.ceil(max(1, utterance_samples - 240) / 640))
         teacher_glm = teacher_glm[: min(teacher_count, max_output_frames)]
         if not teacher_glm:
-            teacher_glm = [int(item["source_glm"][0]) + 1]
+            teacher_glm = [teacher_values[0] + 1]
 
         visible_fraction = min(1.0, utterance_samples / max(1, full_samples))
         transcription = str(item["transcription"])
-        source_chars = max(1, math.ceil(len(transcription) * visible_fraction))
-        source_policy = self.policy_tokenizer.encode_ctc(transcription[:source_chars])
+        source_words = item.get("source_words")
+        if isinstance(source_words, list) and source_words:
+            visible_words = [
+                str(value["text"])
+                for value in source_words
+                if isinstance(value, dict) and int(value.get("end_ms", 0)) <= utterance_ms
+            ]
+            if not visible_words:
+                visible_words = [str(source_words[0]["text"])]
+            separator = "" if str(item.get("src_lang", "")).lower() in {"cmn", "zh"} else " "
+            source_prefix = separator.join(visible_words)
+        else:
+            source_chars = max(1, math.ceil(len(transcription) * visible_fraction))
+            source_prefix = transcription[:source_chars]
+        source_policy = self.policy_tokenizer.encode_ctc(source_prefix)
         source_policy = source_policy[:max_output_frames]
+
+        target_support = item.get("target_support")
+        if isinstance(target_support, list) and target_support:
+            supported = sum(
+                int(value.get("support_end_ms", full_samples / 16 + 1)) <= utterance_ms
+                for value in target_support
+                if isinstance(value, dict)
+            )
+            target_capacity = supported / len(target_support)
+        else:
+            target_capacity = visible_fraction
 
         return {
             "waveform": visible,
             "utterance_samples": torch.tensor(utterance_samples, dtype=torch.long),
             "teacher_glm": torch.tensor(teacher_glm, dtype=torch.long),
             "source_policy": torch.tensor(source_policy, dtype=torch.long),
-            "target_capacity": torch.tensor(visible_fraction, dtype=torch.float32),
+            "target_capacity": torch.tensor(target_capacity, dtype=torch.float32),
         }
 
 

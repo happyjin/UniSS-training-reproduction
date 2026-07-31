@@ -86,6 +86,9 @@ def audio_tests(
     manifest: Path,
     device: torch.device,
     samples: int,
+    *,
+    reference_field: str = "source_glm",
+    compatibility_reference_field: str | None = None,
 ) -> dict[str, float]:
     offsets = load_index(manifest)
     if offsets is None or not offsets:
@@ -94,6 +97,8 @@ def audio_tests(
     total_reference = 0
     total_audio_seconds = 0.0
     total_compute_seconds = 0.0
+    compatibility_distance = 0
+    compatibility_reference = 0
     tested = 0
     with manifest.open("rb") as handle:
         step = max(1, len(offsets) // max(1, samples))
@@ -115,20 +120,35 @@ def audio_tests(
                 torch.cuda.synchronize(device)
             total_compute_seconds += time.perf_counter() - started
             predicted = [value - 1 for value in greedy_ctc_tokens(output["teacher_glm_logits"])]
-            reference = [int(value) for value in item["source_glm"]]
+            if reference_field not in item:
+                raise KeyError(f"Stage-B validation reference is missing: {reference_field}")
+            reference = [int(value) for value in item[reference_field]]
             total_distance += _edit_distance(predicted, reference)
             total_reference += max(1, len(reference))
+            if compatibility_reference_field:
+                if compatibility_reference_field not in item:
+                    raise KeyError(
+                        f"Stage-B compatibility reference is missing: {compatibility_reference_field}"
+                    )
+                compatibility = [int(value) for value in item[compatibility_reference_field]]
+                compatibility_distance += _edit_distance(reference, compatibility)
+                compatibility_reference += max(1, len(compatibility))
             total_audio_seconds += waveform.shape[-1] / model.config.sample_rate
             tested += 1
             if tested >= samples:
                 break
-    return {
+    result = {
         "audio_samples": float(tested),
         "glm_token_agreement": 1.0 - total_distance / max(1, total_reference),
         "active_rtf": total_compute_seconds / max(1e-9, total_audio_seconds),
         "audio_seconds": total_audio_seconds,
         "compute_seconds": total_compute_seconds,
     }
+    if compatibility_reference_field:
+        result["reference_compatibility_agreement"] = 1.0 - compatibility_distance / max(
+            1, compatibility_reference
+        )
+    return result
 
 
 def parse_args() -> argparse.Namespace:
@@ -144,6 +164,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--future-tolerance", type=float, default=1e-5)
     parser.add_argument("--minimum-agreement", type=float, default=0.90)
     parser.add_argument("--maximum-rtf", type=float, default=0.25)
+    parser.add_argument("--reference-field", default="source_glm")
+    parser.add_argument("--compatibility-reference-field")
     return parser.parse_args()
 
 
@@ -157,7 +179,14 @@ def main() -> None:
     model = CausalAudioStudentV2(config).to(device).eval()
     model.load_state_dict(checkpoint["model"])
     synthetic = synthetic_tests(model, device)
-    audio = audio_tests(model, Path(args.manifest), device, args.samples)
+    audio = audio_tests(
+        model,
+        Path(args.manifest),
+        device,
+        args.samples,
+        reference_field=args.reference_field,
+        compatibility_reference_field=args.compatibility_reference_field,
+    )
     structural_pass = (
         synthetic["cache_max_abs"] <= args.cache_tolerance
         and synthetic["future_perturbation_max_abs"] <= args.future_tolerance
@@ -168,11 +197,13 @@ def main() -> None:
     )
     passed = structural_pass and (args.smoke or quality_pass)
     result = {
-        "schema_version": "simul_uniss_subsecond_stage_b_validation_v1",
+        "schema_version": "simul_uniss_subsecond_stage_b_validation_v2",
         "status": "passed" if passed else "failed",
         "smoke": args.smoke,
         "checkpoint": str(Path(args.checkpoint).resolve()),
         "manifest": str(Path(args.manifest).resolve()),
+        "reference_field": args.reference_field,
+        "compatibility_reference_field": args.compatibility_reference_field,
         "structural_pass": structural_pass,
         "quality_pass": quality_pass,
         **synthetic,
