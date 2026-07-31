@@ -6,6 +6,7 @@ from training.simul_uniss.subsecond_v2.formal_supervision import (
     alignment_coverage,
     build_micro_write_supervision,
     build_support_alignment,
+    merge_alignment_segments,
     normalize_words,
     safe_label,
 )
@@ -92,6 +93,31 @@ class FormalStageASupervisionTest(unittest.TestCase):
             duration_ms=600,
         )
         self.assertEqual(alignment_coverage(words, "Hello, world!", "en"), 1.0)
+
+    def test_character_timestamps_merge_into_chinese_words(self) -> None:
+        characters = [
+            {"text": text, "start_ms": index * 100, "end_ms": (index + 1) * 100}
+            for index, text in enumerate("解决方案")
+        ]
+        merged = merge_alignment_segments(characters, ["解决", "方案"])
+        self.assertEqual([value["text"] for value in merged], ["解决", "方案"])
+        self.assertEqual(merged[0]["start_ms"], 0)
+        self.assertEqual(merged[0]["end_ms"], 200)
+        self.assertEqual(merged[1]["start_ms"], 200)
+        self.assertEqual(merged[1]["end_ms"], 400)
+        support = [
+            {"support_end_ms": 200, "uncertain": False, "negation_or_entity_risk": False},
+            {"support_end_ms": 400, "uncertain": False, "negation_or_entity_risk": False},
+        ]
+        events = build_micro_write_supervision(
+            merged,
+            support,
+            language="zh",
+            target_duration_ms=400,
+            target_semantic_count=44,
+        )
+        self.assertTrue(all(int(value["semantic_count"]) <= 24 for value in events))
+        self.assertEqual("".join(str(value["text"]) for value in events), "解决方案")
 
 
 if __name__ == "__main__":

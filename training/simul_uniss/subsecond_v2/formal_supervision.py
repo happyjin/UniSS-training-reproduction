@@ -32,6 +32,33 @@ _NEGATION = {
     "别",
 }
 _PUNCTUATION = set(",.!?;:，。！？；：、")
+_FUNCTION_WORDS = {
+    "a",
+    "an",
+    "the",
+    "to",
+    "of",
+    "in",
+    "on",
+    "at",
+    "for",
+    "and",
+    "or",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "了",
+    "的",
+    "地",
+    "得",
+    "着",
+    "在",
+    "和",
+    "与",
+    "及",
+}
 
 
 def normalize_language(value: str) -> str:
@@ -103,6 +130,69 @@ def alignment_coverage(words: Sequence[Mapping[str, object]], text: str, languag
     return matches / len(reference)
 
 
+def merge_alignment_segments(
+    words: Sequence[Mapping[str, object]], segments: Sequence[str]
+) -> list[dict[str, object]]:
+    """Merge character-level forced timestamps into lexical segments.
+
+    Qwen3 ForcedAligner returns CJK characters.  A8 must not split lexical
+    units such as ``解决方案`` at arbitrary character boundaries, so a Chinese
+    segmenter supplies the desired units while this function preserves the
+    forced start/end times.  Unmatched punctuation is skipped rather than
+    consuming the next aligned character.
+    """
+
+    if not words:
+        return []
+    result: list[dict[str, object]] = []
+    cursor = 0
+    for raw_segment in segments:
+        segment = re.sub(r"\s+", "", str(raw_segment))
+        if not segment:
+            continue
+        start_cursor = cursor
+        consumed: list[Mapping[str, object]] = []
+        combined = ""
+        while cursor < len(words):
+            token = re.sub(r"\s+", "", str(words[cursor].get("text", words[cursor].get("word", ""))))
+            candidate = combined + token
+            if not segment.casefold().startswith(candidate.casefold()):
+                break
+            consumed.append(words[cursor])
+            combined = candidate
+            cursor += 1
+            if combined.casefold() == segment.casefold():
+                result.append(
+                    {
+                        "text": segment,
+                        "start_ms": int(consumed[0].get("start_ms", 0)),
+                        "end_ms": int(consumed[-1].get("end_ms", 0)),
+                        "confidence": min(
+                            (
+                                float(value["confidence"])
+                                for value in consumed
+                                if value.get("confidence") is not None
+                            ),
+                            default=None,
+                        ),
+                        "children": [dict(value) for value in consumed],
+                    }
+                )
+                break
+        else:
+            combined = ""
+        if combined.casefold() != segment.casefold():
+            cursor = start_cursor
+            # Punctuation can be absent from the aligner output.  For a lexical
+            # mismatch, preserve the original next token instead of inventing
+            # a timestamp.
+            if segment not in _PUNCTUATION and cursor < len(words):
+                result.append(dict(words[cursor]))
+                cursor += 1
+    result.extend(dict(value) for value in words[cursor:])
+    return result
+
+
 def build_support_alignment(
     source_words: Sequence[Mapping[str, object]],
     target_words: Sequence[Mapping[str, object]],
@@ -146,11 +236,16 @@ def build_support_alignment(
             reason = "aligned_source_evidence"
         else:
             # Unaligned function words inherit the already available prefix
-            # support but remain explicitly uncertain for the safe gate.
+            # support.  Punctuation and closed-class function words do not
+            # independently carry translation evidence; unaligned content
+            # words remain uncertain and block an irreversible commit.
             raw_support = prefix_support
             confidence = 0.0
-            uncertain = True
-            reason = "unaligned_target_word"
+            inherited_function = str(target["text"]).strip().lower() in _FUNCTION_WORDS or str(
+                target["text"]
+            ) in _PUNCTUATION
+            uncertain = not inherited_function
+            reason = "inherited_function_word_support" if inherited_function else "unaligned_target_word"
         prefix_support = max(prefix_support, raw_support)
         token = str(target["text"])
         result.append(
@@ -197,6 +292,13 @@ def _render_words(words: Sequence[Mapping[str, object]], language: str) -> str:
     return rendered
 
 
+def _balanced_semantic_spans(length: int, minimum: int, maximum: int) -> list[tuple[int, int]]:
+    chunks = max(1, math.ceil(length / maximum))
+    while chunks > 1 and length // chunks < minimum:
+        chunks -= 1
+    return [(length * index // chunks, length * (index + 1) // chunks) for index in range(chunks)]
+
+
 def build_micro_write_supervision(
     target_words: Sequence[Mapping[str, object]],
     support: Sequence[Mapping[str, object]],
@@ -219,6 +321,12 @@ def build_micro_write_supervision(
     if not 0 < minimum_semantic <= maximum_semantic <= hard_maximum_semantic:
         raise ValueError("invalid Micro-WRITE semantic limits")
 
+    target_words = [
+        {**dict(word), "parent_target_index": index, "parent_is_final": True}
+        for index, word in enumerate(target_words)
+    ]
+    support = [dict(value) for value in support]
+
     word_ends = [
         _semantic_boundary(int(word["end_ms"]), target_duration_ms, target_semantic_count, ceil=True)
         for word in target_words
@@ -237,6 +345,10 @@ def build_micro_write_supervision(
             candidate_end = max(selected_end, word_ends[word_end])
             candidate_size = candidate_end - semantic_start
             if candidate_size > hard_maximum_semantic and word_end > word_start:
+                if selected_end - semantic_start < minimum_semantic:
+                    selected_end = candidate_end
+                    oversize_word = True
+                    word_end += 1
                 break
             selected_end = candidate_end
             if candidate_size > hard_maximum_semantic:
@@ -278,13 +390,41 @@ def build_micro_write_supervision(
                 "future_monotonic_support": True,
                 "uncertain_alignment": uncertain,
                 "negation_or_entity_risk": risky,
-                "natural_boundary": str(word_slice[-1]["text"]) in _PUNCTUATION,
+                "natural_boundary": bool(word_slice[-1].get("parent_is_final"))
+                or str(word_slice[-1]["text"]) in _PUNCTUATION,
                 "oversize_word": oversize_word,
                 "final_flush": word_end == len(target_words),
             }
         )
         word_start = word_end
         semantic_start = selected_end
+
+    # A single long syllable may exceed the hard semantic bound.  Preserve its
+    # text as one lexical transaction while streaming the acoustic continuation
+    # in bounded semantic subchunks; continuation events carry no duplicate
+    # text and keep the same support evidence.
+    bounded: list[dict[str, object]] = []
+    for event in events:
+        count = int(event["semantic_count"])
+        if count <= hard_maximum_semantic:
+            bounded.append(event)
+            continue
+        spans = _balanced_semantic_spans(count, minimum_semantic, maximum_semantic)
+        for span_index, (start, end) in enumerate(spans):
+            child = dict(event)
+            child["semantic_start"] = int(event["semantic_start"]) + start
+            child["semantic_end"] = int(event["semantic_start"]) + end
+            child["semantic_count"] = end - start
+            child["text"] = str(event["text"]) if span_index == 0 else ""
+            child["semantic_continuation"] = span_index > 0
+            child["split_oversize_parent"] = True
+            child["oversize_word"] = False
+            child["natural_boundary"] = bool(event["natural_boundary"]) and span_index == len(spans) - 1
+            child["final_flush"] = bool(event["final_flush"]) and span_index == len(spans) - 1
+            bounded.append(child)
+    events = bounded
+    for index, event in enumerate(events):
+        event["micro_write_index"] = index
 
     if events[0]["semantic_start"] != 0 or events[-1]["semantic_end"] != target_semantic_count:
         raise AssertionError("Micro-WRITE semantic coverage is incomplete")
@@ -301,4 +441,3 @@ def safe_label(event: Mapping[str, object], source_ms: int) -> int:
         return 0
     threshold = int(event["safe_if_source_ms_gte"])
     return int(source_ms >= threshold)
-
