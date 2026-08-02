@@ -274,3 +274,57 @@ frozen-Phase3 downstream gates pass.
 Training longer, increasing the H200 power number, moving directly to
 full198, or lowering the learning rate on the unchanged objective are not
 accepted fixes because the v1 validation curve is already converged.
+
+## 10. R0 causal-teacher ceiling result
+
+The new prefix audit was run on 16 validation records sampled uniformly from
+the indexed formal validation manifest.  For every 160 ms commit boundary, the
+frozen WhisperVQ teacher was re-run with only the selected future lookahead.
+Each newly committable token was compared once against the token produced by
+the same frozen teacher with the complete utterance.  Full-waveform re-encoding
+matched the cached Stage-A teacher exactly (`1.0` position and edit agreement),
+which validates the audit implementation and cached labels.
+
+| Lookahead | Immediate full-teacher agreement | Prefix edit agreement | Revision after 320 ms | Revision vs full | First correct-stable visible p50 / p95 |
+|---:|---:|---:|---:|---:|---:|
+| 80 ms | `0.2632` | `0.8061` | `0.6228` | `0.7368` | `2880 / 4800 ms` |
+| 160 ms | `0.3933` | `0.8262` | `0.4791` | `0.6067` | `2960 / 4760 ms` |
+| 320 ms | `0.5465` | `0.8542` | `0.3170` | `0.4535` | `2960 / 4760 ms` |
+| 640 ms | `0.6814` | `0.8922` | `0.1830` | `0.3186` | `2960 / 4760 ms` |
+
+The result is decisive: even 640 ms future context does not reach the 0.70
+continuation gate, and a full-teacher-correct token does not become stable
+until roughly 2.9 seconds at the median.  It is therefore mathematically
+inconsistent to require an 80 ms-lookahead student to reproduce 90% of these
+full-context token IDs while also claiming subsecond latency.
+
+### 10.1 Route decision
+
+The original `B2-E1` idea (add only margin/CE while retaining full-context
+token labels) remains useful as a quantization ablation, but it cannot be the
+main repair.  The ordered plan now takes the `<0.70 at 320 ms` branch:
+
+1. preserve the completed latent v1 as the full-context-imitation baseline;
+2. measure frozen Phase3 sensitivity to released, reconstructed-full, and
+   prefix-causal GLM streams;
+3. construct Stage-A-v3 sidecars containing true pre-VQ hidden states and
+   prefix-causal targets at 80/160/320/640 ms;
+4. train a chunk-causal WhisperVQ clone as the compatibility reference and a
+   smaller quantization-aware Emformer student against the selected causal
+   target;
+5. select by downstream Phase3 quality and correctness-aware latency, not by
+   unattainable full-context exact match alone.
+
+For a target with lookahead `L`, report both:
+
+```text
+causal-target recovery = student agreement / causal-teacher self agreement
+full-teacher recovery   = student agreement / measured full-teacher ceiling(L)
+```
+
+The first should exceed `0.90`.  The second cannot legitimately be required to
+exceed the ceiling in the table.  Frozen-Phase3 Text-BLEU/COMET and real audio
+quality become the final compatibility gates.
+
+The machine-readable audit is stored in
+`reports/simul_uniss_subsecond_v2/stage_b_teacher_prefix_ceiling_v1.json`.
