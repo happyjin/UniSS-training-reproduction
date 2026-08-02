@@ -385,3 +385,45 @@ Stage-A-v3 and Stage-B-v2 will consequently use:
 
 The machine-readable sensitivity result is stored in
 `reports/simul_uniss_subsecond_v2/stage_b_phase3_token_stream_sensitivity_v1.json`.
+
+## 12. Single-pass chunk-causal WhisperVQ clone
+
+To avoid quadratic prefix re-encoding over 1.3 million records, an isolated
+read-only WhisperVQ clone was added with a `160 ms` chunk and `80 ms` bounded
+right context.  Its mask permits all history plus the current chunk and right
+context.  A pooling-layer hook exports the real 1,280-D pre-VQ hidden state
+without modifying the historical WhisperVQ implementation.  On a real sample,
+nearest-neighbour quantization of the exported hidden reproduces the clone's
+token IDs with `1.0` agreement.
+
+The eight-record frozen-Phase3 sensitivity test was repeated with this stream:
+
+| Stream | EN-to-ZH Text-BLEU | ZH-to-EN Text-BLEU | Performance translation-text NLL |
+|---|---:|---:|---:|
+| released | `33.45` | `26.61` | `1.629` |
+| prefix-causal 80 ms | `31.22` | `25.21` | `1.844` |
+| streaming clone 160x80 ms | `22.95` | `22.46` | **`1.536`** |
+| latent Student v1 | `18.69` | `12.86` | `1.938` |
+
+The zero-shot clone is already materially better than Student v1, especially
+ZH-to-EN, and its teacher-forced text likelihood is strong.  Greedy generation
+still trails the expensive prefix-80 stream, so directly changing the mask is
+not the final model.  It is the scalable causal initialization and one-pass
+hidden generator.
+
+The data/training route is therefore:
+
+1. generate single-pass clone token/pre-VQ-hidden sidecars for the broad
+   15-shard corpus;
+2. generate an exact prefix-80 sidecar on a smaller, deterministic high-quality
+   subset using parallel GPUs;
+3. pretrain Stage-B-v2 on the scalable clone hidden with quantization-aware
+   losses;
+4. fine-tune on exact prefix-80 targets and select with frozen-Phase3 BLEU;
+5. optionally self-distil/fine-tune the WhisperVQ clone itself if the smaller
+   student saturates at the clone quality ceiling.
+
+This two-tier supervision preserves the best measured causal target without
+requiring prefix re-encoding of every training record.  The clone-inclusive
+result is stored in
+`reports/simul_uniss_subsecond_v2/stage_b_phase3_token_stream_sensitivity_clone_v1.json`.
