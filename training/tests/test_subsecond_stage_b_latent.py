@@ -21,6 +21,7 @@ from training.simul_uniss.subsecond_v2.stage_b_latent_model import (
     pool_student_frames,
 )
 from training.simul_uniss.subsecond_v2.train_stage_b_latent import stage_b_latent_losses
+from training.simul_uniss.subsecond_v2.validate_stage_b_latent import percentile
 
 
 class _Tokenizer:
@@ -41,6 +42,10 @@ class LatentStageBTest(unittest.TestCase):
         codebook = torch.tensor([[0.0, 0.0], [2.0, 0.0], [0.0, 3.0]])
         latent = torch.tensor([[[1.8, 0.1], [0.1, 2.8]]])
         self.assertEqual(nearest_codebook_tokens(latent, codebook).tolist(), [[1, 2]])
+
+    def test_percentile_interpolates_streaming_latency(self) -> None:
+        self.assertEqual(percentile([160.0, 320.0, 480.0], 0.5), 320.0)
+        self.assertAlmostEqual(percentile([100.0, 200.0], 0.95), 195.0)
 
     def test_dataset_keeps_repeated_glm_tokens_without_ctc_shift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
