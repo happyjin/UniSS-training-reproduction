@@ -44,7 +44,8 @@ class LatentStageBScriptsTest(unittest.TestCase):
             / "configs/experiments/simul_uniss_subsecond_v2/stage_b_latent_formal_15shard_v1.env"
         ).read_text(encoding="utf-8")
         self.assertIn("stage_b_latent_formal_15shard_v1", source)
-        self.assertIn('STAGE_B_LATENT_BATCH_SIZE="${STAGE_B_LATENT_BATCH_SIZE:-64}"', source)
+        self.assertIn('STAGE_B_LATENT_BATCH_SIZE="${STAGE_B_LATENT_BATCH_SIZE:-128}"', source)
+        self.assertIn('STAGE_B_LATENT_CPU_THREADS="${STAGE_B_LATENT_CPU_THREADS:-4}"', source)
         self.assertIn('STAGE_B_CAPACITY_WEIGHT="${STAGE_B_CAPACITY_WEIGHT:-0.4}"', source)
         self.assertNotIn('STAGE_B_ROOT="', source)
 
