@@ -134,6 +134,39 @@ def score_prefix_sequences(
     }
 
 
+def build_immediate_causal_stream(
+    token_end_ms: Sequence[int],
+    commit_end_ms: Sequence[int],
+    predictions: Sequence[Sequence[int]],
+) -> list[int]:
+    """Build a full ordered stream using each token's first causal prediction.
+
+    If a prefix is temporarily too short, that position is delayed until the
+    first later tick where it exists.  No value is copied from the full-context
+    reference.
+    """
+
+    if len(commit_end_ms) != len(predictions):
+        raise ValueError("commit timeline and predictions must have equal length")
+    output: list[int] = []
+    for tick, committed_ms in enumerate(commit_end_ms):
+        required = bisect.bisect_right(token_end_ms, committed_ms)
+        while len(output) < required:
+            index = len(output)
+            source_tick = next(
+                (
+                    candidate
+                    for candidate in range(tick, len(predictions))
+                    if index < len(predictions[candidate])
+                ),
+                None,
+            )
+            if source_tick is None:
+                return output
+            output.append(int(predictions[source_tick][index]))
+    return output
+
+
 def _load_record(path: Path, offset: int) -> dict[str, object]:
     with path.open("rb") as handle:
         handle.seek(offset)
