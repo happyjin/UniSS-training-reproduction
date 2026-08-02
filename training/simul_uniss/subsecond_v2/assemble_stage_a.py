@@ -131,6 +131,17 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
         return value
     a45_markers = _markers(a45_root, "STAGE_A_A45_COMPLETE.json", args.expected_parts)
     a68_markers = _markers(a68_root, "STAGE_A_A68_COMPLETE.json", args.expected_parts)
+    a68_marker_counts = [
+        value.get("counts", {}).get("records")
+        if isinstance(value.get("counts"), dict)
+        else None
+        for value in a68_markers
+    ]
+    expected_a68_records = (
+        sum(int(value) for value in a68_marker_counts)
+        if all(value is not None for value in a68_marker_counts)
+        else None
+    )
     a45_inputs = [Path(str(value["output_manifest"])) for value in a45_markers]
     a68_inputs = [Path(str(value["output_manifest"])) for value in a68_markers]
     for path in [*a45_inputs, *a68_inputs]:
@@ -149,8 +160,13 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
     )
     if int(a45["records"]) != args.expected_records:
         raise ValueError(f"A4/A5 record count {a45['records']} != expected {args.expected_records}")
-    if int(formal["records"]) != args.expected_records:
-        raise ValueError(f"A6/A8 record count {formal['records']} != expected {args.expected_records}")
+    # A6/A8 intentionally reads only A4/A5-passing rows.  It must therefore
+    # equal the audited sum in its own part markers, not the pre-filter A45
+    # input count.
+    if expected_a68_records is not None and int(formal["records"]) != expected_a68_records:
+        raise ValueError(
+            f"A6/A8 record count {formal['records']} != marker total {expected_a68_records}"
+        )
     marker = {
         "schema_version": SCHEMA,
         "status": "complete",
@@ -161,6 +177,7 @@ def assemble(args: argparse.Namespace) -> dict[str, object]:
         ),
         "expected_parts": args.expected_parts,
         "expected_records": args.expected_records,
+        "expected_a68_records": expected_a68_records,
         "a45": a45,
         "formal_all": formal,
         "formal_accepted": accepted,

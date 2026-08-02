@@ -28,11 +28,23 @@ class FormalStageAAssemblyTest(unittest.TestCase):
                     encoding="utf-8",
                 )
                 (left / "STAGE_A_A45_COMPLETE.json").write_text(
-                    json.dumps({"status": "complete", "output_manifest": str(a45)}),
+                    json.dumps(
+                        {
+                            "status": "complete",
+                            "output_manifest": str(a45),
+                            "counts": {"records": 1, "formal_pass": 1},
+                        }
+                    ),
                     encoding="utf-8",
                 )
                 (right / "STAGE_A_A68_COMPLETE.json").write_text(
-                    json.dumps({"status": "complete", "output_manifest": str(a68)}),
+                    json.dumps(
+                        {
+                            "status": "complete",
+                            "output_manifest": str(a68),
+                            "counts": {"records": 1, "formal_pass": int(index == 0)},
+                        }
+                    ),
                     encoding="utf-8",
                 )
             value = assemble(
@@ -49,6 +61,50 @@ class FormalStageAAssemblyTest(unittest.TestCase):
             self.assertEqual(value["formal_all"]["records"], 2)
             self.assertEqual(value["formal_accepted"]["records"], 1)
             self.assertEqual(value["formal_acceptance_rate"], 0.5)
+
+    def test_a68_count_tracks_filtered_marker_total_not_raw_a45_total(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            a45_root = root / "a45"
+            a68_root = root / "a68"
+            a45_root.mkdir()
+            a68_root.mkdir()
+            a45 = a45_root / "a45_manifest.jsonl"
+            a68 = a68_root / "formal_manifest.jsonl"
+            a45.write_text('{"id":"pass"}\n{"id":"filtered"}\n', encoding="utf-8")
+            a68.write_text('{"id":"pass","formal_a68_pass":true}\n', encoding="utf-8")
+            (a45_root / "STAGE_A_A45_COMPLETE.json").write_text(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output_manifest": str(a45),
+                        "counts": {"records": 2, "formal_pass": 1},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (a68_root / "STAGE_A_A68_COMPLETE.json").write_text(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output_manifest": str(a68),
+                        "counts": {"records": 1, "formal_pass": 1},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            value = assemble(
+                argparse.Namespace(
+                    a45_root=str(a45_root),
+                    a68_root=str(a68_root),
+                    output_dir=str(root / "output"),
+                    expected_parts=1,
+                    expected_records=2,
+                    validation_modulus=100,
+                )
+            )
+            self.assertEqual(value["expected_a68_records"], 1)
+            self.assertEqual(value["formal_all"]["records"], 1)
 
 
 if __name__ == "__main__":
