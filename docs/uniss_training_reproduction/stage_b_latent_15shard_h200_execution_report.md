@@ -427,3 +427,92 @@ This two-tier supervision preserves the best measured causal target without
 requiring prefix re-encoding of every training record.  The clone-inclusive
 result is stored in
 `reports/simul_uniss_subsecond_v2/stage_b_phase3_token_stream_sensitivity_clone_v1.json`.
+
+## 13. Stage-B-v2 formal execution result
+
+The complete repair pipeline finished successfully at `2026-08-02 20:42:48
+UTC` (`2026-08-03 04:42:48` Beijing time).  This means that every scripted
+stage ran to completion; it does **not** mean that the model passed the quality
+gate.  The execution timeline was:
+
+| Stage | Completed (UTC) | Result |
+|---|---:|---|
+| 15-shard clone sidecar | `18:43:45` | complete |
+| 100k exact prefix-80 sidecar | `19:19:32` | complete |
+| clone pretraining | `20:06:40` | 20,000 steps complete; best step 19,500 |
+| prefix-80 fine-tuning | `20:30:08` | 10,000 steps complete; best step 10,000 |
+| causal validation and frozen-Phase3 probe | `20:42:48` | complete |
+
+The training-side best target agreement was `0.2300` for clone pretraining and
+`0.3794` for prefix-80 fine-tuning.  The independent 128-record causal
+validation is more important than the training batches:
+
+| Metric | Clone pretrain | Prefix-80 fine-tune |
+|---|---:|---:|
+| target position agreement | `0.1863` | **`0.2929`** |
+| target edit agreement | `0.1860` | **`0.2924`** |
+| committed target accuracy | `0.2225` | **`0.3675`** |
+| full-context teacher position agreement | `0.0691` | `0.1075` |
+| correct-stable coverage | `0.5625` | `0.3125` |
+| correct-stable p50 / p95 | `320 / 480 ms` | `320 / 480 ms` |
+| active RTF | `0.0967` | `0.0985` |
+| long-session active RTF | `0.0961` | `0.0971` |
+| committed/final parity | `1.0` | `1.0` |
+| future-perturbation maximum | `0.0` | `0.0` |
+| structural gate | pass | pass |
+| quality gate | **fail** | **fail** |
+
+Prefix fine-tuning therefore provides a real improvement of approximately
+`+10.7` percentage points in causal-target position and edit agreement, while
+retaining sub-`0.10` active RTF, exact committed/final parity, and zero future
+dependence.  Nevertheless, operational causal-target recovery is only about
+`29.3%`, far below the `90%` acceptance gate, and absolute edit agreement is
+below the `70%` gate.  The low full-context agreement is expected from the
+causal-ceiling audit and is not used as the primary rejection reason.
+
+### 13.1 Frozen-Phase3 downstream result
+
+The final eight-record sensitivity probe used the full198 Phase3 checkpoint
+and the Stage-B-v2 prefix checkpoint.  The generated JSON originally inherited
+the historical literal label `student_v1`; the result has been relabelled
+`student_v2_prefix80` without changing any generation or score.
+
+| Source GLM stream | EN-to-ZH Text-BLEU | ZH-to-EN Text-BLEU | Translation-text NLL |
+|---|---:|---:|---:|
+| released | `33.45` | `26.61` | `1.629` |
+| exact prefix-causal 80 ms | `31.22` | `25.21` | `1.844` |
+| streaming clone 160x80 ms | `22.95` | `22.46` | **`1.536`** |
+| latent Student v1 | `18.69` | `12.86` | `1.938` |
+| **Student v2 prefix-80** | **`21.13`** | **`15.32`** | `1.896` |
+
+Student v2 improves over Student v1 by about `+2.44` BLEU EN-to-ZH and `+2.46`
+BLEU ZH-to-EN.  It nearly reaches the zero-shot streaming clone in EN-to-ZH
+(`-1.82` BLEU), but remains `-7.14` BLEU behind the clone in ZH-to-EN and much
+further behind the exact prefix-80 teacher.  The repair is therefore a
+positive but insufficient result: it validates the causal target, real
+pre-VQ-hidden supervision, quantization-aware loss, and two-stage schedule,
+but does not justify full198 expansion.
+
+### 13.2 Final decision and next repair
+
+The formal v2 experiment is retained as the new causal baseline.  Full198 and
+the later low-latency stages remain blocked by the quality gate.  The next
+small 15-shard repair should focus on the remaining representation gap:
+
+1. export true pre-VQ hidden states from the exact prefix-80 teacher, because
+   the current prefix sidecar contains token/stability targets but no hidden
+   target and consequently logs zero prefix-phase hidden loss;
+2. mix clone and prefix examples during fine-tuning instead of replacing the
+   broad clone objective completely;
+3. retain the codebook CE/margin objective and select by validation target
+   agreement plus frozen-Phase3 BLEU;
+4. run direction-balanced validation, because ZH-to-EN retains the larger
+   downstream gap;
+5. keep the current latency/structural implementation unchanged, since its
+   causal parity and RTF gates already pass.
+
+Machine-readable formal outputs are:
+
+- `reports/simul_uniss_subsecond_v2/stage_b_v2_clone_validation.json`;
+- `reports/simul_uniss_subsecond_v2/stage_b_v2_prefix80_validation.json`;
+- `reports/simul_uniss_subsecond_v2/stage_b_v2_prefix80_phase3_sensitivity.json`.
