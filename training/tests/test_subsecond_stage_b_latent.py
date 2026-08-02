@@ -20,6 +20,7 @@ from training.simul_uniss.subsecond_v2.stage_b_latent_model import (
     nearest_codebook_tokens,
     pool_student_frames,
 )
+from training.simul_uniss.subsecond_v2.train_stage_b_latent import stage_b_latent_losses
 
 
 class _Tokenizer:
@@ -88,6 +89,51 @@ class LatentStageBTest(unittest.TestCase):
         names = dict(model.named_parameters())
         self.assertIn("glm_latent_head.weight", names)
         self.assertNotIn("teacher_glm_head.weight", names)
+
+    def test_corrected_loss_trains_all_evidence_heads(self) -> None:
+        config = LatentStageBModelConfig(
+            policy_vocab_size=16,
+            codebook_size=32,
+            codebook_dim=8,
+            hidden_size=16,
+            num_layers=1,
+            num_heads=4,
+            ffn_dim=32,
+            n_mels=8,
+            left_context_frames=4,
+        )
+        model = LatentCausalAudioStudent(config, torch.randn(32, 8))
+        batch = {
+            "waveform": torch.randn(2, 3_200),
+            "waveform_lengths": torch.tensor([3_200, 3_200]),
+            "utterance_sample_lengths": torch.tensor([2_560, 2_560]),
+            "teacher_glm_ids": torch.tensor([[1, 1], [2, 3]]),
+            "teacher_glm_lengths": torch.tensor([2, 2]),
+            "source_policy": torch.tensor([1, 2]),
+            "source_policy_lengths": torch.tensor([1, 1]),
+            "target_capacity": torch.tensor([0.5, 1.0]),
+            "stability_target": torch.tensor([[1.0, 0.0], [1.0, 0.0]]),
+        }
+        losses, _ = stage_b_latent_losses(
+            model,
+            batch,
+            latent_weight=1.0,
+            hidden_distill_weight=0.5,
+            source_weight=0.3,
+            capacity_weight=0.4,
+            stability_weight=0.2,
+            consistency_weight=0.1,
+            compute_consistency=True,
+            chunk_samples=2_560,
+        )
+        losses["total"].backward()
+        for name in (
+            "glm_latent_head.weight",
+            "source_ctc_head.weight",
+            "target_capacity_head.weight",
+            "stability_head.weight",
+        ):
+            self.assertIsNotNone(dict(model.named_parameters())[name].grad, name)
 
 
 if __name__ == "__main__":
