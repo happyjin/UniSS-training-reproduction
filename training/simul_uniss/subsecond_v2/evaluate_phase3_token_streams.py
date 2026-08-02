@@ -237,7 +237,14 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         output = student.infer_waveform(waveform)
         length = int(output["token_lengths"][0])
         tokens = student.quantize(output["glm_latent"][:, :length]).reshape(-1).tolist()
-        record["_streams"]["student_v1"] = [int(value) for value in tokens]  # type: ignore[index]
+        if args.student_stream_name in record["_streams"]:  # type: ignore[operator]
+            raise ValueError(
+                "student stream name collides with an existing stream: "
+                f"{args.student_stream_name}"
+            )
+        record["_streams"][args.student_stream_name] = [  # type: ignore[index]
+            int(value) for value in tokens
+        ]
     del student
     torch.cuda.empty_cache()
 
@@ -295,6 +302,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         "manifest": str(manifest),
         "phase3_model": str(Path(args.phase3_model).resolve()),
         "student_checkpoint": str(Path(args.student_checkpoint).resolve()),
+        "student_stream_name": args.student_stream_name,
         "samples": len(records),
         "lookahead_ms": lookaheads,
         "streaming_clone_chunk_ms": args.streaming_clone_chunk_ms,
@@ -318,6 +326,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--whispervq-model", required=True)
     parser.add_argument("--student-checkpoint", required=True)
+    parser.add_argument("--student-stream-name", default="student_v1")
     parser.add_argument("--phase3-model", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--device", default="cuda:0")

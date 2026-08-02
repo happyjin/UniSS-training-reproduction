@@ -66,7 +66,7 @@ log "Validating prefix-fine-tuned checkpoint"
 MODE=prefix80 GPU=0 bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/validate_stage_b_v2_causal.sh"
 
 log "Running frozen-Phase3 sensitivity for repaired Student"
-SAMPLES=8 AUDIO_WORKERS=8 GPU=0 \
+SAMPLES=8 AUDIO_WORKERS=8 GPU=0 STUDENT_STREAM_NAME=student_v2_prefix80 \
   STUDENT_CHECKPOINT="${STAGE_B_V2_PREFIX_ROOT}/best.pt" \
   OUTPUT="${REPO_ROOT}/reports/simul_uniss_subsecond_v2/stage_b_v2_prefix80_phase3_sensitivity.json" \
   bash "${REPO_ROOT}/scripts/simul_uniss_subsecond_v2/run_phase3_token_stream_sensitivity.sh"
