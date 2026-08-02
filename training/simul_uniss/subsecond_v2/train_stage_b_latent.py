@@ -318,6 +318,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20_260_802)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--throughput-scan",
+        action="store_true",
+        help="run training steps without validation/checkpoint writes",
+    )
     return parser.parse_args()
 
 
@@ -426,7 +431,11 @@ def main() -> None:
     if distributed.is_main:
         output_dir.mkdir(parents=True, exist_ok=True)
     distributed.barrier()
-    writer = SummaryWriter(args.tensorboard_dir) if distributed.is_main else None
+    writer = (
+        SummaryWriter(args.tensorboard_dir)
+        if distributed.is_main and not args.throughput_scan
+        else None
+    )
     model.train()
     last_log_time = time.perf_counter()
     last_log_audio = consumed_audio_seconds
@@ -475,12 +484,14 @@ def main() -> None:
                 last_log_time = now
                 last_log_audio = consumed_audio_seconds
                 print(json.dumps(metrics, sort_keys=True), flush=True)
-                assert writer is not None
-                for name, value in metrics.items():
-                    if name != "step":
-                        writer.add_scalar(f"stage_b_latent/{name}", value, step)
-                writer.flush()
-            if step % args.eval_interval == 0 or step == args.max_steps:
+                if writer is not None:
+                    for name, value in metrics.items():
+                        if name != "step":
+                            writer.add_scalar(f"stage_b_latent/{name}", value, step)
+                    writer.flush()
+            if not args.throughput_scan and (
+                step % args.eval_interval == 0 or step == args.max_steps
+            ):
                 metrics = evaluate(model, valid_loader, device, distributed, args)
                 if distributed.is_main:
                     assert writer is not None
@@ -510,7 +521,11 @@ def main() -> None:
                             best_validation,
                         )
                     writer.flush()
-            if distributed.is_main and (step % args.save_interval == 0 or step == args.max_steps):
+            if (
+                not args.throughput_scan
+                and distributed.is_main
+                and (step % args.save_interval == 0 or step == args.max_steps)
+            ):
                 _save_checkpoint(
                     last_checkpoint,
                     model,
@@ -528,7 +543,19 @@ def main() -> None:
                 break
     if writer is not None:
         writer.close()
-    if distributed.is_main:
+    if distributed.is_main and args.throughput_scan:
+        print(
+            json.dumps(
+                {
+                    "status": "throughput_scan_complete",
+                    "step": step,
+                    "consumed_audio_hours": consumed_audio_seconds / 3_600.0,
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+    if distributed.is_main and not args.throughput_scan:
         _atomic_json(
             output_dir / "TRAINING_COMPLETE.json",
             {

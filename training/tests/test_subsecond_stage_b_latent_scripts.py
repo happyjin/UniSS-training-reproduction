@@ -48,6 +48,15 @@ class LatentStageBScriptsTest(unittest.TestCase):
         self.assertIn('STAGE_B_CAPACITY_WEIGHT="${STAGE_B_CAPACITY_WEIGHT:-0.4}"', source)
         self.assertNotIn('STAGE_B_ROOT="', source)
 
+    def test_trainer_exposes_non_mutating_throughput_scan(self) -> None:
+        source = (
+            REPO_ROOT
+            / "training/simul_uniss/subsecond_v2/train_stage_b_latent.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"--throughput-scan"', source)
+        self.assertIn('"status": "throughput_scan_complete"', source)
+        self.assertIn("not args.throughput_scan", source)
+
 
 if __name__ == "__main__":
     unittest.main()
