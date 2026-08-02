@@ -49,8 +49,15 @@ def percentile(values: list[float], quantile: float) -> float:
     return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
 
 
-def _tokenize(model: LatentCausalAudioStudent, waveform: torch.Tensor) -> list[int]:
-    output = model.infer_waveform(waveform)
+def _tokenize(
+    model: LatentCausalAudioStudent,
+    waveform: torch.Tensor,
+    *,
+    utterance_samples: int | None = None,
+) -> list[int]:
+    output = model.infer_waveform(
+        waveform, utterance_sample_length=utterance_samples
+    )
     length = int(output["token_lengths"][0])
     return model.quantize(output["glm_latent"][:, :length]).reshape(-1).tolist()
 
@@ -63,19 +70,23 @@ def stable_prefix_tokens(
     chunk_ms: int,
     right_context_ms: int,
     stability_ticks: int,
-) -> tuple[list[int], float]:
+) -> tuple[list[int], list[float]]:
     """Commit only token prefixes repeated across consecutive causal ticks."""
 
     chunk_samples = round(sample_rate * chunk_ms / 1_000)
     right_samples = round(sample_rate * right_context_ms / 1_000)
     committed: list[int] = []
+    commit_times_ms: list[float] = []
     previous: list[int] = []
     persistence: list[int] = []
-    first_stable_ms = float("inf")
     for end in range(chunk_samples, waveform.shape[-1] + chunk_samples, chunk_samples):
         utterance_end = min(end, waveform.shape[-1])
         visible_end = min(waveform.shape[-1], utterance_end + right_samples)
-        current = _tokenize(model, waveform[..., :visible_end])
+        current = _tokenize(
+            model,
+            waveform[..., :visible_end],
+            utterance_samples=utterance_end,
+        )
         width = max(len(previous), len(current))
         if len(persistence) < width:
             persistence.extend([0] * (width - len(persistence)))
@@ -87,12 +98,11 @@ def stable_prefix_tokens(
             and persistence[len(committed)] >= stability_ticks
         ):
             committed.append(current[len(committed)])
-            if len(committed) == 1:
-                first_stable_ms = utterance_end / sample_rate * 1_000.0
+            commit_times_ms.append(utterance_end / sample_rate * 1_000.0)
         previous = current
         if utterance_end >= waveform.shape[-1]:
             break
-    return committed, first_stable_ms
+    return committed, commit_times_ms
 
 
 @torch.inference_mode()
@@ -162,7 +172,11 @@ def audio_tests(
     total_audio_seconds = 0.0
     total_compute_seconds = 0.0
     first_stable: list[float] = []
+    first_correct_stable: list[float] = []
     chunk_invariance: list[float] = []
+    committed_tokens = 0
+    committed_teacher_exact = 0
+    committed_final_exact = 0
     tested = 0
     with manifest.open("rb") as handle:
         stride = max(1, len(offsets) // max(1, samples))
@@ -192,9 +206,9 @@ def audio_tests(
             total_audio_seconds += waveform.shape[-1] / model.config.sample_rate
             if tested < latency_samples:
                 variants: dict[int, list[int]] = {}
-                first_value = float("inf")
+                commit_times: dict[int, list[float]] = {}
                 for chunk_ms in (160, 240, 320):
-                    committed, first_ms = stable_prefix_tokens(
+                    committed, times = stable_prefix_tokens(
                         model,
                         waveform,
                         sample_rate=model.config.sample_rate,
@@ -203,11 +217,22 @@ def audio_tests(
                         stability_ticks=stability_ticks,
                     )
                     variants[chunk_ms] = committed
-                    if chunk_ms == 160:
-                        first_value = first_ms
-                if first_value != float("inf"):
-                    first_stable.append(first_value)
+                    commit_times[chunk_ms] = times
                 baseline = variants[160]
+                baseline_times = commit_times[160]
+                if baseline_times:
+                    first_stable.append(baseline_times[0])
+                    if reference and baseline and baseline[0] == reference[0]:
+                        first_correct_stable.append(baseline_times[0])
+                committed_tokens += len(baseline)
+                committed_teacher_exact += sum(
+                    value == reference[index]
+                    for index, value in enumerate(baseline[: len(reference)])
+                )
+                committed_final_exact += sum(
+                    value == predicted[index]
+                    for index, value in enumerate(baseline[: len(predicted)])
+                )
                 for chunk_ms in (240, 320):
                     denominator = max(1, len(baseline))
                     chunk_invariance.append(
@@ -228,6 +253,18 @@ def audio_tests(
         "first_stable_glm_coverage": len(first_stable) / max(1, min(tested, latency_samples)),
         "first_stable_glm_p50_ms": percentile(first_stable, 0.50),
         "first_stable_glm_p95_ms": percentile(first_stable, 0.95),
+        "first_correct_stable_glm_coverage": len(first_correct_stable)
+        / max(1, min(tested, latency_samples)),
+        "first_correct_stable_glm_p50_ms": percentile(first_correct_stable, 0.50)
+        if first_correct_stable
+        else None,
+        "first_correct_stable_glm_p95_ms": percentile(first_correct_stable, 0.95)
+        if first_correct_stable
+        else None,
+        "committed_teacher_token_accuracy": committed_teacher_exact
+        / max(1, committed_tokens),
+        "committed_final_token_parity": committed_final_exact
+        / max(1, committed_tokens),
         "chunk_polling_invariance": median(chunk_invariance) if chunk_invariance else 0.0,
     }
 
@@ -269,6 +306,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--maximum-first-stable-p50-ms", type=float, default=700.0)
     parser.add_argument("--maximum-first-stable-p95-ms", type=float, default=1_000.0)
     parser.add_argument("--minimum-chunk-invariance", type=float, default=0.95)
+    parser.add_argument("--minimum-correct-stable-coverage", type=float, default=0.90)
     parser.add_argument("--mark-complete", action="store_true")
     parser.add_argument("--smoke", action="store_true")
     return parser.parse_args()
@@ -301,13 +339,19 @@ def main() -> None:
     quality_pass = (
         audio["edit_token_agreement"] >= args.minimum_agreement
         and audio["active_rtf"] <= args.maximum_rtf
-        and audio["first_stable_glm_p50_ms"] <= args.maximum_first_stable_p50_ms
-        and audio["first_stable_glm_p95_ms"] <= args.maximum_first_stable_p95_ms
+        and audio["first_correct_stable_glm_coverage"]
+        >= args.minimum_correct_stable_coverage
+        and audio["first_correct_stable_glm_p50_ms"] is not None
+        and audio["first_correct_stable_glm_p50_ms"]
+        <= args.maximum_first_stable_p50_ms
+        and audio["first_correct_stable_glm_p95_ms"] is not None
+        and audio["first_correct_stable_glm_p95_ms"]
+        <= args.maximum_first_stable_p95_ms
         and audio["chunk_polling_invariance"] >= args.minimum_chunk_invariance
     )
     passed = structural_pass and (args.smoke or quality_pass)
     result = {
-        "schema_version": "simul_uniss_stage_b_latent_validation_v1",
+        "schema_version": "simul_uniss_stage_b_latent_validation_v2",
         "status": "passed" if passed else "failed",
         "smoke": args.smoke,
         "checkpoint": str(Path(args.checkpoint).resolve()),
@@ -316,6 +360,7 @@ def main() -> None:
         "reference_field": args.reference_field,
         "minimum_agreement": args.minimum_agreement,
         "goal_agreement": args.goal_agreement,
+        "minimum_correct_stable_coverage": args.minimum_correct_stable_coverage,
         "structural_pass": structural_pass,
         "quality_pass": quality_pass,
         **synthetic,

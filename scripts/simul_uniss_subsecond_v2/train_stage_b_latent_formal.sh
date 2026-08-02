@@ -42,7 +42,10 @@ if [[ "${MODE}" == "smoke" ]]; then
     --stability-weight "${STAGE_B_STABILITY_WEIGHT}"
     --consistency-weight "${STAGE_B_CONSISTENCY_WEIGHT}"
   )
-  validate_args=(--samples 2 --latency-samples 1 --smoke)
+  validate_args=(
+    --samples 2 --latency-samples 1 --smoke
+    --minimum-correct-stable-coverage "${STAGE_B_LATENT_MINIMUM_CORRECT_STABLE_COVERAGE}"
+  )
 else
   [[ -f "${STAGE_A_COMPLETE_MARKER}" ]] || {
     echo "Missing completed formal Stage A: ${STAGE_A_COMPLETE_MARKER}" >&2
@@ -82,6 +85,7 @@ else
     --maximum-first-stable-p50-ms "${STAGE_B_LATENT_MAXIMUM_FIRST_P50_MS}"
     --maximum-first-stable-p95-ms "${STAGE_B_LATENT_MAXIMUM_FIRST_P95_MS}"
     --minimum-chunk-invariance "${STAGE_B_LATENT_MINIMUM_CHUNK_INVARIANCE}"
+    --minimum-correct-stable-coverage "${STAGE_B_LATENT_MINIMUM_CORRECT_STABLE_COVERAGE}"
   )
 fi
 

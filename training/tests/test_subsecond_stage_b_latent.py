@@ -95,6 +95,32 @@ class LatentStageBTest(unittest.TestCase):
         self.assertIn("glm_latent_head.weight", names)
         self.assertNotIn("teacher_glm_head.weight", names)
 
+    def test_streaming_lookahead_does_not_create_committed_output_frames(self) -> None:
+        config = LatentStageBModelConfig(
+            policy_vocab_size=16,
+            codebook_size=32,
+            codebook_dim=8,
+            hidden_size=16,
+            num_layers=1,
+            num_heads=4,
+            ffn_dim=32,
+            n_mels=8,
+            left_context_frames=4,
+        )
+        model = LatentCausalAudioStudent(config, torch.randn(32, 8)).eval()
+        committed_samples = 2_560
+        waveform_with_lookahead = torch.randn(3_840)
+        committed = model.infer_waveform(
+            waveform_with_lookahead,
+            utterance_sample_length=committed_samples,
+        )
+        leaked = model.infer_waveform(waveform_with_lookahead)
+        expected_frames = int(model.stacked_lengths(torch.tensor([committed_samples]))[0])
+        self.assertEqual(committed["output_lengths"].tolist(), [expected_frames])
+        self.assertLess(
+            int(committed["token_lengths"][0]), int(leaked["token_lengths"][0])
+        )
+
     def test_corrected_loss_trains_all_evidence_heads(self) -> None:
         config = LatentStageBModelConfig(
             policy_vocab_size=16,

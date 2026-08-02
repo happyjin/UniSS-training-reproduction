@@ -35,6 +35,7 @@ class LatentStageBScriptsTest(unittest.TestCase):
         self.assertIn("--capacity-weight", output)
         self.assertIn("--consistency-weight", output)
         self.assertIn("validate_stage_b_latent", output)
+        self.assertIn("--minimum-correct-stable-coverage", output)
         self.assertIn("stage_b_latent_formal_launcher", output)
         self.assertNotIn("subsecond_v1.train_stage_b", output)
 

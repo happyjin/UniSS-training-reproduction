@@ -256,14 +256,23 @@ class LatentCausalAudioStudent(nn.Module):
         output, output_lengths = self.encoder(padded, lengths)
         return self.output_norm(output), output_lengths
 
-    def infer_projected(self, projected: torch.Tensor) -> torch.Tensor:
+    def infer_projected(
+        self,
+        projected: torch.Tensor,
+        *,
+        output_frames: int | None = None,
+    ) -> torch.Tensor:
         if projected.shape[0] != 1:
             raise ValueError("streaming inference currently requires batch size one")
         segment = self.config.segment_frames
         right = self.config.right_context_frames
         states = None
         outputs: list[torch.Tensor] = []
-        total = projected.shape[1]
+        total = projected.shape[1] if output_frames is None else int(output_frames)
+        if total < 0 or total > projected.shape[1]:
+            raise ValueError(
+                f"output_frames must be in [0, {projected.shape[1]}], got {total}"
+            )
         for start in range(0, total, segment):
             actual = min(segment, total - start)
             chunk = projected[:, start : start + segment + right]
@@ -277,11 +286,37 @@ class LatentCausalAudioStudent(nn.Module):
         return self.output_norm(torch.cat(outputs, dim=1))
 
     @torch.inference_mode()
-    def infer_waveform(self, waveform: torch.Tensor) -> dict[str, torch.Tensor]:
+    def infer_waveform(
+        self,
+        waveform: torch.Tensor,
+        *,
+        utterance_sample_length: int | None = None,
+    ) -> dict[str, torch.Tensor]:
+        """Infer committed frames while optionally consuming lookahead samples.
+
+        ``waveform`` may include right-context-only audio.  When
+        ``utterance_sample_length`` is provided, only frames supported by that
+        committed prefix are returned; later samples are available to Emformer
+        attention but can never create output tokens of their own.
+        """
+
         if waveform.ndim == 1:
             waveform = waveform.unsqueeze(0)
         projected = self.extract_projected(waveform)
-        hidden = self.infer_projected(projected)
+        output_frames = None
+        if utterance_sample_length is not None:
+            if utterance_sample_length < 400 or utterance_sample_length > waveform.shape[-1]:
+                raise ValueError(
+                    "utterance_sample_length must cover at least one mel frame and "
+                    "cannot exceed the supplied waveform"
+                )
+            sample_lengths = torch.tensor(
+                [utterance_sample_length], dtype=torch.long, device=projected.device
+            )
+            output_frames = min(
+                int(self.stacked_lengths(sample_lengths)[0]), projected.shape[1]
+            )
+        hidden = self.infer_projected(projected, output_frames=output_frames)
         lengths = torch.tensor([hidden.shape[1]], device=hidden.device)
         return self._heads(hidden, lengths)
 
