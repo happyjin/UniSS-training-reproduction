@@ -29,6 +29,9 @@ from training.simul_uniss.subsecond_v2.audit_teacher_prefix_ceiling import (
     build_immediate_causal_stream,
 )
 from training.simul_uniss.subsecond_v2.validate_stage_b_latent import load_model
+from training.simul_uniss.subsecond_v2.streaming_whispervq_teacher import (
+    StreamingWhisperVQTeacher,
+)
 from uniss.speech_tokenizer.glm4.glm4_tokenizer import Glm4Tokenizer
 
 
@@ -207,6 +210,23 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
     del teacher
     torch.cuda.empty_cache()
 
+    streaming_teacher = StreamingWhisperVQTeacher(
+        args.whispervq_model,
+        device=args.device,
+        chunk_ms=args.streaming_clone_chunk_ms,
+        right_context_ms=args.streaming_clone_right_context_ms,
+    )
+    clone_outputs = streaming_teacher.encode(
+        [record["_waveform"] for record in records]  # type: ignore[list-item]
+    )
+    for record, output in zip(records, clone_outputs):
+        record["_streams"][
+            f"streaming_clone_{args.streaming_clone_chunk_ms}x"
+            f"{args.streaming_clone_right_context_ms}ms"
+        ] = output.tokens.tolist()  # type: ignore[index]
+    del streaming_teacher
+    torch.cuda.empty_cache()
+
     device = torch.device(args.device)
     student, _ = load_model(args.student_checkpoint, device, None, None)
     for record in records:
@@ -277,6 +297,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         "student_checkpoint": str(Path(args.student_checkpoint).resolve()),
         "samples": len(records),
         "lookahead_ms": lookaheads,
+        "streaming_clone_chunk_ms": args.streaming_clone_chunk_ms,
+        "streaming_clone_right_context_ms": args.streaming_clone_right_context_ms,
         "teacher_forced": aggregates,
         "text_bleu": compute_grouped_bleu(
             generation_rows,
@@ -305,6 +327,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lookahead-ms", type=int, nargs="+", default=[80, 160, 320, 640])
     parser.add_argument("--max-audio-seconds", type=int, default=8)
     parser.add_argument("--max-new-tokens", type=int, default=192)
+    parser.add_argument("--streaming-clone-chunk-ms", type=int, default=160)
+    parser.add_argument("--streaming-clone-right-context-ms", type=int, default=80)
     parser.add_argument("--reference-field", default="teacher_source_glm")
     parser.add_argument("--reference-end-field", default="teacher_source_glm_end_ms")
     return parser.parse_args()

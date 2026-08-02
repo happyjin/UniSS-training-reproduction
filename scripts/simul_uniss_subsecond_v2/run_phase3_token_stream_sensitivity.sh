@@ -29,5 +29,7 @@ CUDA_VISIBLE_DEVICES="${GPU}" python -m \
   --audio-workers "${AUDIO_WORKERS}" \
   --chunk-ms 160 \
   --lookahead-ms 80 160 320 640 \
+  --streaming-clone-chunk-ms 160 \
+  --streaming-clone-right-context-ms 80 \
   --max-audio-seconds 8 \
   --max-new-tokens 192
