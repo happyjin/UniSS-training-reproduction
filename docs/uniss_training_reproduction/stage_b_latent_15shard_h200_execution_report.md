@@ -328,3 +328,60 @@ quality become the final compatibility gates.
 
 The machine-readable audit is stored in
 `reports/simul_uniss_subsecond_v2/stage_b_teacher_prefix_ceiling_v1.json`.
+
+## 11. Frozen-Phase3 token-stream sensitivity
+
+Eight records were sampled uniformly from the same formal validation split
+(five EN-to-ZH and three ZH-to-EN).  The full198 Phase3 export at iteration
+9,075 was frozen.  Seven source-token streams were substituted into otherwise
+identical performance/direct-S2ST prompts:
+
+- released UniST GLM;
+- reconstructed-audio full-context WhisperVQ;
+- first causally available WhisperVQ tokens at 80/160/320/640 ms lookahead;
+- the completed latent Student v1.
+
+The table reports greedy performance-mode translation BLEU.  Eight records are
+enough for route selection and debugging, not a publication-quality confidence
+interval.
+
+| Source GLM stream | EN-to-ZH Text-BLEU (n=5) | ZH-to-EN Text-BLEU (n=3) |
+|---|---:|---:|
+| released | `33.45` | `26.61` |
+| reconstructed full-context | `25.75` | `19.37` |
+| prefix-causal 80 ms | **`31.22`** | **`25.21`** |
+| prefix-causal 160 ms | `21.04` | `16.76` |
+| prefix-causal 320 ms | `22.60` | `24.06` |
+| prefix-causal 640 ms | `29.02` | `24.12` |
+| latent Student v1 | `18.69` | `12.86` |
+
+The teacher-forced performance translation-text NLL shows the same broad
+ranking: released `1.629`, prefix-80 `1.844`, prefix-320 `1.807`, prefix-640
+`1.741`, reconstructed full `1.776`, and Student v1 `1.938`.  Direct-S2ST
+semantic NLL is much less sensitive (`~5.35` for every stream), so generated
+translation text is the more discriminative compatibility probe at this
+stage.
+
+### 11.1 Updated repair decision
+
+Exact agreement with the full-context teacher is not the correct optimization
+target.  The 80 ms prefix stream has low full-token exact agreement (`0.263`)
+but retains almost all released-stream translation BLEU on this diagnostic,
+whereas Student v1 loses roughly 14.8 BLEU EN-to-ZH and 13.8 BLEU ZH-to-EN
+relative to released.  The failure is therefore the student's inability to
+recover the **causally available 80 ms teacher representation**, not proof
+that 80 ms source information is unusable for Phase3.
+
+Stage-A-v3 and Stage-B-v2 will consequently use:
+
+1. primary target: WhisperVQ pre-VQ hidden and token obtained from the prefix
+   available at each 160 ms decision tick with 80 ms lookahead;
+2. auxiliary target: full-context hidden/code distances, used only as soft
+   semantic regularization and never as an unattainable exact gate;
+3. true stability: persistence of each prefix token over later 160/320 ms
+   observations;
+4. final gate: recovery of the 80 ms causal target plus frozen-Phase3 BLEU,
+   rather than raw full-context exact agreement.
+
+The machine-readable sensitivity result is stored in
+`reports/simul_uniss_subsecond_v2/stage_b_phase3_token_stream_sensitivity_v1.json`.
