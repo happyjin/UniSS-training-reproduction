@@ -54,6 +54,8 @@ class LatentStageBModelConfig:
     dropout: float = 0.1
     sample_rate: int = 16_000
     n_mels: int = 128
+    mel_scale: str = "htk"
+    mel_norm: str | None = None
     stack_factor: int = 4
     student_frames_per_glm: int = 2
     segment_frames: int = 4
@@ -140,6 +142,8 @@ class LatentCausalAudioStudent(nn.Module):
             win_length=400,
             hop_length=160,
             n_mels=config.n_mels,
+            mel_scale=config.mel_scale,
+            norm=config.mel_norm,
             center=False,
             power=2.0,
         )
