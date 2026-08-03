@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing as mp
-import os
 import signal
 import sys
 import time
@@ -22,11 +21,13 @@ from dataclasses import dataclass
 class WorkerConfig:
     device: int
     target_util: float
+    target_memory_percent: float
     cycle_seconds: float
     matrix_size: int
     dtype: str
     sync_every: int
     log_interval: float
+    memory_chunk_mib: int
 
 
 def parse_devices(value: str) -> list[int]:
@@ -46,6 +47,15 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=60.0,
         help="target compute duty cycle in percent (default: 60)",
+    )
+    parser.add_argument(
+        "--target-memory-percent",
+        type=float,
+        default=0.0,
+        help=(
+            "target total device-memory use, including other processes; "
+            "0 disables memory padding (default: 0)"
+        ),
     )
     parser.add_argument(
         "--cycle-seconds",
@@ -71,10 +81,18 @@ def parse_args() -> argparse.Namespace:
         help="CUDA synchronize after this many GEMMs (default: 1)",
     )
     parser.add_argument("--log-interval", type=float, default=10.0)
+    parser.add_argument(
+        "--memory-chunk-mib",
+        type=int,
+        default=1024,
+        help="maximum size of each padding allocation in MiB (default: 1024)",
+    )
     args = parser.parse_args()
 
     if not 0.0 < args.target_util <= 100.0:
         parser.error("--target-util must be in (0, 100]")
+    if not 0.0 <= args.target_memory_percent < 100.0:
+        parser.error("--target-memory-percent must be in [0, 100)")
     if args.cycle_seconds <= 0.0:
         parser.error("--cycle-seconds must be positive")
     if args.matrix_size <= 0:
@@ -83,7 +101,40 @@ def parse_args() -> argparse.Namespace:
         parser.error("--sync-every must be positive")
     if args.log_interval <= 0.0:
         parser.error("--log-interval must be positive")
+    if args.memory_chunk_mib <= 0:
+        parser.error("--memory-chunk-mib must be positive")
     return args
+
+
+def reserve_to_total_memory_target(torch: object, config: WorkerConfig) -> list[object]:
+    """Hold allocations until total device use reaches the requested fraction."""
+    if config.target_memory_percent <= 0.0:
+        return []
+
+    free_bytes, total_bytes = torch.cuda.mem_get_info(config.device)
+    target_used_bytes = int(total_bytes * config.target_memory_percent / 100.0)
+    used_bytes = total_bytes - free_bytes
+    bytes_to_reserve = max(0, target_used_bytes - used_bytes)
+    chunk_bytes = config.memory_chunk_mib * 1024 * 1024
+    allocations: list[object] = []
+
+    while bytes_to_reserve > 0:
+        allocation_bytes = min(bytes_to_reserve, chunk_bytes)
+        allocations.append(
+            torch.empty(allocation_bytes, dtype=torch.uint8, device=config.device)
+        )
+        bytes_to_reserve -= allocation_bytes
+
+    free_after, total_after = torch.cuda.mem_get_info(config.device)
+    used_after = total_after - free_after
+    print(
+        f"[gpu {config.device}] memory target: "
+        f"requested={config.target_memory_percent:.1f}% "
+        f"actual={100.0 * used_after / total_after:.2f}% "
+        f"held={sum(item.numel() for item in allocations) / (1024**3):.2f} GiB",
+        flush=True,
+    )
+    return allocations
 
 
 def worker_main(config: WorkerConfig, stop_event: mp.synchronize.Event) -> None:
@@ -112,6 +163,11 @@ def worker_main(config: WorkerConfig, stop_event: mp.synchronize.Event) -> None:
     for _ in range(3):
         torch.mm(a, b, out=out)
     torch.cuda.synchronize(config.device)
+
+    # Keep these tensors alive for the lifetime of the worker.  The target is
+    # based on total device usage, so memory owned by an existing service is
+    # counted rather than duplicated.
+    memory_padding = reserve_to_total_memory_target(torch, config)
 
     active_seconds = config.cycle_seconds * config.target_util / 100.0
     next_log = time.monotonic() + config.log_interval
@@ -148,14 +204,18 @@ def worker_main(config: WorkerConfig, stop_event: mp.synchronize.Event) -> None:
         now = time.monotonic()
         if now >= next_log:
             allocated_gib = torch.cuda.memory_allocated(config.device) / (1024**3)
+            free_bytes, total_bytes = torch.cuda.mem_get_info(config.device)
+            total_used_percent = 100.0 * (total_bytes - free_bytes) / total_bytes
             print(
                 f"[gpu {config.device}] alive: cycles={cycles} gemms={gemms} "
-                f"allocated={allocated_gib:.2f} GiB",
+                f"allocated={allocated_gib:.2f} GiB "
+                f"device_used={total_used_percent:.2f}%",
                 flush=True,
             )
             next_log = now + config.log_interval
 
     torch.cuda.synchronize(config.device)
+    del memory_padding
     print(f"[gpu {config.device}] stopped cleanly", flush=True)
 
 
@@ -175,11 +235,13 @@ def main() -> int:
         WorkerConfig(
             device=device,
             target_util=args.target_util,
+            target_memory_percent=args.target_memory_percent,
             cycle_seconds=args.cycle_seconds,
             matrix_size=args.matrix_size,
             dtype=args.dtype,
             sync_every=args.sync_every,
             log_interval=args.log_interval,
+            memory_chunk_mib=args.memory_chunk_mib,
         )
         for device in args.devices
     ]
@@ -190,7 +252,8 @@ def main() -> int:
 
     print(
         f"starting controlled GPU load: devices={args.devices}, "
-        f"target_util={args.target_util:.1f}%",
+        f"target_util={args.target_util:.1f}%, "
+        f"target_memory={args.target_memory_percent:.1f}%",
         flush=True,
     )
     for process in workers:
