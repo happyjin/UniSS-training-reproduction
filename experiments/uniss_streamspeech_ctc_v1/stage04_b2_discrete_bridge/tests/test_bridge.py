@@ -19,6 +19,12 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(lengths.tolist(), [3])
         self.assertTrue(torch.equal(pooled[0, -1], hidden[0, -1]))
 
+    def test_pooling_removes_nan_from_invalid_padding(self) -> None:
+        hidden = torch.tensor([[[1.0], [2.0], [3.0], [float("nan")]]])
+        pooled, lengths = pool_frames(hidden, torch.tensor([3]), factor=2)
+        torch.testing.assert_close(pooled, torch.tensor([[[1.5], [3.0]]]))
+        self.assertEqual(lengths.tolist(), [2])
+
     def test_hard_forward_keeps_gradient_to_projection(self) -> None:
         torch.manual_seed(1)
         bridge = StraightThroughCodebookBridge(
@@ -44,4 +50,3 @@ class BridgeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

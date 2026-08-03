@@ -31,7 +31,10 @@ def pool_frames(
     positions = torch.arange(padded, device=lengths.device).reshape(1, -1)
     mask = (positions < lengths.reshape(-1, 1)).reshape(batch, padded // factor, factor)
     denominator = mask.sum(-1, keepdim=True).clamp_min(1).to(hidden.dtype)
-    pooled = (grouped * mask.unsqueeze(-1).to(hidden.dtype)).sum(2) / denominator
+    # NaN * 0 is still NaN. Emformer may leave undefined values after each
+    # sample's valid output length, so select valid frames before reduction.
+    masked = torch.where(mask.unsqueeze(-1), grouped, torch.zeros_like(grouped))
+    pooled = masked.sum(2) / denominator
     pooled_lengths = torch.div(lengths + factor - 1, factor, rounding_mode="floor")
     return pooled, pooled_lengths.clamp_min(1)
 
@@ -120,4 +123,3 @@ def replace_embedding_span(
     output = token_embeddings.clone()
     output[span_start:span_end] = speech_embeddings[:speech_length]
     return output
-

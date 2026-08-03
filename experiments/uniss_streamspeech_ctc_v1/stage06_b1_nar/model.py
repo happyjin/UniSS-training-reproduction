@@ -19,12 +19,15 @@ class B1Output:
     qwen_speech_embeddings: torch.Tensor
     token_lengths: torch.Tensor
     hard_code_ids: torch.Tensor
+    residual_mse: torch.Tensor
     residual_rms: torch.Tensor
 
 
 class FrozenB2ResidualBridge(nn.Module):
-    def __init__(self, base: FrozenEncoderB2Bridge) -> None:
+    def __init__(self, base: FrozenEncoderB2Bridge, residual_scale: float = 0.05) -> None:
         super().__init__()
+        if residual_scale <= 0:
+            raise ValueError("residual_scale must be positive")
         self.base = base
         self.base.requires_grad_(False)
         self.base.eval()
@@ -33,6 +36,7 @@ class FrozenB2ResidualBridge(nn.Module):
         self.residual = nn.Linear(encoder_dim, qwen_dim)
         nn.init.zeros_(self.residual.weight)
         nn.init.zeros_(self.residual.bias)
+        self.register_buffer("residual_scale", torch.tensor(float(residual_scale)))
 
     @classmethod
     def from_checkpoints(
@@ -68,11 +72,18 @@ class FrozenB2ResidualBridge(nn.Module):
             hidden, lengths = self.base.encoder.encode(waveform, waveform_lengths)
             b2: BridgeOutput = self.base.bridge(hidden, lengths)
             pooled, _ = pool_frames(hidden, lengths, factor=2)
-        residual = self.residual(pooled)
+        # A bounded correction protects the frozen BF16 Qwen input-gradient
+        # path from the first-step overflow observed with an unconstrained
+        # additive residual, while retaining exact B2 equivalence at zero.
+        residual = self.residual_scale * torch.tanh(self.residual(pooled))
         corrected = b2.qwen_speech_embeddings + residual
+        residual_mse = residual.float().square().mean()
         return B1Output(
             qwen_speech_embeddings=corrected,
             token_lengths=b2.token_lengths,
             hard_code_ids=b2.hard_code_ids,
-            residual_rms=residual.float().square().mean().sqrt(),
+            # Optimize MSE directly. Backpropagating through sqrt(MSE)^2 at
+            # the exact zero initialization creates 0 * inf and NaN grads.
+            residual_mse=residual_mse,
+            residual_rms=residual_mse.detach().sqrt(),
         )

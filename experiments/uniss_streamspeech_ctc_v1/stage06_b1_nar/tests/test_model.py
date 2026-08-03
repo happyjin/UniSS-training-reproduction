@@ -53,7 +53,15 @@ class B1ResidualTest(unittest.TestCase):
         torch.testing.assert_close(
             actual.qwen_speech_embeddings, expected.qwen_speech_embeddings
         )
+        self.assertEqual(float(actual.residual_mse), 0.0)
         self.assertEqual(float(actual.residual_rms), 0.0)
+
+    def test_zero_residual_regularizer_has_finite_gradient(self) -> None:
+        model = FrozenB2ResidualBridge(FakeBase().eval()).train()
+        output = model(torch.randn(2, 6), torch.tensor([6, 5]))
+        output.residual_mse.backward()
+        self.assertTrue(torch.isfinite(model.residual.weight.grad).all())
+        self.assertTrue(torch.isfinite(model.residual.bias.grad).all())
 
 
 if __name__ == "__main__":

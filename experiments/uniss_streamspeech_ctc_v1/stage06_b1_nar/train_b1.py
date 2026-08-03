@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--max-steps", type=int, default=1000)
-    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--learning-rate", type=float, default=2e-5)
     parser.add_argument("--min-learning-rate", type=float, default=1e-5)
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--weight-decay", type=float, default=0.01)
@@ -76,7 +76,7 @@ def endpoint_loss(model, qwen, text_encoder, batch, args, device):
         labels=labels,
         use_cache=False,
     )
-    loss = phase3.loss + args.residual_weight * output.residual_rms.square()
+    loss = phase3.loss + args.residual_weight * output.residual_mse
     return loss, {
         "phase3_nll": float(phase3.loss.detach()),
         "residual_rms": float(output.residual_rms.detach()),
@@ -212,7 +212,11 @@ def main():
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 loss, metrics = endpoint_loss(model, qwen, text_encoder, batch, args, device)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(base.residual.parameters(), 5.0)
+            grad_norm = torch.nn.utils.clip_grad_norm_(base.residual.parameters(), 1.0)
+            if not torch.isfinite(grad_norm):
+                raise FloatingPointError(
+                    f"non-finite B1 residual gradient at step {step + 1}: {grad_norm}"
+                )
             optimizer.step()
             scheduler.step()
             step += 1
@@ -259,4 +263,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
