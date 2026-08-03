@@ -210,7 +210,7 @@ $$\mathrm{CTC}(\mathcal{X},\mathcal{Y}) = -\log\sum_{\mathcal{Z}\in\Pi^{-1}(\mat
 
 ### 3.3 为什么不用别的
 
-| 备选 | 为什么不如 CTC | 
+| 备选 | 为什么不如 CTC |
 | --- | --- |
 | **cross-attention 权重** | 非单调、非归一化到"个数"、层与头之间不一致；只能做启发式阈值 |
 | **monotonic attention / EMMA**（SeamlessStreaming） | 需要专门的策略参数化和期望训练，是额外模块；论文明确对比："StreamSpeech does not design any additional simultaneous policy such as EMMA" |
