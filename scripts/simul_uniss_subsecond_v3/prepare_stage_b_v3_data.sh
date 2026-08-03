@@ -19,6 +19,11 @@ python -m training.simul_uniss.subsecond_v3.build_balanced_selection \
   --source-manifest "${SOURCE_VALID_MANIFEST}" \
   --output "${V3_VALID_SELECTION}" --all-records --seed 20260803
 
+python -m training.simul_uniss.subsecond_v3.build_balanced_phase3_eval_manifest \
+  --selection-manifest "${V3_VALID_SELECTION}" \
+  --source-manifest "${SOURCE_VALID_MANIFEST}" \
+  --output "${V3_PHASE3_EVAL_MANIFEST}" --per-direction 16
+
 SOURCE_MANIFEST="${SOURCE_TRAIN_MANIFEST}" \
 SELECTION_MANIFEST="${V3_TRAIN_SELECTION}" \
 OUTPUT_ROOT="${V3_PREFIX_TRAIN_ROOT}" WORLD_SIZE=8 \

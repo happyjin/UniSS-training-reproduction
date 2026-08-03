@@ -39,7 +39,14 @@ All new runtime artifacts use `simul_uniss_subsecond_v3` roots under `data`,
 bash scripts/simul_uniss_subsecond_v3/prepare_stage_b_v3_data.sh
 bash scripts/simul_uniss_subsecond_v3/train_stage_b_v3.sh
 bash scripts/simul_uniss_subsecond_v3/start_tensorboard.sh
+bash scripts/simul_uniss_subsecond_v3/select_joint_checkpoint.sh
 ```
+
+Training retains the three strongest direction/supervision-balanced agreement
+checkpoints. The final command evaluates all three on the same 16+16 bilingual
+frozen-Phase3 subset. It ranks them with equal weights on agreement and the
+harmonic mean of EN-to-ZH/ZH-to-EN BLEU, writes `JOINT_SELECTION.json`, and
+exports the winner as `best.pt` without replacing `best_agreement.pt`.
 
 Formal training is blocked until the balanced prefix-hidden sidecar and mixed
 manifest markers are complete. The current public listening demo may remain
