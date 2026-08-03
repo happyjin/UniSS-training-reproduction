@@ -3,16 +3,36 @@ import unittest
 from pathlib import Path
 
 import torch
+import numpy as np
 
 
 STAGE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(STAGE))
 
 from endpoint_model import EndpointCTCStudent
+from audio_data import DistributedLengthBucketBatchSampler
 from training.simul_uniss.subsecond_v2.stage_b_latent_model import LatentStageBModelConfig
 
 
 class EndpointModelTest(unittest.TestCase):
+    def test_length_bucket_aligns_rank_duration_ranges(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory(dir="/opt/dlami/nvme/jasonleeeli") as directory:
+            path = Path(directory) / "lengths.u32"
+            np.arange(1, 33, dtype=np.uint32).tofile(path)
+            samplers = [
+                DistributedLengthBucketBatchSampler(path, 4, rank, 2, seed=1)
+                for rank in range(2)
+            ]
+            left = list(samplers[0])
+            right = list(samplers[1])
+            self.assertEqual(len(left), len(right))
+            for left_batch, right_batch in zip(left, right):
+                combined = left_batch + right_batch
+                values = np.arange(1, 33)[combined]
+                self.assertLessEqual(int(values.max() - values.min()), 7)
+
     def test_small_causal_model_outputs_four_heads(self) -> None:
         config = LatentStageBModelConfig(
             policy_vocab_size=10,
@@ -36,4 +56,3 @@ class EndpointModelTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

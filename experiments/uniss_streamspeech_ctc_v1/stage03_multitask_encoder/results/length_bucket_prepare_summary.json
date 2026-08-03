@@ -1,0 +1,25 @@
+{
+  "schema_version": "uniss_streamspeech_stage03_length_bucket_result_v1",
+  "status": "passed",
+  "train": {
+    "records": 1311416,
+    "minimum_40ms_frames": 19,
+    "median_40ms_frames": 136,
+    "p95_40ms_frames": 356,
+    "maximum_40ms_frames": 624
+  },
+  "valid": {
+    "records": 13415,
+    "minimum_40ms_frames": 23,
+    "median_40ms_frames": 137,
+    "p95_40ms_frames": 354,
+    "maximum_40ms_frames": 615
+  },
+  "sampler": "Each shuffled global group contains batch_size * 8 adjacent duration-sorted samples; one equal-sized slice is assigned to each rank.",
+  "resume_smoke": {
+    "from_step": 3000,
+    "completed_step": 3001,
+    "status": "passed"
+  },
+  "immutability": "The original v1 run and its step-3000 resume checkpoint are retained; bucket-v2 uses separate checkpoint and TensorBoard directories."
+}

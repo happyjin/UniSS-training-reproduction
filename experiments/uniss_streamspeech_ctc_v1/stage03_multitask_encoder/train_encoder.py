@@ -23,7 +23,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from audio_data import EndpointCTCAudioDataset, collate_audio
+from audio_data import (
+    DistributedLengthBucketBatchSampler,
+    EndpointCTCAudioDataset,
+    collate_audio,
+)
 from endpoint_model import EndpointCTCStudent
 
 
@@ -52,6 +56,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-offsets", type=Path, required=True)
     parser.add_argument("--tokenizer-dir", type=Path, required=True)
     parser.add_argument("--initialize-from", type=Path, required=True)
+    parser.add_argument("--length-index", type=Path)
+    parser.add_argument("--resume", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--tensorboard-dir", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -227,9 +233,14 @@ def main() -> None:
     valid_data = EndpointCTCAudioDataset(
         args.dataset_index, "valid", args.source_manifest, args.source_offsets
     )
-    train_sampler = DistributedContiguousBatchSampler(
-        len(train_data), args.batch_size, rank, world, shuffle=True, seed=args.seed
-    )
+    if args.length_index:
+        train_sampler = DistributedLengthBucketBatchSampler(
+            args.length_index, args.batch_size, rank, world, seed=args.seed
+        )
+    else:
+        train_sampler = DistributedContiguousBatchSampler(
+            len(train_data), args.batch_size, rank, world, shuffle=True, seed=args.seed
+        )
     valid_sampler = DistributedContiguousBatchSampler(
         len(valid_data), args.batch_size, rank, world, shuffle=False, drop_last=False, even_batches=False
     )
@@ -252,6 +263,14 @@ def main() -> None:
     step = 0
     epoch = 0
     best_score = -float("inf")
+    if args.resume:
+        resumed = torch.load(args.resume, map_location="cpu", weights_only=False)
+        base.load_state_dict(resumed["model"])
+        optimizer.load_state_dict(resumed["optimizer"])
+        scheduler.load_state_dict(resumed["scheduler"])
+        step = int(resumed["step"])
+        epoch = int(resumed.get("epoch", 0))
+        best_score = float(resumed.get("score", best_score))
     last_time = time.time()
     while step < args.max_steps:
         train_sampler.set_epoch(epoch)

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import bisect
 import json
+import random
 from pathlib import Path
 
 import numpy as np
 import torch
 import torchaudio
 from torch.nn import functional as F
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 
 
 DIRECTION_TO_ID = {"eng->cmn": 0, "cmn->eng": 1}
@@ -109,3 +110,42 @@ def collate_audio(batch: list[dict[str, object]]) -> dict[str, torch.Tensor | li
         "target_lengths": target_lengths,
     }
 
+
+class DistributedLengthBucketBatchSampler(Sampler[list[int]]):
+    """Give all ranks similarly sized utterances at every DDP step."""
+
+    def __init__(
+        self,
+        length_index: str | Path,
+        batch_size: int,
+        rank: int,
+        world_size: int,
+        *,
+        seed: int = 20260803,
+    ) -> None:
+        self.lengths = np.memmap(length_index, mode="r", dtype=np.uint32)
+        self.batch_size = batch_size
+        self.rank = rank
+        self.world_size = world_size
+        self.seed = seed
+        self.epoch = 0
+        self.sorted_indices = np.argsort(self.lengths, kind="stable")
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = epoch
+
+    def __iter__(self):
+        group_size = self.batch_size * self.world_size
+        usable = len(self.sorted_indices) - len(self.sorted_indices) % group_size
+        groups = self.sorted_indices[:usable].reshape(-1, group_size).copy()
+        rng = random.Random(self.seed + self.epoch)
+        order = list(range(len(groups)))
+        rng.shuffle(order)
+        for group_index in order:
+            group = groups[group_index].tolist()
+            rng.shuffle(group)
+            start = self.rank * self.batch_size
+            yield group[start : start + self.batch_size]
+
+    def __len__(self) -> int:
+        return len(self.lengths) // (self.batch_size * self.world_size)
