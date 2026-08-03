@@ -1,0 +1,29 @@
+{
+  "schema_version": "uniss_streamspeech_ctc_stage02_frozen_probe_result_v1",
+  "status": "completed_gate_failed",
+  "training": {
+    "steps": 3000,
+    "world_size": 8,
+    "micro_batch_per_gpu": 256,
+    "train_records": 1311416,
+    "validation_records": 13415,
+    "tensorboard": "runs/uniss_streamspeech_ctc_v1/stage02_ctc_probe_v1",
+    "checkpoint": "checkpoints/uniss_streamspeech_ctc_v1/stage02_ctc_probe_v1/best.pt"
+  },
+  "final_metrics": {
+    "asr_eng_wer": 0.8157347656400943,
+    "asr_cmn_cer": 0.8443673086246557,
+    "nar_s2tt_eng_unigram_recall": 0.047289642020224766,
+    "nar_s2tt_cmn_unigram_recall": 0.05588164788877093,
+    "validation_eng_to_cmn": 7644,
+    "validation_cmn_to_eng": 5771
+  },
+  "required_gate": {
+    "asr_eng_wer_max": 0.4,
+    "asr_cmn_cer_max": 0.4,
+    "nar_s2tt_eng_unigram_recall_min": 0.4,
+    "nar_s2tt_cmn_unigram_recall_min": 0.4
+  },
+  "decision": "Do not connect this checkpoint to the B2 bridge. Follow the documented fallback and jointly fine-tune the causal encoder with the four endpoint CTC heads.",
+  "interpretation": "The existing causal pre-VQ representation is not linearly separable for ASR and translation CTC. More linear-head steps are not an evidence-based remedy because metrics plateaued far below every gate."
+}

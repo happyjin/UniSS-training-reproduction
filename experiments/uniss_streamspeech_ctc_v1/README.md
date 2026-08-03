@@ -27,10 +27,10 @@ manifest.
 | `stage00_audit/` | Input, offset-index, field and environment audit |
 | `stage01_data/` | Parallel tokenizer corpus and CTC target sidecars |
 | `stage02_ctc_probe/` | Frozen streaming-encoder CTC feasibility probe |
-| `stage03_b2_discrete_bridge/` | Low-risk discrete GLM bridge |
-| `stage04_ctc_policy/` | CTC-count READ/WRITE policy |
-| `stage05_b1_continuous_bridge/` | Continuous hidden-to-Qwen bridge |
-| `stage06_nar_semantic/` | NAR semantic generation head |
+| `stage03_multitask_encoder/` | Causal encoder + four endpoint CTC heads |
+| `stage04_b2_discrete_bridge/` | Low-risk discrete GLM bridge |
+| `stage05_ctc_policy/` | CTC-count READ/WRITE policy |
+| `stage06_b1_nar/` | Continuous bridge and NAR semantic ablations |
 | `stage07_end_to_end_eval/` | Quality, latency and compute evaluation |
 
 Large generated artifacts are written under:
@@ -44,4 +44,3 @@ reports/uniss_streamspeech_ctc_v1/
 
 Every stage is independently runnable and must pass its local smoke tests before
 the next stage is launched.
-
