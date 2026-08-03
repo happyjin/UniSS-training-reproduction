@@ -23,3 +23,7 @@ selection criterion is Phase3 endpoint NLL/BLEU, not WhisperVQ token agreement.
 optimizer update. Validation is rank-sharded across all eight GPUs and Phase3
 NLL is weighted by the number of target tokens. This makes `initial.pt` a strict
 baseline and prevents a later, degraded projection from replacing `best.pt`.
+
+The formal eight-GPU launcher uses micro-batch 16 per rank (global batch 128).
+An isolated two-step H200 smoke reached 100% SM utilization during compute while
+remaining below 47 GB per GPU, leaving headroom for longer length buckets.
