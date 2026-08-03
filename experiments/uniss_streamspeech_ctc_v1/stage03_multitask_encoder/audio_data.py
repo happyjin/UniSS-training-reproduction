@@ -93,6 +93,12 @@ def collate_audio(batch: list[dict[str, object]]) -> dict[str, torch.Tensor | li
     target_lengths = torch.tensor(
         [len(row["target_token_ids"]) for row in batch], dtype=torch.long  # type: ignore[arg-type]
     )
+    target_padded = torch.full(
+        (len(batch), int(target_lengths.max())), -1, dtype=torch.long
+    )
+    for index, row in enumerate(batch):
+        value = row["target_token_ids"]
+        target_padded[index, : len(value)] = value  # type: ignore[arg-type]
     return {
         "ids": [str(row["id"]) for row in batch],
         "direction_ids": torch.tensor(
@@ -107,6 +113,7 @@ def collate_audio(batch: list[dict[str, object]]) -> dict[str, torch.Tensor | li
         "target_targets": torch.cat(
             [row["target_token_ids"] for row in batch]  # type: ignore[list-item]
         ),
+        "target_padded": target_padded,
         "target_lengths": target_lengths,
     }
 
