@@ -42,6 +42,16 @@ bash scripts/simul_uniss_subsecond_v3/start_tensorboard.sh
 bash scripts/simul_uniss_subsecond_v3/select_joint_checkpoint.sh
 ```
 
+For the formal unattended run, the same ordered commands are guarded by
+completion markers and can be launched with:
+
+```bash
+bash scripts/simul_uniss_subsecond_v3/run_stage_b_v3_pipeline.sh
+```
+
+The guard reuses only completed data/training/selection artifacts and refuses
+to overwrite an incomplete formal checkpoint directory.
+
 Training retains the three strongest direction/supervision-balanced agreement
 checkpoints. The final command evaluates all three on the same 16+16 bilingual
 frozen-Phase3 subset. It ranks them with equal weights on agreement and the
