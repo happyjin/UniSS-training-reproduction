@@ -27,6 +27,30 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 mkdir -p "$HF_HOME" "$TRANSFORMERS_CACHE" "$PYTORCH_KERNEL_CACHE_PATH" "$TMPDIR" "$(dirname "$LOG")"
 
+# tmux servers can retain a minimal environment from before the conda repair.
+# Resolve wheel-provided CUDA/cuDNN libraries from this exact environment so
+# background launches behave identically to an interactive login shell.
+SITE_PACKAGES="$($PYTHON -c 'import site; print(site.getsitepackages()[0])')"
+NVIDIA_LIBRARY_DIRS=()
+shopt -s nullglob
+for directory in "$SITE_PACKAGES"/nvidia/*/lib; do
+  [[ -d "$directory" ]] && NVIDIA_LIBRARY_DIRS+=("$directory")
+done
+shopt -u nullglob
+(( ${#NVIDIA_LIBRARY_DIRS[@]} > 0 )) || {
+  echo "No NVIDIA library directories found under $SITE_PACKAGES" >&2
+  exit 1
+}
+NVIDIA_LIBRARY_PATH="$(IFS=:; echo "${NVIDIA_LIBRARY_DIRS[*]}")"
+export LD_LIBRARY_PATH="$NVIDIA_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+"$PYTHON" - <<'PY'
+import ctypes
+
+ctypes.CDLL("libcudnn_graph.so.9")
+import transformer_engine.pytorch  # noqa: F401,E402
+PY
+
 test ! -e "$SAVE_DIR"
 test ! -e "$TB_DIR"
 test ! -e "$LOG"
