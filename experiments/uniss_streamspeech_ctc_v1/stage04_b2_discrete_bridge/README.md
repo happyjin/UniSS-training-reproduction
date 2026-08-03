@@ -27,3 +27,8 @@ baseline and prevents a later, degraded projection from replacing `best.pt`.
 The formal eight-GPU launcher uses micro-batch 16 per rank (global batch 128).
 An isolated two-step H200 smoke reached 100% SM utilization during compute while
 remaining below 47 GB per GPU, leaving headroom for longer length buckets.
+
+`run_text_probe_8gpu.sh` performs a direction-balanced greedy text generation
+probe through the trained bridge and frozen Phase3 model. It stops at the text
+boundary, computes paper-aligned corpus BLEU, and intentionally leaves semantic
+audio decoding to the later end-to-end stage.
