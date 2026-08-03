@@ -1,0 +1,36 @@
+{
+  "schema_version": "uniss_streamspeech_ctc_stage01_result_v1",
+  "status": "passed",
+  "source_records": 1500000,
+  "split": {
+    "train": 1484825,
+    "valid": 15175
+  },
+  "directions": {
+    "train:eng->cmn": 808459,
+    "valid:eng->cmn": 8200,
+    "train:cmn->eng": 676366,
+    "valid:cmn->eng": 6975
+  },
+  "tokenizers": {
+    "eng": {
+      "type": "bpe",
+      "vocab_size": 8000,
+      "ctc_blank_id": 8000
+    },
+    "cmn": {
+      "type": "unigram",
+      "vocab_size": 8000,
+      "ctc_blank_id": 8000,
+      "character_coverage": 0.9995
+    }
+  },
+  "ctc_path_audit": {
+    "invalid_25hz": 0,
+    "invalid_12p5hz_source_cmn_to_eng": 2,
+    "note": "25 Hz is the planned StreamSpeech-style frontend; 12.5 Hz is the existing frozen WhisperVQ/GLM probe."
+  },
+  "generated_dataset_index": "data/processed/uniss_streamspeech_ctc_v1/stage01_data/dataset_index.json",
+  "generated_validation": "data/processed/uniss_streamspeech_ctc_v1/stage01_data/reports/stage01_validation.json",
+  "immutability": "The historical Stage-A source manifest was read only and was not rewritten."
+}
