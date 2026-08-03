@@ -21,6 +21,7 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -128,21 +129,22 @@ def endpoint_loss(model, qwen, text_encoder, batch, args, device):
 def evaluate(model, qwen, text_encoder, loader, args, device):
     model.eval()
     total_nll = torch.zeros(1, dtype=torch.float64, device=device)
+    total_tokens = torch.zeros(1, dtype=torch.float64, device=device)
     batches = 0
     for value in loader:
         batch = {
             key: item.to(device, non_blocking=True) if isinstance(item, torch.Tensor) else item
             for key, item in value.items()
         }
-        with torch.enable_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
-            # Qwen is frozen but the endpoint loss normally builds a gradient
-            # wrt inputs.  Evaluation detaches the scalar immediately.
-            loss, _ = endpoint_loss(model, qwen, text_encoder, batch, args, device)
-        total_nll += loss.detach().double()
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            _, metrics = endpoint_loss(model, qwen, text_encoder, batch, args, device)
+        tokens = float(metrics["target_tokens"])
+        total_nll += float(metrics["phase3_nll"]) * tokens
+        total_tokens += tokens
         batches += 1
         if batches >= args.eval_batches:
             break
-    values = torch.tensor([float(total_nll), float(batches)], device=device)
+    values = torch.cat((total_nll, total_tokens))
     dist.all_reduce(values)
     model.train()
     return float(values[0] / values[1].clamp_min(1))
@@ -205,8 +207,12 @@ def main():
     train_sampler = DistributedLengthBucketBatchSampler(
         args.length_index, args.batch_size, rank, world, seed=args.seed
     )
-    valid_sampler = DistributedLengthBucketBatchSampler(
-        args.length_index, args.batch_size, rank, world, seed=args.seed + 1
+    valid_sampler = DistributedSampler(
+        valid_data,
+        num_replicas=world,
+        rank=rank,
+        shuffle=False,
+        drop_last=False,
     )
     options = {
         "num_workers": args.num_workers,
@@ -215,14 +221,34 @@ def main():
         "collate_fn": collate_bridge,
     }
     train_loader = DataLoader(train_data, batch_sampler=train_sampler, **options)
-    # A deterministic train-length sampler is used only for the fixed count of
-    # validation batches; records still come from the validation dataset below.
-    valid_loader = DataLoader(valid_data, batch_size=args.batch_size, shuffle=False, **options)
+    valid_loader = DataLoader(
+        valid_data, batch_size=args.batch_size, sampler=valid_sampler, **options
+    )
     writer = SummaryWriter(args.tensorboard_dir) if rank == 0 else None
     args.output_dir.mkdir(parents=True, exist_ok=True)
     step = 0
     epoch = 0
-    best = float("inf")
+    baseline = evaluate(model, qwen, text_encoder, valid_loader, args, device)
+    best = baseline
+    if rank == 0:
+        initial_state = {
+            "schema_version": "uniss_streamspeech_b2_phase3_endpoint_v1",
+            "step": 0,
+            "model": base.state_dict(),
+            "validation_phase3_nll": baseline,
+        }
+        torch.save(initial_state, args.output_dir / "initial.pt")
+        torch.save(initial_state, args.output_dir / "best.pt")
+        (args.output_dir / "latest_metrics.json").write_text(
+            json.dumps(
+                {"step": 0, "validation_phase3_nll": baseline, "baseline": True},
+                indent=2,
+            )
+            + "\n"
+        )
+        writer.add_scalar("valid/phase3_nll", baseline, 0)
+        print(json.dumps({"validation_step": 0, "phase3_nll": baseline}), flush=True)
+    dist.barrier()
     last_time = time.time()
     while step < args.max_steps:
         train_sampler.set_epoch(epoch)
@@ -268,4 +294,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

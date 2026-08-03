@@ -19,3 +19,7 @@ vocabulary or overwriting the historical Phase3 checkpoint.
 The bridge is initialized from the old Stage-B-v3 `glm_latent_head`, but its
 selection criterion is Phase3 endpoint NLL/BLEU, not WhisperVQ token agreement.
 
+`train_b2.py` evaluates and saves the untrained step-0 bridge before the first
+optimizer update. Validation is rank-sharded across all eight GPUs and Phase3
+NLL is weighted by the number of target tokens. This makes `initial.pt` a strict
+baseline and prevents a later, degraded projection from replacing `best.pt`.
