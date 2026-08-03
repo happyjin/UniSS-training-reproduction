@@ -32,3 +32,5 @@ remaining below 47 GB per GPU, leaving headroom for longer length buckets.
 probe through the trained bridge and frozen Phase3 model. It stops at the text
 boundary, computes paper-aligned corpus BLEU, and intentionally leaves semantic
 audio decoding to the later end-to-end stage.
+`RUN_NAME` and `BRIDGE_CHECKPOINT` may be overridden to compare checkpoints on
+the exact same direction offsets without editing the launcher.

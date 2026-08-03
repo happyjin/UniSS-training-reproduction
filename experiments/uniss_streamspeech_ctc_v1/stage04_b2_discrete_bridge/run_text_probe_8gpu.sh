@@ -5,9 +5,11 @@ ROOT=/opt/dlami/nvme/jasonleeeli/projects/UniSS
 PYTHON=/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-train/bin/python
 STAGE="$ROOT/experiments/uniss_streamspeech_ctc_v1/stage04_b2_discrete_bridge"
 SOURCE="$ROOT/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/stage_a_source_manifest.jsonl"
-PART_DIR="$ROOT/reports/uniss_streamspeech_ctc_v1/stage04_b2_text_probe32_v1_parts"
-OUTPUT_JSON="$ROOT/reports/uniss_streamspeech_ctc_v1/stage04_b2_text_probe32_v1.json"
-OUTPUT_MD="$ROOT/reports/uniss_streamspeech_ctc_v1/stage04_b2_text_probe32_v1.md"
+RUN_NAME=${RUN_NAME:-stage04_b2_text_probe32_v1}
+BRIDGE_CHECKPOINT=${BRIDGE_CHECKPOINT:-$ROOT/checkpoints/uniss_streamspeech_ctc_v1/stage04_b2_phase3_endpoint_v1/best.pt}
+PART_DIR="$ROOT/reports/uniss_streamspeech_ctc_v1/${RUN_NAME}_parts"
+OUTPUT_JSON="$ROOT/reports/uniss_streamspeech_ctc_v1/${RUN_NAME}.json"
+OUTPUT_MD="$ROOT/reports/uniss_streamspeech_ctc_v1/${RUN_NAME}.md"
 
 export PYTORCH_KERNEL_CACHE_PATH=/opt/dlami/nvme/jasonleeeli/cache/torch_kernel
 mkdir -p "$PYTORCH_KERNEL_CACHE_PATH"
@@ -27,7 +29,7 @@ for rank in 0 1 2 3 4 5 6 7; do
     --ctc-tokenizer-dir "$ROOT/data/processed/uniss_streamspeech_ctc_v1/stage01_data/tokenizers" \
     --endpoint-checkpoint "$ROOT/checkpoints/uniss_streamspeech_ctc_v1/stage03b_ar_s2tt_b16_v3/best.pt" \
     --historical-stage-b-checkpoint "$ROOT/checkpoints/simul_uniss_subsecond_v3/stage_b_v3_balanced_hidden_15shard_v1/candidates/step_008000.pt" \
-    --bridge-checkpoint "$ROOT/checkpoints/uniss_streamspeech_ctc_v1/stage04_b2_phase3_endpoint_v1/best.pt" \
+    --bridge-checkpoint "$BRIDGE_CHECKPOINT" \
     --codebook-model "$ROOT/pretrained_models/UniSS/glm4_tokenizer" \
     --phase3-model "$ROOT/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf" \
     --direction-id "$direction" \
@@ -45,4 +47,3 @@ done
   --parts "$PART_DIR"/part_?.json \
   --output-json "$OUTPUT_JSON" \
   --output-md "$OUTPUT_MD"
-
