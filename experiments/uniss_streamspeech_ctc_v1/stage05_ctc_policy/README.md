@@ -27,3 +27,7 @@ through `Emformer.infer`, preserving the 160 ms segment and 80 ms right-context
 contract. `evaluate_real_policy.py` reports first-WRITE timing, final committed
 target unigram recall, conflicts and the zero-rollback invariant. This is a CTC
 policy proxy; downstream Phase3/BiCodec quality is evaluated separately.
+
+The provided validation launcher shards 256 samples into eight disjoint ranges,
+runs one real streaming endpoint per GPU, then merges both aggregate and
+direction-specific EN→ZH / ZH→EN results without overwriting prior output.

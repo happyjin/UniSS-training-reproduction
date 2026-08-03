@@ -38,6 +38,7 @@ def parse_args():
     parser.add_argument("--tokenizer-dir", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--split", choices=("train", "valid"), default="valid")
+    parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--max-samples", type=int, default=256)
     parser.add_argument("--confirmations", type=int, default=2)
     parser.add_argument("--lagging-k", type=int, default=0)
@@ -63,7 +64,7 @@ def percentile(values: list[float], fraction: float) -> float | None:
     return float(ordered[index])
 
 
-def summarize(rows: list[dict[str, object]]) -> dict[str, object]:
+def summarize_rows(rows: list[dict[str, object]]) -> dict[str, object]:
     first_write = [float(row["first_write_ms"]) for row in rows if row["first_write_ms"]]
     recalls = [float(row["committed_unigram_recall"]) for row in rows]
     return {
@@ -79,8 +80,24 @@ def summarize(rows: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def summarize(rows: list[dict[str, object]]) -> dict[str, object]:
+    result = summarize_rows(rows)
+    result["by_direction"] = {
+        direction: summarize_rows(
+            [row for row in rows if row["direction"] == direction]
+        )
+        for direction in ("eng->cmn", "cmn->eng")
+    }
+    return result
+
+
+def metric(value: object) -> str:
+    return "n/a" if value is None else f"{float(value):.4f}"
+
+
 def render_markdown(payload: dict[str, object]) -> str:
     summary = payload["summary"]
+    directions = summary["by_direction"]
     return f"""# Stage05 real-CTC policy evaluation
 
 This report feeds actual causal Stage03b ASR/NAR-S2TT logits into the isolated
@@ -91,12 +108,17 @@ BiCodec audio generation are deliberately not claimed here.
 | --- | ---: |
 | Samples | {summary['samples']} |
 | Samples with a WRITE | {summary['write_coverage']:.4f} |
-| First WRITE mean (model-frame ms) | {summary['first_write_ms_mean']} |
-| First WRITE p50 (model-frame ms) | {summary['first_write_ms_p50']} |
-| First WRITE p95 (model-frame ms) | {summary['first_write_ms_p95']} |
+| First WRITE mean (model-frame ms) | {metric(summary['first_write_ms_mean'])} |
+| First WRITE p50 (model-frame ms) | {metric(summary['first_write_ms_p50'])} |
+| First WRITE p95 (model-frame ms) | {metric(summary['first_write_ms_p95'])} |
 | Committed target unigram recall | {summary['committed_unigram_recall_mean']:.4f} |
 | Source/target conflict events | {summary['source_conflicts']} / {summary['target_conflicts']} |
 | Rollback events | {summary['rollback_events']} |
+
+| Direction | Samples | WRITE coverage | First WRITE p50 ms | Recall |
+| --- | ---: | ---: | ---: | ---: |
+| EN→ZH | {directions['eng->cmn']['samples']} | {directions['eng->cmn']['write_coverage']:.4f} | {metric(directions['eng->cmn']['first_write_ms_p50'])} | {metric(directions['eng->cmn']['committed_unigram_recall_mean'])} |
+| ZH→EN | {directions['cmn->eng']['samples']} | {directions['cmn->eng']['write_coverage']:.4f} | {metric(directions['cmn->eng']['first_write_ms_p50'])} | {metric(directions['cmn->eng']['committed_unigram_recall_mean'])} |
 
 `model-frame ms` uses the 40 ms encoder frame clock and includes the configured
 right-context frames. It excludes wall-clock compute and downstream synthesis.
@@ -105,8 +127,8 @@ right-context frames. It excludes wall-clock compute and downstream synthesis.
 
 def main():
     args = parse_args()
-    if args.max_samples <= 0:
-        raise ValueError("max-samples must be positive")
+    if args.start_index < 0 or args.max_samples <= 0:
+        raise ValueError("start-index must be non-negative and max-samples positive")
     device = torch.device(args.device)
     processors = {
         lang: spm.SentencePieceProcessor(
@@ -124,7 +146,8 @@ def main():
         args.dataset_index, args.split, args.source_manifest, args.source_offsets
     )
     rows = []
-    for index in range(min(args.max_samples, len(dataset))):
+    stop = min(args.start_index + args.max_samples, len(dataset))
+    for index in range(args.start_index, stop):
         record = dataset[index]
         direction = int(record["direction_id"])
         source_head, target_head, target_lang = DIRECTIONS[direction]
@@ -176,6 +199,8 @@ def main():
         "schema_version": "uniss_streamspeech_stage05_real_ctc_policy_v1",
         "checkpoint": str(args.checkpoint),
         "split": args.split,
+        "start_index": args.start_index,
+        "stop_index": stop,
         "confirmations": args.confirmations,
         "lagging_k": args.lagging_k,
         "encoder_segment_ms": int(model.config.segment_frames) * 40,
@@ -192,4 +217,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
