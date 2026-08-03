@@ -12,6 +12,9 @@ import time
 from collections import Counter
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+
 import sentencepiece as spm
 import torch
 import torch.distributed as dist
@@ -314,4 +317,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
