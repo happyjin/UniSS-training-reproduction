@@ -1,0 +1,30 @@
+{
+  "schema_version": "uniss_streamspeech_ctc_stage02_prepare_result_v1",
+  "status": "passed",
+  "latent_input_records": 1325243,
+  "ctc_eligible_records": 1324831,
+  "eligibility_rate": 0.9996891136191627,
+  "split": {
+    "train": 1311416,
+    "valid": 13415
+  },
+  "directions": {
+    "train:eng->cmn": 752044,
+    "valid:eng->cmn": 7644,
+    "train:cmn->eng": 559372,
+    "valid:cmn->eng": 5771
+  },
+  "skipped_ctc_path_too_short": {
+    "source:eng->cmn": 284,
+    "target:eng->cmn": 3,
+    "source:cmn->eng": 31,
+    "target:cmn->eng": 94,
+    "total": 412
+  },
+  "stable_join": {
+    "method": "immutable SQLite ID-to-current-byte-offset sidecar",
+    "source_ids_indexed": 1500000,
+    "reason": "Historical latent byte offsets and positional source indices predate source-manifest compaction and must not be used directly."
+  },
+  "generated_dataset_index": "data/processed/uniss_streamspeech_ctc_v1/stage02_ctc_probe/dataset_index.json"
+}

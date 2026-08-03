@@ -26,9 +26,8 @@ export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
   --tokenizer-dir "$TOKENIZERS" \
   --output-dir "$OUTPUT" \
   --tensorboard-dir "$TENSORBOARD" \
-  --batch-size 128 \
+  --batch-size 256 \
   --num-workers 4 \
   --max-steps 3000 \
   --eval-every 250 \
   --eval-batches 40
-

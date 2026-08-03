@@ -177,6 +177,7 @@ def evaluate(
     max_batches: int,
 ) -> dict[str, float]:
     model.eval()
+    evaluation_model = model.module if isinstance(model, DDP) else model
     sums = Counter()
     batches = 0
     for raw_batch in loader:
@@ -190,7 +191,7 @@ def evaluate(
         source_sequences = split_flat(batch["source_targets"], batch["source_lengths"])
         target_sequences = split_flat(batch["target_targets"], batch["target_lengths"])
         with torch.autocast("cuda", dtype=torch.bfloat16):
-            all_logits = model(hidden)
+            all_logits = evaluation_model(hidden)
         if not isinstance(all_logits, dict):
             raise TypeError("probe model must return all head logits")
         for direction_id, (source_head, target_head, src_lang, tgt_lang) in DIRECTION.items():
@@ -314,7 +315,13 @@ def main() -> None:
         len(train_dataset), args.batch_size, rank, world_size, shuffle=True, seed=args.seed
     )
     valid_sampler = DistributedContiguousBatchSampler(
-        len(valid_dataset), args.batch_size, rank, world_size, shuffle=False, drop_last=False
+        len(valid_dataset),
+        args.batch_size,
+        rank,
+        world_size,
+        shuffle=False,
+        drop_last=False,
+        even_batches=False,
     )
     loader_kwargs = {
         "num_workers": args.num_workers,

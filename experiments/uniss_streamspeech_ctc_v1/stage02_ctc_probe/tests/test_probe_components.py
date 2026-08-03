@@ -30,6 +30,22 @@ class ProbeComponentsTest(unittest.TestCase):
         self.assertFalse({tuple(x) for x in left}.intersection(tuple(x) for x in right))
         self.assertEqual(sum(map(len, left + right)), 64)
 
+    def test_eval_sampler_keeps_uneven_tail(self) -> None:
+        all_batches = []
+        for rank in range(3):
+            all_batches.extend(
+                DistributedContiguousBatchSampler(
+                    10,
+                    4,
+                    rank,
+                    3,
+                    shuffle=False,
+                    drop_last=False,
+                    even_batches=False,
+                )
+            )
+        self.assertEqual(sorted(index for batch in all_batches for index in batch), list(range(10)))
+
     def test_dataset_reads_only_referenced_hidden_slice(self) -> None:
         with tempfile.TemporaryDirectory(
             dir="/opt/dlami/nvme/jasonleeeli"
@@ -72,4 +88,3 @@ class ProbeComponentsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

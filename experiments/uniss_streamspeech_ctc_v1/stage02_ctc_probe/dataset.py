@@ -112,6 +112,7 @@ class DistributedContiguousBatchSampler(Sampler[list[int]]):
         shuffle: bool,
         seed: int = 2026,
         drop_last: bool = True,
+        even_batches: bool = True,
     ) -> None:
         self.dataset_size = dataset_size
         self.batch_size = batch_size
@@ -120,6 +121,7 @@ class DistributedContiguousBatchSampler(Sampler[list[int]]):
         self.shuffle = shuffle
         self.seed = seed
         self.drop_last = drop_last
+        self.even_batches = even_batches
         self.epoch = 0
 
     def set_epoch(self, epoch: int) -> None:
@@ -135,8 +137,10 @@ class DistributedContiguousBatchSampler(Sampler[list[int]]):
             batches.pop()
         if self.shuffle:
             random.Random(self.seed + self.epoch).shuffle(batches)
-        usable = len(batches) - len(batches) % self.world_size
-        return batches[:usable]
+        if self.even_batches:
+            usable = len(batches) - len(batches) % self.world_size
+            return batches[:usable]
+        return batches
 
     def __iter__(self) -> Iterator[list[int]]:
         batches = self._global_batches()
@@ -146,5 +150,8 @@ class DistributedContiguousBatchSampler(Sampler[list[int]]):
         count = self.dataset_size // self.batch_size
         if not self.drop_last:
             count = math.ceil(self.dataset_size / self.batch_size)
-        return (count - count % self.world_size) // self.world_size
-
+        if self.even_batches:
+            return (count - count % self.world_size) // self.world_size
+        if count <= self.rank:
+            return 0
+        return (count - self.rank + self.world_size - 1) // self.world_size
