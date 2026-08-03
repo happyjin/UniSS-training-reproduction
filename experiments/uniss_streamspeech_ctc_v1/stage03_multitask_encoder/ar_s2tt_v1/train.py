@@ -9,6 +9,7 @@ import math
 import os
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -28,8 +29,62 @@ from torch.utils.tensorboard import SummaryWriter
 from audio_data import DistributedLengthBucketBatchSampler, EndpointCTCAudioDataset, collate_audio
 from dataset import DistributedContiguousBatchSampler
 from model import EndpointCTCARStudent
-from train_encoder import DIRECTION, evaluate as evaluate_ctc
-from train_probe import select_flat_targets
+
+
+DIRECTION = {
+    0: ("asr_eng", "nar_s2tt_cmn", "eng", "cmn"),
+    1: ("asr_cmn", "nar_s2tt_eng", "cmn", "eng"),
+}
+
+
+def select_flat_targets(flat, lengths, indices):
+    pieces = torch.split(flat, lengths.tolist())
+    chosen = [pieces[index] for index in indices.tolist()]
+    return torch.cat(chosen), lengths[indices]
+
+
+def split_flat(flat, lengths):
+    values = []
+    offset = 0
+    for length in lengths.tolist():
+        values.append(flat[offset : offset + length].tolist())
+        offset += length
+    return values
+
+
+def collapse_ctc(path, blank):
+    output = []
+    previous = None
+    for token in path:
+        if token != blank and token != previous:
+            output.append(token)
+        previous = token
+    return output
+
+
+def edit_distance(left, right):
+    previous = list(range(len(right) + 1))
+    for row, left_value in enumerate(left, start=1):
+        current = [row]
+        for column, right_value in enumerate(right, start=1):
+            current.append(
+                min(
+                    current[-1] + 1,
+                    previous[column] + 1,
+                    previous[column - 1] + (left_value != right_value),
+                )
+            )
+        previous = current
+    return previous[-1]
+
+
+def unigram_matches(predicted, reference):
+    predicted_counts = Counter(predicted)
+    reference_counts = Counter(reference)
+    return sum(
+        min(predicted_counts[token], count)
+        for token, count in reference_counts.items()
+    )
 
 
 def parse_args():
@@ -111,6 +166,94 @@ def losses(model, batch, vocab):
         samples += count
         metrics.update({source_head: float(source.detach()), target_head: float(target.detach()), f"ar_{tgt_lang}": float(ar.detach())})
     return total / max(1, samples), metrics
+
+
+@torch.no_grad()
+def evaluate_ctc(model, loader, device, vocab, processors, max_batches):
+    model.eval()
+    sums = Counter()
+    batches = 0
+    for value in loader:
+        batch = {
+            key: item.to(device, non_blocking=True)
+            if isinstance(item, torch.Tensor)
+            else item
+            for key, item in value.items()
+        }
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            output = model(batch["waveform"], batch["waveform_lengths"])
+        logits = output["logits"]
+        lengths = output["output_lengths"]
+        source_sequences = split_flat(batch["source_targets"], batch["source_lengths"])
+        target_sequences = split_flat(batch["target_targets"], batch["target_lengths"])
+        for direction_id, (source_head, target_head, src_lang, tgt_lang) in DIRECTION.items():
+            indices = torch.nonzero(
+                batch["direction_ids"] == direction_id, as_tuple=False
+            ).flatten()
+            if not len(indices):
+                continue
+            source_paths = logits[source_head][indices].argmax(-1).cpu()
+            target_paths = logits[target_head][indices].argmax(-1).cpu()
+            for local_row, original_index in enumerate(indices.tolist()):
+                frames = int(lengths[original_index])
+                source_pred = collapse_ctc(
+                    source_paths[local_row, :frames].tolist(), vocab[src_lang]
+                )
+                target_pred = collapse_ctc(
+                    target_paths[local_row, :frames].tolist(), vocab[tgt_lang]
+                )
+                source_ref = source_sequences[original_index]
+                target_ref = target_sequences[original_index]
+                predicted_text = processors[src_lang].decode(source_pred)
+                reference_text = processors[src_lang].decode(source_ref)
+                if src_lang == "eng":
+                    predicted_units = predicted_text.split()
+                    reference_units = reference_text.split()
+                    metric = "asr_eng_wer"
+                else:
+                    predicted_units = list(predicted_text.replace(" ", ""))
+                    reference_units = list(reference_text.replace(" ", ""))
+                    metric = "asr_cmn_cer"
+                sums[f"{metric}_errors"] += edit_distance(
+                    predicted_units, reference_units
+                )
+                sums[f"{metric}_units"] += len(reference_units)
+                sums[f"nar_s2tt_{tgt_lang}_matches"] += unigram_matches(
+                    target_pred, target_ref
+                )
+                sums[f"nar_s2tt_{tgt_lang}_units"] += len(target_ref)
+                sums[f"samples_{direction_id}"] += 1
+        batches += 1
+        if max_batches and batches >= max_batches:
+            break
+    keys = [
+        "asr_eng_wer_errors",
+        "asr_eng_wer_units",
+        "asr_cmn_cer_errors",
+        "asr_cmn_cer_units",
+        "nar_s2tt_eng_matches",
+        "nar_s2tt_eng_units",
+        "nar_s2tt_cmn_matches",
+        "nar_s2tt_cmn_units",
+        "samples_0",
+        "samples_1",
+    ]
+    vector = torch.tensor([float(sums[key]) for key in keys], device=device)
+    dist.all_reduce(vector)
+    reduced = dict(zip(keys, vector.tolist()))
+    model.train()
+    return {
+        "asr_eng_wer": reduced["asr_eng_wer_errors"]
+        / max(1.0, reduced["asr_eng_wer_units"]),
+        "asr_cmn_cer": reduced["asr_cmn_cer_errors"]
+        / max(1.0, reduced["asr_cmn_cer_units"]),
+        "nar_s2tt_eng_unigram_recall": reduced["nar_s2tt_eng_matches"]
+        / max(1.0, reduced["nar_s2tt_eng_units"]),
+        "nar_s2tt_cmn_unigram_recall": reduced["nar_s2tt_cmn_matches"]
+        / max(1.0, reduced["nar_s2tt_cmn_units"]),
+        "samples_eng_to_cmn": reduced["samples_0"],
+        "samples_cmn_to_eng": reduced["samples_1"],
+    }
 
 
 @torch.no_grad()
