@@ -115,15 +115,21 @@ class EndpointCTCStudent(nn.Module):
         )
         return self.input_projection(stacked)
 
-    def forward(
+    def encode(
         self, waveform: torch.Tensor, waveform_lengths: torch.Tensor
-    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         projected = self.extract_projected(waveform)
         lengths = self.stacked_lengths(waveform_lengths)
         right = self.config.right_context_frames
         padded = F.pad(projected, (0, 0, 0, right))
         encoded, output_lengths = self.encoder(padded, lengths)
         hidden = self.output_norm(encoded)
+        return hidden, output_lengths
+
+    def forward(
+        self, waveform: torch.Tensor, waveform_lengths: torch.Tensor
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+        hidden, output_lengths = self.encode(waveform, waveform_lengths)
         return {
             "hidden": hidden,
             "output_lengths": output_lengths,
@@ -136,4 +142,3 @@ class EndpointCTCStudent(nn.Module):
 
     def metadata(self) -> dict[str, object]:
         return asdict(self.config)
-
