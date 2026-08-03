@@ -22,3 +22,8 @@ The module reports rollback/conflict diagnostics but never rewrites committed
 output.  It is trained by no separate loss and can be attached to any checkpoint
 that exposes the two CTC heads.
 
+`endpoint_runtime.py` connects the policy to the actual Stage03/Stage03b heads
+through `Emformer.infer`, preserving the 160 ms segment and 80 ms right-context
+contract. `evaluate_real_policy.py` reports first-WRITE timing, final committed
+target unigram recall, conflicts and the zero-rollback invariant. This is a CTC
+policy proxy; downstream Phase3/BiCodec quality is evaluated separately.
