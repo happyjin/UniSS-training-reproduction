@@ -18,6 +18,44 @@ from .config import StudentV2StreamingConfig
 from .engine import StudentV2StreamingEngine
 
 
+def format_student_final_status(result) -> str:
+    payload: dict[str, object] = {}
+    try:
+        payload = json.loads(Path(result.result_json_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        pass
+    latency = payload.get("latency_metrics", {})
+    latency = latency if isinstance(latency, dict) else {}
+
+    def _ms(name: str) -> str:
+        value = latency.get(name)
+        return "N/A" if value is None else f"{float(value):.0f} ms"
+
+    fallback = (
+        f"  \n音频安全回退：`Phase3 full198 Quality` · 原因：`{result.fallback_reason}`"
+        if result.fallback_used
+        else ""
+    )
+    return (
+        f"**完成** · `{result.model_label}`  \n"
+        f"模式：`{result.mode}`  \n"
+        f"源音频：{result.source_duration_seconds:.2f}s · "
+        f"目标音频：{result.translation_duration_seconds:.2f}s · "
+        f"服务器处理：{result.total_seconds:.2f}s  \n"
+        "First WRITE（源时间线/NCA）："
+        f"{_ms('first_write_source_timeline_nca_ms')} · "
+        "First audio 放置点（NCA）："
+        f"{_ms('first_audio_timeline_placement_nca_ms')}  \n"
+        "First WRITE 决策可用（CA估算）："
+        f"{_ms('first_write_decision_ca_estimate_ms')} · "
+        "First audio 服务端就绪（CA估算）："
+        f"{_ms('first_audio_ready_ca_estimate_ms')}  \n"
+        "CA估算尚不含浏览器回调、网络和播放缓冲 · "
+        f"forced={result.forced_actions} · recovery={result.structural_recoveries}"
+        f"{fallback}"
+    )
+
+
 def build_demo(
     config: StudentV2StreamingConfig,
     engine: StudentV2StreamingEngine,
@@ -25,6 +63,7 @@ def build_demo(
 ) -> gr.Blocks:
     legacy.ENGINE = engine
     legacy.REGISTRY = registry
+    legacy.format_final_status = format_student_final_status
     css = """
     .model-card {border:1px solid #a7f3d0;border-radius:14px;padding:14px;background:#ecfdf5}
     .boundary-card {border:1px solid #fde68a;border-radius:14px;padding:12px;background:#fffbeb}
@@ -58,7 +97,8 @@ def build_demo(
         )
         gr.Markdown(
             "⚠️ Student前端是真因果流式并使用Emformer cache；R2策略仍按旧网站训练分布每640ms决策。"
-            "当前Student target agreement约29.3%，页面用于真实试听和延迟审计，不代表质量门已通过。",
+            "当前Student target agreement约29.3%，correct-stable 320/480ms只覆盖31.25%的验证样本。"
+            "页面用于真实试听和延迟审计，不代表质量门已通过；First audio必须看CA估算，不能只看NCA放置点。",
             elem_classes=["boundary-card"],
         )
         with gr.Tab("上传音频 / Causal replay"):

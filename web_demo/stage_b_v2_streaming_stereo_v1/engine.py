@@ -46,6 +46,29 @@ class StudentV2StreamingEngine(StreamingDemoEngine):
         result.mode = mode
         result_path = Path(result.result_json_path)
         payload = json.loads(result_path.read_text(encoding="utf-8"))
+        first_write_event = next(
+            (event for event in payload.get("events", []) if event.get("action") == "write"),
+            None,
+        )
+        first_audio_event = next(
+            (
+                event
+                for event in payload.get("events", [])
+                if int(event.get("audio_samples", 0)) > 0
+            ),
+            None,
+        )
+
+        def _ca_ms(event, *, include_generation: bool) -> float | None:
+            if event is None:
+                return None
+            milliseconds = float(event["source_end_ms"])
+            milliseconds += float(event.get("action_seconds", 0.0)) * 1000.0
+            if include_generation:
+                milliseconds += float(event.get("write_seconds", 0.0)) * 1000.0
+                milliseconds += float(event.get("codec_seconds", 0.0)) * 1000.0
+            return milliseconds
+
         payload.update(
             {
                 "mode": mode,
@@ -58,6 +81,20 @@ class StudentV2StreamingEngine(StreamingDemoEngine):
                     "feed_ms": self.config.frontend_feed_ms,
                     "right_context_ms": self.config.frontend_right_context_ms,
                     "r2_policy_tick_ms": self.config.chunk_ms,
+                },
+                "latency_metrics": {
+                    "first_write_source_timeline_nca_ms": result.first_write_ms,
+                    "first_audio_timeline_placement_nca_ms": result.first_audio_ms,
+                    "first_write_decision_ca_estimate_ms": _ca_ms(
+                        first_write_event, include_generation=False
+                    ),
+                    "first_audio_ready_ca_estimate_ms": _ca_ms(
+                        first_audio_event, include_generation=True
+                    ),
+                    "ca_estimate_excludes_ms": "browser capture callback, network and playback buffering",
+                    "warning": (
+                        "legacy first_audio_ms is timeline placement, not wall-clock audio availability"
+                    ),
                 },
             }
         )

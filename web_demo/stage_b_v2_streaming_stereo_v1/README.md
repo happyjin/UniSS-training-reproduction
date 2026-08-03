@@ -12,8 +12,15 @@ audited Stage7A Reward-v2 R2 WAIT/WRITE controller and Streaming BiCodec.
   expire independently from historical evaluation outputs.
 
 The Student frontend passes causality, cache parity and RTF gates but its
-target agreement is only about 29.3%. This service is an auditable listening
-prototype, not a claim that the formal quality gate has passed.
+target agreement is only about 29.3%. The reported 320/480 ms correct-stable
+p50/p95 is conditional on the 31.25% of validation samples whose first stable
+token is also correct. This service is an auditable listening prototype, not a
+claim that the formal quality gate has passed.
+
+The result panel distinguishes source-timeline NCA from server-side CA
+estimates. The historical `first_audio_ms` field is only the point where audio
+is placed on the WAIT/WRITE timeline; it excludes autoregressive WRITE and
+codec compute and must not be described as wall-clock first playable audio.
 
 The launcher reuses the recovered historical demo environment at
 `/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-offline-demo`.  Runtime caches,

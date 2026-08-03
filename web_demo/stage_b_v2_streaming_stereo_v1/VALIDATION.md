@@ -57,6 +57,12 @@ source frontend RTF at final event = about 0.138
 stereo = 2 channels, 16 kHz, non-empty
 ```
 
+For that final WRITE, the action decision took about 21 ms, autoregressive
+text/semantic generation took 4.848 s and BiCodec took 0.601 s. Therefore the
+server-side first-audio CA estimate is about `10.93 s`, before browser/network
+buffering. The legacy `5460 ms` value is NCA timeline placement, not when the
+audio bytes became playable.
+
 The source waveform contains leading silence. With a 20 ms RMS audible gate,
 the left source channel first crossed the gate at 1.90 s and the right target
 channel at 6.90 s, an audible channel offset of about 5.00 s. This shows that
