@@ -1,0 +1,56 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_checkpoint_gate_v1",
+  "baseline": {
+    "name": "Stage04 B2",
+    "iteration": null,
+    "en_zh_bleu": 15.35135212496258,
+    "zh_en_bleu": 13.787557205722392,
+    "average_bleu": 14.569454665342485
+  },
+  "candidates": [
+    {
+      "name": "B1 iter 600",
+      "iteration": 600,
+      "en_zh_bleu": 18.849184971086498,
+      "zh_en_bleu": 19.07249188534672,
+      "average_bleu": 18.96083842821661,
+      "compute_rtf_source_mean": 0.08489399780450026,
+      "compute_rtf_source_p95": 0.12857153154434908,
+      "first_text_token_seconds_mean": 0.14836181621831201,
+      "delta_en_zh_vs_b2": 3.4978328461239183,
+      "delta_zh_en_vs_b2": 5.28493467962433,
+      "passes_s3_gate": false
+    },
+    {
+      "name": "B1 iter 1000",
+      "iteration": 1000,
+      "en_zh_bleu": 19.0635592030068,
+      "zh_en_bleu": 17.045580153363623,
+      "average_bleu": 18.05456967818521,
+      "compute_rtf_source_mean": 0.08717187861606973,
+      "compute_rtf_source_p95": 0.13960145651767758,
+      "first_text_token_seconds_mean": 0.17001544299455418,
+      "delta_en_zh_vs_b2": 3.712207078044221,
+      "delta_zh_en_vs_b2": 3.2580229476412317,
+      "passes_s3_gate": false
+    }
+  ],
+  "gate": {
+    "en_zh_bleu": 22.95,
+    "zh_en_bleu": 22.46
+  },
+  "selected": {
+    "name": "B1 iter 600",
+    "iteration": 600,
+    "en_zh_bleu": 18.849184971086498,
+    "zh_en_bleu": 19.07249188534672,
+    "average_bleu": 18.96083842821661,
+    "compute_rtf_source_mean": 0.08489399780450026,
+    "compute_rtf_source_p95": 0.12857153154434908,
+    "first_text_token_seconds_mean": 0.14836181621831201,
+    "delta_en_zh_vs_b2": 3.4978328461239183,
+    "delta_zh_en_vs_b2": 5.28493467962433,
+    "passes_s3_gate": false
+  },
+  "any_candidate_passes": false
+}
