@@ -1,0 +1,61 @@
+{
+  "schema_version": "uniss_streamspeech_ctc_stage00_audit_v1",
+  "status": "passed",
+  "manifest": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/stage_a_source_manifest.jsonl",
+    "size_bytes": 5836933880,
+    "mtime_ns": 1785603444150812060,
+    "records_from_offsets": 1500000
+  },
+  "offset_index": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/stage_a_source_manifest.jsonl.offsets.bin",
+    "size_bytes": 12000000,
+    "first_offset": 0,
+    "last_offset": 5836927832,
+    "sample_monotonic": true
+  },
+  "sample": {
+    "records": 50000,
+    "directions": {
+      "cmn->eng": 22775,
+      "eng->cmn": 27225
+    },
+    "malformed_json": 0,
+    "missing_fields": {},
+    "empty_text": {},
+    "invalid_direction": 0,
+    "invalid_duration": 0,
+    "invalid_glm_geometry_gt_240ms": 0,
+    "audio_paths_checked": 1024,
+    "audio_paths_missing": 0
+  },
+  "distributions": {
+    "source_duration_ms": {
+      "mean": 6861.0716,
+      "p01": 2000.0,
+      "p50": 5720.0,
+      "p95": 14880.0,
+      "p99": 18280.20000000004
+    },
+    "source_glm_tokens_12p5hz": {
+      "mean": 86.36378,
+      "p01": 26.0,
+      "p50": 72.0,
+      "p95": 186.0
+    },
+    "transcription_characters": {
+      "mean": 68.58846,
+      "p50": 51.0,
+      "p95": 197.0
+    },
+    "translation_characters": {
+      "mean": 68.80514,
+      "p50": 50.0,
+      "p95": 203.0
+    }
+  },
+  "environment": {
+    "python": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-train/bin/python",
+    "numpy": "2.2.6"
+  }
+}
