@@ -16,6 +16,7 @@ from training.simul_uniss.subsecond_v3.build_mixed_manifest import build as buil
 from training.simul_uniss.subsecond_v3.prefix_hidden_teacher import (
     PrefixTeacherOutput,
     build_exact_prefix_hidden_targets,
+    build_exact_prefix_hidden_targets_batch,
 )
 
 
@@ -36,14 +37,16 @@ def write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
 
 class FakePrefixTeacher:
     def __init__(self) -> None:
+        self.encode_calls = 0
         self.model = SimpleNamespace(
             codebook=SimpleNamespace(weight=torch.zeros(8, 3))
         )
 
     def encode(self, audio):
+        self.encode_calls += 1
         outputs = []
-        for index, _ in enumerate(audio):
-            count = index + 3
+        for waveform, _ in audio:
+            count = waveform.shape[-1] // 2_560 + 2
             outputs.append(
                 PrefixTeacherOutput(
                     tokens=torch.arange(1, count + 1),
@@ -72,6 +75,25 @@ class StageBV3DataTest(unittest.TestCase):
         self.assertEqual(tuple(hidden.shape), (6, 3))
         self.assertEqual(len(stability), len(tokens))
         self.assertTrue(torch.equal(hidden[0], torch.tensor([0.0, 1.0, 2.0])))
+
+    def test_batch_prefix_forward_preserves_per_record_alignment(self) -> None:
+        teacher = FakePrefixTeacher()
+        outputs = build_exact_prefix_hidden_targets_batch(
+            teacher,
+            [torch.zeros(1, 10_240), torch.zeros(1, 5_120)],
+            [
+                [80, 160, 240, 320, 400, 480, 560, 640],
+                [80, 160, 240, 320],
+            ],
+            chunk_ms=160,
+            lookahead_ms=80,
+        )
+        self.assertEqual(teacher.encode_calls, 1)
+        self.assertEqual(outputs[0][0].tolist(), [1, 2, 3, 4, 5, 6])
+        self.assertEqual(outputs[1][0].tolist(), [1, 2, 3, 4])
+        for tokens, stability, hidden in outputs:
+            self.assertEqual(len(tokens), len(stability))
+            self.assertEqual(len(tokens), len(hidden))
 
     def test_balanced_selection_and_mixed_manifest(self) -> None:
         with tempfile.TemporaryDirectory(dir=TMP_ROOT) as directory:

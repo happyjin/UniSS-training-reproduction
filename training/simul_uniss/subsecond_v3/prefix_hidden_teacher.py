@@ -118,6 +118,18 @@ def build_exact_prefix_hidden_targets(
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Return append-only token, stability and matching exact-prefix hidden targets."""
 
+    return build_exact_prefix_hidden_targets_batch(
+        teacher,
+        [waveform],
+        [token_end_ms],
+        chunk_ms=chunk_ms,
+        lookahead_ms=lookahead_ms,
+    )[0]
+
+
+def _prefix_requests(
+    waveform: torch.Tensor, *, chunk_ms: int, lookahead_ms: int
+) -> tuple[list[int], list[tuple[torch.Tensor, int]]]:
     duration_ms = int(round(waveform.shape[-1] / 16))
     commit_ends = list(range(chunk_ms, duration_ms + chunk_ms, chunk_ms))
     commit_ends = list(dict.fromkeys(min(value, duration_ms) for value in commit_ends))
@@ -126,7 +138,15 @@ def build_exact_prefix_hidden_targets(
         visible_ms = min(duration_ms, committed_ms + lookahead_ms)
         visible_samples = max(400, min(waveform.shape[-1], visible_ms * 16))
         prefixes.append((waveform[..., :visible_samples], 16_000))
-    predictions = teacher.encode(prefixes)
+    return commit_ends, prefixes
+
+
+def _assemble_targets(
+    teacher: ExactPrefixWhisperVQTeacher,
+    predictions: Sequence[PrefixTeacherOutput],
+    token_end_ms: Sequence[int],
+    commit_ends: Sequence[int],
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     tokens: list[int] = []
     stability: list[int] = []
     hidden: list[torch.Tensor] = []
@@ -150,7 +170,10 @@ def build_exact_prefix_hidden_targets(
                 predictions[min(len(predictions) - 1, source_tick + delta)].tokens
                 for delta in (0, 1, 2)
             ]
-            stable = all(index < len(current) and int(current[index]) == value for current in later)
+            stable = all(
+                index < len(current) and int(current[index]) == value
+                for current in later
+            )
             tokens.append(value)
             stability.append(int(stable))
             hidden.append(output.pre_vq_hidden[index].float())
@@ -165,3 +188,37 @@ def build_exact_prefix_hidden_targets(
         torch.tensor(stability, dtype=torch.uint8),
         hidden_tensor,
     )
+
+
+@torch.inference_mode()
+def build_exact_prefix_hidden_targets_batch(
+    teacher: ExactPrefixWhisperVQTeacher,
+    waveforms: Sequence[torch.Tensor],
+    token_end_ms: Sequence[Sequence[int]],
+    *,
+    chunk_ms: int,
+    lookahead_ms: int,
+) -> list[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+    """Batch exact-prefix forwards across records without changing target assembly."""
+
+    if len(waveforms) != len(token_end_ms):
+        raise ValueError("waveform/token-end batch size mismatch")
+    requests: list[tuple[torch.Tensor, int]] = []
+    geometries: list[tuple[list[int], int, int]] = []
+    for waveform in waveforms:
+        commit_ends, prefixes = _prefix_requests(
+            waveform, chunk_ms=chunk_ms, lookahead_ms=lookahead_ms
+        )
+        left = len(requests)
+        requests.extend(prefixes)
+        geometries.append((commit_ends, left, len(requests)))
+    predictions = teacher.encode(requests)
+    return [
+        _assemble_targets(
+            teacher,
+            predictions[left:right],
+            ends,
+            commit_ends,
+        )
+        for ends, (commit_ends, left, right) in zip(token_end_ms, geometries)
+    ]

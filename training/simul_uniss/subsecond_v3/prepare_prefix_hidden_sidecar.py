@@ -22,7 +22,7 @@ from training.simul_uniss.subsecond_v2.prepare_stage_a_v3_sidecar import (
 )
 from training.simul_uniss.subsecond_v3.prefix_hidden_teacher import (
     ExactPrefixWhisperVQTeacher,
-    build_exact_prefix_hidden_targets,
+    build_exact_prefix_hidden_targets_batch,
 )
 
 
@@ -79,7 +79,7 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
     ]
     part_manifest = output_dir / "manifest.jsonl"
     part_positions = array("Q")
-    byte_offset = processed = target_tokens = hidden_tokens = shard_index = 0
+    byte_offset = processed = attempted = target_tokens = hidden_tokens = shard_index = 0
     directions: dict[str, int] = {}
     pending: list[dict[str, object]] = []
     started = time.time()
@@ -104,7 +104,10 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
                             selection_batch,
                         )
                     )
-                for selection, record in zip(selection_batch, records):
+                waveforms: list[torch.Tensor] = []
+                references: list[list[int]] = []
+                reference_ends_batch: list[list[int]] = []
+                for record in records:
                     waveform = record.pop("_waveform")
                     if not isinstance(waveform, torch.Tensor):
                         raise TypeError("waveform is not a tensor")
@@ -114,13 +117,22 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
                         int(value) for value in record[args.reference_end_field]
                     ]
                     reference_count = sum(value <= duration_ms for value in reference_ends)
-                    target, stability, hidden = build_exact_prefix_hidden_targets(
-                        teacher,
-                        waveform,
-                        reference_ends[:reference_count],
-                        chunk_ms=args.chunk_ms,
-                        lookahead_ms=args.lookahead_ms,
-                    )
+                    waveforms.append(waveform)
+                    references.append(reference[:reference_count])
+                    reference_ends_batch.append(reference_ends[:reference_count])
+                targets = build_exact_prefix_hidden_targets_batch(
+                    teacher,
+                    waveforms,
+                    reference_ends_batch,
+                    chunk_ms=args.chunk_ms,
+                    lookahead_ms=args.lookahead_ms,
+                )
+                attempted += len(records)
+                for selection, record, reference, target_values in zip(
+                    selection_batch, records, references, targets
+                ):
+                    target, stability, hidden = target_values
+                    reference_count = len(reference)
                     count = min(len(target), len(hidden))
                     if not count:
                         continue
@@ -188,9 +200,10 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
                     json.dumps(
                         {
                             "rank": args.rank,
-                            "processed": processed,
+                            "attempted": attempted,
+                            "exported": processed + len(pending),
                             "assigned": right - left,
-                            "records_per_second": processed
+                            "records_per_second": attempted
                             / max(1e-6, time.time() - started),
                         },
                         sort_keys=True,
