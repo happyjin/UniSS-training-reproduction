@@ -39,6 +39,8 @@ def parse_args():
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--split", choices=("train", "valid"), default="valid")
     parser.add_argument("--start-index", type=int, default=0)
+    parser.add_argument("--direction-id", type=int, choices=(0, 1))
+    parser.add_argument("--direction-offset", type=int, default=0)
     parser.add_argument("--max-samples", type=int, default=256)
     parser.add_argument("--confirmations", type=int, default=2)
     parser.add_argument("--lagging-k", type=int, default=0)
@@ -127,8 +129,8 @@ right-context frames. It excludes wall-clock compute and downstream synthesis.
 
 def main():
     args = parse_args()
-    if args.start_index < 0 or args.max_samples <= 0:
-        raise ValueError("start-index must be non-negative and max-samples positive")
+    if args.start_index < 0 or args.direction_offset < 0 or args.max_samples <= 0:
+        raise ValueError("indices must be non-negative and max-samples positive")
     device = torch.device(args.device)
     processors = {
         lang: spm.SentencePieceProcessor(
@@ -146,8 +148,24 @@ def main():
         args.dataset_index, args.split, args.source_manifest, args.source_offsets
     )
     rows = []
-    stop = min(args.start_index + args.max_samples, len(dataset))
-    for index in range(args.start_index, stop):
+    selected = []
+    matching = 0
+    for index in range(args.start_index, len(dataset)):
+        if args.direction_id is not None:
+            # Inspect the compact CTC sidecar before loading audio so a
+            # direction-balanced evaluation does not decode skipped samples.
+            target = dataset._target_row(index)
+            direction = 0 if str(target["direction"]) == "eng->cmn" else 1
+            if direction != args.direction_id:
+                continue
+            if matching < args.direction_offset:
+                matching += 1
+                continue
+            matching += 1
+        selected.append(index)
+        if len(selected) >= args.max_samples:
+            break
+    for index in selected:
         record = dataset[index]
         direction = int(record["direction_id"])
         source_head, target_head, target_lang = DIRECTIONS[direction]
@@ -200,7 +218,9 @@ def main():
         "checkpoint": str(args.checkpoint),
         "split": args.split,
         "start_index": args.start_index,
-        "stop_index": stop,
+        "direction_id": args.direction_id,
+        "direction_offset": args.direction_offset,
+        "selected_indices": selected,
         "confirmations": args.confirmations,
         "lagging_k": args.lagging_k,
         "encoder_segment_ms": int(model.config.segment_frames) * 40,

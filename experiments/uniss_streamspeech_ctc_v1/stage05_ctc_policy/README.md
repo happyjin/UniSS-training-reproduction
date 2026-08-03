@@ -29,5 +29,6 @@ target unigram recall, conflicts and the zero-rollback invariant. This is a CTC
 policy proxy; downstream Phase3/BiCodec quality is evaluated separately.
 
 The provided validation launcher shards 256 samples into eight disjoint ranges,
-runs one real streaming endpoint per GPU, then merges both aggregate and
-direction-specific EN→ZH / ZH→EN results without overwriting prior output.
+runs one real streaming endpoint per GPU, then merges 128 EN→ZH and 128 ZH→EN
+samples into aggregate and direction-specific results without overwriting prior
+output. Direction offsets are counted in the compact sidecar before audio load.
