@@ -35,9 +35,16 @@ class LanguageConditionalCTCProbe(nn.Module):
             }
         )
 
-    def forward(self, hidden: torch.Tensor, head: str) -> torch.Tensor:
-        return self.heads[head](self.dropout(self.normalization(hidden)))
+    def forward(
+        self, hidden: torch.Tensor, head: str | None = None
+    ) -> torch.Tensor | dict[str, torch.Tensor]:
+        value = self.dropout(self.normalization(hidden))
+        if head is not None:
+            return self.heads[head](value)
+        # DDP must observe one forward graph per backward pass.  Returning all
+        # heads in one call also keeps every parameter active on direction-pure
+        # batches and raises useful H200 GEMM occupancy for this linear probe.
+        return {name: layer(value) for name, layer in self.heads.items()}
 
     def metadata(self) -> dict[str, object]:
         return asdict(self.config)
-

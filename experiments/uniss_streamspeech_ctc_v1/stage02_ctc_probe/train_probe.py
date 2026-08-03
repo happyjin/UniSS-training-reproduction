@@ -87,7 +87,12 @@ def batch_losses(
     assert isinstance(hidden, torch.Tensor)
     assert isinstance(hidden_lengths, torch.Tensor)
     assert isinstance(direction_ids, torch.Tensor)
-    weighted = hidden.sum() * 0.0
+    all_logits = model(hidden)
+    if not isinstance(all_logits, dict):
+        raise TypeError("probe model must return all head logits")
+    # Keep all four parameters in the DDP graph even when a contiguous batch
+    # contains only one translation direction.
+    weighted = sum(value.sum() * 0.0 for value in all_logits.values())
     samples = 0
     values: dict[str, float] = {}
     for direction_id, (source_head, target_head, src_lang, tgt_lang) in DIRECTION.items():
@@ -100,10 +105,9 @@ def batch_losses(
         target_targets, target_lengths = select_flat_targets(
             batch["target_targets"], batch["target_lengths"], indices  # type: ignore[arg-type]
         )
-        local_hidden = hidden[indices]
         local_input_lengths = hidden_lengths[indices]
-        source_logits = model(local_hidden, source_head)
-        target_logits = model(local_hidden, target_head)
+        source_logits = all_logits[source_head][indices]
+        target_logits = all_logits[target_head][indices]
         source = ctc_loss(
             source_logits,
             source_targets,
@@ -185,14 +189,16 @@ def evaluate(
         direction_ids = batch["direction_ids"]
         source_sequences = split_flat(batch["source_targets"], batch["source_lengths"])
         target_sequences = split_flat(batch["target_targets"], batch["target_lengths"])
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            all_logits = model(hidden)
+        if not isinstance(all_logits, dict):
+            raise TypeError("probe model must return all head logits")
         for direction_id, (source_head, target_head, src_lang, tgt_lang) in DIRECTION.items():
             indices = torch.nonzero(direction_ids == direction_id, as_tuple=False).flatten()
             if not len(indices):
                 continue
-            local_hidden = hidden[indices]
-            with torch.autocast("cuda", dtype=torch.bfloat16):
-                source_logits = model(local_hidden, source_head)
-                target_logits = model(local_hidden, target_head)
+            source_logits = all_logits[source_head][indices]
+            target_logits = all_logits[target_head][indices]
             source_paths = source_logits.argmax(-1).cpu()
             target_paths = target_logits.argmax(-1).cpu()
             for local_row, original_index in enumerate(indices.tolist()):
@@ -285,7 +291,7 @@ def main() -> None:
     vocab = {language: processor.vocab_size() for language, processor in processors.items()}
     config = CTCProbeConfig(eng_vocab_size=vocab["eng"], cmn_vocab_size=vocab["cmn"])
     model = LanguageConditionalCTCProbe(config).to(device)
-    model = DDP(model, device_ids=[local_rank], find_unused_parameters=True)
+    model = DDP(model, device_ids=[local_rank], find_unused_parameters=False)
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
