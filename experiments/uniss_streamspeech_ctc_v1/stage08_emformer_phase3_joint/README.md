@@ -23,3 +23,22 @@ decoder and B1 residual are trainable. Qwen and BiCodec remain immutable.
 Step 2 adds Qwen LoRA and offline Phase3 replay only after Step 1 passes its
 fixed checkpoint gate. Both steps use new checkpoint, log, TensorBoard and
 report directories and never overwrite Stage03--07 artifacts.
+
+The Step 1 Megatron launch keeps the project's proven single-node layout:
+
+```text
+8-way data parallel, TP=PP=1
+micro batch 1, global batch 128 (16 gradient-accumulation micro-batches)
+1000 iterations, 1e-5 -> 1e-6 cosine learning rate, 200-step warmup
+gradient clipping 0.5, validation/checkpoint every 100 iterations
+```
+
+Run a new isolated job with:
+
+```bash
+bash experiments/uniss_streamspeech_ctc_v1/stage08_emformer_phase3_joint/step1_frozen_qwen/run_megatron_8gpu.sh
+```
+
+`RUN_NAME`, `TRAIN_ITERS`, interval variables and `MASTER_PORT` may be
+overridden for smoke tests. The launcher refuses to reuse an existing
+checkpoint, TensorBoard or log path.
