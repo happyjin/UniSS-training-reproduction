@@ -42,3 +42,14 @@ bash experiments/uniss_streamspeech_ctc_v1/stage08_emformer_phase3_joint/step1_f
 `RUN_NAME`, `TRAIN_ITERS`, interval variables and `MASTER_PORT` may be
 overridden for smoke tests. The launcher refuses to reuse an existing
 checkpoint, TensorBoard or log path.
+
+After the formal run finishes, evaluate every 100-step checkpoint on the same
+fixed direction-balanced 32 validation rows used by Stage04 and Stage07:
+
+```bash
+bash experiments/uniss_streamspeech_ctc_v1/stage08_emformer_phase3_joint/step1_frozen_qwen/run_step1_gate_8gpu.sh
+```
+
+The gate selects the highest mean bidirectional BLEU checkpoint and requires
+EN→ZH > 22.95 and ZH→EN > 22.46 before Step2 may enable Qwen LoRA and offline
+Phase3 replay.
