@@ -1,0 +1,63 @@
+{
+  "schema_version": "uniss_streamspeech_stage08_step2_research_comparison_v1",
+  "research_only": true,
+  "reference": {
+    "iteration": 350,
+    "en_zh_bleu": 21.20305368525363,
+    "zh_en_bleu": 20.19391594757111,
+    "mean_bleu": 20.698484816412368,
+    "compute_rtf_source_mean": 0.09009492529711444
+  },
+  "candidates": [
+    {
+      "iteration": 25,
+      "en_zh_bleu": 21.680329587020687,
+      "zh_en_bleu": 19.598960362556785,
+      "mean_bleu": 20.639644974788737,
+      "compute_rtf_source_mean": 0.10675108122227853,
+      "delta_en_zh": 0.47727590176705803,
+      "delta_zh_en": -0.5949555850143255,
+      "delta_mean": -0.05883984162363021
+    },
+    {
+      "iteration": 50,
+      "en_zh_bleu": 20.666378397429483,
+      "zh_en_bleu": 19.910716704456043,
+      "mean_bleu": 20.288547550942763,
+      "compute_rtf_source_mean": 0.10639045314593433,
+      "delta_en_zh": -0.5366752878241456,
+      "delta_zh_en": -0.2831992431150674,
+      "delta_mean": -0.40993726546960474
+    },
+    {
+      "iteration": 75,
+      "en_zh_bleu": 20.77850550394749,
+      "zh_en_bleu": 19.876298742246878,
+      "mean_bleu": 20.327402123097183,
+      "compute_rtf_source_mean": 0.10846833809418609,
+      "delta_en_zh": -0.4245481813061396,
+      "delta_zh_en": -0.31761720532423254,
+      "delta_mean": -0.3710826933151843
+    },
+    {
+      "iteration": 100,
+      "en_zh_bleu": 21.850771976269996,
+      "zh_en_bleu": 20.065960410682,
+      "mean_bleu": 20.958366193475996,
+      "compute_rtf_source_mean": 0.10483260757228442,
+      "delta_en_zh": 0.6477182910163677,
+      "delta_zh_en": -0.127955536889111,
+      "delta_mean": 0.25988137706362835
+    }
+  ],
+  "selected": {
+    "iteration": 100,
+    "en_zh_bleu": 21.850771976269996,
+    "zh_en_bleu": 20.065960410682,
+    "mean_bleu": 20.958366193475996,
+    "compute_rtf_source_mean": 0.10483260757228442,
+    "delta_en_zh": 0.6477182910163677,
+    "delta_zh_en": -0.127955536889111,
+    "delta_mean": 0.25988137706362835
+  }
+}

@@ -37,3 +37,12 @@ bash experiments/uniss_streamspeech_ctc_v1/stage08_emformer_phase3_joint/step2_q
 
 Only a later rerun whose prerequisite Step1 checkpoint passes both formal BLEU
 thresholds may drop the research-only designation.
+
+## Executed short validation
+
+The completed 100-iteration research run selected iteration 100 on the fixed
+32-row probe. Its mean BLEU was 20.9584 versus 20.6985 for Step1-R iteration
+350. EN→ZH improved by 0.6477 BLEU while ZH→EN decreased by 0.1280, so the
+hypothesis has a small positive signal but the formal prerequisite remains
+unmet. See
+`reports/uniss_streamspeech_ctc_v1/stage08_step2_qwen_lora_replay_research100_summary.md`.
