@@ -1,0 +1,73 @@
+{
+  "schema_version": "uniss_streamspeech_stage12_research_eval_v1",
+  "research_only": true,
+  "inputs": [
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_streamspeech_ctc_v1/stage11_streaming_audio_smoke_eng_cmn_v2.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_streamspeech_ctc_v1/stage11_streaming_audio_smoke_cmn_eng_v2.json"
+  ],
+  "summary": {
+    "samples": 2,
+    "online_audio_success_rate": 0.5,
+    "fallback_rate": 0.5,
+    "first_write_ms_mean": 1360.0,
+    "first_audio_nca_ms_mean": 5760.0,
+    "first_audio_ca_ms_mean": 42396.02088951506,
+    "compute_rtf_mean": 4.85779902941792,
+    "accepted_write_rate": 0.15384615384615385
+  },
+  "samples": [
+    {
+      "id": "NCSSD_R_EN_0000000315",
+      "direction": "eng->cmn",
+      "reference": "我现在真的很好奇，那家餐厅叫什么名字？我也想去试试。",
+      "translation": "我。好的，好的，好的。I.I.我。我。I.I.I.",
+      "text_bleu": 2.264882092592075,
+      "chrf": 3.875968992248062,
+      "source_seconds": 6.0,
+      "target_seconds": 2.26,
+      "wall_seconds": 13.374590324994642,
+      "first_write_ms": 560.0,
+      "first_audio_nca_ms": 880.0,
+      "first_audio_ca_ms": 5164.238130033482,
+      "valid_audio_writes": 2,
+      "rejected_writes": 8,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "compute_rtf": 2.229098387499107,
+      "audio_duration_ratio": 0.37666666666666665,
+      "translation_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_eng_cmn_v2/translation.wav",
+      "timeline_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_eng_cmn_v2/translation_timeline.wav",
+      "stereo_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_eng_cmn_v2/aligned_stereo.wav"
+    },
+    {
+      "id": "HQ-Conversations_0000000233",
+      "direction": "cmn->eng",
+      "reference": "For example, when crossing the road, those cars will generally yield to pedestrians.",
+      "translation": "For example, if you cross the road, the car will basically let you go, which is actually to pedestrians.",
+      "text_bleu": 14.345334371446112,
+      "chrf": 51.653272235869984,
+      "source_seconds": 10.64,
+      "target_seconds": 29.5,
+      "wall_seconds": 79.65635650302283,
+      "first_write_ms": 2160.0,
+      "first_audio_nca_ms": 10640.0,
+      "first_audio_ca_ms": 79627.80364899663,
+      "valid_audio_writes": 0,
+      "rejected_writes": 3,
+      "fallback_used": true,
+      "fallback_reason": "no_accepted_online_semantic",
+      "compute_rtf": 7.486499671336732,
+      "audio_duration_ratio": 2.7725563909774436,
+      "translation_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_cmn_eng_v2/translation.wav",
+      "timeline_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_cmn_eng_v2/translation_timeline.wav",
+      "stereo_audio_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1/stage11_streaming_audio_smoke_cmn_eng_v2/aligned_stereo.wav"
+    }
+  ],
+  "verdict": {
+    "pipeline_complete": true,
+    "public_demo_allowed": true,
+    "quality_gate_passed": false,
+    "subsecond_nca_seen": true,
+    "subsecond_ca_passed": false
+  }
+}
