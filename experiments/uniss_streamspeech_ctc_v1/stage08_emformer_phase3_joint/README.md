@@ -20,9 +20,13 @@ initializes the frozen B2 bridge, while Stage06 iteration 600 initializes the B1
 residual. Only the last four Emformer layers, output norm, endpoint heads, AR
 decoder and B1 residual are trainable. Qwen and BiCodec remain immutable.
 
-Step 2 adds Qwen LoRA and offline Phase3 replay only after Step 1 passes its
-fixed checkpoint gate. Both steps use new checkpoint, log, TensorBoard and
-report directories and never overwrite Stage03--07 artifacts.
+Step 2 normally adds Qwen LoRA and offline Phase3 replay only after Step 1
+passes its fixed checkpoint gate. Step1-R did not pass that gate. A separately
+named `step2_qwen_lora_replay_v1` path is therefore allowed only as an explicit
+research-only pipeline validation at the user's request; it freezes Step1-R,
+requires a command-line override, and cannot be cited as a formally unlocked
+result. Both steps use new checkpoint, log, TensorBoard and report directories
+and never overwrite Stage03--07 artifacts.
 
 The Step 1 Megatron launch keeps the project's proven single-node layout:
 
