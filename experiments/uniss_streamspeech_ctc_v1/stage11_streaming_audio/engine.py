@@ -12,6 +12,10 @@ import numpy as np
 import soundfile as sf
 import torch
 
+from evaluation.uniss_outputs import parse_with_tokenizer
+from experiments.uniss_streamspeech_ctc_v1.stage04_b2_discrete_bridge.bridge import (
+    replace_embedding_span,
+)
 from experiments.uniss_streamspeech_ctc_v1.stage09_online_runtime.config import Stage09Config
 from experiments.uniss_streamspeech_ctc_v1.stage09_online_runtime.model_loader import (
     Stage09Bundle,
@@ -23,7 +27,12 @@ from experiments.uniss_streamspeech_ctc_v1.stage09_online_runtime.runtime import
 from experiments.uniss_streamspeech_ctc_v1.stage10_cached_micro_write.adapter import (
     CachedMicroWriteAdapter,
     CachedWrite,
+    apply_repetition_penalty,
+    block_collapsed_semantic,
 )
+from training import constants_uniss as c
+from training.generate_unist_eval_audio import load_hf_text_encoder
+from training.sample_builders import build_performance_sample
 from uniss import UniSSTokenizer
 from uniss.streaming.bicodec_streamer import (
     StreamingBiCodecDecoder,
@@ -78,6 +87,8 @@ class Stage11Result:
     first_audio_ca_ms: float | None
     valid_audio_writes: int
     rejected_writes: int
+    fallback_used: bool
+    fallback_reason: str | None
     events: list[Stage11Event]
 
     def to_dict(self) -> dict[str, object]:
@@ -132,11 +143,14 @@ class Stage11Session:
         self.audio_chunks: list[np.ndarray] = []
         self.timeline_chunks: list[tuple[int, np.ndarray]] = []
         self.events: list[Stage11Event] = []
+        self.source_embeddings: list[torch.Tensor] = []
         self.started = time.perf_counter()
         self.first_write_ms: float | None = None
         self.first_audio_nca_ms: float | None = None
         self.first_audio_ca_ms: float | None = None
         self.finalized = False
+        self.fallback_used = False
+        self.fallback_reason: str | None = None
 
     def _rejection(self, write: CachedWrite) -> str | None:
         if not write.structurally_valid:
@@ -157,6 +171,7 @@ class Stage11Session:
             self.source_chunks.append(values.copy())
         stage09_events = self.runtime.push_audio(values, final=final)
         for source_event in stage09_events:
+            self.source_embeddings.append(source_event.qwen_speech_embeddings.detach())
             self.adapter.append_source(source_event.qwen_speech_embeddings)
             write = None
             rejection = None
@@ -227,6 +242,32 @@ class Stage11Session:
                     self.audio_chunks.append(tail)
                     offset = int(round(len(self.runtime.audio) / SAMPLE_RATE * SAMPLE_RATE))
                     self.timeline_chunks.append((offset, tail.copy()))
+            if not self.audio_chunks:
+                fallback_text, fallback_semantic = self.engine.performance_fallback(
+                    self.source_embeddings,
+                    self.speaker_tokens,
+                    "cmn" if self.direction == "eng->cmn" else "eng",
+                )
+                fallback_audio = self.codec.push(
+                    fallback_semantic,
+                    speaker_tokens=self.speaker_tokens,
+                    is_final=True,
+                )
+                if self.engine.bundle.device.type == "cuda":
+                    torch.cuda.synchronize(self.engine.bundle.device)
+                if fallback_audio.size == 0:
+                    raise RuntimeError("Stage11 offline safety fallback produced no audio")
+                self.audio_chunks.append(fallback_audio)
+                offset = len(self.runtime.audio)
+                self.timeline_chunks.append((offset, fallback_audio.copy()))
+                self.adapter.generated_text_ids = self.engine.bundle.tokenizer.encode(
+                    fallback_text, add_special_tokens=False
+                )
+                self.fallback_used = True
+                self.fallback_reason = "no_accepted_online_semantic"
+                if self.first_audio_nca_ms is None:
+                    self.first_audio_nca_ms = len(self.runtime.audio) / 16.0
+                    self.first_audio_ca_ms = (time.perf_counter() - self.started) * 1000.0
             self.finalized = True
             result = self._write_result()
             yield Stage11Update(
@@ -281,6 +322,8 @@ class Stage11Session:
             first_audio_ca_ms=self.first_audio_ca_ms,
             valid_audio_writes=sum(event.audio_samples > 0 for event in self.events),
             rejected_writes=sum(event.semantic_rejected_reason is not None for event in self.events),
+            fallback_used=self.fallback_used,
+            fallback_reason=self.fallback_reason,
             events=self.events,
         )
         write_json(result_path, result.to_dict())
@@ -297,6 +340,7 @@ class Stage11Engine:
         self.config = config or Stage11Config()
         self.bundle: Stage09Bundle | None = None
         self.speech_tokenizer = None
+        self.text_encoder = None
 
     @property
     def loaded(self) -> bool:
@@ -311,6 +355,78 @@ class Stage11Engine:
             self.config.speech_tokenizer_path,
             device=self.bundle.device,
         )
+        self.text_encoder = load_hf_text_encoder(self.bundle.tokenizer)
+
+    @torch.inference_mode()
+    def performance_fallback(
+        self,
+        source_embeddings: Sequence[torch.Tensor],
+        speaker_tokens: Sequence[int],
+        target_language: str,
+    ) -> tuple[str, list[int]]:
+        """Final-only safety path using all accumulated Stage09 B1 embeddings."""
+
+        if not source_embeddings:
+            raise RuntimeError("offline fallback has no accumulated B1 embeddings")
+        assert self.bundle is not None and self.text_encoder is not None
+        speech = torch.cat([value.to(self.bundle.device) for value in source_embeddings], dim=0)
+        sample = build_performance_sample(
+            source_glm=[0] * len(speech),
+            bicodec_global=speaker_tokens,
+            tgt_lang=target_language,
+            translation="fallback",
+            target_bicodec=[0],
+            text_encoder=self.text_encoder,
+        )
+        ids = torch.tensor(sample.prompt_ids, dtype=torch.long, device=self.bundle.device)
+        embeddings = self.bundle.qwen.get_input_embeddings()(ids)
+        span_start = sample.prompt_length - 5 - len(speech)
+        embeddings = replace_embedding_span(
+            embeddings,
+            speech,
+            span_start=span_start,
+            speech_length=len(speech),
+        )
+        with torch.autocast(
+            device_type=self.bundle.device.type,
+            dtype=torch.bfloat16,
+            enabled=self.bundle.device.type == "cuda",
+        ):
+            output = self.bundle.qwen(inputs_embeds=embeddings.unsqueeze(0), use_cache=True)
+        cache = output.past_key_values
+        logits = output.logits[:, -1].float()
+        generated: list[int] = []
+        for _ in range(1500):
+            logical = apply_repetition_penalty(
+                logits[:, : c.VOCAB_SIZE], generated, 1.1
+            )
+            logical = block_collapsed_semantic(logical, generated)
+            token = int(logical.argmax(dim=-1)[0])
+            generated.append(token)
+            if token in {c.TOKEN_END_SEMANTIC, c.TOKEN_EOS}:
+                break
+            next_id = torch.tensor([[token]], device=self.bundle.device)
+            with torch.autocast(
+                device_type=self.bundle.device.type,
+                dtype=torch.bfloat16,
+                enabled=self.bundle.device.type == "cuda",
+            ):
+                output = self.bundle.qwen(
+                    input_ids=next_id,
+                    past_key_values=cache,
+                    use_cache=True,
+                )
+            cache = output.past_key_values
+            logits = output.logits[:, -1].float()
+        parsed = parse_with_tokenizer(
+            generated,
+            mode="performance",
+            tokenizer=self.bundle.tokenizer,
+        )
+        semantic = [int(value) for value in parsed.get("semantic_values") or []]
+        if not semantic:
+            raise RuntimeError("offline fallback generated no semantic tokens")
+        return str(parsed.get("generated_translation") or "").strip(), semantic
 
     def new_session(
         self,

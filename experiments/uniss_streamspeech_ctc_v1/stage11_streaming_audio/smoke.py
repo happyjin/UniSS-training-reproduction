@@ -87,6 +87,7 @@ def main() -> None:
         f"- first WRITE: {result.first_write_ms} ms\n"
         f"- first accepted audio NCA/CA: {result.first_audio_nca_ms} / {result.first_audio_ca_ms} ms\n"
         f"- valid/rejected WRITEs: {result.valid_audio_writes} / {result.rejected_writes}\n"
+        f"- offline safety fallback: {result.fallback_used} ({result.fallback_reason})\n"
         f"- translation: {result.translation}\n"
         f"- reference: {row['phase3_record']['translation']}\n"
         f"- target WAV: `{result.translation_audio_path}`\n"
