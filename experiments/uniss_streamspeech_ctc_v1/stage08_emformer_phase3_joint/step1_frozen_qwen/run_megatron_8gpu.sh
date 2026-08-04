@@ -26,6 +26,7 @@ export PYTORCH_KERNEL_CACHE_PATH=$USER_ROOT/cache/torch_kernel
 export TMPDIR=$USER_ROOT/tmp
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export TOKENIZERS_PARALLELISM=false
 mkdir -p "$HF_HOME" "$TRANSFORMERS_CACHE" "$PYTORCH_KERNEL_CACHE_PATH" "$TMPDIR" "$(dirname "$LOG")"
 
 SITE_PACKAGES="$($PYTHON -c 'import site; print(site.getsitepackages()[0])')"
