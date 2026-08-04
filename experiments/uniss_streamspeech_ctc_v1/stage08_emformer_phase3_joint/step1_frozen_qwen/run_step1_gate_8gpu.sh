@@ -11,7 +11,7 @@ CHECKPOINT_ITERS=${CHECKPOINT_ITERS:-"100 200 300 400 500 600 700 800 900 1000"}
 SAMPLES_PER_WORKER=${SAMPLES_PER_WORKER:-4}
 RUN_DIR=$ROOT/reports/uniss_streamspeech_ctc_v1/$RUN_NAME
 BASELINE=$ROOT/reports/uniss_streamspeech_ctc_v1/stage04_b2_text_probe32_v1.json
-MEGATRON_ROOT=$ROOT/checkpoints/uniss_streamspeech_ctc_v1/stage08_step1_frozen_qwen_v1
+MEGATRON_ROOT=${MEGATRON_ROOT:-$ROOT/checkpoints/uniss_streamspeech_ctc_v1/stage08_step1_frozen_qwen_v1}
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export PATH=$USER_ROOT/conda_envs/uniss-train/bin:$PATH

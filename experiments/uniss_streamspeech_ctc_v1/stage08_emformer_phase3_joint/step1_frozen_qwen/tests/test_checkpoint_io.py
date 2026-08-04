@@ -12,7 +12,12 @@ from torch import nn
 STEP = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(STEP))
 
-from checkpoint_io import inference_tensor_names, load_step1_inference_into_model
+from checkpoint_io import (
+    inference_tensor_names,
+    load_step1_inference_into_model,
+    load_step1_trainable_into_model,
+    trainable_tensor_names,
+)
 
 
 class FakeJoint(nn.Module):
@@ -54,6 +59,30 @@ class Step1CheckpointIOTest(unittest.TestCase):
     def test_rejects_invalid_unfreeze_depth(self) -> None:
         with self.assertRaises(ValueError):
             inference_tensor_names(FakeJoint(), unfreeze_encoder_layers=0)
+
+    def test_loads_every_and_only_trainable_parameter(self) -> None:
+        tmp_root = Path(os.environ.get("TMPDIR", "/opt/dlami/nvme/jasonleeeli/tmp"))
+        tmp_root.mkdir(parents=True, exist_ok=True)
+        model = FakeJoint()
+        model.endpoint.base.encoder.emformer_layers[0].requires_grad_(False)
+        model.endpoint.base.encoder.emformer_layers[1].requires_grad_(False)
+        names = trainable_tensor_names(model)
+        self.assertFalse(any("emformer_layers.0." in name for name in names))
+        expected = {
+            f"joint.{name}": torch.full_like(model.state_dict()[name], index + 2)
+            for index, name in enumerate(names)
+        }
+        frozen_before = model.endpoint.base.encoder.emformer_layers[0].weight.detach().clone()
+        with tempfile.TemporaryDirectory(dir=tmp_root) as directory:
+            checkpoint = Path(directory) / "iter_0000800"
+            dcp.save(expected, checkpoint_id=checkpoint)
+            provenance = load_step1_trainable_into_model(model, checkpoint)
+        for name in names:
+            torch.testing.assert_close(model.state_dict()[name], expected[f"joint.{name}"])
+        torch.testing.assert_close(
+            model.endpoint.base.encoder.emformer_layers[0].weight, frozen_before
+        )
+        self.assertEqual(provenance["iteration"], 800)
 
 
 if __name__ == "__main__":

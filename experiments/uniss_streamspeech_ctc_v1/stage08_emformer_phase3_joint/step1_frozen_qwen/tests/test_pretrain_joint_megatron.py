@@ -17,7 +17,7 @@ for path in (
 ):
     sys.path.insert(0, str(path))
 
-from pretrain_joint_megatron import endpoint_multitask_losses
+from pretrain_joint_megatron import DirectionBalancedJointDataset, endpoint_multitask_losses
 
 
 class JointLossTest(unittest.TestCase):
@@ -77,6 +77,29 @@ class JointLossTest(unittest.TestCase):
                 nar_weight=4.0,
                 ar_weight=8.0,
             )
+
+    def test_balanced_virtual_index_alternates_directions(self) -> None:
+        dataset = DirectionBalancedJointDataset.__new__(DirectionBalancedJointDataset)
+        dataset.dataset = [
+            {
+                "waveform": torch.zeros(4),
+                "source_token_ids": torch.tensor([0]),
+                "target_token_ids": torch.tensor([1]),
+                "direction_id": direction,
+                "phase3_record": {"id": str(index)},
+            }
+            for index, direction in enumerate((0, 0, 1))
+        ]
+        dataset.direction_indices = {
+            0: torch.tensor([0, 1]).numpy(),
+            1: torch.tensor([2]).numpy(),
+        }
+        dataset.pairs = 2
+        self.assertEqual(len(dataset), 4)
+        self.assertEqual(
+            [int(dataset[index]["direction_id"]) for index in range(4)],
+            [0, 1, 0, 1],
+        )
 
 
 if __name__ == "__main__":

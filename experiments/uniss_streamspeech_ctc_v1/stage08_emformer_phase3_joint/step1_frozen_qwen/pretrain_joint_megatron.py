@@ -21,11 +21,15 @@ for path in (ROOT, MEGATRON_ROOT, STAGE02, STAGE03, STAGE03_AR, STAGE04, STAGE07
     sys.path.insert(0, str(path))
 
 import sentencepiece as spm
+import numpy as np
 import torch
 from torch.nn import functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from bridge_data import B2BridgeAudioDataset
+from experiments.uniss_streamspeech_ctc_v1.stage08_emformer_phase3_joint.step1_frozen_qwen.checkpoint_io import (
+    load_step1_trainable_into_model,
+)
 from model import JointEmformerB1
 from train_b2 import lm_batch
 from training import constants_uniss as c
@@ -54,7 +58,10 @@ class JointMegatronDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
     def __getitem__(self, index: int) -> dict[str, object]:
-        row = self.dataset[index]
+        return self.row_to_item(self.dataset[index])
+
+    @staticmethod
+    def row_to_item(row: dict[str, object]) -> dict[str, object]:
         target = row["target_token_ids"]
         return {
             "waveform": row["waveform"],
@@ -67,6 +74,35 @@ class JointMegatronDataset(torch.utils.data.Dataset):
             "direction_id": torch.tensor(row["direction_id"], dtype=torch.long),
             "record_json": json.dumps(row["phase3_record"], ensure_ascii=False),
         }
+
+
+class DirectionBalancedJointDataset(JointMegatronDataset):
+    """Virtual 50:50 direction dataset without copying audio or manifests."""
+
+    def __init__(self, args, split: str) -> None:
+        super().__init__(args, split)
+        root = Path(args.joint_direction_index_dir)
+        self.direction_indices = {
+            direction: np.load(root / f"{split}_direction_{direction}.npy", mmap_mode="r")
+            for direction in (0, 1)
+        }
+        if any(len(values) == 0 for values in self.direction_indices.values()):
+            raise ValueError(f"empty direction index for {split}: {root}")
+        self.pairs = max(len(values) for values in self.direction_indices.values())
+
+    def __len__(self) -> int:
+        return 2 * self.pairs
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        direction = index % 2
+        values = self.direction_indices[direction]
+        source_index = int(values[(index // 2) % len(values)])
+        item = self.row_to_item(self.dataset[source_index])
+        if int(item["direction_id"]) != direction:
+            raise ValueError(
+                f"direction index mismatch at virtual={index}, source={source_index}"
+            )
+        return item
 
 
 def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -90,6 +126,9 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--joint-ar-weight", type=float, default=8.0)
     group.add_argument("--joint-phase3-weight", type=float, default=0.5)
     group.add_argument("--joint-residual-weight", type=float, default=1e-4)
+    group.add_argument("--joint-zh-en-weight", type=float, default=1.0)
+    group.add_argument("--joint-step1-initialize-checkpoint")
+    group.add_argument("--joint-direction-index-dir")
     return parser
 
 
@@ -122,9 +161,21 @@ def validate_joint_args(args) -> None:
         "joint_ar_weight",
         "joint_phase3_weight",
         "joint_residual_weight",
+        "joint_zh_en_weight",
     ):
         if float(getattr(args, name)) < 0:
             raise ValueError(f"{name} must be non-negative")
+    for name in ("joint_step1_initialize_checkpoint", "joint_direction_index_dir"):
+        value = getattr(args, name)
+        if value is not None and not Path(value).exists():
+            raise FileNotFoundError(f"missing --{name.replace('_', '-')}: {value}")
+    if args.joint_direction_index_dir is not None:
+        root = Path(args.joint_direction_index_dir)
+        for split in ("train", "valid"):
+            for direction in (0, 1):
+                path = root / f"{split}_direction_{direction}.npy"
+                if not path.is_file():
+                    raise FileNotFoundError(f"missing balanced direction index: {path}")
 
 
 def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
@@ -132,9 +183,14 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     runtime.print_rank_0("> building Stage08 Step1 joint audio datasets ...")
+    dataset_class = (
+        DirectionBalancedJointDataset
+        if args.joint_direction_index_dir is not None
+        else JointMegatronDataset
+    )
     datasets = (
-        JointMegatronDataset(args, "train"),
-        JointMegatronDataset(args, "valid"),
+        dataset_class(args, "train"),
+        dataset_class(args, "valid"),
         None,
     )
     runtime.print_rank_0("> finished Stage08 Step1 joint audio datasets ...")
@@ -272,6 +328,11 @@ class JointMegatronModel:
                     cmn_vocab_size=self.vocab["cmn"],
                     unfreeze_encoder_layers=args.joint_unfreeze_encoder_layers,
                 )
+                self.repair_initialization = None
+                if args.joint_step1_initialize_checkpoint is not None:
+                    self.repair_initialization = load_step1_trainable_into_model(
+                        self.joint, args.joint_step1_initialize_checkpoint
+                    )
                 self.joint.cuda()
                 self.weights = {
                     "asr": float(args.joint_asr_weight),
@@ -279,12 +340,14 @@ class JointMegatronModel:
                     "ar": float(args.joint_ar_weight),
                     "phase3": float(args.joint_phase3_weight),
                     "residual": float(args.joint_residual_weight),
+                    "zh_en": float(args.joint_zh_en_weight),
                 }
                 if torch.distributed.get_rank() == 0:
                     print(
                         json.dumps(
                             {
                                 "stage08_initialization": self.initialization.__dict__,
+                                "step1_repair_initialization": self.repair_initialization,
                                 "trainable_parameters": self.joint.trainable_parameter_counts(),
                                 "loss_weights": self.weights,
                             },
@@ -354,6 +417,10 @@ class JointMegatronModel:
                         + self.weights["phase3"] * phase3.loss
                         + self.weights["residual"] * b1.residual_mse
                     )
+                    en_zh = (direction_id == 0).float().mean()
+                    zh_en = (direction_id == 1).float().mean()
+                    direction_scale = en_zh + self.weights["zh_en"] * zh_en
+                    total = total * direction_scale
                 values = (
                     total.float(),
                     multitask.detach().float(),
@@ -362,6 +429,17 @@ class JointMegatronModel:
                     ar.float(),
                     phase3.loss.detach().float(),
                     b1.residual_rms.float(),
+                    en_zh.float(),
+                    zh_en.float(),
+                    (asr * en_zh).float(),
+                    (asr * zh_en).float(),
+                    (nar * en_zh).float(),
+                    (nar * zh_en).float(),
+                    (ar * en_zh).float(),
+                    (ar * zh_en).float(),
+                    (phase3.loss.detach() * en_zh).float(),
+                    (phase3.loss.detach() * zh_en).float(),
+                    direction_scale.float(),
                 )
                 if not all(torch.isfinite(value).all() for value in values):
                     raise FloatingPointError("non-finite Stage08 Step1 loss component")
@@ -402,7 +480,24 @@ def loss_func(output_tensor):
         "phase3_nll",
         "b1_residual_rms",
     )
-    return loss, dict(zip(names, averaged))
+    metrics = dict(zip(names, averaged[: len(names)]))
+    en_zh, zh_en = averaged[6], averaged[7]
+    metrics.update(
+        {
+            "direction/en_zh_fraction": en_zh,
+            "direction/zh_en_fraction": zh_en,
+            "direction/asr_ctc_en_zh": averaged[8] / en_zh.clamp_min(1e-8),
+            "direction/asr_ctc_zh_en": averaged[9] / zh_en.clamp_min(1e-8),
+            "direction/nar_ctc_en_zh": averaged[10] / en_zh.clamp_min(1e-8),
+            "direction/nar_ctc_zh_en": averaged[11] / zh_en.clamp_min(1e-8),
+            "direction/ar_ce_en_zh": averaged[12] / en_zh.clamp_min(1e-8),
+            "direction/ar_ce_zh_en": averaged[13] / zh_en.clamp_min(1e-8),
+            "direction/phase3_nll_en_zh": averaged[14] / en_zh.clamp_min(1e-8),
+            "direction/phase3_nll_zh_en": averaged[15] / zh_en.clamp_min(1e-8),
+            "direction/weight_scale": averaged[16],
+        }
+    )
+    return loss, metrics
 
 
 def forward_step(data_iterator, model):
