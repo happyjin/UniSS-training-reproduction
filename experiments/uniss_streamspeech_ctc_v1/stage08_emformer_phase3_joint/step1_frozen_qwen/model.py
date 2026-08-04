@@ -9,7 +9,6 @@ import torch
 from torch import nn
 
 from bridge import BridgeOutput, pool_frames
-from checkpoint_io import load_residual_into_model
 from experiments.uniss_streamspeech_ctc_v1.stage03_multitask_encoder.ar_s2tt_v1.model import (
     EndpointCTCARStudent,
 )
@@ -20,6 +19,9 @@ from experiments.uniss_streamspeech_ctc_v1.stage04_b2_discrete_bridge.model impo
     FrozenEncoderB2Bridge,
 )
 from experiments.uniss_streamspeech_ctc_v1.stage06_b1_nar.model import B1Output
+from experiments.uniss_streamspeech_ctc_v1.stage07_end_to_end_eval.checkpoint_io import (
+    load_residual_into_model,
+)
 from training.simul_uniss.subsecond_v2.stage_b_latent_model import LatentStageBModelConfig
 
 
@@ -135,6 +137,13 @@ class JointEmformerB1(nn.Module):
         )
         hidden = endpoint["hidden"]
         lengths = endpoint["output_lengths"]
+        return endpoint, self.b1_from_hidden(hidden, lengths)
+
+    def b1_from_hidden(
+        self, hidden: torch.Tensor, lengths: torch.Tensor
+    ) -> B1Output:
+        """Map one shared Emformer hidden sequence into Phase3 embeddings."""
+
         b2: BridgeOutput = self.bridge(hidden, lengths)
         pooled, _ = pool_frames(hidden, lengths, factor=2)
         residual = self.residual_scale * torch.tanh(self.residual(pooled))
@@ -146,7 +155,15 @@ class JointEmformerB1(nn.Module):
             residual_mse=residual_mse,
             residual_rms=residual_mse.detach().sqrt(),
         )
-        return endpoint, b1
+        return b1
+
+    def encode_to_b1(
+        self, waveform: torch.Tensor, waveform_lengths: torch.Tensor
+    ) -> B1Output:
+        """Inference path without constructing unused CTC or AR logits."""
+
+        hidden, lengths = self.endpoint.base.encode(waveform, waveform_lengths)
+        return self.b1_from_hidden(hidden, lengths)
 
     def trainable_parameter_counts(self) -> dict[str, int]:
         groups = {
