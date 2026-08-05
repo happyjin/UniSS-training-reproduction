@@ -117,3 +117,85 @@ def phase3_block_attention_allowed(
             allowed[row, query, source_start : source_start + source_length] = False
             allowed[row, query, source_start : source_start + visible_source_end] = True
     return allowed
+
+
+def phase3_prediction_attention_allowed(
+    *,
+    sequence_lengths: torch.Tensor,
+    source_starts: torch.Tensor,
+    source_lengths: torch.Tensor,
+    target_starts: torch.Tensor,
+    target_lengths: torch.Tensor,
+    g: torch.Tensor,
+) -> torch.Tensor:
+    """Policy mask for causal-LM positions that predict target labels.
+
+    The query at ``target_start - 1`` predicts the first target token, and the
+    query at ``target_start + i - 1`` predicts target token ``i``.  Those are
+    the positions that must see source frames only through ``g(i)``. This is
+    deliberately different from masking the target token's own row, which is
+    one position too late under next-token training.
+    """
+
+    tensors = (sequence_lengths, source_starts, source_lengths, target_starts, target_lengths)
+    if any(value.ndim != 1 for value in tensors):
+        raise ValueError("all layout tensors must be rank 1")
+    if len({tuple(value.shape) for value in tensors}) != 1:
+        raise ValueError("all layout tensors must have the same batch shape")
+    batch = len(sequence_lengths)
+    max_length = int(sequence_lengths.max().item()) if batch else 0
+    max_target = int(target_lengths.max().item()) if batch else 0
+    if g.shape != (batch, max_target):
+        raise ValueError("g geometry does not match target lengths")
+    positions = torch.arange(max_length, device=sequence_lengths.device)
+    causal = positions[None, :] <= positions[:, None]
+    allowed = causal.unsqueeze(0).expand(batch, -1, -1).clone()
+    for row in range(batch):
+        length = int(sequence_lengths[row].item())
+        source_start = int(source_starts[row].item())
+        source_length = int(source_lengths[row].item())
+        target_start = int(target_starts[row].item())
+        target_length = int(target_lengths[row].item())
+        if not (
+            0 <= source_start < source_start + source_length <= target_start <= length <= max_length
+        ):
+            raise ValueError("invalid Phase3 source/target layout")
+        valid = positions < length
+        allowed[row] &= valid[:, None] & valid[None, :]
+        for target_index in range(target_length):
+            query = target_start + target_index - 1
+            visible = min(int(g[row, target_index].item()) + 1, source_length)
+            allowed[row, query, source_start : source_start + source_length] = False
+            allowed[row, query, source_start : source_start + visible] = True
+    return allowed
+
+
+def packed_causal_attention_allowed(cu_seqlens: torch.Tensor, seq_length: int) -> torch.Tensor:
+    """Block-diagonal causal mask matching Megatron packed-SFT boundaries."""
+
+    if cu_seqlens.ndim != 2:
+        raise ValueError("cu_seqlens must have shape [B,N]")
+    if seq_length <= 0:
+        raise ValueError("seq_length must be positive")
+    batch = cu_seqlens.shape[0]
+    allowed = torch.zeros(
+        batch, seq_length, seq_length, dtype=torch.bool, device=cu_seqlens.device
+    )
+    for row in range(batch):
+        values = [int(value) for value in cu_seqlens[row].tolist()]
+        boundaries = [values[0]]
+        for value in values[1:]:
+            if value != boundaries[-1]:
+                boundaries.append(value)
+            if value == seq_length:
+                break
+        if not boundaries or boundaries[0] != 0 or boundaries[-1] != seq_length:
+            raise ValueError("packed boundaries must span [0, seq_length]")
+        for start, end in zip(boundaries, boundaries[1:]):
+            if end <= start:
+                raise ValueError("packed boundaries must increase")
+            length = end - start
+            allowed[row, start:end, start:end] = torch.tril(
+                torch.ones(length, length, dtype=torch.bool, device=allowed.device)
+            )
+    return allowed

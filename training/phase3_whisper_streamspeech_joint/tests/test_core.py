@@ -18,7 +18,9 @@ from training.phase3_whisper_streamspeech_joint.nar_bicodec_ctc import NARBiCode
 from training.phase3_whisper_streamspeech_joint.phase3_ste_bridge import Phase3STEBridge
 from training.phase3_whisper_streamspeech_joint.policy_mask import (
     build_g_from_ctc_logits,
+    packed_causal_attention_allowed,
     phase3_block_attention_allowed,
+    phase3_prediction_attention_allowed,
 )
 from training.phase3_whisper_streamspeech_joint.tokenizer_maps import (
     CompactCTCMap,
@@ -84,6 +86,29 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(bool(allowed[0, target_start, 3]))
         self.assertTrue(bool(allowed[0, target_start + 1, 4]))
         self.assertFalse(bool(allowed[0, target_start + 1, 5]))
+
+    def test_prediction_mask_applies_g_to_next_token_query(self) -> None:
+        allowed = phase3_prediction_attention_allowed(
+            sequence_lengths=torch.tensor([10]),
+            source_starts=torch.tensor([2]),
+            source_lengths=torch.tensor([4]),
+            target_starts=torch.tensor([8]),
+            target_lengths=torch.tensor([2]),
+            g=torch.tensor([[0, 2]]),
+        )
+        # Query 7 predicts target token 0 and can see only source frame 0.
+        self.assertTrue(bool(allowed[0, 7, 2]))
+        self.assertFalse(bool(allowed[0, 7, 3]))
+        # Query 8 predicts target token 1 and can see source frames 0..2.
+        self.assertTrue(bool(allowed[0, 8, 4]))
+        self.assertFalse(bool(allowed[0, 8, 5]))
+
+    def test_packed_replay_mask_has_no_cross_sample_attention(self) -> None:
+        cu = torch.tensor([[0, 3, 5, 5, 5, 5]])
+        allowed = packed_causal_attention_allowed(cu, 5)
+        self.assertTrue(bool(allowed[0, 2, 0]))
+        self.assertFalse(bool(allowed[0, 3, 2]))
+        self.assertTrue(bool(allowed[0, 4, 3]))
 
     def test_ste_is_hard_forward_with_continuous_gradient(self) -> None:
         bridge = Phase3STEBridge(
