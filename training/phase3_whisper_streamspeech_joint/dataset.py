@@ -8,6 +8,7 @@ from pathlib import Path
 
 import torch
 import torchaudio
+import numpy as np
 from torch.utils.data import Dataset
 
 from training.megatron_uniss_dataset import UniSSPackedJsonlDataset
@@ -76,6 +77,38 @@ class Phase3ReplayDataset(UniSSPackedJsonlDataset):
     def __getitem__(self, index: int) -> dict[str, object]:
         value: dict[str, object] = dict(super().__getitem__(index))
         value["sample_kind"] = "replay"
+        return value
+
+
+class DirectionBalancedJointDataset(Dataset[dict[str, object]]):
+    """Alternating EN→ZH/ZH→EN view over one immutable joint manifest."""
+
+    def __init__(self, dataset: JointAudioDataset, direction_index_dir: str | Path, split: str) -> None:
+        self.dataset = dataset
+        root = Path(direction_index_dir)
+        self.indices = {
+            direction: np.load(
+                root / f"{split}_{direction.replace('->', '_to_')}.npy",
+                mmap_mode="r",
+                allow_pickle=False,
+            )
+            for direction in ("eng->cmn", "cmn->eng")
+        }
+        if any(not len(values) for values in self.indices.values()):
+            raise ValueError(f"both directions must be non-empty for {split}")
+        self.pairs = max(len(values) for values in self.indices.values())
+
+    def __len__(self) -> int:
+        return 2 * self.pairs
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        direction = "eng->cmn" if index % 2 == 0 else "cmn->eng"
+        values = self.indices[direction]
+        source_index = int(values[(index // 2) % len(values)])
+        value = self.dataset[source_index]
+        expected = 0 if direction == "eng->cmn" else 1
+        if int(value["direction_id"]) != expected:
+            raise ValueError("direction index points to the wrong record")
         return value
 
 

@@ -11,6 +11,7 @@ import torch
 from training.phase3_whisper_streamspeech_joint.build_joint_manifests import build_manifests
 from training.phase3_whisper_streamspeech_joint.dataset import (
     DeterministicReplaySchedule,
+    DirectionBalancedJointDataset,
     JointAudioDataset,
     collate_joint,
 )
@@ -81,6 +82,12 @@ class DataTest(unittest.TestCase):
             self.assertEqual(batch["sample_kind"], "joint")
             self.assertEqual(tuple(batch["waveform"].shape), (2, 1600))
             self.assertEqual(tuple(batch["bicodec_global"].shape), (2, 32))
+            balanced = DirectionBalancedJointDataset(
+                dataset,
+                root / "joint/direction_indices",
+                "train",
+            )
+            self.assertEqual([balanced[index]["direction_id"] for index in range(4)], [0, 1, 0, 1])
 
     def test_replay_schedule_is_exact_and_restart_stable(self) -> None:
         schedule = DeterministicReplaySchedule(

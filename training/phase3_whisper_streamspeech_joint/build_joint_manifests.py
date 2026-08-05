@@ -13,11 +13,19 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import tempfile
 from array import array
 from collections import Counter
 from pathlib import Path
 from typing import Iterable, Protocol
+
+import numpy as np
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from training.phase3_whisper_streamspeech_joint.tokenizer_maps import build_compact_map
 from training.simul_uniss.jsonl_index import write_index
@@ -169,22 +177,33 @@ def build_manifests(
     }
     vocab: dict[str, set[int]] = {"eng": set(), "cmn": set()}
     counts: Counter[str] = Counter()
+    direction_indices = {
+        (split, direction): array("Q")
+        for split in ("train", "valid")
+        for direction in ("eng->cmn", "cmn->eng")
+    }
 
     def consume(paths: list[str | Path], forced_split: str | None) -> None:
-        for path, line_number, value in _iter_jsonl(paths):
-            if limit is not None and counts[f"input:{forced_split or 'hash'}"] >= limit:
-                break
-            counts[f"input:{forced_split or 'hash'}"] += 1
-            _validate_source(path, line_number, value, check_audio)
-            split = forced_split
-            if split is None:
-                split = "valid" if _is_validation(str(value["id"]), validation_per_mille) else "train"
-            item = _record(value, tokenizer, split)
-            writers[split].write(item)
-            vocab[str(item["src_lang"])].update(item["source_qwen_ids"])  # type: ignore[arg-type]
-            vocab[str(item["tgt_lang"])].update(item["target_qwen_ids"])  # type: ignore[arg-type]
-            counts[f"written:{split}"] += 1
-            counts[f"direction:{split}:{item['src_lang']}->{item['tgt_lang']}"] += 1
+        for source_path in paths:
+            source_records = 0
+            for path, line_number, value in _iter_jsonl([source_path]):
+                if limit is not None and source_records >= limit:
+                    break
+                source_records += 1
+                counts[f"input:{forced_split or 'hash'}"] += 1
+                _validate_source(path, line_number, value, check_audio)
+                split = forced_split
+                if split is None:
+                    split = "valid" if _is_validation(str(value["id"]), validation_per_mille) else "train"
+                item = _record(value, tokenizer, split)
+                record_index = counts[f"written:{split}"]
+                writers[split].write(item)
+                vocab[str(item["src_lang"])].update(item["source_qwen_ids"])  # type: ignore[arg-type]
+                vocab[str(item["tgt_lang"])].update(item["target_qwen_ids"])  # type: ignore[arg-type]
+                counts[f"written:{split}"] += 1
+                direction = f"{item['src_lang']}->{item['tgt_lang']}"
+                counts[f"direction:{split}:{direction}"] += 1
+                direction_indices[(split, direction)].append(record_index)
 
     try:
         consume(train_sources, None if not valid_sources else "train")
@@ -210,6 +229,13 @@ def build_manifests(
             "vocabulary": len(mapping.compact_to_qwen),
             "blank_id": mapping.blank_id,
         }
+    direction_files = {}
+    indices_dir = root / "direction_indices"
+    indices_dir.mkdir(parents=True, exist_ok=True)
+    for (split, direction), values in direction_indices.items():
+        path = indices_dir / f"{split}_{direction.replace('->', '_to_')}.npy"
+        np.save(path, np.asarray(values, dtype=np.uint64), allow_pickle=False)
+        direction_files[f"{split}:{direction}"] = str(path)
     summary = {
         "schema_version": "uniss_phase3_whisper_streamspeech_joint_manifest_summary_v1",
         "status": "complete",
@@ -219,6 +245,7 @@ def build_manifests(
         "counts": dict(sorted(counts.items())),
         "indices": indices,
         "tokenizer_maps": maps,
+        "direction_indices": direction_files,
     }
     _atomic_json(root / "manifest_summary.json", summary)
     return summary
