@@ -28,6 +28,7 @@ class ScriptTest(unittest.TestCase):
     def test_full198_pipeline_waits_for_all_parts_before_megatron(self) -> None:
         pipeline = (EXPERIMENT / "scripts/wait_and_train_full198.sh").read_text()
         self.assertIn("STAGE_A_SOURCE_PART_COMPLETE.json", pipeline)
+        self.assertIn("missing_worker_polls", pipeline)
         self.assertIn("prepare_full198_joint_manifest.sh", pipeline)
         self.assertIn("run_full198_8gpu.sh", pipeline)
         self.assertLess(

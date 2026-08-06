@@ -12,6 +12,7 @@ if (( EXPECTED_SHARDS <= 0 || POLL_SECONDS <= 0 )); then
 fi
 
 echo "Waiting for ${EXPECTED_SHARDS} full198 Stage-A shard markers."
+missing_worker_polls=0
 while true; do
   complete="$(find "${FORMAL_STAGE_A_ROOT}/parts" -mindepth 2 -maxdepth 2 \
     -name STAGE_A_SOURCE_PART_COMPLETE.json -print 2>/dev/null | wc -l)"
@@ -24,8 +25,14 @@ while true; do
     exit 1
   fi
   if ! pgrep -f '[s]tage_a prepare-part.*full198_stage_a/parts' >/dev/null; then
-    echo "Stage-A workers exited before all shard markers were written" >&2
-    exit 1
+    missing_worker_polls=$((missing_worker_polls + 1))
+    echo "Stage-A workers not visible (${missing_worker_polls}/3 grace polls)."
+    if (( missing_worker_polls >= 3 )); then
+      echo "Stage-A workers exited before all shard markers were written" >&2
+      exit 1
+    fi
+  else
+    missing_worker_polls=0
   fi
   sleep "${POLL_SECONDS}"
 done
