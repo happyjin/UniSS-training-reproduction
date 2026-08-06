@@ -30,8 +30,22 @@ def ctc_normalized_loss(
 ) -> tuple[NormalizedLoss, torch.Tensor]:
     """CTC summed over targets plus an explicit infeasible-sample count."""
 
-    infeasible = target_lengths > input_lengths
     pieces = torch.split(targets, [int(value) for value in target_lengths.tolist()])
+    # CTC needs one extra encoder frame between every pair of consecutive
+    # identical labels.  Checking only target_length <= input_length lets
+    # PyTorch return +inf for otherwise well-formed rows such as [a, a] with
+    # two encoder frames.  Treat those rows as explicitly infeasible, just as
+    # StreamSpeech-style short chunks require.
+    repeated = torch.stack(
+        [
+            (piece[1:] == piece[:-1]).sum()
+            if len(piece) > 1
+            else target_lengths.new_zeros(())
+            for piece in pieces
+        ]
+    )
+    required_input_lengths = target_lengths + repeated.to(target_lengths.dtype)
+    infeasible = required_input_lengths > input_lengths
     feasible_rows = torch.nonzero(~infeasible, as_tuple=False).flatten()
     if not len(feasible_rows):
         zero = logits.sum() * 0.0

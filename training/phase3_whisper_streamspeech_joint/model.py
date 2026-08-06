@@ -428,6 +428,15 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         values = [total]
         values.extend(means[name].detach() for name in COMPONENTS)
         values.extend(extras)
-        if not all(torch.isfinite(value).all() for value in values):
-            raise FloatingPointError("non-finite joint model loss or metric")
+        finite_names = ["total", *COMPONENTS, *diagnostics, "sampler_joint_fraction"]
+        non_finite = [
+            name
+            for name, value in zip(finite_names, values, strict=True)
+            if not bool(torch.isfinite(value).all())
+        ]
+        if non_finite:
+            raise FloatingPointError(
+                "non-finite joint model loss or metric: "
+                f"fields={non_finite}, sample_kind={sample_kind}, chunk_ms={chunk_ms}"
+            )
         return torch.stack(values)

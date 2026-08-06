@@ -6,7 +6,10 @@ from collections import OrderedDict
 import torch
 
 from training.phase3_whisper_streamspeech_joint.config import JointLossWeights
-from training.phase3_whisper_streamspeech_joint.losses import NormalizedLoss
+from training.phase3_whisper_streamspeech_joint.losses import (
+    NormalizedLoss,
+    ctc_normalized_loss,
+)
 from training.phase3_whisper_streamspeech_joint.model import (
     COMPONENTS,
     distributed_component_losses,
@@ -42,6 +45,35 @@ class ModelLossTest(unittest.TestCase):
         total, means = distributed_component_losses(losses, JointLossWeights())
         self.assertEqual(float(total), 0.0)
         self.assertTrue(all(float(value) == 0.0 for value in means.values()))
+
+    def test_ctc_repeated_labels_require_separator_frames(self) -> None:
+        targets = torch.tensor([1, 1], dtype=torch.long)
+        target_lengths = torch.tensor([2], dtype=torch.long)
+
+        too_short = torch.zeros(1, 2, 3, requires_grad=True)
+        loss, infeasible = ctc_normalized_loss(
+            too_short,
+            targets,
+            torch.tensor([2], dtype=torch.long),
+            target_lengths,
+            blank_id=2,
+        )
+        self.assertEqual(int(infeasible), 1)
+        self.assertTrue(torch.isfinite(loss.mean))
+        self.assertEqual(float(loss.mean), 0.0)
+
+        enough = torch.zeros(1, 3, 3, requires_grad=True)
+        loss, infeasible = ctc_normalized_loss(
+            enough,
+            targets,
+            torch.tensor([3], dtype=torch.long),
+            target_lengths,
+            blank_id=2,
+        )
+        self.assertEqual(int(infeasible), 0)
+        self.assertTrue(torch.isfinite(loss.mean))
+        loss.mean.backward()
+        self.assertTrue(torch.isfinite(enough.grad).all())
 
 
 if __name__ == "__main__":
