@@ -25,6 +25,16 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("--bf16", runner)
         self.assertIn("--joint-phase3-replay-weight 0.5", runner)
 
+    def test_full198_pipeline_waits_for_all_parts_before_megatron(self) -> None:
+        pipeline = (EXPERIMENT / "scripts/wait_and_train_full198.sh").read_text()
+        self.assertIn("STAGE_A_SOURCE_PART_COMPLETE.json", pipeline)
+        self.assertIn("prepare_full198_joint_manifest.sh", pipeline)
+        self.assertIn("run_full198_8gpu.sh", pipeline)
+        self.assertLess(
+            pipeline.index("prepare_full198_joint_manifest.sh"),
+            pipeline.index("run_full198_8gpu.sh"),
+        )
+
     def test_historical_entrypoints_are_not_referenced_as_outputs(self) -> None:
         env = (EXPERIMENT / "experiment.env").read_text()
         self.assertIn("phase3_whisper_streamspeech_joint_v1", env)

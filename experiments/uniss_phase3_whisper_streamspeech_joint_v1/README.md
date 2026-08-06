@@ -57,6 +57,14 @@ training/phase3_whisper_streamspeech_joint/pretrain_joint_megatron.py
    bash experiments/uniss_phase3_whisper_streamspeech_joint_v1/scripts/prepare_full198_joint_manifest.sh
    ```
 
+   To let Stage-A completion, manifest assembly, validation and formal
+   Megatron training continue automatically, launch the isolated watcher after
+   the eight Stage-A lanes:
+
+   ```bash
+   bash experiments/uniss_phase3_whisper_streamspeech_joint_v1/scripts/launch_full198_pipeline_tmux.sh
+   ```
+
 5. Start the formal single-stage run only after the smoke gate and both full
    data completion markers pass:
 
@@ -70,11 +78,11 @@ training/phase3_whisper_streamspeech_joint/pretrain_joint_megatron.py
 bash experiments/uniss_phase3_whisper_streamspeech_joint_v1/scripts/start_tensorboard.sh
 ```
 
-Default local endpoint: `http://127.0.0.1:6027/`. Use SSH forwarding from a
+Default local endpoint: `http://127.0.0.1:6031/`. Use SSH forwarding from a
 client machine when needed:
 
 ```bash
-ssh -L 6027:127.0.0.1:6027 root@SERVER
+ssh -L 6031:127.0.0.1:6031 root@SERVER
 ```
 
 All checkpoints, TensorBoard events and logs use new names under
