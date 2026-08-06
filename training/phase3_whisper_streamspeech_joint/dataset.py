@@ -10,6 +10,7 @@ import torch
 import torchaudio
 import numpy as np
 from torch.utils.data import Dataset
+from torch.utils.data._utils.collate import default_collate
 
 from training.megatron_uniss_dataset import UniSSPackedJsonlDataset
 from training.megatron_uniss_dataset import packed_json_to_megatron_item
@@ -248,24 +249,28 @@ class SynchronizedKindRandomSampler:
         data_sharding: bool,
     ) -> None:
         del data_sharding
-        if micro_batch_size != 1:
-            raise ValueError("synchronized task sampling requires micro-batch-size 1")
+        if micro_batch_size <= 0:
+            raise ValueError("micro-batch-size must be positive")
         if data_parallel_size <= 0 or not 0 <= data_parallel_rank < data_parallel_size:
             raise ValueError("invalid data-parallel geometry")
         if not getattr(dataset, "synchronize_sample_kind", False):
             raise ValueError("dataset does not provide synchronized task groups")
-        if int(dataset.data_parallel_group_size) != int(data_parallel_size):
-            raise ValueError("dataset and sampler data-parallel sizes disagree")
         self.total_samples = int(total_samples)
         self.consumed_samples = int(consumed_samples)
         self.data_parallel_rank = int(data_parallel_rank)
         self.data_parallel_size = int(data_parallel_size)
+        self.micro_batch_size = int(micro_batch_size)
+        self.global_microbatch_size = self.data_parallel_size * self.micro_batch_size
+        if int(dataset.data_parallel_group_size) != self.global_microbatch_size:
+            raise ValueError(
+                "dataset task group must equal data-parallel-size * micro-batch-size"
+            )
         self.active_total_samples = (
-            self.total_samples // self.data_parallel_size
-        ) * self.data_parallel_size
+            self.total_samples // self.global_microbatch_size
+        ) * self.global_microbatch_size
         if self.active_total_samples <= 0:
             raise ValueError("dataset is smaller than one data-parallel microbatch")
-        if self.consumed_samples % self.data_parallel_size:
+        if self.consumed_samples % self.global_microbatch_size:
             raise ValueError("consumed samples must end on a DP microbatch boundary")
 
     def __len__(self) -> int:
@@ -275,15 +280,16 @@ class SynchronizedKindRandomSampler:
         epoch, epoch_samples = divmod(
             self.consumed_samples, self.active_total_samples
         )
-        group_offset = epoch_samples // self.data_parallel_size
-        group_count = self.active_total_samples // self.data_parallel_size
+        group_offset = epoch_samples // self.global_microbatch_size
+        group_count = self.active_total_samples // self.global_microbatch_size
         generator = torch.Generator()
         generator.manual_seed(epoch)
         group_order = torch.randperm(group_count, generator=generator).tolist()
         for group_index in group_order[group_offset:]:
-            index = group_index * self.data_parallel_size + self.data_parallel_rank
-            self.consumed_samples += self.data_parallel_size
-            yield [index]
+            group_start = group_index * self.global_microbatch_size
+            rank_start = group_start + self.data_parallel_rank * self.micro_batch_size
+            self.consumed_samples += self.global_microbatch_size
+            yield list(range(rank_start, rank_start + self.micro_batch_size))
 
 
 def collate_joint(batch: list[dict[str, object]]) -> dict[str, object]:
@@ -319,3 +325,16 @@ def collate_joint(batch: list[dict[str, object]]) -> dict[str, object]:
         result[f"{name}_lengths"] = lengths
     result["bicodec_global"] = torch.stack([value["bicodec_global"] for value in batch])
     return result
+
+
+def collate_joint_or_replay(batch: list[dict[str, object]]) -> dict[str, object]:
+    """Pad joint records while keeping exact packed replay collation unchanged."""
+
+    kinds = {str(value.get("sample_kind")) for value in batch}
+    if len(kinds) != 1:
+        raise ValueError("one microbatch cannot mix joint and replay records")
+    if kinds == {"joint"}:
+        return collate_joint(batch)
+    if kinds == {"replay"}:
+        return default_collate(batch)
+    raise ValueError(f"unsupported microbatch kind: {kinds}")

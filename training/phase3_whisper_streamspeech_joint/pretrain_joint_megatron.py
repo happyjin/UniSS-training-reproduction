@@ -30,6 +30,7 @@ from training.phase3_whisper_streamspeech_joint.dataset import (
     IndexedPhase3ReplayDataset,
     JointAudioDataset,
     SynchronizedKindRandomSampler,
+    collate_joint_or_replay,
 )
 from training.phase3_whisper_streamspeech_joint.model import (
     COMPONENTS,
@@ -118,6 +119,42 @@ def install_synchronized_task_sampler() -> None:
     data_samplers.MegatronPretrainingRandomSampler = synchronized_or_default
 
 
+def install_joint_collate() -> None:
+    """Attach the experiment's variable-length collate without patching Megatron."""
+
+    import megatron.training.datasets.data_samplers as data_samplers
+    import megatron.training.training as megatron_training
+
+    original = data_samplers.build_pretraining_data_loader
+    if getattr(original, "_uniss_joint_collate", False):
+        return
+
+    def build_with_joint_collate(dataset, *args, **kwargs):
+        collate = getattr(dataset, "collate_fn", None)
+        if not callable(collate):
+            return original(dataset, *args, **kwargs)
+
+        original_loader = torch.utils.data.DataLoader
+
+        def data_loader(*loader_args, **loader_kwargs):
+            loader_kwargs.setdefault("collate_fn", collate)
+            return original_loader(*loader_args, **loader_kwargs)
+
+        # The upstream builder resolves DataLoader through torch.utils.data at
+        # call time.  Scope the substitution to this synchronous construction
+        # so no shared Megatron source file or unrelated experiment changes.
+        torch.utils.data.DataLoader = data_loader
+        try:
+            return original(dataset, *args, **kwargs)
+        finally:
+            torch.utils.data.DataLoader = original_loader
+
+    build_with_joint_collate._uniss_joint_collate = True
+    data_samplers.build_pretraining_data_loader = build_with_joint_collate
+    # training.py imports the function symbol at module import time.
+    megatron_training.build_pretraining_data_loader = build_with_joint_collate
+
+
 def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group = parser.add_argument_group(title="Phase3 Whisper StreamSpeech joint")
     for name in (
@@ -147,8 +184,8 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
 
 def validate_joint_args(args) -> None:
-    if int(args.micro_batch_size) != 1:
-        raise ValueError("variable-length joint/replay training currently requires micro-batch-size 1")
+    if int(args.micro_batch_size) not in (1, 2):
+        raise ValueError("formal joint training supports micro-batch-size 1 or 2")
     if int(args.global_batch_size) != 128:
         raise ValueError("the Phase3-preserving run requires global-batch-size 128")
     if int(args.seq_length) != 18_000:
@@ -203,6 +240,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     )
     target_train = _target_count(train_val_test_num_samples, 0)
     data_parallel_size = int(args.data_parallel_size)
+    global_microbatch_size = data_parallel_size * int(args.micro_batch_size)
     cycles = None
     if target_train is not None:
         cycles = math.ceil(target_train / (5 * data_parallel_size))
@@ -211,12 +249,13 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         replay,
         joint_slots=4,
         replay_slots=1,
-        data_parallel_group_size=data_parallel_size,
+        data_parallel_group_size=global_microbatch_size,
         cycles=cycles,
     )
     if target_train is not None and target_train > len(train):
         train = RepeatToLengthDataset(train, target_train)
     train.split = "train"
+    train.collate_fn = collate_joint_or_replay
 
     valid_base = JointAudioDataset(
         args.joint_valid_manifest, args.joint_tokenizer_map_dir
@@ -231,6 +270,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     if target_valid is not None and target_valid > len(valid):
         valid = RepeatToLengthDataset(valid, target_valid)
     valid.split = "valid"
+    valid.collate_fn = collate_joint_or_replay
     runtime.print_rank_0(
         f"> joint={len(joint_train)} replay={len(replay)} train_virtual={len(train)} valid={len(valid)}"
     )
@@ -340,11 +380,17 @@ def _cuda_batch(batch: dict[str, object]) -> dict[str, object]:
 
 def _prepare_joint_batch(batch: dict[str, object]) -> dict[str, object]:
     batch = _cuda_batch(batch)
+    waveform_lengths = batch.get("waveform_lengths", batch.get("waveform_length"))
+    direction_ids = batch.get("direction_ids", batch.get("direction_id"))
+    if not isinstance(waveform_lengths, torch.Tensor) or not isinstance(
+        direction_ids, torch.Tensor
+    ):
+        raise TypeError("joint waveform/direction lengths are malformed")
     result: dict[str, object] = {
         "sample_kind": batch["sample_kind"],
         "waveform": batch["waveform"],
-        "waveform_lengths": batch["waveform_length"].reshape(-1),
-        "direction_ids": batch["direction_id"].reshape(-1),
+        "waveform_lengths": waveform_lengths.reshape(-1),
+        "direction_ids": direction_ids.reshape(-1),
         "phase3_record_json": batch["phase3_record_json"],
     }
     for name in (
@@ -359,9 +405,17 @@ def _prepare_joint_batch(batch: dict[str, object]) -> dict[str, object]:
         if value.ndim == 1:
             value = value.unsqueeze(0)
         result[name] = value
-        result[f"{name}_lengths"] = torch.full(
-            (value.shape[0],), value.shape[1], dtype=torch.long, device=value.device
-        )
+        lengths = batch.get(f"{name}_lengths")
+        if lengths is None:
+            lengths = torch.full(
+                (value.shape[0],),
+                value.shape[1],
+                dtype=torch.long,
+                device=value.device,
+            )
+        if not isinstance(lengths, torch.Tensor):
+            raise TypeError(f"{name} lengths are malformed")
+        result[f"{name}_lengths"] = lengths.reshape(-1)
     result["bicodec_global"] = batch["bicodec_global"]
     return result
 
@@ -412,6 +466,7 @@ def main() -> None:
     validate_joint_args(args)
     install_megatron_lr_overrides()
     install_synchronized_task_sampler()
+    install_joint_collate()
     model_config = runtime.gpt_config_from_args(args)
     full_config = runtime.pretrain_cfg_container_from_args(args, model_config)
     full_config.model = None

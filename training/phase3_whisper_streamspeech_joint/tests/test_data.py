@@ -17,6 +17,7 @@ from training.phase3_whisper_streamspeech_joint.dataset import (
     IndexedPhase3ReplayDataset,
     SynchronizedKindRandomSampler,
     collate_joint,
+    collate_joint_or_replay,
 )
 from training.simul_uniss.jsonl_index import write_index
 
@@ -92,6 +93,34 @@ class DataTest(unittest.TestCase):
             )
             self.assertEqual([balanced[index]["direction_id"] for index in range(4)], [0, 1, 0, 1])
 
+    def test_joint_collation_preserves_each_variable_length(self) -> None:
+        first = {
+            "sample_kind": "joint",
+            "id": "a",
+            "direction_id": 0,
+            "waveform": torch.tensor([1.0, 2.0, 3.0]),
+            "waveform_length": 3,
+            "phase3_record_json": "{}",
+            "bicodec_global": torch.arange(32),
+        }
+        second = dict(first, id="b", direction_id=1)
+        for name in (
+            "source_ctc_ids",
+            "target_ctc_ids",
+            "source_qwen_ids",
+            "target_qwen_ids",
+            "source_glm",
+            "target_bicodec",
+        ):
+            first[name] = torch.tensor([1, 2, 3])
+            second[name] = torch.tensor([4, 5])
+        second["waveform"] = torch.tensor([4.0, 5.0])
+        second["waveform_length"] = 2
+        batch = collate_joint_or_replay([first, second])
+        self.assertEqual(batch["waveform_lengths"].tolist(), [3, 2])
+        self.assertEqual(batch["target_bicodec_lengths"].tolist(), [3, 2])
+        self.assertEqual(tuple(batch["target_bicodec"].shape), (2, 3))
+
     def test_replay_schedule_is_exact_and_restart_stable(self) -> None:
         schedule = DeterministicReplaySchedule(
             KindDataset("joint", 7), KindDataset("replay", 3), cycles=10
@@ -132,6 +161,39 @@ class DataTest(unittest.TestCase):
             self.assertEqual(
                 sorted(index % data_parallel_size for index in indices),
                 list(range(data_parallel_size)),
+            )
+
+    def test_replay_kind_is_synchronized_for_micro_batch_two(self) -> None:
+        data_parallel_size = 4
+        micro_batch_size = 2
+        global_microbatch = data_parallel_size * micro_batch_size
+        schedule = DeterministicReplaySchedule(
+            KindDataset("joint", 47),
+            KindDataset("replay", 19),
+            data_parallel_group_size=global_microbatch,
+            cycles=3,
+        )
+        samplers = [
+            SynchronizedKindRandomSampler(
+                schedule,
+                total_samples=len(schedule),
+                consumed_samples=0,
+                micro_batch_size=micro_batch_size,
+                data_parallel_rank=rank,
+                data_parallel_size=data_parallel_size,
+                data_sharding=False,
+            )
+            for rank in range(data_parallel_size)
+        ]
+        per_rank = [list(iter(sampler)) for sampler in samplers]
+        for rank_batches in zip(*per_rank):
+            indices = [index for batch in rank_batches for index in batch]
+            kinds = [schedule[index]["sample_kind"] for index in indices]
+            self.assertEqual(len(set(kinds)), 1)
+            self.assertEqual(len(set(index // global_microbatch for index in indices)), 1)
+            self.assertEqual(
+                sorted(index % global_microbatch for index in indices),
+                list(range(global_microbatch)),
             )
 
     def test_indexed_replay_does_not_scan_the_jsonl(self) -> None:

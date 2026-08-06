@@ -56,6 +56,8 @@ class MegatronEntrypointTest(unittest.TestCase):
                 )},
             )
             validate_joint_args(args)
+            args.micro_batch_size = 2
+            validate_joint_args(args)
             args.global_batch_size = 64
             with self.assertRaises(ValueError):
                 validate_joint_args(args)
