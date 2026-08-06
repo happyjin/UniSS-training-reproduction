@@ -15,6 +15,7 @@ from training.phase3_whisper_streamspeech_joint.dataset import (
     DirectionBalancedJointDataset,
     JointAudioDataset,
     IndexedPhase3ReplayDataset,
+    SynchronizedKindRandomSampler,
     collate_joint,
 )
 from training.simul_uniss.jsonl_index import write_index
@@ -100,6 +101,38 @@ class DataTest(unittest.TestCase):
         self.assertEqual(kinds.count("replay"), 10)
         self.assertEqual(schedule.replay_probability, 0.2)
         self.assertEqual(schedule.scheduled_index(17), schedule.scheduled_index(17))
+
+    def test_replay_kind_is_synchronized_across_data_parallel_lanes(self) -> None:
+        data_parallel_size = 4
+        schedule = DeterministicReplaySchedule(
+            KindDataset("joint", 31),
+            KindDataset("replay", 11),
+            data_parallel_group_size=data_parallel_size,
+            cycles=3,
+        )
+        samplers = [
+            SynchronizedKindRandomSampler(
+                schedule,
+                total_samples=len(schedule),
+                consumed_samples=0,
+                micro_batch_size=1,
+                data_parallel_rank=rank,
+                data_parallel_size=data_parallel_size,
+                data_sharding=False,
+            )
+            for rank in range(data_parallel_size)
+        ]
+        per_rank = [list(iter(sampler)) for sampler in samplers]
+        self.assertTrue(per_rank[0])
+        for microbatch in zip(*per_rank):
+            indices = [values[0] for values in microbatch]
+            kinds = [schedule[index]["sample_kind"] for index in indices]
+            self.assertEqual(len(set(kinds)), 1)
+            self.assertEqual(len(set(index // data_parallel_size for index in indices)), 1)
+            self.assertEqual(
+                sorted(index % data_parallel_size for index in indices),
+                list(range(data_parallel_size)),
+            )
 
     def test_indexed_replay_does_not_scan_the_jsonl(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

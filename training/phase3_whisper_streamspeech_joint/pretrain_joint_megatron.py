@@ -29,6 +29,7 @@ from training.phase3_whisper_streamspeech_joint.dataset import (
     DirectionBalancedJointDataset,
     IndexedPhase3ReplayDataset,
     JointAudioDataset,
+    SynchronizedKindRandomSampler,
 )
 from training.phase3_whisper_streamspeech_joint.model import (
     COMPONENTS,
@@ -97,6 +98,24 @@ def install_megatron_lr_overrides() -> None:
 
     with_joint_groups._uniss_joint_lr_groups = True
     megatron_training.get_megatron_optimizer_config = with_joint_groups
+
+
+def install_synchronized_task_sampler() -> None:
+    """Keep joint/replay choice identical across all data-parallel ranks."""
+
+    import megatron.training.datasets.data_samplers as data_samplers
+
+    original = data_samplers.MegatronPretrainingRandomSampler
+    if getattr(original, "_uniss_joint_synchronized_kinds", False):
+        return
+
+    def synchronized_or_default(dataset, *args, **kwargs):
+        if getattr(dataset, "synchronize_sample_kind", False):
+            return SynchronizedKindRandomSampler(dataset, *args, **kwargs)
+        return original(dataset, *args, **kwargs)
+
+    synchronized_or_default._uniss_joint_synchronized_kinds = True
+    data_samplers.MegatronPretrainingRandomSampler = synchronized_or_default
 
 
 def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -183,11 +202,17 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         require_complete=not args.joint_allow_partial_replay_index,
     )
     target_train = _target_count(train_val_test_num_samples, 0)
+    data_parallel_size = int(args.data_parallel_size)
     cycles = None
     if target_train is not None:
-        cycles = math.ceil(target_train / 5)
+        cycles = math.ceil(target_train / (5 * data_parallel_size))
     train = DeterministicReplaySchedule(
-        joint_train, replay, joint_slots=4, replay_slots=1, cycles=cycles
+        joint_train,
+        replay,
+        joint_slots=4,
+        replay_slots=1,
+        data_parallel_group_size=data_parallel_size,
+        cycles=cycles,
     )
     if target_train is not None and target_train > len(train):
         train = RepeatToLengthDataset(train, target_train)
@@ -386,6 +411,7 @@ def main() -> None:
     )
     validate_joint_args(args)
     install_megatron_lr_overrides()
+    install_synchronized_task_sampler()
     model_config = runtime.gpt_config_from_args(args)
     full_config = runtime.pretrain_cfg_container_from_args(args, model_config)
     full_config.model = None

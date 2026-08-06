@@ -168,8 +168,9 @@ class DeterministicReplaySchedule(Dataset[dict[str, object]]):
     """A restart-stable 4 joint : 1 replay virtual dataset.
 
     The exact ratio is represented as integers so checkpoint resume cannot
-    drift due to independent RNG state.  Megatron may still globally shuffle
-    these virtual indices.
+    drift due to independent RNG state.  Every data-parallel lane in one
+    microbatch is assigned the same task kind because WhisperVQ performs
+    collectives inside its train-time quantizer.
     """
 
     def __init__(
@@ -179,36 +180,50 @@ class DeterministicReplaySchedule(Dataset[dict[str, object]]):
         *,
         joint_slots: int = 4,
         replay_slots: int = 1,
+        data_parallel_group_size: int = 1,
         cycles: int | None = None,
     ) -> None:
         if not len(joint) or not len(replay):
             raise ValueError("joint and replay datasets must be non-empty")
         if joint_slots <= 0 or replay_slots <= 0:
             raise ValueError("schedule slots must be positive")
+        if data_parallel_group_size <= 0:
+            raise ValueError("data_parallel_group_size must be positive")
         self.joint = joint
         self.replay = replay
         self.joint_slots = int(joint_slots)
         self.replay_slots = int(replay_slots)
         self.cycle_size = self.joint_slots + self.replay_slots
+        self.data_parallel_group_size = int(data_parallel_group_size)
         self.cycles = int(cycles or max(len(joint), len(replay)))
+        self.synchronize_sample_kind = self.data_parallel_group_size > 1
 
     @property
     def replay_probability(self) -> float:
         return self.replay_slots / self.cycle_size
 
     def __len__(self) -> int:
-        return self.cycles * self.cycle_size
+        return self.cycles * self.cycle_size * self.data_parallel_group_size
 
     def scheduled_index(self, index: int) -> ScheduledIndex:
         if index < 0:
             index += len(self)
         if not 0 <= index < len(self):
             raise IndexError(index)
-        cycle, slot = divmod(index, self.cycle_size)
+        group_index, lane = divmod(index, self.data_parallel_group_size)
+        cycle, slot = divmod(group_index, self.cycle_size)
         if slot < self.joint_slots:
-            return ScheduledIndex("joint", (cycle * self.joint_slots + slot) % len(self.joint))
+            source_index = (
+                (cycle * self.joint_slots + slot) * self.data_parallel_group_size
+                + lane
+            ) % len(self.joint)
+            return ScheduledIndex("joint", source_index)
         replay_slot = slot - self.joint_slots
-        return ScheduledIndex("replay", (cycle * self.replay_slots + replay_slot) % len(self.replay))
+        source_index = (
+            (cycle * self.replay_slots + replay_slot) * self.data_parallel_group_size
+            + lane
+        ) % len(self.replay)
+        return ScheduledIndex("replay", source_index)
 
     def __getitem__(self, index: int) -> dict[str, object]:
         scheduled = self.scheduled_index(index)
@@ -217,6 +232,58 @@ class DeterministicReplaySchedule(Dataset[dict[str, object]]):
         if value.get("sample_kind") != scheduled.sample_kind:
             raise ValueError("scheduled sample kind does not match source dataset")
         return value
+
+
+class SynchronizedKindRandomSampler:
+    """Megatron-compatible group shuffle preserving DP collective order."""
+
+    def __init__(
+        self,
+        dataset,
+        total_samples: int,
+        consumed_samples: int,
+        micro_batch_size: int,
+        data_parallel_rank: int,
+        data_parallel_size: int,
+        data_sharding: bool,
+    ) -> None:
+        del data_sharding
+        if micro_batch_size != 1:
+            raise ValueError("synchronized task sampling requires micro-batch-size 1")
+        if data_parallel_size <= 0 or not 0 <= data_parallel_rank < data_parallel_size:
+            raise ValueError("invalid data-parallel geometry")
+        if not getattr(dataset, "synchronize_sample_kind", False):
+            raise ValueError("dataset does not provide synchronized task groups")
+        if int(dataset.data_parallel_group_size) != int(data_parallel_size):
+            raise ValueError("dataset and sampler data-parallel sizes disagree")
+        self.total_samples = int(total_samples)
+        self.consumed_samples = int(consumed_samples)
+        self.data_parallel_rank = int(data_parallel_rank)
+        self.data_parallel_size = int(data_parallel_size)
+        self.active_total_samples = (
+            self.total_samples // self.data_parallel_size
+        ) * self.data_parallel_size
+        if self.active_total_samples <= 0:
+            raise ValueError("dataset is smaller than one data-parallel microbatch")
+        if self.consumed_samples % self.data_parallel_size:
+            raise ValueError("consumed samples must end on a DP microbatch boundary")
+
+    def __len__(self) -> int:
+        return self.active_total_samples
+
+    def __iter__(self):
+        epoch, epoch_samples = divmod(
+            self.consumed_samples, self.active_total_samples
+        )
+        group_offset = epoch_samples // self.data_parallel_size
+        group_count = self.active_total_samples // self.data_parallel_size
+        generator = torch.Generator()
+        generator.manual_seed(epoch)
+        group_order = torch.randperm(group_count, generator=generator).tolist()
+        for group_index in group_order[group_offset:]:
+            index = group_index * self.data_parallel_size + self.data_parallel_rank
+            self.consumed_samples += self.data_parallel_size
+            yield [index]
 
 
 def collate_joint(batch: list[dict[str, object]]) -> dict[str, object]:
