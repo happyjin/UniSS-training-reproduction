@@ -93,6 +93,9 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         model_path: str | Path,
         *,
         chunk_config: MultiChunkConfig | None = None,
+        freeze_codebook_updates: bool = False,
+        trainable_pre_vq_layers: int | None = None,
+        freeze_post_vq: bool = False,
     ) -> None:
         super().__init__()
         self.model_path = str(Path(model_path).resolve())
@@ -102,6 +105,35 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         if self.encoder.pooling_layer is None or self.encoder.config.pooling_kernel_size is None:
             raise ValueError("Phase3 WhisperVQ must contain its historical pooling layer")
         self.encoder.codebook.weight.requires_grad_(False)
+        self._partially_trainable = trainable_pre_vq_layers is not None
+        self.freeze_codebook_updates = bool(freeze_codebook_updates)
+        if self.freeze_codebook_updates:
+            # ``requires_grad_(False)`` alone does not stop the historical
+            # WhisperVQ implementation from mutating the codebook via EMA and
+            # dead-code restarts.  V5 keeps the Phase3 semantic coordinate
+            # system immutable so the bridge and frontend cannot drift apart.
+            self.encoder.config.quantize_ema_decay = None
+            self.encoder.config.quantize_restart_interval = None
+        pooling_position = int(self.encoder.config.pooling_position)
+        if not 0 < pooling_position <= len(self.encoder.layers):
+            raise ValueError("invalid Whisper pooling position")
+        if trainable_pre_vq_layers is not None:
+            if not 0 < trainable_pre_vq_layers <= pooling_position:
+                raise ValueError(
+                    "trainable_pre_vq_layers must be in [1, pooling_position]"
+                )
+            for parameter in self.encoder.parameters():
+                parameter.requires_grad_(False)
+            start = pooling_position - int(trainable_pre_vq_layers)
+            for layer in self.encoder.layers[start:pooling_position]:
+                for parameter in layer.parameters():
+                    parameter.requires_grad_(True)
+            for parameter in self.encoder.pooling_layer.parameters():
+                parameter.requires_grad_(True)
+        if freeze_post_vq:
+            for layer in self.encoder.layers[pooling_position:]:
+                for parameter in layer.parameters():
+                    parameter.requires_grad_(False)
         self._pre_pool_chunk_frames: int | None = None
         self._pre_pool_right_frames = self.chunk_config.right_context_frames
 
@@ -153,7 +185,8 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
             # local to the new trainable wrapper so historical inference code
             # remains untouched.
             self.encoder._gradient_checkpointing_func = partial(
-                checkpoint, use_reentrant=True
+                checkpoint,
+                use_reentrant=not getattr(self, "_partially_trainable", False),
             )
 
     def forward(
@@ -212,8 +245,9 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         for parameter in self.encoder.parameters():
             if parameter.requires_grad:
                 parameter.uniss_lr_whisper_bottom = True
-        halfway = len(self.encoder.layers) // 2
-        for layer in self.encoder.layers[halfway:]:
+        pooling_position = int(self.encoder.config.pooling_position)
+        top_start = max(0, pooling_position - 4)
+        for layer in self.encoder.layers[top_start:pooling_position]:
             for parameter in layer.parameters():
                 if parameter.requires_grad:
                     parameter.uniss_lr_whisper_bottom = False

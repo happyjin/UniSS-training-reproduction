@@ -49,6 +49,7 @@ class JointLossWeights:
     asr_ctc: float = 4.0
     nar_s2tt_ctc: float = 4.0
     phase3_replay: float = 0.5
+    bridge_commitment: float = 0.0
     replay_probability: float = 0.20
 
     def __post_init__(self) -> None:
@@ -58,6 +59,7 @@ class JointLossWeights:
             self.asr_ctc,
             self.nar_s2tt_ctc,
             self.phase3_replay,
+            self.bridge_commitment,
         )
         if any(value < 0 for value in values):
             raise ValueError("loss weights must be non-negative")

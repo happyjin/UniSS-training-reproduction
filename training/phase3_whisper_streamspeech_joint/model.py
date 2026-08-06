@@ -113,6 +113,10 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         ctc_maps: dict[str, CompactCTCMap],
         loss_weights: JointLossWeights | None = None,
         upsample_ratio: int = 48,
+        bridge_surrogate: str = "projection",
+        bridge_topk: int = 8,
+        bridge_temperature: float = 0.1,
+        max_bridge_commitment: float | None = None,
     ) -> None:
         super().__init__()
         self.whisper = whisper
@@ -121,6 +125,7 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         self.text_encoder = load_hf_text_encoder(tokenizer)
         self.ctc_maps = ctc_maps
         self.loss_weights = loss_weights or JointLossWeights()
+        self.max_bridge_commitment = max_bridge_commitment
         qwen_embeddings = qwen.get_input_embeddings().weight
         qwen_glm_embeddings = qwen_embeddings[
             c.GLM_SEMANTIC_OFFSET : c.GLM_SEMANTIC_OFFSET + c.GLM_SEMANTIC_SIZE
@@ -130,6 +135,9 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             qwen_embeddings.shape[-1],
             whisper.codebook,
             qwen_glm_embeddings,
+            surrogate=bridge_surrogate,
+            topk=bridge_topk,
+            temperature=bridge_temperature,
         )
         output_sizes = {
             "asr_eng": ctc_maps["eng"].output_size,
@@ -156,6 +164,13 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         loss_weights: JointLossWeights | None = None,
         upsample_ratio: int = 48,
         gradient_checkpointing: bool = True,
+        bridge_surrogate: str = "projection",
+        bridge_topk: int = 8,
+        bridge_temperature: float = 0.1,
+        freeze_whisper_codebook: bool = False,
+        trainable_whisper_pre_vq_layers: int | None = None,
+        freeze_whisper_post_vq: bool = False,
+        max_bridge_commitment: float | None = None,
     ) -> "Phase3WhisperStreamSpeechJointModel":
         tokenizer = AutoTokenizer.from_pretrained(
             str(phase3_model), local_files_only=True
@@ -170,7 +185,11 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         if gradient_checkpointing:
             qwen.gradient_checkpointing_enable()
         whisper = TrainableMultiChunkWhisperVQ(
-            whisper_path, chunk_config=chunk_config
+            whisper_path,
+            chunk_config=chunk_config,
+            freeze_codebook_updates=freeze_whisper_codebook,
+            trainable_pre_vq_layers=trainable_whisper_pre_vq_layers,
+            freeze_post_vq=freeze_whisper_post_vq,
         )
         whisper.configure_gradient_checkpointing(gradient_checkpointing)
         maps = {
@@ -186,6 +205,10 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             ctc_maps=maps,
             loss_weights=loss_weights,
             upsample_ratio=upsample_ratio,
+            bridge_surrogate=bridge_surrogate,
+            bridge_topk=bridge_topk,
+            bridge_temperature=bridge_temperature,
+            max_bridge_commitment=max_bridge_commitment,
         ).cuda()
 
     def tag_learning_rate_groups(self) -> None:
@@ -289,7 +312,9 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             )
             g[rows, : direction_g.shape[1]] = direction_g
 
-        bridge = self.bridge(whisper_output.pre_vq_hidden)
+        bridge = self.bridge(
+            whisper_output.pre_vq_hidden, whisper_output.token_lengths
+        )
         record_values = batch["phase3_record_json"]
         if isinstance(record_values, str):
             record_values = [record_values]
@@ -341,8 +366,8 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             "asr_infeasible": asr_infeasible,
             "nar_infeasible": nar_infeasible,
             "unit_infeasible": unit_infeasible,
-            "bridge_commitment": bridge.commitment_loss.detach(),
-            "whisper_quantize": whisper_output.quantize_loss.detach(),
+            "bridge_commitment": bridge.commitment_loss,
+            "whisper_quantize": whisper_output.quantize_loss,
         }
         return losses, diagnostics
 
@@ -412,13 +437,25 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         else:
             raise ValueError(f"unsupported sample kind: {sample_kind}")
         total, means = distributed_component_losses(losses, self.loss_weights)
+        if sample_kind == "joint":
+            commitment = diagnostics["bridge_commitment"]
+            if (
+                self.max_bridge_commitment is not None
+                and float(commitment.detach()) > self.max_bridge_commitment
+            ):
+                raise FloatingPointError(
+                    "bridge commitment exceeded the configured safety gate: "
+                    f"value={float(commitment.detach()):.6f}, "
+                    f"limit={self.max_bridge_commitment:.6f}, chunk_ms={chunk_ms}"
+                )
+            total = total + self.loss_weights.bridge_commitment * commitment
         extras = torch.stack(
             [
-                diagnostics["asr_infeasible"].float(),
-                diagnostics["nar_infeasible"].float(),
-                diagnostics["unit_infeasible"].float(),
-                diagnostics["bridge_commitment"].float(),
-                diagnostics["whisper_quantize"].float(),
+                diagnostics["asr_infeasible"].detach().float(),
+                diagnostics["nar_infeasible"].detach().float(),
+                diagnostics["unit_infeasible"].detach().float(),
+                diagnostics["bridge_commitment"].detach().float(),
+                diagnostics["whisper_quantize"].detach().float(),
                 total.detach().new_tensor(active_joint),
             ]
         )

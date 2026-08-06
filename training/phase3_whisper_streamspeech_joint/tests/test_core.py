@@ -124,6 +124,33 @@ class CoreTest(unittest.TestCase):
         output.embeddings.sum().backward()
         self.assertGreater(float(hidden.grad.abs().sum()), 0)
 
+    def test_topk_ste_is_hard_forward_and_masks_commitment_padding(self) -> None:
+        bridge = Phase3STEBridge(
+            2,
+            3,
+            codebook=torch.tensor([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]),
+            qwen_glm_embeddings=torch.tensor(
+                [[2.0, 3.0, 4.0], [5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
+            ),
+            surrogate="topk_soft",
+            topk=2,
+            temperature=0.5,
+        )
+        hidden = torch.tensor(
+            [[[0.9, 1.1], [100.0, 100.0]]], requires_grad=True
+        )
+        output = bridge(hidden, torch.tensor([1]))
+        torch.testing.assert_close(output.embeddings, output.hard_embeddings)
+        self.assertLess(float(output.commitment_loss), 0.02)
+        output.embeddings[:, :1].sum().backward()
+        self.assertGreater(float(hidden.grad[:, :1].abs().sum()), 0)
+        self.assertEqual(float(hidden.grad[:, 1:].abs().sum()), 0.0)
+
+    def test_joint_loss_weights_validate_bridge_commitment(self) -> None:
+        self.assertEqual(JointLossWeights(bridge_commitment=0.25).bridge_commitment, 0.25)
+        with self.assertRaises(ValueError):
+            JointLossWeights(bridge_commitment=-0.1)
+
     def test_nar_unit_ctc_geometry(self) -> None:
         model = NARBiCodecCTC(
             qwen_hidden_size=8,

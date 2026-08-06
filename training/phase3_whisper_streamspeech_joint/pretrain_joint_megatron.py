@@ -61,14 +61,24 @@ def parse_chunks(value: str) -> tuple[int | None, ...]:
     return tuple(chunks)
 
 
-def lr_group_values(base_lr: float, min_lr: float) -> dict[str, dict[str, float]]:
+def lr_group_values(
+    base_lr: float,
+    min_lr: float,
+    *,
+    new: float = 1.0,
+    bridge: float = 0.5,
+    whisper_top: float = 0.1,
+    whisper_bottom: float = 0.05,
+    qwen: float = 0.02,
+    qwen_io: float = 0.01,
+) -> dict[str, dict[str, float]]:
     multipliers = {
-        "uniss_lr_new": 1.0,
-        "uniss_lr_bridge": 0.5,
-        "uniss_lr_whisper_top": 0.1,
-        "uniss_lr_whisper_bottom": 0.05,
-        "uniss_lr_qwen": 0.02,
-        "uniss_lr_qwen_io": 0.01,
+        "uniss_lr_new": new,
+        "uniss_lr_bridge": bridge,
+        "uniss_lr_whisper_top": whisper_top,
+        "uniss_lr_whisper_bottom": whisper_bottom,
+        "uniss_lr_qwen": qwen,
+        "uniss_lr_qwen_io": qwen_io,
     }
     return {
         name: {
@@ -80,6 +90,17 @@ def lr_group_values(base_lr: float, min_lr: float) -> dict[str, dict[str, float]
     }
 
 
+def lr_group_values_from_args(args) -> dict[str, dict[str, float]]:
+    return lr_group_values(
+        float(args.lr),
+        float(args.min_lr),
+        new=float(getattr(args, "joint_lr_new_mult", 1.0)),
+        bridge=float(getattr(args, "joint_lr_bridge_mult", 0.5)),
+        whisper_top=float(getattr(args, "joint_lr_whisper_top_mult", 0.1)),
+        whisper_bottom=float(getattr(args, "joint_lr_whisper_bottom_mult", 0.05)),
+        qwen=float(getattr(args, "joint_lr_qwen_mult", 0.02)),
+        qwen_io=float(getattr(args, "joint_lr_qwen_io_mult", 0.01)),
+    )
 def install_megatron_lr_overrides() -> None:
     """Add isolated parameter-group LRs without patching Megatron files."""
 
@@ -93,7 +114,7 @@ def install_megatron_lr_overrides() -> None:
     def with_joint_groups(args):
         config, overrides = original(args)
         overrides = dict(overrides or {})
-        for attribute, values in lr_group_values(float(args.lr), float(args.min_lr)).items():
+        for attribute, values in lr_group_values_from_args(args).items():
             overrides[ParamKey(attr=attribute)] = values
         return config, overrides
 
@@ -178,7 +199,25 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--joint-asr-ctc-weight", type=float, default=4.0)
     group.add_argument("--joint-nar-s2tt-ctc-weight", type=float, default=4.0)
     group.add_argument("--joint-phase3-replay-weight", type=float, default=0.5)
+    group.add_argument("--joint-bridge-commitment-weight", type=float, default=0.0)
     group.add_argument("--joint-unit-upsample-ratio", type=int, default=48)
+    group.add_argument(
+        "--joint-bridge-surrogate",
+        choices=("projection", "topk_soft"),
+        default="projection",
+    )
+    group.add_argument("--joint-bridge-topk", type=int, default=8)
+    group.add_argument("--joint-bridge-temperature", type=float, default=0.1)
+    group.add_argument("--joint-max-bridge-commitment", type=float)
+    group.add_argument("--joint-freeze-whisper-codebook", action="store_true")
+    group.add_argument("--joint-freeze-whisper-post-vq", action="store_true")
+    group.add_argument("--joint-trainable-whisper-pre-vq-layers", type=int, default=0)
+    group.add_argument("--joint-lr-new-mult", type=float, default=1.0)
+    group.add_argument("--joint-lr-bridge-mult", type=float, default=0.5)
+    group.add_argument("--joint-lr-whisper-top-mult", type=float, default=0.1)
+    group.add_argument("--joint-lr-whisper-bottom-mult", type=float, default=0.05)
+    group.add_argument("--joint-lr-qwen-mult", type=float, default=0.02)
+    group.add_argument("--joint-lr-qwen-io-mult", type=float, default=0.01)
     group.add_argument("--joint-disable-gradient-checkpointing", action="store_true")
     return parser
 
@@ -213,6 +252,28 @@ def validate_joint_args(args) -> None:
         chunk_ms=parse_chunks(args.joint_chunks),
         right_context_ms=int(args.joint_right_context_ms),
     )
+    if int(args.joint_bridge_topk) <= 0:
+        raise ValueError("--joint-bridge-topk must be positive")
+    if float(args.joint_bridge_temperature) <= 0:
+        raise ValueError("--joint-bridge-temperature must be positive")
+    if int(args.joint_trainable_whisper_pre_vq_layers) < 0:
+        raise ValueError("--joint-trainable-whisper-pre-vq-layers must be non-negative")
+    if float(args.joint_bridge_commitment_weight) < 0:
+        raise ValueError("--joint-bridge-commitment-weight must be non-negative")
+    if args.joint_max_bridge_commitment is not None and float(
+        args.joint_max_bridge_commitment
+    ) <= 0:
+        raise ValueError("--joint-max-bridge-commitment must be positive")
+    for name in (
+        "joint_lr_new_mult",
+        "joint_lr_bridge_mult",
+        "joint_lr_whisper_top_mult",
+        "joint_lr_whisper_bottom_mult",
+        "joint_lr_qwen_mult",
+        "joint_lr_qwen_io_mult",
+    ):
+        if float(getattr(args, name)) < 0:
+            raise ValueError(f"--{name.replace('_', '-')} must be non-negative")
 
 
 def _target_count(values, index: int) -> int | None:
@@ -305,6 +366,7 @@ class JointMegatronFactory:
                     asr_ctc=float(args.joint_asr_ctc_weight),
                     nar_s2tt_ctc=float(args.joint_nar_s2tt_ctc_weight),
                     phase3_replay=float(args.joint_phase3_replay_weight),
+                    bridge_commitment=float(args.joint_bridge_commitment_weight),
                     replay_probability=float(args.joint_replay_probability),
                 )
                 self.joint = Phase3WhisperStreamSpeechJointModel.from_pretrained(
@@ -315,6 +377,19 @@ class JointMegatronFactory:
                     loss_weights=weights,
                     upsample_ratio=int(args.joint_unit_upsample_ratio),
                     gradient_checkpointing=not args.joint_disable_gradient_checkpointing,
+                    bridge_surrogate=str(args.joint_bridge_surrogate),
+                    bridge_topk=int(args.joint_bridge_topk),
+                    bridge_temperature=float(args.joint_bridge_temperature),
+                    freeze_whisper_codebook=bool(args.joint_freeze_whisper_codebook),
+                    trainable_whisper_pre_vq_layers=(
+                        int(args.joint_trainable_whisper_pre_vq_layers) or None
+                    ),
+                    freeze_whisper_post_vq=bool(args.joint_freeze_whisper_post_vq),
+                    max_bridge_commitment=(
+                        None
+                        if args.joint_max_bridge_commitment is None
+                        else float(args.joint_max_bridge_commitment)
+                    ),
                 )
                 if torch.distributed.get_rank() == 0:
                     grouped = {}
@@ -324,7 +399,7 @@ class JointMegatronFactory:
                         group_name = next(
                             (
                                 key
-                                for key in lr_group_values(float(args.lr), float(args.min_lr))
+                                for key in lr_group_values_from_args(args)
                                 if getattr(parameter, key, False)
                             ),
                             "untagged",
@@ -335,9 +410,16 @@ class JointMegatronFactory:
                             {
                                 "joint_model": "Phase3WhisperStreamSpeechJointModel",
                                 "lr_groups": grouped,
-                                "effective_lr": lr_group_values(float(args.lr), float(args.min_lr)),
+                                "effective_lr": lr_group_values_from_args(args),
                                 "chunks_ms": chunks.chunk_ms,
                                 "loss_weights": weights.__dict__,
+                                "bridge_surrogate": str(args.joint_bridge_surrogate),
+                                "freeze_whisper_codebook": bool(
+                                    args.joint_freeze_whisper_codebook
+                                ),
+                                "trainable_whisper_pre_vq_layers": int(
+                                    args.joint_trainable_whisper_pre_vq_layers
+                                ),
                             },
                             sort_keys=True,
                         ),
