@@ -36,4 +36,5 @@ done
   --phase3-model "${PHASE3_MODEL}" \
   --workers "${JOINT_MANIFEST_WORKERS}" \
   --validation-per-mille 0 \
-  --skip-audio-check
+  --skip-audio-check \
+  --skip-empty-target-bicodec

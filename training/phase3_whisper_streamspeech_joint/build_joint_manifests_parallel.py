@@ -42,10 +42,15 @@ from training.phase3_whisper_streamspeech_joint.tokenizer_maps import build_comp
 
 _WORKER_TOKENIZER: Any = None
 _WORKER_CHECK_AUDIO = True
+_WORKER_SKIP_EMPTY_TARGET_BICODEC = False
 
 
-def _worker_init(phase3_model: str, check_audio: bool) -> None:
-    global _WORKER_CHECK_AUDIO, _WORKER_TOKENIZER
+def _worker_init(
+    phase3_model: str,
+    check_audio: bool,
+    skip_empty_target_bicodec: bool,
+) -> None:
+    global _WORKER_CHECK_AUDIO, _WORKER_SKIP_EMPTY_TARGET_BICODEC, _WORKER_TOKENIZER
     from transformers import AutoTokenizer
 
     _WORKER_TOKENIZER = AutoTokenizer.from_pretrained(
@@ -53,6 +58,7 @@ def _worker_init(phase3_model: str, check_audio: bool) -> None:
         local_files_only=True,
     )
     _WORKER_CHECK_AUDIO = check_audio
+    _WORKER_SKIP_EMPTY_TARGET_BICODEC = skip_empty_target_bicodec
 
 
 def _write_source_part(task: tuple[int, str, str | None, int, int | None, str]) -> dict[str, Any]:
@@ -82,6 +88,15 @@ def _write_source_part(task: tuple[int, str, str | None, int, int | None, str]) 
                 break
             source_records += 1
             counts[f"input:{forced_split or 'hash'}"] += 1
+            # A subset of released UniST rows (notably WenetSpeech4TTS) has
+            # text supervision but no target acoustic units.  Such rows cannot
+            # supervise either AR target speech or Unit CTC.  Formal joint
+            # training filters them explicitly and records the exact count;
+            # every other schema/quality error remains fatal.
+            if _WORKER_SKIP_EMPTY_TARGET_BICODEC and not value.get("target_bicodec"):
+                counts["rejected"] += 1
+                counts["rejected:empty_target_bicodec"] += 1
+                continue
             _validate_source(path, line_number, value, _WORKER_CHECK_AUDIO)
             split = forced_split
             if split is None:
@@ -149,6 +164,7 @@ def build_manifests_parallel(
     validation_per_mille: int = 10,
     limit: int | None = None,
     check_audio: bool = True,
+    skip_empty_target_bicodec: bool = False,
 ) -> dict[str, object]:
     if not train_sources:
         raise ValueError("at least one train source is required")
@@ -204,7 +220,11 @@ def build_manifests_parallel(
         with ProcessPoolExecutor(
             max_workers=min(workers, len(tasks)),
             initializer=_worker_init,
-            initargs=(str(Path(phase3_model).resolve()), check_audio),
+            initargs=(
+                str(Path(phase3_model).resolve()),
+                check_audio,
+                skip_empty_target_bicodec,
+            ),
         ) as executor:
             for expected_index, result in enumerate(executor.map(_write_source_part, tasks)):
                 if int(result["task_index"]) != expected_index:
@@ -262,6 +282,7 @@ def build_manifests_parallel(
         "status": "complete",
         "builder": "parallel_order_preserving_v1",
         "workers": min(workers, len(tasks)),
+        "skip_empty_target_bicodec": skip_empty_target_bicodec,
         "train_sources": [str(Path(path).resolve()) for path in train_sources],
         "valid_sources": []
         if not valid_sources
@@ -287,6 +308,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validation-per-mille", type=int, default=10)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--skip-audio-check", action="store_true")
+    parser.add_argument("--skip-empty-target-bicodec", action="store_true")
     return parser.parse_args()
 
 
@@ -301,6 +323,7 @@ def main() -> None:
         validation_per_mille=args.validation_per_mille,
         limit=args.limit,
         check_audio=not args.skip_audio_check,
+        skip_empty_target_bicodec=args.skip_empty_target_bicodec,
     )
     print(json.dumps(summary, sort_keys=True))
 
