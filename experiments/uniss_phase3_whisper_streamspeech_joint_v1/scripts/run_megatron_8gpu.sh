@@ -74,6 +74,7 @@ export CUDA_VISIBLE_DEVICES
   --add-qkv-bias \
   --position-embedding-type rope \
   --rotary-base 1000000 \
+  --bf16 \
   --seq-length 18000 \
   --max-position-embeddings 32768 \
   --micro-batch-size "${MICRO_BATCH_SIZE}" \

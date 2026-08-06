@@ -22,6 +22,7 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("torch.distributed.run", runner)
         self.assertIn("refuse_existing", runner)
         self.assertIn("--global-batch-size", runner)
+        self.assertIn("--bf16", runner)
         self.assertIn("--joint-phase3-replay-weight 0.5", runner)
 
     def test_historical_entrypoints_are_not_referenced_as_outputs(self) -> None:
