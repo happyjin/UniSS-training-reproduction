@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import math
 import types
+from functools import partial
 from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 from transformers import WhisperFeatureExtractor
 
 from uniss.speech_tokenizer.glm4.utils import load_quantize_encoder
@@ -143,6 +145,16 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
 
     def configure_gradient_checkpointing(self, enabled: bool) -> None:
         self.encoder.gradient_checkpointing = bool(enabled)
+        if enabled:
+            # ``load_quantize_encoder`` constructs the bare WhisperVQEncoder
+            # instead of its Hugging Face PreTrainedModel parent.  The parent
+            # normally injects this callable when
+            # ``gradient_checkpointing_enable`` is used; keep that behavior
+            # local to the new trainable wrapper so historical inference code
+            # remains untouched.
+            self.encoder._gradient_checkpointing_func = partial(
+                checkpoint, use_reentrant=True
+            )
 
     def forward(
         self,
