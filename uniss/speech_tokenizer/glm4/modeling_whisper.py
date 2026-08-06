@@ -88,6 +88,34 @@ def mse_loss_with_mask(input, target, mask):
     return loss.sum() / mask.sum()
 
 
+def _sample_codebook_restart_vectors(hidden_selected, num_update):
+    """Select vectors used to restart inactive VQ codes.
+
+    Short streaming chunks can contain fewer valid encoder vectors than the
+    number of dead codes assigned to a rank.  Preserve the original
+    without-replacement sampling when possible, and fall back to sampling
+    with replacement when more restart vectors are required.
+    """
+    num_update = int(num_update)
+    if num_update < 0:
+        raise ValueError(f"num_update must be non-negative, got {num_update}")
+    if num_update == 0:
+        return hidden_selected[:0]
+
+    num_candidates = len(hidden_selected)
+    if num_candidates == 0:
+        raise ValueError(
+            "cannot restart inactive VQ codes because the current batch has "
+            "no valid encoder vectors"
+        )
+    population = range(num_candidates)
+    if num_update <= num_candidates:
+        indices = random.sample(population, num_update)
+    else:
+        indices = random.choices(population, k=num_update)
+    return hidden_selected[indices]
+
+
 class CausalConv1d(nn.Conv1d):
     def __init__(
         self,
@@ -1324,7 +1352,7 @@ class WhisperVQEncoder(WhisperPreTrainedModel):
                                 num_update = update_indices.shape[0]
                                 mask_flat = attention_mask.reshape(-1) > 0
                                 hidden_selected = hidden_flat[mask_flat]
-                                hidden_update = hidden_selected[random.sample(range(len(hidden_selected)), num_update)]
+                                hidden_update = _sample_codebook_restart_vectors(hidden_selected, num_update)
                                 num_update = torch.as_tensor([num_update], dtype=torch.long,
                                                              device=hidden_states.device)
                                 num_update_list = [torch.as_tensor([0], dtype=torch.long, device=hidden_states.device)
