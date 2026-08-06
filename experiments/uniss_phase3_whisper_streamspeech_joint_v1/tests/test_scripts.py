@@ -35,6 +35,20 @@ class ScriptTest(unittest.TestCase):
             pipeline.index("run_full198_8gpu.sh"),
         )
 
+    def test_high_throughput_stage_a_uses_disjoint_exact_decode_workers(self) -> None:
+        launcher = (
+            EXPERIMENT / "scripts/launch_full198_stage_a_high_throughput_tmux.sh"
+        ).read_text()
+        worker = (
+            EXPERIMENT / "scripts/prepare_full198_stage_a_parallel_worker.sh"
+        ).read_text()
+        self.assertIn("WORKERS_PER_GPU", launcher)
+        self.assertIn("TOTAL_WORKERS", launcher)
+        self.assertIn("shard=WORKER_ID", worker)
+        self.assertIn("shard+=TOTAL_WORKERS", worker)
+        self.assertIn("stage_a prepare-part", worker)
+        self.assertNotIn("decode_batch", worker)
+
     def test_historical_entrypoints_are_not_referenced_as_outputs(self) -> None:
         env = (EXPERIMENT / "experiment.env").read_text()
         self.assertIn("phase3_whisper_streamspeech_joint_v1", env)

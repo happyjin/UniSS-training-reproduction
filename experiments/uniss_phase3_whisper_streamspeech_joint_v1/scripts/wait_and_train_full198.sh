@@ -23,7 +23,7 @@ while true; do
     echo "unexpected extra Stage-A completion markers: ${complete}" >&2
     exit 1
   fi
-  if ! pgrep -f '[p]repare_full198_stage_a_worker.sh' >/dev/null; then
+  if ! pgrep -f '[s]tage_a prepare-part.*full198_stage_a/parts' >/dev/null; then
     echo "Stage-A workers exited before all shard markers were written" >&2
     exit 1
   fi

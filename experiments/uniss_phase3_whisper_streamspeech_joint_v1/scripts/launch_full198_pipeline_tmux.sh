@@ -5,7 +5,7 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_ROOT}/common.sh"
 
 SESSION="${SESSION:-uniss_phase3_joint_full198_pipeline}"
-LOG="${REPO_ROOT}/logs/uniss_phase3_whisper_streamspeech_joint_v1/full198_pipeline.log"
+LOG="${LOG:-${REPO_ROOT}/logs/uniss_phase3_whisper_streamspeech_joint_v1/full198_pipeline.log}"
 tmux has-session -t "${SESSION}" 2>/dev/null && {
   echo "tmux session exists: ${SESSION}" >&2
   exit 1

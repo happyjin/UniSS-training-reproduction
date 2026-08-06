@@ -57,6 +57,14 @@ training/phase3_whisper_streamspeech_joint/pretrain_joint_megatron.py
    bash experiments/uniss_phase3_whisper_streamspeech_joint_v1/scripts/prepare_full198_joint_manifest.sh
    ```
 
+   For H200 nodes, the isolated high-throughput launcher keeps exact
+   single-sample BiCodec decoding while running two disjoint workers per GPU:
+
+   ```bash
+   WORKERS_PER_GPU=2 bash \
+     experiments/uniss_phase3_whisper_streamspeech_joint_v1/scripts/launch_full198_stage_a_high_throughput_tmux.sh
+   ```
+
    To let Stage-A completion, manifest assembly, validation and formal
    Megatron training continue automatically, launch the isolated watcher after
    the eight Stage-A lanes:
