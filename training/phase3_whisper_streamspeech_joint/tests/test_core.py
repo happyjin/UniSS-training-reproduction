@@ -13,6 +13,7 @@ from training.phase3_whisper_streamspeech_joint.config import (
 from training.phase3_whisper_streamspeech_joint.losses import (
     NormalizedLoss,
     combine_joint_or_replay,
+    ctc_normalized_loss,
 )
 from training.phase3_whisper_streamspeech_joint.nar_bicodec_ctc import NARBiCodecCTC
 from training.phase3_whisper_streamspeech_joint.phase3_ste_bridge import Phase3STEBridge
@@ -163,6 +164,22 @@ class CoreTest(unittest.TestCase):
                 bicodec_ctc=value,
                 phase3_replay=value,
             )
+
+    def test_ctc_loss_excludes_infeasible_rows_without_target_shift(self) -> None:
+        logits = torch.randn(2, 3, 5, requires_grad=True)
+        targets = torch.tensor([1, 2, 3, 4, 1])
+        loss, infeasible = ctc_normalized_loss(
+            logits,
+            targets,
+            torch.tensor([3, 2]),
+            torch.tensor([2, 3]),
+            blank_id=4,
+        )
+        self.assertEqual(int(infeasible), 1)
+        self.assertTrue(torch.isfinite(loss.mean))
+        loss.mean.backward()
+        self.assertGreater(float(logits.grad[0].abs().sum()), 0)
+        self.assertEqual(float(logits.grad[1].abs().sum()), 0.0)
 
 
 if __name__ == "__main__":

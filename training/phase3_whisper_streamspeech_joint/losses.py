@@ -31,15 +31,19 @@ def ctc_normalized_loss(
     """CTC summed over targets plus an explicit infeasible-sample count."""
 
     infeasible = target_lengths > input_lengths
-    if bool(infeasible.any()):
-        safe_target_lengths = target_lengths.clone()
-        safe_target_lengths[infeasible] = 0
-    else:
-        safe_target_lengths = target_lengths
+    pieces = torch.split(targets, [int(value) for value in target_lengths.tolist()])
+    feasible_rows = torch.nonzero(~infeasible, as_tuple=False).flatten()
+    if not len(feasible_rows):
+        zero = logits.sum() * 0.0
+        return NormalizedLoss(zero, zero.detach().new_ones(())), infeasible.sum()
+    safe_targets = torch.cat([pieces[int(row)] for row in feasible_rows.tolist()])
+    safe_target_lengths = target_lengths[feasible_rows]
+    safe_input_lengths = input_lengths[feasible_rows]
+    safe_logits = logits[feasible_rows]
     numerator = F.ctc_loss(
-        logits.float().log_softmax(-1).transpose(0, 1),
-        targets,
-        input_lengths,
+        safe_logits.float().log_softmax(-1).transpose(0, 1),
+        safe_targets,
+        safe_input_lengths,
         safe_target_lengths,
         blank=blank_id,
         reduction="sum",
