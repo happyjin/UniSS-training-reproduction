@@ -12,6 +12,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 from training.megatron_uniss_dataset import UniSSPackedJsonlDataset
+from training.megatron_uniss_dataset import packed_json_to_megatron_item
 from training.phase3_whisper_streamspeech_joint.build_joint_manifests import SCHEMA
 from training.phase3_whisper_streamspeech_joint.tokenizer_maps import CompactCTCMap
 from training.simul_uniss.jsonl_index import load_index
@@ -78,6 +79,51 @@ class Phase3ReplayDataset(UniSSPackedJsonlDataset):
         value: dict[str, object] = dict(super().__getitem__(index))
         value["sample_kind"] = "replay"
         return value
+
+
+class IndexedPhase3ReplayDataset(Dataset[dict[str, object]]):
+    """Random access to a huge packed JSONL without rescanning it per rank."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        offsets: str | Path,
+        *,
+        seq_length: int,
+        require_complete: bool = True,
+    ) -> None:
+        self.path = Path(path).resolve()
+        self.offset_path = Path(offsets).resolve()
+        metadata_path = self.offset_path.with_suffix(self.offset_path.suffix + ".json")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("schema_version") != "uniss_phase3_replay_offsets_v1":
+            raise ValueError("unexpected replay offset schema")
+        stat = self.path.stat()
+        if (
+            Path(str(metadata["source"])).resolve() != self.path
+            or int(metadata["source_size_bytes"]) != stat.st_size
+            or int(metadata["source_mtime_ns"]) != stat.st_mtime_ns
+        ):
+            raise ValueError("packed replay source changed after indexing")
+        if require_complete and not bool(metadata.get("complete")):
+            raise ValueError("formal training requires a complete replay index")
+        self.offsets = np.memmap(self.offset_path, mode="r", dtype=np.uint64)
+        if len(self.offsets) != int(metadata["records"]):
+            raise ValueError("replay offset count does not match metadata")
+        self.seq_length = int(seq_length)
+
+    def __len__(self) -> int:
+        return len(self.offsets)
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        with self.path.open("rb") as handle:
+            handle.seek(int(self.offsets[index]))
+            value = json.loads(handle.readline())
+        result: dict[str, object] = dict(
+            packed_json_to_megatron_item(value, seq_length=self.seq_length)
+        )
+        result["sample_kind"] = "replay"
+        return result
 
 
 class DirectionBalancedJointDataset(Dataset[dict[str, object]]):

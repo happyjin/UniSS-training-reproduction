@@ -9,10 +9,12 @@ import soundfile as sf
 import torch
 
 from training.phase3_whisper_streamspeech_joint.build_joint_manifests import build_manifests
+from training.phase3_whisper_streamspeech_joint.build_replay_index import build_replay_index
 from training.phase3_whisper_streamspeech_joint.dataset import (
     DeterministicReplaySchedule,
     DirectionBalancedJointDataset,
     JointAudioDataset,
+    IndexedPhase3ReplayDataset,
     collate_joint,
 )
 from training.simul_uniss.jsonl_index import write_index
@@ -98,6 +100,30 @@ class DataTest(unittest.TestCase):
         self.assertEqual(kinds.count("replay"), 10)
         self.assertEqual(schedule.replay_probability, 0.2)
         self.assertEqual(schedule.scheduled_index(17), schedule.scheduled_index(17))
+
+    def test_indexed_replay_does_not_scan_the_jsonl(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            packed = root / "packed.jsonl"
+            row = {
+                "tokens": [1, 2, 0, 0],
+                "labels": [2, 3, 0, 0],
+                "loss_mask": [1, 1, 0, 0],
+                "position_ids": [0, 1, 0, 0],
+                "sample_boundaries": [[0, 2]],
+            }
+            packed.write_text(json.dumps(row) + "\n" + json.dumps(row) + "\n")
+            offsets = root / "replay.u64"
+            build_replay_index(packed, offsets, max_records=1, progress_interval=0)
+            dataset = IndexedPhase3ReplayDataset(
+                packed,
+                offsets,
+                seq_length=4,
+                require_complete=False,
+            )
+            self.assertEqual(len(dataset), 1)
+            self.assertEqual(dataset[0]["sample_kind"], "replay")
+            self.assertEqual(dataset[0]["tokens"].tolist(), [1, 2, 0, 0])
 
 
 if __name__ == "__main__":
