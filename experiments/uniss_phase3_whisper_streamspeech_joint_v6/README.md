@@ -40,3 +40,12 @@ bash experiments/uniss_phase3_whisper_streamspeech_joint_v6/scripts/run_stage_b_
 Stage B loads the Stage A checkpoint as model-only finetuning state and starts
 its own iteration counter at zero; optimizer and RNG state are deliberately not
 inherited.
+
+After Stage B completes, compare Stage A and Stage B under identical fixed
+chunk conditions.  The isolated evaluator runs `320/640/960/1280/offline`
+sequentially on 8 GPUs and writes a loss-gate report without modifying either
+checkpoint:
+
+```bash
+bash experiments/uniss_phase3_whisper_streamspeech_joint_v6/evaluation/run_fixed_chunk_matrix.sh
+```
