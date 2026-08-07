@@ -49,6 +49,7 @@ class FixedChunkEvaluationTest(unittest.TestCase):
                 stage_b_checkpoint=root / "stage_b",
             )
             self.assertIn("Stage B 在 5/5 个 chunk 上改善", report)
+            self.assertIn("没有通过 teacher agreement 改善门", report)
             self.assertIn("offline", report)
 
     def test_matrix_scripts_use_skip_train_and_refuse_overwrite(self) -> None:

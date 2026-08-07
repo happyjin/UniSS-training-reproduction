@@ -111,7 +111,10 @@ def render_markdown(
     ar_deltas: list[float] = []
     asr_deltas: list[float] = []
     nar_deltas: list[float] = []
+    agreement_deltas: list[float] = []
     commitment_values: list[float] = []
+    asr_stage_a: list[float] = []
+    nar_stage_a: list[float] = []
     for chunk_text in CHUNKS:
         chunk = None if chunk_text == "offline" else int(chunk_text)
         a = by_key[("stage_a", chunk)]["metrics"]
@@ -130,7 +133,10 @@ def render_markdown(
         ar_deltas.append(deltas["ar_s2tt"])
         asr_deltas.append(deltas["asr_ctc"])
         nar_deltas.append(deltas["nar_s2tt_ctc"])
+        agreement_deltas.append(deltas["bridge/teacher_glm_agreement"])
         commitment_values.append(b["bridge/commitment_mse"])
+        asr_stage_a.append(a["asr_ctc"])
+        nar_stage_a.append(a["nar_s2tt_ctc"])
         lines.append(
             "| {chunk} | {bicodec:+.4f} | {ar:+.4f} | {asr:+.4f} | {nar:+.4f} | {commitment:+.5f} | {agreement:+.2f} |".format(
                 chunk=chunk_text,
@@ -150,7 +156,11 @@ def render_markdown(
             f"- ASR CTC: Stage B 在 {sum(value < 0 for value in asr_deltas)}/5 个 chunk 上改善。",
             f"- NAR S2TT CTC: Stage B 在 {sum(value < 0 for value in nar_deltas)}/5 个 chunk 上改善。",
             f"- AR S2TT: Stage B 在 {sum(value <= 0 for value in ar_deltas)}/5 个 chunk 上保持或改善。",
+            f"- ASR CTC 五点平均相对改善：`{-100.0 * sum(asr_deltas) / sum(asr_stage_a):.2f}%`。",
+            f"- NAR S2TT CTC 五点平均相对改善：`{-100.0 * sum(nar_deltas) / sum(nar_stage_a):.2f}%`。",
+            f"- Teacher agreement: Stage B 仅在 {sum(value > 0 for value in agreement_deltas)}/5 个 chunk 上改善，平均变化 `{100.0 * sum(agreement_deltas) / len(agreement_deltas):+.2f}` 个百分点。",
             f"- Stage B 最大 commitment: `{max(commitment_values):.5f}`，绝对安全阈值为 `0.10`。",
+            "- 结论：Stage B 通过数值稳定、CTC 学习和 AR loss 保持门，但没有通过 teacher agreement 改善门；不能把本轮表述为 semantic-code agreement 已修复。",
             "- 下一质量门：使用固定 operating point 做 Phase3 old-protocol replay、端到端文本/语音生成、BLEU/ASR-BLEU、speaker/AutoPCP/SLC 与真实 latency 评估。",
             "",
         ]
