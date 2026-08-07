@@ -465,7 +465,8 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
     def _guard_bridge_commitment(self, commitment: torch.Tensor, chunk_ms: int | None) -> None:
         guard_value = commitment.detach().float().clone()
         if dist.is_available() and dist.is_initialized():
-            dist.all_reduce(guard_value, op=dist.ReduceOp.MAX)
+            dist.all_reduce(guard_value, op=dist.ReduceOp.SUM)
+            guard_value.div_(dist.get_world_size())
         if self.training and int(self.bridge_guard_baseline_count) < self.bridge_guard_baseline_microbatches:
             with torch.no_grad():
                 self.bridge_guard_baseline_sum.add_(guard_value)

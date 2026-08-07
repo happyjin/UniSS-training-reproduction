@@ -48,6 +48,16 @@ class ScriptTest(unittest.TestCase):
             script = (EXPERIMENT / f"scripts/{name}").read_text()
             self.assertIn("BALANCE_VALIDATION=0", script)
 
+    def test_stage_a_measures_baseline_and_stage_b_enforces_guard(self) -> None:
+        runner = (EXPERIMENT / "scripts/run_stage_8gpu.sh").read_text()
+        stage_a = (EXPERIMENT / "scripts/stage_a_env.sh").read_text()
+        stage_b = (EXPERIMENT / "scripts/stage_b_env.sh").read_text()
+        self.assertIn('[[ -n "${MAX_COMMITMENT:-}" ]]', runner)
+        self.assertIn("MAX_COMMITMENT=\n", stage_a)
+        self.assertIn("MAX_COMMITMENT_RATIO=\n", stage_a)
+        self.assertIn("MAX_COMMITMENT=0.10", stage_b)
+        self.assertIn("MAX_COMMITMENT_RATIO=3.0", stage_b)
+
 
 if __name__ == "__main__":
     unittest.main()

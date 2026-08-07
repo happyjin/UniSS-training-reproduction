@@ -5,7 +5,7 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_ROOT}/common.sh"
 # shellcheck source=/dev/null
 source "${SCRIPT_ROOT}/stage_a_env.sh"
-export RUN_NAME="${RUN_NAME:-phase3_joint_v6_stage_a_heads_only_15shard_v1}"
+export RUN_NAME="${RUN_NAME:-phase3_joint_v6_stage_a_heads_only_15shard_v2}"
 export TRAIN_MANIFEST="${PILOT_ROOT}/joint_train.jsonl"
 export VALID_MANIFEST="${PILOT_ROOT}/joint_valid.jsonl"
 export TOKENIZER_MAP_DIR="${PILOT_ROOT}/tokenizer_maps"

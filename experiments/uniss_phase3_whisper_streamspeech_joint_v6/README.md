@@ -8,11 +8,17 @@ two ordered stages:
 
 1. `stage_a_heads_only`: freeze WhisperVQ and Qwen, warm up the randomly
    initialized CTC/unit heads, and measure teacher GLM agreement without moving
-   the Phase3 semantic frontend.
+   the Phase3 semantic frontend.  Stage A records the commitment baseline but
+   does not enforce a stop threshold because the frozen frontend still has
+   natural per-sample and per-chunk variance.
 2. `stage_b_guarded_joint`: load the Stage A model weights, unfreeze only the
    last pre-VQ Whisper layer, restore the historical Whisper quantization loss,
    supervise the exact stored `source_glm` teacher codes, scale the STE gradient
    to 0.1, and use relative plus absolute commitment guards.
+
+The distributed guard uses the data-parallel mean commitment.  This detects a
+replica-wide semantic drift such as V5 while avoiding a false stop caused by a
+single naturally difficult microbatch on one rank.
 
 TensorBoard uses port `6033` by default.
 

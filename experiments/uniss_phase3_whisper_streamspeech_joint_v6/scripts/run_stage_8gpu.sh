@@ -25,6 +25,8 @@ EXTRA_ARGS=(--joint-allow-partial-replay-index)
 [[ "${BALANCE_VALIDATION}" == "1" ]] && EXTRA_ARGS+=(--joint-balance-validation)
 [[ "${FREEZE_WHISPER:-0}" == "1" ]] && EXTRA_ARGS+=(--joint-freeze-whisper)
 [[ "${FREEZE_QWEN:-0}" == "1" ]] && EXTRA_ARGS+=(--joint-freeze-qwen)
+[[ -n "${MAX_COMMITMENT:-}" ]] && EXTRA_ARGS+=(--joint-max-bridge-commitment "${MAX_COMMITMENT}")
+[[ -n "${MAX_COMMITMENT_RATIO:-}" ]] && EXTRA_ARGS+=(--joint-max-bridge-commitment-ratio "${MAX_COMMITMENT_RATIO}")
 if [[ -n "${LOAD_DIR:-}" ]]; then
   require_dir "${LOAD_DIR}"
   EXTRA_ARGS+=(--load "${LOAD_DIR}" --finetune --no-load-optim --no-load-rng)
@@ -61,8 +63,6 @@ export CUDA_VISIBLE_DEVICES
   --joint-bridge-temperature 0.1 \
   --joint-bridge-gradient-scale "${BRIDGE_GRADIENT_SCALE}" \
   --joint-teacher-temperature "${TEACHER_TEMPERATURE:-0.1}" \
-  --joint-max-bridge-commitment "${MAX_COMMITMENT}" \
-  --joint-max-bridge-commitment-ratio "${MAX_COMMITMENT_RATIO}" \
   --joint-bridge-guard-baseline-microbatches "${BASELINE_MICROBATCHES}" \
   --joint-freeze-whisper-codebook \
   --joint-freeze-whisper-post-vq \

@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import torch
 
@@ -14,6 +15,9 @@ from training.phase3_whisper_streamspeech_joint.losses import (
     NormalizedLoss,
     combine_joint_or_replay,
     ctc_normalized_loss,
+)
+from training.phase3_whisper_streamspeech_joint.model import (
+    Phase3WhisperStreamSpeechJointModel,
 )
 from training.phase3_whisper_streamspeech_joint.nar_bicodec_ctc import NARBiCodecCTC
 from training.phase3_whisper_streamspeech_joint.phase3_ste_bridge import Phase3STEBridge
@@ -204,6 +208,32 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(weights.whisper_quantize, 1.0)
         with self.assertRaises(ValueError):
             JointLossWeights(bridge_commitment=-0.1)
+
+    def test_commitment_guard_uses_distributed_mean_not_rank_maximum(self) -> None:
+        model = Phase3WhisperStreamSpeechJointModel.__new__(
+            Phase3WhisperStreamSpeechJointModel
+        )
+        torch.nn.Module.__init__(model)
+        model.max_bridge_commitment = 0.1
+        model.max_bridge_commitment_ratio = None
+        model.bridge_guard_baseline_microbatches = 0
+        model.register_buffer("bridge_guard_baseline_sum", torch.zeros(()))
+        model.register_buffer(
+            "bridge_guard_baseline_count", torch.zeros((), dtype=torch.long)
+        )
+
+        def emulate_sum(value: torch.Tensor, *, op: object) -> None:
+            del op
+            value.fill_(0.20)
+
+        prefix = "training.phase3_whisper_streamspeech_joint.model.dist"
+        with (
+            mock.patch(f"{prefix}.is_available", return_value=True),
+            mock.patch(f"{prefix}.is_initialized", return_value=True),
+            mock.patch(f"{prefix}.get_world_size", return_value=4),
+            mock.patch(f"{prefix}.all_reduce", side_effect=emulate_sum),
+        ):
+            model._guard_bridge_commitment(torch.tensor(0.12), chunk_ms=960)
 
     def test_nar_unit_ctc_geometry(self) -> None:
         model = NARBiCodecCTC(
