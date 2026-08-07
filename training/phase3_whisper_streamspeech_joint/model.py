@@ -116,7 +116,11 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         bridge_surrogate: str = "projection",
         bridge_topk: int = 8,
         bridge_temperature: float = 0.1,
+        bridge_gradient_scale: float = 1.0,
+        teacher_temperature: float = 0.1,
         max_bridge_commitment: float | None = None,
+        max_bridge_commitment_ratio: float | None = None,
+        bridge_guard_baseline_microbatches: int = 0,
     ) -> None:
         super().__init__()
         self.whisper = whisper
@@ -126,6 +130,10 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         self.ctc_maps = ctc_maps
         self.loss_weights = loss_weights or JointLossWeights()
         self.max_bridge_commitment = max_bridge_commitment
+        self.max_bridge_commitment_ratio = max_bridge_commitment_ratio
+        self.bridge_guard_baseline_microbatches = int(bridge_guard_baseline_microbatches)
+        self.register_buffer("bridge_guard_baseline_sum", torch.zeros((), dtype=torch.float32))
+        self.register_buffer("bridge_guard_baseline_count", torch.zeros((), dtype=torch.long))
         qwen_embeddings = qwen.get_input_embeddings().weight
         qwen_glm_embeddings = qwen_embeddings[
             c.GLM_SEMANTIC_OFFSET : c.GLM_SEMANTIC_OFFSET + c.GLM_SEMANTIC_SIZE
@@ -138,6 +146,8 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             surrogate=bridge_surrogate,
             topk=bridge_topk,
             temperature=bridge_temperature,
+            gradient_scale=bridge_gradient_scale,
+            teacher_temperature=teacher_temperature,
         )
         output_sizes = {
             "asr_eng": ctc_maps["eng"].output_size,
@@ -167,10 +177,16 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         bridge_surrogate: str = "projection",
         bridge_topk: int = 8,
         bridge_temperature: float = 0.1,
+        bridge_gradient_scale: float = 1.0,
+        teacher_temperature: float = 0.1,
         freeze_whisper_codebook: bool = False,
+        freeze_whisper: bool = False,
         trainable_whisper_pre_vq_layers: int | None = None,
         freeze_whisper_post_vq: bool = False,
+        freeze_qwen: bool = False,
         max_bridge_commitment: float | None = None,
+        max_bridge_commitment_ratio: float | None = None,
+        bridge_guard_baseline_microbatches: int = 0,
     ) -> "Phase3WhisperStreamSpeechJointModel":
         tokenizer = AutoTokenizer.from_pretrained(
             str(phase3_model), local_files_only=True
@@ -188,10 +204,14 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             whisper_path,
             chunk_config=chunk_config,
             freeze_codebook_updates=freeze_whisper_codebook,
+            freeze_encoder=freeze_whisper,
             trainable_pre_vq_layers=trainable_whisper_pre_vq_layers,
             freeze_post_vq=freeze_whisper_post_vq,
         )
         whisper.configure_gradient_checkpointing(gradient_checkpointing)
+        if freeze_qwen:
+            for parameter in qwen.parameters():
+                parameter.requires_grad_(False)
         maps = {
             language: CompactCTCMap.load(
                 Path(tokenizer_map_dir) / f"ctc_qwen_{language}.json"
@@ -208,7 +228,11 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             bridge_surrogate=bridge_surrogate,
             bridge_topk=bridge_topk,
             bridge_temperature=bridge_temperature,
+            bridge_gradient_scale=bridge_gradient_scale,
+            teacher_temperature=teacher_temperature,
             max_bridge_commitment=max_bridge_commitment,
+            max_bridge_commitment_ratio=max_bridge_commitment_ratio,
+            bridge_guard_baseline_microbatches=bridge_guard_baseline_microbatches,
         ).cuda()
 
     def tag_learning_rate_groups(self) -> None:
@@ -244,6 +268,8 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         target_ctc_lengths = batch["target_ctc_ids_lengths"]
         target_bicodec = batch["target_bicodec"]
         target_bicodec_lengths = batch["target_bicodec_lengths"]
+        source_glm = batch["source_glm"]
+        source_glm_lengths = batch["source_glm_lengths"]
         if not all(
             isinstance(value, torch.Tensor)
             for value in (
@@ -256,6 +282,8 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
                 target_ctc_lengths,
                 target_bicodec,
                 target_bicodec_lengths,
+                source_glm,
+                source_glm_lengths,
             )
         ):
             raise TypeError("joint batch tensor fields are malformed")
@@ -313,7 +341,10 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             g[rows, : direction_g.shape[1]] = direction_g
 
         bridge = self.bridge(
-            whisper_output.pre_vq_hidden, whisper_output.token_lengths
+            whisper_output.pre_vq_hidden,
+            whisper_output.token_lengths,
+            teacher_code_ids=source_glm,
+            teacher_lengths=source_glm_lengths,
         )
         record_values = batch["phase3_record_json"]
         if isinstance(record_values, str):
@@ -368,6 +399,13 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             "unit_infeasible": unit_infeasible,
             "bridge_commitment": bridge.commitment_loss,
             "whisper_quantize": whisper_output.quantize_loss,
+            "teacher_glm_ce": bridge.teacher_ce_loss,
+            "teacher_glm_commitment": bridge.teacher_commitment_loss,
+            "teacher_glm_agreement": bridge.teacher_agreement,
+            "teacher_glm_coverage": bridge.teacher_coverage,
+            "code_perplexity": bridge.code_perplexity,
+            "active_code_fraction": bridge.active_code_fraction,
+            "hidden_rms": bridge.hidden_rms,
         }
         return losses, diagnostics
 
@@ -415,7 +453,42 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             "unit_infeasible": zero,
             "bridge_commitment": zero,
             "whisper_quantize": zero,
+            "teacher_glm_ce": zero,
+            "teacher_glm_commitment": zero,
+            "teacher_glm_agreement": zero,
+            "teacher_glm_coverage": zero,
+            "code_perplexity": zero,
+            "active_code_fraction": zero,
+            "hidden_rms": zero,
         }
+
+    def _guard_bridge_commitment(self, commitment: torch.Tensor, chunk_ms: int | None) -> None:
+        guard_value = commitment.detach().float().clone()
+        if dist.is_available() and dist.is_initialized():
+            dist.all_reduce(guard_value, op=dist.ReduceOp.MAX)
+        if self.training and int(self.bridge_guard_baseline_count) < self.bridge_guard_baseline_microbatches:
+            with torch.no_grad():
+                self.bridge_guard_baseline_sum.add_(guard_value)
+                self.bridge_guard_baseline_count.add_(1)
+            return
+        limits: list[tuple[str, float]] = []
+        if self.max_bridge_commitment is not None:
+            limits.append(("absolute", float(self.max_bridge_commitment)))
+        if (
+            self.max_bridge_commitment_ratio is not None
+            and int(self.bridge_guard_baseline_count) > 0
+        ):
+            baseline = float(
+                self.bridge_guard_baseline_sum / self.bridge_guard_baseline_count
+            )
+            limits.append(("relative", baseline * self.max_bridge_commitment_ratio))
+        exceeded = [(name, limit) for name, limit in limits if float(guard_value) > limit]
+        if exceeded:
+            raise FloatingPointError(
+                "bridge commitment exceeded safety gate: "
+                f"value={float(guard_value):.6f}, limits={exceeded}, "
+                f"baseline_count={int(self.bridge_guard_baseline_count)}, chunk_ms={chunk_ms}"
+            )
 
     def forward(
         self,
@@ -439,16 +512,11 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         total, means = distributed_component_losses(losses, self.loss_weights)
         if sample_kind == "joint":
             commitment = diagnostics["bridge_commitment"]
-            if (
-                self.max_bridge_commitment is not None
-                and float(commitment.detach()) > self.max_bridge_commitment
-            ):
-                raise FloatingPointError(
-                    "bridge commitment exceeded the configured safety gate: "
-                    f"value={float(commitment.detach()):.6f}, "
-                    f"limit={self.max_bridge_commitment:.6f}, chunk_ms={chunk_ms}"
-                )
+            self._guard_bridge_commitment(commitment, chunk_ms)
             total = total + self.loss_weights.bridge_commitment * commitment
+            total = total + self.loss_weights.whisper_quantize * diagnostics["whisper_quantize"]
+            total = total + self.loss_weights.teacher_glm_ce * diagnostics["teacher_glm_ce"]
+            total = total + self.loss_weights.teacher_glm_commitment * diagnostics["teacher_glm_commitment"]
         extras = torch.stack(
             [
                 diagnostics["asr_infeasible"].detach().float(),
@@ -456,6 +524,13 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
                 diagnostics["unit_infeasible"].detach().float(),
                 diagnostics["bridge_commitment"].detach().float(),
                 diagnostics["whisper_quantize"].detach().float(),
+                diagnostics["teacher_glm_ce"].detach().float(),
+                diagnostics["teacher_glm_commitment"].detach().float(),
+                diagnostics["teacher_glm_agreement"].detach().float(),
+                diagnostics["teacher_glm_coverage"].detach().float(),
+                diagnostics["code_perplexity"].detach().float(),
+                diagnostics["active_code_fraction"].detach().float(),
+                diagnostics["hidden_rms"].detach().float(),
                 total.detach().new_tensor(active_joint),
             ]
         )

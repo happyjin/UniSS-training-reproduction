@@ -146,8 +146,62 @@ class CoreTest(unittest.TestCase):
         self.assertGreater(float(hidden.grad[:, :1].abs().sum()), 0)
         self.assertEqual(float(hidden.grad[:, 1:].abs().sum()), 0.0)
 
+    def test_teacher_glm_alignment_uses_fixed_teacher_code(self) -> None:
+        bridge = Phase3STEBridge(
+            2,
+            3,
+            codebook=torch.tensor([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]),
+            qwen_glm_embeddings=torch.tensor(
+                [[2.0, 3.0, 4.0], [5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
+            ),
+            surrogate="topk_soft",
+            topk=2,
+            temperature=0.5,
+            gradient_scale=0.1,
+            teacher_temperature=0.5,
+        )
+        hidden = torch.tensor([[[0.9, 1.1], [2.0, 2.0]]], requires_grad=True)
+        output = bridge(
+            hidden,
+            torch.tensor([2]),
+            teacher_code_ids=torch.tensor([[1, 0]]),
+            teacher_lengths=torch.tensor([2]),
+        )
+        self.assertAlmostEqual(float(output.teacher_agreement), 0.5)
+        self.assertAlmostEqual(float(output.teacher_coverage), 1.0)
+        self.assertGreater(float(output.teacher_commitment_loss), float(output.commitment_loss))
+        (output.teacher_ce_loss + output.teacher_commitment_loss).backward()
+        self.assertGreater(float(hidden.grad.abs().sum()), 0)
+
+    def test_bridge_gradient_scale_reduces_surrogate_gradient(self) -> None:
+        kwargs = dict(
+            whisper_hidden_size=2,
+            qwen_hidden_size=3,
+            codebook=torch.tensor([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]),
+            qwen_glm_embeddings=torch.tensor(
+                [[2.0, 3.0, 4.0], [5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
+            ),
+            surrogate="topk_soft",
+            topk=2,
+            temperature=0.5,
+        )
+        full = Phase3STEBridge(**kwargs, gradient_scale=1.0)
+        scaled = Phase3STEBridge(**kwargs, gradient_scale=0.1)
+        hidden_full = torch.tensor([[[0.9, 1.1]]], requires_grad=True)
+        hidden_scaled = hidden_full.detach().clone().requires_grad_(True)
+        full(hidden_full).embeddings.sum().backward()
+        scaled(hidden_scaled).embeddings.sum().backward()
+        torch.testing.assert_close(hidden_scaled.grad, hidden_full.grad * 0.1)
+
     def test_joint_loss_weights_validate_bridge_commitment(self) -> None:
-        self.assertEqual(JointLossWeights(bridge_commitment=0.25).bridge_commitment, 0.25)
+        weights = JointLossWeights(
+            bridge_commitment=0.25,
+            whisper_quantize=1.0,
+            teacher_glm_ce=1.0,
+            teacher_glm_commitment=1.0,
+        )
+        self.assertEqual(weights.bridge_commitment, 0.25)
+        self.assertEqual(weights.whisper_quantize, 1.0)
         with self.assertRaises(ValueError):
             JointLossWeights(bridge_commitment=-0.1)
 

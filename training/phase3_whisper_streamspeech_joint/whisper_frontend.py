@@ -94,6 +94,7 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         *,
         chunk_config: MultiChunkConfig | None = None,
         freeze_codebook_updates: bool = False,
+        freeze_encoder: bool = False,
         trainable_pre_vq_layers: int | None = None,
         freeze_post_vq: bool = False,
     ) -> None:
@@ -105,6 +106,8 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         if self.encoder.pooling_layer is None or self.encoder.config.pooling_kernel_size is None:
             raise ValueError("Phase3 WhisperVQ must contain its historical pooling layer")
         self.encoder.codebook.weight.requires_grad_(False)
+        if freeze_encoder and trainable_pre_vq_layers is not None:
+            raise ValueError("freeze_encoder and trainable_pre_vq_layers are mutually exclusive")
         self._partially_trainable = trainable_pre_vq_layers is not None
         self.freeze_codebook_updates = bool(freeze_codebook_updates)
         if self.freeze_codebook_updates:
@@ -117,7 +120,10 @@ class TrainableMultiChunkWhisperVQ(nn.Module):
         pooling_position = int(self.encoder.config.pooling_position)
         if not 0 < pooling_position <= len(self.encoder.layers):
             raise ValueError("invalid Whisper pooling position")
-        if trainable_pre_vq_layers is not None:
+        if freeze_encoder:
+            for parameter in self.encoder.parameters():
+                parameter.requires_grad_(False)
+        elif trainable_pre_vq_layers is not None:
             if not 0 < trainable_pre_vq_layers <= pooling_position:
                 raise ValueError(
                     "trainable_pre_vq_layers must be in [1, pooling_position]"

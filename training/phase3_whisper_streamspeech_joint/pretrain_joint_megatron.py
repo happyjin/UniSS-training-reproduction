@@ -49,6 +49,13 @@ METRIC_NAMES = (
     "ctc/unit_infeasible",
     "bridge/commitment_mse",
     "whisper/quantize_loss",
+    "bridge/teacher_glm_ce",
+    "bridge/teacher_glm_commitment",
+    "bridge/teacher_glm_agreement",
+    "bridge/teacher_glm_coverage",
+    "bridge/code_perplexity",
+    "bridge/active_code_fraction",
+    "bridge/hidden_rms",
     "sampler/joint_fraction",
 )
 
@@ -200,6 +207,9 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--joint-nar-s2tt-ctc-weight", type=float, default=4.0)
     group.add_argument("--joint-phase3-replay-weight", type=float, default=0.5)
     group.add_argument("--joint-bridge-commitment-weight", type=float, default=0.0)
+    group.add_argument("--joint-whisper-quantize-weight", type=float, default=0.0)
+    group.add_argument("--joint-teacher-glm-ce-weight", type=float, default=0.0)
+    group.add_argument("--joint-teacher-glm-commitment-weight", type=float, default=0.0)
     group.add_argument("--joint-unit-upsample-ratio", type=int, default=48)
     group.add_argument(
         "--joint-bridge-surrogate",
@@ -208,9 +218,15 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     )
     group.add_argument("--joint-bridge-topk", type=int, default=8)
     group.add_argument("--joint-bridge-temperature", type=float, default=0.1)
+    group.add_argument("--joint-bridge-gradient-scale", type=float, default=1.0)
+    group.add_argument("--joint-teacher-temperature", type=float, default=0.1)
     group.add_argument("--joint-max-bridge-commitment", type=float)
+    group.add_argument("--joint-max-bridge-commitment-ratio", type=float)
+    group.add_argument("--joint-bridge-guard-baseline-microbatches", type=int, default=0)
     group.add_argument("--joint-freeze-whisper-codebook", action="store_true")
+    group.add_argument("--joint-freeze-whisper", action="store_true")
     group.add_argument("--joint-freeze-whisper-post-vq", action="store_true")
+    group.add_argument("--joint-freeze-qwen", action="store_true")
     group.add_argument("--joint-trainable-whisper-pre-vq-layers", type=int, default=0)
     group.add_argument("--joint-lr-new-mult", type=float, default=1.0)
     group.add_argument("--joint-lr-bridge-mult", type=float, default=0.5)
@@ -258,12 +274,28 @@ def validate_joint_args(args) -> None:
         raise ValueError("--joint-bridge-temperature must be positive")
     if int(args.joint_trainable_whisper_pre_vq_layers) < 0:
         raise ValueError("--joint-trainable-whisper-pre-vq-layers must be non-negative")
-    if float(args.joint_bridge_commitment_weight) < 0:
-        raise ValueError("--joint-bridge-commitment-weight must be non-negative")
+    for name in (
+        "joint_bridge_commitment_weight",
+        "joint_whisper_quantize_weight",
+        "joint_teacher_glm_ce_weight",
+        "joint_teacher_glm_commitment_weight",
+    ):
+        if float(getattr(args, name)) < 0:
+            raise ValueError(f"--{name.replace('_', '-')} must be non-negative")
     if args.joint_max_bridge_commitment is not None and float(
         args.joint_max_bridge_commitment
     ) <= 0:
         raise ValueError("--joint-max-bridge-commitment must be positive")
+    if args.joint_max_bridge_commitment_ratio is not None and float(
+        args.joint_max_bridge_commitment_ratio
+    ) <= 1:
+        raise ValueError("--joint-max-bridge-commitment-ratio must be greater than 1")
+    if int(args.joint_bridge_guard_baseline_microbatches) < 0:
+        raise ValueError("--joint-bridge-guard-baseline-microbatches must be non-negative")
+    if not 0 <= float(args.joint_bridge_gradient_scale) <= 1:
+        raise ValueError("--joint-bridge-gradient-scale must be in [0,1]")
+    if float(args.joint_teacher_temperature) <= 0:
+        raise ValueError("--joint-teacher-temperature must be positive")
     for name in (
         "joint_lr_new_mult",
         "joint_lr_bridge_mult",
@@ -367,6 +399,9 @@ class JointMegatronFactory:
                     nar_s2tt_ctc=float(args.joint_nar_s2tt_ctc_weight),
                     phase3_replay=float(args.joint_phase3_replay_weight),
                     bridge_commitment=float(args.joint_bridge_commitment_weight),
+                    whisper_quantize=float(args.joint_whisper_quantize_weight),
+                    teacher_glm_ce=float(args.joint_teacher_glm_ce_weight),
+                    teacher_glm_commitment=float(args.joint_teacher_glm_commitment_weight),
                     replay_probability=float(args.joint_replay_probability),
                 )
                 self.joint = Phase3WhisperStreamSpeechJointModel.from_pretrained(
@@ -380,15 +415,27 @@ class JointMegatronFactory:
                     bridge_surrogate=str(args.joint_bridge_surrogate),
                     bridge_topk=int(args.joint_bridge_topk),
                     bridge_temperature=float(args.joint_bridge_temperature),
+                    bridge_gradient_scale=float(args.joint_bridge_gradient_scale),
+                    teacher_temperature=float(args.joint_teacher_temperature),
                     freeze_whisper_codebook=bool(args.joint_freeze_whisper_codebook),
+                    freeze_whisper=bool(args.joint_freeze_whisper),
                     trainable_whisper_pre_vq_layers=(
                         int(args.joint_trainable_whisper_pre_vq_layers) or None
                     ),
                     freeze_whisper_post_vq=bool(args.joint_freeze_whisper_post_vq),
+                    freeze_qwen=bool(args.joint_freeze_qwen),
                     max_bridge_commitment=(
                         None
                         if args.joint_max_bridge_commitment is None
                         else float(args.joint_max_bridge_commitment)
+                    ),
+                    max_bridge_commitment_ratio=(
+                        None
+                        if args.joint_max_bridge_commitment_ratio is None
+                        else float(args.joint_max_bridge_commitment_ratio)
+                    ),
+                    bridge_guard_baseline_microbatches=int(
+                        args.joint_bridge_guard_baseline_microbatches
                     ),
                 )
                 if torch.distributed.get_rank() == 0:
