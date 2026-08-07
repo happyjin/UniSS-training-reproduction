@@ -121,6 +121,7 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         max_bridge_commitment: float | None = None,
         max_bridge_commitment_ratio: float | None = None,
         bridge_guard_baseline_microbatches: int = 0,
+        bridge_guard_relative_consecutive_violations: int = 1,
     ) -> None:
         super().__init__()
         self.whisper = whisper
@@ -132,6 +133,10 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         self.max_bridge_commitment = max_bridge_commitment
         self.max_bridge_commitment_ratio = max_bridge_commitment_ratio
         self.bridge_guard_baseline_microbatches = int(bridge_guard_baseline_microbatches)
+        self.bridge_guard_relative_consecutive_violations = int(
+            bridge_guard_relative_consecutive_violations
+        )
+        self._bridge_guard_relative_violation_count = 0
         self.register_buffer("bridge_guard_baseline_sum", torch.zeros((), dtype=torch.float32))
         self.register_buffer("bridge_guard_baseline_count", torch.zeros((), dtype=torch.long))
         qwen_embeddings = qwen.get_input_embeddings().weight
@@ -187,6 +192,7 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         max_bridge_commitment: float | None = None,
         max_bridge_commitment_ratio: float | None = None,
         bridge_guard_baseline_microbatches: int = 0,
+        bridge_guard_relative_consecutive_violations: int = 1,
     ) -> "Phase3WhisperStreamSpeechJointModel":
         tokenizer = AutoTokenizer.from_pretrained(
             str(phase3_model), local_files_only=True
@@ -233,6 +239,9 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             max_bridge_commitment=max_bridge_commitment,
             max_bridge_commitment_ratio=max_bridge_commitment_ratio,
             bridge_guard_baseline_microbatches=bridge_guard_baseline_microbatches,
+            bridge_guard_relative_consecutive_violations=(
+                bridge_guard_relative_consecutive_violations
+            ),
         ).cuda()
 
     def tag_learning_rate_groups(self) -> None:
@@ -463,18 +472,25 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
         }
 
     def _guard_bridge_commitment(self, commitment: torch.Tensor, chunk_ms: int | None) -> None:
+        if not self.training:
+            return
         guard_value = commitment.detach().float().clone()
         if dist.is_available() and dist.is_initialized():
             dist.all_reduce(guard_value, op=dist.ReduceOp.SUM)
             guard_value.div_(dist.get_world_size())
-        if self.training and int(self.bridge_guard_baseline_count) < self.bridge_guard_baseline_microbatches:
+        if int(self.bridge_guard_baseline_count) < self.bridge_guard_baseline_microbatches:
             with torch.no_grad():
                 self.bridge_guard_baseline_sum.add_(guard_value)
                 self.bridge_guard_baseline_count.add_(1)
             return
-        limits: list[tuple[str, float]] = []
-        if self.max_bridge_commitment is not None:
-            limits.append(("absolute", float(self.max_bridge_commitment)))
+        absolute_limit = self.max_bridge_commitment
+        if absolute_limit is not None and float(guard_value) > float(absolute_limit):
+            raise FloatingPointError(
+                "bridge commitment exceeded absolute safety gate: "
+                f"value={float(guard_value):.6f}, limit={float(absolute_limit):.6f}, "
+                f"baseline_count={int(self.bridge_guard_baseline_count)}, chunk_ms={chunk_ms}"
+            )
+        relative_limit = None
         if (
             self.max_bridge_commitment_ratio is not None
             and int(self.bridge_guard_baseline_count) > 0
@@ -482,12 +498,21 @@ class Phase3WhisperStreamSpeechJointModel(nn.Module):
             baseline = float(
                 self.bridge_guard_baseline_sum / self.bridge_guard_baseline_count
             )
-            limits.append(("relative", baseline * self.max_bridge_commitment_ratio))
-        exceeded = [(name, limit) for name, limit in limits if float(guard_value) > limit]
-        if exceeded:
+            relative_limit = baseline * self.max_bridge_commitment_ratio
+        if relative_limit is not None and float(guard_value) > relative_limit:
+            self._bridge_guard_relative_violation_count += 1
+        else:
+            self._bridge_guard_relative_violation_count = 0
+        if (
+            relative_limit is not None
+            and self._bridge_guard_relative_violation_count
+            >= self.bridge_guard_relative_consecutive_violations
+        ):
             raise FloatingPointError(
-                "bridge commitment exceeded safety gate: "
-                f"value={float(guard_value):.6f}, limits={exceeded}, "
+                "bridge commitment repeatedly exceeded relative safety gate: "
+                f"value={float(guard_value):.6f}, limit={relative_limit:.6f}, "
+                f"consecutive={self._bridge_guard_relative_violation_count}/"
+                f"{self.bridge_guard_relative_consecutive_violations}, "
                 f"baseline_count={int(self.bridge_guard_baseline_count)}, chunk_ms={chunk_ms}"
             )
 

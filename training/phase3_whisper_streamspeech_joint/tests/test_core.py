@@ -38,6 +38,32 @@ from training.phase3_whisper_streamspeech_joint.whisper_multichunk import (
 
 
 class CoreTest(unittest.TestCase):
+    @staticmethod
+    def _make_guard_model(
+        *,
+        absolute: float | None = None,
+        ratio: float | None = None,
+        consecutive: int = 8,
+        baseline_sum: float = 0.0,
+        baseline_count: int = 0,
+    ) -> Phase3WhisperStreamSpeechJointModel:
+        model = Phase3WhisperStreamSpeechJointModel.__new__(
+            Phase3WhisperStreamSpeechJointModel
+        )
+        torch.nn.Module.__init__(model)
+        model.max_bridge_commitment = absolute
+        model.max_bridge_commitment_ratio = ratio
+        model.bridge_guard_baseline_microbatches = 0
+        model.bridge_guard_relative_consecutive_violations = consecutive
+        model._bridge_guard_relative_violation_count = 0
+        model.register_buffer(
+            "bridge_guard_baseline_sum", torch.tensor(float(baseline_sum))
+        )
+        model.register_buffer(
+            "bridge_guard_baseline_count", torch.tensor(baseline_count, dtype=torch.long)
+        )
+        return model
+
     def test_multichunk_mask_blocks_future_chunks_and_padding(self) -> None:
         allowed = chunk_causal_allowed(
             torch.tensor([7]),
@@ -210,17 +236,7 @@ class CoreTest(unittest.TestCase):
             JointLossWeights(bridge_commitment=-0.1)
 
     def test_commitment_guard_uses_distributed_mean_not_rank_maximum(self) -> None:
-        model = Phase3WhisperStreamSpeechJointModel.__new__(
-            Phase3WhisperStreamSpeechJointModel
-        )
-        torch.nn.Module.__init__(model)
-        model.max_bridge_commitment = 0.1
-        model.max_bridge_commitment_ratio = None
-        model.bridge_guard_baseline_microbatches = 0
-        model.register_buffer("bridge_guard_baseline_sum", torch.zeros(()))
-        model.register_buffer(
-            "bridge_guard_baseline_count", torch.zeros((), dtype=torch.long)
-        )
+        model = self._make_guard_model(absolute=0.1)
 
         def emulate_sum(value: torch.Tensor, *, op: object) -> None:
             del op
@@ -234,6 +250,34 @@ class CoreTest(unittest.TestCase):
             mock.patch(f"{prefix}.all_reduce", side_effect=emulate_sum),
         ):
             model._guard_bridge_commitment(torch.tensor(0.12), chunk_ms=960)
+
+    def test_commitment_relative_guard_requires_consecutive_violations(self) -> None:
+        model = self._make_guard_model(
+            ratio=3.0,
+            consecutive=3,
+            baseline_sum=0.02 * 32,
+            baseline_count=32,
+        )
+        model._guard_bridge_commitment(torch.tensor(0.07), chunk_ms=960)
+        self.assertEqual(model._bridge_guard_relative_violation_count, 1)
+        model._guard_bridge_commitment(torch.tensor(0.04), chunk_ms=960)
+        self.assertEqual(model._bridge_guard_relative_violation_count, 0)
+        model._guard_bridge_commitment(torch.tensor(0.07), chunk_ms=960)
+        model._guard_bridge_commitment(torch.tensor(0.07), chunk_ms=960)
+        with self.assertRaisesRegex(FloatingPointError, "repeatedly exceeded relative"):
+            model._guard_bridge_commitment(torch.tensor(0.07), chunk_ms=960)
+
+    def test_commitment_guard_is_disabled_during_evaluation(self) -> None:
+        model = self._make_guard_model(
+            absolute=0.1,
+            ratio=3.0,
+            consecutive=1,
+            baseline_sum=0.02 * 32,
+            baseline_count=32,
+        )
+        model.eval()
+        model._guard_bridge_commitment(torch.tensor(1.0), chunk_ms=960)
+        self.assertEqual(model._bridge_guard_relative_violation_count, 0)
 
     def test_nar_unit_ctc_geometry(self) -> None:
         model = NARBiCodecCTC(

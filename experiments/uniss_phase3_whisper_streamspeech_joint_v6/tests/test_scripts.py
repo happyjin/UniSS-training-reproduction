@@ -57,6 +57,8 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("MAX_COMMITMENT_RATIO=\n", stage_a)
         self.assertIn("MAX_COMMITMENT=0.10", stage_b)
         self.assertIn("MAX_COMMITMENT_RATIO=3.0", stage_b)
+        self.assertIn("GUARD_CONSECUTIVE_VIOLATIONS=8", stage_b)
+        self.assertIn("--joint-bridge-guard-relative-consecutive-violations", runner)
 
 
 if __name__ == "__main__":

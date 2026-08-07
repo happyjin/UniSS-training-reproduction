@@ -223,6 +223,9 @@ def add_joint_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--joint-max-bridge-commitment", type=float)
     group.add_argument("--joint-max-bridge-commitment-ratio", type=float)
     group.add_argument("--joint-bridge-guard-baseline-microbatches", type=int, default=0)
+    group.add_argument(
+        "--joint-bridge-guard-relative-consecutive-violations", type=int, default=1
+    )
     group.add_argument("--joint-freeze-whisper-codebook", action="store_true")
     group.add_argument("--joint-freeze-whisper", action="store_true")
     group.add_argument("--joint-freeze-whisper-post-vq", action="store_true")
@@ -292,6 +295,10 @@ def validate_joint_args(args) -> None:
         raise ValueError("--joint-max-bridge-commitment-ratio must be greater than 1")
     if int(args.joint_bridge_guard_baseline_microbatches) < 0:
         raise ValueError("--joint-bridge-guard-baseline-microbatches must be non-negative")
+    if int(args.joint_bridge_guard_relative_consecutive_violations) < 1:
+        raise ValueError(
+            "--joint-bridge-guard-relative-consecutive-violations must be positive"
+        )
     if not 0 <= float(args.joint_bridge_gradient_scale) <= 1:
         raise ValueError("--joint-bridge-gradient-scale must be in [0,1]")
     if float(args.joint_teacher_temperature) <= 0:
@@ -436,6 +443,9 @@ class JointMegatronFactory:
                     ),
                     bridge_guard_baseline_microbatches=int(
                         args.joint_bridge_guard_baseline_microbatches
+                    ),
+                    bridge_guard_relative_consecutive_violations=int(
+                        args.joint_bridge_guard_relative_consecutive_violations
                     ),
                 )
                 if torch.distributed.get_rank() == 0:

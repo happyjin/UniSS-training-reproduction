@@ -19,6 +19,9 @@ two ordered stages:
 The distributed guard uses the data-parallel mean commitment.  This detects a
 replica-wide semantic drift such as V5 while avoiding a false stop caused by a
 single naturally difficult microbatch on one rank.
+The absolute `0.10` gate remains immediate.  The relative `3x` gate must be
+violated by eight consecutive joint microbatches, so an isolated globally hard
+batch is recorded without being mistaken for persistent semantic drift.
 
 TensorBoard uses port `6033` by default.
 

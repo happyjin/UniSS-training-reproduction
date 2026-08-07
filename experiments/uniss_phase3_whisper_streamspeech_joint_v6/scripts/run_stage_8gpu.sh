@@ -64,6 +64,7 @@ export CUDA_VISIBLE_DEVICES
   --joint-bridge-gradient-scale "${BRIDGE_GRADIENT_SCALE}" \
   --joint-teacher-temperature "${TEACHER_TEMPERATURE:-0.1}" \
   --joint-bridge-guard-baseline-microbatches "${BASELINE_MICROBATCHES}" \
+  --joint-bridge-guard-relative-consecutive-violations "${GUARD_CONSECUTIVE_VIOLATIONS}" \
   --joint-freeze-whisper-codebook \
   --joint-freeze-whisper-post-vq \
   --joint-trainable-whisper-pre-vq-layers "${TRAINABLE_WHISPER_LAYERS}" \

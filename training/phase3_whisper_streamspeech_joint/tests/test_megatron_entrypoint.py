@@ -54,6 +54,7 @@ class MegatronEntrypointTest(unittest.TestCase):
                 joint_max_bridge_commitment=5.0,
                 joint_max_bridge_commitment_ratio=3.0,
                 joint_bridge_guard_baseline_microbatches=32,
+                joint_bridge_guard_relative_consecutive_violations=8,
                 joint_bridge_gradient_scale=0.1,
                 joint_teacher_temperature=0.1,
                 joint_lr_new_mult=1.0,
