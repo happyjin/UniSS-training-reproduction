@@ -12,6 +12,7 @@ source "${V6_EXPERIMENT_ROOT}/scripts/stage_b_env.sh"
 
 validate_full198_data
 export_full198_inputs
+export MICRO_BATCH_SIZE="${STAGE_B_MICRO_BATCH_SIZE}"
 export RUN_NAME="${RUN_NAME:-${STAGE_B_RUN_NAME}}"
 export LOAD_DIR="${LOAD_DIR:-${REPO_ROOT}/checkpoints/uniss_phase3_whisper_streamspeech_joint_v6/${STAGE_A_RUN_NAME}}"
 export TRAIN_ITERS="${TRAIN_ITERS:-9075}"

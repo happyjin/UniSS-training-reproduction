@@ -9,8 +9,10 @@ Validated on 2026-08-07 with 8 x NVIDIA H200 (144 GB each).
 
 During guarded joint compute, an external `nvidia-smi` snapshot showed
 approximately 123--126 GB used per GPU, 89--100% GPU utilization, and
-484--583 W power.  This leaves too little reliable activation headroom for
-MBS=3, so formal training uses MBS=2 and GBS=128.
+484--583 W power.  The short smoke did not encounter the worst-case variable
+length batch: the formal Stage B MBS=2 run later needed an additional 24.21
+GiB after iteration 10 and OOMed.  The formal Stage B continuation therefore
+uses the previously stable MBS=1 with GBS=128; Stage A retains MBS=2.
 
 The Stage B smoke loaded the full198 Stage A checkpoint as model-only state and
 started at iteration zero.  The final validation commitment was 0.01843, well

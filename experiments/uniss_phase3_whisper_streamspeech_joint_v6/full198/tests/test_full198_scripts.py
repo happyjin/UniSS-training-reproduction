@@ -12,7 +12,7 @@ EXPERIMENT = ROOT / "experiments/uniss_phase3_whisper_streamspeech_joint_v6/full
 class Full198ScriptTest(unittest.TestCase):
     def test_shell_scripts_parse(self) -> None:
         scripts = sorted((EXPERIMENT / "scripts").glob("*.sh"))
-        self.assertGreaterEqual(len(scripts), 8)
+        self.assertGreaterEqual(len(scripts), 9)
         for script in scripts:
             subprocess.run(["bash", "-n", str(script)], check=True)
 
@@ -30,7 +30,9 @@ class Full198ScriptTest(unittest.TestCase):
         pipeline = (EXPERIMENT / "scripts/run_pipeline.sh").read_text()
         self.assertIn('MICRO_BATCH_SIZE="${_FULL198_REQUESTED_MICRO_BATCH_SIZE:-2}"', env)
         self.assertIn("phase3_joint_v6_stage_a_heads_only_full198_v1", env)
-        self.assertIn("phase3_joint_v6_stage_b_guarded_joint_full198_v1", env)
+        self.assertIn("phase3_joint_v6_stage_b_guarded_joint_full198_v2_mbs1", env)
+        self.assertIn('STAGE_A_MICRO_BATCH_SIZE="${STAGE_A_MICRO_BATCH_SIZE:-2}"', env)
+        self.assertIn('STAGE_B_MICRO_BATCH_SIZE="${STAGE_B_MICRO_BATCH_SIZE:-1}"', env)
         self.assertIn('TRAIN_ITERS="${TRAIN_ITERS:-500}"', stage_a)
         self.assertIn('TRAIN_ITERS="${TRAIN_ITERS:-9075}"', stage_b)
         self.assertIn("stage_a_env.sh", stage_a)
@@ -42,6 +44,7 @@ class Full198ScriptTest(unittest.TestCase):
         stage_b = (EXPERIMENT / "scripts/run_stage_b.sh").read_text()
         self.assertIn("${STAGE_A_RUN_NAME}", stage_b)
         self.assertNotIn("15shard", stage_b)
+        self.assertIn('MICRO_BATCH_SIZE="${STAGE_B_MICRO_BATCH_SIZE}"', stage_b)
 
 
 if __name__ == "__main__":

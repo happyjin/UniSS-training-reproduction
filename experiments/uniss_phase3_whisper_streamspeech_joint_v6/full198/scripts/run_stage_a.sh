@@ -8,6 +8,7 @@ source "${V6_EXPERIMENT_ROOT}/scripts/stage_a_env.sh"
 
 validate_full198_data
 export_full198_inputs
+export MICRO_BATCH_SIZE="${STAGE_A_MICRO_BATCH_SIZE}"
 export RUN_NAME="${RUN_NAME:-${STAGE_A_RUN_NAME}}"
 export TRAIN_ITERS="${TRAIN_ITERS:-500}"
 export LR_WARMUP_ITERS="${LR_WARMUP_ITERS:-100}"

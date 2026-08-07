@@ -20,9 +20,11 @@ Formal schedule:
 1. Stage A: 500 iterations, frozen Whisper and Qwen, heads only.
 2. Stage B: 9,075 iterations, V6 guarded joint training with 20% Phase3 replay.
 
-Both stages use 8 GPUs, BF16, sequence length 18,000, micro batch 2 and global
-batch 128.  MBS=2 is the largest setting already observed to fit safely on the
-local 144 GB H200s (about 116 GB peak in the historical full198 smoke run).
+Both stages use 8 GPUs, BF16, sequence length 18,000 and global batch 128.
+Stage A uses micro batch 2.  Stage B uses micro batch 1: although an MBS=2
+short smoke passed, a formal full198 batch after iteration 10 required an
+additional 24.21 GiB and exceeded the 144 GB H200 capacity.  MBS=1 is the
+largest setting validated across the variable-length Stage B workload.
 
 Run the non-destructive smoke test first:
 
@@ -34,6 +36,12 @@ Launch the formal automatic Stage A -> Stage B pipeline:
 
 ```bash
 bash experiments/uniss_phase3_whisper_streamspeech_joint_v6/full198/scripts/launch_pipeline_tmux.sh
+```
+
+If Stage A is already complete, launch only the isolated Stage B continuation:
+
+```bash
+bash experiments/uniss_phase3_whisper_streamspeech_joint_v6/full198/scripts/launch_stage_b_tmux.sh
 ```
 
 Inspect it with:
