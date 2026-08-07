@@ -4,8 +4,8 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${SCRIPT_ROOT}/common.sh"
 
-tmux has-session -t "${PIPELINE_SESSION}" 2>/dev/null && echo "tmux: running (${PIPELINE_SESSION})" || echo "tmux: not running"
-tmux has-session -t "${STAGE_B_SESSION}" 2>/dev/null && echo "stage-b tmux: running (${STAGE_B_SESSION})" || echo "stage-b tmux: not running"
+tmux_session_exists "${PIPELINE_SESSION}" && echo "tmux: running (${PIPELINE_SESSION})" || echo "tmux: not running"
+tmux_session_exists "${STAGE_B_SESSION}" && echo "stage-b tmux: running (${STAGE_B_SESSION})" || echo "stage-b tmux: not running"
 if [[ -f "${FULL198_STATUS_ROOT}/status.txt" ]]; then
   printf 'pipeline: '
   cat "${FULL198_STATUS_ROOT}/status.txt"

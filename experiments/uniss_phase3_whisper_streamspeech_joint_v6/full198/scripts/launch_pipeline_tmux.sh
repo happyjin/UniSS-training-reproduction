@@ -4,7 +4,7 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${SCRIPT_ROOT}/common.sh"
 
-tmux has-session -t "${PIPELINE_SESSION}" 2>/dev/null && {
+tmux_session_exists "${PIPELINE_SESSION}" && {
   echo "tmux session already exists: ${PIPELINE_SESSION}" >&2
   exit 1
 }

@@ -10,7 +10,7 @@ require_file "${STAGE_A_TRACKER}"
   echo "Stage A checkpoint is not complete: ${STAGE_A_TRACKER}" >&2
   exit 1
 }
-tmux has-session -t "${STAGE_B_SESSION}" 2>/dev/null && {
+tmux_session_exists "${STAGE_B_SESSION}" && {
   echo "tmux session already exists: ${STAGE_B_SESSION}" >&2
   exit 1
 }

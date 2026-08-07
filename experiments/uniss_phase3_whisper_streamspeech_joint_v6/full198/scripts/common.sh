@@ -48,3 +48,7 @@ export_full198_inputs() {
   export MICRO_BATCH_SIZE GLOBAL_BATCH_SIZE NUM_WORKERS CUDA_VISIBLE_DEVICES
   export NPROC_PER_NODE MASTER_PORT
 }
+
+tmux_session_exists() {
+  tmux list-sessions -F '#S' 2>/dev/null | rg -F -x -q -- "$1"
+}

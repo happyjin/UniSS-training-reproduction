@@ -39,6 +39,9 @@ class Full198ScriptTest(unittest.TestCase):
         self.assertIn("stage_b_env.sh", stage_b)
         self.assertIn('bash "${SCRIPT_ROOT}/run_stage_a.sh"', pipeline)
         self.assertIn('bash "${SCRIPT_ROOT}/run_stage_b.sh"', pipeline)
+        common = (EXPERIMENT / "scripts/common.sh").read_text()
+        self.assertIn("tmux_session_exists", common)
+        self.assertIn("rg -F -x -q", common)
 
     def test_stage_b_loads_only_full198_stage_a(self) -> None:
         stage_b = (EXPERIMENT / "scripts/run_stage_b.sh").read_text()
