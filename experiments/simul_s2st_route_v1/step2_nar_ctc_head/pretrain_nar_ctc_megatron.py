@@ -333,6 +333,8 @@ class NarCtcMegatronFactory:
                 unit_repeats = fields["unit_repeats"].to(device)
                 units_padded = fields["target_bicodec_tensor"].to(device)
                 units_flat = _flatten_targets(units_padded, unit_lengths)
+                speaker_ids = fields["bicodec_global"].to(device)
+                speaker_lengths = fields["bicodec_global_lengths"].to(device)
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     logits, frame_lengths = self.head(
                         text_hidden,
@@ -340,6 +342,8 @@ class NarCtcMegatronFactory:
                         duration,
                         unit_lengths=unit_lengths,
                         unit_repeats=unit_repeats,
+                        speaker_ids=speaker_ids,
+                        speaker_lengths=speaker_lengths,
                     )
                     loss, infeasible = ctc_normalized_loss(
                         logits,

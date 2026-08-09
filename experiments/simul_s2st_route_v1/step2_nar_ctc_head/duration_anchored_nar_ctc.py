@@ -124,7 +124,11 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         self.frames_per_second = float(frames_per_second)
         self.max_frames = int(max_frames)
         self.blank_id = int(semantic_vocab_size)
+        self.speaker_vocab_size = int(semantic_vocab_size)
         self.input_projection = nn.Linear(qwen_hidden_size, model_size)
+        # BiCodec global speaker tokens (same code space as semantic units).
+        self.speaker_embed = nn.Embedding(self.speaker_vocab_size, model_size)
+        self.speaker_proj = nn.Linear(model_size, model_size)
         encoder_layer = nn.TransformerEncoderLayer(
             model_size,
             num_heads,
@@ -162,6 +166,31 @@ class DurationAnchoredCausalNARCTC(nn.Module):
             max_frames=self.max_frames,
         )
 
+    def _speaker_condition(
+        self,
+        speaker_ids: torch.Tensor | None,
+        speaker_lengths: torch.Tensor | None,
+        *,
+        batch: int,
+        device: torch.device,
+    ) -> torch.Tensor | None:
+        if speaker_ids is None:
+            return None
+        if speaker_ids.ndim != 2 or speaker_ids.shape[0] != batch:
+            raise ValueError("speaker_ids must be [B,S]")
+        if speaker_lengths is None:
+            speaker_lengths = torch.full(
+                (batch,), speaker_ids.shape[1], dtype=torch.long, device=device
+            )
+        # Clamp out-of-range pads; real codes are in [0, vocab).
+        safe = speaker_ids.clamp(0, self.speaker_vocab_size - 1)
+        embedded = self.speaker_embed(safe)
+        positions = torch.arange(safe.shape[1], device=device)
+        mask = positions[None, :] < speaker_lengths.to(device)[:, None]
+        denom = mask.float().sum(dim=1, keepdim=True).clamp_min(1.0)
+        pooled = (embedded * mask.unsqueeze(-1).float()).sum(dim=1) / denom
+        return self.speaker_proj(pooled)
+
     def forward(
         self,
         text_hidden: torch.Tensor,
@@ -170,6 +199,8 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         *,
         unit_lengths: torch.Tensor | None = None,
         unit_repeats: torch.Tensor | None = None,
+        speaker_ids: torch.Tensor | None = None,
+        speaker_lengths: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         if text_hidden.ndim != 3 or text_lengths.shape != text_hidden.shape[:1]:
             raise ValueError("invalid text hidden/length geometry")
@@ -189,6 +220,14 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         # Zero padded text positions before interpolation so they cannot leak into frames.
         encoded = encoded.masked_fill(text_padding.unsqueeze(-1), 0.0)
         expanded = expand_text_to_frames(encoded, text_lengths, frame_lengths)
+        speaker = self._speaker_condition(
+            speaker_ids,
+            speaker_lengths,
+            batch=expanded.shape[0],
+            device=expanded.device,
+        )
+        if speaker is not None:
+            expanded = expanded + speaker[:, None, :]
         frame_positions = torch.arange(expanded.shape[1], device=expanded.device)
         frame_padding = frame_positions[None, :] >= frame_lengths[:, None]
         decoded = self.unit_decoder(

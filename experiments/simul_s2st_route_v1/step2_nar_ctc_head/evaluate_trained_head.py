@@ -153,6 +153,12 @@ def score_record(
         dtype=torch.long,
         device=device,
     )
+    speaker = torch.tensor(
+        [[int(value) for value in record["bicodec_global"]]],
+        dtype=torch.long,
+        device=device,
+    )
+    speaker_lengths = torch.tensor([speaker.shape[1]], dtype=torch.long, device=device)
     with torch.autocast("cuda", dtype=torch.bfloat16):
         logits, frame_lengths = head(
             text_hidden,
@@ -160,6 +166,8 @@ def score_record(
             duration,
             unit_lengths=unit_lengths,
             unit_repeats=unit_repeats,
+            speaker_ids=speaker,
+            speaker_lengths=speaker_lengths,
         )
     frames = int(frame_lengths[0])
     active = logits[0, :frames].float()
