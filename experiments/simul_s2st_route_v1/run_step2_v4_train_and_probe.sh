@@ -34,20 +34,23 @@ tmux new-session -d -s "$TRAIN_TMUX" \
    bash experiments/simul_s2st_route_v1/step2_nar_ctc_head/run_15shard_8gpu.sh; echo TRAIN_EXIT=\$?; sleep 3600"
 
 while true; do
+  # Only the Megatron entrypoint counts as "training". The train tmux session
+  # deliberately sleeps after exit, so do not gate on tmux liveness.
   alive=0
-  tmux has-session -t "$TRAIN_TMUX" 2>/dev/null && alive=1
   pgrep -f "pretrain_nar_ctc_megatron.py.*${RUN_NAME}" >/dev/null 2>&1 && alive=1
   latest=""
   [[ -f "$CKPT_ROOT/latest_checkpointed_iteration.txt" ]] && latest=$(tr -d '[:space:]' <"$CKPT_ROOT/latest_checkpointed_iteration.txt")
   done_marker=0
   grep -q 'after training is done' "$TRAIN_LOG" 2>/dev/null && done_marker=1
-  if [[ "$alive" -eq 0 && "$latest" == "3000" && "$done_marker" -eq 1 ]]; then
+  if [[ "$latest" == "3000" && "$done_marker" -eq 1 && "$alive" -eq 0 ]]; then
     log "train finished latest=${latest}"
     break
   fi
-  # Fail fast if train session died early without finishing.
-  if [[ "$alive" -eq 0 && "$done_marker" -eq 0 ]]; then
-    log "ERROR: train tmux gone before completion (latest=${latest:-none})"
+  # Fail fast if train process and tmux both gone before completion.
+  tmux_alive=0
+  tmux has-session -t "$TRAIN_TMUX" 2>/dev/null && tmux_alive=1
+  if [[ "$alive" -eq 0 && "$tmux_alive" -eq 0 && "$done_marker" -eq 0 ]]; then
+    log "ERROR: train died before completion (latest=${latest:-none})"
     exit 2
   fi
   log "waiting train alive=${alive} latest=${latest:-none} done=${done_marker}"

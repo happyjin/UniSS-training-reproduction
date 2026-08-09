@@ -31,8 +31,8 @@ log "pipeline start: wait for train=${TRAIN_NAME}"
 
 # 1) Wait for training to finish (tmux gone + final checkpoint + log marker).
 while true; do
+  # Gate on the Megatron process only — train tmux may sleep after exit.
   train_alive=0
-  tmux has-session -t "$TRAIN_TMUX" 2>/dev/null && train_alive=1
   pgrep -f "pretrain_nar_ctc_megatron.py.*${TRAIN_NAME}" >/dev/null 2>&1 && train_alive=1
   latest=""
   [[ -f "$CKPT_ROOT/latest_checkpointed_iteration.txt" ]] && latest=$(tr -d '[:space:]' <"$CKPT_ROOT/latest_checkpointed_iteration.txt")
