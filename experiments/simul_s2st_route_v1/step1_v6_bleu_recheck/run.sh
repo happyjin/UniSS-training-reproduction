@@ -22,9 +22,11 @@ cd "$ROOT"
 
 CHECKPOINTS=()
 if [[ -z "${SKIP_DEFAULT_CHECKPOINTS:-}" ]]; then
-  CHECKPOINTS+=(--checkpoint "stage_a_iter500=$STAGE_A/iter_0000500")
-  for iteration in ${STAGE_B_ITERS:-0000250 0001250 0002500 0003750 0005000}; do
-    CHECKPOINTS+=(--checkpoint "stage_b_iter${iteration#0000}=$STAGE_B/iter_${iteration}")
+  for iteration in ${STAGE_A_ITERS:-500}; do
+    CHECKPOINTS+=(--checkpoint "stage_a_iter${iteration}=$STAGE_A/$(printf 'iter_%07d' "$iteration")")
+  done
+  for iteration in ${STAGE_B_ITERS:-250 1250 2500 3750 5000}; do
+    CHECKPOINTS+=(--checkpoint "stage_b_iter${iteration}=$STAGE_B/$(printf 'iter_%07d' "$iteration")")
   done
 fi
 
