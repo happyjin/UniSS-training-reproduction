@@ -133,7 +133,9 @@ class Full198CurriculumDataset(Dataset, _TokenizerMixin):
     def _table(self, shard_index: int):
         table = self._tables.pop(shard_index, None)
         if table is None:
-            table = pq.read_table(self.shards[shard_index]["file"], columns=REQUIRED_COLUMNS)
+            table = pq.read_table(
+                self.shards[shard_index]["file"], columns=list(REQUIRED_COLUMNS)
+            )
         self._tables[shard_index] = table
         while len(self._tables) > self.cache_shards:
             self._tables.popitem(last=False)
@@ -178,7 +180,7 @@ class UniSTDevDataset(Dataset, _TokenizerMixin):
         self.path = Path(parquet)
         self.tokenizer_path = Path(tokenizer_path)
         self._tokenizer = None
-        self.table = pq.read_table(self.path, columns=REQUIRED_COLUMNS)
+        self.table = pq.read_table(self.path, columns=list(REQUIRED_COLUMNS))
         self.length = self.table.num_rows if limit is None else min(self.table.num_rows, int(limit))
         if self.length <= 0:
             raise ValueError("validation dataset is empty")
@@ -196,4 +198,3 @@ class UniSTDevDataset(Dataset, _TokenizerMixin):
             "direction_id": 0 if record["src_lang"] == "eng" else 1,
             "sample_index": int(index),
         }
-
