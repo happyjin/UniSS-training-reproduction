@@ -12,6 +12,22 @@ from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
+import pyarrow.compute as pc
+
+
+SCHEMA_VERSION = "uniss_phase3_prefix_streaming_direction_index_v2"
+
+
+def _nonempty_mask(table) -> np.ndarray:
+    mask = None
+    for name in ("source_glm", "target_bicodec", "bicodec_global"):
+        present = pc.greater(pc.fill_null(pc.list_value_length(table[name]), 0), 0)
+        mask = present if mask is None else pc.and_(mask, present)
+    for name in ("transcription", "translation"):
+        text = pc.fill_null(table[name], "")
+        present = pc.greater(pc.utf8_length(pc.utf8_trim_whitespace(text)), 0)
+        mask = pc.and_(mask, present)
+    return pc.fill_null(mask, False).to_numpy(zero_copy_only=False)
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -33,17 +49,33 @@ def _one(payload: tuple[str, str]) -> dict[str, object]:
     eng_path = output / f"{source.stem}.eng.npy"
     cmn_path = output / f"{source.stem}.cmn.npy"
     if eng_path.is_file() and cmn_path.is_file():
+        rows = int(pq.ParquetFile(source).metadata.num_rows)
+        eng = int(np.load(eng_path, mmap_mode="r").shape[0])
+        cmn = int(np.load(cmn_path, mmap_mode="r").shape[0])
         return {
             "file": str(source.resolve()),
-            "rows": int(pq.ParquetFile(source).metadata.num_rows),
-            "eng": int(np.load(eng_path, mmap_mode="r").shape[0]),
-            "cmn": int(np.load(cmn_path, mmap_mode="r").shape[0]),
+            "rows": rows,
+            "eng": eng,
+            "cmn": cmn,
+            "rejected": rows - eng - cmn,
             "eng_index": str(eng_path.resolve()),
             "cmn_index": str(cmn_path.resolve()),
         }
-    values = pq.read_table(source, columns=["src_lang"]).column(0).to_numpy(zero_copy_only=False)
-    eng = np.flatnonzero(values == "eng").astype(np.uint32)
-    cmn = np.flatnonzero(values == "cmn").astype(np.uint32)
+    table = pq.read_table(
+        source,
+        columns=[
+            "src_lang",
+            "transcription",
+            "translation",
+            "source_glm",
+            "target_bicodec",
+            "bicodec_global",
+        ],
+    )
+    values = table.column("src_lang").to_numpy(zero_copy_only=False)
+    valid = _nonempty_mask(table)
+    eng = np.flatnonzero((values == "eng") & valid).astype(np.uint32)
+    cmn = np.flatnonzero((values == "cmn") & valid).astype(np.uint32)
     output.mkdir(parents=True, exist_ok=True)
     np.save(eng_path, eng, allow_pickle=False)
     np.save(cmn_path, cmn, allow_pickle=False)
@@ -52,6 +84,7 @@ def _one(payload: tuple[str, str]) -> dict[str, object]:
         "rows": int(len(values)),
         "eng": int(len(eng)),
         "cmn": int(len(cmn)),
+        "rejected": int(len(values) - len(eng) - len(cmn)),
         "eng_index": str(eng_path.resolve()),
         "cmn_index": str(cmn_path.resolve()),
     }
@@ -70,11 +103,12 @@ def main() -> None:
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         shards = list(pool.map(_one, [(str(path), str(output)) for path in sources]))
     summary = {
-        "schema_version": "uniss_phase3_prefix_streaming_direction_index_v1",
+        "schema_version": SCHEMA_VERSION,
         "shards": shards,
         "rows": sum(int(value["rows"]) for value in shards),
         "eng": sum(int(value["eng"]) for value in shards),
         "cmn": sum(int(value["cmn"]) for value in shards),
+        "rejected": sum(int(value["rejected"]) for value in shards),
     }
     _atomic_json(output / "index.json", summary)
     print(json.dumps(summary | {"shards": len(shards)}, sort_keys=True))
@@ -82,4 +116,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

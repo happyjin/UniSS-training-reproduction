@@ -22,10 +22,13 @@ source checkpoint:
 
 train data:
   data/raw/UniST/train-00000.parquet ... train-00197.parquet
-  19,785,924 rows
+  19,785,924 source rows
+  19,286,004 valid training rows (12,421,395 EN source; 6,864,609 ZH source)
+  499,920 rejected incomplete rows
 
 validation:
   data/raw/UniST/dev-00000.parquet
+  deterministic 1:1 EN-source/ZH-source interleaving (1024 rows)
 
 formal output:
   checkpoints/uniss_phase3_prefix_streaming_full198_joint_v1
@@ -44,7 +47,7 @@ GPU stop helper matches only this repository's known synthetic holder script.
 ```bash
 python -m experiments.uniss_phase3_prefix_streaming_full198_v1.build_direction_index \
   --input-dir data/raw/UniST \
-  --output-dir data/processed/uniss_phase3_prefix_streaming_full198_v1/direction_index \
+  --output-dir data/processed/uniss_phase3_prefix_streaming_full198_v1/direction_index_valid_v2 \
   --workers 32
 
 bash experiments/uniss_phase3_prefix_streaming_full198_v1/run_smoke_1gpu.sh
@@ -61,3 +64,8 @@ TensorBoard defaults to port `6065`:
 bash experiments/uniss_phase3_prefix_streaming_full198_v1/start_tensorboard.sh
 ```
 
+The formal run uses 64-row direction-local blocks.  With global batch 128,
+each optimizer step receives 64 EN-source and 64 ZH-source examples while the
+block order remains deterministically shuffled across all 198 shards.
+The v2 index excludes records with empty text, source GLM, target BiCodec, or
+BiCodec global sequences; it never rewrites the source parquet files.

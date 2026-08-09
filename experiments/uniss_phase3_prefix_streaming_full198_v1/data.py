@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
@@ -26,6 +27,20 @@ REQUIRED_COLUMNS = (
     "src_lang",
     "tgt_lang",
 )
+
+
+def nonempty_record_mask(table) -> np.ndarray:
+    """Return rows that satisfy every field consumed by the joint objective."""
+
+    mask = None
+    for name in ("source_glm", "target_bicodec", "bicodec_global"):
+        present = pc.greater(pc.fill_null(pc.list_value_length(table[name]), 0), 0)
+        mask = present if mask is None else pc.and_(mask, present)
+    for name in ("transcription", "translation"):
+        text = pc.fill_null(table[name], "")
+        present = pc.greater(pc.utf8_length(pc.utf8_trim_whitespace(text)), 0)
+        mask = pc.and_(mask, present)
+    return pc.fill_null(mask, False).to_numpy(zero_copy_only=False)
 
 
 @dataclass(frozen=True)
@@ -84,7 +99,7 @@ class Full198CurriculumDataset(Dataset, _TokenizerMixin):
         if block_size <= 0 or cache_shards <= 0:
             raise ValueError("block_size and cache_shards must be positive")
         metadata = json.loads(Path(index_json).read_text(encoding="utf-8"))
-        if metadata.get("schema_version") != "uniss_phase3_prefix_streaming_direction_index_v1":
+        if metadata.get("schema_version") != "uniss_phase3_prefix_streaming_direction_index_v2":
             raise ValueError("unsupported full198 direction index")
         self.shards = list(metadata["shards"])
         if len(self.shards) != 198:
@@ -176,12 +191,37 @@ class Full198CurriculumDataset(Dataset, _TokenizerMixin):
 
 
 class UniSTDevDataset(Dataset, _TokenizerMixin):
-    def __init__(self, parquet: str | Path, tokenizer_path: str | Path, limit: int | None = None) -> None:
+    def __init__(
+        self,
+        parquet: str | Path,
+        tokenizer_path: str | Path,
+        limit: int | None = None,
+        *,
+        balance_directions: bool = True,
+    ) -> None:
         self.path = Path(parquet)
         self.tokenizer_path = Path(tokenizer_path)
         self._tokenizer = None
         self.table = pq.read_table(self.path, columns=list(REQUIRED_COLUMNS))
-        self.length = self.table.num_rows if limit is None else min(self.table.num_rows, int(limit))
+        valid_rows = np.flatnonzero(nonempty_record_mask(self.table))
+        maximum = len(valid_rows) if limit is None else min(len(valid_rows), int(limit))
+        if limit is None or not balance_directions:
+            self.row_indices = valid_rows[:maximum].astype(np.int64, copy=False)
+        else:
+            languages = self.table.column("src_lang").to_numpy(zero_copy_only=False)
+            eng = valid_rows[languages[valid_rows] == "eng"]
+            cmn = valid_rows[languages[valid_rows] == "cmn"]
+            paired = min(len(eng), len(cmn), maximum // 2)
+            selected = np.empty(paired * 2, dtype=np.int64)
+            selected[0::2] = eng[:paired]
+            selected[1::2] = cmn[:paired]
+            if len(selected) < maximum:
+                used = np.zeros(self.table.num_rows, dtype=np.bool_)
+                used[selected] = True
+                remaining = valid_rows[~used[valid_rows]][: maximum - len(selected)]
+                selected = np.concatenate((selected, remaining))
+            self.row_indices = selected
+        self.length = int(len(self.row_indices))
         if self.length <= 0:
             raise ValueError("validation dataset is empty")
 
@@ -191,7 +231,8 @@ class UniSTDevDataset(Dataset, _TokenizerMixin):
     def __getitem__(self, index: int) -> dict[str, object]:
         if not 0 <= index < self.length:
             raise IndexError(index)
-        value = self.table.slice(index, 1).to_pylist()[0]
+        row_index = int(self.row_indices[index])
+        value = self.table.slice(row_index, 1).to_pylist()[0]
         record = self._record(value, index)
         return {
             "record_json": json.dumps(record, ensure_ascii=False, separators=(",", ":")),

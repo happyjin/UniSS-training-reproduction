@@ -60,7 +60,7 @@ export CUDA_VISIBLE_DEVICES
   --experiment-valid-parquet "${VALID_PARQUET}" \
   --experiment-phase3-model "${PHASE3_MODEL}" \
   --experiment-valid-limit "${VALID_LIMIT}" \
-  --experiment-block-size 4096 \
+  --experiment-block-size "${BLOCK_SIZE}" \
   --experiment-cache-shards 2 \
   --experiment-lora-rank 16 \
   --experiment-lora-alpha 32 \
@@ -128,4 +128,3 @@ export CUDA_VISIBLE_DEVICES
   --seed "${SEED}" \
   "${LOAD_ARGS[@]}" \
   2>&1 | tee -a "${LOG}"
-
