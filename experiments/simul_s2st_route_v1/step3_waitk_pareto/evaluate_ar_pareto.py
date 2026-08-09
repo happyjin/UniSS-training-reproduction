@@ -60,6 +60,34 @@ def shard(indices: list[int], rank: int, world: int) -> list[int]:
     return indices[rank::world]
 
 
+def resolve_direction(row: dict[str, object]) -> str:
+    """Map dataset fields to Stage09 direction without editing shipping loaders.
+
+    ``B2BridgeAudioDataset.phase3_record`` exposes ``tgt_lang`` (and optionally
+    ``src_lang``), not ``direction``. Prefer an explicit direction if present.
+    """
+    record = row.get("phase3_record")
+    if isinstance(record, dict):
+        explicit = record.get("direction")
+        if explicit in ("eng->cmn", "cmn->eng"):
+            return str(explicit)
+        tgt = str(record.get("tgt_lang") or "").lower()
+        src = str(record.get("src_lang") or "").lower()
+        if tgt in {"cmn", "zh", "zho"} or src in {"eng", "en"}:
+            return "eng->cmn"
+        if tgt in {"eng", "en"} or src in {"cmn", "zh", "zho"}:
+            return "cmn->eng"
+    for key in ("direction", "tgt_lang", "src_lang"):
+        value = row.get(key)
+        if value in ("eng->cmn", "cmn->eng"):
+            return str(value)
+    raise KeyError(
+        "cannot resolve Stage09 direction from row "
+        f"(id={row.get('id')!r}, phase3_keys="
+        f"{sorted(record.keys()) if isinstance(record, dict) else None})"
+    )
+
+
 def run_one(
     engine: Stage11Engine,
     dataset: B2BridgeAudioDataset,
@@ -70,7 +98,7 @@ def run_one(
     request_root: Path,
 ) -> dict[str, object]:
     row = dataset[index]
-    direction = str(row["phase3_record"]["direction"])
+    direction = resolve_direction(row)
     request_dir = request_root / f"k{lagging_k}_w{lambda_window}_idx{index}"
     if request_dir.exists():
         # Allow resume of a crashed shard by clearing only this sample dir.

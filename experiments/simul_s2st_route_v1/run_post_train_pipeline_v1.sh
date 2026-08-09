@@ -12,7 +12,7 @@ TRAIN_TMUX=${TRAIN_TMUX:-step2_nar_ctc_15shard}
 CKPT_ROOT=$ROOT/checkpoints/simul_s2st_route_v1/${TRAIN_NAME}
 PIPELINE_LOG=$ROOT/logs/simul_s2st_route_v1/${TRAIN_NAME}_post_pipeline.log
 DECODE_RUN=${DECODE_RUN:-step2_trained_nar_decode_v3_blankpen}
-PARETO_RUN=${PARETO_RUN:-step3_ar_pareto_smoke8_v1}
+PARETO_RUN=${PARETO_RUN:-step3_ar_pareto_smoke8_v2}
 REPORT=$ROOT/docs/uniss_training_reproduction/simul_s2st_route_execution_report_step2_v3_and_step3_smoke.md
 
 export PATH=$USER_ROOT/conda_envs/uniss-train/bin:$PATH
