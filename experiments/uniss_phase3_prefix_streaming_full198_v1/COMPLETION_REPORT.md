@@ -117,4 +117,3 @@ af31f3d fix: harden full198 streaming outlier handling
 ```
 
 At completion, local `master` and `private/main` were synchronized.
-
