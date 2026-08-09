@@ -2,7 +2,7 @@
   "schema_version": "simul_s2st_route_v1_step2a_upsample_ratio_v1",
   "research_only": true,
   "run_name": "step2a_upsample_ratio_v1",
-  "generated_at": "2026-08-09T03:36:13+0000",
+  "generated_at": "2026-08-09T03:40:27+0000",
   "config": {
     "manifests": [
       "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/phase3_whisper_streamspeech_joint_v1/full198_joint/joint_train.jsonl",
@@ -470,5 +470,31 @@
       "relative_attention_cost": 7.111111111111111
     }
   ],
+  "anchor_spread": {
+    "target_text_tokens": {
+      "count": 398531,
+      "mean": 20.65540945499141,
+      "p50": 18.41176470588235,
+      "p90": 30.291666666666668,
+      "p95": 36.8,
+      "p99": 57.333333333333336,
+      "p100": 100.0,
+      "coefficient_of_variation": 0.4421185201273339,
+      "p95_over_p50": 1.9987220447284344,
+      "p99_over_p50": 3.1139510117145903
+    },
+    "source_audio_seconds": {
+      "count": 398531,
+      "mean": 53.95748653393665,
+      "p50": 52.78637770897833,
+      "p90": 67.33067729083666,
+      "p95": 70.04608294930875,
+      "p99": 74.63070676031612,
+      "p100": 645.0413223140496,
+      "coefficient_of_variation": 0.2003581190136142,
+      "p95_over_p50": 1.326972715110072,
+      "p99_over_p50": 1.4138251192716778
+    }
+  },
   "recommended_ratio": 96
 }

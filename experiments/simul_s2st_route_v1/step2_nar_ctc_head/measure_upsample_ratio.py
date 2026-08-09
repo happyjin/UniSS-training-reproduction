@@ -42,10 +42,15 @@ class Row:
     text_length: int
     unit_length: int
     adjacent_repeats: int
+    source_duration_ms: int
 
     @property
     def required_frames(self) -> int:
         return self.unit_length + self.adjacent_repeats
+
+    @property
+    def source_duration_s(self) -> float:
+        return self.source_duration_ms / 1000.0
 
 
 def adjacent_repeats(tokens: Sequence[int]) -> int:
@@ -87,13 +92,15 @@ def read_rows(manifests: Sequence[Path], sample_rows: int | None = None) -> Iter
                 continue
             units = record["target_bicodec"]
             text_length = len(record["target_qwen_ids"])
-            if text_length <= 0 or not units:
+            duration = int(record.get("source_duration_ms", 0))
+            if text_length <= 0 or not units or duration <= 0:
                 continue
             yield Row(
                 direction=direction,
                 text_length=text_length,
                 unit_length=len(units),
                 adjacent_repeats=adjacent_repeats(units),
+                source_duration_ms=duration,
             )
 
 
@@ -155,6 +162,33 @@ def smallest_ratio(rows: Sequence[Row], coverage: float, grid: Sequence[int]) ->
         if feasibility(rows, ratio)["feasible_fraction"] >= coverage:
             return ratio
     return None
+
+
+def anchor_spread(rows: Sequence[Row]) -> dict[str, dict[str, float]]:
+    """Compare the two quantities the head could size its frame budget from.
+
+    A constant ``repeat_interleave`` ratio must be large enough for the worst utterance,
+    so what matters is not the median frames-per-anchor but how wide the distribution is.
+    ``p95_over_p50`` is that width: the factor by which the budget must exceed the typical
+    case, which is exactly the fraction of the CTC lattice that ends up as padding.
+    """
+
+    required = np.array([row.required_frames for row in rows], dtype=np.float64)
+    anchors = {
+        "target_text_tokens": np.array([row.text_length for row in rows], dtype=np.float64),
+        "source_audio_seconds": np.array([row.source_duration_s for row in rows]),
+    }
+    result = {}
+    for name, values in anchors.items():
+        per_anchor = required / values
+        p50 = float(np.quantile(per_anchor, 0.5))
+        result[name] = {
+            **describe(per_anchor),
+            "coefficient_of_variation": float(per_anchor.std() / per_anchor.mean()),
+            "p95_over_p50": float(np.quantile(per_anchor, 0.95) / p50) if p50 else 0.0,
+            "p99_over_p50": float(np.quantile(per_anchor, 0.99) / p50) if p50 else 0.0,
+        }
+    return result
 
 
 def partition_degenerate(
@@ -267,7 +301,24 @@ def render_markdown(payload: dict) -> str:
         )
     lines += [
         "",
-        "## 4. Configuration",
+        "## 4. Is text length the right thing to size from?",
+        "",
+        "Measured on healthy rows only. A wide distribution means the constant ratio has to be "
+        "set for the tail, and every typical utterance pays for that in padded CTC frames.",
+        "",
+        "| Anchor | Frames per anchor p50 | p95 | p99 | Coefficient of variation | p95/p50 | p99/p50 |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for name, block_values in payload["anchor_spread"].items():
+        lines.append(
+            f"| {name.replace('_', ' ')} | {block_values['p50']:.1f} | "
+            f"{block_values['p95']:.1f} | {block_values['p99']:.1f} | "
+            f"{block_values['coefficient_of_variation']:.3f} | "
+            f"{block_values['p95_over_p50']:.2f}x | {block_values['p99_over_p50']:.2f}x |"
+        )
+    lines += [
+        "",
+        "## 5. Configuration",
         "",
         "```json",
         json.dumps(payload["config"], indent=2),
@@ -385,6 +436,7 @@ def main() -> None:
         },
         "healthy": block(healthy),
         "feasibility_healthy": [feasibility(healthy, ratio) for ratio in grid],
+        "anchor_spread": anchor_spread(healthy),
     }
     payload["config"]["degenerate_ratio_limit"] = args.degenerate_ratio_limit
     payload["recommended_ratio"] = payload["coverage_targets_healthy"].get("0.999")

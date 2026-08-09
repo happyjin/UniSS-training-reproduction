@@ -24,6 +24,7 @@ from experiments.simul_s2st_route_v1.step2_nar_ctc_head.measure_upsample_ratio i
     CURRENT_RATIO,
     Row,
     adjacent_repeats,
+    anchor_spread,
     feasibility,
     iter_lines,
     partition_degenerate,
@@ -65,36 +66,57 @@ class FeasibilityTest(unittest.TestCase):
     def test_ratio_must_cover_repeats_not_just_length(self) -> None:
         # 4 text tokens, 8 units, all identical: needs 8 + 7 = 15 frames, so ratio 2 fails
         # even though 2 * 4 = 8 equals the unit count.
-        rows = [Row(direction="eng->cmn", text_length=4, unit_length=8, adjacent_repeats=7)]
+        rows = [Row(direction="eng->cmn", text_length=4, unit_length=8, adjacent_repeats=7, source_duration_ms=4000)]
         self.assertEqual(feasibility(rows, 2)["feasible_fraction"], 0.0)
         self.assertEqual(feasibility(rows, 4)["feasible_fraction"], 1.0)
 
     def test_relative_cost_is_quadratic_and_anchored_at_the_current_ratio(self) -> None:
-        rows = [Row(direction="eng->cmn", text_length=10, unit_length=20, adjacent_repeats=0)]
+        rows = [Row(direction="eng->cmn", text_length=10, unit_length=20, adjacent_repeats=0, source_duration_ms=4000)]
         self.assertAlmostEqual(feasibility(rows, CURRENT_RATIO)["relative_attention_cost"], 1.0)
         halved = feasibility(rows, CURRENT_RATIO // 2)["relative_attention_cost"]
         self.assertAlmostEqual(halved, 0.25, places=6)
 
     def test_occupancy_reports_how_much_of_the_lattice_is_real(self) -> None:
-        rows = [Row(direction="eng->cmn", text_length=10, unit_length=100, adjacent_repeats=0)]
+        rows = [Row(direction="eng->cmn", text_length=10, unit_length=100, adjacent_repeats=0, source_duration_ms=4000)]
         self.assertAlmostEqual(feasibility(rows, 20)["mean_lattice_occupancy"], 0.5, places=6)
 
     def test_smallest_ratio_walks_the_grid_in_order(self) -> None:
         rows = [
-            Row(direction="eng->cmn", text_length=10, unit_length=100, adjacent_repeats=0),
-            Row(direction="cmn->eng", text_length=10, unit_length=300, adjacent_repeats=0),
+            Row(direction="eng->cmn", text_length=10, unit_length=100, adjacent_repeats=0, source_duration_ms=4000),
+            Row(direction="cmn->eng", text_length=10, unit_length=300, adjacent_repeats=0, source_duration_ms=4000),
         ]
         self.assertEqual(smallest_ratio(rows, 0.5, [8, 16, 32, 64]), 16)
         self.assertEqual(smallest_ratio(rows, 1.0, [8, 16, 32, 64]), 32)
         self.assertIsNone(smallest_ratio(rows, 1.0, [8, 16]))
 
 
+class AnchorTest(unittest.TestCase):
+    def test_prefers_the_anchor_with_the_narrower_spread(self) -> None:
+        # Frames track duration exactly (50 per second) but text length varies, so the
+        # duration anchor must come out tight and the text anchor wide.
+        rows = [
+            Row(
+                direction="eng->cmn",
+                text_length=text,
+                unit_length=200,
+                adjacent_repeats=0,
+                source_duration_ms=4000,
+            )
+            for text in (5, 10, 20, 40)
+        ]
+        spread = anchor_spread(rows)
+        self.assertAlmostEqual(spread["source_audio_seconds"]["p50"], 50.0, places=6)
+        self.assertAlmostEqual(spread["source_audio_seconds"]["coefficient_of_variation"], 0.0)
+        self.assertGreater(spread["target_text_tokens"]["coefficient_of_variation"], 0.5)
+        self.assertGreater(spread["target_text_tokens"]["p95_over_p50"], 1.5)
+
+
 class PartitionTest(unittest.TestCase):
     def test_splits_on_required_frames_and_keeps_every_row(self) -> None:
         rows = [
-            Row(direction="eng->cmn", text_length=10, unit_length=200, adjacent_repeats=0),
-            Row(direction="cmn->eng", text_length=1, unit_length=500, adjacent_repeats=0),
-            Row(direction="cmn->eng", text_length=2, unit_length=200, adjacent_repeats=0),
+            Row(direction="eng->cmn", text_length=10, unit_length=200, adjacent_repeats=0, source_duration_ms=4000),
+            Row(direction="cmn->eng", text_length=1, unit_length=500, adjacent_repeats=0, source_duration_ms=4000),
+            Row(direction="cmn->eng", text_length=2, unit_length=200, adjacent_repeats=0, source_duration_ms=4000),
         ]
         healthy, degenerate = partition_degenerate(rows, 100.0)
         self.assertEqual(len(healthy) + len(degenerate), len(rows))
@@ -102,7 +124,7 @@ class PartitionTest(unittest.TestCase):
         self.assertEqual([row.text_length for row in degenerate], [1])
 
     def test_boundary_row_counts_as_healthy(self) -> None:
-        rows = [Row(direction="eng->cmn", text_length=2, unit_length=200, adjacent_repeats=0)]
+        rows = [Row(direction="eng->cmn", text_length=2, unit_length=200, adjacent_repeats=0, source_duration_ms=4000)]
         healthy, degenerate = partition_degenerate(rows, 100.0)
         self.assertEqual(len(healthy), 1)
         self.assertEqual(degenerate, [])
@@ -147,24 +169,35 @@ class ManifestTest(unittest.TestCase):
                 "tgt_lang": "cmn",
                 "target_qwen_ids": [1, 2, 3],
                 "target_bicodec": [4, 4, 5],
+                "source_duration_ms": 4000,
             },
             {  # empty text
                 "src_lang": "cmn",
                 "tgt_lang": "eng",
                 "target_qwen_ids": [],
                 "target_bicodec": [1, 2],
+                "source_duration_ms": 4000,
             },
             {  # empty units
                 "src_lang": "cmn",
                 "tgt_lang": "eng",
                 "target_qwen_ids": [1],
                 "target_bicodec": [],
+                "source_duration_ms": 4000,
             },
             {  # direction outside the bilingual scope
                 "src_lang": "eng",
                 "tgt_lang": "eng",
                 "target_qwen_ids": [1],
                 "target_bicodec": [1],
+                "source_duration_ms": 4000,
+            },
+            {  # no usable duration to anchor against
+                "src_lang": "cmn",
+                "tgt_lang": "eng",
+                "target_qwen_ids": [1],
+                "target_bicodec": [1],
+                "source_duration_ms": 0,
             },
         ]
         with tempfile.TemporaryDirectory() as directory:

@@ -1,6 +1,6 @@
 # Step 2a — sizing the NAR CTC upsample ratio
 
-> Run `step2a_upsample_ratio_v1` · 2026-08-09T03:36:13+0000 · research only.
+> Run `step2a_upsample_ratio_v1` · 2026-08-09T03:40:27+0000 · research only.
 
 399,987 target utterances from joint_train.jsonl, joint_valid.jsonl.
 
@@ -51,7 +51,16 @@
 | BiCodec tokens | 3000 | 3000 | 3000 |
 | Required frames per text token | 197 | 969 | 2997 |
 
-## 4. Configuration
+## 4. Is text length the right thing to size from?
+
+Measured on healthy rows only. A wide distribution means the constant ratio has to be set for the tail, and every typical utterance pays for that in padded CTC frames.
+
+| Anchor | Frames per anchor p50 | p95 | p99 | Coefficient of variation | p95/p50 | p99/p50 |
+|---|---:|---:|---:|---:|---:|---:|
+| target text tokens | 18.4 | 36.8 | 57.3 | 0.442 | 2.00x | 3.11x |
+| source audio seconds | 52.8 | 70.0 | 74.6 | 0.200 | 1.33x | 1.41x |
+
+## 5. Configuration
 
 ```json
 {
