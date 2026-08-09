@@ -1211,3 +1211,157 @@ batch-one RTF < 1
 3. 当前失败的首要原因不是 GPU、RTF 或 group size，而是 reward 与 checkpoint selection 没有直接优化端到端 latency，且 premature/unnecessary cost 把策略推向保守。
 4. 下一轮先做 E3 WRITE-bias dev sweep，再做 R1/R2；不要立即扩大 full198，也不要覆盖 E0–E3 v1。
 5. 只有在 matched E1 上形成质量保持且 latency 更低的 Pareto 点，才能声称 GRPO 对 simultaneous S2ST 有独立贡献。
+
+## 18. 2026-07-29 Reward-v2、offline Phase3 与论文 UniSS 对比
+
+### 18.1 本章目的和比较边界
+
+本章把 Reward-v2 R0--R3、此前本地 offline Phase3 和原论文 UniSS Table 1 放入同一处，补充 P/Q 模式、指标含义、数值范围以及可比较性边界。表中所有质量指标都是 higher-is-better；每个合并单元均按 `EN→ZH / ZH→EN` 排列。
+
+必须先区分两组可直接比较的结果：
+
+1. 原论文 UniSS 与本地 offline Phase3 的 **CVSS-T test** 结果使用同一数据集，可以按相同方向和相同 P/Q mode 查看差值；但论文模型约为 1.5B，本地模型为 0.5B，checkpoint、训练数据、解码实现和 metric 版本仍不同。
+2. 本地 offline Phase3 与 Reward-v2 R0--R3 使用相同的 **UniST test**，可以分析 streaming 相对 offline 的退化；但 streaming 是 free-running WAIT/WRITE operating point，不属于论文的 P/Q offline mode。
+
+不能把 CVSS-T 与 UniST 的绝对数值直接相减或排名。CVSS-T 使用真实配对测试语音；UniST test 的数据构成、source/reference 和语言方向分布不同。
+
+截至 2026-07-29：
+
+- Reward-v2 full-dev 四路评估和总报告已经完成；
+- Reward-v2 full-test 的 R0、R3 已完成；
+- R1、R2 已完成 generation、audio decode、Text/Speech BLEU、SLC、ASR 和 UTMOS，但 AutoPCP 第四分片因并行 worker 共享 GPU 时 OOM 而停止；
+- 因此 R1/R2 的正式 AutoPCP、batch-one latency 和四路 full-test 总报告仍待补齐，下面相应单元明确标成“待补齐”。
+- 英文 Whisper attention-mask-v2 修正重评估已完成 21/21 个正式 run；CVSS-T、offline Phase2/Phase3、Stage4/Stage6、E0--E3 和 Reward-v2 R0--R3 的 ZH→EN Speech-BLEU 均已冻结。
+
+### 18.2 P 和 Q 的含义
+
+P/Q 是原始 UniSS **offline speech-to-speech translation 推理模式**，不是 Phase 编号，也不是训练集切分。
+
+| 缩写 | 全称与官方 mode | Prompt/生成路径 | 主要目标 | 典型代价 |
+|---|---|---|---|---|
+| P | Performance，`balance_mode` | `task_s2s_translation + balance_mode`；通常先生成目标翻译文本，再生成目标语音 semantic tokens | 在翻译质量、生成长度和速度之间取平衡 | 比 Q 路径短，通常更快，但质量不保证总是高于或低于 Q |
+| Q | Quality，`slow_mode` | `task_s2s_translation + slow_mode`；显式生成源语音转写、目标文本翻译，再生成目标语音 semantic tokens | 用更完整的中间文本链路提高最终 S2ST 质量 | 输出链更长、计算更慢，通常 Text/Speech BLEU 更高，但 SLC、UTMOS 等单项不保证同步上升 |
+
+当前 R0--R3 streaming 行不标 P/Q，原因是它们按 source chunk 逐步执行 WAIT/WRITE，并在 free-running 策略下生成最终文本、semantic tokens 和音频；这是 online/streaming operating point，不能冒充 offline P 或 Q。
+
+### 18.3 指标含义、范围和阅读方式
+
+#### 18.3.1 与论文和 offline 共用的质量指标
+
+| 指标 | 本报告中的计算含义 | 范围 | 越高/越低越好 | 重要限制 |
+|---|---|---|---|---|
+| Text-BLEU | 模型直接生成的目标语言翻译文本与 reference translation 的 corpus SacreBLEU；中文使用 `zh` tokenizer，英文使用 `13a` | 严格 `0--100` | 越高越好，100 表示在当前分词和规范化下完全匹配 | 只评价文本，不包含语音 codec、发音和 ASR 误差；不同数据集、tokenizer/signature 不能直接混比 |
+| Speech-BLEU | 先对生成目标语音做目标语言 ASR，再把 ASR 文本与 reference translation 计算 BLEU | 严格 `0--100` | 越高越好 | 同时包含翻译、semantic/codec、发音和 ASR backend 误差；Text-BLEU 高而 Speech-BLEU 低通常表示语音可懂度或 ASR 链路有问题 |
+| AutoPCP / A.PCP | 用 multilingual Wav2Vec2 表征和训练好的音频 comparator 比较源语音与生成目标语音，作为跨语言韵律/说话风格保持的自动分数 | 常按近似 MOS-like `1--5` 理解，但本地 comparator 最后一层是无截断线性输出，**没有严格数学上下界**；当前逐样本实际出现过约 `-3.21--4.69` | 越高越好 | 不能把 3.0 解释成“60%”；也不能仅凭 AutoPCP 高就声称翻译正确或 speaker identity 完全保留 |
+| SLC-0.2 | 生成音频时长与源音频时长比值 `r=generated/source` 满足 `abs(r-1)<=0.2` 的样本比例，即时长处于源音频的 `0.8--1.2` 倍 | 严格 `0--1`，也可乘 100% | 越高越好，1 表示全部样本通过 | 只衡量时长合规，不评价内容、语义和自然度 |
+| SLC-0.4 | 与 SLC-0.2 相同，但容许 `abs(r-1)<=0.4`，即 `0.6--1.4` 倍 | 严格 `0--1` | 越高越好；同一批数据理论上应满足 `SLC-0.4 >= SLC-0.2` | 阈值更宽松，接近 1 不代表严格时长控制已经很好 |
+| UTMOS | UTMOS22 strong 模型根据生成波形预测主观自然度 MOS | 解释性/训练目标通常为 `1--5`；自动回归实现不应被当作绝对人工 MOS 硬边界 | 越高越好，约 4 通常比约 3 更自然 | 是预测音质，不是六名双语听众的主观 MOS；不评价翻译是否正确、说话人是否相同 |
+
+AutoPCP、UTMOS 和 SLC 必须结合 BLEU 阅读。例如 AutoPCP/UTMOS 较高但 Speech-BLEU 很低，表示音频可能“听起来像语音、韵律也相似”，却没有正确、可懂地说出目标翻译。
+
+#### 18.3.2 Streaming 专用指标
+
+| 指标 | 含义 | 范围 | 方向 |
+|---|---|---|---|
+| First WRITE / First WRITE NCA | 策略第一次提交目标内容前消耗的源语音时间；NCA 不计模型墙钟计算 | `>=0 ms`，无固定上限 | 越低越好，但必须同时通过质量和 premature gate |
+| ATD proxy | Average Token Delay 的当前代理实现，衡量目标 token 相对源时间轴的平均滞后 | `>=0 ms`，无固定上限 | 越低越好 |
+| LAAL proxy | Length-Adaptive Average Lagging 的 GLM-token 代理，修正输出长度差异后的 lag | 通常 `>=0`，无固定统一上限 | 越低越好；只能在相同 tokenizer/实现下比较 |
+| Premature WRITE | reference/pseudo schedule 仍要求 WAIT 时模型提前 WRITE 的比例 | `0--1` | 越低越安全；过低也可能来自 always-WAIT |
+| Unnecessary WAIT | 已经满足 WRITE 条件时模型仍 WAIT 的比例 | `0--1` | 越低越好；与 First WRITE/ATD 一起反映过度保守 |
+| WAIT/WRITE accuracy、F1 | action policy 对 reference/pseudo action 的分类准确度和 F1 | `0--1` | 越高越好，但高 action F1 不等价于端到端 BLEU/latency 最优 |
+| Forced actions/sample | runtime 为保证结构、final flush 或恢复而强制改写 action 的平均次数 | `>=0` | 越低越好，0 表示无需 runtime 强制恢复 |
+| RTF | 推理墙钟时间除以音频时长 | `>=0` | 越低越好；`RTF<1` 表示按该口径快于实时，批处理 RTF 与 batch-one latency 必须分开报告 |
+
+### 18.4 论文、此前 offline 与当前 Reward-v2 streaming 总表
+
+每格顺序均为 `EN→ZH / ZH→EN`。粗体只表示同一数据集/协议分组内本表的较优数值，不代表跨数据集总排名。
+
+| 数据集/协议 | 模型 | Speech-BLEU | Text-BLEU | AutoPCP | SLC-0.2 | SLC-0.4 | UTMOS |
+|---|---|---:|---:|---:|---:|---:|---:|
+| CVSS-T offline | 论文 UniSS-P 1.5B | 30.280 / 23.610 | 30.930 / 24.450 | 2.730 / 2.750 | 0.980 / 0.840 | 0.990 / 0.970 | 3.770 / 3.860 |
+| CVSS-T offline | 论文 UniSS-Q 1.5B | **32.200 / 24.280** | **32.950 / 26.280** | 2.710 / 2.740 | **0.980 / 0.870** | **0.990 / 0.970** | 3.760 / 3.860 |
+| CVSS-T offline | 本地 Phase3-P 0.5B | 20.010 / 6.990 | 20.495 / 9.398 | 2.772 / 2.884 | 0.708 / 0.637 | 0.959 / 0.914 | 3.884 / 3.485 |
+| CVSS-T offline | 本地 Phase3-Q 0.5B | 23.582 / 12.045 | 24.146 / 15.335 | **2.789 / 2.907** | 0.702 / 0.634 | 0.959 / 0.913 | **3.886 / 3.473** |
+| UniST test offline | 本地 Phase3-P | 38.995 / 19.377 | 40.540 / 32.451 | **3.277 / 2.912** | 0.718 / 0.632 | **0.942 / 0.878** | 3.352 / 3.668 |
+| UniST test offline | 本地 Phase3-Q | **46.306 / 22.727** | **48.170 / 39.375** | 3.275 / 2.885 | **0.725 / 0.636** | 0.935 / 0.871 | 3.359 / **3.668** |
+| UniST test streaming | R0 E3-v1 bias | **37.397 / 16.134** | 40.615 / 27.705 | 3.130 / 2.520 | 0.693 / 0.517 | 0.905 / 0.732 | 3.364 / 3.557 |
+| UniST test streaming | R1 coverage | 37.188 / 16.439 | 40.565 / **28.714** | 待补齐 | 0.693 / 0.515 | 0.903 / 0.736 | 3.361 / 3.554 |
+| UniST test streaming | R2 latency | 37.314 / **17.107** | **40.623** / 28.258 | 待补齐 | **0.700** / 0.518 | **0.905** / 0.735 | 3.358 / 3.562 |
+| UniST test streaming | R3 bilingual + adaptive KL | 37.308 / 17.034 | 40.610 / 27.958 | **3.126 / 2.530** | 0.693 / **0.520** | 0.905 / **0.737** | **3.361 / 3.565** |
+
+本地 CVSS-T 报告虽然 24/24 个指标单元都已生成，但有 20 个单元因 audio decode 或 missing text 导致有效样本数略少于 4,897，因此仍标记为未完成/非正式复现；差值应与实际 `N` 一起解释。
+
+表中 ZH→EN Speech-BLEU 使用 `whisper-large-v3-attention-mask-v2` 修正协议。旧版 `1.x--3.x` 数值因变长 batch 缺失 attention mask、padding 区域循环解码而无效；EN→ZH Paraformer 结果和其他指标不受该 bug 影响。
+
+### 18.5 与此前 offline Phase3 的同数据结论
+
+使用相同 UniST test 时：
+
+1. **EN→ZH Text-BLEU 基本保持 offline-P 水平。** R2 为 `40.623`，比 offline-P `40.540` 高 `0.083`；但比 offline-Q `48.170` 低 `7.547`。
+2. **EN→ZH Speech-BLEU 仍有可见损失。** streaming 最好 R0 为 `37.397`，比 offline-P 低 `1.598`，比 offline-Q 低 `8.909`。
+3. **ZH→EN 仍存在明确的 streaming 质量损失。** streaming 最好 Text-BLEU 是 R1 的 `28.714`，比 offline-P 低 `3.737`、比 offline-Q 低 `10.661`。修正后的 Speech-BLEU 以 R2 的 `17.107` 最好、R3 的 `17.034` 次之；R2 相对 offline-P/Q 分别低 `2.270/5.620`。
+4. **UTMOS 相对稳定。** EN→ZH streaming 约 `3.358--3.364`，与 offline `3.352--3.359` 基本持平；ZH→EN 约 `3.554--3.565`，比 offline 约低 `0.10`。
+5. **AutoPCP 和 SLC 低于 offline。** 已完整的 R0/R3 AutoPCP 相对 offline-P，EN→ZH 低约 `0.146--0.150`，ZH→EN 低约 `0.382--0.392`；说明 streaming 的韵律/风格保持和时间控制仍有损失。
+
+因此当前 streaming 的主要问题不是波形完全失真，而是增量 action/commit 带来的翻译质量、目标语音可懂度、韵律和时长控制损失。Quality mode 是 offline 上限，Performance mode 是更公平的效率导向参考；不能只与 Q 比较后断言 streaming 无效，也不能只与 P 的单个 Text-BLEU 接近就宣称整体追平 offline。
+
+### 18.6 与原论文 UniSS 的同数据 CVSS-T 结论
+
+本地 Phase3-Q 0.5B 与论文 UniSS-Q 1.5B 的同协议差值如下：
+
+| 方向 | 指标 | 本地 Phase3-Q | 论文 UniSS-Q | Δ(本地-论文) |
+|---|---|---:|---:|---:|
+| EN→ZH | Speech-BLEU | 23.582 | 32.200 | -8.618 |
+| EN→ZH | Text-BLEU | 24.146 | 32.950 | -8.804 |
+| ZH→EN | Speech-BLEU | 12.045 | 24.280 | -12.235 |
+| ZH→EN | Text-BLEU | 15.335 | 26.280 | -10.946 |
+| EN→ZH | AutoPCP | 2.789 | 2.710 | +0.079 |
+| ZH→EN | AutoPCP | 2.907 | 2.740 | +0.167 |
+| EN→ZH | UTMOS | 3.886 | 3.760 | +0.126 |
+| ZH→EN | UTMOS | 3.473 | 3.860 | -0.388 |
+
+结论：
+
+- 本地 0.5B Phase3 尚未达到论文 1.5B UniSS 的整体翻译和最终语音可懂度；
+- AutoPCP 四个 P/Q 方向单元均高于论文，EN→ZH UTMOS 也高于论文，说明当前主要瓶颈不是所有维度上的音质崩坏；
+- 修正 attention mask 后，ZH→EN Speech-BLEU 与论文的差距从旧报告的 `-21.340` 收窄到 `-12.235`，证明旧 Whisper batching bug 是主要误差源；剩余差距仍然显著，不能再归因于 padding 循环，需要从0.5B模型容量、UniST/CVSS-T域差异、英文 semantic/codec 泛化和有效样本失败继续分析；
+- SLC-0.2 明显低于论文，说明严格时长合规仍需改善；
+- 当前 Reward-v2 R0--R3 尚未跑 CVSS-T，因此不能把其 UniST test 数值直接与论文 Table 1 做胜负判断。要形成正式论文对比，需冻结 dev 选出的 R2/R3 operating point，并使用同一 CVSS-T P/Q-compatible 或明确标注的 streaming 协议重新评估。
+
+### 18.7 Reward-v2 当前选择结论
+
+full-dev 的明确结论保持如下：
+
+- 修正后的 ZH→EN Speech-BLEU 在 dev/test 都以 R2 最高：`15.813/17.107`；R3 为 `15.387/17.034`，test 非常接近但 dev 低 `0.426`。因此单看目标语音可懂度应选 R2，综合策略仍需联合 latency、Text-BLEU、AutoPCP、SLC 和 UTMOS；
+- R2 相对 R1 的 First WRITE 降低 `122.9 ms`、ATD 降低 `46.5 ms`，是当前延迟改善最明显的实验，但 EN→ZH Text-BLEU 下降 `0.152`；
+- R3 相对 R1 的 First WRITE 降低 `76.6 ms`、ATD 降低 `24.7 ms`，同时 ZH→EN Text-BLEU 提升 `0.325`、EN→ZH 提升 `0.084`，是当前质量/延迟更均衡的方案；
+- R1 改善了部分 ZH→EN 文本质量，但延迟比 R0/R2/R3 更保守，不适合作为最终 operating point；
+- 在 R1/R2 full-test AutoPCP 和 batch-one latency 补齐前，R2“低延迟优先”、R3“综合优先”的判断仍是 provisional，而不是最终 test 定论。
+
+### 18.8 当前最佳 operating point 与端到端延迟
+
+| 方案 | Test Speech-BLEU EN→ZH / ZH→EN | Test Text-BLEU EN→ZH / ZH→EN | Dev First WRITE NCA | Dev ATD | 结论 |
+|---|---:|---:|---:|---:|---|
+| R0 | 37.397 / 16.134 | 40.615 / 27.705 | 4205.6 ms | 1890.0 ms | EN→ZH Speech-BLEU 最高，但双向平均和延迟不如 R2 |
+| R1 | 37.188 / 16.439 | 40.565 / 28.714 | 4234.1 ms | 1907.9 ms | ZH→EN Text-BLEU 最高，但最保守、延迟最高 |
+| R2 | 37.314 / **17.107** | **40.623** / 28.258 | **4111.2 ms** | **1861.4 ms** | 当前质量与策略延迟综合最优；尚缺独立 batch-one/AutoPCP test 完整审计 |
+| R3 | 37.308 / 17.034 | 40.610 / 27.958 | 4157.5 ms | 1883.2 ms | 与 R2 接近，且已有完整 test 和 batch-one audit，适合作为当前可部署保守选择 |
+
+若必须现在选一个研究主方案，推荐 **R2 explicit-latency**：它拥有最高 ZH→EN Speech-BLEU、最高 EN→ZH Text-BLEU，同时 First WRITE 和 ATD 最低。若必须选择一个已经完成独立 batch-one 与全套 test 完整性验证的网页展示 checkpoint，则推荐 **R3 bilingual + adaptive KL**。
+
+R3 的200条 batch-one test 显示：First WRITE NCA `4697.6 ms`，加入 Qwen 与 BiCodec 墙钟后的 StartOffset CA `5293.4 ms`；p95 分别为 `7680.0/8826.6 ms`。端到端 RTF 相对 source audio 为 `0.1647`，说明模型计算本身快于实时，但当前约4.7--5.3秒首包延迟主要来自 WAIT/WRITE 策略和 pseudo source timeline，而非纯GPU计算。该数字仍不包含真正实时 WhisperVQ 前端的额外稳定化延迟，因此不能直接宣称原始麦克风端到端只有5.3秒。
+
+详细产物：
+
+```text
+eval_outputs/simul_uniss_stage7a_reward_v2_15shard_v1/full_dev_e2e_v1/
+  reward_v2_four_way_full_dev_report.md
+
+eval_outputs/simul_uniss_stage7a_reward_v2_15shard_v1/full_test_e2e_v1/
+
+eval_outputs/uniss_full198_phase2_phase3_20260726T065924Z/report/
+  phase2_phase3_detailed_evaluation_report.md
+
+eval_outputs/cvss_t_zh_en_phase3_full198_iter_0009075_v1/report/
+  cvss_t_phase3_table1_report.md
+```

@@ -8,6 +8,8 @@
 当前 Phase2/Phase3 全量结果来自 **UniST dev/test**，论文 Table 1 来自 **CVSS-T test 4,897 对**。
 因此本报告只做 Phase2 与 Phase3 的同数据内部比较；论文表格作为参考背景展示，**不计算跨数据集差值、胜负或排名**。
 
+> 2026-07-29 修正：原报告 ZH→EN Speech-BLEU 使用的 batched Whisper-large-v3 缺失显式 attention mask，旧 `1.x` 数值无效。21/21 个正式 run 已使用 `whisper-large-v3-attention-mask-v2` 完成重算。EN→ZH Paraformer 和其他指标不受影响。完整根因与审计见 `whisper_attention_mask_v2_correction_report.md`。
+
 ## 2. Phase2 与 Phase3 全量指标对比
 
 ### unist dev
@@ -26,9 +28,9 @@
 | SLC-0.4 | Performance (P) | EN→ZH | 0.9282 | 0.9365 | +0.0084 | 1434/1434 |
 | SLC-0.4 | Quality (Q) | ZH→EN | 0.8005 | 0.8326 | +0.0321 | 6511/6518 |
 | SLC-0.4 | Quality (Q) | EN→ZH | 0.9296 | 0.9344 | +0.0049 | 1434/1434 |
-| Speech-BLEU | Performance (P) | ZH→EN | 1.2552 | 1.4670 | +0.2119 | 6508/6513 |
+| Speech-BLEU | Performance (P) | ZH→EN | 16.3810 | 16.5154 | +0.1344 | 6508/6513 |
 | Speech-BLEU | Performance (P) | EN→ZH | 35.1379 | 35.9432 | +0.8054 | 1433/1433 |
-| Speech-BLEU | Quality (Q) | ZH→EN | 1.6176 | 1.8927 | +0.2751 | 6511/6518 |
+| Speech-BLEU | Quality (Q) | ZH→EN | 19.3076 | 21.3884 | +2.0808 | 6511/6518 |
 | Speech-BLEU | Quality (Q) | EN→ZH | 41.6389 | 42.8128 | +1.1739 | 1434/1433 |
 | Text-BLEU | Performance (P) | ZH→EN | 32.7111 | 33.3860 | +0.6749 | 6528/6526 |
 | Text-BLEU | Performance (P) | EN→ZH | 37.1654 | 37.8105 | +0.6451 | 1434/1434 |
@@ -58,9 +60,9 @@
 | SLC-0.4 | Performance (P) | EN→ZH | 0.9304 | 0.9421 | +0.0116 | 9112/9112 |
 | SLC-0.4 | Quality (Q) | ZH→EN | 0.8458 | 0.8712 | +0.0254 | 14223/14235 |
 | SLC-0.4 | Quality (Q) | EN→ZH | 0.9267 | 0.9349 | +0.0082 | 9112/9112 |
-| Speech-BLEU | Performance (P) | ZH→EN | 1.4024 | 1.4790 | +0.0766 | 14211/14232 |
+| Speech-BLEU | Performance (P) | ZH→EN | 16.8206 | 19.3770 | +2.5564 | 14211/14232 |
 | Speech-BLEU | Performance (P) | EN→ZH | 37.8378 | 38.9953 | +1.1575 | 9111/9110 |
-| Speech-BLEU | Quality (Q) | ZH→EN | 1.7262 | 1.7499 | +0.0237 | 14223/14235 |
+| Speech-BLEU | Quality (Q) | ZH→EN | 21.3719 | 22.7268 | +1.3549 | 14223/14235 |
 | Speech-BLEU | Quality (Q) | EN→ZH | 44.9075 | 46.3063 | +1.3988 | 9110/9111 |
 | Text-BLEU | Performance (P) | ZH→EN | 31.7635 | 32.4509 | +0.6875 | 14252/14247 |
 | Text-BLEU | Performance (P) | EN→ZH | 39.6430 | 40.5404 | +0.8974 | 9111/9108 |

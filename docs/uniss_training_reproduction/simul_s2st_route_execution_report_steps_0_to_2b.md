@@ -1,13 +1,13 @@
-# Simul-S2ST route — execution report for Steps 0, 1 and 2a
+# Simul-S2ST route — execution report for Steps 0, 1, 2a and 2b
 
 > Research report. All experiments live under `experiments/simul_s2st_route_v1/`; no existing
 > training script, runtime or checkpoint was modified. Machine: 8× NVIDIA H200.
 > Companion data reports are in `reports/simul_s2st_route_v1/`.
 
 This executes the first three items of the plan in
-[`simul_s2st_route_decision_and_recommendation.md`](./simul_s2st_route_decision_and_recommendation.md).
-Two of the three came back differently from what that plan assumed, and both differences
-change what should be built next.
+[`simul_s2st_route_decision_and_recommendation.md`](./simul_s2st_route_decision_and_recommendation.md),
+plus one check the plan did not call for. Three of the four came back differently from what
+the plan assumed, and each difference changes what should be built next.
 
 ---
 
@@ -18,6 +18,7 @@ change what should be built next.
 | 0 — RTF decomposition | Qwen AR decode dominates; if so, build the NAR head | Confirmed: AR decode 52.5% of wall clock, and a further 34.7% is the offline fallback that fires when no WRITE is accepted | NAR head confirmed as first priority, and the fallback is a second, cheaper target |
 | 1 — V6 checkpoint recheck | Check whether BLEU fell along with agreement | Agreement fell ~5×; BLEU did not fall, and the final checkpoint slightly beats the teacher stream | The Stage B gate was measuring the wrong thing. V6 checkpoints are worth keeping |
 | 2a — upsample ratio | Measure it; expect something smaller than the inherited 48 | 48 is **too small** — it silently drops 2.25% of training rows — and 99.9% coverage needs 96, at 4× the attention cost | The constant-ratio design itself is wrong; anchor the frame budget to duration instead |
+| 2b — reuse the existing head | (not in the plan) V6 already ships a trained `NARBiCodecCTC`, so check it before rebuilding | It emits blanks on every frame at every checkpoint, and there is no content under the blank prior either | Step 2 builds a head rather than tuning one — but V6 only saw 3.2% of an epoch, so this is not yet proof the architecture cannot work |
 
 ---
 
@@ -246,7 +247,71 @@ before any latency number from this head is meaningful.
 
 ---
 
-## 4. Revised plan for Step 2
+## 4. Step 2b — the head V6 already trained is empty
+
+Full data: [`step2b_existing_nar_head_v1.md`](../../reports/simul_s2st_route_v1/step2b_existing_nar_head_v1.md).
+
+The plan treats the NAR CTC head as something to build, but joint V6 already trains one
+through Stage A and Stage B. Checking it first is an hour of work against a one-to-two week
+build, so it was worth doing before anything else in Step 2.
+
+### 4.1 Method
+
+The head is given its best case on purpose: the frozen Phase3 backbone, teacher GLM source
+tokens, the reference translation, and ordinary causal attention rather than the
+policy-conditioned mask used during training. Target-text hidden states are gathered exactly
+as `gather_target_hidden` does in the training loop, passed through the checkpoint's own
+`unit_ctc`, and greedily CTC-decoded.
+
+### 4.2 Result
+
+| Checkpoint | Dir | Unit error rate | Predicted units | Reference units | Blank frames |
+|---|---|---:|---:|---:|---:|
+| `stage_a_iter500` | EN→ZH | 100.0% | 0 | 295 | 100.0% |
+| `stage_b_iter2500` | EN→ZH | 100.0% | 0 | 295 | 100.0% |
+| `stage_b_iter5000` | EN→ZH | 100.0% | 0 | 295 | 100.0% |
+| `stage_b_iter5000` | ZH→EN | 100.0% | 0 | 223 | 100.0% |
+
+Every frame decodes to blank, at every checkpoint, in both directions.
+
+An all-blank output has two possible causes, so the probe also decodes the best *non-blank*
+token per frame to tell them apart:
+
+| Checkpoint | Dir | Mean blank prob | Mean best non-blank prob | Blank-suppressed UER | Distinct tokens |
+|---|---|---:|---:|---:|---:|
+| `stage_a_iter500` | EN→ZH | 0.618 | 0.0095 | 99.7% | 16.4 |
+| `stage_b_iter5000` | EN→ZH | 0.707 | 0.0037 | 99.6% | 12.7 |
+| `stage_b_iter5000` | ZH→EN | 0.634 | 0.0054 | 99.6% | 7.9 |
+
+This settles it. If the head had learnt the content and merely mis-calibrated its blank
+prior, suppressing blank would recover a stream resembling the reference. Instead the error
+stays at 99.6%, and the non-blank distribution is nearly uniform: the *maximum* probability
+over 8,192 classes averages 0.0037, and the decode uses 8–16 distinct tokens where the
+reference uses 179–273. There is no content under the prior. The head also degraded from
+Stage A to Stage B — blank probability 0.618 → 0.707, distinct tokens 16.4 → 12.7 — so a
+fifth of Stage B's loss budget (`bicodec_ctc` at weight 1) was spent on a term that was
+getting worse.
+
+### 4.3 What this does and does not prove
+
+It does **not** prove the architecture cannot work. Stage A ran 500 iterations and Stage B
+5,000, at global batch 128 with 20% replay microbatches, which is about 563k joint samples
+against an estimated 17.6M-row training corpus — **3.2% of a single epoch**. A head trained
+that briefly on an 8,192-way 50 Hz target may simply not have started yet.
+
+What it does establish is that there is nothing here to warm-start from, and that three
+independent defects were present the whole time: the lattice is 46–65% blank by construction
+at ratio 48, 2.25% of rows have no CTC path, and the T2U encoder is bidirectional and
+padding-blind. Any retraining should fix those before spending another 5,000 iterations.
+
+It is also worth noting how hard the target is relative to the papers this design borrows
+from. StreamSpeech-style unit CTC predicts deduplicated HuBERT cluster IDs — a coarse,
+heavily reduced sequence. Here the target is 8,192-way BiCodec semantic tokens at a full
+50 Hz with no reduction, which is a substantially harder non-autoregressive problem.
+
+---
+
+## 5. Revised plan for Step 2
 
 The plan's ordering survives — the NAR CTC head is still the right first build, and Step 0
 strengthens that. What changes is the head's design:
@@ -258,9 +323,16 @@ strengthens that. What changes is the head's design:
 2. **Make the T2U encoder causal and padding-aware** before measuring anything.
 3. **Fix the loss accounting.** `unit_infeasible` should be a hard failure in a streaming
    head's training, not a silent counter, now that we know it fires on 2.25% of rows.
-4. **Take the free 1.35× first.** Merge the LoRA adapters and vectorise the repetition
+4. **Budget a real training run.** V6 gave this head 3.2% of an epoch. Any conclusion about
+   whether NAR CTC can hit 50 Hz BiCodec needs at least a full epoch on the isolated head,
+   which is cheap precisely because Qwen stays frozen — only the head takes gradients.
+5. **Consider reducing the target before reducing the model.** Deduplicating runs in the
+   BiCodec semantic stream, as StreamSpeech does with HuBERT units, shortens the target and
+   raises lattice occupancy at the same time. Step 2a already measures the adjacent-repeat
+   count needed to size that.
+6. **Take the free 1.35× first.** Merge the LoRA adapters and vectorise the repetition
    penalty — both verified numerically identical, both independent of the head.
-5. **Gate on frozen-backend BLEU**, using the Step 1 harness, not on teacher agreement.
+7. **Gate on frozen-backend BLEU**, using the Step 1 harness, not on teacher agreement.
 
 Step 3 (Λ-shaped KV cache + wait-k) is unchanged, but Step 0 adds a prerequisite: the
 `offline_fallback` path fires on 9 of 16 samples and costs 34.7% of the wall clock. Until the
@@ -269,7 +341,7 @@ measuring the fallback rather than the streaming path.
 
 ---
 
-## 5. Reproduction
+## 6. Reproduction
 
 ```bash
 # Step 0 — wall-clock decomposition and Qwen microbenchmark
@@ -281,9 +353,13 @@ bash experiments/simul_s2st_route_v1/step1_v6_bleu_recheck/run.sh
 # Step 2a — upsample ratio and anchor measurement (CPU only)
 bash experiments/simul_s2st_route_v1/step2_nar_ctc_head/run_measure_upsample_ratio.sh
 
+# Step 2b — does the head V6 already trained produce anything?
+bash experiments/simul_s2st_route_v1/step2_nar_ctc_head/run_evaluate_existing_head.sh
+
 # Tests
 python experiments/simul_s2st_route_v1/step0_rtf_decomposition/tests/test_instrumentation.py
 python experiments/simul_s2st_route_v1/step0_rtf_decomposition/tests/test_qwen_forward_profile.py
 python experiments/simul_s2st_route_v1/step1_v6_bleu_recheck/tests/test_loader.py
 python experiments/simul_s2st_route_v1/step2_nar_ctc_head/tests/test_measure_upsample_ratio.py
+python experiments/simul_s2st_route_v1/step2_nar_ctc_head/tests/test_evaluate_existing_head.py
 ```

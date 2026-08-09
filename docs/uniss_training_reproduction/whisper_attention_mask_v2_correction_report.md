@@ -119,9 +119,55 @@ metrics_whisper_attention_mask_v2/
 
 <!-- WHISPER_V2_RESULTS_TABLE_START -->
 
-全量重算进行中；完成后由 `experiments/evaluation/whisper_attention_mask_v2/summarize.py` 生成并替换本段。
+> 最终冻结时间：2026-07-29 23:30 UTC。21/21 个正式 run 均已写入并通过 `COMPLETE`。所有行均通过数量、协议、attention mask、异常长度、空 hypothesis 和 batch policy 验证。
+
+| Run | Mode | N | Legacy Speech-BLEU | Corrected Speech-BLEU | Delta | Legacy length ratio | Corrected length ratio |
+|---|---|---:|---:|---:|---:|---:|---:|
+| offline_phase2_unist_dev | performance:cmn->eng | 6508 | 1.2552 | 16.3810 | +15.1258 | 16.790 | 1.448 |
+| offline_phase2_unist_dev | quality:cmn->eng | 6511 | 1.6176 | 19.3076 | +17.6899 | 15.660 | 1.468 |
+| offline_phase2_unist_test | performance:cmn->eng | 14211 | 1.4024 | 16.8206 | +15.4183 | 15.788 | 1.473 |
+| offline_phase2_unist_test | quality:cmn->eng | 14223 | 1.7262 | 21.3719 | +19.6457 | 15.493 | 1.408 |
+| offline_phase3_unist_dev | performance:cmn->eng | 6513 | 1.4670 | 16.5154 | +15.0484 | 15.605 | 1.547 |
+| offline_phase3_unist_dev | quality:cmn->eng | 6518 | 1.8927 | 21.3884 | +19.4957 | 14.536 | 1.451 |
+| offline_phase3_unist_test | performance:cmn->eng | 14232 | 1.4790 | 19.3770 | +17.8980 | 15.779 | 1.364 |
+| offline_phase3_unist_test | quality:cmn->eng | 14235 | 1.7499 | 22.7268 | +20.9769 | 16.163 | 1.403 |
+| offline_phase3_cvss_t_cmn_to_eng | performance:cmn->eng | 4849 | 1.7459 | 6.9897 | +5.2438 | 4.784 | 1.286 |
+| offline_phase3_cvss_t_cmn_to_eng | quality:cmn->eng | 4865 | 2.9397 | 12.0453 | +9.1056 | 4.515 | 1.196 |
+| stage4_unist_dev | streaming_stage4:cmn->eng | 6528 | 1.7462 | 13.9852 | +12.2390 | 10.344 | 1.430 |
+| stage4_unist_test | streaming_stage4:cmn->eng | 14252 | 3.0358 | 16.2733 | +13.2375 | 6.980 | 1.438 |
+| stage6_unist_dev | streaming_stage6:cmn->eng | 6527 | 1.8947 | 14.2764 | +12.3817 | 9.715 | 1.428 |
+| stage6_unist_test | streaming_stage6:cmn->eng | 14251 | 3.1077 | 16.8825 | +13.7749 | 6.847 | 1.394 |
+| stage7a_v1_e0_test | stage7a_e0_stage6:cmn->eng | 14250 | 1.1546 | 16.7046 | +15.5500 | 18.289 | 1.419 |
+| stage7a_v1_e1_test | stage7a_e1_continued_sft:cmn->eng | 14250 | 1.1644 | 16.2534 | +15.0890 | 18.089 | 1.451 |
+| stage7a_v1_e2_test | stage7a_e2_grpo_g4:cmn->eng | 14250 | 1.1273 | 17.0564 | +15.9291 | 18.506 | 1.378 |
+| stage7a_v1_e3_test | stage7a_e3_grpo_g8:cmn->eng | 14252 | 1.2149 | 16.7334 | +15.5185 | 17.288 | 1.407 |
+| reward_v2_r0_dev | stage7a_reward_v2_r0_e3_v1_bias:cmn->eng | 6527 | 0.9592 | 14.2101 | +13.2510 | 19.002 | 1.436 |
+| reward_v2_r1_dev | stage7a_reward_v2_r1_rebalanced_coverage:cmn->eng | 6527 | 0.9066 | 15.3875 | +14.4809 | 19.909 | 1.326 |
+| reward_v2_r2_dev | stage7a_reward_v2_r2_explicit_latency:cmn->eng | 6527 | 0.9518 | 15.8127 | +14.8610 | 19.305 | 1.319 |
+| reward_v2_r3_dev | stage7a_reward_v2_r3_bilingual_adaptive:cmn->eng | 6527 | 0.8906 | 15.3865 | +14.4959 | 20.549 | 1.349 |
+| reward_v2_r0_test | stage7a_reward_v2_r0_e3_v1_bias:cmn->eng | 14252 | 1.1783 | 16.1344 | +14.9561 | 17.913 | 1.464 |
+| reward_v2_r1_test | stage7a_reward_v2_r1_rebalanced_coverage:cmn->eng | 14251 | 1.1531 | 16.4390 | +15.2859 | 18.291 | 1.435 |
+| reward_v2_r2_test | stage7a_reward_v2_r2_explicit_latency:cmn->eng | 14251 | 1.2210 | 17.1067 | +15.8857 | 17.513 | 1.402 |
+| reward_v2_r3_test | stage7a_reward_v2_r3_bilingual_adaptive:cmn->eng | 14251 | 1.1990 | 17.0340 | +15.8350 | 17.748 | 1.402 |
 
 <!-- WHISPER_V2_RESULTS_TABLE_END -->
+
+### 4.1 最终结论
+
+1. **旧的 `1.x--3.x` ZH→EN Speech-BLEU 已被证实无效。** 已完成 run 的旧 ASR system/reference 长度比为 `4.515--20.549`，修正后收敛到 `1.196--1.547`；这与 attention-mask 缺失导致 decoder-limit 循环的根因完全一致。
+2. **Offline Phase3 本身没有出现英文语音能力崩溃。** UniST dev 修正后为 `16.5154`（P）和 `21.3884`（Q），test 为 `19.3770`（P）和 `22.7268`（Q）。相对 Phase2，Phase3 dev 的 P/Q 分别提高 `+0.1344/+2.0808`，test 分别提高 `+2.5564/+1.3549`。
+3. **Quality 模式对 ZH→EN 可懂度有稳定收益。** Phase2 dev/test 的 Q 相对 P 分别提高 `+2.9266/+4.5513`，Phase3 dev/test 分别提高 `+4.8730/+3.3498`。这说明增加生成预算对英文目标语音的完整性和可识别性确实有效。
+4. **Stage6 在 dev/test 都优于 Stage4，但 streaming 仍低于 offline。** UniST dev 上 Stage6 为 `14.2764`，比 Stage4 的 `13.9852` 高 `+0.2912`；test 上 Stage6 为 `16.8825`，比 Stage4 的 `16.2733` 高 `+0.6092`。Stage6 test 比 offline Phase3-P/Q 分别低 `2.4945/5.8443`。因此 streaming 的质量损失真实存在，但远没有旧报告中 `1.x` 所暗示的严重。
+5. **第一轮 GRPO 有小幅正收益，不是“完全无效”。** Stage7A test 中 E2/GRPO-g4 为 `17.0564`，比 E0/Stage6 的 `16.7046` 高 `+0.3518`，是 E0--E3 中最好；E3/GRPO-g8 为 `16.7334`，仅比 E0 高 `+0.0288`，说明扩大 group size 本身没有带来等比例收益。
+6. **Reward-v2 的 explicit-latency R2 是当前最稳定方案。** R2 在 dev/test 分别达到 `15.8127/17.1067`，均为 R0--R3 最高；相对 R0 分别提高 `+1.6026/+0.9723`。R3 test 为 `17.0340`，非常接近 R2，但 dev 低 `0.4262`，因此若只按当前修正后的 ZH→EN Speech-BLEU 选型，应优先 R2，再结合 latency、Text-BLEU、AutoPCP、SLC 和 UTMOS 判断最终 Pareto 点。
+7. **CVSS-T 的 bug 已修复，但跨域差距仍然存在。** Phase3 CVSS-T 修正后为 `6.9897`（P）和 `12.0453`（Q），明显高于旧值 `1.7459/2.9397`，但仍低于 UniST 内部分布结果和原论文 1.5B 模型结果。因此 CVSS-T 的剩余差距不能再归因于 Whisper padding bug，需要从模型规模、训练域、数据覆盖、semantic/codec 泛化与测试协议继续分析。
+
+### 4.2 最终比较边界
+
+- Stage4-vs-Stage6 的 UniST test ZH→EN Speech-BLEU 已可冻结为 `+0.6092`，但完整模型推荐仍需联合其他质量和 latency 指标。
+- Reward-v2 R2 test 的 `17.1067` 相对 offline Phase3-P/Q 分别低 `2.2703/5.6201`；R3 的 `17.0340` 分别低 `2.3430/5.6928`。
+- 当前表只修正 ZH→EN Speech-BLEU；不能据此改写 Text-BLEU、EN→ZH Speech-BLEU、AutoPCP、SLC、UTMOS 或 latency 的原始数值。
+- Reward-v2 的最终推荐不能只看单一 Speech-BLEU；R2/R3 仍需与已存在的延迟和韵律指标联合组成 Pareto 对比。
 
 ## 5. 旧报告影响范围
 
