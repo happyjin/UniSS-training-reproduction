@@ -8,6 +8,7 @@ RUN_NAME=${RUN_NAME:-step2_nar_ctc_15shard_v3_blankpen}
 BLANK_PENALTY=${BLANK_PENALTY:-1.0}
 GUIDED_CE_WEIGHT=${GUIDED_CE_WEIGHT:-0.0}
 CTC_WEIGHT=${CTC_WEIGHT:-1.0}
+UNIT_CE_WEIGHT=${UNIT_CE_WEIGHT:-0.0}
 LR_DECAY_STYLE=${LR_DECAY_STYLE:-inverse-square-root}
 # Reuse Phase3 joint Megatron optimizer / dataloader knobs (adam β2=0.98,
 # clip=0.5, inverse-square-root, num-workers=8, no-data-sharding).
@@ -79,6 +80,7 @@ test ! -e "$LOG"
   --nar-blank-penalty "$BLANK_PENALTY" \
   --nar-guided-ce-weight "$GUIDED_CE_WEIGHT" \
   --nar-ctc-weight "$CTC_WEIGHT" \
+  --nar-unit-ce-weight "$UNIT_CE_WEIGHT" \
   --tokenizer-type NullTokenizer \
   --vocab-size 180407 \
   --tensor-model-parallel-size 1 \

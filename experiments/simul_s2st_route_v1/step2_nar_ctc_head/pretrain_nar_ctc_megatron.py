@@ -110,6 +110,12 @@ def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         default=1.0,
         help="Scale on CTC loss (default 1.0 preserves v1–v4). Lower in v5 when guided CE should dominate.",
     )
+    group.add_argument(
+        "--nar-unit-ce-weight",
+        type=float,
+        default=0.0,
+        help="Weight for length-pooled unit CE (avg-pool frames→units then CE; 0 disables).",
+    )
     return parser
 
 
@@ -174,6 +180,54 @@ def guided_duration_ce(
     return loss
 
 
+def unit_pooled_ce(
+    logits: torch.Tensor,
+    units_padded: torch.Tensor,
+    frame_lengths: torch.Tensor,
+    unit_lengths: torch.Tensor,
+    *,
+    blank_id: int,
+) -> torch.Tensor:
+    """Average-pool frame logits down to ``unit_lengths`` and CE on units.
+
+    Unlike duration-stretched frame CE, this does not invent a hard frame→unit
+    map. Disabled when ``--nar-unit-ce-weight`` is 0 (default preserves v1–v7).
+    Blank logit is dropped so the classifier competes only over real units.
+    """
+
+    if logits.ndim != 3:
+        raise ValueError("logits must be [B,T,V]")
+    batch = logits.shape[0]
+    device = logits.device
+    vocab = logits.shape[-1]
+    if not (0 <= int(blank_id) < vocab):
+        raise ValueError(f"blank_id {blank_id} out of range for V={vocab}")
+    keep = [index for index in range(vocab) if index != int(blank_id)]
+    losses: list[torch.Tensor] = []
+    for index in range(batch):
+        frames = int(frame_lengths[index])
+        units = int(unit_lengths[index])
+        if frames <= 0 or units <= 0:
+            continue
+        # [1, V_nb, T] for adaptive_avg_pool1d → [1, V_nb, U]
+        active = logits[index, :frames].float().transpose(0, 1).unsqueeze(0)
+        active = active[:, keep, :]
+        pooled = torch.nn.functional.adaptive_avg_pool1d(active, units)
+        pooled = pooled.squeeze(0).transpose(0, 1)  # [U, V_nb]
+        target = units_padded[index, :units]
+        # Remap targets into the non-blank logit columns (identity when blank is last).
+        if int(blank_id) == vocab - 1:
+            mapped = target
+        else:
+            mapped = target - (target > int(blank_id)).long()
+        losses.append(
+            torch.nn.functional.cross_entropy(pooled, mapped.to(device), reduction="mean")
+        )
+    if not losses:
+        return logits.new_zeros(())
+    return torch.stack(losses).mean()
+
+
 def validate_nar_args(args) -> None:
     if int(args.micro_batch_size) < 1:
         raise ValueError("--micro-batch-size must be >= 1")
@@ -183,6 +237,8 @@ def validate_nar_args(args) -> None:
         raise ValueError("--nar-guided-ce-weight must be >= 0")
     if float(args.nar_ctc_weight) < 0:
         raise ValueError("--nar-ctc-weight must be >= 0")
+    if float(args.nar_unit_ce_weight) < 0:
+        raise ValueError("--nar-unit-ce-weight must be >= 0")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("Step2 NAR CTC requires TP=PP=1")
     if int(args.global_batch_size) % (
@@ -285,6 +341,7 @@ class NarCtcMegatronFactory:
                 self.blank_penalty = float(args.nar_blank_penalty)
                 self.guided_ce_weight = float(args.nar_guided_ce_weight)
                 self.ctc_weight = float(args.nar_ctc_weight)
+                self.unit_ce_weight = float(args.nar_unit_ce_weight)
                 trainable = sum(parameter.numel() for parameter in self.head.parameters())
                 frozen = sum(parameter.numel() for parameter in self.qwen.parameters())
                 if torch.distributed.get_rank() == 0:
@@ -300,6 +357,7 @@ class NarCtcMegatronFactory:
                                 "blank_penalty": self.blank_penalty,
                                 "guided_ce_weight": self.guided_ce_weight,
                                 "ctc_weight": self.ctc_weight,
+                                "unit_ce_weight": self.unit_ce_weight,
                                 "blank_id": self.head.blank_id,
                             }
                         },
@@ -367,6 +425,16 @@ class NarCtcMegatronFactory:
                         )
                     else:
                         guided = logits.new_zeros(())
+                    if self.unit_ce_weight > 0:
+                        unit_ce = unit_pooled_ce(
+                            logits,
+                            units_padded,
+                            frame_lengths,
+                            unit_lengths,
+                            blank_id=self.head.blank_id,
+                        )
+                    else:
+                        unit_ce = logits.new_zeros(())
                 if self.fail_on_infeasible and int(infeasible.item()) > 0:
                     bad = int(torch.nonzero(unit_lengths + unit_repeats > frame_lengths)[0])
                     raise FloatingPointError(
@@ -382,6 +450,7 @@ class NarCtcMegatronFactory:
                     self.ctc_weight * loss.mean
                     + self.blank_penalty * blank_mass
                     + self.guided_ce_weight * guided
+                    + self.unit_ce_weight * unit_ce
                 )
                 required = (unit_lengths + unit_repeats).float()
                 occupancy = (required / frame_lengths.float().clamp_min(1.0)).mean()
@@ -396,6 +465,7 @@ class NarCtcMegatronFactory:
                         occupancy.detach().float(),
                         blank_mass.detach().float(),
                         guided.detach().float(),
+                        unit_ce.detach().float(),
                     )
                 )
 
@@ -438,6 +508,8 @@ def loss_func(output_tensor):
         metrics["nar_blank_mass"] = averaged[6]
     if len(averaged) > 7:
         metrics["nar_guided_ce"] = averaged[7]
+    if len(averaged) > 8:
+        metrics["nar_unit_ce"] = averaged[8]
     return loss, metrics
 
 
