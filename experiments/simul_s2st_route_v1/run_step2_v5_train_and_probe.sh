@@ -109,7 +109,7 @@ for e in decode["results"]:
     )
 lines.append("")
 out = root / "docs/uniss_training_reproduction/simul_s2st_route_execution_report_step2_v5_guided_ce.md"
-out.write_text("\\n".join(lines), encoding="utf-8")
+out.write_text("\n".join(lines), encoding="utf-8")
 print("wrote", out)
 PY
 
