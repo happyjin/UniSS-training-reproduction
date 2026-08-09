@@ -41,6 +41,7 @@ from experiments.uniss_phase3_prefix_streaming_full198_v1.lora import (  # noqa:
     set_lora_training,
 )
 from training import constants_uniss as c  # noqa: E402
+from training.megatron_uniss_dataset import RepeatToLengthDataset  # noqa: E402
 from training.pretrain_uniss_megatron import load_megatron_runtime  # noqa: E402
 
 
@@ -68,6 +69,23 @@ METRIC_NAMES = (
     "tokens/teacher",
     "lora/update_rms",
 )
+
+
+def patch_unused_megatron_dataset_helper_compile() -> None:
+    """Skip the legacy indexed-dataset extension unused by this parquet dataset.
+
+    Megatron compiles ``helpers_cpp`` during every startup even when a custom
+    dataset provider never imports it.  The replacement is intentionally local
+    to this process and leaves the shared third-party checkout untouched.
+    """
+
+    from megatron.core.datasets import utils as dataset_utils
+
+    def no_op() -> None:
+        if torch.distributed.get_rank() == 0:
+            print("> skipping unused Megatron indexed-dataset helper compilation", flush=True)
+
+    dataset_utils.compile_helpers = no_op
 
 
 @dataclass
@@ -141,7 +159,7 @@ def validate_experiment_args(args) -> None:
 
 
 def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
-    del train_val_test_num_samples, vp_stage
+    del vp_stage
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     runtime.print_rank_0("> building independent full198 curriculum datasets ...")
@@ -157,7 +175,14 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         args.experiment_phase3_model,
         limit=int(args.experiment_valid_limit),
     )
-    runtime.print_rank_0(f"> full198 curriculum rows={len(train)} valid={len(valid)}")
+    valid_rows = len(valid)
+    valid_target = int(train_val_test_num_samples[1])
+    if valid_target > valid_rows:
+        valid = RepeatToLengthDataset(valid, valid_target)
+    runtime.print_rank_0(
+        f"> full198 curriculum rows={len(train)} valid_rows={valid_rows} "
+        f"valid_target={valid_target} valid_effective={len(valid)}"
+    )
     return train, valid, None
 
 
@@ -649,6 +674,7 @@ def forward_step(data_iterator, model):
 
 def main() -> None:
     runtime = load_megatron_runtime()
+    patch_unused_megatron_dataset_helper_compile()
     args = runtime.parse_and_validate_args(
         extra_args_provider=add_experiment_args,
         args_defaults={"tokenizer_type": "NullTokenizer"},
