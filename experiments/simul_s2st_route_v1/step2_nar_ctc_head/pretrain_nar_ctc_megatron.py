@@ -104,6 +104,12 @@ def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         default=0.0,
         help="Weight for duration-stretched unit CE (peaks non-blank mass; 0 disables).",
     )
+    group.add_argument(
+        "--nar-ctc-weight",
+        type=float,
+        default=1.0,
+        help="Scale on CTC loss (default 1.0 preserves v1–v4). Lower in v5 when guided CE should dominate.",
+    )
     return parser
 
 
@@ -175,6 +181,8 @@ def validate_nar_args(args) -> None:
         raise ValueError("--nar-blank-penalty must be >= 0")
     if float(args.nar_guided_ce_weight) < 0:
         raise ValueError("--nar-guided-ce-weight must be >= 0")
+    if float(args.nar_ctc_weight) < 0:
+        raise ValueError("--nar-ctc-weight must be >= 0")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("Step2 NAR CTC requires TP=PP=1")
     if int(args.global_batch_size) % (
@@ -276,6 +284,7 @@ class NarCtcMegatronFactory:
                 )
                 self.blank_penalty = float(args.nar_blank_penalty)
                 self.guided_ce_weight = float(args.nar_guided_ce_weight)
+                self.ctc_weight = float(args.nar_ctc_weight)
                 trainable = sum(parameter.numel() for parameter in self.head.parameters())
                 frozen = sum(parameter.numel() for parameter in self.qwen.parameters())
                 if torch.distributed.get_rank() == 0:
@@ -290,6 +299,7 @@ class NarCtcMegatronFactory:
                                 "global_batch_size": int(args.global_batch_size),
                                 "blank_penalty": self.blank_penalty,
                                 "guided_ce_weight": self.guided_ce_weight,
+                                "ctc_weight": self.ctc_weight,
                                 "blank_id": self.head.blank_id,
                             }
                         },
@@ -359,7 +369,7 @@ class NarCtcMegatronFactory:
                         f"max_frames={self.head.max_frames}"
                     )
                 mean = (
-                    loss.mean
+                    self.ctc_weight * loss.mean
                     + self.blank_penalty * blank_mass
                     + self.guided_ce_weight * guided
                 )

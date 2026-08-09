@@ -7,6 +7,8 @@ PYTHON=$USER_ROOT/conda_envs/uniss-train/bin/python
 RUN_NAME=${RUN_NAME:-step2_nar_ctc_15shard_v3_blankpen}
 BLANK_PENALTY=${BLANK_PENALTY:-1.0}
 GUIDED_CE_WEIGHT=${GUIDED_CE_WEIGHT:-0.0}
+CTC_WEIGHT=${CTC_WEIGHT:-1.0}
+LR_DECAY_STYLE=${LR_DECAY_STYLE:-inverse-square-root}
 # Reuse Phase3 joint Megatron optimizer / dataloader knobs (adam β2=0.98,
 # clip=0.5, inverse-square-root, num-workers=8, no-data-sharding).
 # Batch geometry differs from Phase3 mbs=1: this head + frozen Qwen only fills
@@ -76,6 +78,7 @@ test ! -e "$LOG"
   --nar-max-unit-tokens 1200 \
   --nar-blank-penalty "$BLANK_PENALTY" \
   --nar-guided-ce-weight "$GUIDED_CE_WEIGHT" \
+  --nar-ctc-weight "$CTC_WEIGHT" \
   --tokenizer-type NullTokenizer \
   --vocab-size 180407 \
   --tensor-model-parallel-size 1 \
@@ -102,7 +105,7 @@ test ! -e "$LOG"
   --min-lr "$MIN_LR" \
   --lr-warmup-iters "$LR_WARMUP_ITERS" \
   --lr-decay-iters "$TRAIN_ITERS" \
-  --lr-decay-style inverse-square-root \
+  --lr-decay-style "$LR_DECAY_STYLE" \
   --weight-decay 0.01 \
   --adam-beta1 0.9 \
   --adam-beta2 0.98 \
