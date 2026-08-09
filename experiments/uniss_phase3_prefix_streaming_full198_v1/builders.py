@@ -80,6 +80,27 @@ def build_action_prompt(record: Mapping[str, object], ratio: float) -> list[int]
     )
 
 
+def bounded_s2tt_record(
+    record: Mapping[str, object], max_input_tokens: int
+) -> dict[str, object]:
+    """Bound prefix/teacher S2TT inputs while preserving their leading context.
+
+    The longest streaming S2TT variant has 42 fixed tokens in addition to the
+    source GLM prefix and translation target.  Extremely long outliers are
+    clipped only at their right edge so no future source information leaks.
+    """
+
+    if max_input_tokens <= 43:
+        raise ValueError("max_input_tokens must exceed the S2TT protocol overhead")
+    bounded = dict(record)
+    translation = _ints(record, "translation_ids")
+    translation = translation[: max(1, max_input_tokens - 43)]
+    source_budget = max(1, max_input_tokens - len(translation) - 42)
+    bounded["translation_ids"] = translation
+    bounded["source_glm"] = _ints(record, "source_glm")[:source_budget]
+    return bounded
+
+
 def build_streaming_tts(
     record: Mapping[str, object],
     *,
@@ -193,4 +214,3 @@ def build_replay(record: Mapping[str, object], mode: str) -> TokenSample:
         c.TOKEN_EOS,
     ]
     return TokenSample(prompt, target, "replay_quality")
-

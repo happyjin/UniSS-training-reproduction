@@ -83,7 +83,17 @@ class BuilderTest(unittest.TestCase):
         ]
         self.assertEqual(semantic, list(range(40, 65)))
 
+    def test_s2tt_outlier_is_bounded_without_future_source(self) -> None:
+        value = record()
+        value["source_glm"] = list(range(5000))
+        value["translation_ids"] = list(range(100))
+        bounded = builders.bounded_s2tt_record(value, 4096)
+        sample = builders.build_streaming_s2tt(bounded, 1.0)
+        teacher = builders.build_teacher_s2tt(bounded)
+        self.assertLessEqual(len(sample.input_ids), 4096)
+        self.assertLessEqual(len(teacher.input_ids), 4096)
+        self.assertEqual(bounded["source_glm"], list(range(len(bounded["source_glm"]))))
+
 
 if __name__ == "__main__":
     unittest.main()
-

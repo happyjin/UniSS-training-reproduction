@@ -395,16 +395,28 @@ class Phase3PrefixStreamingModel:
                     else:
                         return Descriptor(record, task, short, long, primary)
                 if task in {"prefix", "commit"}:
+                    stream_record = builders.bounded_s2tt_record(
+                        record, self.max_sample_tokens
+                    )
+                    primary = builders.build_streaming_s2tt(stream_record, short)
+                    teacher = builders.build_teacher_s2tt(stream_record)
+                    long_sample = builders.build_streaming_s2tt(stream_record, long)
+                    if max(
+                        len(primary.input_ids),
+                        len(teacher.input_ids),
+                        len(long_sample.input_ids),
+                    ) > self.max_sample_tokens:
+                        raise AssertionError("bounded S2TT sample exceeds token budget")
                     return Descriptor(
-                        record,
+                        stream_record,
                         task,
                         short,
                         long,
-                        builders.build_streaming_s2tt(record, short),
-                        teacher=builders.build_teacher_s2tt(record),
-                        long=builders.build_streaming_s2tt(record, long),
+                        primary,
+                        teacher=teacher,
+                        long=long_sample,
                         action_prompt=(
-                            builders.build_action_prompt(record, short)
+                            builders.build_action_prompt(stream_record, short)
                             if task == "commit"
                             else None
                         ),

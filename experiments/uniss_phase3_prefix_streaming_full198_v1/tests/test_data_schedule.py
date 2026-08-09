@@ -32,7 +32,7 @@ class ValidationScheduleTest(unittest.TestCase):
                 for _ in range(198)
             ]
             metadata = {
-                "schema_version": "uniss_phase3_prefix_streaming_direction_index_v2",
+                "schema_version": "uniss_phase3_prefix_streaming_direction_index_v3",
                 "shards": shards,
                 "rows": 198 * 256,
                 "eng": 198 * 128,
@@ -59,8 +59,8 @@ class ValidationScheduleTest(unittest.TestCase):
                         "transcription": "a",
                         "translation": "b",
                         "source_glm": [1],
-                        "target_bicodec": [2],
-                        "bicodec_global": [3],
+                        "target_bicodec": [2, 3],
+                        "bicodec_global": [3] * 32,
                         "src_lang": language,
                         "tgt_lang": "eng" if language == "cmn" else "cmn",
                     }

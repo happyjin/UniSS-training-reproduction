@@ -32,10 +32,14 @@ REQUIRED_COLUMNS = (
 def nonempty_record_mask(table) -> np.ndarray:
     """Return rows that satisfy every field consumed by the joint objective."""
 
-    mask = None
-    for name in ("source_glm", "target_bicodec", "bicodec_global"):
-        present = pc.greater(pc.fill_null(pc.list_value_length(table[name]), 0), 0)
-        mask = present if mask is None else pc.and_(mask, present)
+    source_present = pc.greater(pc.fill_null(pc.list_value_length(table["source_glm"]), 0), 0)
+    semantic_usable = pc.greater_equal(
+        pc.fill_null(pc.list_value_length(table["target_bicodec"]), 0), 2
+    )
+    global_valid = pc.equal(
+        pc.fill_null(pc.list_value_length(table["bicodec_global"]), 0), 32
+    )
+    mask = pc.and_(pc.and_(source_present, semantic_usable), global_valid)
     for name in ("transcription", "translation"):
         text = pc.fill_null(table[name], "")
         present = pc.greater(pc.utf8_length(pc.utf8_trim_whitespace(text)), 0)
@@ -99,7 +103,7 @@ class Full198CurriculumDataset(Dataset, _TokenizerMixin):
         if block_size <= 0 or cache_shards <= 0:
             raise ValueError("block_size and cache_shards must be positive")
         metadata = json.loads(Path(index_json).read_text(encoding="utf-8"))
-        if metadata.get("schema_version") != "uniss_phase3_prefix_streaming_direction_index_v2":
+        if metadata.get("schema_version") != "uniss_phase3_prefix_streaming_direction_index_v3":
             raise ValueError("unsupported full198 direction index")
         self.shards = list(metadata["shards"])
         if len(self.shards) != 198:
