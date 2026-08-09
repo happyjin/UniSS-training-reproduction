@@ -167,7 +167,8 @@ Post-train pipeline under simul_s2st_route_v1 only; no shipping Stage09-11
 or Phase3 joint scripts were modified.
 EOF
 )"
-  git push private HEAD:main
+  # Avoid interactive password hangs inside tmux/non-TTY.
+  GIT_TERMINAL_PROMPT=0 git push private HEAD:main
   log "pushed $(git rev-parse --short HEAD)"
 fi
 

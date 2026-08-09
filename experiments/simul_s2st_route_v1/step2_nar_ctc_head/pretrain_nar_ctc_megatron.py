@@ -98,6 +98,12 @@ def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         default=0.0,
         help="Add λ * mean blank softmax mass on valid frames (fights CTC blank collapse).",
     )
+    group.add_argument(
+        "--nar-guided-ce-weight",
+        type=float,
+        default=0.0,
+        help="Weight for duration-stretched unit CE (peaks non-blank mass; 0 disables).",
+    )
     return parser
 
 
@@ -120,11 +126,55 @@ def blank_probability_penalty(
     return (probs * mask.float()).sum() / denom
 
 
+def guided_duration_ce(
+    logits: torch.Tensor,
+    units_padded: torch.Tensor,
+    frame_lengths: torch.Tensor,
+    unit_lengths: torch.Tensor,
+) -> torch.Tensor:
+    """Uniformly stretch target units onto frames and take token CE.
+
+    Blank-only CTC optima fragment non-blank mass across the unit vocabulary so
+    argmax stays blank. A cheap duration-guided CE peaks one unit per frame and
+    is disabled when ``--nar-guided-ce-weight`` is 0 (default preserves v1–v3).
+    """
+
+    if logits.ndim != 3:
+        raise ValueError("logits must be [B,T,V]")
+    batch, max_frames, _ = logits.shape
+    device = logits.device
+    targets = torch.zeros(batch, max_frames, dtype=torch.long, device=device)
+    mask = torch.zeros(batch, max_frames, dtype=torch.bool, device=device)
+    for index in range(batch):
+        frames = int(frame_lengths[index])
+        units = int(unit_lengths[index])
+        if frames <= 0 or units <= 0:
+            continue
+        unit_ids = units_padded[index, :units]
+        # Map frame t -> unit floor(t * units / frames), last frame gets last unit.
+        positions = torch.arange(frames, device=device)
+        mapped = (positions * units) // frames
+        mapped = mapped.clamp(max=units - 1)
+        targets[index, :frames] = unit_ids[mapped]
+        mask[index, :frames] = True
+    if not bool(mask.any()):
+        return logits.new_zeros(())
+    flat_logits = logits.float().reshape(-1, logits.shape[-1])
+    flat_targets = targets.reshape(-1)
+    flat_mask = mask.reshape(-1)
+    loss = torch.nn.functional.cross_entropy(
+        flat_logits[flat_mask], flat_targets[flat_mask], reduction="mean"
+    )
+    return loss
+
+
 def validate_nar_args(args) -> None:
     if int(args.micro_batch_size) < 1:
         raise ValueError("--micro-batch-size must be >= 1")
     if float(args.nar_blank_penalty) < 0:
         raise ValueError("--nar-blank-penalty must be >= 0")
+    if float(args.nar_guided_ce_weight) < 0:
+        raise ValueError("--nar-guided-ce-weight must be >= 0")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("Step2 NAR CTC requires TP=PP=1")
     if int(args.global_batch_size) % (
@@ -225,6 +275,7 @@ class NarCtcMegatronFactory:
                     args.nar_allow_infeasible
                 )
                 self.blank_penalty = float(args.nar_blank_penalty)
+                self.guided_ce_weight = float(args.nar_guided_ce_weight)
                 trainable = sum(parameter.numel() for parameter in self.head.parameters())
                 frozen = sum(parameter.numel() for parameter in self.qwen.parameters())
                 if torch.distributed.get_rank() == 0:
@@ -238,6 +289,7 @@ class NarCtcMegatronFactory:
                                 "micro_batch_size": int(args.micro_batch_size),
                                 "global_batch_size": int(args.global_batch_size),
                                 "blank_penalty": self.blank_penalty,
+                                "guided_ce_weight": self.guided_ce_weight,
                                 "blank_id": self.head.blank_id,
                             }
                         },
@@ -289,6 +341,12 @@ class NarCtcMegatronFactory:
                     blank_mass = blank_probability_penalty(
                         logits, frame_lengths, blank_id=self.head.blank_id
                     )
+                    if self.guided_ce_weight > 0:
+                        guided = guided_duration_ce(
+                            logits, units_padded, frame_lengths, unit_lengths
+                        )
+                    else:
+                        guided = logits.new_zeros(())
                 if self.fail_on_infeasible and int(infeasible.item()) > 0:
                     bad = int(torch.nonzero(unit_lengths + unit_repeats > frame_lengths)[0])
                     raise FloatingPointError(
@@ -300,7 +358,11 @@ class NarCtcMegatronFactory:
                         f"duration_ms={int(duration[bad])} "
                         f"max_frames={self.head.max_frames}"
                     )
-                mean = loss.mean + self.blank_penalty * blank_mass
+                mean = (
+                    loss.mean
+                    + self.blank_penalty * blank_mass
+                    + self.guided_ce_weight * guided
+                )
                 required = (unit_lengths + unit_repeats).float()
                 occupancy = (required / frame_lengths.float().clamp_min(1.0)).mean()
                 return torch.stack(
@@ -313,6 +375,7 @@ class NarCtcMegatronFactory:
                         unit_lengths.detach().float().mean(),
                         occupancy.detach().float(),
                         blank_mass.detach().float(),
+                        guided.detach().float(),
                     )
                 )
 
@@ -353,6 +416,8 @@ def loss_func(output_tensor):
     }
     if len(averaged) > 6:
         metrics["nar_blank_mass"] = averaged[6]
+    if len(averaged) > 7:
+        metrics["nar_guided_ce"] = averaged[7]
     return loss, metrics
 
 

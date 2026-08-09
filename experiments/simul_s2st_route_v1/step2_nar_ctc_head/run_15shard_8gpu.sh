@@ -6,6 +6,7 @@ USER_ROOT=/opt/dlami/nvme/jasonleeeli
 PYTHON=$USER_ROOT/conda_envs/uniss-train/bin/python
 RUN_NAME=${RUN_NAME:-step2_nar_ctc_15shard_v3_blankpen}
 BLANK_PENALTY=${BLANK_PENALTY:-1.0}
+GUIDED_CE_WEIGHT=${GUIDED_CE_WEIGHT:-0.0}
 # Reuse Phase3 joint Megatron optimizer / dataloader knobs (adam β2=0.98,
 # clip=0.5, inverse-square-root, num-workers=8, no-data-sharding).
 # Batch geometry differs from Phase3 mbs=1: this head + frozen Qwen only fills
@@ -74,6 +75,7 @@ test ! -e "$LOG"
   --nar-max-audio-seconds 12 \
   --nar-max-unit-tokens 1200 \
   --nar-blank-penalty "$BLANK_PENALTY" \
+  --nar-guided-ce-weight "$GUIDED_CE_WEIGHT" \
   --tokenizer-type NullTokenizer \
   --vocab-size 180407 \
   --tensor-model-parallel-size 1 \
