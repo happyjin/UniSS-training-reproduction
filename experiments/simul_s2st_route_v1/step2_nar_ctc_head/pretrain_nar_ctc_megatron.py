@@ -333,8 +333,10 @@ class NarCtcMegatronFactory:
                 unit_repeats = fields["unit_repeats"].to(device)
                 units_padded = fields["target_bicodec_tensor"].to(device)
                 units_flat = _flatten_targets(units_padded, unit_lengths)
-                speaker_ids = fields["bicodec_global"].to(device)
-                speaker_lengths = fields["bicodec_global_lengths"].to(device)
+                # batch_fields() converts bicodec_global to Python lists for the
+                # teacher; speaker conditioning needs the padded tensor form.
+                speaker_ids = batch["bicodec_global"].to(device)
+                speaker_lengths = batch["bicodec_global_lengths"].to(device)
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     logits, frame_lengths = self.head(
                         text_hidden,
