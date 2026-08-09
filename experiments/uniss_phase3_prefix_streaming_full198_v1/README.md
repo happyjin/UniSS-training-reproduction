@@ -30,11 +30,28 @@ validation:
   data/raw/UniST/dev-00000.parquet
   deterministic 1:1 EN-source/ZH-source interleaving (1024 rows)
 
-formal output:
-  checkpoints/uniss_phase3_prefix_streaming_full198_joint_v2
-  runs/uniss_phase3_prefix_streaming_full198_joint_v2/tensorboard
-  logs/uniss_phase3_prefix_streaming_full198_joint_v2.log
+current formal output:
+  checkpoints/uniss_phase3_prefix_streaming_full198_joint_v3
+  runs/uniss_phase3_prefix_streaming_full198_joint_v3/tensorboard
+  logs/uniss_phase3_prefix_streaming_full198_joint_v3.log
 ```
+
+## Run history
+
+- `joint_v1` stopped before its first checkpoint when a malformed one-token
+  target BiCodec sequence reached the semantic continuation builder.  Its log
+  and TensorBoard output are retained.  The immutable v3 direction index adds
+  the corresponding data-quality gate.
+- `joint_v2` safely reached checkpoint 2500, but audit logs showed that its
+  task mix stayed at the first curriculum point after iteration 1500.  The
+  cause was reading Megatron's checkpoint/start field `args.iteration` rather
+  than its live loop field `args.curr_iteration`.  Its checkpoints, log, and
+  TensorBoard output are retained for diagnosis and must not be treated as the
+  completed curriculum experiment.
+- `joint_v3` includes the live-iteration fix.  The real 8-GPU run changed from
+  the initial approximately `40/50/10/0` replay/prefix/semantic/commit mix to
+  approximately `30/50/15/5` after iteration 1500, with nonzero commit and
+  action losses.  This is the current formal run.
 
 ## Safety
 
@@ -53,15 +70,19 @@ python -m experiments.uniss_phase3_prefix_streaming_full198_v1.build_direction_i
 bash experiments/uniss_phase3_prefix_streaming_full198_v1/run_smoke_1gpu.sh
 bash experiments/uniss_phase3_prefix_streaming_full198_v1/run_smoke_8gpu.sh
 
-tmux new-session -d -s uniss_phase3_prefix_streaming_full198_joint_v2 \
+tmux new-session -d -s uniss_phase3_prefix_streaming_full198_joint_v3 \
   "cd /opt/dlami/nvme/jasonleeeli/projects/UniSS && \
+   env RUN_NAME=uniss_phase3_prefix_streaming_full198_joint_v3 \
+       MASTER_PORT=29666 TENSORBOARD_PORT=6066 \
    bash experiments/uniss_phase3_prefix_streaming_full198_v1/run_megatron.sh"
 ```
 
-TensorBoard defaults to port `6065`:
+The current v3 TensorBoard uses port `6066` (v2 remains preserved on `6065`):
 
 ```bash
-bash experiments/uniss_phase3_prefix_streaming_full198_v1/start_tensorboard.sh
+env RUN_NAME=uniss_phase3_prefix_streaming_full198_joint_v3 \
+    TENSORBOARD_PORT=6066 \
+  bash experiments/uniss_phase3_prefix_streaming_full198_v1/start_tensorboard.sh
 ```
 
 The formal run uses 64-row direction-local blocks.  With global batch 128,
