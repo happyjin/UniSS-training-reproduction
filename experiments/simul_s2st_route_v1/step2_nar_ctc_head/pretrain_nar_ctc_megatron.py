@@ -22,19 +22,54 @@ for path in (str(ROOT), str(MEGATRON_ROOT), str(HERE)):
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from experiments.simul_s2st_route_v1.step2_nar_ctc_head.dataset import NarCtcJointDataset
+from experiments.simul_s2st_route_v1.step2_nar_ctc_head.dataset import (
+    NarCtcJointDataset,
+    collate_nar_ctc,
+)
 from experiments.simul_s2st_route_v1.step2_nar_ctc_head.duration_anchored_nar_ctc import (
     DurationAnchoredCausalNARCTC,
     required_ctc_frames,
 )
 from experiments.simul_s2st_route_v1.step2_nar_ctc_head.teacher_forced import (
     batch_fields,
-    target_text_hidden,
+    batched_target_text_hidden,
 )
 from training import constants_uniss as c
 from training.generate_unist_eval_audio import load_hf_text_encoder
 from training.phase3_whisper_streamspeech_joint.losses import ctc_normalized_loss
 from training.pretrain_uniss_megatron import load_megatron_runtime
+
+
+def install_nar_collate() -> None:
+    """Attach variable-length collate without patching Megatron source files."""
+
+    import megatron.training.datasets.data_samplers as data_samplers
+    import megatron.training.training as megatron_training
+
+    original = data_samplers.build_pretraining_data_loader
+    if getattr(original, "_uniss_nar_ctc_collate", False):
+        return
+
+    def build_with_nar_collate(dataset, *args, **kwargs):
+        collate = getattr(dataset, "collate_fn", None)
+        if not callable(collate):
+            return original(dataset, *args, **kwargs)
+
+        original_loader = torch.utils.data.DataLoader
+
+        def data_loader(*loader_args, **loader_kwargs):
+            loader_kwargs.setdefault("collate_fn", collate)
+            return original_loader(*loader_args, **loader_kwargs)
+
+        torch.utils.data.DataLoader = data_loader
+        try:
+            return original(dataset, *args, **kwargs)
+        finally:
+            torch.utils.data.DataLoader = original_loader
+
+    build_with_nar_collate._uniss_nar_ctc_collate = True
+    data_samplers.build_pretraining_data_loader = build_with_nar_collate
+    megatron_training.build_pretraining_data_loader = build_with_nar_collate
 
 
 def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -61,10 +96,15 @@ def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
 
 def validate_nar_args(args) -> None:
-    if int(args.micro_batch_size) != 1:
-        raise ValueError("Step2 NAR CTC requires --micro-batch-size 1")
+    if int(args.micro_batch_size) < 1:
+        raise ValueError("--micro-batch-size must be >= 1")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("Step2 NAR CTC requires TP=PP=1")
+    if int(args.global_batch_size) % (
+        int(args.micro_batch_size) * max(1, int(getattr(args, "data_parallel_size", 1) or 1))
+    ) != 0 and torch.distributed.is_initialized():
+        # Megatron validates this more carefully after DP is known; keep a soft check here.
+        pass
     for name in ("nar_train_manifest", "nar_valid_manifest", "nar_phase3_model"):
         path = Path(getattr(args, name))
         if not path.exists():
@@ -96,8 +136,11 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         degenerate_ratio_limit=float(args.nar_degenerate_ratio_limit),
         max_samples=int(args.nar_max_valid_samples) or None,
     )
+    train.collate_fn = collate_nar_ctc
+    valid.collate_fn = collate_nar_ctc
     runtime.print_rank_0(
-        f"> Step2 NAR CTC datasets ready: train={len(train)} valid={len(valid)}"
+        f"> Step2 NAR CTC datasets ready: train={len(train)} valid={len(valid)} "
+        f"micro_batch_size={int(args.micro_batch_size)}"
     )
     return train, valid, None
 
@@ -109,6 +152,11 @@ def _transformer_config(args):
     from megatron.training.arguments import core_transformer_config_from_args
 
     return core_transformer_config_from_args(args)
+
+
+def _flatten_targets(padded: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+    pieces = [padded[row, : int(lengths[row])] for row in range(int(lengths.numel()))]
+    return torch.cat(pieces) if pieces else padded.new_zeros((0,), dtype=torch.long)
 
 
 class NarCtcMegatronFactory:
@@ -159,6 +207,8 @@ class NarCtcMegatronFactory:
                                 "frozen_qwen_params": frozen,
                                 "frames_per_second": float(args.nar_frames_per_second),
                                 "max_frames": int(args.nar_max_frames),
+                                "micro_batch_size": int(args.micro_batch_size),
+                                "global_batch_size": int(args.global_batch_size),
                                 "blank_id": self.head.blank_id,
                             }
                         },
@@ -176,7 +226,7 @@ class NarCtcMegatronFactory:
             def forward(self, batch: dict[str, object]):
                 fields = batch_fields(batch)
                 device = next(self.head.parameters()).device
-                text_hidden, text_lengths, _ = target_text_hidden(
+                text_hidden, text_lengths, _ = batched_target_text_hidden(
                     self.qwen,
                     self.text_encoder,
                     source_glm=fields["source_glm"],
@@ -184,14 +234,14 @@ class NarCtcMegatronFactory:
                     tgt_lang=fields["tgt_lang"],
                     translation=fields["translation"],
                     target_bicodec=fields["target_bicodec"],
-                    source_id=fields["id"],
+                    source_id=fields["ids"],
                     device=device,
                 )
-                duration = fields["source_duration_ms"].to(device).reshape(1)
-                units = fields["target_bicodec_tensor"].to(device)
-                unit_lengths = torch.tensor([units.numel()], dtype=torch.long, device=device)
-                unit_repeats = fields["unit_repeats"].to(device).reshape(1)
-                required = required_ctc_frames(int(unit_lengths), int(unit_repeats))
+                duration = fields["source_duration_ms"].to(device)
+                unit_lengths = fields["target_bicodec_lengths"].to(device)
+                unit_repeats = fields["unit_repeats"].to(device)
+                units_padded = fields["target_bicodec_tensor"].to(device)
+                units_flat = _flatten_targets(units_padded, unit_lengths)
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     logits, frame_lengths = self.head(
                         text_hidden,
@@ -202,22 +252,25 @@ class NarCtcMegatronFactory:
                     )
                     loss, infeasible = ctc_normalized_loss(
                         logits,
-                        units,
+                        units_flat,
                         frame_lengths,
                         unit_lengths,
                         blank_id=self.head.blank_id,
                     )
                 if self.fail_on_infeasible and int(infeasible.item()) > 0:
+                    bad = int(torch.nonzero(unit_lengths + unit_repeats > frame_lengths)[0])
                     raise FloatingPointError(
                         "CTC path infeasible after duration anchoring: "
-                        f"id={fields['id']} units={int(unit_lengths)} "
-                        f"repeats={int(unit_repeats)} required={required} "
-                        f"frames={int(frame_lengths)} "
-                        f"duration_ms={int(duration)} "
+                        f"id={fields['ids'][bad]} units={int(unit_lengths[bad])} "
+                        f"repeats={int(unit_repeats[bad])} "
+                        f"required={required_ctc_frames(int(unit_lengths[bad]), int(unit_repeats[bad]))} "
+                        f"frames={int(frame_lengths[bad])} "
+                        f"duration_ms={int(duration[bad])} "
                         f"max_frames={self.head.max_frames}"
                     )
                 mean = loss.mean
-                occupancy = required / max(1, int(frame_lengths.item()))
+                required = (unit_lengths + unit_repeats).float()
+                occupancy = (required / frame_lengths.float().clamp_min(1.0)).mean()
                 return torch.stack(
                     (
                         mean.float(),
@@ -226,7 +279,7 @@ class NarCtcMegatronFactory:
                         frame_lengths.detach().float().mean(),
                         text_lengths.detach().float().mean(),
                         unit_lengths.detach().float().mean(),
-                        torch.tensor(occupancy, device=device),
+                        occupancy.detach().float(),
                     )
                 )
 
@@ -280,6 +333,7 @@ def forward_step(data_iterator, model):
 
 
 def main():
+    install_nar_collate()
     runtime = load_megatron_runtime()
     args = runtime.parse_and_validate_args(
         extra_args_provider=add_nar_args,

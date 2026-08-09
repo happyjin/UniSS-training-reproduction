@@ -158,3 +158,43 @@ class NarCtcJointDataset(Dataset[dict[str, object]]):
                 [int(value) for value in record["bicodec_global"]], dtype=torch.long
             ),
         }
+
+
+def _pad_1d(tensors: list[torch.Tensor], *, pad_value: int = -1) -> tuple[torch.Tensor, torch.Tensor]:
+    lengths = torch.tensor([int(tensor.numel()) for tensor in tensors], dtype=torch.long)
+    padded = torch.full((len(tensors), int(lengths.max().item())), pad_value, dtype=torch.long)
+    for row, tensor in enumerate(tensors):
+        padded[row, : tensor.numel()] = tensor
+    return padded, lengths
+
+
+def collate_nar_ctc(batch: list[dict[str, object]]) -> dict[str, object]:
+    """Pad variable-length NAR CTC fields for micro-batch size > 1."""
+
+    if not batch:
+        raise ValueError("empty NAR CTC micro-batch")
+    source_glm, source_glm_lengths = _pad_1d(
+        [value["source_glm"] for value in batch]  # type: ignore[misc]
+    )
+    target_bicodec, target_lengths = _pad_1d(
+        [value["target_bicodec"] for value in batch]  # type: ignore[misc]
+    )
+    bicodec_global, bicodec_global_lengths = _pad_1d(
+        [value["bicodec_global"] for value in batch]  # type: ignore[misc]
+    )
+    return {
+        "record_json": [str(value["record_json"]) for value in batch],
+        "source_duration_ms": torch.stack(
+            [value["source_duration_ms"] for value in batch]  # type: ignore[misc]
+        ),
+        "source_glm": source_glm,
+        "source_glm_lengths": source_glm_lengths,
+        "target_bicodec": target_bicodec,
+        "target_bicodec_length": torch.stack(
+            [value["target_bicodec_length"] for value in batch]  # type: ignore[misc]
+        ),
+        "target_bicodec_lengths": target_lengths,
+        "unit_repeats": torch.stack([value["unit_repeats"] for value in batch]),  # type: ignore[misc]
+        "bicodec_global": bicodec_global,
+        "bicodec_global_lengths": bicodec_global_lengths,
+    }

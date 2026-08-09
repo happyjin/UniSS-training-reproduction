@@ -4,14 +4,25 @@ set -euo pipefail
 ROOT=/opt/dlami/nvme/jasonleeeli/projects/UniSS
 USER_ROOT=/opt/dlami/nvme/jasonleeeli
 PYTHON=$USER_ROOT/conda_envs/uniss-train/bin/python
-RUN_NAME=${RUN_NAME:-step2_nar_ctc_15shard_v1}
-# 1.5M rows / global-batch 128 ≈ 11.7k iters per epoch; train one full epoch.
-TRAIN_ITERS=${TRAIN_ITERS:-12000}
-SAVE_INTERVAL=${SAVE_INTERVAL:-500}
-EVAL_INTERVAL=${EVAL_INTERVAL:-500}
+RUN_NAME=${RUN_NAME:-step2_nar_ctc_15shard_v2_mbs64}
+# Reuse Phase3 joint Megatron optimizer / dataloader knobs (adam β2=0.98,
+# clip=0.5, inverse-square-root, num-workers=8, no-data-sharding).
+# Batch geometry differs from Phase3 mbs=1: this head + frozen Qwen only fills
+# H200 when each rank sees a fat micro-batch. Probe showed mbs=64 / gbs=512
+# reaches util spikes ~100% and ~300-400W (Phase3 stage-B was ~500W / 100%).
+# Sample budget ≈ previous v1 (12000 × 128): 3000 × 512.
+TRAIN_ITERS=${TRAIN_ITERS:-3000}
+SAVE_INTERVAL=${SAVE_INTERVAL:-100}
+EVAL_INTERVAL=${EVAL_INTERVAL:-100}
 EVAL_ITERS=${EVAL_ITERS:-8}
 LOG_INTERVAL=${LOG_INTERVAL:-10}
-LR_WARMUP_ITERS=${LR_WARMUP_ITERS:-200}
+LR_WARMUP_ITERS=${LR_WARMUP_ITERS:-100}
+# Previous step2 head LR (Stage-A heads-only Phase3 used 2e-5 for joint stack).
+BASE_LR=${BASE_LR:-2e-4}
+MIN_LR=${MIN_LR:-2e-5}
+MICRO_BATCH_SIZE=${MICRO_BATCH_SIZE:-64}
+GLOBAL_BATCH_SIZE=${GLOBAL_BATCH_SIZE:-512}
+NUM_WORKERS=${NUM_WORKERS:-8}
 PILOT_ROOT=$ROOT/data/processed/phase3_whisper_streamspeech_joint_v5/pilot_15shard_joint
 SAVE_DIR=$ROOT/checkpoints/simul_s2st_route_v1/$RUN_NAME
 TB_DIR=$ROOT/runs/simul_s2st_route_v1/$RUN_NAME
@@ -80,20 +91,22 @@ test ! -e "$LOG"
   --bf16 \
   --seq-length 8192 \
   --max-position-embeddings 32768 \
-  --micro-batch-size 1 \
-  --global-batch-size 128 \
+  --micro-batch-size "$MICRO_BATCH_SIZE" \
+  --global-batch-size "$GLOBAL_BATCH_SIZE" \
   --train-iters "$TRAIN_ITERS" \
-  --lr 2e-4 \
-  --min-lr 2e-5 \
+  --lr "$BASE_LR" \
+  --min-lr "$MIN_LR" \
   --lr-warmup-iters "$LR_WARMUP_ITERS" \
   --lr-decay-iters "$TRAIN_ITERS" \
-  --lr-decay-style cosine \
+  --lr-decay-style inverse-square-root \
   --weight-decay 0.01 \
   --adam-beta1 0.9 \
-  --adam-beta2 0.95 \
-  --clip-grad 1.0 \
+  --adam-beta2 0.98 \
+  --adam-eps 1e-8 \
+  --clip-grad 0.5 \
   --dataloader-type cyclic \
-  --num-workers 4 \
+  --no-data-sharding \
+  --num-workers "$NUM_WORKERS" \
   --no-create-attention-mask-in-dataloader \
   --no-gradient-accumulation-fusion \
   --save "$SAVE_DIR" \

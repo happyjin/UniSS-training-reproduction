@@ -14,6 +14,8 @@ monkey patching that is installed and removed inside a single process.
 | `common/instrumentation.py` | Re-entrant call-tree wall-clock profiler with CUDA synchronisation |
 | `step0_rtf_decomposition/` | Step 0 — split end-to-end wall clock into source frontend / policy / Qwen prefill / Qwen AR decode / BiCodec decode / IO |
 | `step1_v6_bleu_recheck/` | Step 1 (D1) — frozen-Phase3 bidirectional Text-BLEU probe over joint-V6 checkpoints |
+| `step2_nar_ctc_head/` | Step 2 — duration-anchored causal NAR CTC head (Megatron, Qwen frozen) |
+| `step3_waitk_pareto/` | Step 3 — Student-v2 wait-k + Λ-KV; LAAL–BLEU Pareto (AR first while NAR is blank-collapsed) |
 
 ## Conventions
 

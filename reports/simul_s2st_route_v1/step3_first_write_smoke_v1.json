@@ -1,0 +1,516 @@
+{
+  "schema_version": "simul_s2st_route_v1_step3_first_write_smoke_v1",
+  "run_name": "step3_first_write_smoke_v1",
+  "generated_at": "2026-08-09T06:34:28.374010+00:00",
+  "elapsed_seconds": 12.588844537734985,
+  "config": {
+    "manifest": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/manifests/cvss_t_zh_en_test_pairs.jsonl",
+    "student_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/simul_uniss_subsecond_v2/stage_b_v2_prefix80_finetune_100k_v1/best.pt",
+    "wait_k": [
+      1,
+      2,
+      3,
+      5,
+      8
+    ],
+    "threshold": 0.5,
+    "note": "Latency-only smoke. Full LAAL\u2013ASR-BLEU Pareto attaches AR (or a non-blank NAR head) in a follow-up run in this tree."
+  },
+  "by_k": [
+    {
+      "k": 1,
+      "samples": 10,
+      "write_rate": 1.0,
+      "mean_first_write_ms": 1296.0,
+      "median_first_write_ms": 1120.0,
+      "rows": [
+        {
+          "first_write_ms": 1600.0,
+          "source_duration_ms": 3240.0,
+          "stable_count": 1,
+          "tokens": 18,
+          "decisions": 10,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18524189.mp3"
+        },
+        {
+          "first_write_ms": 800.0,
+          "source_duration_ms": 5064.0,
+          "stable_count": 1,
+          "tokens": 8,
+          "decisions": 5,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532640.mp3"
+        },
+        {
+          "first_write_ms": 1120.0,
+          "source_duration_ms": 4464.0,
+          "stable_count": 1,
+          "tokens": 12,
+          "decisions": 7,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532644.mp3"
+        },
+        {
+          "first_write_ms": 2400.0,
+          "source_duration_ms": 10176.0,
+          "stable_count": 1,
+          "tokens": 28,
+          "decisions": 15,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532645.mp3"
+        },
+        {
+          "first_write_ms": 3200.0,
+          "source_duration_ms": 8112.0,
+          "stable_count": 2,
+          "tokens": 38,
+          "decisions": 20,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535251.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 7488.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535252.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 3720.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535254.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 2928.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535255.mp3"
+        },
+        {
+          "first_write_ms": 1280.0,
+          "source_duration_ms": 5424.0,
+          "stable_count": 1,
+          "tokens": 14,
+          "decisions": 8,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18539415.mp3"
+        },
+        {
+          "first_write_ms": 1120.0,
+          "source_duration_ms": 6456.0,
+          "stable_count": 1,
+          "tokens": 12,
+          "decisions": 7,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18546063.mp3"
+        }
+      ]
+    },
+    {
+      "k": 2,
+      "samples": 10,
+      "write_rate": 1.0,
+      "mean_first_write_ms": 1856.0,
+      "median_first_write_ms": 1760.0,
+      "rows": [
+        {
+          "first_write_ms": 1760.0,
+          "source_duration_ms": 3240.0,
+          "stable_count": 2,
+          "tokens": 20,
+          "decisions": 11,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18524189.mp3"
+        },
+        {
+          "first_write_ms": 960.0,
+          "source_duration_ms": 5064.0,
+          "stable_count": 2,
+          "tokens": 10,
+          "decisions": 6,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532640.mp3"
+        },
+        {
+          "first_write_ms": 1760.0,
+          "source_duration_ms": 4464.0,
+          "stable_count": 2,
+          "tokens": 20,
+          "decisions": 11,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532644.mp3"
+        },
+        {
+          "first_write_ms": 3840.0,
+          "source_duration_ms": 10176.0,
+          "stable_count": 2,
+          "tokens": 46,
+          "decisions": 24,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532645.mp3"
+        },
+        {
+          "first_write_ms": 3200.0,
+          "source_duration_ms": 8112.0,
+          "stable_count": 2,
+          "tokens": 38,
+          "decisions": 20,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535251.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 7488.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535252.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 3720.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535254.mp3"
+        },
+        {
+          "first_write_ms": 480.0,
+          "source_duration_ms": 2928.0,
+          "stable_count": 2,
+          "tokens": 4,
+          "decisions": 3,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535255.mp3"
+        },
+        {
+          "first_write_ms": 2080.0,
+          "source_duration_ms": 5424.0,
+          "stable_count": 2,
+          "tokens": 24,
+          "decisions": 13,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18539415.mp3"
+        },
+        {
+          "first_write_ms": 3520.0,
+          "source_duration_ms": 6456.0,
+          "stable_count": 2,
+          "tokens": 42,
+          "decisions": 22,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18546063.mp3"
+        }
+      ]
+    },
+    {
+      "k": 3,
+      "samples": 10,
+      "write_rate": 1.0,
+      "mean_first_write_ms": 2320.0,
+      "median_first_write_ms": 2000.0,
+      "rows": [
+        {
+          "first_write_ms": 2080.0,
+          "source_duration_ms": 3240.0,
+          "stable_count": 3,
+          "tokens": 24,
+          "decisions": 13,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18524189.mp3"
+        },
+        {
+          "first_write_ms": 1920.0,
+          "source_duration_ms": 5064.0,
+          "stable_count": 3,
+          "tokens": 22,
+          "decisions": 12,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532640.mp3"
+        },
+        {
+          "first_write_ms": 1920.0,
+          "source_duration_ms": 4464.0,
+          "stable_count": 3,
+          "tokens": 22,
+          "decisions": 12,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532644.mp3"
+        },
+        {
+          "first_write_ms": 4480.0,
+          "source_duration_ms": 10176.0,
+          "stable_count": 3,
+          "tokens": 54,
+          "decisions": 28,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532645.mp3"
+        },
+        {
+          "first_write_ms": 3360.0,
+          "source_duration_ms": 8112.0,
+          "stable_count": 3,
+          "tokens": 40,
+          "decisions": 21,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535251.mp3"
+        },
+        {
+          "first_write_ms": 640.0,
+          "source_duration_ms": 7488.0,
+          "stable_count": 4,
+          "tokens": 6,
+          "decisions": 4,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535252.mp3"
+        },
+        {
+          "first_write_ms": 1280.0,
+          "source_duration_ms": 3720.0,
+          "stable_count": 3,
+          "tokens": 14,
+          "decisions": 8,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535254.mp3"
+        },
+        {
+          "first_write_ms": 640.0,
+          "source_duration_ms": 2928.0,
+          "stable_count": 4,
+          "tokens": 6,
+          "decisions": 4,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535255.mp3"
+        },
+        {
+          "first_write_ms": 3200.0,
+          "source_duration_ms": 5424.0,
+          "stable_count": 3,
+          "tokens": 38,
+          "decisions": 20,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18539415.mp3"
+        },
+        {
+          "first_write_ms": 3680.0,
+          "source_duration_ms": 6456.0,
+          "stable_count": 3,
+          "tokens": 44,
+          "decisions": 23,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18546063.mp3"
+        }
+      ]
+    },
+    {
+      "k": 5,
+      "samples": 10,
+      "write_rate": 0.9,
+      "mean_first_write_ms": 2897.777777777778,
+      "median_first_write_ms": 2400.0,
+      "rows": [
+        {
+          "first_write_ms": 2720.0,
+          "source_duration_ms": 3240.0,
+          "stable_count": 5,
+          "tokens": 32,
+          "decisions": 17,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18524189.mp3"
+        },
+        {
+          "first_write_ms": 2400.0,
+          "source_duration_ms": 5064.0,
+          "stable_count": 5,
+          "tokens": 28,
+          "decisions": 15,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532640.mp3"
+        },
+        {
+          "first_write_ms": 2400.0,
+          "source_duration_ms": 4464.0,
+          "stable_count": 5,
+          "tokens": 28,
+          "decisions": 15,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532644.mp3"
+        },
+        {
+          "first_write_ms": 5760.0,
+          "source_duration_ms": 10176.0,
+          "stable_count": 6,
+          "tokens": 70,
+          "decisions": 36,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532645.mp3"
+        },
+        {
+          "first_write_ms": 3840.0,
+          "source_duration_ms": 8112.0,
+          "stable_count": 6,
+          "tokens": 46,
+          "decisions": 24,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535251.mp3"
+        },
+        {
+          "first_write_ms": 1920.0,
+          "source_duration_ms": 7488.0,
+          "stable_count": 5,
+          "tokens": 22,
+          "decisions": 12,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535252.mp3"
+        },
+        {
+          "first_write_ms": 1760.0,
+          "source_duration_ms": 3720.0,
+          "stable_count": 6,
+          "tokens": 20,
+          "decisions": 11,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535254.mp3"
+        },
+        {
+          "first_write_ms": 1440.0,
+          "source_duration_ms": 2928.0,
+          "stable_count": 5,
+          "tokens": 16,
+          "decisions": 9,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535255.mp3"
+        },
+        {
+          "first_write_ms": null,
+          "source_duration_ms": 5424.0,
+          "stable_count": 3,
+          "tokens": 68,
+          "decisions": 34,
+          "wrote": false,
+          "id": "common_voice_zh-CN_18539415.mp3"
+        },
+        {
+          "first_write_ms": 3840.0,
+          "source_duration_ms": 6456.0,
+          "stable_count": 5,
+          "tokens": 46,
+          "decisions": 24,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18546063.mp3"
+        }
+      ]
+    },
+    {
+      "k": 8,
+      "samples": 10,
+      "write_rate": 0.8,
+      "mean_first_write_ms": 3620.0,
+      "median_first_write_ms": 3040.0,
+      "rows": [
+        {
+          "first_write_ms": 3040.0,
+          "source_duration_ms": 3240.0,
+          "stable_count": 8,
+          "tokens": 36,
+          "decisions": 19,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18524189.mp3"
+        },
+        {
+          "first_write_ms": 2720.0,
+          "source_duration_ms": 5064.0,
+          "stable_count": 8,
+          "tokens": 32,
+          "decisions": 17,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532640.mp3"
+        },
+        {
+          "first_write_ms": 3040.0,
+          "source_duration_ms": 4464.0,
+          "stable_count": 8,
+          "tokens": 36,
+          "decisions": 19,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532644.mp3"
+        },
+        {
+          "first_write_ms": 5920.0,
+          "source_duration_ms": 10176.0,
+          "stable_count": 8,
+          "tokens": 72,
+          "decisions": 37,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18532645.mp3"
+        },
+        {
+          "first_write_ms": 4160.0,
+          "source_duration_ms": 8112.0,
+          "stable_count": 9,
+          "tokens": 50,
+          "decisions": 26,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535251.mp3"
+        },
+        {
+          "first_write_ms": 2880.0,
+          "source_duration_ms": 7488.0,
+          "stable_count": 8,
+          "tokens": 34,
+          "decisions": 18,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535252.mp3"
+        },
+        {
+          "first_write_ms": null,
+          "source_duration_ms": 3720.0,
+          "stable_count": 6,
+          "tokens": 47,
+          "decisions": 24,
+          "wrote": false,
+          "id": "common_voice_zh-CN_18535254.mp3"
+        },
+        {
+          "first_write_ms": 2880.0,
+          "source_duration_ms": 2928.0,
+          "stable_count": 9,
+          "tokens": 34,
+          "decisions": 18,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18535255.mp3"
+        },
+        {
+          "first_write_ms": null,
+          "source_duration_ms": 5424.0,
+          "stable_count": 3,
+          "tokens": 68,
+          "decisions": 34,
+          "wrote": false,
+          "id": "common_voice_zh-CN_18539415.mp3"
+        },
+        {
+          "first_write_ms": 4320.0,
+          "source_duration_ms": 6456.0,
+          "stable_count": 8,
+          "tokens": 52,
+          "decisions": 27,
+          "wrote": true,
+          "id": "common_voice_zh-CN_18546063.mp3"
+        }
+      ]
+    }
+  ]
+}

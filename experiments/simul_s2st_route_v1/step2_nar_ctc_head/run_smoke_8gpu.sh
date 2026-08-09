@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT=/opt/dlami/nvme/jasonleeeli/projects/UniSS
 USER_ROOT=/opt/dlami/nvme/jasonleeeli
 PYTHON=$USER_ROOT/conda_envs/uniss-train/bin/python
-RUN_NAME=${RUN_NAME:-step2_nar_ctc_smoke_v1}
-TRAIN_ITERS=${TRAIN_ITERS:-40}
+RUN_NAME=${RUN_NAME:-step2_nar_ctc_smoke_mbs2_v1}
+TRAIN_ITERS=${TRAIN_ITERS:-20}
+MICRO_BATCH_SIZE=${MICRO_BATCH_SIZE:-2}
+GLOBAL_BATCH_SIZE=${GLOBAL_BATCH_SIZE:-16}
 SAVE_INTERVAL=${SAVE_INTERVAL:-20}
 EVAL_INTERVAL=${EVAL_INTERVAL:-20}
 EVAL_ITERS=${EVAL_ITERS:-2}
@@ -79,8 +81,8 @@ test ! -e "$LOG"
   --bf16 \
   --seq-length 4096 \
   --max-position-embeddings 32768 \
-  --micro-batch-size 1 \
-  --global-batch-size 8 \
+  --micro-batch-size "$MICRO_BATCH_SIZE" \
+  --global-batch-size "$GLOBAL_BATCH_SIZE" \
   --train-iters "$TRAIN_ITERS" \
   --lr 2e-4 \
   --min-lr 2e-5 \
