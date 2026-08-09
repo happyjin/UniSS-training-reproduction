@@ -92,12 +92,39 @@ def add_nar_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--nar-max-valid-samples", type=int, default=0)
     group.add_argument("--nar-fail-on-infeasible", action="store_true", default=True)
     group.add_argument("--nar-allow-infeasible", action="store_true")
+    group.add_argument(
+        "--nar-blank-penalty",
+        type=float,
+        default=0.0,
+        help="Add λ * mean blank softmax mass on valid frames (fights CTC blank collapse).",
+    )
     return parser
+
+
+def blank_probability_penalty(
+    logits: torch.Tensor,
+    frame_lengths: torch.Tensor,
+    *,
+    blank_id: int,
+) -> torch.Tensor:
+    """Mean blank probability over valid frames (differentiable)."""
+
+    if logits.ndim != 3:
+        raise ValueError("logits must be [B,T,V]")
+    if frame_lengths.shape[0] != logits.shape[0]:
+        raise ValueError("frame_lengths must match batch")
+    positions = torch.arange(logits.shape[1], device=logits.device)
+    mask = positions[None, :] < frame_lengths[:, None]
+    probs = torch.softmax(logits.float(), dim=-1)[..., int(blank_id)]
+    denom = mask.float().sum().clamp_min(1.0)
+    return (probs * mask.float()).sum() / denom
 
 
 def validate_nar_args(args) -> None:
     if int(args.micro_batch_size) < 1:
         raise ValueError("--micro-batch-size must be >= 1")
+    if float(args.nar_blank_penalty) < 0:
+        raise ValueError("--nar-blank-penalty must be >= 0")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("Step2 NAR CTC requires TP=PP=1")
     if int(args.global_batch_size) % (
@@ -197,6 +224,7 @@ class NarCtcMegatronFactory:
                 self.fail_on_infeasible = bool(args.nar_fail_on_infeasible) and not bool(
                     args.nar_allow_infeasible
                 )
+                self.blank_penalty = float(args.nar_blank_penalty)
                 trainable = sum(parameter.numel() for parameter in self.head.parameters())
                 frozen = sum(parameter.numel() for parameter in self.qwen.parameters())
                 if torch.distributed.get_rank() == 0:
@@ -209,6 +237,7 @@ class NarCtcMegatronFactory:
                                 "max_frames": int(args.nar_max_frames),
                                 "micro_batch_size": int(args.micro_batch_size),
                                 "global_batch_size": int(args.global_batch_size),
+                                "blank_penalty": self.blank_penalty,
                                 "blank_id": self.head.blank_id,
                             }
                         },
@@ -257,6 +286,9 @@ class NarCtcMegatronFactory:
                         unit_lengths,
                         blank_id=self.head.blank_id,
                     )
+                    blank_mass = blank_probability_penalty(
+                        logits, frame_lengths, blank_id=self.head.blank_id
+                    )
                 if self.fail_on_infeasible and int(infeasible.item()) > 0:
                     bad = int(torch.nonzero(unit_lengths + unit_repeats > frame_lengths)[0])
                     raise FloatingPointError(
@@ -268,18 +300,19 @@ class NarCtcMegatronFactory:
                         f"duration_ms={int(duration[bad])} "
                         f"max_frames={self.head.max_frames}"
                     )
-                mean = loss.mean
+                mean = loss.mean + self.blank_penalty * blank_mass
                 required = (unit_lengths + unit_repeats).float()
                 occupancy = (required / frame_lengths.float().clamp_min(1.0)).mean()
                 return torch.stack(
                     (
                         mean.float(),
-                        mean.detach().float(),
+                        loss.mean.detach().float(),
                         infeasible.detach().float(),
                         frame_lengths.detach().float().mean(),
                         text_lengths.detach().float().mean(),
                         unit_lengths.detach().float().mean(),
                         occupancy.detach().float(),
+                        blank_mass.detach().float(),
                     )
                 )
 
@@ -310,7 +343,7 @@ def loss_func(output_tensor):
         [output_tensor[i] for i in range(1, output_tensor.numel())],
         group=parallel_state.get_data_parallel_group(with_context_parallel=True),
     )
-    return loss, {
+    metrics = {
         "nar_ctc": averaged[0],
         "nar_infeasible": averaged[1],
         "nar_frames": averaged[2],
@@ -318,6 +351,9 @@ def loss_func(output_tensor):
         "nar_unit_tokens": averaged[4],
         "nar_occupancy": averaged[5],
     }
+    if len(averaged) > 6:
+        metrics["nar_blank_mass"] = averaged[6]
+    return loss, metrics
 
 
 def forward_step(data_iterator, model):
