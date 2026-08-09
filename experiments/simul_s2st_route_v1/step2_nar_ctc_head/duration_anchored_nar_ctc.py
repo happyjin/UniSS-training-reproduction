@@ -125,10 +125,14 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         self.max_frames = int(max_frames)
         self.blank_id = int(semantic_vocab_size)
         self.speaker_vocab_size = int(semantic_vocab_size)
+        # WhisperVQ / GLM discrete source codes used in Phase3 joint manifests.
+        self.source_glm_vocab_size = 16384
         self.input_projection = nn.Linear(qwen_hidden_size, model_size)
         # BiCodec global speaker tokens (same code space as semantic units).
         self.speaker_embed = nn.Embedding(self.speaker_vocab_size, model_size)
         self.speaker_proj = nn.Linear(model_size, model_size)
+        self.source_glm_embed = nn.Embedding(self.source_glm_vocab_size, model_size)
+        self.source_glm_proj = nn.Linear(model_size, model_size)
         encoder_layer = nn.TransformerEncoderLayer(
             model_size,
             num_heads,
@@ -191,6 +195,33 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         pooled = (embedded * mask.unsqueeze(-1).float()).sum(dim=1) / denom
         return self.speaker_proj(pooled)
 
+    def _source_glm_frames(
+        self,
+        source_glm: torch.Tensor | None,
+        source_glm_lengths: torch.Tensor | None,
+        frame_lengths: torch.Tensor,
+    ) -> torch.Tensor | None:
+        """Interpolate discrete source GLM codes onto the NAR frame grid."""
+
+        if source_glm is None:
+            return None
+        if source_glm.ndim != 2 or source_glm.shape[0] != frame_lengths.shape[0]:
+            raise ValueError("source_glm must be [B,S]")
+        if source_glm_lengths is None:
+            source_glm_lengths = torch.full(
+                (source_glm.shape[0],),
+                source_glm.shape[1],
+                dtype=torch.long,
+                device=source_glm.device,
+            )
+        safe = source_glm.clamp(0, self.source_glm_vocab_size - 1)
+        embedded = self.source_glm_embed(safe)
+        positions = torch.arange(safe.shape[1], device=safe.device)
+        padding = positions[None, :] >= source_glm_lengths.to(safe.device)[:, None]
+        embedded = embedded.masked_fill(padding.unsqueeze(-1), 0.0)
+        expanded = expand_text_to_frames(embedded, source_glm_lengths, frame_lengths)
+        return self.source_glm_proj(expanded)
+
     def forward(
         self,
         text_hidden: torch.Tensor,
@@ -201,6 +232,8 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         unit_repeats: torch.Tensor | None = None,
         speaker_ids: torch.Tensor | None = None,
         speaker_lengths: torch.Tensor | None = None,
+        source_glm: torch.Tensor | None = None,
+        source_glm_lengths: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         if text_hidden.ndim != 3 or text_lengths.shape != text_hidden.shape[:1]:
             raise ValueError("invalid text hidden/length geometry")
@@ -228,6 +261,9 @@ class DurationAnchoredCausalNARCTC(nn.Module):
         )
         if speaker is not None:
             expanded = expanded + speaker[:, None, :]
+        glm_frames = self._source_glm_frames(source_glm, source_glm_lengths, frame_lengths)
+        if glm_frames is not None:
+            expanded = expanded + glm_frames
         frame_positions = torch.arange(expanded.shape[1], device=expanded.device)
         frame_padding = frame_positions[None, :] >= frame_lengths[:, None]
         decoded = self.unit_decoder(

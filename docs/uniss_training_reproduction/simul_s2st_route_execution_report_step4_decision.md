@@ -6,7 +6,7 @@
 
 **Stay on Route A.** Do **not** open Route B (FAST Student retrain) or Route C (Thinker–Talker) yet.
 
-NAR quality gate is still red (blank collapse). AR+wait-k shows a usable latency–quality slope but RTF remains ~2.5–3.9, so the target-side NAR head is still the correct next spend. Route C data prep (SimAlign + NIR) may continue in parallel; it is not the decision fork.
+NAR quality gate is still red — but the failure mode moved: v6 **fixed blank collapse** (0% blank frames) while UER stays ~99%. Content under-specification (text+speaker → 8192 BiCodec) is now the blocker; v7 adds source-GLM conditioning. AR+wait-k shows a usable latency–quality slope (n=32: BLEU 2.6→17.3 as k: 0→8) but RTF remains ~2.5–3. Route C data prep (SimAlign + NIR) may continue in parallel; it is not the decision fork.
 
 ## Evidence
 
