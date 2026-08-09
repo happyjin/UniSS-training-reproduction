@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 
 from training import constants_uniss as c
 
@@ -9,6 +10,7 @@ from experiments.uniss_phase3_prefix_streaming_full198_v1.curriculum import (
     choose_prefix_pair,
     choose_semantic_geometry,
     choose_task,
+    current_training_iteration,
     point_for_iteration,
 )
 
@@ -27,6 +29,15 @@ def record() -> dict[str, object]:
 
 
 class CurriculumTest(unittest.TestCase):
+    def test_live_megatron_iteration_overrides_checkpoint_iteration(self) -> None:
+        args = SimpleNamespace(iteration=0, curr_iteration=1501)
+        self.assertEqual(current_training_iteration(args), 1501)
+        self.assertEqual(point_for_iteration(current_training_iteration(args)).commit, 0.05)
+
+    def test_checkpoint_iteration_is_a_startup_fallback(self) -> None:
+        args = SimpleNamespace(iteration=2500)
+        self.assertEqual(current_training_iteration(args), 2500)
+
     def test_schedule_is_normalized_and_expands_prefixes(self) -> None:
         early = point_for_iteration(1)
         late = point_for_iteration(12000)

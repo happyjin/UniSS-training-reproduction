@@ -27,6 +27,7 @@ from experiments.uniss_phase3_prefix_streaming_full198_v1.curriculum import (  #
     choose_prefix_pair,
     choose_semantic_geometry,
     choose_task,
+    current_training_iteration,
     point_for_iteration,
     stable_uniform,
 )
@@ -451,7 +452,7 @@ class Phase3PrefixStreamingModel:
             def forward(self, record_json, direction_id, sample_index):
                 runtime = load_megatron_runtime()
                 megatron_args = runtime.megatron_gpt.get_args()
-                iteration = int(getattr(megatron_args, "iteration", 0) or 0)
+                iteration = current_training_iteration(megatron_args)
                 records = [json.loads(value) for value in record_json]
                 descriptors = [
                     self._descriptor(record, iteration, int(sample_index[row]), self.training)

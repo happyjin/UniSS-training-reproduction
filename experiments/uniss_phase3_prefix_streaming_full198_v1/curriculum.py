@@ -31,6 +31,22 @@ class CurriculumPoint:
         return (self.replay, self.prefix, self.semantic, self.commit)
 
 
+def current_training_iteration(args: object) -> int:
+    """Return Megatron's live loop iteration, with checkpoint compatibility.
+
+    Megatron keeps ``args.iteration`` as the checkpoint/start iteration and
+    advances ``args.curr_iteration`` inside the training loop.  Reading only
+    ``args.iteration`` therefore pins a curriculum to its initial stage for the
+    whole run.  The fallback preserves compatibility with startup, tests, and
+    older Megatron versions that do not expose ``curr_iteration`` yet.
+    """
+
+    current = getattr(args, "curr_iteration", None)
+    if current is not None:
+        return int(current)
+    return int(getattr(args, "iteration", 0) or 0)
+
+
 def point_for_iteration(iteration: int) -> CurriculumPoint:
     if iteration < 0:
         raise ValueError("iteration must be non-negative")
@@ -86,4 +102,3 @@ def choose_semantic_geometry(
     jitter = 0.30 * (stable_uniform(sample_id, iteration, salt, "text-jitter") - 0.5)
     text_ratio = min(1.0, max(0.10, progress + jitter))
     return text_ratio, cut, block
-
