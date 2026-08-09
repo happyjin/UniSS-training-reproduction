@@ -1,0 +1,4543 @@
+{
+  "schema_version": "simul_s2st_route_v1_step0_rtf_decomposition_v1",
+  "research_only": true,
+  "run_name": "step0_rtf_decomposition_v1",
+  "generated_at": "2026-08-09T03:06:38+0000",
+  "config": {
+    "device": "cuda:0",
+    "samples_per_direction": 8,
+    "min_source_seconds": 3.0,
+    "max_source_seconds": 12.0,
+    "ingress_ms": 160,
+    "max_write_tokens": 384,
+    "stage09": {
+      "dataset_index": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streamspeech_ctc_v1/stage02_ctc_probe/dataset_index.json",
+      "source_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/stage_a_source_manifest.jsonl",
+      "tokenizer_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streamspeech_ctc_v1/stage01_data/tokenizers",
+      "stage03b_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage03b_ar_s2tt_b16_v3/best.pt",
+      "historical_stage_b_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/simul_uniss_subsecond_v3/stage_b_v3_balanced_hidden_15shard_v1/candidates/step_008000.pt",
+      "stage04_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage04_b2_phase3_endpoint_v1/best.pt",
+      "stage06_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage06_b1_megatron_v2/iter_0000600",
+      "step1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage08_step1_repair_balanced_p3w2_zhen1p25_v1/iter_0000350",
+      "step2_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage08_step2_qwen_lora_replay_r8_replay30_research_v1/iter_0000100",
+      "codebook_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS/glm4_tokenizer",
+      "phase3_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+      "device": "cuda:0",
+      "confirmations": "2",
+      "lagging_k": "0"
+    },
+    "stage11": {
+      "speech_tokenizer_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS",
+      "output_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_streamspeech_ctc_v1/stage11_streaming_audio_v1",
+      "max_write_tokens": "384",
+      "codec_left_context_tokens": "50",
+      "codec_holdback_tokens": "5",
+      "codec_overlap_ms": "80.0",
+      "semantic_unique_ratio_min": "0.1",
+      "semantic_max_run": "16"
+    }
+  },
+  "selection": [
+    {
+      "id": "HQ-Conversations_0000000233",
+      "dataset_index": 2307,
+      "direction": "cmn->eng",
+      "source_seconds": 10.64
+    },
+    {
+      "id": "emilia_zh_0003916242",
+      "dataset_index": 3480,
+      "direction": "cmn->eng",
+      "source_seconds": 6.04
+    },
+    {
+      "id": "emilia_zh_0003959991",
+      "dataset_index": 3570,
+      "direction": "cmn->eng",
+      "source_seconds": 8.42
+    },
+    {
+      "id": "emilia_zh_0004004800",
+      "dataset_index": 3660,
+      "direction": "cmn->eng",
+      "source_seconds": 4.46
+    },
+    {
+      "id": "emilia_zh_0004056116",
+      "dataset_index": 3750,
+      "direction": "cmn->eng",
+      "source_seconds": 10.14
+    },
+    {
+      "id": "emilia_zh_0004108036",
+      "dataset_index": 3840,
+      "direction": "cmn->eng",
+      "source_seconds": 4.86
+    },
+    {
+      "id": "emilia_zh_0004151415",
+      "dataset_index": 3935,
+      "direction": "cmn->eng",
+      "source_seconds": 5.52
+    },
+    {
+      "id": "emilia_zh_0004188063",
+      "dataset_index": 4028,
+      "direction": "cmn->eng",
+      "source_seconds": 3.42
+    },
+    {
+      "id": "NCSSD_R_EN_0000000315",
+      "dataset_index": 0,
+      "direction": "eng->cmn",
+      "source_seconds": 6.0
+    },
+    {
+      "id": "CommonVoice_EN_0000032073",
+      "dataset_index": 119,
+      "direction": "eng->cmn",
+      "source_seconds": 5.18
+    },
+    {
+      "id": "CommonVoice_EN_0000061461",
+      "dataset_index": 238,
+      "direction": "eng->cmn",
+      "source_seconds": 9.2
+    },
+    {
+      "id": "CommonVoice_EN_0000157609",
+      "dataset_index": 595,
+      "direction": "eng->cmn",
+      "source_seconds": 4.38
+    },
+    {
+      "id": "CommonVoice_EN_0000190398",
+      "dataset_index": 714,
+      "direction": "eng->cmn",
+      "source_seconds": 4.2
+    },
+    {
+      "id": "CommonVoice_EN_0000223245",
+      "dataset_index": 833,
+      "direction": "eng->cmn",
+      "source_seconds": 6.14
+    },
+    {
+      "id": "CommonVoice_EN_0000251737",
+      "dataset_index": 952,
+      "direction": "eng->cmn",
+      "source_seconds": 3.32
+    },
+    {
+      "id": "CommonVoice_EN_0000287413",
+      "dataset_index": 1071,
+      "direction": "eng->cmn",
+      "source_seconds": 5.78
+    }
+  ],
+  "baseline": {
+    "summary": {
+      "samples": 16,
+      "failed": 0,
+      "source_seconds_total": 97.7,
+      "wall_seconds_total": 615.1200600616867,
+      "compute_rtf_pooled": 6.296008803087888,
+      "compute_rtf_mean": 5.863125610034188,
+      "first_write_ms_mean": 1790.0,
+      "first_audio_nca_ms_mean": 4583.75,
+      "first_audio_ca_ms_mean": 33538.24017916486,
+      "fallback_rate": 0.5625,
+      "valid_audio_writes_total": 23,
+      "rejected_writes_total": 48,
+      "generated_semantic_tokens_total": 5337,
+      "stage09_events_total": 618,
+      "write_events_total": 71
+    },
+    "bleu": {
+      "eng->cmn": {
+        "samples": 8,
+        "text_bleu": 11.451305204911192,
+        "chrf": 10.586359569696095
+      },
+      "cmn->eng": {
+        "samples": 8,
+        "text_bleu": 28.776876505821903,
+        "chrf": 52.48741976251071
+      }
+    },
+    "samples": [
+      {
+        "sample_id": "HQ-Conversations_0000000233",
+        "direction": "cmn->eng",
+        "source_seconds": 10.64,
+        "target_seconds": 29.5,
+        "wall_seconds": 79.47854345606174,
+        "compute_rtf": 7.469787918802795,
+        "first_write_ms": 2160.0,
+        "first_audio_nca_ms": 10640.0,
+        "first_audio_ca_ms": 79448.83537699934,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "For example, if you cross the road, the car will basically let you go, which is actually to pedestrians.",
+        "reference": "For example, when crossing the road, those cars will generally yield to pedestrians.",
+        "generated_semantic_tokens": 374,
+        "stage09_events": 67,
+        "write_events": 3,
+        "wait_events": 64,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0003916242",
+        "direction": "cmn->eng",
+        "source_seconds": 6.04,
+        "target_seconds": 6.36,
+        "wall_seconds": 17.362276920932345,
+        "compute_rtf": 2.874549159094759,
+        "first_write_ms": 1200.0,
+        "first_audio_nca_ms": 6040.0,
+        "first_audio_ca_ms": 17352.019281941466,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "I think sometimes, there might be a point in people's psychology that leads to such feelings.",
+        "reference": "I think sometimes there might be points that make people feel unbalanced. Do you have this feeling?",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 38,
+        "write_events": 3,
+        "wait_events": 35,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0003959991",
+        "direction": "cmn->eng",
+        "source_seconds": 8.42,
+        "target_seconds": 10.2,
+        "wall_seconds": 53.59142139204778,
+        "compute_rtf": 6.364776887416601,
+        "first_write_ms": 880.0,
+        "first_audio_nca_ms": 8420.0,
+        "first_audio_ca_ms": 53576.060398016125,
+        "valid_audio_writes": 0,
+        "rejected_writes": 8,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Then everyone has their own future aspirations and hopes, and everything seems to be developing in a positive direction.",
+        "reference": "Then everyone has their own vision of the future, hoping that everything seems to be moving in a positive direction.",
+        "generated_semantic_tokens": 370,
+        "stage09_events": 53,
+        "write_events": 8,
+        "wait_events": 45,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0004004800",
+        "direction": "cmn->eng",
+        "source_seconds": 4.46,
+        "target_seconds": 6.1,
+        "wall_seconds": 14.622801234945655,
+        "compute_rtf": 3.278654985413824,
+        "first_write_ms": 3280.0,
+        "first_audio_nca_ms": 4460.0,
+        "first_audio_ca_ms": 14613.996625994332,
+        "valid_audio_writes": 0,
+        "rejected_writes": 2,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "When I encounter problems, don't limit yourself; no matter what day it is.",
+        "reference": "When I encounter problems, don't try to control them on your own. I don't care about it anyway.",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 28,
+        "write_events": 2,
+        "wait_events": 26,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0004056116",
+        "direction": "cmn->eng",
+        "source_seconds": 10.14,
+        "target_seconds": 29.54,
+        "wall_seconds": 144.15593468793668,
+        "compute_rtf": 14.216561606305392,
+        "first_write_ms": 2320.0,
+        "first_audio_nca_ms": 10140.0,
+        "first_audio_ca_ms": 144128.69188096374,
+        "valid_audio_writes": 0,
+        "rejected_writes": 9,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Since it can nurture life, it means it can nurture everything, including wisdom. Now we will understand.",
+        "reference": "Since it can give birth to life, it means it can give birth to everything, including intelligence. Now we will understand.",
+        "generated_semantic_tokens": 380,
+        "stage09_events": 64,
+        "write_events": 9,
+        "wait_events": 55,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0004108036",
+        "direction": "cmn->eng",
+        "source_seconds": 4.86,
+        "target_seconds": 29.68,
+        "wall_seconds": 83.25345311604906,
+        "compute_rtf": 17.130340147335197,
+        "first_write_ms": 720.0,
+        "first_audio_nca_ms": 4860.0,
+        "first_audio_ca_ms": 83229.78687204886,
+        "valid_audio_writes": 0,
+        "rejected_writes": 4,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Although these items did not leave a particularly deep impression on the art.",
+        "reference": "Although these items are not particularly impressive from an artistic standpoint.",
+        "generated_semantic_tokens": 367,
+        "stage09_events": 31,
+        "write_events": 4,
+        "wait_events": 27,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0004151415",
+        "direction": "cmn->eng",
+        "source_seconds": 5.52,
+        "target_seconds": 6.4,
+        "wall_seconds": 17.73831769800745,
+        "compute_rtf": 3.2134633510883064,
+        "first_write_ms": 1200.0,
+        "first_audio_nca_ms": 5520.0,
+        "first_audio_ca_ms": 17728.397844941355,
+        "valid_audio_writes": 0,
+        "rejected_writes": 4,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "They still seem to be very proactive, not knowing what names they have discussed.",
+        "reference": "They still chatter like children, discussing something or other.",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 35,
+        "write_events": 4,
+        "wait_events": 31,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "emilia_zh_0004188063",
+        "direction": "cmn->eng",
+        "source_seconds": 3.42,
+        "target_seconds": 6.1,
+        "wall_seconds": 36.84136340895202,
+        "compute_rtf": 10.772328482149714,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 3420.0,
+        "first_audio_ca_ms": 36831.914164009504,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "The physical and nutritional substances we enter are being absorbed by the human body.",
+        "reference": "The nutrients from the food we consume are absorbed by the human body.",
+        "generated_semantic_tokens": 305,
+        "stage09_events": 22,
+        "write_events": 3,
+        "wait_events": 19,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "NCSSD_R_EN_0000000315",
+        "direction": "eng->cmn",
+        "source_seconds": 6.0,
+        "target_seconds": 2.26,
+        "wall_seconds": 12.294934805016965,
+        "compute_rtf": 2.049155800836161,
+        "first_write_ms": 560.0,
+        "first_audio_nca_ms": 880.0,
+        "first_audio_ca_ms": 4325.902579003014,
+        "valid_audio_writes": 2,
+        "rejected_writes": 8,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "我。好的，好的，好的。I.I.我。我。I.I.I.",
+        "reference": "我现在真的很好奇，那家餐厅叫什么名字？我也想去试试。",
+        "generated_semantic_tokens": 193,
+        "stage09_events": 38,
+        "write_events": 10,
+        "wait_events": 28,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000032073",
+        "direction": "eng->cmn",
+        "source_seconds": 5.18,
+        "target_seconds": 4.68,
+        "wall_seconds": 11.6603091689758,
+        "compute_rtf": 2.2510249360957144,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 4580.060784006491,
+        "valid_audio_writes": 2,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "好的。好的，好的。好的，好的，好的。",
+        "reference": "他的著作《疫苗》是该领域的标准参考书。",
+        "generated_semantic_tokens": 234,
+        "stage09_events": 33,
+        "write_events": 2,
+        "wait_events": 31,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000061461",
+        "direction": "eng->cmn",
+        "source_seconds": 9.2,
+        "target_seconds": 7.7,
+        "wall_seconds": 58.57174527191091,
+        "compute_rtf": 6.366494051294665,
+        "first_write_ms": 5040.0,
+        "first_audio_nca_ms": 9200.0,
+        "first_audio_ca_ms": 58557.83400591463,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "后来，他们也找到了烟草及其三个姐妹——玉米、豆类和南瓜。",
+        "reference": "后来，他们还种植了烟草和“三姐妹”：玉米、豆类和南瓜。",
+        "generated_semantic_tokens": 1124,
+        "stage09_events": 58,
+        "write_events": 3,
+        "wait_events": 55,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000157609",
+        "direction": "eng->cmn",
+        "source_seconds": 4.38,
+        "target_seconds": 3.92,
+        "wall_seconds": 10.25289955898188,
+        "compute_rtf": 2.340844648169379,
+        "first_write_ms": 1040.0,
+        "first_audio_nca_ms": 1040.0,
+        "first_audio_ca_ms": 4801.873589982279,
+        "valid_audio_writes": 5,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "那-那-那是-",
+        "reference": "那是哲人之石和长生不老药。",
+        "generated_semantic_tokens": 196,
+        "stage09_events": 28,
+        "write_events": 5,
+        "wait_events": 23,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000190398",
+        "direction": "eng->cmn",
+        "source_seconds": 4.2,
+        "target_seconds": 4.58,
+        "wall_seconds": 10.515284491004422,
+        "compute_rtf": 2.5036391645248623,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 5230.787307955325,
+        "valid_audio_writes": 2,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "你。",
+        "reference": "体操运动员从平衡木上腾空跃起。",
+        "generated_semantic_tokens": 229,
+        "stage09_events": 27,
+        "write_events": 2,
+        "wait_events": 25,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000223245",
+        "direction": "eng->cmn",
+        "source_seconds": 6.14,
+        "target_seconds": 5.52,
+        "wall_seconds": 13.9238112969324,
+        "compute_rtf": 2.267721709598111,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 2205.634254962206,
+        "valid_audio_writes": 6,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "所以，我就是。所以，所以，所以，",
+        "reference": "第二年，汤姆森将他杂志的股份卖给了库克。",
+        "generated_semantic_tokens": 276,
+        "stage09_events": 39,
+        "write_events": 6,
+        "wait_events": 33,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000251737",
+        "direction": "eng->cmn",
+        "source_seconds": 3.32,
+        "target_seconds": 7.38,
+        "wall_seconds": 14.91394096892327,
+        "compute_rtf": 4.492150894253998,
+        "first_write_ms": 1040.0,
+        "first_audio_nca_ms": 1040.0,
+        "first_audio_ca_ms": 2103.317361907102,
+        "valid_audio_writes": 4,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "我们。我们，我们是活的。并且，而且，我们，我们，我们，我们，我们。",
+        "reference": "我们将在二十分钟后出发。",
+        "generated_semantic_tokens": 369,
+        "stage09_events": 21,
+        "write_events": 4,
+        "wait_events": 17,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000287413",
+        "direction": "eng->cmn",
+        "source_seconds": 5.78,
+        "target_seconds": 10.84,
+        "wall_seconds": 35.94302258500829,
+        "compute_rtf": 6.2185160181675245,
+        "first_write_ms": 3120.0,
+        "first_audio_nca_ms": 3120.0,
+        "first_audio_ca_ms": 7896.730537991971,
+        "valid_audio_writes": 2,
+        "rejected_writes": 1,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "所以，索菲·米利森。",
+        "reference": "救援行动由选侯马克西米利安·约瑟夫领导。",
+        "generated_semantic_tokens": 920,
+        "stage09_events": 36,
+        "write_events": 3,
+        "wait_events": 33,
+        "instrumented": false,
+        "timer": null,
+        "error": null,
+        "session_push_seconds": 0.0,
+        "session_setup_seconds": 0.0
+      }
+    ]
+  },
+  "instrumented": {
+    "summary": {
+      "samples": 16,
+      "failed": 0,
+      "source_seconds_total": 97.7,
+      "wall_seconds_total": 618.0020627889317,
+      "compute_rtf_pooled": 6.3255072956901905,
+      "compute_rtf_mean": 5.895627365748268,
+      "first_write_ms_mean": 1790.0,
+      "first_audio_nca_ms_mean": 4583.75,
+      "first_audio_ca_ms_mean": 33705.92625043355,
+      "fallback_rate": 0.5625,
+      "valid_audio_writes_total": 23,
+      "rejected_writes_total": 48,
+      "generated_semantic_tokens_total": 5337,
+      "stage09_events_total": 618,
+      "write_events_total": 71
+    },
+    "bleu": {
+      "eng->cmn": {
+        "samples": 8,
+        "text_bleu": 11.451305204911192,
+        "chrf": 10.586359569696095
+      },
+      "cmn->eng": {
+        "samples": 8,
+        "text_bleu": 28.776876505821903,
+        "chrf": 52.48741976251071
+      }
+    },
+    "samples": [
+      {
+        "sample_id": "HQ-Conversations_0000000233",
+        "direction": "cmn->eng",
+        "source_seconds": 10.64,
+        "target_seconds": 29.5,
+        "wall_seconds": 78.30071219394449,
+        "compute_rtf": 7.3590894919120755,
+        "first_write_ms": 2160.0,
+        "first_audio_nca_ms": 10640.0,
+        "first_audio_ca_ms": 78272.15506695211,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "For example, if you cross the road, the car will basically let you go, which is actually to pedestrians.",
+        "reference": "For example, when crossing the road, those cars will generally yield to pedestrians.",
+        "generated_semantic_tokens": 374,
+        "stage09_events": 67,
+        "write_events": 3,
+        "wait_events": 64,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 67,
+              "inclusive_seconds": 78.30165952455718,
+              "exclusive_seconds": 0.011834957054816186
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.028392061009071767,
+              "exclusive_seconds": 0.00017933303024619818
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.02821272797882557,
+              "exclusive_seconds": 0.02821272797882557
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 56.890900513972156,
+              "exclusive_seconds": 56.890900513972156
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 12.884908140054904,
+              "exclusive_seconds": 0.0565346343209967
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 432,
+              "inclusive_seconds": 0.030003967229276896,
+              "exclusive_seconds": 0.030003967229276896
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 432,
+              "inclusive_seconds": 1.932618990773335,
+              "exclusive_seconds": 1.932618990773335
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0004397089360281825,
+              "exclusive_seconds": 0.0004397089360281825
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 435,
+              "inclusive_seconds": 10.865310838795267,
+              "exclusive_seconds": 10.865310838795267
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 67,
+              "inclusive_seconds": 5.28189606545493,
+              "exclusive_seconds": 0.004256569314748049
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 1.9417372713796794,
+              "exclusive_seconds": 1.9417372713796794
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 134,
+              "inclusive_seconds": 3.3359022247605026,
+              "exclusive_seconds": 3.3359022247605026
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 64,
+              "inclusive_seconds": 1.5912696592276916,
+              "exclusive_seconds": 0.0015955480048432946
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 1.5896741112228483,
+              "exclusive_seconds": 1.5896741112228483
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.030433116015046835,
+              "exclusive_seconds": 0.030433116015046835
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 67,
+              "inclusive_seconds": 1.5820250117685646,
+              "exclusive_seconds": 0.055529740056954324
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 0.07441811950411648,
+              "exclusive_seconds": 0.07441811950411648
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 134,
+              "inclusive_seconds": 0.01093401329126209,
+              "exclusive_seconds": 0.01093401329126209
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 1.3989266289863735,
+              "exclusive_seconds": 1.3989266289863735
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 0.036272416356951,
+              "exclusive_seconds": 0.018552491790615022
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 67,
+              "inclusive_seconds": 0.017719924566335976,
+              "exclusive_seconds": 0.017719924566335976
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 0.0025252338964492083,
+              "exclusive_seconds": 0.0025252338964492083
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 67,
+              "inclusive_seconds": 0.0034188596764579415,
+              "exclusive_seconds": 0.0034188596764579415
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02672264806460589,
+              "exclusive_seconds": 0.0003363970899954438
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026386250974610448,
+              "exclusive_seconds": 0.026386250974610448
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 78.30165952455718,
+        "session_setup_seconds": 0.02672264806460589
+      },
+      {
+        "sample_id": "emilia_zh_0003916242",
+        "direction": "cmn->eng",
+        "source_seconds": 6.04,
+        "target_seconds": 6.36,
+        "wall_seconds": 17.399365187971853,
+        "compute_rtf": 2.8806896006575915,
+        "first_write_ms": 1200.0,
+        "first_audio_nca_ms": 6040.0,
+        "first_audio_ca_ms": 17389.24400997348,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "I think sometimes, there might be a point in people's psychology that leads to such feelings.",
+        "reference": "I think sometimes there might be points that make people feel unbalanced. Do you have this feeling?",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 38,
+        "write_events": 3,
+        "wait_events": 35,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 38,
+              "inclusive_seconds": 17.400010189739987,
+              "exclusive_seconds": 0.00667729857377708
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.01387700391933322,
+              "exclusive_seconds": 0.00011849193833768368
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.013758511980995536,
+              "exclusive_seconds": 0.013758511980995536
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 11.44195673998911,
+              "exclusive_seconds": 11.44195673998911
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 1.0751975520979613,
+              "exclusive_seconds": 0.004991290625184774
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.00045588891953229904,
+              "exclusive_seconds": 0.00045588891953229904
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.027932870551012456,
+              "exclusive_seconds": 0.027932870551012456
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0002286259550601244,
+              "exclusive_seconds": 0.0002286259550601244
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 41,
+              "inclusive_seconds": 1.0415888760471717,
+              "exclusive_seconds": 1.0415888760471717
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 38,
+              "inclusive_seconds": 3.050514900009148,
+              "exclusive_seconds": 0.0024324337719008327
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 1.1248452352592722,
+              "exclusive_seconds": 1.1248452352592722
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 76,
+              "inclusive_seconds": 1.9232372309779748,
+              "exclusive_seconds": 1.9232372309779748
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 35,
+              "inclusive_seconds": 0.8850254130084068,
+              "exclusive_seconds": 0.0008615500992164016
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.8841638629091904,
+              "exclusive_seconds": 0.8841638629091904
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.011310463072732091,
+              "exclusive_seconds": 0.011310463072732091
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 38,
+              "inclusive_seconds": 0.9154508190695196,
+              "exclusive_seconds": 0.03066495805978775
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.04327212681528181,
+              "exclusive_seconds": 0.04327212681528181
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 76,
+              "inclusive_seconds": 0.006280614295974374,
+              "exclusive_seconds": 0.006280614295974374
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.8106362649705261,
+              "exclusive_seconds": 0.8106362649705261
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.021438603289425373,
+              "exclusive_seconds": 0.010895433835685253
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 38,
+              "inclusive_seconds": 0.01054316945374012,
+              "exclusive_seconds": 0.01054316945374012
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.0015030477661639452,
+              "exclusive_seconds": 0.0015030477661639452
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.001655203872360289,
+              "exclusive_seconds": 0.001655203872360289
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02797187294345349,
+              "exclusive_seconds": 0.0002330440329387784
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.027738828910514712,
+              "exclusive_seconds": 0.027738828910514712
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 17.400010189739987,
+        "session_setup_seconds": 0.02797187294345349
+      },
+      {
+        "sample_id": "emilia_zh_0003959991",
+        "direction": "cmn->eng",
+        "source_seconds": 8.42,
+        "target_seconds": 10.2,
+        "wall_seconds": 53.911829388001934,
+        "compute_rtf": 6.402830093586928,
+        "first_write_ms": 880.0,
+        "first_audio_nca_ms": 8420.0,
+        "first_audio_ca_ms": 53896.986606065184,
+        "valid_audio_writes": 0,
+        "rejected_writes": 8,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Then everyone has their own future aspirations and hopes, and everything seems to be developing in a positive direction.",
+        "reference": "Then everyone has their own vision of the future, hoping that everything seems to be moving in a positive direction.",
+        "generated_semantic_tokens": 370,
+        "stage09_events": 53,
+        "write_events": 8,
+        "wait_events": 45,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 53,
+              "inclusive_seconds": 53.912642003037035,
+              "exclusive_seconds": 0.01155712315812707
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.016294172033667564,
+              "exclusive_seconds": 0.00013236305676400661
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.016161808976903558,
+              "exclusive_seconds": 0.016161808976903558
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 20.67950204294175,
+              "exclusive_seconds": 20.67950204294175
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 8,
+              "inclusive_seconds": 26.47424478805624,
+              "exclusive_seconds": 0.11384722392540425
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 829,
+              "inclusive_seconds": 0.043657104251906276,
+              "exclusive_seconds": 0.043657104251906276
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 829,
+              "inclusive_seconds": 4.9046093105571344,
+              "exclusive_seconds": 4.9046093105571344
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 8,
+              "inclusive_seconds": 0.0008605960756540298,
+              "exclusive_seconds": 0.0008605960756540298
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 837,
+              "inclusive_seconds": 21.41127055324614,
+              "exclusive_seconds": 21.41127055324614
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 53,
+              "inclusive_seconds": 4.283730509225279,
+              "exclusive_seconds": 0.003384735086001456
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 1.5732129715615883,
+              "exclusive_seconds": 1.5732129715615883
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 106,
+              "inclusive_seconds": 2.7071328025776893,
+              "exclusive_seconds": 2.7071328025776893
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 45,
+              "inclusive_seconds": 1.1470124961342663,
+              "exclusive_seconds": 0.0011538270628079772
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 45,
+              "inclusive_seconds": 1.1458586690714583,
+              "exclusive_seconds": 1.1458586690714583
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.016429065028205514,
+              "exclusive_seconds": 0.016429065028205514
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 53,
+              "inclusive_seconds": 1.2838718064595014,
+              "exclusive_seconds": 0.04570518445689231
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 0.060637140297330916,
+              "exclusive_seconds": 0.060637140297330916
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 106,
+              "inclusive_seconds": 0.008758363663218915,
+              "exclusive_seconds": 0.008758363663218915
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 1.134768215357326,
+              "exclusive_seconds": 1.134768215357326
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 0.029434154857881367,
+              "exclusive_seconds": 0.01515106379520148
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 53,
+              "inclusive_seconds": 0.014283091062679887,
+              "exclusive_seconds": 0.014283091062679887
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 0.002019974053837359,
+              "exclusive_seconds": 0.002019974053837359
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 53,
+              "inclusive_seconds": 0.0025487737730145454,
+              "exclusive_seconds": 0.0025487737730145454
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.027211886015720665,
+              "exclusive_seconds": 0.0002603550674393773
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026951530948281288,
+              "exclusive_seconds": 0.026951530948281288
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 53.912642003037035,
+        "session_setup_seconds": 0.027211886015720665
+      },
+      {
+        "sample_id": "emilia_zh_0004004800",
+        "direction": "cmn->eng",
+        "source_seconds": 4.46,
+        "target_seconds": 6.1,
+        "wall_seconds": 14.78873782698065,
+        "compute_rtf": 3.3158604993230156,
+        "first_write_ms": 3280.0,
+        "first_audio_nca_ms": 4460.0,
+        "first_audio_ca_ms": 14779.071808909066,
+        "valid_audio_writes": 0,
+        "rejected_writes": 2,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "When I encounter problems, don't limit yourself; no matter what day it is.",
+        "reference": "When I encounter problems, don't try to control them on your own. I don't care about it anyway.",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 28,
+        "write_events": 2,
+        "wait_events": 26,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 28,
+              "inclusive_seconds": 14.789187877322547,
+              "exclusive_seconds": 0.004920708481222391
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.013289873022586107,
+              "exclusive_seconds": 8.777203038334846e-05
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.013202100992202759,
+              "exclusive_seconds": 0.013202100992202759
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 10.085290018003434,
+              "exclusive_seconds": 10.085290018003434
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 2,
+              "inclusive_seconds": 1.0751523199724033,
+              "exclusive_seconds": 0.005104393698275089
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.00048237096052616835,
+              "exclusive_seconds": 0.00048237096052616835
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.027810578350909054,
+              "exclusive_seconds": 0.027810578350909054
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 2,
+              "inclusive_seconds": 0.00016390299424529076,
+              "exclusive_seconds": 0.00016390299424529076
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 41,
+              "inclusive_seconds": 1.0415910739684477,
+              "exclusive_seconds": 1.0415910739684477
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 28,
+              "inclusive_seconds": 2.2610215202439576,
+              "exclusive_seconds": 0.0018324089469388127
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.8350584590807557,
+              "exclusive_seconds": 0.8350584590807557
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 56,
+              "inclusive_seconds": 1.4241306522162631,
+              "exclusive_seconds": 1.4241306522162631
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 26,
+              "inclusive_seconds": 0.6615545400418341,
+              "exclusive_seconds": 0.0006676038028672338
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 26,
+              "inclusive_seconds": 0.6608869362389669,
+              "exclusive_seconds": 0.6608869362389669
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.010524746030569077,
+              "exclusive_seconds": 0.010524746030569077
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 28,
+              "inclusive_seconds": 0.6774341515265405,
+              "exclusive_seconds": 0.022370184888131917
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.03207530512008816,
+              "exclusive_seconds": 0.03207530512008816
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 56,
+              "inclusive_seconds": 0.004595065489411354,
+              "exclusive_seconds": 0.004595065489411354
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.6005914130946621,
+              "exclusive_seconds": 0.6005914130946621
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.015657322364859283,
+              "exclusive_seconds": 0.007910603424534202
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 28,
+              "inclusive_seconds": 0.007746718940325081,
+              "exclusive_seconds": 0.007746718940325081
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.001063800067640841,
+              "exclusive_seconds": 0.001063800067640841
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.0010810605017468333,
+              "exclusive_seconds": 0.0010810605017468333
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02689515904057771,
+              "exclusive_seconds": 0.0002641041064634919
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026631054934114218,
+              "exclusive_seconds": 0.026631054934114218
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 14.789187877322547,
+        "session_setup_seconds": 0.02689515904057771
+      },
+      {
+        "sample_id": "emilia_zh_0004056116",
+        "direction": "cmn->eng",
+        "source_seconds": 10.14,
+        "target_seconds": 29.54,
+        "wall_seconds": 144.43302831903566,
+        "compute_rtf": 14.243888394382214,
+        "first_write_ms": 2320.0,
+        "first_audio_nca_ms": 10140.0,
+        "first_audio_ca_ms": 144405.15317604877,
+        "valid_audio_writes": 0,
+        "rejected_writes": 9,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Since it can nurture life, it means it can nurture everything, including wisdom. Now we will understand.",
+        "reference": "Since it can give birth to life, it means it can give birth to everything, including intelligence. Now we will understand.",
+        "generated_semantic_tokens": 380,
+        "stage09_events": 64,
+        "write_events": 9,
+        "wait_events": 55,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 64,
+              "inclusive_seconds": 144.43406310863793,
+              "exclusive_seconds": 0.022420891211368144
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.027841130970045924,
+              "exclusive_seconds": 0.00016159401275217533
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.02767953695729375,
+              "exclusive_seconds": 0.02767953695729375
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 39.563189020962454,
+              "exclusive_seconds": 39.563189020962454
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 9,
+              "inclusive_seconds": 96.68289704190101,
+              "exclusive_seconds": 0.4837201538030058
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 3456,
+              "inclusive_seconds": 0.10903007036540657,
+              "exclusive_seconds": 0.10903007036540657
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 3456,
+              "inclusive_seconds": 7.36947093391791,
+              "exclusive_seconds": 7.36947093391791
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 9,
+              "inclusive_seconds": 0.002110323985107243,
+              "exclusive_seconds": 0.002110323985107243
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 3465,
+              "inclusive_seconds": 88.71856555982959,
+              "exclusive_seconds": 88.71856555982959
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 64,
+              "inclusive_seconds": 5.159068019478582,
+              "exclusive_seconds": 0.004056235076859593
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 1.8953085796674713,
+              "exclusive_seconds": 1.8953085796674713
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 128,
+              "inclusive_seconds": 3.259703204734251,
+              "exclusive_seconds": 3.259703204734251
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 55,
+              "inclusive_seconds": 1.3995272547472268,
+              "exclusive_seconds": 0.001394250662997365
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 55,
+              "inclusive_seconds": 1.3981330040842295,
+              "exclusive_seconds": 1.3981330040842295
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.029838462942279875,
+              "exclusive_seconds": 0.029838462942279875
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 64,
+              "inclusive_seconds": 1.5492812864249572,
+              "exclusive_seconds": 0.05450196994934231
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 0.07339741382747889,
+              "exclusive_seconds": 0.07339741382747889
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 128,
+              "inclusive_seconds": 0.010656407102942467,
+              "exclusive_seconds": 0.010656407102942467
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 1.3682838594540954,
+              "exclusive_seconds": 1.3682838594540954
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 0.036628320813179016,
+              "exclusive_seconds": 0.01864904980175197
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 64,
+              "inclusive_seconds": 0.017979271011427045,
+              "exclusive_seconds": 0.017979271011427045
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 0.002440451644361019,
+              "exclusive_seconds": 0.002440451644361019
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 64,
+              "inclusive_seconds": 0.003372863633558154,
+              "exclusive_seconds": 0.003372863633558154
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02726704895030707,
+              "exclusive_seconds": 0.00018645497038960457
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.027080593979917467,
+              "exclusive_seconds": 0.027080593979917467
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 144.43406310863793,
+        "session_setup_seconds": 0.02726704895030707
+      },
+      {
+        "sample_id": "emilia_zh_0004108036",
+        "direction": "cmn->eng",
+        "source_seconds": 4.86,
+        "target_seconds": 29.68,
+        "wall_seconds": 83.20196911797393,
+        "compute_rtf": 17.1197467320934,
+        "first_write_ms": 720.0,
+        "first_audio_nca_ms": 4860.0,
+        "first_audio_ca_ms": 83178.84768301155,
+        "valid_audio_writes": 0,
+        "rejected_writes": 4,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "Although these items did not leave a particularly deep impression on the art.",
+        "reference": "Although these items are not particularly impressive from an artistic standpoint.",
+        "generated_semantic_tokens": 367,
+        "stage09_events": 31,
+        "write_events": 4,
+        "wait_events": 27,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 31,
+              "inclusive_seconds": 83.20271052583121,
+              "exclusive_seconds": 0.006579544395208359
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02816661901306361,
+              "exclusive_seconds": 0.00019256491214036942
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.02797405410092324,
+              "exclusive_seconds": 0.02797405410092324
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 39.72714678500779,
+              "exclusive_seconds": 39.72714678500779
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 4,
+              "inclusive_seconds": 39.49938625493087,
+              "exclusive_seconds": 0.15980235987808555
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 1164,
+              "inclusive_seconds": 0.057436665054410696,
+              "exclusive_seconds": 0.057436665054410696
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 1164,
+              "inclusive_seconds": 9.379331151139922,
+              "exclusive_seconds": 9.379331151139922
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 4,
+              "inclusive_seconds": 0.000672615016810596,
+              "exclusive_seconds": 0.000672615016810596
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 1168,
+              "inclusive_seconds": 29.90214346384164,
+              "exclusive_seconds": 29.90214346384164
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 31,
+              "inclusive_seconds": 2.48880055337213,
+              "exclusive_seconds": 0.0019560136133804917
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.9140979818766937,
+              "exclusive_seconds": 0.9140979818766937
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 62,
+              "inclusive_seconds": 1.5727465578820556,
+              "exclusive_seconds": 1.5727465578820556
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 27,
+              "inclusive_seconds": 0.6838227676926181,
+              "exclusive_seconds": 0.0006699784426018596
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.6831527892500162,
+              "exclusive_seconds": 0.6831527892500162
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.024259477970190346,
+              "exclusive_seconds": 0.024259477970190346
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 31,
+              "inclusive_seconds": 0.744548523449339,
+              "exclusive_seconds": 0.02463843987789005
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.03540906065609306,
+              "exclusive_seconds": 0.03540906065609306
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 62,
+              "inclusive_seconds": 0.005102148628793657,
+              "exclusive_seconds": 0.005102148628793657
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.6598655559355393,
+              "exclusive_seconds": 0.6598655559355393
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.017028139904141426,
+              "exclusive_seconds": 0.008734181057661772
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 31,
+              "inclusive_seconds": 0.008293958846479654,
+              "exclusive_seconds": 0.008293958846479654
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.0012099901214241982,
+              "exclusive_seconds": 0.0012099901214241982
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.001295188325457275,
+              "exclusive_seconds": 0.001295188325457275
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02776282897684723,
+              "exclusive_seconds": 0.0002164540346711874
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.027546374942176044,
+              "exclusive_seconds": 0.027546374942176044
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 83.20271052583121,
+        "session_setup_seconds": 0.02776282897684723
+      },
+      {
+        "sample_id": "emilia_zh_0004151415",
+        "direction": "cmn->eng",
+        "source_seconds": 5.52,
+        "target_seconds": 6.4,
+        "wall_seconds": 17.67440484603867,
+        "compute_rtf": 3.2018849358765706,
+        "first_write_ms": 1200.0,
+        "first_audio_nca_ms": 5520.0,
+        "first_audio_ca_ms": 17663.86261000298,
+        "valid_audio_writes": 0,
+        "rejected_writes": 4,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "They still seem to be very proactive, not knowing what names they have discussed.",
+        "reference": "They still chatter like children, discussing something or other.",
+        "generated_semantic_tokens": 0,
+        "stage09_events": 35,
+        "write_events": 4,
+        "wait_events": 31,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 35,
+              "inclusive_seconds": 17.674911944777705,
+              "exclusive_seconds": 0.005992871127091348
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.013613449991680682,
+              "exclusive_seconds": 9.318196680396795e-05
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.013520268024876714,
+              "exclusive_seconds": 0.013520268024876714
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 11.488169251009822,
+              "exclusive_seconds": 11.488169251009822
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 4,
+              "inclusive_seconds": 1.7302143659908324,
+              "exclusive_seconds": 0.00798111129552126
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 62,
+              "inclusive_seconds": 0.0007203499553725123,
+              "exclusive_seconds": 0.0007203499553725123
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 62,
+              "inclusive_seconds": 0.04691810568328947,
+              "exclusive_seconds": 0.04691810568328947
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 4,
+              "inclusive_seconds": 0.0002813959727063775,
+              "exclusive_seconds": 0.0002813959727063775
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 66,
+              "inclusive_seconds": 1.6743134030839428,
+              "exclusive_seconds": 1.6743134030839428
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 35,
+              "inclusive_seconds": 2.7999073778046295,
+              "exclusive_seconds": 0.002208277815952897
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 1.0302946391748264,
+              "exclusive_seconds": 1.0302946391748264
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 70,
+              "inclusive_seconds": 1.7674044608138502,
+              "exclusive_seconds": 1.7674044608138502
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 31,
+              "inclusive_seconds": 0.7832455399911851,
+              "exclusive_seconds": 0.0007620941614732146
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.7824834458297119,
+              "exclusive_seconds": 0.7824834458297119
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.011555486009456217,
+              "exclusive_seconds": 0.011555486009456217
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 35,
+              "inclusive_seconds": 0.8422136028530076,
+              "exclusive_seconds": 0.028271298739127815
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.03992976399604231,
+              "exclusive_seconds": 0.03992976399604231
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 70,
+              "inclusive_seconds": 0.005868467269465327,
+              "exclusive_seconds": 0.005868467269465327
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.7456689300015569,
+              "exclusive_seconds": 0.7456689300015569
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.019705125829204917,
+              "exclusive_seconds": 0.010036470252089202
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 35,
+              "inclusive_seconds": 0.009668655577115715,
+              "exclusive_seconds": 0.009668655577115715
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.001325886812992394,
+              "exclusive_seconds": 0.001325886812992394
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 35,
+              "inclusive_seconds": 0.0014441302046179771,
+              "exclusive_seconds": 0.0014441302046179771
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.0279325139708817,
+              "exclusive_seconds": 0.00027023593429476023
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02766227803658694,
+              "exclusive_seconds": 0.02766227803658694
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 17.674911944777705,
+        "session_setup_seconds": 0.0279325139708817
+      },
+      {
+        "sample_id": "emilia_zh_0004188063",
+        "direction": "cmn->eng",
+        "source_seconds": 3.42,
+        "target_seconds": 6.1,
+        "wall_seconds": 37.626474685035646,
+        "compute_rtf": 11.00189318275896,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 3420.0,
+        "first_audio_ca_ms": 37617.33808799181,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "The physical and nutritional substances we enter are being absorbed by the human body.",
+        "reference": "The nutrients from the food we consume are absorbed by the human body.",
+        "generated_semantic_tokens": 305,
+        "stage09_events": 22,
+        "write_events": 3,
+        "wait_events": 19,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 22,
+              "inclusive_seconds": 37.627017263672315,
+              "exclusive_seconds": 0.004189734463579953
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.013884925050660968,
+              "exclusive_seconds": 0.00010751199442893267
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.013777413056232035,
+              "exclusive_seconds": 0.013777413056232035
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 10.685629457002506,
+              "exclusive_seconds": 10.685629457002506
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 24.11810490116477,
+              "exclusive_seconds": 0.10828953410964459
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 789,
+              "inclusive_seconds": 0.0373066192260012,
+              "exclusive_seconds": 0.0373066192260012
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 789,
+              "inclusive_seconds": 3.5839457551483065,
+              "exclusive_seconds": 3.5839457551483065
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0006603639340028167,
+              "exclusive_seconds": 0.0006603639340028167
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 792,
+              "inclusive_seconds": 20.387902628746815,
+              "exclusive_seconds": 20.387902628746815
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 22,
+              "inclusive_seconds": 1.7780174140352756,
+              "exclusive_seconds": 0.0014459799276664853
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.6537020978285,
+              "exclusive_seconds": 0.6537020978285
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 44,
+              "inclusive_seconds": 1.1228693362791091,
+              "exclusive_seconds": 1.1228693362791091
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 19,
+              "inclusive_seconds": 0.48430573905352503,
+              "exclusive_seconds": 0.0004943000385537744
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 19,
+              "inclusive_seconds": 0.48381143901497126,
+              "exclusive_seconds": 0.48381143901497126
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.009981584968045354,
+              "exclusive_seconds": 0.009981584968045354
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 22,
+              "inclusive_seconds": 0.5329035079339519,
+              "exclusive_seconds": 0.017562472610734403
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.025246379431337118,
+              "exclusive_seconds": 0.025246379431337118
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 44,
+              "inclusive_seconds": 0.003627883386798203,
+              "exclusive_seconds": 0.003627883386798203
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.4723793116863817,
+              "exclusive_seconds": 0.4723793116863817
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.01241405715700239,
+              "exclusive_seconds": 0.00620556203648448
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 22,
+              "inclusive_seconds": 0.0062084951205179095,
+              "exclusive_seconds": 0.0062084951205179095
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.0008414185140281916,
+              "exclusive_seconds": 0.0008414185140281916
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 22,
+              "inclusive_seconds": 0.0008319851476699114,
+              "exclusive_seconds": 0.0008319851476699114
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02713113697245717,
+              "exclusive_seconds": 0.00017494393978267908
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02695619303267449,
+              "exclusive_seconds": 0.02695619303267449
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 37.627017263672315,
+        "session_setup_seconds": 0.02713113697245717
+      },
+      {
+        "sample_id": "NCSSD_R_EN_0000000315",
+        "direction": "eng->cmn",
+        "source_seconds": 6.0,
+        "target_seconds": 2.26,
+        "wall_seconds": 12.577883240999654,
+        "compute_rtf": 2.0963138734999425,
+        "first_write_ms": 560.0,
+        "first_audio_nca_ms": 880.0,
+        "first_audio_ca_ms": 4430.015119025484,
+        "valid_audio_writes": 2,
+        "rejected_writes": 8,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "我。好的，好的，好的。I.I.我。我。I.I.I.",
+        "reference": "我现在真的很好奇，那家餐厅叫什么名字？我也想去试试。",
+        "generated_semantic_tokens": 193,
+        "stage09_events": 38,
+        "write_events": 10,
+        "wait_events": 28,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 38,
+              "inclusive_seconds": 12.578378535923548,
+              "exclusive_seconds": 0.006496872985735536
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 0.035882627009414136,
+              "exclusive_seconds": 0.000440291129052639
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0354423358803615,
+              "exclusive_seconds": 0.0354423358803615
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 10,
+              "inclusive_seconds": 7.8219405501149595,
+              "exclusive_seconds": 0.035479874699376523
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 273,
+              "inclusive_seconds": 0.010131152346730232,
+              "exclusive_seconds": 0.010131152346730232
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 273,
+              "inclusive_seconds": 0.5470265770563856,
+              "exclusive_seconds": 0.5470265770563856
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 10,
+              "inclusive_seconds": 0.000716965994797647,
+              "exclusive_seconds": 0.000716965994797647
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 283,
+              "inclusive_seconds": 7.2285859800176695,
+              "exclusive_seconds": 7.2285859800176695
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 38,
+              "inclusive_seconds": 3.0696441179607064,
+              "exclusive_seconds": 0.0024911005748435855
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 1.1248823362402618,
+              "exclusive_seconds": 1.1248823362402618
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 76,
+              "inclusive_seconds": 1.942270681145601,
+              "exclusive_seconds": 1.942270681145601
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 28,
+              "inclusive_seconds": 0.7157536168815568,
+              "exclusive_seconds": 0.0007149808807298541
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.715038636000827,
+              "exclusive_seconds": 0.715038636000827
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.008217809023335576,
+              "exclusive_seconds": 0.008217809023335576
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 38,
+              "inclusive_seconds": 0.9204429419478402,
+              "exclusive_seconds": 0.03143817244563252
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.04350354301277548,
+              "exclusive_seconds": 0.04350354301277548
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 76,
+              "inclusive_seconds": 0.006323844543658197,
+              "exclusive_seconds": 0.006323844543658197
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.8148242912720889,
+              "exclusive_seconds": 0.8148242912720889
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.021384715917520225,
+              "exclusive_seconds": 0.010934500955045223
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 38,
+              "inclusive_seconds": 0.010450214962475002,
+              "exclusive_seconds": 0.010450214962475002
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.00144678121432662,
+              "exclusive_seconds": 0.00144678121432662
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 38,
+              "inclusive_seconds": 0.0015215935418382287,
+              "exclusive_seconds": 0.0015215935418382287
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.027218158007599413,
+              "exclusive_seconds": 0.0003063569311052561
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026911801076494157,
+              "exclusive_seconds": 0.026911801076494157
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 12.578378535923548,
+        "session_setup_seconds": 0.027218158007599413
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000032073",
+        "direction": "eng->cmn",
+        "source_seconds": 5.18,
+        "target_seconds": 4.68,
+        "wall_seconds": 11.931642123963684,
+        "compute_rtf": 2.3034058154370047,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 4699.180983006954,
+        "valid_audio_writes": 2,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "好的。好的，好的。好的，好的，好的。",
+        "reference": "他的著作《疫苗》是该领域的标准参考书。",
+        "generated_semantic_tokens": 234,
+        "stage09_events": 33,
+        "write_events": 2,
+        "wait_events": 31,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 33,
+              "inclusive_seconds": 11.932114583207294,
+              "exclusive_seconds": 0.005331358057446778
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 0.03623729303944856,
+              "exclusive_seconds": 0.0004976191557943821
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.03573967388365418,
+              "exclusive_seconds": 0.03573967388365418
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 2,
+              "inclusive_seconds": 7.6411680589662865,
+              "exclusive_seconds": 0.033624173840507865
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 261,
+              "inclusive_seconds": 0.013138329260982573,
+              "exclusive_seconds": 0.013138329260982573
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 261,
+              "inclusive_seconds": 0.8960948573658243,
+              "exclusive_seconds": 0.8960948573658243
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 2,
+              "inclusive_seconds": 0.00029247498605400324,
+              "exclusive_seconds": 0.00029247498605400324
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 263,
+              "inclusive_seconds": 6.698018223512918,
+              "exclusive_seconds": 6.698018223512918
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 33,
+              "inclusive_seconds": 2.656883996911347,
+              "exclusive_seconds": 0.002103466307744384
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.973896810784936,
+              "exclusive_seconds": 0.973896810784936
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 66,
+              "inclusive_seconds": 1.6808837198186666,
+              "exclusive_seconds": 1.6808837198186666
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 31,
+              "inclusive_seconds": 0.7888550671050325,
+              "exclusive_seconds": 0.0007852398557588458
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 31,
+              "inclusive_seconds": 0.7880698272492737,
+              "exclusive_seconds": 0.7880698272492737
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.008221899042837322,
+              "exclusive_seconds": 0.008221899042837322
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 33,
+              "inclusive_seconds": 0.7954169100848958,
+              "exclusive_seconds": 0.026821368257515132
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.03772008407395333,
+              "exclusive_seconds": 0.03772008407395333
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 66,
+              "inclusive_seconds": 0.005490839714184403,
+              "exclusive_seconds": 0.005490839714184403
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.7047835050616413,
+              "exclusive_seconds": 0.7047835050616413
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.018237896147184074,
+              "exclusive_seconds": 0.009265022003091872
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 33,
+              "inclusive_seconds": 0.008972874144092202,
+              "exclusive_seconds": 0.008972874144092202
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.0012477870332077146,
+              "exclusive_seconds": 0.0012477870332077146
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.0011154297972097993,
+              "exclusive_seconds": 0.0011154297972097993
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02720586897339672,
+              "exclusive_seconds": 0.00018179300241172314
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.027024075970984995,
+              "exclusive_seconds": 0.027024075970984995
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 11.932114583207294,
+        "session_setup_seconds": 0.02720586897339672
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000061461",
+        "direction": "eng->cmn",
+        "source_seconds": 9.2,
+        "target_seconds": 7.7,
+        "wall_seconds": 60.631627501919866,
+        "compute_rtf": 6.590394293686942,
+        "first_write_ms": 5040.0,
+        "first_audio_nca_ms": 9200.0,
+        "first_audio_ca_ms": 60618.05084301159,
+        "valid_audio_writes": 0,
+        "rejected_writes": 3,
+        "fallback_used": true,
+        "fallback_reason": "no_accepted_online_semantic",
+        "translation": "后来，他们也找到了烟草及其三个姐妹——玉米、豆类和南瓜。",
+        "reference": "后来，他们还种植了烟草和“三姐妹”：玉米、豆类和南瓜。",
+        "generated_semantic_tokens": 1124,
+        "stage09_events": 58,
+        "write_events": 3,
+        "wait_events": 55,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 58,
+              "inclusive_seconds": 60.6323654424632,
+              "exclusive_seconds": 0.009121070266701281
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.015237101004458964,
+              "exclusive_seconds": 0.00011074193753302097
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 1,
+              "inclusive_seconds": 0.015126359066925943,
+              "exclusive_seconds": 0.015126359066925943
+            },
+            {
+              "path": "session_push/offline_fallback",
+              "label": "offline_fallback",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 14.05257974693086,
+              "exclusive_seconds": 14.05257974693086
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 39.0886999379145,
+              "exclusive_seconds": 0.15439824014902115
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 1152,
+              "inclusive_seconds": 0.09471686417236924,
+              "exclusive_seconds": 0.09471686417236924
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 1152,
+              "inclusive_seconds": 9.231922380393371,
+              "exclusive_seconds": 9.231922380393371
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0009515208657830954,
+              "exclusive_seconds": 0.0009515208657830954
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 1155,
+              "inclusive_seconds": 29.606710932333954,
+              "exclusive_seconds": 29.606710932333954
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 58,
+              "inclusive_seconds": 4.658208908629604,
+              "exclusive_seconds": 0.003652856801636517
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 1.7091268510557711,
+              "exclusive_seconds": 1.7091268510557711
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 116,
+              "inclusive_seconds": 2.945429200772196,
+              "exclusive_seconds": 2.945429200772196
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 55,
+              "inclusive_seconds": 1.3956971517764032,
+              "exclusive_seconds": 0.0013742638984695077
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 55,
+              "inclusive_seconds": 1.3943228878779337,
+              "exclusive_seconds": 1.3943228878779337
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.015125251025892794,
+              "exclusive_seconds": 0.015125251025892794
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 58,
+              "inclusive_seconds": 1.3976962749147788,
+              "exclusive_seconds": 0.048228766419924796
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 0.06589563481975347,
+              "exclusive_seconds": 0.06589563481975347
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 116,
+              "inclusive_seconds": 0.0095846300246194,
+              "exclusive_seconds": 0.0095846300246194
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 1.2370318856555969,
+              "exclusive_seconds": 1.2370318856555969
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 0.03235135297290981,
+              "exclusive_seconds": 0.01663034490775317
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 58,
+              "inclusive_seconds": 0.01572100806515664,
+              "exclusive_seconds": 0.01572100806515664
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 0.0022010781103745103,
+              "exclusive_seconds": 0.0022010781103745103
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 58,
+              "inclusive_seconds": 0.002402926911599934,
+              "exclusive_seconds": 0.002402926911599934
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02693975204601884,
+              "exclusive_seconds": 0.0001680831192061305
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02677166892681271,
+              "exclusive_seconds": 0.02677166892681271
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 60.6323654424632,
+        "session_setup_seconds": 0.02693975204601884
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000157609",
+        "direction": "eng->cmn",
+        "source_seconds": 4.38,
+        "target_seconds": 3.92,
+        "wall_seconds": 10.268683533067815,
+        "compute_rtf": 2.344448295220962,
+        "first_write_ms": 1040.0,
+        "first_audio_nca_ms": 1040.0,
+        "first_audio_ca_ms": 4873.357221018523,
+        "valid_audio_writes": 5,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "那-那-那是-",
+        "reference": "那是哲人之石和长生不老药。",
+        "generated_semantic_tokens": 196,
+        "stage09_events": 28,
+        "write_events": 5,
+        "wait_events": 23,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 28,
+              "inclusive_seconds": 10.269095565658063,
+              "exclusive_seconds": 0.00445563904941082
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 6,
+              "inclusive_seconds": 0.06825542089063674,
+              "exclusive_seconds": 0.0008040638640522957
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 6,
+              "inclusive_seconds": 0.06745135702658445,
+              "exclusive_seconds": 0.06745135702658445
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 5,
+              "inclusive_seconds": 6.738981721922755,
+              "exclusive_seconds": 0.029951757402159274
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 238,
+              "inclusive_seconds": 0.01025464537087828,
+              "exclusive_seconds": 0.01025464537087828
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 238,
+              "inclusive_seconds": 0.6293861835729331,
+              "exclusive_seconds": 0.6293861835729331
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 5,
+              "inclusive_seconds": 0.0004191779298707843,
+              "exclusive_seconds": 0.0004191779298707843
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 243,
+              "inclusive_seconds": 6.068969957646914,
+              "exclusive_seconds": 6.068969957646914
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 28,
+              "inclusive_seconds": 2.212517525651492,
+              "exclusive_seconds": 0.001781812752597034
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.8126172319753096,
+              "exclusive_seconds": 0.8126172319753096
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 56,
+              "inclusive_seconds": 1.3981184809235856,
+              "exclusive_seconds": 1.3981184809235856
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 23,
+              "inclusive_seconds": 0.5738688859855756,
+              "exclusive_seconds": 0.0005639488808810711
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 23,
+              "inclusive_seconds": 0.5733049371046945,
+              "exclusive_seconds": 0.5733049371046945
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.006981533020734787,
+              "exclusive_seconds": 0.006981533020734787
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 28,
+              "inclusive_seconds": 0.6640348391374573,
+              "exclusive_seconds": 0.022483812645077705
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.031518976553343236,
+              "exclusive_seconds": 0.031518976553343236
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 56,
+              "inclusive_seconds": 0.004588122246786952,
+              "exclusive_seconds": 0.004588122246786952
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.5879291594028473,
+              "exclusive_seconds": 0.5879291594028473
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.015470282291062176,
+              "exclusive_seconds": 0.007827727124094963
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 28,
+              "inclusive_seconds": 0.007642555166967213,
+              "exclusive_seconds": 0.007642555166967213
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.0010845739161595702,
+              "exclusive_seconds": 0.0010845739161595702
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 28,
+              "inclusive_seconds": 0.0009599120821803808,
+              "exclusive_seconds": 0.0009599120821803808
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.027407003100961447,
+              "exclusive_seconds": 0.00022120506037026644
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02718579804059118,
+              "exclusive_seconds": 0.02718579804059118
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 10.269095565658063,
+        "session_setup_seconds": 0.027407003100961447
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000190398",
+        "direction": "eng->cmn",
+        "source_seconds": 4.2,
+        "target_seconds": 4.58,
+        "wall_seconds": 10.533185077016242,
+        "compute_rtf": 2.507901208813391,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 5259.331448934972,
+        "valid_audio_writes": 2,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "你。",
+        "reference": "体操运动员从平衡木上腾空跃起。",
+        "generated_semantic_tokens": 229,
+        "stage09_events": 27,
+        "write_events": 2,
+        "wait_events": 25,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 27,
+              "inclusive_seconds": 10.533606404904276,
+              "exclusive_seconds": 0.004231415456160903
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 0.03345156705472618,
+              "exclusive_seconds": 0.000301055028103292
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.03315051202662289,
+              "exclusive_seconds": 0.03315051202662289
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 2,
+              "inclusive_seconds": 7.1027256429661065,
+              "exclusive_seconds": 0.0307030564872548
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 246,
+              "inclusive_seconds": 0.012628420838154852,
+              "exclusive_seconds": 0.012628420838154852
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 246,
+              "inclusive_seconds": 0.8821321242721751,
+              "exclusive_seconds": 0.8821321242721751
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 2,
+              "inclusive_seconds": 0.0002561149885877967,
+              "exclusive_seconds": 0.0002561149885877967
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 248,
+              "inclusive_seconds": 6.177005926379934,
+              "exclusive_seconds": 6.177005926379934
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 27,
+              "inclusive_seconds": 2.127767535042949,
+              "exclusive_seconds": 0.0017111205961555243
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.7821372951148078,
+              "exclusive_seconds": 0.7821372951148078
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 54,
+              "inclusive_seconds": 1.3439191193319857,
+              "exclusive_seconds": 1.3439191193319857
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 25,
+              "inclusive_seconds": 0.621898433775641,
+              "exclusive_seconds": 0.0006154018919914961
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 25,
+              "inclusive_seconds": 0.6212830318836495,
+              "exclusive_seconds": 0.6212830318836495
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.007689998019486666,
+              "exclusive_seconds": 0.007689998019486666
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 27,
+              "inclusive_seconds": 0.6358418125892058,
+              "exclusive_seconds": 0.021148824831470847
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.02987190382555127,
+              "exclusive_seconds": 0.02987190382555127
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 54,
+              "inclusive_seconds": 0.004395632422529161,
+              "exclusive_seconds": 0.004395632422529161
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.5642145101446658,
+              "exclusive_seconds": 0.5642145101446658
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.014335896004922688,
+              "exclusive_seconds": 0.007423915201798081
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 27,
+              "inclusive_seconds": 0.006911980803124607,
+              "exclusive_seconds": 0.006911980803124607
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.0010165006387978792,
+              "exclusive_seconds": 0.0010165006387978792
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 27,
+              "inclusive_seconds": 0.0008585447212681174,
+              "exclusive_seconds": 0.0008585447212681174
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02658712607808411,
+              "exclusive_seconds": 0.00017099303659051657
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026416133041493595,
+              "exclusive_seconds": 0.026416133041493595
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 10.533606404904276,
+        "session_setup_seconds": 0.02658712607808411
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000223245",
+        "direction": "eng->cmn",
+        "source_seconds": 6.14,
+        "target_seconds": 5.52,
+        "wall_seconds": 13.925613862928003,
+        "compute_rtf": 2.2680152871218247,
+        "first_write_ms": 1520.0,
+        "first_audio_nca_ms": 1520.0,
+        "first_audio_ca_ms": 2204.959300928749,
+        "valid_audio_writes": 6,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "所以，我就是。所以，所以，所以，",
+        "reference": "第二年，汤姆森将他杂志的股份卖给了库克。",
+        "generated_semantic_tokens": 276,
+        "stage09_events": 39,
+        "write_events": 6,
+        "wait_events": 33,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 39,
+              "inclusive_seconds": 13.926219484186731,
+              "exclusive_seconds": 0.00614308612421155
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 7,
+              "inclusive_seconds": 0.0793158698361367,
+              "exclusive_seconds": 0.0008896989747881889
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 7,
+              "inclusive_seconds": 0.07842617086134851,
+              "exclusive_seconds": 0.07842617086134851
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 6,
+              "inclusive_seconds": 9.021924298023805,
+              "exclusive_seconds": 0.041324697085656226
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 330,
+              "inclusive_seconds": 0.012616961845196784,
+              "exclusive_seconds": 0.012616961845196784
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 330,
+              "inclusive_seconds": 0.5824765043798834,
+              "exclusive_seconds": 0.5824765043798834
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 6,
+              "inclusive_seconds": 0.000564754125662148,
+              "exclusive_seconds": 0.000564754125662148
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 336,
+              "inclusive_seconds": 8.384941380587406,
+              "exclusive_seconds": 8.384941380587406
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 39,
+              "inclusive_seconds": 3.0707672756398097,
+              "exclusive_seconds": 0.002467883750796318
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 1.1256140841869637,
+              "exclusive_seconds": 1.1256140841869637
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 78,
+              "inclusive_seconds": 1.9426853077020496,
+              "exclusive_seconds": 1.9426853077020496
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 33,
+              "inclusive_seconds": 0.8197205228498206,
+              "exclusive_seconds": 0.0008208147482946515
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.8188997081015259,
+              "exclusive_seconds": 0.8188997081015259
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.009448683937080204,
+              "exclusive_seconds": 0.009448683937080204
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 39,
+              "inclusive_seconds": 0.9188997477758676,
+              "exclusive_seconds": 0.031624291092157364
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.043310359003953636,
+              "exclusive_seconds": 0.043310359003953636
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 78,
+              "inclusive_seconds": 0.006347520393319428,
+              "exclusive_seconds": 0.006347520393319428
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.8137365158181638,
+              "exclusive_seconds": 0.8137365158181638
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.020996143226511776,
+              "exclusive_seconds": 0.010832252213731408
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 39,
+              "inclusive_seconds": 0.010163891012780368,
+              "exclusive_seconds": 0.010163891012780368
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.0014630220830440521,
+              "exclusive_seconds": 0.0014630220830440521
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 39,
+              "inclusive_seconds": 0.0014218961587175727,
+              "exclusive_seconds": 0.0014218961587175727
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02636217197868973,
+              "exclusive_seconds": 0.000168144004419446
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026194027974270284,
+              "exclusive_seconds": 0.026194027974270284
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 13.926219484186731,
+        "session_setup_seconds": 0.02636217197868973
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000251737",
+        "direction": "eng->cmn",
+        "source_seconds": 3.32,
+        "target_seconds": 7.38,
+        "wall_seconds": 14.862455393071286,
+        "compute_rtf": 4.476643190684123,
+        "first_write_ms": 1040.0,
+        "first_audio_nca_ms": 1040.0,
+        "first_audio_ca_ms": 2070.622888044454,
+        "valid_audio_writes": 4,
+        "rejected_writes": 0,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "我们。我们，我们是活的。并且，而且，我们，我们，我们，我们，我们。",
+        "reference": "我们将在二十分钟后出发。",
+        "generated_semantic_tokens": 369,
+        "stage09_events": 21,
+        "write_events": 4,
+        "wait_events": 17,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 21,
+              "inclusive_seconds": 14.862935416284017,
+              "exclusive_seconds": 0.0033428086899220943
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 5,
+              "inclusive_seconds": 0.05736006912775338,
+              "exclusive_seconds": 0.0008394570322707295
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 5,
+              "inclusive_seconds": 0.05652061209548265,
+              "exclusive_seconds": 0.05652061209548265
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 4,
+              "inclusive_seconds": 12.234173843986355,
+              "exclusive_seconds": 0.053499373025260866
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 423,
+              "inclusive_seconds": 0.020940309739671648,
+              "exclusive_seconds": 0.020940309739671648
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 423,
+              "inclusive_seconds": 1.5868093366734684,
+              "exclusive_seconds": 1.5868093366734684
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 4,
+              "inclusive_seconds": 0.0006061128806322813,
+              "exclusive_seconds": 0.0006061128806322813
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 427,
+              "inclusive_seconds": 10.572318711667322,
+              "exclusive_seconds": 10.572318711667322
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 21,
+              "inclusive_seconds": 1.6435474711470306,
+              "exclusive_seconds": 0.0013552546733990312
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.607664966606535,
+              "exclusive_seconds": 0.607664966606535
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 42,
+              "inclusive_seconds": 1.0345272498670965,
+              "exclusive_seconds": 1.0345272498670965
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 17,
+              "inclusive_seconds": 0.4192531941225752,
+              "exclusive_seconds": 0.00041910121217370033
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 17,
+              "inclusive_seconds": 0.4188340929104015,
+              "exclusive_seconds": 0.4188340929104015
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.009734111023135483,
+              "exclusive_seconds": 0.009734111023135483
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 21,
+              "inclusive_seconds": 0.4955239181872457,
+              "exclusive_seconds": 0.016528195119462907
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.02339645370375365,
+              "exclusive_seconds": 0.02339645370375365
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 42,
+              "inclusive_seconds": 0.0033917021937668324,
+              "exclusive_seconds": 0.0033917021937668324
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.4393558419542387,
+              "exclusive_seconds": 0.4393558419542387
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.011392102111130953,
+              "exclusive_seconds": 0.005859351949766278
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 21,
+              "inclusive_seconds": 0.005532750161364675,
+              "exclusive_seconds": 0.005532750161364675
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.000782107119448483,
+              "exclusive_seconds": 0.000782107119448483
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 21,
+              "inclusive_seconds": 0.0006775159854441881,
+              "exclusive_seconds": 0.0006775159854441881
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.026411572005599737,
+              "exclusive_seconds": 0.0002328249393031001
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.026178747066296637,
+              "exclusive_seconds": 0.026178747066296637
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 14.862935416284017,
+        "session_setup_seconds": 0.026411572005599737
+      },
+      {
+        "sample_id": "CommonVoice_EN_0000287413",
+        "direction": "eng->cmn",
+        "source_seconds": 5.78,
+        "target_seconds": 10.84,
+        "wall_seconds": 35.93445049098227,
+        "compute_rtf": 6.217032956917348,
+        "first_write_ms": 3120.0,
+        "first_audio_nca_ms": 3120.0,
+        "first_audio_ca_ms": 7936.643154011108,
+        "valid_audio_writes": 2,
+        "rejected_writes": 1,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "translation": "所以，索菲·米利森。",
+        "reference": "救援行动由选侯马克西米利安·约瑟夫领导。",
+        "generated_semantic_tokens": 920,
+        "stage09_events": 36,
+        "write_events": 3,
+        "wait_events": 33,
+        "instrumented": true,
+        "timer": {
+          "synchronized": true,
+          "paths": [
+            {
+              "path": "session_push",
+              "label": "session_push",
+              "depth": 0,
+              "calls": 37,
+              "inclusive_seconds": 35.934941936284304,
+              "exclusive_seconds": 0.00560544163454324
+            },
+            {
+              "path": "session_push/codec_stream_push",
+              "label": "codec_stream_push",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 0.037859678035601974,
+              "exclusive_seconds": 0.000535304076038301
+            },
+            {
+              "path": "session_push/codec_stream_push/codec_vocoder",
+              "label": "codec_vocoder",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.03732437395956367,
+              "exclusive_seconds": 0.03732437395956367
+            },
+            {
+              "path": "session_push/qwen_ar_decode",
+              "label": "qwen_ar_decode",
+              "depth": 1,
+              "calls": 3,
+              "inclusive_seconds": 31.360647088033147,
+              "exclusive_seconds": 0.12426277238409966
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_block_collapse",
+              "label": "logits_block_collapse",
+              "depth": 2,
+              "calls": 949,
+              "inclusive_seconds": 0.07480909919831902,
+              "exclusive_seconds": 0.07480909919831902
+            },
+            {
+              "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+              "label": "logits_repetition_penalty",
+              "depth": 2,
+              "calls": 949,
+              "inclusive_seconds": 7.5256133689545095,
+              "exclusive_seconds": 7.5256133689545095
+            },
+            {
+              "path": "session_push/qwen_ar_decode/parse_write_tokens",
+              "label": "parse_write_tokens",
+              "depth": 2,
+              "calls": 3,
+              "inclusive_seconds": 0.0007113139145076275,
+              "exclusive_seconds": 0.0007113139145076275
+            },
+            {
+              "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 952,
+              "inclusive_seconds": 23.63525053358171,
+              "exclusive_seconds": 23.63525053358171
+            },
+            {
+              "path": "session_push/qwen_prefill_source",
+              "label": "qwen_prefill_source",
+              "depth": 1,
+              "calls": 36,
+              "inclusive_seconds": 2.843007010174915,
+              "exclusive_seconds": 0.0022461693733930588
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+              "label": "qwen_forward_embeds",
+              "depth": 2,
+              "calls": 36,
+              "inclusive_seconds": 1.0481681436067447,
+              "exclusive_seconds": 1.0481681436067447
+            },
+            {
+              "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 72,
+              "inclusive_seconds": 1.7925926971947774,
+              "exclusive_seconds": 1.7925926971947774
+            },
+            {
+              "path": "session_push/qwen_prefill_wait",
+              "label": "qwen_prefill_wait",
+              "depth": 1,
+              "calls": 33,
+              "inclusive_seconds": 0.8207199268508703,
+              "exclusive_seconds": 0.000849727657623589
+            },
+            {
+              "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 2,
+              "calls": 33,
+              "inclusive_seconds": 0.8198701991932467,
+              "exclusive_seconds": 0.8198701991932467
+            },
+            {
+              "path": "session_push/result_io",
+              "label": "result_io",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.013136949972249568,
+              "exclusive_seconds": 0.013136949972249568
+            },
+            {
+              "path": "session_push/source_runtime",
+              "label": "source_runtime",
+              "depth": 1,
+              "calls": 37,
+              "inclusive_seconds": 0.8539658415829763,
+              "exclusive_seconds": 0.029227923369035125
+            },
+            {
+              "path": "session_push/source_runtime/src_b1_bridge",
+              "label": "src_b1_bridge",
+              "depth": 2,
+              "calls": 36,
+              "inclusive_seconds": 0.040367475943639874,
+              "exclusive_seconds": 0.040367475943639874
+            },
+            {
+              "path": "session_push/source_runtime/src_ctc_head",
+              "label": "src_ctc_head",
+              "depth": 2,
+              "calls": 72,
+              "inclusive_seconds": 0.005858440068550408,
+              "exclusive_seconds": 0.005858440068550408
+            },
+            {
+              "path": "session_push/source_runtime/src_encoder_infer",
+              "label": "src_encoder_infer",
+              "depth": 2,
+              "calls": 36,
+              "inclusive_seconds": 0.7558495013508946,
+              "exclusive_seconds": 0.7558495013508946
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection",
+              "label": "src_feature_projection",
+              "depth": 2,
+              "calls": 37,
+              "inclusive_seconds": 0.020028174156323075,
+              "exclusive_seconds": 0.010248615057207644
+            },
+            {
+              "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+              "label": "src_mel_spectrogram",
+              "depth": 3,
+              "calls": 37,
+              "inclusive_seconds": 0.009779559099115431,
+              "exclusive_seconds": 0.009779559099115431
+            },
+            {
+              "path": "session_push/source_runtime/src_output_norm",
+              "label": "src_output_norm",
+              "depth": 2,
+              "calls": 36,
+              "inclusive_seconds": 0.0013586280401796103,
+              "exclusive_seconds": 0.0013586280401796103
+            },
+            {
+              "path": "session_push/source_runtime/src_policy_update",
+              "label": "src_policy_update",
+              "depth": 2,
+              "calls": 36,
+              "inclusive_seconds": 0.0012756986543536186,
+              "exclusive_seconds": 0.0012756986543536186
+            },
+            {
+              "path": "session_setup",
+              "label": "session_setup",
+              "depth": 0,
+              "calls": 1,
+              "inclusive_seconds": 0.02634331095032394,
+              "exclusive_seconds": 0.00017866399139165878
+            },
+            {
+              "path": "session_setup/qwen_forward_ids",
+              "label": "qwen_forward_ids",
+              "depth": 1,
+              "calls": 1,
+              "inclusive_seconds": 0.02616464695893228,
+              "exclusive_seconds": 0.02616464695893228
+            }
+          ]
+        },
+        "error": null,
+        "session_push_seconds": 35.934941936284304,
+        "session_setup_seconds": 0.02634331095032394
+      }
+    ]
+  },
+  "microbenchmark": {
+    "repeats": 30,
+    "chunk_cache_length": 1024,
+    "step_cost": [
+      {
+        "cache_length": 0,
+        "ms_per_forward": 24.36385496597116
+      },
+      {
+        "cache_length": 128,
+        "ms_per_forward": 24.59865619894117
+      },
+      {
+        "cache_length": 512,
+        "ms_per_forward": 24.275793864702184
+      },
+      {
+        "cache_length": 1024,
+        "ms_per_forward": 24.910547634741913
+      },
+      {
+        "cache_length": 2048,
+        "ms_per_forward": 24.89795096529027
+      },
+      {
+        "cache_length": 4096,
+        "ms_per_forward": 24.607969366479665
+      }
+    ],
+    "chunk_cost": [
+      {
+        "new_tokens": 1,
+        "ms_per_forward": 24.604944000020623,
+        "ms_per_token": 24.604944000020623
+      },
+      {
+        "new_tokens": 4,
+        "ms_per_forward": 27.920013064673793,
+        "ms_per_token": 6.980003266168448
+      },
+      {
+        "new_tokens": 16,
+        "ms_per_forward": 27.862711565103382,
+        "ms_per_token": 1.7414194728189614
+      },
+      {
+        "new_tokens": 64,
+        "ms_per_forward": 27.995276932294168,
+        "ms_per_token": 0.43742620206709637
+      },
+      {
+        "new_tokens": 256,
+        "ms_per_forward": 29.115585967277486,
+        "ms_per_token": 0.11373275768467768
+      }
+    ]
+  },
+  "attribution": {
+    "session_push_seconds": 618.0118598064873,
+    "source_seconds": 97.7,
+    "instrumentation_overhead_ratio": 0.004685268640004958,
+    "buckets": {
+      "source_runtime": 14.80955099570565,
+      "qwen_prefill_source": 49.385300200781785,
+      "qwen_prefill_wait": 13.791530209244229,
+      "qwen_ar_decode": 324.5503665060969,
+      "codec_stream_push": 0.5189588610082865,
+      "result_io": 0.2228886371012777,
+      "offline_fallback": 214.61436357581988,
+      "session_push_other": 0.11890082072932273,
+      "session_setup": 0.43337005807552487
+    },
+    "tree": [
+      {
+        "path": "session_push",
+        "label": "session_push",
+        "depth": 0,
+        "calls": 619,
+        "inclusive_seconds": 618.0118598064873,
+        "exclusive_seconds": 0.11890082072932273
+      },
+      {
+        "path": "session_push/codec_stream_push",
+        "label": "codec_stream_push",
+        "depth": 1,
+        "calls": 39,
+        "inclusive_seconds": 0.5189588610082865,
+        "exclusive_seconds": 0.0054910441394895315
+      },
+      {
+        "path": "session_push/codec_stream_push/codec_vocoder",
+        "label": "codec_vocoder",
+        "depth": 2,
+        "calls": 39,
+        "inclusive_seconds": 0.513467816868797,
+        "exclusive_seconds": 0.513467816868797
+      },
+      {
+        "path": "session_push/offline_fallback",
+        "label": "offline_fallback",
+        "depth": 1,
+        "calls": 9,
+        "inclusive_seconds": 214.61436357581988,
+        "exclusive_seconds": 214.61436357581988
+      },
+      {
+        "path": "session_push/qwen_ar_decode",
+        "label": "qwen_ar_decode",
+        "depth": 1,
+        "calls": 71,
+        "inclusive_seconds": 324.5503665060969,
+        "exclusive_seconds": 1.4435146467294544
+      },
+      {
+        "path": "session_push/qwen_ar_decode/logits_block_collapse",
+        "label": "logits_block_collapse",
+        "depth": 2,
+        "calls": 10681,
+        "inclusive_seconds": 0.5283288187347353,
+        "exclusive_seconds": 0.5283288187347353
+      },
+      {
+        "path": "session_push/qwen_ar_decode/logits_repetition_penalty",
+        "label": "logits_repetition_penalty",
+        "depth": 2,
+        "calls": 10681,
+        "inclusive_seconds": 49.15409902879037,
+        "exclusive_seconds": 49.15409902879037
+      },
+      {
+        "path": "session_push/qwen_ar_decode/parse_write_tokens",
+        "label": "parse_write_tokens",
+        "depth": 2,
+        "calls": 71,
+        "inclusive_seconds": 0.009935968555510044,
+        "exclusive_seconds": 0.009935968555510044
+      },
+      {
+        "path": "session_push/qwen_ar_decode/qwen_forward_ids",
+        "label": "qwen_forward_ids",
+        "depth": 2,
+        "calls": 10752,
+        "inclusive_seconds": 273.41448804328684,
+        "exclusive_seconds": 273.41448804328684
+      },
+      {
+        "path": "session_push/qwen_prefill_source",
+        "label": "qwen_prefill_source",
+        "depth": 1,
+        "calls": 618,
+        "inclusive_seconds": 49.385300200781785,
+        "exclusive_seconds": 0.03938231838401407
+      },
+      {
+        "path": "session_push/qwen_prefill_source/qwen_forward_embeds",
+        "label": "qwen_forward_embeds",
+        "depth": 2,
+        "calls": 618,
+        "inclusive_seconds": 18.152364955400117,
+        "exclusive_seconds": 18.152364955400117
+      },
+      {
+        "path": "session_push/qwen_prefill_source/qwen_forward_ids",
+        "label": "qwen_forward_ids",
+        "depth": 2,
+        "calls": 1236,
+        "inclusive_seconds": 31.193552926997654,
+        "exclusive_seconds": 31.193552926997654
+      },
+      {
+        "path": "session_push/qwen_prefill_wait",
+        "label": "qwen_prefill_wait",
+        "depth": 1,
+        "calls": 547,
+        "inclusive_seconds": 13.791530209244229,
+        "exclusive_seconds": 0.013742631301283836
+      },
+      {
+        "path": "session_push/qwen_prefill_wait/qwen_forward_ids",
+        "label": "qwen_forward_ids",
+        "depth": 2,
+        "calls": 547,
+        "inclusive_seconds": 13.777787577942945,
+        "exclusive_seconds": 13.777787577942945
+      },
+      {
+        "path": "session_push/result_io",
+        "label": "result_io",
+        "depth": 1,
+        "calls": 16,
+        "inclusive_seconds": 0.2228886371012777,
+        "exclusive_seconds": 0.2228886371012777
+      },
+      {
+        "path": "session_push/source_runtime",
+        "label": "source_runtime",
+        "depth": 1,
+        "calls": 619,
+        "inclusive_seconds": 14.80955099570565,
+        "exclusive_seconds": 0.5067456028191373
+      },
+      {
+        "path": "session_push/source_runtime/src_b1_bridge",
+        "label": "src_b1_bridge",
+        "depth": 2,
+        "calls": 618,
+        "inclusive_seconds": 0.6999697405844927,
+        "exclusive_seconds": 0.6999697405844927
+      },
+      {
+        "path": "session_push/source_runtime/src_ctc_head",
+        "label": "src_ctc_head",
+        "depth": 2,
+        "calls": 1236,
+        "inclusive_seconds": 0.10180369473528117,
+        "exclusive_seconds": 0.10180369473528117
+      },
+      {
+        "path": "session_push/source_runtime/src_encoder_infer",
+        "label": "src_encoder_infer",
+        "depth": 2,
+        "calls": 618,
+        "inclusive_seconds": 13.108845390146598,
+        "exclusive_seconds": 13.108845390146598
+      },
+      {
+        "path": "session_push/source_runtime/src_feature_projection",
+        "label": "src_feature_projection",
+        "depth": 2,
+        "calls": 619,
+        "inclusive_seconds": 0.34277470340020955,
+        "exclusive_seconds": 0.17515658540651202
+      },
+      {
+        "path": "session_push/source_runtime/src_feature_projection/src_mel_spectrogram",
+        "label": "src_mel_spectrogram",
+        "depth": 3,
+        "calls": 619,
+        "inclusive_seconds": 0.16761811799369752,
+        "exclusive_seconds": 0.16761811799369752
+      },
+      {
+        "path": "session_push/source_runtime/src_output_norm",
+        "label": "src_output_norm",
+        "depth": 2,
+        "calls": 618,
+        "inclusive_seconds": 0.023530281032435596,
+        "exclusive_seconds": 0.023530281032435596
+      },
+      {
+        "path": "session_push/source_runtime/src_policy_update",
+        "label": "src_policy_update",
+        "depth": 2,
+        "calls": 618,
+        "inclusive_seconds": 0.025881582987494767,
+        "exclusive_seconds": 0.025881582987494767
+      },
+      {
+        "path": "session_setup",
+        "label": "session_setup",
+        "depth": 0,
+        "calls": 16,
+        "inclusive_seconds": 0.43337005807552487,
+        "exclusive_seconds": 0.0035700532607734203
+      },
+      {
+        "path": "session_setup/qwen_forward_ids",
+        "label": "qwen_forward_ids",
+        "depth": 1,
+        "calls": 16,
+        "inclusive_seconds": 0.42980000481475145,
+        "exclusive_seconds": 0.42980000481475145
+      }
+    ],
+    "descriptions": {
+      "session_setup": "Session construction incl. Qwen streaming prompt prefill",
+      "session_push": "One Stage11Session.push call over a 160 ms ingress chunk",
+      "source_runtime": "Stage09 chunk-causal source frontend (mel + Emformer + CTC + B1 + policy)",
+      "src_mel_spectrogram": "torchaudio MelSpectrogram over the cumulative waveform",
+      "src_feature_projection": "log-mel stacking and input projection (extract_projected minus mel)",
+      "src_encoder_infer": "Emformer.infer on the 160 ms segment plus 80 ms right context",
+      "src_output_norm": "Encoder output LayerNorm",
+      "src_ctc_head": "CTC head linear projections (source and target)",
+      "src_b1_bridge": "B1 bridge: Emformer hidden -> Qwen GLM embedding space",
+      "src_policy_update": "Stage05 CTC read/write policy decision",
+      "qwen_prefill_source": "Qwen KV-cache append of START_GLM + source embeddings + END_GLM",
+      "qwen_prefill_wait": "Qwen KV-cache append of a single WAIT token",
+      "qwen_ar_decode": "Qwen autoregressive WRITE generation (text + 50 Hz BiCodec semantic)",
+      "qwen_forward_ids": "Qwen forward over discrete ids with KV cache",
+      "qwen_forward_embeds": "Qwen forward over continuous source embeddings with KV cache",
+      "logits_repetition_penalty": "Repetition penalty over the full expanded vocabulary",
+      "logits_block_collapse": "Collapsed-semantic blocking heuristic",
+      "parse_write_tokens": "Parsing one WRITE into text ids and semantic values",
+      "codec_stream_push": "Streaming BiCodec wrapper (window selection, holdback, crossfade)",
+      "codec_vocoder": "BiCodec detokenize over the left-context window",
+      "result_io": "Final WAV/JSON writing and stereo alignment",
+      "offline_fallback": "Final-only offline safety generation when no WRITE was accepted"
+    }
+  }
+}

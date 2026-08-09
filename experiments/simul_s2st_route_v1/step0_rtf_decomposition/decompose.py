@@ -39,6 +39,7 @@ for _path in (
 
 import numpy as np  # noqa: E402
 import sacrebleu  # noqa: E402
+import torch  # noqa: E402
 
 from experiments.simul_s2st_route_v1.common.instrumentation import CallTreeTimer  # noqa: E402
 from experiments.simul_s2st_route_v1.step0_rtf_decomposition.probe import (  # noqa: E402
@@ -113,6 +114,21 @@ class Selection:
         self.source_seconds = len(self.waveform) / SAMPLE_RATE
 
 
+def _probe_order(indices: list[int], count: int) -> list[int]:
+    """Deterministic order that spreads probes over the whole split before backfilling.
+
+    The valid split is heavily skewed (the first ``cmn->eng`` row sits past index 2300),
+    so taking the leading rows would measure one contiguous slice of one corpus.
+    """
+
+    if not indices:
+        return []
+    step = max(1, len(indices) // max(count * 8, 1))
+    head = indices[::step]
+    seen = set(head)
+    return head + [index for index in indices if index not in seen]
+
+
 def select_samples(
     config: Stage09Config,
     *,
@@ -124,35 +140,43 @@ def select_samples(
     dataset = B2BridgeAudioDataset(
         config.dataset_index, "valid", config.source_manifest, config.source_offsets
     )
-    wanted = {direction: per_direction for direction in DIRECTIONS}
-    chosen: list[Selection] = []
+    by_direction: dict[str, list[int]] = {direction: [] for direction in DIRECTIONS}
     for index in range(min(len(dataset), scan_limit)):
-        if not any(wanted.values()):
-            break
         direction = str(dataset._target_row(index)["direction"])
-        if wanted.get(direction, 0) <= 0:
-            continue
-        row = dataset[index]
-        waveform = row["waveform"].numpy().astype(np.float32)
-        seconds = len(waveform) / SAMPLE_RATE
-        if not min_source_seconds <= seconds <= max_source_seconds:
-            continue
-        record = row["phase3_record"]
-        chosen.append(
-            Selection(
-                index=index,
-                sample_id=str(row["id"]),
-                direction=direction,
-                speaker_tokens=[int(value) for value in record["bicodec_global"]],
-                reference=str(record["translation"]),
-                waveform=waveform,
+        if direction in by_direction:
+            by_direction[direction].append(index)
+
+    chosen: list[Selection] = []
+    missing: dict[str, int] = {}
+    for direction, indices in by_direction.items():
+        taken = 0
+        for index in _probe_order(indices, per_direction):
+            if taken >= per_direction:
+                break
+            row = dataset[index]
+            waveform = row["waveform"].numpy().astype(np.float32)
+            seconds = len(waveform) / SAMPLE_RATE
+            if not min_source_seconds <= seconds <= max_source_seconds:
+                continue
+            record = row["phase3_record"]
+            chosen.append(
+                Selection(
+                    index=index,
+                    sample_id=str(row["id"]),
+                    direction=direction,
+                    speaker_tokens=[int(value) for value in record["bicodec_global"]],
+                    reference=str(record["translation"]),
+                    waveform=waveform,
+                )
             )
-        )
-        wanted[direction] -= 1
-    missing = {key: value for key, value in wanted.items() if value > 0}
+            taken += 1
+        if taken < per_direction:
+            missing[direction] = per_direction - taken
     if missing:
         raise RuntimeError(
-            f"could not fill the requested sample budget within {scan_limit} rows: {missing}"
+            f"could not fill the requested sample budget within {scan_limit} rows: {missing} "
+            f"(available per direction: "
+            f"{ {key: len(value) for key, value in by_direction.items()} })"
         )
     chosen.sort(key=lambda item: (item.direction, item.index))
     return chosen
@@ -276,6 +300,73 @@ def bucket_totals(timer: CallTreeTimer) -> dict[str, float]:
     return buckets
 
 
+@torch.inference_mode()
+def microbenchmark_qwen(
+    engine: Stage11Engine,
+    *,
+    cache_lengths: tuple[int, ...],
+    chunk_sizes: tuple[int, ...],
+    chunk_cache_length: int,
+    repeats: int,
+) -> dict[str, object]:
+    """Separate the two costs that decide Step 2 and Step 3.
+
+    ``step_cost`` varies the KV-cache length at a fixed one-token step, which is what a
+    lambda-shaped cache would shrink. ``chunk_cost`` varies how many new positions enter a
+    single forward at a fixed cache length, which is what replacing autoregressive decoding
+    with a non-autoregressive head would exploit.
+    """
+
+    model = engine.bundle.qwen
+    device = engine.bundle.device
+    autocast = dict(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda")
+
+    def forward(ids: torch.Tensor, cache: object | None) -> object:
+        with torch.autocast(**autocast):
+            output = model(input_ids=ids, past_key_values=cache, use_cache=True)
+        return output.past_key_values
+
+    def build_cache(length: int) -> object | None:
+        if length <= 0:
+            return None
+        ids = torch.randint(0, 1000, (1, length), dtype=torch.long, device=device)
+        return forward(ids, None)
+
+    def timed(new_tokens: int, cache_length: int) -> float:
+        cache = build_cache(cache_length)
+        ids = torch.randint(0, 1000, (1, new_tokens), dtype=torch.long, device=device)
+        for _ in range(3):
+            cache = forward(ids, cache)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        started = time.perf_counter()
+        for _ in range(repeats):
+            cache = forward(ids, cache)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        return (time.perf_counter() - started) / repeats * 1000.0
+
+    step_cost = [
+        {"cache_length": length, "ms_per_forward": timed(1, length)} for length in cache_lengths
+    ]
+    chunk_cost = []
+    for size in chunk_sizes:
+        milliseconds = timed(size, chunk_cache_length)
+        chunk_cost.append(
+            {
+                "new_tokens": size,
+                "ms_per_forward": milliseconds,
+                "ms_per_token": milliseconds / size,
+            }
+        )
+    return {
+        "repeats": repeats,
+        "chunk_cache_length": chunk_cache_length,
+        "step_cost": step_cost,
+        "chunk_cost": chunk_cost,
+    }
+
+
 def summarize(rows: list[SampleRun]) -> dict[str, object]:
     usable = [row for row in rows if row.error is None]
     if not usable:
@@ -375,16 +466,51 @@ def render_markdown(payload: dict[str, object]) -> str:
         "",
         "## 3. Full call tree",
         "",
-        "| Path | Calls | Inclusive s | Exclusive s | Share (inclusive) |",
-        "|---|---:|---:|---:|---:|",
+        "| Path | Calls | Inclusive s | Exclusive s | ms/call | Share (inclusive) |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for node in tree:
         indent = "&nbsp;" * 4 * int(node["depth"])
+        calls = max(int(node["calls"]), 1)
         lines.append(
             f"| {indent}`{node['label']}` | {node['calls']} | "
             f"{node['inclusive_seconds']:.2f} | {node['exclusive_seconds']:.2f} | "
+            f"{node['inclusive_seconds'] / calls * 1000.0:.2f} | "
             f"{node['inclusive_seconds'] / total * 100:.1f}% |"
         )
+    micro = payload.get("microbenchmark")
+    if micro:
+        lines += [
+            "",
+            "## 3b. Qwen forward cost isolated from the pipeline",
+            "",
+            "One-token forward against a growing KV cache — this is what a lambda-shaped cache shrinks.",
+            "",
+            "| KV cache length | ms per forward |",
+            "|---:|---:|",
+        ]
+        for entry in micro["step_cost"]:
+            lines.append(f"| {entry['cache_length']} | {entry['ms_per_forward']:.2f} |")
+        lines += [
+            "",
+            f"New positions per forward at a fixed cache length of {micro['chunk_cache_length']} — "
+            "this is what a non-autoregressive head exploits.",
+            "",
+            "| New tokens in one forward | ms per forward | ms per token | Speed-up vs 1-token steps |",
+            "|---:|---:|---:|---:|",
+        ]
+        single = next(
+            (entry["ms_per_token"] for entry in micro["chunk_cost"] if entry["new_tokens"] == 1),
+            None,
+        )
+        for entry in micro["chunk_cost"]:
+            speedup = (
+                f"{single / entry['ms_per_token']:.1f}x" if single and entry["ms_per_token"] else "—"
+            )
+            lines.append(
+                f"| {entry['new_tokens']} | {entry['ms_per_forward']:.2f} | "
+                f"{entry['ms_per_token']:.3f} | {speedup} |"
+            )
     lines += [
         "",
         "## 4. Per-sample (baseline pass)",
@@ -432,7 +558,7 @@ def main() -> None:
     parser.add_argument("--samples-per-direction", type=int, default=4)
     parser.add_argument("--min-source-seconds", type=float, default=3.0)
     parser.add_argument("--max-source-seconds", type=float, default=12.0)
-    parser.add_argument("--scan-limit", type=int, default=400)
+    parser.add_argument("--scan-limit", type=int, default=1_000_000)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--max-write-tokens", type=int, default=384)
     parser.add_argument(
@@ -445,6 +571,8 @@ def main() -> None:
         action="store_true",
         help="run only the instrumented pass (halves runtime, loses the honest RTF)",
     )
+    parser.add_argument("--skip-microbenchmark", action="store_true")
+    parser.add_argument("--microbenchmark-repeats", type=int, default=30)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -483,6 +611,17 @@ def main() -> None:
     engine.load()
     device = engine.bundle.device
     artifact_root = args.artifact_root / args.run_name
+
+    microbenchmark = None
+    if not args.skip_microbenchmark:
+        microbenchmark = microbenchmark_qwen(
+            engine,
+            cache_lengths=(0, 128, 512, 1024, 2048, 4096),
+            chunk_sizes=(1, 4, 16, 64, 256),
+            chunk_cache_length=1024,
+            repeats=args.microbenchmark_repeats,
+        )
+        print(json.dumps({"stage": "microbenchmark", **microbenchmark}), flush=True)
 
     baseline_rows: list[SampleRun] = []
     if not args.skip_baseline:
@@ -594,6 +733,7 @@ def main() -> None:
             "bleu": direction_bleu(instrumented_rows),
             "samples": [row.to_dict() for row in instrumented_rows],
         },
+        "microbenchmark": microbenchmark,
         "attribution": {
             "session_push_seconds": push_seconds,
             "source_seconds": source_seconds,
