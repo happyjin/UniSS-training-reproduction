@@ -1,0 +1,519 @@
+{
+  "schema_version": "uniss_phase3_prefix_streaming_v3_checkpoint_selection_v1",
+  "selection_rule": "sum of ascending ranks across six inference-relevant validation losses",
+  "lower_is_better": [
+    "loss/prefix_ce",
+    "loss/semantic_ce",
+    "loss/commit_suffix_ce",
+    "loss/teacher_kl",
+    "loss/adjacent_consistency",
+    "loss/action_ce"
+  ],
+  "validation_log": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/logs/uniss_phase3_prefix_streaming_full198_joint_v3.log",
+  "checkpoint_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_prefix_streaming_full198_joint_v3",
+  "selected_iteration": 8000,
+  "selected_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_prefix_streaming_full198_joint_v3/iter_0008000",
+  "selected": {
+    "iteration": 8000,
+    "rank_sum": 13,
+    "component_ranks": {
+      "loss/prefix_ce": 1,
+      "loss/semantic_ce": 8,
+      "loss/commit_suffix_ce": 1,
+      "loss/teacher_kl": 1,
+      "loss/adjacent_consistency": 1,
+      "loss/action_ce": 1
+    },
+    "metrics": {
+      "loss/prefix_ce": 1.731546,
+      "loss/semantic_ce": 4.81245,
+      "loss/commit_suffix_ce": 0.1081926,
+      "loss/teacher_kl": 0.2464956,
+      "loss/adjacent_consistency": 0.1046645,
+      "loss/action_ce": 0.5596799
+    }
+  },
+  "ranked_candidates": [
+    {
+      "iteration": 8000,
+      "rank_sum": 13,
+      "component_ranks": {
+        "loss/prefix_ce": 1,
+        "loss/semantic_ce": 8,
+        "loss/commit_suffix_ce": 1,
+        "loss/teacher_kl": 1,
+        "loss/adjacent_consistency": 1,
+        "loss/action_ce": 1
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.731546,
+        "loss/semantic_ce": 4.81245,
+        "loss/commit_suffix_ce": 0.1081926,
+        "loss/teacher_kl": 0.2464956,
+        "loss/adjacent_consistency": 0.1046645,
+        "loss/action_ce": 0.5596799
+      }
+    },
+    {
+      "iteration": 11500,
+      "rank_sum": 41,
+      "component_ranks": {
+        "loss/prefix_ce": 16,
+        "loss/semantic_ce": 5,
+        "loss/commit_suffix_ce": 6,
+        "loss/teacher_kl": 2,
+        "loss/adjacent_consistency": 2,
+        "loss/action_ce": 10
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.856097,
+        "loss/semantic_ce": 4.78534,
+        "loss/commit_suffix_ce": 0.1339597,
+        "loss/teacher_kl": 0.2478849,
+        "loss/adjacent_consistency": 0.1059345,
+        "loss/action_ce": 0.5859131
+      }
+    },
+    {
+      "iteration": 10500,
+      "rank_sum": 42,
+      "component_ranks": {
+        "loss/prefix_ce": 6,
+        "loss/semantic_ce": 10,
+        "loss/commit_suffix_ce": 7,
+        "loss/teacher_kl": 10,
+        "loss/adjacent_consistency": 6,
+        "loss/action_ce": 3
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.789645,
+        "loss/semantic_ce": 4.843894,
+        "loss/commit_suffix_ce": 0.1359257,
+        "loss/teacher_kl": 0.2553408,
+        "loss/adjacent_consistency": 0.1090256,
+        "loss/action_ce": 0.5644902
+      }
+    },
+    {
+      "iteration": 10000,
+      "rank_sum": 45,
+      "component_ranks": {
+        "loss/prefix_ce": 18,
+        "loss/semantic_ce": 2,
+        "loss/commit_suffix_ce": 8,
+        "loss/teacher_kl": 7,
+        "loss/adjacent_consistency": 5,
+        "loss/action_ce": 5
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.875997,
+        "loss/semantic_ce": 4.757258,
+        "loss/commit_suffix_ce": 0.1410214,
+        "loss/teacher_kl": 0.25496,
+        "loss/adjacent_consistency": 0.1085553,
+        "loss/action_ce": 0.5703487
+      }
+    },
+    {
+      "iteration": 7500,
+      "rank_sum": 50,
+      "component_ranks": {
+        "loss/prefix_ce": 4,
+        "loss/semantic_ce": 14,
+        "loss/commit_suffix_ce": 17,
+        "loss/teacher_kl": 5,
+        "loss/adjacent_consistency": 3,
+        "loss/action_ce": 7
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.753008,
+        "loss/semantic_ce": 4.876695,
+        "loss/commit_suffix_ce": 0.1830507,
+        "loss/teacher_kl": 0.252632,
+        "loss/adjacent_consistency": 0.1082613,
+        "loss/action_ce": 0.5763854
+      }
+    },
+    {
+      "iteration": 11000,
+      "rank_sum": 53,
+      "component_ranks": {
+        "loss/prefix_ce": 7,
+        "loss/semantic_ce": 15,
+        "loss/commit_suffix_ce": 21,
+        "loss/teacher_kl": 4,
+        "loss/adjacent_consistency": 4,
+        "loss/action_ce": 2
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.799311,
+        "loss/semantic_ce": 4.892354,
+        "loss/commit_suffix_ce": 0.2011396,
+        "loss/teacher_kl": 0.2526119,
+        "loss/adjacent_consistency": 0.1082752,
+        "loss/action_ce": 0.5616831
+      }
+    },
+    {
+      "iteration": 9500,
+      "rank_sum": 54,
+      "component_ranks": {
+        "loss/prefix_ce": 3,
+        "loss/semantic_ce": 3,
+        "loss/commit_suffix_ce": 14,
+        "loss/teacher_kl": 13,
+        "loss/adjacent_consistency": 15,
+        "loss/action_ce": 6
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.752922,
+        "loss/semantic_ce": 4.767574,
+        "loss/commit_suffix_ce": 0.1762954,
+        "loss/teacher_kl": 0.2582118,
+        "loss/adjacent_consistency": 0.1142779,
+        "loss/action_ce": 0.5738958
+      }
+    },
+    {
+      "iteration": 6500,
+      "rank_sum": 56,
+      "component_ranks": {
+        "loss/prefix_ce": 10,
+        "loss/semantic_ce": 7,
+        "loss/commit_suffix_ce": 4,
+        "loss/teacher_kl": 12,
+        "loss/adjacent_consistency": 10,
+        "loss/action_ce": 13
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.812529,
+        "loss/semantic_ce": 4.787194,
+        "loss/commit_suffix_ce": 0.1265647,
+        "loss/teacher_kl": 0.2573786,
+        "loss/adjacent_consistency": 0.1116923,
+        "loss/action_ce": 0.6255428
+      }
+    },
+    {
+      "iteration": 8500,
+      "rank_sum": 56,
+      "component_ranks": {
+        "loss/prefix_ce": 15,
+        "loss/semantic_ce": 9,
+        "loss/commit_suffix_ce": 5,
+        "loss/teacher_kl": 9,
+        "loss/adjacent_consistency": 7,
+        "loss/action_ce": 11
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.848181,
+        "loss/semantic_ce": 4.816242,
+        "loss/commit_suffix_ce": 0.1292037,
+        "loss/teacher_kl": 0.2552801,
+        "loss/adjacent_consistency": 0.1090726,
+        "loss/action_ce": 0.5952939
+      }
+    },
+    {
+      "iteration": 7000,
+      "rank_sum": 57,
+      "component_ranks": {
+        "loss/prefix_ce": 8,
+        "loss/semantic_ce": 4,
+        "loss/commit_suffix_ce": 11,
+        "loss/teacher_kl": 11,
+        "loss/adjacent_consistency": 11,
+        "loss/action_ce": 12
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.809477,
+        "loss/semantic_ce": 4.774396,
+        "loss/commit_suffix_ce": 0.1620293,
+        "loss/teacher_kl": 0.2556743,
+        "loss/adjacent_consistency": 0.1127187,
+        "loss/action_ce": 0.5989911
+      }
+    },
+    {
+      "iteration": 9000,
+      "rank_sum": 58,
+      "component_ranks": {
+        "loss/prefix_ce": 11,
+        "loss/semantic_ce": 6,
+        "loss/commit_suffix_ce": 9,
+        "loss/teacher_kl": 14,
+        "loss/adjacent_consistency": 9,
+        "loss/action_ce": 9
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.827156,
+        "loss/semantic_ce": 4.785698,
+        "loss/commit_suffix_ce": 0.1454786,
+        "loss/teacher_kl": 0.2593879,
+        "loss/adjacent_consistency": 0.1099228,
+        "loss/action_ce": 0.5846418
+      }
+    },
+    {
+      "iteration": 12000,
+      "rank_sum": 64,
+      "component_ranks": {
+        "loss/prefix_ce": 20,
+        "loss/semantic_ce": 1,
+        "loss/commit_suffix_ce": 24,
+        "loss/teacher_kl": 3,
+        "loss/adjacent_consistency": 12,
+        "loss/action_ce": 4
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.905336,
+        "loss/semantic_ce": 4.739333,
+        "loss/commit_suffix_ce": 0.2255419,
+        "loss/teacher_kl": 0.2516694,
+        "loss/adjacent_consistency": 0.1134262,
+        "loss/action_ce": 0.5669426
+      }
+    },
+    {
+      "iteration": 5500,
+      "rank_sum": 70,
+      "component_ranks": {
+        "loss/prefix_ce": 2,
+        "loss/semantic_ce": 11,
+        "loss/commit_suffix_ce": 20,
+        "loss/teacher_kl": 8,
+        "loss/adjacent_consistency": 14,
+        "loss/action_ce": 15
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.733933,
+        "loss/semantic_ce": 4.85349,
+        "loss/commit_suffix_ce": 0.1938994,
+        "loss/teacher_kl": 0.255196,
+        "loss/adjacent_consistency": 0.1140351,
+        "loss/action_ce": 0.7661554
+      }
+    },
+    {
+      "iteration": 3500,
+      "rank_sum": 71,
+      "component_ranks": {
+        "loss/prefix_ce": 5,
+        "loss/semantic_ce": 13,
+        "loss/commit_suffix_ce": 15,
+        "loss/teacher_kl": 6,
+        "loss/adjacent_consistency": 13,
+        "loss/action_ce": 19
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.782487,
+        "loss/semantic_ce": 4.871406,
+        "loss/commit_suffix_ce": 0.1780215,
+        "loss/teacher_kl": 0.2529853,
+        "loss/adjacent_consistency": 0.1134608,
+        "loss/action_ce": 1.049703
+      }
+    },
+    {
+      "iteration": 6000,
+      "rank_sum": 78,
+      "component_ranks": {
+        "loss/prefix_ce": 12,
+        "loss/semantic_ce": 16,
+        "loss/commit_suffix_ce": 10,
+        "loss/teacher_kl": 16,
+        "loss/adjacent_consistency": 16,
+        "loss/action_ce": 8
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.8301,
+        "loss/semantic_ce": 4.898762,
+        "loss/commit_suffix_ce": 0.1517301,
+        "loss/teacher_kl": 0.2647939,
+        "loss/adjacent_consistency": 0.1158422,
+        "loss/action_ce": 0.5808879
+      }
+    },
+    {
+      "iteration": 4500,
+      "rank_sum": 84,
+      "component_ranks": {
+        "loss/prefix_ce": 13,
+        "loss/semantic_ce": 19,
+        "loss/commit_suffix_ce": 13,
+        "loss/teacher_kl": 15,
+        "loss/adjacent_consistency": 8,
+        "loss/action_ce": 16
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.842029,
+        "loss/semantic_ce": 4.931661,
+        "loss/commit_suffix_ce": 0.1757878,
+        "loss/teacher_kl": 0.2605385,
+        "loss/adjacent_consistency": 0.1098683,
+        "loss/action_ce": 0.8856921
+      }
+    },
+    {
+      "iteration": 4000,
+      "rank_sum": 87,
+      "component_ranks": {
+        "loss/prefix_ce": 9,
+        "loss/semantic_ce": 18,
+        "loss/commit_suffix_ce": 3,
+        "loss/teacher_kl": 19,
+        "loss/adjacent_consistency": 18,
+        "loss/action_ce": 20
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.810282,
+        "loss/semantic_ce": 4.915163,
+        "loss/commit_suffix_ce": 0.116108,
+        "loss/teacher_kl": 0.2714015,
+        "loss/adjacent_consistency": 0.1206317,
+        "loss/action_ce": 1.054747
+      }
+    },
+    {
+      "iteration": 5000,
+      "rank_sum": 95,
+      "component_ranks": {
+        "loss/prefix_ce": 19,
+        "loss/semantic_ce": 12,
+        "loss/commit_suffix_ce": 12,
+        "loss/teacher_kl": 18,
+        "loss/adjacent_consistency": 20,
+        "loss/action_ce": 14
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.90369,
+        "loss/semantic_ce": 4.856324,
+        "loss/commit_suffix_ce": 0.1755265,
+        "loss/teacher_kl": 0.2701155,
+        "loss/adjacent_consistency": 0.1216604,
+        "loss/action_ce": 0.6847399
+      }
+    },
+    {
+      "iteration": 2500,
+      "rank_sum": 97,
+      "component_ranks": {
+        "loss/prefix_ce": 14,
+        "loss/semantic_ce": 21,
+        "loss/commit_suffix_ce": 2,
+        "loss/teacher_kl": 21,
+        "loss/adjacent_consistency": 21,
+        "loss/action_ce": 18
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.844464,
+        "loss/semantic_ce": 4.984063,
+        "loss/commit_suffix_ce": 0.1152401,
+        "loss/teacher_kl": 0.2741461,
+        "loss/adjacent_consistency": 0.1218433,
+        "loss/action_ce": 1.048277
+      }
+    },
+    {
+      "iteration": 2000,
+      "rank_sum": 115,
+      "component_ranks": {
+        "loss/prefix_ce": 21,
+        "loss/semantic_ce": 17,
+        "loss/commit_suffix_ce": 22,
+        "loss/teacher_kl": 17,
+        "loss/adjacent_consistency": 17,
+        "loss/action_ce": 21
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.923951,
+        "loss/semantic_ce": 4.903642,
+        "loss/commit_suffix_ce": 0.2057053,
+        "loss/teacher_kl": 0.2691652,
+        "loss/adjacent_consistency": 0.119944,
+        "loss/action_ce": 1.109797
+      }
+    },
+    {
+      "iteration": 3000,
+      "rank_sum": 116,
+      "component_ranks": {
+        "loss/prefix_ce": 17,
+        "loss/semantic_ce": 20,
+        "loss/commit_suffix_ce": 23,
+        "loss/teacher_kl": 20,
+        "loss/adjacent_consistency": 19,
+        "loss/action_ce": 17
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.862664,
+        "loss/semantic_ce": 4.946278,
+        "loss/commit_suffix_ce": 0.2107113,
+        "loss/teacher_kl": 0.2730546,
+        "loss/adjacent_consistency": 0.1210264,
+        "loss/action_ce": 0.9957678
+      }
+    },
+    {
+      "iteration": 1500,
+      "rank_sum": 129,
+      "component_ranks": {
+        "loss/prefix_ce": 22,
+        "loss/semantic_ce": 22,
+        "loss/commit_suffix_ce": 18,
+        "loss/teacher_kl": 22,
+        "loss/adjacent_consistency": 22,
+        "loss/action_ce": 23
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.926855,
+        "loss/semantic_ce": 5.186649,
+        "loss/commit_suffix_ce": 0.1830979,
+        "loss/teacher_kl": 0.2855052,
+        "loss/adjacent_consistency": 0.1291588,
+        "loss/action_ce": 4.29712
+      }
+    },
+    {
+      "iteration": 1000,
+      "rank_sum": 132,
+      "component_ranks": {
+        "loss/prefix_ce": 24,
+        "loss/semantic_ce": 23,
+        "loss/commit_suffix_ce": 16,
+        "loss/teacher_kl": 23,
+        "loss/adjacent_consistency": 24,
+        "loss/action_ce": 22
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.995868,
+        "loss/semantic_ce": 5.199651,
+        "loss/commit_suffix_ce": 0.1816764,
+        "loss/teacher_kl": 0.293282,
+        "loss/adjacent_consistency": 0.1327399,
+        "loss/action_ce": 4.097099
+      }
+    },
+    {
+      "iteration": 500,
+      "rank_sum": 137,
+      "component_ranks": {
+        "loss/prefix_ce": 23,
+        "loss/semantic_ce": 24,
+        "loss/commit_suffix_ce": 19,
+        "loss/teacher_kl": 24,
+        "loss/adjacent_consistency": 23,
+        "loss/action_ce": 24
+      },
+      "metrics": {
+        "loss/prefix_ce": 1.938808,
+        "loss/semantic_ce": 5.494303,
+        "loss/commit_suffix_ce": 0.1879437,
+        "loss/teacher_kl": 0.3048001,
+        "loss/adjacent_consistency": 0.1321594,
+        "loss/action_ce": 4.324977
+      }
+    }
+  ],
+  "scope_note": "Source-side prefix/pseudo-streaming checkpoint selection; this does not claim a causal acoustic encoder or measured end-to-end latency."
+}
