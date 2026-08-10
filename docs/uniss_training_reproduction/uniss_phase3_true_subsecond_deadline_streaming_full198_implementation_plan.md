@@ -412,7 +412,7 @@ early training rows:
   "causal_source_glm": [1, 2, 3],
   "future_1_source_glm": [1, 2, 3, 4],
   "future_2_source_glm": [1, 2, 3, 4, 5],
-  "frontend_hidden_cache": "part-000/00001234.safetensors",
+  "frontend_token_cache": "part-000/bundle-000012.npz::causal:2",
 
   "translation_ids": [100, 101, 102],
   "teacher_prefix_topk_path": "part-000/00001234.npz",
@@ -440,6 +440,12 @@ early training rows:
   "checksum": "..."
 }
 ```
+
+正式实现不永久保存每个时间步的 1280 维 pre-VQ hidden。cache 保存 bounded-causal
+WhisperVQ token ID，并在训练加载时使用同一冻结 WhisperVQ checkpoint 的
+`codebook.weight[token_id]` 恢复 1280 维量化 hidden，再送入 causal adapter。这样保持
+Phase3 的 GLM 离散接口并避免数 TB 级 hidden cache。`frontend_token_cache` 与 teacher
+top-k 分别使用 `::causal:<row>` 和 `::teacher:<request>` 命名空间，禁止混用索引。
 
 `speaker_global` 必须恰好 32 token；示例只为简写。
 

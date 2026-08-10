@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "uniss_true_subsecond_trajectory_v1"
+SCHEMA_VERSION = "uniss_true_subsecond_trajectory_v2"
 PLAN_SCHEMA_VERSION = "uniss_true_subsecond_trajectory_plan_v1"
 
 
@@ -90,7 +90,7 @@ class TrajectoryRecord:
     causal_source_glm: tuple[int, ...]
     future_1_source_glm: tuple[int, ...]
     future_2_source_glm: tuple[int, ...]
-    frontend_hidden_cache: str
+    frontend_token_cache: str
     translation_ids: tuple[int, ...]
     teacher_prefix_topk_path: str
     teacher_future_1_topk_path: str
@@ -119,6 +119,8 @@ class TrajectoryRecord:
     def __post_init__(self) -> None:
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported trajectory schema")
+        if "::causal:" not in self.frontend_token_cache:
+            raise ValueError("frontend_token_cache must reference a causal-token row")
         if len(self.speaker_global) != 32:
             raise ValueError("speaker_global must contain exactly 32 tokens")
         _ints(self.causal_source_glm, "causal_source_glm")

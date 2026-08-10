@@ -20,3 +20,51 @@ Formal invariants:
 
 All generated data, caches, logs, runs, and checkpoints remain under
 `/opt/dlami/nvme/jasonleeeli`.
+
+## Data preparation status and cache smoke
+
+The full direction index and deterministic trajectory plan contain 198/198
+shards, 19,281,676 accepted rows, and 38,563,352 trajectory points. Formal
+cache generation is intentionally gated on a real-model smoke test.
+
+The cache stores bounded-causal WhisperVQ token IDs rather than permanent
+1280-dimensional pre-VQ hidden states. Training restores quantized hidden
+states with the frozen WhisperVQ codebook. Cache references use disjoint
+namespaces:
+
+```text
+bundle.npz::causal:<batch-row>
+bundle.npz::teacher:<request-index>
+```
+
+Create an isolated two-row index and run the real GPU smoke without modifying
+formal data:
+
+```bash
+source experiments/uniss_phase3_true_subsecond_deadline_full198_v1/config.env
+SMOKE_ROOT="$DATA_ROOT/smoke/cache_2row_v3"
+
+"$PYTHON" -m \
+  experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_cache_smoke_index \
+  --source-root "$INDEX_ROOT" \
+  --output-root "$SMOKE_ROOT/index" \
+  --shard 0 \
+  --limit 2
+
+CUDA_VISIBLE_DEVICES=0 \
+TMPDIR=/opt/dlami/nvme/jasonleeeli/tmp \
+HF_HOME=/opt/dlami/nvme/jasonleeeli/hf_cache \
+"$PYTHON" -m \
+  experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_trajectory_cache \
+  --raw-unist-dir "$RAW_UNIST_DIR" \
+  --index-root "$SMOKE_ROOT/index" \
+  --output-root "$SMOKE_ROOT/cache" \
+  --phase3-model "$PHASE3_MODEL" \
+  --whispervq-model "$REPO_ROOT/pretrained_models/UniSS/glm4_tokenizer" \
+  --bicodec-checkpoint "$REPO_ROOT/pretrained_models/UniSS/bicodec/BiCodec" \
+  --rank 0 --world-size 1 --limit-shards 1 --batch-size 2
+```
+
+The validated v3 smoke produces four checksum-valid trajectories with causal
+row references `0,0,1,1`, teacher request references `0,4,8,12`, and distinct
+causal lengths of 53/112 tokens for the two variable-duration source rows.
