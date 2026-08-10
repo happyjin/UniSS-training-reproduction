@@ -432,4 +432,3 @@ class BoundedLongFormEngine:
             translation=result.translation,
             result=result,
         )
-
