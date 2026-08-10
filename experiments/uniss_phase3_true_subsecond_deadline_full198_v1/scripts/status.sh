@@ -42,6 +42,15 @@ PACK_LOG="${PACK_LOG:-${REPO_ROOT}/logs/uniss_true_subsecond_pack_full198.log}"
 if [[ -f "${PACK_LOG}" ]]; then
   tail -n 3 "${PACK_LOG}"
 fi
+PIPELINE_SESSION="${PIPELINE_TMUX_SESSION:-uniss_true_subsecond_full198_pipeline}"
+if tmux has-session -t "${PIPELINE_SESSION}" 2>/dev/null; then
+  echo "pipeline_tmux_running=yes"
+else
+  echo "pipeline_tmux_running=no"
+fi
+if [[ -s "${SAVE_DIR}/latest_checkpointed_iteration.txt" ]]; then
+  echo "training_iteration=$(tr -d '[:space:]' < "${SAVE_DIR}/latest_checkpointed_iteration.txt")"
+fi
 
 nvidia-smi \
   --query-gpu=index,memory.used,utilization.gpu,power.draw \
