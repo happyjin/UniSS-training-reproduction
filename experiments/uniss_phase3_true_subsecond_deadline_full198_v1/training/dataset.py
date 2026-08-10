@@ -472,6 +472,7 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
     if count <= 0:
         raise ValueError("trajectory microbatch contains no annotations")
     max_translation = max(len(value["translation_ids"]) for _, value in annotations)
+    max_frontend = max(len(value["causal_ids"]) for _, value in annotations)
     max_teacher = max(
         value["teacher"][view].indices.shape[0]  # type: ignore[index]
         for _, value in annotations
@@ -491,6 +492,9 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
     translation_ids = torch.full((count, max_translation), c.TOKEN_PAD, dtype=torch.long)
     translation_mask = torch.zeros(count, max_translation, dtype=torch.bool)
     safe_targets = torch.zeros(count, max_translation, dtype=torch.float32)
+    frontend_ids = torch.zeros(count, max_frontend, dtype=torch.long)
+    frontend_positions = torch.zeros(count, max_frontend, dtype=torch.long)
+    frontend_mask = torch.zeros(count, max_frontend, dtype=torch.bool)
 
     action_batch = torch.empty(count, dtype=torch.long)
     action_position = torch.empty(count, dtype=torch.long)
@@ -542,6 +546,9 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
 
         positions = value["glm_positions"].tolist()
         codes = value["causal_ids"].tolist()
+        frontend_ids[annotation_index, : len(codes)] = value["causal_ids"]
+        frontend_positions[annotation_index, : len(positions)] = value["glm_positions"]
+        frontend_mask[annotation_index, : len(codes)] = True
         frontend_batch.extend([batch_row] * len(positions))
         frontend_position.extend(positions)
         frontend_code.extend(codes)
@@ -569,6 +576,9 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
             "translation_ids": translation_ids,
             "translation_mask": translation_mask,
             "safe_commit_targets": safe_targets,
+            "frontend_ids": frontend_ids,
+            "frontend_positions": frontend_positions,
+            "frontend_mask": frontend_mask,
             "teacher_indices": teacher_indices,
             "teacher_probabilities": teacher_probabilities,
             "teacher_confidence": teacher_confidence,
