@@ -9,6 +9,138 @@ import torch
 from torch.nn import functional as F
 
 
+@dataclass(frozen=True)
+class LossTerm:
+    """Unreduced numerator/denominator for correct DP normalization."""
+
+    numerator: torch.Tensor
+    denominator: torch.Tensor
+
+    @property
+    def mean(self) -> torch.Tensor:
+        return self.numerator / self.denominator.to(self.numerator.dtype).clamp_min(1.0)
+
+
+def zero_term(anchor: torch.Tensor) -> LossTerm:
+    zero = anchor.sum() * 0.0
+    return LossTerm(zero, zero.detach().new_zeros(()))
+
+
+def values_to_term(values: torch.Tensor, mask: torch.Tensor) -> LossTerm:
+    mask = mask.to(dtype=values.dtype)
+    return LossTerm((values * mask).sum(), mask.sum())
+
+
+def token_cross_entropy_term(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    weights: torch.Tensor,
+) -> LossTerm:
+    """Return next-token CE normalized by the explicit supervision weights."""
+
+    if logits.shape[:-1] != labels.shape or labels.shape != weights.shape:
+        raise ValueError("token CE tensors have incompatible shapes")
+    losses = F.cross_entropy(
+        logits.float().reshape(-1, logits.shape[-1]),
+        labels.long().reshape(-1),
+        reduction="none",
+    ).reshape_as(labels)
+    return values_to_term(losses, weights)
+
+
+def topk_teacher_kl_term(
+    student_logits: torch.Tensor,
+    teacher_indices: torch.Tensor,
+    teacher_probabilities: torch.Tensor,
+    mask: torch.Tensor,
+    *,
+    temperature: float = 1.5,
+) -> LossTerm:
+    """Forward KL on cached teacher top-k probabilities.
+
+    Teacher probabilities are already normalized within the cached top-k. The
+    student denominator remains the complete vocabulary, so probability mass
+    outside the teacher candidates is penalized instead of silently ignored.
+    """
+
+    if temperature <= 0:
+        raise ValueError("temperature must be positive")
+    if teacher_indices.shape != teacher_probabilities.shape:
+        raise ValueError("teacher top-k arrays must have identical shapes")
+    if student_logits.shape[:-1] != teacher_indices.shape[:-1]:
+        raise ValueError("student/teacher position geometry differs")
+    if mask.shape != teacher_indices.shape[:-1]:
+        raise ValueError("teacher mask geometry differs")
+    student_log = F.log_softmax(student_logits.float() / temperature, dim=-1)
+    selected_log = student_log.gather(-1, teacher_indices.long())
+    teacher = teacher_probabilities.float().clamp_min(1e-8)
+    teacher = teacher / teacher.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+    divergence = (teacher * (teacher.log() - selected_log)).sum(dim=-1)
+    return values_to_term(divergence * (temperature**2), mask)
+
+
+def restricted_symmetric_topk_term(
+    student_logits: torch.Tensor,
+    teacher_indices: torch.Tensor,
+    teacher_probabilities: torch.Tensor,
+    mask: torch.Tensor,
+) -> LossTerm:
+    """Symmetric KL on the teacher candidate support for stability training."""
+
+    selected = student_logits.float().gather(-1, teacher_indices.long())
+    student_log = F.log_softmax(selected, dim=-1)
+    student = student_log.exp()
+    teacher = teacher_probabilities.float().clamp_min(1e-8)
+    teacher = teacher / teacher.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+    teacher_log = teacher.log()
+    forward = (student * (student_log - teacher_log)).sum(dim=-1)
+    backward = (teacher * (teacher_log - student_log)).sum(dim=-1)
+    return values_to_term(0.5 * (forward + backward), mask)
+
+
+def grouped_deadline_survival_term(
+    action_logits: torch.Tensor,
+    sample_group: torch.Tensor,
+    chunk_end_ms: torch.Tensor,
+    soft_deadline_ms: torch.Tensor,
+    hard_deadline_ms: torch.Tensor,
+    *,
+    soft_weight: float = 0.7,
+    hard_weight: float = 1.0,
+    eps: float = 1e-6,
+) -> LossTerm:
+    """Survival objective over all observed ticks belonging to one utterance."""
+
+    if action_logits.ndim != 2 or action_logits.shape[-1] != 2:
+        raise ValueError("action_logits must be [N,2]")
+    count = action_logits.shape[0]
+    values = (sample_group, chunk_end_ms, soft_deadline_ms, hard_deadline_ms)
+    if any(value.shape != (count,) for value in values):
+        raise ValueError("deadline metadata must have shape [N]")
+    write_probability = action_logits.float().softmax(dim=-1)[:, 1].clamp(eps, 1 - eps)
+    losses: list[torch.Tensor] = []
+    weights: list[float] = []
+    for group in torch.unique(sample_group):
+        rows = torch.nonzero(sample_group == group, as_tuple=False).flatten()
+        for deadline_values, weight in (
+            (soft_deadline_ms, soft_weight),
+            (hard_deadline_ms, hard_weight),
+        ):
+            deadline = int(deadline_values[rows[0]].item())
+            active = rows[chunk_end_ms[rows] <= deadline]
+            if not len(active):
+                continue
+            survival = torch.log1p(-write_probability[active]).sum().exp()
+            losses.append(-torch.log((1.0 - survival).clamp_min(eps)) * weight)
+            weights.append(weight)
+    if not losses:
+        return zero_term(action_logits)
+    return LossTerm(
+        torch.stack(losses).sum(),
+        action_logits.new_tensor(weights, dtype=torch.float32).sum(),
+    )
+
+
 def masked_mean(value: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     mask = mask.to(dtype=value.dtype)
     return (value * mask).sum() / mask.sum().clamp_min(1.0)
