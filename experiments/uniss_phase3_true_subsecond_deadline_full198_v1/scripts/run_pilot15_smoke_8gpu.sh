@@ -10,8 +10,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck source=/dev/null
 source "${REPO_ROOT}/experiments/uniss_phase3_true_subsecond_deadline_full198_v1/config.env"
 
-NAME="${PILOT15_SMOKE8_NAME:-uniss_true_subsecond_pilot15_native_50step_v1}"
+NAME="${PILOT15_SMOKE8_NAME:-uniss_true_subsecond_pilot15_native_50step_v2}"
 DATA="${REPO_ROOT}/data/megatron/uniss_true_subsecond_pilot15_v1/short4096/train50_v1"
+TRAJECTORY_PACKED="${PILOT15_TRAJECTORY_PACKED:-${DATA}/packed_trajectory.jsonl}"
+TRAJECTORY_OFFSETS="${PILOT15_TRAJECTORY_OFFSETS:-${REPO_ROOT}/data/megatron/uniss_true_subsecond_pilot15_v1/short4096/train50_validated_v2/packed_trajectory.offsets.u64}"
+REPLAY_PACKED="${PILOT15_REPLAY_PACKED:-${DATA}/packed_replay.jsonl}"
+REPLAY_OFFSETS="${PILOT15_REPLAY_OFFSETS:-${DATA}/packed_replay.offsets.u64}"
 SAVE="${REPO_ROOT}/checkpoints/${NAME}"
 RUN="${REPO_ROOT}/runs/${NAME}"
 LOG="${REPO_ROOT}/logs/${NAME}.log"
@@ -19,10 +23,10 @@ mkdir -p "${RUN}"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 for file in \
-  "${DATA}/packed_trajectory.jsonl" \
-  "${DATA}/packed_trajectory.offsets.u64" \
-  "${DATA}/packed_replay.jsonl" \
-  "${DATA}/packed_replay.offsets.u64"; do
+  "${TRAJECTORY_PACKED}" \
+  "${TRAJECTORY_OFFSETS}" \
+  "${REPLAY_PACKED}" \
+  "${REPLAY_OFFSETS}"; do
   [[ -f "${file}" ]] || { echo "Missing pilot15 smoke input: ${file}" >&2; exit 1; }
 done
 
@@ -31,10 +35,10 @@ common=(
   "RUN_SAVE_DIR=${SAVE}"
   "RUN_TB_DIR=${RUN}/tensorboard"
   "RUN_LOG=${LOG}"
-  "RUN_TRAJECTORY_PACKED=${DATA}/packed_trajectory.jsonl"
-  "RUN_TRAJECTORY_OFFSETS=${DATA}/packed_trajectory.offsets.u64"
-  "RUN_REPLAY_PACKED=${DATA}/packed_replay.jsonl"
-  "RUN_REPLAY_OFFSETS=${DATA}/packed_replay.offsets.u64"
+  "RUN_TRAJECTORY_PACKED=${TRAJECTORY_PACKED}"
+  "RUN_TRAJECTORY_OFFSETS=${TRAJECTORY_OFFSETS}"
+  "RUN_REPLAY_PACKED=${REPLAY_PACKED}"
+  "RUN_REPLAY_OFFSETS=${REPLAY_OFFSETS}"
   RUN_TRAIN_ITERS=50 RUN_NPROC=8 RUN_MBS=1 RUN_GBS=128
   RUN_SEQ_LENGTH=4096 RUN_WARMUP_ITERS=5
   RUN_SAVE_INTERVAL=25 RUN_LOG_INTERVAL=1

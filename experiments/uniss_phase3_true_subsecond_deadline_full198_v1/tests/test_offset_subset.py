@@ -81,6 +81,41 @@ class OffsetSubsetTest(unittest.TestCase):
             self.assertFalse(metadata["complete"])
             self.assertEqual(metadata["records"], 3)
 
+    def test_explicit_exclusion_is_recorded_and_never_selected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            packed = root / "packed.jsonl"
+            packed.write_bytes(b"{}\n" * 6)
+            source = root / "source.u64"
+            np.arange(0, 18, 3, dtype="<u8").tofile(source)
+            stat = packed.stat()
+            source.with_suffix(".u64.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": OFFSET_SCHEMA,
+                        "source": {
+                            "path": str(packed.resolve()),
+                            "size_bytes": stat.st_size,
+                            "mtime_ns": stat.st_mtime_ns,
+                        },
+                        "records": 6,
+                    }
+                )
+            )
+            output = root / "subset.u64"
+            metadata = build_subset(
+                kind="trajectory",
+                packed=packed,
+                source_offsets=source,
+                output_offsets=output,
+                records=5,
+                excluded_source_indices=[2],
+            )
+            self.assertEqual(
+                np.fromfile(output, dtype="<u8").tolist(), [0, 3, 9, 12, 15]
+            )
+            self.assertEqual(metadata["subset"]["excluded_source_indices"], [2])
+
 
 if __name__ == "__main__":
     unittest.main()
