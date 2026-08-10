@@ -25,6 +25,8 @@ class NativeMegatronEntrypointTest(unittest.TestCase):
             "sharded": object(),
         }
         self.assertTrue(entrypoint._is_complete_rerun_checkpoint_state(value))
+        value.pop("sharded")
+        self.assertTrue(entrypoint._is_complete_rerun_checkpoint_state(value))
         self.assertFalse(entrypoint._is_complete_rerun_checkpoint_state({"state": "x"}))
 
     def test_lr_groups_match_frozen_plan(self) -> None:

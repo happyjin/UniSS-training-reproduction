@@ -190,8 +190,12 @@ def install_joint_collate() -> None:
 def _is_complete_rerun_checkpoint_state(state_dict: object) -> bool:
     """Recognize both active reruns and Megatron's steady-state sentinel."""
 
+    # torch-dist strips the ShardedObject from the common state before this
+    # validator runs.  ``state_dict(force=True)`` reconstructs that sharded
+    # template after validation, so the three common fields are the complete
+    # structure available at this point.
     return isinstance(state_dict, Mapping) and all(
-        key in state_dict for key in ("mode", "state", "current_iteration", "sharded")
+        key in state_dict for key in ("mode", "state", "current_iteration")
     )
 
 
