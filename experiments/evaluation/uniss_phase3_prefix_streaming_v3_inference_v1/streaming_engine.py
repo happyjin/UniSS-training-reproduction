@@ -359,14 +359,23 @@ class PrefixStreamingEngine:
             overlap_ms=self.config.codec_overlap_ms,
         )
 
-    def stream(self, input_audio: Path | str, *, direction: str) -> Iterator[StreamUpdate]:
+    def stream(
+        self,
+        input_audio: Path | str,
+        *,
+        direction: str,
+        chunk_ms: int | None = None,
+    ) -> Iterator[StreamUpdate]:
         if direction not in DIRECTIONS:
             raise ValueError(f"unsupported direction: {direction}")
+        active_chunk_ms = self.config.chunk_ms if chunk_ms is None else int(chunk_ms)
+        if active_chunk_ms not in {320, 480, 640}:
+            raise ValueError("chunk_ms must be one of 320, 480 or 640")
         source_lang, target_lang = DIRECTIONS[direction]
         del source_lang
         self.load()
         assert self.speech_tokenizer is not None and self.tokenizer is not None
-        request_dir = create_request_directory(self.config.output_root / f"chunk_{self.config.chunk_ms}ms")
+        request_dir = create_request_directory(self.config.output_root / f"chunk_{active_chunk_ms}ms")
         source_path = request_dir / "source_16k.wav"
         metadata = normalize_uploaded_audio(
             input_audio,
@@ -378,7 +387,7 @@ class PrefixStreamingEngine:
         source, _ = sf.read(source_path, dtype="float32", always_2d=False)
         source = np.asarray(source, dtype=np.float32).reshape(-1)
         duration_ms = len(source) * 1000.0 / SAMPLE_RATE
-        step_samples = int(round(self.config.chunk_ms * SAMPLE_RATE / 1000.0))
+        step_samples = int(round(active_chunk_ms * SAMPLE_RATE / 1000.0))
         bootstrap_samples = min(
             len(source), int(round(self.config.frontend_bootstrap_ms * SAMPLE_RATE / 1000.0))
         )
@@ -405,7 +414,7 @@ class PrefixStreamingEngine:
         first_audio_wall: float | None = None
         started = time.perf_counter()
         yield StreamUpdate(
-            f"载入 iter_0008000；开始 {self.config.chunk_ms} ms 累计前缀重编码…", ""
+            f"载入 iter_0008000；开始 {active_chunk_ms} ms 累计前缀重编码…", ""
         )
         for index, end in enumerate(boundaries):
             is_final = end == len(source)
@@ -561,7 +570,7 @@ class PrefixStreamingEngine:
             stereo_path=str(stereo_path.resolve()),
             result_path=str(result_path.resolve()),
             direction=direction,
-            chunk_ms=self.config.chunk_ms,
+            chunk_ms=active_chunk_ms,
             selected_iteration=selected,
             source_duration_seconds=duration_ms / 1000.0,
             translation_duration_seconds=len(translation) / SAMPLE_RATE,
