@@ -47,8 +47,10 @@ def load_model_and_tokenizer(
         raise ValueError(
             f"adapter load mismatch: unexpected={unexpected}, missing_adapter={missing_adapter}"
         )
-    model.to(device).eval()
+    # LoRAInjection intentionally creates float32 trainable matrices for
+    # training stability.  In inference they must match the frozen base dtype;
+    # `generate()` does not keep every cached decode step inside autocast.
+    model.to(device=device, dtype=dtype).eval()
     for parameter in model.parameters():
         parameter.requires_grad_(False)
     return model, tokenizer, config, injection
-
