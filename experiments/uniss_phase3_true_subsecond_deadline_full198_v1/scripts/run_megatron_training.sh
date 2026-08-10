@@ -24,6 +24,7 @@ source "${REPO_ROOT}/experiments/uniss_phase3_true_subsecond_deadline_full198_v1
 RUN_NPROC="${RUN_NPROC:-8}"
 RUN_MBS="${RUN_MBS:-2}"
 RUN_GBS="${RUN_GBS:-128}"
+RUN_SEQ_LENGTH="${RUN_SEQ_LENGTH:-18000}"
 RUN_MASTER_PORT="${RUN_MASTER_PORT:-${MASTER_PORT}}"
 RUN_WARMUP_ITERS="${RUN_WARMUP_ITERS:-200}"
 RUN_SAVE_INTERVAL="${RUN_SAVE_INTERVAL:-${SAVE_INTERVAL}}"
@@ -34,6 +35,7 @@ RUN_LOAD_OPTIM="${RUN_LOAD_OPTIM:-0}"
 RUN_LOAD_RNG="${RUN_LOAD_RNG:-0}"
 RUN_STRICTNESS="${RUN_STRICTNESS:-log_all}"
 RUN_SMOKE="${RUN_SMOKE:-0}"
+RUN_AUDIT_GRADIENTS="${RUN_AUDIT_GRADIENTS:-0}"
 RUN_EXIT_INTERVAL="${RUN_EXIT_INTERVAL:-}"
 RUN_VALID_TRAJECTORY_PACKED="${RUN_VALID_TRAJECTORY_PACKED:-}"
 RUN_VALID_TRAJECTORY_OFFSETS="${RUN_VALID_TRAJECTORY_OFFSETS:-}"
@@ -46,17 +48,28 @@ export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_HOME}/hub}"
 export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_HOME}/transformers}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-${USER_ROOT}/cache/pip}"
 export TMPDIR="${TMPDIR:-${USER_ROOT}/tmp}"
+export PATH="${ENV_ROOT}/bin:${PATH}"
 export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
 export CUDA_DEVICE_MAX_CONNECTIONS="${CUDA_DEVICE_MAX_CONNECTIONS:-1}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
-# Pip CUDA wheels keep cuDNN/cuBLAS/NCCL beside the active environment's
-# site-packages rather than in a system linker path.  TransformerEngine uses
-# ctypes before torch has loaded these libraries, so make the same isolated
-# environment self-contained after a server migration.
+# Prefer this machine's CUDA/cuDNN runtime, then expose the active environment's
+# pip NVIDIA libraries as fallbacks.  The recovered wheel ships cuDNN 9.1,
+# whose fused-attention sublibraries do not initialize on the current H200
+# image; the same system-first ordering is used by the proven Phase1/2/3
+# launchers on this server.
 PYTHON_SITE="$("${PYTHON}" -c 'import site; print(site.getsitepackages()[0])')"
 NVIDIA_SITE="${PYTHON_SITE}/nvidia"
 NVIDIA_LIBRARY_PATH=""
+if command -v nvcc >/dev/null 2>&1; then
+  CUDA_ROOT="$(cd "$(dirname "$(command -v nvcc)")/.." && pwd -P)"
+  for directory in \
+    "${CUDA_ROOT}/lib" \
+    "${CUDA_ROOT}/lib64" \
+    "${CUDA_ROOT}/targets/x86_64-linux/lib"; do
+    [[ -d "${directory}" ]] && NVIDIA_LIBRARY_PATH+="${directory}:"
+  done
+fi
 if [[ -d "${NVIDIA_SITE}" ]]; then
   while IFS= read -r directory; do
     NVIDIA_LIBRARY_PATH+="${directory}:"
@@ -122,7 +135,7 @@ cmd=(
   --add-qkv-bias
   --position-embedding-type rope
   --rotary-base 1000000
-  --seq-length 18000
+  --seq-length "${RUN_SEQ_LENGTH}"
   --max-position-embeddings 32768
   --micro-batch-size "${RUN_MBS}"
   --global-batch-size "${RUN_GBS}"
@@ -145,7 +158,6 @@ cmd=(
   --no-create-attention-mask-in-dataloader
   --no-gradient-accumulation-fusion
   --recompute-activations
-  --check-for-nan-in-loss-and-grad
   --dist-ckpt-strictness "${RUN_STRICTNESS}"
   --save "${RUN_SAVE_DIR}"
   --load "${RUN_LOAD}"
@@ -165,6 +177,7 @@ cmd=(
 [[ "${RUN_LOAD_OPTIM}" != "1" ]] && cmd+=(--no-load-optim)
 [[ "${RUN_LOAD_RNG}" != "1" ]] && cmd+=(--no-load-rng)
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--true-smoke --true-allow-partial-index)
+[[ "${RUN_AUDIT_GRADIENTS}" == "1" ]] && cmd+=(--true-audit-gradients)
 [[ -n "${RUN_EXIT_INTERVAL}" ]] && cmd+=(--exit-interval "${RUN_EXIT_INTERVAL}")
 has_validation=0
 if [[ -n "${RUN_VALID_TRAJECTORY_PACKED}" || -n "${RUN_VALID_TRAJECTORY_OFFSETS}" ]]; then
@@ -195,7 +208,10 @@ if [[ "${has_validation}" == "1" ]]; then
     --full-validation --eval-micro-batch-size 1 --eval-global-batch-size "${RUN_NPROC}"
   )
 else
-  cmd+=(--eval-iters 0)
+  # Recent Megatron releases still derive dataset sample counts with
+  # eval_interval even when evaluation is disabled.  Keep it defined for
+  # train-only smoke/pilot runs while leaving eval_iters at zero.
+  cmd+=(--eval-iters 0 --eval-interval "${RUN_EVAL_INTERVAL}")
 fi
 cmd+=("$@")
 

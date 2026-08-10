@@ -221,14 +221,20 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--true-npz-lru-capacity", type=int, default=8)
     group.add_argument("--true-allow-partial-index", action="store_true")
     group.add_argument("--true-smoke", action="store_true")
+    group.add_argument("--true-audit-gradients", action="store_true")
     return parser
 
 
 def validate_experiment_args(args) -> None:
     if not bool(args.sft):
         raise ValueError("true-subsecond packed training requires --sft")
-    if int(args.seq_length) != 18_000:
-        raise ValueError("true-subsecond training requires seq-length 18000")
+    if int(args.seq_length) != 18_000 and not (
+        bool(args.true_smoke) and int(args.seq_length) == 4_096
+    ):
+        raise ValueError(
+            "formal true-subsecond training requires seq-length 18000; "
+            "isolated smoke runs may use 4096"
+        )
     if int(args.tensor_model_parallel_size) != 1:
         raise ValueError("native sidecars currently require tensor parallel size 1")
     if int(args.pipeline_model_parallel_size) != 1:
@@ -570,6 +576,65 @@ def augment_native_gpt(model: nn.Module, args) -> MegatronLoRASummary:
     return summary
 
 
+def _gradient_group(parameter: nn.Parameter) -> str:
+    for name in (
+        "uniss_lr_qwen_lora",
+        "uniss_lr_frontend",
+        "uniss_lr_new_heads",
+    ):
+        if getattr(parameter, name, False):
+            return name
+    return "untagged"
+
+
+def audit_gradient(name: str, group: str, gradient: torch.Tensor) -> torch.Tensor:
+    """Fail a diagnostic smoke run at the first non-finite raw gradient."""
+
+    finite = torch.isfinite(gradient)
+    if bool(finite.all()):
+        return gradient
+    finite_values = gradient.detach()[finite]
+    payload = {
+        "event": "true_subsecond_nonfinite_gradient",
+        "rank": torch.distributed.get_rank() if torch.distributed.is_initialized() else 0,
+        "parameter": name,
+        "parameter_group": group,
+        "shape": list(gradient.shape),
+        "dtype": str(gradient.dtype),
+        "nan_count": int(torch.isnan(gradient).sum().item()),
+        "posinf_count": int(torch.isposinf(gradient).sum().item()),
+        "neginf_count": int(torch.isneginf(gradient).sum().item()),
+        "finite_max_abs": (
+            float(finite_values.float().abs().max().item()) if finite_values.numel() else None
+        ),
+    }
+    print(json.dumps(payload, sort_keys=True), flush=True)
+    raise FloatingPointError(
+        f"non-finite gradient for {name} ({group}); see diagnostic JSON above"
+    )
+
+
+def install_gradient_audit(model: nn.Module) -> int:
+    """Attach raw-autograd gradient guards for isolated smoke validation."""
+
+    handles = []
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        group = _gradient_group(parameter)
+        handles.append(
+            parameter.register_hook(
+                lambda gradient, name=name, group=group: audit_gradient(
+                    name, group, gradient
+                )
+            )
+        )
+    if not handles:
+        raise RuntimeError("gradient audit found no trainable parameters")
+    model._true_subsecond_gradient_audit_handles = handles
+    return len(handles)
+
+
 def model_provider(
     pre_process=True,
     post_process=True,
@@ -592,6 +657,7 @@ def model_provider(
         pg_collection=pg_collection,
     )
     summary = augment_native_gpt(model, args)
+    audited_parameters = install_gradient_audit(model) if args.true_audit_gradients else 0
     if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
         grouped: dict[str, int] = {}
         for _, parameter in model.named_parameters():
@@ -614,6 +680,7 @@ def model_provider(
                     "trainable_parameter_groups": grouped,
                     "learning_rates": lr_group_values(args),
                     "phase3_fingerprint": args.true_phase3_fingerprint,
+                    "gradient_audit_parameters": audited_parameters,
                 },
                 sort_keys=True,
             ),

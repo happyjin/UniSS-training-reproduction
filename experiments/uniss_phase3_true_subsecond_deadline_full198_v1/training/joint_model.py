@@ -331,7 +331,14 @@ class TrueSubsecondObjective(nn.Module):
                 ("deadline_survival", deadline),
                 ("prefix_stability", stability),
                 ("ar_semantic_microblock", semantic),
-                ("speaker_consistency", zero_term(frontend_residual_rms)),
+                # Speaker consistency is intentionally disabled in v1.  Do not
+                # anchor its zero placeholder to frontend_residual_rms: the
+                # projection is zero-initialized, and d(sqrt(x))/dx at x=0 can
+                # turn an otherwise harmless ``0 * rms`` branch into NaN
+                # gradients.  The regular parameter anchor keeps every new
+                # module in the graph while producing an exactly finite zero
+                # gradient.
+                ("speaker_consistency", zero_term(anchor)),
                 ("boundary_continuity", boundary),
             )
         )
