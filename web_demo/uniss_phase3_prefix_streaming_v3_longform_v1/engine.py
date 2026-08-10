@@ -61,6 +61,9 @@ class LongFormWindowRecord:
     write_events: int = 0
     committed_text_tokens: int = 0
     semantic_tokens: int = 0
+    semantic_per_text_token: float = 0.0
+    semantic_rejections: list[str] = field(default_factory=list)
+    retry_reason: str | None = None
     translation: str = ""
     translation_audio_path: str | None = None
     window_result_path: str | None = None
@@ -147,6 +150,7 @@ class BoundedLongFormEngine:
         end_sample: int,
         depth: int,
         counter: list[int],
+        retry_reason: str | None = None,
     ) -> list[tuple[LongFormWindowRecord, np.ndarray]]:
         index = counter[0]
         counter[0] += 1
@@ -161,6 +165,7 @@ class BoundedLongFormEngine:
             status="running",
             boundary_rms=boundary_rms,
             chunk_ms=chunk_ms,
+            retry_reason=retry_reason,
         )
         piece_dir = request_dir / "windows" / f"window_{index:04d}_d{depth}"
         piece_dir.mkdir(parents=True, exist_ok=False)
@@ -201,9 +206,38 @@ class BoundedLongFormEngine:
             record.write_events = final.write_events
             record.committed_text_tokens = final.committed_text_tokens
             record.semantic_tokens = final.semantic_tokens
+            record.semantic_per_text_token = final.semantic_tokens / max(
+                final.committed_text_tokens, 1
+            )
+            record.semantic_rejections = sorted(
+                {
+                    str(event.semantic_rejected_reason)
+                    for event in getattr(final, "events", [])
+                    if getattr(event, "semantic_rejected_reason", None)
+                }
+            )
             record.translation = final.translation.strip()
             record.translation_audio_path = final.translation_path
             record.window_result_path = final.result_path
+            maximum_text_tokens = int(
+                getattr(getattr(self.base_engine, "config", None), "max_text_tokens", 160)
+            )
+            violations: list[str] = []
+            if final.committed_text_tokens >= maximum_text_tokens:
+                violations.append(
+                    f"text_token_saturation:{final.committed_text_tokens}>="
+                    f"{maximum_text_tokens}"
+                )
+            if (
+                final.committed_text_tokens >= 16
+                and record.semantic_per_text_token < 1.5
+            ):
+                violations.append(
+                    "semantic_coverage:"
+                    f"{record.semantic_per_text_token:.4f}<1.5"
+                )
+            if violations:
+                raise RuntimeError("window_quality_gate:" + ",".join(violations))
             return [(record, target)]
         except Exception as exc:
             duration = (end_sample - start_sample) / SAMPLE_RATE
@@ -213,6 +247,7 @@ class BoundedLongFormEngine:
             )
             if can_retry:
                 midpoint = start_sample + half
+                reason = f"{type(exc).__name__}: {exc}"
                 return [
                     *self._run_piece(
                         waveform,
@@ -225,6 +260,7 @@ class BoundedLongFormEngine:
                         end_sample=midpoint,
                         depth=depth + 1,
                         counter=counter,
+                        retry_reason=reason,
                     ),
                     *self._run_piece(
                         waveform,
@@ -237,6 +273,7 @@ class BoundedLongFormEngine:
                         end_sample=end_sample,
                         depth=depth + 1,
                         counter=counter,
+                        retry_reason=reason,
                     ),
                 ]
             record.status = "failed"
@@ -295,6 +332,7 @@ class BoundedLongFormEngine:
                 end_sample=span.end_sample,
                 depth=0,
                 counter=counter,
+                retry_reason=None,
             )
             records_and_audio.extend(pieces)
             completed_text.extend(
