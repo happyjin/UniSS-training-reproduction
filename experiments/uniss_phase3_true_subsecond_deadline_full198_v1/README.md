@@ -68,3 +68,35 @@ HF_HOME=/opt/dlami/nvme/jasonleeeli/hf_cache \
 The validated v3 smoke produces four checksum-valid trajectories with causal
 row references `0,0,1,1`, teacher request references `0,4,8,12`, and distinct
 causal lengths of 53/112 tokens for the two variable-duration source rows.
+
+Trajectory task materialization is also isolated per shard. It preserves the
+ordinary Phase3 next-token tensors and adds `token_roles` plus one compact
+sidecar per packed boundary. Roles distinguish action, text, AR semantic, and
+boundary losses so the trainer can normalize each objective independently.
+Deadline-forced WRITE samples carry only the action hard label; anticipated
+content remains teacher-top-k soft supervision and is never written as a hard
+future reference.
+
+```bash
+PART="$PACKED_ROOT/parts/part-000"
+"$PYTHON" -m \
+  experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.pack_trajectory_cache \
+  --cache-part "$CACHE_ROOT/part-000" \
+  --raw-parquet "$RAW_UNIST_DIR/train-00000.parquet" \
+  --output "$PART/packed_trajectory.jsonl" \
+  --marker "$PART/PACK_COMPLETE.json" \
+  --seq-length 18000
+
+"$PYTHON" -m \
+  experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.assemble_trajectory_packs \
+  --parts-root "$PACKED_ROOT/parts" \
+  --output "$PACKED_ROOT/packed_trajectory.jsonl" \
+  --offsets "$PACKED_ROOT/packed_trajectory.offsets.u64" \
+  --marker "$PACKED_ROOT/ASSEMBLY_COMPLETE.json" \
+  --shard-count 198 \
+  --seq-length 18000
+```
+
+Assembly writes an immutable concatenated JSONL, a uint64 byte-offset sidecar,
+and `packed_trajectory.jsonl.count`. Formal `TRAIN_ITERS` is derived only after
+this real count and the Phase3 replay count are frozen.
