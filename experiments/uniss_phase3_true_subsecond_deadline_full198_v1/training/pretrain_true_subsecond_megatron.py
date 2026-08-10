@@ -187,6 +187,41 @@ def install_joint_collate() -> None:
     megatron_training.build_pretraining_data_loader = build_with_collate
 
 
+def _is_complete_rerun_checkpoint_state(state_dict: object) -> bool:
+    """Recognize both active reruns and Megatron's steady-state sentinel."""
+
+    return isinstance(state_dict, Mapping) and all(
+        key in state_dict for key in ("mode", "state", "current_iteration", "sharded")
+    )
+
+
+def install_rerun_checkpoint_compatibility() -> None:
+    """Let strict torch-dist resume load Megatron's steady-state rerun sentinel.
+
+    This Megatron checkout always writes a sharded ``rerun_state_machine_state``
+    sentinel, but its default validator rejects the sentinel when no rerun is
+    pending.  The load template then omits a key that is present in the saved
+    checkpoint and ``raise_all`` cannot resume.  The state-machine source
+    explicitly documents that ``force=True`` should mirror any checkpoint
+    state, so accept structurally complete sentinels in this isolated
+    entrypoint without modifying the shared Megatron checkout.
+    """
+
+    from megatron.core.rerun_state_machine import RerunStateMachine
+
+    original = RerunStateMachine.validate_state_dict
+    if getattr(original, "_uniss_true_subsecond_sentinel", False):
+        return
+
+    def validate_state_or_sentinel(self, state_dict):
+        if _is_complete_rerun_checkpoint_state(state_dict):
+            return True
+        return original(self, state_dict)
+
+    validate_state_or_sentinel._uniss_true_subsecond_sentinel = True
+    RerunStateMachine.validate_state_dict = validate_state_or_sentinel
+
+
 def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     runtime = load_megatron_runtime()
     if runtime.megatron_gpt.has_nvidia_modelopt:
@@ -729,6 +764,7 @@ def main() -> None:
     install_megatron_lr_overrides(args)
     install_curriculum_sampler()
     install_joint_collate()
+    install_rerun_checkpoint_compatibility()
     model_config = runtime.gpt_config_from_args(args)
     full_config = runtime.pretrain_cfg_container_from_args(args, model_config)
     full_config.model = None

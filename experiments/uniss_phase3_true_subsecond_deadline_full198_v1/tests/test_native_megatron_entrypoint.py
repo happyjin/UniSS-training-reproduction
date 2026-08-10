@@ -17,6 +17,16 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training import
 
 
 class NativeMegatronEntrypointTest(unittest.TestCase):
+    def test_steady_state_rerun_checkpoint_is_a_strict_load_template(self) -> None:
+        value = {
+            "mode": "validate_results",
+            "state": "not_running_yet",
+            "current_iteration": 5,
+            "sharded": object(),
+        }
+        self.assertTrue(entrypoint._is_complete_rerun_checkpoint_state(value))
+        self.assertFalse(entrypoint._is_complete_rerun_checkpoint_state({"state": "x"}))
+
     def test_lr_groups_match_frozen_plan(self) -> None:
         args = SimpleNamespace(
             lr=5e-5,
