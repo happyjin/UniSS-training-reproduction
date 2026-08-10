@@ -38,8 +38,9 @@ class AdditiveLoRABranch(nn.Module):
         nn.init.kaiming_uniform_(self.lora_a, a=math.sqrt(5))
 
     def forward(self, value: torch.Tensor) -> torch.Tensor:
+        value = self.dropout(value).to(dtype=self.lora_a.dtype)
         update = F.linear(
-            F.linear(self.dropout(value.float()), self.lora_a), self.lora_b
+            F.linear(value, self.lora_a), self.lora_b
         )
         return update * self.scale
 

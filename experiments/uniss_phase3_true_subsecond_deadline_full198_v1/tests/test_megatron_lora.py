@@ -6,6 +6,7 @@ import torch
 from torch import nn
 
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.model.megatron_lora import (
+    AdditiveLoRABranch,
     inject_native_megatron_lora,
 )
 
@@ -76,6 +77,14 @@ class MegatronLoRATest(unittest.TestCase):
         self.assertTrue(
             any(value is not None and bool(value.abs().sum()) for value in gradients)
         )
+
+    def test_branch_follows_bfloat16_megatron_dtype(self) -> None:
+        branch = AdditiveLoRABranch(8, 6, rank=2, alpha=4, dropout=0).bfloat16()
+        value = torch.randn(3, 8, dtype=torch.bfloat16, requires_grad=True)
+        output = branch(value)
+        self.assertEqual(output.dtype, torch.bfloat16)
+        output.float().sum().backward()
+        self.assertIsNotNone(branch.lora_b.grad)
 
 
 if __name__ == "__main__":
