@@ -27,6 +27,22 @@ for rank in $(seq 0 7); do
   fi
 done
 
+PACK_SESSION="${PACK_TMUX_SESSION:-uniss_true_subsecond_pack_full198}"
+if tmux has-session -t "${PACK_SESSION}" 2>/dev/null; then
+  echo "pack_tmux_running=yes"
+else
+  echo "pack_tmux_running=no"
+fi
+pack_parts=0
+if [[ -d "${PACKED_ROOT}/parts" ]]; then
+  pack_parts="$(find "${PACKED_ROOT}/parts" -mindepth 2 -maxdepth 2 -name PACK_COMPLETE.json | wc -l)"
+fi
+echo "pack_parts=${pack_parts}/198"
+PACK_LOG="${PACK_LOG:-${REPO_ROOT}/logs/uniss_true_subsecond_pack_full198.log}"
+if [[ -f "${PACK_LOG}" ]]; then
+  tail -n 3 "${PACK_LOG}"
+fi
+
 nvidia-smi \
   --query-gpu=index,memory.used,utilization.gpu,power.draw \
   --format=csv,noheader
