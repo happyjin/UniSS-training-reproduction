@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Iterator
 
 import pyarrow.parquet as pq
+import numpy as np
 
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_trajectory_cache import (
     CACHE_PART_SCHEMA,
@@ -25,6 +26,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.trajectory
     pack_trajectory_samples,
     shift_trajectory_sample,
 )
+from training import constants_uniss as c
 
 
 PACK_PART_SCHEMA = "uniss_true_subsecond_trajectory_pack_part_v1"
@@ -84,6 +86,39 @@ def _iter_shifted(
     target_bicodec: list[list[int]],
     counts: Counter[str],
 ) -> Iterator:
+    loaded_bundle_path: Path | None = None
+    loaded_bundle: dict[str, np.ndarray] = {}
+
+    def anticipation(record: TrajectoryRecord) -> list[int]:
+        nonlocal loaded_bundle_path, loaded_bundle
+        if not record.deadline_forced_target:
+            return []
+        reference = record.teacher_prefix_topk_path
+        path_value, suffix = reference.rsplit("::", 1)
+        namespace, index_text = suffix.split(":", 1)
+        if namespace != "teacher":
+            raise ValueError(f"invalid teacher cache reference: {reference}")
+        index_value = int(index_text)
+        path = Path(path_value)
+        if loaded_bundle_path != path:
+            with np.load(path) as values:
+                loaded_bundle = {name: values[name].copy() for name in values.files}
+            loaded_bundle_path = path
+        topk = loaded_bundle[f"request_{index_value}_indices"]
+        start = record.previous_committed_length
+        end = min(len(topk), start + 4)
+        values = []
+        for candidates in topk[start:end]:
+            valid = next(
+                (int(value) for value in candidates if 0 <= int(value) < c.VOCAB_SIZE),
+                None,
+            )
+            if valid is not None:
+                values.append(valid)
+        if not values:
+            raise ValueError(f"teacher cache has no valid anticipation token: {reference}")
+        return values
+
     with cache_path.open("r", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
             if not line.strip():
@@ -95,7 +130,11 @@ def _iter_shifted(
             if record.row_index >= len(target_bicodec):
                 raise ValueError(f"row index {record.row_index} exceeds raw parquet")
             sample = shift_trajectory_sample(
-                build_trajectory_token_sample(record, target_bicodec[record.row_index])
+                build_trajectory_token_sample(
+                    record,
+                    target_bicodec[record.row_index],
+                    anticipation_ids=anticipation(record),
+                )
             )
             counts["trajectory_samples"] += 1
             counts[f"deadline_action:{record.deadline_action_target.value}"] += 1

@@ -33,7 +33,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.schema imp
 from training import constants_uniss as c
 
 
-CACHE_PART_SCHEMA = "uniss_true_subsecond_trajectory_cache_part_v3"
+CACHE_PART_SCHEMA = "uniss_true_subsecond_trajectory_cache_part_v4"
 REQUIRED_COLUMNS = (
     "id",
     "transcription",
@@ -269,7 +269,12 @@ def build_records_for_row(
         stable = max(previous, stable)
         supported = stable - previous
         natural = Action.WRITE if supported > 0 else Action.READ
-        deadline = Action.WRITE if supported > 0 or plan.chunk_end_ms >= 800 else Action.READ
+        target_exhausted = previous >= len(translation_ids)
+        deadline = (
+            Action.WRITE
+            if supported > 0 or (plan.chunk_end_ms >= 800 and not target_exhausted)
+            else Action.READ
+        )
         forced = deadline is Action.WRITE and supported == 0
         block = _block_size(plan.sample_id, plan.trajectory_kind)
         semantic_start = min(

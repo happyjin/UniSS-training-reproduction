@@ -170,6 +170,7 @@ class TrajectoryCacheBuilderTest(unittest.TestCase):
             )
             self.assertTrue(records[0].teacher_prefix_topk_path.endswith("::teacher:8"))
             self.assertTrue(records[1].teacher_full_topk_path.endswith("::teacher:15"))
+            self.assertFalse(records[1].deadline_forced_target)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,15 @@ ROLE_ACTION = 1
 ROLE_TEXT = 2
 ROLE_SEMANTIC = 3
 ROLE_BOUNDARY = 4
-VALID_ROLES = {ROLE_OBSERVED, ROLE_ACTION, ROLE_TEXT, ROLE_SEMANTIC, ROLE_BOUNDARY}
+ROLE_KD = 5
+VALID_ROLES = {
+    ROLE_OBSERVED,
+    ROLE_ACTION,
+    ROLE_TEXT,
+    ROLE_SEMANTIC,
+    ROLE_BOUNDARY,
+    ROLE_KD,
+}
 
 
 @dataclass(frozen=True)
@@ -106,6 +114,7 @@ def build_trajectory_token_sample(
     target_bicodec: Sequence[int],
     *,
     speed: float = 1.0,
+    anticipation_ids: Sequence[int] = (),
 ) -> TrajectoryTokenSample:
     semantic = [
         int(value)
@@ -136,17 +145,29 @@ def build_trajectory_token_sample(
         _append(tokens, roles, [c.TOKEN_WAIT_READ], ROLE_ACTION)
     else:
         _append(tokens, roles, [c.TOKEN_WRITE_GENERATE], ROLE_ACTION)
-        if not record.deadline_forced_target:
+        _append(
+            tokens,
+            roles,
+            [
+                c.language_token_id(record.tgt_lang),
+                c.speed_token_id(speed),
+                c.TOKEN_START_CONTENT,
+            ],
+            ROLE_BOUNDARY if not record.deadline_forced_target else ROLE_OBSERVED,
+        )
+        if record.deadline_forced_target:
+            if not anticipation_ids:
+                raise ValueError("deadline-forced WRITE requires teacher anticipation IDs")
+            for token in anticipation_ids:
+                c.validate_token_id(int(token))
+            _append(tokens, roles, anticipation_ids, ROLE_KD)
             _append(
                 tokens,
                 roles,
-                [
-                    c.language_token_id(record.tgt_lang),
-                    c.speed_token_id(speed),
-                    c.TOKEN_START_CONTENT,
-                ],
-                ROLE_BOUNDARY,
+                [c.TOKEN_END_CONTENT],
+                ROLE_OBSERVED,
             )
+        else:
             _append(tokens, roles, record.target_text_delta_ids, ROLE_TEXT)
             _append(
                 tokens,
@@ -171,7 +192,9 @@ def shift_trajectory_sample(sample: TrajectoryTokenSample) -> ShiftedTrajectoryS
         sample_id=sample.sample_id,
         tokens=sample.input_ids[:-1],
         labels=sample.input_ids[1:],
-        loss_mask=tuple(0.0 if role == ROLE_OBSERVED else 1.0 for role in roles),
+        loss_mask=tuple(
+            0.0 if role in {ROLE_OBSERVED, ROLE_KD} else 1.0 for role in roles
+        ),
         token_roles=roles,
         position_ids=tuple(range(len(sample.input_ids) - 1)),
         sidecar=sample.sidecar,

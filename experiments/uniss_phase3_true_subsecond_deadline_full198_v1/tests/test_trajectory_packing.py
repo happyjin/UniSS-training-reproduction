@@ -8,6 +8,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.schema imp
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.trajectory_packing import (
     ROLE_ACTION,
+    ROLE_KD,
     ROLE_SEMANTIC,
     build_trajectory_token_sample,
     pack_trajectory_samples,
@@ -67,14 +68,18 @@ class TrajectoryPackingTest(unittest.TestCase):
 
     def test_deadline_forced_write_does_not_use_hard_future_content(self) -> None:
         sample = build_trajectory_token_sample(
-            _record(supported=0, forced=True), list(range(16))
+            _record(supported=0, forced=True),
+            list(range(16)),
+            anticipation_ids=(101, 102),
         )
         action_index = sample.input_ids.index(c.TOKEN_WRITE_GENERATE)
-        self.assertEqual(
-            sample.input_ids[action_index:],
-            (c.TOKEN_WRITE_GENERATE, c.TOKEN_EOS),
-        )
+        self.assertEqual(sample.input_ids[action_index + 4 : action_index + 6], (101, 102))
+        self.assertEqual(sample.token_roles[action_index + 4 : action_index + 6], (ROLE_KD, ROLE_KD))
         self.assertNotIn(ROLE_SEMANTIC, sample.token_roles)
+        shifted = shift_trajectory_sample(sample)
+        self.assertTrue(
+            all(mask == 0.0 for mask, role in zip(shifted.loss_mask, shifted.token_roles) if role == ROLE_KD)
+        )
 
     def test_packed_sidecars_align_with_boundaries(self) -> None:
         write = shift_trajectory_sample(

@@ -74,8 +74,10 @@ ordinary Phase3 next-token tensors and adds `token_roles` plus one compact
 sidecar per packed boundary. Roles distinguish action, text, AR semantic, and
 boundary losses so the trainer can normalize each objective independently.
 Deadline-forced WRITE samples carry only the action hard label; anticipated
-content remains teacher-top-k soft supervision and is never written as a hard
-future reference.
+content is represented by a 1–4-token Phase3 prefix-teacher scaffold whose hard
+`loss_mask` is zero. It receives only teacher-top-k KD and is never written as
+a hard future reference. If the full target is already committed, later ticks
+remain READ instead of creating a spurious forced WRITE.
 
 ```bash
 PART="$PACKED_ROOT/parts/part-000"
