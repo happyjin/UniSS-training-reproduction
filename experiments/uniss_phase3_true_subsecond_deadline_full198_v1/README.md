@@ -100,3 +100,15 @@ PART="$PACKED_ROOT/parts/part-000"
 Assembly writes an immutable concatenated JSONL, a uint64 byte-offset sidecar,
 and `packed_trajectory.jsonl.count`. Formal `TRAIN_ITERS` is derived only after
 this real count and the Phase3 replay count are frozen.
+
+After the 1024-row sustained benchmark passes, launch the resumable formal
+cache on all eight GPUs and inspect it without attaching to the worker shell:
+
+```bash
+bash experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/launch_cache_full198_tmux.sh
+bash experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/status.sh
+```
+
+The formal cache uses batch 64 (the measured throughput optimum on this H200
+host), one disjoint shard stream per GPU rank, ten-second telemetry, atomic
+part markers, and a final 198/198 validation summary.

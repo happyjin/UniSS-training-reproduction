@@ -33,7 +33,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.schema imp
 from training import constants_uniss as c
 
 
-CACHE_PART_SCHEMA = "uniss_true_subsecond_trajectory_cache_part_v2"
+CACHE_PART_SCHEMA = "uniss_true_subsecond_trajectory_cache_part_v3"
 REQUIRED_COLUMNS = (
     "id",
     "transcription",
@@ -362,6 +362,7 @@ def process_shard(args: argparse.Namespace, shard: int, decoder, whisper, teache
     table = pq.read_table(source, columns=list(REQUIRED_COLUMNS))
     temporary = output.with_name(f".{output.name}.tmp.{os.getpid()}")
     counts: Counter[str] = Counter()
+    digest = hashlib.sha256()
     started = time.time()
     try:
         with temporary.open("wb") as handle:
@@ -414,6 +415,7 @@ def process_shard(args: argparse.Namespace, shard: int, decoder, whisper, teache
                     for record in records:
                         encoded = (json.dumps(record.to_dict(), ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
                         handle.write(encoded)
+                        digest.update(encoded)
                         counts["trajectories"] += 1
                         counts[f"action:{record.natural_action_target.value}"] += 1
                         counts["deadline_forced"] += int(record.deadline_forced_target)
@@ -441,8 +443,16 @@ def process_shard(args: argparse.Namespace, shard: int, decoder, whisper, teache
         "shard": shard,
         "source": str(source.resolve()),
         "output": str(output.resolve()),
+        "output_size_bytes": output.stat().st_size,
+        "output_sha256": digest.hexdigest(),
         "accepted_rows": len(accepted),
         "trajectory_count": counts["trajectories"],
+        "bundle_count": len(list(output_dir.glob("bundle-*.npz"))),
+        "bundle_size_bytes": sum(path.stat().st_size for path in output_dir.glob("bundle-*.npz")),
+        "batch_size": int(args.batch_size),
+        "topk": int(getattr(args, "topk", 32)),
+        "temperature": float(getattr(args, "temperature", 1.5)),
+        "confidence_threshold": float(args.confidence_threshold),
         "natural_write": counts["action:WRITE"],
         "natural_read": counts["action:READ"],
         "deadline_forced": counts["deadline_forced"],

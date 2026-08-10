@@ -24,6 +24,9 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_traj
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_cache_smoke_index import (
     select_smoke_rows,
 )
+from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.validate_trajectory_cache import (
+    validate_cache,
+)
 
 
 def _summary(tokens: list[int], confidence: float = 0.95) -> dict[str, np.ndarray]:
@@ -103,6 +106,9 @@ class TrajectoryCacheBuilderTest(unittest.TestCase):
                 [record["frontend_token_cache"].rsplit(":", 1)[-1] for record in records],
                 ["0", "0", "1", "1"],
             )
+            summary = validate_cache(output, output / "trajectory_summary.json", 1)
+            self.assertEqual(summary["accepted_rows"], 2)
+            self.assertEqual(summary["trajectory_count"], 4)
 
     def test_smoke_selection_preserves_direction_membership(self) -> None:
         eng, cmn = select_smoke_rows(
