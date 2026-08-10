@@ -361,6 +361,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         replay,
         total_samples=target_train,
         data_parallel_group_size=dp_microbatch,
+        shuffle_seed=int(args.seed),
     )
     train.split = "train"
     train.collate_fn = collate_replay_or_trajectory
@@ -386,6 +387,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         f"trajectory={len(trajectory)} replay={len(replay)} "
         f"schedule={len(train)} replay_groups={train.replay_groups} "
         f"trajectory_groups={train.trajectory_groups} "
+        f"global_shuffle_seed={train.shuffle_seed} "
         f"valid={0 if valid is None else len(valid)}"
     )
     return train, valid, None

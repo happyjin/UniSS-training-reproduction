@@ -9,6 +9,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.assemble_t
     OFFSET_SCHEMA,
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.dataset import (
+    CurriculumKindRandomSampler,
     DeterministicReplayTrajectorySchedule,
     IndexedTrajectoryDataset,
     collate_trajectory,
@@ -89,6 +90,7 @@ class TrainingDatasetTest(unittest.TestCase):
             Fake("replay", 23),
             total_samples=128,
             data_parallel_group_size=16,
+            shuffle_seed=20260810,
         )
         self.assertEqual(len(schedule), 128)
         for start in range(0, len(schedule), 16):
@@ -108,6 +110,94 @@ class TrainingDatasetTest(unittest.TestCase):
         }
         self.assertEqual(replay_indices, set(range(23)))
         self.assertEqual(trajectory_indices, set(range(31)))
+
+    def test_sources_are_globally_shuffled_before_curriculum_assignment(self) -> None:
+        class Fake:
+            def __init__(self, kind: str, length: int):
+                self.kind, self.length = kind, length
+
+            def __len__(self):
+                return self.length
+
+            def __getitem__(self, index):
+                return {"sample_kind": self.kind, "index": index}
+
+        def source_group_order(schedule, kind: str) -> list[int]:
+            result = []
+            for group in range(schedule.group_count):
+                scheduled = schedule.scheduled_index(
+                    group * schedule.data_parallel_group_size
+                )
+                if scheduled.sample_kind == kind:
+                    result.append(
+                        scheduled.source_index // schedule.data_parallel_group_size
+                    )
+            return result
+
+        kwargs = {
+            "total_samples": 80,
+            "data_parallel_group_size": 4,
+        }
+        first = DeterministicReplayTrajectorySchedule(
+            Fake("trajectory", 32),
+            Fake("replay", 32),
+            shuffle_seed=41,
+            **kwargs,
+        )
+        repeated = DeterministicReplayTrajectorySchedule(
+            Fake("trajectory", 32),
+            Fake("replay", 32),
+            shuffle_seed=41,
+            **kwargs,
+        )
+        changed = DeterministicReplayTrajectorySchedule(
+            Fake("trajectory", 32),
+            Fake("replay", 32),
+            shuffle_seed=43,
+            **kwargs,
+        )
+        for kind, required in (("trajectory", 8), ("replay", 8)):
+            order = source_group_order(first, kind)
+            repeated_order = source_group_order(repeated, kind)
+            changed_order = source_group_order(changed, kind)
+            self.assertEqual(order, repeated_order)
+            self.assertNotEqual(order[:required], list(range(required)))
+            self.assertEqual(set(order[:required]), set(range(required)))
+            self.assertNotEqual(order[:required], changed_order[:required])
+
+    def test_curriculum_sampler_resume_reconstructs_identical_tail(self) -> None:
+        class Fake:
+            def __init__(self, kind: str, length: int):
+                self.kind, self.length = kind, length
+
+            def __len__(self):
+                return self.length
+
+            def __getitem__(self, index):
+                return {"sample_kind": self.kind, "index": index}
+
+        schedule = DeterministicReplayTrajectorySchedule(
+            Fake("trajectory", 31),
+            Fake("replay", 23),
+            total_samples=128,
+            data_parallel_group_size=16,
+            shuffle_seed=20260810,
+        )
+
+        def sampler(consumed_samples: int):
+            return CurriculumKindRandomSampler(
+                schedule,
+                total_samples=len(schedule),
+                consumed_samples=consumed_samples,
+                micro_batch_size=2,
+                data_parallel_rank=0,
+                data_parallel_size=8,
+                data_sharding=False,
+            )
+
+        uninterrupted = list(iter(sampler(0)))
+        resumed = list(iter(sampler(32)))
+        self.assertEqual(resumed, uninterrupted[2:])
 
 
 if __name__ == "__main__":

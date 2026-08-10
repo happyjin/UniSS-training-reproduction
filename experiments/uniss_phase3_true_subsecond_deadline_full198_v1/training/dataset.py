@@ -303,12 +303,15 @@ class ScheduledIndex:
 
 
 class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
-    """Restart-stable exact epoch with curriculum-aware homogeneous groups.
+    """Restart-stable globally shuffled epoch with curriculum-aware groups.
 
     Every replay and trajectory record is visited at least once.  Padding is
     allowed only after both sources have been rounded to complete DP
     microbatches and the complete schedule has been rounded to the optimizer
-    global batch by the launcher.
+    global batch by the launcher.  Source DP groups are globally permuted
+    before their cursors are assigned to curriculum phases, matching the
+    Phase3-v4 global-shuffle semantics without mixing task kinds inside one
+    data-parallel microbatch or moving groups across curriculum boundaries.
     """
 
     PHASES = CURRICULUM_PHASES
@@ -320,6 +323,7 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         *,
         total_samples: int,
         data_parallel_group_size: int,
+        shuffle_seed: int,
     ) -> None:
         if not len(trajectory) or not len(replay):
             raise ValueError("trajectory and replay datasets must be non-empty")
@@ -328,14 +332,27 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         self.trajectory = trajectory
         self.replay = replay
         self.data_parallel_group_size = int(data_parallel_group_size)
-        required_replay_groups = math.ceil(len(replay) / self.data_parallel_group_size)
-        required_trajectory_groups = math.ceil(
+        self.shuffle_seed = int(shuffle_seed)
+        self.required_replay_groups = math.ceil(
+            len(replay) / self.data_parallel_group_size
+        )
+        self.required_trajectory_groups = math.ceil(
             len(trajectory) / self.data_parallel_group_size
         )
+        trajectory_generator = torch.Generator().manual_seed(self.shuffle_seed + 17)
+        replay_generator = torch.Generator().manual_seed(self.shuffle_seed + 29)
+        self._trajectory_group_permutation = torch.randperm(
+            self.required_trajectory_groups, generator=trajectory_generator
+        ).numpy()
+        self._replay_group_permutation = torch.randperm(
+            self.required_replay_groups, generator=replay_generator
+        ).numpy()
         self.group_count = int(total_samples) // self.data_parallel_group_size
         if int(total_samples) % self.data_parallel_group_size:
             raise ValueError("schedule must end on a DP microbatch boundary")
-        required_groups = required_replay_groups + required_trajectory_groups
+        required_groups = (
+            self.required_replay_groups + self.required_trajectory_groups
+        )
         if self.group_count < required_groups:
             raise ValueError(
                 "schedule cannot cover replay and trajectory exactly once: "
@@ -367,8 +384,8 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         # Keep the curriculum target whenever source coverage permits it.  If
         # the packed source ratio differs, make the smallest deterministic
         # number of flips while retaining every record.
-        minimum_replay = required_replay_groups
-        maximum_replay = self.group_count - required_trajectory_groups
+        minimum_replay = self.required_replay_groups
+        maximum_replay = self.group_count - self.required_trajectory_groups
         target_replay = min(max(sum(nominal_replay), minimum_replay), maximum_replay)
         if sum(nominal_replay) < target_replay:
             candidates = [index for index, value in enumerate(nominal_replay) if not value]
@@ -391,9 +408,9 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
                 trajectory_cursor += 1
         self.replay_groups = replay_cursor
         self.trajectory_groups = trajectory_cursor
-        if self.replay_groups < required_replay_groups:
+        if self.replay_groups < self.required_replay_groups:
             raise AssertionError("replay coverage was lost during schedule allocation")
-        if self.trajectory_groups < required_trajectory_groups:
+        if self.trajectory_groups < self.required_trajectory_groups:
             raise AssertionError("trajectory coverage was lost during schedule allocation")
 
     def __len__(self) -> int:
@@ -407,11 +424,23 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         group, lane = divmod(index, self.data_parallel_group_size)
         replay_cursor = int(self._replay_cursor[group])
         if replay_cursor >= 0:
-            source = (replay_cursor * self.data_parallel_group_size + lane) % len(self.replay)
+            source_group = int(
+                self._replay_group_permutation[
+                    replay_cursor % self.required_replay_groups
+                ]
+            )
+            source = (
+                source_group * self.data_parallel_group_size + lane
+            ) % len(self.replay)
             return ScheduledIndex("replay", source)
         trajectory_cursor = int(self._trajectory_cursor[group])
+        source_group = int(
+            self._trajectory_group_permutation[
+                trajectory_cursor % self.required_trajectory_groups
+            ]
+        )
         source = (
-            trajectory_cursor * self.data_parallel_group_size + lane
+            source_group * self.data_parallel_group_size + lane
         ) % len(self.trajectory)
         return ScheduledIndex("trajectory", source)
 
@@ -468,7 +497,9 @@ class CurriculumKindRandomSampler:
         for phase_index, end in enumerate(boundaries):
             if end <= start:
                 continue
-            generator = torch.Generator().manual_seed(epoch * 1009 + phase_index)
+            generator = torch.Generator().manual_seed(
+                self.dataset.shuffle_seed + epoch * 1009 + phase_index
+            )
             permutation = torch.randperm(end - start, generator=generator).tolist()
             ordered.extend(start + value for value in permutation)
             start = end
