@@ -40,3 +40,72 @@ class PackedEpochGeometry:
             self.iteration_for_progress(0.75),
             self.train_iters,
         )
+
+
+@dataclass(frozen=True)
+class JointPackedEpochGeometry:
+    """One exact replay+trajectory epoch with homogeneous DP microbatches.
+
+    Replay and trajectory records cannot share one rank-local microbatch because
+    their collation sidecars differ.  Each source therefore needs padding to a
+    complete DP microbatch before the combined schedule is padded to a complete
+    optimizer global batch.  The padding is deterministic and never hides an
+    unconsumed source record.
+    """
+
+    replay_count: int
+    trajectory_count: int
+    data_parallel_microbatch: int
+    global_batch_size: int = 128
+
+    def __post_init__(self) -> None:
+        values = (
+            self.replay_count,
+            self.trajectory_count,
+            self.data_parallel_microbatch,
+            self.global_batch_size,
+        )
+        if any(value <= 0 for value in values):
+            raise ValueError("joint packed-epoch geometry must be positive")
+        if self.global_batch_size % self.data_parallel_microbatch:
+            raise ValueError("global batch must be divisible by the DP microbatch")
+
+    def _grouped(self, count: int) -> int:
+        group = self.data_parallel_microbatch
+        return math.ceil(count / group) * group
+
+    @property
+    def replay_scheduled(self) -> int:
+        return self._grouped(self.replay_count)
+
+    @property
+    def trajectory_scheduled(self) -> int:
+        return self._grouped(self.trajectory_count)
+
+    @property
+    def minimum_schedule_count(self) -> int:
+        return self.replay_scheduled + self.trajectory_scheduled
+
+    @property
+    def train_iters(self) -> int:
+        return math.ceil(self.minimum_schedule_count / self.global_batch_size)
+
+    @property
+    def schedule_count(self) -> int:
+        return self.train_iters * self.global_batch_size
+
+    @property
+    def replay_padding(self) -> int:
+        return self.replay_scheduled - self.replay_count
+
+    @property
+    def trajectory_padding(self) -> int:
+        return self.trajectory_scheduled - self.trajectory_count
+
+    @property
+    def global_batch_padding(self) -> int:
+        return self.schedule_count - self.minimum_schedule_count
+
+    @property
+    def warmup_iters(self) -> int:
+        return min(1000, max(200, math.ceil(0.025 * self.train_iters)))

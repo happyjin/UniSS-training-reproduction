@@ -87,15 +87,27 @@ class TrainingDatasetTest(unittest.TestCase):
         schedule = DeterministicReplayTrajectorySchedule(
             Fake("trajectory", 31),
             Fake("replay", 23),
-            total_samples=160,
+            total_samples=128,
             data_parallel_group_size=16,
         )
-        self.assertEqual(len(schedule), 160)
+        self.assertEqual(len(schedule), 128)
         for start in range(0, len(schedule), 16):
             kinds = {schedule[index]["sample_kind"] for index in range(start, start + 16)}
             self.assertEqual(len(kinds), 1)
         self.assertGreater(schedule.replay_groups, 0)
         self.assertGreater(schedule.trajectory_groups, 0)
+        replay_indices = {
+            schedule[index]["index"]
+            for index in range(len(schedule))
+            if schedule[index]["sample_kind"] == "replay"
+        }
+        trajectory_indices = {
+            schedule[index]["index"]
+            for index in range(len(schedule))
+            if schedule[index]["sample_kind"] == "trajectory"
+        }
+        self.assertEqual(replay_indices, set(range(23)))
+        self.assertEqual(trajectory_indices, set(range(31)))
 
 
 if __name__ == "__main__":

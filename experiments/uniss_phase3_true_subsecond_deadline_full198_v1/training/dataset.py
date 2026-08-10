@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -299,7 +300,13 @@ class ScheduledIndex:
 
 
 class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
-    """Restart-stable homogeneous DP groups with curriculum-aware task ratios."""
+    """Restart-stable exact epoch with curriculum-aware homogeneous groups.
+
+    Every replay and trajectory record is visited at least once.  Padding is
+    allowed only after both sources have been rounded to complete DP
+    microbatches and the complete schedule has been rounded to the optimizer
+    global batch by the launcher.
+    """
 
     PHASES = (
         (0.083, 0.45),
@@ -323,9 +330,19 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         self.trajectory = trajectory
         self.replay = replay
         self.data_parallel_group_size = int(data_parallel_group_size)
+        required_replay_groups = math.ceil(len(replay) / self.data_parallel_group_size)
+        required_trajectory_groups = math.ceil(
+            len(trajectory) / self.data_parallel_group_size
+        )
         self.group_count = int(total_samples) // self.data_parallel_group_size
-        if self.group_count <= 0:
-            raise ValueError("schedule is smaller than one global microbatch")
+        if int(total_samples) % self.data_parallel_group_size:
+            raise ValueError("schedule must end on a DP microbatch boundary")
+        required_groups = required_replay_groups + required_trajectory_groups
+        if self.group_count < required_groups:
+            raise ValueError(
+                "schedule cannot cover replay and trajectory exactly once: "
+                f"groups={self.group_count} required={required_groups}"
+            )
         self.total_samples = self.group_count * self.data_parallel_group_size
         self.synchronize_sample_kind = True
         self.phase_group_boundaries = tuple(
@@ -333,7 +350,8 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
         )
         self._trajectory_cursor = np.empty(self.group_count, dtype=np.int64)
         self._replay_cursor = np.empty(self.group_count, dtype=np.int64)
-        trajectory_count = replay_count = 0
+
+        nominal_replay: list[bool] = []
         phase_start = 0
         for (phase_end_fraction, replay_fraction), phase_end in zip(
             self.PHASES, self.phase_group_boundaries
@@ -341,23 +359,44 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
             del phase_end_fraction
             phase_groups = max(0, phase_end - phase_start)
             for local in range(phase_groups):
-                group = phase_start + local
                 # Midpoint thresholding is deterministic and differs by at most
                 # one group from the requested replay fraction per phase.
                 before = int(local * replay_fraction)
                 after = int((local + 1) * replay_fraction)
-                is_replay = after > before
-                if is_replay:
-                    self._replay_cursor[group] = replay_count
-                    self._trajectory_cursor[group] = -1
-                    replay_count += 1
-                else:
-                    self._trajectory_cursor[group] = trajectory_count
-                    self._replay_cursor[group] = -1
-                    trajectory_count += 1
+                nominal_replay.append(after > before)
             phase_start = phase_end
-        self.replay_groups = replay_count
-        self.trajectory_groups = trajectory_count
+
+        # Keep the curriculum target whenever source coverage permits it.  If
+        # the packed source ratio differs, make the smallest deterministic
+        # number of flips while retaining every record.
+        minimum_replay = required_replay_groups
+        maximum_replay = self.group_count - required_trajectory_groups
+        target_replay = min(max(sum(nominal_replay), minimum_replay), maximum_replay)
+        if sum(nominal_replay) < target_replay:
+            candidates = [index for index, value in enumerate(nominal_replay) if not value]
+            for index in candidates[: target_replay - sum(nominal_replay)]:
+                nominal_replay[index] = True
+        elif sum(nominal_replay) > target_replay:
+            candidates = [index for index, value in enumerate(nominal_replay) if value]
+            for index in reversed(candidates[-(sum(nominal_replay) - target_replay) :]):
+                nominal_replay[index] = False
+
+        trajectory_cursor = replay_cursor = 0
+        for group, is_replay in enumerate(nominal_replay):
+            if is_replay:
+                self._replay_cursor[group] = replay_cursor
+                self._trajectory_cursor[group] = -1
+                replay_cursor += 1
+            else:
+                self._trajectory_cursor[group] = trajectory_cursor
+                self._replay_cursor[group] = -1
+                trajectory_cursor += 1
+        self.replay_groups = replay_cursor
+        self.trajectory_groups = trajectory_cursor
+        if self.replay_groups < required_replay_groups:
+            raise AssertionError("replay coverage was lost during schedule allocation")
+        if self.trajectory_groups < required_trajectory_groups:
+            raise AssertionError("trajectory coverage was lost during schedule allocation")
 
     def __len__(self) -> int:
         return self.total_samples
