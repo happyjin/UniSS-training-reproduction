@@ -12,4 +12,3 @@ while true; do
   echo "[$(date -Is)] server exited code=${code}; retry in ${DELAY}s" | tee -a "${SCRIPT_DIR}/runtime_logs/watchdog.log"
   sleep "${DELAY}"
 done
-

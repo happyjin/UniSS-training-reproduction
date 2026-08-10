@@ -21,4 +21,3 @@ export PYTORCH_KERNEL_CACHE_PATH="${KERNEL_CACHE}"
 cd "${REPO_ROOT}"
 exec "${DEMO_ENV}/bin/python" -m web_demo.uniss_phase3_prefix_streaming_v3_longform_v1.app_gradio \
   --host 0.0.0.0 --port "${PORT}" --share
-

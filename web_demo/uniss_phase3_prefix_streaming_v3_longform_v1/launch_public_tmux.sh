@@ -27,4 +27,3 @@ echo "SESSION=${SESSION}"
 echo "GPU=${GPU_ID}"
 echo "PORT=${PORT}"
 echo "AUTH_MODE=public_no_login"
-

@@ -10,4 +10,3 @@ else
   echo "${SESSION} is not running"
 fi
 rm -f "${SCRIPT_DIR}/public_url.txt" "${SCRIPT_DIR}/access_info.json"
-

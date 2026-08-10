@@ -8,4 +8,3 @@ tmux has-session -t "${SESSION}" 2>/dev/null && echo "TMUX=${SESSION}:running" |
 if [[ -f "${SCRIPT_DIR}/runtime_logs/public_server.log" ]]; then
   tail -n 80 "${SCRIPT_DIR}/runtime_logs/public_server.log"
 fi
-
