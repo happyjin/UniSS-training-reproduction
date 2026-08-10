@@ -40,6 +40,8 @@ command=(bash -lc '
     "$PYTHON" "$repo/experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/build_phase3_fingerprint.py" \
       --source "$PHASE3_SAFETENSORS" --output "$PHASE3_FINGERPRINT"
   fi
+  log "building full canonical UniST dev trajectory validation on 8 GPUs"
+  bash "$repo/experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/run_dev_validation_8gpu.sh"
   log "running 1-GPU native checkpoint/objective smoke"
   bash "$repo/experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/run_smoke_1gpu.sh"
   log "running 8-GPU 50-step throughput and resume smoke"

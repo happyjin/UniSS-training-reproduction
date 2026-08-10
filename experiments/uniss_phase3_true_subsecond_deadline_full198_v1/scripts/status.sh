@@ -42,6 +42,21 @@ PACK_LOG="${PACK_LOG:-${REPO_ROOT}/logs/uniss_true_subsecond_pack_full198.log}"
 if [[ -f "${PACK_LOG}" ]]; then
   tail -n 3 "${PACK_LOG}"
 fi
+dev_cache_parts=0
+dev_pack_parts=0
+if [[ -d "${DEV_CACHE_ROOT}" ]]; then
+  dev_cache_parts="$(find "${DEV_CACHE_ROOT}" -mindepth 2 -maxdepth 2 -name PART_COMPLETE.json | wc -l)"
+fi
+if [[ -d "${DEV_PACKED_ROOT}/parts" ]]; then
+  dev_pack_parts="$(find "${DEV_PACKED_ROOT}/parts" -mindepth 2 -maxdepth 2 -name PACK_COMPLETE.json | wc -l)"
+fi
+echo "dev_cache_parts=${dev_cache_parts}/${DEV_SHARD_COUNT}"
+echo "dev_pack_parts=${dev_pack_parts}/${DEV_SHARD_COUNT}"
+if [[ -f "${DEV_PACKED_ROOT}/ASSEMBLY_COMPLETE.json" ]]; then
+  echo "dev_validation_assembly=complete"
+else
+  echo "dev_validation_assembly=pending"
+fi
 PIPELINE_SESSION="${PIPELINE_TMUX_SESSION:-uniss_true_subsecond_full198_pipeline}"
 if tmux has-session -t "${PIPELINE_SESSION}" 2>/dev/null; then
   echo "pipeline_tmux_running=yes"

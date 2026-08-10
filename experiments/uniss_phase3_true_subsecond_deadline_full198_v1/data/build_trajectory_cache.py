@@ -354,13 +354,23 @@ def process_shard(args: argparse.Namespace, shard: int, decoder, whisper, teache
         value = json.loads(marker.read_text(encoding="utf-8"))
         if value.get("schema_version") == CACHE_PART_SCHEMA:
             return value
-    source = Path(args.raw_unist_dir) / f"train-{shard:05d}.parquet"
+    source_template = getattr(args, "source_template", "train-{shard:05d}.parquet")
+    index_template = getattr(
+        args, "index_template", "train-{shard:05d}.{lang}.npy"
+    )
+    source = Path(args.raw_unist_dir) / source_template.format(shard=shard)
     index_root = Path(args.index_root)
     accepted = np.sort(
         np.concatenate(
             (
-                np.load(index_root / f"train-{shard:05d}.eng.npy", mmap_mode="r"),
-                np.load(index_root / f"train-{shard:05d}.cmn.npy", mmap_mode="r"),
+                np.load(
+                    index_root / index_template.format(shard=shard, lang="eng"),
+                    mmap_mode="r",
+                ),
+                np.load(
+                    index_root / index_template.format(shard=shard, lang="cmn"),
+                    mmap_mode="r",
+                ),
             )
         )
     )
@@ -474,6 +484,17 @@ def main() -> None:
     parser.add_argument("--raw-unist-dir", required=True)
     parser.add_argument("--index-root", required=True)
     parser.add_argument("--output-root", required=True)
+    parser.add_argument(
+        "--source-template",
+        default="train-{shard:05d}.parquet",
+        help="Filename template relative to raw-unist-dir; may ignore {shard}.",
+    )
+    parser.add_argument(
+        "--index-template",
+        default="train-{shard:05d}.{lang}.npy",
+        help="Filename template relative to index-root.",
+    )
+    parser.add_argument("--shard-count", type=int, default=198)
     parser.add_argument("--phase3-model", required=True, type=Path)
     parser.add_argument("--whispervq-model", required=True, type=Path)
     parser.add_argument("--bicodec-checkpoint", required=True, type=Path)
@@ -491,6 +512,8 @@ def main() -> None:
         raise ValueError("rank must be in [0, world_size)")
     if args.batch_size <= 0:
         raise ValueError("batch_size must be positive")
+    if args.shard_count <= 0:
+        raise ValueError("shard_count must be positive")
     torch.cuda.set_device(args.rank)
     device = torch.device(f"cuda:{args.rank}")
     from training.simul_uniss.subsecond_v2.streaming_whispervq_teacher import (
@@ -510,7 +533,7 @@ def main() -> None:
         topk=args.topk,
         temperature=args.temperature,
     )
-    shards = list(range(args.rank, 198, args.world_size))
+    shards = list(range(args.rank, args.shard_count, args.world_size))
     if args.limit_shards is not None:
         shards = shards[: args.limit_shards]
     results = []

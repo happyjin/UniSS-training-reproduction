@@ -35,6 +35,8 @@ RUN_LOAD_RNG="${RUN_LOAD_RNG:-0}"
 RUN_STRICTNESS="${RUN_STRICTNESS:-log_all}"
 RUN_SMOKE="${RUN_SMOKE:-0}"
 RUN_EXIT_INTERVAL="${RUN_EXIT_INTERVAL:-}"
+RUN_VALID_TRAJECTORY_PACKED="${RUN_VALID_TRAJECTORY_PACKED:-}"
+RUN_VALID_TRAJECTORY_OFFSETS="${RUN_VALID_TRAJECTORY_OFFSETS:-}"
 RUN_VALID_REPLAY_PACKED="${RUN_VALID_REPLAY_PACKED:-}"
 RUN_VALID_REPLAY_OFFSETS="${RUN_VALID_REPLAY_OFFSETS:-}"
 RUN_FULL_VALIDATION="${RUN_FULL_VALIDATION:-0}"
@@ -149,7 +151,19 @@ cmd=(
 [[ "${RUN_LOAD_RNG}" != "1" ]] && cmd+=(--no-load-rng)
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--true-smoke --true-allow-partial-index)
 [[ -n "${RUN_EXIT_INTERVAL}" ]] && cmd+=(--exit-interval "${RUN_EXIT_INTERVAL}")
-if [[ -n "${RUN_VALID_REPLAY_PACKED}" ]]; then
+has_validation=0
+if [[ -n "${RUN_VALID_TRAJECTORY_PACKED}" || -n "${RUN_VALID_TRAJECTORY_OFFSETS}" ]]; then
+  [[ -f "${RUN_VALID_TRAJECTORY_PACKED}" && -f "${RUN_VALID_TRAJECTORY_OFFSETS}" ]] || {
+    echo "Validation trajectory data/index is incomplete" >&2
+    exit 1
+  }
+  cmd+=(
+    --true-valid-trajectory-packed "${RUN_VALID_TRAJECTORY_PACKED}"
+    --true-valid-trajectory-offsets "${RUN_VALID_TRAJECTORY_OFFSETS}"
+  )
+  has_validation=1
+fi
+if [[ -n "${RUN_VALID_REPLAY_PACKED}" || -n "${RUN_VALID_REPLAY_OFFSETS}" ]]; then
   [[ -f "${RUN_VALID_REPLAY_PACKED}" && -f "${RUN_VALID_REPLAY_OFFSETS}" ]] || {
     echo "Validation replay data/index is incomplete" >&2
     exit 1
@@ -157,9 +171,11 @@ if [[ -n "${RUN_VALID_REPLAY_PACKED}" ]]; then
   cmd+=(
     --true-valid-replay-packed "${RUN_VALID_REPLAY_PACKED}"
     --true-valid-replay-offsets "${RUN_VALID_REPLAY_OFFSETS}"
-    --eval-iters "${EVAL_ITERS}"
-    --eval-interval "${RUN_EVAL_INTERVAL}"
   )
+  has_validation=1
+fi
+if [[ "${has_validation}" == "1" ]]; then
+  cmd+=(--eval-iters "${EVAL_ITERS}" --eval-interval "${RUN_EVAL_INTERVAL}")
   [[ "${RUN_FULL_VALIDATION}" == "1" ]] && cmd+=(
     --full-validation --eval-micro-batch-size 1 --eval-global-batch-size "${RUN_NPROC}"
   )

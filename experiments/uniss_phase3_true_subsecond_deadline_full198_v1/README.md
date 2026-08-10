@@ -114,3 +114,35 @@ bash experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/status.
 The formal cache uses batch 64 (the measured throughput optimum on this H200
 host), one disjoint shard stream per GPU rank, ten-second telemetry, atomic
 part markers, and a final 198/198 validation summary.
+
+## Full streaming validation
+
+Formal model selection does not rely only on the historical 331-pack Phase3
+replay validation set. The canonical `data/raw/UniST/dev-00000.parquet` split
+(7,965 rows) is separately converted into true-subsecond trajectory validation:
+
+- accepted rows are stratified by `eng->cmn` and `cmn->eng`;
+- each direction is ordered by a stable BLAKE2b sample hash and round-robin
+  partitioned into eight logical parts;
+- every accepted row occurs exactly once and produces the same deterministic
+  early plus middle/late trajectory pair as formal training;
+- eight GPUs build causal WhisperVQ and Phase3-teacher caches after the full198
+  training cache releases the GPUs;
+- the resulting trajectory packs are concatenated with immutable uint64
+  offsets and evaluated together with Phase3 replay validation.
+
+CPU-only index and plan preparation can run while full198 cache generation is
+still active:
+
+```bash
+bash experiments/uniss_phase3_true_subsecond_deadline_full198_v1/scripts/prepare_dev_validation_cpu.sh
+```
+
+The automatic pipeline later runs the GPU cache, packing, assembly, native
+smoke tests, TensorBoard on port 6070, and formal training. Its dev artifacts
+are isolated under:
+
+```text
+data/processed/uniss_phase3_true_subsecond_deadline_full198_v1/validation/true_subsecond_dev/
+data/megatron/uniss_true_subsecond_dev/
+```

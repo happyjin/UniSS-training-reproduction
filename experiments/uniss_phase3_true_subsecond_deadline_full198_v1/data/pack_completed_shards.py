@@ -18,11 +18,18 @@ def _pack_one(values: tuple[Path, Path, Path, Path, int]) -> dict[str, object]:
     return pack_cache_part(*values[:4], seq_length=values[4])
 
 
-def _paths(cache_root: Path, raw_root: Path, parts_root: Path, shard: int, seq_length: int):
+def _paths(
+    cache_root: Path,
+    raw_root: Path,
+    parts_root: Path,
+    shard: int,
+    seq_length: int,
+    raw_template: str,
+):
     output_root = parts_root / f"part-{shard:03d}"
     return (
         cache_root / f"part-{shard:03d}",
-        raw_root / f"train-{shard:05d}.parquet",
+        raw_root / raw_template.format(shard=shard),
         output_root / "packed_trajectory.jsonl",
         output_root / "PACK_COMPLETE.json",
         seq_length,
@@ -35,6 +42,7 @@ def main() -> None:
     parser.add_argument("--raw-root", required=True, type=Path)
     parser.add_argument("--parts-root", required=True, type=Path)
     parser.add_argument("--shard-count", type=int, default=198)
+    parser.add_argument("--raw-template", default="train-{shard:05d}.parquet")
     parser.add_argument("--seq-length", type=int, default=18_000)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--poll-seconds", type=float, default=30.0)
@@ -84,6 +92,7 @@ def main() -> None:
                         args.parts_root,
                         shard,
                         args.seq_length,
+                        args.raw_template,
                     ),
                 ): shard
                 for shard in ready

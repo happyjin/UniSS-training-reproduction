@@ -118,8 +118,8 @@ def _iter_rows(source: Path, accepted: np.ndarray, batch_size: int = 8192) -> It
         offset += batch.num_rows
 
 
-def build_one(payload: tuple[int, str, str, str]) -> dict[str, Any]:
-    shard, source_name, index_root_name, output_root_name = payload
+def build_one(payload: tuple[int, str, str, str, str]) -> dict[str, Any]:
+    shard, source_name, index_root_name, output_root_name, index_template = payload
     source = Path(source_name).resolve()
     index_root = Path(index_root_name).resolve()
     output_root = Path(output_root_name).resolve()
@@ -131,8 +131,12 @@ def build_one(payload: tuple[int, str, str, str]) -> dict[str, Any]:
         value = json.loads(marker.read_text(encoding="utf-8"))
         if value.get("schema_version") == PART_SCHEMA and value.get("source") == str(source):
             return value
-    eng = np.load(index_root / f"train-{shard:05d}.eng.npy", mmap_mode="r")
-    cmn = np.load(index_root / f"train-{shard:05d}.cmn.npy", mmap_mode="r")
+    eng = np.load(
+        index_root / index_template.format(shard=shard, lang="eng"), mmap_mode="r"
+    )
+    cmn = np.load(
+        index_root / index_template.format(shard=shard, lang="cmn"), mmap_mode="r"
+    )
     accepted = np.sort(np.concatenate((eng, cmn)))
     temporary = output.with_name(f".{output.name}.tmp.{os.getpid()}")
     counts: Counter[str] = Counter()
@@ -176,14 +180,29 @@ def build_one(payload: tuple[int, str, str, str]) -> dict[str, Any]:
     return value
 
 
-def build(index_json: Path, output_root: Path, workers: int) -> dict[str, Any]:
+def build(
+    index_json: Path,
+    output_root: Path,
+    workers: int,
+    *,
+    shard_count: int = 198,
+    index_template: str = "train-{shard:05d}.{lang}.npy",
+) -> dict[str, Any]:
     index = json.loads(index_json.read_text(encoding="utf-8"))
     shards = index["shards"]
-    if len(shards) != 198:
-        raise ValueError("trajectory schedule requires 198 indexed shards")
+    if len(shards) != shard_count:
+        raise ValueError(
+            f"trajectory schedule requires {shard_count} indexed shards, found {len(shards)}"
+        )
     index_root = index_json.parent
     payloads = [
-        (int(value["shard"]), str(value["source"]), str(index_root), str(output_root))
+        (
+            int(value["shard"]),
+            str(value["source"]),
+            str(index_root),
+            str(output_root),
+            index_template,
+        )
         for value in shards
     ]
     with ProcessPoolExecutor(max_workers=workers) as pool:
@@ -208,10 +227,27 @@ def main() -> None:
     parser.add_argument("--index-json", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=min(32, os.cpu_count() or 1))
+    parser.add_argument("--shard-count", type=int, default=198)
+    parser.add_argument(
+        "--index-template", default="train-{shard:05d}.{lang}.npy"
+    )
     args = parser.parse_args()
     if args.workers <= 0:
         raise ValueError("workers must be positive")
-    print(json.dumps(build(args.index_json, args.output_root, args.workers), sort_keys=True))
+    if args.shard_count <= 0:
+        raise ValueError("shard-count must be positive")
+    print(
+        json.dumps(
+            build(
+                args.index_json,
+                args.output_root,
+                args.workers,
+                shard_count=args.shard_count,
+                index_template=args.index_template,
+            ),
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":

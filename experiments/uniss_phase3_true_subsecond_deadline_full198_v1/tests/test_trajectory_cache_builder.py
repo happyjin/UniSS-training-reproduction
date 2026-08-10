@@ -87,13 +87,15 @@ class TrajectoryCacheBuilderTest(unittest.TestCase):
                 "src_lang": ["eng", "eng"],
                 "tgt_lang": ["cmn", "cmn"],
             }
-            pq.write_table(pa.Table.from_pydict(rows), raw / "train-00000.parquet")
-            np.save(index / "train-00000.eng.npy", np.asarray([0, 1], dtype=np.int64))
-            np.save(index / "train-00000.cmn.npy", np.asarray([], dtype=np.int64))
+            pq.write_table(pa.Table.from_pydict(rows), raw / "dev-00000.parquet")
+            np.save(index / "part-000.eng.npy", np.asarray([0, 1], dtype=np.int64))
+            np.save(index / "part-000.cmn.npy", np.asarray([], dtype=np.int64))
             args = Namespace(
                 output_root=str(output),
                 raw_unist_dir=str(raw),
                 index_root=str(index),
+                source_template="dev-00000.parquet",
+                index_template="part-{shard:03d}.{lang}.npy",
                 batch_size=2,
                 rank=0,
                 confidence_threshold=0.7,
