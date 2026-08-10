@@ -102,7 +102,7 @@ def run_upload(
             result = update.result
             yield (
                 result.translation,
-                None,
+                result.translation_path,
                 result.timeline_path,
                 result.stereo_path,
                 result.result_path,
@@ -167,8 +167,7 @@ def build_demo(config: DemoConfig, engine: PrefixStreamingEngine) -> gr.Blocks:
             with gr.Column():
                 translation = gr.Textbox(label="稳定提交的翻译文本", lines=5, interactive=False)
                 live = gr.Audio(
-                    label="生成中的右声道语音块",
-                    streaming=True,
+                    label="最近生成的右声道语音块（完成后为连续目标语音）",
                     autoplay=True,
                     interactive=False,
                 )
@@ -270,4 +269,3 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"FATAL={type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         raise
-
