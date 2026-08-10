@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck source=/dev/null
 source "${REPO_ROOT}/experiments/uniss_phase3_true_subsecond_deadline_full198_v1/config.env"
 
-NAME="${SMOKE1_NAME:-uniss_true_subsecond_native_smoke1_v1}"
+NAME="${SMOKE1_NAME:-uniss_true_subsecond_native_smoke1_v2}"
 SMOKE_ROOT="${DATA_ROOT}/smoke/trajectory_assembly_v2"
 SAVE="${REPO_ROOT}/checkpoints/${NAME}"
 RUN="${REPO_ROOT}/runs/${NAME}"

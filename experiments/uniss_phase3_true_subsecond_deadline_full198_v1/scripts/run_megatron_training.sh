@@ -49,6 +49,20 @@ export TMPDIR="${TMPDIR:-${USER_ROOT}/tmp}"
 export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
 export CUDA_DEVICE_MAX_CONNECTIONS="${CUDA_DEVICE_MAX_CONNECTIONS:-1}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
+# Pip CUDA wheels keep cuDNN/cuBLAS/NCCL beside the active environment's
+# site-packages rather than in a system linker path.  TransformerEngine uses
+# ctypes before torch has loaded these libraries, so make the same isolated
+# environment self-contained after a server migration.
+PYTHON_SITE="$("${PYTHON}" -c 'import site; print(site.getsitepackages()[0])')"
+NVIDIA_SITE="${PYTHON_SITE}/nvidia"
+NVIDIA_LIBRARY_PATH=""
+if [[ -d "${NVIDIA_SITE}" ]]; then
+  while IFS= read -r directory; do
+    NVIDIA_LIBRARY_PATH+="${directory}:"
+  done < <(find "${NVIDIA_SITE}" -mindepth 2 -maxdepth 2 -type d -name lib -print | sort)
+fi
+export LD_LIBRARY_PATH="${NVIDIA_LIBRARY_PATH}${ENV_ROOT}/lib:${LD_LIBRARY_PATH:-}"
 mkdir -p "${HF_HOME}" "${HUGGINGFACE_HUB_CACHE}" "${TRANSFORMERS_CACHE}" \
   "${PIP_CACHE_DIR}" "${TMPDIR}" "${RUN_SAVE_DIR}" "${RUN_TB_DIR}" \
   "$(dirname "${RUN_LOG}")"
@@ -63,6 +77,7 @@ for value in "${required[@]}"; do
   [[ -f "${value}" ]] || { echo "Missing required file: ${value}" >&2; exit 1; }
 done
 if [[ "${DRY_RUN}" != "1" ]]; then
+  "${PYTHON}" -c 'import transformer_engine.pytorch' >/dev/null
   visible_gpus="$("${PYTHON}" -c 'import torch; print(torch.cuda.device_count())')"
   [[ "${visible_gpus}" == "${RUN_NPROC}" ]] || {
     echo "Expected ${RUN_NPROC} visible GPUs, found ${visible_gpus}" >&2
