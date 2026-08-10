@@ -6,6 +6,28 @@ import math
 from dataclasses import dataclass
 
 
+CURRICULUM_PHASES = (
+    (0.083, 0.45),
+    (0.333, 0.40),
+    (0.750, 0.35),
+    (1.000, 0.40),
+)
+
+
+def curriculum_group_counts(group_count: int) -> tuple[int, int]:
+    """Return deterministic replay/trajectory group counts for one schedule."""
+
+    if group_count <= 0:
+        raise ValueError("group_count must be positive")
+    boundaries = tuple(min(group_count, round(end * group_count)) for end, _ in CURRICULUM_PHASES)
+    replay = 0
+    start = 0
+    for (_, replay_fraction), end in zip(CURRICULUM_PHASES, boundaries):
+        replay += int(max(0, end - start) * replay_fraction)
+        start = end
+    return replay, group_count - replay
+
+
 @dataclass(frozen=True)
 class PackedEpochGeometry:
     packed_count: int
@@ -75,24 +97,65 @@ class JointPackedEpochGeometry:
         return math.ceil(count / group) * group
 
     @property
+    def required_replay_groups(self) -> int:
+        return math.ceil(self.replay_count / self.data_parallel_microbatch)
+
+    @property
+    def required_trajectory_groups(self) -> int:
+        return math.ceil(self.trajectory_count / self.data_parallel_microbatch)
+
+    @property
+    def minimum_curriculum_groups(self) -> int:
+        """Smallest schedule that meets curriculum ratios and full coverage."""
+
+        required_total = self.required_replay_groups + self.required_trajectory_groups
+
+        def covers(value: int) -> bool:
+            replay, trajectory = curriculum_group_counts(value)
+            return replay >= self.required_replay_groups and trajectory >= self.required_trajectory_groups
+
+        high = max(1, required_total)
+        while not covers(high):
+            high *= 2
+        low = required_total
+        while low < high:
+            middle = (low + high) // 2
+            if covers(middle):
+                high = middle
+            else:
+                low = middle + 1
+        return low
+
+    @property
+    def groups_per_global_batch(self) -> int:
+        return self.global_batch_size // self.data_parallel_microbatch
+
+    @property
+    def schedule_groups(self) -> int:
+        width = self.groups_per_global_batch
+        return math.ceil(self.minimum_curriculum_groups / width) * width
+
+    @property
     def replay_scheduled(self) -> int:
-        return self._grouped(self.replay_count)
+        replay, _ = curriculum_group_counts(self.schedule_groups)
+        return replay * self.data_parallel_microbatch
 
     @property
     def trajectory_scheduled(self) -> int:
-        return self._grouped(self.trajectory_count)
+        _, trajectory = curriculum_group_counts(self.schedule_groups)
+        return trajectory * self.data_parallel_microbatch
 
     @property
     def minimum_schedule_count(self) -> int:
-        return self.replay_scheduled + self.trajectory_scheduled
+        return self.minimum_curriculum_groups * self.data_parallel_microbatch
 
     @property
     def train_iters(self) -> int:
-        return math.ceil(self.minimum_schedule_count / self.global_batch_size)
+        return self.schedule_groups // self.groups_per_global_batch
 
     @property
     def schedule_count(self) -> int:
-        return self.train_iters * self.global_batch_size
+        return self.schedule_groups * self.data_parallel_microbatch
 
     @property
     def replay_padding(self) -> int:

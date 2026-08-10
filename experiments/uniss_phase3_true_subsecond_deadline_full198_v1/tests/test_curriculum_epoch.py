@@ -5,6 +5,7 @@ import unittest
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.packed_epoch import (
     JointPackedEpochGeometry,
     PackedEpochGeometry,
+    curriculum_group_counts,
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.curriculum import (
     point_for_iteration,
@@ -26,12 +27,26 @@ class CurriculumEpochTest(unittest.TestCase):
             data_parallel_microbatch=16,
             global_batch_size=128,
         )
-        self.assertEqual(geometry.replay_scheduled, 32)
-        self.assertEqual(geometry.trajectory_scheduled, 32)
-        self.assertEqual(geometry.train_iters, 1)
-        self.assertEqual(geometry.schedule_count, 128)
-        self.assertEqual(geometry.global_batch_padding, 64)
+        replay_groups, trajectory_groups = curriculum_group_counts(geometry.schedule_groups)
+        self.assertGreaterEqual(replay_groups, 2)
+        self.assertGreaterEqual(trajectory_groups, 2)
+        self.assertEqual(geometry.schedule_count % 128, 0)
+        self.assertEqual(geometry.train_iters * 128, geometry.schedule_count)
+        self.assertGreaterEqual(geometry.replay_scheduled, 23)
+        self.assertGreaterEqual(geometry.trajectory_scheduled, 31)
         self.assertEqual(geometry.warmup_iters, 200)
+
+    def test_replay_heavy_sources_repeat_trajectory_to_match_curriculum(self) -> None:
+        geometry = JointPackedEpochGeometry(
+            replay_count=1_161_587,
+            trajectory_count=180_000,
+            data_parallel_microbatch=16,
+            global_batch_size=128,
+        )
+        self.assertGreater(geometry.trajectory_scheduled, geometry.trajectory_count)
+        fraction = geometry.replay_scheduled / geometry.schedule_count
+        self.assertGreater(fraction, 0.37)
+        self.assertLess(fraction, 0.40)
 
     def test_curriculum_keeps_both_task_families(self) -> None:
         for progress in (0.0, 0.083, 0.333, 0.75, 1.0):

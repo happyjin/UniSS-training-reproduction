@@ -25,6 +25,9 @@ from torch.utils.data._utils.collate import default_collate
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.assemble_trajectory_packs import (
     OFFSET_SCHEMA,
 )
+from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.packed_epoch import (
+    CURRICULUM_PHASES,
+)
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.trajectory_packing import (
     PACKED_TRAJECTORY_SCHEMA,
     ROLE_ACTION,
@@ -308,12 +311,7 @@ class DeterministicReplayTrajectorySchedule(Dataset[dict[str, object]]):
     global batch by the launcher.
     """
 
-    PHASES = (
-        (0.083, 0.45),
-        (0.333, 0.40),
-        (0.750, 0.35),
-        (1.000, 0.40),
-    )
+    PHASES = CURRICULUM_PHASES
 
     def __init__(
         self,
