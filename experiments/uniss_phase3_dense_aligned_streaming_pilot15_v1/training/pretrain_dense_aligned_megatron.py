@@ -41,7 +41,12 @@ class JointValidationDataset(Dataset):
         for dataset in self.datasets:
             total += len(dataset)
             self.boundaries.append(total)
-        self.split = "valid"
+        # Megatron compares this value against the Split enum, not the string
+        # value.  Using a plain "valid" silently falls back to the cyclic train
+        # sampler and can mix replay/trajectory examples in one eval MBS.
+        from megatron.core.datasets.utils import Split
+
+        self.split = Split.valid
         self.collate_fn = collate_replay_or_dense
 
     def __len__(self) -> int:
