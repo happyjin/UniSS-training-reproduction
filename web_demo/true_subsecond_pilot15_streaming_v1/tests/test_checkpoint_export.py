@@ -5,7 +5,9 @@ import unittest
 import torch
 
 from web_demo.true_subsecond_pilot15_streaming_v1.checkpoint_export import (
+    interleave_hf_gqa_outputs,
     map_native_lora_to_hf,
+    split_megatron_gqa_lora_b,
     verify_fused_mapping,
 )
 
@@ -20,6 +22,31 @@ def _pair(state, layer, module, in_features, out_features):
 
 
 class CheckpointExportTest(unittest.TestCase):
+    def test_gqa_rows_are_gathered_from_each_query_group(self) -> None:
+        fused = torch.arange(1152, dtype=torch.float32).view(1152, 1).repeat(1, 32)
+        query, key, value = split_megatron_gqa_lora_b(fused)
+        expected_query = torch.cat((fused[:448], fused[576:1024]))
+        expected_key = torch.cat((fused[448:512], fused[1024:1088]))
+        expected_value = torch.cat((fused[512:576], fused[1088:1152]))
+        torch.testing.assert_close(query, expected_query)
+        torch.testing.assert_close(key, expected_key)
+        torch.testing.assert_close(value, expected_value)
+
+    def test_hf_outputs_rebuild_megatron_interleaved_layout(self) -> None:
+        query = torch.arange(2 * 896, dtype=torch.float32).reshape(2, 896)
+        key = torch.arange(2 * 128, dtype=torch.float32).reshape(2, 128) + 10_000
+        value = torch.arange(2 * 128, dtype=torch.float32).reshape(2, 128) + 20_000
+        rebuilt = interleave_hf_gqa_outputs(query, key, value)
+        expected = torch.cat(
+            (
+                query.reshape(2, 2, 448),
+                key.reshape(2, 2, 64),
+                value.reshape(2, 2, 64),
+            ),
+            dim=-1,
+        ).reshape(2, 1152)
+        torch.testing.assert_close(rebuilt, expected)
+
     def test_fused_qwen_mapping_is_exact(self) -> None:
         torch.manual_seed(4)
         state = {}

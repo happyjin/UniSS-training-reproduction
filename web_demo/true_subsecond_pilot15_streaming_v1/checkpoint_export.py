@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Mapping
 
@@ -15,9 +16,15 @@ from safetensors.torch import load_file, save_file
 from torch.distributed.checkpoint import FileSystemReader
 
 
-SCHEMA_VERSION = "uniss_true_subsecond_runtime_export_v1"
+SCHEMA_VERSION = "uniss_true_subsecond_runtime_export_v2"
 LORA_PREFIX = "true_subsecond_lora."
 OBJECTIVE_PREFIX = "true_subsecond_objective."
+
+QWEN_HIDDEN_SIZE = 896
+QWEN_ATTENTION_HEADS = 14
+QWEN_QUERY_GROUPS = 2
+QWEN_HEAD_DIM = 64
+QWEN_LORA_RANK = 32
 
 
 def sha256(path: Path) -> str:
@@ -60,6 +67,60 @@ def _native_pair(state: Mapping[str, torch.Tensor], layer: int, module: str):
     return state[f"{prefix}.lora_a"], state[f"{prefix}.lora_b"]
 
 
+def split_megatron_gqa_lora_b(
+    fused: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Convert Megatron's query-group-interleaved QKV rows to HF Q/K/V rows.
+
+    Megatron stores every query group as ``q...q, k, v``.  Qwen2-0.5B has
+    fourteen query heads and two KV groups, so the native 1152 rows are laid
+    out as two 576-row groups rather than one contiguous Q block followed by K
+    and V.  Hugging Face exposes three independent projections and therefore
+    needs the rows gathered by semantic branch.
+    """
+
+    expected = (
+        QWEN_QUERY_GROUPS
+        * (QWEN_ATTENTION_HEADS // QWEN_QUERY_GROUPS + 2)
+        * QWEN_HEAD_DIM,
+        QWEN_LORA_RANK,
+    )
+    if tuple(fused.shape) != expected:
+        raise ValueError(f"unexpected fused GQA LoRA-B shape {tuple(fused.shape)}")
+    queries_per_group = QWEN_ATTENTION_HEADS // QWEN_QUERY_GROUPS
+    group_width = (queries_per_group + 2) * QWEN_HEAD_DIM
+    grouped = fused.reshape(QWEN_QUERY_GROUPS, group_width, QWEN_LORA_RANK)
+    query_width = queries_per_group * QWEN_HEAD_DIM
+    query = grouped[:, :query_width].reshape(
+        QWEN_ATTENTION_HEADS * QWEN_HEAD_DIM, QWEN_LORA_RANK
+    )
+    key = grouped[:, query_width : query_width + QWEN_HEAD_DIM].reshape(
+        QWEN_QUERY_GROUPS * QWEN_HEAD_DIM, QWEN_LORA_RANK
+    )
+    value = grouped[:, query_width + QWEN_HEAD_DIM :].reshape(
+        QWEN_QUERY_GROUPS * QWEN_HEAD_DIM, QWEN_LORA_RANK
+    )
+    return tuple(item.contiguous() for item in (query, key, value))
+
+
+def interleave_hf_gqa_outputs(
+    query: torch.Tensor, key: torch.Tensor, value: torch.Tensor
+) -> torch.Tensor:
+    """Rebuild Megatron's fused output layout from HF projection outputs."""
+
+    batch_shape = query.shape[:-1]
+    if query.shape[-1] != QWEN_ATTENTION_HEADS * QWEN_HEAD_DIM:
+        raise ValueError("unexpected HF query width")
+    if key.shape != (*batch_shape, QWEN_QUERY_GROUPS * QWEN_HEAD_DIM):
+        raise ValueError("unexpected HF key width")
+    if value.shape != key.shape:
+        raise ValueError("unexpected HF value width")
+    query = query.reshape(*batch_shape, QWEN_QUERY_GROUPS, -1)
+    key = key.reshape(*batch_shape, QWEN_QUERY_GROUPS, QWEN_HEAD_DIM)
+    value = value.reshape(*batch_shape, QWEN_QUERY_GROUPS, QWEN_HEAD_DIM)
+    return torch.cat((query, key, value), dim=-1).reshape(*batch_shape, -1)
+
+
 def map_native_lora_to_hf(state: Mapping[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """Split Megatron fused QKV/SwiGLU branches into exact HF Qwen branches."""
 
@@ -74,9 +135,7 @@ def map_native_lora_to_hf(state: Mapping[str, torch.Tensor]) -> dict[str, torch.
         qkv_a, qkv_b = _native_pair(
             state, layer, "self_attention.linear_qkv"
         )
-        if tuple(qkv_b.shape) != (1152, 32):
-            raise ValueError(f"unexpected layer {layer} fused QKV shape {tuple(qkv_b.shape)}")
-        q_b, k_b, v_b = torch.split(qkv_b, (896, 128, 128), dim=0)
+        q_b, k_b, v_b = split_megatron_gqa_lora_b(qkv_b)
         add(layer, "self_attn.q_proj", qkv_a, q_b)
         add(layer, "self_attn.k_proj", qkv_a, k_b)
         add(layer, "self_attn.v_proj", qkv_a, v_b)
@@ -123,7 +182,8 @@ def verify_fused_mapping(
             branch = (value @ mapped[f"{prefix}.lora_A.weight"].float().t())
             branch = branch @ mapped[f"{prefix}.lora_B.weight"].float().t() * scale
             pieces.append(branch)
-        torch.testing.assert_close(expected, torch.cat(pieces, dim=-1), rtol=0, atol=0)
+        actual = interleave_hf_gqa_outputs(*pieces)
+        torch.testing.assert_close(expected, actual, rtol=0, atol=0)
     for layer in (12, 23):
         a, b = _native_pair(native, layer, "mlp.linear_fc1")
         expected = (value @ a.float().t()) @ b.float().t() * scale
@@ -171,14 +231,19 @@ def export_runtime(checkpoint: Path, base_model: Path, output: Path) -> dict[str
     objective_path = output / "objective_model.safetensors"
     _save_verified(adapter_path, adapter)
     _save_verified(objective_path, objective)
+    match = re.fullmatch(r"iter_(\d+)", checkpoint.name)
+    if match is None:
+        raise ValueError(f"checkpoint directory does not encode an iteration: {checkpoint}")
+    selected_iteration = int(match.group(1))
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "source_checkpoint": str(checkpoint.resolve()),
         "base_model": str(base_model.resolve()),
-        "selected_iteration": 350,
+        "selected_iteration": selected_iteration,
         "rank": 32,
         "alpha": 64.0,
         "scale": 2.0,
+        "qkv_layout": "megatron_query_group_interleaved_to_hf_qkv",
         "native_lora_tensor_count": 144,
         "hf_lora_tensor_count": len(adapter),
         "objective_tensor_count": len(objective),

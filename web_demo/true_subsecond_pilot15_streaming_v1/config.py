@@ -23,7 +23,7 @@ class DemoConfig:
     )
     exported_runtime: Path = (
         REPO_ROOT
-        / "checkpoints/exported_adapters/uniss_true_subsecond_pilot15_iter_0000350_runtime_v1"
+        / "checkpoints/exported_adapters/uniss_true_subsecond_pilot15_iter_0000350_runtime_v2"
     )
     speech_tokenizer_dir: Path = REPO_ROOT / "pretrained_models/UniSS"
     whispervq_dir: Path = REPO_ROOT / "pretrained_models/UniSS/glm4_tokenizer"
@@ -40,6 +40,9 @@ class DemoConfig:
     semantic_block_tokens: int = 12
     max_text_tokens_per_write: int = 8
     semantic_history_tokens: int = 200
+    speaker_warmup_ms: int = 3_200
+    speaker_vad_frame_ms: int = 20
+    speaker_vad_min_rms: float = 0.006
     seed: int = 20260811
 
     @classmethod
