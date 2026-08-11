@@ -1,3 +1,8 @@
+import inspect
+
+from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize13_joint_runtime.pretrain_generalize13 import (
+    RuntimeParityGeneralize13Objective,
+)
 from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize13_joint_runtime.pretrain_generalize13 import (
     V13_WEIGHTS,
     is_generalize13_trainable_parameter,
@@ -29,3 +34,9 @@ def test_text_action_semantic_and_replay_all_have_optimization_mass() -> None:
     assert V13_WEIGHTS["runtime_action"] > 0
     assert V13_WEIGHTS["microblock_semantic_content"] > 0
     assert V13_WEIGHTS["microblock_continue"] > 0
+
+
+def test_joint_trajectory_builds_only_one_full_vocabulary_ce_graph() -> None:
+    source = inspect.getsource(RuntimeParityGeneralize13Objective.trajectory)
+    assert source.count("token_cross_entropy_values(") == 1
+    assert "super().trajectory(" not in source

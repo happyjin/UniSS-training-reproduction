@@ -16,3 +16,7 @@ bash experiments/uniss_phase3_runtime_parity_streaming_v2/generalize13_joint_run
 ```
 
 TensorBoard uses port `6086`.
+
+The first `canary_v1` launch was retained as an OOM diagnostic: it built two
+full-vocabulary CE graphs.  `canary_v2` is the non-overwriting corrected run
+and shares one CE tensor across text, semantic and boundary objectives.

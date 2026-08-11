@@ -20,7 +20,9 @@ from torch.nn import functional as F
 import experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.training.pretrain_dense_aligned_megatron as dense
 import experiments.uniss_phase3_runtime_parity_streaming_v2.overfit2.pretrain_overfit2 as v2
 from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.packing import (
+    ROLE_ACTION,
     ROLE_BOUNDARY,
+    ROLE_SEMANTIC,
     ROLE_TEXT,
 )
 from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize12_microblock.microblock import (
@@ -36,9 +38,15 @@ from experiments.uniss_phase3_runtime_parity_streaming_v2.overfit4.pretrain_over
     trajectory_token_weights,
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.joint_model import (
+    DIAGNOSTIC_NAMES,
+    TERM_NAMES,
     ObjectiveOutput,
+    _binary_metrics,
+    _parameter_anchor,
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.losses import (
+    LossTerm,
+    grouped_deadline_survival_term,
     token_cross_entropy_values,
     values_to_term,
     zero_term,
@@ -130,18 +138,23 @@ class RuntimeParityGeneralize13Objective(RuntimeParityGeneralize12Objective):
         *,
         frontend_residual_rms,
     ) -> ObjectiveOutput:
-        output = super().trajectory(
-            hidden,
-            logits,
-            labels,
-            loss_mask,
-            token_roles,
-            word_embedding_weight,
-            batch,
-            frontend_residual_rms=frontend_residual_rms,
-        )
+        # Keep one and only one full-vocabulary CE graph.  Calling the v12
+        # parent and then recomputing token CE for the explicit text term
+        # retains two roughly 24-GiB graphs at seq=18000 and OOMs an H200 on
+        # the second optimizer step.
+        anchor = _parameter_anchor(self, logits)
         active = loss_mask > 0
         token_losses = token_cross_entropy_values(logits, labels)
+
+        main_weights, legacy_boundary_weights = trajectory_token_weights(
+            labels, token_roles, loss_mask
+        )
+        lm_trajectory = values_to_term(token_losses, main_weights)
+        semantic = values_to_term(
+            token_losses, (token_roles == ROLE_SEMANTIC).float() * active
+        )
+        legacy_boundary = values_to_term(token_losses, legacy_boundary_weights)
+
         text_mask = (token_roles == ROLE_TEXT) & active
         text_weights = _balanced_example_weights(
             labels,
@@ -178,26 +191,131 @@ class RuntimeParityGeneralize13Objective(RuntimeParityGeneralize12Objective):
         )
         action_logits = self.action_head(hidden[action_flat])
         action_targets = batch["natural_action"].long()
+        action_weight = action_logits.new_tensor([1.0, self.action_write_weight])
         action_losses = F.cross_entropy(
-            action_logits.float(), action_targets, reduction="none"
+            action_logits.float(),
+            action_targets,
+            weight=action_weight.float(),
+            reduction="none",
         )
         action_term = values_to_term(
             action_losses, torch.ones_like(action_losses, dtype=torch.float32)
         )
+        interleaved = LossTerm(
+            lm_trajectory.mean + action_term.mean,
+            lm_trajectory.denominator.new_ones(()),
+        )
+
+        source_summary = hidden[action_flat]
+        support_logits = self.support_head(source_summary)
+        support_losses = F.cross_entropy(
+            support_logits.float(), batch["support_bucket"].long(), reduction="none"
+        )
+        support = values_to_term(support_losses, torch.ones_like(support_losses))
+
+        target_ids = batch["translation_ids"].long()
+        target_hidden = F.embedding(target_ids, word_embedding_weight)
+        safe_logits = self.safe_commit_head(source_summary, target_hidden)
+        safe_mask = batch["translation_mask"].bool()
+        safe_losses = F.binary_cross_entropy_with_logits(
+            safe_logits.float(), batch["safe_commit_targets"].float(), reduction="none"
+        )
+        probability = torch.sigmoid(safe_logits.float())
+        safe_target = batch["safe_commit_targets"].float()
+        pt = torch.where(safe_target > 0.5, probability, 1.0 - probability)
+        safe_alpha = torch.where(
+            safe_target > 0.5,
+            torch.full_like(safe_target, self.safe_positive_alpha),
+            torch.full_like(safe_target, 1.0 - self.safe_positive_alpha),
+        )
+        safe = values_to_term(
+            safe_alpha * (1.0 - pt).square() * safe_losses, safe_mask
+        )
+        deadline = grouped_deadline_survival_term(
+            action_logits,
+            batch["sample_group"],
+            batch["chunk_end_ms"],
+            batch["soft_deadline_ms"],
+            batch["hard_deadline_ms"],
+            batch.get("deadline_loss_enabled"),
+        )
+        kd, stability = self._teacher_terms(logits, batch, anchor)
+
+        microblock = self.semantic_microblock_head.training_output(
+            hidden, labels, token_roles, loss_mask, word_embedding_weight
+        )
 
         prediction = logits.float().argmax(dim=-1)
         end_content_mask = (labels == c.TOKEN_END_CONTENT) & active
-        terms = OrderedDict(output.terms)
-        terms.update(
+        terms = OrderedDict(
             (
+                ("phase3_replay", zero_term(anchor)),
+                ("interleaved_trajectory", interleaved),
+                ("real_prefix_kd", kd),
+                ("support_ordinal", support),
+                ("token_safe_commit", safe),
+                ("deadline_survival", deadline),
+                ("prefix_stability", stability),
+                ("ar_semantic_microblock", semantic),
+                ("speaker_consistency", zero_term(anchor)),
+                ("boundary_continuity", legacy_boundary),
+                ("microblock_semantic_content", microblock.content_term),
+                ("microblock_final_length", microblock.final_length_term),
+                ("microblock_continue", microblock.continue_term),
                 ("runtime_text_content", text_term),
                 ("runtime_critical_boundary", boundary_term),
                 ("runtime_action", action_term),
             )
         )
-        diagnostics = OrderedDict(output.diagnostics)
-        diagnostics.update(
+        support_prediction = support_logits.argmax(dim=-1)
+        precision, recall, f1 = _binary_metrics(
+            safe_logits, batch["safe_commit_targets"], safe_mask
+        )
+        diagnostics = OrderedDict(
             (
+                (
+                    "support_accuracy",
+                    (support_prediction == batch["support_bucket"]).float().mean(),
+                ),
+                (
+                    "support_mae",
+                    (support_prediction - batch["support_bucket"])
+                    .abs()
+                    .float()
+                    .mean(),
+                ),
+                ("safe_commit_precision", precision),
+                ("safe_commit_recall", recall),
+                ("safe_commit_f1", f1),
+                (
+                    "predicted_write_fraction",
+                    (action_logits.argmax(dim=-1) == 1).float().mean(),
+                ),
+                ("natural_write_fraction", action_targets.float().mean()),
+                ("deadline_forced_fraction", batch["deadline_forced"].float().mean()),
+                ("frontend_residual_rms", frontend_residual_rms.float()),
+                ("supervised_tokens", main_weights.sum().detach().float()),
+                ("microblock_token_accuracy", microblock.token_accuracy),
+                ("microblock_first_slot_accuracy", microblock.first_slot_accuracy),
+                (
+                    "microblock_final_length_accuracy",
+                    microblock.final_length_accuracy,
+                ),
+                ("microblock_final_length_mae", microblock.final_length_mae),
+                ("microblock_continue_accuracy", microblock.continue_accuracy),
+                (
+                    "microblock_predicted_continue_fraction",
+                    microblock.predicted_continue_fraction,
+                ),
+                (
+                    "microblock_target_continue_fraction",
+                    microblock.target_continue_fraction,
+                ),
+                (
+                    "microblock_predicted_unique_fraction",
+                    microblock.predicted_unique_fraction,
+                ),
+                ("microblock_blocks", microblock.blocks),
                 (
                     "runtime_text_token_accuracy",
                     _masked_accuracy(prediction, labels, text_mask, logits),
@@ -222,6 +340,14 @@ class RuntimeParityGeneralize13Objective(RuntimeParityGeneralize12Objective):
                 ),
             )
         )
+        if tuple(terms) != (*TERM_NAMES, *V12_TERM_NAMES[len(TERM_NAMES) :], *V13_EXTRA_TERMS):
+            raise AssertionError("generalize13 trajectory term order changed")
+        if tuple(diagnostics) != (
+            *DIAGNOSTIC_NAMES,
+            *V12_DIAGNOSTIC_NAMES[len(DIAGNOSTIC_NAMES) :],
+            *V13_EXTRA_DIAGNOSTICS,
+        ):
+            raise AssertionError("generalize13 trajectory diagnostic order changed")
         return ObjectiveOutput(terms, diagnostics)
 
 
