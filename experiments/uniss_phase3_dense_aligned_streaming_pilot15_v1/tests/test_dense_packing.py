@@ -8,6 +8,7 @@ from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.build_dens
 )
 from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.packing import (
     ROLE_ACTION,
+    ROLE_BOUNDARY,
     build_session_token_sample,
     pack_session_samples,
 )
@@ -84,6 +85,24 @@ class DensePackingTest(unittest.TestCase):
         self.assertEqual(second, [sample.length, sample.length * 2])
         self.assertEqual(len(packed[0]["tokens"]), 4096)
         self.assertEqual(len(packed[0]["sessions"][0]["annotations"]), len(self.session.events))
+
+    def test_optional_tick_start_boundary_supervises_natural_continuation(self) -> None:
+        sample = build_session_token_sample(
+            self.session,
+            self.formal,
+            _encode,
+            supervise_tick_start=True,
+        )
+        positions = [
+            index
+            for index, label in enumerate(sample.labels)
+            if label == c.TOKEN_START_GLM
+        ]
+        self.assertTrue(positions)
+        self.assertTrue(all(sample.loss_mask[index] == 1 for index in positions))
+        self.assertTrue(
+            all(sample.token_roles[index] == ROLE_BOUNDARY for index in positions)
+        )
 
 
 if __name__ == "__main__":

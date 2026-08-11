@@ -134,6 +134,9 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
                 generator=generator,
                 codec=codec,
                 maximum_drain_ticks=args.maximum_drain_ticks,
+                minimum_text_similarity=args.minimum_text_similarity,
+                maximum_rtf=args.maximum_rtf,
+                maximum_first_audio_wall_ms=args.maximum_first_audio_wall_ms,
             )
             sample_root = output / f"{row_index:04d}_{sample_id}"
             sample_root.mkdir()
@@ -209,6 +212,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--maximum-text-tokens", type=int, default=16)
     parser.add_argument("--maximum-semantic-tokens", type=int, default=80)
     parser.add_argument("--maximum-drain-ticks", type=int, default=32)
+    parser.add_argument("--minimum-text-similarity", type=float, default=0.50)
+    parser.add_argument("--maximum-rtf", type=float, default=1.0)
+    parser.add_argument("--maximum-first-audio-wall-ms", type=float, default=1000.0)
     return parser.parse_args()
 
 

@@ -7,6 +7,7 @@ from web_demo.runtime_parity_streaming_v2.inference import (
     _decode_continuation_choice,
     _decode_semantic_choice,
     _decode_text_choice,
+    _quality_failures,
 )
 
 
@@ -46,3 +47,23 @@ def test_continuation_decoder_selects_natural_eos_without_forcing() -> None:
     choice, eos_probability = _decode_continuation_choice(logits)
     assert choice == "EOS"
     assert 0.73 < eos_probability < 0.74
+
+
+def test_strict_quality_gate_rejects_slow_or_incomplete_runtime() -> None:
+    failures = _quality_failures(
+        natural_writes=10,
+        semantic_tokens=160,
+        first_write_source_ms=640,
+        source_duration_ms=4220,
+        translation_audio_samples=32000,
+        text_similarity=0.926,
+        minimum_text_similarity=0.98,
+        natural_eos=True,
+        rtf=2.65,
+        maximum_rtf=1.0,
+        first_audio_wall_ms=1972.0,
+        maximum_first_audio_wall_ms=1000.0,
+    )
+    assert "translation_text_similarity_below_0.98" in failures
+    assert "rtf_not_below_1.00" in failures
+    assert "first_audio_wall_not_below_1000ms" in failures

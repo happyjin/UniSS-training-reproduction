@@ -42,6 +42,8 @@ class RuntimeEvent:
     semantic_codes: tuple[int, ...]
     emitted_audio_samples: int
     compute_ms: float
+    wall_end_ms: float
+    compute_backlog_ms: float
     continuation_choice: str | None
     eos_probability: float | None
 
@@ -58,6 +60,9 @@ class RuntimeResult:
     semantic_tokens: int
     first_write_source_ms: int | None
     first_audio_source_ms: int | None
+    first_write_wall_ms: float | None
+    first_audio_wall_ms: float | None
+    maximum_compute_backlog_ms: float
     source_finished_before_first_write: bool
     forced_writes: int
     committed_revision_violations: int
@@ -113,6 +118,50 @@ def _decode_continuation_choice(logits: torch.Tensor) -> tuple[str, float]:
     eos_probability = float(probabilities[1])
     choice = "EOS" if candidates[1] >= candidates[0] else "START_GLM"
     return choice, eos_probability
+
+
+def _quality_failures(
+    *,
+    natural_writes: int,
+    semantic_tokens: int,
+    first_write_source_ms: int | None,
+    source_duration_ms: int,
+    translation_audio_samples: int,
+    text_similarity: float,
+    minimum_text_similarity: float,
+    natural_eos: bool,
+    rtf: float,
+    maximum_rtf: float,
+    first_audio_wall_ms: float | None,
+    maximum_first_audio_wall_ms: float,
+) -> list[str]:
+    failures: list[str] = []
+    if natural_writes <= 0:
+        failures.append("no_natural_write")
+    if semantic_tokens <= 0:
+        failures.append("no_semantic_audio")
+    if first_write_source_ms is None or first_write_source_ms >= source_duration_ms:
+        failures.append("first_write_not_before_source_eos")
+    if first_write_source_ms is None or first_write_source_ms >= 1_000:
+        failures.append("first_write_not_subsecond_source_time")
+    if translation_audio_samples <= 0:
+        failures.append("no_playable_audio")
+    if text_similarity < minimum_text_similarity:
+        failures.append(
+            f"translation_text_similarity_below_{minimum_text_similarity:.2f}"
+        )
+    if not natural_eos:
+        failures.append("no_natural_eos")
+    if rtf >= maximum_rtf:
+        failures.append(f"rtf_not_below_{maximum_rtf:.2f}")
+    if (
+        first_audio_wall_ms is None
+        or first_audio_wall_ms >= maximum_first_audio_wall_ms
+    ):
+        failures.append(
+            f"first_audio_wall_not_below_{maximum_first_audio_wall_ms:.0f}ms"
+        )
+    return failures
 
 
 class NaturalRuntimeParityGenerator:
@@ -208,6 +257,9 @@ def evaluate_waveform(
     generator: NaturalRuntimeParityGenerator,
     codec: StreamingBiCodecDecoder,
     maximum_drain_ticks: int = 32,
+    minimum_text_similarity: float = 0.50,
+    maximum_rtf: float = 1.0,
+    maximum_first_audio_wall_ms: float = 1_000.0,
 ) -> RuntimeResult:
     values = np.asarray(waveform, dtype=np.float32).reshape(-1)
     source_duration_ms = int(round(len(values) * 1000 / SAMPLE_RATE))
@@ -216,13 +268,18 @@ def evaluate_waveform(
     audio_chunks: list[tuple[int, np.ndarray]] = []
     first_write: int | None = None
     first_audio: int | None = None
+    first_write_wall: float | None = None
+    first_audio_wall: float | None = None
+    wall_cursor_ms = 0.0
+    maximum_backlog_ms = 0.0
     natural_writes = 0
     natural_eos = False
     drain_ticks = 0
     started = time.perf_counter()
 
     def tick(new_codes: Sequence[int], source_end_ms: int, source_finished: bool) -> None:
-        nonlocal first_write, first_audio, natural_writes, natural_eos
+        nonlocal first_write, first_audio, first_write_wall, first_audio_wall
+        nonlocal natural_writes, natural_eos, wall_cursor_ms, maximum_backlog_ms
         tick_started = time.perf_counter()
         observation = generator.session.begin_tick(new_codes)
         write_probability = generator.action_probability(observation.last_hidden)
@@ -254,6 +311,14 @@ def evaluate_waveform(
             if continuation_choice == "EOS":
                 generator.session.finish_session()
                 natural_eos = True
+        compute_ms = (time.perf_counter() - tick_started) * 1000
+        wall_cursor_ms = max(wall_cursor_ms, float(source_end_ms)) + compute_ms
+        backlog_ms = max(0.0, wall_cursor_ms - float(source_end_ms))
+        maximum_backlog_ms = max(maximum_backlog_ms, backlog_ms)
+        if action == "WRITE" and first_write_wall is None:
+            first_write_wall = wall_cursor_ms
+        if len(emitted) and first_audio_wall is None:
+            first_audio_wall = wall_cursor_ms
         events.append(
             RuntimeEvent(
                 event_index=len(events),
@@ -265,7 +330,9 @@ def evaluate_waveform(
                 text_ids=text_ids,
                 semantic_codes=semantic,
                 emitted_audio_samples=len(emitted),
-                compute_ms=(time.perf_counter() - tick_started) * 1000,
+                compute_ms=compute_ms,
+                wall_end_ms=wall_cursor_ms,
+                compute_backlog_ms=backlog_ms,
                 continuation_choice=continuation_choice,
                 eos_probability=eos_probability,
             )
@@ -300,21 +367,21 @@ def evaluate_waveform(
     text_similarity = difflib.SequenceMatcher(
         None, generated_text.casefold(), target_text.casefold(), autojunk=False
     ).ratio()
-    failures: list[str] = []
-    if natural_writes <= 0:
-        failures.append("no_natural_write")
-    if not generator.semantic_codes:
-        failures.append("no_semantic_audio")
-    if first_write is None or first_write >= source_duration_ms:
-        failures.append("first_write_not_before_source_eos")
-    if first_write is None or first_write >= 1_000:
-        failures.append("first_write_not_subsecond")
-    if not len(translation_audio):
-        failures.append("no_playable_audio")
-    if text_similarity < 0.50:
-        failures.append("translation_text_similarity_below_0.50")
-    if not natural_eos:
-        failures.append("no_natural_eos")
+    rtf = elapsed / max(source_duration_ms / 1000, 1e-9)
+    failures = _quality_failures(
+        natural_writes=natural_writes,
+        semantic_tokens=len(generator.semantic_codes),
+        first_write_source_ms=first_write,
+        source_duration_ms=source_duration_ms,
+        translation_audio_samples=len(translation_audio),
+        text_similarity=float(text_similarity),
+        minimum_text_similarity=float(minimum_text_similarity),
+        natural_eos=natural_eos,
+        rtf=rtf,
+        maximum_rtf=float(maximum_rtf),
+        first_audio_wall_ms=first_audio_wall,
+        maximum_first_audio_wall_ms=float(maximum_first_audio_wall_ms),
+    )
     return RuntimeResult(
         sample_id=sample_id,
         source_duration_ms=source_duration_ms,
@@ -326,6 +393,9 @@ def evaluate_waveform(
         semantic_tokens=len(generator.semantic_codes),
         first_write_source_ms=first_write,
         first_audio_source_ms=first_audio,
+        first_write_wall_ms=first_write_wall,
+        first_audio_wall_ms=first_audio_wall,
+        maximum_compute_backlog_ms=maximum_backlog_ms,
         source_finished_before_first_write=(
             first_write is None or first_write >= source_duration_ms
         ),
@@ -334,7 +404,7 @@ def evaluate_waveform(
         natural_eos=natural_eos,
         drain_ticks=drain_ticks,
         processing_seconds=elapsed,
-        rtf=elapsed / max(source_duration_ms / 1000, 1e-9),
+        rtf=rtf,
         translation_audio=translation_audio,
         timeline_audio=_timeline(audio_chunks),
         quality_passed=not failures,
@@ -348,5 +418,6 @@ __all__ = [
     "RuntimeEvent",
     "RuntimeResult",
     "_decode_continuation_choice",
+    "_quality_failures",
     "evaluate_waveform",
 ]

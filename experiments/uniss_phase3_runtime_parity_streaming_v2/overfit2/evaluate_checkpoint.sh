@@ -7,9 +7,11 @@ source "${REPO_ROOT}/experiments/uniss_phase3_runtime_parity_streaming_v2/overfi
 
 ITERATION="${ITERATION:-500}"
 TAG="${TAG:-natural_eos_v1}"
+EVAL_FAMILY="${EVAL_FAMILY:-overfit2_v1}"
+EXPORT_FAMILY="${EXPORT_FAMILY:-overfit2_v1}"
 CHECKPOINT="${SAVE_DIR}/iter_$(printf '%07d' "${ITERATION}")"
-EVAL_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/overfit2_v1_${TAG}/iter_$(printf '%07d' "${ITERATION}")"
-EXPORT_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/runtime_exports/overfit2_v1_iter_$(printf '%07d' "${ITERATION}")_${TAG}"
+EVAL_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/${EVAL_FAMILY}_${TAG}/iter_$(printf '%07d' "${ITERATION}")"
+EXPORT_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/runtime_exports/${EXPORT_FAMILY}_iter_$(printf '%07d' "${ITERATION}")_${TAG}"
 FORMAL_TRAIN="${REPO_ROOT}/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_train_manifest.jsonl"
 BASE_MODEL="${REPO_ROOT}/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf"
 SPEECH_TOKENIZER="${REPO_ROOT}/pretrained_models/UniSS"
@@ -43,4 +45,5 @@ exec "${INFERENCE_PYTHON}" -m web_demo.runtime_parity_streaming_v2.evaluate_chec
   --whispervq-model "${WHISPERVQ_MODEL}" \
   --speech-tokenizer "${SPEECH_TOKENIZER}" \
   --output "${EVAL_ROOT}" --device cuda:0 --samples 1 \
-  --maximum-drain-ticks 8
+  --maximum-drain-ticks 8 --minimum-text-similarity 0.98 \
+  --maximum-rtf 1.0 --maximum-first-audio-wall-ms 1000

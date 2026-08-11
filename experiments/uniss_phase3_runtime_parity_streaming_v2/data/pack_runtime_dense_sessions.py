@@ -167,7 +167,10 @@ def pack(args: argparse.Namespace) -> dict[str, object]:
                         runtime_formal = dict(formal)
                         runtime_formal["source_glm"] = causal
                         sample = build_session_token_sample(
-                            session, runtime_formal, encode
+                            session,
+                            runtime_formal,
+                            encode,
+                            supervise_tick_start=args.supervise_tick_start,
                         )
                         counts["sessions"] += 1
                         counts["session_tokens"] += sample.length
@@ -228,6 +231,7 @@ def pack(args: argparse.Namespace) -> dict[str, object]:
             str(trace_manifest) if trace_manifest is not None else None
         ),
         "source_token_domain": source_domain,
+        "supervise_tick_start": bool(args.supervise_tick_start),
         "dense_records": len(dense_offsets),
         "tokenizer": str(Path(args.tokenizer).resolve()),
         "seq_length": args.seq_length,
@@ -255,6 +259,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--marker", required=True)
     parser.add_argument("--seq-length", type=int, default=18_000)
     parser.add_argument("--progress-interval", type=int, default=10_000)
+    parser.add_argument("--supervise-tick-start", action="store_true")
     return parser.parse_args()
 
 

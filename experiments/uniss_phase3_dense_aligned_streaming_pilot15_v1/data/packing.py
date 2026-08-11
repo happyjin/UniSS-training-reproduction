@@ -82,6 +82,7 @@ def build_session_token_sample(
     speed: float = 1.0,
     soft_deadline_ms: int = 640,
     hard_deadline_ms: int = 800,
+    supervise_tick_start: bool = False,
 ) -> DenseSessionTokenSample:
     """Build one causal interleaved sequence, appending source codes only once."""
 
@@ -124,7 +125,16 @@ def build_session_token_sample(
         if not source_cursor <= visible <= len(source_glm):
             raise ValueError("dense visible source prefix moved backwards or out of range")
         delta_codes = source_glm[source_cursor:visible]
-        _append(tokens, roles, [c.TOKEN_START_GLM], ROLE_OBSERVED)
+        # Runtime-parity v3 may supervise this boundary token.  It is the
+        # model's legal "continue with another source/drain tick" alternative
+        # to EOS after a completed WAIT or WRITE.  Historical callers retain
+        # the masked observed role by default.
+        _append(
+            tokens,
+            roles,
+            [c.TOKEN_START_GLM],
+            ROLE_BOUNDARY if supervise_tick_start else ROLE_OBSERVED,
+        )
         glm_start, glm_end = _append(
             tokens, roles, c.encode_glm_semantic(delta_codes), ROLE_OBSERVED
         )
