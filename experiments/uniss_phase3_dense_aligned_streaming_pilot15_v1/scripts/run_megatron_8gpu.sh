@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DRY_RUN=0
+[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck source=/dev/null
 source "${REPO_ROOT}/experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/config.env"
@@ -103,6 +106,8 @@ RUN_MASTER_PORT="${MASTER_PORT}" RUN_LOAD="${LOAD}" \
 RUN_FINETUNE="${FINETUNE}" RUN_LOAD_OPTIM="${LOAD_OPTIM}" \
 RUN_LOAD_RNG="${LOAD_RNG}" RUN_STRICTNESS="${STRICTNESS}" RUN_SMOKE=0 \
 bash "${REPO_ROOT}/experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/scripts/run_megatron_training.sh" "$@"
+
+[[ "${DRY_RUN}" == "1" ]] && exit 0
 
 actual="$(tr -d '[:space:]' < "${TRACKER}")"
 [[ "${actual}" == "${TRAIN_ITERS}" ]] || {
