@@ -96,6 +96,22 @@ def build(
             output_offsets=subset_offsets,
             records=replay_selected,
         )
+        # The shared helper deliberately labels arbitrary diagnostic subsets as
+        # incomplete. Here the subset is the complete replay source of a frozen
+        # formal epoch, so promote it only after exact geometry is known and
+        # bind that decision to this experiment's manifest schema.
+        subset_meta = dict(subset_meta)
+        subset_meta["complete"] = True
+        subset_meta["max_records"] = None
+        subset_meta["formal_subset_schema"] = MANIFEST_SCHEMA
+        _atomic_json(
+            subset_offsets.with_suffix(subset_offsets.suffix + ".json"), subset_meta
+        )
+
+    if not bool(subset_meta.get("complete")):
+        raise ValueError("frozen replay subset is not marked complete")
+    if subset_meta.get("formal_subset_schema") != MANIFEST_SCHEMA:
+        raise ValueError("replay subset is not bound to the v2 epoch manifest")
 
     natural_write_fraction = float(audit["natural_write_fraction"])
     safe_positive_fraction = float(audit["safe_positive_fraction"])

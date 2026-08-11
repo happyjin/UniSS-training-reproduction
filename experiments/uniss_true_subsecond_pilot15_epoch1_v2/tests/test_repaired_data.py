@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
+import numpy as np
 import torch
 
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.trajectory_packing import (
@@ -12,6 +16,13 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.trajectory
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.losses import (
     grouped_deadline_survival_term,
 )
+from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.assemble_trajectory_packs import (
+    OFFSET_SCHEMA,
+)
+from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_offset_subset import (
+    REPLAY_OFFSET_SCHEMA,
+)
+from experiments.uniss_true_subsecond_pilot15_epoch1_v2.data.build_epoch import build
 from experiments.uniss_true_subsecond_pilot15_epoch1_v2.data.packing import (
     build_token_sample,
     shift_sample,
@@ -182,6 +193,72 @@ class RepairedDataTest(unittest.TestCase):
                 semantic_history_end=0,
                 semantic_target_start=0,
                 semantic_target_end=0,
+            )
+
+    def test_epoch_replay_subset_is_formally_complete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            trajectory_packed = root / "trajectory.jsonl"
+            trajectory_offsets = root / "trajectory.u64"
+            replay_packed = root / "replay.jsonl"
+            replay_offsets = root / "replay.u64"
+            audit = root / "audit.json"
+            trajectory_packed.write_text("x\n" * 10, encoding="utf-8")
+            np.arange(10, dtype="<u8").tofile(trajectory_offsets)
+            stat = trajectory_packed.stat()
+            Path(f"{trajectory_offsets}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": OFFSET_SCHEMA,
+                        "source": {
+                            "path": str(trajectory_packed.resolve()),
+                            "size_bytes": stat.st_size,
+                            "mtime_ns": stat.st_mtime_ns,
+                        },
+                        "records": 10,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            replay_packed.write_text("y\n" * 100, encoding="utf-8")
+            np.arange(100, dtype="<u8").tofile(replay_offsets)
+            stat = replay_packed.stat()
+            Path(f"{replay_offsets}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": REPLAY_OFFSET_SCHEMA,
+                        "source": str(replay_packed.resolve()),
+                        "source_size_bytes": stat.st_size,
+                        "source_mtime_ns": stat.st_mtime_ns,
+                        "records": 100,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            audit.write_text(
+                json.dumps(
+                    {
+                        "passed": True,
+                        "natural_write_fraction": 0.2,
+                        "safe_positive_fraction": 0.1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            value = build(
+                trajectory_packed=trajectory_packed,
+                trajectory_offsets=trajectory_offsets,
+                replay_packed=replay_packed,
+                replay_offsets=replay_offsets,
+                audit_path=audit,
+                output_root=root / "epoch",
+            )
+            metadata = json.loads(
+                Path(f"{value['replay_subset_offsets']}.json").read_text(encoding="utf-8")
+            )
+            self.assertTrue(metadata["complete"])
+            self.assertEqual(
+                metadata["formal_subset_schema"], value["schema_version"]
             )
 
 
