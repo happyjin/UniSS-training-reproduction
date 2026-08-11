@@ -14,6 +14,11 @@ at 22.77 rows/s; batch 128 reached 100% utility, about 584 W and 102 GiB in the
 active phase. The launcher retries unfinished shards at 144/128/96/64 only on
 an actual CUDA OOM.
 
+Eight workers use atomic per-shard claims instead of a static rank-to-shard
+mapping. Faster GPUs therefore take the next unfinished shard, while a shard is
+still written by exactly one process and becomes visible only after its atomic
+`PART_COMPLETE.json` marker.
+
 Main commands:
 
 ```bash

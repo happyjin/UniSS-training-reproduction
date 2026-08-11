@@ -69,6 +69,24 @@ def _atomic_json(path: Path, value: Any) -> None:
         Path(name).unlink(missing_ok=True)
 
 
+def try_claim_shard(output_root: Path, shard: int) -> Path | None:
+    """Return an owned atomic lock directory, or None if claimed/completed."""
+
+    part = output_root / f"part-{shard:03d}"
+    part.mkdir(parents=True, exist_ok=True)
+    if (part / "PART_COMPLETE.json").is_file():
+        return None
+    lock = part / ".worker_lock"
+    try:
+        lock.mkdir()
+    except FileExistsError:
+        return None
+    if (part / "PART_COMPLETE.json").is_file():
+        lock.rmdir()
+        return None
+    return lock
+
+
 def _block_size(sample_id: str, tick_ms: int) -> int:
     value = int.from_bytes(
         hashlib.blake2b(f"{sample_id}:{tick_ms}:pilot15_v2".encode(), digest_size=2).digest(),
@@ -387,6 +405,11 @@ def main() -> None:
     parser.add_argument("--temperature", type=float, default=1.5)
     parser.add_argument("--confidence-threshold", type=float, default=0.65)
     parser.add_argument("--max-rows-per-shard", type=int)
+    parser.add_argument(
+        "--dynamic-shard-queue",
+        action="store_true",
+        help="Atomically claim unfinished shards so faster GPUs take more work.",
+    )
     parser.add_argument("--progress-interval", type=int, default=1024)
     args = parser.parse_args()
     if not 0 <= args.rank < args.world_size:
@@ -415,10 +438,22 @@ def main() -> None:
         topk=args.topk,
         temperature=args.temperature,
     )
-    results = [
-        process_shard(args, shard, decoder, whisper, teacher)
-        for shard in range(args.rank, args.shard_count, args.world_size)
-    ]
+    if args.dynamic_shard_queue:
+        shards = range(args.shard_count)
+    else:
+        shards = range(args.rank, args.shard_count, args.world_size)
+    results = []
+    for shard in shards:
+        lock: Path | None = None
+        if args.dynamic_shard_queue:
+            lock = try_claim_shard(Path(args.output_root), shard)
+            if lock is None:
+                continue
+        try:
+            results.append(process_shard(args, shard, decoder, whisper, teacher))
+        finally:
+            if lock is not None:
+                lock.rmdir()
     print(json.dumps({"rank": args.rank, "parts": results}, sort_keys=True))
 
 

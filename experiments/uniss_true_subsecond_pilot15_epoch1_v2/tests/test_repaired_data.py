@@ -23,6 +23,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.data.build_offs
     REPLAY_OFFSET_SCHEMA,
 )
 from experiments.uniss_true_subsecond_pilot15_epoch1_v2.data.build_epoch import build
+from experiments.uniss_true_subsecond_pilot15_epoch1_v2.data.build_cache import try_claim_shard
 from experiments.uniss_true_subsecond_pilot15_epoch1_v2.data.packing import (
     build_token_sample,
     shift_sample,
@@ -260,6 +261,21 @@ class RepairedDataTest(unittest.TestCase):
             self.assertEqual(
                 metadata["formal_subset_schema"], value["schema_version"]
             )
+
+    def test_dynamic_shard_claim_is_atomic_and_respects_completion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = try_claim_shard(root, 3)
+            self.assertIsNotNone(first)
+            self.assertIsNone(try_claim_shard(root, 3))
+            first.rmdir()
+            second = try_claim_shard(root, 3)
+            self.assertIsNotNone(second)
+            second.rmdir()
+            (root / "part-003" / "PART_COMPLETE.json").write_text(
+                "{}\n", encoding="utf-8"
+            )
+            self.assertIsNone(try_claim_shard(root, 3))
 
 
 if __name__ == "__main__":

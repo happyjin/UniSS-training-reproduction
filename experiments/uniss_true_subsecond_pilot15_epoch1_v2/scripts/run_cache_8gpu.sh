@@ -34,6 +34,7 @@ run_attempt() {
         --rank "${rank}" \
         --world-size 8 \
         --shard-count 15 \
+        --dynamic-shard-queue \
         --batch-size "${batch}" \
         --teacher-request-batch-size "${TEACHER_REQUEST_BATCH_SIZE}" \
         --topk 32 \
