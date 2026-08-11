@@ -7,7 +7,8 @@ source "${SCRIPT_DIR}/../config.env"
 mkdir -p "${CACHE_ROOT}" "${LOG_ROOT}/cache" "${REPORT_ROOT}" \
   "${USER_ROOT}/tmp" "${USER_ROOT}/hf_cache"
 
-TELEMETRY="${LOG_ROOT}/cache/gpu_telemetry.csv"
+ATTEMPT_ID="${CACHE_ATTEMPT_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
+TELEMETRY="${LOG_ROOT}/cache/gpu_telemetry.${ATTEMPT_ID}.csv"
 nvidia-smi --query-gpu=timestamp,index,memory.used,memory.total,utilization.gpu,power.draw,power.limit \
   --format=csv -l 5 > "${TELEMETRY}" &
 MONITOR_PID=$!
@@ -17,8 +18,11 @@ run_attempt() {
   local batch="$1"
   local status=0
   local pids=()
+  ATTEMPT_LOGS=()
   echo "cache attempt batch=${batch} teacher_batch=${TEACHER_REQUEST_BATCH_SIZE}" | tee -a "${LOG_ROOT}/cache/attempts.log"
   for rank in $(seq 0 7); do
+    rank_log="${LOG_ROOT}/cache/rank$(printf '%02d' "${rank}").batch${batch}.${ATTEMPT_ID}.log"
+    ATTEMPT_LOGS+=("${rank_log}")
     (
       export TMPDIR="${USER_ROOT}/tmp"
       export HF_HOME="${USER_ROOT}/hf_cache"
@@ -41,7 +45,7 @@ run_attempt() {
         --temperature 1.5 \
         --confidence-threshold "${CONFIDENCE_THRESHOLD}" \
         --progress-interval 1024
-    ) > "${LOG_ROOT}/cache/rank$(printf '%02d' "${rank}").batch${batch}.log" 2>&1 &
+    ) > "${rank_log}" 2>&1 &
     pids+=("$!")
   done
   for pid in "${pids[@]}"; do
@@ -56,7 +60,7 @@ for batch in ${CACHE_BATCH_CANDIDATES:-160 144 128 96 64}; do
     success=1
     break
   fi
-  if ! rg -q "out of memory|CUDA error: out of memory" "${LOG_ROOT}/cache"/*.batch"${batch}".log; then
+  if ! rg -q "out of memory|CUDA error: out of memory" "${ATTEMPT_LOGS[@]}"; then
     echo "cache failed for a non-OOM reason at batch ${batch}" >&2
     exit 1
   fi
