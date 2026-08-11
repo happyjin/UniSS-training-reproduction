@@ -3,12 +3,17 @@ from __future__ import annotations
 import unittest
 
 import torch
+from torch import nn
 
 from web_demo.true_subsecond_pilot15_streaming_v1.checkpoint_export import (
     interleave_hf_gqa_outputs,
     map_native_lora_to_hf,
     split_megatron_gqa_lora_b,
     verify_fused_mapping,
+)
+from web_demo.true_subsecond_pilot15_streaming_v1.model_loader import (
+    _CapturedInputLoRALinear,
+    _PreNormInputCapture,
 )
 
 
@@ -22,6 +27,29 @@ def _pair(state, layer, module, in_features, out_features):
 
 
 class CheckpointExportTest(unittest.TestCase):
+    def test_hf_lora_uses_megatron_fused_prenorm_input(self) -> None:
+        torch.manual_seed(9)
+        norm = nn.RMSNorm(8)
+        base = nn.Linear(8, 6, bias=False)
+        capture = _PreNormInputCapture(norm)
+        projection = _CapturedInputLoRALinear(
+            base, rank=3, alpha=6.0, capture=capture
+        )
+        with torch.no_grad():
+            projection.lora_A.weight.normal_()
+            projection.lora_B.weight.normal_()
+        raw = torch.randn(2, 4, 8) * 3.0
+        normalized = norm(raw)
+        actual = projection(normalized)
+        expected = base(normalized) + (
+            projection.lora_B(projection.lora_A(raw)) * projection.scaling
+        ).to(base.weight.dtype)
+        wrong_post_norm = base(normalized) + (
+            projection.lora_B(projection.lora_A(normalized)) * projection.scaling
+        ).to(base.weight.dtype)
+        torch.testing.assert_close(actual, expected)
+        self.assertFalse(torch.allclose(actual, wrong_post_norm))
+
     def test_gqa_rows_are_gathered_from_each_query_group(self) -> None:
         fused = torch.arange(1152, dtype=torch.float32).view(1152, 1).repeat(1, 32)
         query, key, value = split_megatron_gqa_lora_b(fused)

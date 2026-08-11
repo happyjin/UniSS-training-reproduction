@@ -244,6 +244,8 @@ def export_runtime(checkpoint: Path, base_model: Path, output: Path) -> dict[str
         "alpha": 64.0,
         "scale": 2.0,
         "qkv_layout": "megatron_query_group_interleaved_to_hf_qkv",
+        "lora_input_semantics": "megatron_fused_layernorm_prenorm_v1",
+        "layernorm_epsilon": 1.0e-5,
         "native_lora_tensor_count": 144,
         "hf_lora_tensor_count": len(adapter),
         "objective_tensor_count": len(objective),
