@@ -16,7 +16,6 @@ for value in \
   "${TRAJECTORY_PACKED}" "${TRAJECTORY_PACKED}.offsets.bin" \
   "${TRAINING_MANIFEST}" "${REPLAY_SUBSET_OFFSETS}" \
   "${VALID_TRAJECTORY_PACKED}" "${VALID_TRAJECTORY_PACKED}.offsets.bin" \
-  "${VALID_REPLAY_PACKED}" "${VALID_REPLAY_OFFSETS}" \
   "${PHASE3_NATIVE_CHECKPOINT}/latest_checkpointed_iteration.txt"; do
   [[ -f "${value}" ]] || { echo "Missing generalize12 artifact: ${value}" >&2; exit 1; }
 done
@@ -75,6 +74,7 @@ microblock_size=4
 semantic_classifier=frozen_phase3_embedding_rows
 continuation=natural_binary_posterior
 final_length=natural_1_to_4_posterior
+validation=trajectory_only_because_all_replay_parameters_are_frozen
 trajectory_packed=${TRAJECTORY_PACKED}
 trajectory_count=${TRAJECTORY_COUNT}
 replay_fraction=${REPLAY_FRACTION}
@@ -104,8 +104,7 @@ RUN_REPLAY_PACKED="${PHASE3_REPLAY_PACKED}" \
 RUN_REPLAY_OFFSETS="${REPLAY_SUBSET_OFFSETS}" \
 RUN_VALID_TRAJECTORY_PACKED="${VALID_TRAJECTORY_PACKED}" \
 RUN_VALID_TRAJECTORY_OFFSETS="${VALID_TRAJECTORY_PACKED}.offsets.bin" \
-RUN_VALID_REPLAY_PACKED="${VALID_REPLAY_PACKED}" \
-RUN_VALID_REPLAY_OFFSETS="${VALID_REPLAY_OFFSETS}" \
+RUN_VALID_REPLAY_PACKED="" RUN_VALID_REPLAY_OFFSETS="" \
 RUN_ENTRYPOINT="${REPO_ROOT}/experiments/uniss_phase3_runtime_parity_streaming_v2/generalize12_microblock/pretrain_generalize12.py" \
 RUN_LORA_DROPOUT=0 RUN_ATTENTION_DROPOUT=0 RUN_HIDDEN_DROPOUT=0 \
 RUN_FULL_VALIDATION=1 RUN_EVAL_INTERVAL="${EVAL_INTERVAL}" EVAL_ITERS="${EVAL_ITERS}" \

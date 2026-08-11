@@ -24,6 +24,8 @@ never truncates an unterminated prediction into a successful result.
 
 The canary must first demonstrate learnability and natural termination on real
 PCM.  The full15 run then covers all 59,576 trajectory packs once with strict
-global shuffle.  Success still requires held-out translation correctness,
+global shuffle.  Validation is trajectory-only because every Phase3/replay
+parameter is frozen; mixing replay batches would only dilute the new head's
+validation metrics.  Success still requires held-out translation correctness,
 playable non-collapsed audio, natural WRITE/EOS, no revision, first source-time
 WRITE and wall-clock PCM below one second, and RTF below one.
