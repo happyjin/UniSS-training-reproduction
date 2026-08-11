@@ -12,6 +12,7 @@ from experiments.uniss_phase3_runtime_parity_streaming_v2.overfit4.pretrain_over
 
 
 REPLAY_FRACTION = 0.01
+_ORIGINAL_DISTRIBUTED_OBJECTIVE = v7.distributed_overfit7_objective
 
 
 def is_generalize11_trainable_parameter(name: str) -> bool:
@@ -41,7 +42,7 @@ def freeze_base_and_train_semantic_head() -> None:
 
 
 def distributed_generalize11_objective(output, *, progress: float):
-    total, metrics = v7.distributed_overfit7_objective(output, progress=progress)
+    total, metrics = _ORIGINAL_DISTRIBUTED_OBJECTIVE(output, progress=progress)
     metrics["curriculum_replay_fraction"] = total.detach().new_tensor(REPLAY_FRACTION)
     return total, metrics
 
@@ -49,6 +50,10 @@ def distributed_generalize11_objective(output, *, progress: float):
 def main() -> None:
     v2.trajectory_token_weights = trajectory_token_weights
     dense.base.TrueSubsecondObjective = v7.RuntimeParityOverfit7Objective
+    # V7's output processor resolves its module-global reducer at runtime.
+    # Patch that reference as well as dense's hook so TensorBoard reports the
+    # manifest's real replay fraction instead of V7's historical 10% constant.
+    v7.distributed_overfit7_objective = distributed_generalize11_objective
     dense._distributed_dense_objective = distributed_generalize11_objective
     dense._dense_output_processor = v7.dense_output_processor
     dense.METRIC_NAMES = v7.V7_METRIC_NAMES
