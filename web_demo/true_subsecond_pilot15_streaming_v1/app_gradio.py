@@ -67,20 +67,25 @@ def run_upload(
                 else "N/A"
             )
             status = (
-                f"**完成 · iter_0000350 · {result.decision_chunk_ms} ms**  \n"
+                f"**完成 · iter_{result.selected_iteration:07d} · "
+                f"{result.decision_chunk_ms} ms · "
+                f"{'质量门通过' if result.quality_passed else '质量门失败'}**  \n"
                 f"First WRITE={first_write} · First useful audio={first_audio} · "
                 f"RTF={result.rtf:.3f}  \n"
                 f"源音频={result.source_duration_seconds:.2f}s · "
                 f"翻译语音={result.translation_duration_seconds:.2f}s · "
-                f"counterfactual frontend revisions="
-                f"{result.committed_revision_violations}"
+                f"覆盖率={result.translation_coverage_ratio:.1%} · "
+                f"forced={result.forced_writes} · natural={result.natural_writes}  \n"
+                f"质量问题={', '.join(result.quality_failures) if result.quality_failures else '无'} · "
+                f"counterfactual frontend revisions={result.committed_revision_violations}"
             )
+            playable = result.translation_duration_seconds > 0
             yield (
                 result.committed_translation,
                 live,
-                result.translation_path,
-                result.timeline_path,
-                result.stereo_path,
+                result.translation_path if playable else None,
+                result.timeline_path if playable else None,
+                result.stereo_path if playable else None,
                 result.result_path,
                 status,
                 100.0,
@@ -101,13 +106,14 @@ def build_demo(config: DemoConfig, engine: TrueSubsecondStreamingEngine) -> gr.B
     with gr.Blocks(title="UniSS True Streaming S2ST · pilot15", css=css) as demo:
         gr.Markdown(
             "# True Streaming Speech-to-Speech from jasonleeeli（李琎）Intern\n"
-            "### Phase3 v4 + pilot15 iter_0000350 causal adapter / action / safe-commit",
+            "### Phase3 v4 + repaired pilot15 causal adapter / action / safe-commit",
             elem_classes=["hero"],
         )
         gr.Markdown(
             "**真实数据可见性约束**：推理核心每次只接收已经到达的 PCM；WhisperVQ 使用与训练缓存一致的 "
             "160 ms chunk + 80 ms bounded right context；Qwen 使用 append-only KV cache；BiCodec "
-            "只解码已经生成的 semantic block。上传完整文件不会把未来波形传给模型。",
+            "只解码已经生成的 semantic block。前 3.2 秒是 observed-only VAD speaker warm-up；"
+            "其后模型不会接收未来 PCM。",
             elem_classes=["truth"],
         )
         gr.Markdown(
@@ -243,7 +249,10 @@ def launch(argv: list[str] | None = None) -> tuple[str, str | None]:
             "local_url": local_url,
             "public_url": public_url,
             "auth_mode": "public_no_login",
-            "model": "Phase3 v4 + true-subsecond pilot15 iter_0000350",
+            "model": (
+                "Phase3 v4 + repaired true-subsecond pilot15 "
+                f"iter_{int(engine.manifest['selected_iteration']):07d}"
+            ),
             "maximum_audio_seconds": config.max_audio_seconds,
             "decision_chunks_ms": [320, 480, 640],
             "stereo": "left=source,right=translation-at-emission-time",
