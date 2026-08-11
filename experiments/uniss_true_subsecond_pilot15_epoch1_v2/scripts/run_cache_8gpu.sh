@@ -50,7 +50,7 @@ run_attempt() {
 }
 
 success=0
-for batch in ${CACHE_BATCH_CANDIDATES:-128 96 64}; do
+for batch in ${CACHE_BATCH_CANDIDATES:-160 144 128 96 64}; do
   if run_attempt "${batch}"; then
     success=1
     break

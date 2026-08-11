@@ -6,8 +6,10 @@
 > `106/198`并保留断点；固定shard `0..14`的v2修复代码、数据硬门、严格全局
 > shuffle epoch构建器、8卡cache/训练自动流水线和TensorBoard 6071脚本已实现。
 > 修复数据需要GPU重新生成，因为精确800ms、`+160/+320ms`与完整上下文teacher
-> 分布不能从旧sidecar可靠补造。生成从batch 128开始，OOM时只对未完成shard
-> 自动回退到96/64；teacher请求按prefix time去重并以512请求子批推理。
+> 分布不能从旧sidecar可靠补造。实测batch 128达到约102GiB、100% utility、
+> 约584W和21.90 rows/s；batch 160稳定达到22.77 rows/s。因此正式生成从160
+> 开始，OOM时只对未完成shard自动回退到144/128/96/64；teacher请求按prefix
+> time去重并以512请求子批推理。
 
 > 方案对象：`experiments/uniss_phase3_true_subsecond_deadline_full198_v1/`
 >

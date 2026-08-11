@@ -9,6 +9,11 @@ observation when physically valid, deduplicated Phase3 teacher views, a strict
 semantic cursor, observed committed history, and a deadline mask for short
 utterances. A forced hard-deadline WRITE has no hard action/text/semantic CE.
 
+The formal cache starts at batch 160. A measured H200 probe processed 160 rows
+at 22.77 rows/s; batch 128 reached 100% utility, about 584 W and 102 GiB in the
+active phase. The launcher retries unfinished shards at 144/128/96/64 only on
+an actual CUDA OOM.
+
 Main commands:
 
 ```bash

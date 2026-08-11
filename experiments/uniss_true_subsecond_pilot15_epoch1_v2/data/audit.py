@@ -94,6 +94,7 @@ def audit(root: Path, shard_count: int = 15) -> dict[str, object]:
         inspect_session(records)
 
     write_fraction = counts["natural_write"] / max(1, counts["records"])
+    writes_per_session = counts["natural_write"] / max(1, counts["sessions"])
     forced_fraction = counts["deadline_forced"] / max(1, counts["records"])
     safe_positive_fraction = counts["safe_positive"] / max(1, counts["safe_total"])
     deadline_coverage = counts["exact_800_sessions"] / max(
@@ -120,9 +121,13 @@ def audit(root: Path, shard_count: int = 15) -> dict[str, object]:
     gates = {
         "hard_failures_zero": all(value == 0 for value in hard_failures.values()),
         "exact_800_coverage_100pct": deadline_coverage == 1.0,
-        "natural_write_15_to_35pct": 0.15 <= write_fraction <= 0.35,
-        "each_direction_write_at_least_10pct": all(
-            value["natural_write_fraction"] >= 0.10 for value in direction_summary.values()
+        # Five dense observations replace the old two-snapshot schedule. The
+        # event-level fraction therefore falls even when WRITE/session is
+        # unchanged; gate both quantities instead of reusing the v1 denominator.
+        "natural_write_event_fraction_5_to_25pct": 0.05 <= write_fraction <= 0.25,
+        "natural_write_per_session_0p25_to_2": 0.25 <= writes_per_session <= 2.0,
+        "each_direction_write_at_least_3pct": all(
+            value["natural_write_fraction"] >= 0.03 for value in direction_summary.values()
         ),
         "deadline_forced_at_most_35pct": forced_fraction <= 0.35,
         "safe_positive_nonzero_each_direction": all(
@@ -136,6 +141,7 @@ def audit(root: Path, shard_count: int = 15) -> dict[str, object]:
         "hard_failures": hard_failures,
         "deadline_coverage": deadline_coverage,
         "natural_write_fraction": write_fraction,
+        "natural_writes_per_session": writes_per_session,
         "deadline_forced_fraction": forced_fraction,
         "safe_positive_fraction": safe_positive_fraction,
         "directions": direction_summary,
