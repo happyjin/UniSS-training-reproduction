@@ -86,12 +86,20 @@ def test_wait_and_write_are_committed_to_one_persistent_cache() -> None:
     assert observation.last_hidden == ("hidden_at", len(session.transcript) - 1)
     first = session.commit_wait()
     assert first.action == "WAIT"
+    assert first.continuation_logits == (
+        "logits_after",
+        c.TOKEN_WAIT_READ,
+    )
 
     session.begin_tick([12])
     second = session.commit_write([101, 102], [20, 21, 22])
     assert second.action == "WRITE"
     assert second.text_ids == (101, 102)
     assert second.semantic_codes == (20, 21, 22)
+    assert second.continuation_logits == (
+        "logits_after",
+        c.TOKEN_END_SEMANTIC,
+    )
 
     expected = (
         *header,

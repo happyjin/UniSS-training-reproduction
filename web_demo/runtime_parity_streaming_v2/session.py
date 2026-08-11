@@ -96,6 +96,7 @@ class CommittedTick:
     transcript_start: int
     action_prediction_position: int
     transcript_end: int
+    continuation_logits: Any
 
 
 @dataclass
@@ -262,7 +263,7 @@ class PersistentPromptSession:
             last_hidden=result.last_hidden,
         )
 
-    def _finish_tick(self, action: Action) -> CommittedTick:
+    def _finish_tick(self, action: Action, continuation_logits: Any) -> CommittedTick:
         if self._pending is None:
             raise RuntimeError("no pending tick")
         tick = CommittedTick(
@@ -274,6 +275,7 @@ class PersistentPromptSession:
             transcript_start=self._pending.transcript_start,
             action_prediction_position=self._pending.action_prediction_position,
             transcript_end=len(self._transcript),
+            continuation_logits=continuation_logits,
         )
         self._ticks.append(tick)
         self._pending = None
@@ -284,8 +286,8 @@ class PersistentPromptSession:
         """Commit the model's actual WAIT token to the persistent main cache."""
 
         self._require_phase(SessionPhase.ACTION_PENDING)
-        self._append_token_ids((c.TOKEN_WAIT_READ,))
-        return self._finish_tick("WAIT")
+        result = self._append_token_ids((c.TOKEN_WAIT_READ,))
+        return self._finish_tick("WAIT", result.logits)
 
     def begin_write(self) -> KVAppendResult:
         """Commit WRITE and the fixed text prefix; return logits for first text token."""
@@ -343,8 +345,8 @@ class PersistentPromptSession:
         assert self._pending is not None
         if not self._pending.semantic_codes:
             raise RuntimeError("WRITE must commit at least one semantic code")
-        self._append_token_ids((c.TOKEN_END_SEMANTIC,))
-        return self._finish_tick("WRITE")
+        result = self._append_token_ids((c.TOKEN_END_SEMANTIC,))
+        return self._finish_tick("WRITE", result.logits)
 
     def commit_write(
         self, text_ids: Sequence[int], semantic_codes: Sequence[int]

@@ -42,6 +42,8 @@ class RuntimeEvent:
     semantic_codes: tuple[int, ...]
     emitted_audio_samples: int
     compute_ms: float
+    continuation_choice: str | None
+    eos_probability: float | None
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,8 @@ class RuntimeResult:
     source_finished_before_first_write: bool
     forced_writes: int
     committed_revision_violations: int
+    natural_eos: bool
+    drain_ticks: int
     processing_seconds: float
     rtf: float
     translation_audio: np.ndarray
@@ -90,6 +94,25 @@ def _decode_semantic_choice(logits: torch.Tensor, *, allow_end: bool) -> int:
     if allow_end and values[c.TOKEN_END_SEMANTIC] >= semantic_value:
         return c.TOKEN_END_SEMANTIC
     return int(semantic_index)
+
+
+def _decode_continuation_choice(logits: torch.Tensor) -> tuple[str, float]:
+    """Choose the model's natural ready-state continuation.
+
+    Dense training has exactly two legal tokens after a complete non-final or
+    final tick: ``START_GLM`` for another observation, or ``EOS`` to close the
+    session.  Restricting decoding to that grammar is ordinary constrained
+    decoding; it does not override the model's WAIT/WRITE policy.
+    """
+
+    values = logits.reshape(-1).float()
+    candidates = torch.stack(
+        (values[c.TOKEN_START_GLM], values[c.TOKEN_EOS])
+    )
+    probabilities = F.softmax(candidates, dim=0)
+    eos_probability = float(probabilities[1])
+    choice = "EOS" if candidates[1] >= candidates[0] else "START_GLM"
+    return choice, eos_probability
 
 
 class NaturalRuntimeParityGenerator:
@@ -185,7 +208,6 @@ def evaluate_waveform(
     generator: NaturalRuntimeParityGenerator,
     codec: StreamingBiCodecDecoder,
     maximum_drain_ticks: int = 32,
-    stop_after_wait_ticks: int = 4,
 ) -> RuntimeResult:
     values = np.asarray(waveform, dtype=np.float32).reshape(-1)
     source_duration_ms = int(round(len(values) * 1000 / SAMPLE_RATE))
@@ -195,11 +217,12 @@ def evaluate_waveform(
     first_write: int | None = None
     first_audio: int | None = None
     natural_writes = 0
-    consecutive_eos_waits = 0
+    natural_eos = False
+    drain_ticks = 0
     started = time.perf_counter()
 
     def tick(new_codes: Sequence[int], source_end_ms: int, source_finished: bool) -> None:
-        nonlocal first_write, first_audio, natural_writes, consecutive_eos_waits
+        nonlocal first_write, first_audio, natural_writes, natural_eos
         tick_started = time.perf_counter()
         observation = generator.session.begin_tick(new_codes)
         write_probability = generator.action_probability(observation.last_hidden)
@@ -213,7 +236,6 @@ def evaluate_waveform(
             semantic = generated.semantic_codes
             emitted = codec.push(semantic, is_final=False)
             natural_writes += 1
-            consecutive_eos_waits = 0
             if first_write is None:
                 first_write = source_end_ms
             if len(emitted):
@@ -222,8 +244,16 @@ def evaluate_waveform(
                     first_audio = source_end_ms
         else:
             generator.session.commit_wait()
-            if source_finished:
-                consecutive_eos_waits += 1
+        committed = generator.session.committed_ticks[-1]
+        continuation_choice: str | None = None
+        eos_probability: float | None = None
+        if source_finished:
+            continuation_choice, eos_probability = _decode_continuation_choice(
+                committed.continuation_logits
+            )
+            if continuation_choice == "EOS":
+                generator.session.finish_session()
+                natural_eos = True
         events.append(
             RuntimeEvent(
                 event_index=len(events),
@@ -236,6 +266,8 @@ def evaluate_waveform(
                 semantic_codes=semantic,
                 emitted_audio_samples=len(emitted),
                 compute_ms=(time.perf_counter() - tick_started) * 1000,
+                continuation_choice=continuation_choice,
+                eos_probability=eos_probability,
             )
         )
 
@@ -247,11 +279,11 @@ def evaluate_waveform(
         tick(step.new_tokens, step.source_end_ms, final)
 
     for _ in range(maximum_drain_ticks):
-        if consecutive_eos_waits >= stop_after_wait_ticks:
+        if natural_eos:
             break
+        drain_ticks += 1
         tick((), source_duration_ms, True)
 
-    generator.session.finish_session()
     if generator.semantic_codes:
         tail = codec.push((), is_final=True)
         if len(tail):
@@ -281,6 +313,8 @@ def evaluate_waveform(
         failures.append("no_playable_audio")
     if text_similarity < 0.50:
         failures.append("translation_text_similarity_below_0.50")
+    if not natural_eos:
+        failures.append("no_natural_eos")
     return RuntimeResult(
         sample_id=sample_id,
         source_duration_ms=source_duration_ms,
@@ -297,6 +331,8 @@ def evaluate_waveform(
         ),
         forced_writes=0,
         committed_revision_violations=0,
+        natural_eos=natural_eos,
+        drain_ticks=drain_ticks,
         processing_seconds=elapsed,
         rtf=elapsed / max(source_duration_ms / 1000, 1e-9),
         translation_audio=translation_audio,
@@ -311,5 +347,6 @@ __all__ = [
     "NaturalRuntimeParityGenerator",
     "RuntimeEvent",
     "RuntimeResult",
+    "_decode_continuation_choice",
     "evaluate_waveform",
 ]

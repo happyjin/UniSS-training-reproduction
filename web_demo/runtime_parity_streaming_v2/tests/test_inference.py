@@ -4,6 +4,7 @@ import torch
 
 from training import constants_uniss as c
 from web_demo.runtime_parity_streaming_v2.inference import (
+    _decode_continuation_choice,
     _decode_semantic_choice,
     _decode_text_choice,
 )
@@ -31,3 +32,17 @@ def test_semantic_decoder_requires_one_code_before_end() -> None:
         _decode_semantic_choice(logits, allow_end=True)
         == c.TOKEN_END_SEMANTIC
     )
+
+
+def test_continuation_decoder_selects_natural_eos_without_forcing() -> None:
+    logits = _logits()
+    logits[0, c.TOKEN_START_GLM] = 3
+    logits[0, c.TOKEN_EOS] = 2
+    choice, eos_probability = _decode_continuation_choice(logits)
+    assert choice == "START_GLM"
+    assert 0.26 < eos_probability < 0.27
+
+    logits[0, c.TOKEN_EOS] = 4
+    choice, eos_probability = _decode_continuation_choice(logits)
+    assert choice == "EOS"
+    assert 0.73 < eos_probability < 0.74
