@@ -12,8 +12,10 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.datase
     CurriculumKindRandomSampler,
     DeterministicReplayTrajectorySchedule,
     IndexedTrajectoryDataset,
+    _source_glm_positions,
     collate_trajectory,
 )
+from training import constants_uniss as c
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -54,6 +56,19 @@ def _indexed_smoke(root: Path) -> tuple[Path, Path]:
 
 
 class TrainingDatasetTest(unittest.TestCase):
+    def test_source_glm_span_excludes_downstream_id_collision(self) -> None:
+        tokens = [
+            c.TOKEN_START_GLM,
+            c.GLM_SEMANTIC_OFFSET + 7,
+            c.GLM_SEMANTIC_OFFSET + 11,
+            c.TOKEN_END_GLM,
+            c.TOKEN_WRITE_GENERATE,
+            # A valid downstream text ID may numerically overlap GLM codes.
+            c.GLM_SEMANTIC_OFFSET + 13_356,
+            c.TOKEN_END_CONTENT,
+        ]
+        self.assertEqual(_source_glm_positions(tokens, 0, len(tokens)), [1, 2])
+
     def test_real_smoke_cache_resolves_and_collates(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             packed, offsets = _indexed_smoke(Path(directory))

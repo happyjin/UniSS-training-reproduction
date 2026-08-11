@@ -65,6 +65,36 @@ def _parse_cache_reference(reference: str, namespace: str) -> tuple[Path, int]:
     return Path(path_value), int(index_value)
 
 
+def _source_glm_positions(tokens: Sequence[int], start: int, end: int) -> list[int]:
+    """Return only the source GLM span delimited by its control tokens.
+
+    UniSS text token IDs can numerically overlap the reserved GLM semantic
+    interval.  Range-filtering a complete trajectory therefore occasionally
+    mistakes a downstream translation token for a source acoustic token.  The
+    source prefix has an explicit START_GLM/END_GLM envelope, so use that
+    structural boundary instead.
+    """
+
+    try:
+        open_position = tokens.index(c.TOKEN_START_GLM, start, end)  # type: ignore[attr-defined]
+        close_position = tokens.index(  # type: ignore[attr-defined]
+            c.TOKEN_END_GLM, open_position + 1, end
+        )
+    except ValueError as exc:
+        raise ValueError("trajectory has no complete source GLM envelope") from exc
+    positions = list(range(open_position + 1, close_position))
+    if not positions:
+        raise ValueError("trajectory source GLM envelope is empty")
+    if any(
+        not c.GLM_SEMANTIC_OFFSET
+        <= int(tokens[position])
+        < c.GLM_SEMANTIC_OFFSET + c.GLM_SEMANTIC_SIZE
+        for position in positions
+    ):
+        raise ValueError("trajectory source GLM envelope contains a non-GLM token")
+    return positions
+
+
 class NpzBundleLRU:
     """Small per-worker cache of immutable NPZ bundle arrays."""
 
@@ -226,13 +256,7 @@ class IndexedTrajectoryDataset(Dataset[dict[str, object]]):
             )
             causal_bundle = self.bundle_lru.load(causal_path)
             causal_ids = _causal_tokens_from_bundle(causal_bundle, causal_index)
-            glm_positions = [
-                position
-                for position in range(start, end)
-                if c.GLM_SEMANTIC_OFFSET
-                <= int(tokens[position])
-                < c.GLM_SEMANTIC_OFFSET + c.GLM_SEMANTIC_SIZE
-            ]
+            glm_positions = _source_glm_positions(tokens, start, end)
             if len(glm_positions) > len(causal_ids):
                 raise ValueError(
                     "packed GLM prefix exceeds the cached causal row: "

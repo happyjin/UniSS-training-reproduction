@@ -8,12 +8,19 @@ REPLAY_ROOT="${REPO_ROOT}/data/megatron/uniss_true_subsecond_pilot15_v1"
 PHASE3_FINGERPRINT="${REPO_ROOT}/data/processed/uniss_phase3_true_subsecond_deadline_full198_v1/model_handoff/phase3_embedding_fingerprint.json"
 VALID_REPLAY_PACKED="${REPO_ROOT}/data/megatron/validation_unist_dev/phase3_valid_packed.jsonl"
 VALID_REPLAY_OFFSETS="${REPO_ROOT}/data/processed/uniss_phase3_true_subsecond_deadline_full198_v1/validation/phase3_valid.u64"
+PACKED_AUDIT="${REPORT_ROOT}/packed_causal_parity_v1.json"
 
-for required in "${MANIFEST}" "${PHASE3_FINGERPRINT}" \
+for required in "${MANIFEST}" "${PACKED_AUDIT}" "${PHASE3_FINGERPRINT}" \
   "${PHASE3_NATIVE_CHECKPOINT}/latest_checkpointed_iteration.txt" \
   "${VALID_REPLAY_PACKED}" "${VALID_REPLAY_OFFSETS}"; do
   [[ -f "${required}" ]] || { echo "missing training input: ${required}" >&2; exit 2; }
 done
+"${PYTHON}" - "${PACKED_AUDIT}" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1]))
+if not value.get("passed"):
+    raise SystemExit("packed causal parity audit did not pass")
+PY
 
 mapfile -t geometry < <("${PYTHON}" - "${MANIFEST}" <<'PY'
 import json,sys
