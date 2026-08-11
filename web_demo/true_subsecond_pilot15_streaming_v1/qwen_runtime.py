@@ -95,6 +95,7 @@ class IncrementalQwenRuntime:
         device: torch.device,
         safe_threshold: float = 0.5,
         semantic_history_tokens: int = 200,
+        allow_unsafe_forced_audio: bool = False,
         seed: int = 20260811,
     ) -> None:
         values = tuple(int(value) for value in speaker_global)
@@ -110,6 +111,7 @@ class IncrementalQwenRuntime:
         if semantic_history_tokens <= 0:
             raise ValueError("semantic_history_tokens must be positive")
         self.semantic_history_tokens = int(semantic_history_tokens)
+        self.allow_unsafe_forced_audio = bool(allow_unsafe_forced_audio)
         self.seed = int(seed)
         self.frontend_state: CausalAdapterState | None = None
         self.source_cache = None
@@ -331,7 +333,7 @@ class IncrementalQwenRuntime:
         # branch is therefore out-of-distribution and was the dominant source
         # of the unintelligible demo audio.  Keep the deadline event for
         # accounting, but never invent text or speech without learned support.
-        if forced:
+        if forced and not self.allow_unsafe_forced_audio:
             return MicroWrite(
                 text_ids=(),
                 text="",
@@ -342,6 +344,10 @@ class IncrementalQwenRuntime:
             )
         candidates = self._candidate_text(observation, maximum_text_tokens)
         accepted, probabilities = self._safe_prefix(observation, candidates)
+        anticipation = False
+        if forced and not accepted and candidates:
+            accepted = candidates[:1]
+            anticipation = True
         rejection = repeated_text_reason(self.committed_text_ids, accepted)
         if rejection is not None:
             accepted = []
@@ -365,7 +371,7 @@ class IncrementalQwenRuntime:
             text=self.tokenizer.decode(accepted, skip_special_tokens=True).strip(),
             safe_probabilities=probabilities,
             semantic_ids=tuple(semantic),
-            forced_anticipation=False,
+            forced_anticipation=anticipation,
             quality_rejected_reason=rejection,
         )
 

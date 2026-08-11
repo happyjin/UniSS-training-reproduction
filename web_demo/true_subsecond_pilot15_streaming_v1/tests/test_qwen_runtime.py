@@ -34,6 +34,7 @@ class QwenRuntimeTest(unittest.TestCase):
 
     def test_forced_write_never_emits_unsupervised_audio(self) -> None:
         runtime = IncrementalQwenRuntime.__new__(IncrementalQwenRuntime)
+        runtime.allow_unsafe_forced_audio = False
         write = runtime.micro_write(
             object(),
             maximum_text_tokens=2,
@@ -46,6 +47,26 @@ class QwenRuntimeTest(unittest.TestCase):
             write.quality_rejected_reason,
             "forced_write_without_semantic_supervision",
         )
+
+    def test_unsafe_forced_probe_is_explicitly_opt_in(self) -> None:
+        class Tokenizer:
+            @staticmethod
+            def decode(values, **_kwargs):
+                return "probe:" + ",".join(str(value) for value in values)
+
+        runtime = IncrementalQwenRuntime.__new__(IncrementalQwenRuntime)
+        runtime.allow_unsafe_forced_audio = True
+        runtime.committed_text_ids = []
+        runtime.committed_semantic_ids = []
+        runtime.tokenizer = Tokenizer()
+        runtime._candidate_text = lambda _observation, _maximum: [11]
+        runtime._safe_prefix = lambda _observation, candidates: (list(candidates), (0.9,))
+        runtime._semantic_block = lambda *_args, **_kwargs: list(range(12))
+        write = runtime.micro_write(
+            object(), maximum_text_tokens=1, semantic_block_tokens=12, forced=True
+        )
+        self.assertEqual(write.text_ids, (11,))
+        self.assertEqual(write.semantic_ids, tuple(range(12)))
 
     def test_repetition_and_semantic_collapse_are_rejected(self) -> None:
         self.assertEqual(repeated_text_reason([7, 8], [8]), "repeated_text_delta")

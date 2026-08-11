@@ -43,6 +43,7 @@ class DemoConfig:
     speaker_warmup_ms: int = 3_200
     speaker_vad_frame_ms: int = 20
     speaker_vad_min_rms: float = 0.006
+    allow_unsafe_forced_audio: bool = False
     seed: int = 20260811
 
     @classmethod

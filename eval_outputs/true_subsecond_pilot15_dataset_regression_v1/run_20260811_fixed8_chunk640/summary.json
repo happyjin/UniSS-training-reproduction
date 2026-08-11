@@ -1,0 +1,540 @@
+{
+  "samples": [
+    {
+      "label": "train_en_zh_01",
+      "split": "train",
+      "parquet": "train-00000.parquet",
+      "row": 0,
+      "id": "NCSSD_R_EN_0000000000",
+      "dataset_name": "ncssd_r_en",
+      "direction": "英文 → 中文",
+      "source_transcription": "Hello, I'm looking for a book on mindfulness. Can you help me? ",
+      "reference_translation": "你好，我在寻找一本关于正念的书。你能帮我吗？",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "first_audio_ms": null,
+        "rtf": 0.09564538886307153,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "Hello, I'm looking for a book on mindfulness. Can you help me?",
+        "translation": "你好，我正在寻找一本关于正念的书。你能帮我吗？",
+        "translation_similarity": 0.9777777777777777,
+        "output_seconds": 4.1,
+        "processing_seconds": 5.232355957035907,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "",
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "semantic_tokens": 0,
+        "first_audio_ms": null,
+        "rtf": 0.21136649122894235,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ],
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_01/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "train_en_zh_02",
+      "split": "train",
+      "parquet": "train-00000.parquet",
+      "row": 2,
+      "id": "NCSSD_R_EN_0000000004",
+      "dataset_name": "ncssd_r_en",
+      "direction": "英文 → 中文",
+      "source_transcription": "That sounds perfect. I've heard great things about that book. Do you have it in stock and? ",
+      "reference_translation": "听起来很棒。我听说那本书很好。你那里有存货吗？",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "first_audio_ms": null,
+        "rtf": 0.10715079841224617,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "That sounds perfect. I've heard great things about that book. Do you have any stock?",
+        "translation": "那听起来太完美了。我听说过关于那本书的很多好话。你有库存吗？",
+        "translation_similarity": 0.6792452830188679,
+        "output_seconds": 6.54,
+        "processing_seconds": 7.822411073953845,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "这",
+        "translation_seconds": 0.24,
+        "coverage": 0.03797468354430379,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "semantic_tokens": 12,
+        "first_audio_ms": 3200,
+        "rtf": 0.3130773208737727,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_natural_write",
+          "forced_write_dominant",
+          "unsafe_forced_audio_emitted",
+          "audio_coverage:0.0380"
+        ],
+        "translation_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/unsafe_forced_streaming_translation.wav",
+        "timeline_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/unsafe_forced_streaming_timeline.wav",
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_en_zh_02/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "train_zh_en_01",
+      "split": "train",
+      "parquet": "train-00002.parquet",
+      "row": 42768,
+      "id": "HQ-Conversations_0000000045",
+      "dataset_name": "hq-conversations",
+      "direction": "中文 → 英文",
+      "source_transcription": "哎其实往简单了说就是没钱生养太卷了。",
+      "reference_translation": "Actually, to put it simply, it's too expensive to raise a child.",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "first_audio_ms": null,
+        "rtf": 0.09259175273749927,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "嗯，其实王简单来说就是没钱生养太卷啊。",
+        "translation": "Well, to put it simply, Wang has too much money for support and education.",
+        "translation_similarity": 0.47368421052631576,
+        "output_seconds": 5.1,
+        "processing_seconds": 6.122062179027125,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "Well",
+        "translation_seconds": 0.24,
+        "coverage": 0.05429864253393665,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "semantic_tokens": 12,
+        "first_audio_ms": 3200,
+        "rtf": 0.22226941471021808,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_natural_write",
+          "forced_write_dominant",
+          "unsafe_forced_audio_emitted",
+          "audio_coverage:0.0543"
+        ],
+        "translation_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/unsafe_forced_streaming_translation.wav",
+        "timeline_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/unsafe_forced_streaming_timeline.wav",
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_01/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "train_zh_en_02",
+      "split": "train",
+      "parquet": "train-00002.parquet",
+      "row": 42776,
+      "id": "HQ-Conversations_0000000121",
+      "dataset_name": "hq-conversations",
+      "direction": "中文 → 英文",
+      "source_transcription": "我都想不到这，我觉得这个女朋友的三观也是很有问题的。",
+      "reference_translation": "I never thought of this; I think this girlfriend's values are also quite problematic.",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "first_audio_ms": null,
+        "rtf": 0.10271004008125391,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "因为想不到这我觉得这是女朋友的三观也是很有问题的",
+        "translation": "I can't help but think that this is also a problem with the values of female friends.",
+        "translation_similarity": 0.4397163120567376,
+        "output_seconds": 5.82,
+        "processing_seconds": 6.922076488030143,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "I",
+        "translation_seconds": 0.24,
+        "coverage": 0.049586776859504134,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "semantic_tokens": 12,
+        "first_audio_ms": 3200,
+        "rtf": 0.2222929762489709,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_natural_write",
+          "forced_write_dominant",
+          "unsafe_forced_audio_emitted",
+          "audio_coverage:0.0496"
+        ],
+        "translation_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/unsafe_forced_streaming_translation.wav",
+        "timeline_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/unsafe_forced_streaming_timeline.wav",
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/train_zh_en_02/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "dev_en_zh_01",
+      "split": "dev",
+      "parquet": "dev-00000.parquet",
+      "row": 6531,
+      "id": "gigaspeech_podcast_0000000003",
+      "dataset_name": "gigaspeech",
+      "direction": "英文 → 中文",
+      "source_transcription": "Leila Green is a trauma surgeon in Houston.",
+      "reference_translation": "Leila Green 是休斯顿的一名创伤外科医生。",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "first_audio_ms": null,
+        "rtf": 0.07715370710134321,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "Liligreeen is a trauma surgeon in Houston.",
+        "translation": "李利格林是休斯顿的一名创伤外科医生。",
+        "translation_similarity": 0.6666666666666666,
+        "output_seconds": 4.34,
+        "processing_seconds": 5.0814215110149235,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "李",
+        "translation_seconds": 0.24,
+        "coverage": 0.07407407407407407,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "semantic_tokens": 12,
+        "first_audio_ms": 3200,
+        "rtf": 0.2300106799215607,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_natural_write",
+          "forced_write_dominant",
+          "unsafe_forced_audio_emitted",
+          "audio_coverage:0.0741"
+        ],
+        "translation_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/unsafe_forced_streaming_translation.wav",
+        "timeline_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/unsafe_forced_streaming_timeline.wav",
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_01/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "dev_en_zh_02",
+      "split": "dev",
+      "parquet": "dev-00000.parquet",
+      "row": 6536,
+      "id": "gigaspeech_podcast_0000000020",
+      "dataset_name": "gigaspeech",
+      "direction": "英文 → 中文",
+      "source_transcription": "You know, you really do have to feel like you're cooking things cause you really do have to put everything together.",
+      "reference_translation": "你知道，你真的得感觉自己在做饭，因为你确实得把所有东西都组合起来。",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "first_audio_ms": null,
+        "rtf": 0.11422454358208997,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "Now, you really do have to feel like you're cutting things. Does it really do have to put everything together.",
+        "translation": "现在，你真的必须觉得自己在做事情。真的需要把所有东西都整合起来吗？",
+        "translation_similarity": 0.5454545454545454,
+        "output_seconds": 5.92,
+        "processing_seconds": 7.166437739972025,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "",
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "semantic_tokens": 0,
+        "first_audio_ms": null,
+        "rtf": 0.3001198737206235,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ],
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_en_zh_02/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "dev_zh_en_01",
+      "split": "dev",
+      "parquet": "dev-00000.parquet",
+      "row": 0,
+      "id": "magicdata_0000000001",
+      "dataset_name": "magicdata",
+      "direction": "中文 → 英文",
+      "source_transcription": "我想用百度搜索短信",
+      "reference_translation": "I want to use Baidu to search for SMS.",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "first_audio_ms": null,
+        "rtf": 0.10732588315154033,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "我想用百度搜索短信",
+        "translation": "I want to use Baidu to search for text messages.",
+        "translation_similarity": 0.8405797101449275,
+        "output_seconds": 6.76,
+        "processing_seconds": 7.304803382023238,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "I",
+        "translation_seconds": 0.24,
+        "coverage": 0.04395604395604395,
+        "natural_writes": 0,
+        "forced_writes": 2,
+        "semantic_tokens": 12,
+        "first_audio_ms": 3200,
+        "rtf": 0.21492824742601221,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_natural_write",
+          "forced_write_dominant",
+          "unsafe_forced_audio_emitted",
+          "audio_coverage:0.0440"
+        ],
+        "translation_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/unsafe_forced_streaming_translation.wav",
+        "timeline_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/unsafe_forced_streaming_timeline.wav",
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_01/unsafe_forced_streaming_result.json"
+      }
+    },
+    {
+      "label": "dev_zh_en_02",
+      "split": "dev",
+      "parquet": "dev-00000.parquet",
+      "row": 2,
+      "id": "magicdata_0000000005",
+      "dataset_name": "magicdata",
+      "direction": "中文 → 英文",
+      "source_transcription": "我现在哪",
+      "reference_translation": "Where am I now?",
+      "files": {
+        "source": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/source.wav",
+        "reference_target": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/reference_target.wav",
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/streaming_result.json",
+        "offline_phase3": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/offline_phase3.wav",
+        "offline_result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/offline_result.json"
+      },
+      "streaming": {
+        "translation": "",
+        "translation_similarity": 0.0,
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "first_audio_ms": null,
+        "rtf": 0.05223051210396674,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ]
+      },
+      "offline": {
+        "transcription": "我现在呢",
+        "translation": "Where am I now?",
+        "translation_similarity": 1.0,
+        "output_seconds": 2.32,
+        "processing_seconds": 2.7772668909747154,
+        "warnings": []
+      },
+      "unsafe_forced_probe": {
+        "translation": "",
+        "translation_seconds": 0.0,
+        "coverage": 0.0,
+        "natural_writes": 0,
+        "forced_writes": 1,
+        "semantic_tokens": 0,
+        "first_audio_ms": null,
+        "rtf": 0.209699223522596,
+        "quality_passed": false,
+        "quality_failures": [
+          "no_safe_streaming_translation",
+          "no_natural_write",
+          "forced_write_dominant",
+          "audio_coverage:0.0000"
+        ],
+        "translation_audio": null,
+        "timeline_audio": null,
+        "stereo_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/unsafe_forced_streaming_stereo.wav",
+        "result_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/true_subsecond_pilot15_dataset_regression_v1/run_20260811_fixed8_chunk640/dev_zh_en_02/unsafe_forced_streaming_result.json"
+      }
+    }
+  ]
+}

@@ -365,6 +365,7 @@ class TrueSubsecondStreamingEngine:
             speaker_global=speaker,
             device=self.device,
             semantic_history_tokens=self.config.semantic_history_tokens,
+            allow_unsafe_forced_audio=self.config.allow_unsafe_forced_audio,
             seed=self.config.seed,
         )
         codec = self._codec(speaker)
@@ -527,6 +528,8 @@ class TrueSubsecondStreamingEngine:
             quality_failures.append("no_natural_write")
         if forced_writes > natural_writes:
             quality_failures.append("forced_write_dominant")
+        if any(event.deadline_forced and event.semantic_tokens for event in events):
+            quality_failures.append("unsafe_forced_audio_emitted")
         if semantic_values and semantic_max_run >= 16:
             quality_failures.append(f"semantic_identical_run:{semantic_max_run}")
         if len(semantic_values) >= 64 and semantic_unique_ratio < 0.10:
