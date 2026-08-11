@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import torch
+import pytest
 from torch import nn
 
 from training import constants_uniss as c
@@ -15,6 +16,7 @@ class FakeModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.embedding = nn.Embedding(c.VOCAB_SIZE, 4)
+        self.config = SimpleNamespace(_attn_implementation="eager")
         self.calls: list[dict[str, object]] = []
 
     def get_input_embeddings(self):
@@ -114,3 +116,15 @@ def test_fused_tick_is_one_forward_with_training_identical_embeddings() -> None:
     torch.testing.assert_close(
         embeddings[:, -1:], model.embedding(torch.tensor([[c.TOKEN_END_GLM]]))
     )
+
+
+def test_static_cache_is_refused_for_non_equivalent_flash_attention_path() -> None:
+    model = FakeModel()
+    model.config._attn_implementation = "flash_attention_2"
+    with pytest.raises(ValueError, match="not runtime-equivalent"):
+        HuggingFaceKVBackend(
+            model,
+            FakeObjective(),
+            device="cpu",
+            use_static_cache=True,
+        )

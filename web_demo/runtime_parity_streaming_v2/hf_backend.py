@@ -37,6 +37,14 @@ class HuggingFaceKVBackend:
         self.fuse_ticks = bool(fuse_ticks)
         self.use_static_cache = bool(use_static_cache)
         self.maximum_cache_tokens = int(maximum_cache_tokens)
+        attention_implementation = getattr(
+            getattr(self.model, "config", None), "_attn_implementation", None
+        )
+        if self.use_static_cache and attention_implementation == "flash_attention_2":
+            raise ValueError(
+                "static KV cache is not runtime-equivalent under the current "
+                "Qwen2 FlashAttention2 path; use the fused dynamic cache"
+            )
         self._static_cache = None
         self._next_cache_position = 0
 

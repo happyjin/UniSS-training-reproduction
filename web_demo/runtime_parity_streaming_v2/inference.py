@@ -41,6 +41,10 @@ class RuntimeEvent:
     text_ids: tuple[int, ...]
     semantic_codes: tuple[int, ...]
     emitted_audio_samples: int
+    observation_ms: float
+    generation_ms: float
+    codec_ms: float
+    continuation_ms: float
     compute_ms: float
     wall_end_ms: float
     compute_backlog_ms: float
@@ -294,14 +298,21 @@ def evaluate_waveform(
         observation = generator.session.begin_tick(new_codes)
         write_probability = generator.action_probability(observation.last_hidden)
         action = "WRITE" if write_probability >= 0.5 else "WAIT"
+        observation_ms = (time.perf_counter() - tick_started) * 1000
         text_ids: tuple[int, ...] = ()
         semantic: tuple[int, ...] = ()
         emitted = np.zeros(0, dtype=np.float32)
+        generation_ms = 0.0
+        codec_ms = 0.0
         if action == "WRITE":
+            generation_started = time.perf_counter()
             generated = generator.generate_write()
+            generation_ms = (time.perf_counter() - generation_started) * 1000
             text_ids = generated.text_ids
             semantic = generated.semantic_codes
+            codec_started = time.perf_counter()
             emitted = codec.push(semantic, is_final=False)
+            codec_ms = (time.perf_counter() - codec_started) * 1000
             natural_writes += 1
             if first_write is None:
                 first_write = source_end_ms
@@ -312,6 +323,7 @@ def evaluate_waveform(
         else:
             generator.session.commit_wait()
         committed = generator.session.committed_ticks[-1]
+        continuation_started = time.perf_counter()
         continuation_choice: str | None = None
         eos_probability: float | None = None
         if source_finished:
@@ -321,6 +333,7 @@ def evaluate_waveform(
             if continuation_choice == "EOS":
                 generator.session.finish_session()
                 natural_eos = True
+        continuation_ms = (time.perf_counter() - continuation_started) * 1000
         compute_ms = (time.perf_counter() - tick_started) * 1000
         wall_cursor_ms = max(wall_cursor_ms, float(source_end_ms)) + compute_ms
         backlog_ms = max(0.0, wall_cursor_ms - float(source_end_ms))
@@ -340,6 +353,10 @@ def evaluate_waveform(
                 text_ids=text_ids,
                 semantic_codes=semantic,
                 emitted_audio_samples=len(emitted),
+                observation_ms=observation_ms,
+                generation_ms=generation_ms,
+                codec_ms=codec_ms,
+                continuation_ms=continuation_ms,
                 compute_ms=compute_ms,
                 wall_end_ms=wall_cursor_ms,
                 compute_backlog_ms=backlog_ms,
