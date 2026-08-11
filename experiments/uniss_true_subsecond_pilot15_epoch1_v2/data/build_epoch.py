@@ -44,7 +44,8 @@ def build(
     audit_path: Path,
     output_root: Path,
     global_batch_size: int = 128,
-    data_parallel_microbatch: int = 16,
+    micro_batch_size: int = 1,
+    data_parallel_microbatch: int = 8,
     seed: int = 20260810,
 ) -> dict[str, object]:
     trajectory_meta = json.loads(
@@ -62,6 +63,10 @@ def build(
         raise ValueError("data audit did not pass; refusing to freeze an epoch")
     trajectory_count = int(trajectory_meta["records"])
     replay_available = int(replay_meta["records"])
+    if micro_batch_size <= 0:
+        raise ValueError("micro batch size must be positive")
+    if data_parallel_microbatch % micro_batch_size:
+        raise ValueError("DP microbatch must be divisible by micro batch size")
     if global_batch_size % data_parallel_microbatch:
         raise ValueError("global batch must be divisible by DP microbatch")
     groups_per_step = global_batch_size // data_parallel_microbatch
@@ -79,7 +84,12 @@ def build(
         raise ValueError("pilot replay source is too small for one trajectory epoch")
 
     output_root.mkdir(parents=True, exist_ok=True)
-    subset_offsets = output_root / "replay_subset.offsets.u64"
+    subset_name = (
+        "replay_subset.offsets.u64"
+        if micro_batch_size == 2
+        else f"replay_subset_mbs{micro_batch_size}.offsets.u64"
+    )
+    subset_offsets = output_root / subset_name
     if subset_offsets.exists():
         subset_meta = json.loads(
             subset_offsets.with_suffix(subset_offsets.suffix + ".json").read_text(
@@ -138,7 +148,7 @@ def build(
         "train_iters": train_iters,
         "warmup_iters": min(20, max(1, math.ceil(train_iters * 0.10))),
         "global_batch_size": global_batch_size,
-        "micro_batch_size": 2,
+        "micro_batch_size": micro_batch_size,
         "data_parallel_microbatch": data_parallel_microbatch,
         "curriculum_boundaries": [
             min(train_iters, max(1, math.ceil(train_iters * fraction)))
@@ -162,7 +172,8 @@ def main() -> None:
     parser.add_argument("--audit", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--global-batch-size", type=int, default=128)
-    parser.add_argument("--data-parallel-microbatch", type=int, default=16)
+    parser.add_argument("--micro-batch-size", type=int, default=1)
+    parser.add_argument("--data-parallel-microbatch", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260810)
     args = parser.parse_args()
     print(json.dumps(build(
@@ -173,6 +184,7 @@ def main() -> None:
         audit_path=args.audit,
         output_root=args.output_root,
         global_batch_size=args.global_batch_size,
+        micro_batch_size=args.micro_batch_size,
         data_parallel_microbatch=args.data_parallel_microbatch,
         seed=args.seed,
     ), sort_keys=True))

@@ -261,6 +261,12 @@ class RepairedDataTest(unittest.TestCase):
             self.assertEqual(
                 metadata["formal_subset_schema"], value["schema_version"]
             )
+            self.assertEqual(value["micro_batch_size"], 1)
+            self.assertEqual(value["data_parallel_microbatch"], 8)
+            self.assertEqual(
+                Path(value["replay_subset_offsets"]).name,
+                "replay_subset_mbs1.offsets.u64",
+            )
 
     def test_dynamic_shard_claim_is_atomic_and_respects_completion(self):
         with tempfile.TemporaryDirectory() as directory:

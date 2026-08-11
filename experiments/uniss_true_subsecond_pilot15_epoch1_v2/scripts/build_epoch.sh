@@ -13,5 +13,6 @@ REPLAY_ROOT="${REPO_ROOT}/data/megatron/uniss_true_subsecond_pilot15_v1"
   --audit "${REPORT_ROOT}/data_audit_v2.json" \
   --output-root "${PACKED_ROOT}" \
   --global-batch-size "${GLOBAL_BATCH_SIZE}" \
-  --data-parallel-microbatch 16 \
+  --micro-batch-size "${MICRO_BATCH_SIZE}" \
+  --data-parallel-microbatch "$(( 8 * MICRO_BATCH_SIZE ))" \
   --seed "${SEED}" | tee "${LOG_ROOT}/epoch_manifest.log"

@@ -18,7 +18,10 @@ done
 mapfile -t geometry < <("${PYTHON}" - "${MANIFEST}" <<'PY'
 import json,sys
 value=json.load(open(sys.argv[1]))
-for key in ('train_iters','warmup_iters','action_write_weight','safe_positive_alpha'):
+for key in (
+    'train_iters', 'warmup_iters', 'action_write_weight',
+    'safe_positive_alpha', 'replay_subset_offsets',
+):
     print(value[key])
 PY
 )
@@ -26,6 +29,7 @@ TRAIN_ITERS="${geometry[0]}"
 WARMUP_ITERS="${geometry[1]}"
 ACTION_WRITE_WEIGHT="${geometry[2]}"
 SAFE_POSITIVE_ALPHA="${geometry[3]}"
+REPLAY_SUBSET_OFFSETS="${geometry[4]}"
 HANDOFF_ITER=$(( TRAIN_ITERS < 15 ? TRAIN_ITERS : 15 ))
 
 mkdir -p "${RUN_ROOT}" "${LOG_ROOT}" "${REPORT_ROOT}" "${SAVE_ROOT}"
@@ -51,12 +55,13 @@ common=(
   "RUN_TRAJECTORY_PACKED=${PACKED_ROOT}/packed_trajectory.jsonl"
   "RUN_TRAJECTORY_OFFSETS=${PACKED_ROOT}/packed_trajectory.offsets.u64"
   "RUN_REPLAY_PACKED=${REPLAY_ROOT}/packed_replay.jsonl"
-  "RUN_REPLAY_OFFSETS=${PACKED_ROOT}/replay_subset.offsets.u64"
+  "RUN_REPLAY_OFFSETS=${REPLAY_SUBSET_OFFSETS}"
   "RUN_VALID_REPLAY_PACKED=${VALID_REPLAY_PACKED}"
   "RUN_VALID_REPLAY_OFFSETS=${VALID_REPLAY_OFFSETS}"
   "RUN_TRAIN_ITERS=${TRAIN_ITERS}"
   "RUN_WARMUP_ITERS=${WARMUP_ITERS}"
-  RUN_NPROC=8 RUN_MBS=2 RUN_GBS=128 RUN_SEQ_LENGTH=18000
+  RUN_NPROC=8 RUN_MBS="${MICRO_BATCH_SIZE}" RUN_GBS="${GLOBAL_BATCH_SIZE}" \
+  RUN_SEQ_LENGTH="${SEQ_LENGTH}"
   RUN_SAVE_INTERVAL=15 RUN_EVAL_INTERVAL=15 RUN_LOG_INTERVAL=1
   RUN_MASTER_PORT=29721 RUN_SMOKE=0 RUN_AUDIT_GRADIENTS=0
   RUN_FULL_VALIDATION=0 NUM_WORKERS=8
