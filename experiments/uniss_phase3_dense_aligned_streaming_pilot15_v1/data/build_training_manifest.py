@@ -248,7 +248,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "total_samples": total_samples,
         "train_iters": train_iters,
         "warmup_iters": min(
-            train_iters,
+            max(0, train_iters - 1),
             min(1000, max(50, math.ceil(train_iters * 0.025))),
         ),
         "micro_batch_size": args.micro_batch_size,

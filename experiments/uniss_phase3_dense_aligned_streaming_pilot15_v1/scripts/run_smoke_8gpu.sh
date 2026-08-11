@@ -8,11 +8,11 @@ DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
 SMOKE_PACKED="${DATA_ROOT}/smoke128_v2/packed_dense_v3.jsonl"
-SMOKE_ROOT="${PACKED_ROOT}/smoke8_v1"
+SMOKE_ROOT="${PACKED_ROOT}/smoke8_v2"
 SMOKE_MANIFEST="${SMOKE_ROOT}/training_manifest.json"
-SMOKE_SAVE="${REPO_ROOT}/checkpoints/${EXPERIMENT_NAME}_smoke8_v1"
-SMOKE_TB="${REPO_ROOT}/runs/${EXPERIMENT_NAME}_smoke8_v1/tensorboard"
-SMOKE_LOG="${REPO_ROOT}/logs/${EXPERIMENT_NAME}_smoke8_v1.log"
+SMOKE_SAVE="${REPO_ROOT}/checkpoints/${EXPERIMENT_NAME}_smoke8_v2"
+SMOKE_TB="${REPO_ROOT}/runs/${EXPERIMENT_NAME}_smoke8_v2/tensorboard"
+SMOKE_LOG="${REPO_ROOT}/logs/${EXPERIMENT_NAME}_smoke8_v2.log"
 
 "${PYTHON}" -m experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.build_training_manifest \
   --trajectory-packed "${SMOKE_PACKED}" \
