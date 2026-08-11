@@ -4,8 +4,9 @@ The v8 runtime first appended all predicted BiCodec semantic tokens and then
 appended ``END_SEMANTIC`` in a second Qwen call.  Causal eval-mode inference
 does not require that dispatch boundary: appending the same tokens as one
 contiguous block leaves the canonical transcript and continuation position
-unchanged.  This module keeps the v8 model and all natural decisions intact
-while removing one model dispatch from every WRITE.
+unchanged.  BF16 kernel scheduling can produce small numerical differences, so
+the strict evaluator must still verify all natural decisions and PCM quality.
+This module keeps the v8 weights intact and removes one dispatch per WRITE.
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ class FusedSemanticPromptSession(ParallelSemanticPromptSession):
 
 
 class FusedSemanticRuntimeGenerator:
-    """Keep every v8 prediction unchanged and fuse only its final KV append."""
+    """Keep v8 weights and natural decoding while fusing the final KV append."""
 
     def __init__(
         self,

@@ -8,14 +8,18 @@ TAG="${TAG:-fused_semantic_commit_v1}"
 CHECKPOINT="${CHECKPOINT:-${REPO_ROOT}/checkpoints/uniss_phase3_runtime_parity_streaming_v2_overfit8_v1/iter_$(printf '%07d' "${ITERATION}")}"
 EVAL_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/overfit9_v1_${TAG}/iter_$(printf '%07d' "${ITERATION}")"
 EXPORT_ROOT="${REPO_ROOT}/reports/uniss_phase3_runtime_parity_streaming_v2/runtime_exports/overfit9_v1_iter_$(printf '%07d' "${ITERATION}")_${TAG}"
-FORMAL_TRAIN="${REPO_ROOT}/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_train_manifest.jsonl"
+DEFAULT_FORMAL="${REPO_ROOT}/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_train_manifest.jsonl"
+FORMAL_MANIFEST="${FORMAL_MANIFEST:-${DEFAULT_FORMAL}}"
+SPEAKER_FORMAL_MANIFEST="${SPEAKER_FORMAL_MANIFEST:-${DEFAULT_FORMAL}}"
 BASE_MODEL="${REPO_ROOT}/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf"
 SPEECH_TOKENIZER="${REPO_ROOT}/pretrained_models/UniSS"
 WHISPERVQ_MODEL="${SPEECH_TOKENIZER}/glm4_tokenizer"
 INFERENCE_PYTHON="${USER_ROOT}/conda_envs/uniss-offline-demo/bin/python"
 
 for value in "${CHECKPOINT}/.metadata" "${BASE_MODEL}/config.json" \
-  "${FORMAL_TRAIN}" "${FORMAL_TRAIN}.offsets.bin" "${WHISPERVQ_MODEL}/model.safetensors" \
+  "${FORMAL_MANIFEST}" "${FORMAL_MANIFEST}.offsets.bin" \
+  "${SPEAKER_FORMAL_MANIFEST}" "${SPEAKER_FORMAL_MANIFEST}.offsets.bin" \
+  "${WHISPERVQ_MODEL}/model.safetensors" \
   "${INFERENCE_PYTHON}"; do
   [[ -e "${value}" ]] || { echo "Missing v9 evaluation input: ${value}" >&2; exit 1; }
 done
@@ -33,7 +37,8 @@ mkdir -p "${PYTORCH_KERNEL_CACHE_PATH}" "${CUDA_CACHE_PATH}" "${TMPDIR}"
 
 exec "${INFERENCE_PYTHON}" -m web_demo.runtime_parity_streaming_v9.evaluate_checkpoint \
   --checkpoint "${CHECKPOINT}" --base-model "${BASE_MODEL}" --export "${EXPORT_ROOT}" \
-  --formal-manifest "${FORMAL_TRAIN}" --speaker-formal-manifest "${FORMAL_TRAIN}" \
+  --formal-manifest "${FORMAL_MANIFEST}" \
+  --speaker-formal-manifest "${SPEAKER_FORMAL_MANIFEST}" \
   --speaker-source-index 0 --whispervq-model "${WHISPERVQ_MODEL}" \
   --speech-tokenizer "${SPEECH_TOKENIZER}" --output "${EVAL_ROOT}" --device cuda:0 \
   --samples 1 --maximum-drain-ticks 8 --minimum-text-similarity 0.98 \

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strictly evaluate v8 weights through the lossless fused-commit v9 runtime."""
+"""Strictly evaluate v8 weights through the fused-commit v9 runtime."""
 
 from __future__ import annotations
 
