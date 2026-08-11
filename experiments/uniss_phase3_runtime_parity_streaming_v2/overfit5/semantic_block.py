@@ -40,12 +40,19 @@ class SemanticBlockOutput:
 class ParallelSemanticBlockHead(nn.Module):
     """Predict up to ``maximum_semantic_tokens`` plus natural END in parallel."""
 
-    def __init__(self, hidden_size: int, *, maximum_semantic_tokens: int = 24) -> None:
+    def __init__(
+        self,
+        hidden_size: int,
+        *,
+        maximum_semantic_tokens: int = 24,
+        end_loss_weight: float = 4.0,
+    ) -> None:
         super().__init__()
-        if hidden_size <= 0 or maximum_semantic_tokens <= 0:
+        if hidden_size <= 0 or maximum_semantic_tokens <= 0 or end_loss_weight <= 0:
             raise ValueError("semantic block geometry must be positive")
         self.hidden_size = int(hidden_size)
         self.maximum_semantic_tokens = int(maximum_semantic_tokens)
+        self.end_loss_weight = float(end_loss_weight)
         self.slot_count = self.maximum_semantic_tokens + 1
         self.context_projection = nn.Linear(hidden_size, hidden_size, bias=False)
         self.slot_embeddings = nn.Embedding(self.slot_count, hidden_size)
@@ -155,7 +162,9 @@ class ParallelSemanticBlockHead(nn.Module):
         ).reshape_as(targets)
         weights = target_mask.float()
         weights = torch.where(
-            positions[None, :] == lengths[:, None], 4.0 * weights, weights
+            positions[None, :] == lengths[:, None],
+            self.end_loss_weight * weights,
+            weights,
         )
         term = values_to_term(losses, weights)
         predictions = logits.float().argmax(dim=-1)
