@@ -47,7 +47,18 @@ class DemoConfig:
 
     @classmethod
     def from_env(cls) -> "DemoConfig":
+        defaults = cls()
         return cls(
+            checkpoint=Path(
+                os.environ.get(
+                    "UNISS_TRUE_STREAMING_CHECKPOINT", str(defaults.checkpoint)
+                )
+            ),
+            exported_runtime=Path(
+                os.environ.get(
+                    "UNISS_TRUE_STREAMING_EXPORT", str(defaults.exported_runtime)
+                )
+            ),
             device=os.environ.get("UNISS_TRUE_STREAMING_DEVICE", "cuda:0"),
             decision_chunk_ms=int(
                 os.environ.get("UNISS_TRUE_STREAMING_CHUNK_MS", "320")

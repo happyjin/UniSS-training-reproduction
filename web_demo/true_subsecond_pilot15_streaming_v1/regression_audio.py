@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from .config import DemoConfig
@@ -16,18 +17,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--direction", default="英文 → 中文")
     parser.add_argument("--chunk-ms", type=int, default=640, choices=(320, 480, 640))
+    parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--export", type=Path)
+    parser.add_argument("--quiet-events", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = DemoConfig.from_env()
+    if args.checkpoint is not None:
+        config = replace(config, checkpoint=args.checkpoint)
+    if args.export is not None:
+        config = replace(config, exported_runtime=args.export)
     engine = TrueSubsecondStreamingEngine(config)
     result = None
     for update in engine.stream(
         args.input, direction=args.direction, decision_chunk_ms=args.chunk_ms
     ):
-        if update.event is not None:
+        if update.event is not None and not args.quiet_events:
             print(update.status, flush=True)
         if update.result is not None:
             result = update.result

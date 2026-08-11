@@ -35,6 +35,13 @@ class MicroWrite:
     quality_rejected_reason: str | None = None
 
 
+@dataclass(frozen=True)
+class WritePreview:
+    text_ids: tuple[int, ...]
+    text: str
+    safe_probabilities: tuple[float, ...]
+
+
 def maximum_identical_run(values: Sequence[int]) -> int:
     best = current = 0
     previous: int | None = None
@@ -258,6 +265,21 @@ class IncrementalQwenRuntime:
                 break
             count += 1
         return list(candidates[:count]), tuple(float(value) for value in probabilities)
+
+    def preview_write(
+        self, observation: PolicyObservation, maximum_text_tokens: int
+    ) -> WritePreview:
+        if maximum_text_tokens <= 0:
+            raise ValueError("maximum_text_tokens must be positive")
+        candidates = self._candidate_text(observation, maximum_text_tokens)
+        _, probabilities = self._safe_prefix(observation, candidates)
+        return WritePreview(
+            text_ids=tuple(candidates),
+            text=self.tokenizer.decode(
+                candidates, skip_special_tokens=True
+            ).strip(),
+            safe_probabilities=probabilities,
+        )
 
     def _semantic_block(
         self,

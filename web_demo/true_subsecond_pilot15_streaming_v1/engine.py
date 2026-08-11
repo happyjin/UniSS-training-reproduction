@@ -59,10 +59,13 @@ class StreamEvent:
     total_source_codes: int
     write_probability: float
     support_bucket: int
+    support_probabilities: list[float]
     action: str
     action_reason: str
     deadline_forced: bool
     new_text: str = ""
+    candidate_text: str = ""
+    candidate_safe_probabilities: list[float] = field(default_factory=list)
     new_text_tokens: int = 0
     safe_probabilities: list[float] = field(default_factory=list)
     semantic_tokens: int = 0
@@ -427,6 +430,7 @@ class TrueSubsecondStreamingEngine:
                 total_source_codes=front.committed_tokens,
                 write_probability=observation.write_probability,
                 support_bucket=observation.support_bucket,
+                support_probabilities=list(observation.support_probabilities),
                 action=decision.action,
                 action_reason=decision.reason,
                 deadline_forced=decision.deadline_forced,
@@ -437,6 +441,15 @@ class TrueSubsecondStreamingEngine:
                     first_write = front.source_end_ms
                     first_write_compute = (time.perf_counter() - started) * 1000.0
                 budget = max(1, decision.commit_tokens or supported)
+                if decision.deadline_forced:
+                    preview = qwen.preview_write(
+                        observation,
+                        min(budget, self.config.max_text_tokens_per_write),
+                    )
+                    event.candidate_text = preview.text
+                    event.candidate_safe_probabilities = list(
+                        preview.safe_probabilities
+                    )
                 write = qwen.micro_write(
                     observation,
                     maximum_text_tokens=min(

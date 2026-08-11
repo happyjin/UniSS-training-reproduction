@@ -119,7 +119,8 @@ def build_demo(config: DemoConfig, engine: TrueSubsecondStreamingEngine) -> gr.B
         gr.Markdown(
             "⚠️ 当前网页的上传/普通麦克风组件会在文件准备完成后进行严格实时回放模拟；它不是浏览器 "
             "WebRTC 边录边传。支持最长 305 秒，因此 5 分钟文件走同一条 streaming 状态机，不再切成 "
-            "18–30 秒独立离线窗口。320 ms 模式最接近 <1 秒 deadline；480/640 ms 可比较质量与吞吐。",
+            "18–30 秒独立离线窗口。修复版禁止 support=0 的未监督 forced audio；如果质量门失败，"
+            "页面会明确报告并拒绝播放乱码，而不会把噪声伪装成同传结果。",
             elem_classes=["notice"],
         )
         with gr.Row():
