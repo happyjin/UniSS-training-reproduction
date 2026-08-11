@@ -44,6 +44,10 @@ RUN_VALID_TRAJECTORY_OFFSETS="${RUN_VALID_TRAJECTORY_OFFSETS:-}"
 RUN_VALID_REPLAY_PACKED="${RUN_VALID_REPLAY_PACKED:-}"
 RUN_VALID_REPLAY_OFFSETS="${RUN_VALID_REPLAY_OFFSETS:-}"
 RUN_FULL_VALIDATION="${RUN_FULL_VALIDATION:-0}"
+RUN_ENTRYPOINT="${RUN_ENTRYPOINT:-${REPO_ROOT}/experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/training/pretrain_dense_aligned_megatron.py}"
+RUN_LORA_DROPOUT="${RUN_LORA_DROPOUT:-0.05}"
+RUN_ATTENTION_DROPOUT="${RUN_ATTENTION_DROPOUT:-0.1}"
+RUN_HIDDEN_DROPOUT="${RUN_HIDDEN_DROPOUT:-0.1}"
 
 export HF_HOME="${HF_HOME:-${USER_ROOT}/cache/huggingface}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_HOME}/hub}"
@@ -101,7 +105,7 @@ cmd=(
   "${ENV_ROOT}/bin/torchrun"
   --nproc_per_node "${RUN_NPROC}"
   --master_port "${RUN_MASTER_PORT}"
-  "${REPO_ROOT}/experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/training/pretrain_dense_aligned_megatron.py"
+  "${RUN_ENTRYPOINT}"
   --sft
   --dense-training-manifest "${RUN_TRAINING_MANIFEST}"
   --dense-coverage-epochs "${COVERAGE_EPOCHS}"
@@ -114,7 +118,7 @@ cmd=(
   --true-phase3-fingerprint "${PHASE3_FINGERPRINT}"
   --true-lora-rank 32
   --true-lora-alpha 64
-  --true-lora-dropout 0.05
+  --true-lora-dropout "${RUN_LORA_DROPOUT}"
   --true-lora-mlp-last-layers 12
   --true-lr-qwen-lora "${LR_QWEN_LORA}"
   --true-lr-frontend "${LR_FRONTEND}"
@@ -160,6 +164,8 @@ cmd=(
   --no-create-attention-mask-in-dataloader
   --no-gradient-accumulation-fusion
   --recompute-activations
+  --attention-dropout "${RUN_ATTENTION_DROPOUT}"
+  --hidden-dropout "${RUN_HIDDEN_DROPOUT}"
   --dist-ckpt-strictness "${RUN_STRICTNESS}"
   --save "${RUN_SAVE_DIR}"
   --load "${RUN_LOAD}"
