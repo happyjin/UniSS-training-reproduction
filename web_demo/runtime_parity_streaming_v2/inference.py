@@ -178,11 +178,21 @@ class NaturalRuntimeParityGenerator:
         device: str | torch.device,
         maximum_text_tokens: int = 16,
         maximum_semantic_tokens: int = 80,
+        fuse_ticks: bool = False,
+        use_static_cache: bool = False,
+        maximum_cache_tokens: int = 32_768,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.objective = objective
-        self.backend = HuggingFaceKVBackend(model, objective, device=device)
+        self.backend = HuggingFaceKVBackend(
+            model,
+            objective,
+            device=device,
+            fuse_ticks=fuse_ticks,
+            use_static_cache=use_static_cache,
+            maximum_cache_tokens=maximum_cache_tokens,
+        )
         self.session = PersistentPromptSession(
             self.backend,
             target_lang=target_lang,

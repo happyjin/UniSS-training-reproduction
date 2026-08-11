@@ -232,19 +232,30 @@ class PersistentPromptSession:
         codes = self._validate_source_codes(source_codes)
         event_index = len(self._ticks)
         transcript_start = len(self._transcript)
-        self._append_token_ids((c.TOKEN_START_GLM,))
-        if codes:
-            canonical = tuple(c.encode_glm_semantic(codes))
-            result = self.backend.append_source_codes(
+        canonical = tuple(c.encode_glm_semantic(codes))
+        if bool(getattr(self.backend, "fuse_ticks", False)):
+            result = self.backend.append_tick(
                 codes,
                 canonical,
                 past_key_values=self._past_key_values,
             )
             self._past_key_values = result.past_key_values
-            self._transcript.extend(canonical)
-        result = self._append_token_ids(
-            (c.TOKEN_END_GLM,), capture_last_hidden=True
-        )
+            self._transcript.extend(
+                (c.TOKEN_START_GLM, *canonical, c.TOKEN_END_GLM)
+            )
+        else:
+            self._append_token_ids((c.TOKEN_START_GLM,))
+            if codes:
+                result = self.backend.append_source_codes(
+                    codes,
+                    canonical,
+                    past_key_values=self._past_key_values,
+                )
+                self._past_key_values = result.past_key_values
+                self._transcript.extend(canonical)
+            result = self._append_token_ids(
+                (c.TOKEN_END_GLM,), capture_last_hidden=True
+            )
         action_position = len(self._transcript) - 1
         self._pending = _PendingTick(
             event_index=event_index,

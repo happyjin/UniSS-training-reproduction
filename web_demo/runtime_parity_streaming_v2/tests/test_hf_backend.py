@@ -88,3 +88,29 @@ def test_hf_backend_keeps_one_cache_and_matches_tick_reset_frontend() -> None:
     expected = model.embedding(torch.tensor([canonical]))
     expected = expected + objective.codebook(torch.tensor([codes]))
     torch.testing.assert_close(model.calls[1]["inputs_embeds"], expected)
+
+
+def test_fused_tick_is_one_forward_with_training_identical_embeddings() -> None:
+    model = FakeModel()
+    objective = FakeObjective()
+    backend = HuggingFaceKVBackend(
+        model, objective, device="cpu", fuse_ticks=True
+    )
+    codes = [3, 9]
+    canonical = list(c.encode_glm_semantic(codes))
+    result = backend.append_tick(codes, canonical, past_key_values=None)
+
+    assert result.past_key_values == 4
+    assert result.last_hidden is not None
+    assert len(model.calls) == 1
+    embeddings = model.calls[0]["inputs_embeds"]
+    assert embeddings is not None
+    expected_source = model.embedding(torch.tensor([canonical]))
+    expected_source = expected_source + objective.codebook(torch.tensor([codes]))
+    torch.testing.assert_close(embeddings[:, 1:-1], expected_source)
+    torch.testing.assert_close(
+        embeddings[:, :1], model.embedding(torch.tensor([[c.TOKEN_START_GLM]]))
+    )
+    torch.testing.assert_close(
+        embeddings[:, -1:], model.embedding(torch.tensor([[c.TOKEN_END_GLM]]))
+    )

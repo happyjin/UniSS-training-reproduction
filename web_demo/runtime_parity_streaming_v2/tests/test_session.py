@@ -68,6 +68,29 @@ class RecordingBackend:
         return KVAppendResult(past_key_values=cache)
 
 
+class FusedRecordingBackend(RecordingBackend):
+    fuse_ticks = True
+
+    def append_tick(
+        self,
+        source_codes: Sequence[int],
+        canonical_token_ids: Sequence[int],
+        *,
+        past_key_values: Any,
+    ) -> KVAppendResult:
+        codes = tuple(int(value) for value in source_codes)
+        canonical = tuple(int(value) for value in canonical_token_ids)
+        assert canonical == tuple(c.encode_glm_semantic(codes))
+        values = (c.TOKEN_START_GLM, *canonical, c.TOKEN_END_GLM)
+        self.calls.append(Call("fused_tick", values, past_key_values, True))
+        cache = (*(() if past_key_values is None else past_key_values), *values)
+        return KVAppendResult(
+            past_key_values=cache,
+            logits=("logits_after", c.TOKEN_END_GLM),
+            last_hidden=("hidden_at", len(cache) - 1),
+        )
+
+
 def _session(backend: RecordingBackend | None = None) -> PersistentPromptSession:
     return PersistentPromptSession(
         backend or RecordingBackend(),
@@ -147,6 +170,20 @@ def test_policy_hidden_is_captured_at_every_end_glm() -> None:
         (c.TOKEN_END_GLM,),
         (c.TOKEN_END_GLM,),
     ]
+
+
+def test_fused_tick_preserves_transcript_and_action_position() -> None:
+    backend = FusedRecordingBackend()
+    session = _session(backend)
+    observation = session.begin_tick([7, 8])
+    session.commit_wait()
+    assert session.transcript[observation.action_prediction_position] == c.TOKEN_END_GLM
+    assert backend.calls[-2].kind == "fused_tick"
+    assert backend.calls[-2].values == (
+        c.TOKEN_START_GLM,
+        *c.encode_glm_semantic([7, 8]),
+        c.TOKEN_END_GLM,
+    )
 
 
 def test_state_machine_rejects_skipped_or_overlapping_ticks() -> None:

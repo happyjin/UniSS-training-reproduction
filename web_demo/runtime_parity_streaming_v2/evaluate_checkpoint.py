@@ -114,6 +114,9 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
                 device=device,
                 maximum_text_tokens=args.maximum_text_tokens,
                 maximum_semantic_tokens=args.maximum_semantic_tokens,
+                fuse_ticks=args.fuse_ticks,
+                use_static_cache=args.static_cache,
+                maximum_cache_tokens=args.maximum_cache_tokens,
             )
             codec = StreamingBiCodecDecoder(
                 bicodec_decode_function(bicodec),
@@ -211,6 +214,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=1)
     parser.add_argument("--maximum-text-tokens", type=int, default=16)
     parser.add_argument("--maximum-semantic-tokens", type=int, default=80)
+    parser.add_argument("--fuse-ticks", action="store_true")
+    parser.add_argument("--static-cache", action="store_true")
+    parser.add_argument("--maximum-cache-tokens", type=int, default=32_768)
     parser.add_argument("--maximum-drain-ticks", type=int, default=32)
     parser.add_argument("--minimum-text-similarity", type=float, default=0.50)
     parser.add_argument("--maximum-rtf", type=float, default=1.0)
