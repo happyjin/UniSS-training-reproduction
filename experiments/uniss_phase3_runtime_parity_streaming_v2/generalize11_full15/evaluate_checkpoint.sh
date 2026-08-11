@@ -37,7 +37,7 @@ export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 mkdir -p "${PYTORCH_KERNEL_CACHE_PATH}" "${CUDA_CACHE_PATH}" "${TMPDIR}"
 
-exec "${INFERENCE_PYTHON}" -m web_demo.runtime_parity_streaming_v10.evaluate_checkpoint \
+exec "${INFERENCE_PYTHON}" -m experiments.uniss_phase3_runtime_parity_streaming_v2.generalize11_full15.evaluate_checkpoint \
   --checkpoint "${CHECKPOINT}" --base-model "${BASE_MODEL}" --export "${EXPORT_ROOT}" \
   --formal-manifest "${FORMAL_MANIFEST}" \
   --speaker-formal-manifest "${SPEAKER_FORMAL_MANIFEST}" \
