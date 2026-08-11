@@ -32,6 +32,48 @@ class MicroWrite:
     safe_probabilities: tuple[float, ...]
     semantic_ids: tuple[int, ...]
     forced_anticipation: bool
+    quality_rejected_reason: str | None = None
+
+
+def maximum_identical_run(values: Sequence[int]) -> int:
+    best = current = 0
+    previous: int | None = None
+    for raw in values:
+        value = int(raw)
+        if value == previous:
+            current += 1
+        else:
+            current = 1
+            previous = value
+        best = max(best, current)
+    return best
+
+
+def semantic_rejection_reason(values: Sequence[int]) -> str | None:
+    tokens = [int(value) for value in values]
+    if not tokens:
+        return "empty_semantic"
+    unique_ratio = len(set(tokens)) / len(tokens)
+    identical_run = maximum_identical_run(tokens)
+    if len(tokens) >= 8 and identical_run >= 6:
+        return f"semantic_identical_run:{identical_run}"
+    if len(tokens) >= 12 and unique_ratio < 0.20:
+        return f"semantic_unique_ratio:{unique_ratio:.4f}"
+    return None
+
+
+def repeated_text_reason(
+    committed: Sequence[int], candidate: Sequence[int]
+) -> str | None:
+    history = [int(value) for value in committed]
+    proposed = [int(value) for value in candidate]
+    if not history or not proposed:
+        return None
+    if len(history) >= len(proposed) and history[-len(proposed) :] == proposed:
+        return "repeated_text_delta"
+    if history[-1] == proposed[0]:
+        return "repeated_text_boundary_token"
+    return None
 
 
 class IncrementalQwenRuntime:
@@ -45,6 +87,7 @@ class IncrementalQwenRuntime:
         speaker_global: Sequence[int],
         device: torch.device,
         safe_threshold: float = 0.5,
+        semantic_history_tokens: int = 200,
         seed: int = 20260811,
     ) -> None:
         values = tuple(int(value) for value in speaker_global)
@@ -57,11 +100,15 @@ class IncrementalQwenRuntime:
         self.speaker_global = values
         self.device = device
         self.safe_threshold = float(safe_threshold)
+        if semantic_history_tokens <= 0:
+            raise ValueError("semantic_history_tokens must be positive")
+        self.semantic_history_tokens = int(semantic_history_tokens)
         self.seed = int(seed)
         self.frontend_state: CausalAdapterState | None = None
         self.source_cache = None
         self.source_codes = 0
         self.committed_text_ids: list[int] = []
+        self.committed_semantic_ids: list[int] = []
         self._initialize_source_cache()
 
     @staticmethod
@@ -108,14 +155,30 @@ class IncrementalQwenRuntime:
         self.source_cache = output.past_key_values
         self.source_codes += len(codes)
 
+    def _history_context_tokens(self) -> list[int]:
+        if not self.committed_text_ids and not self.committed_semantic_ids:
+            return []
+        semantic = self.committed_semantic_ids[-self.semantic_history_tokens :]
+        return [
+            c.language_token_id(self.target_lang),
+            c.speed_token_id(1.0),
+            c.TOKEN_START_CONTENT,
+            *self.committed_text_ids,
+            c.TOKEN_END_CONTENT,
+            c.TOKEN_START_SEMANTIC,
+            *c.encode_bicodec_semantic(semantic),
+            c.TOKEN_END_SEMANTIC,
+        ]
+
     def observe_policy(self) -> PolicyObservation:
         if self.source_codes <= 0:
             raise RuntimeError("policy cannot run before the first source code")
         branch = self._clone_cache(self.source_cache)
-        end = torch.tensor([[c.TOKEN_END_GLM]], dtype=torch.long, device=self.device)
+        context = [c.TOKEN_END_GLM, *self._history_context_tokens()]
+        ids = torch.tensor([context], dtype=torch.long, device=self.device)
         with torch.inference_mode():
             output = self.model(
-                input_ids=end,
+                input_ids=ids,
                 past_key_values=branch,
                 use_cache=True,
                 output_hidden_states=True,
@@ -241,12 +304,25 @@ class IncrementalQwenRuntime:
     ) -> MicroWrite:
         if maximum_text_tokens <= 0 or semantic_block_tokens <= 0:
             raise ValueError("micro-WRITE token budgets must be positive")
+        # Deadline-forced records in the training corpus intentionally contain
+        # soft text KD only and no semantic target.  Producing speech from that
+        # branch is therefore out-of-distribution and was the dominant source
+        # of the unintelligible demo audio.  Keep the deadline event for
+        # accounting, but never invent text or speech without learned support.
+        if forced:
+            return MicroWrite(
+                text_ids=(),
+                text="",
+                safe_probabilities=(),
+                semantic_ids=(),
+                forced_anticipation=False,
+                quality_rejected_reason="forced_write_without_semantic_supervision",
+            )
         candidates = self._candidate_text(observation, maximum_text_tokens)
         accepted, probabilities = self._safe_prefix(observation, candidates)
-        anticipation = False
-        if forced and not accepted and candidates:
-            accepted = candidates[:1]
-            anticipation = True
+        rejection = repeated_text_reason(self.committed_text_ids, accepted)
+        if rejection is not None:
+            accepted = []
         semantic = (
             self._semantic_block(
                 observation, accepted, block_tokens=semantic_block_tokens
@@ -254,13 +330,21 @@ class IncrementalQwenRuntime:
             if accepted
             else []
         )
+        if semantic:
+            semantic_rejection = semantic_rejection_reason(semantic)
+            if semantic_rejection is not None:
+                accepted = []
+                semantic = []
+                rejection = semantic_rejection
         self.committed_text_ids.extend(accepted)
+        self.committed_semantic_ids.extend(semantic)
         return MicroWrite(
             text_ids=tuple(accepted),
             text=self.tokenizer.decode(accepted, skip_special_tokens=True).strip(),
             safe_probabilities=probabilities,
             semantic_ids=tuple(semantic),
-            forced_anticipation=anticipation,
+            forced_anticipation=False,
+            quality_rejected_reason=rejection,
         )
 
     @property

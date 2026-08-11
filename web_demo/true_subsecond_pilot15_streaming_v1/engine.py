@@ -66,6 +66,7 @@ class StreamEvent:
     new_text_tokens: int = 0
     safe_probabilities: list[float] = field(default_factory=list)
     semantic_tokens: int = 0
+    quality_rejected_reason: str | None = None
     emitted_audio_samples: int = 0
     compute_seconds: float = 0.0
 
@@ -102,6 +103,13 @@ class StreamResult:
     empty_after_write: int
     committed_revision_violations: int
     maximum_frontend_buffer_ms: float
+    speaker_observed_ms: int
+    speaker_reference_seconds: float
+    semantic_unique_ratio: float
+    semantic_max_identical_run: int
+    translation_coverage_ratio: float
+    quality_passed: bool
+    quality_failures: list[str] = field(default_factory=list)
     true_input_streaming: bool = True
     bounded_frontend_memory: bool = True
     qwen_kv_cache: bool = True
@@ -154,6 +162,76 @@ def stereo_waveform(source: np.ndarray, target_timeline: np.ndarray) -> np.ndarr
 def speech_active(chunk: np.ndarray, *, threshold: float = 0.003) -> bool:
     values = np.asarray(chunk, dtype=np.float32).reshape(-1)
     return bool(len(values) and float(np.sqrt(np.mean(values * values))) >= threshold)
+
+
+def active_speech_ms(
+    chunk: np.ndarray, *, frame_ms: int = 20, threshold: float = 0.006
+) -> int:
+    values = np.asarray(chunk, dtype=np.float32).reshape(-1)
+    frame_samples = max(1, SAMPLE_RATE * frame_ms // 1000)
+    active = 0
+    for start in range(0, len(values), frame_samples):
+        frame = values[start : start + frame_samples]
+        if len(frame) and float(np.sqrt(np.mean(frame * frame))) >= threshold:
+            active += len(frame)
+    return int(round(active * 1000 / SAMPLE_RATE))
+
+
+def vad_speaker_reference(
+    source: np.ndarray,
+    *,
+    warmup_ms: int,
+    frame_ms: int,
+    threshold: float,
+    minimum_reference_ms: int = 400,
+) -> tuple[np.ndarray, int]:
+    """Select ordered voiced frames from an observed-only speaker warm-up."""
+
+    values = np.asarray(source, dtype=np.float32).reshape(-1)
+    observed_samples = min(len(values), SAMPLE_RATE * warmup_ms // 1000)
+    observed = values[:observed_samples]
+    frame_samples = max(1, SAMPLE_RATE * frame_ms // 1000)
+    frames: list[tuple[float, np.ndarray]] = []
+    for start in range(0, len(observed), frame_samples):
+        frame = observed[start : start + frame_samples]
+        if not len(frame):
+            continue
+        rms = float(np.sqrt(np.mean(frame * frame)))
+        frames.append((rms, frame))
+    selected = [frame for rms, frame in frames if rms >= threshold]
+    minimum_samples = min(
+        len(observed), SAMPLE_RATE * minimum_reference_ms // 1000
+    )
+    if sum(len(frame) for frame in selected) < minimum_samples:
+        # Very quiet recordings still need a non-empty reference. Select the
+        # highest-energy observed frames, then restore chronological order.
+        ranked = sorted(enumerate(frames), key=lambda item: item[1][0], reverse=True)
+        chosen: set[int] = set()
+        total = 0
+        for index, (_, frame) in ranked:
+            chosen.add(index)
+            total += len(frame)
+            if total >= minimum_samples:
+                break
+        selected = [frame for index, (_, frame) in enumerate(frames) if index in chosen]
+    reference = concatenate_audio(selected)
+    if not len(reference):
+        raise RuntimeError("speaker warm-up contains no usable audio")
+    return reference, observed_samples
+
+
+def maximum_identical_run(values: Sequence[int]) -> int:
+    best = current = 0
+    previous: int | None = None
+    for raw in values:
+        value = int(raw)
+        if value == previous:
+            current += 1
+        else:
+            current = 1
+            previous = value
+        best = max(best, current)
+    return best
 
 
 class TrueSubsecondStreamingEngine:
@@ -251,15 +329,25 @@ class TrueSubsecondStreamingEngine:
         if sample_rate != SAMPLE_RATE:
             raise RuntimeError(f"normalized source has unexpected sample rate {sample_rate}")
         step_samples = active_chunk_ms * SAMPLE_RATE // 1000
-        boundaries = list(range(step_samples, len(source), step_samples)) + [len(source)]
-        boundaries = sorted(set(boundaries))
-        if not boundaries:
-            raise RuntimeError("normalized source produced no streaming boundary")
-
-        speaker_end = min(len(source), step_samples)
-        speaker = self._speaker_tokens(
-            source[:speaker_end], request / "speaker_observed_prefix.wav"
+        speaker_reference, speaker_end = vad_speaker_reference(
+            source,
+            warmup_ms=self.config.speaker_warmup_ms,
+            frame_ms=self.config.speaker_vad_frame_ms,
+            threshold=self.config.speaker_vad_min_rms,
         )
+        sf.write(
+            request / "speaker_observed_prefix.wav",
+            source[:speaker_end],
+            SAMPLE_RATE,
+            subtype="PCM_16",
+        )
+        speaker = self._speaker_tokens(
+            speaker_reference, request / "speaker_vad_reference.wav"
+        )
+        boundaries = list(range(step_samples, len(source), step_samples)) + [len(source)]
+        boundaries = sorted(set(end for end in boundaries if end >= speaker_end))
+        if not boundaries:
+            boundaries = [len(source)]
         frontend = BoundedCausalWhisperVQFrontend(
             self.whisper,
             chunk_ms=self.config.acoustic_chunk_ms,
@@ -273,6 +361,7 @@ class TrueSubsecondStreamingEngine:
             target_lang=target_lang,
             speaker_global=speaker,
             device=self.device,
+            semantic_history_tokens=self.config.semantic_history_tokens,
             seed=self.config.seed,
         )
         codec = self._codec(speaker)
@@ -297,8 +386,9 @@ class TrueSubsecondStreamingEngine:
         started = time.perf_counter()
         yield StreamUpdate(
             status=(
-                f"iter_0000350 已载入；严格按 {active_chunk_ms}ms 到达顺序回放，"
-                "模型不会接收未来 PCM。"
+                f"iter_{int(self.manifest['selected_iteration']):07d} 已载入；"
+                f"先用前 {speaker_end * 1000 // SAMPLE_RATE}ms 已到达音频完成 VAD speaker warm-up，"
+                f"随后严格按 {active_chunk_ms}ms 到达顺序回放。"
             )
         )
 
@@ -307,16 +397,17 @@ class TrueSubsecondStreamingEngine:
             final = end == len(source)
             pcm = source[previous:end]
             previous = end
-            active = speech_active(pcm)
-            elapsed_since_write = elapsed_since_write + int(
-                round(len(pcm) * 1000 / SAMPLE_RATE)
-            ) if active else 0
+            active_ms = active_speech_ms(
+                pcm,
+                frame_ms=self.config.speaker_vad_frame_ms,
+                threshold=self.config.speaker_vad_min_rms,
+            )
+            active = active_ms > 0
+            elapsed_since_write += active_ms
             front = frontend.push(pcm, is_final=final)
             qwen.append_source_codes(front.new_tokens)
             observation = qwen.observe_policy()
             supported = observation.support_bucket
-            if final and supported == 0:
-                supported = min(2, self.config.max_text_tokens_per_write)
             decision = scheduler.decide(
                 elapsed_speech_ms=elapsed_since_write,
                 write_probability=observation.write_probability,
@@ -352,12 +443,13 @@ class TrueSubsecondStreamingEngine:
                         budget, self.config.max_text_tokens_per_write
                     ),
                     semantic_block_tokens=self.config.semantic_block_tokens,
-                    forced=decision.deadline_forced or final,
+                    forced=decision.deadline_forced,
                 )
                 event.new_text = write.text
                 event.new_text_tokens = len(write.text_ids)
                 event.safe_probabilities = list(write.safe_probabilities)
                 event.semantic_tokens = len(write.semantic_ids)
+                event.quality_rejected_reason = write.quality_rejected_reason
                 if write.semantic_ids:
                     emitted = codec.push(write.semantic_ids, is_final=False)
                     semantic_count += len(write.semantic_ids)
@@ -404,6 +496,32 @@ class TrueSubsecondStreamingEngine:
         sf.write(translation_path, translation, SAMPLE_RATE, subtype="PCM_16")
         sf.write(timeline_path, timeline, SAMPLE_RATE, subtype="PCM_16")
         sf.write(stereo_path, stereo, SAMPLE_RATE, subtype="PCM_16")
+        semantic_values = qwen.committed_semantic_ids
+        semantic_unique_ratio = (
+            len(set(semantic_values)) / len(semantic_values) if semantic_values else 0.0
+        )
+        semantic_max_run = maximum_identical_run(semantic_values)
+        source_seconds = float(metadata["duration_seconds"])
+        coverage_ratio = (len(translation) / SAMPLE_RATE) / max(source_seconds, 1e-9)
+        natural_writes = sum(
+            event.action == "WRITE" and not event.deadline_forced for event in events
+        )
+        forced_writes = sum(event.deadline_forced for event in events)
+        quality_failures: list[str] = []
+        if not qwen.committed_text_ids or not semantic_values:
+            quality_failures.append("no_safe_streaming_translation")
+        if natural_writes == 0:
+            quality_failures.append("no_natural_write")
+        if forced_writes > natural_writes:
+            quality_failures.append("forced_write_dominant")
+        if semantic_values and semantic_max_run >= 16:
+            quality_failures.append(f"semantic_identical_run:{semantic_max_run}")
+        if len(semantic_values) >= 64 and semantic_unique_ratio < 0.10:
+            quality_failures.append(
+                f"semantic_unique_ratio:{semantic_unique_ratio:.4f}"
+            )
+        if coverage_ratio < 0.35:
+            quality_failures.append(f"audio_coverage:{coverage_ratio:.4f}")
         result = StreamResult(
             request_dir=str(request.resolve()),
             source_path=str(source_path.resolve()),
@@ -417,7 +535,7 @@ class TrueSubsecondStreamingEngine:
             acoustic_chunk_ms=self.config.acoustic_chunk_ms,
             acoustic_right_context_ms=self.config.acoustic_right_context_ms,
             frontend_window_ms=self.config.frontend_window_ms,
-            source_duration_seconds=float(metadata["duration_seconds"]),
+            source_duration_seconds=source_seconds,
             translation_duration_seconds=len(translation) / SAMPLE_RATE,
             processing_seconds=processing,
             rtf=processing / max(float(metadata["duration_seconds"]), 1e-9),
@@ -433,16 +551,21 @@ class TrueSubsecondStreamingEngine:
             committed_translation=qwen.committed_text,
             committed_text_tokens=len(qwen.committed_text_ids),
             semantic_tokens=semantic_count,
-            natural_writes=sum(
-                event.action == "WRITE" and not event.deadline_forced for event in events
-            ),
-            forced_writes=sum(event.deadline_forced for event in events),
+            natural_writes=natural_writes,
+            forced_writes=forced_writes,
             wait_events=sum(event.action == "READ" for event in events),
             empty_after_write=empty_after_write,
             committed_revision_violations=frontend.committed_revision_violations,
             maximum_frontend_buffer_ms=(
                 frontend.maximum_buffer_samples * 1000.0 / SAMPLE_RATE
             ),
+            speaker_observed_ms=int(round(speaker_end * 1000 / SAMPLE_RATE)),
+            speaker_reference_seconds=len(speaker_reference) / SAMPLE_RATE,
+            semantic_unique_ratio=semantic_unique_ratio,
+            semantic_max_identical_run=semantic_max_run,
+            translation_coverage_ratio=coverage_ratio,
+            quality_passed=not quality_failures,
+            quality_failures=quality_failures,
             events=events,
         )
         payload = result.to_dict()
@@ -455,11 +578,14 @@ class TrueSubsecondStreamingEngine:
             "five_minute_supported": self.config.max_audio_seconds >= 300,
         }
         write_json(result_path, payload)
+        quality_status = "质量门通过" if result.quality_passed else (
+            "质量门失败：" + ", ".join(result.quality_failures)
+        )
         yield StreamUpdate(
             status=(
                 f"完成 · First WRITE={first_write if first_write is not None else 'N/A'}ms · "
                 f"First audio={first_audio if first_audio is not None else 'N/A'}ms · "
-                f"RTF={result.rtf:.3f}"
+                f"RTF={result.rtf:.3f} · {quality_status}"
             ),
             translation=result.committed_translation,
             progress=1.0,
