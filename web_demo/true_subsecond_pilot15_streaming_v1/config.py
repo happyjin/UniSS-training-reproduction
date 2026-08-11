@@ -29,7 +29,7 @@ class DemoConfig:
     whispervq_dir: Path = REPO_ROOT / "pretrained_models/UniSS/glm4_tokenizer"
     output_root: Path = DEMO_ROOT / "runtime_outputs"
     device: str = "cuda:0"
-    decision_chunk_ms: int = 640
+    decision_chunk_ms: int = 320
     acoustic_chunk_ms: int = 160
     acoustic_right_context_ms: int = 80
     frontend_window_ms: int = 4_800
@@ -47,7 +47,7 @@ class DemoConfig:
         return cls(
             device=os.environ.get("UNISS_TRUE_STREAMING_DEVICE", "cuda:0"),
             decision_chunk_ms=int(
-                os.environ.get("UNISS_TRUE_STREAMING_CHUNK_MS", "640")
+                os.environ.get("UNISS_TRUE_STREAMING_CHUNK_MS", "320")
             ),
         )
 

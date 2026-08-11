@@ -42,14 +42,19 @@ class BoundedCausalWhisperVQFrontend:
         self,
         encoder: WhisperVQEncoder,
         *,
+        chunk_ms: int = 160,
         right_context_ms: int = 80,
         window_ms: int = 4_800,
     ) -> None:
+        if chunk_ms <= 0 or chunk_ms % TOKEN_HOP_MS:
+            raise ValueError("causal chunk must be a positive 80ms multiple")
         if right_context_ms < 0 or right_context_ms % TOKEN_HOP_MS:
             raise ValueError("right context must be a non-negative 80ms multiple")
         if window_ms <= right_context_ms or window_ms % TOKEN_HOP_MS:
             raise ValueError("window must be an 80ms multiple larger than right context")
         self.encoder = encoder
+        self.chunk_ms = int(chunk_ms)
+        self.tokens_per_chunk = self.chunk_ms // TOKEN_HOP_MS
         self.right_context_ms = int(right_context_ms)
         self.window_samples = window_ms * SAMPLE_RATE // 1000
         self.buffer = np.zeros(0, dtype=np.float32)
@@ -96,11 +101,22 @@ class BoundedCausalWhisperVQFrontend:
         import torch
 
         waveform = torch.from_numpy(self.buffer.copy()).unsqueeze(0)
+        # Keep the WhisperVQ tensor geometry fixed from the first tick.  The
+        # feature extractor pads the real row to the dummy row and supplies an
+        # attention mask for the not-yet-arrived tail.  Without this, changing
+        # sequence shapes can alter early VQ assignments through kernel-level
+        # numerical drift even when the bounded-causal mask blocks future
+        # values.
+        fixed_shape = torch.zeros(1, self.window_samples, dtype=waveform.dtype)
         started = time.perf_counter()
-        encoded = self.encoder.encode([(waveform, SAMPLE_RATE)])
+        encoded = self.encoder.encode(
+            [(waveform, SAMPLE_RATE), (fixed_shape, SAMPLE_RATE)]
+        )
         seconds = time.perf_counter() - started
-        if len(encoded) != 1:
-            raise RuntimeError(f"WhisperVQ returned {len(encoded)} rows for one PCM window")
+        if len(encoded) != 2:
+            raise RuntimeError(
+                f"WhisperVQ returned {len(encoded)} rows for real+shape-anchor PCM"
+            )
         candidate = tuple(int(value) for value in encoded[0].tokens.reshape(-1).tolist())
         if not candidate:
             raise RuntimeError("WhisperVQ returned an empty causal token window")
@@ -121,7 +137,14 @@ class BoundedCausalWhisperVQFrontend:
                 0,
                 self.total_samples - self.right_context_ms * SAMPLE_RATE // 1000,
             )
-            stable_count = stable_samples // TOKEN_HOP_SAMPLES
+            # The attention mask exposes the complete 160ms block containing
+            # a query plus 80ms right context.  A token at the middle of a
+            # block is therefore not stable merely because its own 80ms clock
+            # elapsed.  Commit complete causal blocks only.
+            stable_chunks = stable_samples // (
+                self.chunk_ms * SAMPLE_RATE // 1000
+            )
+            stable_count = stable_chunks * self.tokens_per_chunk
             stable_end_ms = int(round(stable_samples * 1000 / SAMPLE_RATE))
         new_tokens: list[int] = []
         for global_index in range(len(self.committed), stable_count):
