@@ -13,9 +13,11 @@ shards 0--14:
 - training: 8 H200 GPUs, sequence length 18,000, MBS 2, GBS 128;
 - coverage: three complete trajectory epochs.
 
-The shuffle unit is a complete dense session/pack. Each coverage epoch gets an
-independent restart-stable global permutation. The ordered events inside a
-session are data-contract protected and are never shuffled.
+The shuffle unit is a complete 18k pack containing only complete dense
+sessions. Each coverage epoch calls an independent, restart-stable full
+`randperm` over every trajectory/replay pack ID. Only the final DP/GBS tail is
+padded. The ordered 160ms events inside each session are data-contract
+protected and are never shuffled.
 
 Run the real-data smoke:
 
@@ -32,3 +34,25 @@ bash experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/scripts/run_dat
 Generated artifacts live under
 `data/processed/uniss_phase3_dense_aligned_streaming_pilot15_v1`; no historical
 data or result path is overwritten.
+
+Pack complete sessions into 18k Megatron records and freeze the audited
+three-epoch global-shuffle manifest:
+
+```bash
+bash experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/scripts/run_pack_full_cpu.sh
+```
+
+Validate the native Phase3 handoff and dense objective on 8 GPUs:
+
+```bash
+bash experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/scripts/run_smoke_8gpu.sh
+```
+
+Start the isolated formal Megatron run and TensorBoard:
+
+```bash
+bash experiments/uniss_phase3_dense_aligned_streaming_pilot15_v1/scripts/launch_training_tmux.sh
+```
+
+TensorBoard listens on port `6073`; checkpoints, logs, and event files use only
+this experiment's own directories.
