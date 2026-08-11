@@ -36,6 +36,12 @@ export TMPDIR="${TMPDIR:-${USER_ROOT}/tmp}"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
+RUNTIME_ARGS=()
+[[ "${FUSE_TICKS:-0}" == "1" ]] && RUNTIME_ARGS+=(--fuse-ticks)
+[[ "${STATIC_CACHE:-0}" == "1" ]] && RUNTIME_ARGS+=(--static-cache)
+[[ -n "${MAXIMUM_CACHE_TOKENS:-}" ]] && \
+  RUNTIME_ARGS+=(--maximum-cache-tokens "${MAXIMUM_CACHE_TOKENS}")
+
 exec "${INFERENCE_PYTHON}" -m web_demo.runtime_parity_streaming_v2.evaluate_checkpoint \
   --checkpoint "${CHECKPOINT}" \
   --base-model "${BASE_MODEL}" \
@@ -46,4 +52,5 @@ exec "${INFERENCE_PYTHON}" -m web_demo.runtime_parity_streaming_v2.evaluate_chec
   --speech-tokenizer "${SPEECH_TOKENIZER}" \
   --output "${EVAL_ROOT}" --device cuda:0 --samples 1 \
   --maximum-drain-ticks 8 --minimum-text-similarity 0.98 \
-  --maximum-rtf 1.0 --maximum-first-audio-wall-ms 1000
+  --maximum-rtf 1.0 --maximum-first-audio-wall-ms 1000 \
+  "${RUNTIME_ARGS[@]}"
