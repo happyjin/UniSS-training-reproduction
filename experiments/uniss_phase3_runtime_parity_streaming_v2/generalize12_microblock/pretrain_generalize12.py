@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from typing import Sequence
 
 import torch
 import torch.distributed as dist
+from torch.utils.data import Dataset
 
 import experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.training.pretrain_dense_aligned_megatron as dense
 import experiments.uniss_phase3_runtime_parity_streaming_v2.overfit2.pretrain_overfit2 as v2
@@ -60,6 +62,56 @@ V12_WEIGHTS.update(
         ("microblock_continue", 1.0),
     )
 )
+
+
+_BASE_JOINT_VALIDATION_DATASET = dense.JointValidationDataset
+
+
+class SynchronizedValidationDataset(_BASE_JOINT_VALIDATION_DATASET):
+    """Pad validation to a complete DP microbatch without dropping examples.
+
+    Megatron's full-validation sampler gives one example to each data-parallel
+    rank.  If the dataset is shorter than, or not divisible by, the DP world
+    size, the shorter ranks exhaust their iterators while the remaining ranks
+    are still inside collective loss reductions.  Canary validation has only
+    two deliberately held-out packs, so this condition is guaranteed on eight
+    GPUs.
+
+    Cyclic padding keeps every rank synchronized.  It is exact for the two-pack
+    canary (each pack is repeated equally) and adds at most ``DP-1`` duplicate
+    packs for larger validation sets.  Strict runtime/PCM checkpoint gates use
+    the standalone unpadded evaluator and therefore never rely on this padded
+    training-time metric.
+    """
+
+    def __init__(
+        self,
+        datasets: Sequence[Dataset],
+        *,
+        data_parallel_size: int | None = None,
+    ) -> None:
+        super().__init__(datasets)
+        self.unpadded_length = super().__len__()
+        if data_parallel_size is None:
+            data_parallel_size = dist.get_world_size() if dist.is_initialized() else 1
+        self.data_parallel_size = int(data_parallel_size)
+        if self.data_parallel_size <= 0:
+            raise ValueError("data_parallel_size must be positive")
+        self.padded_length = (
+            (self.unpadded_length + self.data_parallel_size - 1)
+            // self.data_parallel_size
+            * self.data_parallel_size
+        )
+
+    def __len__(self) -> int:
+        return self.padded_length
+
+    def __getitem__(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        return super().__getitem__(index % self.unpadded_length)
 
 
 class RuntimeParityGeneralize12Objective(v2.RuntimeParityOverfit2Objective):
@@ -270,6 +322,7 @@ def main() -> None:
     dense._dense_output_processor = dense_output_processor
     dense.METRIC_NAMES = V12_METRIC_NAMES
     dense.base.METRIC_NAMES = V12_METRIC_NAMES
+    dense.JointValidationDataset = SynchronizedValidationDataset
     freeze_base_and_train_microblock_head()
     dense.main()
 

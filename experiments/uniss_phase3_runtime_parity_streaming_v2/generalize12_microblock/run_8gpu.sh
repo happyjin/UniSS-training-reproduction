@@ -75,6 +75,7 @@ semantic_classifier=frozen_phase3_embedding_rows
 continuation=natural_binary_posterior
 final_length=natural_1_to_4_posterior
 validation=trajectory_only_because_all_replay_parameters_are_frozen
+validation_dp_padding=cyclic_to_complete_8_rank_batches_strict_pcm_gate_unpadded
 trajectory_packed=${TRAJECTORY_PACKED}
 trajectory_count=${TRAJECTORY_COUNT}
 replay_fraction=${REPLAY_FRACTION}
