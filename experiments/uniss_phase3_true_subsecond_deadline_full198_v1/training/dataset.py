@@ -285,6 +285,9 @@ class IndexedTrajectoryDataset(Dataset[dict[str, object]]):
                     "natural_action": 1 if sidecar["natural_action_target"] == "WRITE" else 0,
                     "deadline_action": 1 if sidecar["deadline_action_target"] == "WRITE" else 0,
                     "deadline_forced": bool(sidecar["deadline_forced_target"]),
+                    "deadline_loss_enabled": bool(
+                        sidecar.get("deadline_loss_enabled", True)
+                    ),
                     "chunk_end_ms": int(sidecar["chunk_end_ms"]),
                     "soft_deadline_ms": int(sidecar["soft_deadline_ms"]),
                     "hard_deadline_ms": int(sidecar["hard_deadline_ms"]),
@@ -570,6 +573,7 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
     natural_action = torch.empty(count, dtype=torch.long)
     deadline_action = torch.empty(count, dtype=torch.long)
     deadline_forced = torch.empty(count, dtype=torch.bool)
+    deadline_loss_enabled = torch.empty(count, dtype=torch.bool)
     chunk_end_ms = torch.empty(count, dtype=torch.long)
     soft_deadline_ms = torch.empty(count, dtype=torch.long)
     hard_deadline_ms = torch.empty(count, dtype=torch.long)
@@ -591,6 +595,9 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
         natural_action[annotation_index] = int(value["natural_action"])
         deadline_action[annotation_index] = int(value["deadline_action"])
         deadline_forced[annotation_index] = bool(value["deadline_forced"])
+        deadline_loss_enabled[annotation_index] = bool(
+            value.get("deadline_loss_enabled", True)
+        )
         chunk_end_ms[annotation_index] = int(value["chunk_end_ms"])
         soft_deadline_ms[annotation_index] = int(value["soft_deadline_ms"])
         hard_deadline_ms[annotation_index] = int(value["hard_deadline_ms"])
@@ -635,6 +642,7 @@ def collate_trajectory(batch: Sequence[dict[str, object]]) -> dict[str, object]:
             "natural_action": natural_action,
             "deadline_action": deadline_action,
             "deadline_forced": deadline_forced,
+            "deadline_loss_enabled": deadline_loss_enabled,
             "chunk_end_ms": chunk_end_ms,
             "soft_deadline_ms": soft_deadline_ms,
             "hard_deadline_ms": hard_deadline_ms,

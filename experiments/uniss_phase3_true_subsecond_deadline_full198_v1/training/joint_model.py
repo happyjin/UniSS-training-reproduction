@@ -125,6 +125,8 @@ class TrueSubsecondObjective(nn.Module):
         adapter_expansion: int = 2,
         adapter_dropout: float = 0.0,
         kd_temperature: float = 1.5,
+        action_write_weight: float = 1.0,
+        safe_positive_alpha: float = 0.5,
     ) -> None:
         super().__init__()
         if codebook_weight.ndim != 2 or codebook_weight.shape[1] != 1280:
@@ -143,6 +145,12 @@ class TrueSubsecondObjective(nn.Module):
         self.action_head = ActionHead(hidden_size)
         self.safe_commit_head = SafeCommitHead(hidden_size)
         self.kd_temperature = float(kd_temperature)
+        if action_write_weight <= 0:
+            raise ValueError("action_write_weight must be positive")
+        if not 0.0 < safe_positive_alpha < 1.0:
+            raise ValueError("safe_positive_alpha must be in (0,1)")
+        self.action_write_weight = float(action_write_weight)
+        self.safe_positive_alpha = float(safe_positive_alpha)
         for parameter in self.frontend_adapter.parameters():
             parameter.uniss_lr_frontend = True
         self.frontend_projection.weight.uniss_lr_frontend = True
@@ -292,8 +300,12 @@ class TrueSubsecondObjective(nn.Module):
         )
         support = values_to_term(support_losses, torch.ones_like(support_losses))
         action_logits = self.action_head(source_summary)
+        action_weight = action_logits.new_tensor([1.0, self.action_write_weight])
         action_losses = F.cross_entropy(
-            action_logits.float(), batch["natural_action"].long(), reduction="none"
+            action_logits.float(),
+            batch["natural_action"].long(),
+            weight=action_weight.float(),
+            reduction="none",
         )
         action = values_to_term(action_losses, torch.ones_like(action_losses))
         interleaved = LossTerm(
@@ -311,7 +323,12 @@ class TrueSubsecondObjective(nn.Module):
         probability = torch.sigmoid(safe_logits.float())
         target = batch["safe_commit_targets"].float()
         pt = torch.where(target > 0.5, probability, 1.0 - probability)
-        safe = values_to_term(0.5 * (1.0 - pt).square() * safe_losses, safe_mask)
+        safe_alpha = torch.where(
+            target > 0.5,
+            torch.full_like(target, self.safe_positive_alpha),
+            torch.full_like(target, 1.0 - self.safe_positive_alpha),
+        )
+        safe = values_to_term(safe_alpha * (1.0 - pt).square() * safe_losses, safe_mask)
 
         deadline = grouped_deadline_survival_term(
             action_logits,
@@ -319,6 +336,7 @@ class TrueSubsecondObjective(nn.Module):
             batch["chunk_end_ms"],
             batch["soft_deadline_ms"],
             batch["hard_deadline_ms"],
+            batch.get("deadline_loss_enabled"),
         )
         kd, stability = self._teacher_terms(logits, batch, anchor)
         terms = OrderedDict(

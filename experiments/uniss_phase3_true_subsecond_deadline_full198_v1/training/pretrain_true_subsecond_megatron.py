@@ -253,6 +253,8 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--true-adapter-expansion", type=int, default=2)
     group.add_argument("--true-adapter-dropout", type=float, default=0.0)
     group.add_argument("--true-kd-temperature", type=float, default=1.5)
+    group.add_argument("--true-action-write-weight", type=float, default=1.0)
+    group.add_argument("--true-safe-positive-alpha", type=float, default=0.5)
     group.add_argument("--true-lr-qwen-lora", type=float, default=1e-5)
     group.add_argument("--true-lr-frontend", type=float, default=5e-6)
     group.add_argument("--true-lr-new-heads", type=float, default=5e-5)
@@ -278,6 +280,10 @@ def validate_experiment_args(args) -> None:
         raise ValueError("native sidecars currently require tensor parallel size 1")
     if int(args.pipeline_model_parallel_size) != 1:
         raise ValueError("native sidecars currently require pipeline parallel size 1")
+    if float(args.true_action_write_weight) <= 0:
+        raise ValueError("--true-action-write-weight must be positive")
+    if not 0.0 < float(args.true_safe_positive_alpha) < 1.0:
+        raise ValueError("--true-safe-positive-alpha must be in (0,1)")
     if bool(args.create_attention_mask_in_dataloader):
         raise ValueError("packed THD training must not create a dense attention mask")
     if int(args.micro_batch_size) not in (1, 2):
@@ -611,6 +617,8 @@ def augment_native_gpt(model: nn.Module, args) -> MegatronLoRASummary:
         adapter_expansion=int(args.true_adapter_expansion),
         adapter_dropout=float(args.true_adapter_dropout),
         kd_temperature=float(args.true_kd_temperature),
+        action_write_weight=float(args.true_action_write_weight),
+        safe_positive_alpha=float(args.true_safe_positive_alpha),
     )
     model.add_module("true_subsecond_objective", objective)
     attach_true_subsecond_forward(model, args.true_phase3_fingerprint)

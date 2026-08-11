@@ -104,6 +104,7 @@ def grouped_deadline_survival_term(
     chunk_end_ms: torch.Tensor,
     soft_deadline_ms: torch.Tensor,
     hard_deadline_ms: torch.Tensor,
+    enabled: torch.Tensor | None = None,
     *,
     soft_weight: float = 0.7,
     hard_weight: float = 1.0,
@@ -117,11 +118,20 @@ def grouped_deadline_survival_term(
     values = (sample_group, chunk_end_ms, soft_deadline_ms, hard_deadline_ms)
     if any(value.shape != (count,) for value in values):
         raise ValueError("deadline metadata must have shape [N]")
+    if enabled is None:
+        enabled = torch.ones(count, dtype=torch.bool, device=action_logits.device)
+    elif enabled.shape != (count,):
+        raise ValueError("deadline enabled mask must have shape [N]")
+    else:
+        enabled = enabled.bool()
     write_probability = action_logits.float().softmax(dim=-1)[:, 1].clamp(eps, 1 - eps)
     losses: list[torch.Tensor] = []
     weights: list[float] = []
     for group in torch.unique(sample_group):
         rows = torch.nonzero(sample_group == group, as_tuple=False).flatten()
+        rows = rows[enabled[rows]]
+        if not len(rows):
+            continue
         for deadline_values, weight in (
             (soft_deadline_ms, soft_weight),
             (hard_deadline_ms, hard_weight),
