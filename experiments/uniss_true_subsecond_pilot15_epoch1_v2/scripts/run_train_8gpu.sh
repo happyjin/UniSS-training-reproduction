@@ -42,10 +42,10 @@ HANDOFF_ITER=$(( TRAIN_ITERS < 15 ? TRAIN_ITERS : 15 ))
 mkdir -p "${RUN_ROOT}" "${LOG_ROOT}" "${REPORT_ROOT}" "${SAVE_ROOT}"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
-TB_SESSION="uniss_true_subsecond_pilot15_v2_tensorboard"
+TB_SESSION="${EXPERIMENT_NAME}_tensorboard"
 if ! tmux has-session -t "${TB_SESSION}" 2>/dev/null; then
   tmux new-session -d -s "${TB_SESSION}" \
-    "cd ${REPO_ROOT} && bash ${SCRIPT_DIR}/start_tensorboard.sh"
+    "cd ${REPO_ROOT} && RUN_ROOT=${RUN_ROOT} TENSORBOARD_PORT=${TENSORBOARD_PORT} bash ${SCRIPT_DIR}/start_tensorboard.sh"
 fi
 
 TELEMETRY="${LOG_ROOT}/train_gpu_telemetry.csv"
