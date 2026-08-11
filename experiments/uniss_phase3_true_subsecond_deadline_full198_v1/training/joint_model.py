@@ -34,6 +34,7 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.losses
     grouped_deadline_survival_term,
     restricted_symmetric_topk_term,
     token_cross_entropy_term,
+    token_cross_entropy_values,
     topk_teacher_kl_term,
     values_to_term,
     zero_term,
@@ -280,12 +281,16 @@ class TrueSubsecondObjective(nn.Module):
         role_weights = torch.where(token_roles == ROLE_SEMANTIC, 1.0, role_weights)
         role_weights = torch.where(token_roles == ROLE_BOUNDARY, 1.0, role_weights)
         role_weights = role_weights * (loss_mask > 0)
-        lm_trajectory = token_cross_entropy_term(logits, labels, role_weights)
-        semantic = token_cross_entropy_term(
-            logits, labels, (token_roles == ROLE_SEMANTIC).float() * (loss_mask > 0)
+        # All three terms use the identical next-token CE.  Share the
+        # unreduced values so seq=18000/MBS=2 does not retain three ~24 GiB
+        # float32 CE graphs on every H200.
+        token_losses = token_cross_entropy_values(logits, labels)
+        lm_trajectory = values_to_term(token_losses, role_weights)
+        semantic = values_to_term(
+            token_losses, (token_roles == ROLE_SEMANTIC).float() * (loss_mask > 0)
         )
-        boundary = token_cross_entropy_term(
-            logits, labels, (token_roles == ROLE_BOUNDARY).float() * (loss_mask > 0)
+        boundary = values_to_term(
+            token_losses, (token_roles == ROLE_BOUNDARY).float() * (loss_mask > 0)
         )
 
         original_seq_length = int(batch["original_seq_length"].item())

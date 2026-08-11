@@ -11,7 +11,9 @@ from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.losses
     restricted_symmetric_topk_term,
     symmetric_topk_kl,
     token_cross_entropy_term,
+    token_cross_entropy_values,
     topk_teacher_kl_term,
+    values_to_term,
 )
 
 
@@ -43,6 +45,30 @@ class LossTest(unittest.TestCase):
         first = token_cross_entropy_term(logits, labels, torch.tensor([[1.0, 0.0]]))
         second = token_cross_entropy_term(logits, labels, torch.tensor([[0.0, 1.0]]))
         self.assertLess(float(first.mean), float(second.mean))
+
+    def test_shared_token_ce_matches_independent_terms_and_gradients(self) -> None:
+        logits = torch.randn(2, 5, 11, dtype=torch.float32, requires_grad=True)
+        labels = torch.randint(0, 11, (2, 5))
+        semantic_mask = torch.tensor(
+            [[1.0, 0.0, 1.0, 0.0, 0.0], [0.0, 1.0, 0.0, 1.0, 0.0]]
+        )
+        boundary_mask = 1.0 - semantic_mask
+
+        independent = (
+            token_cross_entropy_term(logits, labels, semantic_mask).mean
+            + 0.25 * token_cross_entropy_term(logits, labels, boundary_mask).mean
+        )
+        independent_gradient = torch.autograd.grad(independent, logits, retain_graph=True)[0]
+
+        values = token_cross_entropy_values(logits, labels)
+        shared = (
+            values_to_term(values, semantic_mask).mean
+            + 0.25 * values_to_term(values, boundary_mask).mean
+        )
+        shared_gradient = torch.autograd.grad(shared, logits)[0]
+
+        torch.testing.assert_close(shared, independent)
+        torch.testing.assert_close(shared_gradient, independent_gradient)
 
     def test_cached_topk_kl_and_symmetric_stability(self) -> None:
         logits = torch.tensor([[[5.0, 1.0, -2.0]]])

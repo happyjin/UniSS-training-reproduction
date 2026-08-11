@@ -40,12 +40,30 @@ def token_cross_entropy_term(
 
     if logits.shape[:-1] != labels.shape or labels.shape != weights.shape:
         raise ValueError("token CE tensors have incompatible shapes")
-    losses = F.cross_entropy(
+    return values_to_term(token_cross_entropy_values(logits, labels), weights)
+
+
+def token_cross_entropy_values(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+) -> torch.Tensor:
+    """Compute one unreduced CE tensor that multiple role masks can share.
+
+    A trajectory batch derives its LM, semantic, and boundary objectives from
+    the same next-token distribution.  Materializing three independent
+    float32 cross-entropy graphs for an 18k sequence and the 180k UniSS
+    vocabulary adds roughly 24 GiB per graph.  Returning the common per-token
+    values lets callers apply all role masks without changing the objective or
+    its gradients.
+    """
+
+    if logits.shape[:-1] != labels.shape:
+        raise ValueError("token CE tensors have incompatible shapes")
+    return F.cross_entropy(
         logits.float().reshape(-1, logits.shape[-1]),
         labels.long().reshape(-1),
         reduction="none",
     ).reshape_as(labels)
-    return values_to_term(losses, weights)
 
 
 def topk_teacher_kl_term(
