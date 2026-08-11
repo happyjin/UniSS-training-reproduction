@@ -18,7 +18,7 @@ from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.schema imp
 from training.simul_uniss.jsonl_index import load_index
 
 
-AUDIT_SCHEMA = "uniss_dense_aligned_streaming_audit_v1"
+AUDIT_SCHEMA = "uniss_dense_aligned_streaming_audit_v2"
 
 
 def _percentile(values: list[int], quantile: float) -> float | None:
@@ -80,6 +80,10 @@ def audit(args: argparse.Namespace) -> dict[str, object]:
             counts["reads"] += len(session.events) - len(writes)
             counts["semantic_tokens"] += session.target_semantic_length
             counts["text_characters"] += len(session.target_text)
+            counts[f"text_alignment:{session.text_alignment_kind}"] += 1
+            counts["text_alignment_ratio_ppm"] += round(
+                session.text_alignment_ratio * 1_000_000
+            )
             counts[f"direction:{session.src_lang}-{session.tgt_lang}"] += 1
             counts["first_write_under_1s"] += int(first.wall_time_ms < 1000)
             counts["first_write_at_or_under_1s"] += int(first.wall_time_ms <= 1000)
@@ -105,6 +109,11 @@ def audit(args: argparse.Namespace) -> dict[str, object]:
         "semantic_gap_count": 0,
         "semantic_overlap_count": 0,
         "unique_final_write_rate": 1.0,
+        "mean_text_alignment_ratio": counts["text_alignment_ratio_ppm"]
+        / max(1, sessions)
+        / 1_000_000,
+        "fuzzy_text_alignment_rate": counts["text_alignment:monotonic_fuzzy"]
+        / max(1, sessions),
         "first_write_under_1s_rate": counts["first_write_under_1s"] / max(1, sessions),
         "first_write_at_or_under_1s_rate": counts["first_write_at_or_under_1s"] / max(1, sessions),
         "first_write_wall_ms": {

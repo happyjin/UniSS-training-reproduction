@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import math
 import os
 import tempfile
 import time
+import unicodedata
 from array import array
 from collections import Counter
 from pathlib import Path
@@ -24,7 +26,7 @@ from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.schema imp
 from training.simul_uniss.jsonl_index import load_index, write_index
 
 
-PART_SCHEMA = "uniss_dense_aligned_streaming_part_v1"
+PART_SCHEMA = "uniss_dense_aligned_streaming_part_v2"
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -47,42 +49,118 @@ def _record_at(handle, offset: int) -> dict[str, object]:
     return json.loads(handle.readline())
 
 
-def _target_word_spans(
+def _normalized(value: str) -> tuple[str, list[int]]:
+    characters: list[str] = []
+    original_indices: list[int] = []
+    for original_index, character in enumerate(value):
+        folded = unicodedata.normalize("NFKC", character).casefold()
+        for normalized_character in folded:
+            if normalized_character.isalnum():
+                characters.append(normalized_character)
+                original_indices.append(original_index)
+    return "".join(characters), original_indices
+
+
+def _fuzzy_target_word_spans(
     target_text: str, target_words: Sequence[Mapping[str, object]]
-) -> list[tuple[int, int]]:
-    """Locate formal lexical words without normalizing the released translation."""
+) -> tuple[list[tuple[int, int]], float]:
+    target_normalized, target_map = _normalized(target_text)
+    word_values = [
+        _normalized(str(word.get("text", word.get("word", ""))))[0]
+        for word in target_words
+    ]
+    if any(not value for value in word_values):
+        raise ValueError("fuzzy target alignment received an empty lexical word")
+    lexical_normalized = "".join(word_values)
+    matcher = difflib.SequenceMatcher(
+        None, lexical_normalized, target_normalized, autojunk=False
+    )
+    boundary_map: list[int | None] = [None] * (len(lexical_normalized) + 1)
+    for _tag, left_start, left_end, right_start, right_end in matcher.get_opcodes():
+        width = left_end - left_start
+        if width == 0:
+            if boundary_map[left_start] is None:
+                boundary_map[left_start] = right_end
+            continue
+        for offset in range(width + 1):
+            boundary_map[left_start + offset] = round(
+                right_start + offset * (right_end - right_start) / width
+            )
+    boundary_map[0] = 0
+    boundary_map[-1] = len(target_normalized)
+    previous = 0
+    for index, value in enumerate(boundary_map):
+        current = previous if value is None else max(previous, int(value))
+        boundary_map[index] = min(current, len(target_normalized))
+        previous = int(boundary_map[index])
+
+    def original_boundary(normalized_boundary: int) -> int:
+        if normalized_boundary <= 0:
+            return 0
+        if normalized_boundary >= len(target_map):
+            return len(target_text)
+        return target_map[normalized_boundary]
 
     spans: list[tuple[int, int]] = []
     cursor = 0
+    for value in word_values:
+        start_normalized = int(boundary_map[cursor])
+        cursor += len(value)
+        end_normalized = int(boundary_map[cursor])
+        start = original_boundary(start_normalized)
+        if end_normalized <= 0:
+            end = start
+        elif end_normalized >= len(target_map):
+            end = len(target_text)
+        else:
+            end = target_map[end_normalized - 1] + 1
+        spans.append((start, max(start, end)))
+    return spans, float(matcher.ratio())
+
+
+def _target_word_spans(
+    target_text: str, target_words: Sequence[Mapping[str, object]]
+) -> tuple[list[tuple[int, int]], str, float]:
+    """Locate lexical words while preserving original released-text boundaries."""
+
+    normalized_text, original_map = _normalized(target_text)
+    spans: list[tuple[int, int]] = []
+    normalized_cursor = 0
     for index, word in enumerate(target_words):
         token = str(word.get("text", word.get("word", "")))
         if not token:
             raise ValueError(f"empty target word at index {index}")
-        start = target_text.find(token, cursor)
-        if start < 0:
-            lowered_start = target_text.casefold().find(token.casefold(), cursor)
-            if lowered_start >= 0:
-                start = lowered_start
-        if start < 0:
-            raise ValueError(
-                f"target word {token!r} at index {index} was not found after character {cursor}"
-            )
-        end = start + len(token)
+        normalized_token, _ = _normalized(token)
+        if not normalized_token:
+            fuzzy, ratio = _fuzzy_target_word_spans(target_text, target_words)
+            return fuzzy, "monotonic_fuzzy", ratio
+        normalized_start = normalized_text.find(normalized_token, normalized_cursor)
+        if normalized_start < 0:
+            fuzzy, ratio = _fuzzy_target_word_spans(target_text, target_words)
+            return fuzzy, "monotonic_fuzzy", ratio
+        normalized_end = normalized_start + len(normalized_token)
+        start = original_map[normalized_start]
+        end = original_map[normalized_end - 1] + 1
         spans.append((start, end))
-        cursor = end
+        normalized_cursor = normalized_end
     if not spans:
         raise ValueError("target_words is empty")
-    return spans
+    lexical = "".join(
+        _normalized(str(word.get("text", word.get("word", ""))))[0]
+        for word in target_words
+    )
+    ratio = difflib.SequenceMatcher(None, lexical, normalized_text, autojunk=False).ratio()
+    return spans, "normalized_exact", float(ratio)
 
 
 def _exact_text_deltas(
     target_text: str,
     target_words: Sequence[Mapping[str, object]],
     micro_events: Sequence[Mapping[str, object]],
-) -> list[str]:
+) -> tuple[list[str], str, float]:
     """Assign every original character exactly once to a lexical Micro-WRITE."""
 
-    spans = _target_word_spans(target_text, target_words)
+    spans, alignment_kind, alignment_ratio = _target_word_spans(target_text, target_words)
     character_cursor = 0
     word_cursor = 0
     deltas: list[str] = []
@@ -114,7 +192,7 @@ def _exact_text_deltas(
         raise ValueError("Micro-WRITEs do not consume the complete target text")
     if "".join(deltas) != target_text:
         raise AssertionError("exact target text delta reconstruction failed")
-    return deltas
+    return deltas, alignment_kind, alignment_ratio
 
 
 def _audio_boundary(semantic: int, semantic_count: int, duration_ms: int) -> int:
@@ -157,7 +235,9 @@ def build_dense_session(
         raise ValueError("formal semantic sequence does not cover the full target")
 
     target_text = str(record["translation"])
-    deltas = _exact_text_deltas(target_text, target_words, micro)
+    deltas, text_alignment_kind, text_alignment_ratio = _exact_text_deltas(
+        target_text, target_words, micro
+    )
     source_duration_ms = int(record["source_duration_ms"])
     target_duration_ms = int(record["target_duration_ms"])
     playback_buffer_ms = 0
@@ -275,6 +355,8 @@ def build_dense_session(
         target_text=target_text,
         speaker_global=tuple(int(value) for value in speaker_global),
         events=tuple(events),
+        text_alignment_kind=text_alignment_kind,
+        text_alignment_ratio=text_alignment_ratio,
         low_watermark_ms=low_watermark_ms,
         target_buffer_ms=target_buffer_ms,
         semantic_history_tokens=semantic_history_tokens,
@@ -349,6 +431,10 @@ def build_part(args: argparse.Namespace) -> dict[str, object]:
                     counts["writes"] += len(writes)
                     counts["reads"] += len(session.events) - len(writes)
                     counts["semantic_tokens"] += session.target_semantic_length
+                    counts[f"text_alignment:{session.text_alignment_kind}"] += 1
+                    counts["text_alignment_ratio_ppm"] += round(
+                        session.text_alignment_ratio * 1_000_000
+                    )
                     counts[f"direction:{session.src_lang}-{session.tgt_lang}"] += 1
                 except Exception as error:
                     counts["rejected"] += 1

@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "uniss_dense_aligned_streaming_session_v1"
+SCHEMA_VERSION = "uniss_dense_aligned_streaming_session_v2"
 TICK_MS = 160
 
 
@@ -102,6 +102,8 @@ class DenseSession:
     target_text: str
     speaker_global: tuple[int, ...]
     events: tuple[DenseEvent, ...]
+    text_alignment_kind: str = "normalized_exact"
+    text_alignment_ratio: float = 1.0
     low_watermark_ms: int = 240
     target_buffer_ms: int = 400
     semantic_history_tokens: int = 200
@@ -135,6 +137,10 @@ class DenseSession:
             raise ValueError("speaker_global contains a negative token")
         if not self.events:
             raise ValueError("dense session contains no events")
+        if self.text_alignment_kind not in {"normalized_exact", "monotonic_fuzzy"}:
+            raise ValueError("unsupported text alignment kind")
+        if not 0.0 <= self.text_alignment_ratio <= 1.0:
+            raise ValueError("text_alignment_ratio must be in [0,1]")
         self._validate_events()
         if self.checksum and self.checksum != canonical_checksum(self.to_dict()):
             raise ValueError("dense session checksum mismatch")

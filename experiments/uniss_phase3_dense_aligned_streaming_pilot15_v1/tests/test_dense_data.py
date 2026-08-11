@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 
 from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.build_dense_sessions import (
+    _exact_text_deltas,
+    _target_word_spans,
     build_dense_session,
 )
 from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.schema import (
@@ -64,6 +66,43 @@ def _record(*, target_text: str, target_words: list[dict], target_lang: str) -> 
 
 
 class DenseDataTest(unittest.TestCase):
+    def test_normalized_alignment_preserves_original_hyphens_and_periods(self) -> None:
+        text = "The U.S. nonprofit Wi-Fi works."
+        words = [
+            {"text": "The"},
+            {"text": "US"},
+            {"text": "nonprofit"},
+            {"text": "WiFi"},
+            {"text": "works"},
+        ]
+        spans, kind, ratio = _target_word_spans(text, words)
+        self.assertEqual(kind, "normalized_exact")
+        self.assertGreater(ratio, 0.99)
+        self.assertEqual([text[start:end] for start, end in spans], ["The", "U.S", "nonprofit", "Wi-Fi", "works"])
+
+    def test_fuzzy_alignment_still_reconstructs_released_text_exactly(self) -> None:
+        text = "She will depart soon."
+        words = [
+            {"text": "She"},
+            {"text": "will"},
+            {"text": "leaving"},
+            {"text": "soon"},
+        ]
+        micro = [
+            {
+                "text": word["text"],
+                "target_word_start": index,
+                "target_word_end": index + 1,
+                "semantic_start": index,
+                "semantic_end": index + 1,
+            }
+            for index, word in enumerate(words)
+        ]
+        deltas, kind, ratio = _exact_text_deltas(text, words, micro)
+        self.assertEqual(kind, "monotonic_fuzzy")
+        self.assertGreater(ratio, 0.50)
+        self.assertEqual("".join(deltas), text)
+
     def test_visible_prefix_binary_search(self) -> None:
         ends = [80, 160, 240, 400]
         self.assertEqual(visible_prefix_length(ends, 0), 0)

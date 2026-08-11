@@ -22,7 +22,7 @@ from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.data.schema imp
 from training.simul_uniss.jsonl_index import load_index, write_index
 
 
-ASSEMBLY_SCHEMA = "uniss_dense_aligned_streaming_assembly_v1"
+ASSEMBLY_SCHEMA = "uniss_dense_aligned_streaming_assembly_v2"
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -128,4 +128,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
