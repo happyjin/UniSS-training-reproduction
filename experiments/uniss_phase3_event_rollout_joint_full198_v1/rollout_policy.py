@@ -14,7 +14,9 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.event_rollout impor
 )
 from training import constants_uniss as c
 from web_demo.runtime_parity_streaming_v2.inference import _decode_text_choice
-from web_demo.runtime_parity_streaming_v12.inference import MicroblockPromptSession
+from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize15_action_eos_calibration.inference import (
+    CalibratedContinuationPromptSession,
+)
 
 
 @dataclass(frozen=True)
@@ -53,10 +55,11 @@ def rollout_session(
     maximum_text_tokens: int = 16,
     maximum_semantic_tokens: int = 80,
 ) -> RolloutTrace:
-    prompt = MicroblockPromptSession(
+    prompt = CalibratedContinuationPromptSession(
         backend,
         target_lang=session.target_lang,
         speaker_global=session.speaker_global,
+        continuation_head=objective.continuation_head,
     )
     generated: list[GeneratedTick] = []
     block_size = int(objective.semantic_microblock_head.block_size)

@@ -126,6 +126,10 @@ class NativeMegatronKVBackend:
             self.objective.codebook(code_tensor)
         )
         residual = self.objective.frontend_projection(adapted)
+        if embedded.ndim != 3 or embedded.shape[1] != 1:
+            raise ValueError("native Megatron embedding must be [S,1,H]")
+        if residual.ndim != 3 or residual.shape[0] != 1:
+            raise ValueError("rollout frontend residual must be [1,S,H]")
         decoder_input = embedded + residual.transpose(0, 1).to(embedded.dtype)
         return self._forward(canonical, decoder_input=decoder_input)
 

@@ -24,3 +24,14 @@ Historical experiment directories and results are imported read-only. New
 checkpoints, runs, logs, data and reports use this experiment name and refuse
 to overwrite non-empty output directories.
 
+Canary preparation and launch:
+
+```bash
+bash experiments/uniss_phase3_event_rollout_joint_full198_v1/prepare_canary.sh
+bash experiments/uniss_phase3_event_rollout_joint_full198_v1/run_8gpu.sh --dry-run
+bash experiments/uniss_phase3_event_rollout_joint_full198_v1/run_8gpu.sh
+```
+
+The canary validates implementation only. Formal training must use full198
+complete ordered sessions with the same interface. Independent prefix records
+must never be relabeled as exact event-rollout data.

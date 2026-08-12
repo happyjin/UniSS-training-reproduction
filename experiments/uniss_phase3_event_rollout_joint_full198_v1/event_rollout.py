@@ -39,6 +39,11 @@ class OracleEvent:
     stable_target_length: int
     support_bucket: int
     chunk_end_ms: int
+    soft_deadline_ms: int
+    hard_deadline_ms: int
+    deadline_forced: bool
+    deadline_loss_enabled: bool
+    playback_buffer_ms: int
 
     def __post_init__(self) -> None:
         if self.action not in {"WAIT", "WRITE"}:
@@ -153,6 +158,16 @@ class RecoveryExample:
     action_target: int
     continuation_position: int
     continuation_target: int
+    support_bucket: int
+    chunk_end_ms: int
+    soft_deadline_ms: int
+    hard_deadline_ms: int
+    deadline_forced: bool
+    deadline_loss_enabled: bool
+    previous_committed_length: int
+    stable_target_length: int
+    playback_buffer_ms: int
+    translation_ids: tuple[int, ...]
     schema_version: str = RECOVERY_SCHEMA
 
     def __post_init__(self) -> None:
@@ -376,6 +391,11 @@ def oracle_sessions_from_pack(value: Mapping[str, object]) -> tuple[OracleSessio
                     stable_target_length=int(annotation["stable_target_length"]),
                     support_bucket=int(annotation["support_bucket"]),
                     chunk_end_ms=int(annotation["chunk_end_ms"]),
+                    soft_deadline_ms=int(annotation["soft_deadline_ms"]),
+                    hard_deadline_ms=int(annotation["hard_deadline_ms"]),
+                    deadline_forced=bool(annotation["deadline_forced"]),
+                    deadline_loss_enabled=bool(annotation["deadline_loss_enabled"]),
+                    playback_buffer_ms=int(annotation["playback_buffer_ms"]),
                 )
             )
         parsed_sessions.append(
@@ -487,6 +507,16 @@ def build_recovery_example(
         action_target=1 if event.action == "WRITE" else 0,
         continuation_position=continuation_position,
         continuation_target=1 if event.continuation_token == c.TOKEN_EOS else 0,
+        support_bucket=event.support_bucket,
+        chunk_end_ms=event.chunk_end_ms,
+        soft_deadline_ms=event.soft_deadline_ms,
+        hard_deadline_ms=event.hard_deadline_ms,
+        deadline_forced=event.deadline_forced,
+        deadline_loss_enabled=event.deadline_loss_enabled,
+        previous_committed_length=event.previous_committed_length,
+        stable_target_length=event.stable_target_length,
+        playback_buffer_ms=event.playback_buffer_ms,
+        translation_ids=session.full_translation_ids,
     )
 
 

@@ -51,4 +51,11 @@ def test_dynamic_recovery_repack_keeps_fixed_megatron_shape() -> None:
     assert int(output["action_position"][0]) == example.action_position
     assert int(output["continuation_position"][0]) == example.continuation_position
     assert int(output["frontend_mask"].sum()) == len(example.frontend_ids)
-
+    assert int(output["support_bucket"][0]) == example.support_bucket
+    assert int(output["chunk_end_ms"][0]) == example.chunk_end_ms
+    assert tuple(
+        output["translation_ids"][0, output["translation_mask"][0]].tolist()
+    ) == example.translation_ids
+    assert int(output["safe_commit_targets"][0].sum()) == min(
+        len(example.translation_ids), example.stable_target_length
+    )
