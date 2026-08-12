@@ -118,19 +118,7 @@ class RolloutTrace:
 
     def first_divergence(self, oracle: OracleSession) -> int | None:
         for index, generated in enumerate(self.generated_ticks):
-            expected = oracle.events[index]
-            if generated.action != expected.action:
-                return index
-            if generated.action == "WRITE":
-                parsed = parse_write_outcome(expected.outcome_tokens)
-                if (
-                    tuple(generated.text_ids) != parsed.text_ids
-                    or tuple(generated.semantic_codes) != parsed.semantic_codes
-                    or not generated.natural_semantic_end
-                ):
-                    return index
-            expected_eos = expected.continuation_token == c.TOKEN_EOS
-            if bool(generated.choose_eos) != expected_eos:
+            if not generated_tick_matches_oracle(oracle.events[index], generated):
                 return index
         if len(self.generated_ticks) < len(oracle.events):
             return len(self.generated_ticks)
@@ -196,6 +184,25 @@ class RecoveryExample:
             c.TOKEN_EOS,
         }:
             raise ValueError("recovery continuation label is not START_GLM/EOS")
+
+
+def generated_tick_matches_oracle(
+    expected: OracleEvent, generated: GeneratedTick
+) -> bool:
+    """Whether one generated runtime event exactly follows its oracle event."""
+
+    if generated.action != expected.action:
+        return False
+    if generated.action == "WRITE":
+        parsed = parse_write_outcome(expected.outcome_tokens)
+        if (
+            tuple(generated.text_ids) != parsed.text_ids
+            or tuple(generated.semantic_codes) != parsed.semantic_codes
+            or not generated.natural_semantic_end
+        ):
+            return False
+    expected_eos = expected.continuation_token == c.TOKEN_EOS
+    return bool(generated.choose_eos) == expected_eos
 
 
 def parse_write_outcome(values: Sequence[int]) -> ParsedWrite:
@@ -543,6 +550,7 @@ __all__ = [
     "build_write_outcome",
     "choose_recovery_event",
     "generated_outcome_tokens",
+    "generated_tick_matches_oracle",
     "oracle_sessions_from_pack",
     "parse_write_outcome",
 ]

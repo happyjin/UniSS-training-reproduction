@@ -10,6 +10,7 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.event_rollout impor
     build_recovery_example,
     build_rollout_trace,
     choose_recovery_event,
+    generated_tick_matches_oracle,
     oracle_sessions_from_pack,
     parse_write_outcome,
 )
@@ -94,3 +95,16 @@ def test_generated_write_requires_semantic_content() -> None:
     with pytest.raises(ValueError, match="semantic"):
         GeneratedTick("WRITE", (1,), ())
 
+
+@pytest.mark.skipif(not CANARY.is_file(), reason="runtime canary data is unavailable")
+def test_exact_event_match_detects_first_recovery_state() -> None:
+    session = _session()
+    expected = session.events[0]
+    assert generated_tick_matches_oracle(expected, _oracle_ticks(session)[0])
+    opposite = "WRITE" if expected.action == "WAIT" else "WAIT"
+    generated = (
+        GeneratedTick(opposite, (42,), (1, 2, 3))
+        if opposite == "WRITE"
+        else GeneratedTick("WAIT")
+    )
+    assert not generated_tick_matches_oracle(expected, generated)

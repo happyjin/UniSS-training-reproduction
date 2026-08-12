@@ -11,6 +11,7 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.event_rollout impor
     OracleSession,
     RolloutTrace,
     build_rollout_trace,
+    generated_tick_matches_oracle,
 )
 from training import constants_uniss as c
 from web_demo.runtime_parity_streaming_v2.inference import _decode_text_choice
@@ -125,17 +126,21 @@ def rollout_session(
         choose_eos = bool(event.source_finished) and _continuation_choice(
             committed.continuation_logits
         )
-        generated.append(
-            GeneratedTick(
-                action,
-                tuple(text_ids),
-                tuple(semantic_codes),
-                natural_semantic_end=natural_end,
-                choose_eos=choose_eos,
-            )
+        tick = GeneratedTick(
+            action,
+            tuple(text_ids),
+            tuple(semantic_codes),
+            natural_semantic_end=natural_end,
+            choose_eos=choose_eos,
         )
+        generated.append(tick)
         if choose_eos:
             prompt.finish_session()
+            break
+        # Oracle recovery uses the first model-induced divergence.  Once it is
+        # known, later autoregressive events cannot change that state and are
+        # pure wasted compute.
+        if not generated_tick_matches_oracle(event, tick):
             break
     return build_rollout_trace(session, generated)
 
