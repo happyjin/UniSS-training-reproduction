@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
+import pytest
 import torch
 from torch import nn
 
@@ -14,6 +15,7 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.objective 
     distributed_event_rollout_objective,
 )
 from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.pretrain_event_rollout_megatron import (
+    _unwrap_training_model,
     validate_phase3_handoff_key_sets,
 )
 from experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.losses import (
@@ -101,8 +103,6 @@ def test_phase3_handoff_allows_only_isolated_new_modules() -> None:
 
 
 def test_phase3_handoff_rejects_missing_native_or_foreign_keys() -> None:
-    import pytest
-
     with pytest.raises(RuntimeError, match="missing_native"):
         validate_phase3_handoff_key_sets(
             {"embedding.word_embeddings.weight", "decoder.final_layernorm.weight"},
@@ -117,3 +117,39 @@ def test_phase3_handoff_rejects_missing_native_or_foreign_keys() -> None:
                 "true_subsecond_objective.action_head.weight",
             },
         )
+
+
+def test_sharded_checkpoint_layer_keys_compare_in_canonical_namespace() -> None:
+    class Shard:
+        def __init__(self, key):
+            self.key = key
+
+    current = {
+        "decoder.layers.0.self_attention.linear_qkv.weight": Shard(
+            "decoder.layers.self_attention.linear_qkv.weight"
+        ),
+        "true_subsecond_objective.action_head.weight": Shard(
+            "true_subsecond_objective.action_head.weight"
+        ),
+    }
+    canonical = {getattr(value, "key", key) for key, value in current.items()}
+    result = validate_phase3_handoff_key_sets(
+        {"decoder.layers.self_attention.linear_qkv.weight"}, canonical
+    )
+    assert result["native_checkpoint_keys"] == 1
+
+
+def test_unwrap_training_model_accepts_single_local_chunk(monkeypatch) -> None:
+    marker = object()
+    monkeypatch.setattr(
+        "megatron.core.utils.unwrap_model", lambda model: [marker]
+    )
+    assert _unwrap_training_model(object()) is marker
+
+
+def test_unwrap_training_model_rejects_multiple_local_chunks(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "megatron.core.utils.unwrap_model", lambda model: [object(), object()]
+    )
+    with pytest.raises(ValueError, match="exactly one local model chunk"):
+        _unwrap_training_model(object())

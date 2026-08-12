@@ -100,7 +100,10 @@ def audit_phase3_handoff_structure(model, load_root: str | Path) -> dict[str, ob
             )
         }
     )
-    return validate_phase3_handoff_key_sets(checkpoint_keys, current)
+    canonical_current = {
+        getattr(value, "key", key) for key, value in current.items()
+    }
+    return validate_phase3_handoff_key_sets(checkpoint_keys, canonical_current)
 
 
 def _event_output_processor(**kwargs) -> torch.Tensor:
@@ -324,7 +327,15 @@ train_valid_test_datasets_provider.is_distributed = True
 def _unwrap_training_model(model):
     from megatron.core.utils import unwrap_model
 
-    return unwrap_model(model)
+    value = unwrap_model(model)
+    if isinstance(value, list):
+        if len(value) != 1:
+            raise ValueError(
+                "event-rollout training expects exactly one local model chunk, "
+                f"got {len(value)}"
+            )
+        value = value[0]
+    return value
 
 
 def _model_training(model) -> bool:
