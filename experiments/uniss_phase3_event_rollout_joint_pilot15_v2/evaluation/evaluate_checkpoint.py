@@ -50,6 +50,16 @@ def audio_audit(path: Path) -> dict[str, object]:
     }
 
 
+def oracle_target_prefixes(row: dict[str, object]) -> list[str]:
+    """Return cumulative target-word prefixes for useful-audio ASR validation."""
+
+    target_language = str(row["tgt_lang"])
+    pieces = [str(value.get("text", "")).strip() for value in row.get("target_words", [])]
+    pieces = [value for value in pieces if value]
+    separator = " " if target_language == "eng" else ""
+    return [separator.join(pieces[:end]) for end in range(1, len(pieces) + 1)]
+
+
 def evaluate(args):
     """Run the shared exact runtime while recording the repaired v2 provenance."""
 
@@ -81,6 +91,7 @@ def evaluate(args):
                     default=None,
                 ),
                 "oracle_micro_write_count": len(row.get("micro_write_events", [])),
+                "oracle_target_text_prefixes": oracle_target_prefixes(row),
             }
     output = Path(args.output)
     for row_index, sample in enumerate(summary["samples"]):
