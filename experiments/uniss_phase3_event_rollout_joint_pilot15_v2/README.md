@@ -20,3 +20,11 @@ Phase3 v4 initialization and 717-iteration coverage geometry remain unchanged.
 All v1 checkpoints, logs, TensorBoard events, exports and reports are retained
 as failed-mechanism evidence.  V2 writes unique artifacts and starts fresh from
 Phase3 v4 `iter_0009075`.
+
+Checkpoint selection is deliberately two-stage.  Teacher-forced validation
+only creates a shortlist.  `evaluation/select_final_checkpoint.py` refuses a
+winner until exact-runtime train and validation coverage, target-language
+prefix-ASR useful audio, cached/fused parity, objective quality metrics and
+paired Phase3 replay retention are all present and pass their explicit hard
+gates.  Arbitrary PCM, forced WRITE, all-WAIT, semantic collapse and missing
+metrics are rejection conditions.

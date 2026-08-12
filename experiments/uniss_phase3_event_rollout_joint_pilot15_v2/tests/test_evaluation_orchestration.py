@@ -57,3 +57,20 @@ def test_phase3_retention_is_paired_and_eight_gpu() -> None:
     assert "evaluation.slc_metrics" in metrics
     assert "run_objective_metrics.sh" in metrics
     assert "complete.json" in metrics
+
+
+def test_final_selector_requires_all_runtime_quality_and_retention_evidence() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "evaluation" / "select_final_checkpoint.py").read_text(
+        encoding="utf-8"
+    )
+    for evidence in (
+        "train_aggregate",
+        "valid_aggregate",
+        "useful_audio.json",
+        "parity",
+        "speaker_similarity.json",
+        "phase3_retention",
+        "no_checkpoint_passed",
+    ):
+        assert evidence in source
