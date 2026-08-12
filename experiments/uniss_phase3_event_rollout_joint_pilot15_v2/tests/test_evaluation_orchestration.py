@@ -74,3 +74,20 @@ def test_final_selector_requires_all_runtime_quality_and_retention_evidence() ->
         "no_checkpoint_passed",
     ):
         assert evidence in source
+
+
+def test_post_training_pipeline_waits_then_probes_and_full_evaluates() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "evaluation" / "run_post_training_pipeline.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "after training is done" in source
+    assert '[[ ! -e "${OUTPUT_ROOT}" ]]' in source
+    assert "summarize_validation" in source
+    assert "shortlist_checkpoints" in source
+    assert "run_checkpoint_evaluation_8gpu.sh" in source
+    assert "run_quality_metrics_8gpu.sh" in source
+    assert "run_phase3_retention_8gpu.sh" in source
+    assert "run_phase3_retention_metrics_8gpu.sh" in source
+    assert source.count("select_final_checkpoint") == 2
+    assert "VALID_SAMPLES_PER_DIRECTION=" in source

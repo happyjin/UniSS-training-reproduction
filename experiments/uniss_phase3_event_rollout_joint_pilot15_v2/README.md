@@ -28,3 +28,10 @@ prefix-ASR useful audio, cached/fused parity, objective quality metrics and
 paired Phase3 replay retention are all present and pass their explicit hard
 gates.  Arbitrary PCM, forced WRITE, all-WAIT, semantic collapse and missing
 metrics are rejection conditions.
+
+`evaluation/run_post_training_pipeline.sh` waits for the auditable Megatron
+completion marker, refreshes the validation summary, probes at most three
+teacher-forced candidates sequentially on all eight GPUs, and runs the full
+fixed15 validation only for a checkpoint that passes the probe hard gates.
+Every invocation uses a unique output root and refuses to overwrite prior
+runtime, metric or retention evidence.
