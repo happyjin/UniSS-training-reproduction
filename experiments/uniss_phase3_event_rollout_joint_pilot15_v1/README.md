@@ -23,3 +23,9 @@ The isolated smoke wrapper exposes one real pack from each of the 32 train
 parts and one from each of the 4 validation parts.  It uses three tiny coverage
 epochs so `SMOKE_EXIT_INTERVAL=1` can verify interruption and strict self-resume
 without treating a synthetic dataset as evidence.
+
+The isolated `evaluation/` entrypoint exports the learned LoRA and complete
+event-rollout objective, reconstructs the exact Phase3 HF runtime, and performs
+natural WAIT/WRITE, learned microblock semantic generation, learned EOS, PCM,
+timeline and left-source/right-target stereo evaluation.  Train and validation
+outputs use separate, non-overwriting report directories.
