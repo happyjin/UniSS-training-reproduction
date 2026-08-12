@@ -38,3 +38,22 @@ def test_quality_orchestration_runs_all_hard_gate_metrics() -> None:
         assert module in source
     assert "GPU_LIST must contain exactly 8 GPU IDs" in source
     assert "complete.json" in source
+
+
+def test_phase3_retention_is_paired_and_eight_gpu() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "evaluation" / "run_phase3_retention_8gpu.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "GPU_LIST must contain exactly 8 GPU IDs" in source
+    assert "evaluate_phase3_retention" in source
+    assert "merge_phase3_retention" in source
+    assert "--samples-per-direction" in source
+
+    metrics = (
+        root / "evaluation" / "run_phase3_retention_metrics_8gpu.sh"
+    ).read_text(encoding="utf-8")
+    assert "evaluation.text_metrics" in metrics
+    assert "evaluation.slc_metrics" in metrics
+    assert "run_objective_metrics.sh" in metrics
+    assert "complete.json" in metrics
