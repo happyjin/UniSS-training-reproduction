@@ -33,6 +33,7 @@ export TORCH_HOME="${TORCH_HOME:-${USER_ROOT}/cache/torch}"
 export ENV_ROOT="${EVAL_ENV}"
 export EVAL_GPU_LIST="${GPU_LIST}"
 export METRIC_NUM_GPUS=8
+export AUTOPCP_ENCODER="${AUTOPCP_ENCODER:-${USER_ROOT}/evaluation_models/wav2vec2-large-xlsr-53}"
 
 mkdir -p "${METRICS}"
 "${PYTHON}" -m evaluation.text_metrics \

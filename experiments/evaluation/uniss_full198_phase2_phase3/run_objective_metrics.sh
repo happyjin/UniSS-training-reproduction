@@ -11,8 +11,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval}"
 MODEL_ROOT="${MODEL_ROOT:-/opt/dlami/nvme/jasonleeeli/evaluation_models}"
 AUTOPCP_COMPARATOR="${AUTOPCP_COMPARATOR:-${MODEL_ROOT}/AutoPCP-multilingual-v2}"
+AUTOPCP_ENCODER="${AUTOPCP_ENCODER:-${MODEL_ROOT}/wav2vec2-large-xlsr-53}"
 DEVICE="${DEVICE:-cuda:0}"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
+
+for required in \
+  "${AUTOPCP_COMPARATOR}/model.config" \
+  "${AUTOPCP_COMPARATOR}/model.pt" \
+  "${AUTOPCP_ENCODER}/config.json" \
+  "${AUTOPCP_ENCODER}/preprocessor_config.json" \
+  "${AUTOPCP_ENCODER}/pytorch_model.bin"; do
+  [[ -f "${required}" ]] || { echo "Missing objective-metric model file: ${required}" >&2; exit 1; }
+done
 
 export HF_HOME="${HF_HOME:-/opt/dlami/nvme/jasonleeeli/cache/huggingface}"
 export MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-/opt/dlami/nvme/jasonleeeli/cache/modelscope}"
@@ -126,6 +136,7 @@ run_autopcp_shards() {
       --input "${OUTPUT_ROOT}/results.jsonl" \
       --output-dir "${part_dir}" \
       --comparator-path "${AUTOPCP_COMPARATOR}" \
+      --encoder-model "${AUTOPCP_ENCODER}" \
       --device cuda:0 \
       --pick-layer 9 \
       --symmetrize \

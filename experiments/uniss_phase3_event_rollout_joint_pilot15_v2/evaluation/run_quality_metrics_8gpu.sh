@@ -16,10 +16,17 @@ EVAL_ENV="${EVAL_ENV:-${USER_ROOT}/conda_envs/uniss-eval}"
 PYTHON="${PYTHON:-${EVAL_ENV}/bin/python}"
 GPU_LIST="${GPU_LIST:-0,1,2,3,4,5,6,7}"
 AUTOPCP_COMPARATOR="${AUTOPCP_COMPARATOR:-${USER_ROOT}/evaluation_models/AutoPCP-multilingual-v2}"
+AUTOPCP_ENCODER="${AUTOPCP_ENCODER:-${USER_ROOT}/evaluation_models/wav2vec2-large-xlsr-53}"
 WAVLM_SPEAKER_MODEL="${WAVLM_SPEAKER_MODEL:-${USER_ROOT}/evaluation_models/wavlm-base-plus-sv}"
 
-for required in "${RESULTS}" "${PYTHON}" "${AUTOPCP_COMPARATOR}"; do
+for required in "${RESULTS}" "${PYTHON}" "${AUTOPCP_COMPARATOR}" "${AUTOPCP_ENCODER}"; do
   [[ -e "${required}" ]] || { echo "Missing quality-metric input: ${required}" >&2; exit 1; }
+done
+for required in config.json preprocessor_config.json pytorch_model.bin; do
+  [[ -f "${AUTOPCP_ENCODER}/${required}" ]] || {
+    echo "Incomplete local AutoPCP encoder: ${AUTOPCP_ENCODER}/${required}" >&2
+    exit 1
+  }
 done
 [[ -f "${WAVLM_SPEAKER_MODEL}/config.json" ]] || {
   echo "Missing fixed-speaker WavLM model: ${WAVLM_SPEAKER_MODEL}" >&2
@@ -124,6 +131,7 @@ for ((index = 0; index < 8; index++)); do
   CUDA_VISIBLE_DEVICES="${gpu}" "${PYTHON}" -m evaluation.autopcp_metrics \
     --input "${RESULTS}" --output-dir "${part}" \
     --comparator-path "${AUTOPCP_COMPARATOR}" --device cuda:0 \
+    --encoder-model "${AUTOPCP_ENCODER}" \
     --pick-layer 9 --symmetrize --batch-size "${AUTOPCP_BATCH_SIZE:-16}" \
     --chunk-size "${AUTOPCP_CHUNK_SIZE:-1024}" --num-process 1 \
     --num-shards 8 --shard-index "${index}" --resume \

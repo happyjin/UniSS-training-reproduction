@@ -39,6 +39,8 @@ def test_quality_orchestration_runs_all_hard_gate_metrics() -> None:
     ):
         assert module in source
     assert "GPU_LIST must contain exactly 8 GPU IDs" in source
+    assert 'AUTOPCP_ENCODER="${AUTOPCP_ENCODER:-${USER_ROOT}/evaluation_models/wav2vec2-large-xlsr-53}"' in source
+    assert '--encoder-model "${AUTOPCP_ENCODER}"' in source
     assert "complete.json" in source
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
@@ -59,6 +61,7 @@ def test_phase3_retention_is_paired_and_eight_gpu() -> None:
     assert "evaluation.text_metrics" in metrics
     assert "evaluation.slc_metrics" in metrics
     assert "run_objective_metrics.sh" in metrics
+    assert "AUTOPCP_ENCODER" in metrics
     assert "complete.json" in metrics
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in metrics
