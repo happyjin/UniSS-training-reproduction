@@ -58,3 +58,24 @@ def test_aggregate_detects_premature_first_write() -> None:
 def test_aggregate_rejects_duplicate_samples() -> None:
     with pytest.raises(ValueError, match="duplicate"):
         aggregate([{"samples": [_sample("a")]}, {"samples": [_sample("a")] }])
+
+
+def test_aggregate_proves_expected_sample_coverage() -> None:
+    report, _ = aggregate(
+        [{"samples": [_sample("a"), _sample("b")] }],
+        expected_sample_ids={"a", "b"},
+        expected_directions={"eng->cmn": 2},
+    )
+    assert report["coverage"] == {
+        "expected_samples": 2,
+        "observed_samples": 2,
+        "complete": True,
+    }
+
+
+def test_aggregate_rejects_missing_expected_sample() -> None:
+    with pytest.raises(ValueError, match="coverage mismatch"):
+        aggregate(
+            [{"samples": [_sample("a")] }],
+            expected_sample_ids={"a", "b"},
+        )

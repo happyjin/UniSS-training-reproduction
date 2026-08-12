@@ -102,7 +102,33 @@ def _group(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
     }
 
 
-def aggregate(summaries: Sequence[Mapping[str, object]]) -> tuple[dict[str, object], list[dict[str, object]]]:
+def _expected_samples(
+    manifests: Sequence[Path],
+) -> tuple[set[str], Counter[str]]:
+    ids: set[str] = set()
+    directions: Counter[str] = Counter()
+    for manifest in manifests:
+        with manifest.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                sample_id = str(row["id"])
+                if sample_id in ids:
+                    raise ValueError(
+                        f"duplicate expected sample ID {sample_id} in {manifest}:{line_number}"
+                    )
+                ids.add(sample_id)
+                directions[f"{row.get('src_lang')}->{row.get('tgt_lang')}"] += 1
+    return ids, directions
+
+
+def aggregate(
+    summaries: Sequence[Mapping[str, object]],
+    *,
+    expected_sample_ids: set[str] | None = None,
+    expected_directions: Mapping[str, int] | None = None,
+) -> tuple[dict[str, object], list[dict[str, object]]]:
     rows: list[dict[str, object]] = []
     provenance: list[dict[str, object]] = []
     ids: set[str] = set()
@@ -132,15 +158,38 @@ def aggregate(summaries: Sequence[Mapping[str, object]]) -> tuple[dict[str, obje
                 }
             )
             rows.append(row)
+    if expected_sample_ids is not None:
+        missing = sorted(expected_sample_ids - ids)
+        extra = sorted(ids - expected_sample_ids)
+        if missing or extra:
+            raise ValueError(
+                "exact-runtime sample coverage mismatch: "
+                f"missing={len(missing)} {missing[:8]}, extra={len(extra)} {extra[:8]}"
+            )
     grouped: dict[str, list[dict[str, object]]] = defaultdict(list)
     for row in rows:
         grouped["all"].append(row)
         grouped[f"{row.get('src_lang')}->{row.get('tgt_lang')}"] .append(row)
+    actual_directions = Counter(
+        f"{row.get('src_lang')}->{row.get('tgt_lang')}" for row in rows
+    )
+    if expected_directions is not None and actual_directions != Counter(expected_directions):
+        raise ValueError(
+            "exact-runtime direction coverage mismatch: "
+            f"expected={dict(expected_directions)}, actual={dict(actual_directions)}"
+        )
     report = {
         "schema_version": SCHEMA,
         "samples": len(rows),
         "unique_sample_ids": len(ids),
-        "directions": dict(sorted(Counter(f"{row.get('src_lang')}->{row.get('tgt_lang')}" for row in rows).items())),
+        "directions": dict(sorted(actual_directions.items())),
+        "coverage": {
+            "expected_samples": (
+                len(expected_sample_ids) if expected_sample_ids is not None else "not_provided"
+            ),
+            "observed_samples": len(ids),
+            "complete": expected_sample_ids is not None and ids == expected_sample_ids,
+        },
         "provenance": provenance,
         "groups": {name: _group(values) for name, values in sorted(grouped.items())},
         "missing_evidence": [
@@ -194,12 +243,21 @@ def markdown(report: Mapping[str, object]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary", action="append", required=True, type=Path)
+    parser.add_argument("--expected-manifest", action="append", type=Path, default=[])
     parser.add_argument("--output-root", required=True, type=Path)
     args = parser.parse_args()
     if args.output_root.exists():
         raise FileExistsError(f"refusing to overwrite aggregate: {args.output_root}")
     summaries = [json.loads(path.read_text(encoding="utf-8")) for path in args.summary]
-    report, rows = aggregate(summaries)
+    expected_ids = None
+    expected_directions = None
+    if args.expected_manifest:
+        expected_ids, expected_directions = _expected_samples(args.expected_manifest)
+    report, rows = aggregate(
+        summaries,
+        expected_sample_ids=expected_ids,
+        expected_directions=expected_directions,
+    )
     args.output_root.mkdir(parents=True)
     (args.output_root / "aggregate.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -211,4 +269,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
