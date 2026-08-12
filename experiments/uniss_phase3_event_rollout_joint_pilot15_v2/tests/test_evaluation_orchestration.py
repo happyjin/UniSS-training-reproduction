@@ -19,6 +19,7 @@ def test_eight_gpu_orchestration_is_complete_and_non_overwriting() -> None:
     assert "fused_cached fused_uncached unfused_cached unfused_uncached" in source
     assert 'KV_CACHE="${parity_cache[${index}]}"' in source
     assert "compare_runtime_parity" in source
+    assert '"${OUTPUT_ROOT}/complete.json"' in source
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
 
@@ -53,6 +54,7 @@ def test_phase3_retention_is_paired_and_eight_gpu() -> None:
     assert "GPU_LIST must contain exactly 8 GPU IDs" in source
     assert "evaluate_phase3_retention" in source
     assert "merge_phase3_retention" in source
+    assert '"${OUTPUT_ROOT}/complete.json"' in source
     assert "--samples-per-direction" in source
 
     metrics = (
@@ -90,7 +92,11 @@ def test_post_training_pipeline_waits_then_probes_and_full_evaluates() -> None:
         encoding="utf-8"
     )
     assert "after training is done" in source
-    assert '[[ ! -e "${OUTPUT_ROOT}" ]]' in source
+    assert '[[ -e "${OUTPUT_ROOT}" && "${RESUME}" != 1 ]]' in source
+    assert 'RESUME="${RESUME:-0}"' in source
+    assert "runtime_complete" in source
+    assert "retention_complete" in source
+    assert "Cannot safely resume incomplete runtime root" in source
     assert "summarize_validation" in source
     assert "shortlist_checkpoints" in source
     assert "run_checkpoint_evaluation_8gpu.sh" in source

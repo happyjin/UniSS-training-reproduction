@@ -162,4 +162,24 @@ done
   "${parity_args[@]}" --output "${OUTPUT_ROOT}/parity/report.json" \
   >"${OUTPUT_ROOT}/logs/compare_parity.log" 2>&1
 
+"${TRAIN_PYTHON}" - "${OUTPUT_ROOT}/complete.json" <<'PY'
+import json, sys
+from pathlib import Path
+
+Path(sys.argv[1]).write_text(
+    json.dumps(
+        {
+            "status": "complete",
+            "artifacts": [
+                "valid_aggregate/aggregate.json",
+                "train_aggregate/aggregate.json",
+                "parity/report.json",
+            ],
+        },
+        indent=2,
+    ) + "\n",
+    encoding="utf-8",
+)
+PY
+
 printf '%s\n' "${OUTPUT_ROOT}"

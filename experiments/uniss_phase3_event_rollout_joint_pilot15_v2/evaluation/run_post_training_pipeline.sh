@@ -21,6 +21,7 @@ POLL_SECONDS="${POLL_SECONDS:-30}"
 TRAIN_PYTHON="${TRAIN_PYTHON:-${USER_ROOT}/conda_envs/uniss-train/bin/python}"
 PIPELINE_TAG="${PIPELINE_TAG:-post_training_$(date -u +%Y%m%dT%H%M%SZ)}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-${REPO_ROOT}/reports/${RUN_NAME}/post_training_pipeline/${PIPELINE_TAG}}"
+RESUME="${RESUME:-0}"
 
 for value in \
   "${TRAIN_LOG}" \
@@ -32,7 +33,11 @@ for value in \
   "${EVAL_DIR}/run_phase3_retention_metrics_8gpu.sh"; do
   [[ -e "${value}" ]] || { echo "Missing post-training pipeline input: ${value}" >&2; exit 1; }
 done
-[[ ! -e "${OUTPUT_ROOT}" ]] || { echo "Refusing to overwrite ${OUTPUT_ROOT}" >&2; exit 1; }
+[[ "${RESUME}" =~ ^[01]$ ]] || { echo "RESUME must be 0 or 1" >&2; exit 2; }
+if [[ -e "${OUTPUT_ROOT}" && "${RESUME}" != 1 ]]; then
+  echo "Refusing to overwrite ${OUTPUT_ROOT}; set RESUME=1 to continue an audited partial pipeline" >&2
+  exit 1
+fi
 for value in \
   "${TRAIN_ITERATIONS}" \
   "${MAXIMUM_CANDIDATES}" \
@@ -49,6 +54,24 @@ done
 mkdir -p "${OUTPUT_ROOT}/logs"
 exec > >(tee -a "${OUTPUT_ROOT}/logs/pipeline.log") 2>&1
 printf 'post-training pipeline root: %s\n' "${OUTPUT_ROOT}"
+printf 'resume mode: %s\n' "${RESUME}"
+
+runtime_complete() {
+  local root="$1"
+  [[ -f "${root}/complete.json" ]] || {
+    [[ -f "${root}/valid_aggregate/aggregate.json" ]] &&
+      [[ -f "${root}/train_aggregate/aggregate.json" ]] &&
+      [[ -f "${root}/parity/report.json" ]]
+  }
+}
+
+retention_complete() {
+  local root="$1"
+  [[ -f "${root}/complete.json" ]] || {
+    [[ -f "${root}/aggregate/aggregate.json" ]] &&
+      [[ -f "${root}/aggregate/results.jsonl" ]]
+  }
+}
 
 latest_logged_iteration() {
   "${TRAIN_PYTHON}" - "${TRAIN_LOG}" <<'PY'
@@ -82,17 +105,24 @@ done
 
 SUMMARY_ROOT="${OUTPUT_ROOT}/validation"
 mkdir -p "${SUMMARY_ROOT}"
-"${TRAIN_PYTHON}" \
-  -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.summarize_validation \
-  --log "${TRAIN_LOG}" --checkpoint-root "${CHECKPOINT_ROOT}" \
-  --json "${SUMMARY_ROOT}/validation_checkpoints.json" \
-  --markdown "${SUMMARY_ROOT}/validation_checkpoints.md"
-"${TRAIN_PYTHON}" \
-  -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.shortlist_checkpoints \
-  --validation-summary "${SUMMARY_ROOT}/validation_checkpoints.json" \
-  --maximum-candidates "${MAXIMUM_CANDIDATES}" \
-  --json "${SUMMARY_ROOT}/checkpoint_shortlist.json" \
-  --markdown "${SUMMARY_ROOT}/checkpoint_shortlist.md"
+if [[ -f "${SUMMARY_ROOT}/validation_checkpoints.json" && \
+      -f "${SUMMARY_ROOT}/validation_checkpoints.md" && \
+      -f "${SUMMARY_ROOT}/checkpoint_shortlist.json" && \
+      -f "${SUMMARY_ROOT}/checkpoint_shortlist.md" ]]; then
+  echo "resume: validation summary and shortlist already complete"
+else
+  "${TRAIN_PYTHON}" \
+    -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.summarize_validation \
+    --log "${TRAIN_LOG}" --checkpoint-root "${CHECKPOINT_ROOT}" \
+    --json "${SUMMARY_ROOT}/validation_checkpoints.json" \
+    --markdown "${SUMMARY_ROOT}/validation_checkpoints.md"
+  "${TRAIN_PYTHON}" \
+    -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.shortlist_checkpoints \
+    --validation-summary "${SUMMARY_ROOT}/validation_checkpoints.json" \
+    --maximum-candidates "${MAXIMUM_CANDIDATES}" \
+    --json "${SUMMARY_ROOT}/checkpoint_shortlist.json" \
+    --markdown "${SUMMARY_ROOT}/checkpoint_shortlist.md"
+fi
 
 mapfile -t CANDIDATES < <(
   "${TRAIN_PYTHON}" - "${SUMMARY_ROOT}/checkpoint_shortlist.json" <<'PY'
@@ -115,27 +145,56 @@ for iteration in "${CANDIDATES[@]}"; do
   retention_root="${candidate_root}/phase3_retention"
   mkdir -p "${candidate_root}"
 
-  RUN_NAME="${RUN_NAME}" ITERATION="${iteration}" GPU_LIST="${GPU_LIST}" \
-    OUTPUT_ROOT="${runtime_root}" EVAL_TAG="${PIPELINE_TAG}_probe_iter_${formatted}" \
-    VALID_SAMPLES_PER_DIRECTION="${PROBE_VALID_SAMPLES_PER_DIRECTION}" \
-    TRAIN_SAMPLES_PER_DIRECTION="${PROBE_TRAIN_SAMPLES_PER_DIRECTION}" \
-    PARITY_SAMPLES_PER_DIRECTION="${PARITY_SAMPLES_PER_DIRECTION}" \
-    "${EVAL_DIR}/run_checkpoint_evaluation_8gpu.sh"
-  GPU_LIST="${GPU_LIST}" "${EVAL_DIR}/run_quality_metrics_8gpu.sh" "${runtime_root}"
+  if runtime_complete "${runtime_root}"; then
+    echo "resume: iter ${iteration} runtime and parity already complete"
+  else
+    [[ ! -e "${runtime_root}" ]] || {
+      echo "Cannot safely resume incomplete runtime root: ${runtime_root}" >&2
+      exit 1
+    }
+    RUN_NAME="${RUN_NAME}" ITERATION="${iteration}" GPU_LIST="${GPU_LIST}" \
+      OUTPUT_ROOT="${runtime_root}" EVAL_TAG="${PIPELINE_TAG}_probe_iter_${formatted}" \
+      VALID_SAMPLES_PER_DIRECTION="${PROBE_VALID_SAMPLES_PER_DIRECTION}" \
+      TRAIN_SAMPLES_PER_DIRECTION="${PROBE_TRAIN_SAMPLES_PER_DIRECTION}" \
+      PARITY_SAMPLES_PER_DIRECTION="${PARITY_SAMPLES_PER_DIRECTION}" \
+      "${EVAL_DIR}/run_checkpoint_evaluation_8gpu.sh"
+  fi
+  if [[ -f "${runtime_root}/valid_aggregate/metrics/complete.json" ]]; then
+    echo "resume: iter ${iteration} streaming quality metrics already complete"
+  else
+    GPU_LIST="${GPU_LIST}" "${EVAL_DIR}/run_quality_metrics_8gpu.sh" "${runtime_root}"
+  fi
 
-  RUN_NAME="${RUN_NAME}" ITERATION="${iteration}" GPU_LIST="${GPU_LIST}" \
-    OUTPUT_ROOT="${retention_root}" TAG="${PIPELINE_TAG}_probe_iter_${formatted}" \
-    SAMPLES_PER_DIRECTION="${PROBE_RETENTION_SAMPLES_PER_DIRECTION}" \
-    "${EVAL_DIR}/run_phase3_retention_8gpu.sh"
-  GPU_LIST="${GPU_LIST}" \
-    "${EVAL_DIR}/run_phase3_retention_metrics_8gpu.sh" "${retention_root}"
+  if retention_complete "${retention_root}"; then
+    echo "resume: iter ${iteration} Phase3 retention generation already complete"
+  else
+    [[ ! -e "${retention_root}" ]] || {
+      echo "Cannot safely resume incomplete retention root: ${retention_root}" >&2
+      exit 1
+    }
+    RUN_NAME="${RUN_NAME}" ITERATION="${iteration}" GPU_LIST="${GPU_LIST}" \
+      OUTPUT_ROOT="${retention_root}" TAG="${PIPELINE_TAG}_probe_iter_${formatted}" \
+      SAMPLES_PER_DIRECTION="${PROBE_RETENTION_SAMPLES_PER_DIRECTION}" \
+      "${EVAL_DIR}/run_phase3_retention_8gpu.sh"
+  fi
+  if [[ -f "${retention_root}/aggregate/metrics/complete.json" ]]; then
+    echo "resume: iter ${iteration} Phase3 retention metrics already complete"
+  else
+    GPU_LIST="${GPU_LIST}" \
+      "${EVAL_DIR}/run_phase3_retention_metrics_8gpu.sh" "${retention_root}"
+  fi
 
   probe_selector_args+=(--candidate "${iteration}" "${runtime_root}" "${retention_root}")
 done
 
-"${TRAIN_PYTHON}" \
-  -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.select_final_checkpoint \
-  "${probe_selector_args[@]}" --output-root "${OUTPUT_ROOT}/probe_selection"
+if [[ -f "${OUTPUT_ROOT}/probe_selection/checkpoint_selection.json" && \
+      -f "${OUTPUT_ROOT}/probe_selection/checkpoint_selection.md" ]]; then
+  echo "resume: probe checkpoint selection already complete"
+else
+  "${TRAIN_PYTHON}" \
+    -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.select_final_checkpoint \
+    "${probe_selector_args[@]}" --output-root "${OUTPUT_ROOT}/probe_selection"
+fi
 
 SELECTED_ITERATION="$(
   "${TRAIN_PYTHON}" - "${OUTPUT_ROOT}/probe_selection/checkpoint_selection.json" <<'PY'
