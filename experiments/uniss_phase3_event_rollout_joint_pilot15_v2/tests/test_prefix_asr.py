@@ -52,3 +52,22 @@ def test_unrelated_asr_never_becomes_useful_audio() -> None:
     report = score(rows, minimum_similarity=0.5, minimum_content_units=2)
     assert report["groups"]["all"]["useful_audio_recall"] == 0.0
     assert report["groups"]["all"]["first_useful_audio_wall_ms"]["p50"] is None
+
+
+def test_runtime_failures_remain_in_useful_audio_recall_denominator() -> None:
+    report = score(
+        [],
+        minimum_similarity=0.5,
+        minimum_content_units=2,
+        expected_samples=[
+            {
+                "sample_id": "failed",
+                "src_lang": "eng",
+                "tgt_lang": "cmn",
+                "error": "runtime_error:semantic_safety_ceiling",
+            }
+        ],
+    )
+    assert report["groups"]["all"]["samples"] == 1
+    assert report["groups"]["all"]["useful_audio_recall"] == 0.0
+    assert report["samples"][0]["runtime_error"]

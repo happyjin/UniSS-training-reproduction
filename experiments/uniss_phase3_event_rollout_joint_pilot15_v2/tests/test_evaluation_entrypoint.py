@@ -24,7 +24,8 @@ def test_v2_shell_wrapper_is_non_overwriting_and_configurable() -> None:
     assert '[[ ! -e "${OUTPUT}" ]]' in source
     assert "uniss_phase3_event_rollout_joint_pilot15_v2.evaluation" in source
     assert 'FUSE_TICKS="${FUSE_TICKS:-1}"' in source
-    assert 'STATIC_CACHE="${STATIC_CACHE:-1}"' in source
+    assert 'KV_CACHE="${KV_CACHE:-1}"' in source
+    assert "--no-kv-cache" in source
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
 
@@ -39,3 +40,10 @@ def test_audio_audit_distinguishes_playable_pcm_from_silence(tmp_path: Path) -> 
     assert speech_audit["severe_semantic_collapse"] is False
     assert speech_audit["translation_audio_finite"] is True
     assert speech_audit["translation_audio_samples"] == 1600
+
+
+def test_runtime_wrapper_records_sample_errors_instead_of_claiming_audio() -> None:
+    source = Path(evaluate_checkpoint.__file__).read_text(encoding="utf-8")
+    assert '"audio_path": None' in source
+    assert '"severe_semantic_collapse": True' in source
+    assert 'summary["runtime_error_samples"]' in source

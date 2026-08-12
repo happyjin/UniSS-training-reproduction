@@ -100,7 +100,7 @@ run_eight_shards() {
     CUDA_VISIBLE_DEVICES="${gpu}" ITERATION="${ITERATION}" RUN_NAME="${RUN_NAME}" \
       CHECKPOINT="${CHECKPOINT}" BASE_MODEL="${BASE_MODEL}" EXPORT_ROOT="${EXPORT_ROOT}" \
       FORMAL_MANIFEST="${manifest}" SPEAKER_FORMAL_MANIFEST="${TRAIN_SOURCE}" \
-      SPLIT="${split}" SAMPLES=2147483647 DEVICE=cuda:0 FUSE_TICKS=1 STATIC_CACHE=1 \
+      SPLIT="${split}" SAMPLES=2147483647 DEVICE=cuda:0 FUSE_TICKS=1 KV_CACHE=1 \
       TAG="${EVAL_TAG}" OUTPUT="${output}" INFERENCE_PYTHON="${INFERENCE_PYTHON}" \
       "${EVAL_DIR}/evaluate_checkpoint.sh" \
       >"${OUTPUT_ROOT}/logs/${split}_${index}.log" 2>&1 &
@@ -146,7 +146,7 @@ for ((index = 0; index < 4; index++)); do
     CHECKPOINT="${CHECKPOINT}" BASE_MODEL="${BASE_MODEL}" EXPORT_ROOT="${EXPORT_ROOT}" \
     FORMAL_MANIFEST="${parity_manifest}" SPEAKER_FORMAL_MANIFEST="${TRAIN_SOURCE}" \
     SPLIT=valid SAMPLES=2147483647 DEVICE=cuda:0 \
-    FUSE_TICKS="${parity_fuse[${index}]}" STATIC_CACHE="${parity_cache[${index}]}" \
+    FUSE_TICKS="${parity_fuse[${index}]}" KV_CACHE="${parity_cache[${index}]}" \
     TAG="${EVAL_TAG}_${mode}" OUTPUT="${OUTPUT_ROOT}/parity/${mode}" \
     INFERENCE_PYTHON="${INFERENCE_PYTHON}" "${EVAL_DIR}/evaluate_checkpoint.sh" \
     >"${OUTPUT_ROOT}/logs/parity_${mode}.log" 2>&1 &

@@ -17,6 +17,7 @@ def test_eight_gpu_orchestration_is_complete_and_non_overwriting() -> None:
     assert 'VALID_SAMPLES_PER_DIRECTION="${VALID_SAMPLES_PER_DIRECTION:-}"' in source
     assert "--expected-manifest" in source
     assert "fused_cached fused_uncached unfused_cached unfused_uncached" in source
+    assert 'KV_CACHE="${parity_cache[${index}]}"' in source
     assert "compare_runtime_parity" in source
     assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 

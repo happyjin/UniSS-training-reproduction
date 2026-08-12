@@ -42,6 +42,8 @@ def build(rows: Sequence[Mapping[str, object]], output_root: Path) -> list[dict[
     audio_root.mkdir()
     output: list[dict[str, object]] = []
     for row in rows:
+        if row.get("error") or not row.get("audio_path"):
+            continue
         sample_id = str(row["sample_id"])
         audio_path = Path(str(row["audio_path"])).resolve()
         audio, sample_rate = sf.read(audio_path, dtype="float32", always_2d=False)
@@ -110,4 +112,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

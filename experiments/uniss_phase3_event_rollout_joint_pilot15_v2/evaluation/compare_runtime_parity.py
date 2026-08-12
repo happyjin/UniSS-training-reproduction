@@ -53,6 +53,7 @@ def compare(summaries: Mapping[str, Mapping[str, object]]) -> dict[str, object]:
             reference = by_mode[reference_mode][sample_id]
             candidate = rows[sample_id]
             checks = {
+                "error": candidate.get("error") == reference.get("error"),
                 "generated_text": candidate.get("generated_text") == reference.get("generated_text"),
                 "semantic_trace": semantic_trace(candidate) == semantic_trace(reference),
                 "natural_writes": candidate.get("natural_writes") == reference.get("natural_writes"),

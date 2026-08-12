@@ -25,12 +25,12 @@ TAG="${TAG:-strict_exact_runtime_v2}"
 SAMPLES="${SAMPLES:-2}"
 DEVICE="${DEVICE:-cuda:0}"
 FUSE_TICKS="${FUSE_TICKS:-1}"
-STATIC_CACHE="${STATIC_CACHE:-1}"
+KV_CACHE="${KV_CACHE:-1}"
 EXPORT_ROOT="${EXPORT_ROOT:-${REPO_ROOT}/reports/${RUN_NAME}/runtime_exports/iter_$(printf '%07d' "${ITERATION}")}"
 OUTPUT="${OUTPUT:-${REPO_ROOT}/reports/${RUN_NAME}/evaluation/${SPLIT}_${TAG}/iter_$(printf '%07d' "${ITERATION}")}"
 
 case "${FUSE_TICKS}" in 0|1) ;; *) echo "FUSE_TICKS must be 0 or 1" >&2; exit 2 ;; esac
-case "${STATIC_CACHE}" in 0|1) ;; *) echo "STATIC_CACHE must be 0 or 1" >&2; exit 2 ;; esac
+case "${KV_CACHE}" in 0|1) ;; *) echo "KV_CACHE must be 0 or 1" >&2; exit 2 ;; esac
 
 for value in "${CHECKPOINT}/.metadata" "${BASE_MODEL}/config.json" \
   "${FORMAL_MANIFEST}" "${FORMAL_MANIFEST}.offsets.bin" \
@@ -52,7 +52,7 @@ mkdir -p "${PYTORCH_KERNEL_CACHE_PATH}" "${CUDA_CACHE_PATH}" "${TMPDIR}"
 
 RUNTIME_FLAGS=()
 [[ "${FUSE_TICKS}" == 1 ]] && RUNTIME_FLAGS+=(--fuse-ticks)
-[[ "${STATIC_CACHE}" == 1 ]] && RUNTIME_FLAGS+=(--static-cache)
+[[ "${KV_CACHE}" == 0 ]] && RUNTIME_FLAGS+=(--no-kv-cache)
 
 exec "${INFERENCE_PYTHON}" \
   -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.evaluate_checkpoint \

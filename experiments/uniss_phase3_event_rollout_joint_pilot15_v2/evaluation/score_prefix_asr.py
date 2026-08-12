@@ -55,6 +55,7 @@ def score(
     *,
     minimum_similarity: float,
     minimum_content_units: int,
+    expected_samples: Sequence[Mapping[str, object]] = (),
 ) -> dict[str, object]:
     grouped: dict[str, list[dict[str, object]]] = defaultdict(list)
     for raw in rows:
@@ -93,6 +94,29 @@ def score(
                 "candidates": candidates,
             }
         )
+
+    observed = {str(value["sample_id"]) for value in samples}
+    for raw in expected_samples:
+        sample_id = str(raw.get("sample_id", raw.get("id")))
+        if sample_id in observed:
+            continue
+        samples.append(
+            {
+                "sample_id": sample_id,
+                "src_lang": raw["src_lang"],
+                "tgt_lang": raw["tgt_lang"],
+                "candidate_count": 0,
+                "first_useful_audio_found": False,
+                "first_useful_audio_source_ms": None,
+                "first_useful_audio_wall_ms": None,
+                "first_useful_audio_asr_text": None,
+                "first_useful_audio_prefix_similarity": None,
+                "first_useful_audio_candidate_id": None,
+                "candidates": [],
+                "runtime_error": raw.get("error"),
+            }
+        )
+    samples.sort(key=lambda value: str(value["sample_id"]))
 
     def group_report(values: Sequence[Mapping[str, object]]) -> dict[str, object]:
         latency = [
@@ -135,6 +159,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--asr-results", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--runtime-results", type=Path)
     parser.add_argument("--minimum-similarity", type=float, default=0.50)
     parser.add_argument("--minimum-content-units", type=int, default=2)
     args = parser.parse_args()
@@ -142,10 +167,15 @@ def main() -> None:
         raise FileExistsError(f"refusing to overwrite useful-audio report: {args.output}")
     with args.asr_results.open("r", encoding="utf-8") as handle:
         rows = [json.loads(line) for line in handle if line.strip()]
+    expected_samples = []
+    if args.runtime_results is not None:
+        with args.runtime_results.open("r", encoding="utf-8") as handle:
+            expected_samples = [json.loads(line) for line in handle if line.strip()]
     report = score(
         rows,
         minimum_similarity=args.minimum_similarity,
         minimum_content_units=args.minimum_content_units,
+        expected_samples=expected_samples,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -154,4 +184,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

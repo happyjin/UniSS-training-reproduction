@@ -35,3 +35,11 @@ teacher-forced candidates sequentially on all eight GPUs, and runs the full
 fixed15 validation only for a checkpoint that passes the probe hard gates.
 Every invocation uses a unique output root and refuses to overwrite prior
 runtime, metric or retention evidence.
+
+The supported persistent-cache mode is Hugging Face's dynamic KV cache; the
+Qwen2 FlashAttention2 path explicitly rejects `StaticCache`.  Runtime parity
+uses a dedicated full-history backend for the `uncached` modes, so the four
+audited modes are genuinely fused/unfused times cached/uncached.  Per-sample
+runtime failures such as reaching the semantic safety ceiling are retained as
+collapsed, non-useful outputs and reject the checkpoint instead of aborting the
+remaining samples or being force-truncated into apparent success.

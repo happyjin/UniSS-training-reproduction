@@ -3,13 +3,16 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import time
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 
 import web_demo.runtime_parity_streaming_v2.evaluate_checkpoint as runtime_eval
+import experiments.uniss_phase3_runtime_parity_streaming_v2.generalize15_action_eos_calibration.inference as calibrated_runtime
 from experiments.uniss_phase3_event_rollout_joint_pilot15_v1.evaluation.model_loader import (
     load_runtime_models,
 )
@@ -19,7 +22,11 @@ from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize15_action_eo
 from web_demo.runtime_parity_streaming_v5.evaluate_checkpoint import (
     WarmedBiCodecTokenizer,
 )
+from web_demo.runtime_parity_streaming_v2.inference import RuntimeResult
 from training.simul_uniss.jsonl_index import load_index
+from experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.uncached_backend import (
+    UncachedHuggingFaceBackend,
+)
 
 
 def audio_audit(path: Path) -> dict[str, object]:
@@ -61,12 +68,87 @@ def oracle_target_prefixes(row: dict[str, object]) -> list[str]:
     return [separator.join(pieces[:end]) for end in range(1, len(pieces) + 1)]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--base-model", required=True)
+    parser.add_argument("--export", required=True)
+    parser.add_argument("--formal-manifest", required=True)
+    parser.add_argument("--speaker-formal-manifest", required=True)
+    parser.add_argument("--speaker-source-index", type=int, default=0)
+    parser.add_argument("--whispervq-model", required=True)
+    parser.add_argument("--speech-tokenizer", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--samples", type=int, default=1)
+    parser.add_argument("--maximum-text-tokens", type=int, default=16)
+    parser.add_argument("--maximum-semantic-tokens", type=int, default=80)
+    parser.add_argument("--fuse-ticks", action="store_true")
+    parser.add_argument("--static-cache", action="store_true")
+    parser.add_argument("--no-kv-cache", action="store_true")
+    parser.add_argument("--maximum-cache-tokens", type=int, default=32_768)
+    parser.add_argument("--maximum-drain-ticks", type=int, default=32)
+    parser.add_argument("--minimum-text-similarity", type=float, default=0.50)
+    parser.add_argument("--maximum-rtf", type=float, default=1.0)
+    parser.add_argument("--maximum-first-audio-wall-ms", type=float, default=1000.0)
+    return parser.parse_args()
+
+
+def safe_runtime_evaluate_waveform(original):
+    """Turn per-sample runtime failures into conservative failed evidence."""
+
+    def wrapped(**kwargs):
+        started = time.perf_counter()
+        try:
+            return original(**kwargs)
+        except Exception as exc:
+            waveform = np.asarray(kwargs["waveform"], dtype=np.float32).reshape(-1)
+            source_duration_ms = int(round(len(waveform) * 1000 / 16000))
+            processing_seconds = time.perf_counter() - started
+            failure = f"runtime_error:{type(exc).__name__}:{exc}"
+            return RuntimeResult(
+                sample_id=str(kwargs["sample_id"]),
+                source_duration_ms=source_duration_ms,
+                target_text=str(kwargs["target_text"]),
+                generated_text="",
+                text_similarity=0.0,
+                events=(),
+                natural_writes=0,
+                semantic_tokens=0,
+                first_write_source_ms=None,
+                first_audio_source_ms=None,
+                first_write_wall_ms=None,
+                first_audio_wall_ms=None,
+                maximum_compute_backlog_ms=0.0,
+                source_finished_before_first_write=True,
+                forced_writes=0,
+                committed_revision_violations=0,
+                natural_eos=False,
+                drain_ticks=0,
+                processing_seconds=processing_seconds,
+                rtf=(processing_seconds * 1000 / max(1, source_duration_ms)),
+                translation_audio=np.zeros(0, dtype=np.float32),
+                timeline_audio=np.zeros(0, dtype=np.float32),
+                quality_passed=False,
+                quality_failures=(failure,),
+            )
+
+    return wrapped
+
+
 def evaluate(args):
     """Run the shared exact runtime while recording the repaired v2 provenance."""
 
     runtime_eval.load_runtime_models = load_runtime_models
     runtime_eval.NaturalRuntimeParityGenerator = CalibratedMicroblockRuntimeGenerator
     runtime_eval.BiCodecTokenizer = WarmedBiCodecTokenizer
+    runtime_eval.evaluate_waveform = safe_runtime_evaluate_waveform(
+        runtime_eval.evaluate_waveform
+    )
+    if args.no_kv_cache:
+        if args.static_cache:
+            raise ValueError("--no-kv-cache and --static-cache are mutually exclusive")
+        calibrated_runtime.HuggingFaceKVBackend = UncachedHuggingFaceBackend
     summary = runtime_eval.evaluate(args)
     speaker_path = Path(summary["fixed_speaker_manifest"])
     speaker_offsets = load_index(speaker_path)
@@ -107,23 +189,51 @@ def evaluate(args):
             }
     output = Path(args.output)
     for row_index, sample in enumerate(summary["samples"]):
+        sample["error"] = next(
+            (
+                str(value)
+                for value in sample.get("quality_failures", [])
+                if str(value).startswith("runtime_error:")
+            ),
+            None,
+        )
         sample.update(source_metadata[str(sample["sample_id"])])
         sample["fixed_speaker_reference_sample_id"] = str(speaker_row["id"])
         sample["fixed_speaker_reference_audio_path"] = fixed_speaker_reference_audio_path
         sample_root = output / f"{row_index:04d}_{sample['sample_id']}"
-        sample.update(audio_audit(sample_root / "translation.wav"))
-        sample["audio_path"] = str((sample_root / "translation.wav").resolve())
-        sample["timeline_audio_path"] = str(
-            (sample_root / "translation_timeline.wav").resolve()
-        )
-        sample["stereo_audio_path"] = str(
-            (sample_root / "stereo_left_source_right_translation.wav").resolve()
-        )
+        translation = sample_root / "translation.wav"
+        if translation.is_file() and not sample.get("error"):
+            sample.update(audio_audit(translation))
+            sample["audio_path"] = str(translation.resolve())
+            sample["timeline_audio_path"] = str(
+                (sample_root / "translation_timeline.wav").resolve()
+            )
+            sample["stereo_audio_path"] = str(
+                (sample_root / "stereo_left_source_right_translation.wav").resolve()
+            )
+        else:
+            sample.update(
+                {
+                    "translation_audio_samples": 0,
+                    "translation_audio_sample_rate": 16000,
+                    "translation_audio_finite": False,
+                    "translation_audio_rms": 0.0,
+                    "translation_audio_peak": 0.0,
+                    "translation_audio_non_silent_fraction": 0.0,
+                    "severe_semantic_collapse": True,
+                    "audio_path": None,
+                    "timeline_audio_path": None,
+                    "stereo_audio_path": None,
+                }
+            )
         (sample_root / "result.json").write_text(
             json.dumps(sample, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
     summary["schema_version"] = "uniss_event_rollout_fixed15_pcm_evaluation_v2"
     summary["fixed_speaker_reference_audio_path"] = fixed_speaker_reference_audio_path
+    summary["runtime_error_samples"] = sum(
+        bool(value.get("error")) for value in summary["samples"]
+    )
     summary["runtime_training"] = {
         "version": "uniss_phase3_event_rollout_joint_pilot15_v2",
         "repair": "trainable_causal_frontend",
@@ -132,6 +242,7 @@ def evaluate(args):
         "timing_classification": "pseudo_oracle_alignment",
         "natural_exact_timing": False,
         "persistent_kv": True,
+        "runtime_kv_cache": not args.no_kv_cache,
         "event_rollout_recovery": True,
         "learned_wait_write": True,
         "learned_text": True,
@@ -151,4 +262,4 @@ def evaluate(args):
 
 
 if __name__ == "__main__":
-    evaluate(runtime_eval.parse_args())
+    evaluate(parse_args())

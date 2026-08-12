@@ -165,6 +165,7 @@ fi
 run_asr "${PREFIX_ROOT}/prefix_asr_manifest.jsonl" "${PREFIX_ROOT}/metrics" prefix_asr
 "${PYTHON}" -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.score_prefix_asr \
   --asr-results "${PREFIX_ROOT}/metrics/asr_results.jsonl" \
+  --runtime-results "${RESULTS}" \
   --output "${PREFIX_ROOT}/useful_audio.json" \
   --minimum-similarity 0.50 --minimum-content-units 2
 
