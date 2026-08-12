@@ -72,6 +72,15 @@ def evaluate(args):
                 "evaluation_split": row.get("_evaluation_split"),
                 "evaluation_source_index": row.get("_evaluation_source_index"),
                 "evaluation_shard_index": row.get("_evaluation_shard_index"),
+                "oracle_first_safe_write_ms": min(
+                    (
+                        int(event["earliest_safe_ms"])
+                        for event in row.get("micro_write_events", [])
+                        if not bool(event.get("final_flush", False))
+                    ),
+                    default=None,
+                ),
+                "oracle_micro_write_count": len(row.get("micro_write_events", [])),
             }
     output = Path(args.output)
     for row_index, sample in enumerate(summary["samples"]):
