@@ -15,6 +15,7 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.objective 
     distributed_event_rollout_objective,
 )
 from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.pretrain_event_rollout_megatron import (
+    _force_smoke_rollin,
     _unwrap_training_model,
     validate_phase3_handoff_key_sets,
 )
@@ -153,3 +154,12 @@ def test_unwrap_training_model_rejects_multiple_local_chunks(monkeypatch) -> Non
     )
     with pytest.raises(ValueError, match="exactly one local model chunk"):
         _unwrap_training_model(object())
+
+
+def test_force_rollin_is_restricted_to_smoke_runs(monkeypatch) -> None:
+    monkeypatch.setenv("EVENT_ROLLOUT_FORCE_ROLLIN", "1")
+    monkeypatch.setenv("RUN_NAME", "formal_full198_v1")
+    with pytest.raises(RuntimeError, match="smoke-only"):
+        _force_smoke_rollin()
+    monkeypatch.setenv("RUN_NAME", "canary128_smoke8_v2")
+    assert _force_smoke_rollin() is True

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import types
 from pathlib import Path
 
@@ -342,11 +343,24 @@ def _model_training(model) -> bool:
     return bool(getattr(_unwrap_training_model(model), "training", False))
 
 
+def _force_smoke_rollin() -> bool:
+    raw = os.environ.get("EVENT_ROLLOUT_FORCE_ROLLIN", "0").strip().lower()
+    if raw not in {"0", "1", "false", "true", "no", "yes"}:
+        raise ValueError(f"invalid EVENT_ROLLOUT_FORCE_ROLLIN={raw!r}")
+    enabled = raw in {"1", "true", "yes"}
+    if enabled and "smoke" not in os.environ.get("RUN_NAME", "").lower():
+        raise RuntimeError(
+            "EVENT_ROLLOUT_FORCE_ROLLIN is a smoke-only coverage switch"
+        )
+    return enabled
+
+
 def _rollin_examples(raw_batch, model, progress: float):
     schedule = rollout_schedule(progress)
-    if schedule.maximum_sessions <= 0 or schedule.fraction <= 0:
+    force = _force_smoke_rollin()
+    if not force and (schedule.maximum_sessions <= 0 or schedule.fraction <= 0):
         return None
-    if torch.rand((), device="cpu").item() >= schedule.fraction:
+    if not force and torch.rand((), device="cpu").item() >= schedule.fraction:
         return None
     sessions_by_lane = raw_batch.get("oracle_sessions")
     if not isinstance(sessions_by_lane, list) or not sessions_by_lane:
