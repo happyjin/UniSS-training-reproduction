@@ -42,7 +42,14 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def build(*, parts_root: Path, output: Path, split: str, expected_parts: int) -> dict[str, object]:
+def build(
+    *,
+    parts_root: Path,
+    output: Path,
+    split: str,
+    expected_parts: int,
+    records_per_part: int | None = None,
+) -> dict[str, object]:
     parts_root = parts_root.resolve()
     output = output.resolve()
     directories = sorted(path for path in parts_root.glob("part-*") if path.is_dir())
@@ -66,13 +73,20 @@ def build(*, parts_root: Path, output: Path, split: str, expected_parts: int) ->
             raise ValueError(f"unexpected marker schema in {marker}")
         if metadata.get("status") != "complete" or int(metadata["seq_length"]) != 18_000:
             raise ValueError(f"packed part is not a complete 18k artifact: {marker}")
-        records = int(metadata["counts"]["packed_records"])
+        indexed_records = int(metadata["counts"]["packed_records"])
         index_values = load_index(packed)
-        if index_values is None or len(index_values) != records:
+        if index_values is None or len(index_values) != indexed_records:
             raise ValueError(f"packed index count mismatch in {directory}")
+        records = (
+            indexed_records
+            if records_per_part is None
+            else min(indexed_records, int(records_per_part))
+        )
+        if records <= 0:
+            raise ValueError("records_per_part must expose at least one record")
         packed_stat = packed.stat()
         index_meta = dict(metadata["index"])
-        if int(index_meta["records"]) != records:
+        if int(index_meta["records"]) != indexed_records:
             raise ValueError(f"marker index record count mismatch in {directory}")
         if int(index_meta["data_size_bytes"]) != packed_stat.st_size:
             raise ValueError(f"marker data size mismatch in {directory}")
@@ -83,6 +97,7 @@ def build(*, parts_root: Path, output: Path, split: str, expected_parts: int) ->
                 "offsets": str(offsets.resolve()),
                 "marker": str(marker.resolve()),
                 "records": records,
+                "indexed_records": indexed_records,
                 "global_start": cursor,
                 "global_end": cursor + records,
                 "packed_size_bytes": packed_stat.st_size,
@@ -105,6 +120,11 @@ def build(*, parts_root: Path, output: Path, split: str, expected_parts: int) ->
         "part_count": len(parts),
         "total_records": cursor,
         "global_namespace": "prefix_sum_over_complete_pack_ids",
+        "view": (
+            "all_indexed_records"
+            if records_per_part is None
+            else f"first_{int(records_per_part)}_records_per_part"
+        ),
         "shuffle_unit": "complete_18000_token_pack",
         "session_internal_event_order": "immutable",
         "parts": parts,
@@ -120,15 +140,16 @@ def main() -> None:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--split", required=True, choices=("train", "valid"))
     parser.add_argument("--expected-parts", required=True, type=int)
+    parser.add_argument("--records-per-part", type=int)
     args = parser.parse_args()
     build(
         parts_root=args.parts_root,
         output=args.output,
         split=args.split,
         expected_parts=args.expected_parts,
+        records_per_part=args.records_per_part,
     )
 
 
 if __name__ == "__main__":
     main()
-

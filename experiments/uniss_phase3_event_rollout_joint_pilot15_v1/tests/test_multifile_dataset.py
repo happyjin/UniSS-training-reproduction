@@ -54,6 +54,7 @@ class MultiFileDatasetTest(unittest.TestCase):
                 output=manifest,
                 split="train",
                 expected_parts=3,
+                records_per_part=None,
             )
             index = MultiFilePackIndex(manifest, expected_split="train")
             self.assertEqual(len(index), 6)
@@ -75,7 +76,27 @@ class MultiFileDatasetTest(unittest.TestCase):
                     output=root / "manifest.json",
                     split="valid",
                     expected_parts=3,
+                    records_per_part=None,
                 )
+
+    def test_read_only_prefix_view_avoids_copying_parts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parts = self._parts(root, (2, 3, 4))
+            manifest = root / "manifest.json"
+            build(
+                parts_root=parts,
+                output=manifest,
+                split="train",
+                expected_parts=3,
+                records_per_part=1,
+            )
+            index = MultiFilePackIndex(manifest, expected_split="train")
+            self.assertEqual(len(index), 3)
+            self.assertEqual(
+                [index.resolve(value) for value in range(3)],
+                [(0, 0), (1, 0), (2, 0)],
+            )
 
 
 if __name__ == "__main__":

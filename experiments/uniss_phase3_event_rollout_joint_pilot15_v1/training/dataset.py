@@ -35,13 +35,14 @@ class PackPart:
     offsets: Path
     marker: Path
     records: int
+    indexed_records: int
     global_start: int
     global_end: int
 
     def __post_init__(self) -> None:
         if not self.part_id:
             raise ValueError("pack part ID is empty")
-        if self.records <= 0:
+        if self.records <= 0 or self.indexed_records < self.records:
             raise ValueError(f"pack part {self.part_id} has no records")
         if self.global_start < 0 or self.global_end != self.global_start + self.records:
             raise ValueError(f"pack part {self.part_id} has invalid global bounds")
@@ -84,19 +85,29 @@ class MultiFilePackIndex:
             offsets = self._resolve(str(item["offsets"]))
             marker = self._resolve(str(item["marker"]))
             records = int(item["records"])
+            indexed_records = int(item.get("indexed_records", records))
             start = int(item["global_start"])
             end = int(item["global_end"])
             if start != cursor:
                 raise ValueError(
                     f"pack part {part_id} starts at {start}, expected contiguous {cursor}"
                 )
-            part = PackPart(part_id, packed, offsets, marker, records, start, end)
+            part = PackPart(
+                part_id,
+                packed,
+                offsets,
+                marker,
+                records,
+                indexed_records,
+                start,
+                end,
+            )
             offsets_values = load_index(packed)
-            if offsets_values is None or len(offsets_values) != records:
+            if offsets_values is None or len(offsets_values) != indexed_records:
                 raise ValueError(
                     f"pack part {part_id} index has "
                     f"{0 if offsets_values is None else len(offsets_values)} records, "
-                    f"expected {records}"
+                    f"expected {indexed_records}"
                 )
             if Path(str(item["offsets"])).name != offsets.name:
                 raise ValueError(f"pack part {part_id} offset path is not canonical")
@@ -143,12 +154,15 @@ class MultiFileIndexedDataset(Dataset[T], Generic[T]):
         expected_split: str | None = None,
     ) -> None:
         self.index = MultiFilePackIndex(manifest, expected_split=expected_split)
-        self.datasets = tuple(factory(part.packed) for part in self.index.parts)
-        for part, dataset in zip(self.index.parts, self.datasets):
-            if len(dataset) != part.records:
+        datasets = []
+        for part in self.index.parts:
+            dataset = factory(part.packed)
+            if len(dataset) != part.indexed_records:
                 raise ValueError(
-                    f"dataset length for {part.part_id} differs from frozen manifest"
+                    f"indexed dataset length for {part.part_id} differs from frozen manifest"
                 )
+            datasets.append(dataset)
+        self.datasets = tuple(datasets)
 
     def __len__(self) -> int:
         return len(self.index)
@@ -186,4 +200,3 @@ __all__ = [
     "MultiFilePackIndex",
     "PackPart",
 ]
-
