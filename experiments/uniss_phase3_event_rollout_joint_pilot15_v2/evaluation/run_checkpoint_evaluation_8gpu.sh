@@ -13,6 +13,7 @@ FORMAL_ROOT="${FORMAL_ROOT:-${REPO_ROOT}/data/processed/simul_uniss_subsecond_v2
 TRAIN_SOURCE="${TRAIN_SOURCE:-${FORMAL_ROOT}/formal_train_manifest.jsonl}"
 VALID_SOURCE="${VALID_SOURCE:-${FORMAL_ROOT}/formal_valid_manifest.jsonl}"
 TRAIN_SAMPLES_PER_DIRECTION="${TRAIN_SAMPLES_PER_DIRECTION:-64}"
+VALID_SAMPLES_PER_DIRECTION="${VALID_SAMPLES_PER_DIRECTION:-}"
 PARITY_SAMPLES_PER_DIRECTION="${PARITY_SAMPLES_PER_DIRECTION:-2}"
 SEED="${SEED:-20260812}"
 GPU_LIST="${GPU_LIST:-0,1,2,3,4,5,6,7}"
@@ -45,9 +46,17 @@ done
 mkdir -p "${OUTPUT_ROOT}/logs"
 MANIFEST_ROOT="${OUTPUT_ROOT}/manifests"
 
+valid_selection_args=()
+if [[ -n "${VALID_SAMPLES_PER_DIRECTION}" ]]; then
+  [[ "${VALID_SAMPLES_PER_DIRECTION}" =~ ^[1-9][0-9]*$ ]] || {
+    echo "VALID_SAMPLES_PER_DIRECTION must be empty or a positive integer" >&2
+    exit 2
+  }
+  valid_selection_args+=(--samples-per-direction "${VALID_SAMPLES_PER_DIRECTION}")
+fi
 "${TRAIN_PYTHON}" -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.prepare_runtime_manifests \
   --source "${VALID_SOURCE}" --output-root "${MANIFEST_ROOT}/valid_full8" \
-  --split valid --num-shards 8 --seed "${SEED}" \
+  --split valid --num-shards 8 --seed "${SEED}" "${valid_selection_args[@]}" \
   >"${OUTPUT_ROOT}/logs/prepare_valid.log" 2>&1
 "${TRAIN_PYTHON}" -m experiments.uniss_phase3_event_rollout_joint_pilot15_v2.evaluation.prepare_runtime_manifests \
   --source "${TRAIN_SOURCE}" --output-root "${MANIFEST_ROOT}/train_balanced8" \
