@@ -19,6 +19,7 @@ from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize15_action_eo
 from web_demo.runtime_parity_streaming_v5.evaluate_checkpoint import (
     WarmedBiCodecTokenizer,
 )
+from training.simul_uniss.jsonl_index import load_index
 
 
 def audio_audit(path: Path) -> dict[str, object]:
@@ -67,6 +68,17 @@ def evaluate(args):
     runtime_eval.NaturalRuntimeParityGenerator = CalibratedMicroblockRuntimeGenerator
     runtime_eval.BiCodecTokenizer = WarmedBiCodecTokenizer
     summary = runtime_eval.evaluate(args)
+    speaker_path = Path(summary["fixed_speaker_manifest"])
+    speaker_offsets = load_index(speaker_path)
+    if speaker_offsets is None:
+        raise ValueError("fixed speaker manifest is missing its uint64 index")
+    speaker_index = int(summary["fixed_speaker_source_index"])
+    with speaker_path.open("rb") as handle:
+        handle.seek(int(speaker_offsets[speaker_index]))
+        speaker_row = json.loads(handle.readline())
+    fixed_speaker_reference_audio_path = str(
+        Path(str(speaker_row["target_audio"])).resolve()
+    )
     formal_path = Path(summary["formal_manifest"])
     source_metadata: dict[str, dict[str, object]] = {}
     with formal_path.open("r", encoding="utf-8") as handle:
@@ -96,6 +108,8 @@ def evaluate(args):
     output = Path(args.output)
     for row_index, sample in enumerate(summary["samples"]):
         sample.update(source_metadata[str(sample["sample_id"])])
+        sample["fixed_speaker_reference_sample_id"] = str(speaker_row["id"])
+        sample["fixed_speaker_reference_audio_path"] = fixed_speaker_reference_audio_path
         sample_root = output / f"{row_index:04d}_{sample['sample_id']}"
         sample.update(audio_audit(sample_root / "translation.wav"))
         sample["audio_path"] = str((sample_root / "translation.wav").resolve())
@@ -109,6 +123,7 @@ def evaluate(args):
             json.dumps(sample, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
     summary["schema_version"] = "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    summary["fixed_speaker_reference_audio_path"] = fixed_speaker_reference_audio_path
     summary["runtime_training"] = {
         "version": "uniss_phase3_event_rollout_joint_pilot15_v2",
         "repair": "trainable_causal_frontend",
