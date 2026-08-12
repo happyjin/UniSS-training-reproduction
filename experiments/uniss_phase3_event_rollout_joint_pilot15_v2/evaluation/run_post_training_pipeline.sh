@@ -2,7 +2,7 @@
 set -euo pipefail
 
 EVAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${EVAL_DIR}/../../../.." && pwd)"
+REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"
 USER_ROOT="${USER_ROOT:-/opt/dlami/nvme/jasonleeeli}"
 
 RUN_NAME="${RUN_NAME:-uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1}"

@@ -25,6 +25,7 @@ def test_v2_shell_wrapper_is_non_overwriting_and_configurable() -> None:
     assert "uniss_phase3_event_rollout_joint_pilot15_v2.evaluation" in source
     assert 'FUSE_TICKS="${FUSE_TICKS:-1}"' in source
     assert 'STATIC_CACHE="${STATIC_CACHE:-1}"' in source
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
 
 def test_audio_audit_distinguishes_playable_pcm_from_silence(tmp_path: Path) -> None:

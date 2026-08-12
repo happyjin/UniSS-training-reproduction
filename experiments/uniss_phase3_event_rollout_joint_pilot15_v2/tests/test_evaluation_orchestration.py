@@ -18,6 +18,7 @@ def test_eight_gpu_orchestration_is_complete_and_non_overwriting() -> None:
     assert "--expected-manifest" in source
     assert "fused_cached fused_uncached unfused_cached unfused_uncached" in source
     assert "compare_runtime_parity" in source
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
 
 def test_quality_orchestration_runs_all_hard_gate_metrics() -> None:
@@ -38,6 +39,7 @@ def test_quality_orchestration_runs_all_hard_gate_metrics() -> None:
         assert module in source
     assert "GPU_LIST must contain exactly 8 GPU IDs" in source
     assert "complete.json" in source
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
 
 
 def test_phase3_retention_is_paired_and_eight_gpu() -> None:
@@ -57,6 +59,8 @@ def test_phase3_retention_is_paired_and_eight_gpu() -> None:
     assert "evaluation.slc_metrics" in metrics
     assert "run_objective_metrics.sh" in metrics
     assert "complete.json" in metrics
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in metrics
 
 
 def test_final_selector_requires_all_runtime_quality_and_retention_evidence() -> None:
@@ -91,3 +95,4 @@ def test_post_training_pipeline_waits_then_probes_and_full_evaluates() -> None:
     assert "run_phase3_retention_metrics_8gpu.sh" in source
     assert source.count("select_final_checkpoint") == 2
     assert "VALID_SAMPLES_PER_DIRECTION=" in source
+    assert 'REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"' in source

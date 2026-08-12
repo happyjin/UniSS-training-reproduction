@@ -7,7 +7,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 EVAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${EVAL_DIR}/../../../.." && pwd)"
+REPO_ROOT="$(cd "${EVAL_DIR}/../../.." && pwd)"
 USER_ROOT="${USER_ROOT:-/opt/dlami/nvme/jasonleeeli}"
 ROOT="$(realpath "$1")"
 RESULTS="${ROOT}/aggregate/results.jsonl"
