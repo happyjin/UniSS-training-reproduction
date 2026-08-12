@@ -16,6 +16,7 @@ from training import constants_uniss as c
 from web_demo.runtime_parity_streaming_v2.inference import _decode_text_choice
 from experiments.uniss_phase3_runtime_parity_streaming_v2.generalize15_action_eos_calibration.inference import (
     CalibratedContinuationPromptSession,
+    continuation_vocab_logits,
 )
 
 
@@ -45,6 +46,23 @@ def _continuation_choice(continuation_logits: torch.Tensor) -> bool:
     return bool(values[c.TOKEN_EOS] >= values[c.TOKEN_START_GLM])
 
 
+def _head_input(module, value: torch.Tensor) -> torch.Tensor:
+    """Match an FP32 newly initialized head without changing model weights."""
+
+    parameter = next(module.parameters())
+    return value.to(dtype=parameter.dtype)
+
+
+class _RolloutContinuationPromptSession(CalibratedContinuationPromptSession):
+    def _calibrated_logits(self, result):
+        if result.last_hidden is None:
+            raise RuntimeError("continuation head requires captured final hidden state")
+        pair = self.continuation_head(
+            _head_input(self.continuation_head, result.last_hidden)
+        )
+        return continuation_vocab_logits(result.logits, pair)
+
+
 @torch.inference_mode()
 def rollout_session(
     session: OracleSession,
@@ -55,7 +73,7 @@ def rollout_session(
     maximum_text_tokens: int = 16,
     maximum_semantic_tokens: int = 80,
 ) -> RolloutTrace:
-    prompt = CalibratedContinuationPromptSession(
+    prompt = _RolloutContinuationPromptSession(
         backend,
         target_lang=session.target_lang,
         speaker_global=session.speaker_global,
@@ -66,7 +84,9 @@ def rollout_session(
     maximum_blocks = (maximum_semantic_tokens + block_size - 1) // block_size
     for event in session.events:
         observation = prompt.begin_tick(event.source_codes)
-        action_logits = objective.action_head(observation.last_hidden)
+        action_logits = objective.action_head(
+            _head_input(objective.action_head, observation.last_hidden)
+        )
         action = "WRITE" if int(action_logits.float().argmax(dim=-1)[0]) == 1 else "WAIT"
         text_ids: list[int] = []
         semantic_codes: list[int] = []
@@ -88,6 +108,7 @@ def rollout_session(
                 raise RuntimeError("semantic START returned no hidden state")
             natural_end = False
             for block_index in range(maximum_blocks):
+                context = _head_input(objective.semantic_microblock_head, context)
                 block, should_continue = objective.semantic_microblock_head.decode(
                     context, embedding_weight
                 )
