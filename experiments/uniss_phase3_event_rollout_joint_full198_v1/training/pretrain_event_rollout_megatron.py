@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import types
+from contextlib import contextmanager
 from pathlib import Path
 
 import torch
@@ -355,6 +356,25 @@ def _force_smoke_rollin() -> bool:
     return enabled
 
 
+@contextmanager
+def _native_rollout_inference_mode(model):
+    """Use inference attention semantics, then restore Megatron train mode.
+
+    Transformer Engine fused attention on the installed cuDNN cannot execute a
+    masked one-token decode.  Megatron removes that redundant causal mask for a
+    cached decode only while the module is in eval mode.  Roll-in is no-grad
+    inference by design, so temporarily switching modes is both semantically
+    correct and keeps the differentiable recovery pass in train mode.
+    """
+
+    was_training = bool(model.training)
+    model.eval()
+    try:
+        yield
+    finally:
+        model.train(was_training)
+
+
 def _rollin_examples(raw_batch, model, progress: float):
     schedule = rollout_schedule(progress)
     force = _force_smoke_rollin()
@@ -370,18 +390,19 @@ def _rollin_examples(raw_batch, model, progress: float):
     embedding_weight = base._embedding_weight(native)
     examples = []
     traces = []
-    for lane_sessions in sessions_by_lane:
-        if not lane_sessions:
-            raise ValueError("trajectory lane has no oracle sessions")
-        # One exact session per local MBS lane bounds the no-grad roll-in cost.
-        session = lane_sessions[
-            int(torch.randint(len(lane_sessions), (), device="cpu").item())
-        ]
-        backend = NativeMegatronKVBackend(native, objective)
-        trace = rollout_session(session, backend, objective, embedding_weight)
-        event = choose_recovery_event(session, trace)
-        examples.append(build_recovery_example(session, trace, event))
-        traces.append((session, trace, event))
+    with _native_rollout_inference_mode(native):
+        for lane_sessions in sessions_by_lane:
+            if not lane_sessions:
+                raise ValueError("trajectory lane has no oracle sessions")
+            # One exact session per local MBS lane bounds the no-grad roll-in cost.
+            session = lane_sessions[
+                int(torch.randint(len(lane_sessions), (), device="cpu").item())
+            ]
+            backend = NativeMegatronKVBackend(native, objective)
+            trace = rollout_session(session, backend, objective, embedding_weight)
+            event = choose_recovery_event(session, trace)
+            examples.append(build_recovery_example(session, trace, event))
+            traces.append((session, trace, event))
     replacement = replace_trajectory_batch_with_recovery(
         raw_batch, examples, seq_length=int(raw_batch["tokens"].shape[1])
     )

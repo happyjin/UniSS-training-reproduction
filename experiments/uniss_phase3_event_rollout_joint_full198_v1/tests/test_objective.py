@@ -16,6 +16,7 @@ from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.objective 
 )
 from experiments.uniss_phase3_event_rollout_joint_full198_v1.training.pretrain_event_rollout_megatron import (
     _force_smoke_rollin,
+    _native_rollout_inference_mode,
     _unwrap_training_model,
     validate_phase3_handoff_key_sets,
 )
@@ -163,3 +164,15 @@ def test_force_rollin_is_restricted_to_smoke_runs(monkeypatch) -> None:
         _force_smoke_rollin()
     monkeypatch.setenv("RUN_NAME", "canary128_smoke8_v2")
     assert _force_smoke_rollin() is True
+
+
+def test_native_rollout_temporarily_uses_eval_and_restores_train_mode() -> None:
+    model = nn.Linear(2, 2).train()
+    with _native_rollout_inference_mode(model):
+        assert model.training is False
+    assert model.training is True
+
+    model.eval()
+    with _native_rollout_inference_mode(model):
+        assert model.training is False
+    assert model.training is False
