@@ -1,0 +1,19 @@
+{
+  "audit_json": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_whisper_asr/frontend_parity/20260816T204500Z/trainable_frontend_parity.json",
+  "checks": {
+    "codebook_frozen": true,
+    "codebook_gradient_absent": true,
+    "conv1_gradient_nonzero": true,
+    "future_frames_exact": true,
+    "future_pooled_hidden_exact": true,
+    "future_tokens_exact": true,
+    "pooling_frozen": true,
+    "post_vq_frozen": true,
+    "pre_vq_gradient_nonzero": true,
+    "trainable_gradients_finite": true,
+    "training_full_hidden_matches_stage00_single_mask": true,
+    "training_glm_tokens_match_stage00_100pct": true
+  },
+  "passed": true,
+  "schema_version": "uniss_stage_a_trainable_frontend_gate_v1"
+}

@@ -112,13 +112,12 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
         if tuple(filters.shape) != (N_FFT // 2 + 1, self.encoder.conv1.in_channels):
             raise ValueError("Whisper mel filters differ from Stage 00")
         self.register_buffer("mel_filters", filters, persistent=False)
-        self.register_buffer("stft_window", torch.hann_window(N_FFT), persistent=False)
 
         # Code identity and post-VQ geometry are immutable. The training path
         # does not call the historical EMA quantizer mutation code.
         for parameter in self.encoder.parameters():
             parameter.requires_grad_(False)
-        for layer in self.encoder.layers:
+        for layer in self.encoder.layers[:pooling_position]:
             for parameter in layer.parameters():
                 parameter.requires_grad_(True)
         for module in (self.encoder.conv1, self.encoder.conv2):
@@ -189,7 +188,15 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
             device=waveform.device,
         )
         pieces: list[torch.Tensor] = []
-        window = self.stft_window.to(device=waveform.device)
+        # Stage 00 constructs the Hann window directly on the execution
+        # device.  Creating it on CPU and later moving the buffer produces a
+        # small CUDA rounding difference that is large enough to break strict
+        # hidden parity even when every GLM token remains identical.
+        window = torch.hann_window(
+            N_FFT,
+            dtype=torch.float32,
+            device=waveform.device,
+        )
         filters = self.mel_filters.to(device=waveform.device)
         for block_index in range(blocks):
             current = waveform[

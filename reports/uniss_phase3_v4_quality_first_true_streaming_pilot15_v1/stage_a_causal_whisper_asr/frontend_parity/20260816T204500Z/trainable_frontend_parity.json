@@ -1,0 +1,117 @@
+{
+  "checks": {
+    "codebook_frozen": true,
+    "codebook_gradient_absent": true,
+    "conv1_gradient_nonzero": true,
+    "future_frames_exact": true,
+    "future_pooled_hidden_exact": true,
+    "future_tokens_exact": true,
+    "pooling_frozen": true,
+    "post_vq_frozen": true,
+    "pre_vq_gradient_nonzero": true,
+    "trainable_gradients_finite": true,
+    "training_full_hidden_matches_stage00_single_mask": true,
+    "training_glm_tokens_match_stage00_100pct": true
+  },
+  "frontend": {
+    "block_local_normalization": true,
+    "chunk_ms": 160,
+    "device": "cuda:0",
+    "dtype": "torch.float32",
+    "stft_center": false,
+    "whispervq_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS/glm4_tokenizer"
+  },
+  "future_perturbation": {
+    "changed_block": 3,
+    "changed_from_ms": 480,
+    "frames": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        24,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "pooled_hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        6,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "tokens": {
+      "actual_tokens": 6,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 6,
+      "reference_tokens": 6,
+      "shape_equal": true
+    }
+  },
+  "gradient_audit": {
+    "codebook_frozen": true,
+    "codebook_gradient_absent": true,
+    "conv1_has_nonzero_gradient": true,
+    "loss": 1.4046554565429688,
+    "nonfinite_gradient_tensors": [],
+    "nonzero_gradient_tensors": 244,
+    "pooling_frozen": true,
+    "post_vq_trainable_parameters": [],
+    "pre_vq_layer_has_nonzero_gradient": true,
+    "trainable_parameter_tensors": 244
+  },
+  "input": {
+    "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_valid_manifest.jsonl",
+    "row_index": 0,
+    "sample_id": "NCSSD_R_EN_0000000083",
+    "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000035_NCSSD_R_EN_0000000083.flac",
+    "source_duration_ms": 6940,
+    "source_glm_tokens": 87
+  },
+  "offline_source_glm_agreement_diagnostic": {
+    "actual_tokens": 87,
+    "exact": false,
+    "gate": false,
+    "match_ratio": 0.034482758620689655,
+    "matching_tokens": 3,
+    "reason": "offline bidirectional GLM identity is not the causal cached/full parity gate",
+    "reference_tokens": 87,
+    "shape_equal": true
+  },
+  "passed": true,
+  "schema_version": "uniss_stage_a_trainable_frontend_parity_v1",
+  "stage00_single_mask_parity": {
+    "hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        87,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "tokens": {
+      "actual_tokens": 87,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 87,
+      "reference_tokens": 87,
+      "shape_equal": true
+    }
+  }
+}
