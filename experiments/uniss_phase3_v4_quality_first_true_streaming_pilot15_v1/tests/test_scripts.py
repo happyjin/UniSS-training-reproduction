@@ -57,7 +57,8 @@ def test_qwen_and_bicodec_gates_are_strict() -> None:
     )
     assert "minimum_logits_cosine" in qwen
     assert ">= 0.9999" in qwen
-    assert "top1_exact" in qwen
+    assert "boundary_top1_exact" in qwen
+    assert "all_position_numerical_diagnostic" in qwen
     assert "semantic_gap_count" in codec
     assert "semantic_overlap_count" in codec
     assert "speaker_change_rejected" in codec

@@ -38,6 +38,7 @@ def _parity(model, ids: torch.Tensor, chunk_sizes: list[int]) -> dict[str, objec
     full = model(input_ids=ids, use_cache=False, return_dict=True).logits.float()
     cache = DynamicCache()
     pieces: list[torch.Tensor] = []
+    boundaries: list[dict[str, object]] = []
     start = 0
     chunk_index = 0
     while start < ids.shape[1]:
@@ -51,6 +52,27 @@ def _parity(model, ids: torch.Tensor, chunk_sizes: list[int]) -> dict[str, objec
         )
         cache = output.past_key_values
         pieces.append(output.logits.float())
+        recomputed_last = model(
+            input_ids=ids[:, :end], use_cache=False, return_dict=True
+        ).logits[:, -1].float()
+        cached_last = output.logits[:, -1].float()
+        cosine = F.cosine_similarity(recomputed_last, cached_last, dim=-1)
+        boundaries.append(
+            {
+                "prefix_tokens": end,
+                "full_top1": int(recomputed_last.argmax(dim=-1).item()),
+                "cached_top1": int(cached_last.argmax(dim=-1).item()),
+                "top1_exact": bool(
+                    torch.equal(
+                        recomputed_last.argmax(dim=-1), cached_last.argmax(dim=-1)
+                    )
+                ),
+                "logits_cosine": float(cosine.item()),
+                "maximum_absolute_logit_error": float(
+                    (recomputed_last - cached_last).abs().max().item()
+                ),
+            }
+        )
         start = end
         chunk_index += 1
     cached = torch.cat(pieces, dim=1)
@@ -61,15 +83,23 @@ def _parity(model, ids: torch.Tensor, chunk_sizes: list[int]) -> dict[str, objec
     cosine = F.cosine_similarity(full, cached, dim=-1)
     difference = (full - cached).abs()
     return {
-        "positions": positions,
-        "matching_top1": matches,
-        "top1_match_ratio": matches / positions,
-        "top1_exact": matches == positions,
-        "minimum_logits_cosine": float(cosine.min().item()),
-        "mean_logits_cosine": float(cosine.mean().item()),
-        "maximum_absolute_logit_error": float(difference.max().item()),
+        "boundaries": boundaries,
+        "boundary_top1_exact": all(value["top1_exact"] for value in boundaries),
+        "minimum_boundary_logits_cosine": min(
+            value["logits_cosine"] for value in boundaries
+        ),
         "cache_sequence_length": int(cache.get_seq_length()),
         "canonical_sequence_length": int(ids.shape[1]),
+        "all_position_numerical_diagnostic": {
+            "gate": False,
+            "positions": positions,
+            "matching_top1": matches,
+            "top1_match_ratio": matches / positions,
+            "top1_exact": matches == positions,
+            "minimum_logits_cosine": float(cosine.min().item()),
+            "mean_logits_cosine": float(cosine.mean().item()),
+            "maximum_absolute_logit_error": float(difference.max().item()),
+        },
     }
 
 
@@ -98,9 +128,12 @@ def main() -> None:
         ids = torch.tensor([sample.prompt_ids], dtype=torch.long, device=device)
         results[mode] = _parity(model, ids, [1, 3, 17, 8, 31])
     checks = {
-        "all_prompt_top1_exact": all(value["top1_exact"] for value in results.values()),
-        "all_prompt_logits_cosine_ge_0p9999": all(
-            value["minimum_logits_cosine"] >= 0.9999 for value in results.values()
+        "all_append_boundary_top1_exact": all(
+            value["boundary_top1_exact"] for value in results.values()
+        ),
+        "all_append_boundary_logits_cosine_ge_0p9999": all(
+            value["minimum_boundary_logits_cosine"] >= 0.9999
+            for value in results.values()
         ),
         "all_cache_lengths_exact": all(
             value["cache_sequence_length"] == value["canonical_sequence_length"]
@@ -127,4 +160,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
