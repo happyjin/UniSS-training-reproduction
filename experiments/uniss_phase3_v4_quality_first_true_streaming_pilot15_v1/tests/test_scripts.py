@@ -26,6 +26,8 @@ def test_real_audit_uses_strict_fp32_hidden_and_exact_token_gates() -> None:
     assert "rtol=2e-5, atol=2e-6" in source
     assert '"match_ratio"' in source
     assert '"future_hidden_exact_before_changed_block"' in source
+    assert "forward_recomputed_reference" in source
+    assert '"single_mask_numerical_diagnostic"' in source
 
 
 def test_gpu_launcher_only_stops_named_synthetic_session() -> None:

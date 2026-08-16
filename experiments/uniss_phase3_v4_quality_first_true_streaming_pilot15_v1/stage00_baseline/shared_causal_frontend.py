@@ -31,6 +31,7 @@ from torch.nn import functional as F
 
 from experiments.uniss_phase3_runtime_parity_streaming_v2.frontend.cached_whispervq import (
     CachedBlockCausalWhisperVQ,
+    CachedWhisperVQOutput,
     CachedWhisperVQState,
 )
 
@@ -319,11 +320,113 @@ class SharedCausalWhisperVQFrontend(nn.Module):
         if self.training or self.encoder_model.training or self.cached_encoder.training:
             raise RuntimeError("full/cached parity execution requires eval()")
 
+    @staticmethod
+    def _run_layer_recomputed_blocks(
+        layer: nn.Module, hidden: torch.Tensor, block_frames: int
+    ) -> torch.Tensor:
+        """Block-causal layer reference that never retains a K/V cache.
+
+        Projected history is rebuilt from the complete layer input on every
+        invocation. Projections and attention matmuls retain deployment block
+        geometry, avoiding the expected GEMM reduction drift of a single giant
+        masked matrix while remaining independent of persistent cached state.
+        """
+
+        normalized_blocks = [
+            layer.self_attn_layer_norm(hidden[:, start : start + block_frames])
+            for start in range(0, int(hidden.shape[1]), block_frames)
+        ]
+        key_blocks: list[torch.Tensor] = []
+        value_blocks: list[torch.Tensor] = []
+        output_blocks: list[torch.Tensor] = []
+        attention = layer.self_attn
+        batch = int(hidden.shape[0])
+        for block_index, normalized in enumerate(normalized_blocks):
+            frames = int(normalized.shape[1])
+            queries = attention._shape(
+                attention.q_proj(normalized) * attention.scaling, frames, batch
+            )
+            key_blocks.append(
+                attention._shape(attention.k_proj(normalized), frames, batch)
+            )
+            value_blocks.append(
+                attention._shape(attention.v_proj(normalized), frames, batch)
+            )
+            keys = torch.cat(key_blocks, dim=2)
+            values = torch.cat(value_blocks, dim=2)
+            weights = torch.matmul(queries, keys.transpose(2, 3))
+            probabilities = F.softmax(weights, dim=-1)
+            attended = torch.matmul(probabilities, values)
+            attended = attended.transpose(1, 2).reshape(
+                batch, frames, attention.embed_dim
+            )
+            attended = attention.out_proj(attended)
+            residual = hidden[
+                :, block_index * block_frames : block_index * block_frames + frames
+            ]
+            block_hidden = residual + attended
+            residual = block_hidden
+            block_hidden = layer.final_layer_norm(block_hidden)
+            block_hidden = layer.activation_fn(layer.fc1(block_hidden))
+            block_hidden = layer.fc2(block_hidden)
+            output_blocks.append(residual + block_hidden)
+        return torch.cat(output_blocks, dim=1)
+
+    def _forward_recomputed_segment(
+        self, convolved_hidden: torch.Tensor
+    ) -> CachedWhisperVQOutput:
+        self.cached_encoder._validate_input(convolved_hidden)
+        hidden = self.cached_encoder._add_positions(convolved_hidden, 0)
+        for layer in self.cached_encoder.layers:
+            hidden = self._run_layer_recomputed_blocks(
+                layer, hidden, self.cached_encoder.block_frames
+            )
+        pooled = self.cached_encoder._pool(hidden)
+        quantized, token_ids = self.cached_encoder._quantize(pooled)
+        return CachedWhisperVQOutput(pooled, quantized, token_ids)
+
+    @torch.inference_mode()
+    def forward_recomputed_reference(
+        self, pcm: Sequence[float] | np.ndarray | torch.Tensor
+    ) -> FullReferenceOutput:
+        """Reference with no persistent K/V cache and deployment block geometry."""
+
+        self._require_eval()
+        convolved, valid_tokens = self.extract_convolved(pcm, detach_state=True)
+        frames_per_segment = self.max_blocks_per_encoder_segment * FRAMES_PER_BLOCK
+        hidden_parts: list[torch.Tensor] = []
+        quantized_parts: list[torch.Tensor] = []
+        token_parts: list[torch.Tensor] = []
+        for start in range(0, int(convolved.shape[1]), frames_per_segment):
+            output = self._forward_recomputed_segment(
+                convolved[:, start : start + frames_per_segment]
+            )
+            hidden_parts.append(output.pre_vq_hidden)
+            quantized_parts.append(output.quantized_hidden)
+            token_parts.append(output.token_ids)
+        hidden = torch.cat(hidden_parts, dim=1)[:, :valid_tokens]
+        quantized = torch.cat(quantized_parts, dim=1)[:, :valid_tokens]
+        tokens = torch.cat(token_parts, dim=1)[:, :valid_tokens]
+        return FullReferenceOutput(
+            pre_vq_hidden=hidden,
+            quantized_hidden=quantized,
+            token_ids=tokens,
+            convolved_hidden=convolved,
+            valid_tokens=valid_tokens,
+            encoder_segments=len(hidden_parts),
+        )
+
     @torch.inference_mode()
     def forward_full_reference(
         self, pcm: Sequence[float] | np.ndarray | torch.Tensor
     ) -> FullReferenceOutput:
-        """Run independent full block masks over position-safe segments."""
+        """Run a single large masked matrix per position-safe segment.
+
+        This remains a useful semantic diagnostic, but CUDA GEMM reduction
+        order differs from the 8-frame cached path. The strict FP32 deployment
+        gate therefore uses :meth:`forward_recomputed_reference` and records
+        this single-mask result separately as a numerical-drift diagnostic.
+        """
 
         self._require_eval()
         convolved, valid_tokens = self.extract_convolved(pcm, detach_state=True)

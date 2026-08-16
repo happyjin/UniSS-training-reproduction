@@ -161,9 +161,10 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     ).float().eval()
 
     full_started = time.perf_counter()
-    full = frontend.forward_full_reference(waveform)
+    full = frontend.forward_recomputed_reference(waveform)
     torch.cuda.synchronize(frontend.device) if frontend.device.type == "cuda" else None
     full_seconds = time.perf_counter() - full_started
+    single_mask = frontend.forward_full_reference(waveform)
     streamed = _stream(frontend, waveform)
     full_hidden = full.pre_vq_hidden.float().cpu()
     full_quantized = full.quantized_hidden.float().cpu()
@@ -172,6 +173,12 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     hidden_parity = _hidden_metrics(full_hidden, streamed["hidden"])
     quantized_parity = _hidden_metrics(full_quantized, streamed["quantized"])
     token_parity = _token_metrics(full_tokens, streamed["tokens"])
+    single_mask_hidden = _hidden_metrics(
+        single_mask.pre_vq_hidden.float().cpu(), streamed["hidden"]
+    )
+    single_mask_tokens = _token_metrics(
+        single_mask.token_ids.cpu(), streamed["tokens"]
+    )
 
     future_block = min(max(1, args.future_block), max(1, math.ceil(len(waveform) / BLOCK_SAMPLES) - 1))
     changed = waveform.copy()
@@ -180,7 +187,7 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     changed[mutation_start:] = generator.normal(
         0.0, max(float(np.std(waveform)), 0.01), len(changed) - mutation_start
     ).astype(np.float32)
-    changed_full = frontend.forward_full_reference(changed)
+    changed_full = frontend.forward_recomputed_reference(changed)
     committed_tokens = future_block * 2
     future_hidden = _hidden_metrics(
         full_hidden[:, :committed_tokens],
@@ -194,7 +201,7 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     reset_samples = int(round(args.reset_audit_seconds * SAMPLE_RATE))
     repeats = math.ceil(reset_samples / len(waveform))
     reset_waveform = np.tile(waveform, repeats)[:reset_samples].copy()
-    reset_full = frontend.forward_full_reference(reset_waveform)
+    reset_full = frontend.forward_recomputed_reference(reset_waveform)
     reset_stream = _stream(frontend, reset_waveform)
     reset_hidden = _hidden_metrics(
         reset_full.pre_vq_hidden.float().cpu(), reset_stream["hidden"]
@@ -204,9 +211,9 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
     expected_reset_tokens = math.ceil(len(reset_waveform) / (SAMPLE_RATE * 0.08))
 
     checks = {
-        "real_pcm_hidden_full_cached": bool(hidden_parity["allclose"]),
-        "real_pcm_quantized_full_cached": bool(quantized_parity["allclose"]),
-        "real_pcm_token_full_cached_100pct": bool(token_parity["exact"]),
+        "real_pcm_hidden_recomputed_cached": bool(hidden_parity["allclose"]),
+        "real_pcm_quantized_recomputed_cached": bool(quantized_parity["allclose"]),
+        "real_pcm_token_recomputed_cached_100pct": bool(token_parity["exact"]),
         "real_pcm_token_coverage": int(full_tokens.numel()) == expected_tokens,
         "future_hidden_exact_before_changed_block": bool(
             future_hidden.get("maximum_absolute_error", 1.0) == 0.0
@@ -214,8 +221,8 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
         "future_tokens_exact_before_changed_block": bool(future_tokens["exact"]),
         "partial_final_block_exercised": len(waveform) % BLOCK_SAMPLES != 0,
         "reset_boundary_exercised": bool(reset_stream["state"].encoder_resets >= 1),
-        "reset_hidden_full_cached": bool(reset_hidden["allclose"]),
-        "reset_token_full_cached_100pct": bool(reset_tokens["exact"]),
+        "reset_hidden_recomputed_cached": bool(reset_hidden["allclose"]),
+        "reset_token_recomputed_cached_100pct": bool(reset_tokens["exact"]),
         "reset_token_coverage": int(reset_full.token_ids.numel()) == expected_reset_tokens,
     }
     passed = all(checks.values())
@@ -248,6 +255,7 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
             "maximum_segment_ms": frontend.maximum_segment_ms,
         },
         "real_pcm_parity": {
+            "strict_reference": "block_recomputed_without_persistent_kv",
             "hidden": hidden_parity,
             "quantized": quantized_parity,
             "tokens": token_parity,
@@ -256,6 +264,12 @@ def audit(args: argparse.Namespace) -> dict[str, Any]:
             "cached_step_ms_p95": float(np.percentile(step_ms, 95)),
             "cached_step_ms_max": float(max(step_ms)),
             "cached_rtf": float(sum(step_ms) / duration_ms),
+        },
+        "single_mask_numerical_diagnostic": {
+            "gate": False,
+            "reason": "different CUDA GEMM reduction geometry",
+            "hidden": single_mask_hidden,
+            "tokens": single_mask_tokens,
         },
         "future_perturbation": {
             "changed_block_index": future_block,
@@ -326,4 +340,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
