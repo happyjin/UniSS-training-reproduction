@@ -145,56 +145,6 @@ def curriculum_group_multiplier(group: Mapping[str, object], progress: float) ->
     return 1.0
 
 
-def stage_a_curriculum_position(args, *, training: bool) -> tuple[float, int]:
-    """Return a rank-stable curriculum position for the current optimizer update.
-
-    Megatron stores the checkpoint iteration in ``args.iteration`` but advances
-    the live training-loop position through ``args.curr_iteration``.  In
-    contrast, ``consumed_train_samples`` can transiently differ inside a rerun
-    of a resumed training step.  Training choices must therefore be keyed by
-    ``curr_iteration``.  At the first strict-resume boundary, Megatron can
-    switch replayed microbatches from the checkpoint iteration to the live
-    iteration one call before it advances the other counter.  This experiment
-    uses a fixed global batch size, so the monotonic maximum of the live update
-    and the completed-sample update is the unambiguous optimizer position.
-    Evaluation runs after an update and uses the completed global sample count.
-    """
-
-    train_iters = max(1, int(args.train_iters))
-    sample_updates = int(getattr(args, "consumed_train_samples", 0) or 0) // max(
-        1, int(args.global_batch_size)
-    )
-    if training:
-        live_update = int(
-            getattr(args, "curr_iteration", getattr(args, "iteration", 0)) or 0
-        )
-        if live_update < 0:
-            raise ValueError("Stage A iteration cannot be negative")
-        completed_updates = max(live_update, sample_updates)
-    else:
-        completed_updates = sample_updates
-    if completed_updates < 0:
-        raise ValueError("Stage A iteration cannot be negative")
-    progress = min(1.0, completed_updates / train_iters)
-    return progress, completed_updates
-
-
-def synchronized_stage_a_curriculum_position(
-    args, *, training: bool, device: torch.device
-) -> tuple[float, int]:
-    """Make world rank zero authoritative at strict-resume microbatch boundaries."""
-
-    _, local_update = stage_a_curriculum_position(args, training=training)
-    update_tensor = torch.tensor(local_update, dtype=torch.long, device=device)
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        torch.distributed.broadcast(update_tensor, src=0)
-    update = int(update_tensor.item())
-    if update < 0:
-        raise ValueError("Stage A synchronized iteration cannot be negative")
-    progress = min(1.0, update / max(1, int(args.train_iters)))
-    return progress, update
-
-
 def install_stage_a_lr_overrides(args) -> None:
     import megatron.training.training as megatron_training
     from megatron.core.optimizer.optimizer_config import ParamKey
@@ -556,18 +506,15 @@ def forward_step(data_iterator, model):
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     batch = base.prepare_packed_batch(next(data_iterator), int(args.seq_length))
-    progress, update = synchronized_stage_a_curriculum_position(
-        args,
-        training=bool(model.training),
-        device=batch["tokens"].device,
-    )
+    denominator = max(1, int(args.train_iters) * int(args.global_batch_size))
+    consumed = int(getattr(args, "consumed_train_samples", 0) or 0)
     batch["training_progress"] = torch.tensor(
-        progress,
+        min(1.0, max(0.0, consumed / denominator)),
         dtype=torch.float32,
         device=batch["tokens"].device,
     )
     batch["training_update"] = torch.tensor(
-        update,
+        consumed // max(1, int(args.global_batch_size)),
         dtype=torch.long,
         device=batch["tokens"].device,
     )
