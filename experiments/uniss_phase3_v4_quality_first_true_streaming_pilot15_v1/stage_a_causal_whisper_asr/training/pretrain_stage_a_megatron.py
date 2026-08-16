@@ -145,6 +145,24 @@ def curriculum_group_multiplier(group: Mapping[str, object], progress: float) ->
     return 1.0
 
 
+def stage_a_curriculum_position(args) -> tuple[float, int]:
+    """Return a rank-stable curriculum position for the current optimizer update.
+
+    Megatron restores ``args.iteration`` directly from the checkpoint.  In
+    contrast, ``consumed_train_samples`` can transiently differ across ranks
+    when the rerun state machine replays validation after a strict resume.
+    Curriculum choices must therefore be keyed by the completed global update,
+    not by a mutable sample counter.
+    """
+
+    train_iters = max(1, int(args.train_iters))
+    completed_updates = int(getattr(args, "iteration", 0) or 0)
+    if completed_updates < 0:
+        raise ValueError("Stage A iteration cannot be negative")
+    progress = min(1.0, completed_updates / train_iters)
+    return progress, completed_updates
+
+
 def install_stage_a_lr_overrides(args) -> None:
     import megatron.training.training as megatron_training
     from megatron.core.optimizer.optimizer_config import ParamKey
@@ -506,15 +524,14 @@ def forward_step(data_iterator, model):
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     batch = base.prepare_packed_batch(next(data_iterator), int(args.seq_length))
-    denominator = max(1, int(args.train_iters) * int(args.global_batch_size))
-    consumed = int(getattr(args, "consumed_train_samples", 0) or 0)
+    progress, update = stage_a_curriculum_position(args)
     batch["training_progress"] = torch.tensor(
-        min(1.0, max(0.0, consumed / denominator)),
+        progress,
         dtype=torch.float32,
         device=batch["tokens"].device,
     )
     batch["training_update"] = torch.tensor(
-        consumed // max(1, int(args.global_batch_size)),
+        update,
         dtype=torch.long,
         device=batch["tokens"].device,
     )
