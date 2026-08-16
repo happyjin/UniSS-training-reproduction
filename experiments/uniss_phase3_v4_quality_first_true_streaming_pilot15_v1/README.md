@@ -55,3 +55,16 @@ bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts
 ```
 
 Every command refuses to overwrite an existing map, snapshot, or audit run.
+
+## Stage A formal result
+
+The native-Megatron formal run `stage_a_formal8_20260816T224100Z` completed
+381/381 updates and three strict global-shuffle coverage epochs without skipped
+or non-finite iterations. Its full free-running quality gate failed, so Stage B
+is intentionally blocked and no `SELECTED_CHECKPOINT.json` was created.
+
+The immutable decision artifacts are:
+
+- `reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/STAGE_A_RESULT_REPORT.md`;
+- `reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/STAGE_A_FINAL_SUMMARY.json`;
+- `reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/GATE_FAILED.json`.

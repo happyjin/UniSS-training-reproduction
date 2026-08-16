@@ -1,0 +1,38 @@
+{
+  "blocked_next_stage": "stage_b_incremental_mt",
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "created_at_utc": "2026-08-16T23:30:56Z",
+  "data_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/megatron/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/valid_packs_18k_v1.jsonl",
+  "data_manifest_sha256": "353a71c7ce5a94f8a9db65106e27566a69c3e5f570dbf5f558be9a2ec09107ca",
+  "diagnosis": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_checkpoint_diagnosis/iter381_formal334_4chunk_20260816T232000Z/diagnosis.json",
+  "diagnosis_sha256": "5c06ac98f76a30dd7a24dd2c5da787fe8c48c2128a934d991bdfec0e851eed43",
+  "evaluator_commit": "f61219fefc4d689a5a5004d2232b579115bcb850",
+  "failed_checks": [
+    "streaming_cmn_error_exceeds_offline_plus_15%",
+    "streaming_eng_error_exceeds_offline_plus_15%",
+    "ctc_sample_level_all_blank_rows_nonzero",
+    "ar_event_stop_failures_nonzero",
+    "matching_sample_offline_reference_not_evaluated",
+    "checkpoint_level_cached_rollback_not_evaluated",
+    "checkpoint_level_cached_full_parity_not_evaluated"
+  ],
+  "metrics": {
+    "ar_empty_rows": 0,
+    "ar_event_stop_failed_rows": 27,
+    "causal_full_error_rate_cmn": 0.15878679750223015,
+    "causal_full_error_rate_eng": 0.1277602523659306,
+    "ctc_all_blank_rows": 15,
+    "ctc_blank_ratio": 0.872990164960825,
+    "final_only_rows": 0,
+    "prefinal_content_rate": 1.0,
+    "streaming_error_rate_cmn": 0.21011201937632457,
+    "streaming_error_rate_eng": 0.35339943342776203,
+    "teacher_token_accuracy": 0.9207367894649108
+  },
+  "offline_baseline": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_phase3_offline_20260816T031129Z/baseline_summary.json",
+  "offline_baseline_sha256": "e5644bf8ae4c008ccf9b13577ac42594077e69e58591c1662dae9310438c568e",
+  "passed": false,
+  "schema_version": "uniss_quality_first_stage_gate_v1",
+  "selection_artifact_created": false,
+  "stage": "stage_a"
+}
