@@ -103,6 +103,61 @@ def _parity(model, ids: torch.Tensor, chunk_sizes: list[int]) -> dict[str, objec
     }
 
 
+@torch.inference_mode()
+def _autoregressive_parity(
+    model, ids: torch.Tensor, *, generated_steps: int
+) -> dict[str, object]:
+    """Audit the deployed path: one prompt prefill, then one-token appends."""
+
+    canonical = ids
+    cached = model(input_ids=canonical, use_cache=True, return_dict=True)
+    cache = cached.past_key_values
+    boundaries: list[dict[str, object]] = []
+    for step in range(generated_steps + 1):
+        recomputed = model(
+            input_ids=canonical, use_cache=False, return_dict=True
+        ).logits[:, -1].float()
+        cached_last = cached.logits[:, -1].float()
+        cosine = F.cosine_similarity(recomputed, cached_last, dim=-1)
+        full_top1 = recomputed.argmax(dim=-1)
+        cached_top1 = cached_last.argmax(dim=-1)
+        boundaries.append(
+            {
+                "step": step,
+                "canonical_tokens": int(canonical.shape[1]),
+                "full_top1": int(full_top1.item()),
+                "cached_top1": int(cached_top1.item()),
+                "top1_exact": bool(torch.equal(full_top1, cached_top1)),
+                "logits_cosine": float(cosine.item()),
+                "maximum_absolute_logit_error": float(
+                    (recomputed - cached_last).abs().max().item()
+                ),
+                "cache_sequence_length": int(cache.get_seq_length()),
+            }
+        )
+        if step == generated_steps:
+            break
+        next_token = full_top1.reshape(1, 1)
+        canonical = torch.cat((canonical, next_token), dim=1)
+        cached = model(
+            input_ids=next_token,
+            past_key_values=cache,
+            use_cache=True,
+            return_dict=True,
+        )
+        cache = cached.past_key_values
+    return {
+        "generated_steps": generated_steps,
+        "boundaries": boundaries,
+        "top1_exact": all(value["top1_exact"] for value in boundaries),
+        "minimum_logits_cosine": min(value["logits_cosine"] for value in boundaries),
+        "cache_lengths_exact": all(
+            value["cache_sequence_length"] == value["canonical_tokens"]
+            for value in boundaries
+        ),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
@@ -110,6 +165,8 @@ def main() -> None:
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--dtype", choices=("bfloat16", "float32"), default="bfloat16")
+    parser.add_argument("--attn-implementation", default="eager")
+    parser.add_argument("--generated-steps", type=int, default=16)
     args = parser.parse_args()
     model_path = Path(args.model).resolve()
     manifest = Path(args.validation_manifest).resolve()
@@ -117,7 +174,10 @@ def main() -> None:
     dtype = torch.bfloat16 if args.dtype == "bfloat16" else torch.float32
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
     model = AutoModelForCausalLM.from_pretrained(
-        model_path, local_files_only=True, torch_dtype=dtype
+        model_path,
+        local_files_only=True,
+        torch_dtype=dtype,
+        attn_implementation=args.attn_implementation,
     ).to(device).eval()
     record = next(iter_manifest_records(manifest, limit_records=1))
     encode = load_hf_text_encoder(tokenizer)
@@ -126,17 +186,25 @@ def main() -> None:
     for mode in modes:
         sample = build_eval_sample(record, mode=mode, text_encoder=encode)
         ids = torch.tensor([sample.prompt_ids], dtype=torch.long, device=device)
-        results[mode] = _parity(model, ids, [1, 3, 17, 8, 31])
+        results[mode] = {
+            "autoregressive_runtime_gate": _autoregressive_parity(
+                model, ids, generated_steps=args.generated_steps
+            ),
+            "arbitrary_prefill_chunk_diagnostic": _parity(
+                model, ids, [1, 3, 17, 8, 31]
+            ),
+        }
     checks = {
-        "all_append_boundary_top1_exact": all(
-            value["boundary_top1_exact"] for value in results.values()
-        ),
-        "all_append_boundary_logits_cosine_ge_0p9999": all(
-            value["minimum_boundary_logits_cosine"] >= 0.9999
+        "all_runtime_top1_exact": all(
+            value["autoregressive_runtime_gate"]["top1_exact"]
             for value in results.values()
         ),
-        "all_cache_lengths_exact": all(
-            value["cache_sequence_length"] == value["canonical_sequence_length"]
+        "all_runtime_logits_cosine_ge_0p9999": all(
+            value["autoregressive_runtime_gate"]["minimum_logits_cosine"] >= 0.9999
+            for value in results.values()
+        ),
+        "all_runtime_cache_lengths_exact": all(
+            value["autoregressive_runtime_gate"]["cache_lengths_exact"]
             for value in results.values()
         ),
     }
@@ -149,6 +217,8 @@ def main() -> None:
         "sample_id": record.get("id"),
         "dtype": str(dtype),
         "device": str(device),
+        "attention_implementation": args.attn_implementation,
+        "generated_steps": args.generated_steps,
         "chunk_sizes": [1, 3, 17, 8, 31],
         "modes": results,
     }
