@@ -116,6 +116,11 @@ def error_counts(reference: str, hypothesis: str, language: str) -> tuple[str, i
     return metric, edit_distance(left, right), len(left)
 
 
+def join_content_chunks(chunks: Sequence[str], language: str) -> str:
+    normalized = [" ".join(value.split()) for value in chunks if value.strip()]
+    return "".join(normalized) if language == "cmn" else " ".join(normalized)
+
+
 def load_waveform(path: str) -> torch.Tensor:
     values, rate = sf.read(path, dtype="float32", always_2d=True)
     if rate != SAMPLE_RATE:
@@ -316,12 +321,14 @@ def free_running_asr(
     glm_map: dict[int, int],
     speech_embeddings: torch.Tensor,
     *,
+    language: str,
     max_event_tokens: int,
 ) -> dict[str, object]:
     built: list[int] = []
     built_glm: list[int | None] = []
     generated_all: list[int] = []
     generated_content: list[int] = []
+    content_chunks: list[str] = []
     event_rows: list[dict[str, object]] = []
     cursor = 0
     for start, end in generated_runs(generated_flags):
@@ -356,6 +363,9 @@ def free_running_asr(
                 if value not in (c.TOKEN_END_CONTENT, c.TOKEN_EOS)
             ]
         generated_content.extend(predicted_content)
+        decoded_content = tokenizer.decode(predicted_content, skip_special_tokens=True)
+        if decoded_content.strip():
+            content_chunks.append(decoded_content)
         event_rows.append(
             {
                 "expected_tokens": len(expected),
@@ -364,6 +374,7 @@ def free_running_asr(
                 "reached_stop": bool(predicted and predicted[-1] == stop),
                 "predicted_tokens": predicted,
                 "content_tokens": predicted_content,
+                "content_text": " ".join(decoded_content.split()),
                 "write_structure": predicted[:3]
                 == [c.TOKEN_WRITE_GENERATE, conceptual[start + 1], c.TOKEN_START_CONTENT]
                 if len(expected) >= 3 and expected[0] == c.TOKEN_WRITE_GENERATE
@@ -374,11 +385,12 @@ def free_running_asr(
     for position in range(cursor, len(conceptual)):
         built.append(int(conceptual[position]))
         built_glm.append(glm_map.get(position))
-    decoded = tokenizer.decode(generated_content, skip_special_tokens=True)
     structured = [row for row in event_rows if row["write_structure"] is not None]
     return {
-        "text": " ".join(decoded.split()),
+        "text": join_content_chunks(content_chunks, language),
         "generated_tokens": generated_all,
+        "generated_content_tokens": generated_content,
+        "content_chunks": content_chunks,
         "events": event_rows,
         "content_events": sum(bool(row["content_tokens"]) for row in event_rows),
         "all_events_reached_stop": all(bool(row["reached_stop"]) for row in event_rows),
@@ -496,6 +508,7 @@ def main() -> None:
                 flags,
                 glm_map,
                 speech_embeddings,
+                language=str(sample["language"]),
                 max_event_tokens=args.max_event_tokens,
             )
             metric, errors, units = error_counts(

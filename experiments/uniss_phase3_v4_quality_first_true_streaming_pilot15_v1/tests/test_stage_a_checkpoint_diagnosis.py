@@ -3,6 +3,7 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
     content_ids,
     edit_distance,
     generated_runs,
+    join_content_chunks,
 )
 from training import constants_uniss as c
 
@@ -41,3 +42,8 @@ def test_causal_full_target_has_content_start_in_prompt() -> None:
     start, end = generated_runs([False, True, True, True, True])[0]
     assert c.TOKEN_START_CONTENT in conceptual[:start]
     assert c.TOKEN_END_CONTENT in conceptual[start:end]
+
+
+def test_content_chunks_preserve_language_word_boundaries() -> None:
+    assert join_content_chunks(["It's", "too", "late"], "eng") == "It's too late"
+    assert join_content_chunks(["你", "好"], "cmn") == "你好"
