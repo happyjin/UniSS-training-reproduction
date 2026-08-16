@@ -53,8 +53,14 @@ def test_stage_a_curriculum_uses_checkpoint_iteration_not_consumed_samples() -> 
         curr_iteration=6,
         train_iters=32,
         global_batch_size=16,
-        consumed_train_samples=999999,
+        consumed_train_samples=16 * 5,
     )
+    assert stage_a_curriculum_position(args, training=True) == (6 / 32, 6)
+
+    # Strict resume can advance the sample counter one microbatch call before
+    # the live loop counter; both calls must still select update 6.
+    args.curr_iteration = 5
+    args.consumed_train_samples = 16 * 6
     assert stage_a_curriculum_position(args, training=True) == (6 / 32, 6)
 
     # Validation observes the number of optimizer updates already completed.
@@ -62,6 +68,7 @@ def test_stage_a_curriculum_uses_checkpoint_iteration_not_consumed_samples() -> 
     assert stage_a_curriculum_position(args, training=False) == (1.0, 32)
 
     args.curr_iteration = -1
+    args.consumed_train_samples = 0
     with pytest.raises(ValueError):
         stage_a_curriculum_position(args, training=True)
 

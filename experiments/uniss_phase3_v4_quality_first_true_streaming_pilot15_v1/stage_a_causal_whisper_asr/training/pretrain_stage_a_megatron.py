@@ -152,19 +152,27 @@ def stage_a_curriculum_position(args, *, training: bool) -> tuple[float, int]:
     the live training-loop position through ``args.curr_iteration``.  In
     contrast, ``consumed_train_samples`` can transiently differ inside a rerun
     of a resumed training step.  Training choices must therefore be keyed by
-    ``curr_iteration``.  Evaluation runs after an update and can safely use the
-    completed global sample count.
+    ``curr_iteration``.  At the first strict-resume boundary, Megatron can
+    switch replayed microbatches from the checkpoint iteration to the live
+    iteration one call before it advances the other counter.  This experiment
+    uses a fixed global batch size, so the monotonic maximum of the live update
+    and the completed-sample update is the unambiguous optimizer position.
+    Evaluation runs after an update and uses the completed global sample count.
     """
 
     train_iters = max(1, int(args.train_iters))
+    sample_updates = int(getattr(args, "consumed_train_samples", 0) or 0) // max(
+        1, int(args.global_batch_size)
+    )
     if training:
-        completed_updates = int(
+        live_update = int(
             getattr(args, "curr_iteration", getattr(args, "iteration", 0)) or 0
         )
+        if live_update < 0:
+            raise ValueError("Stage A iteration cannot be negative")
+        completed_updates = max(live_update, sample_updates)
     else:
-        completed_updates = int(getattr(args, "consumed_train_samples", 0) or 0) // max(
-            1, int(args.global_batch_size)
-        )
+        completed_updates = sample_updates
     if completed_updates < 0:
         raise ValueError("Stage A iteration cannot be negative")
     progress = min(1.0, completed_updates / train_iters)
