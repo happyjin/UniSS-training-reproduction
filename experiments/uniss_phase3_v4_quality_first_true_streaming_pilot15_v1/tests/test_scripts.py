@@ -78,3 +78,21 @@ def test_native_reexport_requires_exact_weights_and_output() -> None:
     assert "fixed_prompt_logits_cosine_ge_0p999999" in source
     assert "--strict" in launcher
     assert "refusing to overwrite" in launcher
+
+
+def test_offline_baseline_is_fixed_parallel_and_non_overwriting() -> None:
+    source = (ROOT / "scripts" / "run_stage00_offline_baseline_8gpu.sh").read_text(
+        encoding="utf-8"
+    )
+    aggregate = (
+        ROOT / "stage00_baseline" / "aggregate_offline_baseline.py"
+    ).read_text(encoding="utf-8")
+    assert "seq 0 7" in source
+    assert "--temperature 0" in source
+    assert "--max-new-tokens 1500" in source
+    assert "refusing to overwrite offline baseline" in source
+    assert "expected-text-records 256" in source
+    assert "expected-audio-records 64" in source
+    assert "quality_asr_error" in aggregate
+    assert "text_translation_bleu" in aggregate
+    assert "audio_slc" in aggregate
