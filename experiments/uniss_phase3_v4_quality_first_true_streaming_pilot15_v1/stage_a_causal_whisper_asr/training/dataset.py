@@ -37,11 +37,13 @@ def _load_mono(path: str) -> torch.Tensor:
     return waveform
 
 
-def _rotated_subset(values: Sequence[object], count: int, epoch: int, index: int) -> list[object]:
-    if count <= 0 or len(values) <= count:
-        return list(values)
-    start = (epoch * 104729 + index * 1009) % len(values)
-    return [values[(start + offset) % len(values)] for offset in range(count)]
+def _rotated_indices(length: int, count: int, epoch: int, index: int) -> list[int]:
+    if length < 0:
+        raise ValueError("Stage A acoustic count cannot be negative")
+    if count <= 0 or length <= count:
+        return list(range(length))
+    start = (epoch * 104729 + index * 1009) % length
+    return [(start + offset) % length for offset in range(count)]
 
 
 class IndexedStageAPackDataset(Dataset[dict[str, object]]):
@@ -86,12 +88,28 @@ class IndexedStageAPackDataset(Dataset[dict[str, object]]):
         result["loss_kinds"] = torch.tensor(value["loss_kinds"], dtype=torch.long)
         if result["loss_kinds"].shape != result["loss_mask"].shape:
             raise ValueError("Stage A loss kind/mask geometry differs")
-        selected = _rotated_subset(
-            value.get("acoustics", []),
-            self.max_acoustics_per_pack,
-            epoch,
-            index,
+        raw_acoustics = list(value.get("acoustics", []))
+        selected_indices = _rotated_indices(
+            len(raw_acoustics), self.max_acoustics_per_pack, epoch, index
         )
+        selected_index_set = set(selected_indices)
+        boundaries = value.get("sample_boundaries", [])
+        disabled_boundaries: set[int] = set()
+        for acoustic_index, raw in enumerate(raw_acoustics):
+            if acoustic_index in selected_index_set:
+                continue
+            boundary_index = int(raw["batch_boundary_index"])
+            if not 0 <= boundary_index < len(boundaries):
+                raise ValueError("Stage A acoustic boundary index is malformed")
+            disabled_boundaries.add(boundary_index)
+        for boundary_index in disabled_boundaries:
+            start, end = (int(item) for item in boundaries[boundary_index])
+            if not 0 <= start < end <= self.seq_length:
+                raise ValueError("Stage A sample boundary is malformed")
+            result["loss_mask"][start:end] = 0
+            result["loss_kinds"][start:end] = LOSS_NONE
+
+        selected = [raw_acoustics[position] for position in selected_indices]
         acoustics: list[dict[str, object]] = []
         tokens = value["tokens"]
         for raw in selected:
@@ -118,7 +136,8 @@ class IndexedStageAPackDataset(Dataset[dict[str, object]]):
             acoustics.append(acoustic)
         result["acoustics"] = acoustics
         result["selected_acoustics"] = len(acoustics)
-        result["available_acoustics"] = len(value.get("acoustics", []))
+        result["available_acoustics"] = len(raw_acoustics)
+        result["disabled_acoustics"] = len(raw_acoustics) - len(acoustics)
         return result
 
     def __getitem__(self, index: int) -> dict[str, object]:
@@ -206,6 +225,9 @@ def collate_stage_a(batch: Sequence[dict[str, object]]) -> dict[str, object]:
     )
     result["available_acoustics"] = torch.tensor(
         [int(value["available_acoustics"]) for value in batch], dtype=torch.long
+    )
+    result["disabled_acoustics"] = torch.tensor(
+        [int(value["disabled_acoustics"]) for value in batch], dtype=torch.long
     )
     flattened = [
         (batch_row, dict(acoustic))

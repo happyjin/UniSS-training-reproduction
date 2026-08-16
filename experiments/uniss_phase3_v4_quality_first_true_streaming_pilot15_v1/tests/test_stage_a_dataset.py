@@ -70,9 +70,16 @@ def test_indexed_dataset_loads_bounded_audio_and_epoch_shuffle(tmp_path: Path) -
     )
     item = dataset.get_for_epoch(0, 1)
     assert item["selected_acoustics"] == 2
+    assert item["disabled_acoustics"] == 1
+    original_supervised = sum(packed["loss_mask"])
+    assert int(item["loss_mask"].sum()) < original_supervised
+    assert not bool(
+        ((item["loss_mask"] > 0) & (item["loss_kinds"] == 0)).any()
+    )
     batch = collate_stage_a([item])
     assert tuple(batch["waveform"].shape) == (2, 2560)
     assert batch["ctc_lengths"].tolist() == [2, 2]
+    assert batch["disabled_acoustics"].tolist() == [1]
     schedule = ThreeEpochStageASchedule(
         dataset,
         coverage_epochs=3,
