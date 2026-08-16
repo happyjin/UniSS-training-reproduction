@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import torch
 from torch import nn
 
@@ -122,3 +123,47 @@ def test_objective_replaces_offline_glm_embeddings_and_has_finite_losses() -> No
     total.backward()
     assert objective.ctc_head.weight.grad is not None
     assert objective.frontend.scale.grad is not None
+
+
+def test_objective_extends_only_terminal_exact_hop_codec_boundary() -> None:
+    objective = StageAObjective(
+        TinyFrontend(),
+        qwen_hidden_size=6,
+        ctc_output_size=5,
+        ctc_blank_id=4,
+        glm_semantic_offset=0,
+    )
+    decoder = torch.randn(5, 1, 6)
+    embeddings = torch.randn(8, 6)
+    batch = {
+        "waveform": torch.zeros(1, 2560),
+        "waveform_lengths": torch.tensor([2560]),
+        "glm_ids": torch.tensor([[0, 1, 1]]),
+        "glm_positions": torch.tensor([[1, 2, 3]]),
+        "glm_lengths": torch.tensor([3]),
+        "acoustic_batch": torch.tensor([0]),
+        "ctc_ids": torch.tensor([[0, 1]]),
+        "ctc_lengths": torch.tensor([2]),
+        "disabled_acoustics": torch.tensor([0]),
+    }
+    prepared = objective.prepare(
+        decoder,
+        embeddings,
+        batch,
+        original_seq_length=5,
+        chunk_ms=160,
+        consistency_chunk_ms=160,
+    )
+    assert prepared.causal_glm_terminal_extensions.item() == 1
+    assert torch.equal(prepared.decoder_input[2], prepared.decoder_input[3])
+
+    batch["waveform_lengths"] = torch.tensor([2559])
+    with pytest.raises(ValueError, match="token count differs"):
+        objective.prepare(
+            decoder,
+            embeddings,
+            batch,
+            original_seq_length=5,
+            chunk_ms=160,
+            consistency_chunk_ms=160,
+        )

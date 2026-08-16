@@ -21,6 +21,9 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
     CausalWhisperOutput,
     block_padded_frame_lengths,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage00_baseline.shared_causal_frontend import (
+    TOKEN_HOP_SAMPLES,
+)
 from training import constants_uniss as c
 
 
@@ -39,6 +42,7 @@ DIAGNOSTIC_NAMES = (
     "causal_glm_agreement",
     "bridge_residual_rms",
     "causal_glm_tokens",
+    "causal_glm_terminal_extensions",
     "ctc_target_tokens",
     "ctc_input_frames",
     "ar_asr_tokens",
@@ -87,6 +91,7 @@ class StageAPrepared:
     causal_glm_agreement: torch.Tensor
     bridge_residual_rms: torch.Tensor
     causal_glm_tokens: torch.Tensor
+    causal_glm_terminal_extensions: torch.Tensor
     ctc_input_frames: torch.Tensor
 
 
@@ -212,21 +217,37 @@ class StageAObjective(nn.Module):
         batch: Mapping[str, torch.Tensor],
         *,
         original_seq_length: int,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if decoder_input.ndim != 3 or decoder_input.shape[1] != 1:
             raise ValueError("Stage A packed decoder input must be [tokens,1,hidden]")
         corrected = decoder_input.clone()
         causal_ids: list[torch.Tensor] = []
         teacher_ids: list[torch.Tensor] = []
         residuals: list[torch.Tensor] = []
+        terminal_extensions = 0
         for row in range(int(pooled_hidden.shape[0])):
             length = int(batch["glm_lengths"][row].item())
-            if int(pooled_lengths[row].item()) != length:
+            causal_length = int(pooled_lengths[row].item())
+            hidden = pooled_hidden[row, :causal_length]
+            if causal_length == length:
+                pass
+            elif (
+                length == causal_length + 1
+                and int(batch["waveform_lengths"][row].item()) % TOKEN_HOP_SAMPLES == 0
+            ):
+                # A small subset of the released BiCodec reconstructions has
+                # N offline GLM tokens but exactly (N-1)*80 ms of decoded PCM.
+                # The deployable causal frontend correctly emits N-1 tokens
+                # for that PCM.  Repeating the final already-visible causal
+                # state fills only this terminal codec-boundary slot; it does
+                # not expose future audio and preserves the Phase3 pack shape.
+                hidden = torch.cat((hidden, hidden[-1:]), dim=0)
+                terminal_extensions += 1
+            else:
                 raise ValueError(
                     "causal WhisperVQ token count differs from packed GLM coverage: "
-                    f"{int(pooled_lengths[row].item())} vs {length}"
+                    f"{causal_length} vs {length}"
                 )
-            hidden = pooled_hidden[row, :length]
             codes = self._nearest_codes(hidden)
             qwen_ids = codes + self.glm_semantic_offset
             if int(qwen_ids.max()) >= int(word_embedding_weight.shape[0]):
@@ -247,7 +268,8 @@ class StageAObjective(nn.Module):
         residual = torch.cat(residuals)
         agreement = (causal == teacher).float().mean()
         residual_rms = residual.square().mean().sqrt()
-        return corrected, causal, agreement, residual_rms
+        extension_count = causal.new_tensor(terminal_extensions).float()
+        return corrected, causal, agreement, residual_rms, extension_count
 
     def _ctc_term(
         self,
@@ -323,13 +345,15 @@ class StageAObjective(nn.Module):
         output: CausalWhisperOutput = self.frontend(
             waveform, waveform_lengths, chunk_ms=chunk_ms
         )
-        corrected, causal_ids, agreement, residual_rms = self._inject_causal_glm(
-            decoder_input,
-            word_embedding_weight,
-            output.pooled_hidden,
-            output.pooled_lengths,
-            batch,
-            original_seq_length=original_seq_length,
+        corrected, causal_ids, agreement, residual_rms, terminal_extensions = (
+            self._inject_causal_glm(
+                decoder_input,
+                word_embedding_weight,
+                output.pooled_hidden,
+                output.pooled_lengths,
+                batch,
+                original_seq_length=original_seq_length,
+            )
         )
         ctc, blank_ratio, input_frames = self._ctc_term(output, batch)
 
@@ -367,6 +391,7 @@ class StageAObjective(nn.Module):
             causal_glm_agreement=agreement.detach(),
             bridge_residual_rms=residual_rms.detach(),
             causal_glm_tokens=causal_ids.new_tensor(causal_ids.numel()).float(),
+            causal_glm_terminal_extensions=terminal_extensions.detach(),
             ctc_input_frames=input_frames.detach(),
         )
 
@@ -417,6 +442,10 @@ class StageAObjective(nn.Module):
                 ("causal_glm_agreement", prepared.causal_glm_agreement),
                 ("bridge_residual_rms", prepared.bridge_residual_rms),
                 ("causal_glm_tokens", prepared.causal_glm_tokens),
+                (
+                    "causal_glm_terminal_extensions",
+                    prepared.causal_glm_terminal_extensions,
+                ),
                 ("ctc_target_tokens", batch["ctc_lengths"].sum().detach().float()),
                 ("ctc_input_frames", prepared.ctc_input_frames),
                 ("ar_asr_tokens", ar.denominator.detach().float()),
