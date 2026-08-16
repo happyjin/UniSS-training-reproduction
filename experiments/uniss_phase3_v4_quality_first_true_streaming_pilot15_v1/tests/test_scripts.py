@@ -34,9 +34,10 @@ def test_stage_a_ctc_map_is_train_derived_and_validation_audited() -> None:
     env = (ROOT / "experiment.env").read_text(encoding="utf-8")
     assert "label-independent fixed 256-byte UTF-8 inventory" in source
     assert '"valid_oov_zero": valid_counters["oov_tokens"] == 0' in source
-    assert "ctc_maps_utf8_byte_v4" in env
-    assert "source_snapshot_v4.json" in env
+    assert "ctc_maps_utf8_byte_v5" in env
+    assert "source_snapshot_v5.json" in env
     assert 'maps["eng"].blank_id > 0' in source
+    assert 'max_keys = {"max_minimum_ctc_steps"}' in source
 
 
 def test_stage00_does_not_authorize_stage_a_from_frontend_gate_only() -> None:

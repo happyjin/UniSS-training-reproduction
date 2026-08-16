@@ -21,4 +21,4 @@ export OPENBLAS_NUM_THREADS=1
   --target-kind utf8_byte \
   --train-workers "${STAGE_A_CTC_TRAIN_WORKERS:-30}" \
   --valid-workers "${STAGE_A_CTC_VALID_WORKERS:-8}" \
-  | tee "${LOG_ROOT}/stage_a/ctc_map_build_v4.log"
+  | tee "${LOG_ROOT}/stage_a/ctc_map_build_v5.log"

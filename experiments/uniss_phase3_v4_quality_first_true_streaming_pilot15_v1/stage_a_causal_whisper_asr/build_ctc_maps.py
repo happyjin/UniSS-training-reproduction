@@ -158,8 +158,14 @@ def _scan(
         parts = [future.result() for future in as_completed(futures)]
     counters: Counter[str] = Counter()
     token_counts = {"eng": Counter(), "cmn": Counter()}
+    max_keys = {"max_minimum_ctc_steps"}
     for part in parts:
-        counters.update({str(key): int(value) for key, value in part["counters"].items()})
+        for key, value in part["counters"].items():
+            key = str(key)
+            if key in max_keys:
+                counters[key] = max(counters[key], int(value))
+            else:
+                counters[key] += int(value)
         for language in ("eng", "cmn"):
             token_counts[language].update(
                 {int(key): int(value) for key, value in part["token_counts"][language].items()}
