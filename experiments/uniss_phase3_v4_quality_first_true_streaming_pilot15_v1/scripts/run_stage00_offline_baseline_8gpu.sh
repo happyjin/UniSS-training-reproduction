@@ -80,4 +80,3 @@ mv "${OUTPUT_ROOT}/audio_64" "${OUTPUT_ROOT}/audio"
   | tee "${OUTPUT_ROOT}/aggregate.log"
 
 echo "offline_baseline=${OUTPUT_ROOT}"
-
