@@ -28,6 +28,17 @@ def test_stage_a_shell_scripts_are_syntax_valid() -> None:
         subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], check=True)
 
 
+def test_stage_a_strict_resume_restores_complete_compound_state() -> None:
+    source = (ROOT / "scripts" / "run_stage_a_strict_resume_8gpu.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "RUN_STRICTNESS=raise_all" in source
+    assert "RUN_FINETUNE=0" in source
+    assert "RUN_LOAD_OPTIM=1" in source
+    assert "RUN_LOAD_RNG=1" in source
+    assert 'RESUME_LOAD must point to a Stage A compound checkpoint root' in source
+
+
 def test_stage_a_ctc_map_is_train_derived_and_validation_audited() -> None:
     source = (
         ROOT / "stage_a_causal_whisper_asr" / "build_ctc_maps.py"
