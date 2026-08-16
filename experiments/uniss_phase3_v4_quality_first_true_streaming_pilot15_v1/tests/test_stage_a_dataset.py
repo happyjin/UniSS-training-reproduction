@@ -15,6 +15,7 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.dataset import (
     IndexedStageAPackDataset,
+    PaddedStageAValidationDataset,
     ThreeEpochStageASchedule,
     collate_stage_a,
 )
@@ -89,3 +90,29 @@ def test_indexed_dataset_loads_bounded_audio_and_epoch_shuffle(tmp_path: Path) -
     )
     assert len(schedule) == 3
     assert [schedule.source_index(index)[0] for index in range(3)] == [0, 1, 2]
+
+
+def test_validation_repeats_to_complete_dp_microbatches(tmp_path: Path) -> None:
+    audio = tmp_path / "sample.wav"
+    _write_wav(audio)
+    sample = build_stage_a_sample(
+        _record(audio), lambda text: [100 + len(text)], list(range(32))
+    )
+    packed = list(pack_stage_a_samples([sample], seq_length=512))[0]
+    path = tmp_path / "valid.jsonl"
+    encoded = (json.dumps(packed, separators=(",", ":")) + "\n").encode()
+    path.write_bytes(encoded)
+    write_index(path, array("Q", [0]))
+    source = IndexedStageAPackDataset(
+        path,
+        seq_length=512,
+        max_acoustics_per_pack=1,
+    )
+    valid = PaddedStageAValidationDataset(
+        source,
+        minimum_samples=4,
+        data_parallel_group_size=8,
+    )
+    assert valid.unpadded_length == 1
+    assert len(valid) == 8
+    assert all(valid[index]["source_pack_index"] == 0 for index in range(8))

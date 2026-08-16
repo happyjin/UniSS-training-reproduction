@@ -198,6 +198,45 @@ class ThreeEpochStageASchedule(Dataset[dict[str, object]]):
         return self.dataset.get_for_epoch(source, epoch)
 
 
+class PaddedStageAValidationDataset(Dataset[dict[str, object]]):
+    """Repeat validation packs to a complete Megatron DP microbatch.
+
+    Megatron's random sampler drops an incomplete final DP microbatch.  When
+    the complete validation set itself is smaller than that microbatch, its
+    active sample count becomes zero.  Cyclic padding keeps every rank inside
+    the same collectives and preserves all source packs at least once.
+    """
+
+    def __init__(
+        self,
+        dataset: IndexedStageAPackDataset,
+        *,
+        minimum_samples: int,
+        data_parallel_group_size: int,
+    ) -> None:
+        if minimum_samples < 0 or data_parallel_group_size <= 0:
+            raise ValueError("invalid Stage A validation padding geometry")
+        self.dataset = dataset
+        self.unpadded_length = len(dataset)
+        requested = max(self.unpadded_length, int(minimum_samples))
+        self.padded_length = (
+            math.ceil(requested / data_parallel_group_size)
+            * data_parallel_group_size
+        )
+        self.split = "valid"
+        self.collate_fn = collate_stage_a
+
+    def __len__(self) -> int:
+        return self.padded_length
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        return self.dataset[index % self.unpadded_length]
+
+
 def collate_stage_a(batch: Sequence[dict[str, object]]) -> dict[str, object]:
     if not batch or any(value.get("sample_kind") != "stage_a" for value in batch):
         raise ValueError("Stage A collate received a foreign sample")
@@ -281,6 +320,7 @@ def collate_stage_a(batch: Sequence[dict[str, object]]) -> dict[str, object]:
 __all__ = [
     "CoverageEpochSampler",
     "IndexedStageAPackDataset",
+    "PaddedStageAValidationDataset",
     "ThreeEpochStageASchedule",
     "collate_stage_a",
 ]

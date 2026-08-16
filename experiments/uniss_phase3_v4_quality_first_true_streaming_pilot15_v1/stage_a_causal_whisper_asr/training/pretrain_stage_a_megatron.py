@@ -30,8 +30,8 @@ from experiments.uniss_phase3_dense_aligned_streaming_pilot15_v1.training.datase
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.dataset import (
     IndexedStageAPackDataset,
+    PaddedStageAValidationDataset,
     ThreeEpochStageASchedule,
-    collate_stage_a,
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     TrainableSharedCausalWhisperVQ,
@@ -294,15 +294,24 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             f"Stage A strict schedule length {len(train)} differs from Megatron target {target_train}"
         )
     valid = None
+    valid_source_length = 0
     if args.stage_a_valid_packs:
-        valid = _dataset(args, args.stage_a_valid_packs)
-        valid.split = "valid"
-        valid.collate_fn = collate_stage_a
+        valid_source = _dataset(args, args.stage_a_valid_packs)
+        valid_source_length = len(valid_source)
+        eval_micro_batch = int(
+            getattr(args, "eval_micro_batch_size", None) or args.micro_batch_size
+        )
+        valid = PaddedStageAValidationDataset(
+            valid_source,
+            minimum_samples=int(train_val_test_num_samples[1]),
+            data_parallel_group_size=int(args.data_parallel_size) * eval_micro_batch,
+        )
     runtime.print_rank_0(
         "> Stage A datasets: "
         f"source_packs={len(source)} coverage_epochs={train.coverage_epochs} "
         f"epoch_samples={train.epoch_samples} total_samples={len(train)} "
-        f"global_shuffle_seed={train.shuffle_seed} valid={0 if valid is None else len(valid)}"
+        f"global_shuffle_seed={train.shuffle_seed} "
+        f"valid_source={valid_source_length} valid_effective={0 if valid is None else len(valid)}"
     )
     return train, valid, None
 
