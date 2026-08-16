@@ -1,0 +1,33 @@
+{
+  "schema_version": "uniss_quality_first_stage_a_data_gate_v1",
+  "passed": true,
+  "scope": "stage_a_data_preparation_only",
+  "code_commit": "32d1b95",
+  "source_snapshot": {
+    "path": "data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/source_snapshot_v5.json",
+    "sha256": "43f4abc9d06b3d7532222db6309dad2e4d43c8b5e8d126055db81ffdc9fefb3c"
+  },
+  "ctc_map_report": {
+    "path": "data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/ctc_maps_utf8_byte_v5/ctc_map_build_report.json",
+    "sha256": "52a4f956981adbb9563cc90675e103bed77bf7743756e72f5635560b2d30e804",
+    "target_kind": "utf8_byte",
+    "output_size": 257
+  },
+  "full_data_audit": {
+    "path": "data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/audit_20260816T062547Z/stage_a_data_audit.json",
+    "sha256": "fab404612a88154aabc736be5d85008bbe90370314db6cce6b2f01d6f55a074f",
+    "train_records": 1325243,
+    "valid_records": 13469,
+    "train_valid_id_overlap": 0
+  },
+  "authorizes": [
+    "native_megatron_stage_a_implementation",
+    "single_gpu_real_checkpoint_smoke",
+    "eight_gpu_short_smoke"
+  ],
+  "does_not_authorize": [
+    "formal_training_before_smoke_gate",
+    "stage_b_training",
+    "claims_that_stage_a_model_training_is_complete"
+  ]
+}
