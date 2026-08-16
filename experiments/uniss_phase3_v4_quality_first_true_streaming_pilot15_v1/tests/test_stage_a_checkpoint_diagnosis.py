@@ -34,3 +34,10 @@ def test_edit_distance_handles_insert_delete_replace() -> None:
     assert edit_distance([1, 2, 3], [1, 4, 3]) == 1
     assert edit_distance([1, 2, 3], [1, 3]) == 1
     assert edit_distance([], [1, 2]) == 2
+
+
+def test_causal_full_target_has_content_start_in_prompt() -> None:
+    conceptual = [c.TOKEN_START_CONTENT, 11, 12, c.TOKEN_END_CONTENT, c.TOKEN_EOS]
+    start, end = generated_runs([False, True, True, True, True])[0]
+    assert c.TOKEN_START_CONTENT in conceptual[:start]
+    assert c.TOKEN_END_CONTENT in conceptual[start:end]

@@ -321,6 +321,7 @@ def free_running_asr(
     built: list[int] = []
     built_glm: list[int | None] = []
     generated_all: list[int] = []
+    generated_content: list[int] = []
     event_rows: list[dict[str, object]] = []
     cursor = 0
     for start, end in generated_runs(generated_flags):
@@ -342,12 +343,27 @@ def free_running_asr(
         built.extend(predicted)
         built_glm.extend([None] * len(predicted))
         generated_all.extend(predicted)
+        predicted_content = content_ids(predicted)
+        if not predicted_content and c.TOKEN_START_CONTENT in conceptual[:start] and c.TOKEN_END_CONTENT in expected:
+            content_end = (
+                predicted.index(c.TOKEN_END_CONTENT)
+                if c.TOKEN_END_CONTENT in predicted
+                else len(predicted)
+            )
+            predicted_content = [
+                value
+                for value in predicted[:content_end]
+                if value not in (c.TOKEN_END_CONTENT, c.TOKEN_EOS)
+            ]
+        generated_content.extend(predicted_content)
         event_rows.append(
             {
                 "expected_tokens": len(expected),
                 "generated_tokens": len(predicted),
                 "expected_stop": stop,
                 "reached_stop": bool(predicted and predicted[-1] == stop),
+                "predicted_tokens": predicted,
+                "content_tokens": predicted_content,
                 "write_structure": predicted[:3]
                 == [c.TOKEN_WRITE_GENERATE, conceptual[start + 1], c.TOKEN_START_CONTENT]
                 if len(expected) >= 3 and expected[0] == c.TOKEN_WRITE_GENERATE
@@ -358,18 +374,13 @@ def free_running_asr(
     for position in range(cursor, len(conceptual)):
         built.append(int(conceptual[position]))
         built_glm.append(glm_map.get(position))
-    decoded = tokenizer.decode(content_ids(generated_all), skip_special_tokens=True)
+    decoded = tokenizer.decode(generated_content, skip_special_tokens=True)
     structured = [row for row in event_rows if row["write_structure"] is not None]
     return {
         "text": " ".join(decoded.split()),
         "generated_tokens": generated_all,
         "events": event_rows,
-        "content_events": sum(
-            c.TOKEN_START_CONTENT in generated
-            for generated in (
-                generated_all,
-            )
-        ),
+        "content_events": sum(bool(row["content_tokens"]) for row in event_rows),
         "all_events_reached_stop": all(bool(row["reached_stop"]) for row in event_rows),
         "write_structure_rate": sum(row["write_structure"] is True for row in structured)
         / max(1, len(structured)),
