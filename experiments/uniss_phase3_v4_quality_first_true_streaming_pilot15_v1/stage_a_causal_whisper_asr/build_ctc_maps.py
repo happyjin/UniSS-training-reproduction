@@ -269,8 +269,8 @@ def main() -> None:
 
     checks = {
         "train_records_nonzero": train_counters["records"] > 0,
-        "train_vocab_nonempty_eng": bool(maps["eng"].compact_to_qwen),
-        "train_vocab_nonempty_cmn": bool(maps["cmn"].compact_to_qwen),
+        "train_vocab_nonempty_eng": maps["eng"].blank_id > 0,
+        "train_vocab_nonempty_cmn": maps["cmn"].blank_id > 0,
         "valid_records_nonzero": valid_counters["records"] > 0,
         "valid_oov_zero": valid_counters["oov_tokens"] == 0,
         "train_ctc_feasible": train_counters["ctc_infeasible_records"] == 0,
