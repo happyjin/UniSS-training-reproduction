@@ -18,11 +18,24 @@ def test_stage_a_shell_scripts_are_syntax_valid() -> None:
 
     for name in (
         "run_stage_a_cpu_tests.sh",
+        "run_stage_a_build_ctc_maps.sh",
+        "launch_stage_a_ctc_maps_tmux.sh",
         "prepare_stage_a_inputs.sh",
         "run_stage_a_data_audit.sh",
         "launch_stage_a_data_audit_tmux.sh",
     ):
         subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], check=True)
+
+
+def test_stage_a_ctc_map_is_train_derived_and_validation_audited() -> None:
+    source = (
+        ROOT / "stage_a_causal_whisper_asr" / "build_ctc_maps.py"
+    ).read_text(encoding="utf-8")
+    env = (ROOT / "experiment.env").read_text(encoding="utf-8")
+    assert "maps are derived only from Stage A train canonical transcripts" in source
+    assert '"valid_oov_zero": valid_counters["oov_tokens"] == 0' in source
+    assert "ctc_maps_train_canonical_v2" in env
+    assert "source_snapshot_v2.json" in env
 
 
 def test_stage00_does_not_authorize_stage_a_from_frontend_gate_only() -> None:

@@ -37,3 +37,19 @@ The completed Stage 00 report is
 `reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_baseline/STAGE00_RESULT_REPORT.md`.
 The gate is conditional: Qwen cached validation/runtime must use FP32 eager
 attention until a separate BF16 parity gate passes.
+
+## Stage A data gate
+
+Stage A builds its compact source-CTC vocabulary only from the current train
+canonical transcripts. Validation labels are audit-only and must have zero
+OOV. The historical joint-data CTC maps remain immutable and are used only as
+a diagnostic reference.
+
+```bash
+bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/run_stage_a_cpu_tests.sh
+bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/launch_stage_a_ctc_maps_tmux.sh
+bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/prepare_stage_a_inputs.sh
+bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/launch_stage_a_data_audit_tmux.sh
+```
+
+Every command refuses to overwrite an existing map, snapshot, or audit run.

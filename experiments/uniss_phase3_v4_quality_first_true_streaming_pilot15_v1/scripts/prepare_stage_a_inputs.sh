@@ -6,6 +6,13 @@ EXPERIMENT_DIR=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 source "${EXPERIMENT_DIR}/experiment.env"
 cd "${REPO_ROOT}"
 mkdir -p "${STAGE_A_DATA_ROOT}" "${TMPDIR}"
+if [[ ! -f "${STAGE_A_CTC_MAP_REPORT}" ]]; then
+  echo "missing Stage A train-derived CTC map report: ${STAGE_A_CTC_MAP_REPORT}" >&2
+  exit 2
+fi
+"${PYTHON_BIN}" -c \
+  'import json,sys; value=json.load(open(sys.argv[1], encoding="utf-8")); assert value.get("passed"), "Stage A CTC map gate failed"' \
+  "${STAGE_A_CTC_MAP_REPORT}"
 
 "${PYTHON_BIN}" -m \
   experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.freeze_inputs \
