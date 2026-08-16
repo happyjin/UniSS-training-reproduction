@@ -24,6 +24,7 @@ def test_stage_a_shell_scripts_are_syntax_valid() -> None:
         "run_stage_a_pack_smoke.sh",
         "run_stage_a_data_audit.sh",
         "launch_stage_a_data_audit_tmux.sh",
+        "run_stage_a_checkpoint_diagnosis.sh",
     ):
         subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], check=True)
 
@@ -144,3 +145,12 @@ def test_status_requires_full_stage00_gate() -> None:
     assert "stage00_baseline/GATE_PASSED.json" in source
     assert "stage00_offline_tmux" in source
     assert "conditional" in readme.lower()
+
+
+def test_stage_a_checkpoint_diagnosis_is_read_only_and_non_overwriting() -> None:
+    source = (ROOT / "scripts" / "run_stage_a_checkpoint_diagnosis.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "Refusing to overwrite diagnosis" in source
+    assert "--chunk-ms 960 1280" in source
+    assert "CUDA_VISIBLE_DEVICES" in source
