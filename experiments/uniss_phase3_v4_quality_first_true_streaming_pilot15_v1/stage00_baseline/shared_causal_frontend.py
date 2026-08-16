@@ -132,9 +132,13 @@ class SharedCausalWhisperVQFrontend(nn.Module):
             )
         if int(filters.shape[1]) != int(self.encoder_model.conv1.in_channels):
             raise ValueError("mel filter count differs from WhisperVQ conv1 input")
-        self.register_buffer("mel_filters", filters, persistent=False)
         self.register_buffer(
-            "stft_window", torch.hann_window(N_FFT, dtype=torch.float32), persistent=False
+            "mel_filters", filters.to(self.device), persistent=False
+        )
+        self.register_buffer(
+            "stft_window",
+            torch.hann_window(N_FFT, dtype=torch.float32, device=self.device),
+            persistent=False,
         )
         self.max_blocks_per_encoder_segment = (
             int(self.cached_encoder.position_embedding.num_embeddings) // FRAMES_PER_BLOCK
@@ -190,6 +194,8 @@ class SharedCausalWhisperVQFrontend(nn.Module):
     def _causal_log_mel(
         self, block: torch.Tensor, pcm_tail: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.stft_window.device != block.device or self.mel_filters.device != block.device:
+            raise RuntimeError("causal frontend buffers and PCM are on different devices")
         actual = int(block.shape[-1])
         padded = F.pad(block, (0, BLOCK_SAMPLES - actual))
         analysis = torch.cat((pcm_tail.to(block.dtype), padded), dim=-1)
@@ -415,4 +421,3 @@ __all__ = [
     "TOKEN_HOP_MS",
     "TOKEN_HOP_SAMPLES",
 ]
-

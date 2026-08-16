@@ -129,3 +129,8 @@ def test_training_extractor_keeps_conv_gradient_path() -> None:
     assert frontend.encoder_model.conv1.weight.grad is not None
     assert frontend.encoder_model.conv2.weight.grad is not None
 
+
+def test_registered_frontend_buffers_follow_declared_device() -> None:
+    frontend = _tiny_frontend()
+    assert frontend.mel_filters.device == frontend.device
+    assert frontend.stft_window.device == frontend.device
