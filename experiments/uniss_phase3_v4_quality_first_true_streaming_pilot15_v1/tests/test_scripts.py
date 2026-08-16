@@ -21,6 +21,7 @@ def test_stage_a_shell_scripts_are_syntax_valid() -> None:
         "run_stage_a_build_ctc_maps.sh",
         "launch_stage_a_ctc_maps_tmux.sh",
         "prepare_stage_a_inputs.sh",
+        "run_stage_a_pack_smoke.sh",
         "run_stage_a_data_audit.sh",
         "launch_stage_a_data_audit_tmux.sh",
     ):
