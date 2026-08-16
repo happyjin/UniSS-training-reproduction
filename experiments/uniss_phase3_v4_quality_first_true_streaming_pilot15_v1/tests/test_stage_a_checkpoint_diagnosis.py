@@ -4,6 +4,7 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
     edit_distance,
     generated_runs,
     join_content_chunks,
+    summarize_rows,
 )
 from training import constants_uniss as c
 
@@ -47,3 +48,16 @@ def test_causal_full_target_has_content_start_in_prompt() -> None:
 def test_content_chunks_preserve_language_word_boundaries() -> None:
     assert join_content_chunks(["It's", "too", "late"], "eng") == "It's too late"
     assert join_content_chunks(["你", "好"], "cmn") == "你好"
+
+
+def test_worker_partition_is_disjoint_and_complete(tmp_path) -> None:
+    occurrences = list(range(17))
+    partitions = [[value for value in occurrences if value % 4 == worker] for worker in range(4)]
+    assert sorted(value for part in partitions for value in part) == occurrences
+    assert not any(set(left) & set(right) for index, left in enumerate(partitions) for right in partitions[index + 1 :])
+
+
+def test_empty_summary_is_well_defined() -> None:
+    summary = summarize_rows([])
+    assert summary["samples"] == 0
+    assert summary["ar_teacher_token_accuracy"] == 0.0

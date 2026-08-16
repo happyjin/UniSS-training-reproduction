@@ -25,6 +25,7 @@ def test_stage_a_shell_scripts_are_syntax_valid() -> None:
         "run_stage_a_data_audit.sh",
         "launch_stage_a_data_audit_tmux.sh",
         "run_stage_a_checkpoint_diagnosis.sh",
+        "run_stage_a_checkpoint_diagnosis_8gpu.sh",
     ):
         subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], check=True)
 
@@ -156,3 +157,9 @@ def test_stage_a_checkpoint_diagnosis_is_read_only_and_non_overwriting() -> None
     assert '--chunk-ms "${CHUNK_VALUES[@]}"' in source
     assert "CUDA_VISIBLE_DEVICES" in source
     assert "STAGE_A_VALID_PACKS" in source
+    distributed = (
+        ROOT / "scripts" / "run_stage_a_checkpoint_diagnosis_8gpu.sh"
+    ).read_text(encoding="utf-8")
+    assert "--max-samples-per-task 0" in distributed
+    assert "--worker-index" in distributed
+    assert "merge_checkpoint_diagnosis" in distributed

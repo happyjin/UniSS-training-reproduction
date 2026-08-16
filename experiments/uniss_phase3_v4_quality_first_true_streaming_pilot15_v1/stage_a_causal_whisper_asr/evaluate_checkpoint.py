@@ -132,16 +132,29 @@ def load_waveform(path: str) -> torch.Tensor:
 
 
 def iter_selected(
-    packs: Path, max_samples_per_task: int
+    packs: Path,
+    max_samples_per_task: int,
+    *,
+    worker_index: int = 0,
+    num_workers: int = 1,
 ) -> Iterable[dict[str, object]]:
-    counts: Counter[str] = Counter()
+    if not 0 <= worker_index < num_workers:
+        raise ValueError("invalid Stage A diagnosis worker partition")
+    seen: Counter[str] = Counter()
+    selected: Counter[str] = Counter()
     with packs.open(encoding="utf-8") as handle:
         for pack_index, line in enumerate(handle):
             pack = json.loads(line)
             boundaries = pack["sample_boundaries"]
             for acoustic in pack.get("acoustics", []):
                 task = str(acoustic["task"])
-                if task not in TASKS or counts[task] >= max_samples_per_task:
+                if task not in TASKS:
+                    continue
+                occurrence = seen[task]
+                seen[task] += 1
+                if occurrence % num_workers != worker_index:
+                    continue
+                if max_samples_per_task and selected[task] >= max_samples_per_task:
                     continue
                 boundary_index = int(acoustic["batch_boundary_index"])
                 start, end = (int(value) for value in boundaries[boundary_index])
@@ -151,7 +164,7 @@ def iter_selected(
                 glm_positions = [int(value) - start for value in acoustic["glm_positions"]]
                 if len(conceptual) != len(flags) or len(glm_positions) != len(acoustic["source_glm"]):
                     raise ValueError("malformed Stage A validation sample geometry")
-                counts[task] += 1
+                selected[task] += 1
                 yield {
                     "pack_index": pack_index,
                     "sample_id": str(acoustic["sample_id"]),
@@ -164,13 +177,19 @@ def iter_selected(
                     "glm_positions": glm_positions,
                     "source_glm": [int(value) for value in acoustic["source_glm"]],
                 }
-            if all(counts[task] >= max_samples_per_task for task in TASKS):
+            if max_samples_per_task and all(
+                selected[task] >= max_samples_per_task for task in TASKS
+            ):
                 return
-    missing = {
-        task: max_samples_per_task - counts[task]
-        for task in TASKS
-        if counts[task] < max_samples_per_task
-    }
+    missing = (
+        {
+            task: max_samples_per_task - selected[task]
+            for task in TASKS
+            if selected[task] < max_samples_per_task
+        }
+        if max_samples_per_task
+        else {}
+    )
     if missing:
         raise RuntimeError(f"validation packs do not contain requested samples: {missing}")
 
@@ -409,6 +428,9 @@ def markdown_report(payload: dict[str, object]) -> str:
         f"- CTC blank collapse: **{summary['ctc_blank_collapse']}**",
         f"- AR final-only/empty collapse: **{summary['ar_empty_collapse']}**",
         f"- AR teacher-forced token accuracy: **{summary['ar_teacher_token_accuracy']:.4f}**",
+        f"- Weighted CTC blank ratio: **{summary['ctc_blank_ratio']:.4f}**",
+        f"- Weighted streaming WER/CER: **{summary['ar_error_rate_by_task'].get('streaming_asr', 0.0):.4f}**",
+        f"- Weighted causal-full WER/CER: **{summary['ar_error_rate_by_task'].get('causal_full_asr', 0.0):.4f}**",
         "",
         "| chunk | task | sample | CTC blank | CTC nonblank | AR text | metric | error rate |",
         "|---:|---|---|---:|---:|---|---|---:|",
@@ -438,6 +460,36 @@ def markdown_report(payload: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def summarize_rows(rows: Sequence[dict[str, object]]) -> dict[str, object]:
+    teacher_correct = sum(int(row["ar_teacher_forced"]["correct_tokens"]) for row in rows)
+    teacher_tokens = sum(int(row["ar_teacher_forced"]["target_tokens"]) for row in rows)
+    input_frames = sum(int(row["ctc"]["input_frames"]) for row in rows)
+    nonblank_frames = sum(int(row["ctc"]["raw_nonblank_frames"]) for row in rows)
+    error_by_task: dict[str, float] = {}
+    for task in TASKS:
+        selected = [row for row in rows if row["task"] == task]
+        errors = sum(int(row["ar_free_running"]["errors"]) for row in selected)
+        units = sum(int(row["ar_free_running"]["reference_units"]) for row in selected)
+        error_by_task[task] = errors / max(1, units)
+    return {
+        "samples": len(rows),
+        "unique_samples": len({(row["task"], row["sample_id"]) for row in rows}),
+        "evaluations_by_task": dict(Counter(str(row["task"]) for row in rows)),
+        "evaluations_by_chunk_ms": dict(Counter(str(row["chunk_ms"]) for row in rows)),
+        "ctc_blank_collapse": all(
+            int(row["ctc"]["collapsed_nonblank_tokens"]) == 0 for row in rows
+        ),
+        "ctc_blank_ratio": (input_frames - nonblank_frames) / max(1, input_frames),
+        "ar_empty_collapse": all(not str(row["ar_free_running"]["text"]) for row in rows),
+        "ar_teacher_token_accuracy": teacher_correct / max(1, teacher_tokens),
+        "ar_all_events_reached_stop_rate": sum(
+            bool(row["ar_free_running"]["all_events_reached_stop"]) for row in rows
+        )
+        / max(1, len(rows)),
+        "ar_error_rate_by_task": error_by_task,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -447,6 +499,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-ms", type=int, nargs="+", default=[960, 1280])
     parser.add_argument("--max-samples-per-task", type=int, default=2)
     parser.add_argument("--max-event-tokens", type=int, default=96)
+    parser.add_argument("--worker-index", type=int, default=0)
+    parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--output-md", type=Path, required=True)
@@ -457,8 +511,10 @@ def main() -> None:
     args = parse_args()
     if args.output_json.exists() or args.output_md.exists():
         raise FileExistsError("refusing to overwrite Stage A checkpoint diagnosis")
-    if args.max_samples_per_task <= 0 or args.max_event_tokens <= 0:
-        raise ValueError("Stage A diagnosis limits must be positive")
+    if args.max_samples_per_task < 0 or args.max_event_tokens <= 0:
+        raise ValueError("Stage A diagnosis limits are invalid")
+    if not 0 <= args.worker_index < args.num_workers:
+        raise ValueError("invalid Stage A diagnosis worker partition")
     if any(value <= 0 or value % 160 for value in args.chunk_ms):
         raise ValueError("chunk sizes must be positive multiples of 160 ms")
     device = torch.device(args.device)
@@ -471,10 +527,15 @@ def main() -> None:
     ).to(device).eval()
     qwen.requires_grad_(False)
     objective = load_objective(args.checkpoint, args.whispervq_model, device)
-    selected = list(iter_selected(args.valid_packs, args.max_samples_per_task))
+    selected = list(
+        iter_selected(
+            args.valid_packs,
+            args.max_samples_per_task,
+            worker_index=args.worker_index,
+            num_workers=args.num_workers,
+        )
+    )
     rows: list[dict[str, object]] = []
-    teacher_correct = 0
-    teacher_tokens = 0
     for sample in selected:
         waveform = load_waveform(str(sample["source_audio"]))
         conceptual = sample["conceptual"]
@@ -522,8 +583,6 @@ def main() -> None:
                     "error_rate": errors / max(1, units),
                 }
             )
-            teacher_correct += int(teacher["correct_tokens"])
-            teacher_tokens += int(teacher["target_tokens"])
             rows.append(
                 {
                     "sample_id": sample["sample_id"],
@@ -537,23 +596,14 @@ def main() -> None:
                     "ar_free_running": free,
                 }
             )
-    summary = {
-        "samples": len(rows),
-        "ctc_blank_collapse": all(
-            int(row["ctc"]["collapsed_nonblank_tokens"]) == 0 for row in rows
-        ),
-        "ar_empty_collapse": all(not str(row["ar_free_running"]["text"]) for row in rows),
-        "ar_teacher_token_accuracy": teacher_correct / max(1, teacher_tokens),
-        "ar_all_events_reached_stop_rate": sum(
-            bool(row["ar_free_running"]["all_events_reached_stop"]) for row in rows
-        )
-        / max(1, len(rows)),
-    }
+    summary = summarize_rows(rows)
     payload = {
         "schema_version": "uniss_quality_first_stage_a_checkpoint_diagnosis_v1",
         "checkpoint": str(args.checkpoint.resolve()),
         "hf_model": str(args.hf_model.resolve()),
         "valid_packs": str(args.valid_packs.resolve()),
+        "worker_index": args.worker_index,
+        "num_workers": args.num_workers,
         "summary": summary,
         "samples": rows,
     }
