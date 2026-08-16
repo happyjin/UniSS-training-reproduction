@@ -10,4 +10,3 @@ mkdir -p "${TMPDIR}" "${LOG_ROOT}/stage_a"
 "${PYTHON_BIN}" -m pytest -q \
   "${EXPERIMENT_DIR}/tests" \
   | tee "${LOG_ROOT}/stage_a/cpu_tests.log"
-

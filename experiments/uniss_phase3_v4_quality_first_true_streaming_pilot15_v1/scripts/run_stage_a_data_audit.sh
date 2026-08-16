@@ -32,4 +32,3 @@ export OPENBLAS_NUM_THREADS=1
   | tee "${LOG_ROOT}/stage_a/data_audit_${RUN_ID}.log"
 
 echo "stage_a_data_audit=${OUTPUT}"
-

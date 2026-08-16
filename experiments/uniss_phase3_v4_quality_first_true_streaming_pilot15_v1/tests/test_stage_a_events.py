@@ -69,4 +69,3 @@ def test_parallel_ranges_cover_every_record_once() -> None:
     values = [index for start, stop in ranges for index in range(start, stop)]
     assert values == list(range(17))
     assert len(ranges) == 4
-

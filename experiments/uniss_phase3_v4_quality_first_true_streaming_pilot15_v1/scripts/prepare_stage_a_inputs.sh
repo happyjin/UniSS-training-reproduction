@@ -15,4 +15,3 @@ mkdir -p "${STAGE_A_DATA_ROOT}" "${TMPDIR}"
   --stage00-gate "${REPORT_ROOT}/stage00_baseline/GATE_PASSED.json" \
   --native-checkpoint "${PHASE3_NATIVE_CHECKPOINT}" \
   --output "${STAGE_A_SOURCE_SNAPSHOT}"
-

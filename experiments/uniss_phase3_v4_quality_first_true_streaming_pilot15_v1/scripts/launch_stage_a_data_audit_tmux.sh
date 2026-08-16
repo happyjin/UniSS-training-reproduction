@@ -25,4 +25,3 @@ tmux new-session -d -s "${SESSION}" "bash -lc \"${COMMAND}\""
 echo "session=${SESSION}"
 echo "run_id=${RUN_ID}"
 echo "log=${LOG}"
-
