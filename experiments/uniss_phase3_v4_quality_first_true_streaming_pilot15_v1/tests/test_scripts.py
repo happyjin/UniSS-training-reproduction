@@ -154,3 +154,4 @@ def test_stage_a_checkpoint_diagnosis_is_read_only_and_non_overwriting() -> None
     assert "Refusing to overwrite diagnosis" in source
     assert "--chunk-ms 960 1280" in source
     assert "CUDA_VISIBLE_DEVICES" in source
+    assert "STAGE_A_VALID_PACKS" in source

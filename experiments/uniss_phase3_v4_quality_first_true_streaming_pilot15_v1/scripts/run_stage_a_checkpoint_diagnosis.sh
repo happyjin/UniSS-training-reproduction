@@ -17,7 +17,7 @@ CHECKPOINT="${REPO_ROOT}/checkpoints/uniss_phase3_v4_quality_first_true_streamin
 HF_MODEL="${REPO_ROOT}/checkpoints/exported_hf/uniss_stage_a_formal8_${ITER_TAG}_hf"
 OUTPUT_ROOT="${REPORT_ROOT}/stage_a_checkpoint_diagnosis/${RUN_ID}"
 
-for required in "${CHECKPOINT}/.metadata" "${HF_MODEL}/model.safetensors" "${DATA_ROOT}/stage_a_causal_asr/valid_packs_18k_v1.jsonl"; do
+for required in "${CHECKPOINT}/.metadata" "${HF_MODEL}/model.safetensors" "${STAGE_A_VALID_PACKS}"; do
   [[ -e "${required}" ]] || { echo "Missing Stage A diagnosis input: ${required}" >&2; exit 1; }
 done
 [[ ! -e "${OUTPUT_ROOT}" ]] || { echo "Refusing to overwrite diagnosis: ${OUTPUT_ROOT}" >&2; exit 1; }
@@ -28,7 +28,7 @@ CUDA_VISIBLE_DEVICES="${GPU}" "${PYTHON_BIN}" -m \
   --checkpoint "${CHECKPOINT}" \
   --hf-model "${HF_MODEL}" \
   --whispervq-model "${WHISPERVQ_CHECKPOINT}" \
-  --valid-packs "${DATA_ROOT}/stage_a_causal_asr/valid_packs_18k_v1.jsonl" \
+  --valid-packs "${STAGE_A_VALID_PACKS}" \
   --chunk-ms 960 1280 \
   --max-samples-per-task "${MAX_SAMPLES_PER_TASK}" \
   --output-json "${OUTPUT_ROOT}/diagnosis.json" \
