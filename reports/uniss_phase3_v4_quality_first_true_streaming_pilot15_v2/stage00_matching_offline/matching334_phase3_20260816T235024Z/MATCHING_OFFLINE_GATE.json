@@ -1,0 +1,25 @@
+{
+  "created_at_utc": "2026-08-16T23:53:14Z",
+  "matching_anchor": {
+    "cmn": {
+      "error_rate": 0.06487341772151899,
+      "maximum_allowed_error_rate": 0.07460443037974683,
+      "metric": "cer",
+      "samples": 150
+    },
+    "eng": {
+      "error_rate": 0.08503798947983636,
+      "maximum_allowed_error_rate": 0.09779368790181181,
+      "metric": "wer",
+      "samples": 184
+    }
+  },
+  "matching_manifest_sha256": "6e9ddad232be5cd8a5ed65ffb9e984f34a7c2f210d302e539182ba268ddc23c4",
+  "matching_summary_sha256": "6971bc938974402053d8f5a1f11ec84fe399bcf8d88a93075b10130c7762c8dc",
+  "passed": true,
+  "records": 334,
+  "relative_degradation_limit": 0.15,
+  "schema_version": "uniss_quality_first_matching_offline_gate_v1",
+  "stage_a_v1_passed_against_matching_anchor": false,
+  "stage_b_authorized": false
+}
