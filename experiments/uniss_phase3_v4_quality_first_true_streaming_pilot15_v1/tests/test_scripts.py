@@ -13,6 +13,18 @@ def test_stage00_shell_scripts_are_syntax_valid() -> None:
         subprocess.run(["bash", "-n", str(path)], check=True)
 
 
+def test_stage_a_shell_scripts_are_syntax_valid() -> None:
+    import subprocess
+
+    for name in (
+        "run_stage_a_cpu_tests.sh",
+        "prepare_stage_a_inputs.sh",
+        "run_stage_a_data_audit.sh",
+        "launch_stage_a_data_audit_tmux.sh",
+    ):
+        subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], check=True)
+
+
 def test_stage00_does_not_authorize_stage_a_from_frontend_gate_only() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "FRONTEND_GATE_PASSED.json" in readme
