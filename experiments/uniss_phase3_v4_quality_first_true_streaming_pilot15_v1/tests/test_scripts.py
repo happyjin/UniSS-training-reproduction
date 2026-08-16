@@ -36,3 +36,28 @@ def test_gpu_launcher_only_stops_named_synthetic_session() -> None:
     )
     assert "tmux kill-session -t uniss_gpu_load_60" in source
     assert "refusing to kill unknown GPU processes" in source
+
+
+def test_fixed_validation_is_balanced_and_immutable_by_construction() -> None:
+    source = (ROOT / "stage00_baseline" / "build_fixed_validation.py").read_text(
+        encoding="utf-8"
+    )
+    assert "DURATION_BOUNDS_MS" in source
+    assert "_stable_score" in source
+    assert 'open("x"' in source
+    assert "formal_manifest_sha256" in source
+
+
+def test_qwen_and_bicodec_gates_are_strict() -> None:
+    qwen = (ROOT / "stage00_baseline" / "audit_qwen_cache.py").read_text(
+        encoding="utf-8"
+    )
+    codec = (ROOT / "stage00_baseline" / "audit_bicodec_streaming.py").read_text(
+        encoding="utf-8"
+    )
+    assert "minimum_logits_cosine" in qwen
+    assert ">= 0.9999" in qwen
+    assert "top1_exact" in qwen
+    assert "semantic_gap_count" in codec
+    assert "semantic_overlap_count" in codec
+    assert "speaker_change_rejected" in codec
