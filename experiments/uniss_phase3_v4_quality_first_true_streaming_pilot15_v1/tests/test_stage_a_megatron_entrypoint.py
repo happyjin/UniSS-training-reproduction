@@ -50,19 +50,20 @@ def test_stage_a_unfreeze_curriculum_keeps_new_heads_active() -> None:
 def test_stage_a_curriculum_uses_checkpoint_iteration_not_consumed_samples() -> None:
     args = SimpleNamespace(
         iteration=5,
+        curr_iteration=6,
         train_iters=32,
         global_batch_size=16,
         consumed_train_samples=999999,
     )
-    assert stage_a_curriculum_position(args) == (5 / 32, 5)
+    assert stage_a_curriculum_position(args, training=True) == (6 / 32, 6)
 
-    # The final validation pass is allowed to observe the completed schedule.
-    args.iteration = 32
-    assert stage_a_curriculum_position(args) == (1.0, 32)
+    # Validation observes the number of optimizer updates already completed.
+    args.consumed_train_samples = 16 * 32
+    assert stage_a_curriculum_position(args, training=False) == (1.0, 32)
 
-    args.iteration = -1
+    args.curr_iteration = -1
     with pytest.raises(ValueError):
-        stage_a_curriculum_position(args)
+        stage_a_curriculum_position(args, training=True)
 
 
 def test_phase3_handoff_allows_only_isolated_stage_a_modules() -> None:

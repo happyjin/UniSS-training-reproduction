@@ -145,18 +145,26 @@ def curriculum_group_multiplier(group: Mapping[str, object], progress: float) ->
     return 1.0
 
 
-def stage_a_curriculum_position(args) -> tuple[float, int]:
+def stage_a_curriculum_position(args, *, training: bool) -> tuple[float, int]:
     """Return a rank-stable curriculum position for the current optimizer update.
 
-    Megatron restores ``args.iteration`` directly from the checkpoint.  In
-    contrast, ``consumed_train_samples`` can transiently differ across ranks
-    when the rerun state machine replays validation after a strict resume.
-    Curriculum choices must therefore be keyed by the completed global update,
-    not by a mutable sample counter.
+    Megatron stores the checkpoint iteration in ``args.iteration`` but advances
+    the live training-loop position through ``args.curr_iteration``.  In
+    contrast, ``consumed_train_samples`` can transiently differ inside a rerun
+    of a resumed training step.  Training choices must therefore be keyed by
+    ``curr_iteration``.  Evaluation runs after an update and can safely use the
+    completed global sample count.
     """
 
     train_iters = max(1, int(args.train_iters))
-    completed_updates = int(getattr(args, "iteration", 0) or 0)
+    if training:
+        completed_updates = int(
+            getattr(args, "curr_iteration", getattr(args, "iteration", 0)) or 0
+        )
+    else:
+        completed_updates = int(getattr(args, "consumed_train_samples", 0) or 0) // max(
+            1, int(args.global_batch_size)
+        )
     if completed_updates < 0:
         raise ValueError("Stage A iteration cannot be negative")
     progress = min(1.0, completed_updates / train_iters)
@@ -524,7 +532,7 @@ def forward_step(data_iterator, model):
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     batch = base.prepare_packed_batch(next(data_iterator), int(args.seq_length))
-    progress, update = stage_a_curriculum_position(args)
+    progress, update = stage_a_curriculum_position(args, training=bool(model.training))
     batch["training_progress"] = torch.tensor(
         progress,
         dtype=torch.float32,
