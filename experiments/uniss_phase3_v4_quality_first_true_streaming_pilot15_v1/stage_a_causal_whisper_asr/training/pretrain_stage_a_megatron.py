@@ -6,10 +6,20 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import types
 from collections import OrderedDict
 from pathlib import Path
 from typing import Mapping
+
+# torchrun ranks must not atomically publish the same Triton/Inductor bundle.
+# Configure isolated caches before importing torch or Transformer Engine.
+_cache_root = os.environ.get("UNISS_STAGE_A_COMPILE_CACHE_ROOT")
+if _cache_root:
+    _rank_cache = Path(_cache_root) / f"rank_{os.environ.get('LOCAL_RANK', '0')}"
+    _rank_cache.mkdir(parents=True, exist_ok=True)
+    os.environ["TRITON_CACHE_DIR"] = str(_rank_cache / "triton")
+    os.environ["TORCHINDUCTOR_CACHE_DIR"] = str(_rank_cache / "inductor")
 
 import torch
 from torch import nn

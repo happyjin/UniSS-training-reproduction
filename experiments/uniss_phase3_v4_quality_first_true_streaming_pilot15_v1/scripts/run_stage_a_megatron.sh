@@ -54,8 +54,9 @@ export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPAT
 export PATH="$(dirname "${PYTHON_BIN}"):${PATH}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+export UNISS_STAGE_A_COMPILE_CACHE_ROOT="${JASON_ROOT}/.cache/stage_a_compile/${RUN_ID}"
 mkdir -p "${HF_HOME}" "${HUGGINGFACE_HUB_CACHE}" "${TRANSFORMERS_CACHE}" \
-  "${PIP_CACHE_DIR}" "${TMPDIR}"
+  "${PIP_CACHE_DIR}" "${TMPDIR}" "${UNISS_STAGE_A_COMPILE_CACHE_ROOT}"
 
 required=(
   "${RUN_TRAIN_PACKS}"

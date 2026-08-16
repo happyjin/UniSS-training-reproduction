@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 
@@ -26,6 +27,15 @@ def test_stage_a_lr_groups_match_registered_plan() -> None:
     assert groups["uniss_stage_a_new_head"]["max_lr"] == 1e-4
     assert groups["uniss_stage_a_qwen"]["max_lr"] == 2e-6
     assert groups["uniss_stage_a_whisper_conv"]["max_lr"] == 1e-7
+
+
+def test_entrypoint_configures_rank_local_compile_cache_before_torch() -> None:
+    source = Path(
+        "experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/"
+        "stage_a_causal_whisper_asr/training/pretrain_stage_a_megatron.py"
+    ).read_text(encoding="utf-8")
+    assert source.index("UNISS_STAGE_A_COMPILE_CACHE_ROOT") < source.index("import torch")
+    assert 'f"rank_{os.environ.get(\'LOCAL_RANK\', \'0\')}"' in source
 
 
 def test_stage_a_unfreeze_curriculum_keeps_new_heads_active() -> None:
