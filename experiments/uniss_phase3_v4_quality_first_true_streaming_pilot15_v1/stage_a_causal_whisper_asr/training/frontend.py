@@ -140,9 +140,9 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
         pooling_position = int(self.encoder.config.pooling_position)
         top_start = max(0, pooling_position - 8)
         for parameter in self.encoder.conv1.parameters():
-            parameter.uniss_stage_a_whisper_bottom = True
+            parameter.uniss_stage_a_whisper_conv = True
         for parameter in self.encoder.conv2.parameters():
-            parameter.uniss_stage_a_whisper_bottom = True
+            parameter.uniss_stage_a_whisper_conv = True
         for index, layer in enumerate(self.encoder.layers[:pooling_position]):
             attribute = (
                 "uniss_stage_a_whisper_top"
@@ -197,7 +197,7 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
             dtype=torch.float32,
             device=waveform.device,
         )
-        filters = self.mel_filters.to(device=waveform.device)
+        filters = self.mel_filters.to(device=waveform.device, dtype=torch.float32)
         for block_index in range(blocks):
             current = waveform[
                 :, block_index * BLOCK_SAMPLES : (block_index + 1) * BLOCK_SAMPLES

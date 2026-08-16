@@ -77,6 +77,19 @@ class StageAObjectiveOutput:
     decoder_input: torch.Tensor
 
 
+@dataclass(frozen=True)
+class StageAPrepared:
+    decoder_input: torch.Tensor
+    ctc: LossTerm
+    hidden_chunk_consistency: LossTerm
+    cache_full_consistency: LossTerm
+    ctc_blank_ratio: torch.Tensor
+    causal_glm_agreement: torch.Tensor
+    bridge_residual_rms: torch.Tensor
+    causal_glm_tokens: torch.Tensor
+    ctc_input_frames: torch.Tensor
+
+
 def _zero_term(anchor: torch.Tensor) -> LossTerm:
     zero = anchor.sum() * 0.0
     return LossTerm(zero, zero.detach())
@@ -295,20 +308,16 @@ class StageAObjective(nn.Module):
         active = mask.any(dim=-1)
         return _values_term(values, active)
 
-    def forward(
+    def prepare(
         self,
         decoder_input: torch.Tensor,
         word_embedding_weight: torch.Tensor,
-        logits: torch.Tensor,
-        labels: torch.Tensor,
-        loss_mask: torch.Tensor,
-        loss_kinds: torch.Tensor,
         batch: Mapping[str, torch.Tensor],
         *,
         original_seq_length: int,
         chunk_ms: int,
         consistency_chunk_ms: int,
-    ) -> StageAObjectiveOutput:
+    ) -> StageAPrepared:
         waveform = batch["waveform"]
         waveform_lengths = batch["waveform_lengths"]
         output: CausalWhisperOutput = self.frontend(
@@ -323,28 +332,9 @@ class StageAObjective(nn.Module):
             original_seq_length=original_seq_length,
         )
         ctc, blank_ratio, input_frames = self._ctc_term(output, batch)
-        token_values = F.cross_entropy(
-            logits.float(), labels.long(), reduction="none"
-        )
-        active = loss_mask > 0
-        ar_mask = active & (
-            (loss_kinds == LOSS_STREAMING_ASR)
-            | (loss_kinds == LOSS_CAUSAL_FULL_ASR)
-        )
-        offline_mask = active & (loss_kinds == LOSS_OFFLINE_ASR_REPLAY)
-        phase3_mask = active & (loss_kinds == LOSS_PHASE3_REPLAY)
-        ar = _values_term(token_values, ar_mask)
-        offline = _values_term(token_values, offline_mask)
-        phase3 = _values_term(token_values, phase3_mask)
-        teacher = self._teacher_kl(
-            logits,
-            batch,
-            token_values,
-            original_seq_length=original_seq_length,
-        )
 
         if consistency_chunk_ms == chunk_ms:
-            hidden_consistency = _zero_term(token_values)
+            hidden_consistency = _zero_term(output.frame_hidden)
         else:
             with torch.no_grad():
                 reference: CausalWhisperOutput = self.frontend(
@@ -367,33 +357,107 @@ class StageAObjective(nn.Module):
         # anchored zero term avoids doubling every formal step for a loss whose
         # correct value is exactly zero; any non-zero runtime mismatch blocks
         # training before this objective is authorized.
-        cache_full = _zero_term(token_values)
+        cache_full = _zero_term(output.frame_hidden)
+        return StageAPrepared(
+            decoder_input=corrected,
+            ctc=ctc,
+            hidden_chunk_consistency=hidden_consistency,
+            cache_full_consistency=cache_full,
+            ctc_blank_ratio=blank_ratio.detach(),
+            causal_glm_agreement=agreement.detach(),
+            bridge_residual_rms=residual_rms.detach(),
+            causal_glm_tokens=causal_ids.new_tensor(causal_ids.numel()).float(),
+            ctc_input_frames=input_frames.detach(),
+        )
+
+    def compute(
+        self,
+        prepared: StageAPrepared,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_mask: torch.Tensor,
+        loss_kinds: torch.Tensor,
+        batch: Mapping[str, torch.Tensor],
+        *,
+        original_seq_length: int,
+    ) -> StageAObjectiveOutput:
+        token_values = F.cross_entropy(
+            logits.float(), labels.long(), reduction="none"
+        )
+        active = loss_mask > 0
+        ar_mask = active & (
+            (loss_kinds == LOSS_STREAMING_ASR)
+            | (loss_kinds == LOSS_CAUSAL_FULL_ASR)
+        )
+        offline_mask = active & (loss_kinds == LOSS_OFFLINE_ASR_REPLAY)
+        phase3_mask = active & (loss_kinds == LOSS_PHASE3_REPLAY)
+        ar = _values_term(token_values, ar_mask)
+        offline = _values_term(token_values, offline_mask)
+        phase3 = _values_term(token_values, phase3_mask)
+        teacher = self._teacher_kl(
+            logits,
+            batch,
+            token_values,
+            original_seq_length=original_seq_length,
+        )
         terms = OrderedDict(
             (
                 ("ar_asr", ar),
-                ("source_ctc", ctc),
+                ("source_ctc", prepared.ctc),
                 ("offline_teacher_kl", teacher),
-                ("hidden_chunk_consistency", hidden_consistency),
-                ("cache_full_consistency", cache_full),
+                ("hidden_chunk_consistency", prepared.hidden_chunk_consistency),
+                ("cache_full_consistency", prepared.cache_full_consistency),
                 ("offline_asr_replay", offline),
                 ("phase3_replay", phase3),
             )
         )
         diagnostics = OrderedDict(
             (
-                ("ctc_blank_ratio", blank_ratio.detach()),
-                ("causal_glm_agreement", agreement.detach()),
-                ("bridge_residual_rms", residual_rms.detach()),
-                ("causal_glm_tokens", causal_ids.new_tensor(causal_ids.numel()).float()),
+                ("ctc_blank_ratio", prepared.ctc_blank_ratio),
+                ("causal_glm_agreement", prepared.causal_glm_agreement),
+                ("bridge_residual_rms", prepared.bridge_residual_rms),
+                ("causal_glm_tokens", prepared.causal_glm_tokens),
                 ("ctc_target_tokens", batch["ctc_lengths"].sum().detach().float()),
-                ("ctc_input_frames", input_frames.detach()),
+                ("ctc_input_frames", prepared.ctc_input_frames),
                 ("ar_asr_tokens", ar.denominator.detach().float()),
                 ("offline_asr_replay_tokens", offline.denominator.detach().float()),
                 ("phase3_replay_tokens", phase3.denominator.detach().float()),
                 ("disabled_acoustics", batch["disabled_acoustics"].sum().detach().float()),
             )
         )
-        return StageAObjectiveOutput(terms, diagnostics, corrected)
+        return StageAObjectiveOutput(terms, diagnostics, prepared.decoder_input)
+
+    def forward(
+        self,
+        decoder_input: torch.Tensor,
+        word_embedding_weight: torch.Tensor,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_mask: torch.Tensor,
+        loss_kinds: torch.Tensor,
+        batch: Mapping[str, torch.Tensor],
+        *,
+        original_seq_length: int,
+        chunk_ms: int,
+        consistency_chunk_ms: int,
+    ) -> StageAObjectiveOutput:
+        prepared = self.prepare(
+            decoder_input,
+            word_embedding_weight,
+            batch,
+            original_seq_length=original_seq_length,
+            chunk_ms=chunk_ms,
+            consistency_chunk_ms=consistency_chunk_ms,
+        )
+        return self.compute(
+            prepared,
+            logits,
+            labels,
+            loss_mask,
+            loss_kinds,
+            batch,
+            original_seq_length=original_seq_length,
+        )
 
 
 def distributed_stage_a_objective(
@@ -448,6 +512,7 @@ __all__ = [
     "LossTerm",
     "StageAObjective",
     "StageAObjectiveOutput",
+    "StageAPrepared",
     "TERM_NAMES",
     "chunk_pair_for_progress",
     "distributed_stage_a_objective",
