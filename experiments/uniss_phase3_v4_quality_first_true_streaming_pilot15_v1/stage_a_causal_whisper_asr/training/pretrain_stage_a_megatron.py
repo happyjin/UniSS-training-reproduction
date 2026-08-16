@@ -179,6 +179,22 @@ def stage_a_curriculum_position(args, *, training: bool) -> tuple[float, int]:
     return progress, completed_updates
 
 
+def synchronized_stage_a_curriculum_position(
+    args, *, training: bool, device: torch.device
+) -> tuple[float, int]:
+    """Make world rank zero authoritative at strict-resume microbatch boundaries."""
+
+    _, local_update = stage_a_curriculum_position(args, training=training)
+    update_tensor = torch.tensor(local_update, dtype=torch.long, device=device)
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.broadcast(update_tensor, src=0)
+    update = int(update_tensor.item())
+    if update < 0:
+        raise ValueError("Stage A synchronized iteration cannot be negative")
+    progress = min(1.0, update / max(1, int(args.train_iters)))
+    return progress, update
+
+
 def install_stage_a_lr_overrides(args) -> None:
     import megatron.training.training as megatron_training
     from megatron.core.optimizer.optimizer_config import ParamKey
@@ -540,7 +556,11 @@ def forward_step(data_iterator, model):
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     batch = base.prepare_packed_batch(next(data_iterator), int(args.seq_length))
-    progress, update = stage_a_curriculum_position(args, training=bool(model.training))
+    progress, update = synchronized_stage_a_curriculum_position(
+        args,
+        training=bool(model.training),
+        device=batch["tokens"].device,
+    )
     batch["training_progress"] = torch.tensor(
         progress,
         dtype=torch.float32,
