@@ -96,3 +96,12 @@ def test_offline_baseline_is_fixed_parallel_and_non_overwriting() -> None:
     assert "quality_asr_error" in aggregate
     assert "text_translation_bleu" in aggregate
     assert "audio_slc" in aggregate
+
+
+def test_status_requires_full_stage00_gate() -> None:
+    source = (ROOT / "scripts" / "status.sh").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "stage00_baseline/latest/FRONTEND_GATE_PASSED.json" in source
+    assert "stage00_baseline/GATE_PASSED.json" in source
+    assert "stage00_offline_tmux" in source
+    assert "conditional" in readme.lower()

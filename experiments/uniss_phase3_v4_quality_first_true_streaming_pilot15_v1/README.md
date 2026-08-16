@@ -26,9 +26,14 @@ until the remaining Phase3 and BiCodec audits are complete.
 ```bash
 bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/run_stage00_cpu_tests.sh
 bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/launch_stage00_frontend_tmux.sh
+bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/launch_stage00_offline_baseline_tmux.sh
 bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/status.sh
 ```
 
 The GPU launcher stops only the explicitly named synthetic load session
 `uniss_gpu_load_60`. It refuses to kill unknown GPU processes.
 
+The completed Stage 00 report is
+`reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_baseline/STAGE00_RESULT_REPORT.md`.
+The gate is conditional: Qwen cached validation/runtime must use FP32 eager
+attention until a separate BF16 parity gate passes.

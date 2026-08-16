@@ -1,0 +1,58 @@
+{
+  "schema_version": "uniss_stage00_gate_v1",
+  "stage": "stage00_baseline",
+  "passed": true,
+  "pass_kind": "conditional_runtime_constraint",
+  "created_at_utc": "2026-08-16T03:45:17Z",
+  "code_commit": "277f0a4",
+  "checkpoint": {
+    "native": "checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075",
+    "canonical_hf": "checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+    "fresh_reexport": "checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_native_reexport_20260816T024658Z"
+  },
+  "data_manifest_sha256": {
+    "text_256": "f96581f6dbe621b92e9a8e7652185be8e90f9d217b74e8e4212c00ed87ce59d7",
+    "audio_64": "53ca77bbaa2fe970c1080aa1ba2aa50316dba64326033705611ef8a1d9dd28e7",
+    "formal_validation": "2981204ad0db9ca08bbc5ec206203ed1c8f7a410ad7a211cd632661e14d91483"
+  },
+  "checks": {
+    "canonical_artifacts": true,
+    "whisper_real_pcm_future_perturbation": true,
+    "whisper_cached_recomputed_token_parity": true,
+    "whisper_cached_recomputed_hidden_parity": true,
+    "whisper_30p4s_reset_parity": true,
+    "qwen_fp32_eager_runtime_top1_parity": true,
+    "qwen_fp32_eager_runtime_cosine_ge_0p9999": true,
+    "qwen_runtime_cache_lengths_exact": true,
+    "bicodec_zero_gap_overlap": true,
+    "bicodec_speaker_change_rejected": true,
+    "native_hf_reexport_bit_exact": true,
+    "fixed_offline_baseline_complete": true
+  },
+  "metrics": {
+    "frontend_cached_rtf": 0.05875949268779511,
+    "frontend_cached_step_ms_p50": 9.1369585134089,
+    "frontend_cached_step_ms_p95": 10.386151948478073,
+    "qwen_fp32_minimum_runtime_logits_cosine": 0.9999998211860657,
+    "text_bleu_quality_zh_en": 33.229814757212615,
+    "text_bleu_quality_en_zh": 52.42121997447727,
+    "asr_cer_zh": 0.05466052934407365,
+    "asr_wer_en": 0.056071771867991026,
+    "text_missing_eos": 125,
+    "audio_missing_eos": 92,
+    "audio_no_semantic": 2
+  },
+  "runtime_constraints": {
+    "qwen_dtype": "float32",
+    "qwen_attention_implementation": "eager",
+    "reason": "BF16 runtime top-1 was exact but minimum logits cosine 0.9994536638259888 failed the pre-registered 0.9999 gate"
+  },
+  "non_blocking_findings": [
+    "Phase3 greedy baseline produced 125/512 text-mode rows without EOS",
+    "Phase3 greedy baseline produced 92/256 audio-mode rows without EOS",
+    "emilia_zh_0006179615 produced no semantic tokens in quality and direct_s2st modes"
+  ],
+  "failed_checks": [],
+  "report": "reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_baseline/STAGE00_RESULT_REPORT.md",
+  "baseline_summary": "eval_outputs/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_phase3_offline_20260816T031129Z/baseline_summary.json"
+}
