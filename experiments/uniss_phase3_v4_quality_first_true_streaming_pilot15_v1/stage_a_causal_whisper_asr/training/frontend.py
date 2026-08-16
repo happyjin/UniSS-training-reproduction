@@ -27,6 +27,27 @@ FRAME_SAMPLES = SAMPLE_RATE * 20 // 1000
 POOLING_FRAMES = 4
 
 
+def block_padded_frame_lengths(waveform_lengths: torch.Tensor) -> torch.Tensor:
+    """Frames that deployment evaluates, including the final padded block.
+
+    The cached Stage 00 runtime pads a partial final 160-ms PCM block and runs
+    all eight encoder frames before slicing the two 80-ms outputs.  Training
+    must use the same attention geometry; masking at the raw PCM duration
+    would change the final pooled hidden state for non-block-aligned audio.
+    """
+
+    if waveform_lengths.ndim != 1 or int(waveform_lengths.min()) <= 0:
+        raise ValueError("waveform lengths must be a positive vector")
+    return (
+        torch.div(
+            waveform_lengths + BLOCK_SAMPLES - 1,
+            BLOCK_SAMPLES,
+            rounding_mode="floor",
+        )
+        * FRAMES_PER_BLOCK
+    )
+
+
 def block_causal_allowed(
     valid_frames: torch.Tensor,
     *,
@@ -136,7 +157,7 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
         self,
         waveform: torch.Tensor,
         waveform_lengths: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if waveform.ndim != 2 or waveform_lengths.shape != waveform.shape[:1]:
             raise ValueError("Stage A waveform must be [B,S] with [B] lengths")
         if int(waveform_lengths.min()) <= 0:
@@ -217,7 +238,10 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
             FRAME_SAMPLES,
             rounding_mode="floor",
         ).clamp_max(blocks * FRAMES_PER_BLOCK)
-        return torch.cat(pieces, dim=1), frame_lengths
+        attention_frame_lengths = block_padded_frame_lengths(
+            waveform_lengths
+        ).clamp_max(blocks * FRAMES_PER_BLOCK)
+        return torch.cat(pieces, dim=1), frame_lengths, attention_frame_lengths
 
     def _run_layer(
         self,
@@ -246,7 +270,9 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
     ) -> CausalWhisperOutput:
         if chunk_ms <= 0 or chunk_ms % 160:
             raise ValueError("Stage A chunk must be a positive multiple of 160 ms")
-        convolved, frame_lengths = self._extract_convolved(waveform, waveform_lengths)
+        convolved, frame_lengths, attention_frame_lengths = self._extract_convolved(
+            waveform, waveform_lengths
+        )
         sequence = int(convolved.shape[1])
         if sequence > int(self.encoder.embed_positions.num_embeddings):
             raise ValueError("Stage A utterance exceeds Whisper absolute positions")
@@ -256,7 +282,7 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
         )
         hidden = convolved + positions
         allowed = block_causal_allowed(
-            frame_lengths,
+            attention_frame_lengths,
             sequence_length=sequence,
             block_frames=chunk_ms // 20,
         )
@@ -264,7 +290,10 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
             ~allowed,
             torch.finfo(hidden.dtype).min,
         ).unsqueeze(1)
-        valid = torch.arange(sequence, device=hidden.device)[None, :] < frame_lengths[:, None]
+        valid = (
+            torch.arange(sequence, device=hidden.device)[None, :]
+            < attention_frame_lengths[:, None]
+        )
         for layer in self.encoder.layers[: int(self.encoder.config.pooling_position)]:
             hidden = self._run_layer(layer, hidden, mask)
             hidden = hidden.masked_fill(~valid[:, :, None], 0.0)
@@ -279,6 +308,11 @@ class TrainableSharedCausalWhisperVQ(nn.Module):
             POOLING_FRAMES,
             rounding_mode="floor",
         )
+        pooled_valid = (
+            torch.arange(pooled.shape[1], device=pooled.device)[None, :]
+            < pooled_lengths[:, None]
+        )
+        pooled = pooled.masked_fill(~pooled_valid[:, :, None], 0.0)
         return CausalWhisperOutput(hidden, frame_lengths, pooled, pooled_lengths)
 
 

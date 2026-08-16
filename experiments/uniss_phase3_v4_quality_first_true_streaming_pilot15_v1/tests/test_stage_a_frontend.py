@@ -4,6 +4,7 @@ import torch
 
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     block_causal_allowed,
+    block_padded_frame_lengths,
 )
 
 
@@ -28,3 +29,8 @@ def test_padding_queries_have_one_safe_key_but_no_valid_loss_role() -> None:
     )
     assert allowed[0, 3:, 0].all()
     assert not allowed[0, 3:, 1:].any()
+
+
+def test_partial_final_pcm_uses_complete_deployment_block_geometry() -> None:
+    lengths = block_padded_frame_lengths(torch.tensor([1, 1280, 2560, 2561]))
+    assert lengths.tolist() == [8, 8, 8, 16]
