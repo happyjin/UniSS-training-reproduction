@@ -15,6 +15,7 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
     chunk_pair_for_progress,
     distributed_stage_a_objective,
     stable_multichunk_mask,
+    terminal_codec_extension_deficit_samples,
 )
 
 
@@ -125,7 +126,15 @@ def test_objective_replaces_offline_glm_embeddings_and_has_finite_losses() -> No
     assert objective.frontend.scale.grad is not None
 
 
-def test_objective_extends_only_terminal_exact_hop_codec_boundary() -> None:
+def test_terminal_extension_accepts_only_formally_audited_pcm_geometries() -> None:
+    assert terminal_codec_extension_deficit_samples(2560, 2, 3) == 0
+    assert terminal_codec_extension_deficit_samples(2240, 2, 3) == 320
+    assert terminal_codec_extension_deficit_samples(2239, 2, 3) is None
+    assert terminal_codec_extension_deficit_samples(2560, 2, 4) is None
+    assert terminal_codec_extension_deficit_samples(2560, 3, 4) is None
+
+
+def test_objective_extends_only_formally_audited_terminal_codec_boundary() -> None:
     objective = StageAObjective(
         TinyFrontend(),
         qwen_hidden_size=6,
@@ -157,8 +166,21 @@ def test_objective_extends_only_terminal_exact_hop_codec_boundary() -> None:
     assert prepared.causal_glm_terminal_extensions.item() == 1
     assert torch.equal(prepared.decoder_input[2], prepared.decoder_input[3])
 
-    batch["waveform_lengths"] = torch.tensor([2559])
-    with pytest.raises(ValueError, match="token count differs"):
+    batch["waveform_lengths"] = torch.tensor([2240])
+    prepared = objective.prepare(
+        decoder,
+        embeddings,
+        batch,
+        original_seq_length=5,
+        chunk_ms=160,
+        consistency_chunk_ms=160,
+    )
+    assert prepared.causal_glm_terminal_extensions.item() == 1
+
+    batch["waveform_lengths"] = torch.tensor([2239])
+    batch["acoustic_sample_ids"] = ["boundary-regression"]
+    batch["source_audio_paths"] = ["/tmp/boundary.flac"]
+    with pytest.raises(ValueError, match="boundary-regression"):
         objective.prepare(
             decoder,
             embeddings,

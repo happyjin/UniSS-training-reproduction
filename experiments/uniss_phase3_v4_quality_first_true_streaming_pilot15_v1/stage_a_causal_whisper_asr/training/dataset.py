@@ -37,7 +37,9 @@ def _load_mono(path: str) -> torch.Tensor:
     return waveform
 
 
-def _rotated_indices(length: int, count: int, epoch: int, index: int) -> list[int]:
+def rotated_acoustic_indices(
+    length: int, count: int, epoch: int, index: int
+) -> list[int]:
     if length < 0:
         raise ValueError("Stage A acoustic count cannot be negative")
     if count <= 0 or length <= count:
@@ -89,7 +91,7 @@ class IndexedStageAPackDataset(Dataset[dict[str, object]]):
         if result["loss_kinds"].shape != result["loss_mask"].shape:
             raise ValueError("Stage A loss kind/mask geometry differs")
         raw_acoustics = list(value.get("acoustics", []))
-        selected_indices = _rotated_indices(
+        selected_indices = rotated_acoustic_indices(
             len(raw_acoustics), self.max_acoustics_per_pack, epoch, index
         )
         selected_index_set = set(selected_indices)
@@ -312,6 +314,16 @@ def collate_stage_a(batch: Sequence[dict[str, object]]) -> dict[str, object]:
             "glm_lengths": glm_lengths,
             "acoustic_batch": acoustic_batch,
             "language_ids": language_ids,
+            "acoustic_sample_ids": [
+                str(value["sample_id"]) for _, value in flattened
+            ],
+            "source_audio_paths": [
+                str(value["source_audio"]) for _, value in flattened
+            ],
+            "acoustic_source_duration_ms": torch.tensor(
+                [int(value["source_duration_ms"]) for _, value in flattened],
+                dtype=torch.long,
+            ),
         }
     )
     return result
@@ -323,4 +335,5 @@ __all__ = [
     "PaddedStageAValidationDataset",
     "ThreeEpochStageASchedule",
     "collate_stage_a",
+    "rotated_acoustic_indices",
 ]

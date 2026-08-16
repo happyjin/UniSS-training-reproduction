@@ -81,6 +81,9 @@ def test_indexed_dataset_loads_bounded_audio_and_epoch_shuffle(tmp_path: Path) -
     assert tuple(batch["waveform"].shape) == (2, 2560)
     assert batch["ctc_lengths"].tolist() == [2, 2]
     assert batch["disabled_acoustics"].tolist() == [1]
+    assert batch["acoustic_sample_ids"] == [_stream_id(), _stream_id()]
+    assert batch["source_audio_paths"] == [str(audio), str(audio)]
+    assert batch["acoustic_source_duration_ms"].tolist() == [160, 160]
     schedule = ThreeEpochStageASchedule(
         dataset,
         coverage_epochs=3,

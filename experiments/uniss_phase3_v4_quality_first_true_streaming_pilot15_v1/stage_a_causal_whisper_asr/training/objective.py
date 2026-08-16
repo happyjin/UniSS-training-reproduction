@@ -19,6 +19,7 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     CausalWhisperOutput,
+    FRAME_SAMPLES,
     block_padded_frame_lengths,
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage00_baseline.shared_causal_frontend import (
@@ -149,6 +150,41 @@ def stable_multichunk_mask(
     )
 
 
+def terminal_codec_extension_deficit_samples(
+    waveform_samples: int,
+    causal_tokens: int,
+    packed_tokens: int,
+) -> int | None:
+    """Return the audited terminal PCM deficit for one safe GLM extension.
+
+    Released UniST GLM tokens and the BiCodec-reconstructed PCM are separate
+    codec views of the same utterance.  The formal Stage A audit found exactly
+    two one-token terminal discrepancies: PCM ending on the final causal-token
+    boundary, or one 20-ms Whisper frame before that boundary.  No wider
+    tolerance is authorized here.
+    """
+
+    waveform_samples = int(waveform_samples)
+    causal_tokens = int(causal_tokens)
+    packed_tokens = int(packed_tokens)
+    if waveform_samples <= 0 or causal_tokens <= 0:
+        return None
+    expected_causal = (
+        waveform_samples + TOKEN_HOP_SAMPLES - 1
+    ) // TOKEN_HOP_SAMPLES
+    if causal_tokens != expected_causal or packed_tokens != causal_tokens + 1:
+        return None
+    deficit = causal_tokens * TOKEN_HOP_SAMPLES - waveform_samples
+    return deficit if deficit in (0, FRAME_SAMPLES) else None
+
+
+def _batch_string(batch: Mapping[str, object], key: str, row: int) -> str:
+    values = batch.get(key)
+    if isinstance(values, (list, tuple)) and 0 <= row < len(values):
+        return str(values[row])
+    return "unknown"
+
+
 class StageAObjective(nn.Module):
     """Causal WhisperVQ replacement, byte CTC, replay, and AR-ASR losses."""
 
@@ -228,25 +264,27 @@ class StageAObjective(nn.Module):
         for row in range(int(pooled_hidden.shape[0])):
             length = int(batch["glm_lengths"][row].item())
             causal_length = int(pooled_lengths[row].item())
+            waveform_samples = int(batch["waveform_lengths"][row].item())
             hidden = pooled_hidden[row, :causal_length]
             if causal_length == length:
                 pass
-            elif (
-                length == causal_length + 1
-                and int(batch["waveform_lengths"][row].item()) % TOKEN_HOP_SAMPLES == 0
-            ):
-                # A small subset of the released BiCodec reconstructions has
-                # N offline GLM tokens but exactly (N-1)*80 ms of decoded PCM.
-                # The deployable causal frontend correctly emits N-1 tokens
-                # for that PCM.  Repeating the final already-visible causal
-                # state fills only this terminal codec-boundary slot; it does
-                # not expose future audio and preserves the Phase3 pack shape.
+            elif terminal_codec_extension_deficit_samples(
+                waveform_samples, causal_length, length
+            ) is not None:
+                # Released GLM and reconstructed BiCodec PCM occasionally
+                # differ by one terminal codec slot. Repeating the final
+                # already-visible causal state fills only that audited slot;
+                # it does not expose future audio and preserves Phase3 shape.
                 hidden = torch.cat((hidden, hidden[-1:]), dim=0)
                 terminal_extensions += 1
             else:
                 raise ValueError(
                     "causal WhisperVQ token count differs from packed GLM coverage: "
-                    f"{causal_length} vs {length}"
+                    f"{causal_length} vs {length}; "
+                    f"sample_id={_batch_string(batch, 'acoustic_sample_ids', row)} "
+                    f"source_audio={_batch_string(batch, 'source_audio_paths', row)} "
+                    f"waveform_samples={waveform_samples} "
+                    f"waveform_mod_80ms={waveform_samples % TOKEN_HOP_SAMPLES}"
                 )
             codes = self._nearest_codes(hidden)
             qwen_ids = codes + self.glm_semantic_offset
