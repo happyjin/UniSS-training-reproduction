@@ -64,3 +64,17 @@ def test_qwen_and_bicodec_gates_are_strict() -> None:
     assert "semantic_gap_count" in codec
     assert "semantic_overlap_count" in codec
     assert "speaker_change_rejected" in codec
+
+
+def test_native_reexport_requires_exact_weights_and_output() -> None:
+    source = (ROOT / "stage00_baseline" / "audit_native_hf_reexport.py").read_text(
+        encoding="utf-8"
+    )
+    launcher = (ROOT / "scripts" / "run_stage00_native_reexport.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "all_tensors_exact" in source
+    assert "fixed_prompt_top1_exact" in source
+    assert "fixed_prompt_logits_cosine_ge_0p999999" in source
+    assert "--strict" in launcher
+    assert "refusing to overwrite" in launcher
