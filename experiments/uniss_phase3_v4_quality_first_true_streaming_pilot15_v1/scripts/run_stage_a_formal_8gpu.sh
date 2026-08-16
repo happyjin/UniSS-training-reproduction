@@ -17,6 +17,7 @@ MANIFEST="${REPORT_ROOT}/stage_a_formal/${RUN_ID}/RUN_MANIFEST.json"
   --train-build "${TRAIN_BUILD}" \
   --valid-build "${VALID_BUILD}" \
   --training-gate "${TRAINING_GATE}" \
+  --pcm-glm-geometry-gate "${STAGE_A_FORMAL_PCM_GLM_GATE}" \
   --output "${MANIFEST}" \
   --run-id "${RUN_ID}" \
   --git-head "$(git rev-parse HEAD)"
@@ -60,4 +61,3 @@ export RUN_LOAD_OPTIM=0
 export RUN_LOAD_RNG=0
 
 exec bash "${SCRIPT_DIR}/run_stage_a_megatron.sh" "$@"
-

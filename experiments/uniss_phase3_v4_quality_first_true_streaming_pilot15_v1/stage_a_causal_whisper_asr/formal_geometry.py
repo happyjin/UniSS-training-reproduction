@@ -14,6 +14,7 @@ from typing import Any, Mapping
 SCHEMA = "uniss_stage_a_formal_run_manifest_v1"
 PACK_SCHEMA = "uniss_quality_first_stage_a_pack_build_v1"
 GATE_SCHEMA = "uniss_stage_a_training_gate_v1"
+PCM_GLM_GATE_SCHEMA = "uniss_stage_a_formal_pcm_glm_geometry_gate_v1"
 
 
 def _sha256(path: Path) -> str:
@@ -81,6 +82,7 @@ def write_formal_manifest(
     train_build: Path,
     valid_build: Path,
     training_gate: Path,
+    pcm_glm_geometry_gate: Path,
     output: Path,
     run_id: str,
     git_head: str,
@@ -92,6 +94,13 @@ def write_formal_manifest(
     gate = json.loads(training_gate.read_text(encoding="utf-8"))
     if gate.get("schema_version") != GATE_SCHEMA or not bool(gate.get("passed")):
         raise ValueError("Stage A training gate has not passed")
+    pcm_glm_gate = json.loads(pcm_glm_geometry_gate.read_text(encoding="utf-8"))
+    if (
+        pcm_glm_gate.get("schema_version") != PCM_GLM_GATE_SCHEMA
+        or not bool(pcm_glm_gate.get("passed"))
+        or int(pcm_glm_gate.get("violation_count", -1)) != 0
+    ):
+        raise ValueError("Stage A formal PCM/GLM geometry gate has not passed")
     geometry = formal_geometry(train_report, valid_report)
     manifest = {
         "schema_version": SCHEMA,
@@ -116,6 +125,8 @@ def write_formal_manifest(
         "valid_build_sha256": _sha256(valid_build),
         "training_gate": str(training_gate.resolve()),
         "training_gate_sha256": _sha256(training_gate),
+        "pcm_glm_geometry_gate": str(pcm_glm_geometry_gate.resolve()),
+        "pcm_glm_geometry_gate_sha256": _sha256(pcm_glm_geometry_gate),
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x", encoding="utf-8") as handle:
@@ -129,6 +140,7 @@ def main() -> None:
     parser.add_argument("--train-build", type=Path, required=True)
     parser.add_argument("--valid-build", type=Path, required=True)
     parser.add_argument("--training-gate", type=Path, required=True)
+    parser.add_argument("--pcm-glm-geometry-gate", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--git-head", required=True)
@@ -142,6 +154,7 @@ def main() -> None:
         train_build=args.train_build,
         valid_build=args.valid_build,
         training_gate=args.training_gate,
+        pcm_glm_geometry_gate=args.pcm_glm_geometry_gate,
         output=args.output,
         run_id=args.run_id,
         git_head=args.git_head,

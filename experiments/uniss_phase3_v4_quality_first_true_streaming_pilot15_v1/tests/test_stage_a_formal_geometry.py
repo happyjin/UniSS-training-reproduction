@@ -55,11 +55,23 @@ def test_formal_manifest_refuses_overwrite_and_failed_gate(tmp_path: Path) -> No
         ),
         encoding="utf-8",
     )
+    pcm_glm_gate = tmp_path / "pcm_glm_gate.json"
+    pcm_glm_gate.write_text(
+        json.dumps(
+            {
+                "schema_version": "uniss_stage_a_formal_pcm_glm_geometry_gate_v1",
+                "passed": True,
+                "violation_count": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
     output = tmp_path / "manifest.json"
     manifest = write_formal_manifest(
         train_build=train_build,
         valid_build=valid_build,
         training_gate=gate,
+        pcm_glm_geometry_gate=pcm_glm_gate,
         output=output,
         run_id="formal-test",
         git_head="deadbeef",
@@ -70,6 +82,7 @@ def test_formal_manifest_refuses_overwrite_and_failed_gate(tmp_path: Path) -> No
             train_build=train_build,
             valid_build=valid_build,
             training_gate=gate,
+            pcm_glm_geometry_gate=pcm_glm_gate,
             output=output,
             run_id="formal-test",
             git_head="deadbeef",
@@ -85,8 +98,35 @@ def test_formal_manifest_refuses_overwrite_and_failed_gate(tmp_path: Path) -> No
             train_build=train_build,
             valid_build=valid_build,
             training_gate=gate,
+            pcm_glm_geometry_gate=pcm_glm_gate,
             output=tmp_path / "blocked.json",
             run_id="formal-test",
             git_head="deadbeef",
         )
 
+    gate.write_text(
+        json.dumps(
+            {"schema_version": "uniss_stage_a_training_gate_v1", "passed": True}
+        ),
+        encoding="utf-8",
+    )
+    pcm_glm_gate.write_text(
+        json.dumps(
+            {
+                "schema_version": "uniss_stage_a_formal_pcm_glm_geometry_gate_v1",
+                "passed": False,
+                "violation_count": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="PCM/GLM geometry"):
+        write_formal_manifest(
+            train_build=train_build,
+            valid_build=valid_build,
+            training_gate=gate,
+            pcm_glm_geometry_gate=pcm_glm_gate,
+            output=tmp_path / "geometry-blocked.json",
+            run_id="formal-test",
+            git_head="deadbeef",
+        )

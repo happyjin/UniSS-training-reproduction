@@ -18,6 +18,7 @@ MANIFEST="${REPORT_ROOT}/stage_a_formal/${RUN_ID}/RUN_MANIFEST.json"
   --train-build "${TRAIN_BUILD}" \
   --valid-build "${VALID_BUILD}" \
   --training-gate "${TRAINING_GATE}" \
+  --pcm-glm-geometry-gate "${STAGE_A_FORMAL_PCM_GLM_GATE}" \
   --output "${MANIFEST}" \
   --run-id "${RUN_ID}" \
   --git-head "$(git rev-parse HEAD)" \
