@@ -25,7 +25,13 @@ def main() -> None:
     values = [json.loads(path.read_text(encoding="utf-8")) for path in args.parts]
     if any(value.get("schema_version") != "uniss_quality_first_stage_a_checkpoint_diagnosis_v1" for value in values):
         raise ValueError("unexpected Stage A diagnosis part schema")
-    common_keys = ("checkpoint", "hf_model", "valid_packs", "num_workers")
+    common_keys = (
+        "checkpoint",
+        "hf_model",
+        "valid_packs",
+        "num_workers",
+        "max_acoustics_per_pack",
+    )
     for key in common_keys:
         if len({json.dumps(value[key], sort_keys=True) for value in values}) != 1:
             raise ValueError(f"Stage A diagnosis parts disagree on {key}")
@@ -45,6 +51,7 @@ def main() -> None:
         "valid_packs": values[0]["valid_packs"],
         "worker_index": "merged",
         "num_workers": values[0]["num_workers"],
+        "max_acoustics_per_pack": values[0]["max_acoustics_per_pack"],
         "parts": [str(path.resolve()) for path in args.parts],
         "summary": summarize_rows(rows),
         "samples": rows,

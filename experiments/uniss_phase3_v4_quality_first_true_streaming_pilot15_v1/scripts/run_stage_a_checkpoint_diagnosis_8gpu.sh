@@ -37,6 +37,7 @@ for ((worker=0; worker<NPROC; worker++)); do
     --valid-packs "${STAGE_A_VALID_PACKS}" \
     --chunk-ms "${CHUNK_VALUES[@]}" \
     --max-samples-per-task 0 \
+    --max-acoustics-per-pack 2 \
     --worker-index "${worker}" \
     --num-workers "${NPROC}" \
     --output-json "${PARTS}/part_${tag}.json" \

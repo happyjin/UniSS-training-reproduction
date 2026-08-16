@@ -19,6 +19,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     TrainableSharedCausalWhisperVQ,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.dataset import (
+    rotated_acoustic_indices,
+)
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.objective import (
     StageAObjective,
     terminal_codec_extension_deficit_samples,
@@ -137,16 +140,24 @@ def iter_selected(
     *,
     worker_index: int = 0,
     num_workers: int = 1,
+    max_acoustics_per_pack: int = 2,
 ) -> Iterable[dict[str, object]]:
     if not 0 <= worker_index < num_workers:
         raise ValueError("invalid Stage A diagnosis worker partition")
+    if max_acoustics_per_pack <= 0:
+        raise ValueError("max acoustics per validation pack must be positive")
     seen: Counter[str] = Counter()
     selected: Counter[str] = Counter()
     with packs.open(encoding="utf-8") as handle:
         for pack_index, line in enumerate(handle):
             pack = json.loads(line)
             boundaries = pack["sample_boundaries"]
-            for acoustic in pack.get("acoustics", []):
+            acoustics = list(pack.get("acoustics", []))
+            selected_positions = rotated_acoustic_indices(
+                len(acoustics), max_acoustics_per_pack, 0, pack_index
+            )
+            for acoustic_position in selected_positions:
+                acoustic = acoustics[acoustic_position]
                 task = str(acoustic["task"])
                 if task not in TASKS:
                     continue
@@ -501,6 +512,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-event-tokens", type=int, default=96)
     parser.add_argument("--worker-index", type=int, default=0)
     parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--max-acoustics-per-pack", type=int, default=2)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--output-md", type=Path, required=True)
@@ -515,6 +527,8 @@ def main() -> None:
         raise ValueError("Stage A diagnosis limits are invalid")
     if not 0 <= args.worker_index < args.num_workers:
         raise ValueError("invalid Stage A diagnosis worker partition")
+    if args.max_acoustics_per_pack <= 0:
+        raise ValueError("max acoustics per validation pack must be positive")
     if any(value <= 0 or value % 160 for value in args.chunk_ms):
         raise ValueError("chunk sizes must be positive multiples of 160 ms")
     device = torch.device(args.device)
@@ -533,6 +547,7 @@ def main() -> None:
             args.max_samples_per_task,
             worker_index=args.worker_index,
             num_workers=args.num_workers,
+            max_acoustics_per_pack=args.max_acoustics_per_pack,
         )
     )
     rows: list[dict[str, object]] = []
@@ -604,6 +619,7 @@ def main() -> None:
         "valid_packs": str(args.valid_packs.resolve()),
         "worker_index": args.worker_index,
         "num_workers": args.num_workers,
+        "max_acoustics_per_pack": args.max_acoustics_per_pack,
         "summary": summary,
         "samples": rows,
     }

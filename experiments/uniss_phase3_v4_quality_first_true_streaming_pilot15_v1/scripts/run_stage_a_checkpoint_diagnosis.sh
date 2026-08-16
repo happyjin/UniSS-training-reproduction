@@ -34,6 +34,7 @@ CUDA_VISIBLE_DEVICES="${GPU}" "${PYTHON_BIN}" -m \
   --valid-packs "${STAGE_A_VALID_PACKS}" \
   --chunk-ms "${CHUNK_VALUES[@]}" \
   --max-samples-per-task "${MAX_SAMPLES_PER_TASK}" \
+  --max-acoustics-per-pack 2 \
   --output-json "${OUTPUT_ROOT}/diagnosis.json" \
   --output-md "${OUTPUT_ROOT}/diagnosis.md"
 
