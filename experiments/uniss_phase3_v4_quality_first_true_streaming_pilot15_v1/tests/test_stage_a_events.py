@@ -9,6 +9,10 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
     MAX_EMPTY_EVENT_GAP_MS,
     build_asr_event_session,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.ctc_targets import (
+    UTF8ByteCTCMap,
+    minimum_ctc_steps,
+)
 
 
 def record(language: str = "eng") -> dict[str, object]:
@@ -69,3 +73,17 @@ def test_parallel_ranges_cover_every_record_once() -> None:
     values = [index for start, stop in ranges for index in range(start, stop)]
     assert values == list(range(17))
     assert len(ranges) == 4
+
+
+@pytest.mark.parametrize("text", ["Good morning", "大家早上好", "café 世界"])
+def test_utf8_byte_ctc_is_label_independent_and_lossless(text: str) -> None:
+    mapping = UTF8ByteCTCMap("eng")
+    encoded = mapping.encode_text(text)
+    assert mapping.decode(encoded) == text
+    assert mapping.blank_id == 256
+    assert mapping.output_size == 257
+
+
+def test_minimum_ctc_steps_accounts_for_repeated_bytes() -> None:
+    assert minimum_ctc_steps([1, 2, 3]) == 3
+    assert minimum_ctc_steps([1, 1, 2, 2]) == 6

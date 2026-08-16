@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build deterministic Stage A CTC maps from train canonical transcripts only."""
+"""Build and audit deterministic Stage A source-CTC target maps."""
 
 from __future__ import annotations
 
@@ -16,11 +16,15 @@ from typing import Any
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.events import (
     build_asr_event_session,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.ctc_targets import (
+    UTF8ByteCTCMap,
+    minimum_ctc_steps,
+)
 from training.phase3_whisper_streamspeech_joint.tokenizer_maps import CompactCTCMap
 from training.simul_uniss.jsonl_index import load_index
 
 
-SCHEMA = "uniss_quality_first_stage_a_ctc_maps_v1"
+SCHEMA = "uniss_quality_first_stage_a_ctc_maps_v2"
 SHARD_PATTERN = re.compile(r"train-(\d{5})\.parquet$")
 
 
@@ -54,18 +58,21 @@ def _scan_worker(
     stop: int,
     model: str,
     allowed: dict[str, tuple[int, ...]] | None,
+    target_kind: str,
 ) -> dict[str, Any]:
-    from transformers import AutoTokenizer
-
     path = Path(manifest)
     offsets = load_index(path)
     if offsets is None:
         raise ValueError(f"missing validated offset index: {path}")
-    tokenizer = AutoTokenizer.from_pretrained(
-        model,
-        local_files_only=True,
-        trust_remote_code=False,
-    )
+    tokenizer = None
+    if target_kind == "qwen_train_compact":
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            model,
+            local_files_only=True,
+            trust_remote_code=False,
+        )
     token_counts = {"eng": Counter(), "cmn": Counter()}
     allowed_sets = None
     if allowed is not None:
@@ -82,10 +89,15 @@ def _scan_worker(
             if match is None or not 0 <= int(match.group(1)) <= 14:
                 raise ValueError(f"outside_train_00000_00014 at record {index}")
             session = build_asr_event_session(record)
-            token_ids = tokenizer.encode(
-                session.normalized_transcript,
-                add_special_tokens=False,
-            )
+            if target_kind == "utf8_byte":
+                token_ids = list(session.normalized_transcript.encode("utf-8"))
+                if bytes(token_ids).decode("utf-8") != session.normalized_transcript:
+                    raise ValueError(f"utf8_roundtrip_failed at record {index}")
+            else:
+                token_ids = tokenizer.encode(  # type: ignore[union-attr]
+                    session.normalized_transcript,
+                    add_special_tokens=False,
+                )
             if not token_ids:
                 raise ValueError(f"empty_qwen_asr_target at record {index}")
             language = session.src_lang
@@ -95,6 +107,17 @@ def _scan_worker(
             counters[f"records:{language}"] += 1
             counters["tokens"] += len(token_ids)
             counters[f"tokens:{language}"] += len(token_ids)
+            minimum_steps = minimum_ctc_steps(token_ids)
+            available_steps = max(1, (session.source_duration_ms + 19) // 20)
+            counters["minimum_ctc_steps"] += minimum_steps
+            counters["available_ctc_steps"] += available_steps
+            counters["ctc_infeasible_records"] += int(minimum_steps > available_steps)
+            counters[f"ctc_infeasible_records:{language}"] += int(
+                minimum_steps > available_steps
+            )
+            counters["max_minimum_ctc_steps"] = max(
+                counters["max_minimum_ctc_steps"], minimum_steps
+            )
             if allowed_sets is not None:
                 oov = sum(int(token) not in allowed_sets[language] for token in token_ids)
                 counters["oov_tokens"] += oov
@@ -113,6 +136,7 @@ def _scan(
     model: Path,
     workers: int,
     allowed: dict[str, tuple[int, ...]] | None = None,
+    target_kind: str = "utf8_byte",
 ) -> tuple[Counter[str], dict[str, Counter[int]]]:
     offsets = load_index(manifest)
     if offsets is None:
@@ -128,6 +152,7 @@ def _scan(
                     stop,
                     str(model),
                     allowed,
+                    target_kind,
                 )
             )
         parts = [future.result() for future in as_completed(futures)]
@@ -165,6 +190,11 @@ def main() -> None:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--reference-map-dir", type=Path)
+    parser.add_argument(
+        "--target-kind",
+        choices=("utf8_byte", "qwen_train_compact"),
+        default="utf8_byte",
+    )
     parser.add_argument("--train-workers", type=int, default=30)
     parser.add_argument("--valid-workers", type=int, default=8)
     args = parser.parse_args()
@@ -176,26 +206,35 @@ def main() -> None:
         args.train_manifest,
         args.model,
         args.train_workers,
+        target_kind=args.target_kind,
     )
-    maps = {
-        language: CompactCTCMap(
-            language=language,
-            qwen_to_compact={
-                token: index for index, token in enumerate(sorted(train_counts[language]))
-            },
-            compact_to_qwen=tuple(sorted(train_counts[language])),
-        )
-        for language in ("eng", "cmn")
-    }
+    if args.target_kind == "utf8_byte":
+        maps = {language: UTF8ByteCTCMap(language) for language in ("eng", "cmn")}
+        allowed = {language: tuple(range(256)) for language in ("eng", "cmn")}
+    else:
+        maps = {
+            language: CompactCTCMap(
+                language=language,
+                qwen_to_compact={
+                    token: index for index, token in enumerate(sorted(train_counts[language]))
+                },
+                compact_to_qwen=tuple(sorted(train_counts[language])),
+            )
+            for language in ("eng", "cmn")
+        }
+        allowed = {
+            language: mapping.compact_to_qwen  # type: ignore[union-attr]
+            for language, mapping in maps.items()
+        }
     for language, mapping in maps.items():
         mapping.save(args.output_dir / f"ctc_qwen_{language}.json")
 
-    allowed = {language: mapping.compact_to_qwen for language, mapping in maps.items()}
     valid_counters, valid_counts = _scan(
         args.valid_manifest,
         args.model,
         args.valid_workers,
         allowed,
+        target_kind=args.target_kind,
     )
     from transformers import AutoTokenizer
 
@@ -215,7 +254,7 @@ def main() -> None:
                 if token not in allowed_set
             }
         )
-        if args.reference_map_dir is not None:
+        if args.reference_map_dir is not None and args.target_kind == "qwen_train_compact":
             reference = CompactCTCMap.load(
                 args.reference_map_dir / f"ctc_qwen_{language}.json"
             )
@@ -234,12 +273,19 @@ def main() -> None:
         "train_vocab_nonempty_cmn": bool(maps["cmn"].compact_to_qwen),
         "valid_records_nonzero": valid_counters["records"] > 0,
         "valid_oov_zero": valid_counters["oov_tokens"] == 0,
+        "train_ctc_feasible": train_counters["ctc_infeasible_records"] == 0,
+        "valid_ctc_feasible": valid_counters["ctc_infeasible_records"] == 0,
     }
     report = {
         "schema_version": SCHEMA,
         "passed": all(checks.values()),
         "checks": checks,
-        "provenance_policy": "maps are derived only from Stage A train canonical transcripts; validation is audit-only",
+        "target_kind": args.target_kind,
+        "provenance_policy": (
+            "label-independent fixed 256-byte UTF-8 inventory; train and validation are audit-only"
+            if args.target_kind == "utf8_byte"
+            else "maps are derived only from Stage A train canonical transcripts; validation is audit-only"
+        ),
         "train_manifest": str(args.train_manifest.resolve()),
         "valid_manifest": str(args.valid_manifest.resolve()),
         "model": str(args.model.resolve()),
@@ -250,7 +296,7 @@ def main() -> None:
         "maps": {
             language: {
                 "path": str((args.output_dir / f"ctc_qwen_{language}.json").resolve()),
-                "classes_without_blank": len(maps[language].compact_to_qwen),
+                "classes_without_blank": maps[language].blank_id,
                 "blank_id": maps[language].blank_id,
                 "validation_oov_unique": len(validation_oov[language]),
                 "validation_oov_tokens": sum(validation_oov[language].values()),

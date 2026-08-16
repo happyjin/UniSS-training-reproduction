@@ -13,7 +13,7 @@ if [[ -e "${STAGE_A_CTC_MAP_ROOT}" ]]; then
   echo "refusing to overwrite Stage A CTC map root: ${STAGE_A_CTC_MAP_ROOT}" >&2
   exit 3
 fi
-LOG="${LOG_ROOT}/stage_a/ctc_map_build_v2_launch.log"
+LOG="${LOG_ROOT}/stage_a/ctc_map_build_v3_launch.log"
 mkdir -p "$(dirname "${LOG}")"
 COMMAND="cd '${REPO_ROOT}' && bash '${EXPERIMENT_DIR}/scripts/run_stage_a_build_ctc_maps.sh' 2>&1 | tee '${LOG}'"
 tmux new-session -d -s "${SESSION}" "bash -lc \"${COMMAND}\""

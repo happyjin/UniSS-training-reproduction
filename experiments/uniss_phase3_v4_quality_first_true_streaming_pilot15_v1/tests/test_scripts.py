@@ -32,10 +32,10 @@ def test_stage_a_ctc_map_is_train_derived_and_validation_audited() -> None:
         ROOT / "stage_a_causal_whisper_asr" / "build_ctc_maps.py"
     ).read_text(encoding="utf-8")
     env = (ROOT / "experiment.env").read_text(encoding="utf-8")
-    assert "maps are derived only from Stage A train canonical transcripts" in source
+    assert "label-independent fixed 256-byte UTF-8 inventory" in source
     assert '"valid_oov_zero": valid_counters["oov_tokens"] == 0' in source
-    assert "ctc_maps_train_canonical_v2" in env
-    assert "source_snapshot_v2.json" in env
+    assert "ctc_maps_utf8_byte_v3" in env
+    assert "source_snapshot_v3.json" in env
 
 
 def test_stage00_does_not_authorize_stage_a_from_frontend_gate_only() -> None:

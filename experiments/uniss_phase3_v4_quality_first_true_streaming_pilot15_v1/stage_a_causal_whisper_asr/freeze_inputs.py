@@ -11,9 +11,13 @@ import tempfile
 from pathlib import Path
 
 from training.simul_uniss.jsonl_index import load_index
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.ctc_targets import (
+    UTF8ByteCTCMap,
+    load_ctc_map,
+)
 
 
-SCHEMA = "uniss_quality_first_stage_a_source_snapshot_v1"
+SCHEMA = "uniss_quality_first_stage_a_source_snapshot_v2"
 
 
 def sha256(path: Path, block_bytes: int = 16 * 1024 * 1024) -> str:
@@ -78,12 +82,13 @@ def main() -> None:
     maps = {}
     for language in ("eng", "cmn"):
         path = args.ctc_map_dir / f"ctc_qwen_{language}.json"
-        value = json.loads(path.read_text(encoding="utf-8"))
+        mapping = load_ctc_map(path)
         maps[language] = {
             "path": str(path.resolve()),
             "sha256": sha256(path),
-            "classes_without_blank": len(value["compact_to_qwen"]),
-            "blank_id": int(value["blank_id"]),
+            "target_kind": "utf8_byte" if isinstance(mapping, UTF8ByteCTCMap) else "qwen_compact",
+            "classes_without_blank": mapping.blank_id,
+            "blank_id": mapping.blank_id,
         }
     native = args.native_checkpoint.resolve()
     if native.name != "iter_0009075" or not native.is_dir():

@@ -40,10 +40,12 @@ attention until a separate BF16 parity gate passes.
 
 ## Stage A data gate
 
-Stage A builds its compact source-CTC vocabulary only from the current train
-canonical transcripts. Validation labels are audit-only and must have zero
-OOV. The historical joint-data CTC maps remain immutable and are used only as
-a diagnostic reference.
+Stage A uses a label-independent fixed UTF-8 byte vocabulary (256 labels plus
+blank) for the auxiliary source CTC head. This is the audited fallback after a
+strict train-only Qwen map exposed rare validation OOVs. The Phase3 AR-ASR path
+still uses the original Qwen tokenizer. Train and validation labels cannot
+change the CTC inventory, and every record must pass UTF-8 round-trip plus
+20-ms-frame CTC feasibility gates.
 
 ```bash
 bash experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/scripts/run_stage_a_cpu_tests.sh

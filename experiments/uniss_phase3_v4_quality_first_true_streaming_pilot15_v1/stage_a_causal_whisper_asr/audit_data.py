@@ -19,7 +19,12 @@ import numpy as np
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.events import (
     build_asr_event_session,
 )
-from training.phase3_whisper_streamspeech_joint.tokenizer_maps import CompactCTCMap
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.ctc_targets import (
+    UTF8ByteCTCMap,
+    encode_ctc_text,
+    load_ctc_map,
+    minimum_ctc_steps,
+)
 from training.simul_uniss.jsonl_index import load_index
 
 
@@ -67,16 +72,21 @@ def _worker(
     ctc_map_dir: str,
     check_audio: bool,
 ) -> dict[str, Any]:
-    from transformers import AutoTokenizer
-
     path = Path(manifest)
     offsets = np.memmap(str(path) + ".offsets.bin", mode="r", dtype=np.uint64)
-    tokenizer = AutoTokenizer.from_pretrained(model, local_files_only=True, trust_remote_code=False)
     maps = {
-        language: CompactCTCMap.load(Path(ctc_map_dir) / f"ctc_qwen_{language}.json")
+        language: load_ctc_map(Path(ctc_map_dir) / f"ctc_qwen_{language}.json")
         for language in ("eng", "cmn")
     }
-    map_sets = {language: set(value.compact_to_qwen) for language, value in maps.items()}
+    tokenizer = None
+    if not all(isinstance(value, UTF8ByteCTCMap) for value in maps.values()):
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            model,
+            local_files_only=True,
+            trust_remote_code=False,
+        )
     counters: Counter[str] = Counter()
     rejection: Counter[str] = Counter()
     ids = np.empty(stop - start, dtype=np.uint64)
@@ -95,11 +105,16 @@ def _worker(
                 session = build_asr_event_session(record)
                 if check_audio and not Path(str(record.get("source_audio") or "")).is_file():
                     raise ValueError("missing_source_audio")
-                token_ids = tokenizer.encode(session.normalized_transcript, add_special_tokens=False)
+                token_ids = encode_ctc_text(
+                    maps[session.src_lang],
+                    session.normalized_transcript,
+                    tokenizer,
+                )
                 if not token_ids:
-                    raise ValueError("empty_qwen_asr_target")
-                oov = sum(int(token) not in map_sets[session.src_lang] for token in token_ids)
-                counters["ctc_oov_tokens"] += oov
+                    raise ValueError("empty_ctc_asr_target")
+                minimum_steps = minimum_ctc_steps(token_ids)
+                available_steps = max(1, (session.source_duration_ms + 19) // 20)
+                counters["ctc_infeasible_records"] += int(minimum_steps > available_steps)
                 counters["ctc_target_tokens"] += len(token_ids)
                 counters["records"] += 1
                 counters[f"direction:{session.src_lang}->{record.get('tgt_lang')}"] += 1
@@ -253,6 +268,8 @@ def main() -> None:
         "train_valid_disjoint": overlap == 0,
         "train_ctc_oov_zero": train["counters"].get("ctc_oov_tokens", 0) == 0,
         "valid_ctc_oov_zero": valid["counters"].get("ctc_oov_tokens", 0) == 0,
+        "train_ctc_feasible": train["counters"].get("ctc_infeasible_records", 0) == 0,
+        "valid_ctc_feasible": valid["counters"].get("ctc_infeasible_records", 0) == 0,
         "train_prefinal_commit_nonzero": train["counters"].get("prefinal_text_commit", 0) > 0,
         "valid_prefinal_commit_nonzero": valid["counters"].get("prefinal_text_commit", 0) > 0,
     }

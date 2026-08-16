@@ -18,6 +18,7 @@ export OPENBLAS_NUM_THREADS=1
   --model "${PHASE3_HF_CHECKPOINT}" \
   --output-dir "${STAGE_A_CTC_MAP_ROOT}" \
   --reference-map-dir "${STAGE_A_REFERENCE_CTC_MAP_ROOT}" \
+  --target-kind utf8_byte \
   --train-workers "${STAGE_A_CTC_TRAIN_WORKERS:-30}" \
   --valid-workers "${STAGE_A_CTC_VALID_WORKERS:-8}" \
-  | tee "${LOG_ROOT}/stage_a/ctc_map_build_v2.log"
+  | tee "${LOG_ROOT}/stage_a/ctc_map_build_v3.log"
