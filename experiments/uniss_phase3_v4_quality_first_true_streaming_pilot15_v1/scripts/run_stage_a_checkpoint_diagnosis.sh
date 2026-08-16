@@ -11,6 +11,9 @@ RUN_ID=${RUN_ID:?RUN_ID is required}
 FORMAL_RUN_ID=${FORMAL_RUN_ID:?FORMAL_RUN_ID is required}
 GPU=${GPU:-0}
 MAX_SAMPLES_PER_TASK=${MAX_SAMPLES_PER_TASK:-2}
+CHUNK_MS=${CHUNK_MS:-"960 1280"}
+read -r -a CHUNK_VALUES <<< "${CHUNK_MS}"
+(( ${#CHUNK_VALUES[@]} > 0 )) || { echo "CHUNK_MS must not be empty" >&2; exit 1; }
 
 printf -v ITER_TAG 'iter_%07d' "$((10#${ITERATION}))"
 CHECKPOINT="${REPO_ROOT}/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/${FORMAL_RUN_ID}/${ITER_TAG}"
@@ -29,7 +32,7 @@ CUDA_VISIBLE_DEVICES="${GPU}" "${PYTHON_BIN}" -m \
   --hf-model "${HF_MODEL}" \
   --whispervq-model "${WHISPERVQ_CHECKPOINT}" \
   --valid-packs "${STAGE_A_VALID_PACKS}" \
-  --chunk-ms 960 1280 \
+  --chunk-ms "${CHUNK_VALUES[@]}" \
   --max-samples-per-task "${MAX_SAMPLES_PER_TASK}" \
   --output-json "${OUTPUT_ROOT}/diagnosis.json" \
   --output-md "${OUTPUT_ROOT}/diagnosis.md"

@@ -152,6 +152,7 @@ def test_stage_a_checkpoint_diagnosis_is_read_only_and_non_overwriting() -> None
         encoding="utf-8"
     )
     assert "Refusing to overwrite diagnosis" in source
-    assert "--chunk-ms 960 1280" in source
+    assert 'CHUNK_MS=${CHUNK_MS:-"960 1280"}' in source
+    assert '--chunk-ms "${CHUNK_VALUES[@]}"' in source
     assert "CUDA_VISIBLE_DEVICES" in source
     assert "STAGE_A_VALID_PACKS" in source
