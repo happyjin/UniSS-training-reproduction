@@ -13,7 +13,7 @@ from pathlib import Path
 value = json.loads(Path(sys.argv[1]).read_text())
 if (
     value.get("schema_version")
-    != "uniss_stage_a_v8_extended_hold_canary_gate_v1"
+    != "uniss_stage_a_v8_long_hold_canary_gate_v1"
     or not value.get("passed")
 ):
     raise SystemExit("Stage A V8 extended-hold canary has not authorized formal")
