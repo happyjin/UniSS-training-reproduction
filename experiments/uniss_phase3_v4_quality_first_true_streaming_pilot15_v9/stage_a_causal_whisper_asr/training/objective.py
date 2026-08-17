@@ -1,4 +1,4 @@
-"""V9 objective with a stronger decision margin and adapter trust region."""
+"""V8 objective preserved exactly except for a stronger blank margin."""
 
 from __future__ import annotations
 
@@ -17,15 +17,13 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v8.stage_a
 
 
 BLANK_POSTERIOR_TARGET = v8.BLANK_POSTERIOR_TARGET
-ALLOWED_BLANK_FRACTION = 0.15
+ALLOWED_BLANK_FRACTION = v8.ALLOWED_BLANK_FRACTION
 NONBLANK_MARGIN = v8.NONBLANK_MARGIN
 DECISION_MARGIN_SCALE = 0.20
 
 TERM_NAMES = v8.TERM_NAMES
 DIAGNOSTIC_NAMES = v8.DIAGNOSTIC_NAMES
 DEFAULT_WEIGHTS = OrderedDict(v8.DEFAULT_WEIGHTS)
-DEFAULT_WEIGHTS["codebook_commitment"] = 0.40
-DEFAULT_WEIGHTS["code_adapter_residual"] = 0.10
 
 LossTerm = v8.LossTerm
 StageAObjectiveOutput = v8.StageAObjectiveOutput

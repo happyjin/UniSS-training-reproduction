@@ -1,1 +1,1 @@
-"""V9 decision-margin and adapter trust-region repair."""
+"""Isolated V9 Stage A boundary repair."""

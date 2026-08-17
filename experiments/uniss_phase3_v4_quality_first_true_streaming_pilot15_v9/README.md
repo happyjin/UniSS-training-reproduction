@@ -1,20 +1,41 @@
 # UniSS Phase3 v4 quality-first true-streaming pilot15 v9
 
-V9 is the minimal follow-up to the close V8 long-hold failure. It starts from
-the immutable Phase3 checkpoint and never resumes V7/V8 checkpoints.
+V9 is the minimal follow-up to the V8 255-update canary. V8 materially reduced
+the V7 all-blank collapse, but missed the final gates by narrow margins:
+blank ratio `0.3185 > 0.25` and teacher cosine `0.8475 < 0.85`.
 
-V8 reduced final blank ratio from V7's 0.9986 to 0.3185, but missed the 0.25
-gate. It also missed teacher cosine by only 0.0025. V9 therefore preserves the
-successful V8 posterior target and persistent seed while changing only:
+V9 preserves the complete V8 objective, Phase3 initialization, data, exact
+global shuffle, batch geometry, 18,000-token sequence length, curriculum,
+optimizer horizon, and all replay/teacher losses. It changes only the two
+failed mechanisms:
 
-- allowed blank fraction: 0.20 -> 0.15;
-- decision-margin scale: 0.05 -> 0.20;
-- codebook commitment weight: 0.30 -> 0.40;
-- adapter residual weight: 0.05 -> 0.10;
-- bridge/adapter learning rate: 5e-5 -> 2e-5.
+1. Increase the differentiable blank decision-margin contribution from
+   `0.05` to `0.20`; the already-passing posterior target and persistent seed
+   remain unchanged.
+2. Freeze the bridge/adapter parameter group when optimizer progress reaches
+   the end of the 127-update curriculum. New heads and Qwen groups continue at
+   their existing LR floor, but the useful code adapter can no longer drift
+   during the 128-update hold.
 
-All data, exact global shuffle, 255-update canary geometry, Phase3 replay,
-teacher KL, identity CE, CTC/Qwen learning rates, frozen Whisper frontend,
-18000 sequence length, GBS 128, and optimizer/curriculum horizons remain
-unchanged. Formal and Stage B remain blocked until the final 160-ms canary
-gate passes.
+Every run starts from immutable Phase3. V8/V7 checkpoints are diagnostic only
+and must never be resumed. The first authorization run is the same 255-update
+shuffled-prefix canary. It never authorizes Stage B; it can authorize only a
+new V9 formal run.
+
+## Execution order
+
+```bash
+bash scripts/run_stage_a_smoke_8gpu.sh
+bash scripts/run_stage_a_bridge_freeze_canary_8gpu.sh
+python stage_a_causal_whisper_asr/check_canary.py \
+  --log <canary-train.log> --output <new-canary-gate.json>
+CANARY_AUTHORIZATION=<new-canary-gate.json> \
+  bash scripts/run_stage_a_formal_8gpu.sh
+```
+
+The canary must finish all 255 updates, consume exactly 32,640 globally
+shuffled samples, save the final checkpoint, and pass final validation at the
+160-ms curriculum point. The strict quality gates remain: blank argmax ratio
+`<= 0.25`, blank posterior `<= 0.25`, teacher cosine `>= 0.85`, causal-code
+agreement `>= 0.02`, adapter RMS `<= 0.50`, zero NaN updates, and zero skipped
+updates. Formal completion is a separate prerequisite for Stage B.

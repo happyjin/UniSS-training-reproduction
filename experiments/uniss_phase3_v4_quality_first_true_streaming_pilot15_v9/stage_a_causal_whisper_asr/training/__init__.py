@@ -1,1 +1,1 @@
-"""V9 training components."""
+"""Stage A V9 training entrypoint."""

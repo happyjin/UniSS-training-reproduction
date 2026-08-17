@@ -22,4 +22,4 @@ export RUN_SAVE_INTERVAL=2 RUN_EVAL_INTERVAL=1 RUN_EVAL_ITERS=1 RUN_LOG_INTERVAL
 export RUN_WARMUP_ITERS=1 RUN_STRICTNESS=log_all RUN_SMOKE=0 RUN_AUDIT_GRADIENTS=0
 export RUN_FINETUNE=1 RUN_LOAD_OPTIM=0 RUN_LOAD_RNG=0
 
-exec bash "${V8_ROOT}/scripts/run_stage_a_megatron_v8.sh" "$@" --stage-a-lr-bridge 2e-5
+exec bash "${EXPERIMENT_DIR}/scripts/run_stage_a_megatron_v9.sh" "$@"

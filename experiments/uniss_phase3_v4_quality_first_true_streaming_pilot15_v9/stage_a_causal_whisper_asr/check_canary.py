@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""V9 wrapper around the established 255-update strict gate."""
+"""Gate the V9 bridge-freeze 255-update canary."""
 
 from __future__ import annotations
 
@@ -19,7 +19,14 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v8.stage_a
 
 def evaluate(text: str) -> dict[str, object]:
     result = evaluate_v8(text)
-    result["schema_version"] = "uniss_stage_a_v9_long_hold_canary_gate_v1"
+    passed = bool(result["passed"])
+    result.update(
+        schema_version="uniss_stage_a_v9_bridge_freeze_canary_gate_v1",
+        passed=passed,
+        formal_v9_authorized=passed,
+        stage_b_authorized=False,
+    )
+    result.pop("formal_v8_authorized", None)
     return result
 
 

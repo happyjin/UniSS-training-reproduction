@@ -1,1 +1,1 @@
-"""V9 Stage A."""
+"""Stage A V9 components."""
