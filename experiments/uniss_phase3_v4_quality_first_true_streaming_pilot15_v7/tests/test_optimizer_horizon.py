@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -75,3 +76,10 @@ def test_post_horizon_curriculum_retains_target_short_chunks() -> None:
         320,
     }
     assert chunk_pair_for_progress(1.0, 191) == (160, 320)
+
+
+def test_post_decay_wrapper_keeps_required_strict_coverage_metadata() -> None:
+    wrapper = Path(__file__).parents[1] / "scripts/run_stage_a_post_decay_canary_8gpu.sh"
+    text = wrapper.read_text(encoding="utf-8")
+    assert "export RUN_COVERAGE_EPOCHS=3" in text
+    assert "export RUN_TRAIN_ITERS=191" in text
