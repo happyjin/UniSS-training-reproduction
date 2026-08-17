@@ -22,6 +22,11 @@ and must never be resumed. The first authorization run is the same 255-update
 shuffled-prefix canary. It never authorizes Stage B; it can authorize only a
 new V9 formal run.
 
+After the canary passes, `scripts/run_stage_a_formal_8gpu.sh` runs all 48,768
+scheduled samples in 381 updates from immutable Phase3. The isolated
+`stage_a_causal_whisper_asr/check_formal.py` gate is the only V9 artifact that
+may authorize Stage B.
+
 ## Execution order
 
 ```bash
