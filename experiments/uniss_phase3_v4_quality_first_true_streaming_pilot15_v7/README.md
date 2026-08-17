@@ -25,3 +25,10 @@ stress-tests 64 additional short-chunk updates after the optimizer has reached
 its LR floor. Formal never enables prefix mode and continues to require exact
 three-epoch schedule equality. Formal remains blocked unless the final
 iteration-191 validation at 160 ms passes the strict gate.
+
+After formal training, `stage_a_causal_whisper_asr/check_formal.py` applies the
+same strict health thresholds to the final iteration-381 validation, verifies
+the final checkpoint, all 254 LR-floor updates, finite metrics, and zero
+skipped/NaN iterations. Only this formal gate may set
+`stage_b_authorized=true`; the canary gate intentionally never authorizes
+Stage B.
