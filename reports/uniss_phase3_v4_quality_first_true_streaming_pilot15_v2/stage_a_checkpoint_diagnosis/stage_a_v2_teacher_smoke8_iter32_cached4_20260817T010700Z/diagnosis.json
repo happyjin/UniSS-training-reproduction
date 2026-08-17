@@ -1,0 +1,1103 @@
+{
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v2/stage_a_smoke/stage_a_v2_teacher_smoke8_20260817T003700Z/iter_0000032",
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_v2_teacher_smoke8_iter_0000032_hf",
+  "max_acoustics_per_pack": 2,
+  "num_workers": 1,
+  "runtime": {
+    "frontend_dtype": "torch.float32",
+    "pcm_block_ms": 160,
+    "qwen_dtype": "torch.bfloat16",
+    "right_context_ms": 0
+  },
+  "samples": [
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": false,
+        "content_chunks": [],
+        "content_events": 0,
+        "error_rate": 1.0,
+        "errors": 10,
+        "events": [
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 22,
+            "predicted_tokens": [
+              110030,
+              3837,
+              110030,
+              3837,
+              110030,
+              110030,
+              110030,
+              110030,
+              3837,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030,
+              110030
+            ],
+            "reached_stop": false,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 151645,
+            "expected_tokens": 1,
+            "generated_tokens": 4,
+            "predicted_tokens": [
+              180390,
+              180388,
+              180392,
+              151645
+            ],
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [],
+        "generated_tokens": [
+          110030,
+          3837,
+          110030,
+          3837,
+          110030,
+          110030,
+          110030,
+          110030,
+          3837,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          110030,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180388,
+          180392,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 10,
+        "text": "",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 39,
+        "target_tokens": 53,
+        "token_accuracy": 0.7358490824699402
+      },
+      "cached_recomputed_parity": {
+        "bridge_residual": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            57,
+            896
+          ],
+          "shape_equal": true
+        },
+        "free_generation_exact": true,
+        "hidden": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            1,
+            57,
+            1280
+          ],
+          "shape_equal": true
+        },
+        "semantic_codes_exact": true,
+        "tokens": {
+          "actual_tokens": 57,
+          "exact": true,
+          "match_ratio": 1.0,
+          "matching_tokens": 57,
+          "reference_tokens": 57,
+          "shape_equal": true
+        }
+      },
+      "chunk_ms": 160,
+      "committed_rollback": {
+        "append_only": true,
+        "committed_tokens": 35,
+        "events": 11,
+        "rollback_count": 0,
+        "rollback_rate": 0.0,
+        "snapshots": [
+          {
+            "committed_sha256": "99b16a7d84e6d6c8db704ba4fe2762eb7557efe11610c06f031652540455224a",
+            "event_index": 0,
+            "prior_prefix_preserved": true,
+            "tokens_after": 22,
+            "tokens_before": 0
+          },
+          {
+            "committed_sha256": "cf7b76e32ec0e7f63e0ae3a5f69dce454538892b98883781b7f625bac2598eb6",
+            "event_index": 1,
+            "prior_prefix_preserved": true,
+            "tokens_after": 23,
+            "tokens_before": 22
+          },
+          {
+            "committed_sha256": "2739219c348a1921951119eecb01fe912d9068ab6c111c49f9a55d2d1eb6e63f",
+            "event_index": 2,
+            "prior_prefix_preserved": true,
+            "tokens_after": 24,
+            "tokens_before": 23
+          },
+          {
+            "committed_sha256": "88c07388bf986f74b06427efd1081a362d77fb2237c0d1ecb005a4ff81917624",
+            "event_index": 3,
+            "prior_prefix_preserved": true,
+            "tokens_after": 25,
+            "tokens_before": 24
+          },
+          {
+            "committed_sha256": "867ef952904580f2411fefffe076bdc3e2bc4a7d743d65d3f213c4e2994bc44b",
+            "event_index": 4,
+            "prior_prefix_preserved": true,
+            "tokens_after": 26,
+            "tokens_before": 25
+          },
+          {
+            "committed_sha256": "de05559cffa3a3f4bac45fcb87213358825ab7db65ad7d253c28451347a29f0d",
+            "event_index": 5,
+            "prior_prefix_preserved": true,
+            "tokens_after": 27,
+            "tokens_before": 26
+          },
+          {
+            "committed_sha256": "b9ed65392e0a8fdc4192142858497fe24b20e3989c876766d262860603568469",
+            "event_index": 6,
+            "prior_prefix_preserved": true,
+            "tokens_after": 28,
+            "tokens_before": 27
+          },
+          {
+            "committed_sha256": "d3766afd36f00beba3e7dbc1c3cf8d6f290a74d45dd737c33a6e26e5badaab13",
+            "event_index": 7,
+            "prior_prefix_preserved": true,
+            "tokens_after": 29,
+            "tokens_before": 28
+          },
+          {
+            "committed_sha256": "27d034e72235801f95a8b82bee38637dbd4185c4f68e2dffca254faf79eea164",
+            "event_index": 8,
+            "prior_prefix_preserved": true,
+            "tokens_after": 30,
+            "tokens_before": 29
+          },
+          {
+            "committed_sha256": "02759d61935000ec34bc3f8f447e7fa5e7118db7b425ed8a66c6aada89eb287f",
+            "event_index": 9,
+            "prior_prefix_preserved": true,
+            "tokens_after": 31,
+            "tokens_before": 30
+          },
+          {
+            "committed_sha256": "ea3a20479162d533aab12a848f9f5594a9337c3005d1d093c4199da92d57e031",
+            "event_index": 10,
+            "prior_prefix_preserved": true,
+            "tokens_after": 35,
+            "tokens_before": 31
+          }
+        ]
+      },
+      "ctc": {
+        "blank_ratio": 0.030837004405286344,
+        "collapsed_nonblank_tokens": 41,
+        "input_frames": 227,
+        "raw_nonblank_frames": 220,
+        "text": "'s'a'srs p' ' rs' 'shsr''sn 'r's'' '' ' '"
+      },
+      "language": "eng",
+      "reference": "It's too late now Let's just get this over with",
+      "sample_id": "NCSSD_R_EN_0000000261",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000100_NCSSD_R_EN_0000000261.flac",
+      "task": "streaming_asr"
+    },
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_chunks": [
+          "Yes, you. What about the matter in that? "
+        ],
+        "content_events": 1,
+        "error_rate": 0.7142857142857143,
+        "errors": 5,
+        "events": [
+          {
+            "content_text": "Yes, you. What about the matter in that?",
+            "content_tokens": [
+              9454,
+              11,
+              498,
+              13,
+              3555,
+              911,
+              279,
+              4925,
+              304,
+              429,
+              30,
+              220
+            ],
+            "expected_stop": 151645,
+            "expected_tokens": 10,
+            "generated_tokens": 14,
+            "predicted_tokens": [
+              9454,
+              11,
+              498,
+              13,
+              3555,
+              911,
+              279,
+              4925,
+              304,
+              429,
+              30,
+              220,
+              180390,
+              151645
+            ],
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [
+          9454,
+          11,
+          498,
+          13,
+          3555,
+          911,
+          279,
+          4925,
+          304,
+          429,
+          30,
+          220
+        ],
+        "generated_tokens": [
+          9454,
+          11,
+          498,
+          13,
+          3555,
+          911,
+          279,
+          4925,
+          304,
+          429,
+          30,
+          220,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 7,
+        "text": "Yes, you. What about the matter in that?",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 6,
+        "target_tokens": 10,
+        "token_accuracy": 0.6000000238418579
+      },
+      "cached_recomputed_parity": {
+        "bridge_residual": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            41,
+            896
+          ],
+          "shape_equal": true
+        },
+        "free_generation_exact": true,
+        "hidden": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            1,
+            41,
+            1280
+          ],
+          "shape_equal": true
+        },
+        "semantic_codes_exact": true,
+        "tokens": {
+          "actual_tokens": 41,
+          "exact": true,
+          "match_ratio": 1.0,
+          "matching_tokens": 41,
+          "reference_tokens": 41,
+          "shape_equal": true
+        }
+      },
+      "chunk_ms": 160,
+      "committed_rollback": {
+        "append_only": true,
+        "committed_tokens": 14,
+        "events": 1,
+        "rollback_count": 0,
+        "rollback_rate": 0.0,
+        "snapshots": [
+          {
+            "committed_sha256": "b3aa05933e85cc4e7aa240cef655d577df3c50236725ff740cebb117fdd28f32",
+            "event_index": 0,
+            "prior_prefix_preserved": true,
+            "tokens_after": 14,
+            "tokens_before": 0
+          }
+        ]
+      },
+      "ctc": {
+        "blank_ratio": 0.049079754601226995,
+        "collapsed_nonblank_tokens": 51,
+        "input_frames": 163,
+        "raw_nonblank_frames": 155,
+        "text": "'y ' 'sisdy' 's'sd'a' n'r' n r'e'rirs' s s nr'i'is'"
+      },
+      "language": "eng",
+      "reference": "That's true What about the negative impact",
+      "sample_id": "NCSSD_R_EN_0000000402",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000158_NCSSD_R_EN_0000000402.flac",
+      "task": "causal_full_asr"
+    },
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_chunks": [
+          "Don't you? I'm worried you're broke. "
+        ],
+        "content_events": 1,
+        "error_rate": 1.0,
+        "errors": 10,
+        "events": [
+          {
+            "content_text": "Don't you? I'm worried you're broke.",
+            "content_tokens": [
+              8002,
+              944,
+              498,
+              30,
+              358,
+              2776,
+              17811,
+              498,
+              2299,
+              14422,
+              13,
+              220
+            ],
+            "expected_stop": 151645,
+            "expected_tokens": 12,
+            "generated_tokens": 14,
+            "predicted_tokens": [
+              8002,
+              944,
+              498,
+              30,
+              358,
+              2776,
+              17811,
+              498,
+              2299,
+              14422,
+              13,
+              220,
+              180390,
+              151645
+            ],
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [
+          8002,
+          944,
+          498,
+          30,
+          358,
+          2776,
+          17811,
+          498,
+          2299,
+          14422,
+          13,
+          220
+        ],
+        "generated_tokens": [
+          8002,
+          944,
+          498,
+          30,
+          358,
+          2776,
+          17811,
+          498,
+          2299,
+          14422,
+          13,
+          220,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 10,
+        "text": "Don't you? I'm worried you're broke.",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 5,
+        "target_tokens": 12,
+        "token_accuracy": 0.4166666567325592
+      },
+      "cached_recomputed_parity": {
+        "bridge_residual": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            41,
+            896
+          ],
+          "shape_equal": true
+        },
+        "free_generation_exact": true,
+        "hidden": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            1,
+            41,
+            1280
+          ],
+          "shape_equal": true
+        },
+        "semantic_codes_exact": true,
+        "tokens": {
+          "actual_tokens": 41,
+          "exact": true,
+          "match_ratio": 1.0,
+          "matching_tokens": 41,
+          "reference_tokens": 41,
+          "shape_equal": true
+        }
+      },
+      "chunk_ms": 160,
+      "committed_rollback": {
+        "append_only": true,
+        "committed_tokens": 14,
+        "events": 1,
+        "rollback_count": 0,
+        "rollback_rate": 0.0,
+        "snapshots": [
+          {
+            "committed_sha256": "cbc91bfd2b660268cc0478e7033fc5ce8096395031e36b369b2eec174615b9d6",
+            "event_index": 0,
+            "prior_prefix_preserved": true,
+            "tokens_after": 14,
+            "tokens_before": 0
+          }
+        ]
+      },
+      "ctc": {
+        "blank_ratio": 0.06134969325153374,
+        "collapsed_nonblank_tokens": 47,
+        "input_frames": 163,
+        "raw_nonblank_frames": 153,
+        "text": "n'sr 'igtpp'n'srgt p 'd's's''sa 'nr 's' ns srs'"
+      },
+      "language": "eng",
+      "reference": "Thank you How about you How was your day work",
+      "sample_id": "NCSSD_R_EN_0000004455",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0001623_NCSSD_R_EN_0000004455.flac",
+      "task": "causal_full_asr"
+    },
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": false,
+        "content_chunks": [],
+        "content_events": 0,
+        "error_rate": 1.0,
+        "errors": 12,
+        "events": [
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 21,
+            "predicted_tokens": [
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488,
+              3837,
+              112488
+            ],
+            "reached_stop": false,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 1,
+            "predicted_tokens": [
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": false
+          },
+          {
+            "content_text": "",
+            "content_tokens": [],
+            "expected_stop": 151645,
+            "expected_tokens": 1,
+            "generated_tokens": 17,
+            "predicted_tokens": [
+              180390,
+              180388,
+              161183,
+              159714,
+              156108,
+              156108,
+              163406,
+              163406,
+              163406,
+              156108,
+              160588,
+              163375,
+              157326,
+              159212,
+              163837,
+              162951,
+              159677
+            ],
+            "reached_stop": false,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [],
+        "generated_tokens": [
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          3837,
+          112488,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180390,
+          180388,
+          161183,
+          159714,
+          156108,
+          156108,
+          163406,
+          163406,
+          163406,
+          156108,
+          160588,
+          163375,
+          157326,
+          159212,
+          163837,
+          162951,
+          159677
+        ],
+        "metric": "wer",
+        "reference_units": 12,
+        "text": "",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 41,
+        "target_tokens": 58,
+        "token_accuracy": 0.7068965435028076
+      },
+      "cached_recomputed_parity": {
+        "bridge_residual": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            52,
+            896
+          ],
+          "shape_equal": true
+        },
+        "free_generation_exact": true,
+        "hidden": {
+          "allclose": true,
+          "atol": 2e-06,
+          "maximum_absolute_error": 0.0,
+          "mean_absolute_error": 0.0,
+          "rtol": 2e-05,
+          "shape": [
+            1,
+            52,
+            1280
+          ],
+          "shape_equal": true
+        },
+        "semantic_codes_exact": true,
+        "tokens": {
+          "actual_tokens": 52,
+          "exact": true,
+          "match_ratio": 1.0,
+          "matching_tokens": 52,
+          "reference_tokens": 52,
+          "shape_equal": true
+        }
+      },
+      "chunk_ms": 160,
+      "committed_rollback": {
+        "append_only": true,
+        "committed_tokens": 48,
+        "events": 12,
+        "rollback_count": 0,
+        "rollback_rate": 0.0,
+        "snapshots": [
+          {
+            "committed_sha256": "feac5b47ddb37430eb2f7ffa98dc24b623803ba8624b43a6a33a99b0428877b2",
+            "event_index": 0,
+            "prior_prefix_preserved": true,
+            "tokens_after": 21,
+            "tokens_before": 0
+          },
+          {
+            "committed_sha256": "aef94dc9d0bd51decb4319be91b10f7a1d7adc2a3172110e3fb5b3221afa3b92",
+            "event_index": 1,
+            "prior_prefix_preserved": true,
+            "tokens_after": 22,
+            "tokens_before": 21
+          },
+          {
+            "committed_sha256": "98ba6e0d4f8dff828bc3a229ffee41536041b37b70d5cac9d4cf18373b8dfb12",
+            "event_index": 2,
+            "prior_prefix_preserved": true,
+            "tokens_after": 23,
+            "tokens_before": 22
+          },
+          {
+            "committed_sha256": "b54998bb94575a1a6e85f1cdbf6f0468f3b4f075271118128d0e2a39fcfecc0a",
+            "event_index": 3,
+            "prior_prefix_preserved": true,
+            "tokens_after": 24,
+            "tokens_before": 23
+          },
+          {
+            "committed_sha256": "3bd8e4e9f71203af0e4725fa4e557ab89bcc238736b97d27cade6391c6331386",
+            "event_index": 4,
+            "prior_prefix_preserved": true,
+            "tokens_after": 25,
+            "tokens_before": 24
+          },
+          {
+            "committed_sha256": "092b37db5f6ced5e63b9b1c1a6059f07b7d6810c6be0b2173f4c1246fe6bd3d4",
+            "event_index": 5,
+            "prior_prefix_preserved": true,
+            "tokens_after": 26,
+            "tokens_before": 25
+          },
+          {
+            "committed_sha256": "2194de2ce4245755a99088283ddb9094dfadb9f6475df63cd8ea5bed51e02128",
+            "event_index": 6,
+            "prior_prefix_preserved": true,
+            "tokens_after": 27,
+            "tokens_before": 26
+          },
+          {
+            "committed_sha256": "794bd2707aca8db9584b1654271ac6e4ba34a5a9d6a74ca9418fa0f443d184f4",
+            "event_index": 7,
+            "prior_prefix_preserved": true,
+            "tokens_after": 28,
+            "tokens_before": 27
+          },
+          {
+            "committed_sha256": "2db50d32fb68f1dce86e2fc65bc23a90601a88a5d0b07f34181ddf507d4cde51",
+            "event_index": 8,
+            "prior_prefix_preserved": true,
+            "tokens_after": 29,
+            "tokens_before": 28
+          },
+          {
+            "committed_sha256": "163b622924a848dda5983ee573772ca85995842214d6f9c3016a8439f342be3f",
+            "event_index": 9,
+            "prior_prefix_preserved": true,
+            "tokens_after": 30,
+            "tokens_before": 29
+          },
+          {
+            "committed_sha256": "dc7e7c14d9f9fe11d9128f99c6bbf5622528f6b85e2c4a97dbd69d3300e18698",
+            "event_index": 10,
+            "prior_prefix_preserved": true,
+            "tokens_after": 31,
+            "tokens_before": 30
+          },
+          {
+            "committed_sha256": "3b825cd6d7652dd646f375f7a9e3abbc397dc1cf803a80f21237ca49f6368c3e",
+            "event_index": 11,
+            "prior_prefix_preserved": true,
+            "tokens_after": 48,
+            "tokens_before": 31
+          }
+        ]
+      },
+      "ctc": {
+        "blank_ratio": 0.01951219512195122,
+        "collapsed_nonblank_tokens": 56,
+        "input_frames": 205,
+        "raw_nonblank_frames": 201,
+        "text": "'s' e' pnsg'n ' ry 'rsisad' r ' ri' ' ' 'a' s'' 'r'sr' '"
+      },
+      "language": "eng",
+      "reference": "I can't wait to try it out and see how it takes",
+      "sample_id": "NCSSD_R_EN_0000005155",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0001873_NCSSD_R_EN_0000005155.flac",
+      "task": "streaming_asr"
+    }
+  ],
+  "schema_version": "uniss_quality_first_stage_a_checkpoint_diagnosis_v2",
+  "summary": {
+    "ar_all_events_reached_stop_rate": 0.5,
+    "ar_empty_collapse": false,
+    "ar_error_rate_by_task": {
+      "causal_full_asr": 0.8823529411764706,
+      "streaming_asr": 1.0
+    },
+    "ar_teacher_token_accuracy": 0.6842105263157895,
+    "cached_recomputed_bridge_pass_rate": 1.0,
+    "cached_recomputed_free_generation_exact_rate": 1.0,
+    "cached_recomputed_hidden_pass_rate": 1.0,
+    "cached_recomputed_token_exact_rate": 1.0,
+    "committed_append_only_rate": 1.0,
+    "committed_rollback_count": 0,
+    "committed_rollback_rows": 0,
+    "ctc_blank_collapse": false,
+    "ctc_blank_ratio": 0.03825857519788918,
+    "evaluations_by_chunk_ms": {
+      "160": 4
+    },
+    "evaluations_by_language": {
+      "eng": 4
+    },
+    "evaluations_by_task": {
+      "causal_full_asr": 2,
+      "streaming_asr": 2
+    },
+    "samples": 4,
+    "unique_samples": 4
+  },
+  "valid_packs": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/pack_smoke_20260816T070000Z/valid_packs.jsonl",
+  "worker_index": 0
+}
