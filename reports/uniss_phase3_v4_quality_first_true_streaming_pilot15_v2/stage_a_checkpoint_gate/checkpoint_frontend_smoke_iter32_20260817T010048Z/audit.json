@@ -1,0 +1,176 @@
+{
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v2/stage_a_smoke/stage_a_v2_teacher_smoke8_20260817T003700Z/iter_0000032",
+  "checks": {
+    "cached_state_growth_valid": true,
+    "future_cached_hidden_exact": true,
+    "future_cached_tokens_exact": true,
+    "future_recomputed_hidden_exact": true,
+    "future_recomputed_tokens_exact": true,
+    "partial_final_block_exercised": true,
+    "trained_bridge_residual_recomputed_cached": true,
+    "trained_hidden_recomputed_cached": true,
+    "trained_quantized_recomputed_cached": true,
+    "trained_tokens_recomputed_cached_100pct": true
+  },
+  "future_perturbation": {
+    "cached_hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        6,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "cached_tokens": {
+      "actual_tokens": 6,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 6,
+      "reference_tokens": 6,
+      "shape_equal": true
+    },
+    "changed_block": 3,
+    "changed_from_ms": 480,
+    "committed_tokens_compared": 6,
+    "recomputed_hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        6,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "recomputed_tokens": {
+      "actual_tokens": 6,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 6,
+      "reference_tokens": 6,
+      "shape_equal": true
+    }
+  },
+  "input": {
+    "duration_ms": 4540.0,
+    "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v2/stage00_matching_offline/matching_stage_a_334.jsonl",
+    "row_index": 0,
+    "sample_id": "NCSSD_R_EN_0000000261",
+    "samples": 72640,
+    "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000100_NCSSD_R_EN_0000000261.flac"
+  },
+  "passed": true,
+  "recomputed_cached_parity": {
+    "bridge_residual": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        57,
+        896
+      ],
+      "shape_equal": true
+    },
+    "hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        57,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "quantized": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        57,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "tokens": {
+      "actual_tokens": 57,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 57,
+      "reference_tokens": 57,
+      "shape_equal": true
+    }
+  },
+  "runtime": {
+    "device": "cuda:0",
+    "dtype": "torch.float32",
+    "frames_seen": [
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64,
+      72,
+      80,
+      88,
+      96,
+      104,
+      112,
+      120,
+      128,
+      136,
+      144,
+      152,
+      160,
+      168,
+      176,
+      184,
+      192,
+      200,
+      208,
+      216,
+      224,
+      232
+    ],
+    "pcm_block_ms": 160,
+    "reset_blocks": [],
+    "right_context_ms": 0
+  },
+  "schema_version": "uniss_quality_first_stage_a_checkpoint_frontend_gate_v2",
+  "training_single_mask_diagnostic": {
+    "gate": false,
+    "hidden": {
+      "allclose": false,
+      "atol": 2e-06,
+      "maximum_absolute_error": 1.430511474609375e-05,
+      "mean_absolute_error": 3.766368195101677e-07,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        57,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "reason": "single-mask and cached GEMM reduction geometry can differ"
+  }
+}
