@@ -45,7 +45,7 @@ RUN_LOAD_RNG=${RUN_LOAD_RNG:-0}
 RUN_TEACHER_LRU_CAPACITY=${RUN_TEACHER_LRU_CAPACITY:-16}
 RUN_SKIP_SAVE=${RUN_SKIP_SAVE:-0}
 
-ENTRYPOINT="${EXPERIMENT_DIR}/stage_a_causal_whisper_asr/training/pretrain_stage_a_megatron.py"
+ENTRYPOINT=${RUN_ENTRYPOINT:-"${EXPERIMENT_DIR}/stage_a_causal_whisper_asr/training/pretrain_stage_a_megatron.py"}
 
 export HUGGINGFACE_HUB_CACHE="${HF_HOME}/hub"
 export PIP_CACHE_DIR="${JASON_ROOT}/.cache/pip"
@@ -53,7 +53,8 @@ export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPAT
 export PATH="$(dirname "${PYTHON_BIN}"):${PATH}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
-export UNISS_STAGE_A_COMPILE_CACHE_ROOT="${JASON_ROOT}/.cache/stage_a_v2_compile/${RUN_ID}"
+RUN_COMPILE_NAMESPACE=${RUN_COMPILE_NAMESPACE:-stage_a_v2_compile}
+export UNISS_STAGE_A_COMPILE_CACHE_ROOT="${JASON_ROOT}/.cache/${RUN_COMPILE_NAMESPACE}/${RUN_ID}"
 mkdir -p "${HF_HOME}" "${HUGGINGFACE_HUB_CACHE}" "${PIP_CACHE_DIR}" \
   "${TMPDIR}" "${UNISS_STAGE_A_COMPILE_CACHE_ROOT}"
 
