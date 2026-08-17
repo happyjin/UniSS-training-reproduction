@@ -5,7 +5,13 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v3.stage_a
 )
 
 
-def validation_line(blank: float, agreement: float) -> str:
+def validation_line(
+    blank: float,
+    agreement: float,
+    *,
+    iteration: int = 96,
+    final: bool = False,
+) -> str:
     values = {
         "ar_asr": 1.0,
         "source_ctc": 5.0,
@@ -18,7 +24,8 @@ def validation_line(blank: float, agreement: float) -> str:
         "teacher_code_cosine": 0.8,
     }
     fields = " | ".join(f"{key} value: {value:.6E}" for key, value in values.items())
-    return f"validation loss at iteration 96 | {fields} |"
+    suffix = " on validation set" if final else ""
+    return f"validation loss at iteration {iteration}{suffix} | {fields} |"
 
 
 def test_canary_gate_rejects_all_blank_and_accepts_healthy_trace() -> None:
@@ -34,3 +41,18 @@ def test_canary_gate_rejects_all_blank_and_accepts_healthy_trace() -> None:
     assert passed["passed"]
     assert not passed["stage_b_authorized"]
 
+
+def test_canary_gate_uses_final_validation_instead_of_iteration_96() -> None:
+    trace = "\n".join(
+        (
+            "iteration 127/ 127 | number of skipped iterations: 0 | "
+            "number of nan iterations: 0 |",
+            validation_line(0.10, 0.10),
+            validation_line(0.10, 0.009, iteration=127, final=True),
+        )
+    )
+    result = evaluate(trace)
+    assert result["validation_iteration"] == 127
+    assert result["metrics"]["causal_glm_agreement"] == 0.009
+    assert not result["passed"]
+    assert not result["checks"]["causal_code_identity_retained"]

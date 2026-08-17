@@ -10,7 +10,9 @@ import re
 from pathlib import Path
 
 
-VALIDATION = re.compile(r"validation loss at iteration\s+(\d+)\s+\|\s+(.*)")
+VALIDATION = re.compile(
+    r"validation loss at iteration\s+(\d+)(?:\s+on validation set)?\s+\|\s+(.*)"
+)
 VALUE = re.compile(r"([a-zA-Z0-9_]+) value:\s+([+-]?[0-9.]+(?:E[+-]?\d+)?)")
 ITERATION = re.compile(
     r"iteration\s+(\d+)/\s*127.*number of skipped iterations:\s+(\d+).*"
