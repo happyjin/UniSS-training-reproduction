@@ -24,6 +24,26 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a
 
 _original_add_experiment_args = implementation.add_experiment_args
 _original_validate_experiment_args = implementation.validate_experiment_args
+_original_augment_native_gpt = implementation.augment_native_gpt
+
+
+def checkpoint_contains_stage_a_state(keys) -> bool:
+    """Distinguish a trained Stage A resume from pristine Phase3 initialization."""
+
+    return any(
+        str(key).split("/shard_", 1)[0].startswith(implementation.STAGE_A_PREFIX)
+        for key in keys
+    )
+
+
+def _is_stage_a_resume(load_root: str | Path) -> bool:
+    from torch.distributed.checkpoint import FileSystemReader
+
+    root = Path(load_root).resolve()
+    latest = int((root / "latest_checkpointed_iteration.txt").read_text().strip())
+    checkpoint = root / f"iter_{latest:07d}"
+    keys = FileSystemReader(str(checkpoint)).read_metadata().state_dict_metadata
+    return checkpoint_contains_stage_a_state(keys)
 
 
 def add_experiment_args(parser):
@@ -65,9 +85,21 @@ def _dataset(args, path: str, *, load_audio: bool = True):
     )
 
 
+def augment_native_gpt(model, args):
+    counts = _original_augment_native_gpt(model, args)
+    if _is_stage_a_resume(args.load):
+        # A strict Stage A checkpoint is expected to differ from the pristine
+        # Phase3 fingerprint.  Megatron's raise_all load validates every model,
+        # optimizer, and RNG key; the original fingerprint remains mandatory
+        # only for the first Phase3 -> Stage A initialization.
+        model._true_phase3_fingerprint_verified = True
+    return counts
+
+
 implementation.add_experiment_args = add_experiment_args
 implementation.validate_experiment_args = validate_experiment_args
 implementation._dataset = _dataset
+implementation.augment_native_gpt = augment_native_gpt
 implementation.IndexedStageAPackDataset = IndexedStageAPackDataset
 implementation.PaddedStageAValidationDataset = PaddedStageAValidationDataset
 implementation.ThreeEpochStageASchedule = ThreeEpochStageASchedule
@@ -86,3 +118,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+__all__ = ["checkpoint_contains_stage_a_state", "main"]

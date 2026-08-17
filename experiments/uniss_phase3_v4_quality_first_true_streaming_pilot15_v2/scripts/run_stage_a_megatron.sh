@@ -43,6 +43,7 @@ RUN_FINETUNE=${RUN_FINETUNE:-1}
 RUN_LOAD_OPTIM=${RUN_LOAD_OPTIM:-0}
 RUN_LOAD_RNG=${RUN_LOAD_RNG:-0}
 RUN_TEACHER_LRU_CAPACITY=${RUN_TEACHER_LRU_CAPACITY:-16}
+RUN_SKIP_SAVE=${RUN_SKIP_SAVE:-0}
 
 ENTRYPOINT="${EXPERIMENT_DIR}/stage_a_causal_whisper_asr/training/pretrain_stage_a_megatron.py"
 
@@ -115,11 +116,13 @@ for packs_value, cache_value in ((sys.argv[1], sys.argv[2]), (sys.argv[3], sys.a
 PY
 
 if [[ "${DRY_RUN}" != "1" ]]; then
-  if [[ -e "${RUN_SAVE_DIR}" || -e "${RUN_TENSORBOARD_DIR}" || -e "${RUN_LOG}" ]]; then
+  if [[ -e "${RUN_TENSORBOARD_DIR}" || -e "${RUN_LOG}" ]] || \
+    [[ "${RUN_SKIP_SAVE}" != "1" && -e "${RUN_SAVE_DIR}" ]]; then
     echo "refusing to overwrite Stage A v2 run ${RUN_ID}" >&2
     exit 2
   fi
-  mkdir -p "${RUN_SAVE_DIR}" "${RUN_TENSORBOARD_DIR}" "$(dirname "${RUN_LOG}")"
+  [[ "${RUN_SKIP_SAVE}" == "1" ]] || mkdir -p "${RUN_SAVE_DIR}"
+  mkdir -p "${RUN_TENSORBOARD_DIR}" "$(dirname "${RUN_LOG}")"
   visible=$("${PYTHON_BIN}" -c 'import torch; print(torch.cuda.device_count())')
   [[ "${visible}" == "${RUN_NPROC}" ]] || {
     echo "expected ${RUN_NPROC} visible GPUs, found ${visible}" >&2
@@ -191,9 +194,7 @@ cmd=(
   --attention-dropout 0.1
   --hidden-dropout 0.1
   --dist-ckpt-strictness "${RUN_STRICTNESS}"
-  --save "${RUN_SAVE_DIR}"
   --load "${RUN_LOAD}"
-  --save-interval "${RUN_SAVE_INTERVAL}"
   --log-interval "${RUN_LOG_INTERVAL}"
   --tensorboard-dir "${RUN_TENSORBOARD_DIR}"
   --tensorboard-log-interval "${RUN_LOG_INTERVAL}"
@@ -205,6 +206,10 @@ cmd=(
   --log-throughput
   --seed 20260816
 )
+
+if [[ "${RUN_SKIP_SAVE}" != "1" ]]; then
+  cmd+=(--save "${RUN_SAVE_DIR}" --save-interval "${RUN_SAVE_INTERVAL}")
+fi
 
 [[ "${RUN_FINETUNE}" == "1" ]] && cmd+=(--finetune)
 [[ "${RUN_LOAD_OPTIM}" != "1" ]] && cmd+=(--no-load-optim)

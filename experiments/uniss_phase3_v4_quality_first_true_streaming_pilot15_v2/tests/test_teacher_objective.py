@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+from types import SimpleNamespace
 
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.build_teacher_cache import (
     combine_acoustic,
@@ -13,6 +14,12 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a
 )
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.training.objective import (
     StageAObjective,
+)
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.training.pretrain_stage_a_megatron import (
+    checkpoint_contains_stage_a_state,
+)
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.training import (
+    pretrain_stage_a_megatron as entrypoint,
 )
 
 
@@ -93,3 +100,36 @@ def test_teacher_kl_requires_real_nonzero_batch_fields() -> None:
         objective._teacher_kl(
             logits.detach(), empty, logits.detach(), original_seq_length=2
         )
+
+
+def test_stage_a_resume_is_detected_without_accepting_plain_phase3() -> None:
+    assert checkpoint_contains_stage_a_state(
+        ["decoder.layers.weight", "stage_a_objective.bridge_projection.weight"]
+    )
+    assert checkpoint_contains_stage_a_state(
+        ["stage_a_objective.frontend.encoder.layers.0.weight/shard_0_8"]
+    )
+    assert not checkpoint_contains_stage_a_state(
+        ["embedding.word_embeddings.weight", "decoder.layers.weight"]
+    )
+
+
+def test_dataset_factory_returns_the_teacher_backed_adapter(monkeypatch) -> None:
+    calls = []
+
+    def fake_dataset(*args, **kwargs):
+        calls.append((args, kwargs))
+        return "dataset"
+
+    monkeypatch.setattr(entrypoint, "IndexedStageAPackDataset", fake_dataset)
+    args = SimpleNamespace(
+        stage_a_train_packs="/tmp/train.jsonl",
+        stage_a_train_teacher_cache="/tmp/train-cache.jsonl",
+        stage_a_valid_teacher_cache="/tmp/valid-cache.jsonl",
+        stage_a_max_acoustics_per_pack=2,
+        stage_a_teacher_lru_capacity=16,
+        seq_length=4096,
+    )
+    assert entrypoint._dataset(args, "/tmp/train.jsonl", load_audio=False) == "dataset"
+    assert calls[0][1]["teacher_cache_manifest"] == "/tmp/train-cache.jsonl"
+    assert calls[0][1]["load_audio"] is False
