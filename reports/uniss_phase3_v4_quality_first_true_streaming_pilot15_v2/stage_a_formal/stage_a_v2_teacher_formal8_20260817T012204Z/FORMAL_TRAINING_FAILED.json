@@ -1,0 +1,23 @@
+{
+  "schema_version": "uniss_stage_a_v2_formal_failure_v1",
+  "run_id": "stage_a_v2_teacher_formal8_20260817T012204Z",
+  "status": "failed",
+  "stage_b_authorized": false,
+  "initial_phase3_iteration": 9075,
+  "last_complete_checkpoint": 100,
+  "failure_gate": "ctc_all_blank",
+  "validation_iteration_100": {
+    "ar_asr": 0.6956375,
+    "source_ctc": 3.702559,
+    "offline_teacher_kl": 1.636372,
+    "offline_asr_replay": 0.2661693,
+    "phase3_replay": 3.904774,
+    "ctc_blank_ratio": 1.0,
+    "causal_glm_agreement": 0.003431981,
+    "bridge_residual_rms": 0.1512558,
+    "skipped_iterations": 0,
+    "nan_iterations": 0
+  },
+  "replacement_must_start_from_phase3": true,
+  "replacement_namespace": "uniss_phase3_v4_quality_first_true_streaming_pilot15_v3"
+}
