@@ -16,10 +16,12 @@ the complete successful canary curriculum and cosine LR curve. Updates
 128-381 stay in the 320/160-ms regime at the existing parameter-group minimum
 learning rates.
 
-The post-decay hold-canary runs for 191 updates. It advertises the inherited
-three strict coverage epochs required by the Stage A data gate, while the
-explicit train-iteration cap consumes only 191 updates. It reproduces the
-complete 127-update canary clock and then stress-tests 64 additional
-short-chunk updates after the optimizer has reached its LR floor. Formal
-remains blocked unless the final iteration-191 validation at 160 ms passes the
-strict gate.
+The post-decay hold-canary runs for 191 updates. It builds the same inherited
+three-epoch, globally shuffled Stage A schedule as formal training, then uses
+an explicit diagnostic-only prefix view of exactly 191 global updates. This
+preserves the already-shuffled sample order without cycling or reshuffling the
+prefix. It reproduces the complete 127-update canary clock and then
+stress-tests 64 additional short-chunk updates after the optimizer has reached
+its LR floor. Formal never enables prefix mode and continues to require exact
+three-epoch schedule equality. Formal remains blocked unless the final
+iteration-191 validation at 160 ms passes the strict gate.

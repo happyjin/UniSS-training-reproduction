@@ -6,6 +6,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import torch
+from torch.utils.data import Dataset
 
 import experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.pretrain_true_subsecond_megatron as base
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.pretrain_stage_a_megatron import (
@@ -30,6 +31,50 @@ _CURRICULUM_SCALE = 1.0
 _native = v2_entrypoint.implementation
 _original_add_experiment_args = _native.add_experiment_args
 _original_validate_experiment_args = _native.validate_experiment_args
+_original_train_valid_test_datasets_provider = (
+    _native.train_valid_test_datasets_provider
+)
+
+
+class PrefixStageASchedule(Dataset):
+    """Bounded diagnostic prefix of an already globally shuffled schedule."""
+
+    def __init__(self, schedule: Dataset, total_samples: int) -> None:
+        if total_samples <= 0 or total_samples > len(schedule):
+            raise ValueError("invalid v7 prefix schedule length")
+        group_size = int(schedule.data_parallel_group_size)
+        if total_samples % group_size:
+            raise ValueError("v7 prefix must end on a data-parallel group")
+        global_batch_size = int(schedule.global_batch_size)
+        if total_samples % global_batch_size:
+            raise ValueError("v7 prefix must end on a global update")
+        self.schedule = schedule
+        self.total_samples = int(total_samples)
+        self.data_parallel_group_size = group_size
+        self.global_batch_size = global_batch_size
+        self.coverage_epochs = int(schedule.coverage_epochs)
+        self.epoch_samples = int(schedule.epoch_samples)
+        self.shuffle_seed = int(schedule.shuffle_seed)
+        self.synchronize_sample_kind = True
+        self.split = "train"
+        self.collate_fn = schedule.collate_fn
+
+    def __len__(self) -> int:
+        return self.total_samples
+
+    def __getitem__(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        return self.schedule[index]
+
+    def source_index(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        return self.schedule.source_index(index)
 
 
 def effective_curriculum_progress(
@@ -77,6 +122,7 @@ def add_experiment_args(parser):
     group.add_argument(
         "--stage-a-optimizer-warmup-iters", type=int, required=True
     )
+    group.add_argument("--stage-a-prefix-schedule", action="store_true")
     return parser
 
 
@@ -92,6 +138,55 @@ def curriculum_group_multiplier(group, progress: float) -> float:
         raise ValueError("invalid Stage A v7 LR progress")
     effective = min(1.0, progress * _CURRICULUM_SCALE)
     return v5_curriculum_group_multiplier(group, effective)
+
+
+def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
+    """Use an exact shuffled prefix only for the explicit diagnostic canary."""
+
+    runtime = load_megatron_runtime()
+    args = runtime.megatron_gpt.get_args()
+    if not bool(args.stage_a_prefix_schedule):
+        return _original_train_valid_test_datasets_provider(
+            train_val_test_num_samples, vp_stage=vp_stage
+        )
+    del vp_stage
+    source = _native._dataset(args, args.stage_a_train_packs)
+    target_train = int(train_val_test_num_samples[0])
+    dp_group = int(args.data_parallel_size) * int(args.micro_batch_size)
+    complete = _native.ThreeEpochStageASchedule(
+        source,
+        coverage_epochs=int(args.stage_a_coverage_epochs),
+        data_parallel_group_size=dp_group,
+        global_batch_size=int(args.global_batch_size),
+        shuffle_seed=int(args.seed),
+    )
+    train = PrefixStageASchedule(complete, target_train)
+    valid = None
+    valid_source_length = 0
+    if args.stage_a_valid_packs:
+        valid_source = _native._dataset(args, args.stage_a_valid_packs)
+        valid_source_length = len(valid_source)
+        eval_micro_batch = int(
+            getattr(args, "eval_micro_batch_size", None) or args.micro_batch_size
+        )
+        valid = _native.PaddedStageAValidationDataset(
+            valid_source,
+            minimum_samples=int(train_val_test_num_samples[1]),
+            data_parallel_group_size=int(args.data_parallel_size)
+            * eval_micro_batch,
+        )
+    runtime.print_rank_0(
+        "> Stage A v7 prefix datasets: "
+        f"source_packs={len(source)} coverage_epochs={complete.coverage_epochs} "
+        f"complete_samples={len(complete)} prefix_samples={len(train)} "
+        f"global_shuffle_seed={complete.shuffle_seed} "
+        f"valid_source={valid_source_length} "
+        f"valid_effective={0 if valid is None else len(valid)}"
+    )
+    return train, valid, None
+
+
+train_valid_test_datasets_provider.is_distributed = True
 
 
 def forward_step(data_iterator, model):
@@ -132,6 +227,7 @@ def install_v7_overrides() -> None:
     _native.add_experiment_args = add_experiment_args
     _native.validate_experiment_args = validate_experiment_args
     _native.forward_step = forward_step
+    _native.train_valid_test_datasets_provider = train_valid_test_datasets_provider
     _native.StageAObjective = StageAObjective
     _native.DIAGNOSTIC_NAMES = DIAGNOSTIC_NAMES
     _native.TERM_NAMES = TERM_NAMES
@@ -162,5 +258,7 @@ __all__ = [
     "forward_step",
     "install_v7_overrides",
     "main",
+    "PrefixStageASchedule",
+    "train_valid_test_datasets_provider",
     "validate_experiment_args",
 ]

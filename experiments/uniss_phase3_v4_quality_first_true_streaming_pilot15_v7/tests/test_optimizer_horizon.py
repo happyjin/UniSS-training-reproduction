@@ -82,4 +82,39 @@ def test_post_decay_wrapper_keeps_required_strict_coverage_metadata() -> None:
     wrapper = Path(__file__).parents[1] / "scripts/run_stage_a_post_decay_canary_8gpu.sh"
     text = wrapper.read_text(encoding="utf-8")
     assert "export RUN_COVERAGE_EPOCHS=3" in text
+    assert "export RUN_PREFIX_SCHEDULE=1" in text
     assert "export RUN_TRAIN_ITERS=191" in text
+
+
+class ToySchedule:
+    data_parallel_group_size = 8
+    global_batch_size = 128
+    coverage_epochs = 3
+    epoch_samples = 128
+    shuffle_seed = 17
+    collate_fn = list
+
+    def __len__(self) -> int:
+        return 384
+
+    def __getitem__(self, index: int) -> int:
+        return index * 7
+
+    def source_index(self, index: int) -> tuple[int, int]:
+        return divmod(index, 128)
+
+
+def test_prefix_schedule_preserves_order_and_megatron_geometry() -> None:
+    prefix = v7.PrefixStageASchedule(ToySchedule(), 256)
+    assert len(prefix) == 256
+    assert prefix[0] == 0
+    assert prefix[-1] == 255 * 7
+    assert prefix.source_index(255) == (1, 127)
+    assert prefix.data_parallel_group_size == 8
+    assert prefix.collate_fn is list
+
+
+@pytest.mark.parametrize("length", (0, 192, 193, 392))
+def test_prefix_schedule_rejects_unsafe_boundaries(length: int) -> None:
+    with pytest.raises(ValueError):
+        v7.PrefixStageASchedule(ToySchedule(), length)

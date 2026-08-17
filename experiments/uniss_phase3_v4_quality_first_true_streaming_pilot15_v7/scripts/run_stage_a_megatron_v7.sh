@@ -15,6 +15,11 @@ if [[ "${1:-}" == "--dry-run" ]]; then
   shift
 fi
 
+prefix_schedule=()
+if [[ "${RUN_PREFIX_SCHEDULE:-0}" == "1" ]]; then
+  prefix_schedule=(--stage-a-prefix-schedule)
+fi
+
 exec bash "${V2_ROOT}/scripts/run_stage_a_megatron.sh" \
   "${dry_run[@]}" \
   --stage-a-curriculum-iters "${RUN_CURRICULUM_ITERS}" \
@@ -22,4 +27,5 @@ exec bash "${V2_ROOT}/scripts/run_stage_a_megatron.sh" \
   --stage-a-optimizer-warmup-iters "${RUN_OPTIMIZER_WARMUP_ITERS}" \
   --lr-decay-iters "${RUN_OPTIMIZER_ITERS}" \
   --lr-warmup-iters "${RUN_OPTIMIZER_WARMUP_ITERS}" \
+  "${prefix_schedule[@]}" \
   "$@"
