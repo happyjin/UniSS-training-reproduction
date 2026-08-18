@@ -25,6 +25,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.audit_rollouts
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.io import (
     atomic_json,
+    file_sha256,
     partition_bounds,
     selected_total,
 )
@@ -276,7 +277,10 @@ def main() -> None:
         if not rows_pending:
             return
         path = output_dir / "bundles" / f"bundle-{bundle_index:06d}.npz"
-        for row in save_bundle(path, rows_pending):
+        saved_rows = save_bundle(path, rows_pending)
+        bundle_sha256 = file_sha256(path)
+        for row in saved_rows:
+            row["bundle_sha256"] = bundle_sha256
             encoded = (json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n").encode(
                 "utf-8"
             )
@@ -407,6 +411,7 @@ def main() -> None:
         "records_per_second": counts["records"] / max(1e-9, elapsed),
         "manifest": str(manifest.resolve()),
         "manifest_bytes": manifest.stat().st_size,
+        "manifest_sha256": file_sha256(manifest),
         "index": index,
     }
     atomic_json(output_dir / "PART_COMPLETE.json", report)
