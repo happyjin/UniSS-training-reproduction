@@ -109,6 +109,13 @@ class _PackedWriter:
         self.counts["packed_records"] += 1
         self.counts["used_tokens"] += int(value["used_tokens"])
         self.counts["supervised_tokens"] += int(value["supervised_tokens"])
+        self.counts["commit_consistency_pairs"] += len(
+            value["commit_consistency"]
+        )
+        self.counts["commit_consistency_positions"] += sum(
+            int(binding["positions"])
+            for binding in value["commit_consistency"]
+        )
         used_tokens = int(value["used_tokens"])
         for kind in value["loss_kinds"][:used_tokens]:
             self.counts[f"loss:{LOSS_KIND_NAMES[int(kind)]}"] += 1

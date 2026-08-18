@@ -109,6 +109,11 @@ def packed_task_to_runtime_item(
         not isinstance(binding, dict) for binding in raw_bindings
     ):
         raise TypeError("E2E packed teacher bindings are malformed")
+    raw_consistency = value.get("commit_consistency")
+    if not isinstance(raw_consistency, list) or any(
+        not isinstance(binding, dict) for binding in raw_consistency
+    ):
+        raise TypeError("E2E packed commit-consistency bindings are malformed")
     return {
         "family": str(value["family"]),
         "tokens": _tensor(value, "tokens", seq_length, torch.long),
@@ -126,6 +131,7 @@ def packed_task_to_runtime_item(
         ),
         "acoustic_rows": acoustic_rows,
         "teacher_bindings": [dict(binding) for binding in raw_bindings],
+        "commit_consistency": [dict(binding) for binding in raw_consistency],
         "used_tokens": int(value["used_tokens"]),
         "supervised_tokens": int(value["supervised_tokens"]),
     }
@@ -278,6 +284,7 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
     acoustic_rows = []
     teacher_bindings = []
     teacher_posteriors = []
+    commit_consistency = []
     for batch_index, value in enumerate(batch):
         for raw in value["acoustic_rows"]:
             row = dict(raw)
@@ -291,9 +298,14 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
             posterior = dict(raw)
             posterior["batch_index"] = batch_index
             teacher_posteriors.append(posterior)
+        for raw in value["commit_consistency"]:
+            binding = dict(raw)
+            binding["batch_index"] = batch_index
+            commit_consistency.append(binding)
     result["acoustic_rows"] = acoustic_rows
     result["teacher_bindings"] = teacher_bindings
     result["teacher_posteriors"] = teacher_posteriors
+    result["commit_consistency"] = commit_consistency
     return result
 
 

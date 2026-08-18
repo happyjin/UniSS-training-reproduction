@@ -88,6 +88,8 @@ class E2ETaskSample:
     source_audio: str | None
     source_glm_length: int
     teacher_bindings: tuple[TeacherBinding, ...] = ()
+    commit_key: str | None = None
+    commit_positions: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if self.family not in TASK_FAMILIES:
@@ -125,6 +127,19 @@ class E2ETaskSample:
                 for index in range(binding.target_start, binding.target_stop)
             ):
                 raise ValueError("E2E teacher binding covers an unsupervised token")
+        if (self.commit_key is None) != (not self.commit_positions):
+            raise ValueError("E2E commit-consistency identity/positions differ")
+        if self.commit_positions:
+            if any(
+                not 0 < position < len(self.token_ids)
+                for position in self.commit_positions
+            ) or any(
+                left + 1 != right
+                for left, right in zip(
+                    self.commit_positions, self.commit_positions[1:]
+                )
+            ):
+                raise ValueError("E2E commit-consistency positions are not contiguous")
 
     @property
     def shifted_length(self) -> int:
@@ -155,6 +170,8 @@ class E2ETaskSample:
                 }
                 for value in self.teacher_bindings
             ],
+            "commit_key": self.commit_key,
+            "commit_positions": list(self.commit_positions),
         }
 
     @classmethod
@@ -189,6 +206,12 @@ class E2ETaskSample:
                     target_stop=int(item["target_stop"]),
                 )
                 for item in raw_bindings
+            ),
+            commit_key=(
+                None if value.get("commit_key") is None else str(value["commit_key"])
+            ),
+            commit_positions=tuple(
+                int(item) for item in value.get("commit_positions", [])  # type: ignore[arg-type]
             ),
         )
 
@@ -336,6 +359,13 @@ def build_incremental_mt_tasks(
                 source_audio=None,
                 source_glm_length=0,
                 teacher_bindings=bindings,
+                commit_key=f"{trajectory.sample_id}:{request.history_kind}",
+                commit_positions=tuple(
+                    range(
+                        len(request.prompt_ids),
+                        len(request.prompt_ids) + len(request.target_ids) - 2,
+                    )
+                ),
             )
         )
     if not output:

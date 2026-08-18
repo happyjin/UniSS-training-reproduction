@@ -234,6 +234,30 @@ def commit_consistency_kl(
     return LossTerm(merged.sum(), merged.new_tensor(float(merged.numel())))
 
 
+def commit_pairs_from_full_logits(
+    full_logits: torch.Tensor,
+    bindings: Sequence[Mapping[str, object]],
+) -> list[LogitConsistencyPair]:
+    if full_logits.ndim != 3:
+        raise ValueError("commit consistency full logits must be [batch, seq, vocab]")
+    pairs: list[LogitConsistencyPair] = []
+    for binding in bindings:
+        batch_index = int(binding.get("batch_index", 0))
+        previous_start = int(binding["previous_packed_start"])
+        previous_stop = int(binding["previous_packed_stop"])
+        current_start = int(binding["current_packed_start"])
+        current_stop = int(binding["current_packed_stop"])
+        if previous_stop - previous_start != current_stop - current_start:
+            raise ValueError("commit consistency binding length differs")
+        pairs.append(
+            LogitConsistencyPair(
+                full_logits[batch_index, previous_start:previous_stop],
+                full_logits[batch_index, current_start:current_stop],
+            )
+        )
+    return pairs
+
+
 def speaker_continuity_loss(
     pairs: Sequence[SpeakerContinuityPair],
     *,
@@ -319,6 +343,7 @@ __all__ = [
     "LossTerm",
     "SpeakerContinuityPair",
     "commit_consistency_kl",
+    "commit_pairs_from_full_logits",
     "compute_e2e_objective",
     "speaker_continuity_loss",
     "token_ce_terms",

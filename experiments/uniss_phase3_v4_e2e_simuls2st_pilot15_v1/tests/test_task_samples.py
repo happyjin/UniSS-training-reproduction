@@ -70,6 +70,8 @@ def test_incremental_mt_tasks_cover_gold_and_v1_histories_without_semantic() -> 
             binding.cache_position_stop - binding.cache_position_start
             for binding in sample.teacher_bindings
         ) == sum(value != LOSS_NONE for value in sample.loss_kinds)
+        assert sample.commit_key is not None
+        assert sample.commit_positions
 
 
 def test_interleaved_task_has_one_causal_audio_path_and_all_three_outputs() -> None:
@@ -152,6 +154,22 @@ def test_homogeneous_packing_preserves_acoustic_and_teacher_coordinates() -> Non
         start = binding["packed_start"]
         stop = binding["packed_stop"]
         assert all(value["loss_mask"][index] == 1.0 for index in range(start, stop))
+
+
+def test_incremental_mt_packing_registers_stable_committed_prefix_pairs() -> None:
+    samples = build_incremental_mt_tasks(
+        _trajectory(), _rollout(), encode_text=_encode
+    )
+    value = next(pack_task_samples(samples, seq_length=512))
+    validate_packed_task(value, seq_length=512)
+    assert len(value["commit_consistency"]) == 2
+    assert sum(row["positions"] for row in value["commit_consistency"]) > 0
+    for row in value["commit_consistency"]:
+        assert value["labels"][
+            row["previous_packed_start"] : row["previous_packed_stop"]
+        ] == value["labels"][
+            row["current_packed_start"] : row["current_packed_stop"]
+        ]
 
 
 def test_packing_rejects_mixed_task_families() -> None:

@@ -10,6 +10,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     LogitConsistencyPair,
     SpeakerContinuityPair,
     commit_consistency_kl,
+    commit_pairs_from_full_logits,
     compute_e2e_objective,
     speaker_continuity_loss,
     token_ce_terms,
@@ -89,6 +90,24 @@ def test_consistency_and_speaker_losses_use_stop_gradient_teacher_branch() -> No
     assert speaker_current.grad is not None
     assert commit.loss.item() > 0
     assert speaker.loss.item() == 1.0
+
+
+def test_commit_binding_extracts_old_and_new_prefix_logits() -> None:
+    logits = torch.arange(2 * 8 * 3, dtype=torch.float32).reshape(2, 8, 3)
+    pairs = commit_pairs_from_full_logits(
+        logits,
+        [
+            {
+                "batch_index": 1,
+                "previous_packed_start": 1,
+                "previous_packed_stop": 3,
+                "current_packed_start": 5,
+                "current_packed_stop": 7,
+            }
+        ],
+    )
+    assert torch.equal(pairs[0].previous_logits, logits[1, 1:3])
+    assert torch.equal(pairs[0].current_logits, logits[1, 5:7])
 
 
 def test_full_objective_applies_documented_weights_and_balances_boundary_eos() -> None:

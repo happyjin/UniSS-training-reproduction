@@ -11,7 +11,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
 from training import constants_uniss as c
 
 
-PACKED_TASK_SCHEMA = "uniss_phase3_v4_e2e_task_pack_v1"
+PACKED_TASK_SCHEMA = "uniss_phase3_v4_e2e_task_pack_v2"
 
 
 def _pad(values: list, length: int, fill):
@@ -43,8 +43,11 @@ def pack_task_samples(
         source_records: list[int] = []
         acoustic_rows: list[dict[str, object]] = []
         teacher_bindings: list[dict[str, object]] = []
+        commit_consistency: list[dict[str, object]] = []
+        sample_bases: list[int] = []
         for sample_ordinal, sample in enumerate(current):
             base = len(tokens)
+            sample_bases.append(base)
             shifted_length = sample.shifted_length
             tokens.extend(sample.token_ids[:-1])
             labels.extend(sample.token_ids[1:])
@@ -96,6 +99,48 @@ def pack_task_samples(
                         "packed_stop": packed_stop,
                     }
                 )
+        previous_by_key: dict[str, tuple[int, E2ETaskSample]] = {}
+        for sample_ordinal, sample in enumerate(current):
+            if sample.commit_key is None:
+                continue
+            previous = previous_by_key.get(sample.commit_key)
+            if previous is not None:
+                previous_ordinal, previous_sample = previous
+                previous_tokens = [
+                    previous_sample.token_ids[position]
+                    for position in previous_sample.commit_positions
+                ]
+                current_tokens = [
+                    sample.token_ids[position]
+                    for position in sample.commit_positions
+                ]
+                stable = 0
+                for left, right in zip(previous_tokens, current_tokens):
+                    if left != right:
+                        break
+                    stable += 1
+                if stable:
+                    previous_start = (
+                        sample_bases[previous_ordinal]
+                        + previous_sample.commit_positions[0]
+                        - 1
+                    )
+                    current_start = (
+                        sample_bases[sample_ordinal] + sample.commit_positions[0] - 1
+                    )
+                    commit_consistency.append(
+                        {
+                            "commit_key": sample.commit_key,
+                            "previous_sample_ordinal": previous_ordinal,
+                            "current_sample_ordinal": sample_ordinal,
+                            "previous_packed_start": previous_start,
+                            "previous_packed_stop": previous_start + stable,
+                            "current_packed_start": current_start,
+                            "current_packed_stop": current_start + stable,
+                            "positions": stable,
+                        }
+                    )
+            previous_by_key[sample.commit_key] = (sample_ordinal, sample)
         if len(tokens) > seq_length:
             raise AssertionError("E2E pack exceeded configured sequence length")
         return {
@@ -116,6 +161,7 @@ def pack_task_samples(
             "source_manifest_records": source_records,
             "acoustic_rows": acoustic_rows,
             "teacher_bindings": teacher_bindings,
+            "commit_consistency": commit_consistency,
             "used_tokens": len(tokens),
             "supervised_tokens": sum(value != LOSS_NONE for value in loss_kinds),
         }
@@ -181,6 +227,22 @@ def validate_packed_task(value: dict[str, object], *, seq_length: int) -> None:
             raise ValueError("E2E packed teacher binding geometry differs")
         if any(int(loss_kinds[index]) == LOSS_NONE for index in range(start, stop)):
             raise ValueError("E2E packed teacher binding covers masked labels")
+    labels = value["labels"]
+    for binding in value.get("commit_consistency", []):
+        previous_start = int(binding["previous_packed_start"])
+        previous_stop = int(binding["previous_packed_stop"])
+        current_start = int(binding["current_packed_start"])
+        current_stop = int(binding["current_packed_stop"])
+        positions = int(binding["positions"])
+        if (
+            not 0 <= previous_start < previous_stop <= cursor
+            or not 0 <= current_start < current_stop <= cursor
+            or previous_stop - previous_start != positions
+            or current_stop - current_start != positions
+            or list(labels[previous_start:previous_stop])
+            != list(labels[current_start:current_stop])
+        ):
+            raise ValueError("E2E packed commit-consistency geometry differs")
 
 
 __all__ = ["PACKED_TASK_SCHEMA", "pack_task_samples", "validate_packed_task"]

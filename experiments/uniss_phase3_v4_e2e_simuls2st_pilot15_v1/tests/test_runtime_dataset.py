@@ -87,6 +87,7 @@ def test_runtime_dataset_loads_audio_and_preserves_training_sidecars(
         range(_trajectory().source_glm_length)
     )
     assert len(item["teacher_bindings"]) == len(packed["teacher_bindings"])
+    assert item["commit_consistency"] == packed["commit_consistency"]
 
 
 def test_runtime_collate_stacks_fixed_tensors_and_tags_sidecars(tmp_path: Path) -> None:
@@ -104,6 +105,7 @@ def test_runtime_collate_stacks_fixed_tensors_and_tags_sidecars(tmp_path: Path) 
     assert [len(value) for value in batch["source_manifest_records"]] == [1, 2]
     assert {row["batch_index"] for row in batch["acoustic_rows"]} == {0, 1}
     assert {row["batch_index"] for row in batch["teacher_bindings"]} == {0, 1}
+    assert batch["commit_consistency"] == []
 
 
 def test_runtime_dataset_rejects_changed_pack_and_mixed_family_batch(
