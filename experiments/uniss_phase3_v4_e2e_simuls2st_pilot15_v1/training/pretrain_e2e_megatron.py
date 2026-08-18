@@ -41,6 +41,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule impo
     FiveFamilyCoverageSampler,
     FiveFamilyGlobalSchedule,
     FiveFamilySchedulePrefix,
+    FiveFamilySingleBlock,
     FiveFamilyValidationSchedule,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
@@ -260,6 +261,7 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-verify-dataset-sha256", action="store_true")
     group.add_argument("--e2e-verify-cache-sha256", action="store_true")
     group.add_argument("--e2e-smoke", action="store_true")
+    group.add_argument("--e2e-smoke-family", choices=TASK_FAMILIES)
     group.add_argument("--e2e-allow-missing-teachers", action="store_true")
     group.add_argument("--e2e-audit-gradients", action="store_true")
     return parser
@@ -276,12 +278,18 @@ def _require_file(path: str | Path | None) -> None:
 
 
 def validate_smoke_scope(
-    *, smoke: bool, allow_missing_teachers: bool, train_iters: int
+    *,
+    smoke: bool,
+    allow_missing_teachers: bool,
+    train_iters: int,
+    smoke_family: str | None = None,
 ) -> None:
     if allow_missing_teachers and not smoke:
         raise ValueError("missing E2E teachers are allowed only in smoke mode")
     if smoke and not 1 <= int(train_iters) <= 2:
         raise ValueError("E2E smoke runs are restricted to one or two updates")
+    if smoke_family is not None and (not smoke or int(train_iters) != 1):
+        raise ValueError("one-family E2E canary requires one smoke update")
 
 
 def validate_experiment_args(args) -> None:
@@ -289,6 +297,7 @@ def validate_experiment_args(args) -> None:
         smoke=bool(args.e2e_smoke),
         allow_missing_teachers=bool(args.e2e_allow_missing_teachers),
         train_iters=int(args.train_iters),
+        smoke_family=args.e2e_smoke_family,
     )
     if not bool(args.sft):
         raise ValueError("E2E packed training requires --sft")
@@ -403,7 +412,12 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     train.collate_fn = collate_e2e_family
     target_train = int(train_val_test_num_samples[0])
     if args.e2e_smoke and 0 < target_train <= len(train):
-        train = FiveFamilySchedulePrefix(train, target_train)
+        if args.e2e_smoke_family:
+            if int(args.train_iters) != 1 or target_train != int(args.global_batch_size):
+                raise ValueError("one-family E2E canary requires exactly one update")
+            train = FiveFamilySingleBlock(train, args.e2e_smoke_family)
+        else:
+            train = FiveFamilySchedulePrefix(train, target_train)
         train.collate_fn = collate_e2e_family
     elif len(train) != target_train:
         raise ValueError(

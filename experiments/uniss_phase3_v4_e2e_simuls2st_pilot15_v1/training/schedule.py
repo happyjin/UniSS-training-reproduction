@@ -319,6 +319,46 @@ class FiveFamilySchedulePrefix(Dataset):
         return self.dataset[index]
 
 
+class FiveFamilySingleBlock(Dataset):
+    """One explicit family block for an isolated one-update GPU canary."""
+
+    def __init__(self, dataset: Dataset, family: str) -> None:
+        if family not in TASK_FAMILIES:
+            raise ValueError("unknown E2E canary family")
+        blocks = tuple(getattr(dataset, "blocks", ()))
+        if family not in blocks:
+            raise ValueError("E2E canary family has no scheduled block")
+        self.dataset = dataset
+        self.family = family
+        self.global_batch_size = int(getattr(dataset, "global_batch_size", 0))
+        self.data_parallel_group_size = int(
+            getattr(dataset, "data_parallel_group_size", 0)
+        )
+        if self.global_batch_size <= 0 or self.data_parallel_group_size <= 0:
+            raise ValueError("invalid E2E canary schedule geometry")
+        self.source_block = blocks.index(family)
+        self.total_blocks = 1
+        self.blocks = (family,)
+        self.family_block_counts = {
+            name: int(name == family) for name in TASK_FAMILIES
+        }
+        self.synchronize_task_family = True
+        self.split = getattr(dataset, "split", None)
+
+    def __len__(self) -> int:
+        return self.global_batch_size
+
+    def __getitem__(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        value = self.dataset[self.source_block * self.global_batch_size + index]
+        if value.get("family") != self.family:
+            raise ValueError("E2E canary block escaped its requested family")
+        return value
+
+
 class FiveFamilyCoverageSampler:
     """Expose the schedule without applying a second Megatron shuffle."""
 
@@ -371,6 +411,7 @@ __all__ = [
     "FiveFamilyCoverageSampler",
     "FiveFamilyGlobalSchedule",
     "FiveFamilySchedulePrefix",
+    "FiveFamilySingleBlock",
     "FiveFamilyValidationSchedule",
     "MID_WEIGHTS",
     "STEADY_WEIGHTS",

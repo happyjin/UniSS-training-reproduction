@@ -12,6 +12,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule impo
     FiveFamilyCoverageSampler,
     FiveFamilyGlobalSchedule,
     FiveFamilySchedulePrefix,
+    FiveFamilySingleBlock,
     FiveFamilyValidationSchedule,
     family_blocks,
 )
@@ -180,3 +181,20 @@ def test_smoke_prefix_keeps_complete_global_family_blocks() -> None:
             prefix[index]["family"]
             for index in range(block * 8, (block + 1) * 8)
         } == {full.blocks[block]}
+
+
+def test_single_family_canary_selects_one_complete_requested_block() -> None:
+    full = FiveFamilyGlobalSchedule(
+        _datasets(32),
+        coverage_epochs=3,
+        global_batch_size=8,
+        data_parallel_group_size=2,
+        shuffle_seed=31,
+    )
+    for family in TASK_FAMILIES:
+        canary = FiveFamilySingleBlock(full, family)
+        assert len(canary) == 8
+        assert canary.blocks == (family,)
+        assert {canary[index]["family"] for index in range(len(canary))} == {
+            family
+        }

@@ -37,6 +37,7 @@ RUN_EVAL_ITERS=${RUN_EVAL_ITERS:-0}
 RUN_LOG_INTERVAL=${RUN_LOG_INTERVAL:-5}
 RUN_SEED=${RUN_SEED:-20260818}
 RUN_SMOKE=${RUN_SMOKE:-0}
+RUN_SMOKE_FAMILY=${RUN_SMOKE_FAMILY:-}
 RUN_ALLOW_MISSING_TEACHERS=${RUN_ALLOW_MISSING_TEACHERS:-0}
 RUN_AUDIT_GRADIENTS=${RUN_AUDIT_GRADIENTS:-0}
 RUN_VERIFY_DATASET_SHA256=${RUN_VERIFY_DATASET_SHA256:-0}
@@ -219,6 +220,7 @@ cmd=(
 [[ -n "${RUN_V1_TRAIN_CACHE_AUDIT}" ]] && cmd+=(--e2e-v1-train-cache-audit "${RUN_V1_TRAIN_CACHE_AUDIT}")
 [[ -n "${RUN_PHASE3_TRAIN_CACHE_AUDIT}" ]] && cmd+=(--e2e-phase3-train-cache-audit "${RUN_PHASE3_TRAIN_CACHE_AUDIT}")
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--e2e-smoke)
+[[ -n "${RUN_SMOKE_FAMILY}" ]] && cmd+=(--e2e-smoke-family "${RUN_SMOKE_FAMILY}")
 [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" ]] && cmd+=(--e2e-allow-missing-teachers)
 [[ "${RUN_AUDIT_GRADIENTS}" == "1" ]] && cmd+=(--e2e-audit-gradients)
 [[ "${RUN_VERIFY_DATASET_SHA256}" == "1" ]] && cmd+=(--e2e-verify-dataset-sha256)

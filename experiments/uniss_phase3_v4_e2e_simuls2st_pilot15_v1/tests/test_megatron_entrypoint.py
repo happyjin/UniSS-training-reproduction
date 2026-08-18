@@ -83,3 +83,16 @@ def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
         validate_smoke_scope(
             smoke=True, allow_missing_teachers=False, train_iters=3
         )
+    validate_smoke_scope(
+        smoke=True,
+        allow_missing_teachers=False,
+        train_iters=1,
+        smoke_family="streaming_asr_event",
+    )
+    with pytest.raises(ValueError, match="one-family"):
+        validate_smoke_scope(
+            smoke=False,
+            allow_missing_teachers=False,
+            train_iters=1,
+            smoke_family="streaming_asr_event",
+        )
