@@ -21,6 +21,10 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.schema import 
     V1RolloutEvent,
     validate_rollout,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.summarize_gpu_dmon import (
+    parse_rows,
+    summarize,
+)
 from training import constants_uniss as c
 
 
@@ -189,3 +193,18 @@ def test_cached_hidden_restores_bridge_dtype(monkeypatch) -> None:
     embeddings = runtime._speech_embeddings(objective, object(), qwen, trajectory)
     assert embeddings.shape == (2, 4)
     assert embeddings.dtype == qwen.embedding.weight.dtype
+
+
+def test_gpu_dmon_summary_uses_only_active_samples(tmp_path) -> None:
+    path = tmp_path / "gpu.log"
+    path.write_text(
+        "# header\n"
+        "20260818 10:00:00 0 75 35 33 0 0 0 0 0 0 3201 345 0 0 4 5\n"
+        "20260818 10:00:02 0 400 45 40 90 20 0 0 0 0 3201 1980 0 0 12000 12001\n"
+        "20260818 10:00:02 1 500 45 40 100 30 0 0 0 0 3201 1980 0 0 14000 14001\n",
+        encoding="utf-8",
+    )
+    report = summarize(parse_rows(path), 512)
+    assert report["active_samples"] == 2
+    assert report["mean_sm_percent"] == 95
+    assert report["max_power_watts"] == 500

@@ -13,7 +13,9 @@ fi
 ROLLOUT_RUN_ID=${ROLLOUT_RUN_ID:-v1_rollout_smoke_$(date -u +%Y%m%dT%H%M%SZ)}
 ROLLOUT_SPLIT=${ROLLOUT_SPLIT:-valid}
 ROLLOUT_LIMIT=${ROLLOUT_LIMIT:-32}
-NUM_WORKERS=${NUM_WORKERS:-8}
+NUM_GPUS=${NUM_GPUS:-8}
+PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-1}
+NUM_WORKERS=$((NUM_GPUS * PROCESSES_PER_GPU))
 MAX_EVENT_TOKENS=${MAX_EVENT_TOKENS:-96}
 MAX_FINAL_TOKENS=${MAX_FINAL_TOKENS:-8}
 
@@ -21,8 +23,8 @@ if [[ "${ROLLOUT_SPLIT}" != "train" && "${ROLLOUT_SPLIT}" != "valid" ]]; then
   echo "ROLLOUT_SPLIT must be train or valid" >&2
   exit 2
 fi
-if (( NUM_WORKERS < 1 || NUM_WORKERS > 8 )); then
-  echo "NUM_WORKERS must be in [1,8] for the one-process-per-GPU launcher" >&2
+if (( NUM_GPUS < 1 || NUM_GPUS > 8 || PROCESSES_PER_GPU < 1 )); then
+  echo "NUM_GPUS must be in [1,8] and PROCESSES_PER_GPU must be positive" >&2
   exit 2
 fi
 if (( ROLLOUT_LIMIT > 0 && ROLLOUT_LIMIT < NUM_WORKERS )); then
@@ -39,6 +41,7 @@ MERGED=${ROLLOUT_ROOT}/${ROLLOUT_SPLIT}_v1_rollouts.jsonl
 MERGE_REPORT=${ROLLOUT_REPORT_ROOT}/MERGE.json
 AUDIT_JSON=${ROLLOUT_REPORT_ROOT}/AUDIT.json
 AUDIT_MD=${ROLLOUT_REPORT_ROOT}/AUDIT.md
+GPU_SUMMARY=${ROLLOUT_REPORT_ROOT}/GPU_SUMMARY.json
 HF_FINGERPRINT=${ROLLOUT_REPORT_ROOT}/V1_HF_FINGERPRINT.json
 
 for path in "${ROLLOUT_ROOT}" "${ROLLOUT_REPORT_ROOT}" "${ROLLOUT_LOG_ROOT}"; do
@@ -86,6 +89,7 @@ MONITOR_PID=$!
 pids=()
 reports=()
 for ((worker=0; worker<NUM_WORKERS; worker++)); do
+  gpu=$((worker % NUM_GPUS))
   part=$(printf '%s/rank%03d.jsonl' "${PART_ROOT}" "${worker}")
   report=$(printf '%s/workers/rank%03d.json' "${ROLLOUT_REPORT_ROOT}" "${worker}")
   log=$(printf '%s/rank%03d.log' "${ROLLOUT_LOG_ROOT}" "${worker}")
@@ -94,7 +98,7 @@ for ((worker=0; worker<NUM_WORKERS; worker++)); do
   if (( ROLLOUT_LIMIT > 0 )); then
     limit_args=(--limit "${ROLLOUT_LIMIT}")
   fi
-  CUDA_VISIBLE_DEVICES=${worker} "${PYTHON_BIN}" -m \
+  CUDA_VISIBLE_DEVICES=${gpu} "${PYTHON_BIN}" -m \
     experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.run_worker \
     --input "${GOLD}" \
     --output "${part}" \
@@ -124,6 +128,13 @@ fi
 cleanup
 MONITOR_PID=""
 
+"${PYTHON_BIN}" -m \
+  experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.summarize_gpu_dmon \
+  --input "${ROLLOUT_LOG_ROOT}/gpu_dmon.log" \
+  --output "${GPU_SUMMARY}" \
+  --minimum-active-memory-mib 512 \
+  > "${ROLLOUT_LOG_ROOT}/gpu_summary.log" 2>&1
+
 merge_args=()
 for report in "${reports[@]}"; do
   merge_args+=(--part-report "${report}")
@@ -147,4 +158,5 @@ done
 echo "rollout=${MERGED}"
 echo "audit=${AUDIT_JSON}"
 echo "report=${AUDIT_MD}"
+echo "gpu_summary=${GPU_SUMMARY}"
 echo "gpu_monitor=${ROLLOUT_LOG_ROOT}/gpu_dmon.log"
