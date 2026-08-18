@@ -77,6 +77,7 @@ def pack_task_samples(
                         "source_manifest_record": sample.source_manifest_record,
                         "source_audio": sample.source_audio,
                         "source_glm_length": sample.source_glm_length,
+                        "source_glm": list(sample.source_glm_ids),
                         "packed_positions": speech_positions,
                         "source_indices": speech_sources,
                     }

@@ -40,6 +40,7 @@ def test_streaming_asr_task_matches_gold_history_teacher_geometry() -> None:
     assert [value for value in sample.speech_indices if value is not None] == list(
         range(trajectory.source_glm_length)
     )
+    assert sample.source_glm_ids == (1, 2, 3, 4)
     assert sum(value == LOSS_ASR for value in sample.loss_kinds) == len(
         _encode("hello")
     ) + len(_encode("world"))
@@ -83,6 +84,7 @@ def test_interleaved_task_has_one_causal_audio_path_and_all_three_outputs() -> N
     assert [value for value in sample.speech_indices if value is not None] == list(
         range(trajectory.source_glm_length)
     )
+    assert sample.source_glm_ids == (1, 2, 3, 4)
     assert sum(value == LOSS_ASR for value in sample.loss_kinds) == len(
         _encode("hello")
     ) + len(_encode("world"))

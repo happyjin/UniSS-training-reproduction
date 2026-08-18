@@ -87,6 +87,7 @@ class E2ETaskSample:
     speech_indices: tuple[int | None, ...]
     source_audio: str | None
     source_glm_length: int
+    source_glm_ids: tuple[int, ...] = ()
     teacher_bindings: tuple[TeacherBinding, ...] = ()
     commit_key: str | None = None
     commit_positions: tuple[int, ...] = ()
@@ -115,9 +116,21 @@ class E2ETaskSample:
             c.validate_token_id(int(token))
         speech = [int(value) for value in self.speech_indices if value is not None]
         if speech:
-            if self.source_audio is None or speech != list(range(self.source_glm_length)):
+            if (
+                self.source_audio is None
+                or speech != list(range(self.source_glm_length))
+                or len(self.source_glm_ids) != self.source_glm_length
+                or any(
+                    not 0 <= value < c.GLM_SEMANTIC_SIZE
+                    for value in self.source_glm_ids
+                )
+            ):
                 raise ValueError("E2E acoustic sample does not cover source GLM exactly")
-        elif self.source_audio is not None or self.source_glm_length != 0:
+        elif (
+            self.source_audio is not None
+            or self.source_glm_length != 0
+            or self.source_glm_ids
+        ):
             raise ValueError("E2E text/discrete sample has an acoustic sidecar")
         for binding in self.teacher_bindings:
             if binding.target_stop > len(self.token_ids):
@@ -159,6 +172,7 @@ class E2ETaskSample:
             ],
             "source_audio": self.source_audio,
             "source_glm_length": self.source_glm_length,
+            "source_glm_ids": list(self.source_glm_ids),
             "teacher_bindings": [
                 {
                     "cache_kind": value.cache_kind,
@@ -196,6 +210,9 @@ class E2ETaskSample:
                 None if value.get("source_audio") is None else str(value["source_audio"])
             ),
             source_glm_length=int(value["source_glm_length"]),
+            source_glm_ids=tuple(
+                int(item) for item in value.get("source_glm_ids", [])  # type: ignore[arg-type]
+            ),
             teacher_bindings=tuple(
                 TeacherBinding(
                     cache_kind=str(item["cache_kind"]),
@@ -284,6 +301,11 @@ def build_streaming_asr_task(
         speech_indices=sequence.speech_indices,
         source_audio=trajectory.source_audio,
         source_glm_length=trajectory.source_glm_length,
+        source_glm_ids=tuple(
+            int(value)
+            for event in trajectory.events
+            for value in event.source_glm_delta
+        ),
         teacher_bindings=tuple(bindings),
     )
 
@@ -594,6 +616,11 @@ def build_interleaved_task(
         speech_indices=tuple(speech_indices),
         source_audio=trajectory.source_audio,
         source_glm_length=trajectory.source_glm_length,
+        source_glm_ids=tuple(
+            int(value)
+            for event in trajectory.events
+            for value in event.source_glm_delta
+        ),
         teacher_bindings=tuple(bindings),
     )
 

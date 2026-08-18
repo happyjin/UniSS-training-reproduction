@@ -86,6 +86,7 @@ def test_runtime_dataset_loads_audio_and_preserves_training_sidecars(
     assert acoustic["source_indices"].tolist() == list(
         range(_trajectory().source_glm_length)
     )
+    assert acoustic["source_glm"].tolist() == [1, 2, 3, 4]
     assert len(item["teacher_bindings"]) == len(packed["teacher_bindings"])
     assert item["commit_consistency"] == packed["commit_consistency"]
 
@@ -93,7 +94,9 @@ def test_runtime_dataset_loads_audio_and_preserves_training_sidecars(
 def test_runtime_collate_stacks_fixed_tensors_and_tags_sidecars(tmp_path: Path) -> None:
     report, _ = _fixture(tmp_path)
     dataset = E2EPackedFamilyDataset.from_build_report(
-        report, FAMILY_STREAMING_ASR, load_audio=False
+        report,
+        FAMILY_STREAMING_ASR,
+        audio_loader=lambda path: (torch.zeros(1, 16_000), 16_000),
     )
     first = dataset[0]
     second = dict(dataset[0])
@@ -106,6 +109,8 @@ def test_runtime_collate_stacks_fixed_tensors_and_tags_sidecars(tmp_path: Path) 
     assert {row["batch_index"] for row in batch["acoustic_rows"]} == {0, 1}
     assert {row["batch_index"] for row in batch["teacher_bindings"]} == {0, 1}
     assert batch["commit_consistency"] == []
+    assert batch["waveform"].shape == (2, 16_000)
+    assert batch["glm_ids"].tolist() == [[1, 2, 3, 4], [1, 2, 3, 4]]
 
 
 def test_runtime_dataset_rejects_changed_pack_and_mixed_family_batch(

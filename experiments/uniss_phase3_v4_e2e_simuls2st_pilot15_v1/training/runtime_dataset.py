@@ -14,6 +14,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.build_task_po
     BUILD_SCHEMA,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
+    TeacherPosterior,
     TopKTeacherCacheReader,
     resolve_teacher_bindings,
 )
@@ -83,14 +84,17 @@ def packed_task_to_runtime_item(
         positions = torch.tensor(row["packed_positions"], dtype=torch.long)
         source_indices = torch.tensor(row["source_indices"], dtype=torch.long)
         source_glm_length = int(row["source_glm_length"])
+        source_glm = torch.tensor(row["source_glm"], dtype=torch.long)
         if (
             len(positions) != source_glm_length
             or len(source_indices) != source_glm_length
+            or len(source_glm) != source_glm_length
             or source_indices.tolist() != list(range(source_glm_length))
         ):
             raise ValueError("E2E runtime acoustic row does not cover source GLM")
         row["packed_positions"] = positions
         row["source_indices"] = source_indices
+        row["source_glm"] = source_glm
         if load_audio:
             path = Path(str(row["source_audio"]))
             waveform, sample_rate = audio_loader(path)
@@ -306,6 +310,136 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
     result["teacher_bindings"] = teacher_bindings
     result["teacher_posteriors"] = teacher_posteriors
     result["commit_consistency"] = commit_consistency
+    if acoustic_rows and all("waveform" in row for row in acoustic_rows):
+        max_waveform = max(int(row["waveform_length"]) for row in acoustic_rows)
+        max_glm = max(int(row["source_glm_length"]) for row in acoustic_rows)
+        waveform = torch.zeros(
+            len(acoustic_rows), max_waveform, dtype=torch.float32
+        )
+        waveform_lengths = torch.empty(len(acoustic_rows), dtype=torch.long)
+        glm_ids = torch.zeros(len(acoustic_rows), max_glm, dtype=torch.long)
+        glm_positions = torch.zeros(len(acoustic_rows), max_glm, dtype=torch.long)
+        glm_lengths = torch.empty(len(acoustic_rows), dtype=torch.long)
+        acoustic_batch = torch.empty(len(acoustic_rows), dtype=torch.long)
+        for row_index, row in enumerate(acoustic_rows):
+            length = int(row["waveform_length"])
+            glm_length = int(row["source_glm_length"])
+            waveform[row_index, :length] = row["waveform"]
+            waveform_lengths[row_index] = length
+            glm_ids[row_index, :glm_length] = row["source_glm"]
+            glm_positions[row_index, :glm_length] = row["packed_positions"]
+            glm_lengths[row_index] = glm_length
+            acoustic_batch[row_index] = int(row["batch_index"])
+        result.update(
+            {
+                "waveform": waveform,
+                "waveform_lengths": waveform_lengths,
+                "glm_ids": glm_ids,
+                "glm_positions": glm_positions,
+                "glm_lengths": glm_lengths,
+                "acoustic_batch": acoustic_batch,
+                "acoustic_sample_ids": [
+                    str(row["sample_id"]) for row in acoustic_rows
+                ],
+                "source_audio_paths": [
+                    str(row["source_audio"]) for row in acoustic_rows
+                ],
+            }
+        )
+    elif acoustic_rows and any("waveform" in row for row in acoustic_rows):
+        raise ValueError("E2E microbatch mixes loaded and unloaded source audio")
+    if teacher_posteriors:
+        widths = {
+            int(value["posterior"].indices.shape[1])
+            for value in teacher_posteriors
+            if isinstance(value.get("posterior"), TeacherPosterior)
+        }
+        if len(widths) != 1 or len(widths) == 0:
+            raise ValueError("E2E teacher posterior top-k width differs")
+        result.update(
+            {
+                "teacher_batch": torch.cat(
+                    [
+                        torch.full(
+                            (value["posterior"].positions,),
+                            int(value["batch_index"]),
+                            dtype=torch.long,
+                        )
+                        for value in teacher_posteriors
+                    ]
+                ),
+                "teacher_positions": torch.cat(
+                    [
+                        torch.arange(
+                            int(value["packed_start"]),
+                            int(value["packed_stop"]),
+                            dtype=torch.long,
+                        )
+                        for value in teacher_posteriors
+                    ]
+                ),
+                "teacher_cache_kind": torch.cat(
+                    [
+                        torch.full(
+                            (value["posterior"].positions,),
+                            0 if value["posterior"].cache_kind == "v1_asr" else 1,
+                            dtype=torch.long,
+                        )
+                        for value in teacher_posteriors
+                    ]
+                ),
+                "teacher_indices": torch.cat(
+                    [value["posterior"].indices for value in teacher_posteriors]
+                ),
+                "teacher_probabilities": torch.cat(
+                    [
+                        value["posterior"].probabilities
+                        for value in teacher_posteriors
+                    ]
+                ),
+                "teacher_reference_labels": torch.cat(
+                    [
+                        value["posterior"].reference_labels
+                        for value in teacher_posteriors
+                    ]
+                ),
+            }
+        )
+    if commit_consistency:
+        result.update(
+            {
+                "commit_batch": torch.cat(
+                    [
+                        torch.full(
+                            (int(value["positions"]),),
+                            int(value["batch_index"]),
+                            dtype=torch.long,
+                        )
+                        for value in commit_consistency
+                    ]
+                ),
+                "commit_previous_positions": torch.cat(
+                    [
+                        torch.arange(
+                            int(value["previous_packed_start"]),
+                            int(value["previous_packed_stop"]),
+                            dtype=torch.long,
+                        )
+                        for value in commit_consistency
+                    ]
+                ),
+                "commit_current_positions": torch.cat(
+                    [
+                        torch.arange(
+                            int(value["current_packed_start"]),
+                            int(value["current_packed_stop"]),
+                            dtype=torch.long,
+                        )
+                        for value in commit_consistency
+                    ]
+                ),
+            }
+        )
     return result
 
 
