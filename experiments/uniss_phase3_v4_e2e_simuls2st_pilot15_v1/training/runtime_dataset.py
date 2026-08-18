@@ -13,6 +13,10 @@ from torch.utils.data import Dataset
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.build_task_pools import (
     BUILD_SCHEMA,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
+    TopKTeacherCacheReader,
+    resolve_teacher_bindings,
+)
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.packing import (
     PACKED_TASK_SCHEMA,
     validate_packed_task,
@@ -141,12 +145,14 @@ class E2EPackedFamilyDataset(Dataset[dict[str, object]]):
         verify_sha256: bool = False,
         load_audio: bool = True,
         audio_loader: AudioLoader | None = None,
+        teacher_readers: Mapping[str, TopKTeacherCacheReader] | None = None,
     ) -> None:
         self.path = Path(path).resolve()
         self.family = str(family)
         self.seq_length = int(seq_length)
         self.load_audio = bool(load_audio)
         self.audio_loader = audio_loader or _default_audio_loader
+        self.teacher_readers = dict(teacher_readers or {})
         if self.family not in TASK_FAMILIES:
             raise ValueError("unknown E2E task family")
         if self.seq_length != 18_000:
@@ -173,6 +179,7 @@ class E2EPackedFamilyDataset(Dataset[dict[str, object]]):
         verify_sha256: bool = False,
         load_audio: bool = True,
         audio_loader: AudioLoader | None = None,
+        teacher_readers: Mapping[str, TopKTeacherCacheReader] | None = None,
     ) -> "E2EPackedFamilyDataset":
         report = json.loads(Path(report_path).read_text(encoding="utf-8"))
         if (
@@ -200,6 +207,7 @@ class E2EPackedFamilyDataset(Dataset[dict[str, object]]):
             verify_sha256=verify_sha256,
             load_audio=load_audio,
             audio_loader=audio_loader,
+            teacher_readers=teacher_readers,
         )
 
     def __len__(self) -> int:
@@ -217,12 +225,21 @@ class E2EPackedFamilyDataset(Dataset[dict[str, object]]):
             value = json.loads(handle.readline())
         if value.get("family") != self.family:
             raise ValueError("E2E packed record escaped its family dataset")
-        return packed_task_to_runtime_item(
+        item = packed_task_to_runtime_item(
             value,
             seq_length=self.seq_length,
             load_audio=self.load_audio,
             audio_loader=self.audio_loader,
         )
+        if item["teacher_bindings"] and self.teacher_readers:
+            item["teacher_posteriors"] = resolve_teacher_bindings(
+                item["teacher_bindings"],
+                self.teacher_readers,
+                packed_labels=item["labels"],
+            )
+        else:
+            item["teacher_posteriors"] = []
+        return item
 
 
 def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
@@ -260,6 +277,7 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
         result[name] = torch.stack([value[name] for value in batch])
     acoustic_rows = []
     teacher_bindings = []
+    teacher_posteriors = []
     for batch_index, value in enumerate(batch):
         for raw in value["acoustic_rows"]:
             row = dict(raw)
@@ -269,8 +287,13 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
             binding = dict(raw)
             binding["batch_index"] = batch_index
             teacher_bindings.append(binding)
+        for raw in value.get("teacher_posteriors", []):
+            posterior = dict(raw)
+            posterior["batch_index"] = batch_index
+            teacher_posteriors.append(posterior)
     result["acoustic_rows"] = acoustic_rows
     result["teacher_bindings"] = teacher_bindings
+    result["teacher_posteriors"] = teacher_posteriors
     return result
 
 
