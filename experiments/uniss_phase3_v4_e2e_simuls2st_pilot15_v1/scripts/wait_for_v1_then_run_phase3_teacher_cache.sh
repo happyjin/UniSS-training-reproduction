@@ -12,24 +12,36 @@ ROLLOUT_SESSION=${ROLLOUT_SESSION:-uniss_e2e_v1_rollout_formal}
 WAIT_INTERVAL_SECONDS=${WAIT_INTERVAL_SECONDS:-30}
 TRAIN_AUDIT=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_train/AUDIT.json
 VALID_AUDIT=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_valid/AUDIT.json
+TRAIN_QUALITY=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_train/QUALITY_GATE.json
+VALID_QUALITY=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_valid/QUALITY_GATE.json
 
 if (( WAIT_INTERVAL_SECONDS < 1 )); then
   echo "WAIT_INTERVAL_SECONDS must be positive" >&2
   exit 2
 fi
 
-while [[ ! -f "${TRAIN_AUDIT}" || ! -f "${VALID_AUDIT}" ]]; do
-  if ! tmux has-session -t "${ROLLOUT_SESSION}" 2>/dev/null; then
-    echo "V1 rollout session ended before both audits were produced" >&2
-    echo "train_audit=${TRAIN_AUDIT}" >&2
-    echo "valid_audit=${VALID_AUDIT}" >&2
-    exit 3
-  fi
-  printf '%s waiting for V1 train/valid audits\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+while tmux has-session -t "${ROLLOUT_SESSION}" 2>/dev/null; do
+  printf '%s waiting for V1 train/valid rollout sequence to close\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   sleep "${WAIT_INTERVAL_SECONDS}"
 done
 
-"${PYTHON_BIN}" - <<'PY' "${TRAIN_AUDIT}" "${VALID_AUDIT}"
+for path in "${TRAIN_AUDIT}" "${VALID_AUDIT}"; do
+  [[ -f "${path}" ]] || {
+    echo "V1 rollout session ended before an audit was produced: ${path}" >&2
+    exit 3
+  }
+done
+
+for split in train valid; do
+  DATA_RUN_ID=${DATA_RUN_ID} \
+  ROLLOUT_RUN_ID=${V1_FORMAL_RUN_ID}_${split} \
+  ROLLOUT_SPLIT=${split} \
+  QUALITY_AUDIT_WORKERS=${QUALITY_AUDIT_WORKERS:-64} \
+  "${SCRIPT_DIR}/run_rollout_quality_gate.sh"
+done
+
+"${PYTHON_BIN}" - <<'PY' "${TRAIN_AUDIT}" "${VALID_AUDIT}" "${TRAIN_QUALITY}" "${VALID_QUALITY}"
 import json
 import pathlib
 import sys
@@ -38,7 +50,7 @@ for value in sys.argv[1:]:
     path = pathlib.Path(value)
     audit = json.loads(path.read_text(encoding="utf-8"))
     if audit.get("status") != "passed":
-        raise SystemExit(f"V1 rollout audit did not pass: {path}")
+        raise SystemExit(f"V1 rollout gate did not pass: {path}")
 PY
 
 while [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader,nounits 2>/dev/null | sed '/^[[:space:]]*$/d')" ]]; do

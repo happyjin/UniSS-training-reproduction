@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +25,12 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.schema import 
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.summarize_gpu_dmon import (
     parse_rows,
     summarize,
+)
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.stratify_rollouts import (
+    STRATUM_CLEAN,
+    STRATUM_NOISY,
+    STRATUM_QUARANTINE,
+    classify_rollout,
 )
 from training import constants_uniss as c
 
@@ -99,6 +106,23 @@ def test_rollout_schema_round_trip_and_append_only_gate() -> None:
     object.__setattr__(bad.events[1], "v1_source_prefix", "rewritten")
     with pytest.raises(ValueError, match="append-only"):
         validate_rollout(bad)
+
+
+def test_rollout_quality_strata_separate_content_noise_from_protocol_errors() -> None:
+    rollout = _rollout()
+    assert classify_rollout(
+        rollout, english_clean_wer=0.30, chinese_clean_cer=0.20
+    ) == (STRATUM_CLEAN, ())
+    noisy = replace(rollout, errors=1, reference_units=2, error_rate=0.5)
+    assert classify_rollout(
+        noisy, english_clean_wer=0.30, chinese_clean_cer=0.20
+    )[0] == STRATUM_NOISY
+    quarantine = replace(rollout, malformed_write_events=1)
+    stratum, reasons = classify_rollout(
+        quarantine, english_clean_wer=0.30, chinese_clean_cer=0.20
+    )
+    assert stratum == STRATUM_QUARANTINE
+    assert reasons == ("malformed_write",)
 
 
 def test_partition_bounds_cover_without_gaps() -> None:

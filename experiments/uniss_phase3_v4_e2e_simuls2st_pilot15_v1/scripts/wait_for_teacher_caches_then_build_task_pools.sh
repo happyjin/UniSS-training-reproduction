@@ -19,6 +19,8 @@ if (( WAIT_INTERVAL_SECONDS < 1 )); then
 fi
 
 audits=(
+  "${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_train/QUALITY_GATE.json"
+  "${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_valid/QUALITY_GATE.json"
   "${REPORT_ROOT}/phase3_teacher_cache/${TEACHER_FORMAL_RUN_ID}_phase3_train/AUDIT.json"
   "${REPORT_ROOT}/phase3_teacher_cache/${TEACHER_FORMAL_RUN_ID}_phase3_valid/AUDIT.json"
   "${REPORT_ROOT}/v1_asr_teacher_cache/${TEACHER_FORMAL_RUN_ID}_v1_train/AUDIT.json"
@@ -36,7 +38,7 @@ while true; do
     printf 'missing_or_pending=%s\n' "${audits[@]}" >&2
     exit 3
   fi
-  printf '%s waiting for four teacher-cache audits (%d missing)\n' \
+  printf '%s waiting for rollout quality and teacher-cache audits (%d missing)\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${missing}"
   sleep "${WAIT_INTERVAL_SECONDS}"
 done

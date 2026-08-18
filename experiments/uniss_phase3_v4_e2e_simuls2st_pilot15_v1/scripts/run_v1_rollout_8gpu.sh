@@ -19,6 +19,12 @@ PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-1}
 NUM_WORKERS=$((NUM_GPUS * PROCESSES_PER_GPU))
 MAX_EVENT_TOKENS=${MAX_EVENT_TOKENS:-96}
 MAX_FINAL_TOKENS=${MAX_FINAL_TOKENS:-8}
+QUALITY_AUDIT_WORKERS=${QUALITY_AUDIT_WORKERS:-64}
+ENGLISH_CLEAN_WER=${ENGLISH_CLEAN_WER:-0.30}
+CHINESE_CLEAN_CER=${CHINESE_CLEAN_CER:-0.20}
+MAXIMUM_QUARANTINE_RATE=${MAXIMUM_QUARANTINE_RATE:-0.40}
+MINIMUM_ACCEPTED_RATE=${MINIMUM_ACCEPTED_RATE:-0.60}
+MINIMUM_FINAL_EOS_RATE=${MINIMUM_FINAL_EOS_RATE:-0.99}
 
 if [[ "${ROLLOUT_SPLIT}" != "train" && "${ROLLOUT_SPLIT}" != "valid" ]]; then
   echo "ROLLOUT_SPLIT must be train or valid" >&2
@@ -42,6 +48,10 @@ MERGED=${ROLLOUT_ROOT}/${ROLLOUT_SPLIT}_v1_rollouts.jsonl
 MERGE_REPORT=${ROLLOUT_REPORT_ROOT}/MERGE.json
 AUDIT_JSON=${ROLLOUT_REPORT_ROOT}/AUDIT.json
 AUDIT_MD=${ROLLOUT_REPORT_ROOT}/AUDIT.md
+STRATA_MANIFEST=${ROLLOUT_ROOT}/${ROLLOUT_SPLIT}_quality_strata.jsonl
+STRATA_PARTS=${ROLLOUT_ROOT}/quality_strata_parts
+QUALITY_GATE_JSON=${ROLLOUT_REPORT_ROOT}/QUALITY_GATE.json
+QUALITY_GATE_MD=${ROLLOUT_REPORT_ROOT}/QUALITY_GATE.md
 GPU_SUMMARY=${ROLLOUT_REPORT_ROOT}/GPU_SUMMARY.json
 HF_FINGERPRINT=${ROLLOUT_REPORT_ROOT}/V1_HF_FINGERPRINT.json
 
@@ -157,8 +167,27 @@ done
   --output-md "${AUDIT_MD}" \
   > "${ROLLOUT_LOG_ROOT}/audit.log" 2>&1
 
+"${PYTHON_BIN}" -m \
+  experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.stratify_rollouts \
+  --gold "${GOLD}" \
+  --rollouts "${MERGED}" \
+  --merge-report "${MERGE_REPORT}" \
+  --output-manifest "${STRATA_MANIFEST}" \
+  --output-json "${QUALITY_GATE_JSON}" \
+  --output-md "${QUALITY_GATE_MD}" \
+  --parts-root "${STRATA_PARTS}" \
+  --workers "${QUALITY_AUDIT_WORKERS}" \
+  --english-clean-wer "${ENGLISH_CLEAN_WER}" \
+  --chinese-clean-cer "${CHINESE_CLEAN_CER}" \
+  --maximum-quarantine-rate "${MAXIMUM_QUARANTINE_RATE}" \
+  --minimum-accepted-rate "${MINIMUM_ACCEPTED_RATE}" \
+  --minimum-final-eos-rate "${MINIMUM_FINAL_EOS_RATE}" \
+  > "${ROLLOUT_LOG_ROOT}/quality_gate.log" 2>&1
+
 echo "rollout=${MERGED}"
 echo "audit=${AUDIT_JSON}"
+echo "strata_manifest=${STRATA_MANIFEST}"
+echo "quality_gate=${QUALITY_GATE_JSON}"
 echo "report=${AUDIT_MD}"
 echo "gpu_summary=${GPU_SUMMARY}"
 echo "gpu_monitor=${ROLLOUT_LOG_ROOT}/gpu_dmon.log"

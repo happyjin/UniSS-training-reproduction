@@ -36,15 +36,22 @@ for split in train valid; do
   rollout_root=${PROCESSED_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_${split}
   rollout=${rollout_root}/${split}_v1_rollouts.jsonl
   rollout_audit=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_${split}/AUDIT.json
+  strata=${rollout_root}/${split}_quality_strata.jsonl
+  quality_gate=${REPORT_ROOT}/v1_rollouts/${V1_FORMAL_RUN_ID}_${split}/QUALITY_GATE.json
   output=${PROCESSED_ROOT}/task_pools/${TASK_POOL_RUN_ID}_${split}
   log=${LOG_DIR}/${split}.log
   command_log=${LOG_DIR}/${split}.command
 
-  for path in "${gold}" "${rollout}" "${rollout}.offsets.bin" "${rollout_audit}"; do
+  for path in "${gold}" "${rollout}" "${rollout}.offsets.bin" "${rollout_audit}" \
+    "${strata}" "${strata}.offsets.bin" "${quality_gate}"; do
     [[ -f "${path}" ]] || { echo "missing formal task-pool input: ${path}" >&2; exit 3; }
   done
   jq -e '.status == "passed"' "${rollout_audit}" >/dev/null || {
     echo "V1 rollout audit did not pass: ${rollout_audit}" >&2
+    exit 3
+  }
+  jq -e '.status == "passed"' "${quality_gate}" >/dev/null || {
+    echo "V1 rollout quality gate did not pass: ${quality_gate}" >&2
     exit 3
   }
   [[ ! -e "${output}" ]] || {
@@ -57,6 +64,8 @@ for split in train valid; do
     -m experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.build_task_pools
     --gold "${gold}"
     --rollouts "${rollout}"
+    --strata-manifest "${strata}"
+    --quality-gate "${quality_gate}"
     --tokenizer "${V1_HF_MODEL}"
     --output-root "${output}"
     --split "${split}"

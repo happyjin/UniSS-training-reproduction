@@ -13,7 +13,7 @@ if tmux has-session -t "${SESSION}" 2>/dev/null; then
   exit 2
 fi
 
-command="cd ${REPO_ROOT} && DATA_RUN_ID=${DATA_RUN_ID} FORMAL_RUN_ID=${FORMAL_RUN_ID} NUM_GPUS=${NUM_GPUS:-8} PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-24} ${SCRIPT_DIR}/run_v1_rollout_formal_sequence.sh"
+command="cd ${REPO_ROOT} && DATA_RUN_ID=${DATA_RUN_ID} FORMAL_RUN_ID=${FORMAL_RUN_ID} NUM_GPUS=${NUM_GPUS:-8} PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-24} QUALITY_AUDIT_WORKERS=${QUALITY_AUDIT_WORKERS:-64} ${SCRIPT_DIR}/run_v1_rollout_formal_sequence.sh"
 tmux new-session -d -s "${SESSION}" "bash -lc '${command}'"
 echo "session=${SESSION}"
 echo "formal_run_id=${FORMAL_RUN_ID}"

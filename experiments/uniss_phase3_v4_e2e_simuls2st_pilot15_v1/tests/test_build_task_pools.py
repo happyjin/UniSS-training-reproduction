@@ -10,6 +10,10 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.tests.test_teacher_req
     _rollout,
     _trajectory,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.stratify_rollouts import (
+    STRATA_SCHEMA,
+    STRATUM_CLEAN,
+)
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training import (
     build_task_pools,
 )
@@ -43,6 +47,35 @@ def _write_jsonl(path: Path, rows: list[str]) -> None:
     write_index(path, offsets)
 
 
+def _stratum_row() -> str:
+    return json.dumps(
+        {
+            "schema_version": STRATA_SCHEMA,
+            "sample_id": "sample-1",
+            "split": "valid",
+            "src_lang": "eng",
+            "source_manifest_record": 0,
+            "rollout_ordinal": 0,
+            "stratum": STRATUM_CLEAN,
+            "reasons": [],
+            "structural": {
+                "malformed_write_events": 0,
+                "early_eos_events": 0,
+                "final_reached_eos": True,
+            },
+            "content": {
+                "metric": "wer",
+                "errors": 0,
+                "reference_units": 2,
+                "error_rate": 0.0,
+                "empty_events": 0,
+                "events": 2,
+            },
+        },
+        separators=(",", ":"),
+    )
+
+
 def test_worker_ranges_are_contiguous_and_cover_every_record_once() -> None:
     assert build_task_pools._ranges(10, 3) == [(0, 3), (3, 6), (6, 10)]
     assert build_task_pools._ranges(3, 8) == [(0, 1), (1, 2), (2, 3)]
@@ -53,8 +86,10 @@ def test_worker_builds_all_five_readable_families_with_exact_loss_counts(
 ) -> None:
     gold = tmp_path / "gold.jsonl"
     rollouts = tmp_path / "rollouts.jsonl"
+    strata = tmp_path / "strata.jsonl"
     _write_jsonl(gold, [_trajectory().to_json()])
     _write_jsonl(rollouts, [_rollout().to_json()])
+    _write_jsonl(strata, [_stratum_row()])
     monkeypatch.setattr(
         build_task_pools.AutoTokenizer,
         "from_pretrained",
@@ -65,6 +100,7 @@ def test_worker_builds_all_five_readable_families_with_exact_loss_counts(
             0,
             gold,
             rollouts,
+            strata,
             0,
             1,
             0,

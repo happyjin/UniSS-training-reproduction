@@ -30,6 +30,12 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.io import (
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.schema import (
     V1Rollout,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.stratify_rollouts import (
+    STRATUM_CLEAN,
+    STRATUM_NOISY,
+    STRATUM_QUARANTINE,
+    validate_stratum_row,
+)
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.packing import (
     PACKED_TASK_SCHEMA,
     pack_task_samples,
@@ -164,6 +170,7 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
         rank,
         gold_value,
         rollout_value,
+        strata_value,
         start,
         stop,
         selection_start,
@@ -175,12 +182,16 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
     rank = int(rank)
     gold = Path(str(gold_value))
     rollouts = Path(str(rollout_value))
+    strata = Path(str(strata_value))
     output_root = Path(str(output_value)) / f"part_{rank:03d}"
     output_root.mkdir(parents=True)
     gold_offsets = load_index(gold)
     rollout_offsets = load_index(rollouts)
-    if gold_offsets is None or rollout_offsets is None:
+    strata_offsets = load_index(strata)
+    if gold_offsets is None or rollout_offsets is None or strata_offsets is None:
         raise ValueError("task pool worker is missing an input offset index")
+    if len(strata_offsets) != len(rollout_offsets):
+        raise ValueError("task pool strata/rollout record counts differ")
     rollout_is_full = len(rollout_offsets) == int(gold_total)
     rollout_base = 0 if rollout_is_full else int(selection_start)
     tokenizer = AutoTokenizer.from_pretrained(
@@ -194,8 +205,27 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
         for family in TASK_FAMILIES
     }
     records = 0
+    strata_counts: Counter[str] = Counter()
+    task_origins: dict[str, Counter[str]] = {
+        stratum: Counter() for stratum in (STRATUM_CLEAN, STRATUM_NOISY, STRATUM_QUARANTINE)
+    }
+    excluded: Counter[str] = Counter()
+
+    def add_sample(stratum: str, sample: E2ETaskSample) -> None:
+        writers[sample.family].add(sample)
+        values = task_origins[stratum]
+        values[f"family:{sample.family}:raw_samples"] += 1
+        values[f"family:{sample.family}:shifted_tokens"] += sample.shifted_length
+        values[f"family:{sample.family}:supervised_tokens"] += sum(
+            value != 0 for value in sample.loss_kinds
+        )
+
     try:
-        with gold.open("rb") as gold_handle, rollouts.open("rb") as rollout_handle:
+        with (
+            gold.open("rb") as gold_handle,
+            rollouts.open("rb") as rollout_handle,
+            strata.open("rb") as strata_handle,
+        ):
             for record_index in range(int(start), int(stop)):
                 gold_handle.seek(int(gold_offsets[record_index]))
                 trajectory = E2ETrajectory.from_mapping(
@@ -208,30 +238,55 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
                 rollout = V1Rollout.from_mapping(
                     json.loads(rollout_handle.readline())
                 )
+                strata_handle.seek(int(strata_offsets[rollout_ordinal]))
+                stratum_row = json.loads(strata_handle.readline())
+                validate_stratum_row(stratum_row)
+                if (
+                    int(stratum_row["rollout_ordinal"]) != rollout_ordinal
+                    or int(stratum_row["source_manifest_record"]) != record_index
+                    or str(stratum_row["sample_id"]) != trajectory.sample_id
+                    or str(stratum_row["sample_id"]) != rollout.sample_id
+                ):
+                    raise ValueError("task pool stratum identity differs from gold/rollout")
+                stratum = str(stratum_row["stratum"])
                 _audit_pair(trajectory, rollout)
                 if trajectory.source_manifest_record != record_index:
                     raise ValueError("gold source manifest record differs from JSONL index")
-                writers[FAMILY_STREAMING_ASR].add(
-                    build_streaming_asr_task(
-                        trajectory, rollout, encode_text=encode
+                strata_counts[stratum] += 1
+                if stratum != STRATUM_QUARANTINE:
+                    add_sample(
+                        stratum,
+                        build_streaming_asr_task(
+                            trajectory, rollout, encode_text=encode
+                        ),
                     )
-                )
+                else:
+                    excluded["quarantine:streaming_asr_event"] += 1
                 for sample in build_incremental_mt_tasks(
                     trajectory, rollout, encode_text=encode
                 ):
-                    writers[FAMILY_INCREMENTAL_MT].add(sample)
-                writers[FAMILY_INTERLEAVED].add(
-                    build_interleaved_task(
-                        trajectory,
-                        encode_text=encode,
-                        rollout=rollout,
+                    if stratum == STRATUM_QUARANTINE and not sample.sequence_id.endswith(
+                        ":gold_source"
+                    ):
+                        excluded["quarantine:incremental_mt_event:v1_source"] += 1
+                        continue
+                    add_sample(stratum, sample)
+                if stratum != STRATUM_QUARANTINE:
+                    add_sample(
+                        stratum,
+                        build_interleaved_task(
+                            trajectory,
+                            encode_text=encode,
+                            rollout=rollout,
+                        ),
                     )
-                )
+                else:
+                    excluded["quarantine:interleaved_e2e_s2st"] += 1
                 quality, performance = build_phase3_replay_tasks(
                     trajectory, encode_text=encode
                 )
-                writers[FAMILY_PHASE3_QUALITY].add(quality)
-                writers[FAMILY_PHASE3_PERFORMANCE].add(performance)
+                add_sample(stratum, quality)
+                add_sample(stratum, performance)
                 records += 1
     except BaseException:
         # On an exception the incomplete part remains intentionally visible;
@@ -253,9 +308,16 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
         "seq_length": int(seq_length),
         "gold": str(gold.resolve()),
         "rollouts": str(rollouts.resolve()),
+        "strata": str(strata.resolve()),
         "tokenizer": str(Path(str(tokenizer_value)).resolve()),
         "runtime_sha256": runtime_sha256(),
         "families": family_reports,
+        "strata_counts": dict(sorted(strata_counts.items())),
+        "task_origins": {
+            name: dict(sorted(values.items()))
+            for name, values in sorted(task_origins.items())
+        },
+        "excluded": dict(sorted(excluded.items())),
     }
     atomic_json(output_root / "PART_COMPLETE.json", report)
     return report
@@ -311,6 +373,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gold", type=Path, required=True)
     parser.add_argument("--rollouts", type=Path, required=True)
+    parser.add_argument("--strata-manifest", type=Path, required=True)
+    parser.add_argument("--quality-gate", type=Path, required=True)
     parser.add_argument("--tokenizer", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--split", required=True)
@@ -330,8 +394,23 @@ def main() -> None:
         raise ValueError("formal task pools require positive workers and seq-length 18000")
     gold_offsets, gold_total = selected_total(args.gold, None)
     rollout_offsets = load_index(args.rollouts)
-    if rollout_offsets is None:
-        raise ValueError("task pool rollout is missing its offset index")
+    strata_offsets = load_index(args.strata_manifest)
+    if rollout_offsets is None or strata_offsets is None:
+        raise ValueError("task pool rollout or strata manifest is missing its offset index")
+    if len(strata_offsets) != len(rollout_offsets):
+        raise ValueError("task pool rollout and strata manifest counts differ")
+    quality_gate = json.loads(args.quality_gate.read_text(encoding="utf-8"))
+    if quality_gate.get("status") != "passed":
+        raise ValueError("rollout quality gate did not pass")
+    manifest = quality_gate.get("manifest")
+    if not isinstance(manifest, dict):
+        raise ValueError("rollout quality gate has no manifest metadata")
+    if Path(str(manifest.get("path"))).resolve() != args.strata_manifest.resolve():
+        raise ValueError("rollout quality gate references a different strata manifest")
+    if int(manifest.get("records", -1)) != len(strata_offsets):
+        raise ValueError("rollout quality gate strata record count differs")
+    if file_sha256(args.strata_manifest) != str(manifest.get("sha256")):
+        raise ValueError("rollout quality strata digest differs from its gate")
     selection_start = int(args.start_index)
     total = gold_total - selection_start
     if args.limit is not None:
@@ -351,6 +430,7 @@ def main() -> None:
             rank,
             str(args.gold.resolve()),
             str(args.rollouts.resolve()),
+            str(args.strata_manifest.resolve()),
             selection_start + start,
             selection_start + stop,
             selection_start,
@@ -365,7 +445,14 @@ def main() -> None:
         parts = list(pool.map(_worker, tasks))
     parts.sort(key=lambda value: int(value["rank"]))
     cursor = selection_start
-    invariant_keys = ("seq_length", "gold", "rollouts", "tokenizer", "runtime_sha256")
+    invariant_keys = (
+        "seq_length",
+        "gold",
+        "rollouts",
+        "strata",
+        "tokenizer",
+        "runtime_sha256",
+    )
     for expected_rank, part in enumerate(parts):
         if part.get("schema_version") != PART_SCHEMA or part.get("status") != "complete":
             raise ValueError("E2E task pool part is incomplete")
@@ -384,6 +471,24 @@ def main() -> None:
         )
         for family in TASK_FAMILIES
     }
+    strata_counts: Counter[str] = Counter()
+    excluded: Counter[str] = Counter()
+    task_origins: dict[str, Counter[str]] = {
+        stratum: Counter() for stratum in (STRATUM_CLEAN, STRATUM_NOISY, STRATUM_QUARANTINE)
+    }
+    for part in parts:
+        strata_counts.update(
+            {str(key): int(value) for key, value in part["strata_counts"].items()}
+        )
+        excluded.update(
+            {str(key): int(value) for key, value in part["excluded"].items()}
+        )
+        for stratum, raw in part["task_origins"].items():
+            task_origins[str(stratum)].update(
+                {str(key): int(value) for key, value in raw.items()}
+            )
+    if sum(strata_counts.values()) != total:
+        raise ValueError("task pool strata counts do not cover the selection")
     report = {
         "schema_version": BUILD_SCHEMA,
         "status": "passed",
@@ -397,9 +502,18 @@ def main() -> None:
         "gold_bytes": args.gold.stat().st_size,
         "rollouts": str(args.rollouts.resolve()),
         "rollout_bytes": args.rollouts.stat().st_size,
+        "strata_manifest": str(args.strata_manifest.resolve()),
+        "strata_bytes": args.strata_manifest.stat().st_size,
+        "quality_gate": str(args.quality_gate.resolve()),
         "tokenizer": str(args.tokenizer.resolve()),
         "runtime_sha256": runtime_sha256(),
         "families": families,
+        "strata_counts": dict(sorted(strata_counts.items())),
+        "task_origins": {
+            name: dict(sorted(values.items()))
+            for name, values in sorted(task_origins.items())
+        },
+        "excluded": dict(sorted(excluded.items())),
     }
     atomic_json(output_root / "BUILD_COMPLETE.json", report)
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
