@@ -248,7 +248,10 @@ def main() -> None:
     total = gold_total - selection_start
     if args.limit is not None:
         total = min(total, max(0, int(args.limit)))
-    if total <= 0 or len(rollout_offsets) < selection_start + total:
+    rollout_is_full = len(rollout_offsets) == gold_total
+    if total <= 0 or (
+        rollout_is_full and len(rollout_offsets) < selection_start + total
+    ) or (not rollout_is_full and len(rollout_offsets) < total):
         raise ValueError("Phase3 teacher selection is empty or outside V1 rollouts")
     local_start, local_stop = partition_bounds(total, args.rank, args.world_size)
     start = selection_start + local_start
@@ -343,7 +346,7 @@ def main() -> None:
         for record_index in range(start, stop):
             gold_handle.seek(int(gold_offsets[record_index]))
             trajectory = E2ETrajectory.from_mapping(json.loads(gold_handle.readline()))
-            rollout_base = 0 if len(rollout_offsets) == gold_total else selection_start
+            rollout_base = 0 if rollout_is_full else selection_start
             rollout_ordinal = record_index - rollout_base
             if not 0 <= rollout_ordinal < len(rollout_offsets):
                 raise ValueError("Phase3 teacher rollout selection does not cover gold record")
