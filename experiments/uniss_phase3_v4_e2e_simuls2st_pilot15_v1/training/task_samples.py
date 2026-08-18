@@ -376,10 +376,14 @@ def build_interleaved_task(
     *,
     encode_text: Callable[[str], Sequence[int]],
     speed: float = 1.0,
+    rollout: V1Rollout | None = None,
+    semantic_stride: int = 8,
 ) -> E2ETaskSample:
     tokens: list[int] = []
     loss_kinds: list[int] = []
     speech_indices: list[int | None] = []
+    semantic_positions: dict[tuple[int, int], int] = {}
+    semantic_boundaries: dict[int, int] = {}
     _append_observed(
         tokens,
         loss_kinds,
@@ -447,6 +451,7 @@ def build_interleaved_task(
                 LOSS_MT,
             )
         if event.target_semantic_delta:
+            fragment_start = len(tokens)
             _append_generated(
                 tokens,
                 loss_kinds,
@@ -462,6 +467,14 @@ def build_interleaved_task(
                 ),
                 LOSS_SEMANTIC,
             )
+            content_start = fragment_start + 5
+            for local_index in range(len(event.target_semantic_delta)):
+                semantic_positions[
+                    (event.event_index, event.target_semantic_start + local_index)
+                ] = content_start + local_index
+            semantic_boundaries[event.event_index] = (
+                content_start + len(event.target_semantic_delta)
+            )
         if not target_write and not event.source_final:
             _append_generated(
                 tokens,
@@ -472,6 +485,7 @@ def build_interleaved_task(
             )
     if source_cursor != trajectory.source_glm_length:
         raise ValueError("interleaved task did not cover source GLM")
+    eos_position = len(tokens)
     _append_generated(
         tokens,
         loss_kinds,
@@ -479,6 +493,67 @@ def build_interleaved_task(
         (c.TOKEN_EOS,),
         LOSS_EOS,
     )
+    bindings: list[TeacherBinding] = []
+    if rollout is not None:
+        requests = build_phase3_requests(
+            trajectory,
+            rollout,
+            encode_text=encode_text,
+            semantic_stride=semantic_stride,
+        )
+        for request_id, request in enumerate(requests):
+            if request.family != "phase3_semantic":
+                continue
+            event = trajectory.events[request.event_index]
+            mapped: list[tuple[int, int]] = []
+            for cache_position, (target_index, label) in enumerate(
+                zip(request.selected_target_indices, request.reference_labels)
+            ):
+                if target_index < event.target_semantic_end:
+                    target_position = semantic_positions[
+                        (event.event_index, target_index)
+                    ]
+                elif target_index == event.target_semantic_end:
+                    target_position = semantic_boundaries[event.event_index]
+                elif event.target_final and target_index == event.target_semantic_end + 1:
+                    target_position = eos_position
+                else:
+                    raise ValueError("semantic teacher target cannot map to interleaved task")
+                if tokens[target_position] != label:
+                    raise ValueError("semantic teacher label differs from interleaved token")
+                mapped.append((cache_position, target_position))
+            run_cache_start, run_target_start = mapped[0]
+            previous_cache, previous_target = mapped[0]
+            for cache_position, target_position in mapped[1:]:
+                if (
+                    cache_position == previous_cache + 1
+                    and target_position == previous_target + 1
+                ):
+                    previous_cache = cache_position
+                    previous_target = target_position
+                    continue
+                bindings.append(
+                    TeacherBinding(
+                        cache_kind="phase3",
+                        request_id=request_id,
+                        cache_position_start=run_cache_start,
+                        cache_position_stop=previous_cache + 1,
+                        target_start=run_target_start,
+                        target_stop=previous_target + 1,
+                    )
+                )
+                run_cache_start, run_target_start = cache_position, target_position
+                previous_cache, previous_target = cache_position, target_position
+            bindings.append(
+                TeacherBinding(
+                    cache_kind="phase3",
+                    request_id=request_id,
+                    cache_position_start=run_cache_start,
+                    cache_position_stop=previous_cache + 1,
+                    target_start=run_target_start,
+                    target_stop=previous_target + 1,
+                )
+            )
     return E2ETaskSample(
         sample_id=trajectory.sample_id,
         sequence_id=f"{trajectory.sample_id}:e2e",
@@ -489,6 +564,7 @@ def build_interleaved_task(
         speech_indices=tuple(speech_indices),
         source_audio=trajectory.source_audio,
         source_glm_length=trajectory.source_glm_length,
+        teacher_bindings=tuple(bindings),
     )
 
 

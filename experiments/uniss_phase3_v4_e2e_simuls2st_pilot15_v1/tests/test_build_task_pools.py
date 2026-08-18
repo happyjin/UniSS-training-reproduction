@@ -91,6 +91,12 @@ def test_worker_builds_all_five_readable_families_with_exact_loss_counts(
                 for kind in value["loss_kinds"][: value["used_tokens"]]:
                     packed_loss_counts[LOSS_KIND_NAMES[int(kind)]] += 1
         assert family_report["counts"]["supervised_tokens"] > 0
+        if family == "interleaved_e2e_s2st":
+            assert any(
+                json.loads(path.read_text(encoding="utf-8").splitlines()[0])[
+                    "teacher_bindings"
+                ]
+            )
         for name, count in packed_loss_counts.items():
             assert family_report["counts"][f"loss:{name}"] == count
 

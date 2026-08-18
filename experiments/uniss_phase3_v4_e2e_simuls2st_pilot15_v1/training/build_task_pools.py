@@ -214,7 +214,11 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
                 ):
                     writers[FAMILY_INCREMENTAL_MT].add(sample)
                 writers[FAMILY_INTERLEAVED].add(
-                    build_interleaved_task(trajectory, encode_text=encode)
+                    build_interleaved_task(
+                        trajectory,
+                        encode_text=encode,
+                        rollout=rollout,
+                    )
                 )
                 quality, performance = build_phase3_replay_tasks(
                     trajectory, encode_text=encode

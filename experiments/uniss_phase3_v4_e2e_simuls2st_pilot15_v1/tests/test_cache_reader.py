@@ -32,6 +32,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.packing impor
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
     build_incremental_mt_tasks,
+    build_interleaved_task,
     build_streaming_asr_task,
 )
 
@@ -76,6 +77,19 @@ def test_phase3_reader_returns_the_exact_incremental_mt_target_slice(
         ),
     )
     assert torch.allclose(posterior.probabilities.sum(dim=1), torch.ones(posterior.positions))
+    interleaved = build_interleaved_task(
+        trajectory, encode_text=_encode, rollout=rollout
+    )
+    packed_interleaved = next(
+        pack_task_samples([interleaved], seq_length=512)
+    )
+    semantic = resolve_teacher_bindings(
+        packed_interleaved["teacher_bindings"],
+        {"phase3": reader},
+        packed_labels=torch.tensor(packed_interleaved["labels"]),
+    )
+    assert semantic
+    assert sum(value["posterior"].positions for value in semantic) == 6
 
 
 def test_v1_reader_and_binding_resolver_preserve_packed_coordinates(

@@ -12,6 +12,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
     FAMILY_PHASE3_QUALITY,
     FAMILY_STREAMING_ASR,
     LOSS_ASR,
+    LOSS_BOUNDARY,
     LOSS_EOS,
     LOSS_MT,
     LOSS_NONE,
@@ -90,6 +91,23 @@ def test_interleaved_task_has_one_causal_audio_path_and_all_three_outputs() -> N
         trajectory.target_semantic_length
     )
     assert sum(value == LOSS_EOS for value in sample.loss_kinds) == 1
+
+
+def test_interleaved_task_binds_future_safe_phase3_semantic_positions() -> None:
+    sample = build_interleaved_task(
+        _trajectory(), encode_text=_encode, rollout=_rollout()
+    )
+    assert sample.teacher_bindings
+    assert all(value.cache_kind == "phase3" for value in sample.teacher_bindings)
+    assert sum(
+        value.target_stop - value.target_start
+        for value in sample.teacher_bindings
+    ) == 6
+    for binding in sample.teacher_bindings:
+        assert all(
+            sample.loss_kinds[position] in {LOSS_SEMANTIC, LOSS_EOS, LOSS_BOUNDARY}
+            for position in range(binding.target_start, binding.target_stop)
+        )
 
 
 def test_phase3_replay_tasks_reconstruct_quality_and_performance() -> None:
