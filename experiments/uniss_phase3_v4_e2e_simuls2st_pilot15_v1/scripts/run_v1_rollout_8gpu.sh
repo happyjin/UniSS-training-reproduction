@@ -12,6 +12,7 @@ if [[ "${DATA_RUN_ID}" == "gold_smoke_v1" ]]; then
 fi
 ROLLOUT_RUN_ID=${ROLLOUT_RUN_ID:-v1_rollout_smoke_$(date -u +%Y%m%dT%H%M%SZ)}
 ROLLOUT_SPLIT=${ROLLOUT_SPLIT:-valid}
+ROLLOUT_START_INDEX=${ROLLOUT_START_INDEX:-0}
 ROLLOUT_LIMIT=${ROLLOUT_LIMIT:-32}
 NUM_GPUS=${NUM_GPUS:-8}
 PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-1}
@@ -109,6 +110,7 @@ for ((worker=0; worker<NUM_WORKERS; worker++)); do
     --v1-hf-sha256 "${V1_HF_SHA}" \
     --worker-index "${worker}" \
     --num-workers "${NUM_WORKERS}" \
+    --start-index "${ROLLOUT_START_INDEX}" \
     --max-event-tokens "${MAX_EVENT_TOKENS}" \
     --max-final-tokens "${MAX_FINAL_TOKENS}" \
     --device cuda:0 \

@@ -52,6 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--v1-hf-sha256", required=True)
     parser.add_argument("--worker-index", type=int, required=True)
     parser.add_argument("--num-workers", type=int, required=True)
+    parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--max-event-tokens", type=int, default=96)
     parser.add_argument("--max-final-tokens", type=int, default=8)
@@ -89,8 +90,18 @@ def main() -> None:
         raise ValueError("V1 HF fingerprint is not a SHA256 digest")
     if args.max_event_tokens <= 0 or args.max_final_tokens <= 0:
         raise ValueError("rollout generation limits must be positive")
-    offsets, total = selected_total(args.input, args.limit)
-    start, stop = partition_bounds(total, args.worker_index, args.num_workers)
+    offsets, available = selected_total(args.input, None)
+    selection_start = int(args.start_index)
+    if not 0 <= selection_start < available:
+        raise ValueError("rollout start index is outside the input")
+    total = available - selection_start
+    if args.limit is not None:
+        total = min(total, max(0, int(args.limit)))
+    if total <= 0:
+        raise ValueError("rollout selection is empty")
+    local_start, local_stop = partition_bounds(total, args.worker_index, args.num_workers)
+    start = selection_start + local_start
+    stop = selection_start + local_stop
     if start == stop:
         raise ValueError("rollout worker partition is empty")
 
@@ -158,6 +169,8 @@ def main() -> None:
         "worker_index": args.worker_index,
         "num_workers": args.num_workers,
         "global_selected_records": total,
+        "selection_start": selection_start,
+        "selection_stop": selection_start + total,
         "global_start": start,
         "global_stop": stop,
         "input": str(args.input.resolve()),

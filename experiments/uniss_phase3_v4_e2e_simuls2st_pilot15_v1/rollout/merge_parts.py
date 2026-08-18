@@ -38,6 +38,8 @@ def load_reports(paths: list[Path]) -> list[dict[str, object]]:
         "schema_version",
         "num_workers",
         "global_selected_records",
+        "selection_start",
+        "selection_stop",
         "input",
         "input_size_bytes",
         "checkpoint",
@@ -57,14 +59,14 @@ def load_reports(paths: list[Path]) -> list[dict[str, object]]:
                 raise ValueError(f"rollout worker invariant differs: {key}")
     if len(reports) != int(reference["num_workers"]):
         raise ValueError("rollout merge does not have every worker report")
-    cursor = 0
+    cursor = int(reference["selection_start"])
     for expected_worker, report in enumerate(reports):
         if int(report["worker_index"]) != expected_worker:
             raise ValueError("rollout worker indices are not contiguous")
         if int(report["global_start"]) != cursor:
             raise ValueError("rollout worker ranges contain a gap or overlap")
         cursor = int(report["global_stop"])
-    if cursor != int(reference["global_selected_records"]):
+    if cursor != int(reference["selection_stop"]):
         raise ValueError("rollout worker ranges do not cover the full selection")
     return reports
 
@@ -109,6 +111,8 @@ def main() -> None:
         "status": "complete",
         "input": first["input"],
         "input_size_bytes": first["input_size_bytes"],
+        "selection_start": first["selection_start"],
+        "selection_stop": first["selection_stop"],
         "checkpoint": first["checkpoint"],
         "v1_checkpoint_sha256": first["v1_checkpoint_sha256"],
         "hf_model": first["hf_model"],

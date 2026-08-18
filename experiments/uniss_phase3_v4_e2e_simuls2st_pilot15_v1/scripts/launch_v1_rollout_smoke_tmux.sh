@@ -13,7 +13,7 @@ if tmux has-session -t "${SESSION}" 2>/dev/null; then
   exit 2
 fi
 
-command="cd ${REPO_ROOT} && DATA_RUN_ID=${DATA_RUN_ID} ROLLOUT_RUN_ID=${ROLLOUT_RUN_ID} ROLLOUT_SPLIT=${ROLLOUT_SPLIT:-valid} ROLLOUT_LIMIT=${ROLLOUT_LIMIT:-32} NUM_GPUS=${NUM_GPUS:-8} PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-1} ${SCRIPT_DIR}/run_v1_rollout_8gpu.sh"
+command="cd ${REPO_ROOT} && DATA_RUN_ID=${DATA_RUN_ID} ROLLOUT_RUN_ID=${ROLLOUT_RUN_ID} ROLLOUT_SPLIT=${ROLLOUT_SPLIT:-valid} ROLLOUT_START_INDEX=${ROLLOUT_START_INDEX:-0} ROLLOUT_LIMIT=${ROLLOUT_LIMIT:-32} NUM_GPUS=${NUM_GPUS:-8} PROCESSES_PER_GPU=${PROCESSES_PER_GPU:-1} ${SCRIPT_DIR}/run_v1_rollout_8gpu.sh"
 tmux new-session -d -s "${SESSION}" "bash -lc '${command}'"
 echo "session=${SESSION}"
 echo "data_run_id=${DATA_RUN_ID}"
