@@ -1,0 +1,115 @@
+{
+  "groups": {
+    "phase3_v4:cmn->eng": {
+      "bp": 0.9355069850316178,
+      "counts": [
+        59,
+        34,
+        14,
+        4
+      ],
+      "precisions": [
+        65.55555555555556,
+        39.53488372093023,
+        17.073170731707318,
+        5.128205128205129
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 20.41805735943801,
+      "sys_len": 90,
+      "tokenizer": "13a",
+      "totals": [
+        90,
+        86,
+        82,
+        78
+      ]
+    },
+    "phase3_v4:eng->cmn": {
+      "bp": 1.0,
+      "counts": [
+        72,
+        58,
+        48,
+        39
+      ],
+      "precisions": [
+        82.75862068965517,
+        69.87951807228916,
+        60.75949367088607,
+        52.0
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 65.38003649698307,
+      "sys_len": 87,
+      "tokenizer": "zh",
+      "totals": [
+        87,
+        83,
+        79,
+        75
+      ]
+    },
+    "streaming_adapter:cmn->eng": {
+      "bp": 0.2614627600423526,
+      "counts": [
+        13,
+        1,
+        0,
+        0
+      ],
+      "precisions": [
+        31.70731707317073,
+        2.7027027027027026,
+        1.4705882352941178,
+        0.78125
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 0.8236061172596398,
+      "sys_len": 41,
+      "tokenizer": "13a",
+      "totals": [
+        41,
+        37,
+        34,
+        32
+      ]
+    },
+    "streaming_adapter:eng->cmn": {
+      "bp": 0.510136509661528,
+      "counts": [
+        36,
+        21,
+        14,
+        9
+      ],
+      "precisions": [
+        69.23076923076923,
+        43.75,
+        31.818181818181817,
+        22.5
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 19.57582975165831,
+      "sys_len": 52,
+      "tokenizer": "zh",
+      "totals": [
+        52,
+        48,
+        44,
+        40
+      ]
+    }
+  },
+  "hypothesis_field": "generated_translation",
+  "input_count": 16,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": true,
+  "scored_count": 16,
+  "skipped": [],
+  "skipped_count": 0
+}

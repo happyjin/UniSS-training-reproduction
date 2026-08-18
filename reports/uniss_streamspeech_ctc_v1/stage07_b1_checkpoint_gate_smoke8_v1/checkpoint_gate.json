@@ -1,0 +1,43 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_checkpoint_gate_v1",
+  "baseline": {
+    "name": "Stage04 B2",
+    "iteration": null,
+    "en_zh_bleu": 15.35135212496258,
+    "zh_en_bleu": 13.787557205722392,
+    "average_bleu": 14.569454665342485
+  },
+  "candidates": [
+    {
+      "name": "B1 iter 600",
+      "iteration": 600,
+      "en_zh_bleu": 22.901255806727765,
+      "zh_en_bleu": 3.962791423154289,
+      "average_bleu": 13.432023614941027,
+      "compute_rtf_source_mean": 0.13090465635635734,
+      "compute_rtf_source_p95": 0.296120134010477,
+      "first_text_token_seconds_mean": 0.3506692651208141,
+      "delta_en_zh_vs_b2": 7.549903681765185,
+      "delta_zh_en_vs_b2": -9.824765782568102,
+      "passes_s3_gate": false
+    }
+  ],
+  "gate": {
+    "en_zh_bleu": 22.95,
+    "zh_en_bleu": 22.46
+  },
+  "selected": {
+    "name": "B1 iter 600",
+    "iteration": 600,
+    "en_zh_bleu": 22.901255806727765,
+    "zh_en_bleu": 3.962791423154289,
+    "average_bleu": 13.432023614941027,
+    "compute_rtf_source_mean": 0.13090465635635734,
+    "compute_rtf_source_p95": 0.296120134010477,
+    "first_text_token_seconds_mean": 0.3506692651208141,
+    "delta_en_zh_vs_b2": 7.549903681765185,
+    "delta_zh_en_vs_b2": -9.824765782568102,
+    "passes_s3_gate": false
+  },
+  "any_candidate_passes": false
+}

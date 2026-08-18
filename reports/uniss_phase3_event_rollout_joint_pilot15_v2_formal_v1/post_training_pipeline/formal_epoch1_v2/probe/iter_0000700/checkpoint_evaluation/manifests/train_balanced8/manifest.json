@@ -1,0 +1,107 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_manifests_v1",
+  "split": "train",
+  "source_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_train_manifest.jsonl",
+  "source_records": 1325243,
+  "selection": "deterministic_direction_balanced_without_replacement",
+  "samples_per_direction": 2,
+  "seed": 20260812,
+  "selected_records": 4,
+  "selected_unique_sample_ids": 4,
+  "directions": {
+    "cmn->eng": 2,
+    "eng->cmn": 2
+  },
+  "num_shards": 8,
+  "partition": "round_robin_over_selected_source_indices",
+  "parts": [
+    {
+      "shard_index": 0,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-000.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-000.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "923ee1318ada856d33892dccf10c76f58cd6d4fcc222cf8ee180036e1b753486",
+      "first_source_index": 426702,
+      "last_source_index": 426702
+    },
+    {
+      "shard_index": 1,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-001.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-001.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "d9d2345e08508668e592248cf985cd1c2426b90e45a8eab0003576da328a0f99",
+      "first_source_index": 619934,
+      "last_source_index": 619934
+    },
+    {
+      "shard_index": 2,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-002.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-002.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "be181cc80aaba69fb937e446e835a363f20506a9883ba1ad86b96ea2cc709053",
+      "first_source_index": 742800,
+      "last_source_index": 742800
+    },
+    {
+      "shard_index": 3,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-003.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-003.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "23e82bfd77fc085793aadfd9e201cb09798893ef3d46658fc85cdd84c8d00174",
+      "first_source_index": 853364,
+      "last_source_index": 853364
+    },
+    {
+      "shard_index": 4,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-004.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-004.sample_ids.json",
+      "records": 0,
+      "directions": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "first_source_index": null,
+      "last_source_index": null
+    },
+    {
+      "shard_index": 5,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-005.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-005.sample_ids.json",
+      "records": 0,
+      "directions": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "first_source_index": null,
+      "last_source_index": null
+    },
+    {
+      "shard_index": 6,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-006.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-006.sample_ids.json",
+      "records": 0,
+      "directions": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "first_source_index": null,
+      "last_source_index": null
+    },
+    {
+      "shard_index": 7,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-007.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/train_balanced8/part-007.sample_ids.json",
+      "records": 0,
+      "directions": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "first_source_index": null,
+      "last_source_index": null
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_manifests_v1",
+  "split": "valid",
+  "source_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_valid_manifest.jsonl",
+  "source_records": 13469,
+  "selection": "deterministic_direction_balanced_without_replacement",
+  "samples_per_direction": 2,
+  "seed": 20260812,
+  "selected_records": 4,
+  "selected_unique_sample_ids": 4,
+  "directions": {
+    "cmn->eng": 2,
+    "eng->cmn": 2
+  },
+  "num_shards": 1,
+  "partition": "round_robin_over_selected_source_indices",
+  "parts": [
+    {
+      "shard_index": 0,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/parity_balanced1/part-000.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v2/probe/iter_0000700/checkpoint_evaluation/manifests/parity_balanced1/part-000.sample_ids.json",
+      "records": 4,
+      "directions": {
+        "cmn->eng": 2,
+        "eng->cmn": 2
+      },
+      "sha256": "f0e8585436dbc25b685789a3445f1fb933db3b87d8ed2080c8b0579a49eca521",
+      "first_source_index": 6613,
+      "last_source_index": 12329
+    }
+  ]
+}

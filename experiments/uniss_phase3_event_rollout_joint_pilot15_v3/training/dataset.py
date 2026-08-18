@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 from typing import Mapping, Sequence
 
 import torch
@@ -26,6 +27,9 @@ from training import constants_uniss as c
 from training.megatron_uniss_dataset import (
     boundaries_to_padded_cu_seqlens,
     packed_json_to_megatron_item,
+)
+from experiments.uniss_phase3_event_rollout_joint_pilot15_v1.training.dataset import (
+    MultiFileIndexedDataset,
 )
 
 
@@ -192,6 +196,29 @@ class IndexedEventRolloutV3TrajectoryDataset(IndexedDenseTrajectoryDataset):
         result["annotations"] = annotations
         result["oracle_sessions"] = oracle_sessions_from_pack(canonical)
         return result
+
+
+class MultiFileIndexedEventRolloutV3TrajectoryDataset(
+    MultiFileIndexedDataset[dict[str, object]]
+):
+    """One strict global pack namespace over all immutable fixed15 parts."""
+
+    def __init__(
+        self,
+        manifest: str | Path,
+        *,
+        seq_length: int,
+        expected_split: str | None = None,
+    ) -> None:
+        if int(seq_length) != 18_000:
+            raise ValueError("formal pilot15 v3 requires seq_length=18000")
+        super().__init__(
+            manifest,
+            factory=lambda path: IndexedEventRolloutV3TrajectoryDataset(
+                path, seq_length=seq_length
+            ),
+            expected_split=expected_split,
+        )
 
 
 def collate_event_rollout_v3(
@@ -391,6 +418,7 @@ def replace_trajectory_batch_with_recovery(
 
 __all__ = [
     "IndexedEventRolloutV3TrajectoryDataset",
+    "MultiFileIndexedEventRolloutV3TrajectoryDataset",
     "canonical_runtime_pack",
     "collate_event_rollout_v3",
     "replace_trajectory_batch_with_recovery",

@@ -1,0 +1,51 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_b1_text_probe_v1",
+  "checkpoint": {
+    "schema_version": "uniss_streamspeech_stage06_megatron_residual_v1",
+    "checkpoint_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage06_b1_megatron_v2/iter_0000600",
+    "iteration": 600,
+    "residual_scale": 0.05000000074505806,
+    "weight_norm": 1.0228227376937866,
+    "bias_norm": 0.030963977798819542
+  },
+  "direction_id": 1,
+  "direction_offset": 1,
+  "peak_memory_mib": 1785.00439453125,
+  "samples": [
+    {
+      "id": "HQ-Conversations_0000000916",
+      "direction": "cmn->eng",
+      "translation_ref": "It's about earning the salary with your own skills, right? She has neither experience nor skills.",
+      "generated_translation": "Can this technology take down this salary, right? And does it have experience and technology?",
+      "generated_token_ids": [
+        6713,
+        419,
+        5440,
+        1896,
+        1495,
+        419,
+        16107,
+        11,
+        1290,
+        30,
+        1597,
+        1558,
+        432,
+        614,
+        3139,
+        323,
+        5440,
+        30,
+        180390
+      ],
+      "generated_end_content": true,
+      "source_seconds": 5.52,
+      "speech_tokens": 69,
+      "bridge_seconds": 0.2245534640387632,
+      "qwen_first_token_seconds": 0.056224734988063574,
+      "generation_seconds": 0.4073988579912111,
+      "total_seconds": 0.6319523220299743,
+      "compute_rtf_source": 0.11448411630977796
+    }
+  ]
+}

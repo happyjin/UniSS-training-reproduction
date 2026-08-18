@@ -1,0 +1,55 @@
+{
+  "counts": {
+    "deadline_eligible_sessions": 1499990,
+    "deadline_forced": 1422975,
+    "exact_800_sessions": 1499990,
+    "natural_write": 786294,
+    "natural_write_events": 786294,
+    "records": 7499875,
+    "safe_positive": 27646440,
+    "safe_total": 159426425,
+    "sessions": 1500000
+  },
+  "deadline_coverage": 1.0,
+  "deadline_forced_fraction": 0.1897331622193703,
+  "directions": {
+    "cmn->eng": {
+      "natural_write": 406353,
+      "natural_write_fraction": 0.11893302628829258,
+      "records": 3416654,
+      "safe_positive": 14571380,
+      "safe_positive_fraction": 0.17130144048046198,
+      "safe_total": 85062799
+    },
+    "eng->cmn": {
+      "natural_write": 379941,
+      "natural_write_fraction": 0.0930493353164083,
+      "records": 4083221,
+      "safe_positive": 13075060,
+      "safe_positive_fraction": 0.17582601472391893,
+      "safe_total": 74363626
+    }
+  },
+  "gates": {
+    "deadline_forced_at_most_35pct": true,
+    "each_direction_write_at_least_3pct": true,
+    "exact_800_coverage_100pct": true,
+    "hard_failures_zero": true,
+    "natural_write_event_fraction_5_to_25pct": true,
+    "natural_write_per_session_0p25_to_2": true,
+    "safe_positive_nonzero_each_direction": true
+  },
+  "hard_failures": {
+    "deadline_mask_violations": 0,
+    "forced_not_exact_800": 0,
+    "future_leakage": 0,
+    "semantic_continuity_violations": 0,
+    "time_monotonic_violations": 0
+  },
+  "natural_write_fraction": 0.10484094734912248,
+  "natural_writes_per_session": 0.524196,
+  "passed": true,
+  "safe_positive_fraction": 0.1734119045823175,
+  "schema_version": "uniss_true_subsecond_pilot15_data_audit_v2",
+  "shard_count": 15
+}

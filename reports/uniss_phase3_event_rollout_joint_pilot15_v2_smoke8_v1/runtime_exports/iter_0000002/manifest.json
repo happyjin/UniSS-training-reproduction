@@ -1,0 +1,31 @@
+{
+  "schema_version": "uniss_true_subsecond_runtime_export_v2",
+  "source_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_smoke8_v1/iter_0000002",
+  "base_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "selected_iteration": 2,
+  "rank": 32,
+  "alpha": 64.0,
+  "scale": 2.0,
+  "qkv_layout": "megatron_query_group_interleaved_to_hf_qkv",
+  "lora_input_semantics": "megatron_fused_layernorm_prenorm_v1",
+  "layernorm_epsilon": 1e-05,
+  "native_lora_tensor_count": 144,
+  "hf_lora_tensor_count": 264,
+  "objective_tensor_count": 76,
+  "frontend_supervision": {
+    "chunk_ms": 160,
+    "right_context_ms": 80,
+    "input": "WhisperVQ codebook IDs"
+  },
+  "files": {
+    "adapter_model.safetensors": {
+      "bytes": 21952376,
+      "sha256": "0d7aca2a84e5a1c5095e19c2e6c8a83bef575262769c8228b082e2a72f717e45"
+    },
+    "objective_model.safetensors": {
+      "bytes": 106030824,
+      "sha256": "620259dfc8c60b31d1589341d131b03513af0fbf55dc3590bc4993ed21c97e00"
+    }
+  },
+  "checkpoint_metadata_sha256": "8e41444aac68511cacb127f1d2a7744b2368043357613e0206ce64e2c7ab78df"
+}

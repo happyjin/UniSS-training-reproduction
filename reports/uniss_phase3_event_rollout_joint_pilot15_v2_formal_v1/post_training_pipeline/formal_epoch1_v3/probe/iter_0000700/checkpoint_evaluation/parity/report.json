@@ -1,0 +1,68 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_parity_v1",
+  "reference_mode": "fused_cached",
+  "modes": [
+    "fused_cached",
+    "fused_uncached",
+    "unfused_cached",
+    "unfused_uncached"
+  ],
+  "samples": 4,
+  "passed": false,
+  "failure_count": 4,
+  "failures": [
+    {
+      "mode": "fused_uncached",
+      "sample_id": "emilia_zh_0005104679",
+      "reason": "semantic_output_mismatch",
+      "checks": {
+        "error": true,
+        "generated_text": false,
+        "semantic_trace": false,
+        "natural_writes": false,
+        "natural_eos": true,
+        "forced_writes": true
+      }
+    },
+    {
+      "mode": "unfused_cached",
+      "sample_id": "emilia_zh_0005104679",
+      "reason": "semantic_output_mismatch",
+      "checks": {
+        "error": true,
+        "generated_text": false,
+        "semantic_trace": false,
+        "natural_writes": false,
+        "natural_eos": true,
+        "forced_writes": true
+      }
+    },
+    {
+      "mode": "unfused_cached",
+      "sample_id": "emilia_zh_0006443473",
+      "reason": "semantic_output_mismatch",
+      "checks": {
+        "error": true,
+        "generated_text": true,
+        "semantic_trace": false,
+        "natural_writes": true,
+        "natural_eos": true,
+        "forced_writes": true
+      }
+    },
+    {
+      "mode": "unfused_uncached",
+      "sample_id": "emilia_zh_0005104679",
+      "reason": "semantic_output_mismatch",
+      "checks": {
+        "error": true,
+        "generated_text": false,
+        "semantic_trace": false,
+        "natural_writes": false,
+        "natural_eos": true,
+        "forced_writes": true
+      }
+    }
+  ],
+  "comparison_scope": "Exact actions, committed text IDs, semantic IDs and EOS; wall-clock timing is intentionally excluded because cache/fusion changes compute latency."
+}

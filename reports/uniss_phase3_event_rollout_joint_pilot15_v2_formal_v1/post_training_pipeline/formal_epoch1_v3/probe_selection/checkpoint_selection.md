@@ -1,0 +1,16 @@
+# Fixed15 final checkpoint selection
+
+- Status: `no_checkpoint_passed`
+- Selected iteration: `none`
+- Eligible candidates: 0/3
+- Any missing or non-finite hard-gate evidence is a rejection.
+
+| iteration | pass | useful recall | useful p50/p95 ms | natural WRITE valid | all-WAIT valid | collapse valid | Speech BLEU | Text BLEU | parity | rejection reasons |
+|---:|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|---|
+| 700 | no | 0.0 | None/None | 0.375 | 0.625 | 0.625 | 0.0 | 0.0 | no | train:natural_write_rate_below_threshold; train:all_wait_rate_above_threshold; train:mostly_waits_until_source_end; train:playable_pcm_rate_below_threshold; train:finite_pcm_rate_below_threshold; train:semantic_or_audio_collapse; train:natural_eos_rate_below_threshold; valid:natural_write_rate_below_threshold; valid:all_wait_rate_above_threshold; valid:mostly_waits_until_source_end; valid:playable_pcm_rate_below_threshold; valid:finite_pcm_rate_below_threshold; valid:semantic_or_audio_collapse; valid:natural_eos_rate_below_threshold; missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50; valid:useful_audio_recall_below_threshold; valid:first_useful_audio_p50_not_subsecond; runtime_parity_failed_or_missing; phase3_retention:text_bleu_ratio_below_threshold; phase3_retention:speech_bleu_ratio_below_threshold |
+| 650 | no | 0.0 | None/None | 0.5 | 0.5 | 0.5 | 0.0 | 0.0 | no | train:natural_write_rate_below_threshold; train:all_wait_rate_above_threshold; train:mostly_waits_until_source_end; train:playable_pcm_rate_below_threshold; train:finite_pcm_rate_below_threshold; train:semantic_or_audio_collapse; train:natural_eos_rate_below_threshold; valid:playable_pcm_rate_below_threshold; valid:finite_pcm_rate_below_threshold; valid:semantic_or_audio_collapse; valid:natural_eos_rate_below_threshold; missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50; valid:useful_audio_recall_below_threshold; valid:first_useful_audio_p50_not_subsecond; runtime_parity_failed_or_missing; phase3_retention:text_bleu_ratio_below_threshold; phase3_retention:speech_bleu_ratio_below_threshold; phase3_retention:slc_0_4_ratio_below_threshold |
+| 600 | no | 0.0 | None/None | 0.25 | 0.75 | 0.75 | 0.0 | 0.0 | no | train:natural_write_rate_below_threshold; train:all_wait_rate_above_threshold; train:mostly_waits_until_source_end; train:playable_pcm_rate_below_threshold; train:finite_pcm_rate_below_threshold; train:semantic_or_audio_collapse; train:natural_eos_rate_below_threshold; valid:natural_write_rate_below_threshold; valid:all_wait_rate_above_threshold; valid:mostly_waits_until_source_end; valid:playable_pcm_rate_below_threshold; valid:finite_pcm_rate_below_threshold; valid:semantic_or_audio_collapse; valid:natural_eos_rate_below_threshold; missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50; valid:useful_audio_recall_below_threshold; valid:first_useful_audio_p50_not_subsecond; runtime_parity_failed_or_missing; phase3_retention:text_bleu_ratio_below_threshold; phase3_retention:speech_bleu_ratio_below_threshold |
+
+## Selection rule
+
+Reject missing evidence and every mechanism, useful-audio, parity, collapse or Phase3-retention failure. Among passing checkpoints, minimize useful-audio p50, then maximize useful-audio recall, Speech BLEU and Text BLEU.

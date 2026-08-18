@@ -1,0 +1,115 @@
+{
+  "groups": {
+    "phase3_v4:cmn->eng": {
+      "bp": 1.0,
+      "counts": [
+        7,
+        3,
+        1,
+        0
+      ],
+      "precisions": [
+        2.5925925925925926,
+        1.1278195488721805,
+        0.3816793893129771,
+        0.19230769230769232
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 0.6806397594687075,
+      "sys_len": 270,
+      "tokenizer": "13a",
+      "totals": [
+        270,
+        266,
+        262,
+        260
+      ]
+    },
+    "phase3_v4:eng->cmn": {
+      "bp": 0.3594228192744988,
+      "counts": [
+        37,
+        32,
+        28,
+        25
+      ],
+      "precisions": [
+        86.04651162790698,
+        82.05128205128206,
+        77.77777777777777,
+        75.75757575757575
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 28.86560777938389,
+      "sys_len": 43,
+      "tokenizer": "zh",
+      "totals": [
+        43,
+        39,
+        36,
+        33
+      ]
+    },
+    "streaming_adapter:cmn->eng": {
+      "bp": 0.009589765686147814,
+      "counts": [
+        5,
+        0,
+        0,
+        0
+      ],
+      "precisions": [
+        29.41176470588235,
+        3.8461538461538463,
+        2.5,
+        1.5625
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 0.04396782052570008,
+      "sys_len": 17,
+      "tokenizer": "13a",
+      "totals": [
+        17,
+        13,
+        10,
+        8
+      ]
+    },
+    "streaming_adapter:eng->cmn": {
+      "bp": 0.08374322559219596,
+      "counts": [
+        16,
+        7,
+        2,
+        0
+      ],
+      "precisions": [
+        64.0,
+        33.333333333333336,
+        11.764705882352942,
+        3.8461538461538463
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 1.4761017539380559,
+      "sys_len": 25,
+      "tokenizer": "zh",
+      "totals": [
+        25,
+        21,
+        17,
+        13
+      ]
+    }
+  },
+  "hypothesis_field": "asr_text",
+  "input_count": 16,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": false,
+  "scored_count": 16,
+  "skipped": [],
+  "skipped_count": 0
+}

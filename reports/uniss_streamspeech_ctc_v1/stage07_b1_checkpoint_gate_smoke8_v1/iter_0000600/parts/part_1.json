@@ -1,0 +1,55 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_b1_text_probe_v1",
+  "checkpoint": {
+    "schema_version": "uniss_streamspeech_stage06_megatron_residual_v1",
+    "checkpoint_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage06_b1_megatron_v2/iter_0000600",
+    "iteration": 600,
+    "residual_scale": 0.05000000074505806,
+    "weight_norm": 1.0228227376937866,
+    "bias_norm": 0.030963977798819542
+  },
+  "direction_id": 0,
+  "direction_offset": 1,
+  "peak_memory_mib": 1786.2802734375,
+  "samples": [
+    {
+      "id": "NCSSD_R_EN_0000000338",
+      "direction": "eng->cmn",
+      "translation_ref": "他们提出了一项全面的计划，以改善基础设施、开发先进技术并增强公共交通。",
+      "generated_translation": "他们已经证明了在第一阶段的全面改进，我们拥有丰富的知识，并且有公开的交通。",
+      "generated_token_ids": [
+        99650,
+        99461,
+        104022,
+        34187,
+        18493,
+        99363,
+        100385,
+        9370,
+        100011,
+        105023,
+        3837,
+        97639,
+        103926,
+        104653,
+        100032,
+        90395,
+        100136,
+        18830,
+        100433,
+        9370,
+        99735,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "source_seconds": 10.36,
+      "speech_tokens": 130,
+      "bridge_seconds": 0.22641532198758796,
+      "qwen_first_token_seconds": 0.06353435397613794,
+      "generation_seconds": 0.5329118649824522,
+      "total_seconds": 0.7593271869700402,
+      "compute_rtf_source": 0.07329413001641315
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000100",
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000100_hf",
+  "samples": [
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_events": 1,
+        "error_rate": 1.0,
+        "errors": 10,
+        "events": [
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "expected_stop": 151645,
+            "expected_tokens": 1,
+            "generated_tokens": 6,
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_tokens": [
+          180396,
+          180373,
+          180386,
+          3036,
+          180390,
+          180396,
+          180373,
+          180386,
+          437,
+          180390,
+          180396,
+          180373,
+          180386,
+          437,
+          180390,
+          180396,
+          180373,
+          180386,
+          437,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          180396,
+          180373,
+          180386,
+          1782,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 10,
+        "text": "Andandandandthethethethethethethe",
+        "write_structure_rate": 1.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 41,
+        "target_tokens": 53,
+        "token_accuracy": 0.7735849022865295
+      },
+      "chunk_ms": 1280,
+      "ctc": {
+        "blank_ratio": 1.0,
+        "collapsed_nonblank_tokens": 0,
+        "input_frames": 227,
+        "raw_nonblank_frames": 0,
+        "text": ""
+      },
+      "language": "eng",
+      "reference": "It's too late now Let's just get this over with",
+      "sample_id": "NCSSD_R_EN_0000000261",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000100_NCSSD_R_EN_0000000261.flac",
+      "task": "streaming_asr"
+    },
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_events": 0,
+        "error_rate": 1.0,
+        "errors": 7,
+        "events": [
+          {
+            "expected_stop": 151645,
+            "expected_tokens": 10,
+            "generated_tokens": 14,
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_tokens": [
+          4792,
+          594,
+          830,
+          1128,
+          432,
+          572,
+          304,
+          429,
+          1142,
+          304,
+          70708,
+          13,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 7,
+        "text": "",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 7,
+        "target_tokens": 10,
+        "token_accuracy": 0.699999988079071
+      },
+      "chunk_ms": 1280,
+      "ctc": {
+        "blank_ratio": 1.0,
+        "collapsed_nonblank_tokens": 0,
+        "input_frames": 163,
+        "raw_nonblank_frames": 0,
+        "text": ""
+      },
+      "language": "eng",
+      "reference": "That's true What about the negative impact",
+      "sample_id": "NCSSD_R_EN_0000000402",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000158_NCSSD_R_EN_0000000402.flac",
+      "task": "causal_full_asr"
+    }
+  ],
+  "schema_version": "uniss_quality_first_stage_a_checkpoint_diagnosis_v1",
+  "summary": {
+    "ar_all_events_reached_stop_rate": 1.0,
+    "ar_empty_collapse": false,
+    "ar_teacher_token_accuracy": 0.7619047619047619,
+    "ctc_blank_collapse": true,
+    "samples": 2
+  },
+  "valid_packs": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/megatron/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/valid_packs_18k_v1.jsonl"
+}

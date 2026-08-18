@@ -1,0 +1,67 @@
+{
+  "checks": {
+    "all_cache_lengths_exact": true,
+    "all_prompt_logits_cosine_ge_0p9999": false,
+    "all_prompt_top1_exact": false
+  },
+  "chunk_sizes": [
+    1,
+    3,
+    17,
+    8,
+    31
+  ],
+  "device": "cuda:0",
+  "dtype": "torch.bfloat16",
+  "model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "modes": {
+    "direct_s2st": {
+      "cache_sequence_length": 145,
+      "canonical_sequence_length": 145,
+      "matching_top1": 139,
+      "maximum_absolute_logit_error": 0.5625,
+      "mean_logits_cosine": 0.9998953938484192,
+      "minimum_logits_cosine": 0.9989687204360962,
+      "positions": 145,
+      "top1_exact": false,
+      "top1_match_ratio": 0.9586206896551724
+    },
+    "performance": {
+      "cache_sequence_length": 145,
+      "canonical_sequence_length": 145,
+      "matching_top1": 140,
+      "maximum_absolute_logit_error": 0.5,
+      "mean_logits_cosine": 0.999915599822998,
+      "minimum_logits_cosine": 0.9993389844894409,
+      "positions": 145,
+      "top1_exact": false,
+      "top1_match_ratio": 0.9655172413793104
+    },
+    "quality": {
+      "cache_sequence_length": 145,
+      "canonical_sequence_length": 145,
+      "matching_top1": 141,
+      "maximum_absolute_logit_error": 0.625,
+      "mean_logits_cosine": 0.9999237060546875,
+      "minimum_logits_cosine": 0.9993135929107666,
+      "positions": 145,
+      "top1_exact": false,
+      "top1_match_ratio": 0.9724137931034482
+    },
+    "tts": {
+      "cache_sequence_length": 66,
+      "canonical_sequence_length": 66,
+      "matching_top1": 66,
+      "maximum_absolute_logit_error": 0.3125,
+      "mean_logits_cosine": 0.999987781047821,
+      "minimum_logits_cosine": 0.9998950958251953,
+      "positions": 66,
+      "top1_exact": true,
+      "top1_match_ratio": 1.0
+    }
+  },
+  "passed": false,
+  "sample_id": "emilia_zh_0005281608",
+  "schema_version": "uniss_stage00_qwen_hf_cache_parity_v1",
+  "validation_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_fixed_validation_v1/pilot15_text_256.jsonl"
+}

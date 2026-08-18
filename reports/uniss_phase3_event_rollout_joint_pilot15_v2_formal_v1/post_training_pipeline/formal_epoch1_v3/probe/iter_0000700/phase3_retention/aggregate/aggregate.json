@@ -1,0 +1,33 @@
+{
+  "groups": {
+    "phase3_v4": {
+      "eos_rate": 0.375,
+      "finite_audio_rate": 1.0,
+      "generated_text_rate": 1.0,
+      "mean_generation_seconds": 22.35927759046899,
+      "non_silent_audio_rate": 0.75,
+      "playable_audio_rate": 1.0,
+      "samples": 8,
+      "semantic_output_rate": 1.0
+    },
+    "streaming_adapter": {
+      "eos_rate": 0.75,
+      "finite_audio_rate": 1.0,
+      "generated_text_rate": 1.0,
+      "mean_generation_seconds": 15.151550836773822,
+      "non_silent_audio_rate": 0.875,
+      "playable_audio_rate": 1.0,
+      "samples": 8,
+      "semantic_output_rate": 1.0
+    }
+  },
+  "paired_complete": true,
+  "result_rows": 16,
+  "samples": 8,
+  "schema_version": "uniss_event_rollout_fixed15_phase3_retention_aggregate_v1",
+  "selection_note": "These paired offline Phase3 prompts measure replay retention. Streaming exact-runtime latency and quality are evaluated separately and must not be inferred from this report.",
+  "systems": {
+    "phase3_v4": 8,
+    "streaming_adapter": 8
+  }
+}

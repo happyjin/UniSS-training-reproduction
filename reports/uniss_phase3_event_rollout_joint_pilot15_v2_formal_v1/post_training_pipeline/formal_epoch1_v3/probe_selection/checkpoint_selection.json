@@ -1,0 +1,772 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_final_checkpoint_selection_v1",
+  "thresholds": {
+    "useful_audio_p50_ms": 1000.0,
+    "minimum_useful_audio_recall": 0.5,
+    "minimum_natural_write_rate": 0.5,
+    "maximum_post_source_first_write_rate": 0.5,
+    "maximum_premature_first_write_rate": 0.5,
+    "minimum_playable_pcm_rate": 0.8,
+    "minimum_finite_pcm_rate": 0.95,
+    "maximum_collapse_rate": 0.2,
+    "minimum_natural_eos_rate": 0.5,
+    "minimum_retention_output_rate": 0.8,
+    "minimum_retention_text_bleu_ratio": 0.5,
+    "minimum_retention_speech_bleu_ratio": 0.5,
+    "minimum_retention_slc_ratio": 0.5,
+    "maximum_retention_utmos_drop": 1.0,
+    "maximum_retention_autopcp_drop": 1.0
+  },
+  "candidate_count": 3,
+  "eligible_count": 0,
+  "selection_status": "no_checkpoint_passed",
+  "selected_iteration": null,
+  "selected_evaluation_root": null,
+  "selected_retention_root": null,
+  "selection_order": [],
+  "selection_rule": "Reject missing evidence and every mechanism, useful-audio, parity, collapse or Phase3-retention failure. Among passing checkpoints, minimize useful-audio p50, then maximize useful-audio recall, Speech BLEU and Text BLEU.",
+  "candidates": [
+    {
+      "iteration": 700,
+      "evaluation_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/checkpoint_evaluation",
+      "retention_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention",
+      "passed": false,
+      "rejection_reasons": [
+        "train:natural_write_rate_below_threshold",
+        "train:all_wait_rate_above_threshold",
+        "train:mostly_waits_until_source_end",
+        "train:playable_pcm_rate_below_threshold",
+        "train:finite_pcm_rate_below_threshold",
+        "train:semantic_or_audio_collapse",
+        "train:natural_eos_rate_below_threshold",
+        "valid:natural_write_rate_below_threshold",
+        "valid:all_wait_rate_above_threshold",
+        "valid:mostly_waits_until_source_end",
+        "valid:playable_pcm_rate_below_threshold",
+        "valid:finite_pcm_rate_below_threshold",
+        "valid:semantic_or_audio_collapse",
+        "valid:natural_eos_rate_below_threshold",
+        "missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50",
+        "valid:useful_audio_recall_below_threshold",
+        "valid:first_useful_audio_p50_not_subsecond",
+        "runtime_parity_failed_or_missing",
+        "phase3_retention:text_bleu_ratio_below_threshold",
+        "phase3_retention:speech_bleu_ratio_below_threshold"
+      ],
+      "runtime": {
+        "train": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.375,
+          "all_wait_rate": 0.625,
+          "post_source_eos_first_write_rate": 0.625,
+          "first_write_premature_rate": 0.375,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.375,
+          "finite_pcm_rate": 0.375,
+          "severe_semantic_collapse_rate": 0.625,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.5,
+          "read_write_ratio": 44.0,
+          "first_write_source_ms": {
+            "count": 3,
+            "p50": 160.0,
+            "p90": 288.0,
+            "p95": 304.0,
+            "mean": 213.33333333333334
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 3,
+            "p50": 160.0,
+            "p90": 288.0,
+            "p95": 304.0,
+            "mean": 213.33333333333334
+          },
+          "first_write_wall_ms": {
+            "count": 3,
+            "p50": 648.6370690073818,
+            "p90": 705.6154953893274,
+            "p95": 712.7377986870706,
+            "mean": 657.4054502757887
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 3,
+            "p50": 648.6370690073818,
+            "p90": 705.6154953893274,
+            "p95": 712.7377986870706,
+            "mean": 657.4054502757887
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.576749606732539,
+            "p90": 1.288334378305764,
+            "p95": 1.3562458746843813,
+            "mean": 0.6674852211623605
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 0.0,
+            "p90": 2178.132621664554,
+            "p95": 2248.184184008278,
+            "mean": 815.9107857279014
+          },
+          "inter_write_source_gap_ms": {
+            "count": 1,
+            "p50": 320.0,
+            "p90": 320.0,
+            "p95": 320.0
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 1,
+            "p50": 755.9530399739742,
+            "p90": 755.9530399739742,
+            "p95": 755.9530399739742
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        },
+        "valid": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.375,
+          "all_wait_rate": 0.625,
+          "post_source_eos_first_write_rate": 0.625,
+          "first_write_premature_rate": 0.375,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.375,
+          "finite_pcm_rate": 0.375,
+          "severe_semantic_collapse_rate": 0.625,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.375,
+          "read_write_ratio": 110.0,
+          "first_write_source_ms": {
+            "count": 3,
+            "p50": 160.0,
+            "p90": 160.0,
+            "p95": 160.0,
+            "mean": 160.0
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 3,
+            "p50": 160.0,
+            "p90": 160.0,
+            "p95": 160.0,
+            "mean": 160.0
+          },
+          "first_write_wall_ms": {
+            "count": 3,
+            "p50": 570.5665718670934,
+            "p90": 680.6179504748434,
+            "p95": 694.374372800812,
+            "mean": 612.9424149853488
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 3,
+            "p50": 570.5665718670934,
+            "p90": 680.6179504748434,
+            "p95": 694.374372800812,
+            "mean": 612.9424149853488
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.4292660824768779,
+            "p90": 0.7615241611809445,
+            "p95": 0.8234993145569086,
+            "mean": 0.457277926374328
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 0.0,
+            "p90": 2273.889859383926,
+            "p95": 2285.940484716557,
+            "mean": 840.7906744198408
+          },
+          "inter_write_source_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        }
+      },
+      "useful_audio": {
+        "recall": 0.0,
+        "p50_ms": null,
+        "p90_ms": null,
+        "p95_ms": null
+      },
+      "quality": {
+        "text_bleu": 0.0,
+        "speech_bleu": 0.0,
+        "slc_0_4": 0.0,
+        "utmos": 1.794534683227539,
+        "autopcp": -1.1789701742430527,
+        "speaker_similarity": 0.633362869421641
+      },
+      "runtime_parity": {
+        "passed": false,
+        "failure_count": 4
+      },
+      "phase3_retention": {
+        "aggregate": {
+          "groups": {
+            "phase3_v4": {
+              "eos_rate": 0.375,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 22.35927759046899,
+              "non_silent_audio_rate": 0.75,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            },
+            "streaming_adapter": {
+              "eos_rate": 0.75,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 15.151550836773822,
+              "non_silent_audio_rate": 0.875,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            }
+          },
+          "paired_complete": true,
+          "result_rows": 16,
+          "samples": 8,
+          "schema_version": "uniss_event_rollout_fixed15_phase3_retention_aggregate_v1",
+          "selection_note": "These paired offline Phase3 prompts measure replay retention. Streaming exact-runtime latency and quality are evaluated separately and must not be inferred from this report.",
+          "systems": {
+            "phase3_v4": 8,
+            "streaming_adapter": 8
+          }
+        },
+        "phase3_v4_quality": {
+          "text_bleu": 42.89904692821054,
+          "speech_bleu": 14.773123769426299,
+          "slc_0_4": 0.375,
+          "utmos": 3.4339662194252014,
+          "autopcp": 0.744743847521022
+        },
+        "streaming_adapter_quality": {
+          "text_bleu": 10.199717934458976,
+          "speech_bleu": 1.6289473587290162,
+          "slc_0_4": 0.25,
+          "utmos": 3.5816805362701416,
+          "autopcp": 1.5304792039096355
+        },
+        "quality_ratios": {
+          "text_bleu": 0.23776094493492375,
+          "speech_bleu": 0.11026424635392294,
+          "slc_0_4": 0.6666666666666666
+        }
+      }
+    },
+    {
+      "iteration": 650,
+      "evaluation_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation",
+      "retention_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/phase3_retention",
+      "passed": false,
+      "rejection_reasons": [
+        "train:natural_write_rate_below_threshold",
+        "train:all_wait_rate_above_threshold",
+        "train:mostly_waits_until_source_end",
+        "train:playable_pcm_rate_below_threshold",
+        "train:finite_pcm_rate_below_threshold",
+        "train:semantic_or_audio_collapse",
+        "train:natural_eos_rate_below_threshold",
+        "valid:playable_pcm_rate_below_threshold",
+        "valid:finite_pcm_rate_below_threshold",
+        "valid:semantic_or_audio_collapse",
+        "valid:natural_eos_rate_below_threshold",
+        "missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50",
+        "valid:useful_audio_recall_below_threshold",
+        "valid:first_useful_audio_p50_not_subsecond",
+        "runtime_parity_failed_or_missing",
+        "phase3_retention:text_bleu_ratio_below_threshold",
+        "phase3_retention:speech_bleu_ratio_below_threshold",
+        "phase3_retention:slc_0_4_ratio_below_threshold"
+      ],
+      "runtime": {
+        "train": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.25,
+          "all_wait_rate": 0.75,
+          "post_source_eos_first_write_rate": 0.75,
+          "first_write_premature_rate": 0.25,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.25,
+          "finite_pcm_rate": 0.25,
+          "severe_semantic_collapse_rate": 0.75,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.375,
+          "read_write_ratio": 41.333333333333336,
+          "first_write_source_ms": {
+            "count": 2,
+            "p50": 240.0,
+            "p90": 304.0,
+            "p95": 312.0,
+            "mean": 240.0
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 2,
+            "p50": 240.0,
+            "p90": 304.0,
+            "p95": 312.0,
+            "mean": 240.0
+          },
+          "first_write_wall_ms": {
+            "count": 2,
+            "p50": 670.7830213801935,
+            "p90": 721.4333233619109,
+            "p95": 727.7646111096255,
+            "mean": 670.7830213801935
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 2,
+            "p50": 670.7830213801935,
+            "p90": 721.4333233619109,
+            "p95": 727.7646111096255,
+            "mean": 670.7830213801935
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.4222861713758973,
+            "p90": 1.0595878984790637,
+            "p95": 1.2382382296984105,
+            "mean": 0.5509132056690103
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 0.0,
+            "p90": 2178.9183510392904,
+            "p95": 2208.994841478765,
+            "mean": 549.0262292511761
+          },
+          "inter_write_source_gap_ms": {
+            "count": 1,
+            "p50": 640.0,
+            "p90": 640.0,
+            "p95": 640.0
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 1,
+            "p50": 1142.1583199407905,
+            "p90": 1142.1583199407905,
+            "p95": 1142.1583199407905
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        },
+        "valid": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.5,
+          "all_wait_rate": 0.5,
+          "post_source_eos_first_write_rate": 0.5,
+          "first_write_premature_rate": 0.5,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.5,
+          "finite_pcm_rate": 0.5,
+          "severe_semantic_collapse_rate": 0.5,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.625,
+          "read_write_ratio": 67.0,
+          "first_write_source_ms": {
+            "count": 4,
+            "p50": 160.0,
+            "p90": 272.0,
+            "p95": 295.99999999999994,
+            "mean": 200.0
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 4,
+            "p50": 160.0,
+            "p90": 272.0,
+            "p95": 295.99999999999994,
+            "mean": 200.0
+          },
+          "first_write_wall_ms": {
+            "count": 4,
+            "p50": 614.4543290231377,
+            "p90": 707.0258328383788,
+            "p95": 720.0382663668133,
+            "mean": 625.9008922381327
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 4,
+            "p50": 614.4543290231377,
+            "p90": 707.0258328383788,
+            "p95": 720.0382663668133,
+            "mean": 625.9008922381327
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.4940451988684041,
+            "p90": 1.0003904885468364,
+            "p95": 1.1728409800723711,
+            "mean": 0.5727401382935363
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 1042.8307490656152,
+            "p90": 2250.8252011286095,
+            "p95": 2257.5998143316247,
+            "mean": 1087.7960628294386
+          },
+          "inter_write_source_gap_ms": {
+            "count": 1,
+            "p50": 160.0,
+            "p90": 160.0,
+            "p95": 160.0
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 1,
+            "p50": 393.90213298611343,
+            "p90": 393.90213298611343,
+            "p95": 393.90213298611343
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        }
+      },
+      "useful_audio": {
+        "recall": 0.0,
+        "p50_ms": null,
+        "p90_ms": null,
+        "p95_ms": null
+      },
+      "quality": {
+        "text_bleu": 0.0,
+        "speech_bleu": 0.0,
+        "slc_0_4": 0.0,
+        "utmos": 1.7667004466056824,
+        "autopcp": -0.2885793726891279,
+        "speaker_similarity": 0.6373720616102219
+      },
+      "runtime_parity": {
+        "passed": false,
+        "failure_count": 2
+      },
+      "phase3_retention": {
+        "aggregate": {
+          "groups": {
+            "phase3_v4": {
+              "eos_rate": 0.375,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 23.39459592491039,
+              "non_silent_audio_rate": 0.75,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            },
+            "streaming_adapter": {
+              "eos_rate": 0.625,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 21.107929248624714,
+              "non_silent_audio_rate": 0.875,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            }
+          },
+          "paired_complete": true,
+          "result_rows": 16,
+          "samples": 8,
+          "schema_version": "uniss_event_rollout_fixed15_phase3_retention_aggregate_v1",
+          "selection_note": "These paired offline Phase3 prompts measure replay retention. Streaming exact-runtime latency and quality are evaluated separately and must not be inferred from this report.",
+          "systems": {
+            "phase3_v4": 8,
+            "streaming_adapter": 8
+          }
+        },
+        "phase3_v4_quality": {
+          "text_bleu": 42.89904692821054,
+          "speech_bleu": 14.773123769426299,
+          "slc_0_4": 0.375,
+          "utmos": 3.4339662194252014,
+          "autopcp": 0.744743847521022
+        },
+        "streaming_adapter_quality": {
+          "text_bleu": 10.589257592403552,
+          "speech_bleu": 0.892208751862793,
+          "slc_0_4": 0.0,
+          "utmos": 3.7471757531166077,
+          "autopcp": 1.7241517305374146
+        },
+        "quality_ratios": {
+          "text_bleu": 0.24684132517265844,
+          "speech_bleu": 0.06039404839410217,
+          "slc_0_4": 0.0
+        }
+      }
+    },
+    {
+      "iteration": 600,
+      "evaluation_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000600/checkpoint_evaluation",
+      "retention_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000600/phase3_retention",
+      "passed": false,
+      "rejection_reasons": [
+        "train:natural_write_rate_below_threshold",
+        "train:all_wait_rate_above_threshold",
+        "train:mostly_waits_until_source_end",
+        "train:playable_pcm_rate_below_threshold",
+        "train:finite_pcm_rate_below_threshold",
+        "train:semantic_or_audio_collapse",
+        "train:natural_eos_rate_below_threshold",
+        "valid:natural_write_rate_below_threshold",
+        "valid:all_wait_rate_above_threshold",
+        "valid:mostly_waits_until_source_end",
+        "valid:playable_pcm_rate_below_threshold",
+        "valid:finite_pcm_rate_below_threshold",
+        "valid:semantic_or_audio_collapse",
+        "valid:natural_eos_rate_below_threshold",
+        "missing_or_nonfinite:valid.first_useful_audio_wall_ms.p50",
+        "valid:useful_audio_recall_below_threshold",
+        "valid:first_useful_audio_p50_not_subsecond",
+        "runtime_parity_failed_or_missing",
+        "phase3_retention:text_bleu_ratio_below_threshold",
+        "phase3_retention:speech_bleu_ratio_below_threshold"
+      ],
+      "runtime": {
+        "train": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.375,
+          "all_wait_rate": 0.625,
+          "post_source_eos_first_write_rate": 0.625,
+          "first_write_premature_rate": 0.375,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.375,
+          "finite_pcm_rate": 0.375,
+          "severe_semantic_collapse_rate": 0.625,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.375,
+          "read_write_ratio": 56.0,
+          "first_write_source_ms": {
+            "count": 3,
+            "p50": 320.0,
+            "p90": 704.0,
+            "p95": 751.9999999999999,
+            "mean": 426.6666666666667
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 3,
+            "p50": 320.0,
+            "p90": 704.0,
+            "p95": 751.9999999999999,
+            "mean": 426.6666666666667
+          },
+          "first_write_wall_ms": {
+            "count": 3,
+            "p50": 809.2536518163979,
+            "p90": 1159.7331408374012,
+            "p95": 1203.5430769650266,
+            "mean": 911.9703619802991
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 3,
+            "p50": 809.2536518163979,
+            "p90": 1159.7331408374012,
+            "p95": 1203.5430769650266,
+            "mean": 911.9703619802991
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.3813057346017862,
+            "p90": 1.6170166562941506,
+            "p95": 1.8576717472475024,
+            "mean": 0.739505203586982
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 0.0,
+            "p90": 2436.4029241474345,
+            "p95": 2503.1174156083725,
+            "mean": 888.9202886004932
+          },
+          "inter_write_source_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        },
+        "valid": {
+          "samples": 8,
+          "quality_pass_rate": 0.0,
+          "natural_write_sample_rate": 0.25,
+          "all_wait_rate": 0.75,
+          "post_source_eos_first_write_rate": 0.75,
+          "first_write_premature_rate": 0.25,
+          "granular_premature_write_rate": "not_evaluable",
+          "forced_writes": 0,
+          "committed_revision_violations": 0,
+          "playable_pcm_rate": 0.25,
+          "finite_pcm_rate": 0.25,
+          "severe_semantic_collapse_rate": 0.75,
+          "natural_eos_rate": 0.0,
+          "natural_writes_per_sample": 0.25,
+          "read_write_ratio": 104.0,
+          "first_write_source_ms": {
+            "count": 2,
+            "p50": 160.0,
+            "p90": 160.0,
+            "p95": 160.0,
+            "mean": 160.0
+          },
+          "first_arbitrary_pcm_source_ms": {
+            "count": 2,
+            "p50": 160.0,
+            "p90": 160.0,
+            "p95": 160.0,
+            "mean": 160.0
+          },
+          "first_write_wall_ms": {
+            "count": 2,
+            "p50": 719.8995335167274,
+            "p90": 797.735650758259,
+            "p95": 807.4651654134504,
+            "mean": 719.8995335167274
+          },
+          "first_arbitrary_pcm_wall_ms": {
+            "count": 2,
+            "p50": 719.8995335167274,
+            "p90": 797.735650758259,
+            "p95": 807.4651654134504,
+            "mean": 719.8995335167274
+          },
+          "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+          "rtf": {
+            "count": 8,
+            "p50": 0.23313028464288288,
+            "p90": 0.7394000620187142,
+            "p95": 0.8030042697817872,
+            "mean": 0.3468977886918855
+          },
+          "maximum_compute_backlog_ms": {
+            "count": 8,
+            "p50": 0.0,
+            "p90": 2177.0666486024857,
+            "p95": 2189.2543889256194,
+            "mean": 546.0077679110691
+          },
+          "inter_write_source_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "inter_write_wall_gap_ms": {
+            "count": 0,
+            "p50": null,
+            "p90": null,
+            "p95": null
+          },
+          "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+        }
+      },
+      "useful_audio": {
+        "recall": 0.0,
+        "p50_ms": null,
+        "p90_ms": null,
+        "p95_ms": null
+      },
+      "quality": {
+        "text_bleu": 0.0,
+        "speech_bleu": 0.0,
+        "slc_0_4": 0.0,
+        "utmos": 1.6143789291381836,
+        "autopcp": -1.2640293836593628,
+        "speaker_similarity": 0.5953953266143799
+      },
+      "runtime_parity": {
+        "passed": false,
+        "failure_count": 3
+      },
+      "phase3_retention": {
+        "aggregate": {
+          "groups": {
+            "phase3_v4": {
+              "eos_rate": 0.375,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 21.7506785360747,
+              "non_silent_audio_rate": 0.75,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            },
+            "streaming_adapter": {
+              "eos_rate": 0.625,
+              "finite_audio_rate": 1.0,
+              "generated_text_rate": 1.0,
+              "mean_generation_seconds": 22.505217204452492,
+              "non_silent_audio_rate": 0.875,
+              "playable_audio_rate": 1.0,
+              "samples": 8,
+              "semantic_output_rate": 1.0
+            }
+          },
+          "paired_complete": true,
+          "result_rows": 16,
+          "samples": 8,
+          "schema_version": "uniss_event_rollout_fixed15_phase3_retention_aggregate_v1",
+          "selection_note": "These paired offline Phase3 prompts measure replay retention. Streaming exact-runtime latency and quality are evaluated separately and must not be inferred from this report.",
+          "systems": {
+            "phase3_v4": 8,
+            "streaming_adapter": 8
+          }
+        },
+        "phase3_v4_quality": {
+          "text_bleu": 42.89904692821054,
+          "speech_bleu": 14.773123769426299,
+          "slc_0_4": 0.375,
+          "utmos": 3.4339662194252014,
+          "autopcp": 0.744743847521022
+        },
+        "streaming_adapter_quality": {
+          "text_bleu": 11.798313368296943,
+          "speech_bleu": 0.760034787231878,
+          "slc_0_4": 0.25,
+          "utmos": 3.6050007343292236,
+          "autopcp": 1.8761780858039856
+        },
+        "quality_ratios": {
+          "text_bleu": 0.27502506962545914,
+          "speech_bleu": 0.05144712784474243,
+          "slc_0_4": 0.6666666666666666
+        }
+      }
+    }
+  ]
+}

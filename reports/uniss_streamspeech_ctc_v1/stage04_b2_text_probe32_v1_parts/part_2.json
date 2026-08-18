@@ -1,0 +1,112 @@
+{
+  "schema_version": "uniss_streamspeech_stage04_b2_text_probe_v1",
+  "bridge_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage04_b2_phase3_endpoint_v1/best.pt",
+  "bridge_step": 1600,
+  "bridge_validation_phase3_nll": 3.932969632582803,
+  "direction_id": 0,
+  "direction_offset": 8,
+  "samples": [
+    {
+      "id": "NCSSD_R_EN_0000003171",
+      "direction": "eng->cmn",
+      "translation_ref": "不客气。如果你还需要更多建议，请告诉我。祝你的健身之旅一切顺利。",
+      "generated_translation": "不客气。请告诉我你最近在吃什么。祝你命运顺利。",
+      "generated_token_ids": [
+        16530,
+        112221,
+        1773,
+        14880,
+        106525,
+        56568,
+        104044,
+        18493,
+        114725,
+        1773,
+        100549,
+        56568,
+        102606,
+        102088,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "generation_seconds": 0.7983606569468975
+    },
+    {
+      "id": "NCSSD_R_EN_0000003439",
+      "direction": "eng->cmn",
+      "translation_ref": "技术确实让我们的生活变得更加轻松，不是吗？",
+      "generated_translation": "承认自己已经让我们的生活变得不那么容易同步。",
+      "generated_token_ids": [
+        104953,
+        99283,
+        99461,
+        99258,
+        103952,
+        99424,
+        101197,
+        16530,
+        100624,
+        100047,
+        104738,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "generation_seconds": 0.3205056010046974
+    },
+    {
+      "id": "NCSSD_R_EN_0000004099",
+      "direction": "eng->cmn",
+      "translation_ref": "确实如此。这是一个增进感情和创造美好回忆的好机会。",
+      "generated_translation": "现在，这样的举动是否足够大，能够打破并创造持久的记忆。",
+      "generated_token_ids": [
+        99601,
+        3837,
+        101893,
+        109039,
+        64471,
+        101447,
+        26288,
+        3837,
+        100006,
+        102759,
+        62926,
+        100211,
+        108418,
+        109938,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "generation_seconds": 0.4037366929696873
+    },
+    {
+      "id": "NCSSD_R_EN_0000004257",
+      "direction": "eng->cmn",
+      "translation_ref": "你还记得我们以前每个周末都去电影院吗？那些都是美好的旧时光。",
+      "generated_translation": "你还记得我们曾经去电影院的周末吗？那些日子真是美好的时光。",
+      "generated_token_ids": [
+        108340,
+        101360,
+        97639,
+        103997,
+        85336,
+        115712,
+        9370,
+        105648,
+        101037,
+        11319,
+        103928,
+        102534,
+        101228,
+        106369,
+        105129,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "generation_seconds": 0.4098925070138648
+    }
+  ]
+}

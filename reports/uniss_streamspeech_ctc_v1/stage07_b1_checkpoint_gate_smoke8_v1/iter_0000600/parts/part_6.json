@@ -1,0 +1,45 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_b1_text_probe_v1",
+  "checkpoint": {
+    "schema_version": "uniss_streamspeech_stage06_megatron_residual_v1",
+    "checkpoint_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage06_b1_megatron_v2/iter_0000600",
+    "iteration": 600,
+    "residual_scale": 0.05000000074505806,
+    "weight_norm": 1.0228227376937866,
+    "bias_norm": 0.030963977798819542
+  },
+  "direction_id": 1,
+  "direction_offset": 2,
+  "peak_memory_mib": 1784.58447265625,
+  "samples": [
+    {
+      "id": "HQ-Conversations_0000001616",
+      "direction": "cmn->eng",
+      "translation_ref": "Oh, then cut it, cut it a little smaller.",
+      "generated_translation": "Oh, that's simple, just a little bit smaller.",
+      "generated_token_ids": [
+        11908,
+        11,
+        429,
+        594,
+        4285,
+        11,
+        1101,
+        264,
+        2632,
+        2699,
+        9155,
+        13,
+        180390
+      ],
+      "generated_end_content": true,
+      "source_seconds": 3.92,
+      "speech_tokens": 49,
+      "bridge_seconds": 0.21724527498008683,
+      "qwen_first_token_seconds": 0.06115052499808371,
+      "generation_seconds": 0.3200333289569244,
+      "total_seconds": 0.5372786039370112,
+      "compute_rtf_source": 0.13706086835127837
+    }
+  ]
+}

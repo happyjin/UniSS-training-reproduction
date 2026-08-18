@@ -1,0 +1,30 @@
+{
+  "coverage": {
+    "complete": true,
+    "expected": 4,
+    "observed": 4
+  },
+  "definition": "Cosine similarity between WavLM speaker-verification x-vectors for each generated translation and the single target-audio reference whose BiCodec global speaker tokens condition every runtime sample. Range [-1,1], higher is more similar.",
+  "groups": {
+    "exact_runtime:cmn->eng": {
+      "max": 0.7290050983428955,
+      "mean": 0.7290050983428955,
+      "min": 0.7290050983428955,
+      "sample_count": 1,
+      "std": 0.0
+    },
+    "exact_runtime:eng->cmn": {
+      "max": 0.723105788230896,
+      "mean": 0.6068277160326639,
+      "min": 0.521702766418457,
+      "sample_count": 3,
+      "std": 0.08512219484892257
+    }
+  },
+  "merge": {
+    "duplicates_skipped": 0,
+    "written": 4
+  },
+  "schema_version": "uniss_event_rollout_fixed_speaker_wavlm_similarity_v1",
+  "scored_count": 4
+}

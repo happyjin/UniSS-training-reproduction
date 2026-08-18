@@ -94,6 +94,7 @@ class Stage09OnlineRuntime:
             lagging_k=lagging_k,
         )
         self.target_processor = target_processor
+        self.source_processor = source_processor
         self.audio = np.zeros(0, dtype=np.float32)
         self.next_frame = 0
         self.encoder_state = None
@@ -113,6 +114,10 @@ class Stage09OnlineRuntime:
     @property
     def committed_translation(self) -> str:
         return self.target_processor.decode(self.policy.committed_target).strip()
+
+    @property
+    def source_transcription(self) -> str:
+        return self.source_processor.decode(self.policy.source.stable_tokens()).strip()
 
     def _valid_projected_frames(
         self, sample_length: torch.Tensor, projected_frames: int, final: bool

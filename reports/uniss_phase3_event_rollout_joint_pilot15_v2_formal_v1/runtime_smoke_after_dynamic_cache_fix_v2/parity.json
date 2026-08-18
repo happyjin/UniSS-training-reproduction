@@ -1,0 +1,13 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_parity_v1",
+  "reference_mode": "fused_cached",
+  "modes": [
+    "fused_cached",
+    "fused_uncached"
+  ],
+  "samples": 1,
+  "passed": true,
+  "failure_count": 0,
+  "failures": [],
+  "comparison_scope": "Exact actions, committed text IDs, semantic IDs and EOS; wall-clock timing is intentionally excluded because cache/fusion changes compute latency."
+}

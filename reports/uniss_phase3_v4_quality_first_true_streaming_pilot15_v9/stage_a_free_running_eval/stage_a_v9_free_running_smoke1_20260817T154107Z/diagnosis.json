@@ -1,0 +1,460 @@
+{
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v9/stage_a_formal/stage_a_v9_bridgefreeze_formal8_20260817T130814Z/iter_0000381",
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_quality_first_true_streaming_pilot15_v9_stage_a_v9_bridgefreeze_formal8_20260817T130814Z_iter_0000381_hf",
+  "max_acoustics_per_pack": 2,
+  "num_workers": 1,
+  "parts": [
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v9/stage_a_free_running_eval/stage_a_v9_free_running_smoke1_20260817T154107Z/parts/part_00.json"
+  ],
+  "samples": [
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_chunks": [
+          "That's true. What's about the mentality and that's"
+        ],
+        "content_events": 1,
+        "error_rate": 0.7142857142857143,
+        "errors": 5,
+        "events": [
+          {
+            "content_text": "That's true. What's about the mentality and that's",
+            "content_tokens": [
+              4792,
+              594,
+              830,
+              13,
+              3555,
+              594,
+              911,
+              279,
+              48295,
+              323,
+              429,
+              594
+            ],
+            "expected_stop": 151645,
+            "expected_tokens": 10,
+            "generated_tokens": 14,
+            "predicted_tokens": [
+              4792,
+              594,
+              830,
+              13,
+              3555,
+              594,
+              911,
+              279,
+              48295,
+              323,
+              429,
+              594,
+              180390,
+              151645
+            ],
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [
+          4792,
+          594,
+          830,
+          13,
+          3555,
+          594,
+          911,
+          279,
+          48295,
+          323,
+          429,
+          594
+        ],
+        "generated_tokens": [
+          4792,
+          594,
+          830,
+          13,
+          3555,
+          594,
+          911,
+          279,
+          48295,
+          323,
+          429,
+          594,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 7,
+        "text": "That's true. What's about the mentality and that's",
+        "write_structure_rate": 0.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 6,
+        "target_tokens": 10,
+        "token_accuracy": 0.6000000238418579
+      },
+      "chunk_ms": 160,
+      "ctc": {
+        "blank_ratio": 0.19631901840490798,
+        "collapsed_nonblank_tokens": 8,
+        "input_frames": 163,
+        "raw_nonblank_frames": 131,
+        "text": "        "
+      },
+      "language": "eng",
+      "reference": "That's true What about the negative impact",
+      "sample_id": "NCSSD_R_EN_0000000402",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000158_NCSSD_R_EN_0000000402.flac",
+      "task": "causal_full_asr"
+    },
+    {
+      "ar_free_running": {
+        "all_events_reached_stop": true,
+        "content_chunks": [
+          "It's",
+          "two",
+          "laid",
+          "now",
+          "let",
+          "just",
+          "yeah",
+          "this",
+          "over",
+          "way",
+          "is"
+        ],
+        "content_events": 11,
+        "error_rate": 0.6,
+        "errors": 6,
+        "events": [
+          {
+            "content_text": "It's",
+            "content_tokens": [
+              2132,
+              594
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 6,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              2132,
+              594,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "two",
+            "content_tokens": [
+              19789
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              19789,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "laid",
+            "content_tokens": [
+              75,
+              3779
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 6,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              75,
+              3779,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "now",
+            "content_tokens": [
+              3328
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              3328,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "let",
+            "content_tokens": [
+              1149
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 6,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              1149,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "just",
+            "content_tokens": [
+              4250
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              4250,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "yeah",
+            "content_tokens": [
+              75415
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              75415,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "this",
+            "content_tokens": [
+              574
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              574,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "over",
+            "content_tokens": [
+              1975
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              1975,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "way",
+            "content_tokens": [
+              3117
+            ],
+            "expected_stop": 180390,
+            "expected_tokens": 5,
+            "generated_tokens": 5,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              3117,
+              180390
+            ],
+            "reached_stop": true,
+            "write_structure": true
+          },
+          {
+            "content_text": "is",
+            "content_tokens": [
+              285
+            ],
+            "expected_stop": 151645,
+            "expected_tokens": 1,
+            "generated_tokens": 6,
+            "predicted_tokens": [
+              180396,
+              180373,
+              180386,
+              285,
+              180390,
+              151645
+            ],
+            "reached_stop": true,
+            "write_structure": null
+          }
+        ],
+        "generated_content_tokens": [
+          2132,
+          594,
+          19789,
+          75,
+          3779,
+          3328,
+          1149,
+          4250,
+          75415,
+          574,
+          1975,
+          3117,
+          285
+        ],
+        "generated_tokens": [
+          180396,
+          180373,
+          180386,
+          2132,
+          594,
+          180390,
+          180396,
+          180373,
+          180386,
+          19789,
+          180390,
+          180396,
+          180373,
+          180386,
+          75,
+          3779,
+          180390,
+          180396,
+          180373,
+          180386,
+          3328,
+          180390,
+          180396,
+          180373,
+          180386,
+          1149,
+          180390,
+          180396,
+          180373,
+          180386,
+          4250,
+          180390,
+          180396,
+          180373,
+          180386,
+          75415,
+          180390,
+          180396,
+          180373,
+          180386,
+          574,
+          180390,
+          180396,
+          180373,
+          180386,
+          1975,
+          180390,
+          180396,
+          180373,
+          180386,
+          3117,
+          180390,
+          180396,
+          180373,
+          180386,
+          285,
+          180390,
+          151645
+        ],
+        "metric": "wer",
+        "reference_units": 10,
+        "text": "It's two laid now let just yeah this over way is",
+        "write_structure_rate": 1.0
+      },
+      "ar_teacher_forced": {
+        "correct_tokens": 45,
+        "target_tokens": 53,
+        "token_accuracy": 0.849056601524353
+      },
+      "chunk_ms": 160,
+      "ctc": {
+        "blank_ratio": 0.2511013215859031,
+        "collapsed_nonblank_tokens": 18,
+        "input_frames": 227,
+        "raw_nonblank_frames": 170,
+        "text": "                  "
+      },
+      "language": "eng",
+      "reference": "It's too late now Let's just get this over with",
+      "sample_id": "NCSSD_R_EN_0000000261",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000100_NCSSD_R_EN_0000000261.flac",
+      "task": "streaming_asr"
+    }
+  ],
+  "schema_version": "uniss_quality_first_stage_a_checkpoint_diagnosis_v1",
+  "summary": {
+    "ar_all_events_reached_stop_rate": 1.0,
+    "ar_empty_collapse": false,
+    "ar_error_rate_by_task": {
+      "causal_full_asr": 0.7142857142857143,
+      "streaming_asr": 0.6
+    },
+    "ar_teacher_token_accuracy": 0.8095238095238095,
+    "ctc_blank_collapse": false,
+    "ctc_blank_ratio": 0.2282051282051282,
+    "evaluations_by_chunk_ms": {
+      "160": 2
+    },
+    "evaluations_by_task": {
+      "causal_full_asr": 1,
+      "streaming_asr": 1
+    },
+    "samples": 2,
+    "unique_samples": 2
+  },
+  "valid_packs": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/megatron/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/valid_packs_18k_v1.jsonl",
+  "worker_index": "merged"
+}

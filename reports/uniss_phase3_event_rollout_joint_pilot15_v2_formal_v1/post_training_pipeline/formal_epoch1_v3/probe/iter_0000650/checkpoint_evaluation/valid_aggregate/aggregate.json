@@ -1,0 +1,287 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_aggregate_v1",
+  "samples": 8,
+  "unique_sample_ids": 8,
+  "directions": {
+    "cmn->eng": 4,
+    "eng->cmn": 4
+  },
+  "coverage": {
+    "expected_samples": 8,
+    "observed_samples": 8,
+    "complete": true
+  },
+  "provenance": [
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-000.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-001.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-002.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-003.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-004.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-005.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-006.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    },
+    {
+      "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/iter_0000650",
+      "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/checkpoint_evaluation/manifests/valid_full8/part-007.jsonl",
+      "schema_version": "uniss_event_rollout_fixed15_pcm_evaluation_v2"
+    }
+  ],
+  "groups": {
+    "all": {
+      "samples": 8,
+      "quality_pass_rate": 0.0,
+      "natural_write_sample_rate": 0.5,
+      "all_wait_rate": 0.5,
+      "post_source_eos_first_write_rate": 0.5,
+      "first_write_premature_rate": 0.5,
+      "granular_premature_write_rate": "not_evaluable",
+      "forced_writes": 0,
+      "committed_revision_violations": 0,
+      "playable_pcm_rate": 0.5,
+      "finite_pcm_rate": 0.5,
+      "severe_semantic_collapse_rate": 0.5,
+      "natural_eos_rate": 0.0,
+      "natural_writes_per_sample": 0.625,
+      "read_write_ratio": 67.0,
+      "first_write_source_ms": {
+        "count": 4,
+        "p50": 160.0,
+        "p90": 272.0,
+        "p95": 295.99999999999994,
+        "mean": 200.0
+      },
+      "first_arbitrary_pcm_source_ms": {
+        "count": 4,
+        "p50": 160.0,
+        "p90": 272.0,
+        "p95": 295.99999999999994,
+        "mean": 200.0
+      },
+      "first_write_wall_ms": {
+        "count": 4,
+        "p50": 614.4543290231377,
+        "p90": 707.0258328383788,
+        "p95": 720.0382663668133,
+        "mean": 625.9008922381327
+      },
+      "first_arbitrary_pcm_wall_ms": {
+        "count": 4,
+        "p50": 614.4543290231377,
+        "p90": 707.0258328383788,
+        "p95": 720.0382663668133,
+        "mean": 625.9008922381327
+      },
+      "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+      "rtf": {
+        "count": 8,
+        "p50": 0.4940451988684041,
+        "p90": 1.0003904885468364,
+        "p95": 1.1728409800723711,
+        "mean": 0.5727401382935363
+      },
+      "maximum_compute_backlog_ms": {
+        "count": 8,
+        "p50": 1042.8307490656152,
+        "p90": 2250.8252011286095,
+        "p95": 2257.5998143316247,
+        "mean": 1087.7960628294386
+      },
+      "inter_write_source_gap_ms": {
+        "count": 1,
+        "p50": 160.0,
+        "p90": 160.0,
+        "p95": 160.0
+      },
+      "inter_write_wall_gap_ms": {
+        "count": 1,
+        "p50": 393.90213298611343,
+        "p90": 393.90213298611343,
+        "p95": 393.90213298611343
+      },
+      "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+    },
+    "cmn->eng": {
+      "samples": 4,
+      "quality_pass_rate": 0.0,
+      "natural_write_sample_rate": 0.25,
+      "all_wait_rate": 0.75,
+      "post_source_eos_first_write_rate": 0.75,
+      "first_write_premature_rate": 0.25,
+      "granular_premature_write_rate": "not_evaluable",
+      "forced_writes": 0,
+      "committed_revision_violations": 0,
+      "playable_pcm_rate": 0.25,
+      "finite_pcm_rate": 0.25,
+      "severe_semantic_collapse_rate": 0.75,
+      "natural_eos_rate": 0.0,
+      "natural_writes_per_sample": 0.5,
+      "read_write_ratio": 39.0,
+      "first_write_source_ms": {
+        "count": 1,
+        "p50": 160.0,
+        "p90": 160.0,
+        "p95": 160.0,
+        "mean": 160.0
+      },
+      "first_arbitrary_pcm_source_ms": {
+        "count": 1,
+        "p50": 160.0,
+        "p90": 160.0,
+        "p95": 160.0,
+        "mean": 160.0
+      },
+      "first_write_wall_ms": {
+        "count": 1,
+        "p50": 582.6075150072575,
+        "p90": 582.6075150072575,
+        "p95": 582.6075150072575,
+        "mean": 582.6075150072575
+      },
+      "first_arbitrary_pcm_wall_ms": {
+        "count": 1,
+        "p50": 582.6075150072575,
+        "p90": 582.6075150072575,
+        "p95": 582.6075150072575,
+        "mean": 582.6075150072575
+      },
+      "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+      "rtf": {
+        "count": 4,
+        "p50": 0.22862323854984792,
+        "p90": 0.6525239672423568,
+        "p95": 0.7386956439586114,
+        "mean": 0.34899086387215666
+      },
+      "maximum_compute_backlog_ms": {
+        "count": 4,
+        "p50": 0.0,
+        "p90": 1459.9630486918618,
+        "p95": 1772.8122734115452,
+        "mean": 521.4153745328076
+      },
+      "inter_write_source_gap_ms": {
+        "count": 1,
+        "p50": 160.0,
+        "p90": 160.0,
+        "p95": 160.0
+      },
+      "inter_write_wall_gap_ms": {
+        "count": 1,
+        "p50": 393.90213298611343,
+        "p90": 393.90213298611343,
+        "p95": 393.90213298611343
+      },
+      "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+    },
+    "eng->cmn": {
+      "samples": 4,
+      "quality_pass_rate": 0.0,
+      "natural_write_sample_rate": 0.75,
+      "all_wait_rate": 0.25,
+      "post_source_eos_first_write_rate": 0.25,
+      "first_write_premature_rate": 0.75,
+      "granular_premature_write_rate": "not_evaluable",
+      "forced_writes": 0,
+      "committed_revision_violations": 0,
+      "playable_pcm_rate": 0.75,
+      "finite_pcm_rate": 0.75,
+      "severe_semantic_collapse_rate": 0.25,
+      "natural_eos_rate": 0.0,
+      "natural_writes_per_sample": 0.75,
+      "read_write_ratio": 85.66666666666667,
+      "first_write_source_ms": {
+        "count": 3,
+        "p50": 160.0,
+        "p90": 288.0,
+        "p95": 304.0,
+        "mean": 213.33333333333334
+      },
+      "first_arbitrary_pcm_source_ms": {
+        "count": 3,
+        "p50": 160.0,
+        "p90": 288.0,
+        "p95": 304.0,
+        "mean": 213.33333333333334
+      },
+      "first_write_wall_ms": {
+        "count": 3,
+        "p50": 646.3011430390179,
+        "p90": 715.7007885240018,
+        "p95": 724.3757442096248,
+        "mean": 640.3320179817578
+      },
+      "first_arbitrary_pcm_wall_ms": {
+        "count": 3,
+        "p50": 646.3011430390179,
+        "p90": 715.7007885240018,
+        "p95": 724.3757442096248,
+        "mean": 640.3320179817578
+      },
+      "first_useful_audio_wall_ms": "not_evaluable_until_prefix_asr",
+      "rtf": {
+        "count": 4,
+        "p50": 0.7615836222763287,
+        "p90": 1.1974767645760194,
+        "p95": 1.2713841180869623,
+        "mean": 0.796489412714916
+      },
+      "maximum_compute_backlog_ms": {
+        "count": 4,
+        "p50": 2176.1662884848192,
+        "p90": 2258.5676162177697,
+        "p95": 2261.4710218762048,
+        "mean": 1654.1767511260696
+      },
+      "inter_write_source_gap_ms": {
+        "count": 0,
+        "p50": null,
+        "p90": null,
+        "p95": null
+      },
+      "inter_write_wall_gap_ms": {
+        "count": 0,
+        "p50": null,
+        "p90": null,
+        "p95": null
+      },
+      "source_to_target_average_lagging_ms": "not_evaluable_without_token_level_runtime_alignment"
+    }
+  },
+  "missing_evidence": [
+    "first_useful_audio_prefix_asr",
+    "target_language_asr_and_speech_bleu",
+    "autopcp",
+    "slc",
+    "speaker_similarity",
+    "cached_uncached_parity",
+    "fused_unfused_parity",
+    "phase3_replay_retention"
+  ]
+}

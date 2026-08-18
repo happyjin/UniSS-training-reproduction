@@ -1,0 +1,88 @@
+{
+  "counts": {
+    "direction:cmn-eng": 565268,
+    "direction:eng-cmn": 759975,
+    "events": 66605606,
+    "first_write_at_or_under_1s": 724851,
+    "first_write_under_1s": 724851,
+    "reads": 36826256,
+    "semantic_tokens": 467071808,
+    "sessions": 1325243,
+    "text_alignment:normalized_exact": 1325243,
+    "text_alignment_ratio_ppm": 1325232591423,
+    "text_characters": 81574176,
+    "writes": 29779350
+  },
+  "dense_schema_version": "uniss_dense_aligned_streaming_session_v2",
+  "events_per_session": {
+    "maximum": 244,
+    "mean": 50.259164545672,
+    "p95": 110.0
+  },
+  "final_wall_ms": {
+    "p50": 6720.0,
+    "p95": 17600.0
+  },
+  "first_write_at_or_under_1s_rate": 0.5469570486318358,
+  "first_write_safe_lag_ms": {
+    "p50": 0.0,
+    "p95": 0.0
+  },
+  "first_write_under_1s_rate": 0.5469570486318358,
+  "first_write_wall_ms": {
+    "maximum": 23040,
+    "p50": 960.0,
+    "p95": 4960.0
+  },
+  "fixed_speaker_global": [
+    3387,
+    1226,
+    2031,
+    3790,
+    985,
+    1162,
+    2594,
+    2366,
+    458,
+    2253,
+    3992,
+    1178,
+    967,
+    3844,
+    3192,
+    2382,
+    3643,
+    1965,
+    1164,
+    3533,
+    1592,
+    2378,
+    758,
+    1462,
+    3301,
+    3022,
+    3275,
+    1103,
+    3938,
+    2504,
+    1682,
+    89
+  ],
+  "fuzzy_text_alignment_rate": 0.0,
+  "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_dense_aligned_streaming_pilot15_v1/dense_train.jsonl",
+  "mean_text_alignment_ratio": 0.999992145910599,
+  "records_audited": 1325243,
+  "records_in_manifest": 1325243,
+  "schema_version": "uniss_dense_aligned_streaming_audit_v2",
+  "semantic_coverage": 1.0,
+  "semantic_gap_count": 0,
+  "semantic_overlap_count": 0,
+  "status": "pass",
+  "text_reconstruction": 1.0,
+  "unique_final_write_rate": 1.0,
+  "writes_per_session": {
+    "maximum": 111,
+    "mean": 22.47086006113596,
+    "p95": 49.0
+  }
+}

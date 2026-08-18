@@ -1,0 +1,659 @@
+{
+  "generations": [
+    {
+      "generated_translation": "我完全同意。任何事情都可能占用我们所有的时间，因为没有规则来规定。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "released",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我完全同意。似乎这需要全部时间，至少没有空间排练。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "reconstructed_full",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我完全同意。我认为这需要我们所有人共同努力，因为我们已经知道如何生活。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "prefix_causal_80ms",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我完全同意。一个症状需要一整段时间才能得到缓解，否则无法进行活检。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "prefix_causal_160ms",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我认为，似乎需要所有武器才能维持生命。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "prefix_causal_320ms",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我完全同意。似乎需要所有的时间来使用雪地进行活塞处理。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "prefix_causal_640ms",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    },
+    {
+      "generated_translation": "我不敢相信。一个统一的温暖会一直持续到最后一刻，至少在她的生命中不会有丝毫影响。",
+      "id": "NCSSD_R_EN_0000000083",
+      "mode": "student_v1",
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "translation_ref": "我完全同意。这似乎占用了我们所有的时间，以至于没有留下任何私人生活的时间。"
+    }
+  ],
+  "lookahead_ms": [
+    80,
+    160,
+    320,
+    640
+  ],
+  "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_valid_manifest.jsonl",
+  "phase3_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "samples": 1,
+  "schema_version": "simul_uniss_phase3_token_stream_sensitivity_v1",
+  "status": "complete",
+  "student_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/simul_uniss_subsecond_v2/stage_b_latent_formal_15shard_v1/best.pt",
+  "teacher_forced": {
+    "prefix_causal_160ms": {
+      "direct_s2st": {
+        "mean_target_nll": 5.5438535103031334,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.574014073202055,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.07913417369127274,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 255.66129711047296,
+        "target_token_accuracy": 0.0681198910081744,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.400851291372108,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.585781651327054,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06280279904603958,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.00042274597217328846,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 1.9028816223144531,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 81.52023660869008,
+        "target_token_accuracy": 0.12596401028277635,
+        "target_tokens": 389
+      }
+    },
+    "prefix_causal_320ms": {
+      "direct_s2st": {
+        "mean_target_nll": 5.536004422471049,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.566111274614726,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.0830131322145462,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 253.6624439831994,
+        "target_token_accuracy": 0.07084468664850137,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.391952710776832,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.575348151220035,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06371825933456421,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.00047851080307736993,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 1.920168685913086,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 80.79804023994924,
+        "target_token_accuracy": 0.12082262210796915,
+        "target_tokens": 389
+      }
+    },
+    "prefix_causal_640ms": {
+      "direct_s2st": {
+        "mean_target_nll": 5.539501221368358,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.569633922838185,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.08046861737966537,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 254.55100318862105,
+        "target_token_accuracy": 0.07356948228882834,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.395620154844152,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.584098084332192,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.061378300189971924,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.0002361257211305201,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 1.8319353103637694,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 81.09490657086917,
+        "target_token_accuracy": 0.12596401028277635,
+        "target_tokens": 389
+      }
+    },
+    "prefix_causal_80ms": {
+      "direct_s2st": {
+        "mean_target_nll": 5.53569774991485,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.565829007919521,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.07361708581447601,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 253.584664600102,
+        "target_token_accuracy": 0.0681198910081744,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.412423180430591,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.5806393139982875,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06255366653203964,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.000259723310591653,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 2.2218250274658202,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 82.46905898847058,
+        "target_token_accuracy": 0.12339331619537275,
+        "target_tokens": 389
+      }
+    },
+    "reconstructed_full": {
+      "direct_s2st": {
+        "mean_target_nll": 5.538280850860014,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.568420577375856,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.07551418244838715,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 254.24054612631218,
+        "target_token_accuracy": 0.07356948228882834,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.394225603510604,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.579225973886986,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06557805836200714,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.00032455421751365066,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 1.8935138702392578,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 80.98189437973299,
+        "target_token_accuracy": 0.12339331619537275,
+        "target_tokens": 389
+      }
+    },
+    "released": {
+      "direct_s2st": {
+        "mean_target_nll": 5.549756125468324,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.579958395761986,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.07560371607542038,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 257.17482986625146,
+        "target_token_accuracy": 0.0653950953678474,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.418880040970437,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.588269210188356,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06264302879571915,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.0003256267518736422,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 2.2081523895263673,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 83.00327301796099,
+        "target_token_accuracy": 0.12339331619537275,
+        "target_tokens": 389
+      }
+    },
+    "student_v1": {
+      "direct_s2st": {
+        "mean_target_nll": 5.533189820333788,
+        "samples": 1,
+        "segments": {
+          "direct_semantic": {
+            "mean_nll": 5.563287938784247,
+            "tokens": 365
+          },
+          "end_semantic": {
+            "mean_nll": 0.0805613324046135,
+            "tokens": 1
+          },
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          }
+        },
+        "target_perplexity": 252.94948893928466,
+        "target_token_accuracy": 0.0681198910081744,
+        "target_tokens": 367
+      },
+      "performance": {
+        "mean_target_nll": 4.459076947602024,
+        "samples": 1,
+        "segments": {
+          "eos": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_semantic": {
+            "mean_nll": 4.583228542380137,
+            "tokens": 365
+          },
+          "performance_semantic_end": {
+            "mean_nll": 0.06855893135070801,
+            "tokens": 1
+          },
+          "performance_semantic_start": {
+            "mean_nll": 0.0,
+            "tokens": 1
+          },
+          "performance_translation_end": {
+            "mean_nll": 0.00015889335190877318,
+            "tokens": 1
+          },
+          "performance_translation_text": {
+            "mean_nll": 3.081686019897461,
+            "tokens": 20
+          }
+        },
+        "target_perplexity": 86.40771342712063,
+        "target_token_accuracy": 0.11568123393316196,
+        "target_tokens": 389
+      }
+    }
+  },
+  "text_bleu": {
+    "groups": {
+      "prefix_causal_160ms:eng->cmn": {
+        "bp": 0.8751733190429475,
+        "counts": [
+          8,
+          5,
+          3,
+          2
+        ],
+        "precisions": [
+          26.666666666666668,
+          17.24137931034483,
+          10.714285714285714,
+          7.407407407407407
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 12.095856265247676,
+        "sys_len": 30,
+        "tokenizer": "zh",
+        "totals": [
+          30,
+          29,
+          28,
+          27
+        ]
+      },
+      "prefix_causal_320ms:eng->cmn": {
+        "bp": 0.36787944117144233,
+        "counts": [
+          6,
+          2,
+          0,
+          0
+        ],
+        "precisions": [
+          35.294117647058826,
+          12.5,
+          3.3333333333333335,
+          1.7857142857142858
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 2.6334876326402186,
+        "sys_len": 17,
+        "tokenizer": "zh",
+        "totals": [
+          17,
+          16,
+          15,
+          14
+        ]
+      },
+      "prefix_causal_640ms:eng->cmn": {
+        "bp": 0.697676326071031,
+        "counts": [
+          14,
+          9,
+          6,
+          4
+        ],
+        "precisions": [
+          56.0,
+          37.5,
+          26.08695652173913,
+          18.181818181818183
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 22.040629359032966,
+        "sys_len": 25,
+        "tokenizer": "zh",
+        "totals": [
+          25,
+          24,
+          23,
+          22
+        ]
+      },
+      "prefix_causal_80ms:eng->cmn": {
+        "bp": 0.9394130628134758,
+        "counts": [
+          14,
+          8,
+          5,
+          3
+        ],
+        "precisions": [
+          43.75,
+          25.806451612903224,
+          16.666666666666668,
+          10.344827586206897
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 19.73223068781616,
+        "sys_len": 32,
+        "tokenizer": "zh",
+        "totals": [
+          32,
+          31,
+          30,
+          29
+        ]
+      },
+      "reconstructed_full:eng->cmn": {
+        "bp": 0.5795782787848095,
+        "counts": [
+          14,
+          7,
+          3,
+          2
+        ],
+        "precisions": [
+          63.63636363636363,
+          33.333333333333336,
+          15.0,
+          10.526315789473685
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 13.942801332415586,
+        "sys_len": 22,
+        "tokenizer": "zh",
+        "totals": [
+          22,
+          21,
+          20,
+          19
+        ]
+      },
+      "released:eng->cmn": {
+        "bp": 0.8751733190429475,
+        "counts": [
+          18,
+          13,
+          8,
+          6
+        ],
+        "precisions": [
+          60.0,
+          44.827586206896555,
+          28.571428571428573,
+          22.22222222222222
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 31.637202969336364,
+        "sys_len": 30,
+        "tokenizer": "zh",
+        "totals": [
+          30,
+          29,
+          28,
+          27
+        ]
+      },
+      "student_v1:eng->cmn": {
+        "bp": 1.0,
+        "counts": [
+          6,
+          0,
+          0,
+          0
+        ],
+        "precisions": [
+          16.216216216216218,
+          1.3888888888888888,
+          0.7142857142857143,
+          0.36764705882352944
+        ],
+        "ref_len": 34,
+        "sample_count": 1,
+        "score": 1.559480765382838,
+        "sys_len": 37,
+        "tokenizer": "zh",
+        "totals": [
+          37,
+          36,
+          35,
+          34
+        ]
+      }
+    },
+    "hypothesis_field": "generated_translation",
+    "input_count": 7,
+    "reference_field": "translation_ref",
+    "score_empty_hypotheses": true,
+    "scored_count": 7,
+    "skipped": [],
+    "skipped_count": 0
+  }
+}

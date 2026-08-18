@@ -1,0 +1,115 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_runtime_manifests_v1",
+  "split": "valid",
+  "source_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_valid_manifest.jsonl",
+  "source_records": 13469,
+  "selection": "deterministic_direction_balanced_without_replacement",
+  "samples_per_direction": 4,
+  "seed": 20260812,
+  "selected_records": 8,
+  "selected_unique_sample_ids": 8,
+  "directions": {
+    "cmn->eng": 4,
+    "eng->cmn": 4
+  },
+  "num_shards": 8,
+  "partition": "round_robin_over_selected_source_indices",
+  "parts": [
+    {
+      "shard_index": 0,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-000.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-000.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "93e613d79373ae9431f33b25e424340f907d39377bc348c78169cd2c098ae778",
+      "first_source_index": 2685,
+      "last_source_index": 2685
+    },
+    {
+      "shard_index": 1,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-001.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-001.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "539ef7e6befded0f3be312ef5da61d3c5d12b00c2eac742b8e96f7ce1185c9c2",
+      "first_source_index": 6613,
+      "last_source_index": 6613
+    },
+    {
+      "shard_index": 2,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-002.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-002.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "4231725b6212c972021ac0682bc9a0ce98c6976781f48fe02f0a1fe9ae7e43d5",
+      "first_source_index": 9238,
+      "last_source_index": 9238
+    },
+    {
+      "shard_index": 3,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-003.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-003.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "e336f28c8be8cd1280d14dbfbf5efc267bcc57d2a86751a82d81fea50a81f4d9",
+      "first_source_index": 9260,
+      "last_source_index": 9260
+    },
+    {
+      "shard_index": 4,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-004.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-004.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "7b11040e5025104a562f02816f8da15f12fca0826cecd1fe9b4adafc31879015",
+      "first_source_index": 9703,
+      "last_source_index": 9703
+    },
+    {
+      "shard_index": 5,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-005.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-005.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "5c4b23cca2240e93b0b6ab0f6e1fa055e4f05036cbe43601a0ce971d4bd6ca8f",
+      "first_source_index": 10411,
+      "last_source_index": 10411
+    },
+    {
+      "shard_index": 6,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-006.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-006.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "cmn->eng": 1
+      },
+      "sha256": "0dee765858fdc1a216f5ccdb67aa776e191e0ec70ec11d92056df874f5483e92",
+      "first_source_index": 11390,
+      "last_source_index": 11390
+    },
+    {
+      "shard_index": 7,
+      "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-007.jsonl",
+      "sample_ids": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000700/phase3_retention/manifests/valid_balanced8/part-007.sample_ids.json",
+      "records": 1,
+      "directions": {
+        "eng->cmn": 1
+      },
+      "sha256": "1559575cdc09fb5d30fa5ddcef47353e282297b95feed4e6d140ceee1f824ca6",
+      "first_source_index": 12329,
+      "last_source_index": 12329
+    }
+  ]
+}

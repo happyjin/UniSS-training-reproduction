@@ -1,0 +1,30 @@
+{
+  "schema_version": "uniss_streamspeech_stage04_b2_text_probe_v1",
+  "bridge_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage04_b2_phase3_endpoint_v1/best.pt",
+  "bridge_step": 1600,
+  "bridge_validation_phase3_nll": 3.932969632582803,
+  "direction_id": 0,
+  "direction_offset": 0,
+  "samples": [
+    {
+      "id": "NCSSD_R_EN_0000000315",
+      "direction": "eng->cmn",
+      "translation_ref": "我现在真的很好奇，那家餐厅叫什么名字？我也想去试试。",
+      "generated_translation": "我现在真的很想知道餐厅的名字。我想试试。",
+      "generated_token_ids": [
+        107520,
+        106879,
+        109623,
+        104835,
+        105180,
+        1773,
+        104100,
+        108179,
+        1773,
+        180390
+      ],
+      "generated_end_content": true,
+      "generation_seconds": 0.6474602189846337
+    }
+  ]
+}

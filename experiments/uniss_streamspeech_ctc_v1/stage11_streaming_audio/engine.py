@@ -78,6 +78,7 @@ class Stage11Result:
     stereo_audio_path: str
     result_json_path: str
     translation: str
+    transcription: str
     ctc_translation: str
     source_seconds: float
     target_seconds: float
@@ -313,6 +314,7 @@ class Stage11Session:
             stereo_audio_path=str(stereo_path.resolve()),
             result_json_path=str(result_path.resolve()),
             translation=self.adapter.translation,
+            transcription=self.runtime.source_transcription,
             ctc_translation=self.runtime.committed_translation,
             source_seconds=len(source) / SAMPLE_RATE,
             target_seconds=len(target) / SAMPLE_RATE,

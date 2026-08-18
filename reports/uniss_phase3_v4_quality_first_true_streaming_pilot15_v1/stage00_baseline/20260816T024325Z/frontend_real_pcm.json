@@ -1,0 +1,148 @@
+{
+  "checks": {
+    "future_hidden_exact_before_changed_block": true,
+    "future_tokens_exact_before_changed_block": true,
+    "partial_final_block_exercised": true,
+    "real_pcm_hidden_full_cached": false,
+    "real_pcm_quantized_full_cached": true,
+    "real_pcm_token_coverage": true,
+    "real_pcm_token_full_cached_100pct": true,
+    "reset_boundary_exercised": true,
+    "reset_hidden_full_cached": false,
+    "reset_token_coverage": true,
+    "reset_token_full_cached_100pct": true
+  },
+  "elapsed_seconds": 8.707603931427002,
+  "environment": {
+    "cuda": "12.4",
+    "gpu": "NVIDIA H200",
+    "python": "3.12.13",
+    "seed": 20260816,
+    "torch": "2.6.0+cu124"
+  },
+  "frontend": {
+    "block_ms": 160,
+    "device": "cuda:0",
+    "dtype": "torch.float32",
+    "maximum_segment_ms": 29920,
+    "normalization": "arrived_block_local_peak_v1",
+    "position_embeddings": 1500,
+    "right_context_ms": 0,
+    "stft_center": false,
+    "whispervq_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS/glm4_tokenizer"
+  },
+  "frontend_schema": "uniss_shared_causal_whispervq_v1",
+  "future_perturbation": {
+    "changed_block_index": 3,
+    "changed_from_ms": 480,
+    "committed_tokens_compared": 6,
+    "hidden": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "maximum_relative_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        6,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "tokens": {
+      "actual_tokens": 6,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 6,
+      "reference_tokens": 6,
+      "shape_equal": true
+    }
+  },
+  "input": {
+    "audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00000/source_audio/0000035_NCSSD_R_EN_0000000083.flac",
+    "duration_ms": 6940,
+    "manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v2/formal_15shard_v1/stage_a_formal/formal_valid_manifest.jsonl",
+    "manifest_row": 0,
+    "pcm_f32le_sha256": "c15bbaba720caac9a428c1a8441677ed3064b306df8deb052592ab340525c96f",
+    "sample_id": "NCSSD_R_EN_0000000083",
+    "samples": 111040,
+    "src_lang": "eng",
+    "tgt_lang": "cmn"
+  },
+  "passed": false,
+  "real_pcm_parity": {
+    "cached_rtf": 0.06185845325644576,
+    "cached_step_ms_max": 25.587787153199315,
+    "cached_step_ms_p50": 9.183924412354827,
+    "cached_step_ms_p95": 11.408002488315107,
+    "full_seconds": 0.5918509420007467,
+    "hidden": {
+      "allclose": false,
+      "atol": 2e-06,
+      "maximum_absolute_error": 2.7179718017578125e-05,
+      "maximum_relative_error": 0.09177646785974503,
+      "mean_absolute_error": 8.346100912604015e-07,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        87,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "quantized": {
+      "allclose": true,
+      "atol": 2e-06,
+      "maximum_absolute_error": 0.0,
+      "maximum_relative_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        87,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "tokens": {
+      "actual_tokens": 87,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 87,
+      "reference_tokens": 87,
+      "shape_equal": true
+    }
+  },
+  "reset_boundary": {
+    "audio_seconds": 30.4,
+    "cached_resets": 1,
+    "full_segments": 2,
+    "hidden": {
+      "allclose": false,
+      "atol": 2e-06,
+      "maximum_absolute_error": 3.409385681152344e-05,
+      "maximum_relative_error": 0.16481855511665344,
+      "mean_absolute_error": 7.540605793110444e-07,
+      "rtol": 2e-05,
+      "shape": [
+        1,
+        380,
+        1280
+      ],
+      "shape_equal": true
+    },
+    "reset_before_blocks": [
+      187
+    ],
+    "tokens": {
+      "actual_tokens": 380,
+      "exact": true,
+      "match_ratio": 1.0,
+      "matching_tokens": 380,
+      "reference_tokens": 380,
+      "shape_equal": true
+    }
+  },
+  "schema_version": "uniss_stage00_frontend_real_pcm_audit_v1"
+}

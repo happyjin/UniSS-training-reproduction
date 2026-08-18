@@ -1,0 +1,56 @@
+{
+  "schema_version": "uniss_streamspeech_stage07_b1_text_probe_v1",
+  "checkpoint": {
+    "schema_version": "uniss_streamspeech_stage06_megatron_residual_v1",
+    "checkpoint_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_streamspeech_ctc_v1/stage06_b1_megatron_v2/iter_0000600",
+    "iteration": 600,
+    "residual_scale": 0.05000000074505806,
+    "weight_norm": 1.0228227376937866,
+    "bias_norm": 0.030963977798819542
+  },
+  "direction_id": 1,
+  "direction_offset": 0,
+  "peak_memory_mib": 1786.3486328125,
+  "samples": [
+    {
+      "id": "HQ-Conversations_0000000233",
+      "direction": "cmn->eng",
+      "translation_ref": "For example, when crossing the road, those cars will generally yield to pedestrians.",
+      "generated_translation": "For example, if you cross the road, the car will basically let you, which will make you a pedestrian.",
+      "generated_token_ids": [
+        2461,
+        3110,
+        11,
+        421,
+        498,
+        5312,
+        279,
+        5636,
+        11,
+        279,
+        1803,
+        686,
+        13221,
+        1077,
+        498,
+        11,
+        892,
+        686,
+        1281,
+        498,
+        264,
+        46754,
+        13,
+        180390
+      ],
+      "generated_end_content": true,
+      "source_seconds": 10.64,
+      "speech_tokens": 133,
+      "bridge_seconds": 0.3612766590085812,
+      "qwen_first_token_seconds": 0.05814325396204367,
+      "generation_seconds": 0.5025802569580264,
+      "total_seconds": 0.8638569159666076,
+      "compute_rtf_source": 0.0811895597712977
+    }
+  ]
+}

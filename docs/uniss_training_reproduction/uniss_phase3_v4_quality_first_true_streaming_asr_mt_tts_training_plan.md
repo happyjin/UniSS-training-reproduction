@@ -1,8 +1,10 @@
-# UniSS Phase3 v4 质量优先真流式 ASR→增量 MT→分段 TTS 训练与推理计划
+# UniSS Phase3 v4 质量优先单模型真流式 E2E Simultaneous S2ST 训练与推理计划
 
 > 文档状态：可直接据此实现的工程与实验计划，尚未执行本计划中的新训练。
 >
-> 审计日期：2026-08-15。
+> 审计日期：2026-08-18（Stage B 最终推荐设计已根据 Stage A V1/V9 free-running 结果更新）。
+>
+> **2026-08-18最终需求更新：** 最终交付必须是一个模型级 end-to-end simultaneous S2ST student，而不只是A→B→C三个模型的级联系统。第27节是当前最高优先级的最终执行方案；第9--13节保留为teacher构造、oracle诊断和级联上限，不再代表最终部署形态。
 >
 > 实验范围：UniST 固定 `train-00000` 至 `train-00014`，只在对应 train/validation 上寻找可行方法；本轮不声称 full198、test、CVSS-T 或未见域泛化。
 >
@@ -10,23 +12,21 @@
 
 ## 1. 执行结论
 
-本计划不再把 ASR、翻译策略、目标 semantic 生成和停止决策压进一个高度耦合的联合目标。推荐从同一个 **canonical final/evaluated Phase3 v4 checkpoint** 分叉出三个相互隔离的专业模型：
+历史A/B/C模块化设计保留为teacher、oracle ablation和故障定位资产：
 
 1. **Stage A：真流式 ASR**——Chunk/Block-Causal WhisperVQ、源端 ASR CTC、增量 AR-ASR Qwen；
 2. **Stage B：增量文本翻译**——只消费 Stage A 已不可逆提交的源文本，生成不可逆目标文本 delta；
 3. **Stage C：连续分段 TTS**——只消费 Stage B 已不可逆提交的目标文本 delta，生成与真实目标音频严格对齐的 BiCodec semantic delta；
 4. **Stage D：冻结串联评估**——A、B、C 不再反向传播，接入 stateful BiCodec，验证完整真流式 S2ST。
 
-因此总计是 **3 次正式训练 + 1 次冻结集成评估**，不是把十几个历史版本继续串起来训练。三个 Qwen checkpoint 都从 Phase3 v4 的 canonical `iter_0009075` 单独初始化，Stage B 不继承 Stage A 的 optimizer，Stage C 也不继承 Stage B；这样可以避免文本翻译与 8192-way dense semantic 生成互相破坏。
+最终交付按第27节执行：从当前free-running ASR内容最好的V1 compound checkpoint初始化，冻结其Causal WhisperVQ、bridge/adapter和BiCodec，只用一个共享Qwen在一次正式Megatron run内联合学习streaming ASR delta、incremental MT delta和target semantic delta。Phase3 v4 `iter_0009075`与冻结V1副本作为teacher/replay来源；不再把三个独立Qwen作为最终部署形态。
 
 最终运行链为：
 
 ```text
 实时 PCM
-  → 真增量 WhisperVQ 声学缓存
-  → CTC/AR-ASR 稳定源文本
-  → 增量 MT 稳定目标文本
-  → 分段 TTS semantic delta
+  → 冻结V1 Causal WhisperVQ声学缓存
+  → 单个共享Qwen交错生成ASR/MT/semantic delta
   → Stateful BiCodec
   → 连续 PCM
 ```
@@ -59,9 +59,9 @@ Phase3 v4 已经具备最重要的离线能力先验：
 
 新训练要学习的是“局部可见输入、不可逆增量输出和跨片段连续状态”，而不是从头重新学习双语内容和语音生成。
 
-### 2.3 为什么不用单个共享 Qwen 作为首版
+### 2.3 为什么仍保留三个模块化teacher/oracle
 
-Phase3 Qwen 只有约 0.5B，H200 可以容纳三个 BF16 副本。首版采用三个副本能得到更干净的因果诊断：
+Phase3 Qwen 只有约 0.5B，H200 可以容纳多个冻结teacher副本。A/B/C模块化路径能得到更干净的因果诊断：
 
 | 模型 | 输入 | 输出 | 主要风险 |
 |---|---|---|---|
@@ -69,7 +69,7 @@ Phase3 Qwen 只有约 0.5B，H200 可以容纳三个 BF16 副本。首版采用�
 | MT Qwen | committed source text delta | target text delta | 幻觉、重复、回改 |
 | TTS Qwen | committed target text delta + speaker state | semantic delta | 静音、音色漂移、semantic collapse |
 
-如果一开始共享全部参数，某个 loss 改善时无法判断是否正在损坏另一个任务。等三个条件模型都通过后，才考虑蒸馏为共享 trunk；该蒸馏不属于本轮。
+这些模型不再是最终部署目标，而是为第27节单模型student提供ASR/MT/semantic teacher、oracle输入和错误归因。最终student共享一个Qwen，因此训练与validation必须同时保留模块化oracle，才能判断某个loss改善时是否正在损坏另一个任务。
 
 ## 3. 已审计的权重、架构与离线质量锚点
 
@@ -810,6 +810,272 @@ Stage B 使用 native Megatron GPTModel 和原生 `iter_0009075` 初始化。训
 | cached/full parity | top-1 100%，canonical transcript/cache length 一致 |
 
 COMET 可作为语义辅助，但 checkpoint 不能只按 COMET 选；必须同时满足 rollback、完整性和语言正确率。
+
+### 10.9 Stage B 最终冻结设计（2026-08-18）
+
+本节是 Stage B 的当前最终推荐，优先级高于本章前面仍带有“建议”措辞的初版描述。它吸收了 Stage A V1--V9 的正式结果，特别是“teacher-forced 指标好但 free-running 错误累积严重”的经验。实现时不得只复制 Phase3 的完整句 Quality/Performance 任务，也不得只训练一个没有 replay、consistency 和真实 rollout 的 target-delta CE。
+
+#### 10.9.1 当前依赖与 checkpoint 关系
+
+当前 Stage A 中，按真实 free-running 内容质量，V1 优于 V9：
+
+| Stage A | causal-full 加权错误率 | event-streaming 加权错误率 | 中文 CER | 英文 WER | 用途 |
+|---|---:|---:|---:|---:|---|
+| V1 `iter_0000381` | 14.45% | 27.14% | 21.01% | 35.34% | 当前仅用于生成 Stage B noisy source prefix |
+| V9 `iter_0000381` | 24.86% | 43.84% | 34.79% | 55.94% | CTC/几何诊断，不用于 Stage B 数据主版本 |
+
+V1 的权威 Megatron checkpoint 为：
+
+```text
+checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/
+  stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381
+```
+
+但 Stage B **绝不加载 V1 或 V9 的模型权重**。三个模型仍按本计划第1节从同一个不可变 Phase3 v4 checkpoint 分叉：
+
+```text
+Phase3 v4 iter_0009075
+  ├── Stage A V1/V10...：streaming ASR
+  ├── Stage B：incremental MT
+  └── Stage C：streaming TTS
+```
+
+Stage B fresh run 的初始化必须是：
+
+```text
+FINETUNE=1
+LOAD_OPTIM=0
+LOAD_RNG=0
+LOAD=checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075
+```
+
+V1 只作为一个固定、带 provenance 的离线数据生成器，产生 `committed_source_delta` 和 `committed_source_prefix`。这样 Stage B 训练不会修改 Stage A 的 Whisper、CTC、adapter 或 Qwen，也不会使 Stage A CER/WER 进一步退化。未来若 V10 超过 V1，必须生成一个新版本 noisy-prefix 数据集，禁止静默覆盖 V1 数据。
+
+#### 10.9.2 最终任务集合：Phase3 思想，但不照搬 Phase3
+
+Phase3 的多任务能力来自 `Quality` / `Performance` 样本、任务控制 token 和统一 next-token CE，而不是来自多个独立网络。Stage B 继承这一思想，但主任务必须改成 append-only incremental MT。最终只保留以下四个数据族：
+
+| task family | 稳态采样比例 | 输入 | 目标 | 主要作用 |
+|---|---:|---|---|---|
+| `incremental_mt_gold` | 40% | gold committed source delta/prefix + previous target prefix | 当前安全 target delta | 学习理想增量翻译上限 |
+| `incremental_mt_v1_noisy` | 40% | V1 committed source delta/prefix + previous target prefix | 当前安全 target delta | 匹配部署时 ASR 删除、替换、标点和分段噪声 |
+| `offline_full_mt_replay` | 15% | 完整 gold source text | 完整人工 translation | 保护 Phase3 完整句翻译和最终 coverage |
+| `exact_phase3_qp_replay` | 5% | 原始 Phase3 Quality/Performance prompt | 原始 target token sequence | 保护任务 token、文本/semantic 词表和 Phase3 生成几何 |
+
+这里的 `40/40/15/5` 是 **global-step task-family 采样概率**，不是把所有 token 混在一起后再按 token 数自然平均。所有 data-parallel rank 在同一个 global step 必须选择同一 task family，避免某些 rank 走 text-only、另一些 rank 走长 semantic replay 导致 collective 分支不一致。
+
+禁止把 exact Phase3 replay 提高到主任务比例。典型 Quality 样本可能只有约20个转录 token、25个翻译 token，却有数百个 semantic token；若直接做全局 token mean，semantic 梯度会压过增量文本任务，使模型重新倾向完整句 S2ST，而不是 target-delta generation。
+
+#### 10.9.3 统一多任务 CE 的正确定义
+
+四类任务都使用 Phase3 风格的 next-token CE，但必须先在各 task family 内归一化，再由同步 sampler 决定长期贡献：
+
+\[
+\mathcal L_{\mathrm{MTCE}}(f)
+=
+\frac{
+\sum_{s\in f}\sum_t m_{s,t}\,
+\mathrm{CE}(p_\theta(y_{s,t}\mid h_{s,t}),y_{s,t})
+}{
+\sum_{s\in f}\sum_t m_{s,t}
+},
+\qquad
+f\in\{gold,noisy,fullMT,phase3QP\}.
+\]
+
+优化器每一步最终仍只反向传播一个 scalar loss；“多任务”来自不同 task-conditioned 样本和 loss mask，而不是来自 scalar 数量。日志必须分别记录四个 family 的 numerator、denominator、有效 target token 数和采样次数，禁止只记录一个无法审计的 `lm_loss`。
+
+Incremental 样本的 loss mask 必须满足：
+
+| token span | 普通 CE mask | 说明 |
+|---|---:|---|
+| runtime 写入的 `WAIT_READ` / source delta | 0 | 这是条件，不是模型目标 |
+| 已提交 previous target prefix | 0 | 已经发生，不能重复学习成新输出 |
+| 当前 `WRITE_GENERATE` 后的 target delta | 1 | Stage B 主监督 |
+| `END_CONTENT` | 1 | fragment 边界 |
+| source-final 后的最终 `EOS` | 1 | 只有最终事件允许 |
+| 尚未被当前 source prefix 支持的未来译文 | 0/不存在 | 禁止未来泄漏和提前幻觉 |
+
+Exact Phase3 replay 保持历史 prompt、target 和 loss mask 完全不变；它是回放，不允许为了适配 Stage B 重写历史样本。
+
+#### 10.9.4 最终推荐总 Loss
+
+推荐把 task-family CE 作为主体，把不能由普通硬标签 CE 表达的 streaming 约束作为辅助项：
+
+\[
+\boxed{
+\mathcal L_B
+=
+1.00\mathcal L_{\mathrm{MTCE}}
++0.25\mathcal L_{\mathrm{same\text{-}prefix\ teacher\ KL}}
++0.20\mathcal L_{\mathrm{committed\ prefix\ consistency}}
++0.10\mathcal L_{\mathrm{boundary/EOS}}
+}
+\]
+
+其中 `MTCE` 的长期任务贡献由 `40/40/15/5` sampler 决定，不再额外乘一次 `0.40/0.40/0.15/0.05`，避免重复降权。各项含义和实现边界如下：
+
+| loss | 权重 | 有效位置 | 作用 | 失败时表现 |
+|---|---:|---|---|---|
+| `multi-task CE` | 1.00 | 当前 task family 的 target mask | 同时学习 gold/noisy增量翻译、完整MT和少量Phase3 replay | 欠译、错误翻译、任务遗忘 |
+| `same-prefix teacher KL` | 0.25 | 当前 source prefix 已由 alignment/LCP 证明支持的 target delta | 保留冻结 Phase3 teacher 的软分布，不把单个硬译文当唯一答案 | 文体漂移、低频翻译错误、过拟合硬标签 |
+| `committed-prefix consistency` | 0.20 | 相邻 source prefix 共享且已经提交的 target prefix | 新输入到达后，已提交译文 posterior 不翻转 | rollback、同一句前半段反复改写 |
+| `boundary/EOS` | 0.10 | `END_CONTENT`、空 delta、final `EOS` | 学会本次无可写内容、fragment停止与整句最终结束 | 重复、无限生成、过早EOS |
+
+`same-prefix teacher KL` 必须使用冻结的 Phase3 v4 teacher，并且 teacher 和 student 都只能看到相同 source prefix。禁止让 teacher 看完整源句后把未来译文蒸馏给早期 prefix。
+
+`committed-prefix consistency` 推荐使用 stop-gradient teacher branch：旧 prefix 的已提交 posterior 作为固定目标，新 prefix 在相同已提交位置与其计算 KL；已经提交的离散 token 还必须由数据审计保证是严格前缀关系。loss 不能替代数据级 `rollback=0` 检查。
+
+`boundary/EOS` 使用类别均衡，避免大量“继续等待/空 delta”样本让模型学成永不 WRITE，也避免 final 样本比例过高让模型过早 EOS。
+
+#### 10.9.5 必须加入 model-generated target history
+
+Stage A 已经证明：teacher-forced token accuracy 高不代表 free-running 正确。Stage B 不得始终把 gold previous target prefix 放回下一 event。推荐在同一个连续 run 内逐步引入受控 DAgger/scheduled-sampling 历史：
+
+| coverage progress | source family | previous target history |
+|---|---|---|
+| 0%--10% | gold为主 + full replay | 100% gold，先恢复Phase3翻译先验 |
+| 10%--40% | gold/noisy/replay=`60/20/20` | 80% gold，20%模型生成 |
+| 40%--80% | gold/noisy/full/QP=`40/40/15/5` | 70% gold，30%模型生成 |
+| 80%--100% | 同稳态比例，增加长event和ASR错误 | 60% gold，40%模型生成 |
+
+模型生成历史必须来自当前 checkpoint 的冻结 rollout snapshot 或可复现的 on-policy worker，并记录 `generator_checkpoint_sha256`、随机种子、采样参数和 accepted/rejected delta。禁止每个 dataloader worker 临时无版本地生成历史，否则无法resume和复现实验。
+
+生成历史中的错误不能被直接当成正确 target label；它只替换下一 event 的 `previous_target_prefix` 条件，当前 event 的监督仍来自单调 gold/teacher target delta。这样训练的是“从自己可能犯错的历史继续恢复”，而不是奖励错误内容。
+
+#### 10.9.6 数据构造与静态审计
+
+Stage B 数据准备顺序固定为：
+
+1. 固定15-shard train/validation ID和原始双语文本；
+2. 用 V1 `iter_0000381` 在完全相同的 event runtime 下生成 source commits；
+3. 分别保存 gold source trajectory 和 V1 noisy source trajectory；
+4. 用 source↔target alignment、相邻 prefix teacher 候选和2--3次 LCP构造安全 target prefix；
+5. 最终事件强制以完整人工 translation 收尾；
+6. 生成15% standalone full-MT replay索引；
+7. 从不可变 Phase3 packed pool确定性抽取5% Quality/Performance replay；
+8. 进行静态审计后才允许Megatron packing。
+
+每条 incremental trajectory 必须通过：
+
+```text
+source_prefix[t-1] is prefix of source_prefix[t]，或显式记录V1 commit边界
+target_prefix[t-1] is strict prefix/equal of target_prefix[t]
+concat(target_delta[0..T]) == full_target_text
+target rollback == 0
+final target coverage == 100%
+non-final EOS count == 0
+future unsupported target token count == 0
+language direction matches src_lang/tgt_lang
+```
+
+V1 noisy prefix 中无法对齐、跨语言污染或内容严重损坏的样本不能伪装成高置信度正常样本；应保留并标记 `noise_severity`，用于分层评估。只有结构损坏到无法解析 event grammar 的样本才剔除，并必须报告剔除数量与原因。
+
+#### 10.9.7 参数、Megatron几何与冻结范围
+
+| 参数组 | 初始化 | 是否训练 | max LR |
+|---|---|---:|---:|
+| Qwen 24 transformer layers | Phase3 v4 `iter_0009075` | 是 | `5e-6` |
+| tied embedding / lm_head | Phase3 v4 | 是 | `1e-6` |
+| boundary confidence head（若实现） | 新增、零偏置审计 | 是 | `5e-5` |
+| Stage A Whisper/CTC/adapter/Qwen | V1 | 否，且不加载进Stage B | `0` |
+| BiCodec encoder/decoder | 预训练 | 否 | `0` |
+
+正式训练几何：
+
+```text
+framework       = native Megatron GPTModel
+GPUs            = 8 × H200
+TP / PP         = 1 / 1
+sequence length = 18000
+micro batch     = 2
+global batch    = 128
+precision       = BF16
+optimizer       = AdamW, betas 0.9/0.95
+weight decay    = 0.1（norm/bias除外）
+clip grad       = 0.5
+schedule        = cosine
+coverage        = 2 incremental-MT primary coverage epochs
+shuffle         = Phase3 v4同类的严格全局shuffle，固定seed并保存sampler state
+```
+
+不能通过合并样本、增加重复padding或提高Phase3 replay比例来制造GPU利用率。吞吐优化只允许使用pack、prefetch、异步CPU tokenization、pinned memory和减少Python dispatch，不能改变有效task比例和loss语义。
+
+#### 10.9.8 Validation 必须同时包含 teacher-forced 与 free-running
+
+每个保存点先运行固定validation；候选checkpoint还必须运行真实append-only DynamicCache free-running。四条链分开报告：
+
+| eval path | 输入 | 目的 |
+|---|---|---|
+| `P0` | gold full source → Phase3 offline MT | matching质量锚点 |
+| `B0` | gold source commits → Stage B | 排除ASR错误后的incremental MT上限 |
+| `B1` | V1 source commits → Stage B | 当前真实ASR噪声传播结果 |
+| `B2` | V1 final transcript → Stage B full-MT replay path | 区分增量边界损失与纯ASR内容损失 |
+
+每条链至少报告：
+
+- Text-BLEU、chrF、COMET（若环境可用）；
+- target token coverage、欠译率、重复率、跨语言率；
+- committed target rollback；
+- target delta/event、空delta比例、final EOS正确率；
+- first target WRITE、Average Lagging/LAAL（有可靠时间轴时）；
+- cached/full top-1 parity、cache length和完整历史重算次数；
+- teacher-forced CE/accuracy与free-running质量差距。
+
+Checkpoint 不按最低training loss或最高teacher-forced accuracy选择。第一轮硬门为：
+
+| gate | 要求 |
+|---|---|
+| committed target rollback | `0` |
+| cached/full top-1 parity | `100%`，canonical transcript/cache length一致 |
+| gold-prefix BLEU/chrF保留率 | 相对matching Phase3 full-MT均不低于`95%` |
+| final target coverage | `>=98%`，且无系统性欠译 |
+| non-final EOS | `0` |
+| hallucination/repetition | 无批量通用短句、循环或跨语言污染 |
+| semantic leakage in incremental tasks | `0`；Stage B增量任务只输出文本 |
+| free-running availability | B0/B1必须都完成，禁止只报teacher-forced |
+
+由于V1本身中文CER 21.01%、英文WER 35.34%，B1 不能与B0混合成一个平均数，也不能要求 Stage B 凭空恢复所有源信息。Stage B 的自身通过结论以 B0 为主，B1 用于衡量当前端到端文本链的实际可用性和ASR传播损失。只有未来Stage A通过相对offline `+15%`门后，才允许把A→B称为候选业务链路。
+
+#### 10.9.9 执行顺序与停止条件
+
+Stage B 首轮固定按以下顺序执行：
+
+1. 新建独立 `stage_b_incremental_mt` 目录、schema和provenance；
+2. 生成固定V1 commits，写入不可覆盖版本目录；
+3. 构造gold/noisy incremental trajectories；
+4. 构造15% full-MT和5% exact Phase3 replay索引；
+5. 运行CPU静态审计和packing单元测试；
+6. 运行1--2步Megatron smoke，验证四task family、loss denominator和反向传播；
+7. 运行短canary，必须至少经历一次model-generated history比例切换；
+8. 在固定validation上运行teacher-forced与小规模free-running；
+9. canary通过后，从Phase3 `iter_0009075`重新启动正式2-coverage-epoch run；
+10. 每个候选保存点运行B0/B1 free-running subset；
+11. 最终候选运行完整P0/B0/B1/B2评估并写gate；
+12. 只有Stage B硬门通过，才允许准备Stage C输入。
+
+以下任一情况必须停止，不得靠继续增加epoch掩盖：
+
+- 任一 active loss denominator 连续一个validation interval为0；
+- teacher-forced持续改善但free-running BLEU/chrF恶化；
+- rollback非0；
+- target coverage持续下降或过早EOS增加；
+- incremental任务开始输出BiCodec/GLM semantic token；
+- exact Phase3 replay梯度/有效token长期主导增量任务；
+- cached/full parity不是100%；
+- B0相对Phase3保留率明显低于95%且一个curriculum区间内无恢复趋势。
+
+#### 10.9.10 预期结论边界
+
+本设计预计比“纯target-delta CE”更能保留Phase3翻译能力，也比“完全复制Phase3 Quality/Performance”更可能学到真正incremental translation；但它仍是待训练验证的假设，不能预先声称效果一定更好。
+
+成功时可以分别形成三个结论：
+
+1. `B0 pass`：Stage B 本身已学会高质量、不可回滚的增量MT；
+2. `B1 usable/fail`：当前V1 ASR噪声下的实际文本链表现；
+3. `A→B business candidate`：只有未来Stage A也通过内容门后才能声明。
+
+Stage B 无法修复 Stage A 丢失的声学信息。它可以学习把轻微错误如 `Good mourning` 稳健翻译成“早上好”，但不能从完全错误的 `The government everyone` 推断原音频实际说的是 `Good morning everyone`。因此模块化训练保护了ASR不被MT更新破坏，却不能绕过Stage A质量门。
 
 ## 11. Stage C：真实对齐的分段 TTS continuation
 
@@ -1558,19 +1824,19 @@ VAD reset 可能损失长距离声学上下文。文本上下文仍可通过 com
 
 ### Whisper 是否需要额外训练？
 
-需要。仅把双向 mask 改成 causal 通常会损失 ASR。Stage A 训练 pre-VQ 上层、bridge、CTC head 和低 LR Qwen；但 codebook、EMA、post-VQ 冻结。
+历史Stage A已经完成了causal Whisper训练。第27节最终E2E student加载V1 compound后冻结Whisper conv、pre-VQ层、pooling、codebook、EMA、post-VQ以及首轮bridge/adapter；正式E2E run只低LR更新共享Qwen和新增边界参数。
 
 ### 是否需要 KV cache？
 
-需要。Whisper、ASR Qwen、MT Qwen、TTS Qwen 都需要状态；BiCodec 使用 semantic history wrapper。cache 本身不是一个单独“学习出的参数”，但训练序列、position、mask 和推理 cache 必须通过严格 parity。
+需要。冻结Causal Whisper、单个共享Qwen和Stateful BiCodec都需要状态。cache本身不是一个单独“学习出的参数”，但interleaved训练序列、position、mask和推理cache必须通过严格parity。
 
 ### 是一次训练就可以吗？
 
-不是一个 monolithic run。推荐 3 次训练：A、B、C；每个阶段内部 curriculum 在同一个 run 中完成。随后 Stage D 冻结串联，不训练。
+最终student是一次正式Megatron E2E run，并在该run内部完成chunk、task-family和model-generated history curriculum。正式run之前仍必须完成数据构造、teacher cache、smoke和canary；这些不是额外的最终模型训练。A/B/C只作为已有teacher/oracle，不再顺序训练成三个最终部署模型。
 
 ### 三个模型是否都从 Phase3 v4 继续？
 
-是。三个 Qwen 都独立从 `iter_0009075` 初始化，不串接前一新阶段 optimizer。Stage A 另外加载独立 WhisperVQ。
+不是最终方案。单模型E2E student从V1 compound `iter_0000381`初始化，以保留当前最好的streaming ASR起点；Phase3 v4 `iter_0009075`作为冻结MT/TTS teacher和Quality/Performance replay来源。最终只导出一个共享Qwen student bundle。
 
 ### 是否需要人工构造 WAIT/WRITE timing 数据？
 
@@ -1582,7 +1848,7 @@ VAD reset 可能损失长距离声学上下文。文本上下文仍可通过 com
 
 ### 什么时候可以做 Gradio？
 
-Stage D 通过 no-fallback、pre-final target PCM、音频质量和 5 分钟 session 门后，再建立独立 Gradio。未通过前的页面只能标为诊断 demo，不能标为可用 simultaneous S2ST。
+第27节E2E硬门通过no-fallback、pre-source-EOS target PCM、音频质量、ASR保持和5分钟session后，再建立独立Gradio。未通过前的页面只能标为诊断demo，不能标为可用simultaneous S2ST。
 
 ## 25. 最终验收清单
 
@@ -1608,3 +1874,647 @@ Stage D 通过 no-fallback、pre-final target PCM、音频质量和 5 分钟 ses
 第一条代码工作不是立即启动 8 卡训练，而是新建隔离实验目录并完成 Stage 00 的 **真实 PCM frontend parity**：统一 `center=False`、causal normalization、conv state 和 WhisperVQ 前 16 层 block-cache，然后用真实 WhisperVQ checkpoint 验证 cached/full GLM token 100% 一致以及 future perturbation 为 0。
 
 这一门通过后，Stage A 训练才有可信意义。若跳过它，后续即使 train/validation loss 下降，也可能再次得到“训练时有效、部署时完全不一致”的结果。
+
+## 27. 最终权威方案：冻结 V1 Causal Whisper 的单模型 E2E Simultaneous S2ST
+
+### 27.1 最终目标与对旧计划的替代关系
+
+最终交付不再是三个独立Qwen串联，而是一个共享Qwen student在同一条append-only事件序列中完成：
+
+```text
+实时源PCM
+  → 冻结V1 Causal WhisperVQ
+  → source acoustic hidden / causal GLM embedding
+  → 单个共享Qwen
+       ├─ source ASR delta（辅助且可显示）
+       ├─ target translation delta（辅助且可显示）
+       └─ target BiCodec semantic delta（最终语音内容）
+  → 冻结Stateful BiCodec decoder
+  → 连续目标PCM
+```
+
+这一模型在推理时只有一个语言模型checkpoint和一条状态化事件runtime。WhisperVQ和BiCodec可使用冻结的预训练参数；“端到端”指语音输入到语音输出在一个集成模型/runtime内完成，ASR/MT文本是内部显式辅助轨迹，不是人工或外部服务。准确论文表述应为：
+
+> an end-to-end simultaneous S2ST model with a frozen causal speech encoder and a frozen neural audio codec.
+
+第9节Stage A V1作为当前最好的streaming ASR teacher和初始化；第10节Stage B提供incremental MT标签构造方法；第11节Stage C提供target text↔audio↔semantic严格对齐方法；第13节级联runtime保留为oracle/上限对比。最终正式训练只执行本节定义的一个E2E student run，而不是把A、B、C optimizer顺序串接。
+
+### 27.2 为什么选择V1而不是V9作为初始化
+
+在固定free-running协议上，当前内容质量最好的Stage A是V1：
+
+| checkpoint | causal-full error | event-streaming error | 中文CER | 英文WER |
+|---|---:|---:|---:|---:|
+| V1 `iter_0000381` | 14.45% | 27.14% | 21.0112% | 35.3399% |
+| V9 `iter_0000381` | 24.86% | 43.84% | 34.7866% | 55.9389% |
+
+V9的CTC blank和codebook几何更健康，但真实内容明显更差，因此只作为anti-collapse研究证据，不作为最终student初始化。权威V1 compound checkpoint为：
+
+```text
+checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/
+  stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381
+```
+
+E2E student必须加载V1的完整compound状态，包括其Qwen、causal Whisper、bridge/adapter和词表几何。只抽取V1 Whisper、同时把Qwen替换回Phase3会失去V1已学到的声学表示解释方式，不能称为“从V1性能继续”。Phase3 v4 `iter_0009075`另加载为冻结teacher和exact replay来源，用于恢复/保护翻译和TTS能力。
+
+### 27.3 冻结参数、可训练参数与optimizer隔离
+
+首个正式E2E版本采用“冻结声学与codec、低学习率更新共享Qwen”的保守策略。
+
+#### 27.3.1 完全冻结
+
+| 模块/参数 | 来源 | 状态 | 原因 |
+|---|---|---:|---|
+| Causal Whisper conv/STFT/norm state | V1 | 冻结 | 保持已审计的streaming前端和cache语义 |
+| Whisper pre-VQ transformer layers | V1 | 冻结 | 防止联合MT/TTS梯度破坏声学表示 |
+| Whisper pooling/codebook/EMA/post-VQ | V1/WhisperVQ | 冻结 | 保持GLM离散几何 |
+| V1 code adapter与continuous/GLM bridge | V1 | 首轮冻结 | 保持V1声学hidden到Qwen输入空间的映射 |
+| V1 CTC head | V1 | 冻结，仅诊断 | 不让辅助CTC改变主AR内容路径 |
+| BiCodec encoder/decoder | 预训练 | 冻结 | 保持波形解码、token语义和音色条件 |
+| V1 teacher副本 | V1 | 冻结/stop-gradient | 提供same-prefix ASR posterior |
+| Phase3 teacher副本 | Phase3 v4 | 冻结/stop-gradient | 提供MT、semantic posterior和offline replay锚点 |
+
+#### 27.3.2 参与参数更新
+
+| 参数组 | 初始化 | max LR | 说明 |
+|---|---|---:|---|
+| 共享Qwen 24 transformer layers | V1 compound | `2e-6` | ASR、MT、semantic共用；第一轮禁止高于此值 |
+| tied embedding / lm_head | V1 compound | `5e-7` | 保护文本、GLM和BiCodec统一词表几何 |
+| 新增event/boundary confidence head | 新增 | `5e-5` | 判断fragment结束、空delta和final EOS |
+| 可选speaker-continuity adapter | 零初始化 | `1e-5` | 只在连续性监督真实存在时启用 |
+
+optimizer构造后必须机器检查：
+
+```text
+trainable_parameter_ids ∩ frozen_whisper_parameter_ids == ∅
+trainable_parameter_ids ∩ frozen_bridge_parameter_ids == ∅
+trainable_parameter_ids ∩ bicodec_parameter_ids == ∅
+trainable_parameter_ids ∩ teacher_parameter_ids == ∅
+```
+
+若低LR全参Qwen训练仍使ASR超过V1门，第二版不是继续降低ASR loss权重，而是冻结Qwen基础参数并增加按token-type路由的MT/semantic adapter；ASR token位置必须绕过新增adapter。该硬保护版本是fallback，不与首轮run混在一起。
+
+### 27.4 数据范围、复用资产与新版本目录
+
+首轮仍固定UniST `train-00000`--`train-00014`。不重新下载原始数据，不覆盖任何Phase3、Stage A或历史streaming资产。可直接复用：
+
+| 资产 | 复用方式 |
+|---|---|
+| UniST parquet中的`transcription`/`translation` | ASR/MT gold监督 |
+| `source_glm` | teacher、parity和Phase3 replay |
+| 已重建source PCM | Causal Whisper真实输入 |
+| `target_bicodec` | 目标semantic监督 |
+| `bicodec_global` | speaker条件 |
+| Stage A source时间与alignment artifact | source event和gold ASR prefix |
+| V1 checkpoint | noisy ASR rollout与student初始化 |
+| Phase3 Quality/Performance packed pool | exact replay，不修改历史样本 |
+
+必须新建版本化目录：
+
+```text
+data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/
+  manifests/
+  source_events/
+  v1_asr_rollouts/
+  source_target_alignment/
+  target_audio_alignment/
+  semantic_spans/
+  teacher_cache/
+  model_history_snapshots/
+  audits/
+
+data/megatron/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/
+  task_streaming_asr/
+  task_incremental_mt/
+  task_interleaved_s2st/
+  replay_phase3_quality/
+  replay_phase3_performance/
+  packed/
+
+experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/
+checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/
+runs/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/tensorboard/
+reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/
+```
+
+任何重新生成都写入新的`DATA_RUN_ID`子目录并保存manifest/SHA256；禁止覆盖同名trajectory、teacher cache、packed文件或checkpoint。
+
+### 27.5 为什么需要重新制作派生数据
+
+现有Phase3数据只提供“完整语音→完整转录/译文/semantic”；Stage A数据主要提供“PCM prefix→source ASR delta”；Stage B计划数据提供“source text delta→target text delta”。严格E2E训练需要在同一条时间轨迹中同时知道：
+
+```text
+当前可见source PCM
+↔ gold/V1 source text delta
+↔ 当前安全target text delta
+↔ 与该target text严格对应的target semantic span
+```
+
+因此必须新制作派生trajectory和Megatron packing，但不需要重新下载UniST，也不需要重新提取所有Phase3离线token。
+
+### 27.6 E2E trajectory权威schema
+
+每条样本至少包含：
+
+```json
+{
+  "schema_version": "uniss_phase3_v4_e2e_simuls2st_trajectory_v1",
+  "sample_id": "example_001",
+  "src_lang": "eng",
+  "tgt_lang": "cmn",
+  "source_audio": ".../example_001.flac",
+  "source_audio_sha256": "...",
+  "speaker_global": [1, 2, 3],
+  "full_transcription": "Good morning everyone",
+  "full_translation": "早上好，大家",
+  "target_semantic_length": 69,
+  "v1_checkpoint_sha256": "...",
+  "phase3_teacher_sha256": "...",
+  "events": [
+    {
+      "event_index": 0,
+      "source_start_ms": 0,
+      "source_end_ms": 640,
+      "source_pcm_start": 0,
+      "source_pcm_end": 10240,
+      "gold_source_delta": "Good morning",
+      "gold_source_prefix": "Good morning",
+      "v1_source_delta": "Good mourning",
+      "v1_source_prefix": "Good mourning",
+      "target_text_delta": "早上好",
+      "target_text_prefix": "早上好",
+      "target_semantic_start": 0,
+      "target_semantic_end": 36,
+      "target_semantic_delta": [101, 205, 38],
+      "source_final": false,
+      "target_final": false,
+      "alignment_confidence": 0.96,
+      "noise_severity": "minor_substitution"
+    },
+    {
+      "event_index": 1,
+      "source_start_ms": 640,
+      "source_end_ms": 1440,
+      "source_pcm_start": 10240,
+      "source_pcm_end": 23040,
+      "gold_source_delta": "everyone",
+      "gold_source_prefix": "Good morning everyone",
+      "v1_source_delta": "everyone",
+      "v1_source_prefix": "Good mourning everyone",
+      "target_text_delta": "，大家",
+      "target_text_prefix": "早上好，大家",
+      "target_semantic_start": 36,
+      "target_semantic_end": 69,
+      "target_semantic_delta": [72, 91, 114],
+      "source_final": true,
+      "target_final": true,
+      "alignment_confidence": 0.94,
+      "noise_severity": "minor_substitution"
+    }
+  ]
+}
+```
+
+实际`target_semantic_delta`必须保存完整span，上例数组仅为格式示意。PCM offset、毫秒时间、semantic index和token计数必须互相可验证。
+
+### 27.7 数据制作完整顺序
+
+#### 27.7.1 固定split与源PCM审计
+
+1. 冻结15-shard train/validation ID清单；
+2. 验证ID无交集、方向分布、语言和时长；
+3. 验证source PCM可读、采样率一致、无NaN/Inf；
+4. 记录原parquet、PCM、transcription、translation和token字段SHA256；
+5. 复用Stage A已审计的causal STFT/normalization/chunk定义。
+
+#### 27.7.2 构造gold source事件
+
+使用可靠source word/phone timestamp或现有Stage A alignment，把转录映射到source audio prefix。每个事件只包含`source_end_ms`之前已被完整声学支持的文本；禁止按整句字符比例猜测。无可靠alignment的样本可用于Phase3 replay，但不能进入严格E2E trajectory主池。
+
+#### 27.7.3 生成V1 free-running ASR rollout
+
+冻结V1，以正式append-only event runtime在8 GPU上对所有trajectory运行，保存：
+
+- 每个event的visible source end time；
+- generated source delta/prefix；
+- token IDs、stop状态、language ID；
+- empty/final-only/rollback；
+- checkpoint、runtime和normalization SHA256；
+- 与gold的event级CER/WER和`noise_severity`。
+
+不能使用teacher-forced V1输出代替free-running rollout。结构无法解析的样本单独隔离；内容错误样本保留并分层，不能只删除困难样本美化B1/E2E结果。
+
+#### 27.7.4 构造source↔target安全文本prefix
+
+1. 运行双语word alignment；
+2. 对每个source prefix确定已满足全部源依赖的target词；
+3. 冻结Phase3 teacher对相邻2--3个相同source prefix生成候选；
+4. 取相邻候选的稳定LCP；
+5. 强制`target_prefix[t-1]`是`target_prefix[t]`的前缀；
+6. 最终事件使用完整人工translation收尾；
+7. 无新增安全target内容时显式保存空delta，不强制WRITE文本。
+
+Teacher只能看到与student相同的source prefix，禁止完整句teacher向早期事件泄漏未来译文。
+
+#### 27.7.5 构造target text↔audio↔semantic对齐
+
+优先使用已有可靠target word timestamp。若不存在：
+
+```text
+target_bicodec + bicodec_global
+  → 冻结BiCodec解码target WAV
+  → translation与target WAV做language-specific forced alignment
+  → target word/phrase timestamp
+  → 映射到50 Hz target semantic span
+```
+
+映射公式：
+
+\[
+s_i=\left\lfloor 50t_i^{start}/1000\right\rfloor,
+\qquad
+e_i=\left\lceil 50t_i^{end}/1000\right\rceil.
+\]
+
+边界统一修整后必须满足：
+
+```text
+semantic_start[0] == 0
+semantic_end[i] == semantic_start[i+1]
+semantic_end[last] == len(target_bicodec)
+gap == 0
+overlap == 0
+concat(all semantic deltas) == full target_bicodec
+```
+
+禁止按字符数、源/目标长度比例或event数量平均切semantic。alignment coverage/置信度不达门的样本只能进入full Phase3 replay，不能进入interleaved semantic主任务。
+
+#### 27.7.6 构造teacher posterior cache
+
+预计算并版本化：
+
+| cache | 条件 | 监督 |
+|---|---|---|
+| V1 ASR top-k | 相同source PCM prefix与相同event history | source ASR delta posterior |
+| Phase3 MT top-k | 相同committed source prefix | target text delta posterior |
+| Phase3 semantic top-k | 当前target text prefix、speaker和已提交semantic history | target semantic posterior |
+
+每行保存teacher checkpoint SHA256、event ID、visible prefix、top-k token/probability、mask和denominator。任何active teacher loss在一个validation interval内denominator为0都必须fail-fast。
+
+#### 27.7.7 Megatron任务构造与严格全局shuffle
+
+生成五个不可变task family pool，再使用与Phase3 v4同类的deterministic synchronized sampler和全局shuffle。所有rank在同一global step选择同一family；packing保持`seq_length=18000`、正确`cu_seqlens`、position reset和loss mask。每个coverage epoch保存shuffle permutation、sampler RNG和family consumption count。
+
+### 27.8 最终训练任务与采样比例
+
+| task family | 稳态比例 | 输入 | 目标/作用 |
+|---|---:|---|---|
+| `streaming_asr_event` | 25% | source PCM event + causal cache | source ASR delta；保护V1内容能力 |
+| `incremental_mt_event` | 20% | committed source delta/prefix | target text delta；学习不可回滚MT |
+| `interleaved_e2e_s2st` | 30% | source PCM event +共享历史 | ASR delta + MT delta + semantic delta；主E2E任务 |
+| `phase3_quality_replay` | 15% | 原始Quality prompt | transcription + translation + semantic；恢复完整链质量 |
+| `phase3_performance_replay` | 10% | 原始Performance prompt | translation + semantic；保护快速离线能力 |
+
+以上比例是global-step family概率，不是把所有token拼起来后自然按长度加权。Quality/Performance的semantic token很长，必须在family内归一化，不能让其token数量改变25/20/30/15/10的有效任务比例。
+
+### 27.9 单一共享Qwen的事件grammar与loss mask
+
+主interleaved序列：
+
+```text
+TASK_SIMUL_S2ST, target_language, speaker_condition,
+READ_AUDIO, source_language, START_ACOUSTIC, source_acoustic_delta_1, END_ACOUSTIC,
+WRITE_ASR, source_language, START_CONTENT, source_text_delta_1, END_CONTENT,
+WRITE_MT, target_language, START_CONTENT, target_text_delta_1, END_CONTENT,
+WRITE_SEMANTIC, target_language, START_SEMANTIC, target_semantic_delta_1, END_SEMANTIC,
+READ_AUDIO, ... delta_2 ...,
+...
+SOURCE_FINAL,
+WRITE_ASR, ... final source delta ...,
+WRITE_MT, ... final target text delta ...,
+WRITE_SEMANTIC, ... final semantic delta ...,
+EOS
+```
+
+训练mask：
+
+| span | CE mask | token type |
+|---|---:|---|
+| runtime输入的source acoustic delta | 0 | condition |
+| 已提交的历史ASR/MT/semantic | 0 | persistent condition |
+| 当前source ASR delta | 1 | `asr_ce` |
+| 当前target text delta | 1 | `mt_ce` |
+| 当前target semantic delta | 1 | `semantic_ce` |
+| 当前fragment边界 | 1 | `boundary_ce` |
+| 非最终事件EOS | 不存在 | hard error |
+| 最终EOS | 1 | `eos_ce` |
+| 未来未被支持的文本/semantic | 不存在 | hard future-leak error |
+
+同一个Qwen forward输出统一词表logits，但ASR、MT和semantic token分别归一化loss，避免8192-way长semantic序列淹没文本梯度。
+
+### 27.10 最终推荐Loss
+
+\[
+\boxed{
+\begin{aligned}
+\mathcal L_{E2E}={}&
+1.00\mathcal L_{streaming\ ASR\ delta\ CE}
++1.00\mathcal L_{incremental\ MT\ delta\ CE}\\
+&+1.00\mathcal L_{target\ semantic\ delta\ CE}
++0.50\mathcal L_{Phase3\ Q/P\ replay}\\
+&+0.30\mathcal L_{V1\ same\text{-}prefix\ ASR\ KL}
++0.25\mathcal L_{Phase3\ MT/semantic\ KL}\\
+&+0.20\mathcal L_{commit\ consistency}
++0.10\mathcal L_{boundary/EOS}\\
+&+0.10\mathcal L_{speaker/continuity}.
+\end{aligned}
+}
+\]
+
+| loss | 作用 | 实现边界 |
+|---|---|---|
+| streaming ASR delta CE | 保持/训练真实event source转录 | 只监督当前audio prefix支持的source delta |
+| incremental MT delta CE | 将committed source增量翻译为target delta | 只监督当前safe target prefix新增部分 |
+| semantic delta CE | 直接产生可解码目标语音token | 只使用严格text↔audio↔semantic对齐span |
+| Phase3 Q/P replay | 保护原ASR→MT→semantic与direct路径 | 历史prompt/mask原样复用，family内归一化 |
+| V1 ASR KL | 防止共享Qwen更新后ASR偏离V1 | V1与student看相同PCM prefix/history |
+| Phase3 MT/semantic KL | 恢复V1可能损失的翻译/TTS先验 | 不蒸馏当前prefix尚不支持的未来token |
+| commit consistency | 已输出ASR/MT/semantic不可回改 | stop-gradient旧prefix分支 + 数据级前缀审计 |
+| boundary/EOS | 学会空delta、fragment停止和最终完成 | 类别均衡，禁止永不WRITE/过早EOS |
+| speaker/continuity | 跨fragment音色和声学状态连续 | 无真实连续监督时权重置0并fail-open记录，不伪造标签 |
+
+最终optimizer只反向传播一个scalar，但每项必须单独记录numerator、denominator、有效token和梯度范数。禁止只报告一个total loss。
+
+### 27.11 Model-generated history与单run curriculum
+
+一个formal run内部使用curriculum，不重新初始化checkpoint：
+
+| coverage进度 | family重点 | chunk | 模型生成历史 | 可训练参数 |
+|---|---|---|---|---|
+| 0%--10% | ASR 40%、Phase3 replay 40%、E2E 20% | 1280/960ms | 0% | Qwen低LR，其他冻结 |
+| 10%--35% | ASR/MT/E2E逐步平衡 | 960/640ms | 10% target/semantic history | 同上 |
+| 35%--70% | 稳态25/20/30/15/10 | 640/320ms | 25% ASR/MT history | 同上 |
+| 70%--100% | 稳态比例、长event、真实V1噪声 | 320/160ms | 40% ASR/MT、20% semantic history | 同上 |
+
+模型生成历史只替换下一event的历史条件，当前event的gold/teacher delta仍是监督目标；禁止把模型错误输出直接当成正确label。rollout snapshot必须版本化，记录generator checkpoint、seed、temperature/top-p和accepted/rejected token。teacher-forced和free-running validation必须在整个run内同时执行。
+
+### 27.12 Megatron正式训练几何
+
+```text
+framework          = native Megatron GPTModel + frozen compound frontend
+GPUs               = 8 × H200
+TP / PP             = 1 / 1
+sequence length    = 18000
+micro batch         = 1（首个compound版本）
+global batch        = 128
+gradient accumulate = 16 rank-equivalent microsteps/global update
+precision           = BF16
+optimizer           = AdamW, betas 0.9/0.95
+weight decay        = 0.1（norm/bias除外）
+clip grad           = 0.5
+Qwen max LR         = 2e-6
+embedding/head LR   = 5e-7
+schedule            = cosine
+warmup              = max(20, ceil(0.03 * total_updates))
+coverage            = 3 complete primary-trajectory coverage epochs
+shuffle             = strict global shuffle, fixed seed, saved sampler state
+save/eval           = 每50 updates；末尾额外完整validation
+```
+
+`total_updates`必须由最终E2E primary packed count和GBS=128自动计算，不能复制V1的381或Phase3的9075。三个coverage epoch指每条合格primary trajectory按确定性schedule覆盖三次，不等同于每个原始raw row或每个event恰好只出现三次。Phase3 replay按预注册比例确定性采样。
+
+MBS=2只有在2步数值parity、峰值显存、loss denominator和free-running smoke完全一致后才能启用。GPU利用率通过音频cache、并行CPU处理、prefetch、pinned memory、异步teacher cache和减少Python dispatch提高；禁止运行无关synthetic workload或改变任务比例。
+
+### 27.13 训练前数据硬门
+
+| 数据检查 | 要求 |
+|---|---:|
+| train/validation ID交集 | 0 |
+| source PCM可读/有限值 | 100% |
+| source event时间严格单调 | 100% |
+| source PCM offset与毫秒一致 | 100% |
+| gold source prefix rollback | 0 |
+| target text prefix rollback | 0 |
+| final target text coverage | 100% |
+| semantic gap/overlap | 0/0 |
+| final semantic coverage | 100% |
+| concat semantic deltas | 精确等于原`target_bicodec` |
+| non-final EOS | 0 |
+| future source/target leakage | 0 |
+| speaker条件未来泄漏 | 0 |
+| teacher same-prefix一致 | 100% |
+| Phase3 replay SHA256 | 与历史资产一致 |
+| active teacher denominator | 全部>0 |
+
+任一硬门失败，不允许启动8卡formal训练。
+
+### 27.14 Validation设计
+
+每个候选checkpoint必须运行六条相互隔离的验证链：
+
+| 路径 | 输入/执行 | 判断内容 |
+|---|---|---|
+| `A0` | 固定PCM → 冻结V1 teacher | 当前ASR锚点 |
+| `E-ASR` | 固定PCM → E2E student ASR event | 共享Qwen是否破坏V1 ASR |
+| `P3-Q/P` | matching Phase3 Quality/Performance | offline能力保留 |
+| `E-MT-gold` | gold source commits → student MT | 排除ASR错误后的增量翻译上限 |
+| `E-MT-free` | student free-running ASR commits → student MT | 真正ASR→MT文本链 |
+| `E-S2S-free` | PCM → student ASR/MT/semantic → BiCodec PCM | 最终end-to-end simultaneous S2ST |
+
+Validation必须分teacher-forced和真实free-running两类，二者不能合并成一个平均值。
+
+#### 27.14.1 ASR指标
+
+- 中文CER、英文WER；
+- causal-full与event-streaming分别报告；
+- empty/final-only、event stop、source rollback；
+- first source WRITE；
+- chunk分层160/320/640/1280ms；
+- cached/full parity、future perturbation和cache growth。
+
+#### 27.14.2 翻译指标
+
+- Text-BLEU、chrF、COMET（可用时）；
+- final target coverage、欠译、重复、跨语言率；
+- target rollback、empty delta、target delta/event；
+- first target WRITE、AL、LAAL、ATD；
+- gold-ASR与free-running-ASR输入分开报告。
+
+#### 27.14.3 语音指标
+
+- ASR-BLEU/ASR-chrF（对生成目标语音重新ASR）；
+- speaker similarity/SLC、AutoPCP；
+- semantic UER、重复码率、静音占比；
+- PESQ/STOI仅在协议适用时报告；
+- fragment boundary discontinuity、点击/爆音、音色漂移；
+- first semantic WRITE、first target PCM、RTF和audio backlog；
+- 30秒、1分钟、5分钟session稳定性。
+
+#### 27.14.4 Oracle ablation
+
+至少运行：
+
+```text
+gold source text → student MT/semantic
+V1 source text → student MT/semantic
+gold target text → student semantic
+gold target semantic → BiCodec
+full student free-running
+```
+
+用于区分ASR、MT、semantic generator和codec各自造成的损失。
+
+### 27.15 Checkpoint选择硬门
+
+任何checkpoint只有全部通过下列门，才允许标记`SELECTED_E2E_CHECKPOINT.json`：
+
+| 类别 | 硬门 |
+|---|---|
+| V1 ASR保持 | matching中文CER `<=21.0112%`、英文WER `<=35.3399%` |
+| ASR结构 | empty=0、final-only=0、source rollback=0 |
+| cached runtime | full/cached top-1 parity=100%，future perturbation=0 |
+| Gold incremental MT | BLEU与chrF相对matching Phase3均保留`>=95%` |
+| target完整性 | rollback=0、coverage `>=98%`、non-final EOS=0 |
+| semantic完整性 | 无系统性静音/重复，coverage=100%，无非法token |
+| speech content | 生成音频ASR结果无批量通用短句、跨语言或循环 |
+| simultaneous validity | source EOS前出现非空target text和非静音target PCM |
+| runtime | 无完整历史重算；cache/backlog有界；5分钟不泄漏状态 |
+| reporting | teacher-forced/free-running、gold/noisy和oracle结果全部存在 |
+
+延迟分两级：第一轮有效门是pre-source-EOS target PCM；优化目标为真实wall-clock first target PCM `p50<1s`、`p95<1.5s`。未达到优化目标时可以作为内容正确的E2E baseline，但不能宣称亚秒业务系统。
+
+不能按最低total loss选择checkpoint。若ASR、MT或语音任一硬门失败，即使另两项显著改善也不得选中。
+
+### 27.16 正式执行顺序
+
+1. 新建第27.4节所有隔离目录和schema；
+2. 固定15-shard split、source PCM和Phase3 replay manifest；
+3. 生成gold source event；
+4. 用冻结V1运行全量free-running ASR rollout；
+5. 构造source↔target安全prefix；
+6. 解码/对齐target audio并构造严格semantic span；
+7. 生成V1/Phase3 top-k teacher cache；
+8. 运行全部数据硬门；
+9. 构造五个task family和严格全局shuffle pack；
+10. 运行CPU单元测试与1个样本可视化审计；
+11. 运行1--2步8卡Megatron smoke，检查forward/backward/denominator；
+12. 运行短canary，必须覆盖一次chunk变化和一次model-generated history；
+13. canary执行E-ASR、E-MT-gold和小规模E-S2S-free；
+14. canary门通过后，从V1 compound重新启动正式3-coverage-epoch run；
+15. 每50步保存、teacher-forced validation；候选点运行固定free-running subset；
+16. 训练完成后执行完整六链validation和oracle ablation；
+17. 写`E2E_GATE.json`、逐指标报告、TensorBoard索引和音频试听目录；
+18. 只有全部硬门通过才导出单一E2E inference bundle和Gradio runtime。
+
+### 27.17 必须实现的测试
+
+#### 数据与packing
+
+- event时间/PCM offset/semantic index property test；
+- target delta拼接和semantic delta拼接精确恢复完整目标；
+- future leakage随机扰动测试；
+- 五task family采样比例和rank同步测试；
+- Phase3 replay字节/SHA256不变测试；
+- loss mask token-type覆盖测试；
+- resume后shuffle和family consumption完全一致测试。
+
+#### 模型与参数
+
+- V1 compound加载完整性；
+- frozen parameter在optimizer中不存在；
+-一次optimizer step后所有冻结参数bitwise不变；
+- ASR/MT/semantic loss denominator均非0；
+- semantic token不能出现在ASR/MT span；
+- teacher branch无梯度；
+- full/cached event logits parity；
+- speculative branch拒绝后main cache不变。
+
+#### Runtime与音频
+
+- source PCM逐chunk到达，不允许预读文件尾；
+- target text/semantic commit不可回滚；
+- stateful BiCodec fragment拼接无reset；
+- 30秒/1分钟/5分钟内存、cache、RTF和backlog测试；
+- session reset后无前一说话人或token泄漏；
+- 禁止offline full-utterance fallback和强制伪WRITE。
+
+### 27.18 TensorBoard与报告
+
+至少记录：
+
+```text
+train/asr_delta_ce
+train/mt_delta_ce
+train/semantic_delta_ce
+train/phase3_replay_ce
+train/v1_asr_kl
+train/phase3_mt_semantic_kl
+train/commit_consistency
+train/boundary_eos
+train/speaker_continuity
+train/family_id
+train/chunk_ms
+train/model_history_ratio
+
+valid_tf/*
+valid_free/asr_cer_zh
+valid_free/asr_wer_en
+valid_free/mt_bleu
+valid_free/mt_chrf
+valid_free/target_coverage
+valid_free/source_rollback
+valid_free/target_rollback
+valid_free/semantic_silence_ratio
+valid_free/speaker_similarity
+valid_free/first_source_write_ms
+valid_free/first_target_write_ms
+valid_free/first_semantic_ms
+valid_free/first_pcm_ms
+valid_free/rtf
+valid_free/audio_backlog_ms
+```
+
+报告必须同时给出V1、Phase3、级联A→B→C oracle和单模型E2E student，不允许只报告新模型自身loss。
+
+### 27.19 失败停止条件与下一版修复顺序
+
+立即停止formal或不再扩展epoch的条件：
+
+- ASR CER/WER超过V1且一个curriculum区间内继续恶化；
+- teacher-forced改善而free-running持续恶化；
+- 任一active loss denominator为0；
+- target/semantic rollback非0；
+- semantic出现批量静音、通用循环或跨语言；
+- Phase3 replay能力快速下降；
+- cached/full parity失败或未来扰动改变已提交输出；
+- 训练数据semantic gap/overlap或future leakage非0；
+- 长session cache无界或RTF/backlog持续增长。
+
+修复顺序：
+
+1. 先排数据alignment和loss mask；
+2. 再排full/cached runtime与event grammar；
+3. 再调整model-generated history比例；
+4. 再提高V1/Phase3 teacher约束；
+5. 若ASR仍退化，冻结Qwen base并启用MT/semantic task adapter；
+6. 只有内容与runtime都正确后，才优化chunk、semantic microblock和亚秒延迟。
+
+不得首先通过增加epoch、提高GPU功率、提高semantic loss或强制WRITE掩盖结构错误。
+
+### 27.20 最终验收定义
+
+本计划完成的最低定义是：
+
+```text
+一个E2E checkpoint bundle
++ 一个真实逐PCM chunk的inference runtime
++ 一个冻结Stateful BiCodec decoder
++ source EOS前产生正确target text和非静音target PCM
++ ASR不劣于V1固定门
++ gold增量MT保留Phase3至少95%
++ target/semantic rollback为0
++ 5分钟session状态有界
++ 完整报告、音频和TensorBoard证据
+```
+
+只训练ASR CE和incremental MT CE不算完成，因为那仍是speech-to-text translation；只有target semantic delta和真实PCM也进入同一free-running事件链，才能声明end-to-end simultaneous speech-to-speech translation。

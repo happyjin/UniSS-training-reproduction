@@ -16,6 +16,72 @@ from web_demo.streaming_s2st_r2_v1.session_manager import SessionRegistry
 
 from .config import StudentV2StreamingConfig
 from .engine import StudentV2StreamingEngine
+from .long_segmented import AdaptiveLongAudioRunner
+
+
+def verified_audio_root() -> Path:
+    configured = os.environ.get("UNISS_STUDENT_V2_VERIFIED_AUDIO_ROOT")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    user_root = Path(os.environ.get("HOME", "/opt/dlami/nvme/jasonleeeli"))
+    return (
+        user_root
+        / "data/student_v2_long_demo_v1/"
+        "evaluation_prefix30/completed_audio"
+    ).resolve()
+
+
+def verified_audio_samples() -> list[tuple[str, Path]]:
+    root = verified_audio_root()
+    names = (
+        ("Helen Keller · 30秒 · EN→ZH", "english_helen_keller_part03"),
+        ("Shimon Peres · 30秒 · EN→ZH", "english_shimon_peres_interview"),
+    )
+    values: list[tuple[str, Path]] = []
+    for label, directory in names:
+        sample = root / directory
+        required = (
+            sample / "source_16k.wav",
+            sample / "translation.wav",
+            sample / "aligned_stereo.wav",
+        )
+        if all(path.is_file() for path in required):
+            values.append((label, sample))
+    return values
+
+
+def segmented_long_upload_request(audio_path: str | None, direction: str):
+    if not audio_path:
+        raise gr.Error("请先上传长音频")
+    if legacy.ENGINE is None:
+        raise gr.Error("Student-v2 engine 尚未初始化")
+    runner = AdaptiveLongAudioRunner(
+        legacy.ENGINE,
+        base_segment_seconds=15.0,
+        minimum_segment_seconds=3.75,
+    )
+    try:
+        for update in runner.run(audio_path, direction=direction):
+            if update.result is None:
+                yield ("", None, None, None, None, f"{update.status}  \n进度：{update.progress:.1%}")
+                continue
+            result = update.result
+            yield (
+                result.translation,
+                result.timeline_audio_path,
+                result.aligned_stereo_path,
+                result.translation_audio_path,
+                result.result_json_path,
+                (
+                    f"**分段长音频完成** · 源音频 {result.source_duration_seconds:.1f}s · "
+                    f"总处理 {result.total_seconds:.1f}s  \n"
+                    f"成功子段={result.completed_segments} · 失败子段={result.failed_segments} · "
+                    f"Phase3 fallback子段={result.fallback_segments}  \n"
+                    "这是15秒自适应分段恢复模式，不等同于连续低延迟同传。"
+                ),
+            )
+    except Exception as exc:
+        raise gr.Error(f"长音频分段推理失败：{type(exc).__name__}: {exc}") from exc
 
 
 def format_student_final_status(result) -> str:
@@ -174,6 +240,90 @@ def build_demo(
             )
             sync_button.click(fn=None, js=sync_js)
 
+        with gr.Tab("长音频修复 / Adaptive segmented"):
+            gr.Markdown(
+                "完整5–7分钟单次上下文会发生semantic collapse。此入口固定按15秒切分；"
+                "失败窗口自动二分到7.5/3.75秒；目标语音按可用时间顺序排队，避免重叠。"
+                "它用于生成可播放的完整长音频，不宣称是连续低延迟同传。"
+            )
+            with gr.Row():
+                with gr.Column():
+                    long_source = gr.Audio(
+                        label="长源音频（最长由服务端600秒限制控制）",
+                        sources=["upload"],
+                        type="filepath",
+                        format=None,
+                    )
+                    long_direction = gr.Radio(
+                        ["中文 → 英文", "英文 → 中文"],
+                        value="英文 → 中文",
+                        label="翻译方向",
+                    )
+                    long_button = gr.Button("开始15秒自适应分段生成", variant="primary")
+                    long_status = gr.Markdown("等待上传长音频。")
+                with gr.Column():
+                    long_translation = gr.Textbox(
+                        label="分段翻译文本", lines=10, interactive=False
+                    )
+                    long_timeline = gr.Audio(
+                        label="目标语音时间线（含等待静音）",
+                        type="filepath",
+                        interactive=False,
+                        show_download_button=True,
+                    )
+                    long_stereo = gr.Audio(
+                        label="双声道长音频（左源/右译）",
+                        type="filepath",
+                        interactive=False,
+                        show_download_button=True,
+                    )
+            with gr.Row():
+                long_raw = gr.File(label="连续目标语音 WAV")
+                long_json = gr.File(label="分段明细与指标 JSON")
+            long_button.click(
+                segmented_long_upload_request,
+                inputs=[long_source, long_direction],
+                outputs=[
+                    long_translation,
+                    long_timeline,
+                    long_stereo,
+                    long_raw,
+                    long_json,
+                    long_status,
+                ],
+                concurrency_limit=1,
+                api_name="segment_long_audio_student_v2",
+            )
+
+        with gr.Tab("已验证试听 / Verified examples"):
+            samples = verified_audio_samples()
+            if not samples:
+                gr.Markdown("当前服务器未找到固定试听样例。")
+            for label, sample in samples:
+                gr.Markdown(f"### {label}")
+                gr.Markdown(
+                    "连续翻译播放器从0秒即可听；双声道播放器的右声道在fallback可用前保持静音。"
+                )
+                with gr.Row():
+                    gr.Audio(
+                        value=str(sample / "source_16k.wav"),
+                        label="源音频",
+                        interactive=False,
+                        show_download_button=True,
+                    )
+                    gr.Audio(
+                        value=str(sample / "translation.wav"),
+                        label="连续翻译音频（推荐先听这个）",
+                        interactive=False,
+                        show_download_button=True,
+                    )
+                    gr.Audio(
+                        value=str(sample / "aligned_stereo.wav"),
+                        label="双声道延迟对比（左源/右译）",
+                        interactive=False,
+                        show_download_button=True,
+                    )
+
         with gr.Tab("麦克风 / True causal frontend"):
             mic_session_id = gr.State(None)
             mic_trace = gr.State([])
@@ -324,13 +474,17 @@ def launch(argv: list[str] | None = None) -> tuple[str, str | None]:
         default_concurrency_limit=1,
         max_size=config.queue_max_size,
     )
+    allowed_paths = [str(config.output_root.resolve())]
+    sample_root = verified_audio_root()
+    if sample_root.is_dir():
+        allowed_paths.append(str(sample_root))
     launched = demo.launch(
         server_name=args.host,
         server_port=args.port,
         share=args.share,
         auth=None,
         prevent_thread_lock=True,
-        allowed_paths=[str(config.output_root.resolve())],
+        allowed_paths=allowed_paths,
         blocked_paths=[
             str((config.repo_root / "checkpoints").resolve()),
             str((config.repo_root / "data").resolve()),

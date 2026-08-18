@@ -1,0 +1,63 @@
+{
+  "groups": {
+    "exact_runtime:cmn->eng": {
+      "bp": 3.873997628687187e-21,
+      "counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "precisions": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 0.0,
+      "sys_len": 2,
+      "tokenizer": "13a",
+      "totals": [
+        2,
+        1,
+        0,
+        0
+      ]
+    },
+    "exact_runtime:eng->cmn": {
+      "bp": 6.914400106940203e-13,
+      "counts": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "precisions": [
+        33.333333333333336,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 0.0,
+      "sys_len": 3,
+      "tokenizer": "zh",
+      "totals": [
+        3,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "hypothesis_field": "generated_translation",
+  "input_count": 8,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": true,
+  "scored_count": 8,
+  "skipped": [],
+  "skipped_count": 0
+}

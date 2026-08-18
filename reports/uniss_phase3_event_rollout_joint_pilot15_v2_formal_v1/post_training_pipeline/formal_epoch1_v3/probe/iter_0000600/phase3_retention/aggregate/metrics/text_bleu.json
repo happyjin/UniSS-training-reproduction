@@ -1,0 +1,115 @@
+{
+  "groups": {
+    "phase3_v4:cmn->eng": {
+      "bp": 0.9355069850316178,
+      "counts": [
+        59,
+        34,
+        14,
+        4
+      ],
+      "precisions": [
+        65.55555555555556,
+        39.53488372093023,
+        17.073170731707318,
+        5.128205128205129
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 20.41805735943801,
+      "sys_len": 90,
+      "tokenizer": "13a",
+      "totals": [
+        90,
+        86,
+        82,
+        78
+      ]
+    },
+    "phase3_v4:eng->cmn": {
+      "bp": 1.0,
+      "counts": [
+        72,
+        58,
+        48,
+        39
+      ],
+      "precisions": [
+        82.75862068965517,
+        69.87951807228916,
+        60.75949367088607,
+        52.0
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 65.38003649698307,
+      "sys_len": 87,
+      "tokenizer": "zh",
+      "totals": [
+        87,
+        83,
+        79,
+        75
+      ]
+    },
+    "streaming_adapter:cmn->eng": {
+      "bp": 0.3985190410845142,
+      "counts": [
+        14,
+        0,
+        0,
+        0
+      ],
+      "precisions": [
+        28.0,
+        1.0869565217391304,
+        0.5952380952380952,
+        0.32894736842105265
+      ],
+      "ref_len": 96,
+      "sample_count": 4,
+      "score": 0.6226527511136343,
+      "sys_len": 50,
+      "tokenizer": "13a",
+      "totals": [
+        50,
+        46,
+        42,
+        38
+      ]
+    },
+    "streaming_adapter:eng->cmn": {
+      "bp": 0.6529664637665595,
+      "counts": [
+        41,
+        25,
+        15,
+        9
+      ],
+      "precisions": [
+        67.21311475409836,
+        43.85964912280702,
+        28.30188679245283,
+        18.367346938775512
+      ],
+      "ref_len": 87,
+      "sample_count": 4,
+      "score": 22.973973985480253,
+      "sys_len": 61,
+      "tokenizer": "zh",
+      "totals": [
+        61,
+        57,
+        53,
+        49
+      ]
+    }
+  },
+  "hypothesis_field": "generated_translation",
+  "input_count": 16,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": true,
+  "scored_count": 16,
+  "skipped": [],
+  "skipped_count": 0
+}

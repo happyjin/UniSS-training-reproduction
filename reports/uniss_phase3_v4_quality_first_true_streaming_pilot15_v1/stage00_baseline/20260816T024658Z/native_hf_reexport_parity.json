@@ -1,0 +1,30 @@
+{
+  "canonical_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "checks": {
+    "all_exported_tensors_exact": true,
+    "fixed_prompt_logits_cosine_ge_0p999999": true,
+    "fixed_prompt_top1_exact": true
+  },
+  "fixed_prompt_output": {
+    "canonical_top1": 103942,
+    "logits_cosine": 1.0,
+    "maximum_absolute_logit_error": 0.0,
+    "prompt_tokens": 145,
+    "reexported_top1": 103942,
+    "sample_id": "emilia_zh_0005281608",
+    "top1_exact": true
+  },
+  "passed": true,
+  "reexported_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_native_reexport_20260816T024658Z",
+  "schema_version": "uniss_stage00_native_hf_reexport_parity_v1",
+  "weights": {
+    "all_tensors_exact": true,
+    "canonical_tensors": 290,
+    "common_tensors": 290,
+    "exact_tensors": 290,
+    "extra_in_reexport": [],
+    "maximum_absolute_weight_error": 0.0,
+    "missing_from_reexport": [],
+    "reexported_tensors": 290
+  }
+}

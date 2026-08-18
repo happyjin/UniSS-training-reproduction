@@ -1,0 +1,18 @@
+{
+  "schema_version": "uniss_event_rollout_fixed15_phase3_retention_v1",
+  "formal_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/post_training_pipeline/formal_epoch1_v3/probe/iter_0000650/phase3_retention/manifests/valid_balanced8/part-005.jsonl",
+  "runtime_export": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_event_rollout_joint_pilot15_v2_formal_v1/runtime_exports/iter_0000650",
+  "systems": [
+    "phase3_v4",
+    "streaming_adapter"
+  ],
+  "samples_per_system": 1,
+  "result_rows": 2,
+  "protocol": {
+    "task": "phase3_performance_offline_s2st",
+    "decoding": "deterministic_greedy",
+    "maximum_new_tokens": 1500,
+    "repetition_penalty": 1.1,
+    "paired_sample_ids": true
+  }
+}

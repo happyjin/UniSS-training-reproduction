@@ -1,0 +1,75 @@
+{
+  "checks": {
+    "export_points_to_native_9075": true,
+    "hf_cache_enabled": true,
+    "hf_heads_14_kv2": true,
+    "hf_hidden_896": true,
+    "hf_layers_24": true,
+    "hf_model_sha_matches_manifest": true,
+    "hf_vocab_180480": true,
+    "native_has_eight_distcp_shards": true,
+    "native_iteration_is_9075": true,
+    "whisper_causal_convolution": true,
+    "whisper_pool_and_quantize_at_16": true
+  },
+  "hf_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "hf_config_sha256": "b94ccc885771a405d2ac945452ca79a40f71188f69d1bbd820f5bc61381db358",
+  "hf_export_manifest": {
+    "config_sha256": "b94ccc885771a405d2ac945452ca79a40f71188f69d1bbd820f5bc61381db358",
+    "model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+    "padding_token_rows": 73,
+    "source_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075",
+    "tokenizer_size": 180407,
+    "vocab_size": 180480,
+    "weight_files": [
+      {
+        "name": "model.safetensors",
+        "sha256": "bcb457d6e144d69ad13c4674d2dc6249223aa25a2b9749ac54a6ecc056ec79f6",
+        "size": 1039248688
+      }
+    ]
+  },
+  "hf_model_sha256": "bcb457d6e144d69ad13c4674d2dc6249223aa25a2b9749ac54a6ecc056ec79f6",
+  "native_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075",
+  "native_dist_metadata_sha256": "9acd5989ee56d8ab69eefd0a5f3226eeec0a89379a5dd731e656bb0ed1f0768e",
+  "native_metadata_sha256": "56b32e2dfbc0255db319bddf6880c9dfd3475135ca8d5ace23b8a6a384ed63c6",
+  "native_shards": [
+    {
+      "name": "__0_0.distcp",
+      "size": 909061444
+    },
+    {
+      "name": "__1_0.distcp",
+      "size": 909754908
+    },
+    {
+      "name": "__2_0.distcp",
+      "size": 909754908
+    },
+    {
+      "name": "__3_0.distcp",
+      "size": 909088020
+    },
+    {
+      "name": "__4_0.distcp",
+      "size": 909795028
+    },
+    {
+      "name": "__5_0.distcp",
+      "size": 909796208
+    },
+    {
+      "name": "__6_0.distcp",
+      "size": 909006856
+    },
+    {
+      "name": "__7_0.distcp",
+      "size": 909338636
+    }
+  ],
+  "passed": true,
+  "schema_version": "uniss_stage00_canonical_artifact_audit_v1",
+  "whisper_config_sha256": "5a5181fcc293ced0a1e7455f6e3503ce4e8be9229922ea34aeb785f62720c0aa",
+  "whisper_effective_pre_vq_layers": 16,
+  "whispervq_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS/glm4_tokenizer"
+}
