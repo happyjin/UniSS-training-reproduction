@@ -139,7 +139,8 @@ def _speech_embeddings(objective, frontend, qwen, trajectory: E2ETrajectory) -> 
     waveform = stage_a_eval.load_waveform(trajectory.source_audio)
     cached = run_cached_frontend(frontend, waveform.numpy())
     device = next(objective.parameters()).device
-    hidden = cached.hidden[0].to(device)
+    bridge_dtype = objective.bridge_norm.weight.dtype
+    hidden = cached.hidden[0].to(device=device, dtype=bridge_dtype)
     if len(hidden) + 1 == trajectory.source_glm_length:
         deficit = terminal_codec_extension_deficit_samples(
             int(waveform.numel()), len(hidden), trajectory.source_glm_length

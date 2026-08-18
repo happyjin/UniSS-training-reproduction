@@ -61,6 +61,8 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-2}
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-2}
+export PYTORCH_KERNEL_CACHE_PATH=${PYTORCH_KERNEL_CACHE_PATH:-${USER_ROOT}/.cache/torch/kernels}
+mkdir -p "${PYTORCH_KERNEL_CACHE_PATH}"
 
 "${PYTHON_BIN}" -m experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.fingerprint \
   --checkpoint "v1_hf=${V1_HF_MODEL}" \

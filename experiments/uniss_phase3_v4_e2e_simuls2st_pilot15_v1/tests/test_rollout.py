@@ -7,6 +7,9 @@ import pytest
 import torch
 from torch import nn
 
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout import (
+    persistent_runtime as runtime,
+)
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.io import (
     partition_bounds,
 )
@@ -154,3 +157,35 @@ def test_persistent_session_appends_only_new_acoustics_and_tokens() -> None:
     assert final_acoustic_call.shape[1] == 3
     assert torch.equal(final_acoustic_call[0, 1], speech[2])
     assert session.visible_glm == 3
+
+
+class _FakeObjective(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.bridge_norm = nn.LayerNorm(4).to(dtype=torch.bfloat16)
+        self.bridge_projection = nn.Linear(4, 4, bias=False).to(dtype=torch.bfloat16)
+
+    def _nearest_codes(self, hidden: torch.Tensor) -> torch.Tensor:
+        assert hidden.dtype == torch.bfloat16
+        return torch.zeros(hidden.shape[:-1], dtype=torch.long, device=hidden.device)
+
+
+def test_cached_hidden_restores_bridge_dtype(monkeypatch) -> None:
+    objective = _FakeObjective()
+    qwen = _FakeQwen()
+    monkeypatch.setattr(
+        runtime.stage_a_eval,
+        "load_waveform",
+        lambda _: torch.zeros(2560, dtype=torch.float32),
+    )
+    monkeypatch.setattr(
+        runtime,
+        "run_cached_frontend",
+        lambda frontend, waveform: SimpleNamespace(
+            hidden=torch.randn(1, 2, 4, dtype=torch.float32)
+        ),
+    )
+    trajectory = SimpleNamespace(source_audio="unused.wav", source_glm_length=2)
+    embeddings = runtime._speech_embeddings(objective, object(), qwen, trajectory)
+    assert embeddings.shape == (2, 4)
+    assert embeddings.dtype == qwen.embedding.weight.dtype
