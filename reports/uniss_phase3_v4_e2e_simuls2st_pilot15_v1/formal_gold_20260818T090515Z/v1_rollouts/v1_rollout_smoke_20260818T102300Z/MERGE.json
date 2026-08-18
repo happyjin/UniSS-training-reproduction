@@ -1,0 +1,55 @@
+{
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "counts": {
+    "early_eos_events": 6,
+    "empty_events": 123,
+    "events": 542,
+    "final_eos_samples": 32,
+    "language:eng": 32,
+    "malformed_write_events": 7,
+    "records": 32
+  },
+  "elapsed_worker_seconds": 144.21501709218137,
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf",
+  "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/valid_v1_rollouts.jsonl.offsets.bin",
+    "binary_size_bytes": 256,
+    "data_mtime_ns": 1787048964160830787,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/valid_v1_rollouts.jsonl",
+    "data_size_bytes": 205537,
+    "offset_bytes": 8,
+    "records": 32,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+  },
+  "input": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "input_size_bytes": 236415029,
+  "max_event_tokens": 96,
+  "max_final_tokens": 8,
+  "maximum_worker_seconds": 21.11082977708429,
+  "output": {
+    "bytes": 205537,
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/valid_v1_rollouts.jsonl",
+    "records": 32,
+    "sha256": "d00c3b0b86d4202be275811b63ed3474a4e4fbf080fe12c1b678eeb9b03c7213"
+  },
+  "runtime_sha256": "dadee468b61b9af35215c46dcb6a6015791b989299de7017734938510f93ba72",
+  "schema_version": "uniss_phase3_v4_e2e_simuls2st_v1_rollout_merge_v1",
+  "status": "complete",
+  "v1_checkpoint_sha256": "463ff5645ee3776f2c58343d4720cfb5beb55295972b68dd9f34cc48119fd730",
+  "v1_hf_sha256": "e1089b6afaaf56babac717ed9a28d559a3d5b4a8d8c011354ad4a013f99772db",
+  "weighted_errors": {
+    "errors:eng": 277,
+    "units:eng": 442
+  },
+  "worker_reports": [
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank000.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank001.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank002.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank003.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank004.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank005.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank006.json",
+    "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_smoke_20260818T102300Z/workers/rank007.json"
+  ],
+  "workers": 8
+}
