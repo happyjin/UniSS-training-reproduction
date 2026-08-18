@@ -202,6 +202,11 @@ The smoke path is also bounded in both the launcher and Python entrypoint:
 caches are legal only inside that bounded mode.  Therefore neither flag can be
 used to bypass the explicit formal-training authorization gate.
 
+Bounded smoke runs default to zero LR-warmup updates instead of inheriting the
+formal geometry's 20-update warmup.  Any explicit warmup must remain between
+zero and the selected train-iteration count; a two-update dry run now emits
+`--lr-warmup-iters 0`, while a three-update smoke is rejected before torchrun.
+
 The runtime collator now also defensively pads variable-length per-pack
 `cu_seqlens` with trailing copies of 18000, exactly as Megatron's
 packed-sequence flattener expects.  Current real packs are already expanded to

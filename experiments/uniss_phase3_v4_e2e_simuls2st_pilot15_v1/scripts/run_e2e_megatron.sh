@@ -108,7 +108,13 @@ if [[ ! -f "${V1_STATIC_AUDIT}" ]]; then
     --output "${V1_STATIC_AUDIT}" >/dev/null
 fi
 RUN_TRAIN_ITERS=${RUN_TRAIN_ITERS:-$("${PYTHON_BIN}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["train_iters"])' "${GEOMETRY}")}
-RUN_WARMUP_ITERS=${RUN_WARMUP_ITERS:-$("${PYTHON_BIN}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["warmup_updates"])' "${GEOMETRY}")}
+if [[ -z "${RUN_WARMUP_ITERS+x}" ]]; then
+  if [[ "${RUN_SMOKE}" == "1" ]]; then
+    RUN_WARMUP_ITERS=0
+  else
+    RUN_WARMUP_ITERS=$("${PYTHON_BIN}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["warmup_updates"])' "${GEOMETRY}")
+  fi
+fi
 
 if [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" && "${RUN_SMOKE}" != "1" ]]; then
   echo "missing E2E teachers are allowed only in smoke mode" >&2
@@ -116,6 +122,10 @@ if [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" && "${RUN_SMOKE}" != "1" ]]; then
 fi
 if [[ "${RUN_SMOKE}" == "1" && ( "${RUN_TRAIN_ITERS}" -lt 1 || "${RUN_TRAIN_ITERS}" -gt 2 ) ]]; then
   echo "E2E smoke runs are restricted to one or two updates" >&2
+  exit 4
+fi
+if [[ "${RUN_WARMUP_ITERS}" -lt 0 || "${RUN_WARMUP_ITERS}" -gt "${RUN_TRAIN_ITERS}" ]]; then
+  echo "E2E warmup updates must be between zero and train-iters" >&2
   exit 4
 fi
 
