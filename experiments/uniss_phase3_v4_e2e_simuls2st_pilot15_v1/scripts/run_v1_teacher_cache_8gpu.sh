@@ -40,6 +40,7 @@ GOLD=${PROCESSED_ROOT}/source_events/${TEACHER_SPLIT}_gold_trajectories.jsonl
 ROLLOUT_ROOT=${PROCESSED_ROOT}/v1_rollouts/${V1_ROLLOUT_RUN_ID}
 ROLLOUT=${ROLLOUT_ROOT}/${TEACHER_SPLIT}_v1_rollouts.jsonl
 ROLLOUT_AUDIT=${REPORT_ROOT}/v1_rollouts/${V1_ROLLOUT_RUN_ID}/AUDIT.json
+ROLLOUT_QUALITY=${REPORT_ROOT}/v1_rollouts/${V1_ROLLOUT_RUN_ID}/QUALITY_GATE.json
 TEACHER_ROOT=${PROCESSED_ROOT}/v1_asr_teacher_cache/${TEACHER_RUN_ID}
 TEACHER_REPORT_ROOT=${REPORT_ROOT}/v1_asr_teacher_cache/${TEACHER_RUN_ID}
 TEACHER_LOG_ROOT=${LOG_ROOT}/v1_asr_teacher_cache/${TEACHER_RUN_ID}
@@ -55,25 +56,27 @@ for path in "${TEACHER_ROOT}" "${TEACHER_REPORT_ROOT}" "${TEACHER_LOG_ROOT}"; do
     exit 2
   fi
 done
-for path in "${GOLD}" "${ROLLOUT}" "${ROLLOUT_AUDIT}" "${V1_CHECKPOINT}" "${V1_HF_MODEL}" "${WHISPERVQ_MODEL}"; do
+for path in "${GOLD}" "${ROLLOUT}" "${ROLLOUT_AUDIT}" "${ROLLOUT_QUALITY}" "${V1_CHECKPOINT}" "${V1_HF_MODEL}" "${WHISPERVQ_MODEL}"; do
   if [[ ! -e "${path}" ]]; then
     echo "required V1 teacher-cache input is missing: ${path}" >&2
     exit 2
   fi
 done
 
-"${PYTHON_BIN}" - <<'PY' "${ROLLOUT_AUDIT}" "${ROLLOUT}" "${GOLD}"
+"${PYTHON_BIN}" - <<'PY' "${ROLLOUT_AUDIT}" "${ROLLOUT_QUALITY}" "${ROLLOUT}" "${GOLD}"
 import json
 import pathlib
 import sys
 
 audit = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-if audit.get("status") != "passed":
-    raise SystemExit("V1 rollout audit did not pass")
-if pathlib.Path(str(audit.get("rollouts", ""))).resolve() != pathlib.Path(sys.argv[2]).resolve():
-    raise SystemExit("V1 rollout audit points to a different rollout")
-if pathlib.Path(str(audit.get("gold", ""))).resolve() != pathlib.Path(sys.argv[3]).resolve():
-    raise SystemExit("V1 rollout audit points to a different gold file")
+quality = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+if audit.get("status") != "passed" or quality.get("status") != "passed":
+    raise SystemExit("V1 rollout audit or quality gate did not pass")
+for value in (audit, quality):
+    if pathlib.Path(str(value.get("rollouts", ""))).resolve() != pathlib.Path(sys.argv[3]).resolve():
+        raise SystemExit("V1 rollout gate points to a different rollout")
+    if pathlib.Path(str(value.get("gold", ""))).resolve() != pathlib.Path(sys.argv[4]).resolve():
+        raise SystemExit("V1 rollout gate points to a different gold file")
 PY
 
 mkdir -p "${PARTS_ROOT}" "${TEACHER_REPORT_ROOT}" "${TEACHER_LOG_ROOT}"
