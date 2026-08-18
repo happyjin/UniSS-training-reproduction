@@ -35,6 +35,7 @@ fi
   --workers "${CPU_WORKERS:-8}" \
   --limit "${SMOKE_RECORDS:-32}" \
   --hash-audio \
+  --audit-audio \
   --v1-checkpoint-sha256 "${V1_SHA}" \
   --phase3-teacher-sha256 "${PHASE3_SHA}"
 
@@ -42,7 +43,8 @@ fi
   experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.audit_trajectories \
   --input "${OUTPUT}" \
   --output "${AUDIT}" \
-  --require-audio-hash
+  --require-audio-hash \
+  --require-audio-audit
 
 echo "trajectory=${OUTPUT}"
 echo "audit=${AUDIT}"

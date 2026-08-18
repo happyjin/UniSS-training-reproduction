@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import wave
 from pathlib import Path
 
 import pytest
 
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.gold_trajectory import (
+    audit_pcm_audio,
     build_gold_trajectory,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.schema import (
@@ -109,6 +111,16 @@ def test_serialized_round_trip(tmp_path: Path) -> None:
     recovered = E2ETrajectory.from_mapping(original.to_mapping())
     assert recovered == original
     validate_trajectory(recovered)
+
+
+def test_real_pcm_audit_checks_frames_and_finite_values(tmp_path: Path) -> None:
+    audio = tmp_path / "audio.wav"
+    with wave.open(str(audio), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(16_000)
+        handle.writeframes(b"\x00\x00" * 16_000)
+    assert audit_pcm_audio(audio, expected_frames=16_000) == (16_000, 1, True)
 
 
 def test_semantic_gap_is_rejected(tmp_path: Path) -> None:

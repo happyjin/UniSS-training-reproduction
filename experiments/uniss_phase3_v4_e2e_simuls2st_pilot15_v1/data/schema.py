@@ -89,6 +89,10 @@ class E2ETrajectory:
     source_audio: str
     source_audio_sha256: str | None
     source_audio_hash_status: str
+    source_audio_frames: int
+    source_audio_channels: int | None
+    source_audio_finite: bool | None
+    source_audio_audit_status: str
     source_sample_rate: int
     source_duration_ms: int
     speaker_global: tuple[int, ...]
@@ -140,6 +144,7 @@ def validate_trajectory(
     trajectory: E2ETrajectory,
     *,
     require_audio_hash: bool = False,
+    require_audio_audit: bool = False,
     require_v1_rollout: bool = False,
 ) -> dict[str, int | float | str]:
     if trajectory.schema_version != TRAJECTORY_SCHEMA:
@@ -165,6 +170,18 @@ def validate_trajectory(
     )
     if require_audio_hash and trajectory.source_audio_hash_status != "complete":
         raise ValueError("source audio hash was deferred")
+    expected_frames = trajectory.source_duration_ms * SOURCE_SAMPLE_RATE // 1000
+    if trajectory.source_audio_frames != expected_frames:
+        raise ValueError("source audio frame count differs from duration metadata")
+    if trajectory.source_audio_audit_status == "complete":
+        if trajectory.source_audio_channels != 1:
+            raise ValueError("source audio is not mono")
+        if trajectory.source_audio_finite is not True:
+            raise ValueError("source audio contains NaN/Inf")
+    elif trajectory.source_audio_audit_status != "deferred":
+        raise ValueError("unknown source audio audit status")
+    if require_audio_audit and trajectory.source_audio_audit_status != "complete":
+        raise ValueError("source audio PCM audit was deferred")
     _validate_hex_digest(trajectory.source_glm_sha256, label="source GLM SHA256", allow_deferred=False)
     _validate_hex_digest(
         trajectory.target_semantic_sha256,

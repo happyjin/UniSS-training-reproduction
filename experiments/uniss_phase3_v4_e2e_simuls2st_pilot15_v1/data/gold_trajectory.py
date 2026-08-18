@@ -30,6 +30,29 @@ def sha256_file(path: Path, block_bytes: int = 8 * 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
+def audit_pcm_audio(path: Path, *, expected_frames: int) -> tuple[int, int, bool]:
+    import numpy as np
+    import soundfile as sf
+
+    info = sf.info(str(path))
+    if int(info.samplerate) != SOURCE_SAMPLE_RATE:
+        raise ValueError(f"source audio sample rate is not 16 kHz: {path}")
+    if int(info.channels) != 1:
+        raise ValueError(f"source audio is not mono: {path}")
+    if int(info.frames) != int(expected_frames):
+        raise ValueError(
+            f"source audio frames differ from duration: {info.frames}!={expected_frames}: {path}"
+        )
+    finite = True
+    for block in sf.blocks(str(path), blocksize=262_144, dtype="float32", always_2d=False):
+        if not bool(np.isfinite(block).all()):
+            finite = False
+            break
+    if not finite:
+        raise ValueError(f"source audio contains NaN/Inf: {path}")
+    return int(info.frames), int(info.channels), finite
+
+
 def _normal_target_text(record: Mapping[str, object]) -> str:
     language = normalize_language(str(record["tgt_lang"]))
     raw_words = record.get("target_words")
@@ -127,6 +150,7 @@ def build_gold_trajectory(
     v1_checkpoint_sha256: str,
     phase3_teacher_sha256: str,
     hash_audio: bool = False,
+    audit_audio: bool = False,
 ) -> E2ETrajectory:
     if not bool(record.get("formal_a45_pass")) or not bool(record.get("formal_a68_pass")):
         raise ValueError("record did not pass the formal A4-A8 alignment gates")
@@ -141,6 +165,15 @@ def build_gold_trajectory(
     duration_ms = int(record["source_duration_ms"])
     if duration_ms <= 0:
         raise ValueError("source duration must be positive")
+    expected_frames = duration_ms * SOURCE_SAMPLE_RATE // 1000
+    if audit_audio:
+        source_audio_frames, source_audio_channels, source_audio_finite = audit_pcm_audio(
+            source_audio, expected_frames=expected_frames
+        )
+    else:
+        source_audio_frames = expected_frames
+        source_audio_channels = None
+        source_audio_finite = None
 
     ticks = {
         min(duration_ms, int(event.source_end_ms)) for event in session.events
@@ -246,6 +279,10 @@ def build_gold_trajectory(
         source_audio=str(source_audio.resolve()),
         source_audio_sha256=source_audio_sha256,
         source_audio_hash_status="complete" if hash_audio else "deferred",
+        source_audio_frames=source_audio_frames,
+        source_audio_channels=source_audio_channels,
+        source_audio_finite=source_audio_finite,
+        source_audio_audit_status="complete" if audit_audio else "deferred",
         source_sample_rate=SOURCE_SAMPLE_RATE,
         source_duration_ms=duration_ms,
         speaker_global=tuple(int(value) for value in record["bicodec_global"]),  # type: ignore[index]
@@ -264,8 +301,12 @@ def build_gold_trajectory(
         v1_rollout_status=ROLLOUT_PENDING,
         events=tuple(events),
     )
-    validate_trajectory(trajectory, require_audio_hash=hash_audio)
+    validate_trajectory(
+        trajectory,
+        require_audio_hash=hash_audio,
+        require_audio_audit=audit_audio,
+    )
     return trajectory
 
 
-__all__ = ["build_gold_trajectory", "sha256_file"]
+__all__ = ["audit_pcm_audio", "build_gold_trajectory", "sha256_file"]

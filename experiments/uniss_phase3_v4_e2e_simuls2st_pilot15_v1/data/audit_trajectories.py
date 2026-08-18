@@ -21,6 +21,7 @@ def audit_file(
     path: Path,
     *,
     require_audio_hash: bool,
+    require_audio_audit: bool,
     require_v1_rollout: bool,
     limit: int | None = None,
 ) -> dict[str, object]:
@@ -37,6 +38,7 @@ def audit_file(
             metrics = validate_trajectory(
                 trajectory,
                 require_audio_hash=require_audio_hash,
+                require_audio_audit=require_audio_audit,
                 require_v1_rollout=require_v1_rollout,
             )
             counts["records"] += 1
@@ -52,6 +54,7 @@ def audit_file(
         "status": "passed",
         "path": str(path.resolve()),
         "require_audio_hash": require_audio_hash,
+        "require_audio_audit": require_audio_audit,
         "require_v1_rollout": require_v1_rollout,
         "counts": dict(sorted(counts.items())),
     }
@@ -62,6 +65,7 @@ def main() -> None:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-audio-hash", action="store_true")
+    parser.add_argument("--require-audio-audit", action="store_true")
     parser.add_argument("--require-v1-rollout", action="store_true")
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
@@ -70,6 +74,7 @@ def main() -> None:
     report = audit_file(
         args.input,
         require_audio_hash=args.require_audio_hash,
+        require_audio_audit=args.require_audio_audit,
         require_v1_rollout=args.require_v1_rollout,
         limit=args.limit,
     )

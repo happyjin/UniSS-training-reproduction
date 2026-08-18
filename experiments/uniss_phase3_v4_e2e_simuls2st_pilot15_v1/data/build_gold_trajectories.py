@@ -38,6 +38,7 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
         v1_sha,
         phase3_sha,
         hash_audio,
+        audit_audio,
         root_value,
     ) = task
     from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.gold_trajectory import (
@@ -64,6 +65,7 @@ def _worker(task: tuple[object, ...]) -> dict[str, Any]:
                 v1_checkpoint_sha256=str(v1_sha),
                 phase3_teacher_sha256=str(phase3_sha),
                 hash_audio=bool(hash_audio),
+                audit_audio=bool(audit_audio),
             )
             encoded = (trajectory.to_json() + "\n").encode("utf-8")
             byte_offsets.append(byte_offset)
@@ -98,6 +100,7 @@ def main() -> None:
     parser.add_argument("--v1-checkpoint-sha256", required=True)
     parser.add_argument("--phase3-teacher-sha256", required=True)
     parser.add_argument("--hash-audio", action="store_true")
+    parser.add_argument("--audit-audio", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(f"refusing to overwrite trajectories: {args.output}")
@@ -123,6 +126,7 @@ def main() -> None:
             args.v1_checkpoint_sha256,
             args.phase3_teacher_sha256,
             args.hash_audio,
+            args.audit_audio,
             str(parts_root),
         )
         for part, (start, stop) in enumerate(_ranges(total, args.workers))
@@ -154,6 +158,7 @@ def main() -> None:
             "split": args.split,
             "workers": len(tasks),
             "hash_audio": bool(args.hash_audio),
+            "audit_audio": bool(args.audit_audio),
             "v1_checkpoint_sha256": args.v1_checkpoint_sha256,
             "phase3_teacher_sha256": args.phase3_teacher_sha256,
             "counts": dict(sorted(counts.items())),
