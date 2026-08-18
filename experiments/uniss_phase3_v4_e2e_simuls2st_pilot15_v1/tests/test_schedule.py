@@ -43,6 +43,30 @@ def _datasets(interleaved: int = 100):
     }
 
 
+def test_schedules_expose_megatron_split_enums() -> None:
+    from megatron.core.datasets.utils import Split
+
+    datasets = _datasets(41)
+    train = FiveFamilyGlobalSchedule(
+        datasets,
+        coverage_epochs=3,
+        global_batch_size=16,
+        data_parallel_group_size=8,
+        shuffle_seed=19,
+    )
+    valid = FiveFamilyValidationSchedule(
+        datasets,
+        total_samples=80,
+        global_batch_size=8,
+        data_parallel_group_size=8,
+        shuffle_seed=20,
+    )
+    prefix = FiveFamilySchedulePrefix(train, 16)
+    assert train.split is Split.train
+    assert valid.split is Split.valid
+    assert prefix.split is Split.train
+
+
 def test_family_block_curriculum_has_exact_phase_quotas() -> None:
     blocks = family_blocks(400, seed=1234)
     phases = (

@@ -161,7 +161,9 @@ class FiveFamilyGlobalSchedule(Dataset):
         self.blocks = family_blocks(self.total_blocks, seed=self.shuffle_seed)
         self.total_samples = self.total_blocks * self.global_batch_size
         self.synchronize_task_family = True
-        self.split = "train"
+        from megatron.core.datasets.utils import Split
+
+        self.split = Split.train
         self.family_block_cursors: dict[str, list[int]] = {
             name: [] for name in TASK_FAMILIES
         }
@@ -244,7 +246,11 @@ class FiveFamilyValidationSchedule(Dataset):
         self.total_blocks = self.total_samples // self.global_batch_size
         self.blocks = family_blocks(self.total_blocks, seed=self.shuffle_seed)
         self.synchronize_task_family = True
-        self.split = "valid"
+        # Megatron compares this attribute with the Split enum by identity.
+        # A plain string silently selects the train batch-size path for eval.
+        from megatron.core.datasets.utils import Split
+
+        self.split = Split.valid
         running = {name: 0 for name in TASK_FAMILIES}
         self._block_family_ordinals: list[int] = []
         for family in self.blocks:
@@ -300,7 +306,7 @@ class FiveFamilySchedulePrefix(Dataset):
             family: self.blocks.count(family) for family in TASK_FAMILIES
         }
         self.synchronize_task_family = True
-        self.split = str(getattr(dataset, "split", "train"))
+        self.split = getattr(dataset, "split", None)
 
     def __len__(self) -> int:
         return self.total_samples

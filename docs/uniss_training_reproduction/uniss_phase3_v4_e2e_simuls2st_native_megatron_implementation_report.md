@@ -184,12 +184,18 @@ The first loaded acoustic pack contained four real waveforms with 111040,
 The complete isolated experiment test suite passes:
 
 ```text
-62 passed
+63 passed
 ```
 
 This includes data schemas, rollout, teacher caches, packing, runtime audio,
 five-family synchronization, flattened losses, distributed normalization,
 checkpoint key checks and frozen/trainable partition checks.
+
+A post-implementation audit also corrected the validation split marker from a
+plain `"valid"` string to Megatron's identity-compared `Split.valid` enum.  The
+train, validation and bounded-smoke schedules now preserve their exact Split
+objects, preventing validation from silently selecting the training batch-size
+path.  A dedicated regression test covers all three schedule variants.
 
 ## 9. Formal-training status and next gates
 
