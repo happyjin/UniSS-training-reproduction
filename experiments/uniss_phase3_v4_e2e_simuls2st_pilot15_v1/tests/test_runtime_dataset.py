@@ -113,6 +113,44 @@ def test_runtime_collate_stacks_fixed_tensors_and_tags_sidecars(tmp_path: Path) 
     assert batch["glm_ids"].tolist() == [[1, 2, 3, 4], [1, 2, 3, 4]]
 
 
+def test_runtime_collate_pads_variable_cu_seqlens_for_mbs_two(
+    tmp_path: Path,
+) -> None:
+    report, _ = _fixture(tmp_path)
+    dataset = E2EPackedFamilyDataset.from_build_report(
+        report,
+        FAMILY_STREAMING_ASR,
+        load_audio=False,
+    )
+    first = dataset[0]
+    second = dict(first)
+    second["cu_seqlens"] = torch.tensor(
+        [0, 9_000, 18_000], dtype=first["cu_seqlens"].dtype
+    )
+    second["max_seqlen"] = torch.tensor(9_000)
+    batch = collate_e2e_family([first, second])
+    assert batch["cu_seqlens"].shape == (2, first["cu_seqlens"].numel())
+    assert batch["cu_seqlens"][1, :3].tolist() == [0, 9_000, 18_000]
+    assert torch.all(batch["cu_seqlens"][1, 3:] == 18_000)
+
+    from megatron.core.utils import flatten_batch_for_packed_sequences
+
+    flattened = flatten_batch_for_packed_sequences(
+        {
+            "tokens": batch["tokens"],
+            "labels": batch["labels"],
+            "loss_mask": batch["loss_mask"],
+            "position_ids": batch["position_ids"],
+            "cu_seqlens": batch["cu_seqlens"],
+            "cu_seqlens_padded": None,
+            "max_seqlen": batch["max_seqlen"],
+        }
+    )
+    assert flattened["tokens"].shape == (1, 36_000)
+    assert flattened["cu_seqlens"].shape[0] == 1
+    assert flattened["cu_seqlens"][0, -3:].tolist() == [18_000, 27_000, 36_000]
+
+
 def test_runtime_dataset_rejects_changed_pack_and_mixed_family_batch(
     tmp_path: Path,
 ) -> None:

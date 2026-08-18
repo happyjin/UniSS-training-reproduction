@@ -184,7 +184,7 @@ The first loaded acoustic pack contained four real waveforms with 111040,
 The complete isolated experiment test suite passes:
 
 ```text
-64 passed
+65 passed
 ```
 
 This includes data schemas, rollout, teacher caches, packing, runtime audio,
@@ -201,6 +201,14 @@ The smoke path is also bounded in both the launcher and Python entrypoint:
 `--e2e-smoke` permits only one or two optimizer updates, and missing teacher
 caches are legal only inside that bounded mode.  Therefore neither flag can be
 used to bypass the explicit formal-training authorization gate.
+
+The runtime collator now also defensively pads variable-length per-pack
+`cu_seqlens` with trailing copies of 18000, exactly as Megatron's
+packed-sequence flattener expects.  Current real packs are already expanded to
+18001 entries by `boundaries_to_cu_seqlens`, so this is forward-compatible
+hardening rather than a claim that current MBS-2 data was broken.  The padding
+is stripped before FlashAttention and does not add or merge attention-visible
+tokens.
 
 ## 9. Formal-training status and next gates
 

@@ -264,7 +264,6 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
         "loss_kinds",
         "loss_mask",
         "position_ids",
-        "cu_seqlens",
         "max_seqlen",
     )
     result: dict[str, object] = {
@@ -285,6 +284,21 @@ def collate_e2e_family(batch: list[dict[str, object]]) -> dict[str, object]:
     }
     for name in fixed:
         result[name] = torch.stack([value[name] for value in batch])
+    cu_seqlens = [value["cu_seqlens"] for value in batch]
+    if any(not isinstance(value, torch.Tensor) or value.ndim != 1 for value in cu_seqlens):
+        raise TypeError("E2E cu_seqlens must be one-dimensional tensors")
+    seq_length = int(batch[0]["tokens"].numel())
+    width = max(int(value.numel()) for value in cu_seqlens)
+    padded_cu_seqlens = torch.full(
+        (len(batch), width),
+        seq_length,
+        dtype=cu_seqlens[0].dtype,
+    )
+    for row, value in enumerate(cu_seqlens):
+        if value.dtype != cu_seqlens[0].dtype:
+            raise TypeError("E2E cu_seqlens dtypes differ inside a microbatch")
+        padded_cu_seqlens[row, : value.numel()] = value
+    result["cu_seqlens"] = padded_cu_seqlens
     acoustic_rows = []
     teacher_bindings = []
     teacher_posteriors = []
