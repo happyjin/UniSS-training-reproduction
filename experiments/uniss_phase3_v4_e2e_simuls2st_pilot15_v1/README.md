@@ -32,3 +32,12 @@ Checkpoint identity is a SHA256 tree fingerprint over every distributed shard,
 not merely the small (and sometimes identical) Megatron `metadata.json` file.
 Formal V1 free-running rollout and teacher posterior generation are separate GPU
 gates and must not be replaced with teacher-forced placeholders.
+
+The native Megatron training layer is implemented in
+`training/pretrain_e2e_megatron.py`.  It reconstructs the exact V1 compound
+module namespace, strictly loads `iter_0000381`, freezes every
+`stage_a_objective.*` parameter, and places only the native Qwen parameters in
+the optimizer.  The formal launcher is `scripts/run_e2e_megatron.sh`; it always
+uses `--finetune --no-load-optim --no-load-rng` and
+`--dist-ckpt-strictness raise_all`.  Formal training remains blocked until an
+external gate explicitly sets `formal_training_authorized=true`.

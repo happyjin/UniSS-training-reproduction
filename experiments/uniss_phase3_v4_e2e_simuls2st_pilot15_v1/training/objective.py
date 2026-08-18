@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
@@ -83,6 +84,32 @@ class E2EObjectiveOutput:
         return output
 
 
+E2E_TERM_NAMES = (
+    "asr_ce",
+    "mt_ce",
+    "semantic_ce",
+    "replay_ce",
+    "v1_asr_kl",
+    "phase3_kl",
+    "commit_consistency",
+    "boundary_ce",
+    "eos_ce",
+    "speaker_continuity",
+)
+
+E2E_WEIGHTED_NAMES = (
+    "asr_ce",
+    "mt_ce",
+    "semantic_ce",
+    "replay_ce",
+    "v1_asr_kl",
+    "phase3_kl",
+    "commit_consistency",
+    "boundary_eos",
+    "speaker_continuity",
+)
+
+
 def token_nll_from_logits(
     logits: torch.Tensor, labels: torch.Tensor
 ) -> torch.Tensor:
@@ -93,6 +120,38 @@ def token_nll_from_logits(
         labels.reshape(-1).long(),
         reduction="none",
     ).reshape_as(labels)
+
+
+def flattened_token_ce_terms(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+) -> dict[str, LossTerm]:
+    """Compute CE only at supervised flattened Megatron positions."""
+
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError("flattened E2E token tensors have invalid rank")
+    if logits.shape[0] != labels.numel() or labels.shape != loss_kinds.shape:
+        raise ValueError("flattened E2E token tensors differ in length")
+    output: dict[str, LossTerm] = {}
+    for name, kind in (
+        ("asr_ce", LOSS_ASR),
+        ("mt_ce", LOSS_MT),
+        ("semantic_ce", LOSS_SEMANTIC),
+        ("boundary_ce", LOSS_BOUNDARY),
+        ("eos_ce", LOSS_EOS),
+        ("replay_ce", LOSS_REPLAY),
+    ):
+        mask = loss_kinds == kind
+        denominator = mask.sum().float()
+        if bool(mask.any()):
+            numerator = F.cross_entropy(
+                logits[mask].float(), labels[mask].long(), reduction="sum"
+            )
+        else:
+            numerator = logits.sum() * 0.0
+        output[name] = LossTerm(numerator, denominator)
+    return output
 
 
 def _zero(reference: torch.Tensor) -> LossTerm:
@@ -203,6 +262,60 @@ def topk_teacher_kl(
     )
 
 
+def flattened_teacher_kl(
+    logits: torch.Tensor,
+    batch: Mapping[str, object],
+    *,
+    cache_kind_id: int,
+    original_seq_length: int,
+) -> LossTerm:
+    required = (
+        "teacher_batch",
+        "teacher_positions",
+        "teacher_cache_kind",
+        "teacher_indices",
+        "teacher_probabilities",
+    )
+    if any(name not in batch for name in required):
+        return _zero(logits)
+    cache_kind = batch["teacher_cache_kind"]
+    if not isinstance(cache_kind, torch.Tensor):
+        raise TypeError("flattened teacher cache kind is not a tensor")
+    active = cache_kind.long() == int(cache_kind_id)
+    if not bool(active.any()):
+        return _zero(logits)
+    teacher_batch = batch["teacher_batch"]
+    teacher_positions = batch["teacher_positions"]
+    indices = batch["teacher_indices"]
+    probabilities = batch["teacher_probabilities"]
+    if not all(
+        isinstance(value, torch.Tensor)
+        for value in (teacher_batch, teacher_positions, indices, probabilities)
+    ):
+        raise TypeError("flattened teacher posterior sidecars are malformed")
+    flat = (
+        teacher_batch.long()[active] * int(original_seq_length)
+        + teacher_positions.long()[active]
+    )
+    selected_indices = indices.long()[active]
+    teacher = probabilities.float()[active]
+    if selected_indices.shape != teacher.shape or selected_indices.ndim != 2:
+        raise ValueError("flattened teacher top-k tensors differ")
+    if torch.any(flat < 0) or torch.any(flat >= logits.shape[0]):
+        raise ValueError("flattened teacher position exceeds student logits")
+    if torch.any(selected_indices < 0) or torch.any(
+        selected_indices >= logits.shape[1]
+    ):
+        raise ValueError("flattened teacher token exceeds student vocabulary")
+    teacher = teacher / teacher.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+    student_log = F.log_softmax(logits.index_select(0, flat).float(), dim=-1)
+    student_topk = student_log.gather(1, selected_indices)
+    values = (
+        teacher * (teacher.clamp_min(1e-8).log() - student_topk)
+    ).sum(dim=-1)
+    return LossTerm(values.sum(), values.new_tensor(float(values.numel())))
+
+
 def commit_consistency_kl(
     pairs: Sequence[LogitConsistencyPair],
     *,
@@ -232,6 +345,70 @@ def commit_consistency_kl(
         return _zero(reference if reference is not None else torch.zeros(()))
     merged = torch.cat(values)
     return LossTerm(merged.sum(), merged.new_tensor(float(merged.numel())))
+
+
+def flattened_commit_consistency_kl(
+    logits: torch.Tensor,
+    batch: Mapping[str, object],
+    *,
+    original_seq_length: int,
+    temperature: float = 1.0,
+) -> LossTerm:
+    if temperature <= 0:
+        raise ValueError("commit consistency temperature must be positive")
+    required = (
+        "commit_batch",
+        "commit_previous_positions",
+        "commit_current_positions",
+    )
+    if any(name not in batch for name in required):
+        return _zero(logits)
+    commit_batch = batch["commit_batch"]
+    previous_positions = batch["commit_previous_positions"]
+    current_positions = batch["commit_current_positions"]
+    if not all(
+        isinstance(value, torch.Tensor)
+        for value in (commit_batch, previous_positions, current_positions)
+    ):
+        raise TypeError("flattened commit sidecars are malformed")
+    if not (
+        commit_batch.ndim
+        == previous_positions.ndim
+        == current_positions.ndim
+        == 1
+        and commit_batch.shape
+        == previous_positions.shape
+        == current_positions.shape
+    ):
+        raise ValueError("flattened commit sidecars differ in length")
+    if not commit_batch.numel():
+        return _zero(logits)
+    previous_flat = (
+        commit_batch.long() * int(original_seq_length)
+        + previous_positions.long()
+    )
+    current_flat = (
+        commit_batch.long() * int(original_seq_length)
+        + current_positions.long()
+    )
+    if (
+        torch.any(previous_flat < 0)
+        or torch.any(current_flat < 0)
+        or torch.any(previous_flat >= logits.shape[0])
+        or torch.any(current_flat >= logits.shape[0])
+    ):
+        raise ValueError("flattened commit position exceeds student logits")
+    teacher = F.softmax(
+        logits.index_select(0, previous_flat).detach().float() / temperature,
+        dim=-1,
+    )
+    student = F.log_softmax(
+        logits.index_select(0, current_flat).float() / temperature,
+        dim=-1,
+    )
+    values = F.kl_div(student, teacher, reduction="none").sum(dim=-1)
+    values = values * (temperature**2)
+    return LossTerm(values.sum(), values.new_tensor(float(values.numel())))
 
 
 def commit_pairs_from_full_logits(
@@ -286,6 +463,132 @@ def speaker_continuity_loss(
     return LossTerm(merged.sum(), merged.new_tensor(float(merged.numel())))
 
 
+def flattened_e2e_objective(
+    *,
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    batch: Mapping[str, object],
+    original_seq_length: int,
+) -> Mapping[str, LossTerm]:
+    token_terms = flattened_token_ce_terms(logits, labels, loss_kinds)
+    v1_asr_kl = flattened_teacher_kl(
+        logits,
+        batch,
+        cache_kind_id=0,
+        original_seq_length=original_seq_length,
+    )
+    phase3_kl = flattened_teacher_kl(
+        logits,
+        batch,
+        cache_kind_id=1,
+        original_seq_length=original_seq_length,
+    )
+    commit_consistency = flattened_commit_consistency_kl(
+        logits,
+        batch,
+        original_seq_length=original_seq_length,
+    )
+    # No genuine cross-fragment speaker embedding sidecar exists yet.  The
+    # launch entrypoint therefore requires this term's configured weight to be
+    # zero and records that fact instead of inventing supervision.
+    terms = {
+        "asr_ce": token_terms["asr_ce"],
+        "mt_ce": token_terms["mt_ce"],
+        "semantic_ce": token_terms["semantic_ce"],
+        "replay_ce": token_terms["replay_ce"],
+        "v1_asr_kl": v1_asr_kl,
+        "phase3_kl": phase3_kl,
+        "commit_consistency": commit_consistency,
+        "boundary_ce": token_terms["boundary_ce"],
+        "eos_ce": token_terms["eos_ce"],
+        "speaker_continuity": _zero(logits),
+    }
+    if tuple(terms) != E2E_TERM_NAMES:
+        raise AssertionError("flattened E2E term order changed")
+    return terms
+
+
+def distributed_e2e_objective(
+    terms: Mapping[str, LossTerm],
+    *,
+    weights: E2ELossWeights | None = None,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Return a globally normalized scalar with DDP-correct local gradients."""
+
+    weights = weights or E2ELossWeights()
+    if tuple(terms) != E2E_TERM_NAMES:
+        raise ValueError("distributed E2E objective term order changed")
+    numerators = torch.stack([terms[name].numerator for name in E2E_TERM_NAMES])
+    denominators = torch.stack(
+        [terms[name].denominator.to(numerators.dtype) for name in E2E_TERM_NAMES]
+    )
+    global_numerators = numerators.detach().clone()
+    global_denominators = denominators.detach().clone()
+    world_size = 1
+    if dist.is_available() and dist.is_initialized():
+        dist.all_reduce(global_numerators)
+        dist.all_reduce(global_denominators)
+        world_size = dist.get_world_size()
+    active = global_denominators > 0
+    local_means = torch.where(
+        active,
+        world_size * numerators / global_denominators.clamp_min(1.0),
+        numerators * 0.0,
+    )
+    global_means = torch.where(
+        active,
+        global_numerators / global_denominators.clamp_min(1.0),
+        global_numerators * 0.0,
+    )
+    index = {name: position for position, name in enumerate(E2E_TERM_NAMES)}
+    boundary_indices = [index["boundary_ce"], index["eos_ce"]]
+    boundary_active = active[boundary_indices].to(numerators.dtype)
+    boundary_eos = (
+        local_means[boundary_indices] * boundary_active
+    ).sum() / boundary_active.sum().clamp_min(1.0)
+    weighted = {
+        "asr_ce": local_means[index["asr_ce"]] * weights.asr_ce,
+        "mt_ce": local_means[index["mt_ce"]] * weights.mt_ce,
+        "semantic_ce": local_means[index["semantic_ce"]] * weights.semantic_ce,
+        "replay_ce": local_means[index["replay_ce"]] * weights.replay_ce,
+        "v1_asr_kl": local_means[index["v1_asr_kl"]] * weights.v1_asr_kl,
+        "phase3_kl": local_means[index["phase3_kl"]] * weights.phase3_kl,
+        "commit_consistency": local_means[index["commit_consistency"]]
+        * weights.commit_consistency,
+        "boundary_eos": boundary_eos * weights.boundary_eos,
+        "speaker_continuity": local_means[index["speaker_continuity"]]
+        * weights.speaker_continuity,
+    }
+    if tuple(weighted) != E2E_WEIGHTED_NAMES:
+        raise AssertionError("distributed E2E weighted term order changed")
+    total = torch.stack(list(weighted.values())).sum()
+    metrics: dict[str, torch.Tensor] = {
+        f"loss/{name}": global_means[position]
+        for position, name in enumerate(E2E_TERM_NAMES)
+    }
+    metrics.update(
+        {
+            f"denominator/{name}": global_denominators[position]
+            for position, name in enumerate(E2E_TERM_NAMES)
+        }
+    )
+    global_boundary_eos = (
+        global_means[boundary_indices] * boundary_active
+    ).sum() / boundary_active.sum().clamp_min(1.0)
+    metrics["loss/boundary_eos"] = global_boundary_eos
+    for name in E2E_WEIGHTED_NAMES:
+        if name == "boundary_eos":
+            metrics[f"weighted/{name}"] = (
+                global_boundary_eos * weights.boundary_eos
+            )
+        else:
+            metrics[f"weighted/{name}"] = (
+                global_means[index[name]] * float(getattr(weights, name))
+            )
+    return total, metrics
+
+
 def compute_e2e_objective(
     *,
     token_nll: torch.Tensor,
@@ -337,6 +640,8 @@ def compute_e2e_objective(
 
 
 __all__ = [
+    "E2E_TERM_NAMES",
+    "E2E_WEIGHTED_NAMES",
     "E2ELossWeights",
     "E2EObjectiveOutput",
     "LogitConsistencyPair",
@@ -345,6 +650,11 @@ __all__ = [
     "commit_consistency_kl",
     "commit_pairs_from_full_logits",
     "compute_e2e_objective",
+    "distributed_e2e_objective",
+    "flattened_commit_consistency_kl",
+    "flattened_e2e_objective",
+    "flattened_teacher_kl",
+    "flattened_token_ce_terms",
     "speaker_continuity_loss",
     "token_ce_terms",
     "token_nll_from_logits",

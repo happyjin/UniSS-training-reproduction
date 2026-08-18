@@ -11,6 +11,8 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule impo
     STEADY_WEIGHTS,
     FiveFamilyCoverageSampler,
     FiveFamilyGlobalSchedule,
+    FiveFamilySchedulePrefix,
+    FiveFamilyValidationSchedule,
     family_blocks,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
@@ -116,3 +118,41 @@ def test_coverage_sampler_preserves_rank_sync_and_requires_update_boundary() -> 
             data_parallel_size=2,
             data_sharding=True,
         )
+
+
+def test_validation_schedule_is_exact_length_and_family_synchronized() -> None:
+    schedule = FiveFamilyValidationSchedule(
+        _datasets(13),
+        total_samples=80,
+        global_batch_size=8,
+        data_parallel_group_size=2,
+        shuffle_seed=23,
+    )
+    assert len(schedule) == 80
+    for block in range(10):
+        values = [
+            schedule.scheduled_index(block * 8 + lane) for lane in range(8)
+        ]
+        assert len({value.family for value in values}) == 1
+        assert all(
+            schedule[index]["family"] == values[index % 8].family
+            for index in range(block * 8, (block + 1) * 8)
+        )
+
+
+def test_smoke_prefix_keeps_complete_global_family_blocks() -> None:
+    full = FiveFamilyGlobalSchedule(
+        _datasets(32),
+        coverage_epochs=3,
+        global_batch_size=8,
+        data_parallel_group_size=2,
+        shuffle_seed=29,
+    )
+    prefix = FiveFamilySchedulePrefix(full, 16)
+    assert len(prefix) == 16
+    assert prefix.total_blocks == 2
+    for block in range(2):
+        assert {
+            prefix[index]["family"]
+            for index in range(block * 8, (block + 1) * 8)
+        } == {full.blocks[block]}

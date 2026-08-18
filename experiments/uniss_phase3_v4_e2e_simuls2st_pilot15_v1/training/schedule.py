@@ -214,6 +214,105 @@ class FiveFamilyGlobalSchedule(Dataset):
         return value
 
 
+class FiveFamilyValidationSchedule(Dataset):
+    """Deterministic validation blocks that never mix task families."""
+
+    def __init__(
+        self,
+        datasets: Mapping[str, Dataset],
+        *,
+        total_samples: int,
+        global_batch_size: int,
+        data_parallel_group_size: int,
+        shuffle_seed: int,
+    ) -> None:
+        if set(datasets) != set(TASK_FAMILIES) or any(
+            len(datasets[name]) <= 0 for name in TASK_FAMILIES
+        ):
+            raise ValueError("E2E validation requires five non-empty family datasets")
+        if total_samples <= 0 or global_batch_size <= 0 or data_parallel_group_size <= 0:
+            raise ValueError("invalid E2E validation geometry")
+        if global_batch_size % data_parallel_group_size:
+            raise ValueError("validation global batch must be divisible by the DP group")
+        if total_samples % global_batch_size:
+            raise ValueError("validation samples must end on a global-batch boundary")
+        self.datasets = dict(datasets)
+        self.total_samples = int(total_samples)
+        self.global_batch_size = int(global_batch_size)
+        self.data_parallel_group_size = int(data_parallel_group_size)
+        self.shuffle_seed = int(shuffle_seed)
+        self.total_blocks = self.total_samples // self.global_batch_size
+        self.blocks = family_blocks(self.total_blocks, seed=self.shuffle_seed)
+        self.synchronize_task_family = True
+        self.split = "valid"
+        running = {name: 0 for name in TASK_FAMILIES}
+        self._block_family_ordinals: list[int] = []
+        for family in self.blocks:
+            self._block_family_ordinals.append(running[family])
+            running[family] += 1
+
+    def __len__(self) -> int:
+        return self.total_samples
+
+    def scheduled_index(self, index: int) -> FamilyScheduledIndex:
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        global_block, lane = divmod(index, self.global_batch_size)
+        family = self.blocks[global_block]
+        family_flat = (
+            self._block_family_ordinals[global_block] * self.global_batch_size
+            + lane
+        )
+        source = family_flat % len(self.datasets[family])
+        cycle = family_flat // len(self.datasets[family])
+        return FamilyScheduledIndex(global_block, family, source, cycle)
+
+    def __getitem__(self, index: int):
+        scheduled = self.scheduled_index(index)
+        value = dict(self.datasets[scheduled.family][scheduled.source_index])
+        if value.get("family") != scheduled.family:
+            raise ValueError("scheduled E2E validation family disagrees with source")
+        return value
+
+
+class FiveFamilySchedulePrefix(Dataset):
+    """Global-batch-aligned prefix used only by bounded smoke runs."""
+
+    def __init__(self, dataset: Dataset, total_samples: int) -> None:
+        global_batch_size = int(getattr(dataset, "global_batch_size", 0))
+        if (
+            total_samples <= 0
+            or total_samples > len(dataset)
+            or global_batch_size <= 0
+            or total_samples % global_batch_size
+        ):
+            raise ValueError("invalid E2E smoke schedule prefix")
+        self.dataset = dataset
+        self.total_samples = int(total_samples)
+        self.global_batch_size = global_batch_size
+        self.data_parallel_group_size = int(dataset.data_parallel_group_size)
+        self.total_blocks = self.total_samples // self.global_batch_size
+        source_blocks = tuple(getattr(dataset, "blocks"))
+        self.blocks = source_blocks[: self.total_blocks]
+        self.family_block_counts = {
+            family: self.blocks.count(family) for family in TASK_FAMILIES
+        }
+        self.synchronize_task_family = True
+        self.split = str(getattr(dataset, "split", "train"))
+
+    def __len__(self) -> int:
+        return self.total_samples
+
+    def __getitem__(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        return self.dataset[index]
+
+
 class FiveFamilyCoverageSampler:
     """Expose the schedule without applying a second Megatron shuffle."""
 
@@ -265,6 +364,8 @@ __all__ = [
     "FamilyScheduledIndex",
     "FiveFamilyCoverageSampler",
     "FiveFamilyGlobalSchedule",
+    "FiveFamilySchedulePrefix",
+    "FiveFamilyValidationSchedule",
     "MID_WEIGHTS",
     "STEADY_WEIGHTS",
     "family_blocks",

@@ -12,6 +12,8 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     commit_consistency_kl,
     commit_pairs_from_full_logits,
     compute_e2e_objective,
+    distributed_e2e_objective,
+    flattened_e2e_objective,
     speaker_continuity_loss,
     token_ce_terms,
     token_nll_from_logits,
@@ -146,4 +148,48 @@ def test_full_objective_applies_documented_weights_and_balances_boundary_eos() -
     assert torch.allclose(output.total, expected)
     assert output.terms["boundary_eos"].denominator.item() == 2
     output.total.backward()
+    assert torch.isfinite(logits.grad).all()
+
+
+def test_flattened_megatron_objective_indexes_teacher_and_commit_positions() -> None:
+    logits = torch.tensor(
+        [
+            [3.0, 1.0, 0.0],
+            [1.0, 3.0, 0.0],
+            [2.0, 0.0, 1.0],
+            [3.0, 1.0, 0.0],
+            [1.0, 3.0, 0.0],
+            [2.0, 0.0, 1.0],
+        ],
+        requires_grad=True,
+    )
+    labels = torch.tensor([0, 1, 0, 0, 1, 0])
+    kinds = torch.tensor(
+        [LOSS_ASR, LOSS_MT, LOSS_SEMANTIC, LOSS_BOUNDARY, LOSS_EOS, LOSS_REPLAY]
+    )
+    batch = {
+        "teacher_batch": torch.tensor([0]),
+        "teacher_positions": torch.tensor([0]),
+        "teacher_cache_kind": torch.tensor([0]),
+        "teacher_indices": torch.tensor([[0, 1]]),
+        "teacher_probabilities": torch.tensor([[0.8, 0.2]]),
+        "commit_batch": torch.tensor([0]),
+        "commit_previous_positions": torch.tensor([0]),
+        "commit_current_positions": torch.tensor([3]),
+    }
+    terms = flattened_e2e_objective(
+        logits=logits,
+        labels=labels,
+        loss_kinds=kinds,
+        batch=batch,
+        original_seq_length=6,
+    )
+    weights = E2ELossWeights(phase3_kl=0.0, speaker_continuity=0.0)
+    total, metrics = distributed_e2e_objective(terms, weights=weights)
+    assert terms["v1_asr_kl"].denominator.item() == 1
+    assert terms["commit_consistency"].denominator.item() == 1
+    assert metrics["denominator/asr_ce"].item() == 1
+    assert metrics["loss/boundary_eos"].item() > 0
+    total.backward()
+    assert logits.grad is not None
     assert torch.isfinite(logits.grad).all()
