@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 
+import numpy as np
+
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.schema import (
     E2ETrajectory,
     TrajectoryEvent,
@@ -13,6 +15,11 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.rollout.schema import 
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.teacher.requests import (
     build_phase3_requests,
+)
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.teacher.cache import (
+    combine_sample,
+    save_bundle,
+    validate_bundle_row,
 )
 from training import constants_uniss as c
 
@@ -202,3 +209,41 @@ def test_phase3_requests_cover_gold_v1_mt_and_semantic_without_future_text() -> 
     )
     assert final_semantic.reference_labels[-1] == c.TOKEN_EOS
     assert all(value.content_selected_tokens > 0 for value in requests)
+
+
+def test_phase3_teacher_bundle_round_trip(tmp_path) -> None:
+    requests = build_phase3_requests(_trajectory(), _rollout(), encode_text=_encode)
+    summaries = []
+    for request in requests:
+        labels = np.asarray(request.reference_labels, dtype=np.int32)
+        second = (labels + 1) % c.VOCAB_SIZE
+        summaries.append(
+            {
+                "indices": np.stack((labels, second), axis=1),
+                "probabilities": np.tile(
+                    np.asarray([[0.75, 0.25]], dtype=np.float16),
+                    (len(labels), 1),
+                ),
+                "top1": labels.copy(),
+                "confidence": np.full(len(labels), 0.75, dtype=np.float16),
+            }
+        )
+    arrays, descriptors = combine_sample(requests, summaries)
+    rows = save_bundle(
+        tmp_path / "bundle-000000.npz",
+        [
+            {
+                "sample_id": "sample-1",
+                "split": "valid",
+                "source_manifest_record": 0,
+                "arrays": arrays,
+                "requests": descriptors,
+            }
+        ],
+    )
+    metrics = validate_bundle_row(rows[0])
+    assert metrics["positions"] == sum(
+        len(value.selected_target_indices) for value in requests
+    )
+    assert metrics["top1_correct"] == metrics["positions"]
+    assert metrics["reference_in_topk"] == metrics["positions"]
