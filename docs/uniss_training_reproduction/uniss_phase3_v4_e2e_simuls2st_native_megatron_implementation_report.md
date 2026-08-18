@@ -184,7 +184,7 @@ The first loaded acoustic pack contained four real waveforms with 111040,
 The complete isolated experiment test suite passes:
 
 ```text
-63 passed
+64 passed
 ```
 
 This includes data schemas, rollout, teacher caches, packing, runtime audio,
@@ -196,6 +196,11 @@ plain `"valid"` string to Megatron's identity-compared `Split.valid` enum.  The
 train, validation and bounded-smoke schedules now preserve their exact Split
 objects, preventing validation from silently selecting the training batch-size
 path.  A dedicated regression test covers all three schedule variants.
+
+The smoke path is also bounded in both the launcher and Python entrypoint:
+`--e2e-smoke` permits only one or two optimizer updates, and missing teacher
+caches are legal only inside that bounded mode.  Therefore neither flag can be
+used to bypass the explicit formal-training authorization gate.
 
 ## 9. Formal-training status and next gates
 

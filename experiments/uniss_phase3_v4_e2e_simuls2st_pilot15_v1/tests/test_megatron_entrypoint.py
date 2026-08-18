@@ -7,6 +7,7 @@ from torch import nn
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron import (
     _tag_trainable_qwen_and_freeze_v1,
     e2e_chunk_ms_for_progress,
+    validate_smoke_scope,
     validate_v1_checkpoint_key_sets,
 )
 
@@ -69,3 +70,16 @@ def test_e2e_chunk_curriculum_reaches_deployment_chunk() -> None:
         320,
         160,
     }
+
+
+def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
+    validate_smoke_scope(smoke=True, allow_missing_teachers=True, train_iters=2)
+    validate_smoke_scope(smoke=False, allow_missing_teachers=False, train_iters=100)
+    with pytest.raises(ValueError, match="only in smoke mode"):
+        validate_smoke_scope(
+            smoke=False, allow_missing_teachers=True, train_iters=2
+        )
+    with pytest.raises(ValueError, match="one or two updates"):
+        validate_smoke_scope(
+            smoke=True, allow_missing_teachers=False, train_iters=3
+        )

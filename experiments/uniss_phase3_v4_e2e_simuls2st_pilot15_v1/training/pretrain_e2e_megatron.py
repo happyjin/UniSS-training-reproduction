@@ -275,7 +275,21 @@ def _require_file(path: str | Path | None) -> None:
         raise FileNotFoundError(path)
 
 
+def validate_smoke_scope(
+    *, smoke: bool, allow_missing_teachers: bool, train_iters: int
+) -> None:
+    if allow_missing_teachers and not smoke:
+        raise ValueError("missing E2E teachers are allowed only in smoke mode")
+    if smoke and not 1 <= int(train_iters) <= 2:
+        raise ValueError("E2E smoke runs are restricted to one or two updates")
+
+
 def validate_experiment_args(args) -> None:
+    validate_smoke_scope(
+        smoke=bool(args.e2e_smoke),
+        allow_missing_teachers=bool(args.e2e_allow_missing_teachers),
+        train_iters=int(args.train_iters),
+    )
     if not bool(args.sft):
         raise ValueError("E2E packed training requires --sft")
     if int(args.tensor_model_parallel_size) != 1 or int(args.pipeline_model_parallel_size) != 1:
