@@ -154,6 +154,7 @@ def _semantic_request(
     event_index: int,
     semantic_prefix: Sequence[int],
     encode_text: Callable[[str], Sequence[int]],
+    semantic_stride: int,
 ) -> Phase3TeacherRequest | None:
     event = trajectory.events[event_index]
     if not event.target_semantic_delta:
@@ -170,7 +171,14 @@ def _semantic_request(
         text_encoder=lambda text: [int(value) for value in encode_text(text)],
         source_id=trajectory.sample_id,
     )
-    selected = list(range(event.target_semantic_start, event.target_semantic_end))
+    if semantic_stride <= 0:
+        raise ValueError("semantic teacher stride must be positive")
+    selected_content = list(
+        range(event.target_semantic_start, event.target_semantic_end, semantic_stride)
+    )
+    if selected_content[-1] != event.target_semantic_end - 1:
+        selected_content.append(event.target_semantic_end - 1)
+    selected = list(selected_content)
     selected.append(len(semantic_prefix))
     if event.target_final:
         selected.append(len(semantic_prefix) + 1)
@@ -185,7 +193,7 @@ def _semantic_request(
         selected_target_indices=tuple(selected),
         reference_labels=tuple(sample.target_ids[index] for index in selected),
         content_candidate_tokens=len(event.target_semantic_delta),
-        content_selected_tokens=len(event.target_semantic_delta),
+        content_selected_tokens=len(selected_content),
         visible_source_prefix=event.gold_source_prefix,
         visible_target_prefix=event.target_text_prefix,
         visible_semantic_tokens=event.target_semantic_start,
@@ -197,6 +205,7 @@ def build_phase3_requests(
     rollout: V1Rollout,
     *,
     encode_text: Callable[[str], Sequence[int]],
+    semantic_stride: int = 8,
 ) -> list[Phase3TeacherRequest]:
     if trajectory.sample_id != rollout.sample_id or len(trajectory.events) != len(rollout.events):
         raise ValueError("gold/rollout geometry differs for Phase3 teacher requests")
@@ -232,6 +241,7 @@ def build_phase3_requests(
             event_index=event_index,
             semantic_prefix=semantic_prefix,
             encode_text=encode_text,
+            semantic_stride=semantic_stride,
         )
         if semantic_request is not None:
             requests.append(semantic_request)

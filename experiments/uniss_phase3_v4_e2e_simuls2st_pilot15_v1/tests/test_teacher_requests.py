@@ -21,6 +21,9 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.teacher.cache import (
     save_bundle,
     validate_bundle_row,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.teacher.build_phase3_cache import (
+    Phase3Teacher,
+)
 from training import constants_uniss as c
 
 
@@ -209,6 +212,10 @@ def test_phase3_requests_cover_gold_v1_mt_and_semantic_without_future_text() -> 
     )
     assert final_semantic.reference_labels[-1] == c.TOKEN_EOS
     assert all(value.content_selected_tokens > 0 for value in requests)
+    assert all(
+        value.content_selected_tokens <= value.content_candidate_tokens
+        for value in requests
+    )
 
 
 def test_phase3_teacher_bundle_round_trip(tmp_path) -> None:
@@ -247,3 +254,37 @@ def test_phase3_teacher_bundle_round_trip(tmp_path) -> None:
     )
     assert metrics["top1_correct"] == metrics["positions"]
     assert metrics["reference_in_topk"] == metrics["positions"]
+
+
+def test_phase3_teacher_scheduler_caps_selected_logits() -> None:
+    requests = build_phase3_requests(_trajectory(), _rollout(), encode_text=_encode)
+    teacher = Phase3Teacher.__new__(Phase3Teacher)
+    batch_sizes: list[int] = []
+
+    def summarize_batch(batch):
+        batch_sizes.append(sum(len(value.selected_target_indices) for value in batch))
+        output = []
+        for request in batch:
+            labels = np.asarray(request.reference_labels, dtype=np.int32)
+            output.append(
+                {
+                    "indices": np.stack((labels, labels), axis=1),
+                    "probabilities": np.tile(
+                        np.asarray([[0.5, 0.5]], dtype=np.float16),
+                        (len(labels), 1),
+                    ),
+                    "top1": labels,
+                    "confidence": np.ones(len(labels), dtype=np.float16),
+                }
+            )
+        return output
+
+    teacher.summarize_batch = summarize_batch
+    output = teacher.summarize(
+        requests,
+        max_padded_tokens=100_000,
+        max_batch_size=64,
+        max_selected_positions=4,
+    )
+    assert len(output) == len(requests)
+    assert all(value <= 4 for value in batch_sizes)
