@@ -46,12 +46,14 @@ while [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader,nounits
   sleep "${WAIT_INTERVAL_SECONDS}"
 done
 
-printf '%s starting Phase3 teacher-cache smoke/formal sequence\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '%s starting V1 and Phase3 teacher-cache smoke/formal sequence\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 exec env \
   DATA_RUN_ID="${DATA_RUN_ID}" \
   V1_FORMAL_RUN_ID="${V1_FORMAL_RUN_ID}" \
   FORMAL_RUN_ID="${FORMAL_RUN_ID}" \
   NUM_GPUS="${NUM_GPUS:-8}" \
-  PROCESSES_PER_GPU="${PROCESSES_PER_GPU:-1}" \
-  SMOKE_LIMIT="${SMOKE_LIMIT:-256}" \
-  "${SCRIPT_DIR}/run_phase3_teacher_cache_formal_sequence.sh"
+  PHASE3_PROCESSES_PER_GPU="${PHASE3_PROCESSES_PER_GPU:-1}" \
+  V1_PROCESSES_PER_GPU="${V1_PROCESSES_PER_GPU:-1}" \
+  PHASE3_SMOKE_LIMIT="${PHASE3_SMOKE_LIMIT:-256}" \
+  V1_SMOKE_LIMIT="${V1_SMOKE_LIMIT:-64}" \
+  "${SCRIPT_DIR}/run_all_teacher_caches_formal_sequence.sh"
