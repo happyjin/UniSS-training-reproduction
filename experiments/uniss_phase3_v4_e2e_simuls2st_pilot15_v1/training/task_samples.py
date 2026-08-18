@@ -80,6 +80,7 @@ class TeacherBinding:
 class E2ETaskSample:
     sample_id: str
     sequence_id: str
+    source_manifest_record: int
     family: str
     token_ids: tuple[int, ...]
     loss_kinds: tuple[int, ...]
@@ -91,7 +92,12 @@ class E2ETaskSample:
     def __post_init__(self) -> None:
         if self.family not in TASK_FAMILIES:
             raise ValueError("unknown E2E task family")
-        if not self.sample_id or not self.sequence_id or len(self.token_ids) < 2:
+        if (
+            not self.sample_id
+            or not self.sequence_id
+            or self.source_manifest_record < 0
+            or len(self.token_ids) < 2
+        ):
             raise ValueError("E2E task sample identity or sequence is incomplete")
         if not (
             len(self.token_ids)
@@ -129,6 +135,7 @@ class E2ETaskSample:
             "schema_version": TASK_SAMPLE_SCHEMA,
             "sample_id": self.sample_id,
             "sequence_id": self.sequence_id,
+            "source_manifest_record": self.source_manifest_record,
             "family": self.family,
             "token_ids": list(self.token_ids),
             "loss_kinds": list(self.loss_kinds),
@@ -149,6 +156,41 @@ class E2ETaskSample:
                 for value in self.teacher_bindings
             ],
         }
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, object]) -> "E2ETaskSample":
+        if value.get("schema_version") != TASK_SAMPLE_SCHEMA:
+            raise ValueError("unexpected E2E task sample schema")
+        raw_speech = value.get("speech_indices")
+        raw_bindings = value.get("teacher_bindings")
+        if not isinstance(raw_speech, list) or not isinstance(raw_bindings, list):
+            raise TypeError("E2E task sample sidecars are malformed")
+        return cls(
+            sample_id=str(value["sample_id"]),
+            sequence_id=str(value["sequence_id"]),
+            source_manifest_record=int(value["source_manifest_record"]),
+            family=str(value["family"]),
+            token_ids=tuple(int(item) for item in value["token_ids"]),  # type: ignore[arg-type]
+            loss_kinds=tuple(int(item) for item in value["loss_kinds"]),  # type: ignore[arg-type]
+            speech_indices=tuple(
+                None if int(item) < 0 else int(item) for item in raw_speech
+            ),
+            source_audio=(
+                None if value.get("source_audio") is None else str(value["source_audio"])
+            ),
+            source_glm_length=int(value["source_glm_length"]),
+            teacher_bindings=tuple(
+                TeacherBinding(
+                    cache_kind=str(item["cache_kind"]),
+                    request_id=int(item["request_id"]),
+                    cache_position_start=int(item["cache_position_start"]),
+                    cache_position_stop=int(item["cache_position_stop"]),
+                    target_start=int(item["target_start"]),
+                    target_stop=int(item["target_stop"]),
+                )
+                for item in raw_bindings
+            ),
+        )
 
 
 def _mark_fragment(
@@ -212,6 +254,7 @@ def build_streaming_asr_task(
     return E2ETaskSample(
         sample_id=trajectory.sample_id,
         sequence_id=f"{trajectory.sample_id}:asr:gold",
+        source_manifest_record=trajectory.source_manifest_record,
         family=FAMILY_STREAMING_ASR,
         token_ids=sequence.token_ids,
         loss_kinds=tuple(loss_kinds),
@@ -285,6 +328,7 @@ def build_incremental_mt_tasks(
                     f"{trajectory.sample_id}:mt:{request.event_index}:"
                     f"{request.history_kind}"
                 ),
+                source_manifest_record=trajectory.source_manifest_record,
                 family=FAMILY_INCREMENTAL_MT,
                 token_ids=tuple(tokens),
                 loss_kinds=tuple(loss_kinds),
@@ -438,6 +482,7 @@ def build_interleaved_task(
     return E2ETaskSample(
         sample_id=trajectory.sample_id,
         sequence_id=f"{trajectory.sample_id}:e2e",
+        source_manifest_record=trajectory.source_manifest_record,
         family=FAMILY_INTERLEAVED,
         token_ids=tuple(tokens),
         loss_kinds=tuple(loss_kinds),
@@ -492,6 +537,7 @@ def build_phase3_replay_tasks(
         return E2ETaskSample(
             sample_id=trajectory.sample_id,
             sequence_id=f"{trajectory.sample_id}:{family}",
+            source_manifest_record=trajectory.source_manifest_record,
             family=family,
             token_ids=tuple(tokens),
             loss_kinds=tuple(kinds),
