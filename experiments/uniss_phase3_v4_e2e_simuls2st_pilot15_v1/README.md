@@ -41,3 +41,10 @@ the optimizer.  The formal launcher is `scripts/run_e2e_megatron.sh`; it always
 uses `--finetune --no-load-optim --no-load-rng` and
 `--dist-ckpt-strictness raise_all`.  Formal training remains blocked until an
 external gate explicitly sets `formal_training_authorized=true`.
+
+The background formal sequence is intentionally split into gated handoffs:
+
+1. `run_v1_rollout_formal_sequence.sh` builds and audits train/valid V1 rollouts;
+2. `wait_for_v1_then_run_phase3_teacher_cache.sh` starts the four formal teacher caches only after both rollout audits pass and GPUs are free;
+3. `wait_for_teacher_caches_then_build_task_pools.sh` starts 64-worker CPU construction of immutable train/valid 18k task pools only after all four cache audits pass;
+4. formal Megatron training remains blocked until the later GPU smoke, all-family canary and free-running validation authorize its gate.

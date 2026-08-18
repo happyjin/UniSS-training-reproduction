@@ -231,3 +231,10 @@ formal run can start:
 
 The existing background rollout and teacher-cache waiter must not be stopped or
 replaced by synthetic work.
+
+An additional immutable handoff is implemented for the post-cache CPU stage.
+After all four V1/Phase3 train/valid teacher-cache audits exist and pass, a
+separate waiter launches 64-worker construction of the formal train and valid
+18k five-family task pools.  This handoff does not create or authorize a formal
+training gate; GPU smoke, all-family canary and free-running validation remain
+mandatory.
