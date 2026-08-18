@@ -44,7 +44,17 @@ external gate explicitly sets `formal_training_authorized=true`.
 
 The background formal sequence is intentionally split into gated handoffs:
 
-1. `run_v1_rollout_formal_sequence.sh` builds and audits train/valid V1 rollouts;
-2. `wait_for_v1_then_run_phase3_teacher_cache.sh` starts the four formal teacher caches only after both rollout audits pass and GPUs are free;
-3. `wait_for_teacher_caches_then_build_task_pools.sh` starts 64-worker CPU construction of immutable train/valid 18k task pools only after all four cache audits pass;
-4. formal Megatron training remains blocked until the later GPU smoke, all-family canary and free-running validation authorize its gate.
+1. `run_v1_rollout_formal_sequence.sh` builds train/valid V1 rollouts and the original structural audit;
+2. `stratify_rollouts.py` revalidates every gold/rollout pair in parallel and writes an immutable indexed `clean`, `noisy_content`, or `quarantine` manifest plus `QUALITY_GATE.json`;
+3. `wait_for_v1_then_run_phase3_teacher_cache.sh` starts the four formal teacher caches only after both strict quality gates pass and GPUs are free;
+4. `wait_for_teacher_caches_then_build_task_pools.sh` starts 64-worker CPU construction of immutable train/valid 18k task pools only after both rollout quality gates and all four cache audits pass;
+5. formal Megatron training remains blocked until the later GPU smoke, all-family canary and free-running validation authorize its gate.
+
+The quality policy deliberately does not delete hard content examples.  A
+structurally valid rollout with high WER/CER is retained as `noisy_content` so
+the student learns robustness to realistic V1 prefixes.  A sample enters
+`quarantine` only for malformed WRITE, early EOS, or missing final EOS.  Such a
+sample is excluded from streaming-ASR, V1-history MT, and interleaved E2E
+supervision, but its gold-history incremental MT and both Phase3 replay tasks
+remain available.  Each task-pool report records per-stratum task counts and
+supervised-token counts so this filtering cannot be silent.

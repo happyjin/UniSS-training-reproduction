@@ -221,7 +221,7 @@ Formal training remains intentionally blocked.  The current gold gate still
 has `formal_training_authorized=false`.  The following must complete before a
 formal run can start:
 
-1. finish train and valid V1 free-running rollout audits;
+1. finish train and valid V1 free-running rollout audits and strict quality stratification;
 2. finish train and valid V1/Phase3 teacher caches;
 3. build fresh formal train/valid task pools with the latest acoustic sidecar;
 4. verify all active teacher denominators are nonzero over the validation interval;
@@ -229,8 +229,9 @@ formal run can start:
 6. run an all-family canary, free-running E-ASR/E-MT/E-S2S validation and frozen-parameter bitwise audit;
 7. only then emit a gate with `formal_training_authorized=true` and start the three-coverage run.
 
-The existing background rollout and teacher-cache waiter must not be stopped or
-replaced by synthetic work.
+The existing background rollout must not be stopped or replaced by synthetic
+work.  The two idle waiters may be restarted in place when their gate logic is
+hardened, because they have not yet produced teacher or task-pool outputs.
 
 An additional immutable handoff is implemented for the post-cache CPU stage.
 After all four V1/Phase3 train/valid teacher-cache audits exist and pass, a
@@ -238,3 +239,35 @@ separate waiter launches 64-worker construction of the formal train and valid
 18k five-family task pools.  This handoff does not create or authorize a formal
 training gate; GPU smoke, all-family canary and free-running validation remain
 mandatory.
+
+## 10. Strict rollout quality strata added during the formal run
+
+The first rollout audit only guaranteed immutable alignment and summarized
+quality; its status was not affected by malformed WRITE, early EOS, or content
+error rate.  The formal handoff now adds a second, parallel hard gate that
+classifies every sample exactly once:
+
+- `clean`: no protocol error and English WER <= 0.30 or Chinese CER <= 0.20;
+- `noisy_content`: protocol-valid but above the clean content threshold;
+- `quarantine`: malformed WRITE, early EOS, or missing final EOS.
+
+The hard gate requires at least 60% of samples to remain eligible for
+rollout-dependent supervision, quarantine <= 40%, final EOS >= 99%, and at
+least one accepted sample for every observed source language.  These limits
+were checked against the largest 768-record ppg24 smoke: 69.27% accepted,
+30.73% quarantined, and 100% final EOS.  Its weighted English WER was 52.53%;
+that value is reported but intentionally is not a deletion gate.
+
+The task-pool builder consumes the indexed strata manifest and enforces the
+following routing:
+
+| stratum | streaming ASR | gold MT | V1-history MT | interleaved E2E | Phase3 replay |
+|---|---:|---:|---:|---:|---:|
+| clean | yes | yes | yes | yes | yes |
+| noisy_content | yes | yes | yes | yes | yes |
+| quarantine | no | yes | no | no | yes |
+
+A real 32-record task-pool smoke over the ppg24 rollout passed.  Six
+quarantined samples were excluded from streaming ASR and interleaved E2E, 49
+V1-history incremental-MT requests were excluded, and all six samples still
+contributed gold MT and both Phase3 replay families.

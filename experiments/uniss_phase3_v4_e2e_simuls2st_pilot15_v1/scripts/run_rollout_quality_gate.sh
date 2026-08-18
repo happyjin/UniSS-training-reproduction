@@ -69,4 +69,3 @@ export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
 echo "strata_manifest=${STRATA}"
 echo "quality_gate=${QUALITY_JSON}"
 echo "quality_report=${QUALITY_MD}"
-
