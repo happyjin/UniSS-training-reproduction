@@ -1,0 +1,25 @@
+{
+  "formal_training_authorized": false,
+  "inputs": {
+    "frozen_split": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/manifests/frozen_split.json",
+    "train_audit": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/train_gold_trajectory_audit.json",
+    "train_build": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/train_gold_trajectories.jsonl.build.json",
+    "valid_audit": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/valid_gold_trajectory_audit.json",
+    "valid_build": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl.build.json"
+  },
+  "reason_training_not_authorized": "V1 free-running rollout and teacher caches are not built yet",
+  "schema_version": "uniss_phase3_v4_e2e_simuls2st_gold_gate_v1",
+  "status": "passed",
+  "train": {
+    "events": 25997984,
+    "prefinal_target_writes": 7666418,
+    "records": 1325243
+  },
+  "train_valid_id_overlap": 0,
+  "v1_rollout_status": "pending",
+  "valid": {
+    "events": 263391,
+    "prefinal_target_writes": 77703,
+    "records": 13469
+  }
+}
