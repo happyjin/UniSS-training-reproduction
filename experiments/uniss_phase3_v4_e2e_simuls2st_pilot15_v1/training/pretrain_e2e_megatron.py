@@ -45,6 +45,11 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule impo
     FiveFamilyValidationSchedule,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
+    FAMILY_INCREMENTAL_MT,
+    FAMILY_INTERLEAVED,
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
+    FAMILY_STREAMING_ASR,
     LOSS_NONE,
     TASK_FAMILIES,
 )
@@ -75,6 +80,29 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/speaker_continuity_weight",
 )
 METRIC_NAMES = (*OBJECTIVE_METRIC_NAMES, *DIAGNOSTIC_NAMES)
+REQUIRED_FAMILY_DENOMINATORS = {
+    FAMILY_STREAMING_ASR: (
+        "asr_ce",
+        "boundary_ce",
+        "v1_asr_kl",
+    ),
+    FAMILY_INCREMENTAL_MT: (
+        "mt_ce",
+        "boundary_ce",
+        "phase3_kl",
+        "commit_consistency",
+    ),
+    FAMILY_INTERLEAVED: (
+        "asr_ce",
+        "mt_ce",
+        "semantic_ce",
+        "boundary_ce",
+        "eos_ce",
+        "phase3_kl",
+    ),
+    FAMILY_PHASE3_QUALITY: ("phase3_replay_ce",),
+    FAMILY_PHASE3_PERFORMANCE: ("phase3_replay_ce",),
+}
 
 
 def _metadata_base_key(value: str) -> str:
@@ -488,7 +516,9 @@ def augment_native_gpt(model: nn.Module, args) -> dict[str, int]:
         StageAObjective(frontend, qwen_hidden_size=int(args.hidden_size)),
     )
     counts = _tag_trainable_qwen_and_freeze_v1(model)
-    attach_e2e_forward(model)
+    attach_e2e_forward(
+        model, allow_missing_teachers=bool(args.e2e_allow_missing_teachers)
+    )
     return counts
 
 
@@ -530,6 +560,30 @@ def _distributed_diagnostics(
     )
 
 
+def validate_family_denominators(
+    family: str,
+    metrics: Mapping[str, torch.Tensor],
+    *,
+    allow_missing_teachers: bool = False,
+) -> None:
+    """Fail before backward if an active task family silently lost supervision."""
+
+    required = REQUIRED_FAMILY_DENOMINATORS.get(family)
+    if required is None:
+        raise ValueError(f"unknown E2E task family: {family}")
+    missing = []
+    for name in required:
+        if allow_missing_teachers and name in {"v1_asr_kl", "phase3_kl"}:
+            continue
+        value = metrics.get(f"denominator/{name}")
+        if value is None or value.numel() != 1 or float(value.detach()) <= 0.0:
+            missing.append(name)
+    if missing:
+        raise RuntimeError(
+            f"E2E family {family} has zero/missing active denominators: {missing}"
+        )
+
+
 def _e2e_output_processor(**kwargs) -> torch.Tensor:
     context = kwargs["context"]
     hidden = kwargs["hidden_states"]
@@ -560,6 +614,11 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
     )
     if tuple(metrics) != OBJECTIVE_METRIC_NAMES:
         raise AssertionError("E2E objective metric order changed")
+    validate_family_denominators(
+        str(batch["family"]),
+        metrics,
+        allow_missing_teachers=bool(context["allow_missing_teachers"]),
+    )
     metrics.update(_distributed_diagnostics(context, total.detach()))
     if tuple(metrics) != METRIC_NAMES:
         raise AssertionError("E2E metric order changed")
@@ -569,7 +628,7 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
     return torch.stack(values)
 
 
-def attach_e2e_forward(model: nn.Module) -> None:
+def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> None:
     raw_forward = model.forward
 
     def forward_with_e2e(
@@ -647,6 +706,7 @@ def attach_e2e_forward(model: nn.Module) -> None:
             "acoustic_rows": acoustic_rows,
             "acoustic_active": acoustic_active,
             "speaker_continuity_weight": e2e_batch["loss_weights"].speaker_continuity,
+            "allow_missing_teachers": bool(allow_missing_teachers),
         }
         return raw_forward(
             input_ids,

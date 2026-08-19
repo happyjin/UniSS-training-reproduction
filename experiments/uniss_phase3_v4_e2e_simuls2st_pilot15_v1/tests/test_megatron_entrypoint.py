@@ -7,6 +7,7 @@ from torch import nn
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron import (
     _tag_trainable_qwen_and_freeze_v1,
     e2e_chunk_ms_for_progress,
+    validate_family_denominators,
     validate_smoke_scope,
     validate_v1_checkpoint_key_sets,
 )
@@ -96,3 +97,18 @@ def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
             train_iters=1,
             smoke_family="streaming_asr_event",
         )
+
+
+def test_active_family_denominators_fail_closed() -> None:
+    metrics = {
+        "denominator/asr_ce": torch.tensor(11.0),
+        "denominator/boundary_ce": torch.tensor(3.0),
+        "denominator/v1_asr_kl": torch.tensor(11.0),
+    }
+    validate_family_denominators("streaming_asr_event", metrics)
+    metrics["denominator/v1_asr_kl"] = torch.tensor(0.0)
+    with pytest.raises(RuntimeError, match="v1_asr_kl"):
+        validate_family_denominators("streaming_asr_event", metrics)
+    validate_family_denominators(
+        "streaming_asr_event", metrics, allow_missing_teachers=True
+    )

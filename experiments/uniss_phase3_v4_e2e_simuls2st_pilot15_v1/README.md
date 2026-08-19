@@ -50,6 +50,28 @@ The background formal sequence is intentionally split into gated handoffs:
 4. `wait_for_teacher_caches_then_build_task_pools.sh` starts 64-worker CPU construction of immutable train/valid 18k task pools only after both rollout quality gates and all four cache audits pass;
 5. formal Megatron training remains blocked until the later GPU smoke, all-family canary and free-running validation authorize its gate.
 
+The post-task-pool smoke/canary handoff is isolated from the rollout and cache
+builders.  It waits for both immutable task-pool reports and all four teacher
+audits, validates every active family denominator, obtains an exclusive GPU
+lock, and waits rather than terminating any existing GPU process.  It then
+runs one two-update 8-GPU structural smoke followed by one 8-GPU update for
+each of the five task families:
+
+```bash
+DATA_RUN_ID=formal_gold_20260818T090515Z \
+TASK_POOL_RUN_ID=task_pool_formal_20260818T201500Z \
+TEACHER_FORMAL_RUN_ID=teacher_cache_formal_20260818T175859Z \
+CANARY_RUN_ID=post_task_pool_canary_formal_20260819T000000Z \
+  experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/scripts/launch_post_task_pool_canaries_tmux.sh
+```
+
+The launcher defaults to `MBS=2`, `GBS=128`, BF16 and the native Megatron
+entrypoint.  It refuses to overwrite any report, checkpoint, TensorBoard or log
+directory.  A passed `CANARY_REPORT.json` still records
+`formal_training_authorized=false`; free-running E-ASR/E-MT/E-S2S validation
+and a frozen-parameter bitwise audit remain mandatory before a separate gate
+may authorize formal training.
+
 The quality policy deliberately does not delete hard content examples.  A
 structurally valid rollout with high WER/CER is retained as `noisy_content` so
 the student learns robustness to realistic V1 prefixes.  A sample enters
