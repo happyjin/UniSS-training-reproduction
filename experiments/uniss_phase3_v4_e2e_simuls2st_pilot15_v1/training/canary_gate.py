@@ -283,7 +283,9 @@ def _gpu_summary(path: Path) -> dict[str, object]:
 
 
 def finalize_canaries(
-    preflight_path: str | Path, results_path: str | Path
+    preflight_path: str | Path,
+    results_path: str | Path,
+    frozen_audit_path: str | Path,
 ) -> dict[str, object]:
     preflight = _json(preflight_path)
     if preflight.get("schema_version") != PREFLIGHT_SCHEMA or preflight.get(
@@ -342,14 +344,30 @@ def finalize_canaries(
                 "gpu": _gpu_summary(gpu_csv),
             }
         )
+    frozen_audit = _json(frozen_audit_path)
+    if (
+        frozen_audit.get("schema_version")
+        != "uniss_e2e_frozen_stage_a_bitwise_audit_v1"
+        or frozen_audit.get("status") != "passed"
+        or not bool(frozen_audit.get("exact_bitwise_match"))
+    ):
+        raise RuntimeError("frozen Stage-A bitwise audit did not pass")
     return {
         "schema_version": REPORT_SCHEMA,
         "status": "passed",
         "preflight": str(Path(preflight_path).resolve()),
         "preflight_sha256": _sha256(preflight_path),
         "runs": runs,
+        "frozen_stage_a_bitwise_audit": {
+            "path": str(Path(frozen_audit_path).resolve()),
+            "sha256": _sha256(frozen_audit_path),
+        },
         "formal_training_authorized": False,
-        "next_required_gates": preflight["next_required_gates"],
+        "next_required_gates": [
+            value
+            for value in preflight["next_required_gates"]
+            if value != "frozen_parameter_bitwise_audit"
+        ],
     }
 
 
@@ -374,6 +392,7 @@ def _parser() -> argparse.ArgumentParser:
     finalize = subparsers.add_parser("finalize")
     finalize.add_argument("--preflight", required=True)
     finalize.add_argument("--results", required=True)
+    finalize.add_argument("--frozen-audit", required=True)
     finalize.add_argument("--output", required=True)
     return parser
 
@@ -394,7 +413,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             gold_gate=args.gold_gate,
         )
     else:
-        value = finalize_canaries(args.preflight, args.results)
+        value = finalize_canaries(args.preflight, args.results, args.frozen_audit)
     _write_new_json(args.output, value)
     print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
 

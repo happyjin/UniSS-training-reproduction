@@ -37,6 +37,7 @@ CANARY_REPORT_ROOT=${REPORT_ROOT}/post_task_pool_canaries/${CANARY_RUN_ID}
 PREFLIGHT=${CANARY_REPORT_ROOT}/PREFLIGHT.json
 RESULTS=${CANARY_REPORT_ROOT}/RUN_RESULTS.jsonl
 FINAL_REPORT=${CANARY_REPORT_ROOT}/CANARY_REPORT.json
+FROZEN_AUDIT=${CANARY_REPORT_ROOT}/FROZEN_STAGE_A_BITWISE_AUDIT.json
 RUN_LOG_ROOT=${LOG_ROOT}/post_task_pool_canaries/${CANARY_RUN_ID}
 RUN_SAVE_ROOT=${CHECKPOINT_ROOT}/post_task_pool_canaries/${CANARY_RUN_ID}
 RUN_TENSORBOARD_ROOT=${TENSORBOARD_ROOT}/post_task_pool_canaries/${CANARY_RUN_ID}
@@ -190,13 +191,25 @@ for index in "${!families[@]}"; do
 done
 
 "${PYTHON_BIN}" -m \
+  experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.audit_frozen_stage_a \
+  --reference "${V1_CHECKPOINT}" \
+  --candidate "structural=${RUN_SAVE_ROOT}/structural/iter_0000002" \
+  --candidate "streaming_asr_event=${RUN_SAVE_ROOT}/streaming_asr_event/iter_0000001" \
+  --candidate "incremental_mt_event=${RUN_SAVE_ROOT}/incremental_mt_event/iter_0000001" \
+  --candidate "interleaved_e2e_s2st=${RUN_SAVE_ROOT}/interleaved_e2e_s2st/iter_0000001" \
+  --candidate "phase3_quality_replay=${RUN_SAVE_ROOT}/phase3_quality_replay/iter_0000001" \
+  --candidate "phase3_performance_replay=${RUN_SAVE_ROOT}/phase3_performance_replay/iter_0000001" \
+  --output "${FROZEN_AUDIT}" >/dev/null
+
+"${PYTHON_BIN}" -m \
   experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.canary_gate \
   finalize \
   --preflight "${PREFLIGHT}" \
   --results "${RESULTS}" \
+  --frozen-audit "${FROZEN_AUDIT}" \
   --output "${FINAL_REPORT}" >/dev/null
 
 echo "post_task_pool_canary_status=passed"
 echo "report=${FINAL_REPORT}"
 echo "formal_training_authorized=false"
-echo "next_gate=free_running_validation_and_frozen_parameter_bitwise_audit"
+echo "next_gate=free_running_validation"

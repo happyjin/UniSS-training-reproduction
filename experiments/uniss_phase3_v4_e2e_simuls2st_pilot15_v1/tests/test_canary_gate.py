@@ -159,7 +159,15 @@ def test_canary_finalizer_requires_six_clean_checkpointed_runs(tmp_path: Path) -
     result_path.write_text(
         "".join(json.dumps(value) + "\n" for value in results), encoding="utf-8"
     )
-    report = finalize_canaries(preflight, result_path)
+    frozen_audit = _write_json(
+        tmp_path / "FROZEN_STAGE_A_BITWISE_AUDIT.json",
+        {
+            "schema_version": "uniss_e2e_frozen_stage_a_bitwise_audit_v1",
+            "status": "passed",
+            "exact_bitwise_match": True,
+        },
+    )
+    report = finalize_canaries(preflight, result_path, frozen_audit)
     assert report["status"] == "passed"
     assert report["formal_training_authorized"] is False
     assert len(report["runs"]) == 6
@@ -170,4 +178,4 @@ def test_canary_finalizer_requires_six_clean_checkpointed_runs(tmp_path: Path) -
         "".join(json.dumps(value) + "\n" for value in results), encoding="utf-8"
     )
     with pytest.raises(RuntimeError, match="fatal pattern"):
-        finalize_canaries(preflight, result_path)
+        finalize_canaries(preflight, result_path, frozen_audit)

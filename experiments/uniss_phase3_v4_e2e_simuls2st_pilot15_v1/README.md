@@ -67,10 +67,11 @@ CANARY_RUN_ID=post_task_pool_canary_formal_20260819T000000Z \
 
 The launcher defaults to `MBS=2`, `GBS=128`, BF16 and the native Megatron
 entrypoint.  It refuses to overwrite any report, checkpoint, TensorBoard or log
-directory.  A passed `CANARY_REPORT.json` still records
+directory.  After all six runs it selectively reloads every frozen
+`stage_a_objective.*` tensor and requires an exact per-tensor bitwise match with
+V1.  A passed `CANARY_REPORT.json` still records
 `formal_training_authorized=false`; free-running E-ASR/E-MT/E-S2S validation
-and a frozen-parameter bitwise audit remain mandatory before a separate gate
-may authorize formal training.
+remains mandatory before a separate gate may authorize formal training.
 
 The quality policy deliberately does not delete hard content examples.  A
 structurally valid rollout with high WER/CER is retained as `noisy_content` so
