@@ -122,6 +122,16 @@ class _PackedWriter:
             int(binding["positions"])
             for binding in value["commit_consistency"]
         )
+        self.counts["teacher_bindings"] += len(value["teacher_bindings"])
+        self.counts["teacher_positions"] += sum(
+            int(binding["packed_stop"]) - int(binding["packed_start"])
+            for binding in value["teacher_bindings"]
+        )
+        for binding in value["teacher_bindings"]:
+            self.counts[f"teacher:{binding['cache_kind']}:bindings"] += 1
+            self.counts[f"teacher:{binding['cache_kind']}:positions"] += int(
+                binding["packed_stop"]
+            ) - int(binding["packed_start"])
         used_tokens = int(value["used_tokens"])
         for kind in value["loss_kinds"][:used_tokens]:
             self.counts[f"loss:{LOSS_KIND_NAMES[int(kind)]}"] += 1

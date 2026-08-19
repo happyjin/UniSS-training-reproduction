@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -118,15 +119,41 @@ def test_worker_builds_all_five_readable_families_with_exact_loss_counts(
         offsets = load_index(path)
         assert offsets is not None and len(offsets) == family_report["records"]
         packed_loss_counts = {name: 0 for name in LOSS_KIND_NAMES.values()}
+        packed_teacher_counts: Counter[str] = Counter()
         with path.open("rb") as handle:
             for offset in offsets:
                 handle.seek(int(offset))
                 value = json.loads(handle.readline())
                 validate_packed_task(value, seq_length=18_000)
                 assert value["family"] == family
+                packed_teacher_counts["bindings"] += len(
+                    value["teacher_bindings"]
+                )
+                for binding in value["teacher_bindings"]:
+                    positions = int(binding["packed_stop"]) - int(
+                        binding["packed_start"]
+                    )
+                    packed_teacher_counts["positions"] += positions
+                    packed_teacher_counts[
+                        f"teacher:{binding['cache_kind']}:bindings"
+                    ] += 1
+                    packed_teacher_counts[
+                        f"teacher:{binding['cache_kind']}:positions"
+                    ] += positions
                 for kind in value["loss_kinds"][: value["used_tokens"]]:
                     packed_loss_counts[LOSS_KIND_NAMES[int(kind)]] += 1
         assert family_report["counts"]["supervised_tokens"] > 0
+        assert (
+            family_report["counts"]["teacher_bindings"]
+            == packed_teacher_counts["bindings"]
+        )
+        assert (
+            family_report["counts"]["teacher_positions"]
+            == packed_teacher_counts["positions"]
+        )
+        for name, count in packed_teacher_counts.items():
+            if name.startswith("teacher:"):
+                assert family_report["counts"][name] == count
         if family == "interleaved_e2e_s2st":
             assert any(
                 json.loads(path.read_text(encoding="utf-8").splitlines()[0])[
