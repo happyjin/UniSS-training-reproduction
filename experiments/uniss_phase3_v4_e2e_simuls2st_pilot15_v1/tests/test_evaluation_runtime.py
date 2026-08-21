@@ -58,8 +58,10 @@ class _ScriptedModel(nn.Module):
             logits[:, -1, 42] = 10.0
         elif values and values[-1] == 42:
             logits[:, -1, c.TOKEN_END_CONTENT] = 10.0
-        # Interleaved source blocks arrive as embeddings; choose WAIT.
+        # Interleaved source blocks arrive as embeddings.  Prefer illegal EOS
+        # over WAIT so the runtime test proves non-final EOS is masked.
         elif values and values[-1] == -1:
+            logits[:, -1, c.TOKEN_EOS] = 20.0
             logits[:, -1, c.TOKEN_WAIT_READ] = 10.0
         else:
             logits[:, -1, c.TOKEN_START_GLM] = 10.0
@@ -126,3 +128,32 @@ def test_interleaved_session_commits_wait_without_forced_write() -> None:
     assert not row.asr_deltas and not row.mt_deltas and not row.semantic_tokens
     assert row.malformed_segments == 0
 
+
+def test_interleaved_session_allows_eos_only_after_final_source_event() -> None:
+    model = _ScriptedModel()
+    trajectory = SimpleNamespace(
+        tgt_lang="cmn",
+        src_lang="eng",
+        speaker_global=tuple(range(32)),
+    )
+    session = PersistentInterleavedSession(
+        model,
+        _Tokenizer(),
+        torch.randn(2, 4),
+        trajectory,
+    )
+    event = SimpleNamespace(
+        event_index=0,
+        source_end_ms=160,
+        source_final=True,
+        source_glm_start=0,
+        source_glm_end=2,
+    )
+    row = session.run_event(
+        event,
+        max_fragments=2,
+        max_text_tokens=4,
+        max_semantic_tokens=4,
+    )
+    assert row.chosen_continuations == ("EOS",)
+    assert row.malformed_segments == 0

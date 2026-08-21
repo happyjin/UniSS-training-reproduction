@@ -302,14 +302,19 @@ class PersistentInterleavedSession:
         semantic: list[int] = []
         malformed = 0
         for _ in range(max_fragments):
-            choice = self._choice(
-                (
-                    c.TOKEN_WRITE_GENERATE,
-                    c.TOKEN_WAIT_READ,
-                    c.TOKEN_START_GLM,
-                    c.TOKEN_EOS,
-                )
-            )
+            continuation_candidates = [
+                c.TOKEN_WRITE_GENERATE,
+                c.TOKEN_WAIT_READ,
+                c.TOKEN_START_GLM,
+            ]
+            # The live runtime knows whether the input stream has ended.  EOS
+            # is structurally impossible before the final source event and is
+            # never a legal training label there.  Previously an illegal EOS
+            # still closed the session, so one low-confidence control-token
+            # error prevented every later MT/TTS fragment from being tested.
+            if event.source_final:
+                continuation_candidates.append(c.TOKEN_EOS)
+            choice = self._choice(continuation_candidates)
             if choice == c.TOKEN_START_GLM:
                 continuations.append("READ_NEXT")
                 break
