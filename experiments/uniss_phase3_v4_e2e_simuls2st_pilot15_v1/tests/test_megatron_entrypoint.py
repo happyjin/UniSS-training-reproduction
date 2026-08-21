@@ -94,6 +94,12 @@ def test_e2e_chunk_curriculum_reaches_deployment_chunk() -> None:
 def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
     validate_smoke_scope(smoke=True, allow_missing_teachers=True, train_iters=2)
     validate_smoke_scope(smoke=False, allow_missing_teachers=False, train_iters=100)
+    validate_smoke_scope(
+        smoke=False,
+        learning_canary=True,
+        allow_missing_teachers=False,
+        train_iters=100,
+    )
     with pytest.raises(ValueError, match="only in smoke mode"):
         validate_smoke_scope(
             smoke=False, allow_missing_teachers=True, train_iters=2
@@ -114,6 +120,20 @@ def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
             allow_missing_teachers=False,
             train_iters=1,
             smoke_family="streaming_asr_event",
+        )
+    with pytest.raises(ValueError, match="10--100"):
+        validate_smoke_scope(
+            smoke=False,
+            learning_canary=True,
+            allow_missing_teachers=False,
+            train_iters=101,
+        )
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        validate_smoke_scope(
+            smoke=True,
+            learning_canary=True,
+            allow_missing_teachers=False,
+            train_iters=2,
         )
 
 

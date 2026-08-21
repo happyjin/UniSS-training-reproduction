@@ -78,6 +78,24 @@ V1.  A passed `CANARY_REPORT.json` still records
 `formal_training_authorized=false`; free-running E-ASR/E-MT/E-S2S validation
 remains mandatory before a separate gate may authorize formal training.
 
+If the two-update structural checkpoint passes implementation checks but fails
+free-running generation because it has not learned the mixed objective, use an
+isolated learning canary.  It must restart from immutable V1, retain the formal
+GBS=128/MBS=2 objective and complete teacher caches, use 8 GPUs with
+`num_workers=0` on this host, and stop after 10--100 updates.  It cannot bypass
+formal authorization and cannot be resumed into formal training:
+
+```bash
+LEARNING_RUN_ID=learning_canary_10u_YYYYMMDDTHHMMSSZ \
+LEARNING_ITERS=10 \
+  experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/scripts/launch_learning_canary_tmux.sh
+```
+
+The final checkpoint is bitwise-audited against frozen Stage A and must then be
+exported and evaluated with the same frozen 16-record free-running gate.  A
+formal 3-coverage-epoch run, if authorized, still restarts from immutable V1;
+it must never continue from a learning-canary optimizer state.
+
 The quality policy deliberately does not delete hard content examples.  A
 structurally valid rollout with high WER/CER is retained as `noisy_content` so
 the student learns robustness to realistic V1 prefixes.  A sample enters

@@ -290,6 +290,8 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-verify-cache-sha256", action="store_true")
     group.add_argument("--e2e-smoke", action="store_true")
     group.add_argument("--e2e-smoke-family", choices=TASK_FAMILIES)
+    group.add_argument("--e2e-learning-canary", action="store_true")
+    group.add_argument("--e2e-canary-report")
     group.add_argument("--e2e-allow-missing-teachers", action="store_true")
     group.add_argument("--e2e-audit-gradients", action="store_true")
     return parser
@@ -308,14 +310,19 @@ def _require_file(path: str | Path | None) -> None:
 def validate_smoke_scope(
     *,
     smoke: bool,
+    learning_canary: bool = False,
     allow_missing_teachers: bool,
     train_iters: int,
     smoke_family: str | None = None,
 ) -> None:
+    if smoke and learning_canary:
+        raise ValueError("E2E smoke and learning canary are mutually exclusive")
     if allow_missing_teachers and not smoke:
         raise ValueError("missing E2E teachers are allowed only in smoke mode")
     if smoke and not 1 <= int(train_iters) <= 2:
         raise ValueError("E2E smoke runs are restricted to one or two updates")
+    if learning_canary and not 10 <= int(train_iters) <= 100:
+        raise ValueError("E2E learning canary is restricted to 10--100 updates")
     if smoke_family is not None and (not smoke or int(train_iters) != 1):
         raise ValueError("one-family E2E canary requires one smoke update")
 
@@ -337,6 +344,7 @@ def validate_v1_checkpoint_load_policy(args) -> None:
 def validate_experiment_args(args) -> None:
     validate_smoke_scope(
         smoke=bool(args.e2e_smoke),
+        learning_canary=bool(args.e2e_learning_canary),
         allow_missing_teachers=bool(args.e2e_allow_missing_teachers),
         train_iters=int(args.train_iters),
         smoke_family=args.e2e_smoke_family,
@@ -349,9 +357,10 @@ def validate_experiment_args(args) -> None:
         raise ValueError("E2E task pools and native training require seq-length 18000")
     if int(args.micro_batch_size) not in (1, 2):
         raise ValueError("validated E2E micro batch sizes are 1 and 2")
-    if not args.e2e_smoke and int(args.global_batch_size) != 128:
+    bounded_canary = bool(args.e2e_smoke or args.e2e_learning_canary)
+    if not bounded_canary and int(args.global_batch_size) != 128:
         raise ValueError("formal E2E training requires global batch size 128")
-    if int(args.e2e_coverage_epochs) != 3 and not args.e2e_smoke:
+    if int(args.e2e_coverage_epochs) != 3 and not bounded_canary:
         raise ValueError("formal E2E training requires three coverage epochs")
     if bool(args.create_attention_mask_in_dataloader):
         raise ValueError("E2E packed THD training must not create a dense mask")
@@ -382,7 +391,16 @@ def validate_experiment_args(args) -> None:
             args.e2e_phase3_valid_cache_audit,
         ):
             _require_file(path)
-    if not args.e2e_smoke:
+    if args.e2e_learning_canary:
+        _require_file(args.e2e_canary_report)
+        canary = json.loads(Path(args.e2e_canary_report).read_text(encoding="utf-8"))
+        if canary.get("status") != "passed" or bool(
+            canary.get("formal_training_authorized")
+        ):
+            raise RuntimeError(
+                "learning canary requires the passed, unauthorized structural canary"
+            )
+    elif not args.e2e_smoke:
         _require_file(args.e2e_training_gate)
         gate = json.loads(Path(args.e2e_training_gate).read_text(encoding="utf-8"))
         if not bool(gate.get("formal_training_authorized")):
@@ -450,7 +468,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     )
     train.collate_fn = collate_e2e_family
     target_train = int(train_val_test_num_samples[0])
-    if args.e2e_smoke and 0 < target_train <= len(train):
+    if (args.e2e_smoke or args.e2e_learning_canary) and 0 < target_train <= len(train):
         if args.e2e_smoke_family:
             if int(args.train_iters) != 1 or target_train != int(args.global_batch_size):
                 raise ValueError("one-family E2E canary requires exactly one update")

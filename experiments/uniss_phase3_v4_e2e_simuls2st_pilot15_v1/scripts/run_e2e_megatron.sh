@@ -38,6 +38,8 @@ RUN_LOG_INTERVAL=${RUN_LOG_INTERVAL:-5}
 RUN_SEED=${RUN_SEED:-20260818}
 RUN_SMOKE=${RUN_SMOKE:-0}
 RUN_SMOKE_FAMILY=${RUN_SMOKE_FAMILY:-}
+RUN_LEARNING_CANARY=${RUN_LEARNING_CANARY:-0}
+RUN_CANARY_REPORT=${RUN_CANARY_REPORT:-}
 RUN_ALLOW_MISSING_TEACHERS=${RUN_ALLOW_MISSING_TEACHERS:-0}
 RUN_AUDIT_GRADIENTS=${RUN_AUDIT_GRADIENTS:-0}
 RUN_VERIFY_DATASET_SHA256=${RUN_VERIFY_DATASET_SHA256:-0}
@@ -56,6 +58,13 @@ export PIP_CACHE_DIR="${USER_ROOT}/.cache/pip"
 export TMPDIR="${USER_ROOT}/tmp"
 export PYTHONPATH="${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}"
 export PATH="$(dirname "${PYTHON_BIN}"):${PATH}"
+NVIDIA_LIBRARY_ROOT="$(dirname "${PYTHON_BIN}")/../lib/python3.12/site-packages/nvidia"
+NVIDIA_LIBRARY_PATH=
+if [[ -d "${NVIDIA_LIBRARY_ROOT}" ]]; then
+  NVIDIA_LIBRARY_PATH=$(find "${NVIDIA_LIBRARY_ROOT}" \
+    -mindepth 2 -maxdepth 2 -type d -name lib -print | sort | paste -sd: -)
+fi
+export LD_LIBRARY_PATH="${NVIDIA_LIBRARY_PATH:+${NVIDIA_LIBRARY_PATH}:}$(dirname "${PYTHON_BIN}")/../lib:${LD_LIBRARY_PATH:-}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 export UNISS_E2E_COMPILE_CACHE_ROOT="${USER_ROOT}/.cache/uniss_e2e_compile/${RUN_ID}"
@@ -85,8 +94,11 @@ if [[ -n "${RUN_VALID_BUILD_REPORT}" ]]; then
     done
   fi
 fi
-if [[ "${RUN_SMOKE}" != "1" ]]; then
+if [[ "${RUN_SMOKE}" != "1" && "${RUN_LEARNING_CANARY}" != "1" ]]; then
   [[ -f "${RUN_TRAINING_GATE}" ]] || { echo "missing formal E2E training gate" >&2; exit 1; }
+fi
+if [[ "${RUN_LEARNING_CANARY}" == "1" ]]; then
+  [[ -f "${RUN_CANARY_REPORT}" ]] || { echo "missing passed structural canary report" >&2; exit 1; }
 fi
 
 if [[ ! -f "${GEOMETRY}" ]]; then
@@ -123,6 +135,14 @@ if [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" && "${RUN_SMOKE}" != "1" ]]; then
 fi
 if [[ "${RUN_SMOKE}" == "1" && ( "${RUN_TRAIN_ITERS}" -lt 1 || "${RUN_TRAIN_ITERS}" -gt 2 ) ]]; then
   echo "E2E smoke runs are restricted to one or two updates" >&2
+  exit 4
+fi
+if [[ "${RUN_LEARNING_CANARY}" == "1" && ( "${RUN_TRAIN_ITERS}" -lt 10 || "${RUN_TRAIN_ITERS}" -gt 100 ) ]]; then
+  echo "E2E learning canaries are restricted to 10--100 updates" >&2
+  exit 4
+fi
+if [[ "${RUN_SMOKE}" == "1" && "${RUN_LEARNING_CANARY}" == "1" ]]; then
+  echo "E2E smoke and learning canary are mutually exclusive" >&2
   exit 4
 fi
 if [[ "${RUN_WARMUP_ITERS}" -lt 0 || "${RUN_WARMUP_ITERS}" -gt "${RUN_TRAIN_ITERS}" ]]; then
@@ -221,6 +241,7 @@ cmd=(
 [[ -n "${RUN_PHASE3_TRAIN_CACHE_AUDIT}" ]] && cmd+=(--e2e-phase3-train-cache-audit "${RUN_PHASE3_TRAIN_CACHE_AUDIT}")
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--e2e-smoke)
 [[ -n "${RUN_SMOKE_FAMILY}" ]] && cmd+=(--e2e-smoke-family "${RUN_SMOKE_FAMILY}")
+[[ "${RUN_LEARNING_CANARY}" == "1" ]] && cmd+=(--e2e-learning-canary --e2e-canary-report "${RUN_CANARY_REPORT}")
 [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" ]] && cmd+=(--e2e-allow-missing-teachers)
 [[ "${RUN_AUDIT_GRADIENTS}" == "1" ]] && cmd+=(--e2e-audit-gradients)
 [[ "${RUN_VERIFY_DATASET_SHA256}" == "1" ]] && cmd+=(--e2e-verify-dataset-sha256)
