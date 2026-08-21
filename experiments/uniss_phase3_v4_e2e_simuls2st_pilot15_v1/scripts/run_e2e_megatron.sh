@@ -198,7 +198,7 @@ cmd=(
   --recompute-activations
   --attention-dropout 0.1
   --hidden-dropout 0.1
-  --dist-ckpt-strictness raise_all
+  --dist-ckpt-strictness raise_unexpected
   --finetune
   --no-load-optim
   --no-load-rng

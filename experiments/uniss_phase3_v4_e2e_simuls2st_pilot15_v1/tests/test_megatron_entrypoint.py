@@ -9,6 +9,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_
     e2e_chunk_ms_for_progress,
     validate_family_denominators,
     validate_smoke_scope,
+    validate_v1_checkpoint_load_policy,
     validate_v1_checkpoint_key_sets,
 )
 
@@ -39,6 +40,23 @@ def test_v1_key_audit_requires_exact_compound_model_keys() -> None:
         validate_v1_checkpoint_key_sets(
             checkpoint, current - {"stage_a_objective.frontend.weight"}
         )
+
+
+def test_v1_checkpoint_load_policy_ignores_only_unrequested_checkpoint_state() -> None:
+    class Args:
+        finetune = True
+        no_load_optim = True
+        no_load_rng = True
+        dist_ckpt_strictness = "raise_unexpected"
+
+    args = Args()
+    validate_v1_checkpoint_load_policy(args)
+    args.dist_ckpt_strictness = "raise_all"
+    with pytest.raises(ValueError, match="raise_unexpected"):
+        validate_v1_checkpoint_load_policy(args)
+    args.dist_ckpt_strictness = "log_all"
+    with pytest.raises(ValueError, match="raise_unexpected"):
+        validate_v1_checkpoint_load_policy(args)
 
 
 def test_v1_frontend_is_frozen_and_absent_from_trainable_partition() -> None:

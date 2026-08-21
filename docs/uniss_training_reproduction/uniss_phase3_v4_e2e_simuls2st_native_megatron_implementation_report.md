@@ -134,8 +134,18 @@ The launcher forces:
 --finetune
 --no-load-optim
 --no-load-rng
---dist-ckpt-strictness raise_all
+--dist-ckpt-strictness raise_unexpected
 ```
+
+`raise_unexpected` is required for this fresh finetune handoff.  The V1
+checkpoint contains optimizer and RNG entries from Stage A, but the E2E run
+intentionally requests neither (`--no-load-optim --no-load-rng`).  Megatron's
+`raise_all` treats those checkpoint-only entries as missing from the requested
+state and rejects an otherwise exact model load.  `raise_unexpected` ignores
+only checkpoint-only entries while still rejecting runtime-requested keys that
+do not exist.  Before loading, the E2E entrypoint independently requires an
+exact metadata-key match for every compound model tensor, including all frozen
+`stage_a_objective.*` tensors; post-canary bitwise auditing remains mandatory.
 
 The static audit on the real checkpoints passed:
 

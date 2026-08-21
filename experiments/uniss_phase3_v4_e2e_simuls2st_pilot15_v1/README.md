@@ -39,8 +39,13 @@ module namespace, strictly loads `iter_0000381`, freezes every
 `stage_a_objective.*` parameter, and places only the native Qwen parameters in
 the optimizer.  The formal launcher is `scripts/run_e2e_megatron.sh`; it always
 uses `--finetune --no-load-optim --no-load-rng` and
-`--dist-ckpt-strictness raise_all`.  Formal training remains blocked until an
-external gate explicitly sets `formal_training_authorized=true`.
+`--dist-ckpt-strictness raise_unexpected`.  This is the strict finetune mode:
+runtime-requested model keys must exist in V1, while checkpoint-only optimizer
+and RNG state is deliberately ignored because the run also requires
+`--no-load-optim --no-load-rng`.  A separate metadata audit still requires an
+exact match for every compound model key before loading.  Formal training
+remains blocked until an external gate explicitly sets
+`formal_training_authorized=true`.
 
 The background formal sequence is intentionally split into gated handoffs:
 

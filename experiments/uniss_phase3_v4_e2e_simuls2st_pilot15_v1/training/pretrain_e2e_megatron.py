@@ -320,6 +320,20 @@ def validate_smoke_scope(
         raise ValueError("one-family E2E canary requires one smoke update")
 
 
+def validate_v1_checkpoint_load_policy(args) -> None:
+    if (
+        not bool(args.finetune)
+        or not bool(args.no_load_optim)
+        or not bool(args.no_load_rng)
+    ):
+        raise ValueError("E2E V1 initialization requires finetune/no-load-optim/no-load-rng")
+    if str(args.dist_ckpt_strictness) != "raise_unexpected":
+        raise ValueError(
+            "E2E V1 initialization requires "
+            "dist-ckpt-strictness=raise_unexpected"
+        )
+
+
 def validate_experiment_args(args) -> None:
     validate_smoke_scope(
         smoke=bool(args.e2e_smoke),
@@ -341,10 +355,7 @@ def validate_experiment_args(args) -> None:
         raise ValueError("formal E2E training requires three coverage epochs")
     if bool(args.create_attention_mask_in_dataloader):
         raise ValueError("E2E packed THD training must not create a dense mask")
-    if not bool(args.finetune) or not bool(args.no_load_optim) or not bool(args.no_load_rng):
-        raise ValueError("E2E V1 initialization requires finetune/no-load-optim/no-load-rng")
-    if str(args.dist_ckpt_strictness) != "raise_all":
-        raise ValueError("E2E V1 initialization requires dist-ckpt-strictness=raise_all")
+    validate_v1_checkpoint_load_policy(args)
     if float(args.lr) != float(args.e2e_lr_qwen):
         raise ValueError("base --lr must equal the E2E Qwen LR")
     if float(args.min_lr) != float(args.e2e_lr_qwen) * 0.1:
