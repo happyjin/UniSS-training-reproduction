@@ -64,7 +64,12 @@ if [[ -d "${NVIDIA_LIBRARY_ROOT}" ]]; then
   NVIDIA_LIBRARY_PATH=$(find "${NVIDIA_LIBRARY_ROOT}" \
     -mindepth 2 -maxdepth 2 -type d -name lib -print | sort | paste -sd: -)
 fi
-export LD_LIBRARY_PATH="${NVIDIA_LIBRARY_PATH:+${NVIDIA_LIBRARY_PATH}:}$(dirname "${PYTHON_BIN}")/../lib:${LD_LIBRARY_PATH:-}"
+# This host provides the Transformer-Engine-compatible cuDNN 9.7 under the
+# CUDA toolkit.  Keep system CUDA libraries ahead of the pip fallback: putting
+# the environment's older cuDNN 9.1 first imports successfully but fails on the
+# first fused-attention call with CUDNN_STATUS_SUBLIBRARY_LOADING_FAILED.
+SYSTEM_CUDA_LIBRARY_PATH=/usr/local/cuda-12.8/lib:/usr/local/cuda-12.8/lib64:/usr/local/cuda-12.8/targets/x86_64-linux/lib
+export LD_LIBRARY_PATH="${SYSTEM_CUDA_LIBRARY_PATH}:$(dirname "${PYTHON_BIN}")/../lib:${LD_LIBRARY_PATH:-}${NVIDIA_LIBRARY_PATH:+:${NVIDIA_LIBRARY_PATH}}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 export UNISS_E2E_COMPILE_CACHE_ROOT="${USER_ROOT}/.cache/uniss_e2e_compile/${RUN_ID}"
