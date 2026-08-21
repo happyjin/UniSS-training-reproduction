@@ -54,7 +54,7 @@ def _restricted_semantic_choice(
     ].max(dim=0)
     if allow_end and values[c.TOKEN_END_SEMANTIC] >= semantic_value:
         return c.TOKEN_END_SEMANTIC
-    return int(semantic_index)
+    return start + int(semantic_index)
 
 
 @torch.inference_mode()
@@ -301,12 +301,21 @@ class PersistentInterleavedSession:
         mt: list[str] = []
         semantic: list[int] = []
         malformed = 0
+        # ``build_interleaved_task`` serializes at most one fragment from each
+        # family per source event, in ASR -> MT -> TTS order.  The runtime must
+        # enforce the same grammar: otherwise a locally dominant family token
+        # can be selected repeatedly until ``max_fragments`` and prevent later
+        # families (especially semantic TTS) from being exercised at all.
+        family_order = (
+            c.TOKEN_TASK_ASR,
+            c.TOKEN_TASK_S2T_TRANSLATION,
+            c.TOKEN_TASK_TTS,
+        )
+        next_family_index = 0
         for _ in range(max_fragments):
-            continuation_candidates = [
-                c.TOKEN_WRITE_GENERATE,
-                c.TOKEN_WAIT_READ,
-                c.TOKEN_START_GLM,
-            ]
+            continuation_candidates = [c.TOKEN_WAIT_READ, c.TOKEN_START_GLM]
+            if next_family_index < len(family_order):
+                continuation_candidates.insert(0, c.TOKEN_WRITE_GENERATE)
             # The live runtime knows whether the input stream has ended.  EOS
             # is structurally impossible before the final source event and is
             # never a legal training label there.  Previously an illegal EOS
@@ -330,9 +339,9 @@ class PersistentInterleavedSession:
                 break
 
             self._append((c.TOKEN_WRITE_GENERATE,), (None,))
-            family = self._choice(
-                (c.TOKEN_TASK_ASR, c.TOKEN_TASK_S2T_TRANSLATION, c.TOKEN_TASK_TTS)
-            )
+            allowed_families = family_order[next_family_index:]
+            family = self._choice(allowed_families)
+            next_family_index = family_order.index(family) + 1
             self._append((family,), (None,))
             if family == c.TOKEN_TASK_ASR:
                 continuations.append("WRITE_ASR")
