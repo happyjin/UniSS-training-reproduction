@@ -101,6 +101,12 @@ def _weighted_asr(samples: Sequence[Mapping[str, object]]) -> dict[str, object]:
         counter["samples"] += 1
         counter["source_rollbacks"] += int(asr.get("source_rollbacks", 0))
         counter["empty_samples"] += int(not str(asr.get("hypothesis", "")).strip())
+        counter["empty_events"] += int(asr.get("empty_events", 0))
+        counter["early_eos_events"] += int(asr.get("early_eos_events", 0))
+        counter["malformed_write_events"] += int(
+            asr.get("malformed_write_events", 0)
+        )
+        counter["final_eos_samples"] += int(bool(asr.get("final_reached_eos")))
     output: dict[str, object] = {}
     for language, values in sorted(counters.items()):
         output[language] = {
@@ -138,8 +144,10 @@ def _corpus_scores(samples: Sequence[Mapping[str, object]], key: str) -> dict[st
     return output
 
 
-def _mt_summary(samples: Sequence[Mapping[str, object]]) -> dict[str, object]:
-    candidate = _corpus_scores(samples, "e_mt_gold")
+def _mt_path_summary(
+    samples: Sequence[Mapping[str, object]], key: str
+) -> dict[str, object]:
+    candidate = _corpus_scores(samples, key)
     baseline = _corpus_scores(samples, "phase3_mt_gold")
     directions: dict[str, object] = {}
     for direction in sorted(candidate):
@@ -156,13 +164,26 @@ def _mt_summary(samples: Sequence[Mapping[str, object]]) -> dict[str, object]:
             "phase3_chrf": float(anchor["chrf"]),
             "chrf_retention": float(current["chrf"]) / max(1e-9, float(anchor["chrf"])),
         }
-    coverage = [float(sample["e_mt_gold"]["coverage"]) for sample in samples]  # type: ignore[index]
-    rollback = sum(int(sample["e_mt_gold"]["rollback_events"]) for sample in samples)  # type: ignore[index]
+    coverage = [float(sample[key]["coverage"]) for sample in samples]  # type: ignore[index]
+    rollback = sum(int(sample[key]["rollback_events"]) for sample in samples)  # type: ignore[index]
+    conflicts = sum(int(sample[key].get("commit_conflicts", 0)) for sample in samples)  # type: ignore[index]
+    unterminated = sum(
+        int(sample[key].get("unterminated_generations", 0)) for sample in samples  # type: ignore[index]
+    )
     return {
         "directions": directions,
         "target_coverage_min": min(coverage) if coverage else 0.0,
         "target_coverage_mean": sum(coverage) / max(1, len(coverage)),
         "target_rollback_events": rollback,
+        "commit_conflicts": conflicts,
+        "unterminated_generations": unterminated,
+    }
+
+
+def _mt_summary(samples: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    return {
+        "gold_source": _mt_path_summary(samples, "e_mt_gold"),
+        "free_running_source": _mt_path_summary(samples, "e_mt_free"),
     }
 
 
@@ -215,7 +236,11 @@ def build_gate(
     if selection_value.get("schema_version") != SELECTION_SCHEMA:
         raise ValueError("unexpected free-running selection schema")
     workers = [json.loads(Path(path).read_text(encoding="utf-8")) for path in worker_reports]
-    if not workers or any(value.get("schema_version") != WORKER_SCHEMA for value in workers):
+    if not workers or any(
+        value.get("schema_version") != WORKER_SCHEMA
+        or value.get("status") != "complete"
+        for value in workers
+    ):
         raise ValueError("free-running worker report schema differs")
     expected_workers = int(workers[0]["num_workers"])
     indices = sorted(int(value["worker_index"]) for value in workers)
@@ -226,6 +251,16 @@ def build_gate(
     observed_ids = {str(value["sample_id"]) for value in samples}
     if len(samples) != len(selected_ids) or observed_ids != selected_ids:
         raise ValueError("free-running samples do not exactly cover the fixed selection")
+    expected_s2s_ids = {
+        str(value["sample_id"])
+        for value in selection_value["records"]
+        if bool(value.get("run_e_s2s"))
+    }
+    observed_s2s_ids = {
+        str(value["sample_id"]) for value in samples if value.get("e_s2s_free")
+    }
+    if observed_s2s_ids != expected_s2s_ids:
+        raise ValueError("E-S2S worker rows do not exactly cover the fixed selection")
 
     asr = _weighted_asr(samples)
     mt = _mt_summary(samples)
@@ -242,7 +277,16 @@ def build_gate(
         int(value["source_rollbacks"]) == 0  # type: ignore[index]
         for value in asr.values()
     )
-    directions = mt["directions"]
+    checks["e_asr_structure_valid"] = all(
+        int(value["early_eos_events"]) == 0  # type: ignore[index]
+        and int(value["malformed_write_events"]) == 0  # type: ignore[index]
+        and int(value["final_eos_samples"]) == int(value["samples"])  # type: ignore[index]
+        and int(value["empty_samples"]) == 0  # type: ignore[index]
+        for value in asr.values()
+    )
+    gold_mt = mt["gold_source"]
+    free_mt = mt["free_running_source"]
+    directions = gold_mt["directions"]  # type: ignore[index]
     checks["e_mt_all_directions_present"] = bool(directions) and len(directions) == 2
     checks["e_mt_bleu_retention"] = bool(directions) and all(
         float(value["bleu_retention"]) >= MT_RETENTION_LIMIT
@@ -252,8 +296,26 @@ def build_gate(
         float(value["chrf_retention"]) >= MT_RETENTION_LIMIT
         for value in directions.values()  # type: ignore[union-attr]
     )
-    checks["e_mt_target_rollback_zero"] = int(mt["target_rollback_events"]) == 0
-    checks["e_mt_target_coverage"] = float(mt["target_coverage_min"]) >= TARGET_COVERAGE_LIMIT
+    checks["e_mt_target_rollback_zero"] = int(
+        gold_mt["target_rollback_events"]  # type: ignore[index]
+    ) == 0
+    checks["e_mt_target_coverage"] = float(
+        gold_mt["target_coverage_min"]  # type: ignore[index]
+    ) >= TARGET_COVERAGE_LIMIT
+    free_directions = free_mt["directions"]  # type: ignore[index]
+    checks["e_mt_free_all_directions_present"] = (
+        bool(free_directions)
+        and len(free_directions) == 2
+        and sum(int(value["samples"]) for value in free_directions.values())  # type: ignore[union-attr]
+        == len(samples)
+    )
+    checks["e_mt_free_target_rollback_zero"] = int(
+        free_mt["target_rollback_events"]  # type: ignore[index]
+    ) == 0
+    checks["e_mt_generation_terminated"] = (
+        int(gold_mt["unterminated_generations"]) == 0  # type: ignore[index]
+        and int(free_mt["unterminated_generations"]) == 0  # type: ignore[index]
+    )
     s2s_count = int(s2s.get("samples", 0))
     checks["e_s2s_present"] = s2s_count >= 4
     checks["e_s2s_semantic_coverage"] = (
@@ -293,7 +355,7 @@ def build_gate(
         },
         "formal_initialization": str(Path(v1_initialization).resolve()),
         "checks": checks,
-        "metrics": {"e_asr": asr, "e_mt_gold": mt, "e_s2s_free": s2s},
+        "metrics": {"e_asr": asr, "e_mt": mt, "e_s2s_free": s2s},
         "worker_reports": [
             {"path": str(Path(path).resolve()), "sha256": sha256_file(path)}
             for path in worker_reports
