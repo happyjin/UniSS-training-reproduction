@@ -147,6 +147,12 @@ do not exist.  Before loading, the E2E entrypoint independently requires an
 exact metadata-key match for every compound model tensor, including all frozen
 `stage_a_objective.*` tensors; post-canary bitwise auditing remains mandatory.
 
+The runtime denominator gate uses the objective's canonical metric name
+`replay_ce` for both Phase3 replay families.  The task-pool build report keeps
+the more descriptive count key `loss:phase3_replay_ce`; these two namespaces
+must not be mixed because the packed loss-kind is normalized to `replay_ce`
+inside the native Megatron objective.
+
 The static audit on the real checkpoints passed:
 
 | Audit | Result |

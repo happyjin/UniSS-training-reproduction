@@ -100,8 +100,8 @@ REQUIRED_FAMILY_DENOMINATORS = {
         "eos_ce",
         "phase3_kl",
     ),
-    FAMILY_PHASE3_QUALITY: ("phase3_replay_ce",),
-    FAMILY_PHASE3_PERFORMANCE: ("phase3_replay_ce",),
+    FAMILY_PHASE3_QUALITY: ("replay_ce",),
+    FAMILY_PHASE3_PERFORMANCE: ("replay_ce",),
 }
 
 

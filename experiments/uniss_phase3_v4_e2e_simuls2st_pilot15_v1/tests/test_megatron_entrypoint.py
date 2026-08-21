@@ -130,3 +130,15 @@ def test_active_family_denominators_fail_closed() -> None:
     validate_family_denominators(
         "streaming_asr_event", metrics, allow_missing_teachers=True
     )
+
+
+@pytest.mark.parametrize(
+    "family", ("phase3_quality_replay", "phase3_performance_replay")
+)
+def test_replay_families_require_runtime_replay_ce_denominator(family: str) -> None:
+    metrics = {"denominator/replay_ce": torch.tensor(17.0)}
+    validate_family_denominators(family, metrics)
+    with pytest.raises(RuntimeError, match="replay_ce"):
+        validate_family_denominators(
+            family, {"denominator/replay_ce": torch.tensor(0.0)}
+        )
