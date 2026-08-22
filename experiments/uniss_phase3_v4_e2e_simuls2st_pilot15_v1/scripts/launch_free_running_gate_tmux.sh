@@ -15,7 +15,8 @@ tmux has-session -t "${SESSION}" 2>/dev/null && {
 }
 command=(env RUN_ID="${RUN_ID}" CANDIDATE_HF="${CANDIDATE_HF}")
 for name in FORMAL_DATA_RUN_ID RUN_ROOT SELECTION CANDIDATE_FINGERPRINT GOLD \
-  CANARY_REPORT CANDIDATE_CHECKPOINT BICODEC_MODEL NUM_WORKERS; do
+  CANARY_REPORT CANDIDATE_CHECKPOINT BICODEC_MODEL NUM_WORKERS \
+  MAX_S2S_SEMANTIC_TOKENS; do
   if [[ -n "${!name:-}" ]]; then
     command+=("${name}=${!name}")
   fi

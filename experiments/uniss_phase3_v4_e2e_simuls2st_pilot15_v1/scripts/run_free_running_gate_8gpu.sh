@@ -18,6 +18,7 @@ CANARY_REPORT=${CANARY_REPORT:-${REPO_ROOT}/reports/${EXPERIMENT_NAME}/${FORMAL_
 CANDIDATE_CHECKPOINT=${CANDIDATE_CHECKPOINT:-${REPO_ROOT}/checkpoints/${EXPERIMENT_NAME}/post_task_pool_canaries/post_task_pool_canary_p4_replayfix_w0_20260821T085848Z/structural/iter_0000002}
 BICODEC_MODEL=${BICODEC_MODEL:-${REPO_ROOT}/pretrained_models/UniSS/bicodec}
 NUM_WORKERS=${NUM_WORKERS:-8}
+MAX_S2S_SEMANTIC_TOKENS=${MAX_S2S_SEMANTIC_TOKENS:-64}
 
 required=(
   "${SELECTION}"
@@ -36,6 +37,10 @@ for value in "${required[@]}"; do
   [[ -f "${value}" ]] || { echo "missing free-running gate input: ${value}" >&2; exit 2; }
 done
 [[ "${NUM_WORKERS}" == "8" ]] || { echo "formal free-running gate requires eight GPU workers" >&2; exit 2; }
+[[ "${MAX_S2S_SEMANTIC_TOKENS}" =~ ^[0-9]+$ && "${MAX_S2S_SEMANTIC_TOKENS}" -gt 0 ]] || {
+  echo "MAX_S2S_SEMANTIC_TOKENS must be a positive integer" >&2
+  exit 2
+}
 
 GATE=${RUN_ROOT}/E2E_FREE_RUNNING_GATE.json
 GPU_LOG=${RUN_ROOT}/gpu.csv
@@ -103,6 +108,7 @@ for worker in $(seq 0 7); do
     --candidate-hf-sha256 "${CANDIDATE_SHA}" \
     --worker-index "${worker}" \
     --num-workers "${NUM_WORKERS}" \
+    --max-s2s-semantic-tokens "${MAX_S2S_SEMANTIC_TOKENS}" \
     --report "${report}" \
     --audio-dir "${audio}" \
     --device cuda:0 > "${log}" 2>&1 &
@@ -133,4 +139,3 @@ done
   --candidate-hf "${CANDIDATE_HF}" \
   --v1-initialization "${V1_CHECKPOINT}" \
   --output "${GATE}" | tee "${RUN_ROOT}/FINALIZE.stdout.json"
-
