@@ -11,6 +11,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule impo
     STEADY_WEIGHTS,
     FiveFamilyCoverageSampler,
     FiveFamilyGlobalSchedule,
+    FiveFamilyPhaseStratifiedCanary,
     FiveFamilySchedulePrefix,
     FiveFamilySingleBlock,
     FiveFamilyValidationSchedule,
@@ -181,6 +182,42 @@ def test_smoke_prefix_keeps_complete_global_family_blocks() -> None:
             prefix[index]["family"]
             for index in range(block * 8, (block + 1) * 8)
         } == {full.blocks[block]}
+
+
+def test_phase_stratified_canary_spans_phases_and_all_families() -> None:
+    full = FiveFamilyGlobalSchedule(
+        _datasets(100),
+        coverage_epochs=3,
+        global_batch_size=8,
+        data_parallel_group_size=2,
+        shuffle_seed=29,
+    )
+    canary = FiveFamilyPhaseStratifiedCanary(full, 10 * 8)
+    assert len(canary) == 80
+    assert canary.total_blocks == 10
+    assert canary.phase_block_counts == (1, 3, 6)
+    assert set(canary.blocks) == set(TASK_FAMILIES)
+    boundaries = (0, round(0.10 * full.total_blocks), round(0.35 * full.total_blocks), full.total_blocks)
+    for phase, indices in enumerate(canary.phase_source_block_indices):
+        assert indices
+        assert all(boundaries[phase] <= value < boundaries[phase + 1] for value in indices)
+    for block in range(canary.total_blocks):
+        assert {
+            canary[index]["family"]
+            for index in range(block * 8, (block + 1) * 8)
+        } == {canary.blocks[block]}
+
+
+def test_phase_stratified_canary_rejects_non_learning_geometry() -> None:
+    full = FiveFamilyGlobalSchedule(
+        _datasets(100),
+        coverage_epochs=3,
+        global_batch_size=8,
+        data_parallel_group_size=2,
+        shuffle_seed=31,
+    )
+    with pytest.raises(ValueError, match="10--100"):
+        FiveFamilyPhaseStratifiedCanary(full, 9 * 8)
 
 
 def test_single_family_canary_selects_one_complete_requested_block() -> None:

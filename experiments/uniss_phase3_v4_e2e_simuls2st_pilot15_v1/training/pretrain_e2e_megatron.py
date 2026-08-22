@@ -40,6 +40,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.runtime_datas
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.schedule import (
     FiveFamilyCoverageSampler,
     FiveFamilyGlobalSchedule,
+    FiveFamilyPhaseStratifiedCanary,
     FiveFamilySchedulePrefix,
     FiveFamilySingleBlock,
     FiveFamilyValidationSchedule,
@@ -291,6 +292,7 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-smoke", action="store_true")
     group.add_argument("--e2e-smoke-family", choices=TASK_FAMILIES)
     group.add_argument("--e2e-learning-canary", action="store_true")
+    group.add_argument("--e2e-phase-stratified-canary", action="store_true")
     group.add_argument("--e2e-canary-report")
     group.add_argument("--e2e-allow-missing-teachers", action="store_true")
     group.add_argument("--e2e-audit-gradients", action="store_true")
@@ -314,6 +316,7 @@ def validate_smoke_scope(
     allow_missing_teachers: bool,
     train_iters: int,
     smoke_family: str | None = None,
+    phase_stratified_canary: bool = False,
 ) -> None:
     if smoke and learning_canary:
         raise ValueError("E2E smoke and learning canary are mutually exclusive")
@@ -323,6 +326,10 @@ def validate_smoke_scope(
         raise ValueError("E2E smoke runs are restricted to one or two updates")
     if learning_canary and not 10 <= int(train_iters) <= 100:
         raise ValueError("E2E learning canary is restricted to 10--100 updates")
+    if phase_stratified_canary and not learning_canary:
+        raise ValueError(
+            "phase-stratified E2E canary requires --e2e-learning-canary"
+        )
     if smoke_family is not None and (not smoke or int(train_iters) != 1):
         raise ValueError("one-family E2E canary requires one smoke update")
 
@@ -348,6 +355,7 @@ def validate_experiment_args(args) -> None:
         allow_missing_teachers=bool(args.e2e_allow_missing_teachers),
         train_iters=int(args.train_iters),
         smoke_family=args.e2e_smoke_family,
+        phase_stratified_canary=bool(args.e2e_phase_stratified_canary),
     )
     if not bool(args.sft):
         raise ValueError("E2E packed training requires --sft")
@@ -473,6 +481,8 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             if int(args.train_iters) != 1 or target_train != int(args.global_batch_size):
                 raise ValueError("one-family E2E canary requires exactly one update")
             train = FiveFamilySingleBlock(train, args.e2e_smoke_family)
+        elif args.e2e_phase_stratified_canary:
+            train = FiveFamilyPhaseStratifiedCanary(train, target_train)
         else:
             train = FiveFamilySchedulePrefix(train, target_train)
         train.collate_fn = collate_e2e_family
@@ -501,7 +511,9 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         "> E2E datasets: "
         f"families={{{', '.join(f'{name}:{len(train_sources[name])}' for name in TASK_FAMILIES)}}} "
         f"blocks={train.total_blocks} samples={len(train)} "
-        f"family_blocks={train.family_block_counts} valid={0 if valid is None else len(valid)}"
+        f"family_blocks={train.family_block_counts} "
+        f"phase_blocks={getattr(train, 'phase_block_counts', None)} "
+        f"valid={0 if valid is None else len(valid)}"
     )
     return train, valid, None
 

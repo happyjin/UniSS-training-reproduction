@@ -14,6 +14,7 @@ LEARNING_MBS=${LEARNING_MBS:-2}
 LEARNING_GBS=${LEARNING_GBS:-128}
 LEARNING_NUM_WORKERS=${LEARNING_NUM_WORKERS:-0}
 LEARNING_MASTER_PORT=${LEARNING_MASTER_PORT:-29910}
+LEARNING_PHASE_STRATIFIED=${LEARNING_PHASE_STRATIFIED:-0}
 TASK_POOL_RUN_ID=${TASK_POOL_RUN_ID:-task_pool_formal_p4_20260820T154500Z}
 TEACHER_RUN_ID=${TEACHER_RUN_ID:-teacher_cache_formal_p4_20260820T154500Z}
 STRUCTURAL_CANARY_RUN_ID=${STRUCTURAL_CANARY_RUN_ID:-post_task_pool_canary_p4_replayfix_w0_20260821T085848Z}
@@ -32,6 +33,10 @@ fi
 }
 [[ "${LEARNING_NUM_WORKERS}" == "0" ]] || {
   echo "the learning canary requires num_workers=0 on this host" >&2
+  exit 2
+}
+[[ "${LEARNING_PHASE_STRATIFIED}" == "0" || "${LEARNING_PHASE_STRATIFIED}" == "1" ]] || {
+  echo "LEARNING_PHASE_STRATIFIED must be zero or one" >&2
   exit 2
 }
 
@@ -110,6 +115,7 @@ env \
   RUN_EVAL_INTERVAL="${LEARNING_ITERS}" \
   RUN_LOG_INTERVAL=1 \
   RUN_LEARNING_CANARY=1 \
+  RUN_PHASE_STRATIFIED_CANARY="${LEARNING_PHASE_STRATIFIED}" \
   RUN_CANARY_REPORT="${CANARY_REPORT}" \
   RUN_TRAIN_ITERS="${LEARNING_ITERS}" \
   RUN_WARMUP_ITERS="${warmup_iters}" \
@@ -137,8 +143,9 @@ jq -n \
   --arg gpu_csv "${RUN_LOG%.log}.gpu.csv" \
   --arg frozen_audit "${FROZEN_AUDIT}" \
   --arg structural_canary "${CANARY_REPORT}" \
+  --argjson phase_stratified "${LEARNING_PHASE_STRATIFIED}" \
   --argjson train_iters "${LEARNING_ITERS}" \
-  '{schema_version:"uniss_e2e_learning_canary_v1",status:"complete",formal_training_authorized:false,started_at:$started_at,ended_at:$ended_at,run_id:$run_id,train_iters:$train_iters,checkpoint:$checkpoint,tensorboard:$tensorboard,log:$log,gpu_csv:$gpu_csv,frozen_stage_a_audit:$frozen_audit,structural_canary:$structural_canary,next_required_gate:"fixed_16_sample_free_running_validation"}' \
+  '{schema_version:"uniss_e2e_learning_canary_v1",status:"complete",formal_training_authorized:false,started_at:$started_at,ended_at:$ended_at,run_id:$run_id,train_iters:$train_iters,phase_stratified:($phase_stratified == 1),checkpoint:$checkpoint,tensorboard:$tensorboard,log:$log,gpu_csv:$gpu_csv,frozen_stage_a_audit:$frozen_audit,structural_canary:$structural_canary,next_required_gate:"fixed_16_sample_free_running_validation"}' \
   > "${RUN_SUMMARY}"
 
 echo "learning_canary_status=complete"

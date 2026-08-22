@@ -319,6 +319,122 @@ class FiveFamilySchedulePrefix(Dataset):
         return self.dataset[index]
 
 
+class FiveFamilyPhaseStratifiedCanary(Dataset):
+    """Bounded canary spanning the formal early, mid and steady phases.
+
+    A plain prefix of the formal schedule cannot exercise incremental MT because
+    that family intentionally has zero weight during the first 10% of training.
+    This view selects complete global-family blocks from all three formal phases
+    while preserving the phase order and the formal within-phase family quotas.
+    The underlying shuffled source indices are reused unchanged.
+    """
+
+    _PHASE_WIDTHS = (0.10, 0.25, 0.65)
+
+    def __init__(self, dataset: Dataset, total_samples: int) -> None:
+        global_batch_size = int(getattr(dataset, "global_batch_size", 0))
+        source_blocks = tuple(getattr(dataset, "blocks", ()))
+        if (
+            total_samples <= 0
+            or global_batch_size <= 0
+            or total_samples % global_batch_size
+            or not source_blocks
+        ):
+            raise ValueError("invalid phase-stratified E2E canary geometry")
+        total_blocks = total_samples // global_batch_size
+        if total_blocks < 10 or total_blocks > 100:
+            raise ValueError(
+                "phase-stratified E2E canary requires 10--100 global blocks"
+            )
+
+        phase_exact = [total_blocks * width for width in self._PHASE_WIDTHS]
+        phase_counts = [math.floor(value) for value in phase_exact]
+        remaining = total_blocks - sum(phase_counts)
+        phase_order = sorted(
+            range(len(PHASES)),
+            key=lambda index: (phase_exact[index] - phase_counts[index], -index),
+            reverse=True,
+        )
+        for index in phase_order[:remaining]:
+            phase_counts[index] += 1
+        if any(value <= 0 for value in phase_counts):
+            raise ValueError("phase-stratified E2E canary omitted a formal phase")
+
+        full_boundaries = [
+            0,
+            round(0.10 * len(source_blocks)),
+            round(0.35 * len(source_blocks)),
+            len(source_blocks),
+        ]
+        selected: list[int] = []
+        phase_family_counts: list[dict[str, int]] = []
+        phase_source_blocks: list[tuple[int, ...]] = []
+        for phase_index, (_, _, weights) in enumerate(PHASES):
+            family_counts = _largest_remainder(phase_counts[phase_index], weights)
+            candidates = {
+                family: [
+                    block
+                    for block in range(
+                        full_boundaries[phase_index],
+                        full_boundaries[phase_index + 1],
+                    )
+                    if source_blocks[block] == family
+                ]
+                for family in TASK_FAMILIES
+            }
+            phase_selected: list[int] = []
+            for family in TASK_FAMILIES:
+                needed = family_counts[family]
+                available = candidates[family]
+                if needed > len(available):
+                    raise ValueError(
+                        f"formal phase {phase_index} has too few {family} blocks"
+                    )
+                # Midpoint sampling spans the full formal phase instead of
+                # collapsing each family to another short local prefix.
+                phase_selected.extend(
+                    available[math.floor((slot + 0.5) * len(available) / needed)]
+                    for slot in range(needed)
+                )
+            phase_selected.sort()
+            selected.extend(phase_selected)
+            phase_family_counts.append(family_counts)
+            phase_source_blocks.append(tuple(phase_selected))
+
+        self.dataset = dataset
+        self.total_samples = int(total_samples)
+        self.global_batch_size = global_batch_size
+        self.data_parallel_group_size = int(dataset.data_parallel_group_size)
+        self.total_blocks = total_blocks
+        self.source_block_indices = tuple(selected)
+        self.blocks = tuple(source_blocks[index] for index in selected)
+        self.family_block_counts = {
+            family: self.blocks.count(family) for family in TASK_FAMILIES
+        }
+        if any(self.family_block_counts[family] <= 0 for family in TASK_FAMILIES):
+            raise ValueError("phase-stratified canary must contain all five families")
+        self.phase_block_counts = tuple(phase_counts)
+        self.phase_family_block_counts = tuple(phase_family_counts)
+        self.phase_source_block_indices = tuple(phase_source_blocks)
+        self.synchronize_task_family = True
+        self.split = getattr(dataset, "split", None)
+
+    def __len__(self) -> int:
+        return self.total_samples
+
+    def __getitem__(self, index: int):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        block, lane = divmod(index, self.global_batch_size)
+        source = self.source_block_indices[block] * self.global_batch_size + lane
+        value = self.dataset[source]
+        if value.get("family") != self.blocks[block]:
+            raise ValueError("phase-stratified E2E canary family mismatch")
+        return value
+
+
 class FiveFamilySingleBlock(Dataset):
     """One explicit family block for an isolated one-update GPU canary."""
 
@@ -410,6 +526,7 @@ __all__ = [
     "FamilyScheduledIndex",
     "FiveFamilyCoverageSampler",
     "FiveFamilyGlobalSchedule",
+    "FiveFamilyPhaseStratifiedCanary",
     "FiveFamilySchedulePrefix",
     "FiveFamilySingleBlock",
     "FiveFamilyValidationSchedule",

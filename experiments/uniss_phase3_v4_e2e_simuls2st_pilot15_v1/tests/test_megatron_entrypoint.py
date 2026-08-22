@@ -99,7 +99,16 @@ def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
         learning_canary=True,
         allow_missing_teachers=False,
         train_iters=100,
+        phase_stratified_canary=True,
     )
+    with pytest.raises(ValueError, match="requires --e2e-learning-canary"):
+        validate_smoke_scope(
+            smoke=False,
+            learning_canary=False,
+            allow_missing_teachers=False,
+            train_iters=100,
+            phase_stratified_canary=True,
+        )
     with pytest.raises(ValueError, match="only in smoke mode"):
         validate_smoke_scope(
             smoke=False, allow_missing_teachers=True, train_iters=2

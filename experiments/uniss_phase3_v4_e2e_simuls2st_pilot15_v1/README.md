@@ -96,6 +96,24 @@ exported and evaluated with the same frozen 16-record free-running gate.  A
 formal 3-coverage-epoch run, if authorized, still restarts from immutable V1;
 it must never continue from a learning-canary optimizer state.
 
+A plain learning-canary prefix intentionally stays inside the formal early
+phase, where `incremental_mt_event` has zero weight.  To validate all five task
+families without changing the formal curriculum, use the opt-in
+phase-stratified canary.  It samples complete global-batch blocks from the
+formal early/mid/steady phases in 10%/25%/65% proportions, retains their order,
+and fails closed unless every family is present:
+
+```bash
+LEARNING_RUN_ID=learning_canary_allfamily_50u_YYYYMMDDTHHMMSSZ \
+LEARNING_ITERS=50 \
+LEARNING_PHASE_STRATIFIED=1 \
+  experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/scripts/launch_learning_canary_tmux.sh
+```
+
+This remains an unauthorized implementation canary. Passing it never permits
+continuing its optimizer state into formal training; the fixed 16-record gate
+must pass, and an authorized formal run still initializes from immutable V1.
+
 The quality policy deliberately does not delete hard content examples.  A
 structurally valid rollout with high WER/CER is retained as `noisy_content` so
 the student learns robustness to realistic V1 prefixes.  A sample enters

@@ -39,11 +39,17 @@ RUN_SEED=${RUN_SEED:-20260818}
 RUN_SMOKE=${RUN_SMOKE:-0}
 RUN_SMOKE_FAMILY=${RUN_SMOKE_FAMILY:-}
 RUN_LEARNING_CANARY=${RUN_LEARNING_CANARY:-0}
+RUN_PHASE_STRATIFIED_CANARY=${RUN_PHASE_STRATIFIED_CANARY:-0}
 RUN_CANARY_REPORT=${RUN_CANARY_REPORT:-}
 RUN_ALLOW_MISSING_TEACHERS=${RUN_ALLOW_MISSING_TEACHERS:-0}
 RUN_AUDIT_GRADIENTS=${RUN_AUDIT_GRADIENTS:-0}
 RUN_VERIFY_DATASET_SHA256=${RUN_VERIFY_DATASET_SHA256:-0}
 RUN_VERIFY_CACHE_SHA256=${RUN_VERIFY_CACHE_SHA256:-0}
+
+[[ "${RUN_PHASE_STRATIFIED_CANARY}" == "0" || "${RUN_PHASE_STRATIFIED_CANARY}" == "1" ]] || {
+  echo "RUN_PHASE_STRATIFIED_CANARY must be zero or one" >&2
+  exit 4
+}
 
 ENTRYPOINT="${EXPERIMENT_DIR}/training/pretrain_e2e_megatron.py"
 FINGERPRINTS="${PROCESSED_ROOT}/manifests/checkpoint_fingerprints.json"
@@ -150,6 +156,10 @@ if [[ "${RUN_SMOKE}" == "1" && "${RUN_LEARNING_CANARY}" == "1" ]]; then
   echo "E2E smoke and learning canary are mutually exclusive" >&2
   exit 4
 fi
+if [[ "${RUN_PHASE_STRATIFIED_CANARY}" == "1" && "${RUN_LEARNING_CANARY}" != "1" ]]; then
+  echo "phase-stratified E2E canary requires learning-canary mode" >&2
+  exit 4
+fi
 if [[ "${RUN_WARMUP_ITERS}" -lt 0 || "${RUN_WARMUP_ITERS}" -gt "${RUN_TRAIN_ITERS}" ]]; then
   echo "E2E warmup updates must be between zero and train-iters" >&2
   exit 4
@@ -247,6 +257,7 @@ cmd=(
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--e2e-smoke)
 [[ -n "${RUN_SMOKE_FAMILY}" ]] && cmd+=(--e2e-smoke-family "${RUN_SMOKE_FAMILY}")
 [[ "${RUN_LEARNING_CANARY}" == "1" ]] && cmd+=(--e2e-learning-canary --e2e-canary-report "${RUN_CANARY_REPORT}")
+[[ "${RUN_PHASE_STRATIFIED_CANARY}" == "1" ]] && cmd+=(--e2e-phase-stratified-canary)
 [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" ]] && cmd+=(--e2e-allow-missing-teachers)
 [[ "${RUN_AUDIT_GRADIENTS}" == "1" ]] && cmd+=(--e2e-audit-gradients)
 [[ "${RUN_VERIFY_DATASET_SHA256}" == "1" ]] && cmd+=(--e2e-verify-dataset-sha256)
