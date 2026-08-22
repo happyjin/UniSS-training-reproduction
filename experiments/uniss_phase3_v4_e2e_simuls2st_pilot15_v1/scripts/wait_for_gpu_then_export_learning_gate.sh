@@ -60,6 +60,14 @@ while true; do
 done
 
 echo "gpu_ready_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+NVIDIA_LIBRARY_ROOT="$(dirname "${PYTHON_BIN}")/../lib/python3.12/site-packages/nvidia"
+NVIDIA_LIBRARY_PATH=
+if [[ -d "${NVIDIA_LIBRARY_ROOT}" ]]; then
+  NVIDIA_LIBRARY_PATH=$(find "${NVIDIA_LIBRARY_ROOT}" \
+    -mindepth 2 -maxdepth 2 -type d -name lib -print | sort | paste -sd: -)
+fi
+SYSTEM_CUDA_LIBRARY_PATH=/usr/local/cuda-12.8/lib:/usr/local/cuda-12.8/lib64:/usr/local/cuda-12.8/targets/x86_64-linux/lib
+export LD_LIBRARY_PATH="${SYSTEM_CUDA_LIBRARY_PATH}:$(dirname "${PYTHON_BIN}")/../lib:${LD_LIBRARY_PATH:-}${NVIDIA_LIBRARY_PATH:+:${NVIDIA_LIBRARY_PATH}}"
 "${REPO_ROOT}/scripts/convert_uniss_checkpoint.sh" export \
   --hf-model "${REPO_ROOT}/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf" \
   --megatron-path "${MEGATRON_CHECKPOINT}" \
