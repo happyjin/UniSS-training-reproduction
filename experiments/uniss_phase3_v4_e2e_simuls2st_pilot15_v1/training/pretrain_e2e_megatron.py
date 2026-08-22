@@ -54,6 +54,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
     LOSS_NONE,
     TASK_FAMILIES,
 )
+from training import constants_uniss as c
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     TrainableSharedCausalWhisperVQ,
 )
@@ -79,6 +80,10 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/chunk_ms",
     "diagnostic/family_id",
     "diagnostic/speaker_continuity_weight",
+    "diagnostic/semantic_prefix_corruption_rate",
+    "diagnostic/semantic_prefix_corruption_target_rate",
+    "diagnostic/semantic_prefix_corrupted_tokens",
+    "diagnostic/semantic_prefix_eligible_tokens",
 )
 METRIC_NAMES = (*OBJECTIVE_METRIC_NAMES, *DIAGNOSTIC_NAMES)
 REQUIRED_FAMILY_DENOMINATORS = {
@@ -293,6 +298,15 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-semantic-end-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-margin-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-logit-margin", type=float, default=0.0)
+    group.add_argument(
+        "--e2e-semantic-prefix-corruption-rate", type=float, default=0.0
+    )
+    group.add_argument(
+        "--e2e-semantic-prefix-corruption-tail", type=int, default=8
+    )
+    group.add_argument(
+        "--e2e-semantic-prefix-corruption-ramp-updates", type=int, default=0
+    )
     group.add_argument("--e2e-speaker-continuity-weight", type=float, default=0.0)
     group.add_argument("--e2e-verify-dataset-sha256", action="store_true")
     group.add_argument("--e2e-verify-cache-sha256", action="store_true")
@@ -390,6 +404,12 @@ def validate_experiment_args(args) -> None:
         )
     if float(args.e2e_semantic_end_logit_margin) < 0.0:
         raise ValueError("semantic end logit margin must be non-negative")
+    if not 0.0 <= float(args.e2e_semantic_prefix_corruption_rate) <= 1.0:
+        raise ValueError("semantic prefix corruption rate must be in [0, 1]")
+    if int(args.e2e_semantic_prefix_corruption_tail) < 1:
+        raise ValueError("semantic prefix corruption tail must be positive")
+    if int(args.e2e_semantic_prefix_corruption_ramp_updates) < 0:
+        raise ValueError("semantic prefix corruption ramp updates must be non-negative")
     _require_file(args.e2e_train_build_report)
     _require_path(args.e2e_whispervq_model)
     _require_file(args.e2e_checkpoint_fingerprints)
@@ -586,11 +606,20 @@ def _distributed_diagnostics(
             active,
             float(context["terminal_extensions"]),
             float(context["acoustic_rows"]),
+            float(context["semantic_prefix_corrupted_tokens"]),
+            float(context["semantic_prefix_eligible_tokens"]),
+            float(context["semantic_prefix_corruption_rate"]),
         ]
     )
     if dist.is_available() and dist.is_initialized():
         dist.all_reduce(values)
     divisor = values[2].clamp_min(1.0)
+    world_size = (
+        dist.get_world_size()
+        if dist.is_available() and dist.is_initialized()
+        else 1
+    )
+    corruption_denominator = values[6].clamp_min(1.0)
     return OrderedDict(
         (
             ("diagnostic/causal_glm_agreement", values[0] / divisor),
@@ -609,8 +638,115 @@ def _distributed_diagnostics(
                 "diagnostic/speaker_continuity_weight",
                 reference.new_tensor(float(context["speaker_continuity_weight"])),
             ),
+            (
+                "diagnostic/semantic_prefix_corruption_rate",
+                values[5] / corruption_denominator,
+            ),
+            (
+                "diagnostic/semantic_prefix_corruption_target_rate",
+                values[7] / world_size,
+            ),
+            ("diagnostic/semantic_prefix_corrupted_tokens", values[5]),
+            ("diagnostic/semantic_prefix_eligible_tokens", values[6]),
         )
     )
+
+
+def corrupt_interleaved_semantic_prefixes(
+    input_ids: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    family: str,
+    training: bool,
+    rate: float,
+    tail: int,
+    ramp_updates: int,
+    update: int,
+) -> tuple[torch.Tensor, int, int, float]:
+    """Expose semantic fragment endings to deterministic, valid-token prefix noise.
+
+    The inference grammar predicts ``END_SEMANTIC`` after a model-generated
+    semantic prefix, while ordinary teacher forcing only presents the exact
+    reference prefix.  Corrupting a bounded suffix before each semantic end
+    keeps the target sequence and all immutable task pools unchanged, but
+    trains the end decision under a small prefix-distribution shift.
+    """
+
+    if not 0.0 <= float(rate) <= 1.0:
+        raise ValueError("semantic prefix corruption rate must be in [0, 1]")
+    if int(tail) < 1:
+        raise ValueError("semantic prefix corruption tail must be positive")
+    if int(ramp_updates) < 0:
+        raise ValueError("semantic prefix corruption ramp updates must be non-negative")
+    if input_ids.shape != labels.shape:
+        raise ValueError("semantic prefix corruption input/label geometry differs")
+    if (
+        not training
+        or family != FAMILY_INTERLEAVED
+        or float(rate) == 0.0
+        or input_ids.numel() == 0
+    ):
+        return input_ids, 0, 0, 0.0
+
+    ramp = 1.0
+    if int(ramp_updates) > 0:
+        ramp = min(1.0, max(0.0, (int(update) + 1) / int(ramp_updates)))
+    effective_rate = float(rate) * ramp
+    flat_inputs = input_ids.reshape(-1)
+    flat_labels = labels.reshape(-1)
+    end_positions = torch.nonzero(
+        flat_labels == c.TOKEN_END_SEMANTIC, as_tuple=False
+    ).reshape(-1)
+    if end_positions.numel() == 0:
+        return input_ids, 0, 0, effective_rate
+
+    eligible = torch.zeros_like(flat_inputs, dtype=torch.bool)
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    for offset in range(int(tail)):
+        positions = end_positions - offset
+        valid = positions >= 0
+        if not bool(valid.any()):
+            break
+        positions = positions[valid]
+        values = flat_inputs[positions]
+        semantic = (values >= c.BICODEC_SEMANTIC_OFFSET) & (
+            values < semantic_stop
+        )
+        if bool(semantic.any()):
+            eligible[positions[semantic]] = True
+
+    candidate_positions = torch.nonzero(eligible, as_tuple=False).reshape(-1)
+    eligible_count = int(candidate_positions.numel())
+    if eligible_count == 0 or effective_rate <= 0.0:
+        return input_ids, 0, eligible_count, effective_rate
+
+    candidate_tokens = flat_inputs[candidate_positions].to(dtype=torch.int64)
+    # Stateless hashing keeps resumed runs and all ranks deterministic without
+    # consuming Megatron's model/data RNG streams.
+    hashed = (
+        candidate_positions.to(dtype=torch.int64) * 1_103_515_245
+        + candidate_tokens * 12_345
+        + int(update) * 2_654_435_761
+        + 97
+    ) % 1_000_003
+    threshold = int(round(effective_rate * 1_000_003))
+    selected = hashed < threshold
+    selected_positions = candidate_positions[selected]
+    corrupted_count = int(selected_positions.numel())
+    if corrupted_count == 0:
+        return input_ids, 0, eligible_count, effective_rate
+
+    output = input_ids.clone()
+    flat_output = output.reshape(-1)
+    selected_tokens = flat_output[selected_positions].to(dtype=torch.int64)
+    selected_hash = hashed[selected]
+    delta = 1 + (selected_hash % 31)
+    semantic_ids = selected_tokens - c.BICODEC_SEMANTIC_OFFSET
+    flat_output[selected_positions] = (
+        (semantic_ids + delta) % c.BICODEC_SEMANTIC_SIZE
+        + c.BICODEC_SEMANTIC_OFFSET
+    ).to(dtype=flat_output.dtype)
+    return output, corrupted_count, eligible_count, effective_rate
 
 
 def validate_family_denominators(
@@ -714,7 +850,27 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
         progress = float(e2e_batch["training_progress"].item())
         update = int(e2e_batch["training_update"].item())
         chunk_ms = e2e_chunk_ms_for_progress(progress, update)
-        decoder_input = self.embedding(input_ids=input_ids, position_ids=position_ids)
+        family = str(e2e_batch["family"])
+        (
+            effective_input_ids,
+            semantic_prefix_corrupted_tokens,
+            semantic_prefix_eligible_tokens,
+            semantic_prefix_corruption_rate,
+        ) = corrupt_interleaved_semantic_prefixes(
+            input_ids,
+            labels,
+            family=family,
+            training=bool(self.training),
+            rate=float(e2e_batch["semantic_prefix_corruption_rate"].item()),
+            tail=int(e2e_batch["semantic_prefix_corruption_tail"].item()),
+            ramp_updates=int(
+                e2e_batch["semantic_prefix_corruption_ramp_updates"].item()
+            ),
+            update=update,
+        )
+        decoder_input = self.embedding(
+            input_ids=effective_input_ids, position_ids=position_ids
+        )
         agreement = 0.0
         residual_rms = 0.0
         terminal_extensions = 0.0
@@ -747,7 +903,6 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             terminal_extensions = float(terminal_tensor.detach())
             acoustic_rows = int(e2e_batch["waveform"].shape[0])
             acoustic_active = 1
-        family = str(e2e_batch["family"])
         context = {
             "batch": e2e_batch,
             "weights": e2e_batch["loss_weights"],
@@ -763,6 +918,9 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "semantic_end_logit_margin": float(
                 e2e_batch["semantic_end_logit_margin"].item()
             ),
+            "semantic_prefix_corruption_rate": semantic_prefix_corruption_rate,
+            "semantic_prefix_corrupted_tokens": semantic_prefix_corrupted_tokens,
+            "semantic_prefix_eligible_tokens": semantic_prefix_eligible_tokens,
             "allow_missing_teachers": bool(allow_missing_teachers),
         }
         return raw_forward(
@@ -892,6 +1050,21 @@ def forward_step(data_iterator, model):
     batch["semantic_end_logit_margin"] = torch.tensor(
         float(args.e2e_semantic_end_logit_margin),
         dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_prefix_corruption_rate"] = torch.tensor(
+        float(args.e2e_semantic_prefix_corruption_rate),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_prefix_corruption_tail"] = torch.tensor(
+        int(args.e2e_semantic_prefix_corruption_tail),
+        dtype=torch.long,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_prefix_corruption_ramp_updates"] = torch.tensor(
+        int(args.e2e_semantic_prefix_corruption_ramp_updates),
+        dtype=torch.long,
         device=batch["tokens"].device,
     )
     packed_seq_params = base.build_packed_seq_params(batch, int(args.seq_length))

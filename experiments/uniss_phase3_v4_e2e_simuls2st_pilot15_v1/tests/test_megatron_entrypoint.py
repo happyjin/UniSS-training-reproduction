@@ -6,12 +6,17 @@ from torch import nn
 
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron import (
     _tag_trainable_qwen_and_freeze_v1,
+    corrupt_interleaved_semantic_prefixes,
     e2e_chunk_ms_for_progress,
     validate_family_denominators,
     validate_smoke_scope,
     validate_v1_checkpoint_load_policy,
     validate_v1_checkpoint_key_sets,
 )
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
+    FAMILY_INTERLEAVED,
+)
+from training import constants_uniss as c
 
 
 class _TinyCompound(nn.Module):
@@ -89,6 +94,66 @@ def test_e2e_chunk_curriculum_reaches_deployment_chunk() -> None:
         320,
         160,
     }
+
+
+def test_semantic_prefix_corruption_changes_only_bounded_fragment_suffix() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.tensor(
+        [[c.TOKEN_START_SEMANTIC, semantic, semantic + 1, semantic + 2, c.TOKEN_END_SEMANTIC]]
+    )
+    labels = torch.tensor(
+        [[semantic, semantic + 1, semantic + 2, c.TOKEN_END_SEMANTIC, c.TOKEN_EOS]]
+    )
+    original_labels = labels.clone()
+    corrupted, changed, eligible, effective_rate = (
+        corrupt_interleaved_semantic_prefixes(
+            inputs,
+            labels,
+            family=FAMILY_INTERLEAVED,
+            training=True,
+            rate=1.0,
+            tail=2,
+            ramp_updates=0,
+            update=7,
+        )
+    )
+    assert changed == eligible == 2
+    assert effective_rate == 1.0
+    assert torch.equal(corrupted[:, :2], inputs[:, :2])
+    assert torch.all(corrupted[:, 2:4] != inputs[:, 2:4])
+    assert corrupted[0, 4] == c.TOKEN_END_SEMANTIC
+    assert torch.equal(labels, original_labels)
+    repeated, *_ = corrupt_interleaved_semantic_prefixes(
+        inputs,
+        labels,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=1.0,
+        tail=2,
+        ramp_updates=0,
+        update=7,
+    )
+    assert torch.equal(repeated, corrupted)
+
+
+def test_semantic_prefix_corruption_is_disabled_for_eval_and_other_families() -> None:
+    inputs = torch.tensor([[c.BICODEC_SEMANTIC_OFFSET]])
+    labels = torch.tensor([[c.TOKEN_END_SEMANTIC]])
+    for family, training in ((FAMILY_INTERLEAVED, False), ("incremental_mt_event", True)):
+        output, changed, eligible, effective_rate = (
+            corrupt_interleaved_semantic_prefixes(
+                inputs,
+                labels,
+                family=family,
+                training=training,
+                rate=1.0,
+                tail=1,
+                ramp_updates=0,
+                update=0,
+            )
+        )
+        assert output is inputs
+        assert (changed, eligible, effective_rate) == (0, 0, 0.0)
 
 
 def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
