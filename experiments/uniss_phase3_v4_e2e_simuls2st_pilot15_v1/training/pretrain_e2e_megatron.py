@@ -101,6 +101,7 @@ REQUIRED_FAMILY_DENOMINATORS = {
         "eos_ce",
         "content_end_ce",
         "semantic_end_ce",
+        "semantic_end_margin",
         "phase3_kl",
     ),
     FAMILY_PHASE3_QUALITY: ("replay_ce",),
@@ -290,6 +291,8 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-boundary-eos-weight", type=float, default=0.10)
     group.add_argument("--e2e-content-end-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-weight", type=float, default=0.0)
+    group.add_argument("--e2e-semantic-end-margin-weight", type=float, default=0.0)
+    group.add_argument("--e2e-semantic-end-logit-margin", type=float, default=0.0)
     group.add_argument("--e2e-speaker-continuity-weight", type=float, default=0.0)
     group.add_argument("--e2e-verify-dataset-sha256", action="store_true")
     group.add_argument("--e2e-verify-cache-sha256", action="store_true")
@@ -385,6 +388,8 @@ def validate_experiment_args(args) -> None:
         raise ValueError(
             "speaker continuity must remain zero until a genuine training sidecar exists"
         )
+    if float(args.e2e_semantic_end_logit_margin) < 0.0:
+        raise ValueError("semantic end logit margin must be non-negative")
     _require_file(args.e2e_train_build_report)
     _require_path(args.e2e_whispervq_model)
     _require_file(args.e2e_checkpoint_fingerprints)
@@ -432,6 +437,7 @@ def e2e_weights(args) -> E2ELossWeights:
         boundary_eos=float(args.e2e_boundary_eos_weight),
         content_end_ce=float(args.e2e_content_end_weight),
         semantic_end_ce=float(args.e2e_semantic_end_weight),
+        semantic_end_margin=float(args.e2e_semantic_end_margin_weight),
         speaker_continuity=float(args.e2e_speaker_continuity_weight),
     )
 
@@ -655,6 +661,7 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         loss_kinds=loss_kinds,
         batch=batch,
         original_seq_length=int(context["original_seq_length"]),
+        semantic_end_logit_margin=float(context["semantic_end_logit_margin"]),
     )
     total, metrics = distributed_e2e_objective(
         terms, weights=context["weights"]
@@ -753,6 +760,9 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "acoustic_rows": acoustic_rows,
             "acoustic_active": acoustic_active,
             "speaker_continuity_weight": e2e_batch["loss_weights"].speaker_continuity,
+            "semantic_end_logit_margin": float(
+                e2e_batch["semantic_end_logit_margin"].item()
+            ),
             "allow_missing_teachers": bool(allow_missing_teachers),
         }
         return raw_forward(
@@ -879,6 +889,11 @@ def forward_step(data_iterator, model):
         device=batch["tokens"].device,
     )
     batch["loss_weights"] = e2e_weights(args)
+    batch["semantic_end_logit_margin"] = torch.tensor(
+        float(args.e2e_semantic_end_logit_margin),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
     packed_seq_params = base.build_packed_seq_params(batch, int(args.seq_length))
     output = model(
         batch["tokens"],

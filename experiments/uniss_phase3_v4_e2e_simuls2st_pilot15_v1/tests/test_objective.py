@@ -16,6 +16,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     compute_e2e_objective,
     distributed_e2e_objective,
     flattened_e2e_objective,
+    flattened_semantic_end_margin_term,
     speaker_continuity_loss,
     token_ce_terms,
     token_nll_from_logits,
@@ -65,6 +66,29 @@ def test_flattened_semantic_end_ce_is_normalized_independently() -> None:
         terms["semantic_end_ce"].loss,
         torch.tensor(float(vocab)).log(),
     )
+
+
+def test_semantic_end_margin_matches_restricted_greedy_decision() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    logits = torch.zeros((2, vocab), requires_grad=True)
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    with torch.no_grad():
+        logits[0, semantic] = 3.0
+        logits[0, c.TOKEN_END_SEMANTIC] = 2.0
+        logits[1, semantic] = 1.0
+        logits[1, c.TOKEN_END_SEMANTIC] = 4.0
+    labels = torch.tensor([c.TOKEN_END_SEMANTIC, c.TOKEN_END_SEMANTIC])
+    kinds = torch.tensor([LOSS_BOUNDARY, LOSS_BOUNDARY])
+    term = flattened_semantic_end_margin_term(
+        logits, labels, kinds, margin=0.5
+    )
+    assert term.denominator.item() == 2
+    assert torch.allclose(term.loss, torch.tensor(0.75))
+    term.loss.backward()
+    assert logits.grad is not None
+    assert logits.grad[0, c.TOKEN_END_SEMANTIC] < 0
+    assert logits.grad[0, semantic] > 0
+    assert logits.grad[1].abs().sum() == 0
 
 
 def test_topk_teacher_kl_is_zero_when_student_matches_teacher_distribution() -> None:

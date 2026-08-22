@@ -64,6 +64,7 @@ class E2ELossWeights:
     boundary_eos: float = 0.10
     content_end_ce: float = 0.0
     semantic_end_ce: float = 0.0
+    semantic_end_margin: float = 0.0
     speaker_continuity: float = 0.10
 
     def __post_init__(self) -> None:
@@ -100,6 +101,7 @@ E2E_TERM_NAMES = (
     "eos_ce",
     "content_end_ce",
     "semantic_end_ce",
+    "semantic_end_margin",
     "speaker_continuity",
 )
 
@@ -114,6 +116,7 @@ E2E_WEIGHTED_NAMES = (
     "boundary_eos",
     "content_end_ce",
     "semantic_end_ce",
+    "semantic_end_margin",
     "speaker_continuity",
 )
 
@@ -190,6 +193,37 @@ def flattened_token_ce_terms(
         semantic_end_numerator, semantic_end_denominator
     )
     return output
+
+
+def flattened_semantic_end_margin_term(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    *,
+    margin: float,
+) -> LossTerm:
+    """Make END_SEMANTIC beat every legal semantic continuation token."""
+
+    if margin < 0:
+        raise ValueError("semantic end logit margin must be non-negative")
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError("flattened E2E semantic end tensors have invalid rank")
+    if logits.shape[0] != labels.numel() or labels.shape != loss_kinds.shape:
+        raise ValueError("flattened E2E semantic end tensors differ in length")
+    mask = (loss_kinds == LOSS_BOUNDARY) & (
+        labels == c.TOKEN_END_SEMANTIC
+    )
+    denominator = mask.sum().float()
+    if not bool(mask.any()):
+        return LossTerm(logits.sum() * 0.0, denominator)
+    selected = logits[mask].float()
+    semantic_max = selected[
+        :, c.BICODEC_SEMANTIC_OFFSET : c.BICODEC_SEMANTIC_OFFSET
+        + c.BICODEC_SEMANTIC_SIZE
+    ].max(dim=1).values
+    end_logits = selected[:, c.TOKEN_END_SEMANTIC]
+    violations = F.relu(semantic_max + float(margin) - end_logits)
+    return LossTerm(violations.sum(), denominator)
 
 
 def _zero(reference: torch.Tensor) -> LossTerm:
@@ -508,6 +542,7 @@ def flattened_e2e_objective(
     loss_kinds: torch.Tensor,
     batch: Mapping[str, object],
     original_seq_length: int,
+    semantic_end_logit_margin: float = 0.0,
 ) -> Mapping[str, LossTerm]:
     token_terms = flattened_token_ce_terms(logits, labels, loss_kinds)
     v1_asr_kl = flattened_teacher_kl(
@@ -542,6 +577,12 @@ def flattened_e2e_objective(
         "eos_ce": token_terms["eos_ce"],
         "content_end_ce": token_terms["content_end_ce"],
         "semantic_end_ce": token_terms["semantic_end_ce"],
+        "semantic_end_margin": flattened_semantic_end_margin_term(
+            logits,
+            labels,
+            loss_kinds,
+            margin=semantic_end_logit_margin,
+        ),
         "speaker_continuity": _zero(logits),
     }
     if tuple(terms) != E2E_TERM_NAMES:
@@ -601,6 +642,8 @@ def distributed_e2e_objective(
         * weights.content_end_ce,
         "semantic_end_ce": local_means[index["semantic_end_ce"]]
         * weights.semantic_end_ce,
+        "semantic_end_margin": local_means[index["semantic_end_margin"]]
+        * weights.semantic_end_margin,
         "speaker_continuity": local_means[index["speaker_continuity"]]
         * weights.speaker_continuity,
     }
@@ -650,6 +693,7 @@ def compute_e2e_objective(
     )
     terms["content_end_ce"] = _zero(token_nll)
     terms["semantic_end_ce"] = _zero(token_nll)
+    terms["semantic_end_margin"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
         teacher_posteriors,
         cache_kind="v1_asr",
@@ -682,6 +726,8 @@ def compute_e2e_objective(
         * weights.content_end_ce,
         "semantic_end_ce": terms["semantic_end_ce"].loss
         * weights.semantic_end_ce,
+        "semantic_end_margin": terms["semantic_end_margin"].loss
+        * weights.semantic_end_margin,
         "speaker_continuity": terms["speaker_continuity"].loss
         * weights.speaker_continuity,
     }
@@ -703,6 +749,7 @@ __all__ = [
     "distributed_e2e_objective",
     "flattened_commit_consistency_kl",
     "flattened_e2e_objective",
+    "flattened_semantic_end_margin_term",
     "flattened_teacher_kl",
     "flattened_token_ce_terms",
     "speaker_continuity_loss",

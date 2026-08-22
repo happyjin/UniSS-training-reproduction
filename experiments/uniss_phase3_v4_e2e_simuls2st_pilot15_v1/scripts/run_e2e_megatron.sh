@@ -47,6 +47,8 @@ RUN_VERIFY_DATASET_SHA256=${RUN_VERIFY_DATASET_SHA256:-0}
 RUN_VERIFY_CACHE_SHA256=${RUN_VERIFY_CACHE_SHA256:-0}
 RUN_CONTENT_END_WEIGHT=${RUN_CONTENT_END_WEIGHT:-0.0}
 RUN_SEMANTIC_END_WEIGHT=${RUN_SEMANTIC_END_WEIGHT:-0.0}
+RUN_SEMANTIC_END_MARGIN_WEIGHT=${RUN_SEMANTIC_END_MARGIN_WEIGHT:-0.0}
+RUN_SEMANTIC_END_LOGIT_MARGIN=${RUN_SEMANTIC_END_LOGIT_MARGIN:-0.0}
 
 [[ "${RUN_PHASE_STRATIFIED_CANARY}" == "0" || "${RUN_PHASE_STRATIFIED_CANARY}" == "1" ]] || {
   echo "RUN_PHASE_STRATIFIED_CANARY must be zero or one" >&2
@@ -195,6 +197,8 @@ cmd=(
   --e2e-lr-qwen-io 5e-7
   --e2e-content-end-weight "${RUN_CONTENT_END_WEIGHT}"
   --e2e-semantic-end-weight "${RUN_SEMANTIC_END_WEIGHT}"
+  --e2e-semantic-end-margin-weight "${RUN_SEMANTIC_END_MARGIN_WEIGHT}"
+  --e2e-semantic-end-logit-margin "${RUN_SEMANTIC_END_LOGIT_MARGIN}"
   --e2e-speaker-continuity-weight 0.0
   --tokenizer-type NullTokenizer
   --vocab-size 180407
