@@ -287,3 +287,68 @@ A real 32-record task-pool smoke over the ppg24 rollout passed.  Six
 quarantined samples were excluded from streaming ASR and interleaved E2E, 49
 V1-history incremental-MT requests were excluded, and all six samples still
 contributed gold MT and both Phase3 replay families.
+
+## 11. Phase-stratified all-family learning-canary audit (2026-08-22)
+
+The original bounded learning canary used the first `N` blocks of the formal
+schedule.  That was not a valid all-family learning check: the formal early
+phase assigns zero probability to `incremental_mt_event`, so the 10/25/50/100
+prefix runs contained zero independent incremental-MT blocks.  Their MT changes
+came only from the MT term inside `interleaved_e2e_s2st`.
+
+Commit `fdfc774` adds an opt-in phase-stratified canary.  It reuses complete
+global-batch blocks from the immutable formal schedule, samples its
+early/mid/steady phases in 10%/25%/65% proportions, preserves phase order and
+fails unless all five families are present.  It does not alter the formal
+3395-update curriculum or authorize continuing a canary optimizer state.
+
+The 50-update all-family run completed normally:
+
+```text
+learning_canary_allfamily_50u_20260822T041918Z
+50/50 updates, 0 skipped, 0 NaN
+runtime: 19m37s
+family blocks: ASR 14, incremental MT 7, E2E 14, quality replay 9,
+               performance replay 6
+phase blocks: early 5, mid 13, steady 32
+```
+
+Its independent incremental-MT loss was active and learned over the short run:
+`mt_ce` moved from 2.5923 to 2.5051, `phase3_kl` from 0.4535 to 0.4046 and
+`commit_consistency` from 0.4892 to 0.4658.  The fixed-selection gate remained
+failed.  Gold-source mean target coverage improved slightly versus the old 50u
+prefix (16.35% -> 16.74%), but free-source coverage was only 5.55% and ASR
+retention worsened because the number of dedicated ASR blocks dropped from 24
+to 14.
+
+| Canary | CMN CER | ENG WER | ASR malformed | Gold MT coverage | Free MT coverage | Semantic malformed | Non-silent audio |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 10u prefix | 19.25% | 36.77% | 6 | 14.17% | 6.33% | 47 | 8/8 |
+| 25u prefix | 19.25% | 37.42% | 6 | 14.17% | 7.90% | 51 | 8/8 |
+| 50u prefix | 19.72% | 43.23% | 4 | 16.35% | 5.32% | 50 | 8/8 |
+| 100u prefix | 18.78% | 46.45% | 3 | 14.36% | 5.78% | 58 | 8/8 |
+| 50u all-family | 23.00% | 53.55% | 9 | 16.74% | 5.55% | 54 | 8/8 |
+
+The 100-update all-family run also completed normally:
+
+```text
+learning_canary_allfamily_100u_20260822T050920Z
+100/100 updates, 0 skipped, 0 NaN
+runtime: 37m17s
+family blocks: ASR 28, incremental MT 16, E2E 28, quality replay 17,
+               performance replay 11
+phase blocks: early 10, mid 25, steady 65
+frozen Stage A tensors: 254/254 exact bitwise match
+```
+
+At update 98 its independent incremental-MT terms were finite
+(`mt_ce=2.3277`, `phase3_kl=0.4936`, `commit_consistency=0.4312`).  At update
+100 its interleaved terms were also finite (`ASR CE=2.0227`, `MT CE=4.6319`,
+`semantic CE=5.3684`).  The fixed 16-record gate is still required before any
+formal authorization.
+
+Immediately after the 100u checkpoint and frozen audit completed, the runtime
+container lost all `/dev/nvidia*` device nodes.  The kernel driver modules
+remain loaded, but NVML reports zero visible devices.  This is an external GPU
+device-mount incident, not a training failure.  Export and the 8-GPU gate are
+queued to run automatically after all eight GPUs become visible and idle.
