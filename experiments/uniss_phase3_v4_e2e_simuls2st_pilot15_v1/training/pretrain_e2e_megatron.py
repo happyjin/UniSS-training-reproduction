@@ -99,6 +99,7 @@ REQUIRED_FAMILY_DENOMINATORS = {
         "semantic_ce",
         "boundary_ce",
         "eos_ce",
+        "content_end_ce",
         "semantic_end_ce",
         "phase3_kl",
     ),
@@ -287,6 +288,7 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-phase3-kl-weight", type=float, default=0.25)
     group.add_argument("--e2e-commit-weight", type=float, default=0.20)
     group.add_argument("--e2e-boundary-eos-weight", type=float, default=0.10)
+    group.add_argument("--e2e-content-end-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-weight", type=float, default=0.0)
     group.add_argument("--e2e-speaker-continuity-weight", type=float, default=0.0)
     group.add_argument("--e2e-verify-dataset-sha256", action="store_true")
@@ -428,6 +430,7 @@ def e2e_weights(args) -> E2ELossWeights:
         phase3_kl=float(args.e2e_phase3_kl_weight),
         commit_consistency=float(args.e2e_commit_weight),
         boundary_eos=float(args.e2e_boundary_eos_weight),
+        content_end_ce=float(args.e2e_content_end_weight),
         semantic_end_ce=float(args.e2e_semantic_end_weight),
         speaker_continuity=float(args.e2e_speaker_continuity_weight),
     )

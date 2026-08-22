@@ -59,6 +59,7 @@ def test_flattened_semantic_end_ce_is_normalized_independently() -> None:
         original_seq_length=2,
     )
     assert terms["boundary_ce"].denominator.item() == 2
+    assert terms["content_end_ce"].denominator.item() == 1
     assert terms["semantic_end_ce"].denominator.item() == 1
     assert torch.allclose(
         terms["semantic_end_ce"].loss,
