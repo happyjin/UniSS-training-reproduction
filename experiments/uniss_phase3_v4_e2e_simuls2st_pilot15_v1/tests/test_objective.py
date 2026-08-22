@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import torch
 
+from training import constants_uniss as c
+
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
     TeacherPosterior,
 )
@@ -42,6 +44,26 @@ def test_token_ce_terms_keep_independent_numerators_and_denominators() -> None:
     assert terms["boundary_ce"].loss.item() == 4.0
     assert terms["eos_ce"].loss.item() == 5.0
     assert terms["replay_ce"].loss.item() == 6.0
+
+
+def test_flattened_semantic_end_ce_is_normalized_independently() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    logits = torch.zeros((2, vocab), requires_grad=True)
+    labels = torch.tensor([c.TOKEN_END_SEMANTIC, c.TOKEN_END_CONTENT])
+    kinds = torch.tensor([LOSS_BOUNDARY, LOSS_BOUNDARY])
+    terms = flattened_e2e_objective(
+        logits=logits,
+        labels=labels,
+        loss_kinds=kinds,
+        batch={},
+        original_seq_length=2,
+    )
+    assert terms["boundary_ce"].denominator.item() == 2
+    assert terms["semantic_end_ce"].denominator.item() == 1
+    assert torch.allclose(
+        terms["semantic_end_ce"].loss,
+        torch.tensor(float(vocab)).log(),
+    )
 
 
 def test_topk_teacher_kl_is_zero_when_student_matches_teacher_distribution() -> None:

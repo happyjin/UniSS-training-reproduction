@@ -9,6 +9,8 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 
+from training import constants_uniss as c
+
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
     TeacherPosterior,
 )
@@ -60,6 +62,7 @@ class E2ELossWeights:
     phase3_kl: float = 0.25
     commit_consistency: float = 0.20
     boundary_eos: float = 0.10
+    semantic_end_ce: float = 0.0
     speaker_continuity: float = 0.10
 
     def __post_init__(self) -> None:
@@ -94,6 +97,7 @@ E2E_TERM_NAMES = (
     "commit_consistency",
     "boundary_ce",
     "eos_ce",
+    "semantic_end_ce",
     "speaker_continuity",
 )
 
@@ -106,6 +110,7 @@ E2E_WEIGHTED_NAMES = (
     "phase3_kl",
     "commit_consistency",
     "boundary_eos",
+    "semantic_end_ce",
     "speaker_continuity",
 )
 
@@ -151,6 +156,21 @@ def flattened_token_ce_terms(
         else:
             numerator = logits.sum() * 0.0
         output[name] = LossTerm(numerator, denominator)
+    semantic_end_mask = (loss_kinds == LOSS_BOUNDARY) & (
+        labels == c.TOKEN_END_SEMANTIC
+    )
+    semantic_end_denominator = semantic_end_mask.sum().float()
+    if bool(semantic_end_mask.any()):
+        semantic_end_numerator = F.cross_entropy(
+            logits[semantic_end_mask].float(),
+            labels[semantic_end_mask].long(),
+            reduction="sum",
+        )
+    else:
+        semantic_end_numerator = logits.sum() * 0.0
+    output["semantic_end_ce"] = LossTerm(
+        semantic_end_numerator, semantic_end_denominator
+    )
     return output
 
 
@@ -502,6 +522,7 @@ def flattened_e2e_objective(
         "commit_consistency": commit_consistency,
         "boundary_ce": token_terms["boundary_ce"],
         "eos_ce": token_terms["eos_ce"],
+        "semantic_end_ce": token_terms["semantic_end_ce"],
         "speaker_continuity": _zero(logits),
     }
     if tuple(terms) != E2E_TERM_NAMES:
@@ -557,6 +578,8 @@ def distributed_e2e_objective(
         "commit_consistency": local_means[index["commit_consistency"]]
         * weights.commit_consistency,
         "boundary_eos": boundary_eos * weights.boundary_eos,
+        "semantic_end_ce": local_means[index["semantic_end_ce"]]
+        * weights.semantic_end_ce,
         "speaker_continuity": local_means[index["speaker_continuity"]]
         * weights.speaker_continuity,
     }
@@ -604,6 +627,7 @@ def compute_e2e_objective(
     terms["boundary_eos"] = _balanced_terms(
         (terms["boundary_ce"], terms["eos_ce"]), token_nll
     )
+    terms["semantic_end_ce"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
         teacher_posteriors,
         cache_kind="v1_asr",
@@ -632,6 +656,8 @@ def compute_e2e_objective(
         "commit_consistency": terms["commit_consistency"].loss
         * weights.commit_consistency,
         "boundary_eos": terms["boundary_eos"].loss * weights.boundary_eos,
+        "semantic_end_ce": terms["semantic_end_ce"].loss
+        * weights.semantic_end_ce,
         "speaker_continuity": terms["speaker_continuity"].loss
         * weights.speaker_continuity,
     }
