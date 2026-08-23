@@ -17,6 +17,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     distributed_e2e_objective,
     flattened_e2e_objective,
     flattened_rollin_semantic_end_terms,
+    flattened_semantic_continue_margin_term,
     flattened_semantic_end_margin_term,
     speaker_continuity_loss,
     token_ce_terms,
@@ -133,6 +134,57 @@ def test_rollin_semantic_end_terms_reject_non_end_rows() -> None:
         assert "non-END" in str(error)
     else:
         raise AssertionError("non-END roll-in row was accepted")
+
+
+def test_semantic_continue_margin_uses_only_same_sample_pre_end_tail() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.zeros((8, vocab), requires_grad=True)
+    labels = torch.tensor(
+        [
+            semantic,
+            semantic + 1,
+            c.TOKEN_END_SEMANTIC,
+            c.TOKEN_END_CONTENT,
+            semantic + 2,
+            semantic + 3,
+            c.TOKEN_END_SEMANTIC,
+            c.TOKEN_END_CONTENT,
+        ]
+    )
+    kinds = torch.tensor(
+        [
+            LOSS_SEMANTIC,
+            LOSS_SEMANTIC,
+            LOSS_BOUNDARY,
+            LOSS_BOUNDARY,
+            LOSS_SEMANTIC,
+            LOSS_SEMANTIC,
+            LOSS_BOUNDARY,
+            LOSS_BOUNDARY,
+        ]
+    )
+    with torch.no_grad():
+        logits[:, c.TOKEN_END_SEMANTIC] = 2.0
+        logits[0, semantic] = 4.0
+        logits[1, semantic + 1] = 0.0
+        logits[4, semantic + 2] = 3.0
+        logits[5, semantic + 3] = 5.0
+    term = flattened_semantic_continue_margin_term(
+        logits,
+        labels,
+        kinds,
+        original_seq_length=8,
+        sample_boundaries=[[(0, 4), (4, 8)]],
+        tail=2,
+        margin=1.0,
+    )
+    assert term.denominator.item() == 4
+    assert term.loss.item() == 0.75
+    term.loss.backward()
+    assert logits.grad is not None
+    assert logits.grad[1].abs().sum() > 0
+    assert logits.grad[[0, 2, 3, 4, 5, 6, 7]].abs().sum() == 0
 
 
 def test_topk_teacher_kl_is_zero_when_student_matches_teacher_distribution() -> None:

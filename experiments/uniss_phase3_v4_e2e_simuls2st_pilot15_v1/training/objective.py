@@ -67,6 +67,7 @@ class E2ELossWeights:
     semantic_end_margin: float = 0.0
     semantic_rollin_end_ce: float = 0.0
     semantic_rollin_end_margin: float = 0.0
+    semantic_continue_margin: float = 0.0
     speaker_continuity: float = 0.10
 
     def __post_init__(self) -> None:
@@ -106,6 +107,7 @@ E2E_TERM_NAMES = (
     "semantic_end_margin",
     "semantic_rollin_end_ce",
     "semantic_rollin_end_margin",
+    "semantic_continue_margin",
     "speaker_continuity",
 )
 
@@ -123,6 +125,7 @@ E2E_WEIGHTED_NAMES = (
     "semantic_end_margin",
     "semantic_rollin_end_ce",
     "semantic_rollin_end_margin",
+    "semantic_continue_margin",
     "speaker_continuity",
 )
 
@@ -280,6 +283,67 @@ def flattened_rollin_semantic_end_terms(
     violations = F.relu(semantic_max + float(margin) - end_logits)
     margin_term = LossTerm(violations.sum(), denominator)
     return ce, margin_term
+
+
+def flattened_semantic_continue_margin_term(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    *,
+    original_seq_length: int,
+    sample_boundaries: Sequence[Sequence[Sequence[int]]],
+    tail: int,
+    margin: float,
+) -> LossTerm:
+    """Keep the final reference semantic tail ahead of premature END."""
+
+    if tail < 0 or margin < 0:
+        raise ValueError("semantic continue tail/margin must be non-negative")
+    if tail == 0:
+        return _zero(logits)
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError("flattened semantic continue tensors have invalid rank")
+    if logits.shape[0] != labels.numel() or labels.shape != loss_kinds.shape:
+        raise ValueError("flattened semantic continue tensors differ in length")
+    width = int(original_seq_length)
+    if width <= 0 or labels.numel() % width != 0:
+        raise ValueError("semantic continue original sequence geometry differs")
+    rows = labels.numel() // width
+    if len(sample_boundaries) != rows:
+        raise ValueError("semantic continue sample-boundary row count differs")
+    labels_2d = labels.reshape(rows, width)
+    kinds_2d = loss_kinds.reshape(rows, width)
+    segment_ids = torch.full_like(labels_2d, -1, dtype=torch.long)
+    for row, boundaries in enumerate(sample_boundaries):
+        previous_stop = 0
+        for ordinal, raw in enumerate(boundaries):
+            if len(raw) != 2:
+                raise ValueError("semantic continue boundary must be start/stop")
+            start, stop = int(raw[0]), int(raw[1])
+            if start != previous_stop or not start < stop <= width:
+                raise ValueError("semantic continue sample boundaries are invalid")
+            segment_ids[row, start:stop] = ordinal
+            previous_stop = stop
+    end = labels_2d == c.TOKEN_END_SEMANTIC
+    mask = torch.zeros_like(end)
+    for offset in range(1, int(tail) + 1):
+        same_sample = segment_ids[:, :-offset] == segment_ids[:, offset:]
+        valid_sample = segment_ids[:, :-offset] >= 0
+        mask[:, :-offset] |= end[:, offset:] & same_sample & valid_sample
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    mask &= (kinds_2d == LOSS_SEMANTIC) & (
+        (labels_2d >= c.BICODEC_SEMANTIC_OFFSET) & (labels_2d < semantic_stop)
+    )
+    flat_mask = mask.reshape(-1)
+    denominator = flat_mask.sum().float()
+    if not bool(flat_mask.any()):
+        return LossTerm(logits.sum() * 0.0, denominator)
+    selected = logits[flat_mask].float()
+    targets = labels[flat_mask].long()
+    target_logits = selected.gather(1, targets[:, None]).squeeze(1)
+    end_logits = selected[:, c.TOKEN_END_SEMANTIC]
+    violations = F.relu(end_logits + float(margin) - target_logits)
+    return LossTerm(violations.sum(), denominator)
 
 
 def _zero(reference: torch.Tensor) -> LossTerm:
@@ -600,6 +664,8 @@ def flattened_e2e_objective(
     original_seq_length: int,
     semantic_end_logit_margin: float = 0.0,
     semantic_boundary_rollin_mask: torch.Tensor | None = None,
+    semantic_continue_tail: int = 0,
+    semantic_continue_logit_margin: float = 0.0,
 ) -> Mapping[str, LossTerm]:
     token_terms = flattened_token_ce_terms(logits, labels, loss_kinds)
     v1_asr_kl = flattened_teacher_kl(
@@ -651,6 +717,15 @@ def flattened_e2e_objective(
         ),
         "semantic_rollin_end_ce": semantic_rollin_end_ce,
         "semantic_rollin_end_margin": semantic_rollin_end_margin,
+        "semantic_continue_margin": flattened_semantic_continue_margin_term(
+            logits,
+            labels,
+            loss_kinds,
+            original_seq_length=original_seq_length,
+            sample_boundaries=batch.get("sample_boundaries", []),
+            tail=semantic_continue_tail,
+            margin=semantic_continue_logit_margin,
+        ),
         "speaker_continuity": _zero(logits),
     }
     if tuple(terms) != E2E_TERM_NAMES:
@@ -718,6 +793,10 @@ def distributed_e2e_objective(
             index["semantic_rollin_end_margin"]
         ]
         * weights.semantic_rollin_end_margin,
+        "semantic_continue_margin": local_means[
+            index["semantic_continue_margin"]
+        ]
+        * weights.semantic_continue_margin,
         "speaker_continuity": local_means[index["speaker_continuity"]]
         * weights.speaker_continuity,
     }
@@ -770,6 +849,7 @@ def compute_e2e_objective(
     terms["semantic_end_margin"] = _zero(token_nll)
     terms["semantic_rollin_end_ce"] = _zero(token_nll)
     terms["semantic_rollin_end_margin"] = _zero(token_nll)
+    terms["semantic_continue_margin"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
         teacher_posteriors,
         cache_kind="v1_asr",
@@ -808,6 +888,8 @@ def compute_e2e_objective(
         * weights.semantic_rollin_end_ce,
         "semantic_rollin_end_margin": terms["semantic_rollin_end_margin"].loss
         * weights.semantic_rollin_end_margin,
+        "semantic_continue_margin": terms["semantic_continue_margin"].loss
+        * weights.semantic_continue_margin,
         "speaker_continuity": terms["speaker_continuity"].loss
         * weights.speaker_continuity,
     }
@@ -830,6 +912,7 @@ __all__ = [
     "flattened_commit_consistency_kl",
     "flattened_e2e_objective",
     "flattened_rollin_semantic_end_terms",
+    "flattened_semantic_continue_margin_term",
     "flattened_semantic_end_margin_term",
     "flattened_teacher_kl",
     "flattened_token_ce_terms",

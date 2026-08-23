@@ -314,6 +314,13 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         "--e2e-semantic-rollin-end-margin-weight", type=float, default=0.0
     )
     group.add_argument(
+        "--e2e-semantic-continue-margin-weight", type=float, default=0.0
+    )
+    group.add_argument(
+        "--e2e-semantic-continue-logit-margin", type=float, default=0.0
+    )
+    group.add_argument("--e2e-semantic-continue-tail", type=int, default=12)
+    group.add_argument(
         "--e2e-semantic-prefix-corruption-rate", type=float, default=0.0
     )
     group.add_argument(
@@ -425,6 +432,10 @@ def validate_experiment_args(args) -> None:
         )
     if float(args.e2e_semantic_end_logit_margin) < 0.0:
         raise ValueError("semantic end logit margin must be non-negative")
+    if float(args.e2e_semantic_continue_logit_margin) < 0.0:
+        raise ValueError("semantic continue logit margin must be non-negative")
+    if int(args.e2e_semantic_continue_tail) < 1:
+        raise ValueError("semantic continue tail must be positive")
     if not 0.0 <= float(args.e2e_semantic_prefix_corruption_rate) <= 1.0:
         raise ValueError("semantic prefix corruption rate must be in [0, 1]")
     if int(args.e2e_semantic_prefix_corruption_tail) < 1:
@@ -495,6 +506,7 @@ def e2e_weights(args) -> E2ELossWeights:
         semantic_rollin_end_margin=float(
             args.e2e_semantic_rollin_end_margin_weight
         ),
+        semantic_continue_margin=float(args.e2e_semantic_continue_margin_weight),
         speaker_continuity=float(args.e2e_speaker_continuity_weight),
     )
 
@@ -1159,6 +1171,10 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         original_seq_length=int(context["original_seq_length"]),
         semantic_end_logit_margin=float(context["semantic_end_logit_margin"]),
         semantic_boundary_rollin_mask=context["semantic_boundary_rollin_mask"],
+        semantic_continue_tail=int(context["semantic_continue_tail"]),
+        semantic_continue_logit_margin=float(
+            context["semantic_continue_logit_margin"]
+        ),
     )
     total, metrics = distributed_e2e_objective(
         terms, weights=context["weights"]
@@ -1359,6 +1375,12 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "semantic_end_logit_margin": float(
                 e2e_batch["semantic_end_logit_margin"].item()
             ),
+            "semantic_continue_tail": int(
+                e2e_batch["semantic_continue_tail"].item()
+            ),
+            "semantic_continue_logit_margin": float(
+                e2e_batch["semantic_continue_logit_margin"].item()
+            ),
             "semantic_prefix_corruption_rate": semantic_prefix_corruption_rate,
             "semantic_prefix_corrupted_tokens": semantic_prefix_corrupted_tokens,
             "semantic_prefix_eligible_tokens": semantic_prefix_eligible_tokens,
@@ -1497,6 +1519,16 @@ def forward_step(data_iterator, model):
     batch["loss_weights"] = e2e_weights(args)
     batch["semantic_end_logit_margin"] = torch.tensor(
         float(args.e2e_semantic_end_logit_margin),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_continue_tail"] = torch.tensor(
+        int(args.e2e_semantic_continue_tail),
+        dtype=torch.long,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_continue_logit_margin"] = torch.tensor(
+        float(args.e2e_semantic_continue_logit_margin),
         dtype=torch.float32,
         device=batch["tokens"].device,
     )
