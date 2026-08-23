@@ -352,3 +352,86 @@ container lost all `/dev/nvidia*` device nodes.  The kernel driver modules
 remain loaded, but NVML reports zero visible devices.  This is an external GPU
 device-mount incident, not a training failure.  Export and the 8-GPU gate are
 queued to run automatically after all eight GPUs become visible and idle.
+
+## 12. Model-history semantic-boundary roll-in audit (2026-08-23)
+
+The fixed 16-record, 384-semantic-token gate showed that the earlier gold-history
+termination losses did not train the state actually encountered at inference.
+The model can reach a semantic boundary through its own incorrect token history
+and then keep generating until the hard limit.  Four isolated 100-update,
+phase-stratified canaries therefore tested increasingly targeted exposure to
+model-generated boundary histories.  Every run used the same five-family
+Megatron schedule, eight GPUs, `MBS=2`, `GBS=128`, immutable task pools and fixed
+gate selection.  Every run completed with zero skipped updates, zero NaN values,
+normal checkpoint saving and a bitwise-exact audit of all 254 frozen Stage-A
+tensors.
+
+The successive implementation commits were:
+
+1. `9967a6a`: replace eligible semantic boundary inputs with the model's
+   semantic continuation prediction;
+2. `832a655`: make selection sample-aware so that one packed sample receives at
+   most one boundary replacement;
+3. `a224d03`: independently normalize hard END CE and END-vs-semantic margin
+   only over selected model-history END rows;
+4. `f612355`: add a gold-history pre-END continue-vs-END margin to counter early
+   termination.
+
+The fixed-selection results are:
+
+| Variant | Semantic malformed segments | Semantic coverage mean | Semantic coverage min | CMN ASR CER | ENG ASR WER |
+|---|---:|---:|---:|---:|---:|
+| best no-roll-in termination baseline | 27 | 0.9774 | 0.8189 | 0.2066 | 0.4710 |
+| token-level model-history roll-in | 34 | 0.9095 | 0.5280 | 0.2066 | 0.4774 |
+| sample-aware model-history roll-in | 39 | 0.9695 | 0.7559 | 0.2066 | 0.4839 |
+| sample-aware roll-in + hard END loss | 31 | 0.8909 | 0.4658 | 0.2019 | 0.4839 |
+| sample-aware + hard END + static continue margin | 28 | 0.9002 | 0.4534 | 0.2066 | 0.5161 |
+
+Sample-aware selection repaired the principal defect of token-level roll-in:
+multiple boundary corruptions no longer accumulated inside one trajectory, so
+mean coverage recovered from 0.9095 to 0.9695.  It did not solve termination by
+itself.  Independently normalized hard END supervision then reduced malformed
+segments from 39 to 31, demonstrating that supervision under the generated
+history can suppress 384-token continuation.  Its simultaneous coverage drop
+to 0.8909 shows the opposite failure mode: the model learned to end too early.
+The static gold-history continue margin reduced malformed segments further to
+28 but did not recover free-running coverage.  In the final canary its training
+diagnostics were `signed END margin=+0.1970`, `roll-in END CE=2.8708`,
+`continue margin loss=4.5026`, and `sample roll-in rate=49.43%`.  The mismatch
+between a positive supervised END margin and poor free-running coverage confirms
+that fixed gold-history continuation rows do not represent the histories on
+which premature END is selected at inference.
+
+The latest gate remains failed and formal full-data training remains blocked.
+Its gold-source MT quality is also still unusable (`cmn->eng BLEU=3.8614`,
+`eng->cmn BLEU=0.00868`), while English ASR retention fails.  Boundary
+calibration alone cannot repair those independent content-retention failures.
+
+### 12.1 Required next experiment: symmetric model-history roll-in
+
+Further tuning of static END/CONTINUE weights is not justified.  The next
+canary must expose both decisions under model-generated histories while
+retaining the one-replacement-per-sample safety invariant:
+
+- **END candidate:** at a gold END boundary, the model-generated input is a
+  legal semantic continuation; the selected row learns END using independently
+  normalized END CE and END-vs-semantic margin.
+- **CONTINUE candidate:** inside the final semantic tail before reference END,
+  a row where the model incorrectly prefers END supplies a model-generated
+  legal semantic alternative as input; the following selected row learns a
+  semantic continuation using a mask-specific continue-vs-END margin.
+- END and CONTINUE candidates compete inside each packed sample, and at most one
+  candidate is selected.  Deterministic selection hashes the update, packed
+  row, sample ordinal, candidate type and candidate position.
+- Candidate-type selection is configurable.  The initial canary targets an
+  approximately 50/50 END/CONTINUE split, total sample roll-in rate 0.5 with a
+  25-update ramp, tail length 12, END margin 2.0 and CONTINUE margin 1.0.
+- The static `semantic_continue_margin` weight is zero.  The new
+  mask-specific roll-in END and CONTINUE margin weights start at 0.25 and 0.10.
+- Diagnostics must separately report eligible and selected END/CONTINUE
+  samples, their sample rates, and the mask-specific signed CONTINUE margin.
+
+This experiment is still a canary, not a continuation checkpoint and not
+authorization for the formal run.  It must pass the full test suite, an 8-GPU
+structural/numerical smoke, frozen-parameter audit and the same fixed-16/384
+free-running gate before any larger training decision.
