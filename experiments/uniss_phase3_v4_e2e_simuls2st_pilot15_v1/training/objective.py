@@ -65,6 +65,8 @@ class E2ELossWeights:
     content_end_ce: float = 0.0
     semantic_end_ce: float = 0.0
     semantic_end_margin: float = 0.0
+    semantic_rollin_end_ce: float = 0.0
+    semantic_rollin_end_margin: float = 0.0
     speaker_continuity: float = 0.10
 
     def __post_init__(self) -> None:
@@ -102,6 +104,8 @@ E2E_TERM_NAMES = (
     "content_end_ce",
     "semantic_end_ce",
     "semantic_end_margin",
+    "semantic_rollin_end_ce",
+    "semantic_rollin_end_margin",
     "speaker_continuity",
 )
 
@@ -117,6 +121,8 @@ E2E_WEIGHTED_NAMES = (
     "content_end_ce",
     "semantic_end_ce",
     "semantic_end_margin",
+    "semantic_rollin_end_ce",
+    "semantic_rollin_end_margin",
     "speaker_continuity",
 )
 
@@ -224,6 +230,56 @@ def flattened_semantic_end_margin_term(
     end_logits = selected[:, c.TOKEN_END_SEMANTIC]
     violations = F.relu(semantic_max + float(margin) - end_logits)
     return LossTerm(violations.sum(), denominator)
+
+
+def flattened_rollin_semantic_end_terms(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    selected_mask: torch.Tensor | None,
+    *,
+    margin: float,
+) -> tuple[LossTerm, LossTerm]:
+    """Normalize hard END supervision only over model-history roll-in rows."""
+
+    if margin < 0:
+        raise ValueError("semantic roll-in end logit margin must be non-negative")
+    if selected_mask is None:
+        zero = _zero(logits)
+        return zero, zero
+    mask = selected_mask.reshape(-1).to(device=logits.device, dtype=torch.bool)
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError("flattened semantic roll-in end tensors have invalid rank")
+    if (
+        logits.shape[0] != labels.numel()
+        or labels.shape != loss_kinds.shape
+        or mask.shape != labels.shape
+    ):
+        raise ValueError("flattened semantic roll-in end tensors differ in length")
+    denominator = mask.sum().float()
+    if not bool(mask.any()):
+        zero = LossTerm(logits.sum() * 0.0, denominator)
+        return zero, zero
+    if not bool(
+        (
+            (labels[mask] == c.TOKEN_END_SEMANTIC)
+            & (loss_kinds[mask] == LOSS_BOUNDARY)
+        ).all()
+    ):
+        raise ValueError("semantic roll-in mask selected a non-END boundary row")
+    selected = logits[mask].float()
+    targets = labels[mask].long()
+    ce = LossTerm(
+        F.cross_entropy(selected, targets, reduction="sum"), denominator
+    )
+    semantic_max = selected[
+        :, c.BICODEC_SEMANTIC_OFFSET : c.BICODEC_SEMANTIC_OFFSET
+        + c.BICODEC_SEMANTIC_SIZE
+    ].max(dim=1).values
+    end_logits = selected[:, c.TOKEN_END_SEMANTIC]
+    violations = F.relu(semantic_max + float(margin) - end_logits)
+    margin_term = LossTerm(violations.sum(), denominator)
+    return ce, margin_term
 
 
 def _zero(reference: torch.Tensor) -> LossTerm:
@@ -543,6 +599,7 @@ def flattened_e2e_objective(
     batch: Mapping[str, object],
     original_seq_length: int,
     semantic_end_logit_margin: float = 0.0,
+    semantic_boundary_rollin_mask: torch.Tensor | None = None,
 ) -> Mapping[str, LossTerm]:
     token_terms = flattened_token_ce_terms(logits, labels, loss_kinds)
     v1_asr_kl = flattened_teacher_kl(
@@ -565,6 +622,15 @@ def flattened_e2e_objective(
     # No genuine cross-fragment speaker embedding sidecar exists yet.  The
     # launch entrypoint therefore requires this term's configured weight to be
     # zero and records that fact instead of inventing supervision.
+    semantic_rollin_end_ce, semantic_rollin_end_margin = (
+        flattened_rollin_semantic_end_terms(
+            logits,
+            labels,
+            loss_kinds,
+            semantic_boundary_rollin_mask,
+            margin=semantic_end_logit_margin,
+        )
+    )
     terms = {
         "asr_ce": token_terms["asr_ce"],
         "mt_ce": token_terms["mt_ce"],
@@ -583,6 +649,8 @@ def flattened_e2e_objective(
             loss_kinds,
             margin=semantic_end_logit_margin,
         ),
+        "semantic_rollin_end_ce": semantic_rollin_end_ce,
+        "semantic_rollin_end_margin": semantic_rollin_end_margin,
         "speaker_continuity": _zero(logits),
     }
     if tuple(terms) != E2E_TERM_NAMES:
@@ -644,6 +712,12 @@ def distributed_e2e_objective(
         * weights.semantic_end_ce,
         "semantic_end_margin": local_means[index["semantic_end_margin"]]
         * weights.semantic_end_margin,
+        "semantic_rollin_end_ce": local_means[index["semantic_rollin_end_ce"]]
+        * weights.semantic_rollin_end_ce,
+        "semantic_rollin_end_margin": local_means[
+            index["semantic_rollin_end_margin"]
+        ]
+        * weights.semantic_rollin_end_margin,
         "speaker_continuity": local_means[index["speaker_continuity"]]
         * weights.speaker_continuity,
     }
@@ -694,6 +768,8 @@ def compute_e2e_objective(
     terms["content_end_ce"] = _zero(token_nll)
     terms["semantic_end_ce"] = _zero(token_nll)
     terms["semantic_end_margin"] = _zero(token_nll)
+    terms["semantic_rollin_end_ce"] = _zero(token_nll)
+    terms["semantic_rollin_end_margin"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
         teacher_posteriors,
         cache_kind="v1_asr",
@@ -728,6 +804,10 @@ def compute_e2e_objective(
         * weights.semantic_end_ce,
         "semantic_end_margin": terms["semantic_end_margin"].loss
         * weights.semantic_end_margin,
+        "semantic_rollin_end_ce": terms["semantic_rollin_end_ce"].loss
+        * weights.semantic_rollin_end_ce,
+        "semantic_rollin_end_margin": terms["semantic_rollin_end_margin"].loss
+        * weights.semantic_rollin_end_margin,
         "speaker_continuity": terms["speaker_continuity"].loss
         * weights.speaker_continuity,
     }
@@ -749,6 +829,7 @@ __all__ = [
     "distributed_e2e_objective",
     "flattened_commit_consistency_kl",
     "flattened_e2e_objective",
+    "flattened_rollin_semantic_end_terms",
     "flattened_semantic_end_margin_term",
     "flattened_teacher_kl",
     "flattened_token_ce_terms",

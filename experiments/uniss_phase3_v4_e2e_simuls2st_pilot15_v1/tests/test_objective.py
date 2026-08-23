@@ -16,6 +16,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     compute_e2e_objective,
     distributed_e2e_objective,
     flattened_e2e_objective,
+    flattened_rollin_semantic_end_terms,
     flattened_semantic_end_margin_term,
     speaker_continuity_loss,
     token_ce_terms,
@@ -89,6 +90,49 @@ def test_semantic_end_margin_matches_restricted_greedy_decision() -> None:
     assert logits.grad[0, c.TOKEN_END_SEMANTIC] < 0
     assert logits.grad[0, semantic] > 0
     assert logits.grad[1].abs().sum() == 0
+
+
+def test_rollin_semantic_end_terms_normalize_only_selected_hard_rows() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.zeros((3, vocab), requires_grad=True)
+    with torch.no_grad():
+        logits[0, semantic] = 6.0
+        logits[0, c.TOKEN_END_SEMANTIC] = 1.0
+        logits[1, semantic] = 1.0
+        logits[1, c.TOKEN_END_SEMANTIC] = 6.0
+        logits[2, semantic] = 7.0
+        logits[2, c.TOKEN_END_SEMANTIC] = 1.0
+    labels = torch.tensor(
+        [c.TOKEN_END_SEMANTIC, c.TOKEN_END_SEMANTIC, c.TOKEN_END_SEMANTIC]
+    )
+    kinds = torch.tensor([LOSS_BOUNDARY, LOSS_BOUNDARY, LOSS_BOUNDARY])
+    selected = torch.tensor([True, False, False])
+    ce, margin = flattened_rollin_semantic_end_terms(
+        logits, labels, kinds, selected, margin=2.0
+    )
+    assert ce.denominator.item() == 1
+    assert margin.denominator.item() == 1
+    assert margin.loss.item() == 7.0
+    (ce.loss + margin.loss).backward()
+    assert logits.grad is not None
+    assert logits.grad[0].abs().sum() > 0
+    assert logits.grad[1:].abs().sum() == 0
+
+
+def test_rollin_semantic_end_terms_reject_non_end_rows() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    logits = torch.zeros((1, vocab))
+    labels = torch.tensor([c.TOKEN_END_CONTENT])
+    kinds = torch.tensor([LOSS_BOUNDARY])
+    try:
+        flattened_rollin_semantic_end_terms(
+            logits, labels, kinds, torch.tensor([True]), margin=2.0
+        )
+    except ValueError as error:
+        assert "non-END" in str(error)
+    else:
+        raise AssertionError("non-END roll-in row was accepted")
 
 
 def test_topk_teacher_kl_is_zero_when_student_matches_teacher_distribution() -> None:

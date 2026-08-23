@@ -309,6 +309,10 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-semantic-end-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-margin-weight", type=float, default=0.0)
     group.add_argument("--e2e-semantic-end-logit-margin", type=float, default=0.0)
+    group.add_argument("--e2e-semantic-rollin-end-weight", type=float, default=0.0)
+    group.add_argument(
+        "--e2e-semantic-rollin-end-margin-weight", type=float, default=0.0
+    )
     group.add_argument(
         "--e2e-semantic-prefix-corruption-rate", type=float, default=0.0
     )
@@ -487,6 +491,10 @@ def e2e_weights(args) -> E2ELossWeights:
         content_end_ce=float(args.e2e_content_end_weight),
         semantic_end_ce=float(args.e2e_semantic_end_weight),
         semantic_end_margin=float(args.e2e_semantic_end_margin_weight),
+        semantic_rollin_end_ce=float(args.e2e_semantic_rollin_end_weight),
+        semantic_rollin_end_margin=float(
+            args.e2e_semantic_rollin_end_margin_weight
+        ),
         speaker_continuity=float(args.e2e_speaker_continuity_weight),
     )
 
@@ -1150,6 +1158,7 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         batch=batch,
         original_seq_length=int(context["original_seq_length"]),
         semantic_end_logit_margin=float(context["semantic_end_logit_margin"]),
+        semantic_boundary_rollin_mask=context["semantic_boundary_rollin_mask"],
     )
     total, metrics = distributed_e2e_objective(
         terms, weights=context["weights"]
