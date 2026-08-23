@@ -16,6 +16,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     compute_e2e_objective,
     distributed_e2e_objective,
     flattened_e2e_objective,
+    flattened_rollin_semantic_continue_margin_term,
     flattened_rollin_semantic_end_terms,
     flattened_semantic_continue_margin_term,
     flattened_semantic_end_margin_term,
@@ -134,6 +135,33 @@ def test_rollin_semantic_end_terms_reject_non_end_rows() -> None:
         assert "non-END" in str(error)
     else:
         raise AssertionError("non-END roll-in row was accepted")
+
+
+def test_rollin_semantic_continue_margin_uses_only_selected_model_history_rows() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.zeros((3, vocab), requires_grad=True)
+    with torch.no_grad():
+        logits[0, semantic] = 2.0
+        logits[0, c.TOKEN_END_SEMANTIC] = 5.0
+        logits[1, semantic + 1] = 7.0
+        logits[1, c.TOKEN_END_SEMANTIC] = 1.0
+    labels = torch.tensor([semantic, semantic + 1, c.TOKEN_END_SEMANTIC])
+    kinds = torch.tensor([LOSS_SEMANTIC, LOSS_SEMANTIC, LOSS_BOUNDARY])
+    term = flattened_rollin_semantic_continue_margin_term(
+        logits,
+        labels,
+        kinds,
+        torch.tensor([True, False, False]),
+        margin=1.0,
+    )
+    assert term.denominator.item() == 1
+    assert term.loss.item() == 4.0
+    term.loss.backward()
+    assert logits.grad is not None
+    assert logits.grad[0, semantic] < 0
+    assert logits.grad[0, c.TOKEN_END_SEMANTIC] > 0
+    assert logits.grad[1:].abs().sum() == 0
 
 
 def test_semantic_continue_margin_uses_only_same_sample_pre_end_tail() -> None:

@@ -7,10 +7,13 @@ from torch import nn
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron import (
     _tag_trainable_qwen_and_freeze_v1,
     apply_model_generated_semantic_boundary_rollin,
+    apply_symmetric_model_generated_semantic_rollin,
     corrupt_interleaved_semantic_prefixes,
     e2e_chunk_ms_for_progress,
     semantic_boundary_rollin_candidates,
     semantic_boundary_rollin_statistics,
+    semantic_rollin_continue_candidates,
+    semantic_rollin_continue_statistics,
     validate_family_denominators,
     validate_smoke_scope,
     validate_v1_checkpoint_load_policy,
@@ -200,6 +203,106 @@ def test_semantic_boundary_first_runtime_token_cannot_end() -> None:
     assert candidates.tolist() == [[-1, semantic + 9]]
 
 
+def test_semantic_continue_candidates_target_wrong_early_end_inside_tail() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.tensor(
+        [[c.TOKEN_START_SEMANTIC, semantic + 1, semantic + 2, semantic + 3, c.TOKEN_END_SEMANTIC]]
+    )
+    labels = torch.tensor(
+        [[semantic + 1, semantic + 2, semantic + 3, c.TOKEN_END_SEMANTIC, c.TOKEN_EOS]]
+    )
+    logits = torch.full((inputs.numel(), c.TOKEN_END_SEMANTIC + 1), -20.0)
+    logits[1, c.TOKEN_END_SEMANTIC] = 10.0
+    logits[1, semantic + 7] = 9.0
+    candidates = semantic_rollin_continue_candidates(
+        logits,
+        inputs,
+        labels,
+        sample_boundaries=[[(0, 5)]],
+        tail=3,
+    )
+    assert candidates.tolist() == [[-1, -1, semantic + 7, -1, -1]]
+
+
+def test_symmetric_rollin_type_ratio_and_one_per_sample() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.arange(12, dtype=torch.long).reshape(2, 6) + semantic
+    end_candidates = torch.full_like(inputs, -1)
+    continue_candidates = torch.full_like(inputs, -1)
+    for row in range(2):
+        end_candidates[row, 2] = semantic + 100 + row
+        continue_candidates[row, 1] = semantic + 200 + row
+        end_candidates[row, 5] = semantic + 300 + row
+        continue_candidates[row, 4] = semantic + 400 + row
+    boundaries = [[(0, 3), (3, 6)], [(0, 3), (3, 6)]]
+    ends = apply_symmetric_model_generated_semantic_rollin(
+        inputs,
+        end_candidates,
+        continue_candidates,
+        sample_boundaries=boundaries,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=1.0,
+        ramp_updates=0,
+        continue_ratio=0.0,
+        update=11,
+    )
+    continues = apply_symmetric_model_generated_semantic_rollin(
+        inputs,
+        end_candidates,
+        continue_candidates,
+        sample_boundaries=boundaries,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=1.0,
+        ramp_updates=0,
+        continue_ratio=1.0,
+        update=11,
+    )
+    assert ends.selected_samples == continues.selected_samples == 4
+    assert ends.eligible_samples == continues.eligible_samples == 4
+    assert ends.selected_end_samples == 4
+    assert ends.selected_continue_samples == 0
+    assert continues.selected_end_samples == 0
+    assert continues.selected_continue_samples == 4
+    assert not bool((ends.end_mask & ends.continue_mask).any())
+    assert not bool((continues.end_mask & continues.continue_mask).any())
+    for result in (ends, continues):
+        for row in range(2):
+            assert int(result.selected_mask[row, :3].sum()) == 1
+            assert int(result.selected_mask[row, 3:].sum()) == 1
+
+
+def test_symmetric_rollin_hash_tracks_configured_type_ratio_at_scale() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    samples = 512
+    inputs = torch.arange(samples * 2, dtype=torch.long) % 1000 + semantic
+    inputs = inputs.reshape(1, -1)
+    end_candidates = torch.full_like(inputs, -1)
+    continue_candidates = torch.full_like(inputs, -1)
+    boundaries = [[]]
+    for sample in range(samples):
+        start = sample * 2
+        boundaries[0].append((start, start + 2))
+        continue_candidates[0, start] = semantic + 1001 + sample
+        end_candidates[0, start + 1] = semantic + 2001 + sample
+    result = apply_symmetric_model_generated_semantic_rollin(
+        inputs,
+        end_candidates,
+        continue_candidates,
+        sample_boundaries=boundaries,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=1.0,
+        ramp_updates=0,
+        continue_ratio=0.5,
+        update=23,
+    )
+    continue_fraction = result.selected_continue_samples / result.selected_samples
+    assert result.selected_samples == samples
+    assert 0.45 <= continue_fraction <= 0.55
+
+
 def test_semantic_boundary_rollin_is_deterministic_and_changes_only_boundaries() -> None:
     semantic = c.BICODEC_SEMANTIC_OFFSET
     inputs = torch.arange(100, dtype=torch.long) + semantic
@@ -314,6 +417,19 @@ def test_semantic_boundary_rollin_diagnostics_use_selected_end_rows() -> None:
     )
     assert count == 1
     assert torch.allclose(ce_sum, expected_ce)
+    assert margin_sum.item() == pytest.approx(3.0)
+
+
+def test_semantic_continue_rollin_diagnostic_is_target_minus_end() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.full((2, c.TOKEN_END_SEMANTIC + 1), -10.0)
+    logits[1, semantic + 1] = 5.0
+    logits[1, c.TOKEN_END_SEMANTIC] = 2.0
+    labels = torch.tensor([semantic, semantic + 1])
+    margin_sum, count = semantic_rollin_continue_statistics(
+        logits, labels, torch.tensor([False, True])
+    )
+    assert count == 1
     assert margin_sum.item() == pytest.approx(3.0)
 
 
