@@ -630,3 +630,127 @@ times.  Ordinary token CE, Phase3/V1 retention losses and the five-family
 schedule remain unchanged.  The canary must log both class counts and signed
 scores, then repeat the same frozen audit and fixed-16/384 gate.  This is still
 not authorization for the formal 3395-update run.
+
+### 12.4 Class-balanced binary boundary calibration result
+
+Commit `ed05bb6` implemented the isolated class-balanced calibration objective.
+For the common restricted-choice score
+
+```text
+z = logit(END_SEMANTIC) - max(logit(legal semantic))
+```
+
+the implementation forms two independent distributed `LossTerm` objects and
+then combines their global class means as
+
+```text
+0.5 * mean softplus(margin - z)       # model-history END rows
++ 0.5 * mean softplus(margin + z)     # exact CONTINUE decision rows
+```
+
+This preserves a strict 50/50 class contribution even when the selected END
+and CONTINUE row counts differ.  The launcher fails closed if this objective is
+enabled together with any of the duplicate special terms: gold semantic-END
+CE, gold END margin, roll-in END CE/margin, decision/history CONTINUE hinges or
+the static CONTINUE-tail hinge.  Ordinary ASR/MT/semantic CE, general boundary
+and EOS CE, V1/Phase3 retention and the phase-stratified five-family schedule
+were unchanged.  New diagnostics report both class counts, the common signed
+score for each class and the balanced loss.
+
+The complete experiment suite passed (`111 passed`, two existing dependency
+warnings).  The fresh eight-GPU smoke was:
+
+```text
+semantic_boundary_binary_smoke_b0p5_m1p0_20260823T195827Z
+```
+
+It used binary weight `0.5`, symmetric logit margin `1.0`, one interleaved
+`MBS=2`, `GBS=128` update and roll-in rate `1.0`.  END/CONTINUE denominators
+were `253.625/139.375`; their common signed scores were `-5.7762/+0.3815`, and
+the balanced loss was `4.3980`.  The update completed with zero skipped and
+zero NaN iterations.  All GPUs reached 98--100% sampled utilization, and all
+254 frozen Stage-A tensors remained bitwise exact.
+
+The phase-stratified learning canary was:
+
+```text
+learning_canary_allfamily_100u_sembinary_b0p5_m1p0_r0p5_t12_strat_
+  20260823T200426Z
+```
+
+It ran from 20:04:48 to 20:45:02 UTC on 2026-08-23 with eight H200 GPUs,
+`MBS=2`, `GBS=128`, binary weight `0.5`, margin `1.0`, total roll-in target
+`0.5`, conditional CONTINUE ratio `0.5`, tail 12 and a 25-update ramp.  The run
+completed all 100 updates with zero skipped and zero NaN iterations.  Peak GPU
+utilization was 100% on every device, peak power was 573.71 W and peak sampled
+memory was 140,209 MiB.  The final `iter_0000100` checkpoint again matched all
+254 frozen Stage-A tensors, 732,131,842 bytes and the reference frozen-tree
+SHA256 bitwise exactly.  Its TensorBoard directory is exposed locally at
+`http://127.0.0.1:6043` for this audit session.
+
+| Semantic E2E update | END count | CONTINUE count | END score `z` | CONTINUE score `z` | Balanced loss | Total sample roll-in rate |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 15.125 | 7.250 | -4.9767 | +0.3909 | 4.0737 | 0.0588 |
+| 25 | 126.750 | 69.375 | -5.3179 | +0.2397 | 4.1695 | 0.5063 |
+| 52 | 133.250 | 63.750 | -4.1489 | +0.2954 | 3.5687 | 0.5050 |
+| 73 | 122.375 | 62.375 | -4.0173 | +0.2344 | 3.4580 | 0.4810 |
+| 100 | 129.125 | 77.250 | -3.4127 | +0.3048 | 3.2135 | 0.5081 |
+
+The moving hard-negative training statistic improved without the catastrophic
+CONTINUE collapse seen in the previous canary: END score moved from `-4.98` to
+`-3.41`, while CONTINUE stayed near `+0.30`.  The previous diagnostic used the
+opposite sign (`best semantic - END`) and fell to `-2.03`, equivalent to a
+current-score `z` of `+2.03`; the balanced run avoided that worsening.
+However, both classes still ended on the wrong side of the requested margin.
+An END row needs `z >= +1`, while a CONTINUE row needs `z <= -1`; the final
+means were `-3.41` and `+0.30`.  A falling balanced loss therefore did not
+establish a correct restricted binary decision rule.
+
+The checkpoint was exported to Hugging Face format, fingerprinted as ten files
+and 1,067,360,389 bytes with SHA256
+`84b77e2fdbb3f9646121e2b478ce212c83750b8c584fc7a1024c0984398d0367`, then
+evaluated with the immutable 16-record selection and 384-semantic-token cap:
+
+```text
+free_running_gate_sembinary_b0p5_m1p0_fixed16_384_20260823T200426Z
+```
+
+| Variant | Semantic malformed | Coverage mean | Coverage min | CMN CER | ENG WER | Gold MT coverage | Free MT coverage | Non-silent audio |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| no-roll-in termination baseline | 27 | 0.9774 | 0.8189 | 0.2066 | 0.4710 | 0.1446 | 0.1077 | 8/8 |
+| symmetric history-only | 29 | 0.9293 | 0.4348 | 0.2019 | 0.4774 | 0.1446 | 0.1058 | 8/8 |
+| exact decision + history | 33 | 1.0000 | 1.0000 | 0.2066 | 0.4968 | 0.1508 | 0.1077 | 8/8 |
+| class-balanced binary | 64 | 1.0000 | 1.0000 | 0.2019 | 0.4903 | 0.1530 | 0.1116 | 8/8 |
+
+All 64 malformed segments were exactly 384 semantic tokens; there were no
+malformed segments at any other length.  They occurred across all eight S2S
+samples, with 4--10 capped events per sample.  Thus semantic tokens remained
+legal, PCM remained non-silent and coverage stayed complete, but the model
+failed to emit a natural END more often than the previous exact-decision run
+(`33 -> 64` capped events).  The isolated binary hypothesis did not repair the
+termination process.
+
+Content retention also remains an independent blocker.  CMN CER passed at
+20.19%, but English WER was 49.03% against a 35.34% limit.  Gold-source
+cmn-to-eng reached `4.1399/21.7212` BLEU/chrF, while eng-to-cmn remained
+`0.00868/2.9596`.  Gold/free target coverage was only 15.30%/11.16%, both with
+zero minimum coverage.  The gate status is `failed` and
+`formal_training_authorized=false`.
+
+This result rejects class-weight imbalance as the sole semantic-boundary root
+cause.  The binary term is applied only to the small, changing set of selected
+model-history rows (about 129 END and 77 CONTINUE rows at update 100).  Removing
+the broad gold END anchors made the isolated causal test clean, but also left
+far less coverage of the many possible natural termination contexts.  Simply
+raising the binary weight, restoring the old stack unchanged or running more
+updates would repeat the same moving-selection problem and is not justified.
+
+Any next semantic experiment should change supervision coverage rather than
+only coefficients: build an immutable, class-matched boundary replay sidecar
+containing fixed exact-decision END and CONTINUE rows across every semantic
+fragment, include both gold-history and model-history contexts, and measure
+the same fixed rows throughout training.  That design must retain a broad END
+anchor without reintroducing the previous multi-term asymmetry.  Separately,
+the English ASR and especially eng-to-cmn MT/data path must be repaired before
+any formal full-data run can be authorized.  No 3395-update formal training was
+started.
