@@ -529,3 +529,104 @@ This is an objective-alignment repair, not a request to increase training
 length or start the 3395-update formal schedule.  Repeating the present loss
 for more updates would strengthen END calibration without supervising the
 decision row that must continue, and is not authorized by these results.
+
+### 12.3 Exact CONTINUE-decision supervision result
+
+Commit `ed167ba` implemented the two-row CONTINUE repair without changing any
+immutable task pool, teacher cache, checkpoint or gate selection:
+
+- `semantic_rollin_continue_decision_margin` is evaluated at `p-1`, the exact
+  row where the no-gradient restricted choice selected END over all semantic
+  tokens;
+- the existing `semantic_rollin_continue_margin` remains at `p`, after the
+  model-generated semantic alternative is rolled into the history;
+- the two masks are independently normalized and separately logged;
+- a packed-sample boundary guard rejects any CONTINUE decision row that would
+  cross into the preceding sample.
+
+The complete isolated suite passed (`108 passed`, two existing dependency
+warnings).  The fresh eight-GPU interleaved smoke was:
+
+```text
+semantic_continue_decisionrow_smoke_20260823T185457Z
+```
+
+It completed one `MBS=2`, `GBS=128` update with zero skipped and zero NaN
+iterations.  Both CONTINUE denominators were exactly 139.375.  Their initial
+signed margins were distinguishable: decision row `-0.3814`, downstream
+history row `-4.6135`.  The DCP checkpoint saved normally, and all 254 frozen
+Stage-A tensors remained bitwise exact.
+
+The 100-update canary was:
+
+```text
+learning_canary_allfamily_100u_semendmargin_decisionrow_
+  h0p25_d0p25_c0p025_r0p5_t12_strat_20260823T185924Z
+```
+
+It used the same eight-GPU phase-stratified schedule, `MBS=2`, `GBS=128`, total
+roll-in target 0.5, conditional CONTINUE ratio 0.5 and 25-update ramp.  The
+roll-in END margin weight remained 0.25, the new decision-row weight was 0.25,
+and the downstream history-row weight was reduced to 0.025.  It ran from
+18:59:25 to 19:40:28 UTC, completed with zero skipped and zero NaN updates, and
+again passed the 254-tensor frozen Stage-A audit.  The GPU trace reached 100%
+utilization, 587.07 W peak power and 140,209 MiB peak memory.
+
+| Semantic E2E update | END signed margin | CONTINUE decision margin | CONTINUE history margin | END eligible samples | CONTINUE eligible samples |
+|---:|---:|---:|---:|---:|---:|
+| 3 | -4.7133 | -0.3204 | -5.7410 | 375.75 | 250.13 |
+| 25 | -3.9358 | -0.8080 | -5.8449 | 379.38 | 358.63 |
+| 52 | -1.4107 | -1.6603 | -7.7752 | 355.00 | 388.00 |
+| 73 | -0.4958 | -1.9276 | -8.1147 | 307.75 | 385.13 |
+| 100 | -0.0897 | -2.0331 | -8.1998 | 309.38 | 406.38 |
+
+The exact-row term is active and correctly aligned, but the joint objective
+still moves toward END.  END eligibility decreased while CONTINUE eligibility
+increased.  This is not explained by raw row counts alone because every
+special term is independently normalized.  The effective structural
+coefficient is nevertheless strongly asymmetric: gold semantic-END CE 0.5,
+gold END margin 0.25 and roll-in END margin 0.25 contribute three END-directed
+terms, while the two CONTINUE-directed terms contribute 0.25 and 0.025.  The
+general boundary and semantic losses add further shared pressure around these
+rows.
+
+The fixed-16/384 result was:
+
+| Variant | Semantic malformed | Semantic coverage mean | Semantic coverage min | CMN CER | ENG WER | Gold MT coverage | Free MT coverage |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| no-roll-in termination baseline | 27 | 0.9774 | 0.8189 | 0.2066 | 0.4710 | 0.1446 | 0.1077 |
+| symmetric history-only | 29 | 0.9293 | 0.4348 | 0.2019 | 0.4774 | 0.1446 | 0.1058 |
+| exact decision + history | 33 | 1.0000 | 1.0000 | 0.2066 | 0.4968 | 0.1508 | 0.1077 |
+
+Exact decision-row supervision made the semantic-coverage check pass for the
+first time: mean and minimum coverage were both 1.0.  It did not make the
+structure valid.  All 33 malformed segments were exactly the 33 events that
+reached the 384-token hard limit; there were no other malformed lengths.  The
+repair therefore prevented premature END but displaced the error to the
+opposite boundary: failure to END after a complete fragment.  All semantic
+tokens were legal, all eight S2S samples produced non-silent PCM and no source
+or target rollback occurred.
+
+Independent content-retention gates also remain failed.  English WER was
+49.68% against a 35.34% limit.  Gold/free MT target coverage was only
+15.08%/10.77% with a zero minimum.  Gold-source cmn-to-eng improved slightly to
+`4.1010/20.6382` BLEU/chrF, while eng-to-cmn remained
+`0.00868/2.9596`.  These metrics cannot authorize formal training even if the
+semantic grammar is repaired.
+
+The next semantic experiment must replace the stack of independently weighted
+END and CONTINUE hinge terms with one explicitly balanced binary boundary
+calibration objective.  For signed score
+`z = logit(END_SEMANTIC) - max(logit(legal semantic))`, use equal class means:
+
+```text
+0.5 * mean softplus(margin - z)       on model-history END rows
++ 0.5 * mean softplus(margin + z)     on exact premature-END CONTINUE rows
+```
+
+The existing special END CE/margins and downstream history hinge must be zero
+in that isolated canary so the binary objective is not silently counted four
+times.  Ordinary token CE, Phase3/V1 retention losses and the five-family
+schedule remain unchanged.  The canary must log both class counts and signed
+scores, then repeat the same frozen audit and fixed-16/384 gate.  This is still
+not authorization for the formal 3395-update run.
