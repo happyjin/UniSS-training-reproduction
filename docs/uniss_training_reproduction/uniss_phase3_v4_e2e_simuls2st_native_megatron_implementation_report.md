@@ -435,3 +435,97 @@ This experiment is still a canary, not a continuation checkpoint and not
 authorization for the formal run.  It must pass the full test suite, an 8-GPU
 structural/numerical smoke, frozen-parameter audit and the same fixed-16/384
 free-running gate before any larger training decision.
+
+### 12.2 Symmetric model-history result and causal supervision gap
+
+The symmetric implementation was completed in commit `a18d2c9`.  Its complete
+test suite passed (`107 passed`), and the latest eight-GPU structural smoke
+activated both candidate types with zero skipped updates and zero NaN values.
+The smoke and the learning canary both retained all frozen Stage-A parameters
+bitwise exactly.
+
+The 100-update canary was:
+
+```text
+learning_canary_allfamily_100u_semendmargin_symmetricmodelhistory_
+  h0p25_c0p1_r0p5_t12_strat_20260823T175027Z
+```
+
+It ran from 2026-08-23 17:51:08 UTC to 18:32:01 UTC with the unchanged
+phase-stratified five-family schedule, eight GPUs, `MBS=2`, `GBS=128`, a
+25-update roll-in ramp, total roll-in target 0.5 and conditional CONTINUE ratio
+0.5.  The final checkpoint is `iter_0000100`.  All 254 frozen Stage-A tensors,
+732,131,842 bytes and the complete frozen tree SHA256 matched the V1 reference
+exactly.  The GPU trace reached 100% utilization, 581.39 W peak power and
+140,211 MiB peak allocated memory per sampled device; the lower time-average is
+caused by the heterogeneous five-family update costs and their host-side
+transitions rather than missing ranks.
+
+The model-history diagnostics did not become symmetric:
+
+| Semantic E2E update | END signed margin | CONTINUE signed margin | END margin loss | CONTINUE margin loss | Total sample roll-in rate |
+|---:|---:|---:|---:|---:|---:|
+| 3 | -4.6518 | -4.9992 | 6.8253 | 6.0377 | 0.0581 |
+| 25 | -3.9695 | -5.8963 | 6.1155 | 7.0919 | 0.5044 |
+| 52 | -1.3517 | -7.9150 | 3.7023 | 9.0204 | 0.5037 |
+| 73 | -0.3431 | -8.5113 | 2.7814 | 9.5694 | 0.5018 |
+| 100 | +0.2343 | -8.6880 | 2.4609 | 9.7573 | 0.4952 |
+
+At update 100 the END and CONTINUE selected-sample rates were 0.2316 and
+0.3374, with denominators 64.5 and 137.125 respectively.  CONTINUE was
+therefore active and independently normalized; its failure is not a zero-mask
+or insufficient-sampling bug.  The diagnostic population is model-selected
+and changes as training changes, so its absolute trajectory is a moving
+hard-negative statistic rather than a fixed-probe learning curve.  The
+free-running gate is the decisive test.
+
+The same immutable fixed-16 selection and 384-semantic-token cap produced:
+
+| Variant | Semantic malformed | Semantic coverage mean | Semantic coverage min | CMN CER | ENG WER | Gold MT coverage | Free MT coverage | Non-silent audio |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| best no-roll-in termination baseline | 27 | 0.9774 | 0.8189 | 0.2066 | 0.4710 | 0.1446 | 0.1077 | 8/8 |
+| token-level model-history roll-in | 34 | 0.9095 | 0.5280 | 0.2066 | 0.4774 | 0.1446 | 0.1077 | 8/8 |
+| sample-aware model-history roll-in | 39 | 0.9695 | 0.7559 | 0.2066 | 0.4839 | 0.1446 | 0.1116 | 8/8 |
+| sample-aware + hard END | 31 | 0.8909 | 0.4658 | 0.2019 | 0.4839 | 0.1446 | 0.1077 | 8/8 |
+| sample-aware + hard END + static continue | 28 | 0.9002 | 0.4534 | 0.2066 | 0.5161 | 0.1446 | 0.1077 | 8/8 |
+| symmetric model-history END/CONTINUE | 29 | 0.9293 | 0.4348 | 0.2019 | 0.4774 | 0.1446 | 0.1058 | 8/8 |
+
+The symmetric run recovered some mean semantic coverage versus the static
+continue run (0.9002 -> 0.9293), but it did not beat the no-roll-in baseline,
+did not reduce malformed segments and further reduced minimum coverage.  The
+gate also failed English ASR retention (`WER=0.4774 > 0.353399`), MT target
+coverage, both BLEU/chrF retention checks and both structure checks.  Gold-source
+MT remained `3.8614/20.4776` BLEU/chrF for cmn-to-eng and
+`0.00868/2.9596` for eng-to-cmn.  Formal training is therefore still explicitly
+unauthorized.
+
+The result exposes a causal supervision gap in the CONTINUE construction.  In
+the shifted packer, `tokens = token_ids[:-1]` and
+`labels = token_ids[1:]`.  A CONTINUE candidate at input position `p` is chosen
+because the no-gradient forward at `logits[p-1]` prefers `END_SEMANTIC` over
+every legal semantic token.  The current implementation then rolls a legal
+model semantic token into input position `p`, places its CONTINUE mask at `p`
+and applies the margin to `logits[p]` against `labels[p]`.  That trains the
+token *after* the forced semantic continuation, but it does not directly apply
+a gradient to the premature-END decision at `logits[p-1]` that made the sample
+eligible.  It is useful downstream model-history exposure, but it is not a
+complete correction of the failing decision.
+
+The next isolated repair must keep the existing one-replacement-per-sample and
+deterministic-selection invariants while separating two masks and targets:
+
+1. `continue_decision_mask` at `p-1`, with an independently normalized margin
+   that pushes a legal semantic decision above `END_SEMANTIC` at the exact row
+   that selected END;
+2. `continue_history_mask` at `p`, retaining a smaller independently normalized
+   next-semantic-vs-END margin after the model-generated input has been rolled
+   in;
+3. explicit diagnostics for the fixed decision row and the downstream history
+   row, so a changing hard-negative population cannot hide which term learned;
+4. the same 100-update phase-stratified canary, frozen Stage-A bitwise audit and
+   fixed-16/384 gate before considering any formal run.
+
+This is an objective-alignment repair, not a request to increase training
+length or start the 3395-update formal schedule.  Repeating the present loss
+for more updates would strengthen END calibration without supervising the
+decision row that must continue, and is not authorized by these results.
