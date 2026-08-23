@@ -208,6 +208,7 @@ def test_semantic_boundary_rollin_is_deterministic_and_changes_only_boundaries()
     first = apply_model_generated_semantic_boundary_rollin(
         inputs,
         candidates,
+        sample_boundaries=[[(index, index + 1) for index in range(100)]],
         family=FAMILY_INTERLEAVED,
         training=True,
         rate=0.5,
@@ -217,13 +218,14 @@ def test_semantic_boundary_rollin_is_deterministic_and_changes_only_boundaries()
     second = apply_model_generated_semantic_boundary_rollin(
         inputs,
         candidates,
+        sample_boundaries=[[(index, index + 1) for index in range(100)]],
         family=FAMILY_INTERLEAVED,
         training=True,
         rate=0.5,
         ramp_updates=10,
         update=4,
     )
-    rolled, mask, selected, eligible, changed, effective_rate = first
+    rolled, mask, selected, eligible, changed, effective_rate = first[:6]
     assert torch.equal(rolled, second[0])
     assert torch.equal(mask, second[1])
     assert (selected, eligible, changed, effective_rate) == (
@@ -232,6 +234,9 @@ def test_semantic_boundary_rollin_is_deterministic_and_changes_only_boundaries()
         second[4],
         second[5],
     )
+    assert first[6:] == second[6:]
+    assert first[6] == selected
+    assert first[7] == eligible
     assert effective_rate == pytest.approx(0.25)
     assert eligible == 100
     assert selected == changed == int(mask.sum())
@@ -245,10 +250,11 @@ def test_semantic_boundary_rollin_is_disabled_for_eval_and_other_families() -> N
     inputs = torch.tensor([c.BICODEC_SEMANTIC_OFFSET])
     candidates = torch.tensor([c.BICODEC_SEMANTIC_OFFSET + 1])
     for family, training in ((FAMILY_INTERLEAVED, False), ("incremental_mt_event", True)):
-        output, mask, selected, eligible, changed, effective_rate = (
+        result = (
             apply_model_generated_semantic_boundary_rollin(
                 inputs,
                 candidates,
+                sample_boundaries=[[(0, 1)]],
                 family=family,
                 training=training,
                 rate=1.0,
@@ -256,9 +262,41 @@ def test_semantic_boundary_rollin_is_disabled_for_eval_and_other_families() -> N
                 update=0,
             )
         )
+        output, mask, selected, eligible, changed, effective_rate = result[:6]
         assert output is inputs
         assert not bool(mask.any())
         assert (selected, eligible, changed, effective_rate) == (0, 0, 0, 0.0)
+        assert result[6:] == (0, 0)
+
+
+def test_semantic_boundary_rollin_selects_at_most_one_boundary_per_sample() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.arange(16, dtype=torch.long).reshape(2, 8) + semantic
+    candidates = torch.full_like(inputs, -1)
+    for row in range(2):
+        candidates[row, 1] = semantic + 101 + row
+        candidates[row, 2] = semantic + 201 + row
+        candidates[row, 5] = semantic + 301 + row
+        candidates[row, 6] = semantic + 401 + row
+    result = apply_model_generated_semantic_boundary_rollin(
+        inputs,
+        candidates,
+        sample_boundaries=[[(0, 4), (4, 8)], [(0, 4), (4, 8)]],
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=1.0,
+        ramp_updates=0,
+        update=7,
+    )
+    rolled, mask, selected, eligible, changed, effective_rate = result[:6]
+    selected_samples, eligible_samples = result[6:]
+    assert (selected, eligible, changed) == (4, 8, 4)
+    assert (selected_samples, eligible_samples, effective_rate) == (4, 4, 1.0)
+    for row in range(2):
+        assert int(mask[row, :4].sum()) == 1
+        assert int(mask[row, 4:].sum()) == 1
+    assert torch.equal(rolled[~mask], inputs[~mask])
+    assert torch.equal(rolled[mask], candidates[mask])
 
 
 def test_semantic_boundary_rollin_diagnostics_use_selected_end_rows() -> None:

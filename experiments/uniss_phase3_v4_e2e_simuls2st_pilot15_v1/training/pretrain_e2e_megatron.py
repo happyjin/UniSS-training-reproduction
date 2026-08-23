@@ -92,6 +92,9 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/semantic_boundary_rollin_selected_tokens",
     "diagnostic/semantic_boundary_rollin_eligible_tokens",
     "diagnostic/semantic_boundary_rollin_changed_tokens",
+    "diagnostic/semantic_boundary_rollin_selected_samples",
+    "diagnostic/semantic_boundary_rollin_eligible_samples",
+    "diagnostic/semantic_boundary_rollin_sample_rate",
 )
 METRIC_NAMES = (*OBJECTIVE_METRIC_NAMES, *DIAGNOSTIC_NAMES)
 REQUIRED_FAMILY_DENOMINATORS = {
@@ -684,6 +687,8 @@ def _distributed_diagnostics(
             float(context["semantic_boundary_rollin_eligible_tokens"]),
             float(context["semantic_boundary_rollin_changed_tokens"]),
             float(context["semantic_boundary_rollin_rate"]),
+            float(context["semantic_boundary_rollin_selected_samples"]),
+            float(context["semantic_boundary_rollin_eligible_samples"]),
             float(rollin_end_ce_sum),
             float(rollin_end_margin_sum),
         ]
@@ -699,6 +704,7 @@ def _distributed_diagnostics(
     corruption_denominator = values[6].clamp_min(1.0)
     rollin_denominator = values[9].clamp_min(1.0)
     rollin_selected_denominator = values[8].clamp_min(1.0)
+    rollin_sample_denominator = values[13].clamp_min(1.0)
     return OrderedDict(
         (
             ("diagnostic/causal_glm_agreement", values[0] / divisor),
@@ -737,11 +743,11 @@ def _distributed_diagnostics(
             ),
             (
                 "diagnostic/semantic_boundary_rollin_end_ce",
-                values[12] / rollin_selected_denominator,
+                values[14] / rollin_selected_denominator,
             ),
             (
                 "diagnostic/semantic_boundary_rollin_end_margin",
-                values[13] / rollin_selected_denominator,
+                values[15] / rollin_selected_denominator,
             ),
             (
                 "diagnostic/semantic_boundary_rollin_selected_tokens",
@@ -754,6 +760,18 @@ def _distributed_diagnostics(
             (
                 "diagnostic/semantic_boundary_rollin_changed_tokens",
                 values[10],
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_selected_samples",
+                values[12],
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_eligible_samples",
+                values[13],
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_sample_rate",
+                values[12] / rollin_sample_denominator,
             ),
         )
     )
@@ -913,13 +931,21 @@ def apply_model_generated_semantic_boundary_rollin(
     input_ids: torch.Tensor,
     candidates: torch.Tensor,
     *,
+    sample_boundaries: list[list[tuple[int, int]]],
     family: str,
     training: bool,
     rate: float,
     ramp_updates: int,
     update: int,
-) -> tuple[torch.Tensor, torch.Tensor, int, int, int, float]:
-    """Deterministically select model-generated semantic boundary inputs."""
+) -> tuple[torch.Tensor, torch.Tensor, int, int, int, float, int, int]:
+    """Roll in at most one model-generated semantic boundary per sample.
+
+    ``rate`` is a sample-level scheduled-sampling probability.  A packed
+    trajectory can contain many semantic fragments, so independently replacing
+    every eligible boundary compounds clean-history candidates inside the
+    gradient forward.  Here each independent sample first chooses one eligible
+    boundary deterministically, then applies one sample-level Bernoulli draw.
+    """
 
     if input_ids.shape != candidates.shape:
         raise ValueError("semantic boundary roll-in candidate geometry differs")
@@ -927,6 +953,8 @@ def apply_model_generated_semantic_boundary_rollin(
         raise ValueError("semantic boundary roll-in rate must be in [0, 1]")
     if int(ramp_updates) < 0:
         raise ValueError("semantic boundary roll-in ramp updates must be non-negative")
+    if not isinstance(sample_boundaries, list) or not sample_boundaries:
+        raise ValueError("semantic boundary roll-in requires packed sample boundaries")
     empty_mask = torch.zeros_like(input_ids, dtype=torch.bool)
     if (
         not training
@@ -934,7 +962,7 @@ def apply_model_generated_semantic_boundary_rollin(
         or float(rate) == 0.0
         or input_ids.numel() == 0
     ):
-        return input_ids, empty_mask, 0, 0, 0, 0.0
+        return input_ids, empty_mask, 0, 0, 0, 0.0, 0, 0
 
     ramp = 1.0
     if int(ramp_updates) > 0:
@@ -948,20 +976,92 @@ def apply_model_generated_semantic_boundary_rollin(
     positions = torch.nonzero(eligible, as_tuple=False).reshape(-1)
     eligible_count = int(positions.numel())
     if eligible_count == 0 or effective_rate <= 0.0:
-        return input_ids, empty_mask, 0, eligible_count, 0, effective_rate
+        return input_ids, empty_mask, 0, eligible_count, 0, effective_rate, 0, 0
 
-    values = flat_candidates.index_select(0, positions).to(dtype=torch.int64)
-    hashed = (
-        positions.to(dtype=torch.int64) * 1_103_515_245
-        + values * 12_345
-        + int(update) * 2_654_435_761
-        + 193
-    ) % 1_000_003
-    selected = hashed < int(round(effective_rate * 1_000_003))
-    selected_positions = positions[selected]
+    row_count = len(sample_boundaries)
+    if input_ids.numel() % row_count != 0:
+        raise ValueError("packed sample boundaries do not divide flattened inputs")
+    row_width = input_ids.numel() // row_count
+    eligible_positions = [int(value) for value in positions.detach().cpu().tolist()]
+    eligible_values = [
+        int(value)
+        for value in flat_candidates.index_select(0, positions).detach().cpu().tolist()
+    ]
+    candidate_values = dict(zip(eligible_positions, eligible_values))
+    eligible_set = set(eligible_positions)
+    covered_eligible: set[int] = set()
+    selected_positions_list: list[int] = []
+    eligible_sample_count = 0
+    modulus = 1_000_003
+    threshold = int(round(effective_rate * modulus))
+
+    for row, boundaries in enumerate(sample_boundaries):
+        if not isinstance(boundaries, list) or not boundaries:
+            raise ValueError("each packed row must contain sample boundaries")
+        previous_stop = 0
+        for sample_ordinal, raw_boundary in enumerate(boundaries):
+            if len(raw_boundary) != 2:
+                raise ValueError("packed sample boundary must be a start/stop pair")
+            start, stop = (int(raw_boundary[0]), int(raw_boundary[1]))
+            if start != previous_stop or not start < stop <= row_width:
+                raise ValueError("packed sample boundaries are not contiguous and valid")
+            previous_stop = stop
+            global_start = row * row_width + start
+            global_stop = row * row_width + stop
+            sample_positions = [
+                position
+                for position in eligible_positions
+                if global_start <= position < global_stop
+            ]
+            covered_eligible.update(sample_positions)
+            if not sample_positions:
+                continue
+            eligible_sample_count += 1
+
+            def candidate_hash(position: int) -> int:
+                local_position = position - row * row_width
+                token = candidate_values[position]
+                return (
+                    (int(update) + 1) * 2_654_435_761
+                    + (row + 1) * 1_103_515_245
+                    + (sample_ordinal + 1) * 97_531
+                    + (local_position + 1) * 12_345
+                    + token * 193
+                    + 17
+                ) % modulus
+
+            chosen = min(sample_positions, key=candidate_hash)
+            chosen_local = chosen - row * row_width
+            chosen_token = candidate_values[chosen]
+            sample_hash = (
+                (int(update) + 1) * 1_664_525
+                + (row + 1) * 1_013_904_223
+                + (sample_ordinal + 1) * 69_069
+                + (chosen_local + 1) * 36_457
+                + chosen_token * 193
+                + 911
+            ) % modulus
+            if sample_hash < threshold:
+                selected_positions_list.append(chosen)
+
+    if covered_eligible != eligible_set:
+        raise ValueError("eligible semantic boundaries fall outside packed samples")
+    selected_sample_count = len(selected_positions_list)
+    selected_positions = torch.tensor(
+        selected_positions_list, dtype=torch.long, device=input_ids.device
+    )
     selected_count = int(selected_positions.numel())
     if selected_count == 0:
-        return input_ids, empty_mask, 0, eligible_count, 0, effective_rate
+        return (
+            input_ids,
+            empty_mask,
+            0,
+            eligible_count,
+            0,
+            effective_rate,
+            0,
+            eligible_sample_count,
+        )
 
     output = input_ids.clone()
     flat_output = output.reshape(-1)
@@ -978,6 +1078,8 @@ def apply_model_generated_semantic_boundary_rollin(
         eligible_count,
         changed_count,
         effective_rate,
+        selected_sample_count,
+        eligible_sample_count,
     )
 
 
@@ -1183,6 +1285,8 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
         rollin_eligible_tokens = 0
         rollin_changed_tokens = 0
         rollin_rate = 0.0
+        rollin_selected_samples = 0
+        rollin_eligible_samples = 0
         configured_rollin_rate = float(
             e2e_batch["semantic_boundary_rollin_rate"].item()
         )
@@ -1215,9 +1319,12 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
                 rollin_eligible_tokens,
                 rollin_changed_tokens,
                 rollin_rate,
+                rollin_selected_samples,
+                rollin_eligible_samples,
             ) = apply_model_generated_semantic_boundary_rollin(
                 effective_input_ids,
                 candidates,
+                sample_boundaries=e2e_batch["sample_boundaries"],
                 family=family,
                 training=bool(self.training),
                 rate=configured_rollin_rate,
@@ -1251,6 +1358,8 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "semantic_boundary_rollin_selected_tokens": rollin_selected_tokens,
             "semantic_boundary_rollin_eligible_tokens": rollin_eligible_tokens,
             "semantic_boundary_rollin_changed_tokens": rollin_changed_tokens,
+            "semantic_boundary_rollin_selected_samples": rollin_selected_samples,
+            "semantic_boundary_rollin_eligible_samples": rollin_eligible_samples,
             "allow_missing_teachers": bool(allow_missing_teachers),
         }
         return raw_forward(
