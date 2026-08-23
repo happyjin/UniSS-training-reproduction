@@ -267,6 +267,15 @@ def test_symmetric_rollin_type_ratio_and_one_per_sample() -> None:
     assert continues.selected_continue_samples == 4
     assert not bool((ends.end_mask & ends.continue_mask).any())
     assert not bool((continues.end_mask & continues.continue_mask).any())
+    assert not bool(ends.continue_decision_mask.any())
+    assert int(continues.continue_decision_mask.sum()) == 4
+    continue_positions = torch.nonzero(
+        continues.continue_mask.reshape(-1), as_tuple=False
+    ).reshape(-1)
+    decision_positions = torch.nonzero(
+        continues.continue_decision_mask.reshape(-1), as_tuple=False
+    ).reshape(-1)
+    assert torch.equal(decision_positions, continue_positions - 1)
     for result in (ends, continues):
         for row in range(2):
             assert int(result.selected_mask[row, :3].sum()) == 1
@@ -276,16 +285,16 @@ def test_symmetric_rollin_type_ratio_and_one_per_sample() -> None:
 def test_symmetric_rollin_hash_tracks_configured_type_ratio_at_scale() -> None:
     semantic = c.BICODEC_SEMANTIC_OFFSET
     samples = 512
-    inputs = torch.arange(samples * 2, dtype=torch.long) % 1000 + semantic
+    inputs = torch.arange(samples * 3, dtype=torch.long) % 1000 + semantic
     inputs = inputs.reshape(1, -1)
     end_candidates = torch.full_like(inputs, -1)
     continue_candidates = torch.full_like(inputs, -1)
     boundaries = [[]]
     for sample in range(samples):
-        start = sample * 2
-        boundaries[0].append((start, start + 2))
-        continue_candidates[0, start] = semantic + 1001 + sample
-        end_candidates[0, start + 1] = semantic + 2001 + sample
+        start = sample * 3
+        boundaries[0].append((start, start + 3))
+        continue_candidates[0, start + 1] = semantic + 1001 + sample
+        end_candidates[0, start + 2] = semantic + 2001 + sample
     result = apply_symmetric_model_generated_semantic_rollin(
         inputs,
         end_candidates,

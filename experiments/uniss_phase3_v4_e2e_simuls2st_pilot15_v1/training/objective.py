@@ -67,6 +67,7 @@ class E2ELossWeights:
     semantic_end_margin: float = 0.0
     semantic_rollin_end_ce: float = 0.0
     semantic_rollin_end_margin: float = 0.0
+    semantic_rollin_continue_decision_margin: float = 0.0
     semantic_rollin_continue_margin: float = 0.0
     semantic_continue_margin: float = 0.0
     speaker_continuity: float = 0.10
@@ -108,6 +109,7 @@ E2E_TERM_NAMES = (
     "semantic_end_margin",
     "semantic_rollin_end_ce",
     "semantic_rollin_end_margin",
+    "semantic_rollin_continue_decision_margin",
     "semantic_rollin_continue_margin",
     "semantic_continue_margin",
     "speaker_continuity",
@@ -127,6 +129,7 @@ E2E_WEIGHTED_NAMES = (
     "semantic_end_margin",
     "semantic_rollin_end_ce",
     "semantic_rollin_end_margin",
+    "semantic_rollin_continue_decision_margin",
     "semantic_rollin_continue_margin",
     "semantic_continue_margin",
     "speaker_continuity",
@@ -328,6 +331,64 @@ def flattened_rollin_semantic_continue_margin_term(
     target_logits = selected.gather(1, targets[:, None]).squeeze(1)
     end_logits = selected[:, c.TOKEN_END_SEMANTIC]
     violations = F.relu(end_logits + float(margin) - target_logits)
+    return LossTerm(violations.sum(), denominator)
+
+
+def flattened_rollin_semantic_continue_decision_margin_term(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    selected_mask: torch.Tensor | None,
+    *,
+    margin: float,
+) -> LossTerm:
+    """Correct premature END at the exact row that made the decision.
+
+    CONTINUE is a set-valued structural decision: any legal semantic token is
+    preferable to ``END_SEMANTIC`` at this row.  Using the best legal semantic
+    logit avoids forcing an exact gold successor before the model-generated
+    semantic input has been rolled into the following row.
+    """
+
+    if margin < 0:
+        raise ValueError(
+            "semantic roll-in continue decision logit margin must be non-negative"
+        )
+    if selected_mask is None:
+        return _zero(logits)
+    mask = selected_mask.reshape(-1).to(device=logits.device, dtype=torch.bool)
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError(
+            "flattened semantic roll-in continue decision tensors have invalid rank"
+        )
+    if (
+        logits.shape[0] != labels.numel()
+        or labels.shape != loss_kinds.shape
+        or mask.shape != labels.shape
+    ):
+        raise ValueError(
+            "flattened semantic roll-in continue decision tensors differ in length"
+        )
+    denominator = mask.sum().float()
+    if not bool(mask.any()):
+        return LossTerm(logits.sum() * 0.0, denominator)
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    if not bool(
+        (
+            (labels[mask] >= c.BICODEC_SEMANTIC_OFFSET)
+            & (labels[mask] < semantic_stop)
+            & (loss_kinds[mask] == LOSS_SEMANTIC)
+        ).all()
+    ):
+        raise ValueError(
+            "semantic roll-in continue decision mask selected a non-semantic row"
+        )
+    selected = logits[mask].float()
+    semantic_max = selected[
+        :, c.BICODEC_SEMANTIC_OFFSET : semantic_stop
+    ].max(dim=1).values
+    end_logits = selected[:, c.TOKEN_END_SEMANTIC]
+    violations = F.relu(end_logits + float(margin) - semantic_max)
     return LossTerm(violations.sum(), denominator)
 
 
@@ -710,7 +771,9 @@ def flattened_e2e_objective(
     original_seq_length: int,
     semantic_end_logit_margin: float = 0.0,
     semantic_boundary_rollin_mask: torch.Tensor | None = None,
+    semantic_rollin_continue_decision_mask: torch.Tensor | None = None,
     semantic_rollin_continue_mask: torch.Tensor | None = None,
+    semantic_rollin_continue_decision_logit_margin: float = 0.0,
     semantic_rollin_continue_logit_margin: float = 0.0,
     semantic_continue_tail: int = 0,
     semantic_continue_logit_margin: float = 0.0,
@@ -765,6 +828,15 @@ def flattened_e2e_objective(
         ),
         "semantic_rollin_end_ce": semantic_rollin_end_ce,
         "semantic_rollin_end_margin": semantic_rollin_end_margin,
+        "semantic_rollin_continue_decision_margin": (
+            flattened_rollin_semantic_continue_decision_margin_term(
+                logits,
+                labels,
+                loss_kinds,
+                semantic_rollin_continue_decision_mask,
+                margin=semantic_rollin_continue_decision_logit_margin,
+            )
+        ),
         "semantic_rollin_continue_margin": (
             flattened_rollin_semantic_continue_margin_term(
                 logits,
@@ -850,6 +922,10 @@ def distributed_e2e_objective(
             index["semantic_rollin_end_margin"]
         ]
         * weights.semantic_rollin_end_margin,
+        "semantic_rollin_continue_decision_margin": local_means[
+            index["semantic_rollin_continue_decision_margin"]
+        ]
+        * weights.semantic_rollin_continue_decision_margin,
         "semantic_rollin_continue_margin": local_means[
             index["semantic_rollin_continue_margin"]
         ]
@@ -910,6 +986,7 @@ def compute_e2e_objective(
     terms["semantic_end_margin"] = _zero(token_nll)
     terms["semantic_rollin_end_ce"] = _zero(token_nll)
     terms["semantic_rollin_end_margin"] = _zero(token_nll)
+    terms["semantic_rollin_continue_decision_margin"] = _zero(token_nll)
     terms["semantic_rollin_continue_margin"] = _zero(token_nll)
     terms["semantic_continue_margin"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
@@ -950,6 +1027,10 @@ def compute_e2e_objective(
         * weights.semantic_rollin_end_ce,
         "semantic_rollin_end_margin": terms["semantic_rollin_end_margin"].loss
         * weights.semantic_rollin_end_margin,
+        "semantic_rollin_continue_decision_margin": terms[
+            "semantic_rollin_continue_decision_margin"
+        ].loss
+        * weights.semantic_rollin_continue_decision_margin,
         "semantic_rollin_continue_margin": terms[
             "semantic_rollin_continue_margin"
         ].loss
@@ -978,6 +1059,7 @@ __all__ = [
     "flattened_commit_consistency_kl",
     "flattened_e2e_objective",
     "flattened_rollin_semantic_end_terms",
+    "flattened_rollin_semantic_continue_decision_margin_term",
     "flattened_rollin_semantic_continue_margin_term",
     "flattened_semantic_continue_margin_term",
     "flattened_semantic_end_margin_term",

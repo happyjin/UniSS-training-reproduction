@@ -89,6 +89,7 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/semantic_boundary_rollin_target_rate",
     "diagnostic/semantic_boundary_rollin_end_ce",
     "diagnostic/semantic_boundary_rollin_end_margin",
+    "diagnostic/semantic_rollin_continue_decision_signed_margin",
     "diagnostic/semantic_rollin_continue_signed_margin",
     "diagnostic/semantic_boundary_rollin_selected_tokens",
     "diagnostic/semantic_boundary_rollin_eligible_tokens",
@@ -142,6 +143,7 @@ class SemanticBoundaryRollinResult(NamedTuple):
     selected_samples: int
     eligible_samples: int
     end_mask: torch.Tensor
+    continue_decision_mask: torch.Tensor
     continue_mask: torch.Tensor
     selected_end_samples: int
     eligible_end_samples: int
@@ -357,6 +359,16 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         "--e2e-semantic-rollin-end-margin-weight", type=float, default=0.0
     )
     group.add_argument(
+        "--e2e-semantic-rollin-continue-decision-margin-weight",
+        type=float,
+        default=0.0,
+    )
+    group.add_argument(
+        "--e2e-semantic-rollin-continue-decision-logit-margin",
+        type=float,
+        default=0.0,
+    )
+    group.add_argument(
         "--e2e-semantic-rollin-continue-margin-weight", type=float, default=0.0
     )
     group.add_argument(
@@ -491,6 +503,10 @@ def validate_experiment_args(args) -> None:
         raise ValueError("semantic continue logit margin must be non-negative")
     if float(args.e2e_semantic_rollin_continue_logit_margin) < 0.0:
         raise ValueError("semantic roll-in continue logit margin must be non-negative")
+    if float(args.e2e_semantic_rollin_continue_decision_logit_margin) < 0.0:
+        raise ValueError(
+            "semantic roll-in continue decision logit margin must be non-negative"
+        )
     if int(args.e2e_semantic_continue_tail) < 1:
         raise ValueError("semantic continue tail must be positive")
     if int(args.e2e_semantic_rollin_continue_tail) < 1:
@@ -566,6 +582,9 @@ def e2e_weights(args) -> E2ELossWeights:
         semantic_rollin_end_ce=float(args.e2e_semantic_rollin_end_weight),
         semantic_rollin_end_margin=float(
             args.e2e_semantic_rollin_end_margin_weight
+        ),
+        semantic_rollin_continue_decision_margin=float(
+            args.e2e_semantic_rollin_continue_decision_margin_weight
         ),
         semantic_rollin_continue_margin=float(
             args.e2e_semantic_rollin_continue_margin_weight
@@ -775,6 +794,41 @@ def semantic_rollin_continue_statistics(
     return signed_margin_sum, selected_count
 
 
+def semantic_rollin_continue_decision_statistics(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    selected_mask: torch.Tensor,
+) -> tuple[torch.Tensor, int]:
+    """Return best-legal-semantic minus END at premature-END decision rows."""
+
+    flat_labels = labels.reshape(-1)
+    flat_mask = selected_mask.reshape(-1).to(dtype=torch.bool)
+    if logits.ndim != 2 or logits.shape[0] != flat_labels.numel():
+        raise ValueError("semantic continue decision diagnostic logit geometry differs")
+    if flat_labels.shape != flat_mask.shape:
+        raise ValueError("semantic continue decision diagnostic mask geometry differs")
+    selected_count = int(flat_mask.sum().item())
+    zero = logits.detach().sum() * 0.0
+    if selected_count == 0:
+        return zero, 0
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    selected_labels = flat_labels[flat_mask]
+    if not bool(
+        (
+            (selected_labels >= c.BICODEC_SEMANTIC_OFFSET)
+            & (selected_labels < semantic_stop)
+        ).all()
+    ):
+        raise ValueError(
+            "semantic continue decision selected a non-semantic label"
+        )
+    rows = logits[flat_mask].detach().float()
+    semantic_max = rows[
+        :, c.BICODEC_SEMANTIC_OFFSET : semantic_stop
+    ].max(dim=-1).values
+    return (semantic_max - rows[:, c.TOKEN_END_SEMANTIC]).sum(), selected_count
+
+
 def _distributed_diagnostics(
     context: Mapping[str, object],
     reference: torch.Tensor,
@@ -797,12 +851,23 @@ def _distributed_diagnostics(
             context["semantic_rollin_continue_mask"],
         )
     )
+    rollin_continue_decision_margin_sum, rollin_continue_decision_mask_count = (
+        semantic_rollin_continue_decision_statistics(
+            logits,
+            labels,
+            context["semantic_rollin_continue_decision_mask"],
+        )
+    )
     if rollin_mask_count != int(context["semantic_rollin_end_selected_samples"]):
         raise ValueError("semantic END roll-in mask/count differs")
     if rollin_continue_mask_count != int(
         context["semantic_rollin_continue_selected_samples"]
     ):
         raise ValueError("semantic CONTINUE roll-in mask/count differs")
+    if rollin_continue_decision_mask_count != int(
+        context["semantic_rollin_continue_selected_samples"]
+    ):
+        raise ValueError("semantic CONTINUE decision mask/count differs")
     if rollin_mask_count + rollin_continue_mask_count != int(
         context["semantic_boundary_rollin_selected_tokens"]
     ):
@@ -825,6 +890,7 @@ def _distributed_diagnostics(
             float(context["semantic_boundary_rollin_eligible_samples"]),
             float(rollin_end_ce_sum),
             float(rollin_end_margin_sum),
+            float(rollin_continue_decision_margin_sum),
             float(rollin_continue_margin_sum),
             float(context["semantic_rollin_end_selected_samples"]),
             float(context["semantic_rollin_end_eligible_samples"]),
@@ -842,11 +908,11 @@ def _distributed_diagnostics(
     )
     corruption_denominator = values[6].clamp_min(1.0)
     rollin_denominator = values[9].clamp_min(1.0)
-    rollin_selected_denominator = values[17].clamp_min(1.0)
+    rollin_selected_denominator = values[18].clamp_min(1.0)
     rollin_sample_denominator = values[13].clamp_min(1.0)
-    rollin_continue_selected_denominator = values[19].clamp_min(1.0)
-    rollin_end_sample_denominator = values[18].clamp_min(1.0)
-    rollin_continue_sample_denominator = values[20].clamp_min(1.0)
+    rollin_continue_selected_denominator = values[20].clamp_min(1.0)
+    rollin_end_sample_denominator = values[19].clamp_min(1.0)
+    rollin_continue_sample_denominator = values[21].clamp_min(1.0)
     return OrderedDict(
         (
             ("diagnostic/causal_glm_agreement", values[0] / divisor),
@@ -892,8 +958,12 @@ def _distributed_diagnostics(
                 values[15] / rollin_selected_denominator,
             ),
             (
-                "diagnostic/semantic_rollin_continue_signed_margin",
+                "diagnostic/semantic_rollin_continue_decision_signed_margin",
                 values[16] / rollin_continue_selected_denominator,
+            ),
+            (
+                "diagnostic/semantic_rollin_continue_signed_margin",
+                values[17] / rollin_continue_selected_denominator,
             ),
             (
                 "diagnostic/semantic_boundary_rollin_selected_tokens",
@@ -919,17 +989,17 @@ def _distributed_diagnostics(
                 "diagnostic/semantic_boundary_rollin_sample_rate",
                 values[12] / rollin_sample_denominator,
             ),
-            ("diagnostic/semantic_rollin_end_eligible_samples", values[18]),
-            ("diagnostic/semantic_rollin_end_selected_samples", values[17]),
+            ("diagnostic/semantic_rollin_end_eligible_samples", values[19]),
+            ("diagnostic/semantic_rollin_end_selected_samples", values[18]),
             (
                 "diagnostic/semantic_rollin_end_sample_rate",
-                values[17] / rollin_end_sample_denominator,
+                values[18] / rollin_end_sample_denominator,
             ),
-            ("diagnostic/semantic_rollin_continue_eligible_samples", values[20]),
-            ("diagnostic/semantic_rollin_continue_selected_samples", values[19]),
+            ("diagnostic/semantic_rollin_continue_eligible_samples", values[21]),
+            ("diagnostic/semantic_rollin_continue_selected_samples", values[20]),
             (
                 "diagnostic/semantic_rollin_continue_sample_rate",
-                values[19] / rollin_continue_sample_denominator,
+                values[20] / rollin_continue_sample_denominator,
             ),
         )
     )
@@ -1155,6 +1225,14 @@ def semantic_rollin_continue_candidates(
     if positions.numel() == 0:
         return candidates.reshape_as(input_ids)
     prediction_positions = positions - 1
+    flat_segments = segment_ids.reshape(-1)
+    same_sample = flat_segments.index_select(0, positions) == flat_segments.index_select(
+        0, prediction_positions
+    )
+    positions = positions[same_sample]
+    prediction_positions = prediction_positions[same_sample]
+    if positions.numel() == 0:
+        return candidates.reshape_as(input_ids)
     not_first_runtime_token = (
         flat_inputs.index_select(0, prediction_positions) != c.TOKEN_START_SEMANTIC
     )
@@ -1363,7 +1441,7 @@ def apply_symmetric_model_generated_semantic_rollin(
     if disabled:
         return SemanticBoundaryRollinResult(
             input_ids, empty_mask, 0, 0, 0, 0.0, 0, 0,
-            empty_mask, empty_mask, 0, 0, 0, 0,
+            empty_mask, empty_mask, empty_mask, 0, 0, 0, 0,
         )
 
     ramp = 1.0
@@ -1407,7 +1485,7 @@ def apply_symmetric_model_generated_semantic_rollin(
     if eligible_count == 0 or effective_rate <= 0.0:
         return SemanticBoundaryRollinResult(
             input_ids, empty_mask, 0, eligible_count, 0, effective_rate, 0, 0,
-            empty_mask, empty_mask, 0, 0, 0, 0,
+            empty_mask, empty_mask, empty_mask, 0, 0, 0, 0,
         )
 
     row_count = len(sample_boundaries)
@@ -1457,6 +1535,10 @@ def apply_symmetric_model_generated_semantic_rollin(
             sample_continue = [
                 p for p in continue_positions if global_start <= p < global_stop
             ]
+            if any(position <= global_start for position in sample_continue):
+                raise ValueError(
+                    "CONTINUE candidate has no decision row inside its packed sample"
+                )
             covered_end.update(sample_end)
             covered_continue.update(sample_continue)
             if sample_end:
@@ -1544,13 +1626,14 @@ def apply_symmetric_model_generated_semantic_rollin(
     if selected_count == 0:
         return SemanticBoundaryRollinResult(
             input_ids, empty_mask, 0, eligible_count, 0, effective_rate, 0,
-            eligible_samples, empty_mask, empty_mask, 0, eligible_end_samples,
-            0, eligible_continue_samples,
+            eligible_samples, empty_mask, empty_mask, empty_mask, 0,
+            eligible_end_samples, 0, eligible_continue_samples,
         )
 
     output = input_ids.clone()
     flat_output = output.reshape(-1)
     end_mask = torch.zeros_like(flat_output, dtype=torch.bool)
+    continue_decision_mask = torch.zeros_like(flat_output, dtype=torch.bool)
     continue_mask = torch.zeros_like(flat_output, dtype=torch.bool)
     changed = 0
     for positions, values, mask in (
@@ -1564,6 +1647,16 @@ def apply_symmetric_model_generated_semantic_rollin(
         changed += int((flat_output.index_select(0, index) != replacement).sum().item())
         flat_output[index] = replacement
         mask[index] = True
+    if selected_continue:
+        continue_index = torch.tensor(
+            selected_continue, dtype=torch.long, device=input_ids.device
+        )
+        decision_index = continue_index - 1
+        if bool((decision_index < 0).any()) or bool(
+            (continue_index.remainder(row_width) == 0).any()
+        ):
+            raise ValueError("CONTINUE decision row crosses a packed sample boundary")
+        continue_decision_mask[decision_index] = True
     selected_mask = end_mask | continue_mask
     return SemanticBoundaryRollinResult(
         output,
@@ -1575,6 +1668,7 @@ def apply_symmetric_model_generated_semantic_rollin(
         selected_count,
         eligible_samples,
         end_mask.reshape_as(input_ids),
+        continue_decision_mask.reshape_as(input_ids),
         continue_mask.reshape_as(input_ids),
         len(selected_end),
         eligible_end_samples,
@@ -1659,7 +1753,13 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         original_seq_length=int(context["original_seq_length"]),
         semantic_end_logit_margin=float(context["semantic_end_logit_margin"]),
         semantic_boundary_rollin_mask=context["semantic_boundary_rollin_mask"],
+        semantic_rollin_continue_decision_mask=context[
+            "semantic_rollin_continue_decision_mask"
+        ],
         semantic_rollin_continue_mask=context["semantic_rollin_continue_mask"],
+        semantic_rollin_continue_decision_logit_margin=float(
+            context["semantic_rollin_continue_decision_logit_margin"]
+        ),
         semantic_rollin_continue_logit_margin=float(
             context["semantic_rollin_continue_logit_margin"]
         ),
@@ -1805,6 +1905,9 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
         rollin_selected_samples = 0
         rollin_eligible_samples = 0
         rollin_end_mask = torch.zeros_like(effective_input_ids, dtype=torch.bool)
+        rollin_continue_decision_mask = torch.zeros_like(
+            effective_input_ids, dtype=torch.bool
+        )
         rollin_continue_mask = torch.zeros_like(effective_input_ids, dtype=torch.bool)
         rollin_selected_end_samples = 0
         rollin_eligible_end_samples = 0
@@ -1868,6 +1971,7 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             rollin_selected_samples = rollin.selected_samples
             rollin_eligible_samples = rollin.eligible_samples
             rollin_end_mask = rollin.end_mask
+            rollin_continue_decision_mask = rollin.continue_decision_mask
             rollin_continue_mask = rollin.continue_mask
             rollin_selected_end_samples = rollin.selected_end_samples
             rollin_eligible_end_samples = rollin.eligible_end_samples
@@ -1899,10 +2003,18 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "semantic_rollin_continue_logit_margin": float(
                 e2e_batch["semantic_rollin_continue_logit_margin"].item()
             ),
+            "semantic_rollin_continue_decision_logit_margin": float(
+                e2e_batch[
+                    "semantic_rollin_continue_decision_logit_margin"
+                ].item()
+            ),
             "semantic_prefix_corruption_rate": semantic_prefix_corruption_rate,
             "semantic_prefix_corrupted_tokens": semantic_prefix_corrupted_tokens,
             "semantic_prefix_eligible_tokens": semantic_prefix_eligible_tokens,
             "semantic_boundary_rollin_mask": rollin_end_mask,
+            "semantic_rollin_continue_decision_mask": (
+                rollin_continue_decision_mask
+            ),
             "semantic_rollin_continue_mask": rollin_continue_mask,
             "semantic_boundary_rollin_rate": rollin_rate,
             "semantic_boundary_rollin_selected_tokens": rollin_selected_tokens,
@@ -2061,6 +2173,11 @@ def forward_step(data_iterator, model):
     )
     batch["semantic_rollin_continue_logit_margin"] = torch.tensor(
         float(args.e2e_semantic_rollin_continue_logit_margin),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_rollin_continue_decision_logit_margin"] = torch.tensor(
+        float(args.e2e_semantic_rollin_continue_decision_logit_margin),
         dtype=torch.float32,
         device=batch["tokens"].device,
     )
