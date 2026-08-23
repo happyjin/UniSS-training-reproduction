@@ -11,6 +11,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_
     corrupt_interleaved_semantic_prefixes,
     e2e_chunk_ms_for_progress,
     semantic_boundary_rollin_candidates,
+    semantic_boundary_binary_statistics,
     semantic_boundary_rollin_statistics,
     semantic_rollin_continue_candidates,
     semantic_rollin_continue_statistics,
@@ -440,6 +441,32 @@ def test_semantic_continue_rollin_diagnostic_is_target_minus_end() -> None:
     )
     assert count == 1
     assert margin_sum.item() == pytest.approx(3.0)
+
+
+def test_semantic_boundary_binary_diagnostic_reports_both_classes() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.full((2, c.TOKEN_END_SEMANTIC + 1), -10.0)
+    logits[0, c.TOKEN_END_SEMANTIC] = 5.0
+    logits[0, semantic] = 2.0
+    logits[1, c.TOKEN_END_SEMANTIC] = 1.0
+    logits[1, semantic + 1] = 5.0
+    values = semantic_boundary_binary_statistics(
+        logits,
+        torch.tensor([c.TOKEN_END_SEMANTIC, semantic + 9]),
+        torch.tensor([True, False]),
+        torch.tensor([False, True]),
+        margin=1.0,
+    )
+    end_loss, continue_loss, end_score, continue_score, end_count, continue_count = values
+    assert (end_count, continue_count) == (1, 1)
+    assert end_score.item() == pytest.approx(3.0)
+    assert continue_score.item() == pytest.approx(-4.0)
+    assert end_loss.item() == pytest.approx(
+        torch.nn.functional.softplus(torch.tensor(-2.0)).item()
+    )
+    assert continue_loss.item() == pytest.approx(
+        torch.nn.functional.softplus(torch.tensor(-3.0)).item()
+    )
 
 
 def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:

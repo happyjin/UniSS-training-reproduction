@@ -70,6 +70,7 @@ class E2ELossWeights:
     semantic_rollin_continue_decision_margin: float = 0.0
     semantic_rollin_continue_margin: float = 0.0
     semantic_continue_margin: float = 0.0
+    semantic_boundary_binary: float = 0.0
     speaker_continuity: float = 0.10
 
     def __post_init__(self) -> None:
@@ -112,6 +113,8 @@ E2E_TERM_NAMES = (
     "semantic_rollin_continue_decision_margin",
     "semantic_rollin_continue_margin",
     "semantic_continue_margin",
+    "semantic_boundary_binary_end",
+    "semantic_boundary_binary_continue",
     "speaker_continuity",
 )
 
@@ -132,6 +135,7 @@ E2E_WEIGHTED_NAMES = (
     "semantic_rollin_continue_decision_margin",
     "semantic_rollin_continue_margin",
     "semantic_continue_margin",
+    "semantic_boundary_binary",
     "speaker_continuity",
 )
 
@@ -390,6 +394,80 @@ def flattened_rollin_semantic_continue_decision_margin_term(
     end_logits = selected[:, c.TOKEN_END_SEMANTIC]
     violations = F.relu(end_logits + float(margin) - semantic_max)
     return LossTerm(violations.sum(), denominator)
+
+
+def flattened_semantic_boundary_binary_terms(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    loss_kinds: torch.Tensor,
+    end_mask: torch.Tensor | None,
+    continue_mask: torch.Tensor | None,
+    *,
+    margin: float,
+) -> tuple[LossTerm, LossTerm]:
+    """Return separately normalized END and CONTINUE calibration classes.
+
+    The restricted binary score is ``z = END - max(legal semantic)``.  END
+    rows minimize ``softplus(margin - z)`` and exact premature-END decision
+    rows minimize ``softplus(margin + z)``.  Keeping the two classes as
+    independent :class:`LossTerm` objects lets the distributed objective give
+    each class exactly half of the configured weight regardless of raw count.
+    """
+
+    if margin < 0:
+        raise ValueError("semantic boundary binary margin must be non-negative")
+    if logits.ndim != 2 or labels.ndim != 1 or loss_kinds.ndim != 1:
+        raise ValueError("flattened semantic boundary binary tensors have invalid rank")
+    if logits.shape[0] != labels.numel() or labels.shape != loss_kinds.shape:
+        raise ValueError("flattened semantic boundary binary tensors differ in length")
+    if end_mask is None and continue_mask is None:
+        zero = _zero(logits)
+        return zero, zero
+    end = (
+        torch.zeros_like(labels, dtype=torch.bool)
+        if end_mask is None
+        else end_mask.reshape(-1).to(device=logits.device, dtype=torch.bool)
+    )
+    cont = (
+        torch.zeros_like(labels, dtype=torch.bool)
+        if continue_mask is None
+        else continue_mask.reshape(-1).to(device=logits.device, dtype=torch.bool)
+    )
+    if end.shape != labels.shape or cont.shape != labels.shape:
+        raise ValueError("semantic boundary binary masks differ in length")
+    if bool((end & cont).any()):
+        raise ValueError("semantic boundary binary END/CONTINUE masks overlap")
+    semantic_start = c.BICODEC_SEMANTIC_OFFSET
+    semantic_stop = semantic_start + c.BICODEC_SEMANTIC_SIZE
+    if bool(end.any()) and not bool(
+        (
+            (labels[end] == c.TOKEN_END_SEMANTIC)
+            & (loss_kinds[end] == LOSS_BOUNDARY)
+        ).all()
+    ):
+        raise ValueError("semantic boundary binary END mask selected a non-END row")
+    if bool(cont.any()) and not bool(
+        (
+            (labels[cont] >= semantic_start)
+            & (labels[cont] < semantic_stop)
+            & (loss_kinds[cont] == LOSS_SEMANTIC)
+        ).all()
+    ):
+        raise ValueError(
+            "semantic boundary binary CONTINUE mask selected a non-semantic row"
+        )
+
+    def class_term(mask: torch.Tensor, *, target_end: bool) -> LossTerm:
+        denominator = mask.sum().float()
+        if not bool(mask.any()):
+            return LossTerm(logits.sum() * 0.0, denominator)
+        rows = logits[mask].float()
+        semantic_max = rows[:, semantic_start:semantic_stop].max(dim=1).values
+        score = rows[:, c.TOKEN_END_SEMANTIC] - semantic_max
+        losses = F.softplus(float(margin) - score if target_end else float(margin) + score)
+        return LossTerm(losses.sum(), denominator)
+
+    return class_term(end, target_end=True), class_term(cont, target_end=False)
 
 
 def flattened_semantic_continue_margin_term(
@@ -777,6 +855,7 @@ def flattened_e2e_objective(
     semantic_rollin_continue_logit_margin: float = 0.0,
     semantic_continue_tail: int = 0,
     semantic_continue_logit_margin: float = 0.0,
+    semantic_boundary_binary_logit_margin: float = 0.0,
 ) -> Mapping[str, LossTerm]:
     token_terms = flattened_token_ce_terms(logits, labels, loss_kinds)
     v1_asr_kl = flattened_teacher_kl(
@@ -806,6 +885,16 @@ def flattened_e2e_objective(
             loss_kinds,
             semantic_boundary_rollin_mask,
             margin=semantic_end_logit_margin,
+        )
+    )
+    semantic_boundary_binary_end, semantic_boundary_binary_continue = (
+        flattened_semantic_boundary_binary_terms(
+            logits,
+            labels,
+            loss_kinds,
+            semantic_boundary_rollin_mask,
+            semantic_rollin_continue_decision_mask,
+            margin=semantic_boundary_binary_logit_margin,
         )
     )
     terms = {
@@ -855,6 +944,8 @@ def flattened_e2e_objective(
             tail=semantic_continue_tail,
             margin=semantic_continue_logit_margin,
         ),
+        "semantic_boundary_binary_end": semantic_boundary_binary_end,
+        "semantic_boundary_binary_continue": semantic_boundary_binary_continue,
         "speaker_continuity": _zero(logits),
     }
     if tuple(terms) != E2E_TERM_NAMES:
@@ -900,6 +991,10 @@ def distributed_e2e_objective(
     boundary_eos = (
         local_means[boundary_indices] * boundary_active
     ).sum() / boundary_active.sum().clamp_min(1.0)
+    semantic_boundary_binary = 0.5 * (
+        local_means[index["semantic_boundary_binary_end"]]
+        + local_means[index["semantic_boundary_binary_continue"]]
+    )
     weighted = {
         "asr_ce": local_means[index["asr_ce"]] * weights.asr_ce,
         "mt_ce": local_means[index["mt_ce"]] * weights.mt_ce,
@@ -934,6 +1029,8 @@ def distributed_e2e_objective(
             index["semantic_continue_margin"]
         ]
         * weights.semantic_continue_margin,
+        "semantic_boundary_binary": semantic_boundary_binary
+        * weights.semantic_boundary_binary,
         "speaker_continuity": local_means[index["speaker_continuity"]]
         * weights.speaker_continuity,
     }
@@ -954,10 +1051,19 @@ def distributed_e2e_objective(
         global_means[boundary_indices] * boundary_active
     ).sum() / boundary_active.sum().clamp_min(1.0)
     metrics["loss/boundary_eos"] = global_boundary_eos
+    global_semantic_boundary_binary = 0.5 * (
+        global_means[index["semantic_boundary_binary_end"]]
+        + global_means[index["semantic_boundary_binary_continue"]]
+    )
+    metrics["loss/semantic_boundary_binary"] = global_semantic_boundary_binary
     for name in E2E_WEIGHTED_NAMES:
         if name == "boundary_eos":
             metrics[f"weighted/{name}"] = (
                 global_boundary_eos * weights.boundary_eos
+            )
+        elif name == "semantic_boundary_binary":
+            metrics[f"weighted/{name}"] = (
+                global_semantic_boundary_binary * weights.semantic_boundary_binary
             )
         else:
             metrics[f"weighted/{name}"] = (
@@ -989,6 +1095,8 @@ def compute_e2e_objective(
     terms["semantic_rollin_continue_decision_margin"] = _zero(token_nll)
     terms["semantic_rollin_continue_margin"] = _zero(token_nll)
     terms["semantic_continue_margin"] = _zero(token_nll)
+    terms["semantic_boundary_binary_end"] = _zero(token_nll)
+    terms["semantic_boundary_binary_continue"] = _zero(token_nll)
     terms["v1_asr_kl"] = topk_teacher_kl(
         teacher_posteriors,
         cache_kind="v1_asr",
@@ -1037,6 +1145,12 @@ def compute_e2e_objective(
         * weights.semantic_rollin_continue_margin,
         "semantic_continue_margin": terms["semantic_continue_margin"].loss
         * weights.semantic_continue_margin,
+        "semantic_boundary_binary": 0.5
+        * (
+            terms["semantic_boundary_binary_end"].loss
+            + terms["semantic_boundary_binary_continue"].loss
+        )
+        * weights.semantic_boundary_binary,
         "speaker_continuity": terms["speaker_continuity"].loss
         * weights.speaker_continuity,
     }
@@ -1061,6 +1175,7 @@ __all__ = [
     "flattened_rollin_semantic_end_terms",
     "flattened_rollin_semantic_continue_decision_margin_term",
     "flattened_rollin_semantic_continue_margin_term",
+    "flattened_semantic_boundary_binary_terms",
     "flattened_semantic_continue_margin_term",
     "flattened_semantic_end_margin_term",
     "flattened_teacher_kl",

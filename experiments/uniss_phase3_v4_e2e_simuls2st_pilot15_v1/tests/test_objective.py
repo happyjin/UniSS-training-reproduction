@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import torch
 
 from training import constants_uniss as c
@@ -19,6 +20,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     flattened_rollin_semantic_continue_decision_margin_term,
     flattened_rollin_semantic_continue_margin_term,
     flattened_rollin_semantic_end_terms,
+    flattened_semantic_boundary_binary_terms,
     flattened_semantic_continue_margin_term,
     flattened_semantic_end_margin_term,
     speaker_continuity_loss,
@@ -190,6 +192,92 @@ def test_rollin_semantic_continue_decision_margin_corrects_exact_early_end_row()
     assert logits.grad[0, semantic + 7] < 0
     assert logits.grad[0, c.TOKEN_END_SEMANTIC] > 0
     assert logits.grad[1:].abs().sum() == 0
+
+
+def test_semantic_boundary_binary_is_exactly_class_balanced() -> None:
+    vocab = c.TOKEN_END_SEMANTIC + 1
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.zeros((4, vocab), requires_grad=True)
+    with torch.no_grad():
+        # Two END rows with z=+1 and +3; one CONTINUE row with z=-2.
+        logits[0, c.TOKEN_END_SEMANTIC] = 2.0
+        logits[0, semantic] = 1.0
+        logits[1, c.TOKEN_END_SEMANTIC] = 4.0
+        logits[1, semantic + 1] = 1.0
+        logits[2, c.TOKEN_END_SEMANTIC] = 1.0
+        logits[2, semantic + 2] = 3.0
+    labels = torch.tensor(
+        [c.TOKEN_END_SEMANTIC, c.TOKEN_END_SEMANTIC, semantic + 7, semantic]
+    )
+    kinds = torch.tensor(
+        [LOSS_BOUNDARY, LOSS_BOUNDARY, LOSS_SEMANTIC, LOSS_SEMANTIC]
+    )
+    end, cont = flattened_semantic_boundary_binary_terms(
+        logits,
+        labels,
+        kinds,
+        torch.tensor([True, True, False, False]),
+        torch.tensor([False, False, True, False]),
+        margin=1.0,
+    )
+    assert end.denominator.item() == 2
+    assert cont.denominator.item() == 1
+    expected_end = (
+        torch.nn.functional.softplus(torch.tensor(0.0))
+        + torch.nn.functional.softplus(torch.tensor(-2.0))
+    ) / 2
+    expected_continue = torch.nn.functional.softplus(torch.tensor(-1.0))
+    assert torch.allclose(end.loss, expected_end)
+    assert torch.allclose(cont.loss, expected_continue)
+    weights = E2ELossWeights(
+        asr_ce=0.0,
+        mt_ce=0.0,
+        semantic_ce=0.0,
+        replay_ce=0.0,
+        v1_asr_kl=0.0,
+        phase3_kl=0.0,
+        commit_consistency=0.0,
+        boundary_eos=0.0,
+        speaker_continuity=0.0,
+        semantic_boundary_binary=1.0,
+    )
+    terms = flattened_e2e_objective(
+        logits=logits,
+        labels=labels,
+        loss_kinds=kinds,
+        batch={"sample_boundaries": [[(0, 4)]]},
+        original_seq_length=4,
+        semantic_boundary_rollin_mask=torch.tensor([True, True, False, False]),
+        semantic_rollin_continue_decision_mask=torch.tensor(
+            [False, False, True, False]
+        ),
+        semantic_boundary_binary_logit_margin=1.0,
+    )
+    total, metrics = distributed_e2e_objective(terms, weights=weights)
+    expected_balanced = 0.5 * (expected_end + expected_continue)
+    assert torch.allclose(total, expected_balanced)
+    assert torch.allclose(metrics["loss/semantic_boundary_binary"], expected_balanced)
+    assert metrics["denominator/semantic_boundary_binary_end"].item() == 2
+    assert metrics["denominator/semantic_boundary_binary_continue"].item() == 1
+    total.backward()
+    assert logits.grad is not None
+    assert logits.grad[:3].abs().sum() > 0
+    assert logits.grad[3].abs().sum() == 0
+
+
+def test_semantic_boundary_binary_rejects_overlapping_classes() -> None:
+    logits = torch.zeros((1, c.TOKEN_END_SEMANTIC + 1))
+    labels = torch.tensor([c.TOKEN_END_SEMANTIC])
+    kinds = torch.tensor([LOSS_BOUNDARY])
+    with pytest.raises(ValueError, match="overlap"):
+        flattened_semantic_boundary_binary_terms(
+            logits,
+            labels,
+            kinds,
+            torch.tensor([True]),
+            torch.tensor([True]),
+            margin=1.0,
+        )
 
 
 def test_semantic_continue_margin_uses_only_same_sample_pre_end_tail() -> None:

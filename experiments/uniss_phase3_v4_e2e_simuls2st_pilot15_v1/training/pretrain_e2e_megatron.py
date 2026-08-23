@@ -71,6 +71,7 @@ OBJECTIVE_METRIC_NAMES = (
     *(f"loss/{name}" for name in E2E_TERM_NAMES),
     *(f"denominator/{name}" for name in E2E_TERM_NAMES),
     "loss/boundary_eos",
+    "loss/semantic_boundary_binary",
     *(f"weighted/{name}" for name in E2E_WEIGHTED_NAMES),
 )
 DIAGNOSTIC_NAMES = (
@@ -91,6 +92,11 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/semantic_boundary_rollin_end_margin",
     "diagnostic/semantic_rollin_continue_decision_signed_margin",
     "diagnostic/semantic_rollin_continue_signed_margin",
+    "diagnostic/semantic_boundary_binary_end_count",
+    "diagnostic/semantic_boundary_binary_continue_count",
+    "diagnostic/semantic_boundary_binary_end_signed_score",
+    "diagnostic/semantic_boundary_binary_continue_signed_score",
+    "diagnostic/semantic_boundary_binary_balanced_loss",
     "diagnostic/semantic_boundary_rollin_selected_tokens",
     "diagnostic/semantic_boundary_rollin_eligible_tokens",
     "diagnostic/semantic_boundary_rollin_changed_tokens",
@@ -388,6 +394,12 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     )
     group.add_argument("--e2e-semantic-continue-tail", type=int, default=12)
     group.add_argument(
+        "--e2e-semantic-boundary-binary-weight", type=float, default=0.0
+    )
+    group.add_argument(
+        "--e2e-semantic-boundary-binary-logit-margin", type=float, default=0.0
+    )
+    group.add_argument(
         "--e2e-semantic-prefix-corruption-rate", type=float, default=0.0
     )
     group.add_argument(
@@ -507,6 +519,30 @@ def validate_experiment_args(args) -> None:
         raise ValueError(
             "semantic roll-in continue decision logit margin must be non-negative"
         )
+    if float(args.e2e_semantic_boundary_binary_logit_margin) < 0.0:
+        raise ValueError("semantic boundary binary logit margin must be non-negative")
+    if float(args.e2e_semantic_boundary_binary_weight) > 0.0:
+        duplicate_weights = {
+            "semantic_end_ce": args.e2e_semantic_end_weight,
+            "semantic_end_margin": args.e2e_semantic_end_margin_weight,
+            "semantic_rollin_end_ce": args.e2e_semantic_rollin_end_weight,
+            "semantic_rollin_end_margin": args.e2e_semantic_rollin_end_margin_weight,
+            "semantic_rollin_continue_decision_margin": (
+                args.e2e_semantic_rollin_continue_decision_margin_weight
+            ),
+            "semantic_rollin_continue_margin": (
+                args.e2e_semantic_rollin_continue_margin_weight
+            ),
+            "semantic_continue_margin": args.e2e_semantic_continue_margin_weight,
+        }
+        active_duplicates = [
+            name for name, value in duplicate_weights.items() if float(value) != 0.0
+        ]
+        if active_duplicates:
+            raise ValueError(
+                "balanced semantic boundary calibration requires duplicate special "
+                f"terms to be zero: {active_duplicates}"
+            )
     if int(args.e2e_semantic_continue_tail) < 1:
         raise ValueError("semantic continue tail must be positive")
     if int(args.e2e_semantic_rollin_continue_tail) < 1:
@@ -590,6 +626,7 @@ def e2e_weights(args) -> E2ELossWeights:
             args.e2e_semantic_rollin_continue_margin_weight
         ),
         semantic_continue_margin=float(args.e2e_semantic_continue_margin_weight),
+        semantic_boundary_binary=float(args.e2e_semantic_boundary_binary_weight),
         speaker_continuity=float(args.e2e_speaker_continuity_weight),
     )
 
@@ -829,6 +866,70 @@ def semantic_rollin_continue_decision_statistics(
     return (semantic_max - rows[:, c.TOKEN_END_SEMANTIC]).sum(), selected_count
 
 
+def semantic_boundary_binary_statistics(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    end_mask: torch.Tensor,
+    continue_mask: torch.Tensor,
+    *,
+    margin: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int, int]:
+    """Return detached class losses and the common signed score ``END-sem``."""
+
+    if margin < 0:
+        raise ValueError("semantic boundary binary margin must be non-negative")
+    flat_labels = labels.reshape(-1)
+    end = end_mask.reshape(-1).to(dtype=torch.bool)
+    cont = continue_mask.reshape(-1).to(dtype=torch.bool)
+    if logits.ndim != 2 or logits.shape[0] != flat_labels.numel():
+        raise ValueError("semantic boundary binary diagnostic geometry differs")
+    if end.shape != flat_labels.shape or cont.shape != flat_labels.shape:
+        raise ValueError("semantic boundary binary diagnostic masks differ")
+    if bool((end & cont).any()):
+        raise ValueError("semantic boundary binary diagnostic masks overlap")
+    semantic_start = c.BICODEC_SEMANTIC_OFFSET
+    semantic_stop = semantic_start + c.BICODEC_SEMANTIC_SIZE
+    if bool(end.any()) and not bool(
+        (flat_labels[end] == c.TOKEN_END_SEMANTIC).all()
+    ):
+        raise ValueError("semantic boundary binary END diagnostic selected non-END")
+    if bool(cont.any()) and not bool(
+        (
+            (flat_labels[cont] >= semantic_start)
+            & (flat_labels[cont] < semantic_stop)
+        ).all()
+    ):
+        raise ValueError(
+            "semantic boundary binary CONTINUE diagnostic selected non-semantic"
+        )
+    zero = logits.detach().sum() * 0.0
+
+    def class_values(mask: torch.Tensor, *, target_end: bool):
+        count = int(mask.sum().item())
+        if count == 0:
+            return zero, zero, 0
+        rows = logits[mask].detach().float()
+        semantic_max = rows[:, semantic_start:semantic_stop].max(dim=-1).values
+        score = rows[:, c.TOKEN_END_SEMANTIC] - semantic_max
+        loss = F.softplus(
+            float(margin) - score if target_end else float(margin) + score
+        )
+        return loss.sum(), score.sum(), count
+
+    end_loss, end_score, end_count = class_values(end, target_end=True)
+    continue_loss, continue_score, continue_count = class_values(
+        cont, target_end=False
+    )
+    return (
+        end_loss,
+        continue_loss,
+        end_score,
+        continue_score,
+        end_count,
+        continue_count,
+    )
+
+
 def _distributed_diagnostics(
     context: Mapping[str, object],
     reference: torch.Tensor,
@@ -858,6 +959,20 @@ def _distributed_diagnostics(
             context["semantic_rollin_continue_decision_mask"],
         )
     )
+    (
+        binary_end_loss_sum,
+        binary_continue_loss_sum,
+        binary_end_score_sum,
+        binary_continue_score_sum,
+        binary_end_count,
+        binary_continue_count,
+    ) = semantic_boundary_binary_statistics(
+        logits,
+        labels,
+        context["semantic_boundary_rollin_mask"],
+        context["semantic_rollin_continue_decision_mask"],
+        margin=float(context["semantic_boundary_binary_logit_margin"]),
+    )
     if rollin_mask_count != int(context["semantic_rollin_end_selected_samples"]):
         raise ValueError("semantic END roll-in mask/count differs")
     if rollin_continue_mask_count != int(
@@ -868,6 +983,10 @@ def _distributed_diagnostics(
         context["semantic_rollin_continue_selected_samples"]
     ):
         raise ValueError("semantic CONTINUE decision mask/count differs")
+    if binary_end_count != rollin_mask_count:
+        raise ValueError("semantic boundary binary END mask/count differs")
+    if binary_continue_count != rollin_continue_decision_mask_count:
+        raise ValueError("semantic boundary binary CONTINUE mask/count differs")
     if rollin_mask_count + rollin_continue_mask_count != int(
         context["semantic_boundary_rollin_selected_tokens"]
     ):
@@ -896,6 +1015,12 @@ def _distributed_diagnostics(
             float(context["semantic_rollin_end_eligible_samples"]),
             float(context["semantic_rollin_continue_selected_samples"]),
             float(context["semantic_rollin_continue_eligible_samples"]),
+            float(binary_end_loss_sum),
+            float(binary_continue_loss_sum),
+            float(binary_end_score_sum),
+            float(binary_continue_score_sum),
+            float(binary_end_count),
+            float(binary_continue_count),
         ]
     )
     if dist.is_available() and dist.is_initialized():
@@ -913,6 +1038,12 @@ def _distributed_diagnostics(
     rollin_continue_selected_denominator = values[20].clamp_min(1.0)
     rollin_end_sample_denominator = values[19].clamp_min(1.0)
     rollin_continue_sample_denominator = values[21].clamp_min(1.0)
+    binary_end_denominator = values[26].clamp_min(1.0)
+    binary_continue_denominator = values[27].clamp_min(1.0)
+    binary_balanced_loss = 0.5 * (
+        values[22] / binary_end_denominator
+        + values[23] / binary_continue_denominator
+    )
     return OrderedDict(
         (
             ("diagnostic/causal_glm_agreement", values[0] / divisor),
@@ -964,6 +1095,20 @@ def _distributed_diagnostics(
             (
                 "diagnostic/semantic_rollin_continue_signed_margin",
                 values[17] / rollin_continue_selected_denominator,
+            ),
+            ("diagnostic/semantic_boundary_binary_end_count", values[26]),
+            ("diagnostic/semantic_boundary_binary_continue_count", values[27]),
+            (
+                "diagnostic/semantic_boundary_binary_end_signed_score",
+                values[24] / binary_end_denominator,
+            ),
+            (
+                "diagnostic/semantic_boundary_binary_continue_signed_score",
+                values[25] / binary_continue_denominator,
+            ),
+            (
+                "diagnostic/semantic_boundary_binary_balanced_loss",
+                binary_balanced_loss,
             ),
             (
                 "diagnostic/semantic_boundary_rollin_selected_tokens",
@@ -1767,6 +1912,9 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         semantic_continue_logit_margin=float(
             context["semantic_continue_logit_margin"]
         ),
+        semantic_boundary_binary_logit_margin=float(
+            context["semantic_boundary_binary_logit_margin"]
+        ),
     )
     total, metrics = distributed_e2e_objective(
         terms, weights=context["weights"]
@@ -2008,6 +2156,9 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
                     "semantic_rollin_continue_decision_logit_margin"
                 ].item()
             ),
+            "semantic_boundary_binary_logit_margin": float(
+                e2e_batch["semantic_boundary_binary_logit_margin"].item()
+            ),
             "semantic_prefix_corruption_rate": semantic_prefix_corruption_rate,
             "semantic_prefix_corrupted_tokens": semantic_prefix_corrupted_tokens,
             "semantic_prefix_eligible_tokens": semantic_prefix_eligible_tokens,
@@ -2178,6 +2329,11 @@ def forward_step(data_iterator, model):
     )
     batch["semantic_rollin_continue_decision_logit_margin"] = torch.tensor(
         float(args.e2e_semantic_rollin_continue_decision_logit_margin),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_boundary_binary_logit_margin"] = torch.tensor(
+        float(args.e2e_semantic_boundary_binary_logit_margin),
         dtype=torch.float32,
         device=batch["tokens"].device,
     )
