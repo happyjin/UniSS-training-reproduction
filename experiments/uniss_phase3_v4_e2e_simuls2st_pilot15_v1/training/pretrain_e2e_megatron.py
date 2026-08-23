@@ -21,6 +21,7 @@ if _cache_root:
 import torch
 import torch.distributed as dist
 from torch import nn
+from torch.nn import functional as F
 
 import experiments.uniss_phase3_true_subsecond_deadline_full198_v1.training.pretrain_true_subsecond_megatron as base
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.cache_reader import (
@@ -84,6 +85,13 @@ DIAGNOSTIC_NAMES = (
     "diagnostic/semantic_prefix_corruption_target_rate",
     "diagnostic/semantic_prefix_corrupted_tokens",
     "diagnostic/semantic_prefix_eligible_tokens",
+    "diagnostic/semantic_boundary_rollin_rate",
+    "diagnostic/semantic_boundary_rollin_target_rate",
+    "diagnostic/semantic_boundary_rollin_end_ce",
+    "diagnostic/semantic_boundary_rollin_end_margin",
+    "diagnostic/semantic_boundary_rollin_selected_tokens",
+    "diagnostic/semantic_boundary_rollin_eligible_tokens",
+    "diagnostic/semantic_boundary_rollin_changed_tokens",
 )
 METRIC_NAMES = (*OBJECTIVE_METRIC_NAMES, *DIAGNOSTIC_NAMES)
 REQUIRED_FAMILY_DENOMINATORS = {
@@ -307,6 +315,12 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument(
         "--e2e-semantic-prefix-corruption-ramp-updates", type=int, default=0
     )
+    group.add_argument(
+        "--e2e-semantic-boundary-rollin-rate", type=float, default=0.0
+    )
+    group.add_argument(
+        "--e2e-semantic-boundary-rollin-ramp-updates", type=int, default=0
+    )
     group.add_argument("--e2e-speaker-continuity-weight", type=float, default=0.0)
     group.add_argument("--e2e-verify-dataset-sha256", action="store_true")
     group.add_argument("--e2e-verify-cache-sha256", action="store_true")
@@ -410,6 +424,18 @@ def validate_experiment_args(args) -> None:
         raise ValueError("semantic prefix corruption tail must be positive")
     if int(args.e2e_semantic_prefix_corruption_ramp_updates) < 0:
         raise ValueError("semantic prefix corruption ramp updates must be non-negative")
+    if not 0.0 <= float(args.e2e_semantic_boundary_rollin_rate) <= 1.0:
+        raise ValueError("semantic boundary roll-in rate must be in [0, 1]")
+    if int(args.e2e_semantic_boundary_rollin_ramp_updates) < 0:
+        raise ValueError("semantic boundary roll-in ramp updates must be non-negative")
+    if (
+        float(args.e2e_semantic_prefix_corruption_rate) > 0.0
+        and float(args.e2e_semantic_boundary_rollin_rate) > 0.0
+    ):
+        raise ValueError(
+            "random semantic prefix corruption and model boundary roll-in "
+            "cannot be enabled together"
+        )
     _require_file(args.e2e_train_build_report)
     _require_path(args.e2e_whispervq_model)
     _require_file(args.e2e_checkpoint_fingerprints)
@@ -595,10 +621,55 @@ def augment_native_gpt(model: nn.Module, args) -> dict[str, int]:
     return counts
 
 
+def semantic_boundary_rollin_statistics(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    selected_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, int]:
+    """Return diagnostic END CE and signed restricted-choice margin sums."""
+
+    flat_labels = labels.reshape(-1)
+    flat_mask = selected_mask.reshape(-1).to(dtype=torch.bool)
+    if logits.ndim != 2 or logits.shape[0] != flat_labels.numel():
+        raise ValueError("semantic boundary diagnostic logit geometry differs")
+    if flat_labels.shape != flat_mask.shape:
+        raise ValueError("semantic boundary diagnostic mask geometry differs")
+    selected_count = int(flat_mask.sum().item())
+    zero = logits.detach().sum() * 0.0
+    if selected_count == 0:
+        return zero, zero, 0
+    if not bool((flat_labels[flat_mask] == c.TOKEN_END_SEMANTIC).all()):
+        raise ValueError("semantic boundary roll-in selected a non-END label")
+    rows = logits[flat_mask].detach().float()
+    targets = flat_labels[flat_mask].long()
+    end_ce_sum = F.cross_entropy(rows, targets, reduction="sum")
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    semantic_max = rows[
+        :, c.BICODEC_SEMANTIC_OFFSET : semantic_stop
+    ].max(dim=-1).values
+    end_margin_sum = (
+        rows[:, c.TOKEN_END_SEMANTIC] - semantic_max
+    ).sum()
+    return end_ce_sum, end_margin_sum, selected_count
+
+
 def _distributed_diagnostics(
-    context: Mapping[str, object], reference: torch.Tensor
+    context: Mapping[str, object],
+    reference: torch.Tensor,
+    *,
+    logits: torch.Tensor,
+    labels: torch.Tensor,
 ) -> OrderedDict[str, torch.Tensor]:
     active = float(context["acoustic_active"])
+    rollin_end_ce_sum, rollin_end_margin_sum, rollin_mask_count = (
+        semantic_boundary_rollin_statistics(
+            logits,
+            labels,
+            context["semantic_boundary_rollin_mask"],
+        )
+    )
+    if rollin_mask_count != int(context["semantic_boundary_rollin_selected_tokens"]):
+        raise ValueError("semantic boundary roll-in mask/count differs")
     values = reference.new_tensor(
         [
             float(context["causal_glm_agreement"]) * active,
@@ -609,6 +680,12 @@ def _distributed_diagnostics(
             float(context["semantic_prefix_corrupted_tokens"]),
             float(context["semantic_prefix_eligible_tokens"]),
             float(context["semantic_prefix_corruption_rate"]),
+            float(context["semantic_boundary_rollin_selected_tokens"]),
+            float(context["semantic_boundary_rollin_eligible_tokens"]),
+            float(context["semantic_boundary_rollin_changed_tokens"]),
+            float(context["semantic_boundary_rollin_rate"]),
+            float(rollin_end_ce_sum),
+            float(rollin_end_margin_sum),
         ]
     )
     if dist.is_available() and dist.is_initialized():
@@ -620,6 +697,8 @@ def _distributed_diagnostics(
         else 1
     )
     corruption_denominator = values[6].clamp_min(1.0)
+    rollin_denominator = values[9].clamp_min(1.0)
+    rollin_selected_denominator = values[8].clamp_min(1.0)
     return OrderedDict(
         (
             ("diagnostic/causal_glm_agreement", values[0] / divisor),
@@ -648,6 +727,34 @@ def _distributed_diagnostics(
             ),
             ("diagnostic/semantic_prefix_corrupted_tokens", values[5]),
             ("diagnostic/semantic_prefix_eligible_tokens", values[6]),
+            (
+                "diagnostic/semantic_boundary_rollin_rate",
+                values[8] / rollin_denominator,
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_target_rate",
+                values[11] / world_size,
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_end_ce",
+                values[12] / rollin_selected_denominator,
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_end_margin",
+                values[13] / rollin_selected_denominator,
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_selected_tokens",
+                values[8],
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_eligible_tokens",
+                values[9],
+            ),
+            (
+                "diagnostic/semantic_boundary_rollin_changed_tokens",
+                values[10],
+            ),
         )
     )
 
@@ -749,6 +856,149 @@ def corrupt_interleaved_semantic_prefixes(
     return output, corrupted_count, eligible_count, effective_rate
 
 
+def semantic_boundary_rollin_candidates(
+    logits: torch.Tensor,
+    input_ids: torch.Tensor,
+    labels: torch.Tensor,
+) -> torch.Tensor:
+    """Return model semantic choices that can replace the final gold token.
+
+    For every gold ``END_SEMANTIC`` position, the preceding model logit row is
+    evaluated with the same semantic-vs-end restricted choice used by runtime.
+    If runtime would already end, that boundary is left ineligible; otherwise
+    the model's own semantic continuation becomes the scheduled-sampling input
+    for a second, gradient-carrying forward pass.
+    """
+
+    flat_inputs = input_ids.reshape(-1)
+    flat_labels = labels.reshape(-1)
+    if logits.ndim != 2 or logits.shape[0] != flat_inputs.numel():
+        raise ValueError("semantic boundary roll-in logits/input geometry differs")
+    if flat_inputs.shape != flat_labels.shape:
+        raise ValueError("semantic boundary roll-in input/label geometry differs")
+    candidates = torch.full_like(flat_inputs, -1)
+    ends = torch.nonzero(
+        flat_labels == c.TOKEN_END_SEMANTIC, as_tuple=False
+    ).reshape(-1)
+    if ends.numel() == 0:
+        return candidates.reshape_as(input_ids)
+    if bool((ends <= 0).any()):
+        raise ValueError("END_SEMANTIC cannot be the first packed token")
+    current = flat_inputs.index_select(0, ends)
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    if bool(
+        ((current < c.BICODEC_SEMANTIC_OFFSET) | (current >= semantic_stop)).any()
+    ):
+        raise ValueError("END_SEMANTIC is not preceded by a semantic input token")
+
+    prediction_positions = ends - 1
+    rows = logits.index_select(0, prediction_positions).float()
+    semantic_rows = rows[
+        :, c.BICODEC_SEMANTIC_OFFSET : semantic_stop
+    ]
+    semantic_values, semantic_ids = semantic_rows.max(dim=-1)
+    predicted = semantic_ids + c.BICODEC_SEMANTIC_OFFSET
+    first_token = (
+        flat_inputs.index_select(0, prediction_positions)
+        == c.TOKEN_START_SEMANTIC
+    )
+    semantic_wins = semantic_values > rows[:, c.TOKEN_END_SEMANTIC]
+    eligible = first_token | semantic_wins
+    if bool(eligible.any()):
+        candidates[ends[eligible]] = predicted[eligible].to(candidates.dtype)
+    return candidates.reshape_as(input_ids)
+
+
+def apply_model_generated_semantic_boundary_rollin(
+    input_ids: torch.Tensor,
+    candidates: torch.Tensor,
+    *,
+    family: str,
+    training: bool,
+    rate: float,
+    ramp_updates: int,
+    update: int,
+) -> tuple[torch.Tensor, torch.Tensor, int, int, int, float]:
+    """Deterministically select model-generated semantic boundary inputs."""
+
+    if input_ids.shape != candidates.shape:
+        raise ValueError("semantic boundary roll-in candidate geometry differs")
+    if not 0.0 <= float(rate) <= 1.0:
+        raise ValueError("semantic boundary roll-in rate must be in [0, 1]")
+    if int(ramp_updates) < 0:
+        raise ValueError("semantic boundary roll-in ramp updates must be non-negative")
+    empty_mask = torch.zeros_like(input_ids, dtype=torch.bool)
+    if (
+        not training
+        or family != FAMILY_INTERLEAVED
+        or float(rate) == 0.0
+        or input_ids.numel() == 0
+    ):
+        return input_ids, empty_mask, 0, 0, 0, 0.0
+
+    ramp = 1.0
+    if int(ramp_updates) > 0:
+        ramp = min(1.0, max(0.0, (int(update) + 1) / int(ramp_updates)))
+    effective_rate = float(rate) * ramp
+    flat_candidates = candidates.reshape(-1)
+    semantic_stop = c.BICODEC_SEMANTIC_OFFSET + c.BICODEC_SEMANTIC_SIZE
+    eligible = (flat_candidates >= c.BICODEC_SEMANTIC_OFFSET) & (
+        flat_candidates < semantic_stop
+    )
+    positions = torch.nonzero(eligible, as_tuple=False).reshape(-1)
+    eligible_count = int(positions.numel())
+    if eligible_count == 0 or effective_rate <= 0.0:
+        return input_ids, empty_mask, 0, eligible_count, 0, effective_rate
+
+    values = flat_candidates.index_select(0, positions).to(dtype=torch.int64)
+    hashed = (
+        positions.to(dtype=torch.int64) * 1_103_515_245
+        + values * 12_345
+        + int(update) * 2_654_435_761
+        + 193
+    ) % 1_000_003
+    selected = hashed < int(round(effective_rate * 1_000_003))
+    selected_positions = positions[selected]
+    selected_count = int(selected_positions.numel())
+    if selected_count == 0:
+        return input_ids, empty_mask, 0, eligible_count, 0, effective_rate
+
+    output = input_ids.clone()
+    flat_output = output.reshape(-1)
+    selected_values = flat_candidates.index_select(0, selected_positions)
+    previous = flat_output.index_select(0, selected_positions)
+    flat_output[selected_positions] = selected_values.to(flat_output.dtype)
+    mask = torch.zeros_like(flat_output, dtype=torch.bool)
+    mask[selected_positions] = True
+    changed_count = int((previous != selected_values).sum().item())
+    return (
+        output,
+        mask.reshape_as(input_ids),
+        selected_count,
+        eligible_count,
+        changed_count,
+        effective_rate,
+    )
+
+
+def _semantic_boundary_rollin_output_processor(**kwargs) -> torch.Tensor:
+    hidden = kwargs["hidden_states"]
+    logits, _ = kwargs["output_layer"](
+        hidden,
+        weight=kwargs["output_weight"],
+        runtime_gather_output=kwargs["runtime_gather_output"],
+    )
+    logits = kwargs["scale_logits"](logits)
+    if hidden.ndim != 3 or hidden.shape[1] != 1 or logits.shape[1] != 1:
+        raise ValueError("semantic roll-in expects flattened TP=PP=1 logits")
+    context = kwargs["context"]
+    return semantic_boundary_rollin_candidates(
+        logits[:, 0],
+        context["input_ids"],
+        kwargs["labels"],
+    )
+
+
 def validate_family_denominators(
     family: str,
     metrics: Mapping[str, torch.Tensor],
@@ -809,7 +1059,14 @@ def _e2e_output_processor(**kwargs) -> torch.Tensor:
         metrics,
         allow_missing_teachers=bool(context["allow_missing_teachers"]),
     )
-    metrics.update(_distributed_diagnostics(context, total.detach()))
+    metrics.update(
+        _distributed_diagnostics(
+            context,
+            total.detach(),
+            logits=logits,
+            labels=labels,
+        )
+    )
     if tuple(metrics) != METRIC_NAMES:
         raise AssertionError("E2E metric order changed")
     values = (total.float(), *[metrics[name].float() for name in METRIC_NAMES])
@@ -868,14 +1125,13 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             ),
             update=update,
         )
-        decoder_input = self.embedding(
-            input_ids=effective_input_ids, position_ids=position_ids
-        )
         agreement = 0.0
         residual_rms = 0.0
         terminal_extensions = 0.0
         acoustic_rows = 0
         acoustic_active = 0
+        acoustic_hidden = None
+        acoustic_lengths = None
         if "waveform" in e2e_batch:
             self.stage_a_objective.eval()
             with torch.no_grad():
@@ -884,25 +1140,94 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
                     e2e_batch["waveform_lengths"],
                     chunk_ms=chunk_ms,
                 )
+            acoustic_hidden = acoustic.pooled_hidden.detach()
+            acoustic_lengths = acoustic.pooled_lengths.detach()
+
+        def prepare_decoder(selected_input_ids: torch.Tensor):
+            prepared = self.embedding(
+                input_ids=selected_input_ids, position_ids=position_ids
+            )
+            if acoustic_hidden is None or acoustic_lengths is None:
+                return prepared, None
             (
-                decoder_input,
+                prepared,
                 _,
                 agreement_tensor,
                 residual_tensor,
                 terminal_tensor,
             ) = self.stage_a_objective._inject_causal_glm(
-                decoder_input,
+                prepared,
                 base._embedding_weight(self),
-                acoustic.pooled_hidden.detach(),
-                acoustic.pooled_lengths.detach(),
+                acoustic_hidden,
+                acoustic_lengths,
                 e2e_batch,
                 original_seq_length=original_seq_length,
             )
+            return prepared, (
+                agreement_tensor,
+                residual_tensor,
+                terminal_tensor,
+            )
+
+        decoder_input, acoustic_diagnostics = prepare_decoder(effective_input_ids)
+        if acoustic_diagnostics is not None:
+            agreement_tensor, residual_tensor, terminal_tensor = acoustic_diagnostics
             agreement = float(agreement_tensor.detach())
             residual_rms = float(residual_tensor.detach())
             terminal_extensions = float(terminal_tensor.detach())
             acoustic_rows = int(e2e_batch["waveform"].shape[0])
             acoustic_active = 1
+
+        rollin_mask = torch.zeros_like(effective_input_ids, dtype=torch.bool)
+        rollin_selected_tokens = 0
+        rollin_eligible_tokens = 0
+        rollin_changed_tokens = 0
+        rollin_rate = 0.0
+        configured_rollin_rate = float(
+            e2e_batch["semantic_boundary_rollin_rate"].item()
+        )
+        if (
+            bool(self.training)
+            and family == FAMILY_INTERLEAVED
+            and configured_rollin_rate > 0.0
+        ):
+            with torch.no_grad():
+                candidates = raw_forward(
+                    input_ids,
+                    position_ids,
+                    attention_mask,
+                    decoder_input=decoder_input,
+                    labels=labels,
+                    inference_context=inference_context,
+                    packed_seq_params=packed_seq_params,
+                    extra_block_kwargs=extra_block_kwargs,
+                    runtime_gather_output=runtime_gather_output,
+                    inference_params=inference_params,
+                    loss_mask=loss_mask,
+                    padding_mask=padding_mask,
+                    output_processor=_semantic_boundary_rollin_output_processor,
+                    output_processor_context={"input_ids": effective_input_ids},
+                )
+            (
+                rolled_input_ids,
+                rollin_mask,
+                rollin_selected_tokens,
+                rollin_eligible_tokens,
+                rollin_changed_tokens,
+                rollin_rate,
+            ) = apply_model_generated_semantic_boundary_rollin(
+                effective_input_ids,
+                candidates,
+                family=family,
+                training=bool(self.training),
+                rate=configured_rollin_rate,
+                ramp_updates=int(
+                    e2e_batch["semantic_boundary_rollin_ramp_updates"].item()
+                ),
+                update=update,
+            )
+            if rollin_selected_tokens > 0:
+                decoder_input, _ = prepare_decoder(rolled_input_ids)
         context = {
             "batch": e2e_batch,
             "weights": e2e_batch["loss_weights"],
@@ -921,6 +1246,11 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
             "semantic_prefix_corruption_rate": semantic_prefix_corruption_rate,
             "semantic_prefix_corrupted_tokens": semantic_prefix_corrupted_tokens,
             "semantic_prefix_eligible_tokens": semantic_prefix_eligible_tokens,
+            "semantic_boundary_rollin_mask": rollin_mask,
+            "semantic_boundary_rollin_rate": rollin_rate,
+            "semantic_boundary_rollin_selected_tokens": rollin_selected_tokens,
+            "semantic_boundary_rollin_eligible_tokens": rollin_eligible_tokens,
+            "semantic_boundary_rollin_changed_tokens": rollin_changed_tokens,
             "allow_missing_teachers": bool(allow_missing_teachers),
         }
         return raw_forward(
@@ -1064,6 +1394,16 @@ def forward_step(data_iterator, model):
     )
     batch["semantic_prefix_corruption_ramp_updates"] = torch.tensor(
         int(args.e2e_semantic_prefix_corruption_ramp_updates),
+        dtype=torch.long,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_boundary_rollin_rate"] = torch.tensor(
+        float(args.e2e_semantic_boundary_rollin_rate),
+        dtype=torch.float32,
+        device=batch["tokens"].device,
+    )
+    batch["semantic_boundary_rollin_ramp_updates"] = torch.tensor(
+        int(args.e2e_semantic_boundary_rollin_ramp_updates),
         dtype=torch.long,
         device=batch["tokens"].device,
     )

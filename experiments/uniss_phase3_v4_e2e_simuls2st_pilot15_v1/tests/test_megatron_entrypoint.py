@@ -6,8 +6,11 @@ from torch import nn
 
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron import (
     _tag_trainable_qwen_and_freeze_v1,
+    apply_model_generated_semantic_boundary_rollin,
     corrupt_interleaved_semantic_prefixes,
     e2e_chunk_ms_for_progress,
+    semantic_boundary_rollin_candidates,
+    semantic_boundary_rollin_statistics,
     validate_family_denominators,
     validate_smoke_scope,
     validate_v1_checkpoint_load_policy,
@@ -154,6 +157,126 @@ def test_semantic_prefix_corruption_is_disabled_for_eval_and_other_families() ->
         )
         assert output is inputs
         assert (changed, eligible, effective_rate) == (0, 0, 0.0)
+
+
+def test_semantic_boundary_candidates_match_runtime_restricted_choice() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.tensor(
+        [
+            [c.TOKEN_START_SEMANTIC, semantic, semantic + 1],
+            [c.TOKEN_START_SEMANTIC, semantic + 2, semantic + 3],
+        ]
+    )
+    labels = torch.tensor(
+        [
+            [semantic, semantic + 1, c.TOKEN_END_SEMANTIC],
+            [semantic + 2, semantic + 3, c.TOKEN_END_SEMANTIC],
+        ]
+    )
+    original_labels = labels.clone()
+    logits = torch.full((inputs.numel(), c.TOKEN_END_SEMANTIC + 1), -20.0)
+    first_boundary_prediction = 1
+    second_boundary_prediction = inputs.shape[1] + 1
+    logits[first_boundary_prediction, c.TOKEN_END_SEMANTIC] = 10.0
+    logits[first_boundary_prediction, semantic + 7] = 9.0
+    logits[second_boundary_prediction, c.TOKEN_END_SEMANTIC] = 9.0
+    logits[second_boundary_prediction, semantic + 8] = 10.0
+
+    candidates = semantic_boundary_rollin_candidates(logits, inputs, labels)
+    assert candidates[0, 2].item() == -1
+    assert candidates[1, 2].item() == semantic + 8
+    assert torch.count_nonzero(candidates >= 0).item() == 1
+    assert torch.equal(labels, original_labels)
+
+
+def test_semantic_boundary_first_runtime_token_cannot_end() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.tensor([[c.TOKEN_START_SEMANTIC, semantic]])
+    labels = torch.tensor([[semantic, c.TOKEN_END_SEMANTIC]])
+    logits = torch.full((2, c.TOKEN_END_SEMANTIC + 1), -20.0)
+    logits[0, c.TOKEN_END_SEMANTIC] = 30.0
+    logits[0, semantic + 9] = 10.0
+    candidates = semantic_boundary_rollin_candidates(logits, inputs, labels)
+    assert candidates.tolist() == [[-1, semantic + 9]]
+
+
+def test_semantic_boundary_rollin_is_deterministic_and_changes_only_boundaries() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    inputs = torch.arange(100, dtype=torch.long) + semantic
+    candidates = torch.arange(100, dtype=torch.long) + semantic + 100
+    expected_inputs = inputs.clone()
+    first = apply_model_generated_semantic_boundary_rollin(
+        inputs,
+        candidates,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=0.5,
+        ramp_updates=10,
+        update=4,
+    )
+    second = apply_model_generated_semantic_boundary_rollin(
+        inputs,
+        candidates,
+        family=FAMILY_INTERLEAVED,
+        training=True,
+        rate=0.5,
+        ramp_updates=10,
+        update=4,
+    )
+    rolled, mask, selected, eligible, changed, effective_rate = first
+    assert torch.equal(rolled, second[0])
+    assert torch.equal(mask, second[1])
+    assert (selected, eligible, changed, effective_rate) == (
+        second[2],
+        second[3],
+        second[4],
+        second[5],
+    )
+    assert effective_rate == pytest.approx(0.25)
+    assert eligible == 100
+    assert selected == changed == int(mask.sum())
+    assert 0 < selected < eligible
+    assert torch.equal(rolled[~mask], inputs[~mask])
+    assert torch.equal(rolled[mask], candidates[mask])
+    assert torch.equal(inputs, expected_inputs)
+
+
+def test_semantic_boundary_rollin_is_disabled_for_eval_and_other_families() -> None:
+    inputs = torch.tensor([c.BICODEC_SEMANTIC_OFFSET])
+    candidates = torch.tensor([c.BICODEC_SEMANTIC_OFFSET + 1])
+    for family, training in ((FAMILY_INTERLEAVED, False), ("incremental_mt_event", True)):
+        output, mask, selected, eligible, changed, effective_rate = (
+            apply_model_generated_semantic_boundary_rollin(
+                inputs,
+                candidates,
+                family=family,
+                training=training,
+                rate=1.0,
+                ramp_updates=0,
+                update=0,
+            )
+        )
+        assert output is inputs
+        assert not bool(mask.any())
+        assert (selected, eligible, changed, effective_rate) == (0, 0, 0, 0.0)
+
+
+def test_semantic_boundary_rollin_diagnostics_use_selected_end_rows() -> None:
+    semantic = c.BICODEC_SEMANTIC_OFFSET
+    logits = torch.full((2, c.TOKEN_END_SEMANTIC + 1), -10.0)
+    logits[1, semantic] = 2.0
+    logits[1, c.TOKEN_END_SEMANTIC] = 5.0
+    labels = torch.tensor([semantic, c.TOKEN_END_SEMANTIC])
+    selected = torch.tensor([False, True])
+    ce_sum, margin_sum, count = semantic_boundary_rollin_statistics(
+        logits, labels, selected
+    )
+    expected_ce = torch.nn.functional.cross_entropy(
+        logits[1:2], labels[1:2], reduction="sum"
+    )
+    assert count == 1
+    assert torch.allclose(ce_sum, expected_ce)
+    assert margin_sum.item() == pytest.approx(3.0)
 
 
 def test_smoke_scope_cannot_bypass_formal_teacher_and_length_gates() -> None:
