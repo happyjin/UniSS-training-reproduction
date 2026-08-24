@@ -420,6 +420,7 @@ def add_experiment_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     group.add_argument("--e2e-smoke", action="store_true")
     group.add_argument("--e2e-smoke-family", choices=TASK_FAMILIES)
     group.add_argument("--e2e-learning-canary", action="store_true")
+    group.add_argument("--e2e-extended-canary", action="store_true")
     group.add_argument("--e2e-phase-stratified-canary", action="store_true")
     group.add_argument("--e2e-canary-report")
     group.add_argument("--e2e-allow-missing-teachers", action="store_true")
@@ -441,19 +442,24 @@ def validate_smoke_scope(
     *,
     smoke: bool,
     learning_canary: bool = False,
+    extended_canary: bool = False,
     allow_missing_teachers: bool,
     train_iters: int,
     smoke_family: str | None = None,
     phase_stratified_canary: bool = False,
 ) -> None:
-    if smoke and learning_canary:
-        raise ValueError("E2E smoke and learning canary are mutually exclusive")
+    if sum(bool(value) for value in (smoke, learning_canary, extended_canary)) > 1:
+        raise ValueError(
+            "E2E smoke, learning canary and extended canary are mutually exclusive"
+        )
     if allow_missing_teachers and not smoke:
         raise ValueError("missing E2E teachers are allowed only in smoke mode")
     if smoke and not 1 <= int(train_iters) <= 2:
         raise ValueError("E2E smoke runs are restricted to one or two updates")
     if learning_canary and not 10 <= int(train_iters) <= 100:
         raise ValueError("E2E learning canary is restricted to 10--100 updates")
+    if extended_canary and int(train_iters) <= 100:
+        raise ValueError("E2E extended canary requires more than 100 updates")
     if phase_stratified_canary and not learning_canary:
         raise ValueError(
             "phase-stratified E2E canary requires --e2e-learning-canary"
@@ -480,6 +486,7 @@ def validate_experiment_args(args) -> None:
     validate_smoke_scope(
         smoke=bool(args.e2e_smoke),
         learning_canary=bool(args.e2e_learning_canary),
+        extended_canary=bool(args.e2e_extended_canary),
         allow_missing_teachers=bool(args.e2e_allow_missing_teachers),
         train_iters=int(args.train_iters),
         smoke_family=args.e2e_smoke_family,
@@ -493,9 +500,13 @@ def validate_experiment_args(args) -> None:
         raise ValueError("E2E task pools and native training require seq-length 18000")
     if int(args.micro_batch_size) not in (1, 2):
         raise ValueError("validated E2E micro batch sizes are 1 and 2")
-    bounded_canary = bool(args.e2e_smoke or args.e2e_learning_canary)
+    bounded_canary = bool(
+        args.e2e_smoke or args.e2e_learning_canary or args.e2e_extended_canary
+    )
     if not bounded_canary and int(args.global_batch_size) != 128:
         raise ValueError("formal E2E training requires global batch size 128")
+    if args.e2e_extended_canary and int(args.e2e_coverage_epochs) != 1:
+        raise ValueError("E2E extended canary requires exactly one coverage epoch")
     if int(args.e2e_coverage_epochs) != 3 and not bounded_canary:
         raise ValueError("formal E2E training requires three coverage epochs")
     if bool(args.create_attention_mask_in_dataloader):
@@ -585,14 +596,14 @@ def validate_experiment_args(args) -> None:
             args.e2e_phase3_valid_cache_audit,
         ):
             _require_file(path)
-    if args.e2e_learning_canary:
+    if args.e2e_learning_canary or args.e2e_extended_canary:
         _require_file(args.e2e_canary_report)
         canary = json.loads(Path(args.e2e_canary_report).read_text(encoding="utf-8"))
         if canary.get("status") != "passed" or bool(
             canary.get("formal_training_authorized")
         ):
             raise RuntimeError(
-                "learning canary requires the passed, unauthorized structural canary"
+                "research canary requires the passed, unauthorized structural canary"
             )
     elif not args.e2e_smoke:
         _require_file(args.e2e_training_gate)

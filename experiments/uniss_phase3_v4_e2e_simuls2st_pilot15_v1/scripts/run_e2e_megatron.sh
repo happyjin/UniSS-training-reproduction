@@ -39,6 +39,7 @@ RUN_SEED=${RUN_SEED:-20260818}
 RUN_SMOKE=${RUN_SMOKE:-0}
 RUN_SMOKE_FAMILY=${RUN_SMOKE_FAMILY:-}
 RUN_LEARNING_CANARY=${RUN_LEARNING_CANARY:-0}
+RUN_EXTENDED_CANARY=${RUN_EXTENDED_CANARY:-0}
 RUN_PHASE_STRATIFIED_CANARY=${RUN_PHASE_STRATIFIED_CANARY:-0}
 RUN_CANARY_REPORT=${RUN_CANARY_REPORT:-}
 RUN_ALLOW_MISSING_TEACHERS=${RUN_ALLOW_MISSING_TEACHERS:-0}
@@ -70,6 +71,10 @@ RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UPDATES=${RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UP
 
 [[ "${RUN_PHASE_STRATIFIED_CANARY}" == "0" || "${RUN_PHASE_STRATIFIED_CANARY}" == "1" ]] || {
   echo "RUN_PHASE_STRATIFIED_CANARY must be zero or one" >&2
+  exit 4
+}
+[[ "${RUN_EXTENDED_CANARY}" == "0" || "${RUN_EXTENDED_CANARY}" == "1" ]] || {
+  echo "RUN_EXTENDED_CANARY must be zero or one" >&2
   exit 4
 }
 
@@ -127,10 +132,10 @@ if [[ -n "${RUN_VALID_BUILD_REPORT}" ]]; then
     done
   fi
 fi
-if [[ "${RUN_SMOKE}" != "1" && "${RUN_LEARNING_CANARY}" != "1" ]]; then
+if [[ "${RUN_SMOKE}" != "1" && "${RUN_LEARNING_CANARY}" != "1" && "${RUN_EXTENDED_CANARY}" != "1" ]]; then
   [[ -f "${RUN_TRAINING_GATE}" ]] || { echo "missing formal E2E training gate" >&2; exit 1; }
 fi
-if [[ "${RUN_LEARNING_CANARY}" == "1" ]]; then
+if [[ "${RUN_LEARNING_CANARY}" == "1" || "${RUN_EXTENDED_CANARY}" == "1" ]]; then
   [[ -f "${RUN_CANARY_REPORT}" ]] || { echo "missing passed structural canary report" >&2; exit 1; }
 fi
 
@@ -172,6 +177,18 @@ if [[ "${RUN_SMOKE}" == "1" && ( "${RUN_TRAIN_ITERS}" -lt 1 || "${RUN_TRAIN_ITER
 fi
 if [[ "${RUN_LEARNING_CANARY}" == "1" && ( "${RUN_TRAIN_ITERS}" -lt 10 || "${RUN_TRAIN_ITERS}" -gt 100 ) ]]; then
   echo "E2E learning canaries are restricted to 10--100 updates" >&2
+  exit 4
+fi
+if [[ "${RUN_EXTENDED_CANARY}" == "1" && "${RUN_TRAIN_ITERS}" -le 100 ]]; then
+  echo "E2E extended canaries require more than 100 updates" >&2
+  exit 4
+fi
+if [[ "${RUN_EXTENDED_CANARY}" == "1" && "${RUN_COVERAGE_EPOCHS}" != "1" ]]; then
+  echo "E2E extended canaries require exactly one coverage epoch" >&2
+  exit 4
+fi
+if [[ "${RUN_EXTENDED_CANARY}" == "1" && ( "${RUN_SMOKE}" == "1" || "${RUN_LEARNING_CANARY}" == "1" ) ]]; then
+  echo "E2E extended canary is mutually exclusive with smoke/learning canary" >&2
   exit 4
 fi
 if [[ "${RUN_SMOKE}" == "1" && "${RUN_LEARNING_CANARY}" == "1" ]]; then
@@ -301,6 +318,7 @@ cmd=(
 [[ "${RUN_SMOKE}" == "1" ]] && cmd+=(--e2e-smoke)
 [[ -n "${RUN_SMOKE_FAMILY}" ]] && cmd+=(--e2e-smoke-family "${RUN_SMOKE_FAMILY}")
 [[ "${RUN_LEARNING_CANARY}" == "1" ]] && cmd+=(--e2e-learning-canary --e2e-canary-report "${RUN_CANARY_REPORT}")
+[[ "${RUN_EXTENDED_CANARY}" == "1" ]] && cmd+=(--e2e-extended-canary --e2e-canary-report "${RUN_CANARY_REPORT}")
 [[ "${RUN_PHASE_STRATIFIED_CANARY}" == "1" ]] && cmd+=(--e2e-phase-stratified-canary)
 [[ "${RUN_ALLOW_MISSING_TEACHERS}" == "1" ]] && cmd+=(--e2e-allow-missing-teachers)
 [[ "${RUN_AUDIT_GRADIENTS}" == "1" ]] && cmd+=(--e2e-audit-gradients)
