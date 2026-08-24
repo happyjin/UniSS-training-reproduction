@@ -482,6 +482,15 @@ def validate_v1_checkpoint_load_policy(args) -> None:
         )
 
 
+def validate_extended_canary_coverage(
+    *, extended_canary: bool, coverage_epochs: int
+) -> None:
+    if extended_canary and int(coverage_epochs) not in (1, 2):
+        raise ValueError(
+            "E2E extended canary requires one or two coverage epochs"
+        )
+
+
 def validate_experiment_args(args) -> None:
     validate_smoke_scope(
         smoke=bool(args.e2e_smoke),
@@ -505,8 +514,10 @@ def validate_experiment_args(args) -> None:
     )
     if not bounded_canary and int(args.global_batch_size) != 128:
         raise ValueError("formal E2E training requires global batch size 128")
-    if args.e2e_extended_canary and int(args.e2e_coverage_epochs) != 1:
-        raise ValueError("E2E extended canary requires exactly one coverage epoch")
+    validate_extended_canary_coverage(
+        extended_canary=bool(args.e2e_extended_canary),
+        coverage_epochs=int(args.e2e_coverage_epochs),
+    )
     if int(args.e2e_coverage_epochs) != 3 and not bounded_canary:
         raise ValueError("formal E2E training requires three coverage epochs")
     if bool(args.create_attention_mask_in_dataloader):

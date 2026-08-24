@@ -15,6 +15,7 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_
     semantic_boundary_rollin_statistics,
     semantic_rollin_continue_candidates,
     semantic_rollin_continue_statistics,
+    validate_extended_canary_coverage,
     validate_family_denominators,
     validate_smoke_scope,
     validate_v1_checkpoint_load_policy,
@@ -69,6 +70,16 @@ def test_v1_checkpoint_load_policy_ignores_only_unrequested_checkpoint_state() -
     args.dist_ckpt_strictness = "log_all"
     with pytest.raises(ValueError, match="raise_unexpected"):
         validate_v1_checkpoint_load_policy(args)
+
+
+def test_extended_canary_allows_bounded_one_or_two_coverage_epochs() -> None:
+    validate_extended_canary_coverage(extended_canary=True, coverage_epochs=1)
+    validate_extended_canary_coverage(extended_canary=True, coverage_epochs=2)
+    validate_extended_canary_coverage(extended_canary=False, coverage_epochs=3)
+    with pytest.raises(ValueError, match="one or two"):
+        validate_extended_canary_coverage(
+            extended_canary=True, coverage_epochs=3
+        )
 
 
 def test_v1_frontend_is_frozen_and_absent_from_trainable_partition() -> None:

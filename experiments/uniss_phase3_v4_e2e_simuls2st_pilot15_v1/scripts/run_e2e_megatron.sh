@@ -79,7 +79,7 @@ RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UPDATES=${RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UP
 }
 
 ENTRYPOINT="${EXPERIMENT_DIR}/training/pretrain_e2e_megatron.py"
-FINGERPRINTS="${PROCESSED_ROOT}/manifests/checkpoint_fingerprints.json"
+FINGERPRINTS=${RUN_FINGERPRINTS:-${PROCESSED_ROOT}/manifests/checkpoint_fingerprints.json}
 GEOMETRY=${RUN_GEOMETRY:-${REPORT_ROOT}/training_geometry/${RUN_ID}.json}
 GEOMETRY_DIR=$(dirname "${GEOMETRY}")
 V1_STATIC_AUDIT=${RUN_V1_STATIC_AUDIT:-${GEOMETRY_DIR}/${RUN_ID}.v1_checkpoint_audit.json}
@@ -183,8 +183,8 @@ if [[ "${RUN_EXTENDED_CANARY}" == "1" && "${RUN_TRAIN_ITERS}" -le 100 ]]; then
   echo "E2E extended canaries require more than 100 updates" >&2
   exit 4
 fi
-if [[ "${RUN_EXTENDED_CANARY}" == "1" && "${RUN_COVERAGE_EPOCHS}" != "1" ]]; then
-  echo "E2E extended canaries require exactly one coverage epoch" >&2
+if [[ "${RUN_EXTENDED_CANARY}" == "1" && "${RUN_COVERAGE_EPOCHS}" != "1" && "${RUN_COVERAGE_EPOCHS}" != "2" ]]; then
+  echo "E2E extended canaries require one or two coverage epochs" >&2
   exit 4
 fi
 if [[ "${RUN_EXTENDED_CANARY}" == "1" && ( "${RUN_SMOKE}" == "1" || "${RUN_LEARNING_CANARY}" == "1" ) ]]; then
