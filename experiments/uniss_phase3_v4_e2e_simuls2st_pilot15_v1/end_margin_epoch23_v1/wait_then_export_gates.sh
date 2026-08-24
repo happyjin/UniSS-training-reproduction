@@ -36,7 +36,10 @@ while [[ ! -f "${TRAIN_SUMMARY}" ]]; do
     tail -n 100 "${TRAIN_LOG}" 2>/dev/null || true
     exit 4
   fi
-  latest_iteration=$(sed -n 's/.*iteration[[:space:]]*\([0-9][0-9]*\)\/[[:space:]]*2264.*/\1/p' "${TRAIN_LOG}" 2>/dev/null | tail -n 1)
+  latest_iteration=$(
+    { sed -n 's/.*iteration[[:space:]]*\([0-9][0-9]*\)\/[[:space:]]*2264.*/\1/p' "${TRAIN_LOG}" 2>/dev/null || true; } \
+      | tail -n 1
+  )
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) iteration=${latest_iteration:-not_started}/2264"
   sleep "${POLL_SECONDS}"
 done
