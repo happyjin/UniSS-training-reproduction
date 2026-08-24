@@ -35,3 +35,17 @@ end_margin_epoch1_v1/launch_tmux.sh
 The launcher starts training and a local TensorBoard on port 6044.  The final
 report remains explicitly `formal_training_authorized=false`; the fixed-16
 free-running gate must be run separately on the final checkpoint.
+
+To monitor that immutable run and automatically perform the frozen Stage-A
+audit validation, HF export and identical fixed-16 free-running evaluation at
+the 384 semantic-token hard cap, start the isolated post-training waiter:
+
+```bash
+TRAIN_RUN_ID=endmargin_epoch1_YYYYMMDDTHHMMSSZ \
+  bash experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/\
+end_margin_epoch1_v1/launch_post_training_tmux.sh
+```
+
+The waiter validates the one-epoch summary and bitwise audit before it claims
+the E2E GPU lock.  It accepts an explicit extended-canary checkpoint path; it
+does not alias the run into the historical `learning_canaries` namespace.
