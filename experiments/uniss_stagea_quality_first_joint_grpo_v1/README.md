@@ -33,3 +33,14 @@ RUN_VARIANT=full_recovery1 DATA_WORKERS=0 scripts/launch_all_tmux.sh
 ```
 
 TensorBoard default port: `6017`.
+
+The non-overwriting post-training pipeline waits for all four formal
+`iter_0002510` checkpoints and for Megatron final validation to release the
+GPUs. It then runs the frozen routed validation/E2E protocol, paired Stage-A
+comparison, short multi-chunk listening suite, four bilingual 60-second strict
+prefixes, and the best-arm versus Stage-A complete bounded-window long-form
+comparison. Check dependencies without waiting or using a GPU with:
+
+```bash
+scripts/run_post_train_pipeline.sh --check
+```
