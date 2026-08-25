@@ -7,6 +7,10 @@ from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.bounded_lon
     SAMPLE_RATE,
     _silence_metrics,
 )
+from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.compare_arms import (
+    _arm,
+    ranking_key,
+)
 
 
 def _row(sample_id: str, src: str, tgt: str) -> dict[str, object]:
@@ -44,3 +48,52 @@ def test_longform_silence_audit_tracks_internal_gap() -> None:
     assert value["first_non_silent_ms"] == 0.0
     assert value["maximum_internal_silence_ms"] >= 500.0
 
+
+def _metric_block(score: float) -> dict[str, object]:
+    path = {
+        "directions": {
+            "cmn->eng": {
+                "candidate_bleu": score,
+                "candidate_chrf": score,
+            },
+            "eng->cmn": {
+                "candidate_bleu": score,
+                "candidate_chrf": score,
+            },
+        },
+        "target_coverage_min": 1.0,
+        "target_coverage_mean": 1.0,
+        "target_rollback_events": 0,
+        "commit_conflicts": 0,
+        "unterminated_generations": 0,
+    }
+    return {"gold_source": path, "free_running_source": path}
+
+
+def _comparison_summary(score: float, malformed: int = 0) -> dict[str, object]:
+    metrics = {
+        "e_mt": _metric_block(score),
+        "e_s2s_free": {
+            "samples": 4,
+            "semantic_coverage_mean": 1.0,
+            "non_silent_pcm": 4,
+            "target_text_before_source_eos": 4,
+            "target_semantic_before_source_eos": 4,
+            "malformed_segments": malformed,
+            "invalid_semantic_tokens": 0,
+        },
+        "latency": {
+            "first_semantic_write_ms": {"p50": 640.0},
+        },
+    }
+    baseline = {
+        **metrics,
+        "e_mt": _metric_block(10.0),
+    }
+    return {"candidate": metrics, "stage_a": baseline}
+
+
+def test_quality_first_ranking_penalizes_structure_errors() -> None:
+    clean = _arm(_comparison_summary(9.0, malformed=0))
+    malformed = _arm(_comparison_summary(20.0, malformed=1))
+    assert ranking_key(clean) > ranking_key(malformed)

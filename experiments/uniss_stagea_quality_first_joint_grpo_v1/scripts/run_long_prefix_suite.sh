@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 5 ]]; then
-  echo "Usage: $0 RUN_ID ADAPTER_CHECKPOINT_OR_NONE OUTPUT_DIR GPU0 GPU1" >&2
+if [[ $# -lt 5 || $# -gt 7 ]]; then
+  echo "Usage: $0 RUN_ID ADAPTER_CHECKPOINT_OR_NONE OUTPUT_DIR GPU0 GPU1 [GPU2 GPU3]" >&2
   exit 2
 fi
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -12,6 +12,8 @@ ADAPTER=$2
 OUTPUT=$3
 GPU0=$4
 GPU1=$5
+GPU2=${6:-${GPU0}}
+GPU3=${7:-${GPU1}}
 [[ ! -e "${OUTPUT}" ]] || { echo "refusing to overwrite ${OUTPUT}" >&2; exit 3; }
 if [[ "${ADAPTER}" != NONE ]]; then
   [[ -f "${ADAPTER}/.metadata" ]] || { echo "missing adapter checkpoint" >&2; exit 3; }
@@ -44,13 +46,16 @@ run_chunk() {
     --device cuda:0 > "${OUTPUT}/logs/chunk_${chunk}ms.log" 2>&1
 }
 
-(run_chunk 160 "${GPU0}"; run_chunk 640 "${GPU0}") & left=$!
-(run_chunk 320 "${GPU1}"; run_chunk 1280 "${GPU1}") & right=$!
+(run_chunk 160 "${GPU0}") & p0=$!
+(run_chunk 320 "${GPU1}") & p1=$!
+(run_chunk 640 "${GPU2}") & p2=$!
+(run_chunk 1280 "${GPU3}") & p3=$!
 status=0
-wait "${left}" || status=1
-wait "${right}" || status=1
+wait "${p0}" || status=1
+wait "${p1}" || status=1
+wait "${p2}" || status=1
+wait "${p3}" || status=1
 [[ "${status}" -eq 0 ]] || { echo "long prefix suite failed" >&2; exit 1; }
 "${PYTHON_BIN}" "${EXPERIMENT_ROOT}/evaluation/aggregate_listening.py" \
   --root "${OUTPUT}" --output "${OUTPUT}/SUMMARY.json" \
   > "${OUTPUT}/aggregate.stdout.json"
-
