@@ -41,6 +41,15 @@ elif [[ -n "${SMOKE}" ]]; then
   exit 2
 fi
 
+RUN_VARIANT=${RUN_VARIANT:-}
+if [[ -n "${RUN_VARIANT}" && "${SMOKE}" != "--smoke" ]]; then
+  SUFFIX=${RUN_VARIANT}
+fi
+DATA_WORKERS=${DATA_WORKERS:-0}
+if ! [[ "${DATA_WORKERS}" =~ ^[0-9]+$ ]]; then
+  echo "DATA_WORKERS must be a non-negative integer" >&2
+  exit 2
+fi
 RUN_ID=${ARM}_${SUFFIX}
 SAVE_DIR=${CHECKPOINT_ROOT}/${RUN_ID}
 TB_DIR=${RUN_ROOT}/tensorboard/${RUN_ID}
@@ -137,7 +146,11 @@ CMD=(
   --lr-decay-style cosine
   --dataloader-type cyclic
   --no-data-sharding
-  --num-workers 4
+  # Packed E2E records contain many tensor-backed fields. With four arms
+  # running concurrently, multiprocessing queues can retain thousands of
+  # shared-memory file descriptors per rank and fail with an ancdata error.
+  # Main-process loading is mmap-backed and preserves sampler/order exactly.
+  --num-workers "${DATA_WORKERS}"
   --weight-decay 0.01
   --adam-beta1 0.9
   --adam-beta2 0.95

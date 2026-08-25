@@ -20,5 +20,16 @@ Qwen LoRA capacity, optimizer budget, validation split, and final evaluation.
 Only NaN, invalid checkpoint/data structure, and process failure abort a run.
 Quality gates are reported after training and never truncate an arm.
 
-TensorBoard default port: `6017`.
+Formal multi-arm launches default to `DATA_WORKERS=0`. The task-pool records
+are mmap-backed and contain many tensor fields; using multiprocessing workers
+for all eight ranks can exhaust the file-descriptor transport used by PyTorch's
+pinned-memory queues (`received 0 items of ancdata`). This setting changes only
+how an already-selected batch is read, not the global shuffle, sample order,
+optimization geometry, or experiment comparison. A non-overwriting recovery
+run can be named with `RUN_VARIANT`, for example:
 
+```bash
+RUN_VARIANT=full_recovery1 DATA_WORKERS=0 scripts/launch_all_tmux.sh
+```
+
+TensorBoard default port: `6017`.
