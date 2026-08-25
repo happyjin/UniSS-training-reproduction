@@ -124,6 +124,39 @@ def _legacy_rows(
     return rows
 
 
+def _external_rows(
+    protocol_path: Path,
+    fixed_speaker: Sequence[int],
+    sample_ids: Sequence[str],
+) -> list[dict[str, object]]:
+    payload = json.loads(protocol_path.read_text(encoding="utf-8"))
+    requested = set(sample_ids)
+    rows: list[dict[str, object]] = []
+    for value in payload["records"]:
+        sample_id = str(value["sample_id"])
+        if requested and sample_id not in requested:
+            continue
+        source = Path(str(value["source_audio"]))
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        rows.append(
+            {
+                "id": sample_id,
+                "src_lang": str(value["src_lang"]),
+                "tgt_lang": str(value["tgt_lang"]),
+                "source_audio": str(source.resolve()),
+                "transcription": "unreferenced external audio",
+                "translation": "unreferenced external audio",
+                "bicodec_global": [int(token) for token in fixed_speaker],
+                "_unreferenced_external": True,
+            }
+        )
+    observed = {str(row["id"]) for row in rows}
+    if requested and observed != requested:
+        raise ValueError(f"external protocol is missing requested IDs: {sorted(requested-observed)}")
+    return rows
+
+
 def _load_models(args: argparse.Namespace):
     device = torch.device(args.device)
     if device.type != "cuda" or not torch.cuda.is_available():
@@ -170,7 +203,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--selection", type=Path)
     parser.add_argument("--validation-manifest", type=Path)
     parser.add_argument("--legacy-results", type=Path)
+    parser.add_argument("--external-audio-protocol", type=Path)
     parser.add_argument("--sample-id", action="append", default=[])
+    parser.add_argument("--validation-sample-id", action="append", default=[])
+    parser.add_argument("--legacy-sample-id", action="append", default=[])
+    parser.add_argument("--external-sample-id", action="append", default=[])
     parser.add_argument("--device", default="cuda:0")
     return parser.parse_args()
 
@@ -181,8 +218,14 @@ def main() -> None:
         raise FileExistsError(f"refusing to overwrite {args.output}")
     if bool(args.selection) != bool(args.validation_manifest):
         raise ValueError("selection and validation manifest must be provided together")
-    if args.selection is None and args.legacy_results is None:
-        raise ValueError("provide validation selection and/or legacy results")
+    if (
+        args.selection is None
+        and args.legacy_results is None
+        and args.external_audio_protocol is None
+    ):
+        raise ValueError(
+            "provide validation selection, legacy results and/or external audio protocol"
+        )
     snapshot = json.loads(args.source_snapshot.read_text(encoding="utf-8"))
     fixed_speaker = [
         int(value) for value in snapshot["fixed_system_speaker"]["global_tokens"]
@@ -191,14 +234,43 @@ def main() -> None:
         raise ValueError("Stage-A fixed speaker must contain 32 tokens")
     rows: list[dict[str, object]] = []
     requested = list(dict.fromkeys(str(value) for value in args.sample_id))
+    explicit_sources = any(
+        (args.validation_sample_id, args.legacy_sample_id, args.external_sample_id)
+    )
+    if requested and explicit_sources:
+        raise ValueError("do not mix --sample-id with source-specific sample IDs")
+    active_sources = sum(
+        value is not None
+        for value in (args.selection, args.legacy_results, args.external_audio_protocol)
+    )
+    if requested and active_sources > 1:
+        raise ValueError(
+            "use source-specific sample IDs when combining multiple input sources"
+        )
     if args.selection is not None:
         rows.extend(
             _selection_rows(
-                args.selection, args.validation_manifest, requested  # type: ignore[arg-type]
+                args.selection,
+                args.validation_manifest,  # type: ignore[arg-type]
+                args.validation_sample_id if explicit_sources else requested,
             )
         )
     if args.legacy_results is not None:
-        rows.extend(_legacy_rows(args.legacy_results, fixed_speaker, requested))
+        rows.extend(
+            _legacy_rows(
+                args.legacy_results,
+                fixed_speaker,
+                args.legacy_sample_id if explicit_sources else requested,
+            )
+        )
+    if args.external_audio_protocol is not None:
+        rows.extend(
+            _external_rows(
+                args.external_audio_protocol,
+                fixed_speaker,
+                args.external_sample_id if explicit_sources else requested,
+            )
+        )
     unique: dict[str, dict[str, object]] = {}
     for row in rows:
         unique.setdefault(str(row["id"]), row)
@@ -239,6 +311,18 @@ def main() -> None:
                 output=args.output,
                 seed=20260825 + args.decision_chunk_ms * 100 + index * 1_000_000,
             )
+            if bool(row.get("_unreferenced_external")):
+                value.update(
+                    {
+                        "reference_transcription": None,
+                        "reference_translation": None,
+                        "asr_metric": None,
+                        "asr_errors": None,
+                        "asr_reference_units": None,
+                        "asr_error_rate": None,
+                        "external_audio_unreferenced": True,
+                    }
+                )
             results.append(value)
             print(
                 json.dumps(
