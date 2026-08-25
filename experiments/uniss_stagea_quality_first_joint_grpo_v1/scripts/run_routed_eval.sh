@@ -25,12 +25,12 @@ fi
   exit 3
 }
 
-SELECTION=${REPO_ROOT}/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning100u_20260821T142900Z/SELECTION.json
+SELECTION=${SELECTION:-${REPO_ROOT}/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning100u_20260821T142900Z/SELECTION.json}
 GOLD=${REPO_ROOT}/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl
 BASE_HF=${REPO_ROOT}/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf
 PHASE3_HF=${REPO_ROOT}/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf
 V1_CHECKPOINT=${REPO_ROOT}/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381
-BICODEC=${REPO_ROOT}/pretrained_models/UniSS/bicodec/BiCodec
+BICODEC=${REPO_ROOT}/pretrained_models/UniSS/bicodec
 
 mkdir -p "${OUTPUT_DIR}/workers" "${OUTPUT_DIR}/logs"
 export HF_HOME=${USER_ROOT}/.cache/huggingface
@@ -85,4 +85,3 @@ for ((worker=0; worker<WORKERS; worker++)); do
   aggregate+=(--worker-report "$(printf '%s/workers/worker_%02d.json' "${OUTPUT_DIR}" "${worker}")")
 done
 "${aggregate[@]}" > "${OUTPUT_DIR}/aggregate.stdout.json"
-
