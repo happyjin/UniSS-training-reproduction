@@ -12,7 +12,7 @@ TRAINING_LOG=${REPO_ROOT}/logs/uniss_phasea_stateful_longepisode_rl_v1/${TRAININ
 COMPARISON_ROOT=${REPO_ROOT}/eval_outputs/uniss_phasea_stateful_longepisode_rl_v1/final_comparison_v1
 REPORT_ROOT=${REPO_ROOT}/reports/uniss_phasea_stateful_longepisode_rl_v1/final_comparison_v1
 SELECTION=${COMPARISON_ROOT}/CHECKPOINT_SELECTION.json
-C0=${REPO_ROOT}/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/bounded_longform_chunk640_recovery2/stage_a_iter381_merged/results.json
+C0_REFERENCE=${REPO_ROOT}/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/bounded_longform_chunk640_recovery2/stage_a_iter381_merged/results.json
 C1=${REPO_ROOT}/eval_outputs/uniss_phasea_stateful_longepisode_rl_v1/phasea_iter381_runtime_v2/results.json
 C2_CHECKPOINT=${REPO_ROOT}/checkpoints/uniss_stagea_quality_first_joint_grpo_v1/a3_g8_full_recovery1/iter_0002510
 ATTRIBUTION=${REPO_ROOT}/eval_outputs/uniss_phasea_stateful_longepisode_rl_v1/reference_attribution_valid16_v1/ATTRIBUTION_MERGED.json
@@ -28,7 +28,7 @@ if [[ -f "${FINAL_REPORT}" ]]; then
   exit 0
 fi
 
-for path in "${TRAINING_LOG}" "${C0}" "${C1}" "${C2_CHECKPOINT}/.metadata" "${ATTRIBUTION}" "${TRAIN_ROLLOUT}" "${VALID_ROLLOUT}"; do
+for path in "${TRAINING_LOG}" "${C0_REFERENCE}" "${C1}" "${C2_CHECKPOINT}/.metadata" "${ATTRIBUTION}" "${TRAIN_ROLLOUT}" "${VALID_ROLLOUT}"; do
   [[ -f "${path}" ]] || { echo "missing ${path}" >&2; exit 2; }
 done
 rg -q '\[after training is done\]' "${TRAINING_LOG}" || {
@@ -57,36 +57,44 @@ run_arm() {
   local stage_report=${REPORT_ROOT}/stages/${run_id}.zh-CN.md
   if [[ ! -f "${stage_report}" ]]; then
     "${PYTHON}" "${EXPERIMENT_ROOT}/evaluation/write_stage_report.py" \
-      --stage-name "${run_id}" --old-results "${C0}" \
+      --stage-name "${run_id}" --old-results "${C0_REFERENCE}" \
       --new-results "${output}/results.json" --output "${stage_report}"
   fi
 }
 
+C0_OUTPUT=${COMPARISON_ROOT}/c0_phasea_runtime_v1
 C2_OUTPUT=${COMPARISON_ROOT}/c2_old_a3_runtime_v2
-EPOCH0_OUTPUT=${COMPARISON_ROOT}/rl_epoch1_runtime_v2
-run_arm c2_old_a3_runtime_v2 "${C2_CHECKPOINT}" "${C2_OUTPUT}" 0 1 2 3 &
-pid0=$!
-run_arm rl_epoch1_runtime_v2 "${EPOCH_CHECKPOINTS[0]}" "${EPOCH0_OUTPUT}" 4 5 6 7 &
+if [[ ! -f "${C0_OUTPUT}/results.json" ]]; then
+  bash "${REPO_ROOT}/experiments/uniss_stagea_quality_first_joint_grpo_v1/scripts/run_bounded_longform_4gpu.sh" \
+    c0_phasea_runtime_v1 NONE "${C0_OUTPUT}" 0 1 2 3 640 &
+  pid0=$!
+else
+  pid0=0
+fi
+run_arm c2_old_a3_runtime_v2 "${C2_CHECKPOINT}" "${C2_OUTPUT}" 4 5 6 7 &
 pid1=$!
 status=0
-wait "${pid0}" || status=1
+if (( pid0 > 0 )); then wait "${pid0}" || status=1; fi
 wait "${pid1}" || status=1
 [[ ${status} -eq 0 ]] || { echo "first comparison wave failed" >&2; exit 4; }
 
+EPOCH0_OUTPUT=${COMPARISON_ROOT}/rl_epoch1_runtime_v2
 EPOCH1_OUTPUT=${COMPARISON_ROOT}/rl_epoch2_runtime_v2
 EPOCH2_OUTPUT=${COMPARISON_ROOT}/rl_epoch3_runtime_v2
-run_arm rl_epoch2_runtime_v2 "${EPOCH_CHECKPOINTS[1]}" "${EPOCH1_OUTPUT}" 0 1 2 3 &
+run_arm rl_epoch1_runtime_v2 "${EPOCH_CHECKPOINTS[0]}" "${EPOCH0_OUTPUT}" 0 1 2 3 &
 pid0=$!
-run_arm rl_epoch3_runtime_v2 "${EPOCH_CHECKPOINTS[2]}" "${EPOCH2_OUTPUT}" 4 5 6 7 &
+run_arm rl_epoch2_runtime_v2 "${EPOCH_CHECKPOINTS[1]}" "${EPOCH1_OUTPUT}" 4 5 6 7 &
 pid1=$!
 status=0
 wait "${pid0}" || status=1
 wait "${pid1}" || status=1
 [[ ${status} -eq 0 ]] || { echo "second comparison wave failed" >&2; exit 5; }
 
+run_arm rl_epoch3_runtime_v2 "${EPOCH_CHECKPOINTS[2]}" "${EPOCH2_OUTPUT}" 0 1 2 3
+
 if [[ ! -f "${FINAL_REPORT}" ]]; then
   "${PYTHON}" "${EXPERIMENT_ROOT}/evaluation/write_final_report.py" \
-    --runtime-v1 "${C0}" --runtime-v2 "${C1}" \
+    --runtime-v1 "${C0_OUTPUT}/results.json" --runtime-v2 "${C1}" \
     --a3-v2 "${C2_OUTPUT}/results.json" --selection "${SELECTION}" \
     --epoch-result "${EPOCH0_OUTPUT}/results.json" \
     --epoch-result "${EPOCH1_OUTPUT}/results.json" \

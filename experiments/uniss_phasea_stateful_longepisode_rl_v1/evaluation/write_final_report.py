@@ -173,15 +173,24 @@ def main() -> None:
             "",
         ]
     )
+    c0 = result_by_id(runtime_v1)
     c1 = result_by_id(runtime_v2)
     c2 = result_by_id(a3_v2)
     c3 = result_by_id(selected)
     for sample_id in sorted(c3):
-        before, old_rl, after = c1[sample_id], c2[sample_id], c3[sample_id]
+        bounded, before, old_rl, after = (
+            c0[sample_id],
+            c1[sample_id],
+            c2[sample_id],
+            c3[sample_id],
+        )
         lines.extend(
             [
                 f"### {sample_id}",
                 "",
+                f"- C0 Phase A runtime v1 立体声：`{bounded['stereo_path']}`",
+                f"- C0 Phase A runtime v1 连续译音：`{bounded['translation_path']}`",
+                f"- C0 Phase A runtime v1 全局时间轴：`{bounded['timeline_path']}`",
                 f"- C1 Phase A 立体声：`{before['stereo_audio_path']}`",
                 f"- C2 旧 A3 立体声：`{old_rl['stereo_audio_path']}`",
                 f"- C3 新 RL 立体声：`{after['stereo_audio_path']}`",
