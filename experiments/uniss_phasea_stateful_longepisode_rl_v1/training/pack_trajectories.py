@@ -61,23 +61,32 @@ def trajectory_sample(row: dict[str, object]) -> dict[str, object]:
     }
 
 
-def replay_sample(row: dict[str, object]) -> dict[str, object]:
+def replay_pack(row: dict[str, object], seq_length: int) -> dict[str, object]:
     used = int(row["used_tokens"])
-    tokens = [int(value) for value in row["tokens"][:used]]
-    labels = [int(value) for value in row["labels"][:used]]
-    kinds = [int(value) for value in row["loss_kinds"][:used]]
+    if len(row["tokens"]) != seq_length or len(row["labels"]) != seq_length:
+        raise ValueError("Phase3 replay pack length differs from seq_length")
+    tokens = [int(value) for value in row["tokens"]]
+    labels = [int(value) for value in row["labels"]]
+    kinds = [int(value) for value in row["loss_kinds"]]
     mask = [1.0 if value == LOSS_REPLAY else 0.0 for value in kinds]
     if not any(mask):
         raise ValueError("Phase3 replay record has no replay positions")
     return {
+        "schema_version": "uniss_free_running_episode_grpo_pack_v1",
         "tokens": tokens,
         "labels": labels,
-        "response_mask": [0.0] * used,
-        "old_log_probs": [0.0] * used,
-        "advantages": [0.0] * used,
+        "position_ids": [int(value) for value in row["position_ids"]],
+        "response_mask": [0.0] * seq_length,
+        "old_log_probs": [0.0] * seq_length,
+        "advantages": [0.0] * seq_length,
         "replay_mask": mask,
-        "family_ids": [3] * used,
-        "identity": f"phase3:{row['source_ids'][0]}",
+        "family_ids": [3 if index < used else 0 for index in range(seq_length)],
+        "loss_mask": mask,
+        "sample_boundaries": row["sample_boundaries"],
+        "identities": [f"phase3:{value}" for value in row["source_ids"]],
+        "used_tokens": used,
+        "rl_tokens": 0,
+        "replay_tokens": int(sum(mask)),
     }
 
 
@@ -135,6 +144,10 @@ def finalize_pack(pack: dict[str, object], seq_length: int) -> dict[str, object]
             "used_tokens": used,
             "rl_tokens": int(sum(pack["response_mask"])),
             "replay_tokens": int(sum(pack["replay_mask"])),
+            "loss_mask": [
+                float(bool(left) or bool(right))
+                for left, right in zip(pack["response_mask"], pack["replay_mask"])
+            ],
         }
     )
     return pack
@@ -185,9 +198,8 @@ def main() -> None:
         args.phase3_replay,
         range(min(args.phase3_replay_records, len(offsets(args.phase3_replay)))),
     )
-    replay_samples = [replay_sample(row) for row in replay_rows]
+    replay_packs = [replay_pack(row, args.seq_length) for row in replay_rows]
     rl_packs = list(pack_samples(rl_samples, args.seq_length))
-    replay_packs = list(pack_samples(replay_samples, args.seq_length))
     interleaved = []
     maximum = max(len(rl_packs), len(replay_packs))
     for index in range(maximum):
