@@ -14,6 +14,10 @@ The execution order is:
 5. compare Phase-A runtime v1/v2, historical A3 runtime v2, and the new RL
    checkpoint with one frozen protocol.
 
+The formal post pipeline evaluates all three saved RL epoch checkpoints on the
+four fixed long recordings.  Validation loss selects C3, but ratio, clipping,
+KL, and all other quality bands are annotations only: they never abort the
+remaining epoch evaluations or final report generation.
+
 Quality gates select and annotate checkpoints.  They do not stop the remaining
 evaluation and report-generation stages.
-

@@ -45,3 +45,4 @@ if [[ ! -f "${PACK_ROOT}/train_packs.jsonl" || ! -f "${PACK_ROOT}/valid_packs.js
 fi
 
 bash "${SCRIPT_DIR}/run_megatron_formal_8gpu.sh" "${TRAINING_RUN}" "${PACK_ID}" 3
+bash "${SCRIPT_DIR}/run_post_train_evaluation.sh" "${TRAINING_RUN}"
