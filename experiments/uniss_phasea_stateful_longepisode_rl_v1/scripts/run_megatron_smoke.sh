@@ -30,6 +30,26 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=16
 export UNISS_E2E_COMPILE_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/.cache/uniss_phasea_stateful_longepisode_rl_v1/${RUN_ID}
 
+SITE_PACKAGES=$("${PYTHON}" -c 'import site; print(site.getsitepackages()[0])')
+NVIDIA_LIBRARY_DIRS=()
+shopt -s nullglob
+for directory in "${SITE_PACKAGES}"/nvidia/*/lib; do
+  [[ -d "${directory}" ]] && NVIDIA_LIBRARY_DIRS+=("${directory}")
+done
+shopt -u nullglob
+(( ${#NVIDIA_LIBRARY_DIRS[@]} > 0 )) || {
+  echo "no NVIDIA library directories found under ${SITE_PACKAGES}" >&2
+  exit 4
+}
+NVIDIA_LIBRARY_PATH=$(IFS=:; echo "${NVIDIA_LIBRARY_DIRS[*]}")
+export LD_LIBRARY_PATH=${NVIDIA_LIBRARY_PATH}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+"${PYTHON}" - <<'PY'
+import ctypes
+
+ctypes.CDLL("libcudnn_graph.so.9")
+import transformer_engine.pytorch  # noqa: F401,E402
+PY
+
 CMD=(
   "$(dirname "${PYTHON}")/torchrun" --nproc_per_node 1 --master_port 29971
   "${EXPERIMENT_ROOT}/training/pretrain_megatron.py"
@@ -114,4 +134,3 @@ CMD=(
 printf '%q ' "${CMD[@]}" > "${LOG}.command"
 printf '\n' >> "${LOG}.command"
 "${CMD[@]}" 2>&1 | tee "${LOG}"
-

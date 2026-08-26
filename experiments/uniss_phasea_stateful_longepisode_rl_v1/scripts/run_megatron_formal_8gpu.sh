@@ -46,6 +46,29 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=16
 export UNISS_E2E_COMPILE_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/.cache/uniss_phasea_stateful_longepisode_rl_v1/${RUN_ID}
 
+# The replacement server does not expose pip-installed CUDA libraries through
+# the system loader.  Resolve them from this experiment's own Python
+# environment so Transformer Engine can load cuDNN on every torchrun rank.
+SITE_PACKAGES=$("${PYTHON}" -c 'import site; print(site.getsitepackages()[0])')
+NVIDIA_LIBRARY_DIRS=()
+shopt -s nullglob
+for directory in "${SITE_PACKAGES}"/nvidia/*/lib; do
+  [[ -d "${directory}" ]] && NVIDIA_LIBRARY_DIRS+=("${directory}")
+done
+shopt -u nullglob
+(( ${#NVIDIA_LIBRARY_DIRS[@]} > 0 )) || {
+  echo "no NVIDIA library directories found under ${SITE_PACKAGES}" >&2
+  exit 4
+}
+NVIDIA_LIBRARY_PATH=$(IFS=:; echo "${NVIDIA_LIBRARY_DIRS[*]}")
+export LD_LIBRARY_PATH=${NVIDIA_LIBRARY_PATH}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+"${PYTHON}" - <<'PY'
+import ctypes
+
+ctypes.CDLL("libcudnn_graph.so.9")
+import transformer_engine.pytorch  # noqa: F401,E402
+PY
+
 CMD=(
   "$(dirname "${PYTHON}")/torchrun" --nproc_per_node 8 --master_port 29972
   "${EXPERIMENT_ROOT}/training/pretrain_megatron.py"
