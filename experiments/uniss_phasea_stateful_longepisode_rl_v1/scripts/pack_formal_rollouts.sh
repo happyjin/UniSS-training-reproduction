@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 EXPERIMENT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 REPO_ROOT=$(cd -- "${EXPERIMENT_ROOT}/../.." && pwd)
 source "${EXPERIMENT_ROOT}/config.env"
+export PYTHONPATH=${REPO_ROOT}:${PYTHONPATH:-}
 
 TRAIN_RUN=${1:-formal_train64_g4_v1}
 VALID_RUN=${2:-formal_valid16_g4_v1}
