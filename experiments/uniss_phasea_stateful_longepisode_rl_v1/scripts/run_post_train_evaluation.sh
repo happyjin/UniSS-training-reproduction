@@ -96,3 +96,4 @@ if [[ ! -f "${FINAL_REPORT}" ]]; then
 fi
 echo "SELECTION=${SELECTION}"
 echo "REPORT=${FINAL_REPORT}"
+bash "${SCRIPT_DIR}/start_gpu_holder_after_completion.sh"

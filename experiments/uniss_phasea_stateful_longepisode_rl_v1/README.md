@@ -19,5 +19,9 @@ four fixed long recordings.  Validation loss selects C3, but ratio, clipping,
 KL, and all other quality bands are annotations only: they never abort the
 remaining epoch evaluations or final report generation.
 
+After the final report exists, a separate tmux watcher restores the repository
+60% GPU holder only when `nvidia-smi` reports no remaining compute process.  It
+therefore cannot overlap rollout, attribution, training, or listening runs.
+
 Quality gates select and annotate checkpoints.  They do not stop the remaining
 evaluation and report-generation stages.
