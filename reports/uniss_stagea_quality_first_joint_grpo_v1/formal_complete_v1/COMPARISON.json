@@ -1,0 +1,530 @@
+{
+  "schema_version": "uniss_stagea_joint_grpo_arm_comparison_v1",
+  "status": "complete",
+  "selection_rule": "quality-first lexicographic: fewer structure errors, non-silent rate, pre-EOS semantic rate, paired Stage-A quality retention, then first semantic latency",
+  "best_arm": "a3_g8_full_recovery1",
+  "arms": {
+    "a1_sft_full_recovery1": {
+      "gold_source_mt": {
+        "bleu": 0.31578119080872624,
+        "chrf": 7.400769893661074,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13010094044172715,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1231.0,
+        "unterminated_generations": 0.0
+      },
+      "free_source_mt": {
+        "bleu": 0.19602788497705473,
+        "chrf": 5.734665447188247,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.11017033123578901,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1244.0,
+        "unterminated_generations": 6.0
+      },
+      "stage_a_gold_source_mt": {
+        "bleu": 0.24056829976021266,
+        "chrf": 7.584470798206172,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13911396856291594,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1226.0,
+        "unterminated_generations": 0.0
+      },
+      "stage_a_free_source_mt": {
+        "bleu": 0.08123682688298568,
+        "chrf": 4.8598538718209445,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.10009004396406432,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1245.0,
+        "unterminated_generations": 1.0
+      },
+      "e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 98,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "stage_a_e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 100,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "latency": {
+        "actions": {
+          "wait": 137,
+          "write_asr": 146,
+          "write_mt": 155,
+          "write_semantic": 159
+        },
+        "average_lagging_ms": 408.6474707845792,
+        "average_proportion": 0.5919102455188879,
+        "differentiable_average_lagging_ms": 975.2723699236377,
+        "event_compute_ms": {
+          "mean": 5980.198661403345,
+          "p50": 9436.795358080417,
+          "p95": 10190.733385202475
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 18.898557338978968,
+        "samples": 16
+      },
+      "stage_a_latency": {
+        "actions": {
+          "wait": 110,
+          "write_asr": 43,
+          "write_mt": 167,
+          "write_semantic": 158
+        },
+        "average_lagging_ms": 391.96706834654407,
+        "average_proportion": 0.5846467853536437,
+        "differentiable_average_lagging_ms": 883.8341626367193,
+        "event_compute_ms": {
+          "mean": 4686.8608260645005,
+          "p50": 7335.148283047602,
+          "p95": 7860.752851306461
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 14.811365487381458,
+        "samples": 16
+      },
+      "quality_retention_vs_stage_a_mean": 1.376295195430903,
+      "non_silent_rate": 1.0,
+      "pre_eos_text_rate": 1.0,
+      "pre_eos_semantic_rate": 1.0,
+      "structure_errors": 98,
+      "first_semantic_p50_delta_ms": 0.0,
+      "paired_e_s2s_samples": 16
+    },
+    "a2_g4_full_recovery1": {
+      "gold_source_mt": {
+        "bleu": 0.35664721667732135,
+        "chrf": 7.970303223497565,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13525138308820808,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1222.0,
+        "unterminated_generations": 0.0
+      },
+      "free_source_mt": {
+        "bleu": 0.257943991482656,
+        "chrf": 5.863530504843533,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.1157731192259851,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1238.0,
+        "unterminated_generations": 6.0
+      },
+      "stage_a_gold_source_mt": {
+        "bleu": 0.24056829976021266,
+        "chrf": 7.584470798206172,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13911396856291594,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1226.0,
+        "unterminated_generations": 0.0
+      },
+      "stage_a_free_source_mt": {
+        "bleu": 0.08123682688298568,
+        "chrf": 4.8598538718209445,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.10009004396406432,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1245.0,
+        "unterminated_generations": 1.0
+      },
+      "e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 110,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "stage_a_e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 100,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "latency": {
+        "actions": {
+          "wait": 139,
+          "write_asr": 149,
+          "write_mt": 157,
+          "write_semantic": 158
+        },
+        "average_lagging_ms": 352.39584621233735,
+        "average_proportion": 0.5754603846500719,
+        "differentiable_average_lagging_ms": 928.610451899096,
+        "event_compute_ms": {
+          "mean": 6476.657024020029,
+          "p50": 9478.626319905743,
+          "p95": 9948.058911110274
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 20.46745953831248,
+        "samples": 16
+      },
+      "stage_a_latency": {
+        "actions": {
+          "wait": 110,
+          "write_asr": 43,
+          "write_mt": 167,
+          "write_semantic": 158
+        },
+        "average_lagging_ms": 391.96706834654407,
+        "average_proportion": 0.5846467853536437,
+        "differentiable_average_lagging_ms": 883.8341626367193,
+        "event_compute_ms": {
+          "mean": 4653.836290373456,
+          "p50": 7344.309061998501,
+          "p95": 7796.906331018545
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 14.707001716763193,
+        "samples": 16
+      },
+      "quality_retention_vs_stage_a_mean": 1.5830250145829496,
+      "non_silent_rate": 1.0,
+      "pre_eos_text_rate": 1.0,
+      "pre_eos_semantic_rate": 1.0,
+      "structure_errors": 110,
+      "first_semantic_p50_delta_ms": 0.0,
+      "paired_e_s2s_samples": 16
+    },
+    "a3_g8_full_recovery1": {
+      "gold_source_mt": {
+        "bleu": 0.28596085641710495,
+        "chrf": 7.486187210689117,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.1321742374329374,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1228.0,
+        "unterminated_generations": 0.0
+      },
+      "free_source_mt": {
+        "bleu": 0.2619561205537192,
+        "chrf": 5.862926713069763,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.1157731192259851,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1237.0,
+        "unterminated_generations": 6.0
+      },
+      "stage_a_gold_source_mt": {
+        "bleu": 0.24056829976021266,
+        "chrf": 7.584470798206172,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13911396856291594,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1226.0,
+        "unterminated_generations": 0.0
+      },
+      "stage_a_free_source_mt": {
+        "bleu": 0.08123682688298568,
+        "chrf": 4.8598538718209445,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.10009004396406432,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1245.0,
+        "unterminated_generations": 1.0
+      },
+      "e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 98,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "stage_a_e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 100,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "latency": {
+        "actions": {
+          "wait": 139,
+          "write_asr": 151,
+          "write_mt": 156,
+          "write_semantic": 159
+        },
+        "average_lagging_ms": 366.8041712772629,
+        "average_proportion": 0.5757580321095646,
+        "differentiable_average_lagging_ms": 938.3918876507546,
+        "event_compute_ms": {
+          "mean": 5866.289341616198,
+          "p50": 9324.66210401617,
+          "p95": 9936.755007808097
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 18.538582372706475,
+        "samples": 16
+      },
+      "stage_a_latency": {
+        "actions": {
+          "wait": 110,
+          "write_asr": 43,
+          "write_mt": 167,
+          "write_semantic": 158
+        },
+        "average_lagging_ms": 391.96706834654407,
+        "average_proportion": 0.5846467853536437,
+        "differentiable_average_lagging_ms": 883.8341626367193,
+        "event_compute_ms": {
+          "mean": 4641.506119261913,
+          "p50": 7267.876607598737,
+          "p95": 7781.2963602133095
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 14.66803604706816,
+        "samples": 16
+      },
+      "quality_retention_vs_stage_a_mean": 1.5213456509803593,
+      "non_silent_rate": 1.0,
+      "pre_eos_text_rate": 1.0,
+      "pre_eos_semantic_rate": 1.0,
+      "structure_errors": 98,
+      "first_semantic_p50_delta_ms": 0.0,
+      "paired_e_s2s_samples": 16
+    },
+    "a4_g8_seed2_full_recovery1": {
+      "gold_source_mt": {
+        "bleu": 0.23821779805074,
+        "chrf": 6.967938120055587,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13320155043330076,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1225.0,
+        "unterminated_generations": 0.0
+      },
+      "free_source_mt": {
+        "bleu": 0.38064001828709226,
+        "chrf": 6.208213891353411,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.1298230382826766,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1219.0,
+        "unterminated_generations": 6.0
+      },
+      "stage_a_gold_source_mt": {
+        "bleu": 0.24056829976021266,
+        "chrf": 7.584470798206172,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.13911396856291594,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1226.0,
+        "unterminated_generations": 0.0
+      },
+      "stage_a_free_source_mt": {
+        "bleu": 0.08123682688298568,
+        "chrf": 4.8598538718209445,
+        "coverage_min": 0.0,
+        "coverage_mean": 0.10009004396406432,
+        "rollback_events": 0.0,
+        "commit_conflicts": 1245.0,
+        "unterminated_generations": 1.0
+      },
+      "e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 106,
+        "non_silent_pcm": 15,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "stage_a_e_s2s": {
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 100,
+        "non_silent_pcm": 16,
+        "samples": 16,
+        "semantic_coverage_mean": 1.0,
+        "semantic_coverage_min": 1.0,
+        "source_rollback_events": 0,
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": 16,
+        "target_text_before_source_eos": 16
+      },
+      "latency": {
+        "actions": {
+          "wait": 146,
+          "write_asr": 154,
+          "write_mt": 160,
+          "write_semantic": 159
+        },
+        "average_lagging_ms": 381.5475378567726,
+        "average_proportion": 0.5830393469968712,
+        "differentiable_average_lagging_ms": 919.5745863192614,
+        "event_compute_ms": {
+          "mean": 6309.824456888969,
+          "p50": 9595.211406005546,
+          "p95": 9914.29641165305
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 19.940237114033426,
+        "samples": 16
+      },
+      "stage_a_latency": {
+        "actions": {
+          "wait": 110,
+          "write_asr": 43,
+          "write_mt": 167,
+          "write_semantic": 158
+        },
+        "average_lagging_ms": 391.96706834654407,
+        "average_proportion": 0.5846467853536437,
+        "differentiable_average_lagging_ms": 883.8341626367193,
+        "event_compute_ms": {
+          "mean": 4664.889972600765,
+          "p50": 7457.627945113927,
+          "p95": 7707.325238967314
+        },
+        "first_semantic_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "first_text_write_ms": {
+          "mean": 670.0,
+          "observed": 16,
+          "p50": 640.0,
+          "p95": 1160.0
+        },
+        "generation_rtf": 14.741933440474629,
+        "samples": 16
+      },
+      "quality_retention_vs_stage_a_mean": 1.7743898265603029,
+      "non_silent_rate": 0.9375,
+      "pre_eos_text_rate": 1.0,
+      "pre_eos_semantic_rate": 1.0,
+      "structure_errors": 106,
+      "first_semantic_p50_delta_ms": 0.0,
+      "paired_e_s2s_samples": 16
+    }
+  },
+  "summary_paths": {
+    "a1_sft_full_recovery1": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/routed64_e2e16/a1_sft_full_recovery1/SUMMARY.json",
+    "a2_g4_full_recovery1": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/routed64_e2e16/a2_g4_full_recovery1/SUMMARY.json",
+    "a3_g8_full_recovery1": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/routed64_e2e16/a3_g8_full_recovery1/SUMMARY.json",
+    "a4_g8_seed2_full_recovery1": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_stagea_quality_first_joint_grpo_v1/formal_complete_v1/routed64_e2e16/a4_g8_seed2_full_recovery1/SUMMARY.json"
+  }
+}
