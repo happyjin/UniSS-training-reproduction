@@ -203,6 +203,38 @@ def main() -> None:
             f"选择规则：{selection['selection_rule']}。",
             f"记录型质量注释：{selection['selected_quality_annotations'] or ['无']}。即使有注释，所有 epoch 和 C0–C3 仍全部执行。",
             "",
+            "### 6.1 三个 epoch 的 validation 轨迹",
+            "",
+            "| iteration | total | policy | reference KL | Phase3 replay | ratio mean | clipped fraction | update RMS | 记录型注释 |",
+            "|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        ]
+    )
+    for candidate in selection["candidates"]:
+        metrics = candidate["metrics"]
+        lines.append(
+            f"| {candidate['iteration']} | {fmt(metrics.get('loss/total'),6)} | "
+            f"{fmt(metrics.get('loss/policy'),6)} | "
+            f"{fmt(metrics.get('loss/reference_kl'),6)} | "
+            f"{fmt(metrics.get('loss/phase3_replay'),6)} | "
+            f"{fmt(metrics.get('diagnostic/ratio_mean'),6)} | "
+            f"{fmt(metrics.get('diagnostic/ratio_clipped_fraction'),6)} | "
+            f"{fmt(metrics.get('diagnostic/policy_update_rms'),8)} | "
+            f"{candidate['quality_annotations'] or ['无']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "### 6.2 训练、TensorBoard 与逐 epoch 报告",
+            "",
+            f"- 训练日志：`{selection['training_log']}`",
+            f"- checkpoint 根目录：`{selection['checkpoint_root']}`",
+            "- TensorBoard：`/opt/dlami/nvme/jasonleeeli/projects/UniSS/runs/uniss_phasea_stateful_longepisode_rl_v1/tensorboard/episode_grpo_formal_8gpu_v1`",
+            f"- 逐 epoch/C2 试听报告目录：`{(args.output.parent / 'stages').resolve()}`",
+            "- Runtime v2 基线报告：`/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phasea_stateful_longepisode_rl_v1/stage1_runtime_v2/REPORT.zh-CN.md`",
+            "- A/B/C/D 归因报告：`/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phasea_stateful_longepisode_rl_v1/attribution/reference_attribution_valid16_v1/REPORT.zh-CN.md`",
+            "",
+            "### 6.3 声明边界",
+            "",
             "这里的 stateful runtime 保留完整会话前端、提交文本、TTS 队列和播放时钟，但 LLM acoustic prompt 仍采用 24 秒有界 ring 重算；因此它是严格因果、跨窗口有状态的研究推理，不等同于已经实现端到端 KV-cache 的生产级实时系统。四条外部长音频没有人工逐句 reference，内容判断结合生成文本与主观试听；正式 A/B/C 指标来自有 teacher/reference 的 validation episodes。",
             "",
         ]
