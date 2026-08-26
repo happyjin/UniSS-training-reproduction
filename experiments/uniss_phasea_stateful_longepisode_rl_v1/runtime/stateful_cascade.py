@@ -314,6 +314,9 @@ def evaluate_stateful_session(
         asr_candidate = text_content(asr_generated)
         asr_new = state.asr_segment_committer.update(asr_candidate, final=true_final)
         if true_final:
+            state.asr_revision_conflicts_total += (
+                state.asr_segment_committer.revision_conflicts
+            )
             state.asr_committed_ids.extend(state.asr_segment_committer.committed)
             state.asr_segment_committer.committed.clear()
             state.mark_true_final()
@@ -489,6 +492,8 @@ def evaluate_stateful_session(
         "generated_streaming_translation": target_text,
         "events": event_rows,
         "memory_rollovers": state.memory_rollovers,
+        "asr_revision_conflicts": state.asr_revision_conflicts_total,
+        "mt_revision_conflicts": state.mt_committer.revision_conflicts,
         "frontend_encoder_resets": int(state.frontend_state.encoder_resets),
         "artificial_boundary_finalizations": state.artificial_boundary_finalizations,
         "rejected_early_end": rejected_early_end,

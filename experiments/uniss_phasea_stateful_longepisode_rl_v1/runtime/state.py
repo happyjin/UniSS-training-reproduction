@@ -28,12 +28,14 @@ class StreamingSessionState:
     source_finished: bool = False
     memory_rollovers: int = 0
     artificial_boundary_finalizations: int = 0
+    asr_revision_conflicts_total: int = 0
 
     def finalize_asr_segment(self) -> list[int]:
         """Close only the decoder segment, never the acoustic source."""
 
         candidate = self.asr_segment_committer.previous or []
         new = self.asr_segment_committer.update(candidate, final=True)
+        self.asr_revision_conflicts_total += self.asr_segment_committer.revision_conflicts
         self.asr_committed_ids.extend(self.asr_segment_committer.committed)
         self.asr_segment_committer = StablePrefixCommitter(holdback=1)
         self.speech_embedding_ring.clear()
