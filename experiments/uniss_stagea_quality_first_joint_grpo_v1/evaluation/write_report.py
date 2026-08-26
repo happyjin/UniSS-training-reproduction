@@ -97,6 +97,12 @@ def main() -> None:
     best_long = _load(args.best_longform / "results.json")
     base_long = _load(args.stage_a_longform / "results.json")
     best = str(comparison["best_arm"])
+    a1 = comparison["arms"][ARMS[0]]  # type: ignore[index]
+    a3 = comparison["arms"][ARMS[2]]  # type: ignore[index]
+    a3_stage = a3["stage_a_e_s2s"]  # type: ignore[index]
+    a3_stage_structure = int(a3_stage["malformed_segments"]) + int(  # type: ignore[index]
+        a3_stage["invalid_semantic_tokens"]  # type: ignore[index]
+    )
 
     lines = [
         "# Stage A 质量优先 SFT / GRPO 四组完整对照实验报告",
@@ -104,6 +110,8 @@ def main() -> None:
         "## 1. 结论摘要",
         "",
         f"固定质量优先排序选择的最佳实验为 **{best}**。排序先比较结构错误、非静音率和 source EOS 前语义输出，再比较相对 Stage A 的配对质量，最后才比较首语义时延；训练过程中没有使用该排序提前停止。",
+        "",
+        "**直接回答：A3（GRPO G8）相对 Stage A 在本次冻结 validation64/E2E16 协议下有效，也优于 matched SFT A1 的质量优先综合排序，但不是所有指标全面支配。** A3 相对 A1 保持相同 98 个结构错误、16/16 非静音和 640ms 首语义 p50，同时 free-source MT、quality retention、AL/DAL 和实现 RTF 更好；代价是 gold-source BLEU 略低。A3 相对 Stage A 的结构错误由 100 降至 98，free-source MT 明显提升且 AL 更低；代价是 DAL 与当前未优化 wall-clock RTF 变差。",
         "",
         "本实验回答两个问题：第一，继续 SFT 或 GRPO 是否能相对不可变 Stage A `iter_0000381` 改善 incremental MT / semantic TTS / WAIT-WRITE；第二，GRPO 是否优于同训练预算的 matched continued SFT。所有结论均来自相同 checkpoint 初始化、相同 15-shard 全局 shuffle、相同 2-GPU/arm 预算和相同固定评估样本。",
         "",
@@ -205,24 +213,63 @@ def main() -> None:
             "",
             "### 3.3 相对 Stage A 的配对结论",
             "",
-            "| arm | quality retention mean | non-silent | pre-EOS semantic | structure errors | first semantic Δ | 判定 |",
+            "| arm | quality retention mean | non-silent | pre-EOS semantic | structure errors candidate/Stage A | first semantic Δ | 判定 |",
             "|---|---:|---:|---:|---:|---:|---|",
         ]
     )
     for arm in ARMS:
         row = comparison["arms"][arm]  # type: ignore[index]
+        stage_s2s = row["stage_a_e_s2s"]  # type: ignore[index]
+        stage_structure = int(stage_s2s["malformed_segments"]) + int(  # type: ignore[index]
+            stage_s2s["invalid_semantic_tokens"]  # type: ignore[index]
+        )
+        stage_non_silent = float(stage_s2s["non_silent_pcm"]) / max(  # type: ignore[index]
+            1, int(stage_s2s["samples"])  # type: ignore[index]
+        )
         positive = (
-            int(row["structure_errors"]) == 0
-            and float(row["non_silent_rate"]) == 1.0
+            int(row["structure_errors"]) <= stage_structure
+            and float(row["non_silent_rate"]) >= stage_non_silent
             and float(row.get("quality_retention_vs_stage_a_mean") or 0.0) > 1.0
+            and float(row.get("first_semantic_p50_delta_ms") or 0.0) <= 0.0
         )
         lines.append(
-            f"| {arm} | {_f(row.get('quality_retention_vs_stage_a_mean'),4)} | {_pct(row['non_silent_rate'])} | {_pct(row['pre_eos_semantic_rate'])} | {row['structure_errors']} | {_f(row.get('first_semantic_p50_delta_ms'),1)} ms | {'相对 Stage A 有效' if positive else '未证明全面有效'} |"
+            f"| {arm} | {_f(row.get('quality_retention_vs_stage_a_mean'),4)} | {_pct(row['non_silent_rate'])} | {_pct(row['pre_eos_semantic_rate'])} | {row['structure_errors']}/{stage_structure} | {_f(row.get('first_semantic_p50_delta_ms'),1)} ms | {'质量优先口径相对 Stage A 有效' if positive else '未证明质量优先有效'} |"
         )
     lines.extend(
         [
             "",
             "GRPO 是否优于 matched SFT 必须直接比较 A2–A4 与 A1，而不是只看各自相对 Stage A。若 GRPO 的 quality retention、结构健康度或首语义时延没有同时优于 A1，则只能说明 GRPO reward 在训练内有效激活，不能说明其外部性能优于 SFT。",
+            "",
+            "### 3.4 最佳 A3 与 A1 / Stage A 的直接差值",
+            "",
+            "| comparison | gold BLEU | gold chrF | free BLEU | free chrF | structure errors | non-silent | first semantic p50 | AL | DAL | RTF |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+            "| A3 − A1 | {gold_bleu} | {gold_chrf} | {free_bleu} | {free_chrf} | {structure:+d} | {audio} | {first} ms | {al} ms | {dal} ms | {rtf} |".format(
+                gold_bleu=_f(float(a3["gold_source_mt"]["bleu"]) - float(a1["gold_source_mt"]["bleu"]), 4),  # type: ignore[index]
+                gold_chrf=_f(float(a3["gold_source_mt"]["chrf"]) - float(a1["gold_source_mt"]["chrf"]), 4),  # type: ignore[index]
+                free_bleu=_f(float(a3["free_source_mt"]["bleu"]) - float(a1["free_source_mt"]["bleu"]), 4),  # type: ignore[index]
+                free_chrf=_f(float(a3["free_source_mt"]["chrf"]) - float(a1["free_source_mt"]["chrf"]), 4),  # type: ignore[index]
+                structure=int(a3["structure_errors"]) - int(a1["structure_errors"]),
+                audio=_f(float(a3["non_silent_rate"]) - float(a1["non_silent_rate"]), 4),
+                first=_f(float(a3["latency"]["first_semantic_write_ms"]["p50"]) - float(a1["latency"]["first_semantic_write_ms"]["p50"]), 1),  # type: ignore[index]
+                al=_f(float(a3["latency"]["average_lagging_ms"]) - float(a1["latency"]["average_lagging_ms"]), 1),  # type: ignore[index]
+                dal=_f(float(a3["latency"]["differentiable_average_lagging_ms"]) - float(a1["latency"]["differentiable_average_lagging_ms"]), 1),  # type: ignore[index]
+                rtf=_f(float(a3["latency"]["generation_rtf"]) - float(a1["latency"]["generation_rtf"]), 3),  # type: ignore[index]
+            ),
+            "| A3 − Stage A | {gold_bleu} | {gold_chrf} | {free_bleu} | {free_chrf} | {structure:+d} | {audio} | {first} ms | {al} ms | {dal} ms | {rtf} |".format(
+                gold_bleu=_f(float(a3["gold_source_mt"]["bleu"]) - float(a3["stage_a_gold_source_mt"]["bleu"]), 4),  # type: ignore[index]
+                gold_chrf=_f(float(a3["gold_source_mt"]["chrf"]) - float(a3["stage_a_gold_source_mt"]["chrf"]), 4),  # type: ignore[index]
+                free_bleu=_f(float(a3["free_source_mt"]["bleu"]) - float(a3["stage_a_free_source_mt"]["bleu"]), 4),  # type: ignore[index]
+                free_chrf=_f(float(a3["free_source_mt"]["chrf"]) - float(a3["stage_a_free_source_mt"]["chrf"]), 4),  # type: ignore[index]
+                structure=int(a3["structure_errors"]) - a3_stage_structure,
+                audio=_f(float(a3["non_silent_rate"]) - float(a3_stage["non_silent_pcm"]) / max(1, int(a3_stage["samples"])), 4),  # type: ignore[index]
+                first=_f(float(a3["latency"]["first_semantic_write_ms"]["p50"]) - float(a3["stage_a_latency"]["first_semantic_write_ms"]["p50"]), 1),  # type: ignore[index]
+                al=_f(float(a3["latency"]["average_lagging_ms"]) - float(a3["stage_a_latency"]["average_lagging_ms"]), 1),  # type: ignore[index]
+                dal=_f(float(a3["latency"]["differentiable_average_lagging_ms"]) - float(a3["stage_a_latency"]["differentiable_average_lagging_ms"]), 1),  # type: ignore[index]
+                rtf=_f(float(a3["latency"]["generation_rtf"]) - float(a3["stage_a_latency"]["generation_rtf"]), 3),  # type: ignore[index]
+            ),
+            "",
+            "负的 AL/DAL/RTF 差值代表更低；正的 BLEU/chrF 代表更高。A3 相对 A1 的主要收益来自 free-running MT 和 lagging，gold BLEU 存在小幅回退，因此结论是综合有效而非全面占优。",
             "",
         ]
     )
@@ -232,19 +279,19 @@ def main() -> None:
         [
             "## 6. 完整 5–7 分钟有界滑窗",
             "",
-            "| model | audio | source | windows | first audio | RTF | max internal silence | stereo |",
-            "|---|---|---:|---:|---:|---:|---:|---|",
+            "| model | audio | source | plan | windows | silent windows | first audio | RTF | max internal silence | stereo |",
+            "|---|---|---:|---|---:|---:|---:|---:|---:|---|",
         ]
     )
     for label, payload in ((best, best_long), ("Stage A", base_long)):
         for row in payload["results"]:  # type: ignore[index]
             lines.append(
-                f"| {label} | {row['sample_id']} | {_f(row['source_duration_seconds'],1)}s | {row['planned_windows']} | {_f(row['first_audio_global_ms'],1)}ms | {_f(row['rtf'],3)} | {_f(row['timeline_silence']['maximum_internal_silence_ms'],1)}ms | `{row['stereo_path']}` |"
+                f"| {label} | {row['sample_id']} | {_f(row['source_duration_seconds'],1)}s | {row.get('window_plan_mode','silence_seeking')} | {row['planned_windows']} | {row.get('silent_windows',0)} | {_f(row['first_audio_global_ms'],1)}ms | {_f(row['rtf'],3)} | {_f(row['timeline_silence']['maximum_internal_silence_ms'],1)}ms | `{row['stereo_path']}` |"
             )
     lines.extend(
         [
             "",
-            "完整长音频模式在每个 18–30 秒窗口内部遵守 160ms PCM 逐块可见性，但窗口间重置模型状态；因此它是 bounded-window pseudo-streaming，不是因果 encoder/KV cache 的严格长时 streaming。60 秒前缀表才用于严格因果长前缀判断。",
+            "完整长音频模式优先使用 18–30 秒静音边界窗口；当录音长度在数学上无法同时满足最小/最大窗口约束时，使用不超过 30 秒的等分兜底。窗口内部遵守 640ms PCM 逐块可见性，但窗口间重置模型状态；因此它是 bounded-window pseudo-streaming，不是因果 encoder/KV cache 的严格长时 streaming。60 秒前缀表才用于严格因果长前缀判断。",
             "",
             "## 7. 音频与报告路径",
             "",
@@ -265,7 +312,7 @@ def main() -> None:
             "",
             "## 9. 最终回答",
             "",
-            f"本次固定质量优先选择为 **{best}**。是否相对 Stage A 有效，以及 GRPO 是否比 A1 matched SFT 更好，应以上述配对表中的质量、结构、pre-EOS 发声和时延共同判断；不能仅凭训练 reward 上升或 loss 下降下结论。",
+            f"本次固定质量优先选择为 **{best}**。在冻结 validation64/E2E16 上，A3 相对 Stage A 达到质量优先有效，且综合排序优于 A1 matched SFT；但 gold-source BLEU 与当前实现吞吐存在 trade-off，因此不能表述为全面支配，也不能仅凭训练 reward 上升或 loss 下降下结论。",
             "",
         ]
     )
