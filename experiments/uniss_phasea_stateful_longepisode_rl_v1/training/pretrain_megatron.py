@@ -34,6 +34,9 @@ from experiments.uniss_stagea_quality_first_joint_grpo_v1.training.pretrain_mega
     install_family_sampler,
     install_lr_overrides,
 )
+from experiments.uniss_stagea_quality_first_joint_grpo_v1.training.schedule import (
+    OneFamilyCoverageSchedule,
+)
 from training.pretrain_uniss_megatron import load_megatron_runtime
 
 
@@ -105,23 +108,40 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     del vp_stage
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
-    train = EpisodeGRPOPackedDataset(
-        args.episode_grpo_train,
-        args.seq_length,
-        target_length=int(train_val_test_num_samples[0]),
+    train_source = EpisodeGRPOPackedDataset(
+        args.episode_grpo_train, args.seq_length
+    )
+    train = OneFamilyCoverageSchedule(
+        train_source,
+        total_samples=int(train_val_test_num_samples[0]),
+        global_batch_size=int(args.global_batch_size),
+        data_parallel_group_size=int(args.data_parallel_size) * int(args.micro_batch_size),
+        shuffle_seed=int(args.seed),
+        split="train",
+        require_full_coverage=not bool(args.episode_smoke),
     )
     train.collate_fn = collate_episode_grpo
     valid = None
     if int(train_val_test_num_samples[1]) > 0:
-        valid = EpisodeGRPOPackedDataset(
-            args.episode_grpo_valid,
-            args.seq_length,
-            target_length=int(train_val_test_num_samples[1]),
+        valid_source = EpisodeGRPOPackedDataset(
+            args.episode_grpo_valid, args.seq_length
+        )
+        eval_global = int(getattr(args, "eval_global_batch_size", 0) or args.global_batch_size)
+        valid = OneFamilyCoverageSchedule(
+            valid_source,
+            total_samples=int(train_val_test_num_samples[1]),
+            global_batch_size=eval_global,
+            data_parallel_group_size=int(args.data_parallel_size)
+            * int(getattr(args, "eval_micro_batch_size", 0) or args.micro_batch_size),
+            shuffle_seed=int(args.seed) + 1,
+            split="valid",
+            require_full_coverage=False,
         )
         valid.collate_fn = collate_episode_grpo
     runtime.print_rank_0(
-        f"> free-running episode GRPO packs: train_source={len(train.offsets)} "
-        f"train_scheduled={len(train)} valid={0 if valid is None else len(valid.offsets)}"
+        f"> free-running episode GRPO packs: train_source={len(train_source)} "
+        f"train_scheduled={len(train)} valid={0 if valid is None else len(valid_source)} "
+        "strict_global_shuffle=true"
     )
     return train, valid, None
 
@@ -437,4 +457,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

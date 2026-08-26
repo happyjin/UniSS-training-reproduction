@@ -184,7 +184,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--trajectory", type=Path, action="append", required=True)
     parser.add_argument("--phase3-replay", type=Path, required=True)
-    parser.add_argument("--phase3-replay-records", type=int, required=True)
+    parser.add_argument("--phase3-replay-records", type=int)
+    parser.add_argument(
+        "--match-replay-to-rl",
+        action="store_true",
+        help="use one immutable Phase3 replay pack per generated RL pack",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seq-length", type=int, default=18_000)
     args = parser.parse_args()
@@ -194,12 +199,20 @@ def main() -> None:
             json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line
         )
     rl_samples = [trajectory_sample(row) for row in trajectories]
+    rl_packs = list(pack_samples(rl_samples, args.seq_length))
+    if args.match_replay_to_rl:
+        if args.phase3_replay_records is not None:
+            raise ValueError("do not combine explicit replay records with auto matching")
+        replay_records = len(rl_packs)
+    else:
+        if args.phase3_replay_records is None or args.phase3_replay_records <= 0:
+            raise ValueError("provide positive replay records or --match-replay-to-rl")
+        replay_records = int(args.phase3_replay_records)
     replay_rows = read_indexed(
         args.phase3_replay,
-        range(min(args.phase3_replay_records, len(offsets(args.phase3_replay)))),
+        range(min(replay_records, len(offsets(args.phase3_replay)))),
     )
     replay_packs = [replay_pack(row, args.seq_length) for row in replay_rows]
-    rl_packs = list(pack_samples(rl_samples, args.seq_length))
     interleaved = []
     maximum = max(len(rl_packs), len(replay_packs))
     for index in range(maximum):
