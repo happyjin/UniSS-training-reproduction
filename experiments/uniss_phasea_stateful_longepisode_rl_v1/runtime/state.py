@@ -34,7 +34,7 @@ class StreamingSessionState:
 
         candidate = self.asr_segment_committer.previous or []
         new = self.asr_segment_committer.update(candidate, final=True)
-        self.asr_committed_ids.extend(new)
+        self.asr_committed_ids.extend(self.asr_segment_committer.committed)
         self.asr_segment_committer = StablePrefixCommitter(holdback=1)
         self.speech_embedding_ring.clear()
         self.memory_rollovers += 1
@@ -50,4 +50,3 @@ class StreamingSessionState:
 
 
 __all__ = ["StreamingSessionState"]
-
