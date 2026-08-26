@@ -61,10 +61,15 @@ shopt -u nullglob
   exit 4
 }
 NVIDIA_LIBRARY_PATH=$(IFS=:; echo "${NVIDIA_LIBRARY_DIRS[*]}")
-export LD_LIBRARY_PATH=${NVIDIA_LIBRARY_PATH}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+SYSTEM_CUDA_LIBRARY_PATH=/usr/local/cuda-12.8/lib:/usr/local/cuda-12.8/lib64
+export LD_LIBRARY_PATH=${SYSTEM_CUDA_LIBRARY_PATH}:${NVIDIA_LIBRARY_PATH}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 "${PYTHON}" - <<'PY'
 import ctypes
 
+cudnn = ctypes.CDLL("libcudnn.so.9")
+cudnn.cudnnGetVersion.restype = ctypes.c_size_t
+if cudnn.cudnnGetVersion() < 90700:
+    raise SystemExit(f"cuDNN 9.7+ is required, found {cudnn.cudnnGetVersion()}")
 ctypes.CDLL("libcudnn_graph.so.9")
 import transformer_engine.pytorch  # noqa: F401,E402
 PY
