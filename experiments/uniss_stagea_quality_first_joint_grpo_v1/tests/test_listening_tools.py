@@ -5,6 +5,7 @@ from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.aggregate_l
 )
 from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.bounded_longform import (
     SAMPLE_RATE,
+    _plan_complete_windows,
     _silence_metrics,
 )
 from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.compare_arms import (
@@ -47,6 +48,25 @@ def test_longform_silence_audit_tracks_internal_gap() -> None:
     value = _silence_metrics(waveform)
     assert value["first_non_silent_ms"] == 0.0
     assert value["maximum_internal_silence_ms"] >= 500.0
+
+
+def test_longform_window_plan_relaxes_impossible_minimum_without_exceeding_cap() -> None:
+    # 34 seconds cannot be split into windows that are both >=18 and <=30
+    # seconds.  The evaluator must preserve all samples and the hard 30-second
+    # frontend cap instead of rejecting the recording.
+    waveform = np.ones(34 * SAMPLE_RATE, dtype=np.float32)
+    spans, mode = _plan_complete_windows(
+        waveform,
+        SAMPLE_RATE,
+        target_seconds=25.0,
+        minimum_seconds=18.0,
+        maximum_seconds=30.0,
+    )
+    assert mode == "equal_partition_relaxed_minimum"
+    assert spans[0].start_sample == 0
+    assert spans[-1].end_sample == len(waveform)
+    assert all(span.samples <= 30 * SAMPLE_RATE for span in spans)
+    assert all(left.end_sample == right.start_sample for left, right in zip(spans, spans[1:]))
 
 
 def _metric_block(score: float) -> dict[str, object]:

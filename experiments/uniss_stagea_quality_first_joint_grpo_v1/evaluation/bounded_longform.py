@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import time
 from pathlib import Path
 from typing import Sequence
@@ -26,6 +27,7 @@ from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.strict_casc
     _route_for_prompt,
 )
 from web_demo.uniss_phase3_prefix_streaming_v3_longform_v1.windowing import (
+    WindowSpan,
     place_target_without_overlap,
     plan_bounded_windows,
     render_target_timeline,
@@ -34,6 +36,83 @@ from web_demo.uniss_phase3_prefix_streaming_v3_longform_v1.windowing import (
 
 
 SAMPLE_RATE = 16_000
+
+
+def _equal_partition_fallback(
+    waveform: np.ndarray,
+    sample_rate: int,
+    *,
+    maximum_seconds: float,
+) -> list[WindowSpan]:
+    """Return complete <=maximum windows when silence planning has no solution.
+
+    The shared silence-seeking planner intentionally requires every window to
+    be at least ``minimum_seconds``.  A remaining interval in
+    ``(maximum, 2 * minimum)`` cannot satisfy both bounds, even though the
+    acoustic frontend can safely process the shorter window.  Complete-file
+    evaluation must not drop that tail, so the local evaluator evenly
+    repartitions the file while preserving the hard 30-second encoder cap.
+    """
+
+    values = np.asarray(waveform, dtype=np.float32).reshape(-1)
+    maximum = max(1, int(round(maximum_seconds * sample_rate)))
+    count = max(1, int(math.ceil(len(values) / maximum)))
+    base, remainder = divmod(len(values), count)
+    if base <= 0:
+        raise ValueError("cannot partition empty waveform")
+    spans: list[WindowSpan] = []
+    start = 0
+    radius = max(1, int(round(0.10 * sample_rate)))
+    for index in range(count):
+        end = start + base + (1 if index < remainder else 0)
+        chunk = np.asarray(
+            values[max(0, end - radius) : min(len(values), end + radius)],
+            dtype=np.float64,
+        )
+        boundary_rms = (
+            float(np.sqrt(np.mean(np.square(chunk)) + 1e-12))
+            if chunk.size
+            else 0.0
+        )
+        spans.append(WindowSpan(index, start, end, boundary_rms))
+        start = end
+    if start != len(values) or any(span.samples > maximum for span in spans):
+        raise AssertionError("equal-partition fallback violated complete coverage")
+    return spans
+
+
+def _plan_complete_windows(
+    waveform: np.ndarray,
+    sample_rate: int,
+    *,
+    target_seconds: float,
+    minimum_seconds: float,
+    maximum_seconds: float,
+) -> tuple[list[WindowSpan], str]:
+    """Prefer silence boundaries, but never reject a valid short final tail."""
+
+    try:
+        return (
+            plan_bounded_windows(
+                waveform,
+                sample_rate,
+                target_seconds=target_seconds,
+                minimum_seconds=minimum_seconds,
+                maximum_seconds=maximum_seconds,
+            ),
+            "silence_seeking",
+        )
+    except ValueError as exc:
+        if "window is shorter than minimum size" not in str(exc):
+            raise
+        return (
+            _equal_partition_fallback(
+                waveform,
+                sample_rate,
+                maximum_seconds=maximum_seconds,
+            ),
+            "equal_partition_relaxed_minimum",
+        )
 
 
 def _speaker_sha256(values: Sequence[int]) -> str:
@@ -135,7 +214,7 @@ def main() -> None:
             source = np.asarray(source.mean(axis=1), dtype=np.float32)
             if not len(source) or not np.isfinite(source).all():
                 raise ValueError(f"long audio is empty/non-finite: {source_path}")
-            spans = plan_bounded_windows(
+            spans, window_plan_mode = _plan_complete_windows(
                 source,
                 SAMPLE_RATE,
                 target_seconds=args.target_window_seconds,
@@ -267,6 +346,7 @@ def main() -> None:
                     "processing_seconds": elapsed,
                     "rtf": elapsed / (len(source) / SAMPLE_RATE),
                     "planned_windows": len(spans),
+                    "window_plan_mode": window_plan_mode,
                     "completed_windows": len(spans),
                     "failed_windows": 0,
                     "first_audio_global_ms": min(
@@ -327,4 +407,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
