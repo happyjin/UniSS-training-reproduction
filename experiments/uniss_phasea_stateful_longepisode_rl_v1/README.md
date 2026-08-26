@@ -22,6 +22,9 @@ remaining epoch evaluations or final report generation.
 After the final report exists, a separate tmux watcher restores the repository
 60% GPU holder only when `nvidia-smi` reports no remaining compute process.  It
 therefore cannot overlap rollout, attribution, training, or listening runs.
+Before the holder watcher starts, a targeted finalizer commits only this
+experiment's train-rollout and final-comparison reports and pushes the current
+`master` commit to `private/main`; unrelated untracked files are never staged.
 
 Quality gates select and annotate checkpoints.  They do not stop the remaining
 evaluation and report-generation stages.
