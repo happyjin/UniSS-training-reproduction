@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.aggregate_listening import (
     summarize,
@@ -7,6 +8,7 @@ from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.bounded_lon
     SAMPLE_RATE,
     _plan_complete_windows,
     _silence_metrics,
+    _target_waveform_status,
 )
 from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.compare_arms import (
     _arm,
@@ -67,6 +69,18 @@ def test_longform_window_plan_relaxes_impossible_minimum_without_exceeding_cap()
     assert spans[-1].end_sample == len(waveform)
     assert all(span.samples <= 30 * SAMPLE_RATE for span in spans)
     assert all(left.end_sample == right.start_sample for left, right in zip(spans, spans[1:]))
+
+
+def test_longform_target_silence_is_reportable_but_invalid_audio_is_rejected() -> None:
+    assert _target_waveform_status(np.empty(0, dtype=np.float32), SAMPLE_RATE) == "silent"
+    assert (
+        _target_waveform_status(np.ones(16, dtype=np.float32), SAMPLE_RATE)
+        == "non_silent"
+    )
+    with pytest.raises(ValueError, match="non-finite"):
+        _target_waveform_status(np.asarray([np.nan], dtype=np.float32), SAMPLE_RATE)
+    with pytest.raises(ValueError, match="sample rate"):
+        _target_waveform_status(np.ones(16, dtype=np.float32), 8_000)
 
 
 def _metric_block(score: float) -> dict[str, object]:

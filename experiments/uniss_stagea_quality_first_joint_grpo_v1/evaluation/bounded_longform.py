@@ -146,6 +146,17 @@ def _silence_metrics(waveform: np.ndarray) -> dict[str, float | None]:
     }
 
 
+def _target_waveform_status(waveform: np.ndarray, sample_rate: int) -> str:
+    """Classify an evaluated target without turning model silence into a crash."""
+
+    values = np.asarray(waveform, dtype=np.float32).reshape(-1)
+    if int(sample_rate) != SAMPLE_RATE:
+        raise ValueError("window target audio has the wrong sample rate")
+    if not np.isfinite(values).all():
+        raise ValueError("window target audio contains non-finite samples")
+    return "silent" if values.size == 0 else "non_silent"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-id", required=True)
@@ -272,9 +283,31 @@ def main() -> None:
                         target_path, dtype="float32", always_2d=True
                     )
                     target = np.asarray(target.mean(axis=1), dtype=np.float32)
-                    if target_rate != SAMPLE_RATE or not len(target) or not np.isfinite(target).all():
-                        raise ValueError("window target audio is empty, non-finite or wrong rate")
+                    target_status = _target_waveform_status(target, int(target_rate))
                     local_first_ms = value.get("first_audio_source_ms")
+                    if target_status == "silent":
+                        window_rows.append(
+                            {
+                                "window_index": position,
+                                "source_start_ms": span.start_sample * 1000.0 / SAMPLE_RATE,
+                                "source_end_ms": span.end_sample * 1000.0 / SAMPLE_RATE,
+                                "source_duration_ms": span.samples * 1000.0 / SAMPLE_RATE,
+                                "boundary_rms": span.boundary_rms,
+                                "first_audio_local_ms": None,
+                                "first_audio_global_ms": None,
+                                "target_end_global_ms": None,
+                                "generated_asr": value["generated_streaming_transcription"],
+                                "generated_translation": value[
+                                    "generated_streaming_translation"
+                                ],
+                                "audio_writes": value["audio_writes"],
+                                "semantic_tokens": value["semantic_tokens"],
+                                "audio_healthy": False,
+                                "window_result_path": str(target_path.resolve()),
+                                "status": "silent",
+                            }
+                        )
+                        continue
                     if local_first_ms is None:
                         local_first_ms = span.samples * 1000.0 / SAMPLE_RATE
                     available = span.start_sample + int(
@@ -349,10 +382,16 @@ def main() -> None:
                     "window_plan_mode": window_plan_mode,
                     "completed_windows": len(spans),
                     "failed_windows": 0,
+                    "silent_windows": sum(
+                        row["status"] == "silent" for row in window_rows
+                    ),
                     "first_audio_global_ms": min(
-                        float(row["first_audio_global_ms"])
-                        for row in window_rows
-                        if row["status"] == "complete"
+                        (
+                            float(row["first_audio_global_ms"])
+                            for row in window_rows
+                            if row["status"] == "complete"
+                        ),
+                        default=None,
                     ),
                     "translation_path": str(continuous_path.resolve()),
                     "timeline_path": str(timeline_path.resolve()),
