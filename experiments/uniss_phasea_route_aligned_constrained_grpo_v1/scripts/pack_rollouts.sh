@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 EXPERIMENT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 REPO_ROOT=$(cd -- "${EXPERIMENT_ROOT}/../.." && pwd)
 source "${EXPERIMENT_ROOT}/config.env"
+export PYTHONPATH=${REPO_ROOT}:${PYTHONPATH:-}
 RUN_ID=${1:?usage: pack_rollouts.sh ROLLOUT_ID PACK_ID}
 PACK_ID=${2:?missing pack ID}
 MERGED=${REPO_ROOT}/eval_outputs/uniss_phasea_route_aligned_constrained_grpo_v1/${RUN_ID}/ROLLOUT_MERGED.json
@@ -25,4 +26,3 @@ for split in train valid; do
     --output "${OUTPUT}/${split}_packs.jsonl" --seq-length 18000
 done
 echo "OUTPUT=${OUTPUT}"
-
