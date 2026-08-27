@@ -15,6 +15,13 @@ RUN_ID=$1
 OUTPUT=$2
 ADAPTER=$3
 GPUS=("${4:-0}" "${5:-1}" "${6:-2}" "${7:-3}")
+mkdir -p "$(dirname "${OUTPUT}")"
+exec 9>"${OUTPUT}.lock"
+flock 9
+if [[ -f "${OUTPUT}/results.json" ]]; then
+  echo "RESULTS=${OUTPUT}/results.json"
+  exit 0
+fi
 [[ ! -e "${OUTPUT}" ]] || { echo "refusing to overwrite ${OUTPUT}" >&2; exit 3; }
 if [[ "${ADAPTER}" != NONE ]]; then
   [[ -f "${ADAPTER}/.metadata" ]] || { echo "missing adapter checkpoint: ${ADAPTER}" >&2; exit 3; }
@@ -65,4 +72,3 @@ done
 
 "${PYTHON}" "${EXPERIMENT_ROOT}/evaluation/merge_stateful_parts.py" \
   --run-id "${RUN_ID}" --parts-root "${OUTPUT}/parts" --output "${OUTPUT}/results.json"
-
