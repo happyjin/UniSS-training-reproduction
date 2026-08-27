@@ -23,6 +23,13 @@ mkdir -p "${SAVE}" "${TB}" "$(dirname "${LOG}")"
 TRAIN_RECORDS=$(($(stat -c %s "${TRAIN}.offsets.bin") / 8))
 STEPS_PER_EPOCH=$(( (TRAIN_RECORDS + 8 - 1) / 8 ))
 TRAIN_ITERS=${TRAIN_ITERS:-${STEPS_PER_EPOCH}}
+LR_WARMUP_ITERS=${LR_WARMUP_ITERS:-2}
+if (( LR_WARMUP_ITERS >= TRAIN_ITERS )); then
+  LR_WARMUP_ITERS=$((TRAIN_ITERS - 1))
+fi
+(( LR_WARMUP_ITERS >= 0 )) || {
+  echo "TRAIN_ITERS must be at least 1" >&2; exit 2;
+}
 SMOKE_ARGS=()
 if [[ ${EVENT_SMOKE:-0} == 1 ]]; then SMOKE_ARGS=(--event-smoke); fi
 
@@ -58,7 +65,7 @@ CMD=(
   --position-embedding-type rope --rotary-base 1000000
   --seq-length 18000 --max-position-embeddings 32768
   --micro-batch-size 1 --global-batch-size 8 --train-iters "${TRAIN_ITERS}"
-  --lr 2e-5 --min-lr 2e-6 --lr-warmup-iters 2
+  --lr 2e-5 --min-lr 2e-6 --lr-warmup-iters "${LR_WARMUP_ITERS}"
   --lr-decay-iters "${TRAIN_ITERS}" --lr-decay-style cosine
   --dataloader-type cyclic --no-data-sharding --num-workers 0
   --weight-decay 0.01 --adam-beta1 0.9 --adam-beta2 0.95 --clip-grad 0.5
@@ -78,6 +85,7 @@ CMD=(
   echo "TRAIN_RECORDS=${TRAIN_RECORDS}"
   echo "STEPS_PER_EPOCH=${STEPS_PER_EPOCH}"
   echo "TRAIN_ITERS=${TRAIN_ITERS}"
+  echo "LR_WARMUP_ITERS=${LR_WARMUP_ITERS}"
   printf '%q ' "${CMD[@]}"; printf '\n'
 } >"${LOG}.command"
 "${CMD[@]}" 2>&1 | tee "${LOG}"
