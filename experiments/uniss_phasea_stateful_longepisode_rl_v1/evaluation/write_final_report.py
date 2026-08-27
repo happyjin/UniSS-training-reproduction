@@ -135,6 +135,9 @@ def main() -> None:
             name += "（C3 选中）"
         arms.append((name, payload, stateful_summary(payload)))
 
+    runtime_v2_stats = stateful_summary(runtime_v2)
+    epoch_stats = [stateful_summary(payload) for payload in epochs]
+
     attr_rows = list(attribution["results"])
     attr = {
         "mean_offline_asr_similarity": mean(
@@ -156,6 +159,15 @@ def main() -> None:
         "## 1. 直接结论",
         "",
         "本报告使用同一组四条长音频和 640 ms 决策间隔，对 Runtime 修复、旧 A3 与新长 episode RL 进行拆分比较。质量门只用于记录和 checkpoint 选优，未中断 rollout、训练、逐 epoch 试听或最终对照。C0 是历史 bounded-window pseudo-streaming；C1/C2/C3 才使用完整会话 stateful runtime v2，因此 C0→C1 代表运行时修复收益，C1→C3 才是新 RL 的净训练收益。",
+        "",
+        "### 1.1 最终有效性判定",
+        "",
+        f"- Runtime v2 的结构修复有效，但没有解决首次发声过晚：C1 平均首次 WRITE={fmt(runtime_v2_stats['first_write'],0)} ms；iter45 相对 C1 仅变化 {fmt(epoch_stats[2]['first_write']-runtime_v2_stats['first_write'],0)} ms。四条样本仍分别约 10.24–74.88 秒才首次发声，因此当前结果不能宣称低时延实时同传已经达标。",
+        f"- epoch1/iter15 是四条长音频上最稳的结构性 RL checkpoint：平均最大内部静音 {fmt(runtime_v2_stats['silence'],0)}→{fmt(epoch_stats[0]['silence'],0)} ms，覆盖 {fmt(runtime_v2_stats['coverage'],3)}→{fmt(epoch_stats[0]['coverage'],3)}，pending {fmt(runtime_v2_stats['pending'],0)}→{fmt(epoch_stats[0]['pending'],0)}，TTS failure {fmt(runtime_v2_stats['tts_failures'],0)}→{fmt(epoch_stats[0]['tts_failures'],0)}；代价是 RTF {fmt(runtime_v2_stats['rtf'],3)}→{fmt(epoch_stats[0]['rtf'],3)}，且两条中文长音频仍有明显重复扩写。",
+        f"- epoch2/iter30 更保守且稳定（pending={fmt(epoch_stats[1]['pending'],0)}、TTS failure={fmt(epoch_stats[1]['tts_failures'],0)}、RTF={fmt(epoch_stats[1]['rtf'],3)}），但平均覆盖降至 {fmt(epoch_stats[1]['coverage'],3)}，属于明显少译，不能作为完整性最优模型。",
+        f"- epoch3/iter45 由 regular validation loss 选中，长音频平均静音和覆盖为 {fmt(epoch_stats[2]['silence'],0)} ms / {fmt(epoch_stats[2]['coverage'],3)}；但出现 pending={fmt(epoch_stats[2]['pending'],0)}、TTS failure={fmt(epoch_stats[2]['tts_failures'],0)}，中文样本有 phrase-loop/过度生成。因此“validation 最优”不等同于“长音频试听最优”。",
+        "- 总结：本轮 RL 对长空白、队列清空和译音覆盖有部分正收益，明显优于旧 A3 的失控 over-generation；但没有实质降低首次 WRITE，也没有解决 free-running ASR/MT 语义错误与重复。若优先试听结构完整性，先听 iter15；若研究保守少生成，可对照 iter30；iter45 保留为 validation 规则选中的 C3，但不建议直接视为部署最优。",
+        "- iter15/iter30/iter45 的完整试听路径分别位于本报告同目录的 `stages/rl_epoch1_runtime_v2.zh-CN.md`、`stages/rl_epoch2_runtime_v2.zh-CN.md`、`stages/rl_epoch3_runtime_v2.zh-CN.md`。",
         "",
         "## 2. Rollout 与 A/B/C/D 归因",
         "",
@@ -179,7 +191,7 @@ def main() -> None:
             f"{fmt(summary['tts_failures'],0)} | {fmt(summary['rtf'],3)} |"
         )
 
-    base = stateful_summary(runtime_v2)
+    base = runtime_v2_stats
     best = stateful_summary(selected)
     lines.extend(
         [
