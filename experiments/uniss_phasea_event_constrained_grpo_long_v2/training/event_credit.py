@@ -62,6 +62,8 @@ def local_event_rewards(
             last_audio_ms = source_ms
         elif action == "WRITE":
             reward -= 0.20
+        if bool(event.get("deadline_forced_write", False)):
+            reward -= 1.00
         if bool(event.get("true_source_final", False)):
             reward += 0.75 if bool(event.get("flush_complete", False)) else -1.50
         rewards.append(reward)
@@ -133,4 +135,3 @@ __all__ = [
     "normalize",
     "reward_to_go",
 ]
-
