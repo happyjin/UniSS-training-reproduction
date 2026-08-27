@@ -10,7 +10,7 @@ PACK_ID=${2:?missing pack ID}
 ROLLOUT_ROOT=${REPO_ROOT}/eval_outputs/uniss_phasea_event_constrained_grpo_long_v2/${ROLLOUT_ID}
 OUTPUT=${REPO_ROOT}/data/processed/uniss_phasea_event_constrained_grpo_long_v2/${PACK_ID}
 mapfile -t TRAJECTORIES < <(find "${ROLLOUT_ROOT}/workers" -mindepth 2 -maxdepth 2 -name trajectories.jsonl -print | sort)
-[[ ${#TRAJECTORIES[@]} -eq 8 ]] || { echo "expected eight trajectory files" >&2; exit 2; }
+[[ ${#TRAJECTORIES[@]} -ge 8 ]] || { echo "expected at least eight trajectory files" >&2; exit 2; }
 ARGS=()
 for path in "${TRAJECTORIES[@]}"; do ARGS+=(--trajectory "${path}"); done
 "${PYTHON}" "${EXPERIMENT_ROOT}/training/pack_rollouts.py" \

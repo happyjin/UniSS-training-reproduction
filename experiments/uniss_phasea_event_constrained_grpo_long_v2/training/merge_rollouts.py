@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge eight immutable fresh-rollout workers without copying audio."""
+"""Merge immutable fresh-rollout workers without copying audio."""
 
 from __future__ import annotations
 

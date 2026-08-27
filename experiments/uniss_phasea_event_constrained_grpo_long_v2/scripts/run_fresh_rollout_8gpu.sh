@@ -8,6 +8,11 @@ source "${EXPERIMENT_ROOT}/config.env"
 RUN_ID=${1:?usage: run_fresh_rollout_8gpu.sh RUN_ID ADAPTER_CHECKPOINT ROUND}
 ADAPTER=${2:?missing adapter checkpoint}
 ROUND=${3:?missing round index}
+WORKERS=${ROLLOUT_WORKERS:-32}
+if (( WORKERS < 8 || WORKERS > 64 )); then
+  echo "ROLLOUT_WORKERS must be in [8, 64]" >&2
+  exit 2
+fi
 EPISODES=${REPO_ROOT}/data/processed/uniss_phasea_event_constrained_grpo_long_v2/protocol64_v1/episodes.jsonl
 OUTPUT=${REPO_ROOT}/eval_outputs/uniss_phasea_event_constrained_grpo_long_v2/${RUN_ID}
 [[ -f "${ADAPTER}/.metadata" ]] || { echo "missing adapter ${ADAPTER}" >&2; exit 2; }
@@ -19,14 +24,15 @@ export TMPDIR=/opt/dlami/nvme/jasonleeeli/tmp
 export PYTHONPATH=${REPO_ROOT}:${PYTHONPATH:-}
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TOKENIZERS_PARALLELISM=false
-export OMP_NUM_THREADS=8
+export OMP_NUM_THREADS=${ROLLOUT_OMP_THREADS:-4}
 
 pids=()
-for worker in $(seq 0 7); do
-  CUDA_VISIBLE_DEVICES=${worker} "${PYTHON}" -u "${EXPERIMENT_ROOT}/training/rollout.py" \
+for worker in $(seq 0 $((WORKERS - 1))); do
+  gpu=$((worker % 8))
+  CUDA_VISIBLE_DEVICES=${gpu} "${PYTHON}" -u "${EXPERIMENT_ROOT}/training/rollout.py" \
     --episodes "${EPISODES}" --baseline-rollout "${BASELINE_ROLLOUT}" \
     --output "${OUTPUT}/workers/worker_${worker}" \
-    --worker-index "${worker}" --num-workers 8 --group-size 4 \
+    --worker-index "${worker}" --num-workers "${WORKERS}" --group-size 4 \
     --decision-chunk-ms "${DECISION_CHUNK_MS}" \
     --acoustic-rollover-ms "${ACOUSTIC_ROLLOVER_MS}" \
     --base-hf "${PHASE_A_HF}" --adapter-checkpoint "${ADAPTER}" \
@@ -42,5 +48,5 @@ for pid in "${pids[@]}"; do wait "${pid}" || failed=1; done
 (( failed == 0 )) || { echo "one or more rollout workers failed" >&2; exit 4; }
 "${PYTHON}" "${EXPERIMENT_ROOT}/training/merge_rollouts.py" \
   --worker-root "${OUTPUT}/workers" --output "${OUTPUT}/ROLLOUT_MERGED.json" \
-  --expected-workers 8 --expected-episodes 64
+  --expected-workers "${WORKERS}" --expected-episodes 64
 echo "OUTPUT=${OUTPUT}"
