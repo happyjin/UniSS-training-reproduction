@@ -9,7 +9,7 @@ RUN_ID=${1:?usage: run_fresh_rollout_8gpu.sh RUN_ID ADAPTER_CHECKPOINT ROUND}
 ADAPTER=${2:?missing adapter checkpoint}
 ROUND=${3:?missing round index}
 WORKERS=${ROLLOUT_WORKERS:-32}
-GROUP_SIZE=${ROLLOUT_GROUP_SIZE:-2}
+GROUP_SIZE=${ROLLOUT_GROUP_SIZE:-4}
 if (( WORKERS < 8 || WORKERS > 64 )); then
   echo "ROLLOUT_WORKERS must be in [8, 64]" >&2
   exit 2
