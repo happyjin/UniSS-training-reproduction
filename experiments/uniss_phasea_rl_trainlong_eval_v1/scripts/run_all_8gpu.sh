@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 EXPERIMENT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 REPO_ROOT=$(cd -- "${EXPERIMENT_ROOT}/../.." && pwd)
 source "${EXPERIMENT_ROOT}/config.env"
+export PYTHONPATH=${REPO_ROOT}/third_party/Megatron-LM:${REPO_ROOT}:${PYTHONPATH:-}
 
 OUTPUT_ROOT=${REPO_ROOT}/eval_outputs/uniss_phasea_rl_trainlong_eval_v1
 REPORT=${REPO_ROOT}/reports/uniss_phasea_rl_trainlong_eval_v1/REPORT.zh-CN.md
