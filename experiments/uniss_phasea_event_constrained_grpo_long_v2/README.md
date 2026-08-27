@@ -12,7 +12,7 @@ The fixed execution protocol is:
 2. retain a balanced deterministic WAIT/WRITE sample plus every event belonging
    to the frozen 64-episode protocol;
 3. warm up the existing WAIT/WRITE action-token policy for one shuffled pass;
-4. generate group-four fresh rollouts on the same 64 bidirectional episodes;
+4. generate the minimum valid group-two fresh rollouts on the same 64 bidirectional episodes;
 5. update once, regenerate rollouts, and repeat for three rounds total;
 6. select the best round rather than assuming the final round is best;
 7. compare Phase A, the previous epoch-2 policy, warm-up, and all fresh rounds.
@@ -24,4 +24,3 @@ only `TOKEN_WAIT_READ` and `TOKEN_WRITE_GENERATE`.
 Three fresh rounds are not three epochs over stale data: every round produces
 new actions, text, semantic audio, old log probabilities, local rewards, and
 advantages, and its packed trajectories are consumed exactly once.
-

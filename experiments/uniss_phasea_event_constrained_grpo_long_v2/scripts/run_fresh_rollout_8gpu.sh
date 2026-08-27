@@ -9,8 +9,13 @@ RUN_ID=${1:?usage: run_fresh_rollout_8gpu.sh RUN_ID ADAPTER_CHECKPOINT ROUND}
 ADAPTER=${2:?missing adapter checkpoint}
 ROUND=${3:?missing round index}
 WORKERS=${ROLLOUT_WORKERS:-32}
+GROUP_SIZE=${ROLLOUT_GROUP_SIZE:-2}
 if (( WORKERS < 8 || WORKERS > 64 )); then
   echo "ROLLOUT_WORKERS must be in [8, 64]" >&2
+  exit 2
+fi
+if (( GROUP_SIZE < 2 || GROUP_SIZE > 4 )); then
+  echo "ROLLOUT_GROUP_SIZE must be in [2, 4]" >&2
   exit 2
 fi
 EPISODES=${REPO_ROOT}/data/processed/uniss_phasea_event_constrained_grpo_long_v2/protocol64_v1/episodes.jsonl
@@ -32,7 +37,7 @@ for worker in $(seq 0 $((WORKERS - 1))); do
   CUDA_VISIBLE_DEVICES=${gpu} "${PYTHON}" -u "${EXPERIMENT_ROOT}/training/rollout.py" \
     --episodes "${EPISODES}" --baseline-rollout "${BASELINE_ROLLOUT}" \
     --output "${OUTPUT}/workers/worker_${worker}" \
-    --worker-index "${worker}" --num-workers "${WORKERS}" --group-size 4 \
+    --worker-index "${worker}" --num-workers "${WORKERS}" --group-size "${GROUP_SIZE}" \
     --decision-chunk-ms "${DECISION_CHUNK_MS}" \
     --acoustic-rollover-ms "${ACOUSTIC_ROLLOVER_MS}" \
     --base-hf "${PHASE_A_HF}" --adapter-checkpoint "${ADAPTER}" \
