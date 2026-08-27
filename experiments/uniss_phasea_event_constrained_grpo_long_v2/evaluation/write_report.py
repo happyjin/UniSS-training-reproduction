@@ -164,6 +164,22 @@ def main() -> None:
                 "round_index": payload.get("round_index"),
                 "all": summarize(rows),
                 "best_of_four": summarize(best_per_episode(rows)),
+                "by_direction": {
+                    direction: summarize(
+                        [row for row in rows if row["direction"] == direction]
+                    )
+                    for direction in ("cmn->eng", "eng->cmn")
+                },
+                "best_of_four_by_direction": {
+                    direction: summarize(
+                        [
+                            row
+                            for row in best_per_episode(rows)
+                            if row["direction"] == direction
+                        ]
+                    )
+                    for direction in ("cmn->eng", "eng->cmn")
+                },
                 "rows": rows,
             }
         )
@@ -218,7 +234,28 @@ def main() -> None:
     lines.extend(
         [
             "",
-            "## 3. 每条 episode 的 best-of-4",
+            "## 3. 分方向全部 candidates",
+            "",
+            "| Policy | 方向 | ASR相似度↑ | MT相似度↑ | 文本完整度↑ | 首次WRITE p50/p95 ms↓ | 最大静音均值 ms↓ | 译音覆盖↑ |",
+            "|---|---|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for arm in arms:
+        for direction in ("cmn->eng", "eng->cmn"):
+            metric = arm["by_direction"][direction]
+            lines.append(
+                f"| {arm['label']} | {direction} | "
+                f"{fmt(metric['asr_teacher_similarity']['mean'])} | "
+                f"{fmt(metric['mt_teacher_similarity']['mean'])} | "
+                f"{fmt(metric['translation_length_ratio']['mean'])} | "
+                f"{fmt(metric['first_write_ms']['p50'],0)}/{fmt(metric['first_write_ms']['p95'],0)} | "
+                f"{fmt(metric['maximum_internal_silence_ms']['mean'],0)} | "
+                f"{fmt(metric['coverage_audio']['mean'])} |"
+            )
+    lines.extend(
+        [
+            "",
+            "## 4. 每条 episode 的 best-of-4",
             "",
             "| Policy | reward↑ | ASR相似度↑ | MT相似度↑ | 文本完整度↑ | 首次WRITE p50/p95 ms↓ | 最大静音均值 ms↓ | pending/TTS失败↓ |",
             "|---|---:|---:|---:|---:|---:|---:|---:|",
@@ -236,7 +273,7 @@ def main() -> None:
             f"{fmt(metric['pending']['mean'],1)}/{fmt(metric['tts_failures']['mean'],1)} |"
         )
 
-    lines.extend(["", "## 4. 每轮双向最佳试听样本", ""])
+    lines.extend(["", "## 5. 每轮双向最佳试听样本", ""])
     for arm in arms:
         lines.extend([f"### {arm['label']}", ""])
         for direction in ("cmn->eng", "eng->cmn"):
@@ -258,7 +295,7 @@ def main() -> None:
                 )
         lines.append("")
 
-    lines.extend(["## 5. 训练终点 validation", ""])
+    lines.extend(["## 6. 训练终点 validation", ""])
     for label, record in validations.items():
         terminal = record["terminal"]
         if terminal is None:
@@ -271,7 +308,7 @@ def main() -> None:
     lines.extend(
         [
             "",
-            "## 6. 选择原则",
+            "## 7. 选择原则",
             "",
             "只在 ASR/MT 相似度、文本与译音完整度、音频健康不明显下降时，才把更早 first WRITE、更短内部静音视为有效提升。训练 validation loss 只用于检查优化稳定性；最终试听选择必须同时查看自由运行 64×4 指标，不能仅按 loss 最低选 checkpoint。",
             "",

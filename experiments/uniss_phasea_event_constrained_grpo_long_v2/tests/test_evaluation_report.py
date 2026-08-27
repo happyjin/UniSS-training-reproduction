@@ -46,3 +46,5 @@ def test_strict_geometry_and_best_of_four():
     assert len(best) == 64
     assert {row["group_index"] for row in best} == {3}
     assert summarize(best)["reward"]["mean"] == 3.0
+    assert len([row for row in rows if row["direction"] == "cmn->eng"]) == 128
+    assert len([row for row in best if row["direction"] == "eng->cmn"]) == 32
