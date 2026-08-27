@@ -58,7 +58,6 @@ def main() -> None:
     with args.output.open("w", encoding="utf-8") as handle:
         for episode_id in requested:
             row = episodes[episode_id]
-            gap = int(row.get("gap_ms", 0))
             cursor = 0
             mapped: list[dict[str, object]] = []
             components: list[dict[str, object]] = []
@@ -102,8 +101,12 @@ def main() -> None:
                             ),
                         }
                     )
-                cursor = stop + (gap if index + 1 < len(row["components"]) else 0)
-            if abs(cursor - int(row["duration_ms"])) > max(1, gap):
+                # ``gap_ms`` is the builder's boundary/cross-fade geometry;
+                # it is not extra silence.  The audited long manifests have
+                # duration_ms == sum(component.duration_ms), so adding it here
+                # would drift every downstream READ/WRITE timestamp.
+                cursor = stop
+            if abs(cursor - int(row["duration_ms"])) > 1:
                 raise ValueError(
                     f"component timeline differs for {episode_id}: {cursor} vs {row['duration_ms']}"
                 )
@@ -137,4 +140,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
