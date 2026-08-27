@@ -218,6 +218,14 @@ def summarize(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         for row in rows
         for value in row["reference_metrics"]["write_gaps_ms"]
     ]
+    row_gap_summaries = [
+        row.get("inter_write_gap_ms", {})
+        for row in rows
+        if isinstance(row.get("inter_write_gap_ms"), dict)
+    ]
+    metric_names = {
+        str(row["reference_metrics"]["asr_metric"]) for row in rows
+    }
     hypotheses = [str(row["generated_streaming_translation"]) for row in rows]
     references = [str(row["reference_translation"]) for row in rows]
     target = str(rows[0]["tgt_lang"]) if rows else "eng"
@@ -225,7 +233,11 @@ def summarize(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "samples": len(rows),
         "source_duration_seconds": sum(float(row["source_duration_ms"]) for row in rows)
         / 1000.0,
-        "asr_metric": str(rows[0]["reference_metrics"]["asr_metric"]) if rows else None,
+        "asr_metric": (
+            next(iter(metric_names))
+            if len(metric_names) == 1
+            else "mixed_cer_wer" if metric_names else None
+        ),
         "asr_errors": errors,
         "asr_reference_units": units,
         "asr_error_rate": errors / units if units else None,
@@ -273,11 +285,50 @@ def summarize(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
             "maximum": max(first) if first else None,
         },
         "write_gap_ms": {
-            "observed": len(gaps),
-            "mean": mean(gaps),
-            "p50": percentile(gaps, 0.50),
-            "p95": percentile(gaps, 0.95),
-            "maximum": max(gaps) if gaps else None,
+            "observed": (
+                len(gaps)
+                if gaps
+                else sum(max(0, int(row["audio_writes"]) - 1) for row in rows)
+            ),
+            "mean": (
+                mean(gaps)
+                if gaps
+                else mean(
+                    value["mean"]
+                    for value in row_gap_summaries
+                    if value.get("mean") is not None
+                )
+            ),
+            "p50": (
+                percentile(gaps, 0.50)
+                if gaps
+                else mean(
+                    value["p50"]
+                    for value in row_gap_summaries
+                    if value.get("p50") is not None
+                )
+            ),
+            "p95": (
+                percentile(gaps, 0.95)
+                if gaps
+                else mean(
+                    value["p95"]
+                    for value in row_gap_summaries
+                    if value.get("p95") is not None
+                )
+            ),
+            "maximum": (
+                max(gaps)
+                if gaps
+                else max(
+                    (
+                        float(value["maximum"])
+                        for value in row_gap_summaries
+                        if value.get("maximum") is not None
+                    ),
+                    default=None,
+                )
+            ),
         },
         "maximum_internal_timeline_silence_ms_mean": mean(
             row["maximum_internal_timeline_silence_ms"] for row in rows

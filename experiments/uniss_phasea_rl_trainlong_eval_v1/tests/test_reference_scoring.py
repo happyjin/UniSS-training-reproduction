@@ -10,6 +10,7 @@ from experiments.uniss_phasea_rl_trainlong_eval_v1.evaluation.score_results impo
     ngram_repetition,
     percentile,
     score_row,
+    summarize,
 )
 
 
@@ -69,3 +70,45 @@ def test_score_row_uses_installed_sacrebleu_api(tmp_path: Path) -> None:
     assert value["asr_error_rate"] == 0.0
     assert value["mt_sentence_chrf"] == 100.0
     assert value["final_translation_lcs_coverage"] == 1.0
+
+
+def test_summary_falls_back_to_runtime_gap_summary() -> None:
+    row = {
+        "src_lang": "eng",
+        "tgt_lang": "cmn",
+        "source_duration_ms": 2_000,
+        "generated_streaming_translation": "你好",
+        "reference_translation": "你好",
+        "reference_metrics": {
+            "asr_metric": "wer",
+            "asr_errors": 0,
+            "asr_reference_units": 2,
+            "asr_normalized_similarity": 1.0,
+            "final_translation_lcs_coverage": 1.0,
+            "translation_length_ratio": 1.0,
+            "translation_4gram_repetition": {
+                "repetition_rate": 0.0,
+                "maximum_frequency": 0,
+            },
+            "write_gaps_ms": [],
+            "independent_wav_audit": {
+                key: {"healthy": True} for key in ("continuous", "timeline", "stereo")
+            },
+        },
+        "first_audio_source_ms": 640,
+        "inter_write_gap_ms": {"mean": 640, "p50": 640, "p95": 900, "maximum": 960},
+        "maximum_internal_timeline_silence_ms": 0,
+        "translation_audio_to_source_duration_ratio": 1.0,
+        "audio_writes": 3,
+        "prefinal_audio_emitted": True,
+        "tts_pending_unspoken_items": 0,
+        "tts_failures": 0,
+        "rejected_early_end": 0,
+        "semantic_continuations": 0,
+        "stateful_runtime_passed": True,
+        "rtf": 1.0,
+    }
+    value = summarize([row])
+    assert value["write_gap_ms"]["observed"] == 2
+    assert value["write_gap_ms"]["p95"] == 900
+    assert value["write_gap_ms"]["maximum"] == 960
