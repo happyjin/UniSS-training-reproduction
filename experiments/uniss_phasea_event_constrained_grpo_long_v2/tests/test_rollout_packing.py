@@ -1,4 +1,5 @@
 from experiments.uniss_phasea_event_constrained_grpo_long_v2.training.pack_rollouts import (
+    add_event_family_summary,
     trajectory_sample,
 )
 from training import constants_uniss as c
@@ -25,3 +26,12 @@ def test_control_trajectory_has_one_local_advantage():
 
 def test_asr_trace_is_excluded_to_preserve_phase_a():
     assert trajectory_sample({"family": "asr"}) is None
+
+
+def test_event_family_summary_reports_control_tokens():
+    row = {
+        "family_ids": [4, 2, 3, 4, 0],
+        "response_mask": [1.0, 1.0, 1.0, 0.0, 0.0],
+    }
+    summary = add_event_family_summary({}, [row])
+    assert summary["family_response_tokens"] == {"mt": 1, "tts": 1, "control": 1}

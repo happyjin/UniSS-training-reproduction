@@ -120,6 +120,22 @@ def load(paths: list[Path]):
                     yield json.loads(line)
 
 
+def add_event_family_summary(
+    summary: dict[str, object], rows: list[dict[str, object]]
+) -> dict[str, object]:
+    """Report event-family response tokens, including the new control family."""
+    family_tokens = {
+        name: sum(
+            int(int(family) == family_id and float(mask) > 0)
+            for row in rows
+            for family, mask in zip(row["family_ids"], row["response_mask"])
+        )
+        for name, family_id in FAMILY_IDS.items()
+    }
+    summary["family_response_tokens"] = family_tokens
+    return summary
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--trajectory", type=Path, action="append", required=True)
@@ -148,8 +164,12 @@ def main() -> None:
             replay_index += 1
     train.extend(replay[replay_index:])
     args.output.mkdir(parents=True)
-    train_summary = write_jsonl(args.output / "train_packs.jsonl", train)
-    valid_summary = write_jsonl(args.output / "valid_packs.jsonl", valid_rl)
+    train_summary = add_event_family_summary(
+        write_jsonl(args.output / "train_packs.jsonl", train), train
+    )
+    valid_summary = add_event_family_summary(
+        write_jsonl(args.output / "valid_packs.jsonl", valid_rl), valid_rl
+    )
     report = {
         "schema_version": "uniss_event_constrained_dataset_v2",
         "status": "passed",
