@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 EXPERIMENT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 REPO_ROOT=$(cd -- "${EXPERIMENT_ROOT}/../.." && pwd)
+export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 source "${EXPERIMENT_ROOT}/config.env"
 ROLLOUT_ID=${1:?usage: pack_fresh_round.sh ROLLOUT_ID PACK_ID}
 PACK_ID=${2:?missing pack ID}
