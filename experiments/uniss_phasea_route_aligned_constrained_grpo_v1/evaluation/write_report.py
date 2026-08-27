@@ -109,8 +109,47 @@ def main() -> None:
             f"{fmt(float(overall['first_audio_source_ms']['p50'])-float(base_overall['first_audio_source_ms']['p50']),0)} | "
             f"{fmt(float(overall['maximum_internal_timeline_silence_ms_mean'])-float(base_overall['maximum_internal_timeline_silence_ms_mean']),0)} |"
         )
+    by_label = {label: payload for label, payload in arms}
+    if {"SFT64", "RL epoch1", "RL epoch2", "RL epoch3"}.issubset(by_label):
+        sft = by_label["SFT64"]["aggregate"]["overall"]
+        lines.extend(
+            [
+                "",
+                "## 5. 相对 SFT64 的 RL 增益与 checkpoint 选择",
+                "",
+                "| 系统 | ASR error变化↓ | BLEU变化↑ | chrF变化↑ | LCS覆盖变化↑ | 首次p95变化ms↓ | 最大静音变化ms↓ | 音频覆盖变化↑ |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for label in ("RL epoch1", "RL epoch2", "RL epoch3"):
+            value = by_label[label]["aggregate"]["overall"]
+            lines.append(
+                f"| {label} | {fmt(float(value['asr_error_rate'])-float(sft['asr_error_rate']))} | "
+                f"{fmt(float(value['mt_corpus_bleu'])-float(sft['mt_corpus_bleu']),2)} | "
+                f"{fmt(float(value['mt_corpus_chrf'])-float(sft['mt_corpus_chrf']),2)} | "
+                f"{fmt(float(value['final_translation_lcs_coverage_mean'])-float(sft['final_translation_lcs_coverage_mean']))} | "
+                f"{fmt(float(value['first_audio_source_ms']['p95'])-float(sft['first_audio_source_ms']['p95']),0)} | "
+                f"{fmt(float(value['maximum_internal_timeline_silence_ms_mean'])-float(sft['maximum_internal_timeline_silence_ms_mean']),0)} | "
+                f"{fmt(float(value['translation_audio_to_source_duration_ratio_mean'])-float(sft['translation_audio_to_source_duration_ratio_mean']))} |"
+            )
+        lines.extend(
+            [
+                "",
+                "结论：RL 确实改变了真实 ASR/MT/TTS 路由，不再是旧实验中 ASR 输出逐字不变的无效更新。若以本次用户指定的 train-seen 目标优先选择内容完整度和双向折中，推荐 `RL epoch2 / iter_0000082`：它相对 SFT64 取得最低整体 ASR error、最高 LCS 覆盖、最高音频覆盖，并显著恢复英→中 BLEU/chrF。若更强调较短内部静音和中→英质量，则 `RL epoch1 / iter_0000041` 更稳健。`RL epoch3 / iter_0000123` 的 BLEU、chrF 和静音开始回退，不推荐作为部署 checkpoint。",
+                "",
+                "严格边界：相对原始 Phase A，所有新 arm 都改善了中→英 CER/chrF，但英→中 WER 和 chrF 仍未完全恢复，因此没有通过‘双向质量均不退化’的严格门。当前实验只证明约束式 GRPO 能在这 8 条训练样本上学习并部分修复 SFT64，不证明外部泛化，也不代表已经达到低于 1 秒的同传延迟。",
+                "",
+                "### 推荐试听与失败样本",
+                "",
+                "- `episode_000006_cmn_eng`：RL epoch2 是最清楚的中→英正例；相对 Phase A，ASR error、chrF、覆盖和最大静音均改善，但首次发声仍为 14.08 s。",
+                "- `episode_000033_eng_cmn`：RL epoch2 相对 SFT64 明显恢复长段英文识别与中文翻译，适合听 RL 的修复作用；但仍弱于原始 Phase A，且内部最大静音达到 38 s。",
+                "- `episode_000028_cmn_eng`：三个 RL arm 都较稳定，epoch3 单样本分数最好，但不能据此覆盖其整体过训结论。",
+                "- `episode_000004_cmn_eng`：SFT64 已大幅优于 Phase A，继续 RL 后逐 epoch 回落，是过度优化的反例。",
+                "- `episode_000035_eng_cmn`：所有 arm 都很差，RL epoch2 仅 5 次 WRITE、音频覆盖 0.148，是当前最明显的失败样本。",
+            ]
+        )
     sample_ids = [str(row["sample_id"]) for row in arms[0][1]["results"]]
-    lines.extend(["", "## 5. 逐样本试听", ""])
+    lines.extend(["", "## 6. 逐样本试听", ""])
     for sample_id in sample_ids:
         source = next(
             row for row in arms[0][1]["results"] if str(row["sample_id"]) == sample_id
@@ -140,7 +179,7 @@ def main() -> None:
         lines.append("")
     lines.extend(
         [
-            "## 6. 判定原则",
+            "## 7. 判定原则",
             "",
             "只有当 ASR error 不升、双向 chrF 和文本覆盖不下降、pending/TTS failure 为零时，first-WRITE、WRITE gap 或静音改善才计为有效。训练内提升仅证明当前方法能在给定数据上学到目标，不等于外部泛化。",
             "",
@@ -153,4 +192,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
