@@ -5,8 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
+
+
+VALIDATION_SET_RE = re.compile(r"validation loss at iteration\s+(\d+) on validation set\s+\|")
+METRIC_RE = re.compile(
+    r"([a-zA-Z0-9_/]+) value:\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)[Ee][-+]?\d+)"
+)
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -70,6 +77,19 @@ def result_by_id(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {str(row["sample_id"]): row for row in payload["results"]}
 
 
+def terminal_validation_metrics(path: Path) -> dict[str, Any] | None:
+    """Return the last explicit terminal validation-set row, if training emitted one."""
+    selected: dict[str, Any] | None = None
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = VALIDATION_SET_RE.search(line)
+        if match is None:
+            continue
+        metrics = {name: float(value) for name, value in METRIC_RE.findall(line)}
+        if "loss/total" in metrics:
+            selected = {"iteration": int(match.group(1)), "metrics": metrics}
+    return selected
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--runtime-v1", type=Path, required=True)
@@ -92,6 +112,7 @@ def main() -> None:
     attribution = load(args.attribution)
     train_rollout = load(args.train_rollout)
     valid_rollout = load(args.valid_rollout)
+    terminal_validation = terminal_validation_metrics(Path(selection["training_log"]))
     epochs = [load(path) for path in args.epoch_result]
     epoch_by_checkpoint = {
         str(payload["adapter_manifest"].get("checkpoint")): payload for payload in epochs
@@ -192,12 +213,20 @@ def main() -> None:
                 f"- C0 Phase A runtime v1 连续译音：`{bounded['translation_path']}`",
                 f"- C0 Phase A runtime v1 全局时间轴：`{bounded['timeline_path']}`",
                 f"- C1 Phase A 立体声：`{before['stereo_audio_path']}`",
+                f"- C1 Phase A 连续译音：`{before['continuous_audio_path']}`",
+                f"- C1 Phase A 全局时间轴：`{before['timeline_audio_path']}`",
                 f"- C2 旧 A3 立体声：`{old_rl['stereo_audio_path']}`",
+                f"- C2 旧 A3 连续译音：`{old_rl['continuous_audio_path']}`",
+                f"- C2 旧 A3 全局时间轴：`{old_rl['timeline_audio_path']}`",
                 f"- C3 新 RL 立体声：`{after['stereo_audio_path']}`",
                 f"- C3 连续译音：`{after['continuous_audio_path']}`",
                 f"- C3 全局时间轴：`{after['timeline_audio_path']}`",
                 f"- 首次发声 C1→C3：{fmt(before['first_audio_source_ms'],0)}→{fmt(after['first_audio_source_ms'],0)} ms；最大内部静音 {fmt(before['maximum_internal_timeline_silence_ms'],0)}→{fmt(after['maximum_internal_timeline_silence_ms'],0)} ms。",
-                f"- WRITE C1→C3：{before['audio_writes']}→{after['audio_writes']}；pending {before['tts_pending_unspoken_items']}→{after['tts_pending_unspoken_items']}；TTS failure {before['tts_failures']}→{after['tts_failures']}。",
+                f"- WRITE C1→C2→C3：{before['audio_writes']}→{old_rl['audio_writes']}→{after['audio_writes']}；最大 WRITE 间隔 {fmt(before['inter_write_gap_ms']['maximum'],0)}→{fmt(old_rl['inter_write_gap_ms']['maximum'],0)}→{fmt(after['inter_write_gap_ms']['maximum'],0)} ms。",
+                f"- 译音/源音覆盖 C1→C2→C3：{fmt(before['translation_audio_to_source_duration_ratio'],3)}→{fmt(old_rl['translation_audio_to_source_duration_ratio'],3)}→{fmt(after['translation_audio_to_source_duration_ratio'],3)}；RTF {fmt(before['rtf'],3)}→{fmt(old_rl['rtf'],3)}→{fmt(after['rtf'],3)}。",
+                f"- pending C1→C2→C3：{before['tts_pending_unspoken_items']}→{old_rl['tts_pending_unspoken_items']}→{after['tts_pending_unspoken_items']}；TTS failure {before['tts_failures']}→{old_rl['tts_failures']}→{after['tts_failures']}；early-END 拒绝 {before['rejected_early_end']}→{old_rl['rejected_early_end']}→{after['rejected_early_end']}。",
+                f"- 音频健康：C1 continuous/timeline={before['continuous_audio_health']['healthy']}/{before['timeline_audio_health']['healthy']}，C2={old_rl['continuous_audio_health']['healthy']}/{old_rl['timeline_audio_health']['healthy']}，C3={after['continuous_audio_health']['healthy']}/{after['timeline_audio_health']['healthy']}。",
+                f"- 结构性结论：C3 最终未发音队列={'已清空' if after['tts_pending_unspoken_items'] == 0 else '仍有残留'}；首次 WRITE={fmt(after['first_audio_source_ms'],0)} ms、最大内部静音={fmt(after['maximum_internal_timeline_silence_ms'],0)} ms，故晚启动和长空白是否改善应以上述 C1/C2/C3 相对值判断，而不是由质量门阻断。",
                 f"- C1 增量译文：{before['generated_streaming_translation']}",
                 f"- C3 增量译文：{after['generated_streaming_translation']}",
                 "",
@@ -230,10 +259,22 @@ def main() -> None:
             f"{fmt(metrics.get('diagnostic/policy_update_rms'),8)} | "
             f"{candidate['quality_annotations'] or ['无']} |"
         )
+    if terminal_validation is not None:
+        metrics = terminal_validation["metrics"]
+        lines.extend(
+            [
+                "",
+                "### 6.2 训练结束后的独立 validation-set 复核",
+                "",
+                "该行是训练完全结束后对固定 validation set 的额外复核，不与每个 epoch 保存点的训练期 regular validation 混为一列。",
+                "",
+                f"- iteration={terminal_validation['iteration']}，total={fmt(metrics.get('loss/total'),6)}，policy={fmt(metrics.get('loss/policy'),6)}，reference KL={fmt(metrics.get('loss/reference_kl'),6)}，Phase3 replay={fmt(metrics.get('loss/phase3_replay'),6)}，ratio mean={fmt(metrics.get('diagnostic/ratio_mean'),6)}，clipped fraction={fmt(metrics.get('diagnostic/ratio_clipped_fraction'),6)}，update RMS={fmt(metrics.get('diagnostic/policy_update_rms'),8)}。",
+            ]
+        )
     lines.extend(
         [
             "",
-            "### 6.2 训练、TensorBoard 与逐 epoch 报告",
+            "### 6.3 训练、TensorBoard 与逐 epoch 报告",
             "",
             f"- 训练日志：`{selection['training_log']}`",
             f"- checkpoint 根目录：`{selection['checkpoint_root']}`",
@@ -242,7 +283,7 @@ def main() -> None:
             "- Runtime v2 基线报告：`/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phasea_stateful_longepisode_rl_v1/stage1_runtime_v2/REPORT.zh-CN.md`",
             "- A/B/C/D 归因报告：`/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phasea_stateful_longepisode_rl_v1/attribution/reference_attribution_valid16_v1/REPORT.zh-CN.md`",
             "",
-            "### 6.3 声明边界",
+            "### 6.4 声明边界",
             "",
             "这里的 stateful runtime 保留完整会话前端、提交文本、TTS 队列和播放时钟，但 LLM acoustic prompt 仍采用 24 秒有界 ring 重算；因此它是严格因果、跨窗口有状态的研究推理，不等同于已经实现端到端 KV-cache 的生产级实时系统。四条外部长音频没有人工逐句 reference，内容判断结合生成文本与主观试听；正式 A/B/C 指标来自有 teacher/reference 的 validation episodes。",
             "",
