@@ -18,7 +18,8 @@ if (( GROUP_SIZE < 2 || GROUP_SIZE > 4 )); then
   echo "ROLLOUT_GROUP_SIZE must be in [2, 4]" >&2
   exit 2
 fi
-EPISODES=${IMMUTABLE_PROTOCOL64}
+EPISODES=${EPISODES:-${IMMUTABLE_PROTOCOL64}}
+EXPECTED_EPISODES=${EXPECTED_EPISODES:-64}
 OUTPUT=${REPO_ROOT}/eval_outputs/uniss_phasea_commit_complete_sft_rl_v4/${RUN_ID}
 [[ -f "${ADAPTER}/.metadata" ]] || { echo "missing adapter ${ADAPTER}" >&2; exit 2; }
 [[ -f "${EPISODES}" ]] || { echo "missing selected episodes" >&2; exit 2; }
@@ -53,5 +54,5 @@ for pid in "${pids[@]}"; do wait "${pid}" || failed=1; done
 (( failed == 0 )) || { echo "one or more rollout workers failed" >&2; exit 4; }
 "${PYTHON}" "${EXPERIMENT_ROOT}/training/merge_rollouts.py" \
   --worker-root "${OUTPUT}/workers" --output "${OUTPUT}/ROLLOUT_MERGED.json" \
-  --expected-workers "${WORKERS}" --expected-episodes 64
+  --expected-workers "${WORKERS}" --expected-episodes "${EXPECTED_EPISODES}"
 echo "OUTPUT=${OUTPUT}"
