@@ -11,13 +11,13 @@ from types import SimpleNamespace
 from experiments.uniss_phasea_commit_complete_sft_rl_v4.runtime.commit_policy_cascade import (
     evaluate_event_policy_session,
 )
-from experiments.uniss_phasea_coverage_constrained_grpo_v3.training.event_credit import (
+from experiments.uniss_phasea_commit_complete_sft_rl_v4.training.event_credit import (
     assign_trace_advantages,
 )
 from experiments.uniss_phasea_coverage_constrained_grpo_v3.training.coverage import (
     audit_episode,
 )
-from experiments.uniss_phasea_coverage_constrained_grpo_v3.training.reward import (
+from experiments.uniss_phasea_commit_complete_sft_rl_v4.training.reward import (
     score_episode,
 )
 from experiments.uniss_phasea_coverage_constrained_grpo_v3.training.trace_generator import (
