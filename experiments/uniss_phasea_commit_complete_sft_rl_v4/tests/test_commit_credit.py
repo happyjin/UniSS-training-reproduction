@@ -1,4 +1,5 @@
 from experiments.uniss_phasea_commit_complete_sft_rl_v4.training.event_credit import (
+    assign_trace_advantages,
     local_event_rewards,
 )
 from experiments.uniss_phasea_commit_complete_sft_rl_v4.training.reward import score_episode
@@ -72,3 +73,30 @@ def test_spoken_coverage_beats_generated_only_coverage():
     assert score_episode(_observation(), _observation(), spoken).total > score_episode(
         _observation(), _observation(), generated_only
     ).total
+
+
+def test_non_actionable_control_trace_receives_no_rl_gradient():
+    terminal = {
+        "total": 2.0,
+        "asr_quality": 0.8,
+        "mt_quality": 0.7,
+        "target_coverage": 0.3,
+        "spoken_target_coverage": 0.3,
+        "audio_health": 1.0,
+        "asr_shortfall": 0.0,
+        "mt_shortfall": 0.0,
+        "completeness_shortfall": 0.7,
+        "silence_penalty": 1.0,
+        "language_penalty": 0.0,
+        "repetition_penalty": 0.0,
+        "pending_penalty": 0.0,
+        "failure_penalty": 0.0,
+    }
+    candidate = {
+        "reward": terminal,
+        "mapped_action_events": [],
+        "result": {"events": [{"source_end_ms": 320, "coverage": {}}]},
+        "traces": [{"family": "control", "event_index": 0, "actionable_commit": False}],
+    }
+    assign_trace_advantages([candidate])
+    assert candidate["traces"][0]["advantage"] == 0.0

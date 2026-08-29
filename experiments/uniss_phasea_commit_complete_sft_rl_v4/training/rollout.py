@@ -139,6 +139,30 @@ def main() -> None:
                         events=result["events"],
                         eos_pending_items=int(result["tts_pending_unspoken_items"]),
                     )
+                    # The control trace is sampled before the cascade knows
+                    # whether stable target text is available.  Attach the
+                    # runtime outcome now so the trainer can ignore control
+                    # logits that could not have changed audio behaviour.
+                    event_by_index = {
+                        int(event["event_index"]): event for event in result["events"]
+                    }
+                    for trace in tracer.tagged_traces:
+                        if str(trace["family"]) != "control":
+                            continue
+                        event = event_by_index[int(trace["event_index"])]
+                        trace["actionable_commit"] = bool(
+                            event["actionable_commit"]
+                        )
+                        trace["actual_commit"] = bool(
+                            str(event["executed_action"]) == "WRITE"
+                            and any(
+                                bool(item.get("acknowledged", False))
+                                for item in event["tts_emissions"]
+                            )
+                        )
+                        trace["spoken_target_coverage_delta"] = float(
+                            event["coverage"]["spoken_target_coverage_delta"]
+                        )
                     reward = score_episode(observation, baseline, coverage)
                     candidates.append(
                         {

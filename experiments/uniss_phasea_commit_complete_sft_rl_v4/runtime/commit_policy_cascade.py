@@ -323,6 +323,10 @@ def evaluate_event_policy_session(
                 "true_source_final": true_final,
                 "policy_action": sampled_action,
                 "executed_action": executed_action,
+                # Persist the pre-drain state for RL credit assignment.  A
+                # sampled WRITE is a meaningful policy decision only when a
+                # stable target increment existed before micro-segmentation.
+                "actionable_commit": actionable_commit,
                 "deadline_forced_write": deadline_forced_write,
                 "flush_complete": flush_complete,
                 "memory_rollover": rollover,

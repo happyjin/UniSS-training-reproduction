@@ -75,13 +75,19 @@ def local_event_rewards(
         # credit only for the portion that is actually spoken by this commit.
         reward += 0.50 * target_delta + 7.0 * spoken_delta
         reward -= 0.50 * language_leak
-        if actual_commit:
+        # Before useful spoken coverage has accumulated, coverage—not speed—
+        # is the objective.  This avoids rewarding a very early fragment that
+        # leaves the remainder of a long episode silent.
+        enough_spoken_coverage = float(
+            coverage.get("spoken_target_coverage", 0.0)
+        ) >= 0.20
+        if actual_commit and enough_spoken_coverage:
             if last_audio_ms is None:
                 reward -= 0.08 * math.log1p(source_ms / 1_000.0)
             else:
                 reward -= 0.12 * softplus((source_ms - last_audio_ms - 4_000.0) / 1_000.0)
             last_audio_ms = source_ms
-        elif executed_action == "WRITE" and actionable:
+        elif executed_action == "WRITE" and actionable and not actual_commit:
             # A failed actionable commit is harmful.  The same penalty is not
             # applied to an unexecutable sampled WRITE.
             reward -= 0.50
@@ -126,6 +132,13 @@ def assign_trace_advantages(candidates: list[dict[str, object]]) -> None:
         for trace in candidate["traces"]:
             family = str(trace["family"])
             event_index = int(trace["event_index"])
+            if family == "control" and not bool(trace.get("actionable_commit", True)):
+                # This sampled action was necessarily executed as WAIT; it
+                # cannot receive credit for an audio outcome it could not
+                # influence.
+                trace["local_return"] = 0.0
+                trace["advantage"] = 0.0
+                continue
             if family == "control":
                 raw = control_return[event_index] + 0.15 * float(terminal["total"])
             elif family == "asr":

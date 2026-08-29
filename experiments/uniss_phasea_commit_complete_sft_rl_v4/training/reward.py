@@ -64,7 +64,7 @@ def score_episode(
     *,
     asr_retention: float = 0.98,
     mt_retention: float = 0.98,
-    latency_coverage_floor: float = 0.08,
+    latency_coverage_floor: float = 0.20,
 ) -> EventConstrainedReward:
     """Reward real coverage progress before latency.
 
@@ -100,11 +100,11 @@ def score_episode(
         and mt >= 0.75 * mt_target
         and asr >= 0.75 * asr_target
     )
-    latency_term = (
-        -0.15 * first_penalty - 0.25 * silence_penalty
-        if eligible_for_latency
-        else 0.0
-    )
+    # Timing is intentionally excluded from the episode objective.  It is
+    # credited locally only after the event has produced sufficient spoken
+    # coverage.  Otherwise a short incomplete answer can still beat a useful
+    # but later answer through its terminal latency score.
+    latency_term = 0.0
     total = (
         1.0 * asr
         + 2.0 * mt
