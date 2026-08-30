@@ -14,6 +14,16 @@ mkdir -p "${PIPELINE_ROOT}" "${REPO_ROOT}/logs/uniss_phase3_content_first_joint_
 exec 9>"${PIPELINE_ROOT}/automatic_pipeline.lock"
 flock -n 9 || { echo "automatic pipeline already owns the lock" >&2; exit 2; }
 
+pipeline_complete=0
+restore_holder_after_exit() {
+  local status=$?
+  if (( pipeline_complete == 0 )); then
+    echo "automatic pipeline stopped before completion (exit=${status}); scheduling GPU holder recovery" >&2
+    bash "${HERE}/scripts/schedule_gpu_holder.sh" || true
+  fi
+}
+trap restore_holder_after_exit EXIT
+
 while tmux has-session -t "${FREE_EVAL_SESSION}" 2>/dev/null; do sleep 10; done
 [[ -f "${FREE_EVAL_COMPLETE}" ]] || { echo "free-running evaluation ended without complete.json" >&2; exit 3; }
 
@@ -78,5 +88,6 @@ if [[ ! -f "${REPORT_DIR}/REPORT.zh-CN.md" ]]; then
 fi
 [[ -f "${REPORT_DIR}/REPORT.zh-CN.md" ]] || { echo "final report missing" >&2; exit 5; }
 bash "${HERE}/scripts/start_gpu_holder.sh"
+pipeline_complete=1
 echo "PIPELINE_STATUS=complete"
 echo "REPORT=${REPORT_DIR}/REPORT.zh-CN.md"
