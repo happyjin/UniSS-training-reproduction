@@ -1,0 +1,395 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf",
+  "cuda_visible_devices": "2",
+  "device": "cuda:0",
+  "elapsed_seconds": 33.63373829983175,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 124108,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 3,
+        "error_rate": 0.11764705882352941,
+        "errors": 4,
+        "event_hypotheses": [
+          "而本座的",
+          "而本座的第二个",
+          "而本座的第二个办法",
+          "而本座的第二个办法则是",
+          "而本座的第二个办法则是",
+          "而本座的第二个办法则是通过",
+          "而本座的第二个办法则是通过改变",
+          "而本座的第二个办法则是通过改变并",
+          "而本座的第二个办法则是通过改变并临时",
+          "而本座的第二个办法则是通过改变并临时五魂的",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源之上",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源之上",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源之上解决",
+          "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源之上解决问道"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "而本座的第二个办法则是通过改变并临时五魂的修炼方式从根源之上解决问道",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 34,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 10,
+        "coverage": 0.2727272727272727,
+        "events": 19,
+        "final_hypothesis": "And the second method of this position is to change and temporarily",
+        "hypothesis_units": 12,
+        "nonempty_events": 19,
+        "raw_hypotheses": [
+          "And the",
+          "And the second",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this position is to change",
+          "And the second method of this position is to change and",
+          "And the second method of this position is to change and temporarily",
+          "And the second method of this seat is to change the",
+          "And the second method of this seat is to change and temporarily cultivate the Five Souls.",
+          "And the second method of this seat is to change and temporarily cultivate the Five Souls.",
+          "And the second method of this seat is to change and temporarily cultivate the Five Souls",
+          "And the second method of this position is to transform and temporarily cultivate the five souls from",
+          "And the second method of this position is to transform and temporarily cultivate the five souls from the root",
+          "And the second method of this seat is to transform and temporarily cultivate the five souls from the root",
+          "And the second method of this seat is to transform and temporarily cultivate the five souls from the root",
+          "And the second method of this position is to solve the root by changing and temporarily cultivating the five souls",
+          "And the second method of this seat is to solve the root by changing and temporarily cultivating the Five Souls cultivation method"
+        ],
+        "reference_units": 22,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 10,
+        "coverage": 0.4090909090909091,
+        "events": 19,
+        "final_hypothesis": "And the second method of this position is to change the spirit snake",
+        "hypothesis_units": 13,
+        "nonempty_events": 19,
+        "raw_hypotheses": [
+          "And the",
+          "And the second",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this",
+          "And the second method of this position is to change",
+          "And the second method of this position is to change the",
+          "And the second method of this position is to change the spirit snake",
+          "And the second method of this position is to change the",
+          "And the second method of this seat is to cultivate the spirit of the Blue Spirit Snake through",
+          "And the second method of this seat is to cultivate the spirit of the Blue Spirit Snake through",
+          "And the second method of this seat is to change the cultivation method of the spirit snake and the soul",
+          "And the second method of this seat is to transform the cultivation of the spirit snake and soul from",
+          "And the second method of this seat is to transform the cultivation of the spirit snake and soul from its roots",
+          "And the second method of this seat is to transform the cultivation of the spirit snake and soul from its root.",
+          "And the second method of this seat is to transform the cultivation of the spirit snake and soul from its root.",
+          "And the second method of this position is to solve the root by transforming the cultivation of the spirit snake and the soul of the spirit",
+          "And the second method of this seat is to solve the problem by transforming the cultivation of the spirit snake and the soul from its root."
+        ],
+        "reference_units": 22,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": null,
+      "phase3_mt_gold": {
+        "commit_conflicts": 18,
+        "coverage": 0.09090909090909091,
+        "events": 19,
+        "final_hypothesis": "And this is my",
+        "hypothesis_units": 4,
+        "nonempty_events": 19,
+        "raw_hypotheses": [
+          "And this is my",
+          "And the second of this",
+          "And my second method",
+          "And the second method of this is",
+          "And the second method of this is",
+          "And my second method is to do it through",
+          "And my second method is to change.",
+          "And my second method is to change the blue.",
+          "And my second method is to change the green spirit snake.",
+          "And my second method is to change the spirit of the Blue Spirit Snake.",
+          "And my second method is to cultivate the spirit of the Blue Spirit Snake.",
+          "And my second method is to cultivate the spirit of the Blue Spirit Snake.",
+          "And my second method is to change the cultivation method of the Blue Spirit Snake Soul.",
+          "And my second method is to transform the cultivation of the spirit of the Blue Spirit Snake from",
+          "And my second method is to transform the cultivation of the spirit of the Blue Spirit Snake from its root.",
+          "And my second method is to transform the cultivation of the spirit of the Blue Spirit Snake from its root.",
+          "And my second method is to transform the cultivation of the spirit of the Blue Spirit Snake from its root.",
+          "And my second method is to solve the root by transforming the cultivation of the spirit of the Blue Spirit Snake.",
+          "And my second method is to solve the root by transforming the cultivation of the spirit of the Blue Spirit Snake Wu Soul."
+        ],
+        "reference_units": 22,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 11033,
+      "sample_id": "emilia_zh_0007583994",
+      "source_duration_ms": 6680,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "而本座的第二个办法则是通过改变碧灵蛇武魂的修炼方式从根源之上解决问道",
+      "translation_reference": "And my second method is to change the cultivation method of the Green Spirit Snake soul solving the problem at its root"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 1,
+        "error_rate": 0.8333333333333334,
+        "errors": 5,
+        "event_hypotheses": [
+          "At the",
+          "At the doesn't",
+          "At the doesn't seem",
+          "At the doesn't seem much",
+          "At the doesn't seem much from",
+          "At the doesn't seem much from main",
+          "At the doesn't seem much from main"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "At the doesn't seem much from main",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 6,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 5,
+        "coverage": 0.0,
+        "events": 7,
+        "final_hypothesis": "在",
+        "hypothesis_units": 1,
+        "nonempty_events": 7,
+        "raw_hypotheses": [
+          "在",
+          "在",
+          "看起来",
+          "看起来没什么",
+          "从",
+          "从主",
+          "从主"
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 5,
+        "coverage": 0.1,
+        "events": 7,
+        "final_hypothesis": "那不",
+        "hypothesis_units": 2,
+        "nonempty_events": 7,
+        "raw_hypotheses": [
+          "那",
+          "那不",
+          "那并不意味着",
+          "那没什么大不了的",
+          "这对",
+          "这对我来说没什么意义",
+          "这对我来说没什么意义"
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 2.78,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage0_sem1200_iter0002264_20260831T164904Z/audio/worker_02/CommonVoice_EN_0000329073.wav",
+          "peak": 0.7035424709320068,
+          "rms": 0.10451056808233261,
+          "samples": 44480
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "At the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 640,
+            "source_final": false,
+            "source_glm_end": 8,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "doesn't seem"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 960,
+            "source_final": false,
+            "source_glm_end": 12,
+            "source_glm_start": 8
+          },
+          {
+            "asr_deltas": [
+              "seem"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1120,
+            "source_final": false,
+            "source_glm_end": 14,
+            "source_glm_start": 12
+          },
+          {
+            "asr_deltas": [
+              "much"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 14
+          },
+          {
+            "asr_deltas": [
+              "from"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1440,
+            "source_final": false,
+            "source_glm_end": 18,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [
+              "main"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1920,
+            "source_final": false,
+            "source_glm_end": 24,
+            "source_glm_start": 18
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "EOS"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "从表面上看似乎没什么大不了的"
+            ],
+            "semantic_tokens": 139,
+            "source_end_ms": 2040,
+            "source_final": true,
+            "source_glm_end": 26,
+            "source_glm_start": 24
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 0,
+        "natural_eos": true,
+        "semantic_coverage": 1.0,
+        "semantic_reference_tokens": 127,
+        "semantic_tokens": 139,
+        "source_hypothesis": "At the doesn't seem seem much from main",
+        "source_rollback_events": 0,
+        "target_hypothesis": "从表面上看似乎没什么大不了的",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": false
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 4,
+        "coverage": 0.2,
+        "events": 7,
+        "final_hypothesis": "那不说",
+        "hypothesis_units": 3,
+        "nonempty_events": 7,
+        "raw_hypotheses": [
+          "那",
+          "那不",
+          "那不说",
+          "那没什么意义",
+          "那没什么大不了的。",
+          "那对我来说没什么意义。",
+          "那对我来说没什么意义。"
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 1302,
+      "sample_id": "CommonVoice_EN_0000329073",
+      "source_duration_ms": 2040,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "That doesn't say much for mine",
+      "translation_reference": "那对我的没说什么好话"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage0_sem1200_iter0002264_20260831T164904Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 2
+}
