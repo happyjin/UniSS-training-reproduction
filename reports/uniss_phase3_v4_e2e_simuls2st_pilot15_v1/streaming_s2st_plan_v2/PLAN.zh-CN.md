@@ -7,6 +7,19 @@
 
 ---
 
+> **2026-08-31 更正 —— 本文的 Phase 1 已作废。**
+> 我当时把 Stage-A v9 的 `FORMAL_GATE.json`(`passed: true`)与 v1 的 `GATE_FAILED.json` 直接对比,
+> 得出「有一个通过门禁的 v9 没人用」。**这个前提是错的**:两个门禁量的不是同一件事 —— v9 通过的是
+> **训练健康度**门禁(`ctc_blank_ratio` 0.188、无 NaN、curriculum 饱和),v1 失败的是**更严格的内容**
+> 门禁(streaming error 不得超 offline+15%)。计划 §27.2 在同一 free-running 协议上实测过两者:
+> v1 中文 CER 21.01% / 英文 WER 35.34%,v9 是 34.79% / 55.94% —— **v9 几何更健康但内容差 1.65 倍**,
+> 已被明确降级为 anti-collapse 研究证据。**换 v9 会让结果更差。**
+>
+> 完整复盘与修正后的计划见 [../streaming_s2st_plan_v3/PROJECT_REVIEW.zh-CN.md](../streaming_s2st_plan_v3/PROJECT_REVIEW.zh-CN.md)。
+> 本文其余部分(Phase 0 的内容门控开口策略、去污染 canary、指标入门禁、Phase 2 的开口决策新 loss)仍然成立。
+
+---
+
 ## 0. 为什么两周的 loss 调参不管用
 
 不是权重没调对。是**每一次实验都在修屋顶**。
