@@ -22,7 +22,7 @@ launcher (whose `ENTRYPOINT` is hardcoded), with a parity test on the diff.
 |---|---|
 | The model recognises on 82% of events but translates on 16.8% and speaks on 15.8% | `PHASE0_FINDINGS.zh-CN.md` |
 | The three inference policies land at 0.168 (starved), 0.958 and 1.000 (both repetition loops), with nothing between | S0.1 |
-| Raising `boundary_ce` cannot help: `WRITE_GENERATE` carries the fragment's own loss kind and is not in that bucket; only `WAIT_READ` is | `task_samples.py:477/496/512/535` |
+| Raising `boundary_ce` cannot substitute for a decision term. Both decisions *are* in that bucket -- `_mark_fragment` marks `WRITE_GENERATE` and `WAIT_READ` alike as `LOSS_BOUNDARY` -- but so are `END_CONTENT`, `END_SEMANTIC` and the language and speed tokens, so an undifferentiated cross-entropy has no margin, no class balancing, and dilutes the decision among tokens that are not decisions | `task_samples.py:246-259` |
 | Every intervention that raises the speak rate triggers repetition -- `emilia_zh_0004122419` session text length ratio 1.70 -> 15.40 -- and no existing term penalises it | S0.1 |
 | `semantic_rollin_continue_decision_margin` is the one existing loss measured to help, once the commit-policy confound is removed: cmn chrF +18.7% | S0.2 |
 

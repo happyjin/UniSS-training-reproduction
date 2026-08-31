@@ -9,10 +9,12 @@ Measured motivation, from `streaming_s2st_metrics_v1/`:
   seen four ways.  S0.1 then showed the decision cannot be supplied at
   inference: the three policies land at 0.168 (starved), 0.958 and 1.000 (both
   repetition loops), with nothing in between.
-* Raising `boundary_ce` cannot help.  `TOKEN_WRITE_GENERATE` is the first token
-  of an ASR/MT/TTS fragment and carries that fragment's loss kind
-  (`task_samples.py:477/496/512`), so it is not in the boundary bucket at all;
-  only `TOKEN_WAIT_READ` is (`:535`).  Raising that weight makes WAIT stronger.
+* Raising `boundary_ce` cannot substitute for this term.  Both decisions *are*
+  in that bucket (`_mark_fragment` marks WRITE_GENERATE and WAIT_READ alike as
+  `LOSS_BOUNDARY`), but so are `END_CONTENT`, `END_SEMANTIC`, the language and
+  speed tokens: an undifferentiated cross-entropy over all of them has no
+  margin, no class balancing, and dilutes the decision among tokens that are
+  not decisions.
 * Every intervention that raises the speak rate triggers repetition.  On
   `emilia_zh_0004122419` the session text length ratio goes 1.70 -> 15.40 with
   output like "in a state of being in a state of being ...", and no existing
@@ -39,10 +41,9 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective imp
     LossTerm,
 )
 from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
-    LOSS_ASR,
+    LOSS_BOUNDARY,
     LOSS_MT,
     LOSS_SEMANTIC,
-    LOSS_BOUNDARY,
 )
 from training import constants_uniss as c
 
@@ -56,7 +57,6 @@ EXTRA_WEIGHTED_NAMES = ("speak_decision", "repetition_penalty")
 EXTENDED_TERM_NAMES = (*E2E_TERM_NAMES, *EXTRA_TERM_NAMES)
 EXTENDED_WEIGHTED_NAMES = (*E2E_WEIGHTED_NAMES, *EXTRA_WEIGHTED_NAMES)
 
-WRITE_KINDS = (LOSS_ASR, LOSS_MT, LOSS_SEMANTIC)
 # Repetition is penalised where it was observed: the generated text and speech.
 REPETITION_KINDS = (LOSS_MT, LOSS_SEMANTIC)
 DEFAULT_REPETITION_WINDOW = 8
@@ -86,13 +86,21 @@ def _chunked_logsumexp(
 def speak_decision_masks(
     labels: torch.Tensor, loss_kinds: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Rows that decided to speak, and rows that decided to wait."""
+    """Rows that decided to speak, and rows that decided to wait.
 
-    write_kind = torch.zeros_like(loss_kinds, dtype=torch.bool)
-    for kind in WRITE_KINDS:
-        write_kind |= loss_kinds == kind
-    write = (labels == c.TOKEN_WRITE_GENERATE) & write_kind
-    wait = (labels == c.TOKEN_WAIT_READ) & (loss_kinds == LOSS_BOUNDARY)
+    ``_mark_fragment`` (``task_samples.py:246-259``) labels **both**
+    ``TOKEN_WRITE_GENERATE`` and ``TOKEN_WAIT_READ`` as ``LOSS_BOUNDARY``, not
+    as the fragment's content kind, so both decisions live in the same bucket.
+    A first version required the WRITE rows to carry LOSS_ASR / LOSS_MT /
+    LOSS_SEMANTIC; that never matched, the WRITE class stayed empty for every
+    interleaved batch, and the term degenerated into a one-sided push toward
+    WAIT -- the opposite of its purpose.  ``test_masks_match_the_real_packing``
+    pins the convention against ``_mark_fragment`` itself.
+    """
+
+    boundary = loss_kinds == LOSS_BOUNDARY
+    write = (labels == c.TOKEN_WRITE_GENERATE) & boundary
+    wait = (labels == c.TOKEN_WAIT_READ) & boundary
     return write, wait
 
 

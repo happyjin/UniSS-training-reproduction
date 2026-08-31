@@ -29,22 +29,75 @@ def _logits(rows: int, *, wait_bias: float = 0.0, write_bias: float = 0.0):
     return value
 
 
-def test_masks_follow_the_packing_convention() -> None:
-    """WRITE_GENERATE carries the fragment's kind; only WAIT_READ is boundary."""
+def test_masks_match_the_real_packing() -> None:
+    """Derive the convention from _mark_fragment instead of asserting a guess.
 
-    labels = torch.tensor(
-        [c.TOKEN_WRITE_GENERATE, c.TOKEN_WAIT_READ, c.TOKEN_WRITE_GENERATE, 7]
+    A first version hand-wrote the kinds and assumed WRITE_GENERATE carried the
+    fragment's content kind.  It does not: _mark_fragment marks both
+    WRITE_GENERATE and WAIT_READ as LOSS_BOUNDARY.  The WRITE class was
+    therefore empty in every interleaved batch of a real run and the term
+    degenerated into a one-sided push toward WAIT.
+    """
+
+    from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
+        _mark_fragment,
     )
-    kinds = torch.tensor([LOSS_MT, LOSS_BOUNDARY, LOSS_BOUNDARY, LOSS_MT])
+
+    fragment = (
+        c.TOKEN_WRITE_GENERATE,
+        c.TOKEN_TASK_S2T_TRANSLATION,
+        c.TOKEN_ENG,
+        c.TOKEN_START_CONTENT,
+        4321,
+        c.TOKEN_END_CONTENT,
+        c.TOKEN_WAIT_READ,
+    )
+    kinds_list = [0] * len(fragment)
+    _mark_fragment(kinds_list, 0, fragment, LOSS_MT)
+    # The packer really does put both decisions in the boundary bucket.
+    assert kinds_list[0] == LOSS_BOUNDARY  # WRITE_GENERATE
+    assert kinds_list[-1] == LOSS_BOUNDARY  # WAIT_READ
+    assert kinds_list[4] == LOSS_MT  # the content token
+
+    labels = torch.tensor(fragment)
+    kinds = torch.tensor(kinds_list)
     write, wait = ox.speak_decision_masks(labels, kinds)
-    # Row 2 is WRITE_GENERATE but tagged boundary, which the packer never emits.
-    assert write.tolist() == [True, False, False, False]
-    assert wait.tolist() == [False, True, False, False]
+    assert int(write.sum()) == 1 and bool(write[0])
+    assert int(wait.sum()) == 1 and bool(wait[-1])
+    # Content tokens are never decisions.
+    assert not bool(write[4]) and not bool(wait[4])
+
+
+def test_both_classes_are_populated_for_a_realistic_fragment_sequence() -> None:
+    """The regression that a real run exposed: WRITE must not come out empty."""
+
+    from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples import (
+        _mark_fragment,
+    )
+
+    tokens: list[int] = []
+    kinds: list[int] = []
+    for content_kind, task in (
+        (LOSS_MT, c.TOKEN_TASK_S2T_TRANSLATION),
+        (LOSS_SEMANTIC, c.TOKEN_TASK_TTS),
+    ):
+        fragment = (c.TOKEN_WRITE_GENERATE, task, c.TOKEN_START_CONTENT, 99)
+        start = len(tokens)
+        tokens.extend(fragment)
+        kinds.extend([0] * len(fragment))
+        _mark_fragment(kinds, start, fragment, content_kind)
+    tokens.append(c.TOKEN_WAIT_READ)
+    kinds.append(0)
+    _mark_fragment(kinds, len(tokens) - 1, (c.TOKEN_WAIT_READ,), LOSS_MT)
+
+    write, wait = ox.speak_decision_masks(torch.tensor(tokens), torch.tensor(kinds))
+    assert int(write.sum()) == 2
+    assert int(wait.sum()) == 1
 
 
 def test_a_confident_correct_decision_costs_less_than_a_wrong_one() -> None:
     labels = torch.tensor([c.TOKEN_WRITE_GENERATE])
-    kinds = torch.tensor([LOSS_MT])
+    kinds = torch.tensor([LOSS_BOUNDARY])
     good = ox.speak_decision_terms(
         _logits(1, write_bias=4.0), labels, kinds, margin=1.0
     )[0]
@@ -60,7 +113,7 @@ def test_the_two_classes_are_normalized_independently() -> None:
     labels = torch.tensor(
         [c.TOKEN_WRITE_GENERATE] + [c.TOKEN_WAIT_READ] * 5
     )
-    kinds = torch.tensor([LOSS_MT] + [LOSS_BOUNDARY] * 5)
+    kinds = torch.tensor([LOSS_BOUNDARY] * 6)
     write, wait = ox.speak_decision_terms(_logits(6), labels, kinds, margin=1.0)
     assert float(write.denominator) == 1.0
     assert float(wait.denominator) == 5.0
@@ -74,7 +127,7 @@ def test_softplus_keeps_gradient_after_the_margin_is_met() -> None:
     """A hinge would be flat here; that is why the term is softplus."""
 
     labels = torch.tensor([c.TOKEN_WRITE_GENERATE])
-    kinds = torch.tensor([LOSS_MT])
+    kinds = torch.tensor([LOSS_BOUNDARY])
     logits = _logits(1, write_bias=10.0).requires_grad_(True)
     term = ox.speak_decision_terms(logits, labels, kinds, margin=1.0)[0]
     term.numerator.backward()
