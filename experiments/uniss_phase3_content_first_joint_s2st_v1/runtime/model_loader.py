@@ -164,7 +164,7 @@ def load_content_first_models(args):
             raise FileNotFoundError(export_dir / name)
 
     encoder = load_quantize_encoder(str(args.whispervq_model)).to(device).eval()
-    codebook_weight = encoder.model.codebook.weight.detach().float().cpu()
+    codebook_weight = encoder.codebook.weight.detach().float().cpu()
     del encoder
     torch.cuda.empty_cache()
     model, tokenizer, objective, runtime_manifest, selected = load_runtime_models(
@@ -223,4 +223,3 @@ __all__ = [
     "load_content_first_models",
     "policy_tensor_count",
 ]
-
