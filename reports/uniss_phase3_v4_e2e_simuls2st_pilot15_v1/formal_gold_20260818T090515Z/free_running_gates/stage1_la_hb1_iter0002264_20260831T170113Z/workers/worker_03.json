@@ -1,0 +1,509 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf",
+  "cuda_visible_devices": "3",
+  "device": "cuda:0",
+  "elapsed_seconds": 56.211877149995416,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 224984,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 6,
+        "error_rate": 0.17073170731707318,
+        "errors": 7,
+        "event_hypotheses": [
+          "经营",
+          "经营",
+          "经营自己的",
+          "经营自己的的",
+          "经营自己的的场所",
+          "经营自己的的场所会",
+          "经营自己的的场所会不断",
+          "经营自己的的场所会不断给",
+          "经营自己的的场所会不断给你",
+          "经营自己的的场所会不断给你",
+          "经营自己的的场所会不断给你人生",
+          "经营自己的的场所会不断给你人生增值",
+          "经营自己的的场所会不断给你人生增值加",
+          "经营自己的的场所会不断给你人生增值加分",
+          "经营自己的的场所会不断给你人生增值加分而",
+          "经营自己的的场所会不断给你人生增值加分而跟",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败的",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败的你早",
+          "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败的你早里"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "经营自己的的场所会不断给你人生增值加分而跟自己的短处较劲只会让人迷失在失败的你早里",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 41,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 11,
+        "coverage": 0.5357142857142857,
+        "events": 32,
+        "final_hypothesis": "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on.",
+        "hypothesis_units": 29,
+        "nonempty_events": 29,
+        "raw_hypotheses": [
+          "Running",
+          "Running",
+          "Running your own",
+          "Running your own",
+          "The place where you run your own business",
+          "The place where you run your own business will",
+          "The location where one operates will continue to",
+          "The place where one operates will continuously provide",
+          "The place where you run your own business will continuously provide you with",
+          "The place where you run your own business will continuously provide you with",
+          "The place where you run your own business will continuously give you life",
+          "The place where you run your own business will continuously add value to your life",
+          "The place where you run your own business will continuously add value to your life",
+          "The place where you run your own business will continuously add value to your life",
+          "Running your own place will continuously add value to your life and",
+          "Running your own place will continuously add value to your life and add points to your life",
+          "Running your own place will continuously add value to your life and add points to your own",
+          "Running your own place will continuously add value to your life and add points to your own",
+          "Running your own place will continuously add value to your life and add points to your weaknesses",
+          "Running your own place will continuously add value to your life and compete with your weaknesses",
+          "Running your own place will continuously add value to your life and add points to your weaknesses only",
+          "Running your own place will continuously add value to your life and add points to your weaknesses only",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure.",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure.",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in the face of failure.",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure",
+          "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on."
+        ],
+        "reference_units": 28,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 22,
+        "coverage": 0.35714285714285715,
+        "events": 32,
+        "final_hypothesis": "Running your own strengths will continuously add value to your life and add points to your",
+        "hypothesis_units": 16,
+        "nonempty_events": 29,
+        "raw_hypotheses": [
+          "Running",
+          "Running",
+          "Running your own",
+          "Running your own",
+          "To manage one's own strengths",
+          "The strengths of running your own business will",
+          "The strengths of running your own business will continue to",
+          "The strengths of running your own business will continuously provide you with",
+          "The strengths of running your own business will continuously give you",
+          "The strengths of running your own business will continuously give you",
+          "The strengths of running your own business will continuously give you a life",
+          "The strengths of running your business will continuously add value to your life",
+          "The strengths of running your business will continuously add value to your life",
+          "Running your own strengths will continuously add value to your life",
+          "Running your own strengths will continuously add value to your life and",
+          "Running your own strengths will continuously add value to your life and add points to your",
+          "Running your own strengths will continuously add value to your life and add points to your own",
+          "Running your own strengths will continuously add value to your life and add points to your own",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses only",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses only",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which only makes people",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which only makes people",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose your life",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you obsessed",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose in failure.",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose in failure.",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose in the face of failure.",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose in the mire of failure.",
+          "Running your own strengths will continuously add value to your life and compete with your weaknesses which will only make you lose in the mire of failure."
+        ],
+        "reference_units": 28,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": null,
+      "phase3_mt_gold": {
+        "commit_conflicts": 26,
+        "coverage": 0.03571428571428571,
+        "events": 32,
+        "final_hypothesis": "Run your own",
+        "hypothesis_units": 3,
+        "nonempty_events": 28,
+        "raw_hypotheses": [
+          "Operating",
+          "Operating",
+          "Run yourself",
+          "Run your own",
+          "Run your own strengths",
+          "Run your own strengths",
+          "One will continuously develop their strengths.",
+          "Running your own strengths will continuously give you",
+          "The strengths of running your own business will continue to be given to you.",
+          "The strengths of running your own business will continue to be given to you.",
+          "Running your own strengths will continuously give you a life.",
+          "Running your own strengths will continuously add value to your life.",
+          "Running your own strengths will continuously add value to your life.",
+          "Running your own strengths will continuously add value to your life.",
+          "Running your own strengths will continuously add value to your life.",
+          "Running your own strengths will continuously add value to your life, which will be followed by",
+          "Running your own strengths will continuously add value to your life and add points to yourself.",
+          "Running your own strengths will continuously add value to your life and add points to yourself.",
+          "Running your strengths will continuously add value to your life and add points to your weaknesses.",
+          "Running your strengths will continuously add value to your life and compete with your weaknesses.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, only to compare.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, only to compare.",
+          "Running your own strengths will continuously add value to your life and make up for your weaknesses, only to make",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you",
+          "Running your own strengths will continuously add value to your life and make you more competitive with your weaknesses, which will only make you lose your life.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you obsessed.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you obsessed with failure.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you obsessed with failure.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you obsessed with failure.",
+          "Running your own strengths will continuously add value to your life and add points to your weaknesses, which will only make you lose yourself in the mire of failure.",
+          "Running your own strengths will continuously add value to your life, and competing with your weaknesses will only make you lose yourself in the mire of failure."
+        ],
+        "reference_units": 28,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 7348,
+      "sample_id": "emilia_zh_0005612325",
+      "source_duration_ms": 10080,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "经营自己的长处会不断给你的人生增值加分而跟自己的短处较劲只会让人迷死在失败的泥沼里",
+      "translation_reference": "Focusing on your strengths will continuously add value to your life while struggling with your weaknesses will only lead you to get stuck in the quagmire of failure"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 0,
+        "error_rate": 0.3,
+        "errors": 3,
+        "event_hypotheses": [
+          "Back",
+          "Back in",
+          "Back in montrial",
+          "Back in montrial Bob",
+          "Back in montrial Bob Hare",
+          "Back in montrial Bob Hare and",
+          "Back in montrial Bob Hare and I",
+          "Back in montrial Bob Hare and I down",
+          "Back in montrial Bob Hare and I down another",
+          "Back in montrial Bob Hare and I down another whisky"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "Back in montrial Bob Hare and I down another whisky",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 10,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 0,
+        "coverage": 0.875,
+        "events": 10,
+        "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+        "hypothesis_units": 19,
+        "nonempty_events": 9,
+        "raw_hypotheses": [
+          "回到",
+          "回到",
+          "回到蒙特利尔",
+          "回到蒙特利尔鲍勃",
+          "回到蒙特利尔鲍勃哈雷",
+          "回到蒙特利尔鲍勃哈雷和",
+          "回到蒙特利尔鲍勃哈雷和我",
+          "回到蒙特利尔鲍勃哈雷和我",
+          "回到蒙特利尔鲍勃哈雷和我下到另一个",
+          "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 2,
+        "coverage": 0.875,
+        "events": 10,
+        "final_hypothesis": "回到蒙特利尔鲍勃头发又垂下了一杯威士忌",
+        "hypothesis_units": 19,
+        "nonempty_events": 9,
+        "raw_hypotheses": [
+          "回到",
+          "回到",
+          "回到蒙特利尔",
+          "回到蒙特利尔鲍勃",
+          "回到蒙特利尔鲍勃",
+          "回到蒙特利尔鲍勃头发和",
+          "回到蒙特利尔的鲍勃头发和死去",
+          "回到蒙特利尔的鲍勃头发和垂死",
+          "回到蒙特利尔鲍勃头发又垂下",
+          "回到蒙特利尔鲍勃头发又垂下了一杯威士忌"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 0.0,
+          "error": null,
+          "finite": true,
+          "non_silent": false,
+          "path": null,
+          "peak": 0.0,
+          "rms": 0.0,
+          "samples": 0
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "Back"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "in"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 480,
+            "source_final": false,
+            "source_glm_end": 6,
+            "source_glm_start": 4
+          },
+          {
+            "asr_deltas": [
+              "montrial"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 6
+          },
+          {
+            "asr_deltas": [
+              "Boba"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1760,
+            "source_final": false,
+            "source_glm_end": 22,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [
+              "Haer"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2080,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 22
+          },
+          {
+            "asr_deltas": [
+              "and"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2240,
+            "source_final": false,
+            "source_glm_end": 28,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "I"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2400,
+            "source_final": false,
+            "source_glm_end": 30,
+            "source_glm_start": 28
+          },
+          {
+            "asr_deltas": [
+              "down"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2720,
+            "source_final": false,
+            "source_glm_end": 34,
+            "source_glm_start": 30
+          },
+          {
+            "asr_deltas": [
+              "another"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3040,
+            "source_final": false,
+            "source_glm_end": 38,
+            "source_glm_start": 34
+          },
+          {
+            "asr_deltas": [
+              "whisky"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3500,
+            "source_final": true,
+            "source_glm_end": 44,
+            "source_glm_start": 38
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 1,
+        "natural_eos": false,
+        "semantic_coverage": 0.0,
+        "semantic_reference_tokens": 161,
+        "semantic_tokens": 0,
+        "source_hypothesis": "Back in montrial Boba Haer and I down another whisky",
+        "source_rollback_events": 0,
+        "target_hypothesis": "",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": false
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 4,
+        "coverage": 0.5,
+        "events": 10,
+        "final_hypothesis": "回到蒙特利尔的鲍勃头",
+        "hypothesis_units": 10,
+        "nonempty_events": 8,
+        "raw_hypotheses": [
+          "返回",
+          "回到",
+          "回到蒙特利尔",
+          "回到蒙特利尔鲍勃",
+          "回到蒙特利尔的鲍勃头发",
+          "回到蒙特利尔的鲍勃头发和",
+          "回到蒙特利尔，头发乱糟糟的，死了。",
+          "回到蒙特利尔，头发乱糟糟的，然后死了。",
+          "回到蒙特利尔，波波头发又垂下来了。",
+          "回到蒙特利尔，波波头发，又喝了一杯威士忌。"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 9048,
+      "sample_id": "emilia_zh_0006401658",
+      "source_duration_ms": 3500,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "Back in montreal bob hair and die down another whisky",
+      "translation_reference": "回到蒙特利尔鲍勃喝了另一杯威士忌"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 3
+}

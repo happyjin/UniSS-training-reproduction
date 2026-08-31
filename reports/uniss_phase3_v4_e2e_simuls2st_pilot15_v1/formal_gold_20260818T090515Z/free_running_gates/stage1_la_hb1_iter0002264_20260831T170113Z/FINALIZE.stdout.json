@@ -1,0 +1,174 @@
+{
+  "authorization_rule": "A passed canary checkpoint is used only to validate the implementation. The formal run must restart from the immutable V1 compound checkpoint.",
+  "canary_report": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/post_task_pool_canaries/post_task_pool_canary_p4_replayfix_w0_20260821T085848Z/CANARY_REPORT.json",
+    "sha256": "17fda0e5c4ecad74cb91adf7f5db0b45ba2c026c44a12bc25921f1549a6caa64"
+  },
+  "candidate": {
+    "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+    "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+  },
+  "checks": {
+    "e_asr_cmn_retained": true,
+    "e_asr_eng_retained": true,
+    "e_asr_source_rollback_zero": true,
+    "e_asr_structure_valid": false,
+    "e_mt_all_directions_present": true,
+    "e_mt_bleu_retention": true,
+    "e_mt_chrf_retention": true,
+    "e_mt_free_all_directions_present": true,
+    "e_mt_free_target_rollback_zero": true,
+    "e_mt_generation_terminated": true,
+    "e_mt_target_coverage": false,
+    "e_mt_target_rollback_zero": true,
+    "e_s2s_non_silent_pcm": false,
+    "e_s2s_pre_eos_target_semantic": false,
+    "e_s2s_pre_eos_target_text": false,
+    "e_s2s_present": true,
+    "e_s2s_rollback_zero": true,
+    "e_s2s_semantic_coverage": false,
+    "e_s2s_semantic_tokens_valid": true,
+    "e_s2s_structure_valid": false
+  },
+  "formal_initialization": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "formal_training_authorized": false,
+  "metrics": {
+    "e_asr": {
+      "cmn": {
+        "early_eos_events": 0,
+        "empty_events": 26,
+        "empty_samples": 0,
+        "error_rate": 0.0892018779342723,
+        "errors": 19,
+        "final_eos_samples": 8,
+        "limit": 0.210112,
+        "malformed_write_events": 0,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 213
+      },
+      "eng": {
+        "early_eos_events": 1,
+        "empty_events": 28,
+        "empty_samples": 0,
+        "error_rate": 0.3032258064516129,
+        "errors": 47,
+        "final_eos_samples": 8,
+        "limit": 0.353399,
+        "malformed_write_events": 2,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 155
+      }
+    },
+    "e_mt": {
+      "free_running_source": {
+        "commit_conflicts": 187,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 1.5379703964037068,
+            "candidate_bleu": 7.087022683679393,
+            "candidate_chrf": 24.642289455462794,
+            "chrf_retention": 1.0963031827449692,
+            "phase3_bleu": 4.608035824519926,
+            "phase3_chrf": 22.477622835831244,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 1.1795473950070061,
+            "candidate_bleu": 0.4837238451852533,
+            "candidate_chrf": 5.882440020234847,
+            "chrf_retention": 1.0232750492782448,
+            "phase3_bleu": 0.41009275865712896,
+            "phase3_chrf": 5.748640137745915,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.18621469487637965,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "gold_source": {
+        "commit_conflicts": 159,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 2.736305388585147,
+            "candidate_bleu": 12.608993257427274,
+            "candidate_chrf": 33.338951536362174,
+            "chrf_retention": 1.4832062883098585,
+            "phase3_bleu": 4.608035824519926,
+            "phase3_chrf": 22.477622835831244,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 32.41377384171727,
+            "candidate_bleu": 13.292653933238123,
+            "candidate_chrf": 18.85910485126337,
+            "chrf_retention": 3.2806201813596507,
+            "phase3_bleu": 0.41009275865712896,
+            "phase3_chrf": 5.748640137745915,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.3769143937282524,
+        "target_coverage_min": 0.030303030303030304,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      }
+    },
+    "e_s2s_free": {
+      "invalid_semantic_tokens": 0,
+      "malformed_segments": 9,
+      "non_silent_pcm": 7,
+      "samples": 8,
+      "semantic_coverage_mean": 0.7973790322580645,
+      "semantic_coverage_min": 0.0,
+      "source_rollback_events": 0,
+      "target_rollback_events": 0,
+      "target_semantic_before_source_eos": 6,
+      "target_text_before_source_eos": 6
+    }
+  },
+  "schema_version": "uniss_phase3_v4_e2e_free_running_gate_v1",
+  "selection": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/SELECTION.json",
+    "samples": 16,
+    "sha256": "e6354641a2ba6a425ccd050eac19d28be7cbc72c9aa68d5a653f9b0c603361e0"
+  },
+  "status": "failed",
+  "worker_reports": [
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_00.json",
+      "sha256": "d44bb422b27b66239287b001436763618ccbb7784e401afc9d7eb3bdaf3b04e2"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_01.json",
+      "sha256": "7349a83c6a9ff78e04485441a971bd08af6b980dddf633171272bc6e8ec53d66"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_02.json",
+      "sha256": "d7d9b28e7b05f2ff95371a4a9d0274ef5707c858da46a7a81986fb79404c8b7d"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_03.json",
+      "sha256": "8f22872b9c691eb04c773fdcf3e5514ade855510a54b6864d6c62f910da3ca06"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_04.json",
+      "sha256": "0e6d12236e7f4edd97350eb837066196dc16047d6943990475d2a01033e057a4"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_05.json",
+      "sha256": "e363f722a44a1c746d484916765fe0a06d71ef8039a5bf1df45f6fd71c281849"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_06.json",
+      "sha256": "1b3399064e6494b08f0e02533719c20044d8248fea4fc827906b10abd90f28e9"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb1_iter0002264_20260831T170113Z/workers/worker_07.json",
+      "sha256": "b71cd3610f2ac75b0050de025a3920ac642f3b1fe4aa1bab00b14fc3464e6cc1"
+    }
+  ]
+}
