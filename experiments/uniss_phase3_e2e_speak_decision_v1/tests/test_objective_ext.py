@@ -216,3 +216,58 @@ def test_metric_names_are_extended_in_the_emitted_order() -> None:
     assert "loss/speak_decision" in names
     assert "weighted/speak_decision" in names
     assert "weighted/repetition_penalty" in names
+
+
+def _dummy_terms():
+    """One LossTerm per established name, plus the three this module adds."""
+
+    from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.objective import (
+        LossTerm as BaseLossTerm,
+    )
+
+    def term(value: float, denominator: float) -> BaseLossTerm:
+        return BaseLossTerm(torch.tensor(value), torch.tensor(denominator))
+
+    terms = {name: term(1.0, 2.0) for name in E2E_TERM_NAMES}
+    for name in ox.EXTRA_TERM_NAMES:
+        terms[name] = term(0.5, 4.0)
+    return terms
+
+
+def test_distributed_metric_order_matches_the_declared_contract() -> None:
+    """The trainer asserts this twice; an interleaved emission broke a real run."""
+
+    import experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.pretrain_e2e_megatron as trainer
+
+    _, metrics = ox.distributed_with_speak_decision(
+        _dummy_terms(), speak_decision=0.5, repetition_penalty=0.1
+    )
+    expected = ox.extended_objective_metric_names(trainer.OBJECTIVE_METRIC_NAMES)
+    assert tuple(metrics) == expected
+
+
+def test_distributed_rejects_a_reordered_term_dict() -> None:
+    terms = _dummy_terms()
+    reordered = {name: terms[name] for name in reversed(list(terms))}
+    with pytest.raises(ValueError):
+        ox.distributed_with_speak_decision(reordered, speak_decision=0.5)
+
+
+def test_distributed_adds_both_weighted_contributions_to_the_total() -> None:
+    terms = _dummy_terms()
+    baseline, _ = ox.distributed_with_speak_decision(
+        terms, speak_decision=0.0, repetition_penalty=0.0
+    )
+    with_speak, _ = ox.distributed_with_speak_decision(
+        terms, speak_decision=0.5, repetition_penalty=0.0
+    )
+    with_both, _ = ox.distributed_with_speak_decision(
+        terms, speak_decision=0.5, repetition_penalty=0.1
+    )
+    assert float(with_speak) > float(baseline)
+    assert float(with_both) > float(with_speak)
+
+
+def test_distributed_rejects_negative_extension_weights() -> None:
+    with pytest.raises(ValueError):
+        ox.distributed_with_speak_decision(_dummy_terms(), speak_decision=-0.1)

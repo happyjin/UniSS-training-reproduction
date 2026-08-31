@@ -278,12 +278,16 @@ def distributed_with_speak_decision(
     total = total + speak_local * float(speak_decision)
     total = total + rep_local * float(repetition_penalty)
 
-    for name, value, denominator in (
+    # The trainer asserts metric order twice, and the contract groups every
+    # loss/* before every denominator/* -- see extended_objective_metric_names.
+    emitted = (
         ("speak_decision_write", write_global, write_den),
         ("speak_decision_wait", wait_global, wait_den),
         ("repetition_penalty", rep_global, rep_den),
-    ):
+    )
+    for name, value, _ in emitted:
         metrics[f"loss/{name}"] = value
+    for name, _, denominator in emitted:
         metrics[f"denominator/{name}"] = denominator
     metrics["loss/speak_decision"] = speak_global
     metrics["weighted/speak_decision"] = speak_local * float(speak_decision)
