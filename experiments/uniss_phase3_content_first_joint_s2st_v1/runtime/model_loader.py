@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, Mapping
@@ -23,13 +24,15 @@ from torch.distributed.checkpoint import FileSystemReader
 from experiments.uniss_phase3_event_rollout_joint_pilot15_v1.evaluation.model_loader import (
     load_runtime_models,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
+    TrainableSharedCausalWhisperVQ,
+)
 from experiments.uniss_stagea_quality_first_joint_grpo_v1.evaluation.hf_routed_lora import (
     POLICY_PREFIX,
     load_policy_state,
     policy_state_to_hf,
 )
 from uniss.speech_tokenizer.bicodec.bicodec_tokenizer import BiCodecTokenizer
-from uniss.speech_tokenizer.glm4.utils import load_quantize_encoder
 
 
 def _sha256(path: Path) -> str:
@@ -149,6 +152,71 @@ class ContentFirstPolicyOverlay:
         self.handles.clear()
 
 
+def _nearest_codes(objective: nn.Module, hidden: torch.Tensor) -> torch.Tensor:
+    """Quantize pre-VQ hidden states against the immutable runtime codebook."""
+
+    codebook = objective.codebook.weight.to(device=hidden.device, dtype=torch.float32)
+    flat = hidden.reshape(-1, hidden.shape[-1]).float()
+    code_norm = codebook.square().sum(dim=1)
+    pieces: list[torch.Tensor] = []
+    for start in range(0, len(flat), 4096):
+        value = flat[start : start + 4096]
+        distance = (
+            value.square().sum(dim=1, keepdim=True)
+            + code_norm.unsqueeze(0)
+            - 2.0 * value @ codebook.t()
+        )
+        pieces.append(distance.argmin(dim=1))
+    return torch.cat(pieces).reshape(hidden.shape[:-1])
+
+
+class _ContentFirstBridgeNorm(nn.Module):
+    """Adapt codebook vectors while exposing the Stage-A bridge dtype API."""
+
+    def __init__(self, objective: nn.Module) -> None:
+        super().__init__()
+        object.__setattr__(self, "_objective", weakref.proxy(objective))
+        self.register_buffer(
+            "weight",
+            torch.empty(1, dtype=objective.frontend_projection.weight.dtype),
+            persistent=False,
+        )
+
+    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+        objective = object.__getattribute__(self, "_objective")
+        codes = _nearest_codes(objective, hidden)
+        return objective.frontend_adapter(objective.codebook(codes))
+
+
+class _ContentFirstBridgeProjection(nn.Module):
+    """Project the trained content-first causal residual into Qwen space."""
+
+    def __init__(self, objective: nn.Module) -> None:
+        super().__init__()
+        object.__setattr__(self, "_objective", weakref.proxy(objective))
+
+    def forward(self, adapted: torch.Tensor) -> torch.Tensor:
+        objective = object.__getattribute__(self, "_objective")
+        return objective.frontend_projection(adapted)
+
+
+def attach_cascade_compatibility(
+    objective: nn.Module, frontend: TrainableSharedCausalWhisperVQ
+) -> None:
+    """Expose the old cascade contract using the trained content-first path."""
+
+    objective.add_module("frontend", frontend)
+    objective.add_module("bridge_norm", _ContentFirstBridgeNorm(objective))
+    objective.add_module(
+        "bridge_projection", _ContentFirstBridgeProjection(objective)
+    )
+
+    def nearest(hidden: torch.Tensor) -> torch.Tensor:
+        return _nearest_codes(objective, hidden)
+
+    objective._nearest_codes = nearest
+
+
 def load_content_first_models(args):
     """Return the six objects required by the established rollout runtime."""
 
@@ -163,16 +231,17 @@ def load_content_first_models(args):
         if not (export_dir / name).is_file():
             raise FileNotFoundError(export_dir / name)
 
-    encoder = load_quantize_encoder(str(args.whispervq_model)).to(device).eval()
-    codebook_weight = encoder.codebook.weight.detach().float().cpu()
-    del encoder
-    torch.cuda.empty_cache()
+    frontend = TrainableSharedCausalWhisperVQ(
+        args.whispervq_model, gradient_checkpointing=False
+    ).to(device).eval().requires_grad_(False)
+    codebook_weight = frontend.codebook.detach().float().cpu()
     model, tokenizer, objective, runtime_manifest, selected = load_runtime_models(
         export_dir,
         codebook_weight=codebook_weight,
         device=device,
     )
     del codebook_weight
+    attach_cascade_compatibility(objective, frontend)
 
     policy_checkpoint = Path(args.adapter_checkpoint).resolve()
     count = policy_tensor_count(policy_checkpoint)
@@ -220,6 +289,7 @@ def load_content_first_models(args):
 __all__ = [
     "ContentFirstPolicyOverlay",
     "IdentityRouteController",
+    "attach_cascade_compatibility",
     "load_content_first_models",
     "policy_tensor_count",
 ]
