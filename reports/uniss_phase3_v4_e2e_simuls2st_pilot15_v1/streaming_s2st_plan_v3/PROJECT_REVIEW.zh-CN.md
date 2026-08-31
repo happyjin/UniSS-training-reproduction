@@ -2,9 +2,16 @@
 
 - 时间:2026-08-31
 - 依据:Codex 会话 `01a04876-dd46-75f1-9c57-a250cd095b39`(922 条用户消息)、`docs/uniss_training_reproduction/` 的计划与评估文档、全部 gate/report artifact、以及本轮实测
-- 取代:`streaming_s2st_plan_v2/PLAN.zh-CN.md` 的 Phase 1(其中"换 Stage-A v9"一条基于错误前提,已作废)
+- 取代:`streaming_s2st_plan_v2/PLAN.zh-CN.md` 的 S1(其中"换 Stage-A v9"一条基于错误前提,已作废)
 
 ---
+
+> **命名说明(重要)。** 本文的 **S0–S4** 全部是 **streaming 任务**上的步骤,与项目的
+> **phase1 / phase2 / phase3**(离线训练阶段)是两套完全不同的东西。
+> 本计划**不重训任何离线 phase**:离线 phase3 的 `iter_0009075` 在 e2e 训练里是
+> 冻结 teacher 与 replay 锚点(设计 §27.2),是被使用而不是被重训。
+> 之前用 "Phase 0/1/2" 命名造成过混淆,故统一改为 S0–S4。
+
 
 ## 0. 一句话结论
 
@@ -194,7 +201,7 @@ streaming 一直在被要求修一个它看不见的 offline 问题:
 | **3** | 英文流式 ASR(30.3% → ≤20%) | 1–2 天 | 英文 WER ≤0.20;不达标即记录"Stage-A 不是英文瓶颈"并停止该支线 |
 | **4** | CA 延迟工程:KV cache + 异步 TTS | 1 天 | 可听起始 ≤1500 ms、RTF <1 |
 
-**不再做的事**:loss 权重扫参(历史上限 +0.014,而结构性修复是 +0.284);换 Stage-A v9(内容差 1.65 倍,已被 §27.2 实测排除);在 Phase 0 之前重建 task pool。
+**不再做的事**:loss 权重扫参(历史上限 +0.014,而结构性修复是 +0.284);换 Stage-A v9(内容差 1.65 倍,已被 §27.2 实测排除);在 S0 之前重建 task pool。
 
 ---
 
@@ -204,4 +211,4 @@ streaming 一直在被要求修一个它看不见的 offline 问题:
 
 它开的 `semantic_rollin_end_ce` / `semantic_rollin_continue_decision_margin` 掩码选在 `labels == TOKEN_END_SEMANTIC` 和 gold 为语音 token 的行上 —— **只管语音片段何时结束,不影响开口频率**。靶子选错了。
 
-不停的理由:这是**第一次让 roll-in 监督跑在 epoch 尺度**(历史 11 个 canary 全是 100 步),而且是在提交策略修好、指标去污染之后测量。停掉会永久留下"loss 无效 / 没跑够 / 测量坏了"的三义悬案。跑完用本轮指标对比 iter_2264,结果直接决定 Phase 2 里 roll-in 权重要不要保留。
+不停的理由:这是**第一次让 roll-in 监督跑在 epoch 尺度**(历史 11 个 canary 全是 100 步),而且是在提交策略修好、指标去污染之后测量。停掉会永久留下"loss 无效 / 没跑够 / 测量坏了"的三义悬案。跑完用本轮指标对比 iter_2264,结果直接决定 S2 里 roll-in 权重要不要保留。
