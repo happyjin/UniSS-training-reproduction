@@ -1,0 +1,758 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_allfamily_100u_semend_w0p5_20260822T190000Z_retry1_hf",
+  "cuda_visible_devices": "1",
+  "device": "cuda:0",
+  "elapsed_seconds": 124.14356635697186,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 1497899,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 5,
+        "error_rate": 0.17391304347826086,
+        "errors": 4,
+        "event_hypotheses": [
+          "他",
+          "他",
+          "他不赞成",
+          "他不赞成是",
+          "他不赞成是等待",
+          "他不赞成是等待的",
+          "他不赞成是等待的抓",
+          "他不赞成是等待的抓",
+          "他不赞成是等待的抓蚊子",
+          "他不赞成是等待的抓蚊子而是",
+          "他不赞成是等待的抓蚊子而是想",
+          "他不赞成是等待的抓蚊子而是想时装模特",
+          "他不赞成是等待的抓蚊子而是想时装模特那样",
+          "他不赞成是等待的抓蚊子而是想时装模特那样",
+          "他不赞成是等待的抓蚊子而是想时装模特那样",
+          "他不赞成是等待的抓蚊子而是想时装模特那样走来走去",
+          "他不赞成是等待的抓蚊子而是想时装模特那样走来走去"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "他不赞成是等待的抓蚊子而是想时装模特那样走来走去",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 23,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 11,
+        "coverage": 0.0625,
+        "events": 17,
+        "final_hypothesis": "He does not agree that it",
+        "hypothesis_units": 6,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "He",
+          "He",
+          "He does not agree",
+          "He does not agree that it is",
+          "He does not agree that it is waiting",
+          "He does not agree that it is waiting",
+          "He does not agree with the waiting for the catch",
+          "He does not agree with the waiting for the catch",
+          "He does not agree with waiting to catch mosquitoes",
+          "He does not agree with waiting to catch mosquitoes instead of",
+          "He does not agree with waiting to catch mosquitoes but rather wants to",
+          "He doesn't agree with waiting to catch mosquitoes instead of wanting to be a fashion model.",
+          "He doesn't agree with waiting to catch mosquitoes, but rather wants to be a fashion model like",
+          "He doesn't agree with waiting to catch mosquitoes, but rather wants to be a fashion model like",
+          "He doesn't agree with waiting to catch mosquitoes, but rather wants to be a fashion model like",
+          "He doesn't agree with waiting to catch mosquitoes but rather wants to walk around like a fashion model.",
+          "He doesn't agree with waiting to catch mosquitoes but rather wants to walk around like a fashion model."
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 2,
+        "coverage": 0.625,
+        "events": 17,
+        "final_hypothesis": "He is no longer waiting to catch mosquitoes but is like a",
+        "hypothesis_units": 12,
+        "nonempty_events": 13,
+        "raw_hypotheses": [
+          "He",
+          "He",
+          "He no longer",
+          "He is no longer",
+          "He is no longer waiting",
+          "He is no longer waiting",
+          "He is no longer waiting to catch",
+          "He is no longer waiting to catch",
+          "He is no longer waiting to catch mosquitoes.",
+          "He is no longer waiting to catch mosquitoes but",
+          "He is no longer waiting to catch mosquitoes but is like",
+          "He is no longer waiting to catch mosquitoes but is like a fashion model.",
+          "He is no longer waiting to catch mosquitoes but is like a fashion model",
+          "He is no longer waiting to catch mosquitoes but is like a fashion model",
+          "He is no longer waiting to catch mosquitoes but is like a fashion model",
+          "He no longer waited to catch mosquitoes but walked around like a fashion model.",
+          "He no longer waited to catch mosquitoes but walked around like a fashion model."
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 34.88,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/phase0b_la_baseline_semend_20260831T193735Z/audio/worker_01/emilia_zh_0006199435.wav",
+          "peak": 0.7397304773330688,
+          "rms": 0.018838290125131607,
+          "samples": 558080
+        },
+        "events": [
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "He"
+            ],
+            "semantic_tokens": 20,
+            "source_end_ms": 160,
+            "source_final": false,
+            "source_glm_end": 2,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "him"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 2,
+            "source_glm_start": 2
+          },
+          {
+            "asr_deltas": [
+              "不战事"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "not at war"
+            ],
+            "semantic_tokens": 12,
+            "source_end_ms": 800,
+            "source_final": false,
+            "source_glm_end": 10,
+            "source_glm_start": 2
+          },
+          {
+            "asr_deltas": [
+              "是的，是的"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "Yes, yes"
+            ],
+            "semantic_tokens": 14,
+            "source_end_ms": 960,
+            "source_final": false,
+            "source_glm_end": 12,
+            "source_glm_start": 10
+          },
+          {
+            "asr_deltas": [
+              "等待"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "wait for"
+            ],
+            "semantic_tokens": 47,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 12
+          },
+          {
+            "asr_deltas": [
+              "就在这时"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "at this moment"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 1440,
+            "source_final": false,
+            "source_glm_end": 18,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "That's when"
+            ],
+            "semantic_tokens": 15,
+            "source_end_ms": 1600,
+            "source_final": false,
+            "source_glm_end": 20,
+            "source_glm_start": 18
+          },
+          {
+            "asr_deltas": [
+              "他站了起来"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "stand up."
+            ],
+            "semantic_tokens": 15,
+            "source_end_ms": 1760,
+            "source_final": false,
+            "source_glm_end": 20,
+            "source_glm_start": 20
+          },
+          {
+            "asr_deltas": [
+              "蚊子"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "蚊子"
+            ],
+            "semantic_tokens": 15,
+            "source_end_ms": 2080,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 20
+          },
+          {
+            "asr_deltas": [
+              "而是"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "Instead of"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 2880,
+            "source_final": false,
+            "source_glm_end": 36,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "像这样的事情"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 10,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "such things"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 3040,
+            "source_final": false,
+            "source_glm_end": 38,
+            "source_glm_start": 36
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 11,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "Chazmott"
+            ],
+            "semantic_tokens": 18,
+            "source_end_ms": 4160,
+            "source_final": false,
+            "source_glm_end": 52,
+            "source_glm_start": 38
+          },
+          {
+            "asr_deltas": [
+              "那样的话"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 12,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "then"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 4480,
+            "source_final": false,
+            "source_glm_end": 56,
+            "source_glm_start": 52
+          },
+          {
+            "asr_deltas": [
+              "他"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 13,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "him"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 4640,
+            "source_final": false,
+            "source_glm_end": 56,
+            "source_glm_start": 56
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 14,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "Let's go to the bathroom to"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 5760,
+            "source_final": false,
+            "source_glm_end": 72,
+            "source_glm_start": 56
+          },
+          {
+            "asr_deltas": [
+              "去"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 15,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "to go to the"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 5920,
+            "source_final": false,
+            "source_glm_end": 74,
+            "source_glm_start": 72
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "EOS"
+            ],
+            "event_index": 16,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 6060,
+            "source_final": true,
+            "source_glm_end": 76,
+            "source_glm_start": 74
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 4,
+        "natural_eos": true,
+        "semantic_coverage": 1.0,
+        "semantic_reference_tokens": 358,
+        "semantic_tokens": 1744,
+        "source_hypothesis": "不战事是的，是的等待就在这时他站了起来蚊子而是像这样的事情那样的话他去",
+        "source_rollback_events": 0,
+        "target_hypothesis": "He him not at war Yes, yes wait for at this moment That's when stand up. 蚊子 Instead of such things Chazmott then him Let's go to the bathroom to to go to the",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 2,
+        "coverage": 0.5625,
+        "events": 17,
+        "final_hypothesis": "He is no longer waiting to catch mosquitoes, but is like a",
+        "hypothesis_units": 12,
+        "nonempty_events": 13,
+        "raw_hypotheses": [
+          "He",
+          "He",
+          "He no longer",
+          "He is no longer",
+          "He is no longer waiting.",
+          "He is no longer waiting.",
+          "He is no longer waiting to catch.",
+          "He is no longer waiting to catch.",
+          "He is no longer waiting to catch mosquitoes.",
+          "He is no longer waiting to catch mosquitoes.",
+          "He is no longer waiting to catch mosquitoes, but like",
+          "He is no longer waiting to catch mosquitoes, but to be like a fashion model.",
+          "He is no longer waiting to catch mosquitoes, but is like a fashion model.",
+          "He is no longer waiting to catch mosquitoes, but is like a fashion model.",
+          "He is no longer waiting to catch mosquitoes, but is like a fashion model.",
+          "He was no longer waiting to catch mosquitoes, but walked around like a fashion model.",
+          "He was no longer waiting to catch mosquitoes, but walked around like a fashion model."
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 8500,
+      "sample_id": "emilia_zh_0006199435",
+      "source_duration_ms": 6060,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "他不再是等待着抓蚊子而是像时装模特那样走来走去",
+      "translation_reference": "He was no longer waiting to catch mosquitoes but was walking around like a fashion model"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 7,
+        "error_rate": 0.38095238095238093,
+        "errors": 16,
+        "event_hypotheses": [
+          "This",
+          "This is a",
+          "This is a on a",
+          "This is a on a a",
+          "This is a on a a which a",
+          "This is a on a a which a",
+          "This is a on a a which a had",
+          "This is a on a a which a had long",
+          "This is a on a a which a had long",
+          "This is a on a a which a had long aspired",
+          "This is a on a a which a had long aspired",
+          "This is a on a a which a had long aspired but",
+          "This is a on a a which a had long aspired but",
+          "This is a on a a which a had long aspired but being a",
+          "This is a on a a which a had long aspired but being a new",
+          "This is a on a a which a had long aspired but being a new boy",
+          "This is a on a a which a had long aspired but being a new boy I",
+          "This is a on a a which a had long aspired but being a new boy I was",
+          "This is a on a a which a had long aspired but being a new boy I was not",
+          "This is a on a a which a had long aspired but being a new boy I was not admits",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which shine",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which shine never",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which shine never fathom'd",
+          "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which shine never fathom'd"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "This is a on a a which a had long aspired but being a new boy I was not admits it the fraternity and to my character had full of developed itself It was of a very select ociety the object of which shine never fathom'd",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 42,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 40,
+        "coverage": 0.06153846153846154,
+        "events": 46,
+        "final_hypothesis": "这是一个在a上",
+        "hypothesis_units": 7,
+        "nonempty_events": 44,
+        "raw_hypotheses": [
+          "这",
+          "这是一个",
+          "这是一个在",
+          "这是一个在a",
+          "这是一个在a上一个",
+          "这是一个在a上一个",
+          "这是一个a上的a的",
+          "这是一个a上的a，它有长",
+          "这是一个a上的a，它有长",
+          "这是一个长久以来一直渴望的",
+          "这是一个长久以来一直渴望的",
+          "这是一个长期渴望的“a”",
+          "这是一个长期渴望的“a”",
+          "这是一个长期渴望但最终实现的",
+          "这是一个长期渴望但却是新的",
+          "这是一个我长久以来渴望但还是个新男孩的",
+          "这是一个我长久以来渴望但作为新男孩的",
+          "这是一个我长久以来渴望但还是个新男孩的",
+          "这是一个我长久以来渴望但作为新男孩的我",
+          "这是一个我长久以来渴望但作为新男孩的我所承认的",
+          "这是一个我长久以来渴望的，但作为一个新男孩我并不承认这一点",
+          "这是一个我长久以来渴望但作为新男孩的我所承认的",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它。",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它为兄弟会的",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它属于我",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它是兄弟会和我的性格",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格已经",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了发展",
+          "这是一个我长久以来渴望的兄弟会，但作为一个新来的我并不承认它，我的性格中充满了成熟。",
+          "这是一个我长久以来渴望的兄弟会，但作为一个新来的我并不承认它，我的性格中充满了成熟。",
+          "这是一个我长久以来渴望的兄弟会，但作为一个新来的我并不承认它，我的性格中充满了成熟。",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了成熟。它",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了发展本身。它是一个",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它，我的性格中充满了发展本身。它非常",
+          "这是一个我长久以来渴望的兄弟会，但作为一个新来的我并不承认它，我的性格中充满了发展本身。它非常特别",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它是兄弟会，我的性格中充满了成熟。它是一个非常特别的",
+          "这是一个我长久以来渴望的兄弟，但作为一个新来的人，我并不承认这是兄弟情谊，我的性格中充满了成熟。",
+          "这是一个我长久以来渴望的兄弟会，但作为新来的我并不承认它是兄弟会，我的性格中充满了发展。它是一个非常特别的对象。",
+          "这是一个我长久以来渴望的兄弟会，但作为新成员我并不承认它，我的性格中充满了发展本身。它是一个非常特别的对象。",
+          "这是一个我长久以来渴望的，但作为一个新男孩，我并不承认它是兄弟会的，我的性格中充满了发展本身。它是一个非常特别的对象，",
+          "这是一个我长久以来渴望的，但作为一个新男孩，我并不承认它是兄弟会的，我的性格中充满了发展本身。它是一个非常特别的对象，其光芒",
+          "这是一个我长久以来渴望的，但作为一个新男孩，我并不承认它是兄弟会的，我的性格中充满了发展本身。它是一个非常特别的对象，从未",
+          "这是一个我长久以来渴望的，但作为一个新来的男孩，我并不承认它是兄弟会的，我的性格中充满了发展本身。它是一个非常特别的对象，从未被理解。",
+          "这是一个我长久以来渴望的，但作为一个新来的男孩，我并不承认它是兄弟会的，我的性格中充满了发展本身。它是一个非常特别的对象，从未被理解。"
+        ],
+        "reference_units": 65,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 42,
+        "coverage": 0.06153846153846154,
+        "events": 46,
+        "final_hypothesis": "这是一项",
+        "hypothesis_units": 4,
+        "nonempty_events": 44,
+        "raw_hypotheses": [
+          "这",
+          "这是一次",
+          "这是一项荣誉",
+          "这是一项荣誉",
+          "这是我所拥有的荣誉",
+          "这是我所拥有的荣誉",
+          "这是我所拥有的荣誉",
+          "这是我长期以来一直感到荣幸",
+          "这是我长期以来一直感到荣幸",
+          "这是我长久以来所渴望的荣誉",
+          "这是我长久以来所渴望的荣誉",
+          "这是我长久以来所渴望的荣誉",
+          "这是我长久以来所渴望的荣誉",
+          "这是我长久以来一直渴望的荣誉，但作为",
+          "这是我长久以来一直渴望的荣誉，但作为新",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我",
+          "这是我长久以来渴望的荣誉，但作为一个新来的人我却不是",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我却无法被接纳",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我却无法被接纳",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我却无法被接纳",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，我并没有被接纳进入兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，直到",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，直到我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格才被接纳进入兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一段",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一段非常",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一次非常特别的",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常独特的社会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特殊的社团。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常独特的社会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特殊的社团，其目的",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特殊的社团，其目的",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特殊的社团，我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特别的社会，我从未",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个我从未想过的选择。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个我从未想过的选择。"
+        ],
+        "reference_units": 65,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": null,
+      "phase3_mt_gold": {
+        "commit_conflicts": 42,
+        "coverage": 0.06153846153846154,
+        "events": 46,
+        "final_hypothesis": "这是一项",
+        "hypothesis_units": 4,
+        "nonempty_events": 44,
+        "raw_hypotheses": [
+          "这",
+          "这是一",
+          "这是一项荣誉",
+          "这是一项荣誉",
+          "这是我所拥有的荣誉",
+          "这是我所拥有的荣誉",
+          "这是我所拥有的荣誉。",
+          "这是我长期以来的荣誉。",
+          "这是我长期以来的荣誉。",
+          "这是我长久以来所渴望的荣誉。",
+          "这是我长久以来所渴望的荣誉。",
+          "这是我长久以来一直渴望的荣誉，但",
+          "这是我长久以来一直渴望的荣誉，但",
+          "这是我长期以来一直渴望的荣誉，但作为",
+          "这是我长久以来一直渴望的荣誉，但作为新人",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的人，我并非如此。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，我并未被录取。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，我并未被录取。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，我并未被录取。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的男孩，我并没有被接纳进入兄弟会。",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，直到",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，直到我",
+          "这是我长久以来一直渴望的荣誉，但作为一个新来的男孩，直到我的性格才被接纳进入兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的男孩，直到我的性格",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟，我才被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一段非常",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常难得的荣誉。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常独特的社会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常独特的社会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特别的社会。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特别的社会，其目标是",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特殊的社团，其目的",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特别的社会，我",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳进入这个兄弟会。这是一个非常特别的社会，我从未",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特别的社会，我从未想过。",
+          "这是我长期以来一直渴望的荣誉，但作为一个新来的人，直到我的性格完全成熟之前，我从未被接纳加入这个兄弟会。这是一个非常特别的社会，我从未想过。"
+        ],
+        "reference_units": 65,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 2836,
+      "sample_id": "LibriSpeech_0000031307",
+      "source_duration_ms": 13180,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "This was an honor to which I had long aspired But being a new boy I was not admitted to the fraternity until my character had fully developed itself It was a very select society the object of which I never fathomed",
+      "translation_reference": "这是一项我长久以来一直向往的荣誉但作为新人直到我的品格完全成熟之后我才有资格加入这个团体这是一个非常精英的社团其目的我从未完全理解"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/phase0b_la_baseline_semend_20260831T193735Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 1
+}

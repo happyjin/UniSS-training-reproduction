@@ -1,0 +1,736 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_allfamily_100u_fragend_c0p25_s0p75_20260822T200000Z_hf",
+  "cuda_visible_devices": "7",
+  "device": "cuda:0",
+  "elapsed_seconds": 79.15498420316726,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 1586412,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 4,
+        "error_rate": 0.058823529411764705,
+        "errors": 1,
+        "event_hypotheses": [
+          "他们",
+          "他们",
+          "他们普遍",
+          "他们普遍感觉",
+          "他们普遍感觉到",
+          "他们普遍感觉到某种",
+          "他们普遍感觉到某种",
+          "他们普遍感觉到某种心",
+          "他们普遍感觉到某种心的",
+          "他们普遍感觉到某种心的因素",
+          "他们普遍感觉到某种心的因素正在",
+          "他们普遍感觉到某种心的因素正在",
+          "他们普遍感觉到某种心的因素正在诞生",
+          "他们普遍感觉到某种心的因素正在诞生"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "他们普遍感觉到某种心的因素正在诞生",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 17,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 2,
+        "coverage": 0.6,
+        "events": 14,
+        "final_hypothesis": "They generally feel that some factor of the",
+        "hypothesis_units": 8,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel a certain kind of",
+          "They generally feel a certain factor of the heart",
+          "They generally feel that some factor of the heart is",
+          "They generally feel that some factor of the heart is",
+          "They generally feel that some kind of mental factor is being born",
+          "They generally feel that some kind of mental factor is being born"
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 0,
+        "coverage": 0.8,
+        "events": 14,
+        "final_hypothesis": "They generally feel that some new factor is emerging",
+        "hypothesis_units": 9,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel some new",
+          "They generally feel some new",
+          "They generally feel some new factor",
+          "They generally feel that some new factor is",
+          "They generally feel that some new factor is",
+          "They generally feel that some new factor is emerging",
+          "They generally feel that some new factor is emerging"
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 41.96,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/phase0b_la_fragend_20260831T193735Z/audio/worker_07/emilia_zh_0004122419.wav",
+          "peak": 0.9270513653755188,
+          "rms": 0.022670788690447807,
+          "samples": 671360
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "他们"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "They"
+            ],
+            "semantic_tokens": 22,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "it"
+            ],
+            "semantic_tokens": 7,
+            "source_end_ms": 480,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 4
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "bumps and"
+            ],
+            "semantic_tokens": 43,
+            "source_end_ms": 960,
+            "source_final": false,
+            "source_glm_end": 12,
+            "source_glm_start": 4
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "canned"
+            ],
+            "semantic_tokens": 31,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 12
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "down"
+            ],
+            "semantic_tokens": 7,
+            "source_end_ms": 1600,
+            "source_final": false,
+            "source_glm_end": 20,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [
+              "某种"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "某种"
+            ],
+            "semantic_tokens": 36,
+            "source_end_ms": 2080,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 20
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "it"
+            ],
+            "semantic_tokens": 12,
+            "source_end_ms": 2240,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "心"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "heart"
+            ],
+            "semantic_tokens": 20,
+            "source_end_ms": 2400,
+            "source_final": false,
+            "source_glm_end": 30,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "对"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "of the"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 2560,
+            "source_final": false,
+            "source_glm_end": 32,
+            "source_glm_start": 30
+          },
+          {
+            "asr_deltas": [
+              "因素"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "influencing"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 3040,
+            "source_final": false,
+            "source_glm_end": 38,
+            "source_glm_start": 32
+          },
+          {
+            "asr_deltas": [
+              "正在"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 10,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "is"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 3360,
+            "source_final": false,
+            "source_glm_end": 42,
+            "source_glm_start": 38
+          },
+          {
+            "asr_deltas": [
+              "这种"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 11,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "this"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 3520,
+            "source_final": false,
+            "source_glm_end": 42,
+            "source_glm_start": 42
+          },
+          {
+            "asr_deltas": [
+              "诞生"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 12,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "birth"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 4000,
+            "source_final": false,
+            "source_glm_end": 50,
+            "source_glm_start": 42
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "EOS"
+            ],
+            "event_index": 13,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 4120,
+            "source_final": true,
+            "source_glm_end": 52,
+            "source_glm_start": 50
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 5,
+        "natural_eos": true,
+        "semantic_coverage": 1.0,
+        "semantic_reference_tokens": 189,
+        "semantic_tokens": 2098,
+        "source_hypothesis": "他们某种心对因素正在这种诞生",
+        "source_rollback_events": 0,
+        "target_hypothesis": "They it bumps and canned down 某种 it heart of the influencing is this birth",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 0,
+        "coverage": 0.9,
+        "events": 14,
+        "final_hypothesis": "They generally feel that some new factor is being created.",
+        "hypothesis_units": 10,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel some new",
+          "They generally feel some new",
+          "They generally feel some new factor.",
+          "They generally feel that some new factor is happening.",
+          "They generally feel that some new factor is happening.",
+          "They generally feel that some new factor is being created.",
+          "They generally feel that some new factor is being created."
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 4101,
+      "sample_id": "emilia_zh_0004122419",
+      "source_duration_ms": 4120,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "他们普遍感觉到某种新的因素正在诞生",
+      "translation_reference": "They generally feel that some new factor is being born"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 1,
+        "error_rate": 0.6666666666666666,
+        "errors": 6,
+        "event_hypotheses": [
+          "And",
+          "And you are",
+          "And you are sir",
+          "And you are sir",
+          "And you are sir fakes",
+          "And you are sir fakes I",
+          "And you are sir fakes I high",
+          "And you are sir fakes I high earrings",
+          "And you are sir fakes I high earrings problem"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "And you are sir fakes I high earrings problem",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 9,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 4,
+        "coverage": 0.2727272727272727,
+        "events": 9,
+        "final_hypothesis": "而您是假的高耳环问题",
+        "hypothesis_units": 10,
+        "nonempty_events": 6,
+        "raw_hypotheses": [
+          "并且",
+          "而你",
+          "而您是先生",
+          "而您是先生",
+          "而你是假的先生",
+          "而你是假的我",
+          "而你是假的我高",
+          "而你就是假的高耳环",
+          "而您是假的高耳环问题"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 2,
+        "coverage": 0.2727272727272727,
+        "events": 9,
+        "final_hypothesis": "并用这个来修复",
+        "hypothesis_units": 7,
+        "nonempty_events": 6,
+        "raw_hypotheses": [
+          "并且",
+          "并使用",
+          "并用这个来",
+          "并用这个来",
+          "并用这个来修复",
+          "并用这个来修复一个",
+          "并用这个来修复一个",
+          "并用这个来解决高方差",
+          "并用这个来解决高方差问题"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 17.1,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/phase0b_la_fragend_20260831T193735Z/audio/worker_07/EN_B00058_S07483_W000027.wav",
+          "peak": 0.5843905210494995,
+          "rms": 0.012350648641586304,
+          "samples": 273600
+        },
+        "events": [
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "而"
+            ],
+            "semantic_tokens": 16,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "you are"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "你"
+            ],
+            "semantic_tokens": 18,
+            "source_end_ms": 800,
+            "source_final": false,
+            "source_glm_end": 10,
+            "source_glm_start": 4
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "是"
+            ],
+            "semantic_tokens": 12,
+            "source_end_ms": 1120,
+            "source_final": false,
+            "source_glm_end": 14,
+            "source_glm_start": 10
+          },
+          {
+            "asr_deltas": [
+              "it's"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "是"
+            ],
+            "semantic_tokens": 12,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 14,
+            "source_glm_start": 14
+          },
+          {
+            "asr_deltas": [
+              "fix"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "解决"
+            ],
+            "semantic_tokens": 16,
+            "source_end_ms": 1440,
+            "source_final": false,
+            "source_glm_end": 18,
+            "source_glm_start": 14
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "啊"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 1920,
+            "source_final": false,
+            "source_glm_end": 24,
+            "source_glm_start": 18
+          },
+          {
+            "asr_deltas": [
+              "highway"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "highways"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 2240,
+            "source_final": false,
+            "source_glm_end": 28,
+            "source_glm_start": 24
+          },
+          {
+            "asr_deltas": [
+              "variance"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "方差"
+            ],
+            "semantic_tokens": 384,
+            "source_end_ms": 2720,
+            "source_final": false,
+            "source_glm_end": 34,
+            "source_glm_start": 28
+          },
+          {
+            "asr_deltas": [
+              "problems"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "EOS"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3140,
+            "source_final": true,
+            "source_glm_end": 40,
+            "source_glm_start": 34
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 2,
+        "natural_eos": true,
+        "semantic_coverage": 1.0,
+        "semantic_reference_tokens": 124,
+        "semantic_tokens": 855,
+        "source_hypothesis": "you are it's fix highway variance problems",
+        "source_rollback_events": 0,
+        "target_hypothesis": "而你是是解决啊highways方差",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 5,
+        "coverage": 0.18181818181818182,
+        "events": 9,
+        "final_hypothesis": "并使用这",
+        "hypothesis_units": 4,
+        "nonempty_events": 6,
+        "raw_hypotheses": [
+          "并且",
+          "并且使用",
+          "并使用这个来",
+          "并使用这个来",
+          "并用这个来修复",
+          "并用这个来修复一个",
+          "并用这个来修复一个高",
+          "并用这个来解决高方差",
+          "并用这个来解决高方差问题。"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 13241,
+      "sample_id": "EN_B00058_S07483_W000027",
+      "source_duration_ms": 3140,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "And use this to fix a high variance problem",
+      "translation_reference": "并用此来解决高方差问题"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/phase0b_la_fragend_20260831T193735Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 7
+}
