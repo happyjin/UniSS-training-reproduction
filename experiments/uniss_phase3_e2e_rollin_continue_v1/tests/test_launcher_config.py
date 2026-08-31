@@ -76,7 +76,27 @@ def test_the_teacher_forced_end_weights_are_unchanged() -> None:
 def test_the_missing_decision_supervision_is_actually_opened() -> None:
     assert float(_default("ROLLIN_CONTINUE_DECISION_MARGIN_WEIGHT")) > 0.0
     assert float(_default("ROLLIN_END_WEIGHT")) > 0.0
-    assert float(_default("BOUNDARY_BINARY_WEIGHT")) > 0.0
+
+
+def test_boundary_binary_is_off_because_it_replaces_the_margin_family() -> None:
+    """The trainer refuses both; the binary term is an alternative, not an add-on."""
+
+    assert float(_default("BOUNDARY_BINARY_WEIGHT")) == 0.0
+    text = _text()
+    assert "semantic_boundary_binary replaces the END/CONTINUE margin family" in text
+    assert "margin_family_positive" in text and "binary_positive" in text
+
+
+def test_the_trainer_really_enforces_that_exclusion() -> None:
+    """Guard the premise behind the pre-flight check."""
+
+    trainer = (
+        REPO
+        / "experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1"
+        / "training/pretrain_e2e_megatron.py"
+    ).read_text(encoding="utf-8")
+    assert "balanced semantic boundary calibration requires duplicate special" in trainer
+    assert "active_duplicates" in trainer
 
 
 def test_the_roll_in_rate_is_positive_so_the_losses_are_not_dead() -> None:

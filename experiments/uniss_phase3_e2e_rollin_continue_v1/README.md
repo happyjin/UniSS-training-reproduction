@@ -49,7 +49,11 @@ Newly opened:
 |---|---:|---|
 | `semantic_rollin_end_ce` | 0.25 | the same END cross-entropy, but only on rows reached through the model's **own** generated history |
 | `semantic_rollin_continue_decision_margin` | 0.25, margin 1.0 | **the missing half.** At roll-in rows whose gold label is a speech token, `relu(end_logit + 1.0 - max_semantic_logit)` -- do not say END when you should keep speaking. CONTINUE is treated as set-valued: any legal speech token beats END, so it does not force an exact gold successor |
-| `semantic_boundary_binary` | 0.50, margin 1.0 | calibrates the restricted binary score `z = end_logit - max_semantic_logit`. END rows minimise `softplus(1.0 - z)`, premature-END decision rows minimise `softplus(1.0 + z)`. Softplus has **no dead zone**, so the gradient survives once the relu margins are already satisfied, and the END and CONTINUE classes each receive half the weight regardless of their very unequal counts |
+Deliberately **not** opened, because the trainer forbids it here:
+
+| term | weight | why not |
+|---|---:|---|
+| `semantic_boundary_binary` | 0.00 | It is an *alternative* to the whole margin family, not an addition. `pretrain_e2e_megatron.py:546-566` raises `balanced semantic boundary calibration requires duplicate special terms to be zero` if it is combined with `semantic_end_ce`, `semantic_end_margin`, either roll-in END term, either roll-in continue term or `semantic_continue_margin` -- both supervise the same END-versus-CONTINUE decision, so enabling both double counts it. Keeping the parent's teacher-forced END terms makes this continuation a strict superset of the parent objective and keeps it comparable, so the binary term stays off. The launcher pre-flight refuses the illegal combination instead of failing eight ranks deep in Megatron. The historical `sembinary_b0p5_m1p0` canary is the other side of this choice, and it scored 0.153 against `decisionrow`'s 0.151 -- indistinguishable. |
 
 Deliberately left at zero:
 

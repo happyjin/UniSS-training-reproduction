@@ -34,7 +34,15 @@ ROLLIN_CONTINUE_MARGIN_WEIGHT=${ROLLIN_CONTINUE_MARGIN_WEIGHT:-0.0}
 ROLLIN_CONTINUE_LOGIT_MARGIN=${ROLLIN_CONTINUE_LOGIT_MARGIN:-0.0}
 ROLLIN_CONTINUE_TAIL=${ROLLIN_CONTINUE_TAIL:-12}
 ROLLIN_CONTINUE_RATIO=${ROLLIN_CONTINUE_RATIO:-0.5}
-BOUNDARY_BINARY_WEIGHT=${BOUNDARY_BINARY_WEIGHT:-0.5}
+# semantic_boundary_binary is an ALTERNATIVE to the margin family, not an
+# addition: pretrain_e2e_megatron.py:546-566 refuses it whenever any of
+# semantic_end_ce / semantic_end_margin / semantic_rollin_end_ce /
+# semantic_rollin_end_margin / semantic_rollin_continue_decision_margin /
+# semantic_rollin_continue_margin / semantic_continue_margin is non-zero,
+# because both supervise the same END-versus-CONTINUE decision.  This run keeps
+# the parent's teacher-forced END terms so the continuation stays comparable and
+# is a strict superset of the parent objective, so the binary term stays off.
+BOUNDARY_BINARY_WEIGHT=${BOUNDARY_BINARY_WEIGHT:-0.0}
 BOUNDARY_BINARY_LOGIT_MARGIN=${BOUNDARY_BINARY_LOGIT_MARGIN:-1.0}
 BOUNDARY_ROLLIN_RATE=${BOUNDARY_ROLLIN_RATE:-0.5}
 BOUNDARY_ROLLIN_RAMP_UPDATES=${BOUNDARY_ROLLIN_RAMP_UPDATES:-100}
@@ -53,6 +61,18 @@ PY
 rate_positive=$("${PYTHON_BIN}" -c "import sys; print(int(float(sys.argv[1]) > 0.0))" "${BOUNDARY_ROLLIN_RATE}")
 if [[ "${roll_in_enabled}" == "1" && "${rate_positive}" != "1" ]]; then
   echo "a roll-in weight is non-zero but BOUNDARY_ROLLIN_RATE is 0: the loss would be identically zero" >&2
+  exit 2
+fi
+
+# Fail here rather than eight ranks deep in Megatron: the trainer enforces the
+# same rule at pretrain_e2e_megatron.py:546-566.
+binary_positive=$("${PYTHON_BIN}" -c "import sys; print(int(float(sys.argv[1]) > 0.0))" "${BOUNDARY_BINARY_WEIGHT}")
+margin_family_positive=$("${PYTHON_BIN}" -c "import sys; print(int(any(float(v) != 0.0 for v in sys.argv[1:])))" \
+  "${SEMANTIC_END_WEIGHT}" "${SEMANTIC_END_MARGIN_WEIGHT}" "${ROLLIN_END_WEIGHT}" \
+  "${ROLLIN_END_MARGIN_WEIGHT}" "${ROLLIN_CONTINUE_DECISION_MARGIN_WEIGHT}" \
+  "${ROLLIN_CONTINUE_MARGIN_WEIGHT}")
+if [[ "${binary_positive}" == "1" && "${margin_family_positive}" == "1" ]]; then
+  echo "semantic_boundary_binary replaces the END/CONTINUE margin family; set those weights to 0" >&2
   exit 2
 fi
 
