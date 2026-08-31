@@ -224,3 +224,111 @@ def test_aggregate_counts_booleans_as_rates() -> None:
     value = sm.aggregate([sm.sample_metrics(_row())])
     assert value["all"]["s2s.non_silent"]["mean"] == 1.0
     assert value["all"]["s2s.natural_eos"]["mean"] == 0.0
+
+
+def test_session_text_coverage_scores_the_session_not_the_rollout() -> None:
+    value = sm.session_text_coverage(
+        "Such a person feels that everything is possible",
+        "Such a self one who feels that anything is possible",
+        "eng",
+    )
+    assert 0.5 < value["coverage"] < 1.0
+    assert value["hypothesis_units"] == 8
+    assert value["reference_units"] == 10
+    assert value["length_ratio"] == 0.8
+
+
+def test_session_text_coverage_is_zero_for_an_empty_hypothesis() -> None:
+    value = sm.session_text_coverage("", "anything at all", "eng")
+    assert value["coverage"] == 0.0
+    assert value["hypothesis_units"] == 0
+
+
+def test_session_text_coverage_uses_characters_for_chinese() -> None:
+    value = sm.session_text_coverage("他是主席", "他是主席啊", "cmn")
+    assert value["hypothesis_units"] == 4
+    assert value["reference_units"] == 5
+    assert value["coverage"] == 0.8
+
+
+def test_tightened_audio_thresholds_are_the_intended_ones() -> None:
+    assert sm.AUDIBLE_RMS == 0.01
+    assert sm.CLIPPING_PEAK == 1.0
+
+
+def test_audible_onset_reports_unavailable_for_a_missing_file(tmp_path) -> None:
+    assert sm.audible_onset_ms(tmp_path / "absent.wav") == {"available": False}
+    assert sm.audible_onset_ms("") == {"available": False}
+
+
+def _write(tmp_path, name, waveform):
+    import soundfile as sf
+
+    path = tmp_path / name
+    sf.write(path, waveform.astype("float32"), 16_000, subtype="PCM_16")
+    return path
+
+
+def test_audible_onset_finds_the_first_loud_sample(tmp_path) -> None:
+    import numpy as np
+
+    waveform = np.zeros(16_000, dtype="float32")
+    waveform[8_000:] = 0.3  # loud from 500 ms
+    value = sm.audible_onset_ms(_write(tmp_path, "late.wav", waveform))
+    assert value["available"] is True
+    assert value["audible"] is True
+    assert value["audible_onset_ms"] == pytest.approx(500.0, abs=1.0)
+
+
+def test_near_silent_audio_is_not_audible(tmp_path) -> None:
+    """rms 0.0016 passes the gate's 1e-5 threshold but is inaudible."""
+
+    import numpy as np
+
+    waveform = np.full(16_000, 0.0016, dtype="float32")
+    value = sm.audible_onset_ms(_write(tmp_path, "quiet.wav", waveform))
+    assert value["audible"] is False
+
+
+def test_clipping_is_read_from_the_worker_not_the_file() -> None:
+    """A PCM_16 file clamps to +/-1.0, so peak 1.223 only exists in memory.
+
+    emilia_zh_0006795452 reported peak 1.223 and passed the gate unnoticed;
+    the value has to come from e_s2s_free.audio.peak.
+    """
+
+    row = _row()
+    row["e_s2s_free"]["audio"]["peak"] = 1.223
+    quality = sm.sample_metrics(row)["s2s"]["audio_quality"]
+    assert quality["peak"] == 1.223
+    assert quality["clipping"] is True
+    assert quality["passes_tightened_gate"] is False
+
+
+def test_a_clean_in_memory_peak_is_not_flagged() -> None:
+    row = _row()
+    row["e_s2s_free"]["audio"]["peak"] = 0.8
+    quality = sm.sample_metrics(row)["s2s"]["audio_quality"]
+    assert quality["clipping"] is False
+
+
+def test_sample_metrics_carries_the_two_new_blocks() -> None:
+    row = _row()
+    row["translation_reference"] = "a b c d e f g h"
+    row["e_s2s_free"]["target_hypothesis"] = "a b c d"
+    value = sm.sample_metrics(row)
+    assert value["s2s"]["session_text"]["coverage"] == 0.5
+    # No audio file on this synthetic row, so only the in-memory half is known.
+    assert value["s2s"]["audio_quality"]["available"] is False
+    assert value["s2s"]["audio_quality"]["clipping"] is False
+
+
+def test_the_new_aggregates_are_registered() -> None:
+    names = {name for name, _ in sm.AGGREGATES}
+    for expected in (
+        "s2s.session_coverage",
+        "s2s.audible_onset_ms",
+        "s2s.clipping",
+        "s2s.passes_tightened_gate",
+    ):
+        assert expected in names

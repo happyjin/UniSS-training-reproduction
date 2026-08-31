@@ -36,12 +36,87 @@ import statistics
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
+import numpy as np
+import soundfile as sf
+
 from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.local_agreement import (
     display_units,
+)
+from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.evaluation.gate import (
+    lcs_length,
+    text_units,
 )
 
 
 SCHEMA = "uniss_e2e_streaming_s2st_metrics_v1"
+
+
+# The gate's non-silent check is rms > 1e-5 and peak > 1e-4, which passes audio
+# measured at rms 0.0005-0.0016 that is inaudible, and passes peak 1.223 that
+# clips.  These are the tightened thresholds.
+AUDIBLE_RMS = 0.01
+AUDIBLE_SAMPLE = 0.01
+CLIPPING_PEAK = 1.0
+
+
+def audible_onset_ms(path: str | Path) -> dict[str, object]:
+    """When a listener first hears the translation, not when a token was emitted.
+
+    Clipping is deliberately *not* judged here: the file is written as PCM_16,
+    which clamps to +/-1.0, so the observed peak of 1.223 on
+    emilia_zh_0006795452 is only visible in the worker's in-memory measurement.
+    That value is already reported as ``e_s2s_free.audio.peak`` and is what
+    ``sample_metrics`` checks.
+
+    ``first_emission_ms`` is a source-timeline number: it says when the model
+    emitted a semantic token.  On emilia_zh_0006199435 it reports 320 ms while
+    the concatenated audio's first audible sample arrives at 7703 ms, after the
+    5862 ms source has already ended -- the leading fragments decode to
+    near-silent noise.  The listener-facing number is the one that decides
+    whether the output is simultaneous at all.
+    """
+
+    file = Path(str(path))
+    if not file.is_file():
+        return {"available": False}
+    waveform, rate = sf.read(str(file), dtype="float32", always_2d=False)
+    if waveform.ndim > 1:
+        waveform = waveform[:, 0]
+    if not len(waveform) or not bool(np.isfinite(waveform).all()):
+        return {"available": False}
+    loud = np.abs(waveform) > AUDIBLE_SAMPLE
+    rms = float(np.sqrt(np.mean(np.square(waveform))))
+    return {
+        "available": True,
+        "audible": bool(loud.any()) and rms > AUDIBLE_RMS,
+        "audible_onset_ms": (
+            float(int(np.argmax(loud)) / rate * 1000.0) if loud.any() else -1.0
+        ),
+        "duration_seconds": len(waveform) / rate,
+        "file_rms": rms,
+    }
+
+
+def session_text_coverage(
+    hypothesis: str, reference: str, language: str
+) -> dict[str, float]:
+    """Score the interleaved session's own output, not the separate MT rollout.
+
+    ``mt_gold`` and ``mt_free`` come from ``incremental_mt_rollout``, a code path
+    the interleaved session never touches, so they are byte-identical across
+    every speak policy and commit holdback.  Only this number moves when the
+    action policy changes.
+    """
+
+    hypothesis_units = text_units(hypothesis, language)
+    reference_units = text_units(reference, language)
+    denominator = max(1, len(reference_units))
+    return {
+        "coverage": lcs_length(reference_units, hypothesis_units) / denominator,
+        "hypothesis_units": len(hypothesis_units),
+        "reference_units": len(reference_units),
+        "length_ratio": len(hypothesis_units) / denominator,
+    }
 
 
 def percentile(values: Sequence[float], fraction: float) -> float:
@@ -208,6 +283,15 @@ def sample_metrics(row: Mapping[str, object]) -> dict[str, object]:
         reference_speech = max(1, int(s2s.get("semantic_reference_tokens", 1)))
         generated_speech = int(s2s.get("semantic_tokens", 0))
         duration_seconds = float(audio.get("duration_seconds") or 0.0)
+        quality = {
+            **audible_onset_ms(audio.get("path") or ""),
+            # From the worker's in-memory array; a PCM_16 file cannot show it.
+            "peak": float(audio.get("peak") or 0.0),
+            "clipping": float(audio.get("peak") or 0.0) > CLIPPING_PEAK,
+        }
+        quality["passes_tightened_gate"] = bool(
+            quality.get("audible") and not quality["clipping"]
+        )
         output["s2s"] = {
             "semantic_tokens": generated_speech,
             "semantic_reference_tokens": reference_speech,
@@ -233,6 +317,12 @@ def sample_metrics(row: Mapping[str, object]) -> dict[str, object]:
             ),
             "events": len(events),
             "actions": action_counts(events),
+            "audio_quality": quality,
+            "session_text": session_text_coverage(
+                str(s2s.get("target_hypothesis", "")),
+                str(row.get("translation_reference", "")),
+                str(row["tgt_lang"]),
+            ),
             "latency_text": latency_family(
                 text_times,
                 source_duration_ms=source_ms,
@@ -283,6 +373,12 @@ AGGREGATES = (
     ("mt_free.length_ratio", ("mt_free", "length_ratio")),
     ("mt_free.commit_conflicts", ("mt_free", "commit_conflicts")),
     ("s2s.semantic_length_ratio", ("s2s", "semantic_length_ratio")),
+    ("s2s.session_coverage", ("s2s", "session_text", "coverage")),
+    ("s2s.session_length_ratio", ("s2s", "session_text", "length_ratio")),
+    ("s2s.audible", ("s2s", "audio_quality", "audible")),
+    ("s2s.audible_onset_ms", ("s2s", "audio_quality", "audible_onset_ms")),
+    ("s2s.clipping", ("s2s", "audio_quality", "clipping")),
+    ("s2s.passes_tightened_gate", ("s2s", "audio_quality", "passes_tightened_gate")),
     ("s2s.malformed_segments", ("s2s", "malformed_segments")),
     ("s2s.audio_over_source_ratio", ("s2s", "audio_over_source_ratio")),
     ("s2s.non_silent", ("s2s", "non_silent")),
@@ -420,6 +516,8 @@ def main() -> None:
                     "speech_laal_ms": block["latency_speech.laal_ms"].get("mean"),
                     "speech_first_ms": block["latency_speech.first_emission_ms"].get("mean"),
                     "semantic_length_ratio": block["s2s.semantic_length_ratio"].get("mean"),
+                    "session_coverage": block["s2s.session_coverage"].get("mean"),
+                    "audible_onset_ms": block["s2s.audible_onset_ms"].get("mean"),
                 },
                 ensure_ascii=False,
             ),

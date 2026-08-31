@@ -103,3 +103,35 @@ def test_main_rebinds_the_session_only_when_pacing_is_on(monkeypatch) -> None:
     finally:
         worker.PersistentInterleavedSession = original_session
         worker.incremental_mt_rollout = original_rollout
+
+
+def test_content_gated_switch_selects_the_gated_session(monkeypatch) -> None:
+    from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.speak_policy import (
+        ContentGatedSpeakSession,
+    )
+
+    original = worker.PersistentInterleavedSession
+    monkeypatch.setattr(worker, "main", lambda: None)
+    monkeypatch.delenv(wrapper.ENV_HOLDBACK, raising=False)
+    monkeypatch.delenv(wrapper.ENV_EAGER, raising=False)
+    monkeypatch.setenv(wrapper.ENV_CONTENT_GATED, "1")
+    monkeypatch.setenv(wrapper.ENV_PACE, "1")
+    try:
+        wrapper.main()
+        bound = worker.PersistentInterleavedSession
+        assert isinstance(bound, functools.partial)
+        assert bound.func is ContentGatedSpeakSession
+    finally:
+        worker.PersistentInterleavedSession = original
+
+
+def test_the_two_speak_policies_are_mutually_exclusive(monkeypatch) -> None:
+    monkeypatch.setattr(worker, "main", lambda: None)
+    monkeypatch.setenv(wrapper.ENV_EAGER, "1")
+    monkeypatch.setenv(wrapper.ENV_CONTENT_GATED, "1")
+    original = worker.PersistentInterleavedSession
+    try:
+        with pytest.raises(ValueError):
+            wrapper.main()
+    finally:
+        worker.PersistentInterleavedSession = original

@@ -33,6 +33,9 @@ from __future__ import annotations
 
 from typing import Sequence
 
+from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.local_agreement import (
+    display_units,
+)
 from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.semantic_pacing import (
     PacedInterleavedSession,
 )
@@ -62,4 +65,82 @@ class EagerSpeakSession(PacedInterleavedSession):
         return super()._choice(values)
 
 
-__all__ = ["EagerSpeakSession"]
+FAMILY_TOKENS = (
+    c.TOKEN_TASK_ASR,
+    c.TOKEN_TASK_S2T_TRANSLATION,
+    c.TOKEN_TASK_TTS,
+)
+
+
+def is_family_decision(values: Sequence[int]) -> bool:
+    """``_choice`` serves two decisions; the family one offers only families."""
+
+    return bool(values) and all(int(value) in FAMILY_TOKENS for value in values)
+
+
+class ContentGatedSpeakSession(PacedInterleavedSession):
+    """Speak when this event's ASR produced new content, otherwise wait.
+
+    The oracle bracketed the two extremes and neither is acceptable:
+
+    | policy       | speak rate | natural_eos | first speech | cmn coverage |
+    |--------------|-----------:|------------:|-------------:|-------------:|
+    | conservative |      0.168 |        0.50 |       680 ms |        0.514 |
+    | eager        |      1.000 |        1.00 |       280 ms |        0.478 |
+
+    Forcing every event brings the timing but degenerates into repetition
+    ("of of", "new new"); leaving it to the sampled continuation logit speaks on
+    17% of events and starves coverage.  This is the middle ground the design
+    actually asked for: the plan's section 24 calls WAIT_READ/WRITE_GENERATE
+    "a deterministic event delimiter, not a policy classification target", so the
+    delimiter is derived from content rather than sampled.
+
+    Within an event the grammar runs ASR before MT before TTS, so by the time
+    the second continuation decision is made ``source_text`` has already grown
+    if ASR committed anything.  The rule is therefore:
+
+    * first decision of the event -- always continue, so ASR runs at all;
+    * later decisions -- continue only if ASR added source units this event;
+    * otherwise fall through to the model's own choice, which is normally WAIT.
+
+    Only ``_choice`` and the per-event bookkeeping are overridden.  The event
+    grammar, family ordering, EOS legality and the inherited pacing budget are
+    untouched.
+    """
+
+    def __init__(self, *args, force_family_order: bool = True, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.force_family_order = bool(force_family_order)
+        self._event_asr_done = False
+        self._event_start_source_units = 0
+        self.gate_opened = 0
+        self.gate_withheld = 0
+
+    def _source_units(self) -> int:
+        return len(display_units(self.source_text, self.trajectory.src_lang))
+
+    def run_event(self, event, **kwargs):
+        self._event_asr_done = False
+        self._event_start_source_units = self._source_units()
+        return super().run_event(event, **kwargs)
+
+    def _choice(self, candidates: Sequence[int]) -> int:
+        values = [int(value) for value in candidates]
+        if is_family_decision(values):
+            choice = values[0] if self.force_family_order else super()._choice(values)
+            if choice == c.TOKEN_TASK_ASR:
+                self._event_asr_done = True
+            return choice
+        if c.TOKEN_WRITE_GENERATE in values:
+            if not self._event_asr_done:
+                # Let ASR run; it is the input side and already fires on 82% of
+                # events, so this does not change the speaking decision.
+                return c.TOKEN_WRITE_GENERATE
+            if self._source_units() > self._event_start_source_units:
+                self.gate_opened += 1
+                return c.TOKEN_WRITE_GENERATE
+            self.gate_withheld += 1
+        return super()._choice(values)
+
+
+__all__ = ["ContentGatedSpeakSession", "EagerSpeakSession", "FAMILY_TOKENS", "is_family_decision"]

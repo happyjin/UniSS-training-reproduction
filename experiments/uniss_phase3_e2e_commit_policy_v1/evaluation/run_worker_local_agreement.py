@@ -36,6 +36,7 @@ from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.semantic_pacing impor
     PacedInterleavedSession,
 )
 from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.speak_policy import (
+    ContentGatedSpeakSession,
     EagerSpeakSession,
 )
 
@@ -46,6 +47,7 @@ ENV_PACE_MARGIN_MS = "UNISS_E2E_SEMANTIC_PACE_MARGIN_MS"
 ENV_PACE_TAIL_MS = "UNISS_E2E_SEMANTIC_TAIL_MS"
 ENV_PACE_MINIMUM = "UNISS_E2E_SEMANTIC_MIN_FRAGMENT"
 ENV_EAGER = "UNISS_E2E_EAGER_SPEAK"
+ENV_CONTENT_GATED = "UNISS_E2E_CONTENT_GATED_SPEAK"
 
 
 def resolve_holdback() -> int:
@@ -96,9 +98,24 @@ def main() -> None:
         "semantic_pacing": None,
     }
     pacing = resolve_pacing()
-    eager = os.environ.get(ENV_EAGER, "").strip() in {"1", "true", "yes"}
+    truthy = {"1", "true", "yes"}
+    eager = os.environ.get(ENV_EAGER, "").strip() in truthy
+    content_gated = os.environ.get(ENV_CONTENT_GATED, "").strip() in truthy
+    if eager and content_gated:
+        raise ValueError(
+            f"{ENV_EAGER} and {ENV_CONTENT_GATED} are mutually exclusive speak policies"
+        )
     manifest["eager_speak"] = eager
-    if eager:
+    manifest["content_gated_speak"] = content_gated
+    if content_gated:
+        # The middle ground between the conservative 0.168 speak rate and the
+        # eager 1.000: continue past ASR only when ASR added source units this
+        # event.  See runtime/speak_policy.py for the measured brackets.
+        worker.PersistentInterleavedSession = functools.partial(
+            ContentGatedSpeakSession, **(pacing or {})
+        )
+        manifest["semantic_pacing"] = pacing
+    elif eager:
         # Diagnostic ceiling only: forcing MT/TTS on every event is the
         # empty-write behaviour a real policy must avoid.
         worker.PersistentInterleavedSession = functools.partial(
