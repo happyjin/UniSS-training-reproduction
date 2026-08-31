@@ -33,8 +33,14 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage00
     SAMPLE_RATE,
     SharedCausalWhisperVQFrontend,
 )
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.evaluate_checkpoint import (
+    load_objective as load_stage_a_objective,
+)
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr.training.frontend import (
     TrainableSharedCausalWhisperVQ,
+)
+from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.checkpoint_runtime import (
+    make_cached_frontend,
 )
 from uniss.speech_tokenizer.glm4.utils import extract_speech_token
 
@@ -179,14 +185,13 @@ def offline_codes(
     return [int(value) for value in tokens[0]]
 
 
-def evaluate(args: argparse.Namespace) -> dict[str, object]:
-    device = torch.device(args.device)
-    if device.type != "cuda" or not torch.cuda.is_available():
-        raise RuntimeError("bridge parity requires CUDA (offline tokenizer is CUDA-only)")
-    torch.cuda.set_device(device)
+def build_untrained_frontend(
+    whispervq_model: Path, device: torch.device
+) -> tuple[SharedCausalWhisperVQFrontend, torch.Tensor]:
+    """Exactly what ``load_content_first_models`` builds: pretrained, untrained."""
 
     trainable = (
-        TrainableSharedCausalWhisperVQ(args.whispervq_model, gradient_checkpointing=False)
+        TrainableSharedCausalWhisperVQ(whispervq_model, gradient_checkpointing=False)
         .to(device)
         .eval()
         .requires_grad_(False)
@@ -195,7 +200,42 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
         trainable.encoder, trainable.mel_filters, device=device
     )
     frontend.requires_grad_(False).eval()
-    codebook = trainable.codebook.detach()
+    return frontend, trainable.codebook.detach()
+
+
+def build_stage_a_frontend(
+    checkpoint: Path, whispervq_model: Path, device: torch.device
+) -> tuple[SharedCausalWhisperVQFrontend, torch.Tensor]:
+    """What every prior lineage builds: the trained Stage-A causal frontend."""
+
+    objective = (
+        load_stage_a_objective(checkpoint, whispervq_model, device)
+        .eval()
+        .requires_grad_(False)
+    )
+    frontend = make_cached_frontend(objective, device)
+    return frontend, objective.codebook.detach()
+
+
+def evaluate(args: argparse.Namespace) -> dict[str, object]:
+    device = torch.device(args.device)
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("bridge parity requires CUDA (offline tokenizer is CUDA-only)")
+    torch.cuda.set_device(device)
+
+    reference_encoder = (
+        TrainableSharedCausalWhisperVQ(args.whispervq_model, gradient_checkpointing=False)
+        .to(device)
+        .eval()
+        .requires_grad_(False)
+    )
+    frontend, codebook = build_untrained_frontend(args.whispervq_model, device)
+    stage_a_frontend: SharedCausalWhisperVQFrontend | None = None
+    stage_a_codebook: torch.Tensor | None = None
+    if args.stage_a_checkpoint is not None:
+        stage_a_frontend, stage_a_codebook = build_stage_a_frontend(
+            args.stage_a_checkpoint, args.whispervq_model, device
+        )
     extractor = WhisperFeatureExtractor.from_pretrained(
         str(args.whispervq_model), local_files_only=True
     )
@@ -208,7 +248,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
     for component in components:
         waveform = read_waveform(Path(str(component["source_audio"])))
         own, bridge, resets = stream_codes(frontend, codebook, waveform)
-        offline = offline_codes(trainable.encoder, extractor, waveform)
+        offline = offline_codes(reference_encoder.encoder, extractor, waveform)
         row = {
             **component,
             "waveform_samples": int(len(waveform)),
@@ -225,6 +265,17 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
                 codebook, offline, bridge
             ),
         }
+        if stage_a_frontend is not None and stage_a_codebook is not None:
+            _, stage_a_bridge, stage_a_resets = stream_codes(
+                stage_a_frontend, stage_a_codebook, waveform
+            )
+            row["stage_a_encoder_resets"] = stage_a_resets
+            row["stage_a_length"] = len(stage_a_bridge)
+            row["offline_vs_stage_a"] = agreement(offline, stage_a_bridge)
+            row["offline_vs_stage_a_embedding"] = embedding_similarity(
+                stage_a_codebook, offline, stage_a_bridge
+            )
+            row["untrained_vs_stage_a"] = agreement(bridge, stage_a_bridge)
         rows.append(row)
         print(
             json.dumps(
@@ -237,6 +288,11 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
                         "agreement"
                     ],
                     "mean_cosine": row["offline_vs_bridge_embedding"]["mean_cosine"],
+                    "offline_vs_stage_a_agreement": (
+                        row["offline_vs_stage_a"]["agreement"]
+                        if "offline_vs_stage_a" in row
+                        else None
+                    ),
                 },
                 ensure_ascii=False,
             ),
@@ -271,6 +327,23 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
             lambda row: 1.0 if row["offline_matches_declared_length"] else 0.0
         ),
     }
+    if any("offline_vs_stage_a" in row for row in rows):
+        summary["offline_vs_stage_a_agreement_mean"] = mean(
+            lambda row: row["offline_vs_stage_a"]["agreement"]
+        )
+        summary["offline_vs_stage_a_agreement_min"] = min(
+            float(row["offline_vs_stage_a"]["agreement"]) for row in rows
+        )
+        summary["offline_vs_stage_a_mean_cosine"] = mean(
+            lambda row: row["offline_vs_stage_a_embedding"]["mean_cosine"]
+        )
+        summary["untrained_vs_stage_a_agreement_mean"] = mean(
+            lambda row: row["untrained_vs_stage_a"]["agreement"]
+        )
+        summary["stage_a_recovers_agreement_ratio"] = (
+            float(summary["offline_vs_stage_a_agreement_mean"])
+            / max(1e-9, float(summary["offline_vs_bridge_agreement_mean"]))
+        )
     agree = float(summary["offline_vs_bridge_agreement_mean"])
     summary["verdict"] = (
         "inference_path_consistent"
@@ -287,6 +360,20 @@ def evaluate(args: argparse.Namespace) -> dict[str, object]:
             "codes the content-first SFT was trained on"
         ),
         "whispervq_model": str(args.whispervq_model),
+        "stage_a_checkpoint": (
+            str(args.stage_a_checkpoint) if args.stage_a_checkpoint else None
+        ),
+        "arms": {
+            "offline": "non-causal GLM4 tokenizer codes; the exact training-time source_glm",
+            "content_first_bridge": (
+                "untrained pretrained WhisperVQ run block-causally, then float32 L2 "
+                "argmin, which is what load_content_first_models builds"
+            ),
+            "stage_a": (
+                "the trained Stage-A causal frontend every prior lineage loads via "
+                "strict_cascade._load_models"
+            ),
+        },
         "episodes": str(args.episodes),
         "decision_thresholds": {
             "consistent": ">=0.99 offline_vs_bridge agreement",
@@ -302,6 +389,7 @@ def main() -> None:
     parser.add_argument("--episodes", type=Path, required=True)
     parser.add_argument("--whispervq-model", type=Path, required=True)
     parser.add_argument("--components", type=int, default=8)
+    parser.add_argument("--stage-a-checkpoint", type=Path)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

@@ -5,12 +5,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${HERE}/config.env"
 
 COMPONENTS=${COMPONENTS:-8}
+STAGE_A_CHECKPOINT=${STAGE_A_CHECKPOINT:-${REPO_ROOT}/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381}
 DEVICE=${DEVICE:-cuda:0}
 GPU=${GPU:-0}
 OUTPUT=${OUTPUT:-${REPORT_ROOT}/BRIDGE_PARITY.json}
 LOG=${LOG:-${LOG_ROOT}/bridge_parity.log}
 
-for path in "${EPISODES}" "${WHISPERVQ_MODEL}/config.json"; do
+for path in "${EPISODES}" "${WHISPERVQ_MODEL}/config.json" "${STAGE_A_CHECKPOINT}/.metadata"; do
   [[ -e "${path}" ]] || { echo "missing input: ${path}" >&2; exit 2; }
 done
 mkdir -p "$(dirname "${OUTPUT}")" "$(dirname "${LOG}")"
@@ -27,6 +28,7 @@ CUDA_VISIBLE_DEVICES=${GPU} "${PYTHON}" -u \
   --episodes "${EPISODES}" \
   --whispervq-model "${WHISPERVQ_MODEL}" \
   --components "${COMPONENTS}" \
+  --stage-a-checkpoint "${STAGE_A_CHECKPOINT}" \
   --device "${DEVICE}" \
   --output "${OUTPUT}" 2>&1 | tee "${LOG}"
 

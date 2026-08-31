@@ -1,0 +1,547 @@
+{
+  "arms": {
+    "content_first_bridge": "untrained pretrained WhisperVQ run block-causally, then float32 L2 argmin, which is what load_content_first_models builds",
+    "offline": "non-causal GLM4 tokenizer codes; the exact training-time source_glm",
+    "stage_a": "the trained Stage-A causal frontend every prior lineage loads via strict_cascade._load_models"
+  },
+  "components_detail": [
+    {
+      "declared_source_glm_length": 72,
+      "duration_ms": 5740,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 72,
+        "left_length": 72,
+        "length_equal": true,
+        "matches": 72,
+        "right_length": 72
+      },
+      "offline_length": 72,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.1388888888888889,
+        "compared": 72,
+        "left_length": 72,
+        "length_equal": true,
+        "matches": 10,
+        "right_length": 72
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9621060490608215,
+        "p05_cosine": 0.8577565550804138
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.1388888888888889,
+        "compared": 72,
+        "left_length": 72,
+        "length_equal": true,
+        "matches": 10,
+        "right_length": 72
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 72,
+        "left_length": 72,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 72
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7682430744171143,
+        "p05_cosine": 0.6034291982650757
+      },
+      "sample_id": "emilia_zh_0006544609",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00010/source_audio/0048324_emilia_zh_0006544609.flac",
+      "source_glm_length": 72,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 72,
+      "stream_length": 72,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 72,
+        "left_length": 72,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 72
+      },
+      "waveform_samples": 91840
+    },
+    {
+      "declared_source_glm_length": 213,
+      "duration_ms": 16960,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 212,
+        "left_length": 212,
+        "length_equal": true,
+        "matches": 212,
+        "right_length": 212
+      },
+      "offline_length": 212,
+      "offline_matches_declared_length": false,
+      "offline_vs_bridge": {
+        "agreement": 0.14150943396226415,
+        "compared": 212,
+        "left_length": 212,
+        "length_equal": true,
+        "matches": 30,
+        "right_length": 212
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9620915055274963,
+        "p05_cosine": 0.8449448943138123
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.14150943396226415,
+        "compared": 212,
+        "left_length": 212,
+        "length_equal": true,
+        "matches": 30,
+        "right_length": 212
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 212,
+        "left_length": 212,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 212
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7617722153663635,
+        "p05_cosine": 0.5509859323501587
+      },
+      "sample_id": "emilia_zh_0006616205",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00010/source_audio/0068342_emilia_zh_0006616205.flac",
+      "source_glm_length": 213,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 212,
+      "stream_length": 212,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 212,
+        "left_length": 212,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 212
+      },
+      "waveform_samples": 271360
+    },
+    {
+      "declared_source_glm_length": 117,
+      "duration_ms": 9320,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 117,
+        "left_length": 117,
+        "length_equal": true,
+        "matches": 117,
+        "right_length": 117
+      },
+      "offline_length": 117,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.21367521367521367,
+        "compared": 117,
+        "left_length": 117,
+        "length_equal": true,
+        "matches": 25,
+        "right_length": 117
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9713336825370789,
+        "p05_cosine": 0.87263023853302
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.21367521367521367,
+        "compared": 117,
+        "left_length": 117,
+        "length_equal": true,
+        "matches": 25,
+        "right_length": 117
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 117,
+        "left_length": 117,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 117
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7718980312347412,
+        "p05_cosine": 0.6039405465126038
+      },
+      "sample_id": "emilia_zh_0006974291",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00011/source_audio/0029257_emilia_zh_0006974291.flac",
+      "source_glm_length": 117,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 117,
+      "stream_length": 117,
+      "untrained_vs_stage_a": {
+        "agreement": 0.017094017094017096,
+        "compared": 117,
+        "left_length": 117,
+        "length_equal": true,
+        "matches": 2,
+        "right_length": 117
+      },
+      "waveform_samples": 149120
+    },
+    {
+      "declared_source_glm_length": 40,
+      "duration_ms": 3120,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 39,
+        "left_length": 39,
+        "length_equal": true,
+        "matches": 39,
+        "right_length": 39
+      },
+      "offline_length": 39,
+      "offline_matches_declared_length": false,
+      "offline_vs_bridge": {
+        "agreement": 0.1282051282051282,
+        "compared": 39,
+        "left_length": 39,
+        "length_equal": true,
+        "matches": 5,
+        "right_length": 39
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9669447541236877,
+        "p05_cosine": 0.8710464835166931
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.1282051282051282,
+        "compared": 39,
+        "left_length": 39,
+        "length_equal": true,
+        "matches": 5,
+        "right_length": 39
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 39,
+        "left_length": 39,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 39
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7713303565979004,
+        "p05_cosine": 0.635725736618042
+      },
+      "sample_id": "emilia_zh_0006787038",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00010/source_audio/0099089_emilia_zh_0006787038.flac",
+      "source_glm_length": 40,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 39,
+      "stream_length": 39,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 39,
+        "left_length": 39,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 39
+      },
+      "waveform_samples": 49920
+    },
+    {
+      "declared_source_glm_length": 50,
+      "duration_ms": 3980,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 50,
+        "left_length": 50,
+        "length_equal": true,
+        "matches": 50,
+        "right_length": 50
+      },
+      "offline_length": 50,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.16,
+        "compared": 50,
+        "left_length": 50,
+        "length_equal": true,
+        "matches": 8,
+        "right_length": 50
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9596911072731018,
+        "p05_cosine": 0.8032165169715881
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.16,
+        "compared": 50,
+        "left_length": 50,
+        "length_equal": true,
+        "matches": 8,
+        "right_length": 50
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 50,
+        "left_length": 50,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 50
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7647942900657654,
+        "p05_cosine": 0.6107084155082703
+      },
+      "sample_id": "emilia_zh_0004032736",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00004/source_audio/0014936_emilia_zh_0004032736.flac",
+      "source_glm_length": 50,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 50,
+      "stream_length": 50,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 50,
+        "left_length": 50,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 50
+      },
+      "waveform_samples": 63680
+    },
+    {
+      "declared_source_glm_length": 54,
+      "duration_ms": 4280,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 54,
+        "left_length": 54,
+        "length_equal": true,
+        "matches": 54,
+        "right_length": 54
+      },
+      "offline_length": 54,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.16666666666666666,
+        "compared": 54,
+        "left_length": 54,
+        "length_equal": true,
+        "matches": 9,
+        "right_length": 54
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9586303234100342,
+        "p05_cosine": 0.8219066858291626
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.16666666666666666,
+        "compared": 54,
+        "left_length": 54,
+        "length_equal": true,
+        "matches": 9,
+        "right_length": 54
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 54,
+        "left_length": 54,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 54
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.771417498588562,
+        "p05_cosine": 0.6084779500961304
+      },
+      "sample_id": "emilia_zh_0004958827",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00006/source_audio/0072484_emilia_zh_0004958827.flac",
+      "source_glm_length": 54,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 54,
+      "stream_length": 54,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 54,
+        "left_length": 54,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 54
+      },
+      "waveform_samples": 68480
+    },
+    {
+      "declared_source_glm_length": 77,
+      "duration_ms": 6100,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 77,
+        "left_length": 77,
+        "length_equal": true,
+        "matches": 77,
+        "right_length": 77
+      },
+      "offline_length": 77,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.06493506493506493,
+        "compared": 77,
+        "left_length": 77,
+        "length_equal": true,
+        "matches": 5,
+        "right_length": 77
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9498473405838013,
+        "p05_cosine": 0.8312487602233887
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.06493506493506493,
+        "compared": 77,
+        "left_length": 77,
+        "length_equal": true,
+        "matches": 5,
+        "right_length": 77
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.012987012987012988,
+        "compared": 77,
+        "left_length": 77,
+        "length_equal": true,
+        "matches": 1,
+        "right_length": 77
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.830711841583252,
+        "p05_cosine": 0.6524257659912109
+      },
+      "sample_id": "emilia_zh_0005086952",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00007/source_audio/0000244_emilia_zh_0005086952.flac",
+      "source_glm_length": 77,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 77,
+      "stream_length": 77,
+      "untrained_vs_stage_a": {
+        "agreement": 0.012987012987012988,
+        "compared": 77,
+        "left_length": 77,
+        "length_equal": true,
+        "matches": 1,
+        "right_length": 77
+      },
+      "waveform_samples": 97600
+    },
+    {
+      "declared_source_glm_length": 42,
+      "duration_ms": 3300,
+      "encoder_resets": 0,
+      "episode_id": "episode_000000_cmn_eng",
+      "frontend_vs_bridge": {
+        "agreement": 1.0,
+        "compared": 42,
+        "left_length": 42,
+        "length_equal": true,
+        "matches": 42,
+        "right_length": 42
+      },
+      "offline_length": 42,
+      "offline_matches_declared_length": true,
+      "offline_vs_bridge": {
+        "agreement": 0.14285714285714285,
+        "compared": 42,
+        "left_length": 42,
+        "length_equal": true,
+        "matches": 6,
+        "right_length": 42
+      },
+      "offline_vs_bridge_embedding": {
+        "mean_cosine": 0.9750996828079224,
+        "p05_cosine": 0.8974296450614929
+      },
+      "offline_vs_frontend": {
+        "agreement": 0.14285714285714285,
+        "compared": 42,
+        "left_length": 42,
+        "length_equal": true,
+        "matches": 6,
+        "right_length": 42
+      },
+      "offline_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 42,
+        "left_length": 42,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 42
+      },
+      "offline_vs_stage_a_embedding": {
+        "mean_cosine": 0.7911432385444641,
+        "p05_cosine": 0.6557623147964478
+      },
+      "sample_id": "emilia_zh_0006068322",
+      "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00009/source_audio/0002501_emilia_zh_0006068322.flac",
+      "source_glm_length": 42,
+      "src_lang": "cmn",
+      "stage_a_encoder_resets": 0,
+      "stage_a_length": 42,
+      "stream_length": 42,
+      "untrained_vs_stage_a": {
+        "agreement": 0.0,
+        "compared": 42,
+        "left_length": 42,
+        "length_equal": true,
+        "matches": 0,
+        "right_length": 42
+      },
+      "waveform_samples": 52800
+    }
+  ],
+  "decision_thresholds": {
+    "consistent": ">=0.99 offline_vs_bridge agreement",
+    "mismatch_primary_suspect": "<0.95 offline_vs_bridge agreement"
+  },
+  "episodes": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phasea_event_constrained_grpo_long_v2/protocol64_v1/episodes.jsonl",
+  "experiment": "0-A_bridge_parity",
+  "question": "do the block-causal codes consumed at inference match the offline codes the content-first SFT was trained on",
+  "schema_version": "uniss_content_first_bridge_parity_v1",
+  "stage_a_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "summary": {
+    "components": 8,
+    "declared_length_match_fraction": 0.75,
+    "frontend_vs_bridge_agreement_mean": 1.0,
+    "length_equal_fraction": 1.0,
+    "offline_vs_bridge_agreement_mean": 0.14459219239879617,
+    "offline_vs_bridge_agreement_min": 0.06493506493506493,
+    "offline_vs_bridge_mean_cosine": 0.963218055665493,
+    "offline_vs_frontend_agreement_mean": 0.14459219239879617,
+    "offline_vs_stage_a_agreement_mean": 0.0016233766233766235,
+    "offline_vs_stage_a_agreement_min": 0.0,
+    "offline_vs_stage_a_mean_cosine": 0.7789138182997704,
+    "stage_a_recovers_agreement_ratio": 0.01122727718865503,
+    "untrained_vs_stage_a_agreement_mean": 0.0037601287601287605,
+    "verdict": "inference_path_mismatch_is_primary_suspect"
+  },
+  "whispervq_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/pretrained_models/UniSS/glm4_tokenizer"
+}
