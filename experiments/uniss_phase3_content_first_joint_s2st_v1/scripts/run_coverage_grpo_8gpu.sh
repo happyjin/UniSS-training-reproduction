@@ -38,7 +38,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib:/usr/local/cuda-12.8/lib64:${NVI
 
 CMD=(
   "$(dirname "${PYTHON}")/torchrun" --nproc_per_node 8 --master_port "${MASTER_PORT:-29996}"
-  -m experiments.uniss_phasea_coverage_constrained_grpo_v3.training.pretrain_event_grpo
+  -m experiments.uniss_phase3_content_first_joint_s2st_v1.training.pretrain_content_first_grpo
   --sft --event-grpo-train "${TRAIN}" --event-grpo-valid "${VALID}"
   --event-whispervq-model "${REPO_ROOT}/pretrained_models/UniSS/glm4_tokenizer"
   --event-lora-rank 16 --event-lora-alpha 32 --event-lora-dropout 0.05

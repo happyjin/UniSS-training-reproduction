@@ -62,10 +62,10 @@ POST=content_first_post_round2_g4_w64_v2
 
 run_rollout "${PRE}" "${SFT_ITER}" 1
 run_pack "${PRE}" "${PACK1}"
-SMOKE_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/content_first_coverage_grpo_smoke2_v2
+SMOKE_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/content_first_coverage_grpo_smoke2_v3
 if [[ ! -f "${SMOKE_ROOT}/latest_checkpointed_iteration.txt" ]]; then
   EVENT_SMOKE=1 TRAIN_ITERS=2 bash "${HERE}/scripts/run_coverage_grpo_8gpu.sh" \
-    content_first_coverage_grpo_smoke2_v2 "${PACK1}" "${SFT_ROOT}"
+    content_first_coverage_grpo_smoke2_v3 "${PACK1}" "${SFT_ROOT}"
 fi
 run_train "${R1}" "${PACK1}" "${SFT_ROOT}"
 R1_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/${R1}
