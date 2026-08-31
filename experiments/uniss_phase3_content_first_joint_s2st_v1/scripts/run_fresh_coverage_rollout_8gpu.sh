@@ -13,6 +13,7 @@ EPISODES=${EPISODES:-${REPO_ROOT}/data/processed/uniss_phasea_event_constrained_
 OUTPUT=${REPO_ROOT}/eval_outputs/uniss_phase3_content_first_joint_s2st_v1/${RUN_ID}
 BASE_HF=${BASE_HF:-${REPO_ROOT}/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf}
 FIXED_SFT_CHECKPOINT=${FIXED_SFT_CHECKPOINT:-${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1_formal1e_v1/iter_0000717}
+RUNTIME_EXPORT=${RUNTIME_EXPORT:-${REPO_ROOT}/reports/uniss_phase3_content_first_joint_s2st_v1_formal1e_v1/runtime_exports/iter_0000717}
 WHISPERVQ_MODEL=${REPO_ROOT}/pretrained_models/UniSS/glm4_tokenizer
 BICODEC_MODEL=${REPO_ROOT}/pretrained_models/UniSS/bicodec
 SOURCE_SNAPSHOT=${REPO_ROOT}/data/processed/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_causal_asr/source_snapshot_v5.json
@@ -25,6 +26,15 @@ for path in "${ADAPTER}/.metadata" "${FIXED_SFT_CHECKPOINT}/.metadata" "${EPISOD
   "${BASE_HF}/config.json" "${BASELINE_ROLLOUT}" "${SOURCE_SNAPSHOT}"; do
   [[ -e "${path}" ]] || { echo "missing rollout input: ${path}" >&2; exit 2; }
 done
+if [[ ! -f "${RUNTIME_EXPORT}/manifest.json" ]]; then
+  OUTPUT="${RUNTIME_EXPORT}" CHECKPOINT="${FIXED_SFT_CHECKPOINT}" BASE_MODEL="${BASE_HF}" \
+    bash "${HERE}/scripts/export_runtime.sh"
+fi
+for name in manifest.json adapter_model.safetensors objective_model.safetensors; do
+  [[ -f "${RUNTIME_EXPORT}/${name}" ]] || {
+    echo "missing content-first runtime export: ${RUNTIME_EXPORT}/${name}" >&2; exit 2;
+  }
+done
 [[ ! -e "${OUTPUT}" ]] || { echo "refusing to overwrite ${OUTPUT}" >&2; exit 3; }
 mkdir -p "${OUTPUT}/workers" "${OUTPUT}/logs"
 
@@ -34,12 +44,13 @@ export PYTHONPATH=${REPO_ROOT}:${PYTHONPATH:-}
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=${ROLLOUT_OMP_THREADS:-2}
+export UNISS_CONTENT_FIRST_RUNTIME_EXPORT=${RUNTIME_EXPORT}
 
 pids=()
 for worker in $(seq 0 63); do
   gpu=$((worker % 8))
   CUDA_VISIBLE_DEVICES=${gpu} "${PYTHON}" -u \
-    -m experiments.uniss_phasea_coverage_constrained_grpo_v3.training.rollout \
+    -m experiments.uniss_phase3_content_first_joint_s2st_v1.training.coverage_rollout \
     --episodes "${EPISODES}" --baseline-rollout "${BASELINE_ROLLOUT}" \
     --output "${OUTPUT}/workers/worker_${worker}" \
     --worker-index "${worker}" --num-workers 64 --group-size 4 \
