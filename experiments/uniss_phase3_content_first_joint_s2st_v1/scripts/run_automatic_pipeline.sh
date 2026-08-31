@@ -9,7 +9,7 @@ SFT_ITER=${SFT_ROOT}/iter_0000717
 FREE_EVAL_SESSION=${FORMAL_RUN}_free_eval
 FREE_EVAL_COMPLETE=${REPO_ROOT}/reports/${FORMAL_RUN}/checkpoint_evaluation/free_running_content_first_v1/iter_0000717/complete.json
 PIPELINE_ROOT=${REPO_ROOT}/eval_outputs/uniss_phase3_content_first_joint_s2st_v1
-REPORT_DIR=${REPO_ROOT}/reports/uniss_phase3_content_first_joint_s2st_v1/coverage_grpo_final_v1
+REPORT_DIR=${REPO_ROOT}/reports/uniss_phase3_content_first_joint_s2st_v1/coverage_grpo_final_v2
 mkdir -p "${PIPELINE_ROOT}" "${REPO_ROOT}/logs/uniss_phase3_content_first_joint_s2st_v1"
 exec 9>"${PIPELINE_ROOT}/automatic_pipeline.lock"
 flock -n 9 || { echo "automatic pipeline already owns the lock" >&2; exit 2; }
@@ -52,20 +52,20 @@ latest_iter() {
   printf '%s/iter_%07d' "${root}" "$((10#${iteration}))"
 }
 
-PRE=content_first_pre_grpo_g4_w64_v1
-PACK1=content_first_coverage_round1_pack_v1
-R1=content_first_coverage_grpo_round1_v1
-MID=content_first_post_round1_g4_w64_v1
-PACK2=content_first_coverage_round2_pack_v1
-R2=content_first_coverage_grpo_round2_v1
-POST=content_first_post_round2_g4_w64_v1
+PRE=content_first_pre_grpo_g4_w64_v2
+PACK1=content_first_coverage_round1_pack_v2
+R1=content_first_coverage_grpo_round1_v2
+MID=content_first_post_round1_g4_w64_v2
+PACK2=content_first_coverage_round2_pack_v2
+R2=content_first_coverage_grpo_round2_v2
+POST=content_first_post_round2_g4_w64_v2
 
 run_rollout "${PRE}" "${SFT_ITER}" 1
 run_pack "${PRE}" "${PACK1}"
-SMOKE_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/content_first_coverage_grpo_smoke2_v1
+SMOKE_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/content_first_coverage_grpo_smoke2_v2
 if [[ ! -f "${SMOKE_ROOT}/latest_checkpointed_iteration.txt" ]]; then
   EVENT_SMOKE=1 TRAIN_ITERS=2 bash "${HERE}/scripts/run_coverage_grpo_8gpu.sh" \
-    content_first_coverage_grpo_smoke2_v1 "${PACK1}" "${SFT_ROOT}"
+    content_first_coverage_grpo_smoke2_v2 "${PACK1}" "${SFT_ROOT}"
 fi
 run_train "${R1}" "${PACK1}" "${SFT_ROOT}"
 R1_ROOT=${REPO_ROOT}/checkpoints/uniss_phase3_content_first_joint_s2st_v1/${R1}
