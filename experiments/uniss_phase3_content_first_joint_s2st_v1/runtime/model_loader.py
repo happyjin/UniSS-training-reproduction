@@ -185,7 +185,8 @@ class _ContentFirstBridgeNorm(nn.Module):
     def forward(self, hidden: torch.Tensor) -> torch.Tensor:
         objective = object.__getattribute__(self, "_objective")
         codes = _nearest_codes(objective, hidden)
-        return objective.frontend_adapter(objective.codebook(codes))
+        adapted = objective.frontend_adapter(objective.codebook(codes.unsqueeze(0)))
+        return adapted[0]
 
 
 class _ContentFirstBridgeProjection(nn.Module):
