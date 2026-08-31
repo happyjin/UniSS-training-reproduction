@@ -55,3 +55,51 @@ def test_the_established_worker_still_reads_the_symbol_it_binds() -> None:
 
     assert hasattr(worker, "incremental_mt_rollout")
     assert hasattr(worker, "PersistentInterleavedSession")
+
+
+def test_pacing_is_off_unless_explicitly_enabled(monkeypatch) -> None:
+    monkeypatch.delenv(wrapper.ENV_PACE, raising=False)
+    assert wrapper.resolve_pacing() is None
+    monkeypatch.setenv(wrapper.ENV_PACE, "0")
+    assert wrapper.resolve_pacing() is None
+
+
+def test_pacing_defaults_when_enabled(monkeypatch) -> None:
+    monkeypatch.setenv(wrapper.ENV_PACE, "1")
+    for name in (
+        wrapper.ENV_PACE_MARGIN_MS,
+        wrapper.ENV_PACE_TAIL_MS,
+        wrapper.ENV_PACE_MINIMUM,
+    ):
+        monkeypatch.delenv(name, raising=False)
+    assert wrapper.resolve_pacing() == {
+        "pace_margin_ms": 0.0,
+        "pace_tail_ms": 2000.0,
+        "minimum_fragment_tokens": 2,
+    }
+
+
+def test_a_one_token_floor_is_refused(monkeypatch) -> None:
+    """One token cannot be followed by END, so it always reports malformed."""
+
+    monkeypatch.setenv(wrapper.ENV_PACE, "1")
+    monkeypatch.setenv(wrapper.ENV_PACE_MINIMUM, "1")
+    with pytest.raises(ValueError):
+        wrapper.resolve_pacing()
+
+
+def test_main_rebinds_the_session_only_when_pacing_is_on(monkeypatch) -> None:
+    original_session = worker.PersistentInterleavedSession
+    original_rollout = worker.incremental_mt_rollout
+    monkeypatch.setattr(worker, "main", lambda: None)
+    monkeypatch.delenv(wrapper.ENV_HOLDBACK, raising=False)
+    try:
+        monkeypatch.delenv(wrapper.ENV_PACE, raising=False)
+        wrapper.main()
+        assert worker.PersistentInterleavedSession is original_session
+        monkeypatch.setenv(wrapper.ENV_PACE, "1")
+        wrapper.main()
+        assert worker.PersistentInterleavedSession is not original_session
+    finally:
+        worker.PersistentInterleavedSession = original_session
+        worker.incremental_mt_rollout = original_rollout
