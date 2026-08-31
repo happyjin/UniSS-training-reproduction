@@ -1,0 +1,174 @@
+{
+  "authorization_rule": "A passed canary checkpoint is used only to validate the implementation. The formal run must restart from the immutable V1 compound checkpoint.",
+  "canary_report": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/post_task_pool_canaries/post_task_pool_canary_p4_replayfix_w0_20260821T085848Z/CANARY_REPORT.json",
+    "sha256": "17fda0e5c4ecad74cb91adf7f5db0b45ba2c026c44a12bc25921f1549a6caa64"
+  },
+  "candidate": {
+    "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+    "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+  },
+  "checks": {
+    "e_asr_cmn_retained": true,
+    "e_asr_eng_retained": true,
+    "e_asr_source_rollback_zero": true,
+    "e_asr_structure_valid": false,
+    "e_mt_all_directions_present": true,
+    "e_mt_bleu_retention": true,
+    "e_mt_chrf_retention": true,
+    "e_mt_free_all_directions_present": true,
+    "e_mt_free_target_rollback_zero": true,
+    "e_mt_generation_terminated": true,
+    "e_mt_target_coverage": false,
+    "e_mt_target_rollback_zero": true,
+    "e_s2s_non_silent_pcm": false,
+    "e_s2s_pre_eos_target_semantic": false,
+    "e_s2s_pre_eos_target_text": false,
+    "e_s2s_present": true,
+    "e_s2s_rollback_zero": true,
+    "e_s2s_semantic_coverage": false,
+    "e_s2s_semantic_tokens_valid": true,
+    "e_s2s_structure_valid": false
+  },
+  "formal_initialization": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "formal_training_authorized": false,
+  "metrics": {
+    "e_asr": {
+      "cmn": {
+        "early_eos_events": 0,
+        "empty_events": 26,
+        "empty_samples": 0,
+        "error_rate": 0.0892018779342723,
+        "errors": 19,
+        "final_eos_samples": 8,
+        "limit": 0.210112,
+        "malformed_write_events": 0,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 213
+      },
+      "eng": {
+        "early_eos_events": 1,
+        "empty_events": 28,
+        "empty_samples": 0,
+        "error_rate": 0.3032258064516129,
+        "errors": 47,
+        "final_eos_samples": 8,
+        "limit": 0.353399,
+        "malformed_write_events": 2,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 155
+      }
+    },
+    "e_mt": {
+      "free_running_source": {
+        "commit_conflicts": 148,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 1.8074488311189303,
+            "candidate_bleu": 15.478241050976974,
+            "candidate_chrf": 37.56806054775697,
+            "chrf_retention": 1.4424658100698353,
+            "phase3_bleu": 8.563584641782041,
+            "phase3_chrf": 26.04433345005117,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 0.8042837337167059,
+            "candidate_bleu": 5.285553580687325,
+            "candidate_chrf": 11.4104649097023,
+            "chrf_retention": 0.7205924068311973,
+            "phase3_bleu": 6.571752429036522,
+            "phase3_chrf": 15.83483922607481,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.29876502196475024,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "gold_source": {
+        "commit_conflicts": 106,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 2.181344010588947,
+            "candidate_bleu": 18.680124067522748,
+            "candidate_chrf": 39.24218974208555,
+            "chrf_retention": 1.5067457885741533,
+            "phase3_bleu": 8.563584641782041,
+            "phase3_chrf": 26.04433345005117,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 4.05322060423155,
+            "candidate_bleu": 26.636762351279565,
+            "candidate_chrf": 30.179012163920387,
+            "chrf_retention": 1.905861608889935,
+            "phase3_bleu": 6.571752429036522,
+            "phase3_chrf": 15.83483922607481,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.506509466529847,
+        "target_coverage_min": 0.07692307692307693,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      }
+    },
+    "e_s2s_free": {
+      "invalid_semantic_tokens": 0,
+      "malformed_segments": 9,
+      "non_silent_pcm": 7,
+      "samples": 8,
+      "semantic_coverage_mean": 0.7973790322580645,
+      "semantic_coverage_min": 0.0,
+      "source_rollback_events": 0,
+      "target_rollback_events": 0,
+      "target_semantic_before_source_eos": 6,
+      "target_text_before_source_eos": 6
+    }
+  },
+  "schema_version": "uniss_phase3_v4_e2e_free_running_gate_v1",
+  "selection": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/SELECTION.json",
+    "samples": 16,
+    "sha256": "e6354641a2ba6a425ccd050eac19d28be7cbc72c9aa68d5a653f9b0c603361e0"
+  },
+  "status": "failed",
+  "worker_reports": [
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_00.json",
+      "sha256": "ee14193da9e5c373c5f9e498f9a13f1d8e8641e70db5590b7a7f2f04311e4f24"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_01.json",
+      "sha256": "cdf1d98d80237971c0781af8ab321296ddf4af6fd18659401a901c6046baf90f"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_02.json",
+      "sha256": "085fe8e5dd985f3868360240cc710d641c990fa43aa05a80785534e50fef438d"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_03.json",
+      "sha256": "3bcc3985abe4e014dbb427ec1e1b7cddabce4bdec856bd0e1b945163ba405699"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_04.json",
+      "sha256": "d7241f63f28218e5e8ef1883090e5c8955a4a48b11c9583a54252d555d6f349a"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_05.json",
+      "sha256": "90c07d76c2f6cd44f80123c37648a75edff9defc7ba61e6a919936ca12896084"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_06.json",
+      "sha256": "3db2ffbd750071c410b9dd5d35bb15e8fa83636824689b5ed9dba660cf0e8422"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb3_iter0002264_20260831T170817Z/workers/worker_07.json",
+      "sha256": "01a18b5487894d2e5bebfca635b2afc2de8dea674a4471b7ea576aa6e5725f6c"
+    }
+  ]
+}
