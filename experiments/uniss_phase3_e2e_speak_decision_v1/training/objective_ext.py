@@ -62,6 +62,27 @@ REPETITION_KINDS = (LOSS_MT, LOSS_SEMANTIC)
 DEFAULT_REPETITION_WINDOW = 8
 
 
+LOGSUMEXP_ROW_CHUNK = 1024
+
+
+def _chunked_logsumexp(
+    logits: torch.Tensor, scored: torch.Tensor
+) -> torch.Tensor:
+    """Per-row log-normaliser for the scored rows, without a full softmax.
+
+    Materialising ``logits.float().softmax(-1)`` costs rows x vocabulary x 4
+    bytes, which is 26 GB at this geometry and is what OOMed the first launch.
+    Chunking bounds the temporary to ``LOGSUMEXP_ROW_CHUNK`` rows.
+    """
+
+    output = torch.zeros(logits.shape[0], device=logits.device, dtype=torch.float32)
+    index = scored.nonzero(as_tuple=False).reshape(-1)
+    for start in range(0, int(index.numel()), LOGSUMEXP_ROW_CHUNK):
+        piece = index[start : start + LOGSUMEXP_ROW_CHUNK]
+        output[piece] = torch.logsumexp(logits[piece].float(), dim=-1)
+    return output
+
+
 def speak_decision_masks(
     labels: torch.Tensor, loss_kinds: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -151,9 +172,15 @@ def repetition_penalty_term(
     if not bool(scored.any()):
         return LossTerm(logits.sum() * 0.0, scored.sum().float())
 
-    probabilities = logits.float().softmax(dim=-1)
+    # A full-vocabulary softmax over every position is 18000 x 2 rows by a
+    # 180k vocabulary in float32, which is 26 GB and OOMs a 139 GB card at
+    # iteration four.  Only p(specific token | row) is ever needed, so the
+    # normaliser is computed in row chunks and the probabilities are gathered.
+    log_normaliser = _chunked_logsumexp(logits, scored)
     flat_index = torch.arange(labels.numel(), device=logits.device).reshape(rows, width)
-    penalty = torch.zeros(labels.numel(), device=logits.device, dtype=probabilities.dtype)
+    penalty = torch.zeros(
+        labels.numel(), device=logits.device, dtype=log_normaliser.dtype
+    )
     counted = torch.zeros_like(penalty, dtype=torch.bool)
 
     for offset in range(1, int(window) + 1):
@@ -178,10 +205,11 @@ def repetition_penalty_term(
         if not bool(contributes.any()):
             continue
         target_rows = rows_current[contributes]
+        gathered = logits[target_rows, earlier_labels[contributes]].float()
         penalty.index_add_(
             0,
             target_rows,
-            probabilities[target_rows, earlier_labels[contributes]],
+            torch.exp(gathered - log_normaliser[target_rows]),
         )
         counted[target_rows] = True
 

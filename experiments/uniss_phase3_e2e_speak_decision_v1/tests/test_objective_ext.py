@@ -271,3 +271,69 @@ def test_distributed_adds_both_weighted_contributions_to_the_total() -> None:
 def test_distributed_rejects_negative_extension_weights() -> None:
     with pytest.raises(ValueError):
         ox.distributed_with_speak_decision(_dummy_terms(), speak_decision=-0.1)
+
+
+def test_repetition_penalty_never_materialises_a_full_softmax(monkeypatch) -> None:
+    """A full-vocabulary softmax is 26 GB at this geometry and OOMed a real run."""
+
+    def forbidden(*args, **kwargs):  # pragma: no cover - must not be reached
+        raise AssertionError("full softmax is forbidden in the repetition penalty")
+
+    monkeypatch.setattr(torch, "softmax", forbidden, raising=True)
+    monkeypatch.setattr(torch.Tensor, "softmax", forbidden, raising=True)
+    monkeypatch.setattr(torch.nn.functional, "softmax", forbidden, raising=True)
+    logits, labels, kinds, width = _repetition_case(
+        [10, 11, 12, 13], [LOSS_MT] * 4, repeat_token=10
+    )
+    term = ox.repetition_penalty_term(
+        logits, labels, kinds, original_seq_length=width, window=4
+    )
+    assert float(term.numerator) > 0.0
+
+
+def test_chunked_logsumexp_matches_the_dense_value() -> None:
+    torch.manual_seed(0)
+    logits = torch.randn(37, 129)
+    scored = torch.zeros(37, dtype=torch.bool)
+    scored[[0, 5, 36]] = True
+    value = ox._chunked_logsumexp(logits, scored)
+    expected = torch.logsumexp(logits.float(), dim=-1)
+    assert torch.allclose(value[scored], expected[scored], atol=1e-5)
+    # Unscored rows are never normalised, so they stay at zero.
+    assert float(value[~scored].abs().max()) == 0.0
+
+
+def test_chunked_logsumexp_crosses_its_chunk_boundary(monkeypatch) -> None:
+    monkeypatch.setattr(ox, "LOGSUMEXP_ROW_CHUNK", 2, raising=True)
+    torch.manual_seed(1)
+    logits = torch.randn(9, 17)
+    scored = torch.ones(9, dtype=torch.bool)
+    value = ox._chunked_logsumexp(logits, scored)
+    assert torch.allclose(value, torch.logsumexp(logits.float(), dim=-1), atol=1e-5)
+
+
+def test_penalty_equals_the_naive_softmax_reference() -> None:
+    """Numerical equivalence to the implementation the chunking replaced."""
+
+    torch.manual_seed(2)
+    width = 6
+    logits = torch.randn(width, 64)
+    labels = torch.tensor([10, 11, 10, 12, 11, 13])
+    kinds = torch.tensor([LOSS_MT] * width)
+    term = ox.repetition_penalty_term(
+        logits, labels, kinds, original_seq_length=width, window=3
+    )
+    probabilities = logits.float().softmax(dim=-1)
+    expected = 0.0
+    counted = set()
+    for position in range(width):
+        for offset in range(1, 4):
+            earlier = position - offset
+            if earlier < 0:
+                continue
+            if int(labels[earlier]) == int(labels[position]):
+                continue
+            expected += float(probabilities[position, int(labels[earlier])])
+            counted.add(position)
+    assert float(term.numerator) == pytest.approx(expected, abs=1e-5)
+    assert float(term.denominator) == len(counted)
