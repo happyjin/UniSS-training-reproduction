@@ -1,0 +1,4990 @@
+{
+  "claim_scope": "frozen_fixed16_selection_train_seen",
+  "latency_note": "source-timeline, not computation aware; LAAL uses max(hypothesis, reference) length per Papi et al. 2022",
+  "runs": [
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 1.0,
+            "mean": 0.0625,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "asr.empty_events": {
+            "max": 7.0,
+            "mean": 3.375,
+            "min": 0.0,
+            "n": 16,
+            "p50": 4.0,
+            "p90": 6.0
+          },
+          "asr.error_rate": {
+            "max": 0.8333333333333334,
+            "mean": 0.23264338820682778,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.1449579831932773,
+            "p90": 0.5333333333333333
+          },
+          "latency_speech.al_ms": {
+            "max": 2040.0,
+            "mean": -1072.360466307434,
+            "min": -4067.001427231579,
+            "n": 7,
+            "p50": -1097.4669883746437,
+            "p90": 1292.324428958576
+          },
+          "latency_speech.average_proportion": {
+            "max": 1.0,
+            "mean": 0.4947329337464256,
+            "min": 0.11423096536910263,
+            "n": 7,
+            "p50": 0.43997703349282297,
+            "p90": 0.8369701894700826
+          },
+          "latency_speech.dal_ms": {
+            "max": 2039.999999999999,
+            "mean": 1313.3106242986692,
+            "min": 319.9999999999914,
+            "n": 7,
+            "p50": 1599.99999999998,
+            "p90": 1968.000000000015
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_speech.laal_ms": {
+            "max": 2040.0,
+            "mean": 130.73328783311393,
+            "min": -1303.4160583941607,
+            "n": 7,
+            "p50": -32.474226804123745,
+            "p90": 1470.7684538519397
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 2880.0,
+            "mean": 1165.7142857142858,
+            "min": 0.0,
+            "n": 7,
+            "p50": 1600.0,
+            "p90": 2208.0
+          },
+          "latency_text.al_ms": {
+            "max": 2040.0,
+            "mean": -410.7061724507377,
+            "min": -5303.333333333334,
+            "n": 7,
+            "p50": 410.6666666666667,
+            "p90": 1175.0250000000005
+          },
+          "latency_text.average_proportion": {
+            "max": 1.0,
+            "mean": 0.637573457245363,
+            "min": 0.40764331210191085,
+            "n": 7,
+            "p50": 0.5528455284552846,
+            "p90": 0.8516276413478013
+          },
+          "latency_text.dal_ms": {
+            "max": 2741.25,
+            "mean": 1600.15208257216,
+            "min": 456.00000000000364,
+            "n": 7,
+            "p50": 1600.0000000000005,
+            "p90": 2320.5
+          },
+          "latency_text.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_text.laal_ms": {
+            "max": 2040.0,
+            "mean": 812.6857513756491,
+            "min": 170.75,
+            "n": 7,
+            "p50": 423.6363636363637,
+            "p90": 1622.2352941176473
+          },
+          "mt_free.commit_conflicts": {
+            "max": 37.0,
+            "mean": 9.6875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 8.0,
+            "p90": 24.5
+          },
+          "mt_free.coverage": {
+            "max": 0.875,
+            "mean": 0.2921566846498912,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.19871794871794873,
+            "p90": 0.788888888888889
+          },
+          "mt_free.length_ratio": {
+            "max": 1.1875,
+            "mean": 0.5376741728983577,
+            "min": 0.0625,
+            "n": 16,
+            "p50": 0.48917748917748916,
+            "p90": 1.0734126984126986
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 37.0,
+            "mean": 7.25,
+            "min": 0.0,
+            "n": 16,
+            "p50": 2.5,
+            "p90": 18.0
+          },
+          "mt_gold.coverage": {
+            "max": 0.9090909090909091,
+            "mean": 0.49523955814716686,
+            "min": 0.09230769230769231,
+            "n": 16,
+            "p50": 0.4642857142857143,
+            "p90": 0.8617424242424243
+          },
+          "mt_gold.length_ratio": {
+            "max": 1.1111111111111112,
+            "mean": 0.6783280201079114,
+            "min": 0.1076923076923077,
+            "n": 16,
+            "p50": 0.6586538461538461,
+            "p90": 1.0454545454545454
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 2.4355828220858897,
+            "mean": 1.4441856479299169,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.5450089126559714,
+            "p90": 2.3867724076013768
+          },
+          "s2s.malformed_segments": {
+            "max": 3.0,
+            "mean": 1.125,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 2.3
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 0.5,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.5,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 0.875,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 2.4355828220858897,
+            "mean": 1.2986793206555738,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.4260610154227176,
+            "p90": 2.070060321486102
+          },
+          "samples": 16
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "asr.empty_events": {
+              "max": 6.0,
+              "mean": 3.25,
+              "min": 0.0,
+              "n": 8,
+              "p50": 3.5,
+              "p90": 5.3
+            },
+            "asr.error_rate": {
+              "max": 0.17073170731707318,
+              "mean": 0.06908714271402189,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.05862977602108037,
+              "p90": 0.1541606886657102
+            },
+            "latency_speech.al_ms": {
+              "max": 793.8740482642924,
+              "mean": -1989.5503550596638,
+              "min": -4067.001427231579,
+              "n": 4,
+              "p50": -2342.5370206356847,
+              "p90": 226.4717372726119
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.7282836491168042,
+              "mean": 0.40387754765756134,
+              "min": 0.11423096536910263,
+              "n": 4,
+              "p50": 0.3864977880721692,
+              "p90": 0.6564417527725097
+            },
+            "latency_speech.dal_ms": {
+              "max": 1713.1743700906884,
+              "mean": 988.293592522665,
+              "min": 319.9999999999914,
+              "n": 4,
+              "p50": 959.99999999999,
+              "p90": 1679.2220590634759
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_speech.laal_ms": {
+              "max": 1091.280756419899,
+              "mean": -374.5276970560573,
+              "min": -1303.4160583941607,
+              "n": 4,
+              "p50": -642.9877431249838,
+              "p90": 754.1542614526924
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 2880.0,
+              "mean": 1640.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 1680.0,
+              "p90": 2544.0
+            },
+            "latency_text.al_ms": {
+              "max": 410.6666666666667,
+              "mean": -1484.238642697882,
+              "min": -5303.333333333334,
+              "n": 4,
+              "p50": -522.1439520624303,
+              "p90": 301.6205128205129
+            },
+            "latency_text.average_proportion": {
+              "max": 0.7527127355796688,
+              "mean": 0.5882063585175438,
+              "min": 0.5073898694217248,
+              "n": 4,
+              "p50": 0.5463614145343907,
+              "p90": 0.6927525734423535
+            },
+            "latency_text.dal_ms": {
+              "max": 1748.7058823529412,
+              "mean": 1284.9536445012798,
+              "min": 456.00000000000364,
+              "n": 4,
+              "p50": 1467.5543478260872,
+              "p90": 1704.094117647059
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_text.laal_ms": {
+              "max": 1343.7254901960785,
+              "mean": 493.41597399829504,
+              "min": 170.75,
+              "n": 4,
+              "p50": 229.59420289855092,
+              "p90": 1025.4078431372552
+            },
+            "mt_free.commit_conflicts": {
+              "max": 14.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 8.0,
+              "p90": 11.899999999999999
+            },
+            "mt_free.coverage": {
+              "max": 0.8,
+              "mean": 0.3870194042069042,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.26136363636363635,
+              "p90": 0.7844444444444445
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.675510773948274,
+              "min": 0.2777777777777778,
+              "n": 8,
+              "p50": 0.6870629370629371,
+              "p90": 1.0583333333333333
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 22.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.5,
+              "p90": 14.299999999999997
+            },
+            "mt_gold.coverage": {
+              "max": 0.8,
+              "mean": 0.422384213009213,
+              "min": 0.1111111111111111,
+              "n": 8,
+              "p50": 0.3035714285714286,
+              "p90": 0.7844444444444445
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.619718475968476,
+              "min": 0.16666666666666666,
+              "n": 8,
+              "p50": 0.614010989010989,
+              "p90": 0.9633333333333334
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 2.4355828220858897,
+              "mean": 2.0410260752006377,
+              "min": 1.1019417475728155,
+              "n": 4,
+              "p50": 2.3132898655719227,
+              "p90": 2.4146640730210986
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 1.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.5,
+              "p90": 2.7
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 2.4355828220858897,
+              "mean": 1.8002781685400937,
+              "min": 1.2010582010582012,
+              "n": 4,
+              "p50": 1.782235825508142,
+              "p90": 2.278930321828838
+            },
+            "samples": 8
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.2999999999999998
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 3.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.0,
+              "p90": 6.3
+            },
+            "asr.error_rate": {
+              "max": 0.8333333333333334,
+              "mean": 0.3961996336996337,
+              "min": 0.11904761904761904,
+              "n": 8,
+              "p50": 0.35384615384615387,
+              "p90": 0.7166666666666667
+            },
+            "latency_speech.al_ms": {
+              "max": 2040.0,
+              "mean": 150.55938536220597,
+              "min": -2285.9024890746723,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.average_proportion": {
+              "max": 1.0,
+              "mean": 0.6158734485315779,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.43997703349282297,
+              "p90": 0.8879954066985646
+            },
+            "latency_speech.dal_ms": {
+              "max": 2039.999999999999,
+              "mean": 1746.6666666666745,
+              "min": 1279.999999999999,
+              "n": 3,
+              "p50": 1920.000000000026,
+              "p90": 2016.0000000000045
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 2040.0,
+              "mean": 804.4146010186756,
+              "min": -324.33684210526326,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1600.0,
+              "mean": 533.3333333333334,
+              "min": 0.0,
+              "n": 3,
+              "p50": 0.0,
+              "p90": 1280.0
+            },
+            "latency_text.al_ms": {
+              "max": 2040.0,
+              "mean": 1020.6704545454545,
+              "min": 423.6363636363637,
+              "n": 3,
+              "p50": 598.375,
+              "p90": 1751.675
+            },
+            "latency_text.average_proportion": {
+              "max": 1.0,
+              "mean": 0.7033962555491219,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.7025454545454546,
+              "p90": 0.940509090909091
+            },
+            "latency_text.dal_ms": {
+              "max": 2741.25,
+              "mean": 2020.4166666666667,
+              "min": 1280.0000000000002,
+              "n": 3,
+              "p50": 2040.0,
+              "p90": 2601.0
+            },
+            "latency_text.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_text.laal_ms": {
+              "max": 2040.0,
+              "mean": 1238.3787878787878,
+              "min": 423.6363636363637,
+              "n": 3,
+              "p50": 1251.5,
+              "p90": 1882.3
+            },
+            "mt_free.commit_conflicts": {
+              "max": 37.0,
+              "mean": 12.875,
+              "min": 0.0,
+              "n": 8,
+              "p50": 7.5,
+              "p90": 35.6
+            },
+            "mt_free.coverage": {
+              "max": 0.875,
+              "mean": 0.19729396509287814,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.08327759197324415,
+              "p90": 0.5382575757575756
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1875,
+              "mean": 0.39983757184844143,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.2965034965034965,
+              "p90": 0.8229166666666665
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 37.0,
+              "mean": 8.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 2.5,
+              "p90": 20.9
+            },
+            "mt_gold.coverage": {
+              "max": 0.9090909090909091,
+              "mean": 0.5680949032851207,
+              "min": 0.09230769230769231,
+              "n": 8,
+              "p50": 0.5,
+              "p90": 0.8852272727272728
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.0909090909090908,
+              "mean": 0.7369375642473469,
+              "min": 0.1076923076923077,
+              "n": 8,
+              "p50": 0.7821969696969697,
+              "p90": 1.0272727272727273
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.7272727272727273,
+              "mean": 0.8473452206591959,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.8310540776820282,
+              "p90": 1.617914438502674
+            },
+            "s2s.malformed_segments": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.7148014440433212,
+              "mean": 0.7970804727710539,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.7367602235204471,
+              "p90": 1.5287074675232382
+            },
+            "samples": 8
+          }
+        }
+      },
+      "candidate": {
+        "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+        "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+      },
+      "gate_failed_checks": [
+        "e_asr_structure_valid",
+        "e_mt_target_coverage",
+        "e_s2s_non_silent_pcm",
+        "e_s2s_pre_eos_target_semantic",
+        "e_s2s_pre_eos_target_text",
+        "e_s2s_semantic_coverage",
+        "e_s2s_structure_valid"
+      ],
+      "gate_status": "failed",
+      "label": "unpaced",
+      "run_root": "reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage1_la_hb2_iter0002264_20260831T170422Z",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.030303030303030304,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 33,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.16666666666666666,
+            "events": 16,
+            "final_hypothesis": "Such a feeling that I",
+            "hypothesis_units": 5,
+            "length_ratio": 0.2777777777777778,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.1111111111111111,
+            "events": 16,
+            "final_hypothesis": "Such a feeling",
+            "hypothesis_units": 3,
+            "length_ratio": 0.16666666666666666,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005985930",
+          "source_duration_ms": 8300.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.14285714285714285,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 5,
+            "coverage": 0.14285714285714285,
+            "events": 18,
+            "final_hypothesis": "他是银行的常任高级调解",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.42857142857142855,
+            "events": 18,
+            "final_hypothesis": "他是常设参议院委员会的",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "sample_id": "CommonVoice_EN_0000463919",
+          "source_duration_ms": 6200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.08695652173913043,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 23,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 9,
+            "coverage": 0.0625,
+            "events": 17,
+            "final_hypothesis": "He not only waited for",
+            "hypothesis_units": 5,
+            "length_ratio": 0.3125,
+            "nonempty_events": 14,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.625,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch mosquitoes but is like a",
+            "hypothesis_units": 12,
+            "length_ratio": 0.75,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 1,
+              "WAIT": 15,
+              "WRITE_ASR": 13,
+              "WRITE_MT": 3,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 13.7,
+            "audio_over_source_ratio": 2.2607260726072607,
+            "audio_peak": 0.8156386613845825,
+            "audio_rms": 0.07081382721662521,
+            "events": 17,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -4067.001427231579,
+              "average_proportion": 0.28418491484184916,
+              "dal_ms": 319.9999999999914,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 685,
+              "laal_ms": -1303.4160583941607,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.9134078212290502,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 358,
+              "tau": 685
+            },
+            "latency_text": {
+              "al_ms": -1091.4673913043478,
+              "average_proportion": 0.5073898694217248,
+              "dal_ms": 1335.108695652174,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 23,
+              "laal_ms": 176.5217391304351,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.4375,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 16,
+              "tau": 23
+            },
+            "malformed_segments": 1,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.9134078212290502,
+            "semantic_reference_tokens": 358,
+            "semantic_tokens": 685,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006199435",
+          "source_duration_ms": 6060.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.11904761904761904,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 42,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.12307692307692308,
+            "events": 46,
+            "final_hypothesis": "这是我们长久以来的",
+            "hypothesis_units": 9,
+            "length_ratio": 0.13846153846153847,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 37,
+            "coverage": 0.09230769230769231,
+            "events": 46,
+            "final_hypothesis": "这是我长期以来",
+            "hypothesis_units": 7,
+            "length_ratio": 0.1076923076923077,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "sample_id": "LibriSpeech_0000031307",
+          "source_duration_ms": 13180.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.11764705882352941,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.2727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to transform and temporarily cultivate the five",
+            "hypothesis_units": 15,
+            "length_ratio": 0.6818181818181818,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 8,
+            "coverage": 0.22727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to",
+            "hypothesis_units": 9,
+            "length_ratio": 0.4090909090909091,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007583994",
+          "source_duration_ms": 6680.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.8333333333333334,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 6,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 3,
+            "coverage": 0.0,
+            "events": 7,
+            "final_hypothesis": "看",
+            "hypothesis_units": 1,
+            "length_ratio": 0.1,
+            "nonempty_events": 4,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.5,
+            "events": 7,
+            "final_hypothesis": "这对我来说没什么意义",
+            "hypothesis_units": 10,
+            "length_ratio": 1.0,
+            "nonempty_events": 1,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 6,
+              "WRITE_ASR": 6,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 2.78,
+            "audio_over_source_ratio": 1.3627450980392157,
+            "audio_peak": 0.7035424709320068,
+            "audio_rms": 0.10451056808233261,
+            "events": 7,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2039.999999999999,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 139,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.094488188976378,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 127,
+              "tau": 1
+            },
+            "latency_text": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2040.0,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 14,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.4,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 10,
+              "tau": 1
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.094488188976378,
+            "semantic_reference_tokens": 127,
+            "semantic_tokens": 139,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "CommonVoice_EN_0000329073",
+          "source_duration_ms": 2040.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.17073170731707318,
+            "errors": 7,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 41,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.5357142857142857,
+            "events": 32,
+            "final_hypothesis": "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on.",
+            "hypothesis_units": 29,
+            "length_ratio": 1.0357142857142858,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 22,
+            "coverage": 0.35714285714285715,
+            "events": 32,
+            "final_hypothesis": "Running your own strengths will continuously add value to your life and add points to",
+            "hypothesis_units": 15,
+            "length_ratio": 0.5357142857142857,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005612325",
+          "source_duration_ms": 10080.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.3,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.875,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+            "hypothesis_units": 19,
+            "length_ratio": 1.1875,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.5,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔的鲍勃头",
+            "hypothesis_units": 10,
+            "length_ratio": 0.625,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 10,
+              "WRITE_ASR": 10
+            },
+            "audio_duration_seconds": 0.0,
+            "audio_over_source_ratio": 0.0,
+            "audio_peak": 0.0,
+            "audio_rms": 0.0,
+            "events": 10,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 161
+            },
+            "latency_text": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 16
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": false,
+            "semantic_coverage_clamped": 0.0,
+            "semantic_length_ratio": 0.0,
+            "semantic_reference_tokens": 161,
+            "semantic_tokens": 0,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "emilia_zh_0006401658",
+          "source_duration_ms": 3500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.14705882352941177,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 14,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police officer who received the alarm at the beginning of",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 15,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 11,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police station that received the alarm at first didn't expect",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 16,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007203542",
+          "source_duration_ms": 9360.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 10,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 25,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 10,
+            "coverage": 0.3939393939393939,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和厄尔在当时电话里交谈但两",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6666666666666666,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 3,
+            "coverage": 0.8484848484848485,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和我通了几次电话但两人都知道他们不会再见面了",
+            "hypothesis_units": 31,
+            "length_ratio": 0.9393939393939394,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0004788301",
+          "source_duration_ms": 8200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 1,
+              "WAIT": 12,
+              "WRITE_ASR": 11,
+              "WRITE_MT": 2,
+              "WRITE_SEMANTIC": 2
+            },
+            "audio_duration_seconds": 7.76,
+            "audio_over_source_ratio": 2.3658536585365852,
+            "audio_peak": 0.09932379424571991,
+            "audio_rms": 0.0015926385531201959,
+            "events": 13,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -1097.4669883746437,
+              "average_proportion": 0.4888106613024893,
+              "dal_ms": 1599.99999999998,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 388,
+              "laal_ms": -32.474226804123745,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 1.651063829787234,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 235,
+              "tau": 388
+            },
+            "latency_text": {
+              "al_ms": 47.1794871794871,
+              "average_proportion": 0.5528455284552846,
+              "dal_ms": 1600.0000000000005,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 15,
+              "laal_ms": 282.66666666666674,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 1.1538461538461537,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 13,
+              "tau": 15
+            },
+            "malformed_segments": 2,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.651063829787234,
+            "semantic_reference_tokens": 235,
+            "semantic_tokens": 388,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0005215832",
+          "source_duration_ms": 3280.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 6,
+            "error_rate": 0.3076923076923077,
+            "errors": 12,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "wer",
+            "reference_units": 39,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 35,
+            "coverage": 0.043478260869565216,
+            "events": 40,
+            "final_hypothesis": "我坐在",
+            "hypothesis_units": 3,
+            "length_ratio": 0.06521739130434782,
+            "nonempty_events": 37,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 14,
+            "coverage": 0.391304347826087,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+            "hypothesis_units": 28,
+            "length_ratio": 0.6086956521739131,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "sample_id": "EN_B00058_S05161_W000178",
+          "source_duration_ms": 13980.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 1,
+              "WAIT": 10,
+              "WRITE_ASR": 9,
+              "WRITE_MT": 2,
+              "WRITE_SEMANTIC": 2
+            },
+            "audio_duration_seconds": 7.94,
+            "audio_over_source_ratio": 2.4355828220858897,
+            "audio_peak": 1.2226362228393555,
+            "audio_rms": 0.03428437560796738,
+            "events": 11,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -3587.6070528967252,
+              "average_proportion": 0.11423096536910263,
+              "dal_ms": 320.0,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 397,
+              "laal_ms": -1253.501259445844,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 2.4355828220858897,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 163,
+              "tau": 397
+            },
+            "latency_text": {
+              "al_ms": -5303.333333333334,
+              "average_proportion": 0.5398773006134969,
+              "dal_ms": 456.00000000000364,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 40,
+              "laal_ms": 170.75,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 4.444444444444445,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 9,
+              "tau": 40
+            },
+            "malformed_segments": 3,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 2.4355828220858897,
+            "semantic_reference_tokens": 163,
+            "semantic_tokens": 397,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006795452",
+          "source_duration_ms": 3260.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.0,
+            "events": 14,
+            "final_hypothesis": "侦",
+            "hypothesis_units": 1,
+            "length_ratio": 0.0625,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 1,
+            "coverage": 0.875,
+            "events": 14,
+            "final_hypothesis": "童子军总统促成了当地动物园的建设",
+            "hypothesis_units": 16,
+            "length_ratio": 1.0,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 1,
+              "WAIT": 12,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 3,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 9.5,
+            "audio_over_source_ratio": 1.7272727272727273,
+            "audio_peak": 0.43075257539749146,
+            "audio_rms": 0.029384830966591835,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -2285.9024890746723,
+              "average_proportion": 0.43997703349282297,
+              "dal_ms": 1920.000000000026,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 475,
+              "laal_ms": -324.33684210526326,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.7148014440433212,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 277,
+              "tau": 475
+            },
+            "latency_text": {
+              "al_ms": 598.375,
+              "average_proportion": 0.7025454545454546,
+              "dal_ms": 2741.25,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 20,
+              "laal_ms": 1251.5,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.25,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 16,
+              "tau": 20
+            },
+            "malformed_segments": 1,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.7148014440433212,
+            "semantic_reference_tokens": 277,
+            "semantic_tokens": 475,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000392649",
+          "source_duration_ms": 5500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 4
+            },
+            "audio_duration_seconds": 4.54,
+            "audio_over_source_ratio": 1.1019417475728155,
+            "audio_peak": 0.7275353074073792,
+            "audio_rms": 0.08025752007961273,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 793.8740482642924,
+              "average_proportion": 0.7282836491168042,
+              "dal_ms": 1713.1743700906884,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 227,
+              "laal_ms": 1091.280756419899,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.2010582010582012,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 189,
+              "tau": 164
+            },
+            "latency_text": {
+              "al_ms": 410.6666666666667,
+              "average_proportion": 0.7527127355796688,
+              "dal_ms": 1748.7058823529412,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 17,
+              "laal_ms": 1343.7254901960785,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.7,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 10,
+              "tau": 12
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.2010582010582012,
+            "semantic_reference_tokens": 189,
+            "semantic_tokens": 227,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0004122419",
+          "source_duration_ms": 4120.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.6666666666666666,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 9,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.0,
+            "events": 9,
+            "final_hypothesis": "你只是一个",
+            "hypothesis_units": 5,
+            "length_ratio": 0.45454545454545453,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.9090909090909091,
+            "events": 9,
+            "final_hypothesis": "并用这个来解决高方差问题",
+            "hypothesis_units": 12,
+            "length_ratio": 1.0909090909090908,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 9,
+              "WRITE_ASR": 8,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 0.94,
+            "audio_over_source_ratio": 0.29936305732484075,
+            "audio_peak": 0.8991097807884216,
+            "audio_rms": 0.10252078622579575,
+            "events": 9,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 697.5806451612902,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1279.999999999999,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 47,
+              "laal_ms": 697.5806451612902,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.3790322580645161,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 124,
+              "tau": 47
+            },
+            "latency_text": {
+              "al_ms": 423.6363636363637,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1280.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 7,
+              "laal_ms": 423.6363636363637,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.6363636363636364,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 11,
+              "tau": 7
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.3790322580645161,
+            "semantic_length_ratio": 0.3790322580645161,
+            "semantic_reference_tokens": 124,
+            "semantic_tokens": 47,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "EN_B00058_S07483_W000027",
+          "source_duration_ms": 3140.0
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 1.0,
+            "mean": 0.0625,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "asr.empty_events": {
+            "max": 7.0,
+            "mean": 3.375,
+            "min": 0.0,
+            "n": 16,
+            "p50": 4.0,
+            "p90": 6.0
+          },
+          "asr.error_rate": {
+            "max": 0.8333333333333334,
+            "mean": 0.23264338820682778,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.1449579831932773,
+            "p90": 0.5333333333333333
+          },
+          "latency_speech.al_ms": {
+            "max": 2040.0,
+            "mean": 1003.2390607615708,
+            "min": 170.0,
+            "n": 7,
+            "p50": 834.9545624299762,
+            "p90": 1713.5457357278156
+          },
+          "latency_speech.average_proportion": {
+            "max": 1.0,
+            "mean": 0.571991234501251,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.5687774294670846,
+            "p90": 0.8369701894700826
+          },
+          "latency_speech.dal_ms": {
+            "max": 2650.710005078691,
+            "mean": 1646.26919645277,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1713.1743700906884,
+            "p90": 2284.284002031476
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_speech.laal_ms": {
+            "max": 2040.0,
+            "mean": 1045.725733355229,
+            "min": 170.0,
+            "n": 7,
+            "p50": 990.3546099290779,
+            "p90": 1713.5457357278156
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 2880.0,
+            "mean": 937.1428571428571,
+            "min": 0.0,
+            "n": 7,
+            "p50": 320.0,
+            "p90": 2208.0
+          },
+          "latency_text.al_ms": {
+            "max": 2040.0,
+            "mean": 344.2883366633367,
+            "min": -794.1666666666666,
+            "n": 7,
+            "p50": 410.6666666666667,
+            "p90": 1123.8041958041963
+          },
+          "latency_text.average_proportion": {
+            "max": 1.0,
+            "mean": 0.5902858862216688,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.6064050849529398,
+            "p90": 0.8516276413478013
+          },
+          "latency_text.dal_ms": {
+            "max": 2756.4583333333335,
+            "mean": 1583.87266573296,
+            "min": 319.9999999999999,
+            "n": 7,
+            "p50": 1600.0000000000002,
+            "p90": 2326.583333333334
+          },
+          "latency_text.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_text.laal_ms": {
+            "max": 2040.0,
+            "mean": 886.2630098659511,
+            "min": -223.33333333333337,
+            "n": 7,
+            "p50": 748.8888888888888,
+            "p90": 1630.7500000000002
+          },
+          "mt_free.commit_conflicts": {
+            "max": 37.0,
+            "mean": 9.6875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 8.0,
+            "p90": 24.5
+          },
+          "mt_free.coverage": {
+            "max": 0.875,
+            "mean": 0.2921566846498912,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.19871794871794873,
+            "p90": 0.788888888888889
+          },
+          "mt_free.length_ratio": {
+            "max": 1.1875,
+            "mean": 0.5376741728983577,
+            "min": 0.0625,
+            "n": 16,
+            "p50": 0.48917748917748916,
+            "p90": 1.0734126984126986
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 37.0,
+            "mean": 7.25,
+            "min": 0.0,
+            "n": 16,
+            "p50": 2.5,
+            "p90": 18.0
+          },
+          "mt_gold.coverage": {
+            "max": 0.9090909090909091,
+            "mean": 0.49523955814716686,
+            "min": 0.09230769230769231,
+            "n": 16,
+            "p50": 0.4642857142857143,
+            "p90": 0.8617424242424243
+          },
+          "mt_gold.length_ratio": {
+            "max": 1.1111111111111112,
+            "mean": 0.6783280201079114,
+            "min": 0.1076923076923077,
+            "n": 16,
+            "p50": 0.6586538461538461,
+            "p90": 1.0454545454545454
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 1.3627450980392157,
+            "mean": 0.6725400675406644,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.7145011086474501,
+            "p90": 1.1801827527127355
+          },
+          "s2s.malformed_segments": {
+            "max": 3.0,
+            "mean": 1.625,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.5,
+            "p90": 3.0
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 0.5,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.5,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 0.875,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 1.2010582010582012,
+            "mean": 0.6175727039313024,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.6230278823258315,
+            "p90": 1.126459192600925
+          },
+          "samples": 16
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "asr.empty_events": {
+              "max": 6.0,
+              "mean": 3.25,
+              "min": 0.0,
+              "n": 8,
+              "p50": 3.5,
+              "p90": 5.3
+            },
+            "asr.error_rate": {
+              "max": 0.17073170731707318,
+              "mean": 0.06908714271402189,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.05862977602108037,
+              "p90": 0.1541606886657102
+            },
+            "latency_speech.al_ms": {
+              "max": 1495.909559546359,
+              "mean": 862.5345544349324,
+              "min": 170.0,
+              "n": 4,
+              "p50": 892.1143290966852,
+              "p90": 1344.243074661175
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.7282836491168042,
+              "mean": 0.5068794749849405,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.6005373708102517,
+              "p90": 0.718901464672792
+            },
+            "latency_speech.dal_ms": {
+              "max": 2650.710005078691,
+              "mean": 1570.971093792345,
+              "min": 320.0,
+              "n": 4,
+              "p50": 1656.5871850453448,
+              "p90": 2369.4493145822908
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_speech.laal_ms": {
+              "max": 1495.909559546359,
+              "mean": 936.886231473834,
+              "min": 170.0,
+              "n": 4,
+              "p50": 1040.8176831744886,
+              "p90": 1374.5209186084212
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 2880.0,
+              "mean": 1240.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1040.0,
+              "p90": 2544.0
+            },
+            "latency_text.al_ms": {
+              "max": 513.006993006993,
+              "mean": -23.45658508158509,
+              "min": -794.1666666666666,
+              "n": 4,
+              "p50": 93.66666666666666,
+              "p90": 482.3048951048951
+            },
+            "latency_text.average_proportion": {
+              "max": 0.7527127355796688,
+              "mean": 0.49957432134729113,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.5737125203035209,
+              "p90": 0.70882044039165
+            },
+            "latency_text.dal_ms": {
+              "max": 1748.7058823529412,
+              "mean": 1252.6625816993464,
+              "min": 319.9999999999999,
+              "n": 4,
+              "p50": 1470.9722222222222,
+              "p90": 1704.094117647059
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_text.laal_ms": {
+              "max": 1343.7254901960785,
+              "mean": 595.5720096896567,
+              "min": -223.33333333333337,
+              "n": 4,
+              "p50": 630.9479409479409,
+              "p90": 1165.2745098039218
+            },
+            "mt_free.commit_conflicts": {
+              "max": 14.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 8.0,
+              "p90": 11.899999999999999
+            },
+            "mt_free.coverage": {
+              "max": 0.8,
+              "mean": 0.3870194042069042,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.26136363636363635,
+              "p90": 0.7844444444444445
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.675510773948274,
+              "min": 0.2777777777777778,
+              "n": 8,
+              "p50": 0.6870629370629371,
+              "p90": 1.0583333333333333
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 22.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.5,
+              "p90": 14.299999999999997
+            },
+            "mt_gold.coverage": {
+              "max": 0.8,
+              "mean": 0.422384213009213,
+              "min": 0.1111111111111111,
+              "n": 8,
+              "p50": 0.3035714285714286,
+              "p90": 0.7844444444444445
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.619718475968476,
+              "min": 0.16666666666666666,
+              "n": 8,
+              "p50": 0.614010989010989,
+              "p90": 0.9633333333333334
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.1019417475728155,
+              "mean": 0.7186440053312239,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.8372373822748129,
+              "p90": 1.0980918965682975
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 2.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 2.5,
+              "p90": 3.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.2010582010582012,
+              "mean": 0.6573790145139335,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.6651491738975395,
+              "p90": 1.1172770535899028
+            },
+            "samples": 8
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.2999999999999998
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 3.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.0,
+              "p90": 6.3
+            },
+            "asr.error_rate": {
+              "max": 0.8333333333333334,
+              "mean": 0.3961996336996337,
+              "min": 0.11904761904761904,
+              "n": 8,
+              "p50": 0.35384615384615387,
+              "p90": 0.7166666666666667
+            },
+            "latency_speech.al_ms": {
+              "max": 2040.0,
+              "mean": 1190.8450691970888,
+              "min": 697.5806451612902,
+              "n": 3,
+              "p50": 834.9545624299762,
+              "p90": 1798.9909124859953
+            },
+            "latency_speech.average_proportion": {
+              "max": 1.0,
+              "mean": 0.6588069138563318,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.5687774294670846,
+              "p90": 0.9137554858934169
+            },
+            "latency_speech.dal_ms": {
+              "max": 2039.999999999999,
+              "mean": 1746.6666666666704,
+              "min": 1279.999999999999,
+              "n": 3,
+              "p50": 1920.0000000000127,
+              "p90": 2016.0000000000018
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 2040.0,
+              "mean": 1190.8450691970888,
+              "min": 697.5806451612902,
+              "n": 3,
+              "p50": 834.9545624299762,
+              "p90": 1798.9909124859953
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1600.0,
+              "mean": 533.3333333333334,
+              "min": 0.0,
+              "n": 3,
+              "p50": 0.0,
+              "p90": 1280.0
+            },
+            "latency_text.al_ms": {
+              "max": 2040.0,
+              "mean": 834.614898989899,
+              "min": 40.208333333333336,
+              "n": 3,
+              "p50": 423.6363636363637,
+              "p90": 1716.7272727272727
+            },
+            "latency_text.average_proportion": {
+              "max": 1.0,
+              "mean": 0.7112346393875056,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.7260606060606061,
+              "p90": 0.9452121212121212
+            },
+            "latency_text.dal_ms": {
+              "max": 2756.4583333333335,
+              "mean": 2025.4861111111113,
+              "min": 1280.0000000000002,
+              "n": 3,
+              "p50": 2040.0,
+              "p90": 2613.166666666667
+            },
+            "latency_text.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_text.laal_ms": {
+              "max": 2040.0,
+              "mean": 1273.8510101010102,
+              "min": 423.6363636363637,
+              "n": 3,
+              "p50": 1357.9166666666667,
+              "p90": 1903.5833333333333
+            },
+            "mt_free.commit_conflicts": {
+              "max": 37.0,
+              "mean": 12.875,
+              "min": 0.0,
+              "n": 8,
+              "p50": 7.5,
+              "p90": 35.6
+            },
+            "mt_free.coverage": {
+              "max": 0.875,
+              "mean": 0.19729396509287814,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.08327759197324415,
+              "p90": 0.5382575757575756
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1875,
+              "mean": 0.39983757184844143,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.2965034965034965,
+              "p90": 0.8229166666666665
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 37.0,
+              "mean": 8.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 2.5,
+              "p90": 20.9
+            },
+            "mt_gold.coverage": {
+              "max": 0.9090909090909091,
+              "mean": 0.5680949032851207,
+              "min": 0.09230769230769231,
+              "n": 8,
+              "p50": 0.5,
+              "p90": 0.8852272727272728
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.0909090909090908,
+              "mean": 0.7369375642473469,
+              "min": 0.1076923076923077,
+              "n": 8,
+              "p50": 0.7821969696969697,
+              "p90": 1.0272727272727273
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.3627450980392157,
+              "mean": 0.626436129750105,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5714997104806022,
+              "p90": 1.2070124777183602
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 1.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 2.4000000000000004
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.094488188976378,
+              "mean": 0.5777663933486712,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.6082886922091534,
+              "p90": 1.017405270189602
+            },
+            "samples": 8
+          }
+        }
+      },
+      "candidate": {
+        "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+        "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+      },
+      "gate_failed_checks": [
+        "e_asr_structure_valid",
+        "e_mt_target_coverage",
+        "e_s2s_non_silent_pcm",
+        "e_s2s_pre_eos_target_semantic",
+        "e_s2s_pre_eos_target_text",
+        "e_s2s_semantic_coverage",
+        "e_s2s_structure_valid"
+      ],
+      "gate_status": "failed",
+      "label": "paced_m0",
+      "run_root": "reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage2_paced_hb2_iter0002264_20260831T180138Z",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.030303030303030304,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 33,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.16666666666666666,
+            "events": 16,
+            "final_hypothesis": "Such a feeling that I",
+            "hypothesis_units": 5,
+            "length_ratio": 0.2777777777777778,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.1111111111111111,
+            "events": 16,
+            "final_hypothesis": "Such a feeling",
+            "hypothesis_units": 3,
+            "length_ratio": 0.16666666666666666,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005985930",
+          "source_duration_ms": 8300.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.14285714285714285,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 5,
+            "coverage": 0.14285714285714285,
+            "events": 18,
+            "final_hypothesis": "他是银行的常任高级调解",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.42857142857142855,
+            "events": 18,
+            "final_hypothesis": "他是常设参议院委员会的",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "sample_id": "CommonVoice_EN_0000463919",
+          "source_duration_ms": 6200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.08695652173913043,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 23,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 9,
+            "coverage": 0.0625,
+            "events": 17,
+            "final_hypothesis": "He not only waited for",
+            "hypothesis_units": 5,
+            "length_ratio": 0.3125,
+            "nonempty_events": 14,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.625,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch mosquitoes but is like a",
+            "hypothesis_units": 12,
+            "length_ratio": 0.75,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 2,
+              "WAIT": 14,
+              "WRITE_ASR": 13,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 4
+            },
+            "audio_duration_seconds": 6.6,
+            "audio_over_source_ratio": 1.0891089108910892,
+            "audio_peak": 0.7679177522659302,
+            "audio_rms": 0.06960185617208481,
+            "events": 17,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 1495.909559546359,
+              "average_proportion": 0.697009700970097,
+              "dal_ms": 2650.710005078691,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 330,
+              "laal_ms": 1495.909559546359,
+              "last_emission_ms": 6060.0,
+              "length_ratio": 0.9217877094972067,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 358,
+              "tau": 233
+            },
+            "latency_text": {
+              "al_ms": -794.1666666666666,
+              "average_proportion": 0.6064050849529398,
+              "dal_ms": 1341.9444444444443,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 27,
+              "laal_ms": 748.8888888888888,
+              "last_emission_ms": 6060.0,
+              "length_ratio": 1.6875,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 16,
+              "tau": 21
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.9217877094972067,
+            "semantic_length_ratio": 0.9217877094972067,
+            "semantic_reference_tokens": 358,
+            "semantic_tokens": 330,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006199435",
+          "source_duration_ms": 6060.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.11904761904761904,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 42,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.12307692307692308,
+            "events": 46,
+            "final_hypothesis": "这是我们长久以来的",
+            "hypothesis_units": 9,
+            "length_ratio": 0.13846153846153847,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 37,
+            "coverage": 0.09230769230769231,
+            "events": 46,
+            "final_hypothesis": "这是我长期以来",
+            "hypothesis_units": 7,
+            "length_ratio": 0.1076923076923077,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "sample_id": "LibriSpeech_0000031307",
+          "source_duration_ms": 13180.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.11764705882352941,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.2727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to transform and temporarily cultivate the five",
+            "hypothesis_units": 15,
+            "length_ratio": 0.6818181818181818,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 8,
+            "coverage": 0.22727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to",
+            "hypothesis_units": 9,
+            "length_ratio": 0.4090909090909091,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007583994",
+          "source_duration_ms": 6680.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.8333333333333334,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 6,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 3,
+            "coverage": 0.0,
+            "events": 7,
+            "final_hypothesis": "看",
+            "hypothesis_units": 1,
+            "length_ratio": 0.1,
+            "nonempty_events": 4,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.5,
+            "events": 7,
+            "final_hypothesis": "这对我来说没什么意义",
+            "hypothesis_units": 10,
+            "length_ratio": 1.0,
+            "nonempty_events": 1,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 6,
+              "WRITE_ASR": 6,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 2.78,
+            "audio_over_source_ratio": 1.3627450980392157,
+            "audio_peak": 0.7035424709320068,
+            "audio_rms": 0.10451056808233261,
+            "events": 7,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2039.999999999999,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 139,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.094488188976378,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 127,
+              "tau": 1
+            },
+            "latency_text": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2040.0,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 14,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.4,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 10,
+              "tau": 1
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.094488188976378,
+            "semantic_reference_tokens": 127,
+            "semantic_tokens": 139,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "CommonVoice_EN_0000329073",
+          "source_duration_ms": 2040.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.17073170731707318,
+            "errors": 7,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 41,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.5357142857142857,
+            "events": 32,
+            "final_hypothesis": "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on.",
+            "hypothesis_units": 29,
+            "length_ratio": 1.0357142857142858,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 22,
+            "coverage": 0.35714285714285715,
+            "events": 32,
+            "final_hypothesis": "Running your own strengths will continuously add value to your life and add points to",
+            "hypothesis_units": 15,
+            "length_ratio": 0.5357142857142857,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005612325",
+          "source_duration_ms": 10080.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.3,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.875,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+            "hypothesis_units": 19,
+            "length_ratio": 1.1875,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.5,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔的鲍勃头",
+            "hypothesis_units": 10,
+            "length_ratio": 0.625,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 10,
+              "WRITE_ASR": 10
+            },
+            "audio_duration_seconds": 0.0,
+            "audio_over_source_ratio": 0.0,
+            "audio_peak": 0.0,
+            "audio_rms": 0.0,
+            "events": 10,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 161
+            },
+            "latency_text": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 16
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": false,
+            "semantic_coverage_clamped": 0.0,
+            "semantic_length_ratio": 0.0,
+            "semantic_reference_tokens": 161,
+            "semantic_tokens": 0,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "emilia_zh_0006401658",
+          "source_duration_ms": 3500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.14705882352941177,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 14,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police officer who received the alarm at the beginning of",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 15,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 11,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police station that received the alarm at first didn't expect",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 16,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007203542",
+          "source_duration_ms": 9360.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 10,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 25,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 10,
+            "coverage": 0.3939393939393939,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和厄尔在当时电话里交谈但两",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6666666666666666,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 3,
+            "coverage": 0.8484848484848485,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和我通了几次电话但两人都知道他们不会再见面了",
+            "hypothesis_units": 31,
+            "length_ratio": 0.9393939393939394,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0004788301",
+          "source_duration_ms": 8200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 2,
+              "WAIT": 11,
+              "WRITE_ASR": 11,
+              "WRITE_MT": 2,
+              "WRITE_SEMANTIC": 2
+            },
+            "audio_duration_seconds": 1.92,
+            "audio_over_source_ratio": 0.5853658536585366,
+            "audio_peak": 0.00021104514598846436,
+            "audio_rms": 1.9856497601722367e-05,
+            "events": 13,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 990.3546099290779,
+              "average_proportion": 0.5040650406504065,
+              "dal_ms": 1600.0000000000011,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 96,
+              "laal_ms": 990.3546099290779,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.4085106382978723,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 235,
+              "tau": 96
+            },
+            "latency_text": {
+              "al_ms": 513.006993006993,
+              "average_proportion": 0.541019955654102,
+              "dal_ms": 1600.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 11,
+              "laal_ms": 513.006993006993,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.8461538461538461,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 13,
+              "tau": 11
+            },
+            "malformed_segments": 3,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.4085106382978723,
+            "semantic_length_ratio": 0.4085106382978723,
+            "semantic_reference_tokens": 235,
+            "semantic_tokens": 96,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0005215832",
+          "source_duration_ms": 3280.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 6,
+            "error_rate": 0.3076923076923077,
+            "errors": 12,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "wer",
+            "reference_units": 39,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 35,
+            "coverage": 0.043478260869565216,
+            "events": 40,
+            "final_hypothesis": "我坐在",
+            "hypothesis_units": 3,
+            "length_ratio": 0.06521739130434782,
+            "nonempty_events": 37,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 14,
+            "coverage": 0.391304347826087,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+            "hypothesis_units": 28,
+            "length_ratio": 0.6086956521739131,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "sample_id": "EN_B00058_S05161_W000178",
+          "source_duration_ms": 13980.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 1,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 0.32,
+            "audio_over_source_ratio": 0.09815950920245399,
+            "audio_peak": 0.0018198700854554772,
+            "audio_rms": 0.0005239230813458562,
+            "events": 11,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 170.0,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 320.0,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 16,
+              "laal_ms": 170.0,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.09815950920245399,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 163,
+              "tau": 16
+            },
+            "latency_text": {
+              "al_ms": -223.33333333333337,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 319.9999999999999,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 4,
+              "laal_ms": -223.33333333333337,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.4444444444444444,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 9,
+              "tau": 4
+            },
+            "malformed_segments": 2,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.09815950920245399,
+            "semantic_length_ratio": 0.09815950920245399,
+            "semantic_reference_tokens": 163,
+            "semantic_tokens": 16,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006795452",
+          "source_duration_ms": 3260.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.0,
+            "events": 14,
+            "final_hypothesis": "侦",
+            "hypothesis_units": 1,
+            "length_ratio": 0.0625,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 1,
+            "coverage": 0.875,
+            "events": 14,
+            "final_hypothesis": "童子军总统促成了当地动物园的建设",
+            "hypothesis_units": 16,
+            "length_ratio": 1.0,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 3,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 3,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 4.64,
+            "audio_over_source_ratio": 0.8436363636363636,
+            "audio_peak": 0.70112144947052,
+            "audio_rms": 0.0737479105591774,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 834.9545624299762,
+              "average_proportion": 0.5687774294670846,
+              "dal_ms": 1920.0000000000127,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 232,
+              "laal_ms": 834.9545624299762,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 0.8375451263537906,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 277,
+              "tau": 232
+            },
+            "latency_text": {
+              "al_ms": 40.208333333333336,
+              "average_proportion": 0.7260606060606061,
+              "dal_ms": 2756.4583333333335,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 24,
+              "laal_ms": 1357.9166666666667,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.5,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 16,
+              "tau": 24
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.8375451263537906,
+            "semantic_length_ratio": 0.8375451263537906,
+            "semantic_reference_tokens": 277,
+            "semantic_tokens": 232,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000392649",
+          "source_duration_ms": 5500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 4
+            },
+            "audio_duration_seconds": 4.54,
+            "audio_over_source_ratio": 1.1019417475728155,
+            "audio_peak": 0.7275353074073792,
+            "audio_rms": 0.08025752007961273,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 793.8740482642924,
+              "average_proportion": 0.7282836491168042,
+              "dal_ms": 1713.1743700906884,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 227,
+              "laal_ms": 1091.280756419899,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.2010582010582012,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 189,
+              "tau": 164
+            },
+            "latency_text": {
+              "al_ms": 410.6666666666667,
+              "average_proportion": 0.7527127355796688,
+              "dal_ms": 1748.7058823529412,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 17,
+              "laal_ms": 1343.7254901960785,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.7,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 10,
+              "tau": 12
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.2010582010582012,
+            "semantic_reference_tokens": 189,
+            "semantic_tokens": 227,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0004122419",
+          "source_duration_ms": 4120.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.6666666666666666,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 9,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.0,
+            "events": 9,
+            "final_hypothesis": "你只是一个",
+            "hypothesis_units": 5,
+            "length_ratio": 0.45454545454545453,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.9090909090909091,
+            "events": 9,
+            "final_hypothesis": "并用这个来解决高方差问题",
+            "hypothesis_units": 12,
+            "length_ratio": 1.0909090909090908,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 9,
+              "WRITE_ASR": 8,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 0.94,
+            "audio_over_source_ratio": 0.29936305732484075,
+            "audio_peak": 0.8991097807884216,
+            "audio_rms": 0.10252078622579575,
+            "events": 9,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 697.5806451612902,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1279.999999999999,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 47,
+              "laal_ms": 697.5806451612902,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.3790322580645161,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 124,
+              "tau": 47
+            },
+            "latency_text": {
+              "al_ms": 423.6363636363637,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1280.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 7,
+              "laal_ms": 423.6363636363637,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.6363636363636364,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 11,
+              "tau": 7
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.3790322580645161,
+            "semantic_length_ratio": 0.3790322580645161,
+            "semantic_reference_tokens": 124,
+            "semantic_tokens": 47,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "EN_B00058_S07483_W000027",
+          "source_duration_ms": 3140.0
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 1.0,
+            "mean": 0.0625,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "asr.empty_events": {
+            "max": 7.0,
+            "mean": 3.375,
+            "min": 0.0,
+            "n": 16,
+            "p50": 4.0,
+            "p90": 6.0
+          },
+          "asr.error_rate": {
+            "max": 0.8333333333333334,
+            "mean": 0.23264338820682778,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.1449579831932773,
+            "p90": 0.5333333333333333
+          },
+          "latency_speech.al_ms": {
+            "max": 2040.0,
+            "mean": 569.4472000103385,
+            "min": -430.0,
+            "n": 7,
+            "p50": 551.1183851609383,
+            "p90": 1292.324428958576
+          },
+          "latency_speech.average_proportion": {
+            "max": 1.0,
+            "mean": 0.5312120529492158,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.4978111319574734,
+            "p90": 0.8369701894700826
+          },
+          "latency_speech.dal_ms": {
+            "max": 2039.999999999999,
+            "mean": 1446.5675747408968,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1600.0000000000023,
+            "p90": 1968.000000000009
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_speech.laal_ms": {
+            "max": 2040.0,
+            "mean": 633.1348694460349,
+            "min": -430.0,
+            "n": 7,
+            "p50": 551.1183851609383,
+            "p90": 1470.7684538519397
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 2880.0,
+            "mean": 937.1428571428571,
+            "min": 0.0,
+            "n": 7,
+            "p50": 320.0,
+            "p90": 2208.0
+          },
+          "latency_text.al_ms": {
+            "max": 2040.0,
+            "mean": 307.1029625136768,
+            "min": -1424.375,
+            "n": 7,
+            "p50": 410.6666666666667,
+            "p90": 1123.8041958041963
+          },
+          "latency_text.average_proportion": {
+            "max": 1.0,
+            "mean": 0.5916524083614111,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.6424642464246425,
+            "p90": 0.8516276413478013
+          },
+          "latency_text.dal_ms": {
+            "max": 2745.595238095238,
+            "mean": 1583.3417185055841,
+            "min": 319.9999999999999,
+            "n": 7,
+            "p50": 1600.0000000000002,
+            "p90": 2322.2380952380954
+          },
+          "latency_text.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_text.laal_ms": {
+            "max": 2040.0,
+            "mean": 905.7360566604265,
+            "min": -223.33333333333337,
+            "n": 7,
+            "p50": 1014.5454545454546,
+            "p90": 1622.2352941176473
+          },
+          "mt_free.commit_conflicts": {
+            "max": 37.0,
+            "mean": 9.6875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 8.0,
+            "p90": 24.5
+          },
+          "mt_free.coverage": {
+            "max": 0.875,
+            "mean": 0.2921566846498912,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.19871794871794873,
+            "p90": 0.788888888888889
+          },
+          "mt_free.length_ratio": {
+            "max": 1.1875,
+            "mean": 0.5376741728983577,
+            "min": 0.0625,
+            "n": 16,
+            "p50": 0.48917748917748916,
+            "p90": 1.0734126984126986
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 37.0,
+            "mean": 7.25,
+            "min": 0.0,
+            "n": 16,
+            "p50": 2.5,
+            "p90": 18.0
+          },
+          "mt_gold.coverage": {
+            "max": 0.9090909090909091,
+            "mean": 0.49523955814716686,
+            "min": 0.09230769230769231,
+            "n": 16,
+            "p50": 0.4642857142857143,
+            "p90": 0.8617424242424243
+          },
+          "mt_gold.length_ratio": {
+            "max": 1.1111111111111112,
+            "mean": 0.6783280201079114,
+            "min": 0.1076923076923077,
+            "n": 16,
+            "p50": 0.6586538461538461,
+            "p90": 1.0454545454545454
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 1.3627450980392157,
+            "mean": 0.7758802044123495,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.9574579409160429,
+            "p90": 1.1801827527127355
+          },
+          "s2s.malformed_segments": {
+            "max": 3.0,
+            "mean": 1.625,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.5,
+            "p90": 3.0
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 0.5,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.5,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 0.875,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 1.2010582010582012,
+            "mean": 0.7093075233367612,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.7397361226673006,
+            "p90": 1.126459192600925
+          },
+          "samples": 16
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "asr.empty_events": {
+              "max": 6.0,
+              "mean": 3.25,
+              "min": 0.0,
+              "n": 8,
+              "p50": 3.5,
+              "p90": 5.3
+            },
+            "asr.error_rate": {
+              "max": 0.17073170731707318,
+              "mean": 0.06908714271402189,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.05862977602108037,
+              "p90": 0.1541606886657102
+            },
+            "latency_speech.al_ms": {
+              "max": 793.8740482642924,
+              "mean": 314.38473114654255,
+              "min": -430.0,
+              "n": 4,
+              "p50": 446.832438160939,
+              "p90": 721.0473493332862
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.7282836491168042,
+              "mean": 0.4468011737265589,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.48038076829348875,
+              "p90": 0.659141893969005
+            },
+            "latency_speech.dal_ms": {
+              "max": 1713.1743700906884,
+              "mean": 1221.4932557965658,
+              "min": 320.0,
+              "n": 4,
+              "p50": 1426.3993265477875,
+              "p90": 1679.2220590634827
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_speech.laal_ms": {
+              "max": 1091.280756419899,
+              "mean": 388.73640818544425,
+              "min": -430.0,
+              "n": 4,
+              "p50": 446.832438160939,
+              "p90": 929.2320450422109
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 2880.0,
+              "mean": 1240.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1040.0,
+              "p90": 2544.0
+            },
+            "latency_text.al_ms": {
+              "max": 513.006993006993,
+              "mean": -181.00866841491842,
+              "min": -1424.375,
+              "n": 4,
+              "p50": 93.66666666666666,
+              "p90": 482.3048951048951
+            },
+            "latency_text.average_proportion": {
+              "max": 0.7527127355796688,
+              "mean": 0.5085891117152168,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.5917421010393722,
+              "p90": 0.7196381888331609
+            },
+            "latency_text.dal_ms": {
+              "max": 1748.7058823529412,
+              "mean": 1254.4491978609626,
+              "min": 319.9999999999999,
+              "n": 4,
+              "p50": 1474.5454545454545,
+              "p90": 1704.094117647059
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_text.laal_ms": {
+              "max": 1343.7254901960785,
+              "mean": 661.9861511037982,
+              "min": -223.33333333333337,
+              "n": 4,
+              "p50": 763.7762237762238,
+              "p90": 1244.9714795008913
+            },
+            "mt_free.commit_conflicts": {
+              "max": 14.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 8.0,
+              "p90": 11.899999999999999
+            },
+            "mt_free.coverage": {
+              "max": 0.8,
+              "mean": 0.3870194042069042,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.26136363636363635,
+              "p90": 0.7844444444444445
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.675510773948274,
+              "min": 0.2777777777777778,
+              "n": 8,
+              "p50": 0.6870629370629371,
+              "p90": 1.0583333333333333
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 22.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.5,
+              "p90": 14.299999999999997
+            },
+            "mt_gold.coverage": {
+              "max": 0.8,
+              "mean": 0.422384213009213,
+              "min": 0.1111111111111111,
+              "n": 8,
+              "p50": 0.3035714285714286,
+              "p90": 0.7844444444444445
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.619718475968476,
+              "min": 0.16666666666666666,
+              "n": 8,
+              "p50": 0.614010989010989,
+              "p90": 0.9633333333333334
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.1019417475728155,
+              "mean": 0.8707788245291394,
+              "min": 0.4662576687116564,
+              "n": 4,
+              "p50": 0.9574579409160429,
+              "p90": 1.0604681341920599
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 2.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 2.5,
+              "p90": 3.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.2010582010582012,
+              "mean": 0.7866970287761147,
+              "min": 0.4662576687116564,
+              "n": 4,
+              "p50": 0.7397361226673006,
+              "p90": 1.0854334781709085
+            },
+            "samples": 8
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.2999999999999998
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 3.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.0,
+              "p90": 6.3
+            },
+            "asr.error_rate": {
+              "max": 0.8333333333333334,
+              "mean": 0.3961996336996337,
+              "min": 0.11904761904761904,
+              "n": 8,
+              "p50": 0.35384615384615387,
+              "p90": 0.7166666666666667
+            },
+            "latency_speech.al_ms": {
+              "max": 2040.0,
+              "mean": 909.5304918287333,
+              "min": -8.989169675090473,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.average_proportion": {
+              "max": 1.0,
+              "mean": 0.6437598919127582,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.5236363636363637,
+              "p90": 0.9047272727272727
+            },
+            "latency_speech.dal_ms": {
+              "max": 2039.999999999999,
+              "mean": 1746.6666666666715,
+              "min": 1279.999999999999,
+              "n": 3,
+              "p50": 1920.000000000016,
+              "p90": 2016.0000000000023
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 2040.0,
+              "mean": 958.999484460156,
+              "min": 139.41780821917794,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1600.0,
+              "mean": 533.3333333333334,
+              "min": 0.0,
+              "n": 3,
+              "p50": 0.0,
+              "p90": 1280.0
+            },
+            "latency_text.al_ms": {
+              "max": 2040.0,
+              "mean": 957.9184704184704,
+              "min": 410.1190476190476,
+              "n": 3,
+              "p50": 423.6363636363637,
+              "p90": 1716.7272727272727
+            },
+            "latency_text.average_proportion": {
+              "max": 1.0,
+              "mean": 0.7024034705563368,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.6995670995670996,
+              "p90": 0.9399134199134199
+            },
+            "latency_text.dal_ms": {
+              "max": 2745.595238095238,
+              "mean": 2021.8650793650795,
+              "min": 1280.0000000000002,
+              "n": 3,
+              "p50": 2040.0,
+              "p90": 2604.4761904761904
+            },
+            "latency_text.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_text.laal_ms": {
+              "max": 2040.0,
+              "mean": 1230.7359307359307,
+              "min": 423.6363636363637,
+              "n": 3,
+              "p50": 1228.5714285714284,
+              "p90": 1877.7142857142856
+            },
+            "mt_free.commit_conflicts": {
+              "max": 37.0,
+              "mean": 12.875,
+              "min": 0.0,
+              "n": 8,
+              "p50": 7.5,
+              "p90": 35.6
+            },
+            "mt_free.coverage": {
+              "max": 0.875,
+              "mean": 0.19729396509287814,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.08327759197324415,
+              "p90": 0.5382575757575756
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1875,
+              "mean": 0.39983757184844143,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.2965034965034965,
+              "p90": 0.8229166666666665
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 37.0,
+              "mean": 8.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 2.5,
+              "p90": 20.9
+            },
+            "mt_gold.coverage": {
+              "max": 0.9090909090909091,
+              "mean": 0.5680949032851207,
+              "min": 0.09230769230769231,
+              "n": 8,
+              "p50": 0.5,
+              "p90": 0.8852272727272728
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.0909090909090908,
+              "mean": 0.7369375642473469,
+              "min": 0.1076923076923077,
+              "n": 8,
+              "p50": 0.7821969696969697,
+              "p90": 1.0272727272727273
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.3627450980392157,
+              "mean": 0.6809815842955595,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.6805906195715112,
+              "p90": 1.2724670231729056
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 1.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 2.4000000000000004
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.094488188976378,
+              "mean": 0.6319180178974076,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.7165919413066264,
+              "p90": 1.0823872196480857
+            },
+            "samples": 8
+          }
+        }
+      },
+      "candidate": {
+        "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+        "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+      },
+      "gate_failed_checks": [
+        "e_asr_structure_valid",
+        "e_mt_target_coverage",
+        "e_s2s_non_silent_pcm",
+        "e_s2s_pre_eos_target_semantic",
+        "e_s2s_pre_eos_target_text",
+        "e_s2s_semantic_coverage",
+        "e_s2s_structure_valid"
+      ],
+      "gate_status": "failed",
+      "label": "paced_m1200",
+      "run_root": "reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage2_paced_m1200_iter0002264_20260831T180448Z",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.030303030303030304,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 33,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.16666666666666666,
+            "events": 16,
+            "final_hypothesis": "Such a feeling that I",
+            "hypothesis_units": 5,
+            "length_ratio": 0.2777777777777778,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.1111111111111111,
+            "events": 16,
+            "final_hypothesis": "Such a feeling",
+            "hypothesis_units": 3,
+            "length_ratio": 0.16666666666666666,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005985930",
+          "source_duration_ms": 8300.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.14285714285714285,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 5,
+            "coverage": 0.14285714285714285,
+            "events": 18,
+            "final_hypothesis": "他是银行的常任高级调解",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.42857142857142855,
+            "events": 18,
+            "final_hypothesis": "他是常设参议院委员会的",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "sample_id": "CommonVoice_EN_0000463919",
+          "source_duration_ms": 6200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.08695652173913043,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 23,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 9,
+            "coverage": 0.0625,
+            "events": 17,
+            "final_hypothesis": "He not only waited for",
+            "hypothesis_units": 5,
+            "length_ratio": 0.3125,
+            "nonempty_events": 14,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.625,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch mosquitoes but is like a",
+            "hypothesis_units": 12,
+            "length_ratio": 0.75,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 3,
+              "WAIT": 13,
+              "WRITE_ASR": 13,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 5.84,
+            "audio_over_source_ratio": 0.9636963696369637,
+            "audio_peak": 0.6251153945922852,
+            "audio_rms": 0.056248653680086136,
+            "events": 17,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 342.54649116093964,
+              "average_proportion": 0.46295040462950404,
+              "dal_ms": 1252.798653095573,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 292,
+              "laal_ms": 342.54649116093964,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 0.8156424581005587,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 358,
+              "tau": 292
+            },
+            "latency_text": {
+              "al_ms": -1424.375,
+              "average_proportion": 0.6424642464246425,
+              "dal_ms": 1349.090909090909,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 33,
+              "laal_ms": 1014.5454545454546,
+              "last_emission_ms": 6060.0,
+              "length_ratio": 2.0625,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 16,
+              "tau": 26
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.8156424581005587,
+            "semantic_length_ratio": 0.8156424581005587,
+            "semantic_reference_tokens": 358,
+            "semantic_tokens": 292,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006199435",
+          "source_duration_ms": 6060.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.11904761904761904,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 42,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.12307692307692308,
+            "events": 46,
+            "final_hypothesis": "这是我们长久以来的",
+            "hypothesis_units": 9,
+            "length_ratio": 0.13846153846153847,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 37,
+            "coverage": 0.09230769230769231,
+            "events": 46,
+            "final_hypothesis": "这是我长期以来",
+            "hypothesis_units": 7,
+            "length_ratio": 0.1076923076923077,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "sample_id": "LibriSpeech_0000031307",
+          "source_duration_ms": 13180.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.11764705882352941,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.2727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to transform and temporarily cultivate the five",
+            "hypothesis_units": 15,
+            "length_ratio": 0.6818181818181818,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 8,
+            "coverage": 0.22727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to",
+            "hypothesis_units": 9,
+            "length_ratio": 0.4090909090909091,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007583994",
+          "source_duration_ms": 6680.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.8333333333333334,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 6,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 3,
+            "coverage": 0.0,
+            "events": 7,
+            "final_hypothesis": "看",
+            "hypothesis_units": 1,
+            "length_ratio": 0.1,
+            "nonempty_events": 4,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.5,
+            "events": 7,
+            "final_hypothesis": "这对我来说没什么意义",
+            "hypothesis_units": 10,
+            "length_ratio": 1.0,
+            "nonempty_events": 1,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 6,
+              "WRITE_ASR": 6,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 2.78,
+            "audio_over_source_ratio": 1.3627450980392157,
+            "audio_peak": 0.7035424709320068,
+            "audio_rms": 0.10451056808233261,
+            "events": 7,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2039.999999999999,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 139,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.094488188976378,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 127,
+              "tau": 1
+            },
+            "latency_text": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2040.0,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 14,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.4,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 10,
+              "tau": 1
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.094488188976378,
+            "semantic_reference_tokens": 127,
+            "semantic_tokens": 139,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "CommonVoice_EN_0000329073",
+          "source_duration_ms": 2040.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.17073170731707318,
+            "errors": 7,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 41,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.5357142857142857,
+            "events": 32,
+            "final_hypothesis": "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on.",
+            "hypothesis_units": 29,
+            "length_ratio": 1.0357142857142858,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 22,
+            "coverage": 0.35714285714285715,
+            "events": 32,
+            "final_hypothesis": "Running your own strengths will continuously add value to your life and add points to",
+            "hypothesis_units": 15,
+            "length_ratio": 0.5357142857142857,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005612325",
+          "source_duration_ms": 10080.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.3,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.875,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+            "hypothesis_units": 19,
+            "length_ratio": 1.1875,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.5,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔的鲍勃头",
+            "hypothesis_units": 10,
+            "length_ratio": 0.625,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 10,
+              "WRITE_ASR": 10
+            },
+            "audio_duration_seconds": 0.0,
+            "audio_over_source_ratio": 0.0,
+            "audio_peak": 0.0,
+            "audio_rms": 0.0,
+            "events": 10,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 161
+            },
+            "latency_text": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 16
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": false,
+            "semantic_coverage_clamped": 0.0,
+            "semantic_length_ratio": 0.0,
+            "semantic_reference_tokens": 161,
+            "semantic_tokens": 0,
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "emilia_zh_0006401658",
+          "source_duration_ms": 3500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.14705882352941177,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 14,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police officer who received the alarm at the beginning of",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 15,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 11,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police station that received the alarm at first didn't expect",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 16,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007203542",
+          "source_duration_ms": 9360.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 10,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 25,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 10,
+            "coverage": 0.3939393939393939,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和厄尔在当时电话里交谈但两",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6666666666666666,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 3,
+            "coverage": 0.8484848484848485,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和我通了几次电话但两人都知道他们不会再见面了",
+            "hypothesis_units": 31,
+            "length_ratio": 0.9393939393939394,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0004788301",
+          "source_duration_ms": 8200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 2,
+              "WAIT": 11,
+              "WRITE_ASR": 11,
+              "WRITE_MT": 2,
+              "WRITE_SEMANTIC": 2
+            },
+            "audio_duration_seconds": 3.12,
+            "audio_over_source_ratio": 0.9512195121951219,
+            "audio_peak": 0.46334701776504517,
+            "audio_rms": 0.032052092254161835,
+            "events": 13,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 551.1183851609383,
+              "average_proportion": 0.4978111319574734,
+              "dal_ms": 1600.0000000000023,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 156,
+              "laal_ms": 551.1183851609383,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.6638297872340425,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 235,
+              "tau": 156
+            },
+            "latency_text": {
+              "al_ms": 513.006993006993,
+              "average_proportion": 0.541019955654102,
+              "dal_ms": 1600.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 11,
+              "laal_ms": 513.006993006993,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.8461538461538461,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 13,
+              "tau": 11
+            },
+            "malformed_segments": 3,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.6638297872340425,
+            "semantic_length_ratio": 0.6638297872340425,
+            "semantic_reference_tokens": 235,
+            "semantic_tokens": 156,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0005215832",
+          "source_duration_ms": 3280.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 6,
+            "error_rate": 0.3076923076923077,
+            "errors": 12,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "wer",
+            "reference_units": 39,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 35,
+            "coverage": 0.043478260869565216,
+            "events": 40,
+            "final_hypothesis": "我坐在",
+            "hypothesis_units": 3,
+            "length_ratio": 0.06521739130434782,
+            "nonempty_events": 37,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 14,
+            "coverage": 0.391304347826087,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+            "hypothesis_units": 28,
+            "length_ratio": 0.6086956521739131,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "sample_id": "EN_B00058_S05161_W000178",
+          "source_duration_ms": 13980.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 1,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 1.52,
+            "audio_over_source_ratio": 0.4662576687116564,
+            "audio_peak": 0.0020581651479005814,
+            "audio_rms": 0.0005049271858297288,
+            "events": 11,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -430.0,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 320.0,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 76,
+              "laal_ms": -430.0,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.4662576687116564,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 163,
+              "tau": 76
+            },
+            "latency_text": {
+              "al_ms": -223.33333333333337,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 319.9999999999999,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 4,
+              "laal_ms": -223.33333333333337,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.4444444444444444,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 9,
+              "tau": 4
+            },
+            "malformed_segments": 2,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.4662576687116564,
+            "semantic_length_ratio": 0.4662576687116564,
+            "semantic_reference_tokens": 163,
+            "semantic_tokens": 76,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006795452",
+          "source_duration_ms": 3260.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.0,
+            "events": 14,
+            "final_hypothesis": "侦",
+            "hypothesis_units": 1,
+            "length_ratio": 0.0625,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 1,
+            "coverage": 0.875,
+            "events": 14,
+            "final_hypothesis": "童子军总统促成了当地动物园的建设",
+            "hypothesis_units": 16,
+            "length_ratio": 1.0,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 3,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 3,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 5.84,
+            "audio_over_source_ratio": 1.0618181818181818,
+            "audio_peak": 0.8018474578857422,
+            "audio_rms": 0.06220013275742531,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -8.989169675090473,
+              "average_proportion": 0.5236363636363637,
+              "dal_ms": 1920.000000000016,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 292,
+              "laal_ms": 139.41780821917794,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.0541516245487366,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 277,
+              "tau": 292
+            },
+            "latency_text": {
+              "al_ms": 410.1190476190476,
+              "average_proportion": 0.6995670995670996,
+              "dal_ms": 2745.595238095238,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 21,
+              "laal_ms": 1228.5714285714284,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.3125,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 16,
+              "tau": 21
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.0541516245487366,
+            "semantic_reference_tokens": 277,
+            "semantic_tokens": 292,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000392649",
+          "source_duration_ms": 5500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 4
+            },
+            "audio_duration_seconds": 4.54,
+            "audio_over_source_ratio": 1.1019417475728155,
+            "audio_peak": 0.7275353074073792,
+            "audio_rms": 0.08025752007961273,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 793.8740482642924,
+              "average_proportion": 0.7282836491168042,
+              "dal_ms": 1713.1743700906884,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 227,
+              "laal_ms": 1091.280756419899,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.2010582010582012,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 189,
+              "tau": 164
+            },
+            "latency_text": {
+              "al_ms": 410.6666666666667,
+              "average_proportion": 0.7527127355796688,
+              "dal_ms": 1748.7058823529412,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 17,
+              "laal_ms": 1343.7254901960785,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.7,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 10,
+              "tau": 12
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.2010582010582012,
+            "semantic_reference_tokens": 189,
+            "semantic_tokens": 227,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0004122419",
+          "source_duration_ms": 4120.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.6666666666666666,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 9,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.0,
+            "events": 9,
+            "final_hypothesis": "你只是一个",
+            "hypothesis_units": 5,
+            "length_ratio": 0.45454545454545453,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.9090909090909091,
+            "events": 9,
+            "final_hypothesis": "并用这个来解决高方差问题",
+            "hypothesis_units": 12,
+            "length_ratio": 1.0909090909090908,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 9,
+              "WRITE_ASR": 8,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 0.94,
+            "audio_over_source_ratio": 0.29936305732484075,
+            "audio_peak": 0.8991097807884216,
+            "audio_rms": 0.10252078622579575,
+            "events": 9,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 697.5806451612902,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1279.999999999999,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 47,
+              "laal_ms": 697.5806451612902,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.3790322580645161,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 124,
+              "tau": 47
+            },
+            "latency_text": {
+              "al_ms": 423.6363636363637,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1280.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 7,
+              "laal_ms": 423.6363636363637,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.6363636363636364,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 11,
+              "tau": 7
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.3790322580645161,
+            "semantic_length_ratio": 0.3790322580645161,
+            "semantic_reference_tokens": 124,
+            "semantic_tokens": 47,
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "EN_B00058_S07483_W000027",
+          "source_duration_ms": 3140.0
+        }
+      ]
+    }
+  ],
+  "schema_version": "uniss_e2e_streaming_s2st_metrics_v1"
+}
