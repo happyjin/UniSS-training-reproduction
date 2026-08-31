@@ -35,6 +35,9 @@ from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.semantic_pacing impor
     MINIMUM_FRAGMENT_TOKENS,
     PacedInterleavedSession,
 )
+from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.speak_policy import (
+    EagerSpeakSession,
+)
 
 
 ENV_HOLDBACK = "UNISS_E2E_MT_HOLDBACK"
@@ -42,6 +45,7 @@ ENV_PACE = "UNISS_E2E_SEMANTIC_PACE"
 ENV_PACE_MARGIN_MS = "UNISS_E2E_SEMANTIC_PACE_MARGIN_MS"
 ENV_PACE_TAIL_MS = "UNISS_E2E_SEMANTIC_TAIL_MS"
 ENV_PACE_MINIMUM = "UNISS_E2E_SEMANTIC_MIN_FRAGMENT"
+ENV_EAGER = "UNISS_E2E_EAGER_SPEAK"
 
 
 def resolve_holdback() -> int:
@@ -92,7 +96,16 @@ def main() -> None:
         "semantic_pacing": None,
     }
     pacing = resolve_pacing()
-    if pacing is not None:
+    eager = os.environ.get(ENV_EAGER, "").strip() in {"1", "true", "yes"}
+    manifest["eager_speak"] = eager
+    if eager:
+        # Diagnostic ceiling only: forcing MT/TTS on every event is the
+        # empty-write behaviour a real policy must avoid.
+        worker.PersistentInterleavedSession = functools.partial(
+            EagerSpeakSession, **(pacing or {})
+        )
+        manifest["semantic_pacing"] = pacing
+    elif pacing is not None:
         worker.PersistentInterleavedSession = functools.partial(
             PacedInterleavedSession, **pacing
         )
