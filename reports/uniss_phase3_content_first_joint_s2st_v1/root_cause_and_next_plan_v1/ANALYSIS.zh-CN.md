@@ -6,6 +6,8 @@
 - 证据来源：Codex 会话 `01a04876-dd46-75f1-9c57-a250cd095b39`、训练日志、`METRICS.json`、实验源码
 - 声明范围：全部数字均为 **train-seen**（固定 15-shard 内的 64 条长 episode），不构成泛化结论
 
+> **2026-08-31 更新：§4.1 的三个证伪实验已执行完毕，结论见 [FINDINGS_0ABC.zh-CN.md](FINDINGS_0ABC.zh-CN.md)。** 本文的诊断成立，但优先级已被修正，并新增两条本文未覆盖的根因：（1）训练与推理的离散码流只有 14.5% 一致；（2）同一 checkpoint 在长 session 上崩塌（最大内部空白 0.95 秒 → 27.4 秒）。请以 FINDINGS 的 §5 优先级表作为执行依据。
+
 ---
 
 ## 0. 一句话结论
@@ -205,9 +207,18 @@ adapted = objective.frontend_adapter(objective.codebook(codes.unsqueeze(0)))
 
 而训练侧（[joint_model.py:177-178](../../../experiments/uniss_phase3_true_subsecond_deadline_full198_v1/training/joint_model.py#L177-L178)、[native_kv_backend.py:125-128](../../../experiments/uniss_phase3_event_rollout_joint_full198_v1/native_kv_backend.py#L125-L128)）消费的是**数据管线直接给出的离散 `frontend_ids`**。
 
-已核对：GLM4 参考量化器 `vector_quantize`（`uniss/speech_tokenizer/glm4/modeling_whisper.py:68-78`）用的也是平方 L2 argmin，度量一致。**但"桥拿到的 hidden 是否恰好是参考量化器量化的那一层、那一次 pooling 后的 pre-VQ hidden"尚未验证。** 如果不是，模型在推理时看到的离散码与训练时不同，ASR 相似度 0.048 就可能主要是这个 bug 而不是能力缺失。
+**已实测（实验 0-A，2026-08-31）。结论：这是一条真实且严重的根因，但不是桥的算术问题。**
 
-**这必须在做任何新训练之前先测。见 §4.1。**
+| 测量 | 结果 |
+|---|---:|
+| offline 码与推理码逐帧一致率 | **0.1446**（最小 0.0649） |
+| 前端自身 `token_ids` 与桥的 argmin 一致率 | **1.0000** |
+| 序列长度完全相等的比例 | **1.0000** |
+| 选中码向量的余弦相似度 | 0.9632 |
+
+桥的重量化精确复现了前端自己的量化，度量也与参考实现 `modeling_whisper.py:68-88` 一致 —— **问题在前端本身**：`load_content_first_models` 构造的是一个**未经训练**的块因果 WhisperVQ，而所有旧血脉（`strict_cascade._load_models`）加载的是**训练过的** Stage-A 因果前端 `stage_a_formal8_20260816T224100Z/iter_0000381`，其 `bridge_norm` 与 `bridge_projection` 是和那个因果前端一起、在真实波形上训练出来的。content-first 的 `frontend_adapter` 与 `frontend_projection` 只见过 offline 码的嵌入（训练消费预计算的 `frontend_ids`，前端完全不参与训练），推理时却被喂进因果码，它没有任何机会学会这个校正。
+
+实验 0-C 量化了代价：把训练时的码原位喂回去，ASR 0.183 → **0.294**、MT 0.101 → **0.127**、译文长度比 0.304 → **0.400**；但 coverage 仍只有 7.9%，所以这条根因与 §2.1 的能力缺口**独立并存**。详见 [FINDINGS_0ABC.zh-CN.md](FINDINGS_0ABC.zh-CN.md)。
 
 #### (B) 自动流水线的"合格门"是伪门
 
@@ -237,7 +248,7 @@ adapted = objective.frontend_adapter(objective.codebook(codes.unsqueeze(0)))
 
 原则：**先证伪最便宜的假设，再决定是否重训；任何重训必须以旧血脉最优 checkpoint 为起点；内容不达标不进 RL。**
 
-### 4.1 第 0 阶段：24 小时内、几乎零算力的证伪实验（必须先做）
+### 4.1 第 0 阶段：24 小时内、几乎零算力的证伪实验（**已于 2026-08-31 完成**）
 
 #### 实验 0-A：推理桥的离散码一致性测试（最高优先级）
 
@@ -276,6 +287,8 @@ adapted = objective.frontend_adapter(objective.codebook(codes.unsqueeze(0)))
 
 **这三个实验合计 < 3 小时 8 卡，但决定了后面是花 20 小时还是 200 小时。**
 
+> **执行结果（2026-08-31）**：0-A 逐帧码一致率 0.1446，判定 `inference_path_mismatch_is_primary_suspect`；0-C 在 gold 输入下 coverage 仍只有 0.0787，判定 `capability_gap_dominates_data_and_budget_must_change`；0-B 确认两条血脉本来就共享同一评测器、同一 64 条 episode 协议、同一几何与采样温度，差距不是口径问题。因此**两条路径都要走**：既要消除码流不匹配，也要重做数据构造与训练预算。完整数字与修正后的优先级见 [FINDINGS_0ABC.zh-CN.md](FINDINGS_0ABC.zh-CN.md)。
+
 ### 4.2 第 1 阶段：数据构造修复（无论 0 阶段结论如何都要做）
 
 这是本轮失败的第一性原因，必须在下一次训练前修掉。
@@ -298,7 +311,7 @@ adapted = objective.frontend_adapter(objective.codebook(codes.unsqueeze(0)))
 ✅ --load <commit_complete_v4 / coverage_constrained_v3 最优 checkpoint>
 ```
 
-若 0-B 证实旧 checkpoint 更强，则**必须**从它继续；`pretrain_content_first_megatron.py:97-100` 目前硬编码只允许 Phase3 v4 或自身，需要放开并加入旧血脉 root 的白名单 + fingerprint 校验。
+0-B 已用同一次评测器调用证实旧 checkpoint 更强（ASR 0.261 对 0.048，coverage 17.1% 对 3.2%），因此**必须**从它继续；`pretrain_content_first_megatron.py:97-100` 目前硬编码只允许 Phase3 v4 或自身，需要放开并加入旧血脉 root 的白名单 + fingerprint 校验。
 
 #### (B) 训练量：717 步远远不够
 
