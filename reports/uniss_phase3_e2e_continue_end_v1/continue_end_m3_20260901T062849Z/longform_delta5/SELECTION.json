@@ -1,0 +1,124 @@
+{
+ "schema_version": "uniss_longform_delta5_selection_v1",
+ "status": "passed",
+ "selection_seed": 20260821,
+ "input": {
+  "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "records": 13469,
+  "sha256": "7738b7dfbc46959092f4e442f46468c36e5c90927712d13bf84379a9e926706e"
+ },
+ "eligible_records": 13240,
+ "counts": {
+  "e_s2s": 8,
+  "duration_band:long": 8
+ },
+ "samples": [
+  3800,
+  3801,
+  3704,
+  3700,
+  2939,
+  3006,
+  3223,
+  3141
+ ],
+ "e_s2s_samples": 8,
+ "records": [
+  {
+   "direction": "cmn->eng",
+   "duration_band": "long",
+   "duration_ms": 19380,
+   "events": 72,
+   "prefinal_target_semantic_events": 7,
+   "prefinal_target_text_events": 7,
+   "record_index": 3800,
+   "run_e_s2s": true,
+   "sample_id": "emilia_zh_0003980703",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00004/source_audio/0001040_emilia_zh_0003980703.flac"
+  },
+  {
+   "direction": "cmn->eng",
+   "duration_band": "long",
+   "duration_ms": 17540,
+   "events": 53,
+   "prefinal_target_semantic_events": 18,
+   "prefinal_target_text_events": 18,
+   "record_index": 3801,
+   "run_e_s2s": true,
+   "sample_id": "emilia_zh_0003980934",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00004/source_audio/0001117_emilia_zh_0003980934.flac"
+  },
+  {
+   "direction": "cmn->eng",
+   "duration_band": "long",
+   "duration_ms": 16780,
+   "events": 68,
+   "prefinal_target_semantic_events": 20,
+   "prefinal_target_text_events": 20,
+   "record_index": 3704,
+   "run_e_s2s": true,
+   "sample_id": "emilia_zh_0003929091",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0087190_emilia_zh_0003929091.flac"
+  },
+  {
+   "direction": "cmn->eng",
+   "duration_band": "long",
+   "duration_ms": 16460,
+   "events": 35,
+   "prefinal_target_semantic_events": 3,
+   "prefinal_target_text_events": 3,
+   "record_index": 3700,
+   "run_e_s2s": true,
+   "sample_id": "emilia_zh_0003927983",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0086773_emilia_zh_0003927983.flac"
+  },
+  {
+   "direction": "eng->cmn",
+   "duration_band": "long",
+   "duration_ms": 17100,
+   "events": 40,
+   "prefinal_target_semantic_events": 5,
+   "prefinal_target_text_events": 5,
+   "record_index": 2939,
+   "run_e_s2s": true,
+   "sample_id": "LibriSpeech_0000079616",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0001571_LibriSpeech_0000079616.flac"
+  },
+  {
+   "direction": "eng->cmn",
+   "duration_band": "long",
+   "duration_ms": 16880,
+   "events": 42,
+   "prefinal_target_semantic_events": 15,
+   "prefinal_target_text_events": 15,
+   "record_index": 3006,
+   "run_e_s2s": true,
+   "sample_id": "LibriSpeech_0000104521",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0008379_LibriSpeech_0000104521.flac"
+  },
+  {
+   "direction": "eng->cmn",
+   "duration_band": "long",
+   "duration_ms": 16840,
+   "events": 53,
+   "prefinal_target_semantic_events": 11,
+   "prefinal_target_text_events": 11,
+   "record_index": 3223,
+   "run_e_s2s": true,
+   "sample_id": "LibriSpeech_0000213211",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0035237_LibriSpeech_0000213211.flac"
+  },
+  {
+   "direction": "eng->cmn",
+   "duration_band": "long",
+   "duration_ms": 16560,
+   "events": 55,
+   "prefinal_target_semantic_events": 12,
+   "prefinal_target_text_events": 12,
+   "record_index": 3141,
+   "run_e_s2s": true,
+   "sample_id": "LibriSpeech_0000174311",
+   "source_audio": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/simul_uniss_subsecond_v1/pilot_15shard/stage_a_source/parts/train-00003/source_audio/0024998_LibriSpeech_0000174311.flac"
+  }
+ ]
+}
