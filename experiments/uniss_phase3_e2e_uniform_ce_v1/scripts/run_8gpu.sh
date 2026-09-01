@@ -23,17 +23,6 @@ RUN_SEED=${RUN_SEED:-20260819}
 COVERAGE_EPOCHS=${COVERAGE_EPOCHS:-1}
 
 # --- objective: unchanged teacher-forced END, newly opened roll-in decision ---
-SEMANTIC_END_WEIGHT=${SEMANTIC_END_WEIGHT:-0.5}
-SEMANTIC_END_MARGIN_WEIGHT=${SEMANTIC_END_MARGIN_WEIGHT:-0.25}
-SEMANTIC_END_LOGIT_MARGIN=${SEMANTIC_END_LOGIT_MARGIN:-2.0}
-ROLLIN_END_WEIGHT=${ROLLIN_END_WEIGHT:-0.25}
-ROLLIN_END_MARGIN_WEIGHT=${ROLLIN_END_MARGIN_WEIGHT:-0.0}
-ROLLIN_CONTINUE_DECISION_MARGIN_WEIGHT=${ROLLIN_CONTINUE_DECISION_MARGIN_WEIGHT:-0.25}
-ROLLIN_CONTINUE_DECISION_LOGIT_MARGIN=${ROLLIN_CONTINUE_DECISION_LOGIT_MARGIN:-1.0}
-ROLLIN_CONTINUE_MARGIN_WEIGHT=${ROLLIN_CONTINUE_MARGIN_WEIGHT:-0.0}
-ROLLIN_CONTINUE_LOGIT_MARGIN=${ROLLIN_CONTINUE_LOGIT_MARGIN:-0.0}
-ROLLIN_CONTINUE_TAIL=${ROLLIN_CONTINUE_TAIL:-12}
-ROLLIN_CONTINUE_RATIO=${ROLLIN_CONTINUE_RATIO:-0.5}
 # semantic_boundary_binary is an ALTERNATIVE to the margin family, not an
 # addition: pretrain_e2e_megatron.py:546-566 refuses it whenever any of
 # semantic_end_ce / semantic_end_margin / semantic_rollin_end_ce /
@@ -42,12 +31,7 @@ ROLLIN_CONTINUE_RATIO=${ROLLIN_CONTINUE_RATIO:-0.5}
 # because both supervise the same END-versus-CONTINUE decision.  This run keeps
 # the parent's teacher-forced END terms so the continuation stays comparable and
 # is a strict superset of the parent objective, so the binary term stays off.
-BOUNDARY_BINARY_WEIGHT=${BOUNDARY_BINARY_WEIGHT:-0.0}
-BOUNDARY_BINARY_LOGIT_MARGIN=${BOUNDARY_BINARY_LOGIT_MARGIN:-1.0}
-BOUNDARY_ROLLIN_RATE=${BOUNDARY_ROLLIN_RATE:-0.5}
-BOUNDARY_ROLLIN_RAMP_UPDATES=${BOUNDARY_ROLLIN_RAMP_UPDATES:-100}
 # Mutually exclusive with boundary roll-in; the trainer refuses both.
-PREFIX_CORRUPTION_RATE=${PREFIX_CORRUPTION_RATE:-0.0}
 
 # --- what this experiment changes -------------------------------------------
 # One weight, and the retreat of a family that three runs have falsified.

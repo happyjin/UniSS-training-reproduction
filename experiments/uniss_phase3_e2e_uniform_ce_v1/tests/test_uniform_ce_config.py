@@ -30,7 +30,7 @@ def test_both_scripts_parse() -> None:
         assert subprocess.run(["bash", "-n", str(path)]).returncode == 0, path
 
 
-def test_the_entrypoint_differs_from_the_established_one_in_three_places() -> None:
+def test_the_entrypoint_differs_from_the_established_one_in_four_places() -> None:
     """Redirect the experiment directory, then declare and pass one argument.
 
     The redirect is required because this copy sits in a sibling experiment that
@@ -42,7 +42,7 @@ def test_the_entrypoint_differs_from_the_established_one_in_three_places() -> No
         ["diff", str(established), str(ENTRYPOINT)], capture_output=True, text=True
     )
     hunks = [line for line in diff.stdout.splitlines() if re.match(r"^\d", line)]
-    assert len(hunks) == 3, diff.stdout
+    assert len(hunks) == 4, diff.stdout
     added = [line for line in diff.stdout.splitlines() if line.startswith("> ")]
     assert any("RUN_BOUNDARY_EOS_WEIGHT=" in line for line in added)
     assert any("--e2e-boundary-eos-weight" in line for line in added)
@@ -85,7 +85,16 @@ def test_no_objective_extension_is_installed() -> None:
         assert token not in text, token
     assert "run_e2e_megatron_uniform.sh" in text
     entry = read(ENTRYPOINT)
-    assert "training/pretrain_e2e_megatron.py" in entry, "must use the established trainer"
+    assert "pretrain_uniform_ce_megatron.py" in entry
+    wrapper = (
+        REPO_ROOT
+        / "experiments/uniss_phase3_e2e_uniform_ce_v1/training/pretrain_uniform_ce_megatron.py"
+    ).read_text(encoding="utf-8")
+    assert "trainer.main()" in wrapper, "the wrapper must delegate, not reimplement"
+    for token in ("weight", "objective", "loss", "LossTerm"):
+        assert token not in wrapper.split('"""')[2], (
+            f"the wrapper touches {token}; it may only set the sharing strategy"
+        )
 
 
 def test_the_distillation_anchors_are_kept() -> None:
@@ -133,3 +142,44 @@ def test_geometry_and_data_are_unchanged_from_the_parent_run() -> None:
     assert "TASK_POOL_RUN_ID=${TASK_POOL_RUN_ID:-task_pool_formal_p4_20260820T154500Z}" in text
     assert "RUN_MBS=2" in text and "RUN_GBS=128" in text
     assert "COVERAGE_EPOCHS=${COVERAGE_EPOCHS:-1}" in text
+
+
+def test_the_wrapper_only_sets_the_tensor_sharing_strategy() -> None:
+    """workers>0 died with `received 0 items of ancdata` under file_descriptor.
+
+    The open-file limit is 1,048,576 here, so this is not an fd shortage: it is
+    PyTorch's default sharing strategy exhausting the per-message ancillary-data
+    budget when a batch carries many tensors.  file_system shares through
+    /dev/shm names and has no such limit, and it must be set before any worker
+    forks, which the environment cannot do.
+    """
+    from experiments.uniss_phase3_e2e_uniform_ce_v1.training import (
+        pretrain_uniform_ce_megatron as wrapper,
+    )
+    import torch.multiprocessing as multiprocessing
+
+    assert wrapper.SHARING_STRATEGY == "file_system"
+    assert wrapper.SHARING_STRATEGY in multiprocessing.get_all_sharing_strategies()
+    before = multiprocessing.get_sharing_strategy()
+    try:
+        assert wrapper.install() == "file_system"
+    finally:
+        multiprocessing.set_sharing_strategy(before)
+
+
+def test_no_weight_is_declared_twice() -> None:
+    """`${VAR:-default}` keeps the first value, so a shadowed second line is dead.
+
+    The first launch passed semantic_end_weight 0.5 and boundary_rollin_rate 0.5
+    for exactly this reason.
+    """
+    import collections
+
+    text = read(LAUNCHER)
+    names = [
+        line.split("=", 1)[0]
+        for line in text.splitlines()
+        if re.match(r"^[A-Z][A-Z0-9_]*=\$\{", line)
+    ]
+    duplicates = [name for name, n in collections.Counter(names).items() if n > 1]
+    assert not duplicates, duplicates

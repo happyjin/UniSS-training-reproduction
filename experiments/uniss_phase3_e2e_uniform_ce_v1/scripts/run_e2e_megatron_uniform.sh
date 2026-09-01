@@ -11,6 +11,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # This copy lives in a sibling experiment, so the environment, the trainer and
 # every path still come from the established experiment directory.
 EXPERIMENT_DIR=$(cd -- "${SCRIPT_DIR}/../../uniss_phase3_v4_e2e_simuls2st_pilot15_v1" && pwd)
+OWN_DIR=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 source "${EXPERIMENT_DIR}/experiment.env"
 cd "${REPO_ROOT}"
 
@@ -84,7 +85,7 @@ RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UPDATES=${RUN_SEMANTIC_BOUNDARY_ROLLIN_RAMP_UP
   exit 4
 }
 
-ENTRYPOINT="${EXPERIMENT_DIR}/training/pretrain_e2e_megatron.py"
+ENTRYPOINT="${OWN_DIR}/training/pretrain_uniform_ce_megatron.py"
 FINGERPRINTS=${RUN_FINGERPRINTS:-${PROCESSED_ROOT}/manifests/checkpoint_fingerprints.json}
 GEOMETRY=${RUN_GEOMETRY:-${REPORT_ROOT}/training_geometry/${RUN_ID}.json}
 GEOMETRY_DIR=$(dirname "${GEOMETRY}")
