@@ -42,10 +42,48 @@ clock, fails to increase its emission probability as audio duration grows"*)。
 | [SpeakStream](https://arxiv.org/html/2505.19206) | **流式 TTS 的配方**:交织数据上标准 LM 训练,**loss 只算在语音 token 上**;何时切换由外部规则决定 |
 | [UniSS](https://arxiv.org/abs/2509.21144) | **loss 与 prompt 形态**:`ℒ_AR = −∑ log P_θ(τ_out,t | P, τ_out,<t)`,纯 next-token CE,无辅助 loss;CoT prompt `listen → translate → speak` |
 
-**不移植它们的代码。** StreamSpeech 是 fairseq 非 LLM 架构;另三篇的框架与本项目
-(Megatron + 三 tokenizer 栈)不同,移植代码是净负收益。**移植的是配方。**
-唯一值得直接用的外部代码是 [Simulstream](https://arxiv.org/html/2512.17648)
+### 2.1 代码可得性(已逐个查证,2026-09-01)
+
+| 项目 | 代码 | 结论 |
+|---|---|---|
+| SimulS2S-LLM(ACL 2025,Keqi Deng 等) | **未找到任何代码发布** | 只能用配方 |
+| SpeakStream(Apple) | [apple/speakstream-demo](https://github.com/apple/speakstream-demo) —— 仓库内容实测只有 `index.html`、`index.css`、`assets/`、`samples/audio/` 与许可文件。**纯音频 demo 站,无训练代码、无模型代码、无交织实现** | 只能用配方 |
+| CSSEL-P2P | **未找到代码** | 只能用配方 |
+| StreamSpeech | [ictnlp/StreamSpeech](https://github.com/ictnlp/StreamSpeech) **有完整代码**,但是 fairseq 非 LLM 架构(Conformer + CTC + LSTM) | 结构不可复用,只作基线参照 |
+
+**所以"不移植代码"不是偏好,是事实:三篇里没有一份可移植的实现。**
+唯一值得直接接入的外部代码是 [Simulstream](https://arxiv.org/html/2512.17648)
 (IWSLT 2026 同传赛道官方评测工具),用于将来对外可比的评测接口。
+
+### 2.2 SpeakStream 的方法细节改变了任务 ③ 的设计
+
+论文的消融给出一个不能忽略的结论:
+
+* **Scheme 1**(`[T₁,A₁,T₂,A₂,…]`,文本窗口重复以保持对齐):Tᵢ 的**前 n 个词**对应
+  Aᵢ,剩下 **(m−n) 个词是未来上下文(lookahead)**。
+* **Scheme 2**(不重复文本)注意力模式复杂,**实测一致更差**。
+* **最优 m=5, n=1**(WER 3.38%)—— **给 5 个词的上下文,只合成第 1 个词的语音,
+  即 4 个词的 lookahead。**
+* loss **只算在语音 token 上**。
+* force-aligner 只在**构造训练数据**时用,**推理时不需要**。
+
+**本 README 初稿的任务 ③ 用的是 m=n(无 lookahead),按上述消融是次优的。修正为:**
+
+```
+③ 流式 TTS   TOKEN_TASK_STREAMING_TTS
+   prompt : c_task ⊕ c_lang_tgt ⊕ c_speed ⊕ 说话人 global
+            ⊕ 已提交译文增量 e_k  ⊕ 【lookahead:e_{k+1} … e_{k+L}】
+            ⊕ START_SEMANTIC
+   target : **仅 e_k 对应的 semantic token** ⊕ END_SEMANTIC
+```
+
+lookahead 长度 L 作为可扫参数(对应 SpeakStream 的 m−n),初值 **L=2 个 event
+增量**。数据侧无需新对齐 —— `target_text_delta` 与 `target_semantic_delta` 逐
+event 已经一一对应,取后续若干个 delta 拼进 prompt 即可。
+
+**注意这一条与推理形成一个真实约束**:推理时 lookahead 意味着 TTS 必须等到
+第 k+L 个译文增量被提交后才能发 e_k 的声音,即**额外延迟 L 个事件**。
+所以 L 是质量/延迟的直接旋钮,必须进门禁扫描。
 
 ---
 
@@ -172,6 +210,58 @@ frozen fixed-16 selection,与 `stage2_paced_m1200_iter0002264` 逐字节同一�
 
 ---
 
+## 7.5 音频验证盘:每层单独验,每 200 步出一次
+
+只看聚合指标看不出"是不是真的在流式"。所以固定一个 **8 条音频面板**
+(cmn→eng 4 条 + eng→cmn 4 条,取自现有 fixed-16 selection,含此前已知的
+好样本 `emilia_zh_0004122419` 与坏样本 `emilia_zh_0006199435`),
+每个 checkpoint 产出下面**全部**产物:
+
+### ① ASR 层单独验
+
+| 产物 | 判据 |
+|---|---|
+| 逐 chunk 的 ASR 增量 + 累积前缀(带 chunk 序号与 `source_end_ms`) | 每个增量必须是**单调追加**(不允许改写已提交内容) |
+| 最终累积前缀 vs `full_transcription` | 中文 CER ≤ 0.15、英文 WER ≤ 0.20 |
+| 首个非空 ASR 增量的时刻 | ≤ 640 ms(2 个 chunk) |
+
+### ② 增量 MT 层单独验
+
+| 产物 | 判据 |
+|---|---|
+| 逐 chunk 的译文增量 + 累积(在**已提交 ASR 前缀**上) | 单调追加;`rollback_events = 0` |
+| 累积译文 vs `full_translation` | free-src BLEU ≥ 17.51(本血脉当前最好) |
+| **anticipation 检查**:每个译文增量的发出时刻 vs 其 `target_support_end_ms` | 发出时刻必须 **≥** support 时刻(否则模型在猜未来) |
+| gold-src 与 free-src 两条都跑 | 二者差距 = ASR 误差传播量,单独可见 |
+
+### ③ TTS 层单独验
+
+| 产物 | 判据 |
+|---|---|
+| 每个译文增量 → semantic token 数 → 时长 | 时长比 ∈ [0.9, 1.2](对该增量的参考音频) |
+| 拼接后的完整目标波形(单声道 wav) | 非静音:RMS > 0.01;不削波:peak ≤ 1.0 |
+| `END_SEMANTIC` 是否自然产生 | 每段都要有,否则记 malformed |
+
+### 端到端 + 时间线(证明"真的在流式"的关键产物)
+
+| 产物 | 说明 |
+|---|---|
+| **双声道 wav:左=源音频,右=同传译音** | 直接听,时间轴对齐 |
+| **`TIMELINE.json`** | 每个 chunk 一行:`chunk_index`、`source_end_ms`、`asr_delta`、`asr_committed`、`mt_delta`、`mt_committed`、`semantic_tokens`、`emitted_audio_ms`。**这是唯一能证明输出发生在源结束之前的产物** |
+| LAAL / AL / AP / DAL、可听起始 | 复用 `evaluation/streaming_metrics.py` |
+| 会话文本覆盖 | ≥ 0.50 |
+
+**训练中监控**:`SAVE_INTERVAL=200`,每个 checkpoint 自动跑这 8 条(单卡约
+3 分钟),产出 `AUDIO_PANEL/iter_XXXXXXX/` 下的 wav + `TIMELINE.json` +
+`PANEL.json`。**这样每 200 步就能听到一次,而不是等 7 小时。**
+
+判"是否真流式"的硬条件,三条同时:
+1. `TIMELINE.json` 里存在 `emitted_audio_ms > 0` 且 `source_final = false` 的行
+   —— 源没结束就已出声;
+2. 可听起始 ≤ 1500 ms;
+3. ASR/MT 的 `rollback_events = 0` —— 已提交的内容没有被改写(否则不是流式,
+   是重翻译)。
+
 ## 8. 文件清单
 
 | 文件 | 状态 |
@@ -181,7 +271,8 @@ frozen fixed-16 selection,与 `stage2_paced_m1200_iter0002264` 逐字节同一�
 | `training/pretrain_pure_ce_megatron.py` — 均匀 CE 训练入口 | 待写 |
 | `evaluation/run_cascade.py` — 三任务级联 + committer + 配速器 | 待写 |
 | `scripts/run_8gpu.sh` — 从 phase3 `iter_0009075` 起训 | 待写 |
-| `tests/` — builder 对齐不变量、loss_mask 覆盖、级联语法 | 待写 |
+| `evaluation/audio_panel.py` — 8 条面板,三层分别产出 + `TIMELINE.json` + 双声道 wav | 待写 |
+| `tests/` — builder 对齐不变量、loss_mask 覆盖、级联语法、anticipation 检查 | 待写 |
 
 ## 9. 不做的事
 
