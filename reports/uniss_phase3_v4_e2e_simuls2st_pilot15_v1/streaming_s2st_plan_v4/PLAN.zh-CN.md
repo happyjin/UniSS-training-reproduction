@@ -164,7 +164,55 @@ REINA 报告的退化行为:**"policy 反复预测 Read,尽管持续吃进音频
 
 ---
 
-## 3. 三个方案(全部纯 CE,按推荐度排序)
+## 2.5 更正:B 和 A 并不是"纯 CE",只有 C 是
+
+初稿把三个方案都标成"纯 CE",这是不准确的,必须更正。
+
+**离线 phase3 = 一个 CE**,均匀覆盖全部监督 token,数据侧只给 `loss_mask`。
+本项目 pool 里的 `phase3_quality_replay` 家族 loss_kinds 是 **单一桶 100%** ——
+那就是 phase3 原配方,它已经在池子里,只是权重被给成 **0.50** 而不是 1.0。
+
+按这个标准:
+
+| 方案 | 目标数 | 是否等价 phase3 配方 |
+|---|---:|---|
+| 初稿的 B | 7(留了 replay 0.5、v1_asr_kl 0.3、phase3_kl 0.25、commit 0.2) | **不是** |
+| 初稿的 A | 7 + 时间 token | **不是** |
+| **B′(新增,见下)** | **1** | **是** |
+| C | 3 个 prompt 各一个 CE,均匀 | **是**(phase3 本身也是 6 种样本共用一个 CE) |
+
+### 方案 B′:字面意义上的 phase3 配方(零代码)
+
+`asr_ce = mt_ce = semantic_ce = boundary_eos = replay_ce = 1.0`,
+`v1_asr_kl = phase3_kl = commit_consistency = 0`,全部 margin/roll-in = 0。
+**结果就是一个均匀 CE 覆盖全部监督 token。** 已确认这些参数无下限断言,可设 0。
+
+防遗忘怎么办?**phase3 靠数据混合,不靠 loss 项** —— 而
+`phase3_quality_replay` / `phase3_performance_replay` 本来就在池子里,均匀 CE 下
+它们只是权重 1.0 的普通数据。**B′ 保留了与 phase3 完全相同的防遗忘方式。**
+
+两个 KL 是唯一真正非 phase3 的成分。它们实测一直在下降(有效),所以
+**B(留 KL)与 B′(去 KL)应该都跑** —— B′ 回答"照 phase3 原配方能不能行",
+B 回答"加上蒸馏锚点是否更好"。两者都是零代码,可串行。
+
+## 2.6 三个子任务的现状:ASR 和增量 MT 已经就是纯 CE + prompt,TTS 缺失
+
+| 子任务 | 是否已有独立纯 CE 任务 | 家族 | 监督 token 构成 |
+|---|---|---|---|
+| 流式 ASR | **已有** | `streaming_asr_event` | **boundary 74.7%**、asr 23.8%、eos 1.4% |
+| 增量 MT | **已有** | `incremental_mt_event` | mt 65.7%、**boundary 34.3%** |
+| **流式 TTS** | **不存在** | — | — |
+
+* `build_streaming_asr_task` 与 `build_incremental_mt_tasks` 已经是"给不同 prompt、
+  纯 CE"的形态 —— **和你说的思路完全一致,而且已经在训。**
+* 但 `TOKEN_TASK_STREAMING_TTS` 在 `task_samples.py` 里出现 **0 次**,
+  `build_streaming_tts_task` 不存在。**语音 token 只在交织家族里被监督。**
+* 更要命的是:`streaming_asr_event` 有 **74.7% 的监督 token 是 boundary**,
+  在权重 0.10 下几乎拿不到梯度。**连这两个本来就纯 CE 的家族也被饿着。**
+
+**所以 C 真正需要新写的只有一个 builder:流式 TTS。** 其余两个已经存在。
+
+## 3. 方案(按推荐度排序)
 
 ### 方案 A:给模型一个时钟(最小改动,最高性价比)
 
@@ -251,9 +299,11 @@ wait-k;SpeakStream 外部规则;AlignAtt4LLM/DOA training-free;CSSEL-P2P 烘进
 
 ## 4. 推荐执行顺序
 
-**B → A → C**,理由是成本单调递增而信息量互补:
+**B′ → B → A → C**,理由是成本单调递增而信息量互补:
 
-1. **先跑 B(零代码,7 小时)。** 它是"离线 phase3 配方"的直接检验,也是唯一
+0. **先跑 B′(零代码,7 小时)。** 字面意义的 phase3 配方:一个均匀 CE。这是
+   "照 offline 最好的方式训 streaming"这个问题的直接答案,而且从未被测过。
+1. **再跑 B(零代码,7 小时)。** 它是"离线 phase3 配方"的直接检验,也是唯一
    从未被测过的最朴素选项。无论结果如何都关闭一个大方向。
 2. **B 若无效则跑 A(2+7 小时)。** 它直接打 REINA 命名的根因,而本项目已实测
    斜率 −0.012/秒 支持这个根因。
@@ -261,7 +311,7 @@ wait-k;SpeakStream 外部规则;AlignAtt4LLM/DOA training-free;CSSEL-P2P 烘进
    三种方式(margin、均匀 CE、时钟)否证,与文献主流一致地把时机移出模型是
    有充分依据的重构,而不是又一次试错。
 
-**并且在跑 B 之前先做一件零成本的事**:在 `iter_0002264` 上重扫 δ 偏置确认
+**并且在跑 B′ 之前先做一件零成本的事**:在 `iter_0002264` 上重扫 δ 偏置确认
 兜底仍在 4/6(约 30 分钟)。这样任何时刻都有可交付的 demo。
 
 ---
