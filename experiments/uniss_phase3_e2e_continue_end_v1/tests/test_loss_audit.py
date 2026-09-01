@@ -98,3 +98,87 @@ def test_rising_is_reported_rather_than_treated_as_a_failure() -> None:
     result = la.audit(str(logs[-1]))
     assert result["counts"]["rising"] > 0
     assert result["status"] == "passed"
+
+
+def test_trends_are_stratified_by_batch_type(tmp_path: Path) -> None:
+    """A term falling in every stratum must not be reported as rising.
+
+    Measured on the live run: content_end_margin pooled +0.823 while falling in
+    all three strata it appears in.  Batches alternate by task family and the
+    families sit at different loss levels, so a shift in the mix moves the
+    pooled mean on its own.
+    """
+    log = tmp_path / "mix.log"
+    lines = ["  e2e_asr_weight ....... 1.0\n"]
+    # Early: mostly the cheap streaming_asr family. Late: mostly interleaved.
+    # asr_ce improves within each family, yet the pooled mean rises.
+    def emit(iteration: int, kind: str, asr: float) -> str:
+        if kind == "asr":
+            extra = ""
+        else:
+            extra = " loss/mt_ce: 1.0 | denominator/mt_ce: 5.0 | loss/semantic_ce: 1.0 | denominator/semantic_ce: 5.0 |"
+        return (
+            f" iteration {iteration}/ 40 | loss/asr_ce: {asr} | "
+            f"denominator/asr_ce: 100.0 |{extra}\n"
+        )
+    step = 1
+    for _ in range(10):
+        lines.append(emit(step, "asr", 0.20)); step += 1
+    for _ in range(2):
+        lines.append(emit(step, "inter", 0.90)); step += 1
+    for _ in range(2):
+        lines.append(emit(step, "asr", 0.10)); step += 1
+    for _ in range(10):
+        lines.append(emit(step, "inter", 0.80)); step += 1
+    log.write_text("".join(lines))
+    result = la.audit(str(log))
+    entry = {e["name"]: e for e in result["entries"]}["asr_ce"]
+    assert entry["pooled_trend"] == "rising", "the pooled mean does rise"
+    assert entry["trend"] == "optimizing", "but every stratum improves"
+    assert entry.get("confounded_pooled") is True
+    assert set(entry["strata"]) == {"streaming_asr", "interleaved"}
+
+
+def test_a_term_regressing_in_one_stratum_is_not_hidden_by_the_others(tmp_path: Path) -> None:
+    """The stratified verdict takes the worst stratum, not the average."""
+    log = tmp_path / "worst.log"
+    lines = ["  e2e_asr_weight ....... 1.0\n"]
+    for iteration in range(1, 13):  # streaming_asr improves
+        value = 1.0 - 0.05 * iteration
+        lines.append(
+            f" iteration {iteration}/ 40 | loss/asr_ce: {value} | denominator/asr_ce: 100.0 |\n"
+        )
+    for offset in range(1, 13):  # interleaved regresses
+        value = 1.0 + 0.05 * offset
+        lines.append(
+            f" iteration {12 + offset}/ 40 | loss/asr_ce: {value} | denominator/asr_ce: 100.0 | "
+            "loss/mt_ce: 1.0 | denominator/mt_ce: 5.0 | loss/semantic_ce: 1.0 | "
+            "denominator/semantic_ce: 5.0 |\n"
+        )
+    log.write_text("".join(lines))
+    result = la.audit(str(log))
+    entry = {e["name"]: e for e in result["entries"]}["asr_ce"]
+    assert entry["trend"] == "rising"
+    assert entry["strata"]["streaming_asr"]["delta"] < 0
+    assert entry["strata"]["interleaved"]["delta"] > 0
+
+
+def test_a_thin_stratum_does_not_get_a_verdict(tmp_path: Path) -> None:
+    """Fewer than MIN_STRATUM_BATCHES firing batches is noise, not a trend."""
+    log = tmp_path / "thin_stratum.log"
+    lines = ["  e2e_asr_weight ....... 1.0\n"]
+    for iteration in range(1, 21):
+        lines.append(
+            f" iteration {iteration}/ 40 | loss/asr_ce: {1.0 - 0.01 * iteration} | "
+            "denominator/asr_ce: 100.0 |\n"
+        )
+    lines.append(
+        " iteration 21/ 40 | loss/asr_ce: 9.0 | denominator/asr_ce: 100.0 | "
+        "loss/mt_ce: 1.0 | denominator/mt_ce: 5.0 | loss/semantic_ce: 1.0 | "
+        "denominator/semantic_ce: 5.0 |\n"
+    )
+    log.write_text("".join(lines))
+    result = la.audit(str(log))
+    entry = {e["name"]: e for e in result["entries"]}["asr_ce"]
+    assert "interleaved" not in entry["strata"]
+    assert entry["trend"] == "optimizing"

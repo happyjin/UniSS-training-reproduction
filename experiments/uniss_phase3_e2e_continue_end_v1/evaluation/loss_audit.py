@@ -22,6 +22,15 @@ So this classifies every metric the trainer emits:
 
 `rising` is not automatically wrong: an objective with terms in tension will
 trade some of them.  It is reported so the trade is visible rather than implicit.
+
+Trends are computed **per batch type**, never on the pooled mean.  Batches
+alternate by task family and the families sit at very different loss levels, so
+a shift in the mix moves the pooled mean on its own.  Measured on this run at
+step 794: `content_end_margin` pooled +0.823 while falling in all three strata
+it appears in (-0.065, -0.367, -0.052), and `boundary_ce` pooled +0.605 while
+falling in all three (-0.006, -0.056, -0.011).  Both would have been reported as
+regressions.  A term whose pooled and stratified directions disagree is marked
+`confounded_pooled` so the artefact is named rather than silently corrected.
 """
 from __future__ import annotations
 
@@ -34,6 +43,23 @@ from typing import Any
 # Below this many supervised rows a term's gradient is noise at any weight.
 NEGLIGIBLE_ROWS = 512
 TREND_EPSILON = 1e-4
+# A stratum needs this many firing batches before its trend means anything.
+MIN_STRATUM_BATCHES = 8
+
+
+def batch_type(row: dict[str, float]) -> str:
+    """Which task family this batch came from, read off the denominators."""
+
+    fired = lambda name: row.get(f"denominator/{name}", 0.0) > 0.0
+    if fired("replay_ce"):
+        return "replay"
+    if fired("semantic_ce") and fired("mt_ce") and fired("asr_ce"):
+        return "interleaved"
+    if fired("mt_ce"):
+        return "incremental_mt"
+    if fired("asr_ce"):
+        return "streaming_asr"
+    return "other"
 
 AGGREGATES = ("boundary_eos", "semantic_boundary_binary")
 COMPONENTS = (
@@ -143,25 +169,55 @@ def audit(log_path: str) -> dict[str, Any]:
         else:
             entry["kind"] = "active"
         if fired:
-            quarter = max(3, len(fired) // 4)
-            early = [row[loss_key] for row in fired[:quarter] if loss_key in row]
-            late = [row[loss_key] for row in fired[-quarter:] if loss_key in row]
-            if early and late:
-                first, last = statistics.fmean(early), statistics.fmean(late)
-                entry.update(
-                    {
-                        "first_quarter_mean": first,
-                        "last_quarter_mean": last,
-                        "delta": last - first,
-                        "trend": (
-                            "optimizing"
-                            if last - first < -TREND_EPSILON
-                            else "rising"
-                            if last - first > TREND_EPSILON
-                            else "flat"
-                        ),
-                    }
-                )
+            def quarters(batch: list[dict[str, float]]) -> tuple[float, float] | None:
+                quarter = max(3, len(batch) // 4)
+                early = [row[loss_key] for row in batch[:quarter] if loss_key in row]
+                late = [row[loss_key] for row in batch[-quarter:] if loss_key in row]
+                if not early or not late:
+                    return None
+                return statistics.fmean(early), statistics.fmean(late)
+
+            def label(delta: float) -> str:
+                if delta < -TREND_EPSILON:
+                    return "optimizing"
+                return "rising" if delta > TREND_EPSILON else "flat"
+
+            pooled = quarters(fired)
+            strata: dict[str, dict[str, float]] = {}
+            grouped: dict[str, list[dict[str, float]]] = {}
+            for row in fired:
+                grouped.setdefault(batch_type(row), []).append(row)
+            for name, batch in grouped.items():
+                if len(batch) < MIN_STRATUM_BATCHES:
+                    continue
+                pair = quarters(batch)
+                if pair is None:
+                    continue
+                strata[name] = {
+                    "batches": len(batch),
+                    "first_quarter_mean": pair[0],
+                    "last_quarter_mean": pair[1],
+                    "delta": pair[1] - pair[0],
+                }
+            if pooled:
+                entry["pooled_delta"] = pooled[1] - pooled[0]
+                entry["pooled_trend"] = label(pooled[1] - pooled[0])
+            if strata:
+                entry["strata"] = strata
+                # The stratified verdict is the worst stratum: a term that
+                # regresses anywhere should not be hidden by an average.
+                worst = max(strata.values(), key=lambda s: s["delta"])
+                entry["delta"] = worst["delta"]
+                entry["trend"] = label(worst["delta"])
+                entry["first_quarter_mean"] = worst["first_quarter_mean"]
+                entry["last_quarter_mean"] = worst["last_quarter_mean"]
+                if entry.get("pooled_trend") and entry["pooled_trend"] != entry["trend"]:
+                    entry["confounded_pooled"] = True
+            elif pooled:
+                entry["delta"] = pooled[1] - pooled[0]
+                entry["trend"] = label(pooled[1] - pooled[0])
+                entry["first_quarter_mean"] = pooled[0]
+                entry["last_quarter_mean"] = pooled[1]
         entries.append(entry)
     problems = [e for e in entries if e["kind"] == "dead"]
     negligible = [e for e in entries if e["kind"] == "negligible"]
@@ -183,7 +239,11 @@ def audit(log_path: str) -> dict[str, Any]:
             "components": sum(1 for e in entries if e["kind"] == "component"),
             "optimizing": sum(1 for e in active if e.get("trend") == "optimizing"),
             "rising": sum(1 for e in active if e.get("trend") == "rising"),
+            "confounded_pooled": sum(1 for e in entries if e.get("confounded_pooled")),
         },
+        "confounded_terms": [
+            e["name"] for e in entries if e.get("confounded_pooled")
+        ],
         "dead_with_weight": [e["name"] for e in problems],
         "negligible_terms": [
             {"name": e["name"], "weight": e["weight"], "rows": e["median_supervised_rows"]}
@@ -204,7 +264,8 @@ def render(result: dict[str, Any]) -> str:
         f" + 组件 {counts['components']}"
         f" + 分母过小 {counts['negligible']}"
         f" + 带权重却从未开火 {counts['dead_with_weight']}",
-        f"  有效项中: 在优化 {counts['optimizing']}  上升 {counts['rising']}",
+        f"  有效项中: 在优化 {counts['optimizing']}  上升 {counts['rising']}"
+        f"   (趋势按批类型分层;{counts['confounded_pooled']} 项的合并均值方向与分层相反)",
         "",
         f"{'指标':<44s}{'权重':>7s}{'开火':>7s}{'分母':>9s}{'趋势':>12s}  类别",
     ]
@@ -219,6 +280,7 @@ def render(result: dict[str, Any]) -> str:
             f"{100 * entry['fired_batch_share']:>6.0f}%"
             f"{entry['median_supervised_rows']:>9.0f}"
             f"{entry.get('trend', '-'):>12s}  {entry['kind']}"
+            + ("  [合并均值方向相反,是构成假象]" if entry.get("confounded_pooled") else "")
         )
     if result["dead_with_weight"]:
         lines += ["", "带权重却从未开火(总是 bug): " + ", ".join(result["dead_with_weight"])]
