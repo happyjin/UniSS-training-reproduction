@@ -122,7 +122,10 @@ def test_dataloader_workers_are_not_zero() -> None:
     """
     text = read(LAUNCHER)
     assert "RUN_NUM_WORKERS=0" not in text
-    assert 'RUN_NUM_WORKERS="${NUM_WORKERS:-8}"' in text
+    assert 'RUN_NUM_WORKERS="${NUM_WORKERS:-2}"' in text, (
+        "8 workers is 64 processes across 8 ranks and times out the shared-memory "
+        "manager; 2 is 16 and survives"
+    )
 
 
 def test_the_dataset_holds_no_file_handle_across_getitem() -> None:
