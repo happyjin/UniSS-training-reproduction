@@ -30,17 +30,23 @@ def test_both_scripts_parse() -> None:
         assert subprocess.run(["bash", "-n", str(path)]).returncode == 0, path
 
 
-def test_the_entrypoint_differs_from_the_established_one_in_two_places() -> None:
-    """Only the declaration and the pass-through of the one new argument."""
+def test_the_entrypoint_differs_from_the_established_one_in_three_places() -> None:
+    """Redirect the experiment directory, then declare and pass one argument.
+
+    The redirect is required because this copy sits in a sibling experiment that
+    has no experiment.env of its own; everything else -- the environment, the
+    trainer, every path -- still resolves to the established experiment.
+    """
     established = BASE / "run_e2e_megatron.sh"
     diff = subprocess.run(
         ["diff", str(established), str(ENTRYPOINT)], capture_output=True, text=True
     )
     hunks = [line for line in diff.stdout.splitlines() if re.match(r"^\d", line)]
-    assert len(hunks) == 2, diff.stdout
+    assert len(hunks) == 3, diff.stdout
     added = [line for line in diff.stdout.splitlines() if line.startswith("> ")]
     assert any("RUN_BOUNDARY_EOS_WEIGHT=" in line for line in added)
     assert any("--e2e-boundary-eos-weight" in line for line in added)
+    assert any("uniss_phase3_v4_e2e_simuls2st_pilot15_v1" in line for line in added)
 
 
 def test_boundary_eos_is_raised_to_one() -> None:

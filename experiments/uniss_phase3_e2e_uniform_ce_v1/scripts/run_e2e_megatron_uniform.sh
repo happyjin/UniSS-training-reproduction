@@ -8,7 +8,9 @@ if [[ "${1:-}" == "--dry-run" ]]; then
 fi
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-EXPERIMENT_DIR=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+# This copy lives in a sibling experiment, so the environment, the trainer and
+# every path still come from the established experiment directory.
+EXPERIMENT_DIR=$(cd -- "${SCRIPT_DIR}/../../uniss_phase3_v4_e2e_simuls2st_pilot15_v1" && pwd)
 source "${EXPERIMENT_DIR}/experiment.env"
 cd "${REPO_ROOT}"
 
