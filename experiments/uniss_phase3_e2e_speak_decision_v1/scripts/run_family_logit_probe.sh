@@ -20,6 +20,9 @@ BICODEC_MODEL=${BICODEC_MODEL:-${REPO_ROOT}/pretrained_models/UniSS/bicodec}
 NUM_WORKERS=${NUM_WORKERS:-8}
 MAX_S2S_SEMANTIC_TOKENS=${MAX_S2S_SEMANTIC_TOKENS:-384}
 PROBE_ROOT=${PROBE_ROOT:-${REPO_ROOT}/reports/uniss_phase3_e2e_speak_decision_v1/family_logit_probe/${PROBE_ID}}
+PROBE_MODULE=${PROBE_MODULE:-experiments.uniss_phase3_e2e_speak_decision_v1.diagnostics.family_logit_probe}
+FAMILY_MT_BIAS=${FAMILY_MT_BIAS:-0}
+CONTINUE_WRITE_BIAS=${CONTINUE_WRITE_BIAS:-0}
 
 CANDIDATE_FINGERPRINT=${CANDIDATE_FINGERPRINT:?CANDIDATE_FINGERPRINT is required}
 CANDIDATE_SHA=$("${PYTHON_BIN}" -c '
@@ -55,8 +58,10 @@ pids=()
 for worker in $(seq 0 7); do
   CUDA_VISIBLE_DEVICES=${worker} \
   UNISS_E2E_FAMILY_PROBE_OUTPUT="${PROBE_ROOT}/probes/worker_$(printf '%02d' "${worker}").jsonl" \
+  UNISS_E2E_FAMILY_MT_BIAS="${FAMILY_MT_BIAS}" \
+  UNISS_E2E_CONTINUE_WRITE_BIAS="${CONTINUE_WRITE_BIAS}" \
   "${PYTHON_BIN}" -m \
-    experiments.uniss_phase3_e2e_speak_decision_v1.diagnostics.family_logit_probe \
+    "${PROBE_MODULE}" \
     --selection "${SELECTION}" \
     --gold "${GOLD}" \
     --candidate-hf "${CANDIDATE_HF}" \
@@ -76,4 +81,14 @@ done
 status=0
 for pid in "${pids[@]}"; do wait "${pid}" || status=1; done
 (( status == 0 )) || { echo "a probe worker failed; see ${PROBE_ROOT}/logs" >&2; exit 4; }
+"${PYTHON_BIN}" - <<PY
+import json,pathlib
+pathlib.Path("${PROBE_ROOT}/PROBE_CONFIG.json").write_text(json.dumps({
+  "probe_id": "${PROBE_ID}", "module": "${PROBE_MODULE}",
+  "family_mt_bias": float("${FAMILY_MT_BIAS}"), "continue_write_bias": float("${CONTINUE_WRITE_BIAS}"),
+  "candidate_hf": "${CANDIDATE_HF}", "selection": "${SELECTION}",
+  "max_s2s_semantic_tokens": ${MAX_S2S_SEMANTIC_TOKENS},
+  "mt_holdback": "${UNISS_E2E_MT_HOLDBACK:-}", "pace_margin_ms": "${UNISS_E2E_SEMANTIC_PACE_MARGIN_MS:-}"
+}, indent=1, sort_keys=True))
+PY
 echo "probe_root=${PROBE_ROOT}"

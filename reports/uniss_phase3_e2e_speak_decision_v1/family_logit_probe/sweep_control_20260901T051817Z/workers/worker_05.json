@@ -1,0 +1,606 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf",
+  "cuda_visible_devices": "5",
+  "device": "cuda:0",
+  "elapsed_seconds": 65.68314949283376,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 2004281,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 2,
+        "error_rate": 0.0,
+        "errors": 0,
+        "event_hypotheses": [
+          "过去",
+          "过去的",
+          "过去的已经",
+          "过去的已经过去",
+          "过去的已经过去了",
+          "过去的已经过去了",
+          "过去的已经过去了他",
+          "过去的已经过去了他",
+          "过去的已经过去了他看好",
+          "过去的已经过去了他看好他",
+          "过去的已经过去了他看好他以后",
+          "过去的已经过去了他看好他以后的",
+          "过去的已经过去了他看好他以后的发展"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "过去的已经过去了他看好他以后的发展",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 17,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 2,
+        "coverage": 0.23076923076923078,
+        "events": 13,
+        "final_hypothesis": "The past has already passed He hopes that in",
+        "hypothesis_units": 9,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "In the past",
+          "The past",
+          "The past has already",
+          "The past has already passed",
+          "The past has already passed",
+          "The past has already passed",
+          "The past has already passed He",
+          "The past has already passed He",
+          "The past has already passed He hopes",
+          "The past has passed He is optimistic about him",
+          "The past has already passed He hopes that in the future",
+          "The past has already passed He hopes that in the future",
+          "The past has already passed He hopes for his future development"
+        ],
+        "reference_units": 13,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 2,
+        "coverage": 0.23076923076923078,
+        "events": 13,
+        "final_hypothesis": "The past has already passed He hopes that in",
+        "hypothesis_units": 9,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "In the past",
+          "The past",
+          "The past has already",
+          "The past has already passed",
+          "The past has already passed",
+          "The past has already passed",
+          "The past has already passed He",
+          "The past has already passed He",
+          "The past has already passed He hopes",
+          "The past has passed He is optimistic about him",
+          "The past has already passed He hopes that in the future",
+          "The past has already passed He hopes that in the future",
+          "The past has already passed He hopes for his future development"
+        ],
+        "reference_units": 13,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 3.12,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_e2e_speak_decision_v1/family_logit_probe/sweep_control_20260901T051817Z/audio/worker_05/emilia_zh_0005215832.wav",
+          "peak": 0.46332913637161255,
+          "rms": 0.032051701098680496,
+          "samples": 49920
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "过去"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 480,
+            "source_final": false,
+            "source_glm_end": 6,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "的"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 640,
+            "source_final": false,
+            "source_glm_end": 8,
+            "source_glm_start": 6
+          },
+          {
+            "asr_deltas": [
+              "已经"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 800,
+            "source_final": false,
+            "source_glm_end": 10,
+            "source_glm_start": 8
+          },
+          {
+            "asr_deltas": [
+              "过去"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 10
+          },
+          {
+            "asr_deltas": [
+              "了"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1440,
+            "source_final": false,
+            "source_glm_end": 18,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "The past has already passed"
+            ],
+            "semantic_tokens": 140,
+            "source_end_ms": 1600,
+            "source_final": false,
+            "source_glm_end": 18,
+            "source_glm_start": 18
+          },
+          {
+            "asr_deltas": [
+              "他"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1760,
+            "source_final": false,
+            "source_glm_end": 22,
+            "source_glm_start": 18
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "he has passed and he has"
+            ],
+            "semantic_tokens": 16,
+            "source_end_ms": 1920,
+            "source_final": false,
+            "source_glm_end": 22,
+            "source_glm_start": 22
+          },
+          {
+            "asr_deltas": [
+              "看好"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2240,
+            "source_final": false,
+            "source_glm_end": 28,
+            "source_glm_start": 22
+          },
+          {
+            "asr_deltas": [
+              "他"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2400,
+            "source_final": false,
+            "source_glm_end": 30,
+            "source_glm_start": 28
+          },
+          {
+            "asr_deltas": [
+              "以后"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 10,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2720,
+            "source_final": false,
+            "source_glm_end": 34,
+            "source_glm_start": 30
+          },
+          {
+            "asr_deltas": [
+              "的"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 11,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2880,
+            "source_final": false,
+            "source_glm_end": 36,
+            "source_glm_start": 34
+          },
+          {
+            "asr_deltas": [
+              "发展"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 12,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3280,
+            "source_final": true,
+            "source_glm_end": 42,
+            "source_glm_start": 36
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 3,
+        "natural_eos": false,
+        "semantic_coverage": 0.6638297872340425,
+        "semantic_reference_tokens": 235,
+        "semantic_tokens": 156,
+        "source_hypothesis": "过去的已经过去了他看好他以后的发展",
+        "source_rollback_events": 0,
+        "target_hypothesis": "The past has already passed he has passed and he has",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 0,
+        "coverage": 0.38461538461538464,
+        "events": 13,
+        "final_hypothesis": "The past has already passed; he hopes for his future development.",
+        "hypothesis_units": 11,
+        "nonempty_events": 10,
+        "raw_hypotheses": [
+          "Past",
+          "The past",
+          "The past has already",
+          "The past has already passed.",
+          "The past has already passed.",
+          "The past has already passed.",
+          "The past has already passed him.",
+          "The past has already passed him.",
+          "The past has already passed, he is optimistic.",
+          "The past has already passed; he is optimistic about him.",
+          "The past has already passed; he hopes for the future.",
+          "The past has already passed; he hopes for the future.",
+          "The past has already passed; he hopes for his future development."
+        ],
+        "reference_units": 13,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 6760,
+      "sample_id": "emilia_zh_0005215832",
+      "source_duration_ms": 3280,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "过去的已经过去了他看好他以后的发展",
+      "translation_reference": "The past is in the past he is optimistic about his future development"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 1,
+        "empty_events": 6,
+        "error_rate": 0.3076923076923077,
+        "errors": 12,
+        "event_hypotheses": [
+          "I'm",
+          "I'm set",
+          "I'm set in the",
+          "I'm set in the first",
+          "I'm set in the first lecture",
+          "I'm set in the first lecture that I'll",
+          "I'm set in the first lecture that I'll with",
+          "I'm set in the first lecture that I'll with a",
+          "I'm set in the first lecture that I'll with a going to",
+          "I'm set in the first lecture that I'll with a going to try",
+          "I'm set in the first lecture that I'll with a going to try to",
+          "I'm set in the first lecture that I'll with a going to try to",
+          "I'm set in the first lecture that I'll with a going to try to provide the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with",
+          "I'm set in the first lecture that I'll with a going to try to provide the with",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the do the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the do the",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the do the that",
+          "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the do the that"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "I'm set in the first lecture that I'll with a going to try to provide the with schema into which you could place the theorists that were going to the discuss and if requires going down deep to the do the that",
+        "malformed_write_events": 2,
+        "metric": "wer",
+        "reference_units": 39,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 35,
+        "coverage": 0.043478260869565216,
+        "events": 40,
+        "final_hypothesis": "我坐在",
+        "hypothesis_units": 3,
+        "nonempty_events": 37,
+        "raw_hypotheses": [
+          "我",
+          "我准备好了",
+          "我坐在",
+          "我坐在第一个",
+          "我坐在第一讲中",
+          "我将在第一讲中设定",
+          "我将在第一讲中与你一起",
+          "我将在第一讲中设置一个",
+          "我将在第一讲中设置一个",
+          "我将在第一次讲座中尝试",
+          "我将在第一次讲座中设定一个目标尝试",
+          "我将在第一次讲座中设定一个目标尝试",
+          "我将在第一次讲座中设定一个目标是尝试提供",
+          "我将在第一次讲座中设定一个目标是尝试提供",
+          "我将在第一次讲座中设定一个目标是尝试提供",
+          "我将在第一次讲座中设置一个我将尝试提供模式的示例。",
+          "我将在第一次讲座中设置一个我将尝试提供模式的示例。",
+          "我将在第一次讲座中设置一个目标尝试将模式提供给",
+          "我将在第一次讲座中设定一个目标尝试将这个模式提供给",
+          "我将在第一次讲座中设定一个目标尝试提供一个你",
+          "我将在第一次讲座中设定一个目标尝试提供一个你可以",
+          "我将在第一次讲座中设置一个目标尝试提供一个你可以放置的模式",
+          "我将在第一次讲座中设置一个目标尝试提供一个可以将",
+          "我将在第一次讲座中设定一个目标，试图将理论家们置于一个可以将理论家置于其中的框架中",
+          "我将在第一次讲座中设定一个目标，试图将理论家们可以放置的模式提供给你",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要提出的模式提供给你",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要放置的框架提供给你",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中并",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨的话",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨",
+          "我将在第一次讲座中设定一个目标，试图将理论家们将要讨论的内容纳入其中如果需要深入探讨"
+        ],
+        "reference_units": 46,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 14,
+        "coverage": 0.391304347826087,
+        "events": 40,
+        "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+        "hypothesis_units": 28,
+        "nonempty_events": 35,
+        "raw_hypotheses": [
+          "我",
+          "我说",
+          "我在",
+          "我第一次说",
+          "我在第一讲中说",
+          "我在第一次讲座中说",
+          "我在第一次讲座中说我",
+          "我在第一次讲座中说我",
+          "我在第一次讲座中说我要",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说我要尝试为你提供",
+          "我在第一次讲座中说我要尝试为你提供",
+          "我在第一次讲座中说我要尝试为你提供一个",
+          "我在第一次讲座中说我要尝试为你提供一个模式",
+          "我在第一次讲座中说我要尝试为你提供一个模式",
+          "我在第一次讲座中说我要尝试为你提供一个模式来",
+          "我在第一次讲座中说我要尝试为你提供一个模式其中",
+          "我在第一次讲座中说我要尝试为你提供一个你",
+          "我在第一次讲座中说我要尝试为你提供一个你可以",
+          "我在第一次讲座中说我要尝试为你提供一个可以放置",
+          "我在第一次讲座中说我要尝试提供一个你可以将",
+          "我在第一次讲座中说我要尝试提供一个模式，你可以将理论家放在其中",
+          "我在第一次讲座中说我要尝试为你提供一个可以将我们正在",
+          "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们即将",
+          "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们将要",
+          "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们将要讨论的理论家放在这个模式中",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架它",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入探讨",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入探讨",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入探讨",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家置于其中的框架这需要深入探讨",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入研究才能做到这一点",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入研究才能做到这一点",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入研究才能做到这一点",
+          "我在第一次讲座中说我要尝试提供一个你可以将我们将要讨论的理论家放在其中的框架这需要深入研究才能做到这一点"
+        ],
+        "reference_units": 46,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": null,
+      "phase3_mt_gold": {
+        "commit_conflicts": 28,
+        "coverage": 0.2391304347826087,
+        "events": 40,
+        "final_hypothesis": "我在第一次讲座中说我要",
+        "hypothesis_units": 11,
+        "nonempty_events": 37,
+        "raw_hypotheses": [
+          "我",
+          "我说",
+          "我说在",
+          "我说在第一",
+          "我在第一次讲座中说",
+          "我在第一次讲座中说",
+          "我在第一次讲座中说我",
+          "我在第一次讲座中说我是",
+          "我在第一次讲座中说我要",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说我要尝试",
+          "我在第一次讲座中说，我将尝试为你提供",
+          "我在第一次讲座中说，我将尝试为您提供",
+          "我在第一次讲座中说，我将尝试为您提供一个",
+          "我在第一次讲座中说，我将尝试为您提供一个模式。",
+          "我在第一次讲座中说，我将尝试为您提供一个模式。",
+          "我在第一次讲座中说，我将尝试为您提供一个模式。",
+          "我在第一次讲座中说，我将尝试为你提供一个模式，其中",
+          "我在第一次讲座中说，我将尝试为你提供一个模式，其中你",
+          "我在第一次讲座中说，我将尝试提供一个你可以使用的模式。",
+          "我在第一次讲座中说，我将尝试提供一个你可以放置的模式。",
+          "我在第一次讲座中说，我将尝试提供一个模式，你可以将它放在其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你可以将理论家置于其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们所讨论的理论家置于其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们即将讨论的理论家置于其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们即将讨论的理论家置于其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。这需要",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。这需要",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你可以将我们将要讨论的理论家放在其中。这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你可以将我们将要讨论的理论家放在其中。这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中，并且需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中。这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你可以将我们将要讨论的理论家放在其中。这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你可以将我们将要讨论的理论家放在其中。这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中，这需要深入探讨。",
+          "我在第一次讲座中说，我将尝试提供一个模式，让你能够将我们将要讨论的理论家放在其中，这需要深入探讨。"
+        ],
+        "reference_units": 46,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 13149,
+      "sample_id": "EN_B00058_S05161_W000178",
+      "source_duration_ms": 13980,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "I said in the first lecture that I was going to try to provide you with a schema into which you could place the theorists that we're going to discuss And it requires going down deep to do that",
+      "translation_reference": "我在第一次讲座中说过我会尽力提供一个框架使你们能够将我们要讨论的理论家放入其中这需要深入探究"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage2_paced_m1200_iter0002264_20260831T180448Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 5
+}
