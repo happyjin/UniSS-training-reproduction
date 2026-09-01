@@ -1,7 +1,69 @@
 {
+ "capability": [
+  {
+   "delta_vs_iter2264": 0.009389671361502344,
+   "iter2264": 0.0892018779342723,
+   "metric": "asr_error.cmn",
+   "observed": 0.09859154929577464
+  },
+  {
+   "delta_vs_iter2264": -0.10967741935483871,
+   "iter2264": 0.3032258064516129,
+   "metric": "asr_error.eng",
+   "observed": 0.1935483870967742
+  },
+  {
+   "delta_vs_iter2264": -1.8004103956834392,
+   "iter2264": 16.730187757636596,
+   "metric": "bleu.free_running_source.cmn_to_eng",
+   "observed": 14.929777361953157
+  },
+  {
+   "delta_vs_iter2264": 12.519358366256583,
+   "iter2264": 4.990425782486203,
+   "metric": "bleu.free_running_source.eng_to_cmn",
+   "observed": 17.509784148742785
+  },
+  {
+   "delta_vs_iter2264": 8.696611325198763,
+   "iter2264": 18.975963352590647,
+   "metric": "bleu.gold_source.cmn_to_eng",
+   "observed": 27.67257467778941
+  },
+  {
+   "delta_vs_iter2264": 8.198376727221191,
+   "iter2264": 27.65982707031232,
+   "metric": "bleu.gold_source.eng_to_cmn",
+   "observed": 35.85820379753351
+  },
+  {
+   "delta_vs_iter2264": -2.9227883880383985,
+   "iter2264": 36.8869895015382,
+   "metric": "chrf.free_running_source.cmn_to_eng",
+   "observed": 33.964201113499804
+  },
+  {
+   "delta_vs_iter2264": 10.61003838699814,
+   "iter2264": 11.59610371182495,
+   "metric": "chrf.free_running_source.eng_to_cmn",
+   "observed": 22.20614209882309
+  },
+  {
+   "delta_vs_iter2264": 5.016908817988863,
+   "iter2264": 38.63881902055839,
+   "metric": "chrf.gold_source.cmn_to_eng",
+   "observed": 43.65572783854725
+  },
+  {
+   "delta_vs_iter2264": 3.205963571767203,
+   "iter2264": 30.477977614028813,
+   "metric": "chrf.gold_source.eng_to_cmn",
+   "observed": 33.683941185796016
+  }
+ ],
  "checks": [
   {
-   "action": "The requirement is ~3 logits and the previous run moved 6.6 with the same weight, so first check loss/continue_after_fragment in the log: if it fell below ~0.1 the margin was satisfied on gold rows and the gap is exposure bias, which needs a roll-in form of this term. If it stayed near 0.76, raise the weight or the margin. Meanwhile the calibrated inference bias delta_cont=3 is available as a fallback.",
+   "action": "Do NOT raise the weight or the margin. Two runs have now moved this decision monotonically the WRONG way at inference: margin 1.0 took the median gap -2.88 -> -3.75, margin 3.0 took it -2.88 -> -4.97, while gold-row separation moved correctly both times (+0.105, +0.40). Teacher-forced supervision makes the model a sharper discriminator of gold WRITE vs gold WAIT contexts, and at inference its own error-containing ASR history classifies as WAIT, so sharpening amplifies the wrong side. This decision needs either a true roll-in form -- supervised on the model's own generated ASR/MT text, which the current task pool does not contain, since boundary_rollin_rate substitutes semantic tokens only -- or it stays an inference-side calibrated bias. Note the bias itself is damaged by such a run: delta_cont=4 gives WRITE_MT 0.947 on iter_0002264 but only 0.347 here, because +4 no longer crosses -4.97.",
    "baseline": 0.168,
    "bias_sweep_reference": 0.863,
    "cause": "the continue-after-fragment margin did not move the decision",
@@ -37,7 +99,7 @@
    "target": 0.666
   },
   {
-   "action": "This is the term that has never existed before, so a miss here is the most informative outcome. Check loss/content_end_margin on interleaved batches: it started at 2.311, meaning END_CONTENT trailed by 0.21 logits. If it did not fall, raise content_end_margin weight; if it fell but the ratio did not, the over-generation is re-translation of already-committed text, which is a commit-policy problem, not an END problem.",
+   "action": "Check the direction first. If the ratio is ABOVE the band the term did not take: content_end_margin moved END_CONTENT from 0.21 logits behind its strongest competitor to 1.81 ahead in one epoch, so a failure to move at all points at the weight. If the ratio is BELOW the band the term took and is now harmful on its own: it shortens every fragment, and with WRITE_MT still near 0.147 that means fewer fragments times shorter each -- measured at 1.033 -> 0.324 with semantic coverage 0.666 -> 0.448. The over-generation this term targets was measured at delta_cont 3-4, where the model writes on ~90% of events; it is only correct jointly with a working speak mechanism. Never train it alone.",
    "baseline": 1.03,
    "bias_sweep_reference": 2.25,
    "cause": "content_end_margin did not teach the model to close a fragment",
@@ -76,37 +138,49 @@
  "checks_total": 6,
  "claim_scope": "frozen_fixed16_selection_train_seen",
  "comparisons": {
-  "baseline_iter0002264": {
+  "iter2264": {
+   "asr_error.cmn": 0.0892018779342723,
+   "asr_error.eng": 0.3032258064516129,
    "asr_error_rate": 0.23264338820682778,
+   "bleu.free_running_source.cmn_to_eng": 16.730187757636596,
+   "bleu.free_running_source.eng_to_cmn": 4.990425782486203,
+   "bleu.gold_source.cmn_to_eng": 18.975963352590647,
+   "bleu.gold_source.eng_to_cmn": 27.65982707031232,
+   "chrf.free_running_source.cmn_to_eng": 36.8869895015382,
+   "chrf.free_running_source.eng_to_cmn": 11.59610371182495,
+   "chrf.gold_source.cmn_to_eng": 38.63881902055839,
+   "chrf.gold_source.eng_to_cmn": 30.477977614028813,
    "events": 95,
    "malformed_segments": 13,
    "natural_eos": 0.5,
+   "phase3_bleu.cmn_to_eng": 9.97310742325089,
+   "phase3_bleu.eng_to_cmn": 3.921021790106262,
    "s2s_samples": 8,
    "semantic_coverage": 0.6655952715138467,
    "text_length_ratio_max": 1.9318181818181819,
    "text_length_ratio_median": 1.0330615942028984,
    "write_asr_per_event": 0.8210526315789474,
    "write_mt_per_event": 0.16842105263157894
-  },
-  "speak_decision_iter1132": {
-   "asr_error_rate": 0.24486344467708698,
-   "events": 95,
-   "malformed_segments": 14,
-   "natural_eos": 0.5,
-   "s2s_samples": 8,
-   "semantic_coverage": 0.6182162392557822,
-   "text_length_ratio_max": 1.7037037037037037,
-   "text_length_ratio_median": 0.7859025032938076,
-   "write_asr_per_event": 0.8105263157894737,
-   "write_mt_per_event": 0.14736842105263157
   }
  },
- "next_action": "The requirement is ~3 logits and the previous run moved 6.6 with the same weight, so first check loss/continue_after_fragment in the log: if it fell below ~0.1 the margin was satisfied on gold rows and the gap is exposure bias, which needs a roll-in form of this term. If it stayed near 0.76, raise the weight or the margin. Meanwhile the calibrated inference bias delta_cont=3 is available as a fallback.",
+ "next_action": "Do NOT raise the weight or the margin. Two runs have now moved this decision monotonically the WRONG way at inference: margin 1.0 took the median gap -2.88 -> -3.75, margin 3.0 took it -2.88 -> -4.97, while gold-row separation moved correctly both times (+0.105, +0.40). Teacher-forced supervision makes the model a sharper discriminator of gold WRITE vs gold WAIT contexts, and at inference its own error-containing ASR history classifies as WAIT, so sharpening amplifies the wrong side. This decision needs either a true roll-in form -- supervised on the model's own generated ASR/MT text, which the current task pool does not contain, since boundary_rollin_rate substitutes semantic tokens only -- or it stays an inference-side calibrated bias. Note the bias itself is damaged by such a run: delta_cont=4 gives WRITE_MT 0.947 on iter_0002264 but only 0.347 here, because +4 no longer crosses -4.97.",
  "observed": {
+  "asr_error.cmn": 0.09859154929577464,
+  "asr_error.eng": 0.1935483870967742,
   "asr_error_rate": 0.1828725842303442,
+  "bleu.free_running_source.cmn_to_eng": 14.929777361953157,
+  "bleu.free_running_source.eng_to_cmn": 17.509784148742785,
+  "bleu.gold_source.cmn_to_eng": 27.67257467778941,
+  "bleu.gold_source.eng_to_cmn": 35.85820379753351,
+  "chrf.free_running_source.cmn_to_eng": 33.964201113499804,
+  "chrf.free_running_source.eng_to_cmn": 22.20614209882309,
+  "chrf.gold_source.cmn_to_eng": 43.65572783854725,
+  "chrf.gold_source.eng_to_cmn": 33.683941185796016,
   "events": 95,
   "malformed_segments": 9,
   "natural_eos": 0.5,
+  "phase3_bleu.cmn_to_eng": 9.97310742325089,
+  "phase3_bleu.eng_to_cmn": 3.921021790106262,
   "s2s_samples": 8,
   "semantic_coverage": 0.4477517446031838,
   "text_length_ratio_max": 1.0925925925925926,
@@ -115,7 +189,7 @@
   "write_mt_per_event": 0.14736842105263157
  },
  "primary_cause": "the continue-after-fragment margin did not move the decision",
- "run_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/continue_end_m3_iter1132_la_hb2_m1200_20260901T062957Z",
+ "run_root": "reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/continue_end_m3_iter1132_la_hb2_m1200_20260901T062957Z",
  "schema_version": "uniss_e2e_continue_end_verdict_v1",
  "status": "failed"
 }

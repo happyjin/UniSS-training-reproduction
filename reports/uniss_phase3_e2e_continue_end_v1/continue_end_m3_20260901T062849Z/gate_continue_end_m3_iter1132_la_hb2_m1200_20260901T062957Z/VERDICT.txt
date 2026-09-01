@@ -1,4 +1,6 @@
 status: failed  (2/6 项通过)
+  注意:通过项数只覆盖开口决策与长度;翻译质量与分方向 ASR 见下方能力对照,
+  它们来自不经过开口决策的 incremental_mt_rollout,不参与判定。
 
 判据                                    基线        本次              门线      偏置参考  
 WRITE_MT / event                   0.168     0.147          >= 0.5     0.863  FAIL
@@ -8,6 +10,18 @@ text length ratio (median)         1.030     0.324      [0.9, 1.2]     2.250  FA
 text length ratio (worst case)     1.930     1.093          <= 2.0     4.070  PASS
 ASR error rate                     0.233     0.183         <= 0.26         -  PASS
 
+能力指标(仅报告,不判定)                                       本次              iter2264
+asr_error.cmn                                    0.099                +0.009
+asr_error.eng                                    0.194                -0.110
+bleu.free_running_source.cmn_to_eng             14.930                -1.800
+bleu.free_running_source.eng_to_cmn             17.510               +12.519
+bleu.gold_source.cmn_to_eng                     27.673                +8.697
+bleu.gold_source.eng_to_cmn                     35.858                +8.198
+chrf.free_running_source.cmn_to_eng             33.964                -2.923
+chrf.free_running_source.eng_to_cmn             22.206               +10.610
+chrf.gold_source.cmn_to_eng                     43.656                +5.017
+chrf.gold_source.eng_to_cmn                     33.684                +3.206
+
 最可能的原因: the continue-after-fragment margin did not move the decision
 
-下一步: The requirement is ~3 logits and the previous run moved 6.6 with the same weight, so first check loss/continue_after_fragment in the log: if it fell below ~0.1 the margin was satisfied on gold rows and the gap is exposure bias, which needs a roll-in form of this term. If it stayed near 0.76, raise the weight or the margin. Meanwhile the calibrated inference bias delta_cont=3 is available as a fallback.
+下一步: Do NOT raise the weight or the margin. Two runs have now moved this decision monotonically the WRONG way at inference: margin 1.0 took the median gap -2.88 -> -3.75, margin 3.0 took it -2.88 -> -4.97, while gold-row separation moved correctly both times (+0.105, +0.40). Teacher-forced supervision makes the model a sharper discriminator of gold WRITE vs gold WAIT contexts, and at inference its own error-containing ASR history classifies as WAIT, so sharpening amplifies the wrong side. This decision needs either a true roll-in form -- supervised on the model's own generated ASR/MT text, which the current task pool does not contain, since boundary_rollin_rate substitutes semantic tokens only -- or it stays an inference-side calibrated bias. Note the bias itself is damaged by such a run: delta_cont=4 gives WRITE_MT 0.947 on iter_0002264 but only 0.347 here, because +4 no longer crosses -4.97.

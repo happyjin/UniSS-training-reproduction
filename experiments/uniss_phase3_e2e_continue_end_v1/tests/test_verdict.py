@@ -125,3 +125,33 @@ def test_the_content_end_prescription_covers_both_directions() -> None:
     action = {p["key"]: p["action"] for p in v.PREDICTIONS}["text_length_ratio_median"]
     assert "ABOVE the band" in action and "BELOW the band" in action
     assert "Never train it alone" in action
+
+
+def test_capability_metrics_are_reported_and_never_gated() -> None:
+    """A run can lose the speak decision and still be the best model in the lineage.
+
+    On 2026-09-01 this suite returned 2/6 for a checkpoint whose eng->cmn
+    free-source BLEU was 3.5x the baseline's and whose English streaming ASR was
+    36% better, because it read none of that.  The numbers come from
+    `incremental_mt_rollout`, which never calls `_choice`, so they measure
+    incremental MT independently of the broken decision.
+    """
+    gate = GATES / "continue_end_m3_iter1132_la_hb2_m1200_20260901T062957Z"
+    if not gate.is_dir():
+        pytest.skip("continue-end gate not present")
+    result = v.evaluate(str(gate), {"iter2264": str(BASELINE_GATE)})
+    rows = {row["metric"]: row for row in result["capability"]}
+    assert rows["bleu.free_running_source.eng_to_cmn"]["delta_vs_iter2264"] > 10.0
+    assert rows["asr_error.eng"]["delta_vs_iter2264"] < -0.10
+    # Reported, not gated: none of these appear as a check.
+    keys = {check["key"] for check in result["checks"]}
+    assert not any(k.startswith(("bleu.", "chrf.")) for k in keys)
+
+
+def test_the_status_note_warns_that_checks_do_not_cover_quality() -> None:
+    gate = GATES / "continue_end_m3_iter1132_la_hb2_m1200_20260901T062957Z"
+    if not gate.is_dir():
+        pytest.skip("continue-end gate not present")
+    text = v.render(v.evaluate(str(gate), {"iter2264": str(BASELINE_GATE)}))
+    assert "翻译质量" in text and "不参与判定" in text
+    assert "incremental_mt_rollout" in text

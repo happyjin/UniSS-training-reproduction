@@ -18,6 +18,7 @@ import glob
 import json
 import math
 import os
+import os as _os
 import statistics
 from typing import Any
 
@@ -176,6 +177,36 @@ def _load_events(run_root: str) -> dict[str, Any]:
     }
 
 
+def _load_gate(run_root: str) -> dict[str, Any]:
+    """Translation quality and per-direction ASR live in the gate JSON.
+
+    These come from `incremental_mt_rollout`, which loops over source prefixes
+    and never calls `_choice`, so they measure incremental MT capability
+    independently of the speak decision.  Omitting them made this suite call a
+    checkpoint with 3.5x the eng->cmn free-source BLEU a failure.
+    """
+
+    path = _os.path.join(run_root, "E2E_FREE_RUNNING_GATE.json")
+    if not _os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as handle:
+        gate = json.load(handle)
+    metrics = gate.get("metrics", {})
+    out: dict[str, Any] = {}
+    for source in ("gold_source", "free_running_source"):
+        directions = metrics.get("e_mt", {}).get(source, {}).get("directions", {})
+        for direction, values in directions.items():
+            key = direction.replace("->", "_to_")
+            out[f"bleu.{source}.{key}"] = values.get("candidate_bleu")
+            out[f"chrf.{source}.{key}"] = values.get("candidate_chrf")
+            out[f"phase3_bleu.{key}"] = values.get("phase3_bleu")
+    for language in ("cmn", "eng"):
+        entry = metrics.get("e_asr", {}).get(language, {})
+        if "error_rate" in entry:
+            out[f"asr_error.{language}"] = entry["error_rate"]
+    return out
+
+
 def _passes(value: float, prediction: dict[str, Any]) -> bool:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return False
@@ -190,7 +221,12 @@ def _passes(value: float, prediction: dict[str, Any]) -> bool:
 
 def evaluate(run_root: str, comparisons: dict[str, str]) -> dict[str, Any]:
     observed = _load_events(run_root)
-    others = {label: _load_events(path) for label, path in comparisons.items()}
+    observed.update(_load_gate(run_root))
+    others = {}
+    for label, path in comparisons.items():
+        entry = _load_events(path)
+        entry.update(_load_gate(path))
+        others[label] = entry
     checks = []
     for prediction in PREDICTIONS:
         value = observed.get(prediction["key"])
@@ -209,7 +245,19 @@ def evaluate(run_root: str, comparisons: dict[str, str]) -> dict[str, Any]:
             }
         )
     failures = [check for check in checks if not check["passed"]]
+    # Capability deltas are reported, never gated: a run can lose the speak
+    # decision and still be the best model in the lineage on translation and
+    # recognition, which is exactly what happened on 2026-09-01.
+    capability = []
+    for key in sorted(k for k in observed if k.startswith(("bleu.", "chrf.", "asr_error."))):
+        row = {"metric": key, "observed": observed[key]}
+        for label, other in others.items():
+            if other.get(key) is not None and observed[key] is not None:
+                row[label] = other[key]
+                row[f"delta_vs_{label}"] = observed[key] - other[key]
+        capability.append(row)
     return {
+        "capability": capability,
         "schema_version": "uniss_e2e_continue_end_verdict_v1",
         "claim_scope": "frozen_fixed16_selection_train_seen",
         "run_root": run_root,
@@ -232,6 +280,8 @@ def evaluate(run_root: str, comparisons: dict[str, str]) -> dict[str, Any]:
 def render(verdict: dict[str, Any]) -> str:
     lines = [
         f"status: {verdict['status']}  ({verdict['checks_passed']}/{verdict['checks_total']} 项通过)",
+        "  注意:通过项数只覆盖开口决策与长度;翻译质量与分方向 ASR 见下方能力对照,",
+        "  它们来自不经过开口决策的 incremental_mt_rollout,不参与判定。",
         "",
         f"{'判据':<30s}{'基线':>10s}{'本次':>10s}{'门线':>16s}{'偏置参考':>10s}  ",
     ]
@@ -248,6 +298,19 @@ def render(verdict: dict[str, Any]) -> str:
             f"{(f'{reference:.3f}' if reference is not None else '-'):>10s}"
             f"  {'PASS' if check['passed'] else 'FAIL'}"
         )
+    if verdict.get("capability"):
+        lines += ["", f"{'能力指标(仅报告,不判定)':<44s}{'本次':>10s}" +
+                  "".join(f"{k:>22s}" for k in
+                          sorted({kk[len('delta_vs_'):] for row in verdict['capability']
+                                  for kk in row if kk.startswith('delta_vs_')}))]
+        labels = sorted({kk[len("delta_vs_"):] for row in verdict["capability"]
+                         for kk in row if kk.startswith("delta_vs_")})
+        for row in verdict["capability"]:
+            line = f"{row['metric']:<44s}{(row['observed'] or 0):>10.3f}"
+            for label in labels:
+                delta = row.get(f"delta_vs_{label}")
+                line += (f"{delta:>+22.3f}" if delta is not None else f"{'-':>22s}")
+            lines.append(line)
     if verdict["primary_cause"]:
         lines += ["", f"最可能的原因: {verdict['primary_cause']}", "", f"下一步: {verdict['next_action']}"]
     else:
