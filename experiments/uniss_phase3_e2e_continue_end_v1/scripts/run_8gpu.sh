@@ -63,6 +63,15 @@ PREFIX_CORRUPTION_RATE=${PREFIX_CORRUPTION_RATE:-0.0}
 # experiment's per-class split handed the minority class 2.28x the per-row
 # weight and moved the decision the wrong way, -2.88 -> -3.75.
 #
+# The margin is 3.0, not the 1.0 that ROLLIN_CONTINUE_DECISION_LOGIT_MARGIN uses,
+# because the probe measured the requirement: the decision sits at a median
+# -2.88 at inference, so roughly three logits have to move.  A first attempt at
+# 1.0 was stopped at step 94, where the loss had already carried gold-row
+# separation from 0.87 to 0.96 and was pressing against the margin -- softplus
+# decays past it, and linear extrapolation over the full 1132 steps gave only
+# +1.14.  content_end_margin, at 2.0 against a -0.21 starting gap, moved 2.06 in
+# the same span, which is what a margin set from the measurement looks like.
+#
 # content_end_margin: dominance of TOKEN_END_CONTENT at gold text-fragment ends.
 # `content_end_ce` has been 0.0 in every run in this project's history, which is
 # why the model cannot stop once it does write: the same bias sweep took the
@@ -70,7 +79,7 @@ PREFIX_CORRUPTION_RATE=${PREFIX_CORRUPTION_RATE:-0.0}
 # semantic_end_margin, validated on the semantic side by the epoch23 run.
 CONTINUE_WEIGHT=${CONTINUE_WEIGHT:-0.5}
 CONTENT_END_WEIGHT_NEW=${CONTENT_END_WEIGHT_NEW:-0.25}
-CONTINUE_LOGIT_MARGIN=${CONTINUE_LOGIT_MARGIN:-1.0}
+CONTINUE_LOGIT_MARGIN=${CONTINUE_LOGIT_MARGIN:-3.0}
 CONTENT_END_LOGIT_MARGIN=${CONTENT_END_LOGIT_MARGIN:-2.0}
 # repetition_penalty: probability mass on tokens already emitted in the same
 # fragment.  Raised 0.1 -> 0.3: at 0.1 it already cut the worst-case text length
