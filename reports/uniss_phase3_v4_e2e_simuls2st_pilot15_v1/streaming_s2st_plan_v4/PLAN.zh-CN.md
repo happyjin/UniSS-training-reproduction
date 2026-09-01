@@ -98,6 +98,61 @@ token**。决策位置唯一的隐含时间信号是已追加的 GLM 块数量,�
 
 ---
 
+## 1.6 最根本的发现:e2e student 从来不是从离线 phase3 出发的
+
+`run_e2e_megatron.sh:27`:
+
+```bash
+RUN_LOAD=${RUN_LOAD:-$(dirname "${V1_CHECKPOINT}")}
+```
+
+`V1_CHECKPOINT` = `stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381`。
+**整条流式血脉是从 Stage-A V1 初始化的。** 而设计文档 §27.2 里 Stage-A V1 的定位:
+
+| Stage A | causal-full 错误率 | event-streaming 错误率 | 中文 CER | 英文 WER | **用途** |
+|---|---:|---:|---:|---:|---|
+| V1 `iter_0000381` | 14.45% | 27.14% | **21.01%** | **35.34%** | **"当前仅用于生成 Stage B noisy source prefix"** |
+
+**也就是说:student 的起点是一个"只用来产生带噪源前缀"的流式 ASR 组件,
+权重里既没有翻译能力也没有 TTS 能力。** 离线 phase3 只作为冻结 KL teacher 存在
+(`phase3_kl` 权重 0.25),它的权重从未进入 student。
+
+这解释了此前所有困难:
+
+* **为什么需要 14 个目标** —— student 在同时学翻译、学 TTS、学流式三件事。
+* **为什么需要 `phase3_kl` 和 `replay_ce` 当拐杖** —— 它们是在"进口"一个本该
+  作为初始权重存在的能力。
+* **为什么 gold-src BLEU 只到 27.67** —— 而 phase3 论文在 CVSS-T 上的
+  Speech-BLEU 是 32.20 / 24.28,整句 BLEU 33.2 / 52.4。
+* **为什么 `natural_eos` 五个 epoch 不动、`END_CONTENT` 从未被训** —— phase3 的
+  权重里本来就有完整的 listen→translate→speak 收尾行为,而 student 从零开始学。
+
+**离线 phase3 的 Megatron 原始 checkpoint 完整存在**
+(`checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075`,
+distcp 分片齐全),**可以直接 `--load`。这条路从未被走过。**
+
+### 结论:主干应该从离线 phase3 重启
+
+| | 从 Stage-A V1 出发(已做 26+ 次) | 从离线 phase3 出发(从未做) |
+|---|---|---|
+| 起点已有翻译能力 | ✗ | **✓** |
+| 起点已有 TTS 能力 | ✗ | **✓** |
+| 起点已有 CoT 格式与收尾行为 | ✗ | **✓** |
+| 起点已有流式/增量能力 | 部分(ASR) | ✗ |
+| 需要学的东西 | 翻译 + TTS + 流式 | **只有流式** |
+
+**这正是 SimulS2S-LLM 的论点** —— 它把 CIF 产生的 boundary-aware speech prompt
+称为 *"the key to unlocking simultaneous inference for offline-trained speech
+LLMs"*。它们从离线模型出发,只解决"如何流式推理"。
+
+**保留什么、丢弃什么:**
+
+* **丢弃**:Stage-A V1 作为 student 初始权重;26+ 个 checkpoint 血脉作为主干;
+  全部 margin/roll-in 目标。
+* **保留**:task pool 的三个流式家族(是有价值的数据,不是坏的);全部已测门禁
+  作为对照点;Stage-A V1 作为 **WhisperVQ 因果前端 / rollout 生成器**(它的本来用途);
+  `StablePrefixCommitter` 与配速器;探针与判决器工具链。
+
 ## 2. 文献扫描
 
 ### 2.1 UniSS 自己的论文([arXiv:2509.21144](https://arxiv.org/abs/2509.21144),ICLR 2026)
