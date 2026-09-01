@@ -93,7 +93,27 @@ export RUN_LOAD="${PHASE3_NATIVE_ROOT}"   # = checkpoints/uniss_qwen0p5b_phase3_
 
 ## 3. 下一步训练:B′ → C,都在 15 shard 上做
 
-### Step 1(立刻,零代码,7 小时):B′ 均匀 CE
+### Step 0(修正:先做单变量版本)
+
+初稿直接跳到 B′(同时关掉两个 KL、commit、以及全部 margin),那是**同时改动
+10 个权重**,失败了无法归因。**更好的科学是先做单变量:**
+
+| | Step 0 = B(单变量) | Step 1 = B′(全 CE) |
+|---|---|---|
+| `boundary_eos` | **0.10 → 1.0** | 0.10 → 1.0 |
+| `asr_ce`/`mt_ce`/`semantic_ce` | 1.0(不变) | 1.0(不变) |
+| `replay_ce` | 0.50(**不变**) | → 1.0 |
+| `v1_asr_kl` / `phase3_kl` | 0.30 / 0.25(**不变**) | **→ 0** |
+| `commit_consistency` | 0.20(**不变**) | → 0 |
+| 全部 margin / roll-in | **→ 0** | → 0 |
+| 改动的权重数 | **8**(7 个 margin 归零 + boundary 提升) | 10 |
+| 回答的问题 | "决策 token 被饿死是不是主因" | "phase3 原配方能不能行" |
+
+**两个 KL 实测一直在下降(`phase3_kl` −0.181、`v1_asr_kl` −0.013),是有效的防遗忘。
+先留着。** 若 Step 0 有效就不必再做 Step 1;若 Step 0 无效,再用 Step 1 检验
+"是不是 KL 和 commit 在拖后腿"。
+
+### Step 1(若 Step 0 不足,零代码,7 小时):B′ 均匀 CE
 
 **动机:** UniSS 论文确认最好的模型用的是纯 next-token CE 无加权
 (`ℒ_AR = −∑ log P_θ`,无辅助 loss)。而本项目把决策 token 的梯度压到 4.7%
