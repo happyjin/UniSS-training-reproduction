@@ -56,6 +56,31 @@
 | `emilia_zh_0006199435__delta5__stereo.wav` | — |
 | `emilia_zh_0006795452__delta5__stereo.wav` | 1.153 |
 
+## 这些音频到底是什么(逐条查证)
+
+### 真实的部分
+
+| | 查证 |
+|---|---|
+| **右声道是模型生成的** | `run_worker.py` 用 `StreamingBiCodecDecoder` + `bicodec_decode_function` 把模型输出的 semantic token 解码成波形。左右声道相关系数 **+0.026 / +0.007 / +0.002 / −0.009 ≈ 0**,**不是复制左声道**;右声道 RMS 0.060–0.078,非静音 |
+| **源是逐块喂入的** | `_append_source(start, stop)` 每个事件只追加新的 GLM 块(`START_GLM … END_GLM`),模型 context 逐步增长,不是整段在 context 里 |
+| **前端是因果的** | `stage_a_causal_whisper_asr` / `shared_causal_frontend`,有 `audit_frontend_real_pcm.py` 审计,无未来音频泄漏 |
+| **输出确实先于源结束** | 8/8 样本 `target_semantic_before_source_eos = True`。首次出声在 **160–1280 ms**,此时源还剩 **1.4–5.9 秒** |
+| 右声道可听起始 | 273 / 335 / 1542 / 1858 ms |
+
+### 必须说明的限制
+
+| | 事实 |
+|---|---|
+| **不是真机实时** | **RTF = 3.58**(墙钟 382.8 s / 源音频 106.9 s)。处理 1 秒音频要 3.58 秒。**这是离线仿真评测,不是能上线的实时系统。** 全部延迟数字是"源时间轴"(non-computation-aware),与 SimulEval 等标准同传评测同口径,但不等于墙钟延迟 |
+| **时机是手设的,不是学出来的** | `delta_cont = 5` 是人工标定的推理侧 logit 偏置。文献里这是合法做法(SimulS2S-LLM 就是离线训练 + test-time wait-k),但**模型自己没有学会何时开口** |
+| **音频块是预先切好的** | 源事件来自 `train_gold_trajectories.jsonl` 的 `source_glm_delta`(每事件 160 ms),离线预切。会话逐块消费是标准同传仿真协议,**但不是真的麦克风流** |
+| **8 条样本全部 train-seen** | fixed-16 selection 取自训练集。**不能据此声称泛化。** 要下泛化结论必须扩到 full198 的 held-out |
+| 两条样本可听起始超门线 | `emilia_zh_0005215832` 1858 ms、`emilia_zh_0006199435` 1542 ms,超出自设的 1500 ms(聚合中位数达标) |
+
+**一句话:是真模型、真流式行为、真因果前端、真 BiCodec 解码;但是离线仿真、
+RTF 3.58 不能实时、时机靠手设偏置、样本 train-seen。**
+
 ## 结论
 
 被判决器判为"失败 2/6"的 checkpoint,**加一个已标定的推理侧偏置就是 5/6**。
