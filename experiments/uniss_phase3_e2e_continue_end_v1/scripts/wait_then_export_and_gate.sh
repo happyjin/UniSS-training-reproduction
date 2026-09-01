@@ -157,6 +157,13 @@ echo "step=metrics"
   --output "${REPORT_ROOT}/METRICS.json" \
   | tee "${REPORT_ROOT}/METRICS.stdout.txt"
 
+echo "step=loss_audit"
+"${PYTHON_BIN}" -m \
+  experiments.uniss_phase3_e2e_continue_end_v1.evaluation.loss_audit \
+  --log "${REPO_ROOT}/logs/${OWN_NAME}/${TRAIN_RUN_ID}.log" \
+  --output "${REPORT_ROOT}/LOSS_AUDIT.json" \
+  | tee "${REPORT_ROOT}/LOSS_AUDIT.txt" || true
+
 echo "step=verdict"
 "${PYTHON_BIN}" -m \
   experiments.uniss_phase3_e2e_continue_end_v1.evaluation.verdict \
@@ -185,6 +192,7 @@ fi
 echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "gate=${GATE_ROOT}/E2E_FREE_RUNNING_GATE.json"
 echo "metrics=${REPORT_ROOT}/METRICS.json"
+echo "loss_audit=${REPORT_ROOT}/LOSS_AUDIT.json"
 echo "verdict=${REPORT_ROOT}/VERDICT.json"
 echo "demos=${REPORT_ROOT}/MANIFEST.json"
 echo "candidate_hf=${CANDIDATE_HF}"
