@@ -157,6 +157,15 @@ echo "step=metrics"
   --output "${REPORT_ROOT}/METRICS.json" \
   | tee "${REPORT_ROOT}/METRICS.stdout.txt"
 
+echo "step=verdict"
+"${PYTHON_BIN}" -m \
+  experiments.uniss_phase3_e2e_continue_end_v1.evaluation.verdict \
+  --run "${GATE_ROOT}" \
+  --compare "baseline_iter0002264=${BASELINE_GATE}" \
+  --compare "speak_decision_iter1132=${SPEAK_GATE}" \
+  --output "${REPORT_ROOT}/VERDICT.json" \
+  | tee "${REPORT_ROOT}/VERDICT.txt" || true
+
 echo "step=demos"
 "${PYTHON_BIN}" -m \
   experiments.uniss_phase3_e2e_commit_policy_v1.evaluation.build_stereo_demos \
@@ -176,5 +185,6 @@ fi
 echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "gate=${GATE_ROOT}/E2E_FREE_RUNNING_GATE.json"
 echo "metrics=${REPORT_ROOT}/METRICS.json"
+echo "verdict=${REPORT_ROOT}/VERDICT.json"
 echo "demos=${REPORT_ROOT}/MANIFEST.json"
 echo "candidate_hf=${CANDIDATE_HF}"
