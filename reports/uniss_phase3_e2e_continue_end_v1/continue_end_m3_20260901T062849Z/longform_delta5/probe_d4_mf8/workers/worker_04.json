@@ -1,0 +1,948 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_e2e_continue_end_v1_continue_end_m3_20260901T062849Z_iter_0001132_hf",
+  "cuda_visible_devices": "4",
+  "device": "cuda:0",
+  "elapsed_seconds": 80.06657710438594,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 3438552,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 4,
+        "error_rate": 0.21052631578947367,
+        "errors": 8,
+        "event_hypotheses": [
+          "As",
+          "As rapidly",
+          "As rapidly as a",
+          "As rapidly as a the",
+          "As rapidly as a the injured",
+          "As rapidly as a the injured lem",
+          "As rapidly as a the injured lem no",
+          "As rapidly as a the injured lem no longer",
+          "As rapidly as a the injured lem no longer impeded",
+          "As rapidly as a the injured lem no longer impeded him",
+          "As rapidly as a the injured lem no longer impeded him The",
+          "As rapidly as a the injured lem no longer impeded him The hunter",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang was",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang was making",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang was making",
+          "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang was making"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club It was four that the mustang was making",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 38,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 31,
+        "coverage": 0.05555555555555555,
+        "events": 40,
+        "final_hypothesis": "受伤的",
+        "hypothesis_units": 3,
+        "nonempty_events": 34,
+        "raw_hypotheses": [
+          "作为",
+          "迅速",
+          "就像",
+          "随着",
+          "受伤",
+          "受伤的狐猴",
+          "受伤的狐猴",
+          "随着受伤的狐猴不再",
+          "受伤的狐猴",
+          "受伤的狐猴",
+          "随着受伤的狐猴",
+          "猎人",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人",
+          "猎人迅速",
+          "猎人",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速",
+          "猎人迅速"
+        ],
+        "reference_units": 54,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 29,
+        "coverage": 0.16666666666666666,
+        "events": 40,
+        "final_hypothesis": "仿佛受伤的肢体不再阻",
+        "hypothesis_units": 10,
+        "nonempty_events": 35,
+        "raw_hypotheses": [
+          "作为",
+          "迅速",
+          "仿佛",
+          "仿佛",
+          "仿佛受伤",
+          "仿佛受伤的肢体",
+          "仿佛受伤的肢体",
+          "仿佛受伤的肢体不再",
+          "仿佛受伤的肢体不再阻碍",
+          "仿佛受伤的肢体不再阻碍他",
+          "仿佛受伤的肢体不再阻碍他",
+          "猎人",
+          "猎人",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图超过六英尺他看到",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图超过六英尺他看到",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图超过六英尺他看到血迹",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图超过六英尺他看到那把血淋淋的刀",
+          "猎人迅速仿佛受伤的肢体不再阻碍他他怀疑自己的意图站在六英尺高处他看到那血淋淋的刀刃",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在",
+          "猎人迅速仿佛受伤的肢体不再阻碍他他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上",
+          "猎人迅速仿佛受伤的肢体不再阻碍他他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上",
+          "猎人仿佛受伤的肢体不再阻碍他他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那正是那个怪物",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那是因为那个怪物",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那是因为那个怪物正在",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那是因为那个怪物正在",
+          "猎人仿佛受伤的肢体不再阻碍他，他怀疑自己的意图站在六英尺高处他看到那把血淋淋的刀刃躺在斗篷上那是因为那个怪物正在"
+        ],
+        "reference_units": 54,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 18.0,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z/longform_delta5/probe_d4_mf8/audio/worker_04/LibriSpeech_0000079616.wav",
+          "peak": 0.6229665279388428,
+          "rms": 0.041494306176900864,
+          "samples": 288000
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "As"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 480,
+            "source_final": false,
+            "source_glm_end": 6,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "rapidly"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 6
+          },
+          {
+            "asr_deltas": [
+              "as a"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1600,
+            "source_final": false,
+            "source_glm_end": 20,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [
+              "the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1760,
+            "source_final": false,
+            "source_glm_end": 22,
+            "source_glm_start": 20
+          },
+          {
+            "asr_deltas": [
+              "injured"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2080,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 22
+          },
+          {
+            "asr_deltas": [
+              "lem"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2400,
+            "source_final": false,
+            "source_glm_end": 30,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "no"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2560,
+            "source_final": false,
+            "source_glm_end": 32,
+            "source_glm_start": 30
+          },
+          {
+            "asr_deltas": [
+              "longer"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3040,
+            "source_final": false,
+            "source_glm_end": 38,
+            "source_glm_start": 32
+          },
+          {
+            "asr_deltas": [
+              "impeded"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3520,
+            "source_final": false,
+            "source_glm_end": 44,
+            "source_glm_start": 38
+          },
+          {
+            "asr_deltas": [
+              "him"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3840,
+            "source_final": false,
+            "source_glm_end": 48,
+            "source_glm_start": 44
+          },
+          {
+            "asr_deltas": [
+              "The"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 10,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 4960,
+            "source_final": false,
+            "source_glm_end": 62,
+            "source_glm_start": 48
+          },
+          {
+            "asr_deltas": [
+              "hunter"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 11,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 5280,
+            "source_final": false,
+            "source_glm_end": 66,
+            "source_glm_start": 62
+          },
+          {
+            "asr_deltas": [
+              "spected"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 12,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 6400,
+            "source_final": false,
+            "source_glm_end": 80,
+            "source_glm_start": 66
+          },
+          {
+            "asr_deltas": [
+              "his"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 13,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 7040,
+            "source_final": false,
+            "source_glm_end": 88,
+            "source_glm_start": 80
+          },
+          {
+            "asr_deltas": [
+              "intend"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 14,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 7680,
+            "source_final": false,
+            "source_glm_end": 96,
+            "source_glm_start": 88
+          },
+          {
+            "asr_deltas": [
+              "standing"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 15,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 8480,
+            "source_final": false,
+            "source_glm_end": 106,
+            "source_glm_start": 96
+          },
+          {
+            "asr_deltas": [
+              "over"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 16,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 8800,
+            "source_final": false,
+            "source_glm_end": 110,
+            "source_glm_start": 106
+          },
+          {
+            "asr_deltas": [
+              "six"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 17,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 9120,
+            "source_final": false,
+            "source_glm_end": 114,
+            "source_glm_start": 110
+          },
+          {
+            "asr_deltas": [
+              "feet"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 18,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 9600,
+            "source_final": false,
+            "source_glm_end": 120,
+            "source_glm_start": 114
+          },
+          {
+            "asr_deltas": [
+              "He"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 19,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10240,
+            "source_final": false,
+            "source_glm_end": 128,
+            "source_glm_start": 120
+          },
+          {
+            "asr_deltas": [
+              "saw"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 20,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10560,
+            "source_final": false,
+            "source_glm_end": 132,
+            "source_glm_start": 128
+          },
+          {
+            "asr_deltas": [
+              "the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 21,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10720,
+            "source_final": false,
+            "source_glm_end": 134,
+            "source_glm_start": 132
+          },
+          {
+            "asr_deltas": [
+              "bloody"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 22,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 11040,
+            "source_final": false,
+            "source_glm_end": 138,
+            "source_glm_start": 134
+          },
+          {
+            "asr_deltas": [
+              "knife"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 23,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 11360,
+            "source_final": false,
+            "source_glm_end": 142,
+            "source_glm_start": 138
+          },
+          {
+            "asr_deltas": [
+              "blade"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 24,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 11840,
+            "source_final": false,
+            "source_glm_end": 148,
+            "source_glm_start": 142
+          },
+          {
+            "asr_deltas": [
+              "line"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 25,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12160,
+            "source_final": false,
+            "source_glm_end": 152,
+            "source_glm_start": 148
+          },
+          {
+            "asr_deltas": [
+              "along the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 26,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12640,
+            "source_final": false,
+            "source_glm_end": 158,
+            "source_glm_start": 152
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 27,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "猎人迅速而受伤不再阻碍他猎人怀疑他的意图站在六英尺之外他看到血迹斑斑的刀刃沿着"
+            ],
+            "semantic_tokens": 700,
+            "source_end_ms": 12800,
+            "source_final": false,
+            "source_glm_end": 158,
+            "source_glm_start": 158
+          },
+          {
+            "asr_deltas": [
+              "club"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 28,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 13120,
+            "source_final": false,
+            "source_glm_end": 164,
+            "source_glm_start": 158
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 29,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "俱乐部"
+            ],
+            "semantic_tokens": 24,
+            "source_end_ms": 13280,
+            "source_final": false,
+            "source_glm_end": 164,
+            "source_glm_start": 164
+          },
+          {
+            "asr_deltas": [
+              "it"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 30,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 13760,
+            "source_final": false,
+            "source_glm_end": 172,
+            "source_glm_start": 164
+          },
+          {
+            "asr_deltas": [
+              "was"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 31,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14080,
+            "source_final": false,
+            "source_glm_end": 176,
+            "source_glm_start": 172
+          },
+          {
+            "asr_deltas": [
+              "four"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 32,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14400,
+            "source_final": false,
+            "source_glm_end": 180,
+            "source_glm_start": 176
+          },
+          {
+            "asr_deltas": [
+              "that"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 33,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14880,
+            "source_final": false,
+            "source_glm_end": 186,
+            "source_glm_start": 180
+          },
+          {
+            "asr_deltas": [
+              "the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 34,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 15200,
+            "source_final": false,
+            "source_glm_end": 190,
+            "source_glm_start": 186
+          },
+          {
+            "asr_deltas": [
+              "mustang"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 35,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 15840,
+            "source_final": false,
+            "source_glm_end": 198,
+            "source_glm_start": 190
+          },
+          {
+            "asr_deltas": [
+              "was"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 36,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 16000,
+            "source_final": false,
+            "source_glm_end": 200,
+            "source_glm_start": 198
+          },
+          {
+            "asr_deltas": [
+              "making"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 37,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 16640,
+            "source_final": false,
+            "source_glm_end": 208,
+            "source_glm_start": 200
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 38,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "发出"
+            ],
+            "semantic_tokens": 176,
+            "source_end_ms": 16800,
+            "source_final": false,
+            "source_glm_end": 208,
+            "source_glm_start": 208
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "EOS"
+            ],
+            "event_index": 39,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 17100,
+            "source_final": true,
+            "source_glm_end": 214,
+            "source_glm_start": 208
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 3,
+        "natural_eos": true,
+        "semantic_coverage": 1.0,
+        "semantic_reference_tokens": 772,
+        "semantic_tokens": 900,
+        "source_hypothesis": "As rapidly as a the injured lem no longer impeded him The hunter spected his intend standing over six feet He saw the bloody knife blade line along the club it was four that the mustang was making",
+        "source_rollback_events": 0,
+        "target_hypothesis": "猎人迅速而受伤不再阻碍他猎人怀疑他的意图站在六英尺之外他看到血迹斑斑的刀刃沿着俱乐部发出",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 36,
+        "coverage": 0.05555555555555555,
+        "events": 40,
+        "final_hypothesis": "仿佛迅",
+        "hypothesis_units": 3,
+        "nonempty_events": 37,
+        "raw_hypotheses": [
+          "作为",
+          "如迅速",
+          "仿佛迅速地",
+          "仿佛迅速地",
+          "仿佛受伤一样迅速",
+          "仿佛受伤的肢体一样迅速",
+          "仿佛受伤的肢体一样迅速",
+          "仿佛受伤的肢体不再迅速地",
+          "仿佛受伤的肢体不再阻碍一样迅速。",
+          "仿佛受伤的肢体不再阻碍他一样迅速。",
+          "仿佛受伤的肢体不再阻碍他一样迅速地",
+          "猎人仿佛受伤的肢体不再阻碍他一样迅速。",
+          "猎人怀疑，受伤肢体的速度仿佛不再阻碍他。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，他怀疑自己的",
+          "猎人迅速地怀疑自己的意图，仿佛受伤的肢体不再阻碍他。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑自己的意图。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑自己的意图已经占据上风。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑自己的意图超过六。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑自己的意图超过六英尺。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。他看到了",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。他看到了",
+          "猎人仿佛受伤的肢体不再阻碍他，迅速怀疑他的意图超过六英尺。他看到了血迹。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。他看到了那把血淋淋的刀。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。他看到了那把血淋淋的刀刃。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图超过六英尺。他看到那把血淋淋的刀刃躺在那里。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图站在六英尺高处。他看到那把血淋淋的刀刃躺在那里。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图站在六英尺高处。他看到那把血淋淋的刀刃躺在那里。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图站在六英尺高处。他看到那把血淋淋的刀刃躺在斗篷上。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图站在六英尺高处。他看到那把血淋淋的刀刃躺在斗篷上。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图站在六英尺高处。他看到那把血淋淋的刀刃躺在斗篷上。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，这是为了",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，就是为了这个。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，是为了那个目的。",
+          "猎人迅速地仿佛受伤的肢体不再阻碍他，怀疑他的意图是站在六英尺高处。他看到那把血淋淋的刀刃躺在斗篷上，是为那个野蛮人准备的。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，那正是那个野马的下场。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，这是为了那个野马人。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，这是为了那个野马人。",
+          "猎人迅速地怀疑他的意图，因为受伤的肢体已经不再阻碍他。他看到那把血淋淋的刀刃躺在斗篷上，这是为了那个野马人。"
+        ],
+        "reference_units": 54,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 2939,
+      "sample_id": "LibriSpeech_0000079616",
+      "source_duration_ms": 17100,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+      "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z/longform_delta5/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 4
+}

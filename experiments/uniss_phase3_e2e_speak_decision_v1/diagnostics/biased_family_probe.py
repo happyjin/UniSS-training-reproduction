@@ -41,10 +41,54 @@ from training import constants_uniss as c
 
 ENV_FAMILY_BIAS = "UNISS_E2E_FAMILY_MT_BIAS"
 ENV_CONTINUE_BIAS = "UNISS_E2E_CONTINUE_WRITE_BIAS"
+# Solution 2 for the audio defects measured on long form: a floor on how many
+# semantic tokens a fragment must emit before END_SEMANTIC becomes legal.
+# The established runtime already forbids END on the very first token
+# (`allow_end=bool(generated)`), so the floor is 1 today, and the measured token
+# count per event runs min 0, max 104, median 5-8 with a standard deviation of
+# 17.7.  Fragments of one to four tokens are 20-80 ms, too short to carry a
+# phoneme, and they double the energy-jump rate: 41.0 per thousand frames at
+# delta=0 against 91.8 at delta=5.
+ENV_MIN_SEMANTIC = "UNISS_E2E_MIN_SEMANTIC_FRAGMENT"
 
 FAMILY_TOKENS = frozenset(
     {c.TOKEN_TASK_ASR, c.TOKEN_TASK_S2T_TRANSLATION, c.TOKEN_TASK_TTS}
 )
+
+
+def install_minimum_semantic_fragment(minimum_tokens: int) -> None:
+    """Forbid END_SEMANTIC until a fragment has emitted `minimum_tokens` codes.
+
+    This is a floor on fragment length, which the pacer's
+    `minimum_fragment_tokens` is not -- that one is an upper bound handed to
+    `max_semantic_tokens`, so raising it permits more tokens rather than
+    requiring them.
+    """
+
+    if minimum_tokens <= 1:
+        return
+    established = runtime.PersistentInterleavedSession._generate_semantic
+
+    def floored_generate_semantic(self, *, max_tokens: int):
+        if max_tokens <= 0:
+            return (), False
+        generated: list[int] = []
+        reached_end = False
+        for _ in range(max_tokens):
+            if self.logits is None:
+                raise RuntimeError("missing semantic logits")
+            token = runtime._restricted_semantic_choice(
+                self.logits, allow_end=len(generated) >= minimum_tokens
+            )
+            if token == c.TOKEN_END_SEMANTIC:
+                self._append((token,), (None,))
+                reached_end = True
+                break
+            generated.append(token - c.BICODEC_SEMANTIC_OFFSET)
+            self._append((token,), (None,))
+        return tuple(generated), reached_end
+
+    runtime.PersistentInterleavedSession._generate_semantic = floored_generate_semantic
 
 
 def install_bias(family_bias: float, continue_bias: float) -> None:
@@ -95,7 +139,11 @@ def main() -> None:
     continue_bias = float(os.environ.get(ENV_CONTINUE_BIAS, "0") or 0.0)
     if family_bias < 0 or continue_bias < 0:
         raise SystemExit("biases must be non-negative")
+    minimum = int(float(os.environ.get(ENV_MIN_SEMANTIC, "0") or 0))
+    if minimum < 0:
+        raise SystemExit(f"{ENV_MIN_SEMANTIC} must be non-negative")
     install_bias(family_bias, continue_bias)
+    install_minimum_semantic_fragment(minimum)
     probe.install_probe()  # wraps the biased choice; records what it returns
     import atexit
 

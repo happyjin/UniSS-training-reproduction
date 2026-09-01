@@ -1,0 +1,1001 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_e2e_continue_end_v1_continue_end_m3_20260901T062849Z_iter_0001132_hf",
+  "cuda_visible_devices": "5",
+  "device": "cuda:0",
+  "elapsed_seconds": 94.09357480239123,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 3329703,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 6,
+        "error_rate": 0.425,
+        "errors": 17,
+        "event_hypotheses": [
+          "And to",
+          "And to the",
+          "And to the druidra",
+          "And to the druidra up",
+          "And to the druidra up beside the",
+          "And to the druidra up beside the palace",
+          "And to the druidra up beside the palace steps",
+          "And to the druidra up beside the palace steps And",
+          "And to the druidra up beside the palace steps And age",
+          "And to the druidra up beside the palace steps And age Dwinky",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to master the",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to master the",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to master the emperor",
+          "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to master the emperor"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "And to the druidra up beside the palace steps And age Dwinky dressed and they uniform of silver cloth came forward to a sister some to alight said the scarecrowd to his personage showed a set once to master the emperor",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 40,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 38,
+        "coverage": 0.0,
+        "events": 42,
+        "final_hypothesis": "德",
+        "hypothesis_units": 1,
+        "nonempty_events": 39,
+        "raw_hypotheses": [
+          "为了",
+          "而",
+          "德鲁伊德拉",
+          "德鲁伊拉",
+          "在",
+          "在宫殿旁边的德鲁伊德拉",
+          "在宫殿台阶旁的德鲁伊德拉",
+          "在宫殿台阶旁的德鲁伊德拉旁边",
+          "在宫殿台阶旁的德鲁伊德拉旁边",
+          "在宫殿台阶旁的德鲁伊德拉和德温基",
+          "走到宫殿台阶旁的德鲁伊德拉身边，他穿着一件",
+          "他们",
+          "走到宫殿台阶旁的德鲁伊德拉和德温基穿着制服",
+          "走到宫殿台阶旁的德鲁伊德拉和德温基穿着制服",
+          "在宫殿台阶旁的德鲁伊德拉和德温基穿着银色制服",
+          "在宫殿台阶旁的德鲁伊德拉和德温基穿着银色衣服",
+          "他们来到宫殿台阶旁的德鲁伊德拉，穿着银色衣服他们穿着",
+          "他们来到宫殿台阶旁的德鲁伊德拉，老德温基穿着银色的衣服走上前来",
+          "他们来到宫殿台阶旁的德鲁伊德拉，老德温基穿着银色的衣服走上前来",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，一个穿着银色衣服的年轻矮人走上前来",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，老德温基穿着银色的衣服走到一位姐姐面前",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，一个穿着银色衣服的年轻矮人走上前来",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，老德温基穿着银色的衣服走上前来",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，老德温基穿着银色的衣服走上前来让一些姐妹下车",
+          "他们来到宫殿台阶旁的德鲁伊德拉身边，老德温基穿着银色的衣服走上前来让一些姐妹下车",
+          "于是他们来到宫殿台阶旁的德鲁伊德拉，老德温基穿着银色的衣服走上前来对妹妹说",
+          "然后他们来到宫殿台阶旁的德鲁伊德拉，老德温基穿着银色的衣服走上前来对",
+          "稻草人走到宫殿台阶旁，老德温基穿着银色的衣服走上前来对稻草人说",
+          "然后他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人说",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的",
+          "然后他们来到宫殿台阶旁的德鲁伊德罗身边，一个穿着银色衣服的年轻矮人走上前来对他的同伴说稻草人",
+          "然后他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色衣服他们穿着银色的衣服走到一个姐姐面前稻草人对他的样子说",
+          "然后他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色衣服他们穿着银色的衣服走到一个姐姐面前稻草人对他的样子露出",
+          "然后他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一位姐姐面前稻草人对他的身材说",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前，有人向她展示了一套曾经",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的身材说他想",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的身材说他想",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的身材说他想掌握",
+          "然后他走到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一个姐姐面前稻草人对他的身材说他想掌握",
+          "于是他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一位姐姐面前稻草人对他的身材说他想让公主",
+          "于是他们来到宫殿台阶旁的德鲁伊德里亚穿着一件银色的连衣裙走到一位姐姐面前稻草人对他的身材说他想让公主"
+        ],
+        "reference_units": 55,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 21,
+        "coverage": 0.36363636363636365,
+        "events": 42,
+        "final_hypothesis": "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白",
+        "hypothesis_units": 25,
+        "nonempty_events": 40,
+        "raw_hypotheses": [
+          "直到",
+          "直到他们",
+          "直到他们画",
+          "直到他们",
+          "直到他们靠近",
+          "直到他们靠近宫殿",
+          "直到他们走到宫殿的台阶旁",
+          "直到他们走到宫殿的台阶旁一个",
+          "直到他们走到宫殿的台阶旁一位年长",
+          "直到他们走到宫殿的台阶旁一位老眼惺忪",
+          "直到他们走到宫殿的台阶旁一位穿着",
+          "直到他们走到宫殿的台阶旁一位穿着",
+          "直到他们走到宫殿的台阶旁一位穿着制服的老白眼人",
+          "直到他们走到宫殿的台阶旁一位穿着",
+          "直到他们走到宫殿的台阶旁一位穿着银色制服的老白眼人",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人",
+          "直到他们走到宫殿的台阶旁一个穿着银色布衣服的老白眼人走了过来",
+          "直到他们走到宫殿的台阶旁一个穿着银色布衣服的老白眼人走了过来",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人走上前来",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人前来协助",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人走上前来帮助他们",
+          "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白眼人前来帮助他们",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车",
+          "稻草人说直到他们走到宫殿的台阶旁一个穿着银色布衣服的老白眼人走上前来帮助他们下车",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人说",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们点燃稻草人对他的",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们点燃稻草人对他的",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们点燃稻草人对他的身体说",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的身体说",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的人物说",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的人物说",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的人物说立刻带我们",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白人前来帮助他们下车稻草人对他的人物说立刻带我们去你的",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白人前来帮助他们下车稻草人对他的人物说立刻带我们去你的",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的主人说立刻带我们去见",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的主人说立刻带我们去见",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝",
+          "直到他们走到宫殿的台阶旁一位穿着银色布衣服的老白眼人走上前来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝"
+        ],
+        "reference_units": 55,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 17.02,
+          "error": null,
+          "finite": true,
+          "non_silent": true,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z/longform_delta5/probe_d3/audio/worker_05/LibriSpeech_0000104521.wav",
+          "peak": 0.8437933921813965,
+          "rms": 0.07057282328605652,
+          "samples": 272320
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "Until"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 0,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 480,
+            "source_final": false,
+            "source_glm_end": 6,
+            "source_glm_start": 0
+          },
+          {
+            "asr_deltas": [
+              "they"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 1,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 640,
+            "source_final": false,
+            "source_glm_end": 8,
+            "source_glm_start": 6
+          },
+          {
+            "asr_deltas": [
+              "drew"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 2,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1120,
+            "source_final": false,
+            "source_glm_end": 14,
+            "source_glm_start": 8
+          },
+          {
+            "asr_deltas": [
+              "up"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 3,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 14
+          },
+          {
+            "asr_deltas": [
+              "beside the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 4,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2080,
+            "source_final": false,
+            "source_glm_end": 26,
+            "source_glm_start": 16
+          },
+          {
+            "asr_deltas": [
+              "palace"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 5,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 2720,
+            "source_final": false,
+            "source_glm_end": 34,
+            "source_glm_start": 26
+          },
+          {
+            "asr_deltas": [
+              "steps"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 6,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 3520,
+            "source_final": false,
+            "source_glm_end": 44,
+            "source_glm_start": 34
+          },
+          {
+            "asr_deltas": [
+              "and"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 7,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 4800,
+            "source_final": false,
+            "source_glm_end": 60,
+            "source_glm_start": 44
+          },
+          {
+            "asr_deltas": [
+              "aged"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 8,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 5280,
+            "source_final": false,
+            "source_glm_end": 66,
+            "source_glm_start": 60
+          },
+          {
+            "asr_deltas": [
+              "Winkie"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 9,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 5760,
+            "source_final": false,
+            "source_glm_end": 72,
+            "source_glm_start": 66
+          },
+          {
+            "asr_deltas": [
+              "dressed in"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 10,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 6400,
+            "source_final": false,
+            "source_glm_end": 80,
+            "source_glm_start": 72
+          },
+          {
+            "asr_deltas": [
+              "their"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 11,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 6560,
+            "source_final": false,
+            "source_glm_end": 82,
+            "source_glm_start": 80
+          },
+          {
+            "asr_deltas": [
+              "uniform"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 12,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 7200,
+            "source_final": false,
+            "source_glm_end": 90,
+            "source_glm_start": 82
+          },
+          {
+            "asr_deltas": [
+              "of"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 13,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 7360,
+            "source_final": false,
+            "source_glm_end": 92,
+            "source_glm_start": 90
+          },
+          {
+            "asr_deltas": [
+              "silver"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 14,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 7680,
+            "source_final": false,
+            "source_glm_end": 96,
+            "source_glm_start": 92
+          },
+          {
+            "asr_deltas": [
+              "cloth"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 15,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 8160,
+            "source_final": false,
+            "source_glm_end": 102,
+            "source_glm_start": 96
+          },
+          {
+            "asr_deltas": [
+              "came"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 16,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 8640,
+            "source_final": false,
+            "source_glm_end": 108,
+            "source_glm_start": 102
+          },
+          {
+            "asr_deltas": [
+              "forward"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 17,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 9120,
+            "source_final": false,
+            "source_glm_end": 114,
+            "source_glm_start": 108
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 18,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "直到他们沿着宫殿的台阶爬上去老温基穿着银色布料制服走了过来"
+            ],
+            "semantic_tokens": 524,
+            "source_end_ms": 9280,
+            "source_final": false,
+            "source_glm_end": 114,
+            "source_glm_start": 114
+          },
+          {
+            "asr_deltas": [
+              "to a"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 19,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 9440,
+            "source_final": false,
+            "source_glm_end": 118,
+            "source_glm_start": 114
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 20,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "到帮助"
+            ],
+            "semantic_tokens": 32,
+            "source_end_ms": 9920,
+            "source_final": false,
+            "source_glm_end": 124,
+            "source_glm_start": 118
+          },
+          {
+            "asr_deltas": [
+              "them"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 21,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10080,
+            "source_final": false,
+            "source_glm_end": 126,
+            "source_glm_start": 124
+          },
+          {
+            "asr_deltas": [
+              "to"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 22,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10240,
+            "source_final": false,
+            "source_glm_end": 128,
+            "source_glm_start": 126
+          },
+          {
+            "asr_deltas": [
+              "alight"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 23,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 10720,
+            "source_final": false,
+            "source_glm_end": 134,
+            "source_glm_start": 128
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "READ_NEXT"
+            ],
+            "event_index": 24,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "他们下车"
+            ],
+            "semantic_tokens": 48,
+            "source_end_ms": 10880,
+            "source_final": false,
+            "source_glm_end": 134,
+            "source_glm_start": 134
+          },
+          {
+            "asr_deltas": [
+              "said"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 25,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12000,
+            "source_final": false,
+            "source_glm_end": 150,
+            "source_glm_start": 134
+          },
+          {
+            "asr_deltas": [
+              "the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 26,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12160,
+            "source_final": false,
+            "source_glm_end": 152,
+            "source_glm_start": 150
+          },
+          {
+            "asr_deltas": [
+              "scarecrow"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 27,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12640,
+            "source_final": false,
+            "source_glm_end": 158,
+            "source_glm_start": 152
+          },
+          {
+            "asr_deltas": [
+              "to"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 28,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12800,
+            "source_final": false,
+            "source_glm_end": 160,
+            "source_glm_start": 158
+          },
+          {
+            "asr_deltas": [
+              "his"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 29,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 12960,
+            "source_final": false,
+            "source_glm_end": 162,
+            "source_glm_start": 160
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 30,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "时稻草人对他的"
+            ],
+            "semantic_tokens": 20,
+            "source_end_ms": 13120,
+            "source_final": false,
+            "source_glm_end": 162,
+            "source_glm_start": 162
+          },
+          {
+            "asr_deltas": [
+              "personage"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 31,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "形象说稻草人"
+            ],
+            "semantic_tokens": 124,
+            "source_end_ms": 13760,
+            "source_final": false,
+            "source_glm_end": 172,
+            "source_glm_start": 162
+          },
+          {
+            "asr_deltas": [
+              "showed"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 32,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14560,
+            "source_final": false,
+            "source_glm_end": 182,
+            "source_glm_start": 172
+          },
+          {
+            "asr_deltas": [
+              "a"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 33,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14720,
+            "source_final": false,
+            "source_glm_end": 184,
+            "source_glm_start": 182
+          },
+          {
+            "asr_deltas": [
+              "set"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 34,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 14880,
+            "source_final": false,
+            "source_glm_end": 186,
+            "source_glm_start": 184
+          },
+          {
+            "asr_deltas": [
+              "once"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 35,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 15200,
+            "source_final": false,
+            "source_glm_end": 190,
+            "source_glm_start": 186
+          },
+          {
+            "asr_deltas": [
+              "to your"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 36,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 15360,
+            "source_final": false,
+            "source_glm_end": 192,
+            "source_glm_start": 190
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 37,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "向你展示了"
+            ],
+            "semantic_tokens": 88,
+            "source_end_ms": 15520,
+            "source_final": false,
+            "source_glm_end": 192,
+            "source_glm_start": 192
+          },
+          {
+            "asr_deltas": [
+              "master the"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WAIT"
+            ],
+            "event_index": 38,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 15840,
+            "source_final": false,
+            "source_glm_end": 198,
+            "source_glm_start": 192
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 39,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "一次"
+            ],
+            "semantic_tokens": 2,
+            "source_end_ms": 16000,
+            "source_final": false,
+            "source_glm_end": 198,
+            "source_glm_start": 198
+          },
+          {
+            "asr_deltas": [
+              "emperor"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "WRITE_MT",
+              "WRITE_SEMANTIC",
+              "WAIT"
+            ],
+            "event_index": 40,
+            "malformed_segments": 0,
+            "mt_deltas": [
+              "皇帝的神情"
+            ],
+            "semantic_tokens": 13,
+            "source_end_ms": 16480,
+            "source_final": false,
+            "source_glm_end": 206,
+            "source_glm_start": 198
+          },
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "EOS"
+            ],
+            "event_index": 41,
+            "malformed_segments": 0,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 16880,
+            "source_final": true,
+            "source_glm_end": 212,
+            "source_glm_start": 206
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 5,
+        "natural_eos": true,
+        "semantic_coverage": 0.8657171922685656,
+        "semantic_reference_tokens": 983,
+        "semantic_tokens": 851,
+        "source_hypothesis": "Until they drew up beside the palace steps and aged Winkie dressed in their uniform of silver cloth came forward to a them to alight said the scarecrow to his personage showed a set once to your master the emperor",
+        "source_rollback_events": 0,
+        "target_hypothesis": "直到他们沿着宫殿的台阶爬上去老温基穿着银色布料制服走了过来到帮助他们下车时稻草人对他的形象说稻草人向你展示了一次皇帝的神情",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": true,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 28,
+        "coverage": 0.3090909090909091,
+        "events": 42,
+        "final_hypothesis": "直到他们走到宫殿的台阶旁，一个穿着制服的老眼",
+        "hypothesis_units": 22,
+        "nonempty_events": 40,
+        "raw_hypotheses": [
+          "直到",
+          "直到他们",
+          "直到他们画出",
+          "直到他们拔起",
+          "直到他们停在旁边",
+          "直到他们停在宫殿旁边",
+          "直到他们走到宫殿的台阶旁",
+          "直到他们走到宫殿的台阶旁一个",
+          "直到他们走到宫殿的台阶旁，一位老人",
+          "直到他们走到宫殿的台阶旁，一个老眼惺忪的人。",
+          "直到他们走到宫殿的台阶旁，一个穿着古色古香的年轻女子出现了。",
+          "直到他们走到宫殿的台阶旁，一个穿着",
+          "直到他们走到宫殿的台阶旁，一个穿着制服的老眼惺忪的人出现了。",
+          "直到他们走到宫殿的台阶旁，一个穿着制服的老眼惺忪地眨了眨眼。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色制服的老眼惺忪。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪者出现了。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪者走了过来。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪走了过来。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪走了过来。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪者走了过来。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮忙。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪的人走上前来帮助他们。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪的人走上前来帮助他们下车。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪的人走上前来帮助他们下车。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布制服的老眼惺忪者走上前来帮助他们下车，说道",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪者走上前来帮助他们下车，说道",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪的人走上前来帮助他们下车，稻草人说道。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪的人走上前来帮助他们下车，稻草人说道。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪的人走上前来帮助他们下车，稻草人对他说。",
+          "直到他们走到宫殿台阶旁，一个穿着银色布制服的老眼惺忪的人走上前来帮助他们下车，稻草人对他说。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布制服的老眼惺忪的人走上前来帮助他们，稻草人对他的身体说道。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人向他的身体展示了。",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布制服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“给我们看看。”",
+          "直到他们走到宫殿的台阶旁，一个穿着银色布制服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“请带我们去。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去你的。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去你的。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去见你的主人。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去见你的主人。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去见你的主人，皇帝。”",
+          "直到他们走到宫殿台阶旁，一个穿着银色布衣服的老眼惺忪者走上前来帮助他们下车，稻草人对他的身影说：“立刻带我们去见你的主人，皇帝。”"
+        ],
+        "reference_units": 55,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 3006,
+      "sample_id": "LibriSpeech_0000104521",
+      "source_duration_ms": 16880,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+      "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z/longform_delta5/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 5
+}
