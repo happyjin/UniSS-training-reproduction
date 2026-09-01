@@ -50,6 +50,18 @@ ENV_CONTINUE_BIAS = "UNISS_E2E_CONTINUE_WRITE_BIAS"
 # phoneme, and they double the energy-jump rate: 41.0 per thousand frames at
 # delta=0 against 91.8 at delta=5.
 ENV_MIN_SEMANTIC = "UNISS_E2E_MIN_SEMANTIC_FRAGMENT"
+# Solution 3, the one the spectra point at.  `_restricted_semantic_choice` is a
+# pure greedy argmax over the 8192-code BiCodec semantic range with no
+# temperature, no top-k and no repetition penalty, run autoregressively for
+# ~900 codes.  The offline phase3 evaluation this project is measured against
+# used `repetition_penalty: 1.1` (see stage00 baseline_summary.json), so the
+# streaming runtime is strictly greedier than the baseline it is compared to.
+# Measured consequence: decoding the model's codes puts 23.4%, 45.6% and 67.9%
+# of energy above 4 kHz on three of four long samples, where the same decoder
+# and the same speaker tokens put gold codes at 7.1%, 7.9% and 20.7%.
+ENV_SEMANTIC_REPETITION = "UNISS_E2E_SEMANTIC_REPETITION_PENALTY"
+ENV_SEMANTIC_WINDOW = "UNISS_E2E_SEMANTIC_REPETITION_WINDOW"
+ENV_SEMANTIC_TOPK = "UNISS_E2E_SEMANTIC_TOPK"
 
 FAMILY_TOKENS = frozenset(
     {c.TOKEN_TASK_ASR, c.TOKEN_TASK_S2T_TRANSLATION, c.TOKEN_TASK_TTS}
@@ -89,6 +101,65 @@ def install_minimum_semantic_fragment(minimum_tokens: int) -> None:
         return tuple(generated), reached_end
 
     runtime.PersistentInterleavedSession._generate_semantic = floored_generate_semantic
+
+
+def install_semantic_decoding(
+    repetition_penalty: float, window: int, top_k: int, minimum_tokens: int
+) -> None:
+    """Give semantic decoding the repetition penalty the offline baseline had.
+
+    The penalty divides the logit of any code already emitted inside the current
+    window, matching HuggingFace's convention for positive logits, and top_k>1
+    replaces the argmax with a sample over the k best codes.  END_SEMANTIC is
+    excluded from the penalty so termination is never discouraged.
+    """
+
+    if repetition_penalty <= 1.0 and top_k <= 1 and minimum_tokens <= 1:
+        return
+    import torch
+
+    def decoded_generate_semantic(self, *, max_tokens: int):
+        if max_tokens <= 0:
+            return (), False
+        generated: list[int] = []
+        reached_end = False
+        start = c.BICODEC_SEMANTIC_OFFSET
+        size = c.BICODEC_SEMANTIC_SIZE
+        for _ in range(max_tokens):
+            if self.logits is None:
+                raise RuntimeError("missing semantic logits")
+            values = self.logits.reshape(-1).float().clone()
+            slice_ = values[start : start + size]
+            if repetition_penalty > 1.0 and generated:
+                recent = generated[-window:] if window > 0 else generated
+                for code in set(recent):
+                    if 0 <= code < size:
+                        current = slice_[code]
+                        slice_[code] = (
+                            current / repetition_penalty
+                            if current > 0
+                            else current * repetition_penalty
+                        )
+            allow_end = len(generated) >= max(1, minimum_tokens)
+            if top_k > 1:
+                k = min(int(top_k), size)
+                top_values, top_indices = slice_.topk(k)
+                probabilities = torch.softmax(top_values, dim=0)
+                picked = int(torch.multinomial(probabilities, 1).item())
+                best_value = top_values[picked]
+                best_index = int(top_indices[picked])
+            else:
+                best_value, best_index = slice_.max(dim=0)
+                best_index = int(best_index)
+            if allow_end and values[c.TOKEN_END_SEMANTIC] >= best_value:
+                self._append((c.TOKEN_END_SEMANTIC,), (None,))
+                reached_end = True
+                break
+            generated.append(best_index)
+            self._append((start + best_index,), (None,))
+        return tuple(generated), reached_end
+
+    runtime.PersistentInterleavedSession._generate_semantic = decoded_generate_semantic
 
 
 def install_bias(family_bias: float, continue_bias: float) -> None:
@@ -142,8 +213,16 @@ def main() -> None:
     minimum = int(float(os.environ.get(ENV_MIN_SEMANTIC, "0") or 0))
     if minimum < 0:
         raise SystemExit(f"{ENV_MIN_SEMANTIC} must be non-negative")
+    penalty = float(os.environ.get(ENV_SEMANTIC_REPETITION, "1.0") or 1.0)
+    window = int(float(os.environ.get(ENV_SEMANTIC_WINDOW, "64") or 64))
+    top_k = int(float(os.environ.get(ENV_SEMANTIC_TOPK, "1") or 1))
+    if penalty < 1.0 or window < 0 or top_k < 1:
+        raise SystemExit("semantic decoding knobs are out of range")
     install_bias(family_bias, continue_bias)
-    install_minimum_semantic_fragment(minimum)
+    if penalty > 1.0 or top_k > 1:
+        install_semantic_decoding(penalty, window, top_k, minimum)
+    else:
+        install_minimum_semantic_fragment(minimum)
     probe.install_probe()  # wraps the biased choice; records what it returns
     import atexit
 
