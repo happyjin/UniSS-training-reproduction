@@ -1,0 +1,5602 @@
+{
+  "claim_scope": "frozen_fixed16_selection_train_seen",
+  "latency_note": "source-timeline, not computation aware; LAAL uses max(hypothesis, reference) length per Papi et al. 2022",
+  "offline_reference": {
+    "asr_error": {
+      "cmn->eng": {
+        "edits": 285,
+        "empty_hypotheses": 0,
+        "error_rate": 0.05466052934407365,
+        "metric": "CER",
+        "reference_units": 5214,
+        "samples": 128
+      },
+      "eng->cmn": {
+        "edits": 175,
+        "empty_hypotheses": 0,
+        "error_rate": 0.056071771867991026,
+        "metric": "WER",
+        "reference_units": 3121,
+        "samples": 128
+      }
+    },
+    "audio_duration_ratio": {
+      "direct_s2st:cmn->eng": {
+        "mean": 3.06089084953024,
+        "slc_0_2": 0.12903225806451613,
+        "slc_0_4": 0.1935483870967742
+      },
+      "direct_s2st:eng->cmn": {
+        "mean": 3.2718998233341225,
+        "slc_0_2": 0.03125,
+        "slc_0_4": 0.125
+      },
+      "performance:cmn->eng": {
+        "mean": 2.3814390914415,
+        "slc_0_2": 0.4375,
+        "slc_0_4": 0.5
+      },
+      "performance:eng->cmn": {
+        "mean": 1.5720691338324877,
+        "slc_0_2": 0.65625,
+        "slc_0_4": 0.8125
+      },
+      "quality:cmn->eng": {
+        "mean": 2.4651321838584894,
+        "slc_0_2": 0.3870967741935484,
+        "slc_0_4": 0.41935483870967744
+      },
+      "quality:eng->cmn": {
+        "mean": 1.5479198239302674,
+        "slc_0_2": 0.5625,
+        "slc_0_4": 0.8125
+      },
+      "tts:cmn->eng": {
+        "mean": 1.039170820380114,
+        "slc_0_2": 0.625,
+        "slc_0_4": 0.90625
+      },
+      "tts:eng->cmn": {
+        "mean": 1.489343029767786,
+        "slc_0_2": 0.46875,
+        "slc_0_4": 0.84375
+      }
+    },
+    "audio_subset_bleu": {
+      "performance:cmn->eng": 26.207876571711715,
+      "performance:eng->cmn": 44.03495055574773,
+      "quality:cmn->eng": 36.77775052073239,
+      "quality:eng->cmn": 51.42973924812674
+    },
+    "generation": {
+      "max_new_tokens": 1500,
+      "repetition_penalty": 1.1,
+      "temperature": 0.0
+    },
+    "missing_eos": 92,
+    "path": "eval_outputs/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage00_phase3_offline_20260816T031129Z/baseline_summary.json",
+    "rows": 256,
+    "semantic_tokens_mean": 785.80078125,
+    "text_bleu": {
+      "performance:cmn->eng": 28.879722740308452,
+      "performance:eng->cmn": 46.78531336871904,
+      "quality:cmn->eng": 33.229814757212615,
+      "quality:eng->cmn": 52.42121997447727
+    }
+  },
+  "runs": [
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 1.0,
+            "mean": 0.0625,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "asr.empty_events": {
+            "max": 7.0,
+            "mean": 3.3125,
+            "min": 0.0,
+            "n": 16,
+            "p50": 3.5,
+            "p90": 6.0
+          },
+          "asr.error_rate": {
+            "max": 0.8333333333333334,
+            "mean": 0.1828725842303442,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.13574660633484165,
+            "p90": 0.37222222222222223
+          },
+          "latency_speech.al_ms": {
+            "max": 1285.7093655338394,
+            "mean": 427.82464391761744,
+            "min": -267.1929084001689,
+            "n": 8,
+            "p50": 443.9804399041996,
+            "p90": 886.0464428388279
+          },
+          "latency_speech.average_proportion": {
+            "max": 0.6663288940359005,
+            "mean": 0.5517402130866398,
+            "min": 0.4461598702243106,
+            "n": 8,
+            "p50": 0.5516576246073417,
+            "p90": 0.6199047596696745
+          },
+          "latency_speech.dal_ms": {
+            "max": 1556.4239180048985,
+            "mean": 906.0232981574832,
+            "min": 586.4094992002007,
+            "n": 8,
+            "p50": 927.1048077273879,
+            "p90": 1178.5998626469932
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 1280.0,
+            "mean": 580.0,
+            "min": 160.0,
+            "n": 8,
+            "p50": 560.0,
+            "p90": 943.9999999999999
+          },
+          "latency_speech.laal_ms": {
+            "max": 1285.7093655338394,
+            "mean": 517.8132232531541,
+            "min": -42.091059420130144,
+            "n": 8,
+            "p50": 464.56976992901355,
+            "p90": 886.0464428388279
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 1280.0,
+            "mean": 780.0,
+            "min": 480.0,
+            "n": 8,
+            "p50": 720.0,
+            "p90": 1168.0
+          },
+          "latency_text.al_ms": {
+            "max": 600.0,
+            "mean": 102.63331970317265,
+            "min": -646.125,
+            "n": 8,
+            "p50": 208.3505730380731,
+            "p90": 541.1176470588234
+          },
+          "latency_text.average_proportion": {
+            "max": 0.6840490797546013,
+            "mean": 0.5918405530208312,
+            "min": 0.4871287128712871,
+            "n": 8,
+            "p50": 0.5988591800356506,
+            "p90": 0.6542593099136415
+          },
+          "latency_text.dal_ms": {
+            "max": 1280.0,
+            "mean": 735.789402958153,
+            "min": 160.0,
+            "n": 8,
+            "p50": 775.325,
+            "p90": 1098.3111111111111
+          },
+          "latency_text.first_emission_ms": {
+            "max": 1280.0,
+            "mean": 580.0,
+            "min": 160.0,
+            "n": 8,
+            "p50": 560.0,
+            "p90": 943.9999999999999
+          },
+          "latency_text.laal_ms": {
+            "max": 763.0,
+            "mean": 450.6217858938448,
+            "min": 73.5,
+            "n": 8,
+            "p50": 496.0912698412699,
+            "p90": 703.2529411764707
+          },
+          "mt_free.commit_conflicts": {
+            "max": 37.0,
+            "mean": 5.875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 1.0,
+            "p90": 17.0
+          },
+          "mt_free.coverage": {
+            "max": 0.875,
+            "mean": 0.37156832448952015,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.2950310559006211,
+            "p90": 0.788888888888889
+          },
+          "mt_free.length_ratio": {
+            "max": 1.1875,
+            "mean": 0.5857986367497238,
+            "min": 0.07692307692307693,
+            "n": 16,
+            "p50": 0.4806547619047619,
+            "p90": 1.1111111111111112
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 34.0,
+            "mean": 5.6875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 19.0
+          },
+          "mt_gold.coverage": {
+            "max": 0.9090909090909091,
+            "mean": 0.530771734304343,
+            "min": 0.07142857142857142,
+            "n": 16,
+            "p50": 0.5,
+            "p90": 0.8375
+          },
+          "mt_gold.length_ratio": {
+            "max": 1.1111111111111112,
+            "mean": 0.7271425736099649,
+            "min": 0.25,
+            "n": 16,
+            "p50": 0.7615384615384615,
+            "p90": 1.1031746031746033
+          },
+          "s2s.audible": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.audible_onset_ms": {
+            "max": 1700.5,
+            "mean": 650.53125,
+            "min": 62.625,
+            "n": 8,
+            "p50": 538.3125,
+            "p90": 1178.69375
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 1.353658536585366,
+            "mean": 0.9411014099896367,
+            "min": 0.6327272727272727,
+            "n": 8,
+            "p50": 0.8528975030284085,
+            "p90": 1.3100975609756098
+          },
+          "s2s.clipping": {
+            "max": 0.0,
+            "mean": 0.0,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "s2s.malformed_segments": {
+            "max": 3.0,
+            "mean": 0.625,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.0,
+            "p90": 2.3
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.passes_tightened_gate": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 1.4037267080745341,
+            "mean": 0.9029269363741831,
+            "min": 0.628158844765343,
+            "n": 8,
+            "p50": 0.8875417924497679,
+            "p90": 1.166279302744941
+          },
+          "s2s.session_coverage": {
+            "max": 0.8125,
+            "mean": 0.4157925407925408,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.4772727272727273,
+            "p90": 0.6206730769230768
+          },
+          "s2s.session_length_ratio": {
+            "max": 1.4,
+            "mean": 1.1875230672105672,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.2019230769230769,
+            "p90": 1.3109090909090908
+          },
+          "samples": 16
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "asr.empty_events": {
+              "max": 6.0,
+              "mean": 3.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 3.0,
+              "p90": 5.3
+            },
+            "asr.error_rate": {
+              "max": 0.20588235294117646,
+              "mean": 0.0740540817696017,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.03689064558629776,
+              "p90": 0.1983500717360115
+            },
+            "latency_speech.al_ms": {
+              "max": 714.7623331123946,
+              "mean": 379.02995359971743,
+              "min": -42.091059420130144,
+              "n": 4,
+              "p50": 421.7242703533027,
+              "p90": 664.5110525335149
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.6000087020841491,
+              "mean": 0.5112653448486236,
+              "min": 0.4461598702243106,
+              "n": 4,
+              "p50": 0.4994464035430173,
+              "p90": 0.5772876448569626
+            },
+            "latency_speech.dal_ms": {
+              "max": 1016.6752674936051,
+              "mean": 799.388212950048,
+              "min": 586.4094992002007,
+              "n": 4,
+              "p50": 797.2340425531931,
+              "p90": 998.0131127774384
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 640.0,
+              "mean": 360.0,
+              "min": 160.0,
+              "n": 4,
+              "p50": 320.0,
+              "p90": 544.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 714.7623331123946,
+              "mean": 379.02995359971743,
+              "min": -42.091059420130144,
+              "n": 4,
+              "p50": 421.7242703533027,
+              "p90": 664.5110525335149
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1280.0,
+              "mean": 880.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 880.0,
+              "p90": 1232.0
+            },
+            "latency_text.al_ms": {
+              "max": 600.0,
+              "mean": -106.37923534798536,
+              "min": -646.125,
+              "n": 4,
+              "p50": -189.69597069597071,
+              "p90": 410.15384615384625
+            },
+            "latency_text.average_proportion": {
+              "max": 0.6840490797546013,
+              "mean": 0.5663784495998152,
+              "min": 0.4871287128712871,
+              "n": 4,
+              "p50": 0.5471680028866863,
+              "p90": 0.648598572194379
+            },
+            "latency_text.dal_ms": {
+              "max": 1020.4444444444443,
+              "mean": 555.8968253968254,
+              "min": 160.0,
+              "n": 4,
+              "p50": 521.5714285714288,
+              "p90": 906.3111111111112
+            },
+            "latency_text.first_emission_ms": {
+              "max": 640.0,
+              "mean": 360.0,
+              "min": 160.0,
+              "n": 4,
+              "p50": 320.0,
+              "p90": 544.0
+            },
+            "latency_text.laal_ms": {
+              "max": 763.0,
+              "mean": 364.43452380952385,
+              "min": 73.5,
+              "n": 4,
+              "p50": 310.6190476190477,
+              "p90": 659.6714285714287
+            },
+            "mt_free.commit_conflicts": {
+              "max": 18.0,
+              "mean": 4.25,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 15.2
+            },
+            "mt_free.coverage": {
+              "max": 0.8,
+              "mean": 0.41452748640248643,
+              "min": 0.03571428571428571,
+              "n": 8,
+              "p50": 0.29464285714285715,
+              "p90": 0.7844444444444445
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.5851688242313242,
+              "min": 0.17857142857142858,
+              "n": 8,
+              "p50": 0.4110576923076923,
+              "p90": 1.1111111111111112
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 22.0,
+              "mean": 3.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 7.9999999999999964
+            },
+            "mt_gold.coverage": {
+              "max": 0.8,
+              "mean": 0.48595605783105783,
+              "min": 0.07142857142857142,
+              "n": 8,
+              "p50": 0.5625,
+              "p90": 0.7844444444444445
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.6699902528027528,
+              "min": 0.25,
+              "n": 8,
+              "p50": 0.6651785714285714,
+              "p90": 1.1111111111111112
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 1700.5,
+              "mean": 835.25,
+              "min": 353.75,
+              "n": 4,
+              "p50": 643.375,
+              "p90": 1398.9062500000002
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.353658536585366,
+              "mean": 0.9581296388828625,
+              "min": 0.7788778877887789,
+              "n": 4,
+              "p50": 0.8499910655786527,
+              "p90": 1.207070178063744
+            },
+            "s2s.clipping": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 2.1000000000000005
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 0.9446808510638298,
+              "mean": 0.8447455782645844,
+              "min": 0.659217877094972,
+              "n": 4,
+              "p50": 0.8875417924497679,
+              "p90": 0.9342924687605538
+            },
+            "s2s.session_coverage": {
+              "max": 0.5384615384615384,
+              "mean": 0.46794871794871795,
+              "min": 0.3333333333333333,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 0.5269230769230769
+            },
+            "s2s.session_length_ratio": {
+              "max": 1.4,
+              "mean": 1.228739316239316,
+              "min": 1.1111111111111112,
+              "n": 4,
+              "p50": 1.2019230769230769,
+              "p90": 1.355
+            },
+            "samples": 8
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.2999999999999998
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 3.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.0,
+              "p90": 6.3
+            },
+            "asr.error_rate": {
+              "max": 0.8333333333333334,
+              "mean": 0.2916910866910867,
+              "min": 0.047619047619047616,
+              "n": 8,
+              "p50": 0.22714285714285715,
+              "p90": 0.561111111111111
+            },
+            "latency_speech.al_ms": {
+              "max": 1285.7093655338394,
+              "mean": 476.61933423551744,
+              "min": -267.1929084001689,
+              "n": 4,
+              "p50": 443.9804399041996,
+              "p90": 1051.820377213638
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.6663288940359005,
+              "mean": 0.5922150813246561,
+              "min": 0.5460397074190178,
+              "n": 4,
+              "p50": 0.5782458619218531,
+              "p90": 0.6461950804395424
+            },
+            "latency_speech.dal_ms": {
+              "max": 1556.4239180048985,
+              "mean": 1012.6583833649184,
+              "min": 639.9999999999993,
+              "n": 4,
+              "p50": 927.1048077273879,
+              "p90": 1369.0220358585625
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1280.0,
+              "mean": 800.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 720.0,
+              "p90": 1136.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 1285.7093655338394,
+              "mean": 656.5964929065907,
+              "min": 373.67858063407505,
+              "n": 4,
+              "p50": 483.4990127292241,
+              "p90": 1075.5315209086527
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 800.0,
+              "mean": 680.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 720.0,
+              "p90": 800.0
+            },
+            "latency_text.al_ms": {
+              "max": 515.8823529411765,
+              "mean": 311.64587475433063,
+              "min": 201.73611111111111,
+              "n": 4,
+              "p50": 264.48251748251755,
+              "p90": 455.3176470588235
+            },
+            "latency_text.average_proportion": {
+              "max": 0.6414922656960873,
+              "mean": 0.6173026564418471,
+              "min": 0.5937967914438502,
+              "n": 4,
+              "p50": 0.6169607843137255,
+              "p90": 0.6380445859872611
+            },
+            "latency_text.dal_ms": {
+              "max": 1280.0,
+              "mean": 915.6819805194806,
+              "min": 744.4,
+              "n": 4,
+              "p50": 819.1639610389611,
+              "p90": 1145.6233766233768
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1280.0,
+              "mean": 800.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 720.0,
+              "p90": 1136.0
+            },
+            "latency_text.laal_ms": {
+              "max": 677.6470588235296,
+              "mean": 536.8090479781657,
+              "min": 314.0,
+              "n": 4,
+              "p50": 577.7945665445666,
+              "p90": 648.9463477698773
+            },
+            "mt_free.commit_conflicts": {
+              "max": 37.0,
+              "mean": 7.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 2.0,
+              "p90": 22.299999999999997
+            },
+            "mt_free.coverage": {
+              "max": 0.875,
+              "mean": 0.32860916257655387,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.2950310559006211,
+              "p90": 0.7715909090909091
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1875,
+              "mean": 0.5864284492681232,
+              "min": 0.07692307692307693,
+              "n": 8,
+              "p50": 0.5346320346320346,
+              "p90": 1.0350378787878787
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 34.0,
+              "mean": 8.375,
+              "min": 0.0,
+              "n": 8,
+              "p50": 1.5,
+              "p90": 21.4
+            },
+            "mt_gold.coverage": {
+              "max": 0.9090909090909091,
+              "mean": 0.5755874107776282,
+              "min": 0.3333333333333333,
+              "n": 8,
+              "p50": 0.5,
+              "p90": 0.8852272727272728
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.0952380952380953,
+              "mean": 0.784294894417177,
+              "min": 0.3939393939393939,
+              "n": 8,
+              "p50": 0.7615384615384615,
+              "p90": 1.0922077922077922
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 955.0625,
+              "mean": 465.8125,
+              "min": 62.625,
+              "n": 4,
+              "p50": 422.78125,
+              "p90": 814.0625000000001
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.2914285714285714,
+              "mean": 0.9240731810964108,
+              "min": 0.6327272727272727,
+              "n": 4,
+              "p50": 0.8860684401148995,
+              "p90": 1.1834117647058824
+            },
+            "s2s.clipping": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "s2s.malformed_segments": {
+              "max": 2.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 1.4000000000000004
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.4037267080745341,
+              "mean": 0.9611082944837819,
+              "min": 0.628158844765343,
+              "n": 4,
+              "p50": 0.9062738125476251,
+              "p90": 1.3019635343618514
+            },
+            "s2s.session_coverage": {
+              "max": 0.8125,
+              "mean": 0.36363636363636365,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.3210227272727273,
+              "p90": 0.7051136363636363
+            },
+            "s2s.session_length_ratio": {
+              "max": 1.2727272727272727,
+              "mean": 1.1463068181818181,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.15625,
+              "p90": 1.2659090909090909
+            },
+            "samples": 8
+          }
+        }
+      },
+      "candidate": null,
+      "gate_failed_checks": [],
+      "gate_status": null,
+      "label": "short_rp11",
+      "run_root": "reports/uniss_phase3_e2e_speak_decision_v1/family_logit_probe/short_rp11_20260901T173652Z",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.030303030303030304,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 33,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 16,
+            "final_hypothesis": "Such a person feels that everything is possible and then thinks that everything in the future is full of hope",
+            "hypothesis_units": 20,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 6,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 16,
+            "final_hypothesis": "Such a person feels that everything is possible and then thinks that everything in the future is full of hope",
+            "hypothesis_units": 20,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 6,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005985930",
+          "source_duration_ms": 8300.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.21428571428571427,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.2857142857142857,
+            "events": 18,
+            "final_hypothesis": "他是西班牙银行业和商业",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.6190476190476191,
+            "events": 18,
+            "final_hypothesis": "他是银行贸易和商业委员会常设参议院委员会的主席",
+            "hypothesis_units": 23,
+            "length_ratio": 1.0952380952380953,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "sample_id": "CommonVoice_EN_0000463919",
+          "source_duration_ms": 6200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.043478260869565216,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 23,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.375,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch",
+            "hypothesis_units": 7,
+            "length_ratio": 0.4375,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.375,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch",
+            "hypothesis_units": 7,
+            "length_ratio": 0.4375,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 16,
+              "WRITE_ASR": 13,
+              "WRITE_MT": 15,
+              "WRITE_SEMANTIC": 15
+            },
+            "audio_duration_seconds": 4.72,
+            "audio_over_source_ratio": 0.7788778877887789,
+            "audio_peak": 0.6581815481185913,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 695.1875,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 4.72,
+              "file_rms": 0.09008314460515976,
+              "passes_tightened_gate": true,
+              "peak": 0.6581815481185913
+            },
+            "audio_rms": 0.09008313715457916,
+            "events": 17,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 714.7623331123946,
+              "average_proportion": 0.4461598702243106,
+              "dal_ms": 1016.6752674936051,
+              "emitted": true,
+              "first_emission_ms": 160.0,
+              "hypothesis_units": 236,
+              "laal_ms": 714.7623331123946,
+              "last_emission_ms": 5920.0,
+              "length_ratio": 0.659217877094972,
+              "maximum_gap_ms": 1120.0,
+              "reference_units": 358,
+              "tau": 236
+            },
+            "latency_text": {
+              "al_ms": -646.125,
+              "average_proportion": 0.4871287128712871,
+              "dal_ms": 160.0,
+              "emitted": true,
+              "first_emission_ms": 160.0,
+              "hypothesis_units": 20,
+              "laal_ms": 73.5,
+              "last_emission_ms": 5920.0,
+              "length_ratio": 1.25,
+              "maximum_gap_ms": 1120.0,
+              "reference_units": 16,
+              "tau": 20
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.659217877094972,
+            "semantic_length_ratio": 0.659217877094972,
+            "semantic_reference_tokens": 358,
+            "semantic_tokens": 236,
+            "session_text": {
+              "coverage": 0.5,
+              "hypothesis_units": 20,
+              "length_ratio": 1.25,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006199435",
+          "source_duration_ms": 6060.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.047619047619047616,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 42,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.06153846153846154,
+            "events": 46,
+            "final_hypothesis": "这是我长期",
+            "hypothesis_units": 5,
+            "length_ratio": 0.07692307692307693,
+            "nonempty_events": 39,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 34,
+            "coverage": 0.47692307692307695,
+            "events": 46,
+            "final_hypothesis": "这是我长期以来一直渴望的荣誉但作为一个新来的人直到我的性格完全成熟之前我从未被允许加入这个兄弟",
+            "hypothesis_units": 47,
+            "length_ratio": 0.7230769230769231,
+            "nonempty_events": 41,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "sample_id": "LibriSpeech_0000031307",
+          "source_duration_ms": 13180.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.11764705882352941,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.18181818181818182,
+            "events": 19,
+            "final_hypothesis": "And the second method of this",
+            "hypothesis_units": 6,
+            "length_ratio": 0.2727272727272727,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.18181818181818182,
+            "events": 19,
+            "final_hypothesis": "And the second method of this",
+            "hypothesis_units": 6,
+            "length_ratio": 0.2727272727272727,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007583994",
+          "source_duration_ms": 6680.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.8333333333333334,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 6,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 3,
+            "coverage": 0.0,
+            "events": 7,
+            "final_hypothesis": "看",
+            "hypothesis_units": 1,
+            "length_ratio": 0.1,
+            "nonempty_events": 4,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.5,
+            "events": 7,
+            "final_hypothesis": "这对我来说没什么",
+            "hypothesis_units": 8,
+            "length_ratio": 0.8,
+            "nonempty_events": 2,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 6,
+              "WRITE_ASR": 6,
+              "WRITE_MT": 6,
+              "WRITE_SEMANTIC": 6
+            },
+            "audio_duration_seconds": 1.9,
+            "audio_over_source_ratio": 0.9313725490196079,
+            "audio_peak": 0.7208220362663269,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 360.5,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 1.9,
+              "file_rms": 0.09747187048196793,
+              "passes_tightened_gate": true,
+              "peak": 0.7208220362663269
+            },
+            "audio_rms": 0.09747182577848434,
+            "events": 7,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 381.88147534189807,
+              "average_proportion": 0.5572755417956656,
+              "dal_ms": 639.9999999999993,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 95,
+              "laal_ms": 381.88147534189807,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.7480314960629921,
+              "maximum_gap_ms": 480.0,
+              "reference_units": 127,
+              "tau": 95
+            },
+            "latency_text": {
+              "al_ms": 314.0,
+              "average_proportion": 0.6039215686274509,
+              "dal_ms": 744.4,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 10,
+              "laal_ms": 314.0,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 1.0,
+              "maximum_gap_ms": 480.0,
+              "reference_units": 10,
+              "tau": 10
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.7480314960629921,
+            "semantic_length_ratio": 0.7480314960629921,
+            "semantic_reference_tokens": 127,
+            "semantic_tokens": 95,
+            "session_text": {
+              "coverage": 0.0,
+              "hypothesis_units": 10,
+              "length_ratio": 1.0,
+              "reference_units": 10
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000329073",
+          "source_duration_ms": 2040.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.1951219512195122,
+            "errors": 8,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 41,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 18,
+            "coverage": 0.03571428571428571,
+            "events": 32,
+            "final_hypothesis": "The place where one operates",
+            "hypothesis_units": 5,
+            "length_ratio": 0.17857142857142858,
+            "nonempty_events": 21,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 22,
+            "coverage": 0.07142857142857142,
+            "events": 32,
+            "final_hypothesis": "The strengths of running your own business",
+            "hypothesis_units": 7,
+            "length_ratio": 0.25,
+            "nonempty_events": 26,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005612325",
+          "source_duration_ms": 10080.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.3,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.875,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+            "hypothesis_units": 19,
+            "length_ratio": 1.1875,
+            "nonempty_events": 6,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.5,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔的鲍勃",
+            "hypothesis_units": 9,
+            "length_ratio": 0.5625,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 1,
+              "WAIT": 8,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 8,
+              "WRITE_SEMANTIC": 8
+            },
+            "audio_duration_seconds": 4.52,
+            "audio_over_source_ratio": 1.2914285714285714,
+            "audio_peak": 0.7275692820549011,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 62.625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 4.52,
+              "file_rms": 0.07558777183294296,
+              "passes_tightened_gate": true,
+              "peak": 0.7275692820549011
+            },
+            "audio_rms": 0.07558773458003998,
+            "events": 10,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -267.1929084001689,
+              "average_proportion": 0.5992161820480405,
+              "dal_ms": 922.4586379376651,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 226,
+              "laal_ms": 373.67858063407505,
+              "last_emission_ms": 3500.0,
+              "length_ratio": 1.4037267080745341,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 161,
+              "tau": 206
+            },
+            "latency_text": {
+              "al_ms": 201.73611111111111,
+              "average_proportion": 0.63,
+              "dal_ms": 806.25,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 20,
+              "laal_ms": 573.6111111111111,
+              "last_emission_ms": 3500.0,
+              "length_ratio": 1.25,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 16,
+              "tau": 18
+            },
+            "malformed_segments": 2,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.4037267080745341,
+            "semantic_reference_tokens": 161,
+            "semantic_tokens": 226,
+            "session_text": {
+              "coverage": 0.8125,
+              "hypothesis_units": 20,
+              "length_ratio": 1.25,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006401658",
+          "source_duration_ms": 3500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.20588235294117646,
+            "errors": 7,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 14,
+            "coverage": 0.21428571428571427,
+            "events": 22,
+            "final_hypothesis": "The police officer who received the alarm at",
+            "hypothesis_units": 8,
+            "length_ratio": 0.2857142857142857,
+            "nonempty_events": 15,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.75,
+            "events": 22,
+            "final_hypothesis": "The police station that received the alarm initially did not expect it to be a murder case and the Xu family often caused a commotion",
+            "hypothesis_units": 25,
+            "length_ratio": 0.8928571428571429,
+            "nonempty_events": 16,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007203542",
+          "source_duration_ms": 9360.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.24,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 25,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.7272727272727273,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和厄尔在当时打电话但两人都知道他们不会再见面了",
+            "hypothesis_units": 32,
+            "length_ratio": 0.9696969696969697,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 16,
+            "coverage": 0.3333333333333333,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和我通过",
+            "hypothesis_units": 13,
+            "length_ratio": 0.3939393939393939,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0004788301",
+          "source_duration_ms": 8200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.15384615384615385,
+            "events": 13,
+            "final_hypothesis": "The past has already passed",
+            "hypothesis_units": 5,
+            "length_ratio": 0.38461538461538464,
+            "nonempty_events": 9,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.15384615384615385,
+            "events": 13,
+            "final_hypothesis": "The past has already passed",
+            "hypothesis_units": 5,
+            "length_ratio": 0.38461538461538464,
+            "nonempty_events": 9,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 1,
+              "WAIT": 11,
+              "WRITE_ASR": 12,
+              "WRITE_MT": 12,
+              "WRITE_SEMANTIC": 12
+            },
+            "audio_duration_seconds": 4.44,
+            "audio_over_source_ratio": 1.353658536585366,
+            "audio_peak": 0.6380007863044739,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 1700.5,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 4.44,
+              "file_rms": 0.07062579691410065,
+              "passes_tightened_gate": true,
+              "peak": 0.6380007863044739
+            },
+            "audio_rms": 0.07062582671642303,
+            "events": 13,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -42.091059420130144,
+              "average_proportion": 0.47462096242584045,
+              "dal_ms": 640.0000000000032,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 222,
+              "laal_ms": -42.091059420130144,
+              "last_emission_ms": 3280.0,
+              "length_ratio": 0.9446808510638298,
+              "maximum_gap_ms": 480.0,
+              "reference_units": 235,
+              "tau": 193
+            },
+            "latency_text": {
+              "al_ms": -32.82051282051289,
+              "average_proportion": 0.5284552845528455,
+              "dal_ms": 640.0000000000003,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 15,
+              "laal_ms": 202.66666666666677,
+              "last_emission_ms": 3280.0,
+              "length_ratio": 1.1538461538461537,
+              "maximum_gap_ms": 480.0,
+              "reference_units": 13,
+              "tau": 15
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.9446808510638298,
+            "semantic_length_ratio": 0.9446808510638298,
+            "semantic_reference_tokens": 235,
+            "semantic_tokens": 222,
+            "session_text": {
+              "coverage": 0.5384615384615384,
+              "hypothesis_units": 15,
+              "length_ratio": 1.1538461538461537,
+              "reference_units": 13
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0005215832",
+          "source_duration_ms": 3280.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 6,
+            "error_rate": 0.15384615384615385,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "wer",
+            "reference_units": 39,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 16,
+            "coverage": 0.30434782608695654,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试提供一个可以",
+            "hypothesis_units": 19,
+            "length_ratio": 0.41304347826086957,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 14,
+            "coverage": 0.391304347826087,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+            "hypothesis_units": 28,
+            "length_ratio": 0.6086956521739131,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "sample_id": "EN_B00058_S05161_W000178",
+          "source_duration_ms": 13980.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 8,
+              "WRITE_SEMANTIC": 8
+            },
+            "audio_duration_seconds": 2.82,
+            "audio_over_source_ratio": 0.8650306748466258,
+            "audio_peak": 0.8794967532157898,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 591.5625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 2.82,
+              "file_rms": 0.07080632448196411,
+              "passes_tightened_gate": true,
+              "peak": 0.8794967532157898
+            },
+            "audio_rms": 0.07080630213022232,
+            "events": 11,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 547.258064516129,
+              "average_proportion": 0.6000087020841491,
+              "dal_ms": 954.468085106383,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 141,
+              "laal_ms": 547.258064516129,
+              "last_emission_ms": 3260.0,
+              "length_ratio": 0.8650306748466258,
+              "maximum_gap_ms": 1280.0,
+              "reference_units": 163,
+              "tau": 124
+            },
+            "latency_text": {
+              "al_ms": 600.0,
+              "average_proportion": 0.6840490797546013,
+              "dal_ms": 1020.4444444444443,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 10,
+              "laal_ms": 763.0,
+              "last_emission_ms": 3260.0,
+              "length_ratio": 1.1111111111111112,
+              "maximum_gap_ms": 1280.0,
+              "reference_units": 9,
+              "tau": 10
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.8650306748466258,
+            "semantic_length_ratio": 0.8650306748466258,
+            "semantic_reference_tokens": 163,
+            "semantic_tokens": 141,
+            "session_text": {
+              "coverage": 0.3333333333333333,
+              "hypothesis_units": 10,
+              "length_ratio": 1.1111111111111112,
+              "reference_units": 9
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006795452",
+          "source_duration_ms": 3260.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.1,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.375,
+            "events": 14,
+            "final_hypothesis": "侦察人员协助建造了当地动物园",
+            "hypothesis_units": 14,
+            "length_ratio": 0.875,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 1,
+            "coverage": 0.875,
+            "events": 14,
+            "final_hypothesis": "童子军总统促成了当地动物园的建设",
+            "hypothesis_units": 16,
+            "length_ratio": 1.0,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 11,
+              "WRITE_SEMANTIC": 11
+            },
+            "audio_duration_seconds": 3.48,
+            "audio_over_source_ratio": 0.6327272727272727,
+            "audio_peak": 0.6805843114852905,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 955.0625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 3.48,
+              "file_rms": 0.06274393200874329,
+              "passes_tightened_gate": true,
+              "peak": 0.6805843114852905
+            },
+            "audio_rms": 0.06274393945932388,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 1285.7093655338394,
+              "average_proportion": 0.5460397074190178,
+              "dal_ms": 1556.4239180048985,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 174,
+              "laal_ms": 1285.7093655338394,
+              "last_emission_ms": 4960.0,
+              "length_ratio": 0.628158844765343,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 277,
+              "tau": 174
+            },
+            "latency_text": {
+              "al_ms": 515.8823529411765,
+              "average_proportion": 0.5937967914438502,
+              "dal_ms": 1280.0,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 17,
+              "laal_ms": 677.6470588235296,
+              "last_emission_ms": 4960.0,
+              "length_ratio": 1.0625,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 16,
+              "tau": 17
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.628158844765343,
+            "semantic_length_ratio": 0.628158844765343,
+            "semantic_reference_tokens": 277,
+            "semantic_tokens": 174,
+            "session_text": {
+              "coverage": 0.1875,
+              "hypothesis_units": 17,
+              "length_ratio": 1.0625,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000392649",
+          "source_duration_ms": 5500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 12,
+              "WRITE_SEMANTIC": 12
+            },
+            "audio_duration_seconds": 3.44,
+            "audio_over_source_ratio": 0.8349514563106796,
+            "audio_peak": 0.819912314414978,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 353.75,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 3.44,
+              "file_rms": 0.08108440041542053,
+              "passes_tightened_gate": true,
+              "peak": 0.819912314414978
+            },
+            "audio_rms": 0.08108436316251755,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 296.1904761904763,
+              "average_proportion": 0.5242718446601942,
+              "dal_ms": 586.4094992002007,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 172,
+              "laal_ms": 296.1904761904763,
+              "last_emission_ms": 4000.0,
+              "length_ratio": 0.91005291005291,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 189,
+              "tau": 172
+            },
+            "latency_text": {
+              "al_ms": -346.57142857142856,
+              "average_proportion": 0.565880721220527,
+              "dal_ms": 403.14285714285717,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 14,
+              "laal_ms": 418.5714285714286,
+              "last_emission_ms": 4000.0,
+              "length_ratio": 1.4,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 10,
+              "tau": 14
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.91005291005291,
+            "semantic_length_ratio": 0.91005291005291,
+            "semantic_reference_tokens": 189,
+            "semantic_tokens": 172,
+            "session_text": {
+              "coverage": 0.5,
+              "hypothesis_units": 14,
+              "length_ratio": 1.4,
+              "reference_units": 10
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0004122419",
+          "source_duration_ms": 4120.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.4444444444444444,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 9,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.0,
+            "events": 9,
+            "final_hypothesis": "你只需要修复",
+            "hypothesis_units": 6,
+            "length_ratio": 0.5454545454545454,
+            "nonempty_events": 4,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.9090909090909091,
+            "events": 9,
+            "final_hypothesis": "并用这个来解决高方差问题",
+            "hypothesis_units": 12,
+            "length_ratio": 1.0909090909090908,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 8,
+              "WRITE_ASR": 8,
+              "WRITE_MT": 7,
+              "WRITE_SEMANTIC": 7
+            },
+            "audio_duration_seconds": 2.64,
+            "audio_over_source_ratio": 0.8407643312101911,
+            "audio_peak": 0.9404211640357971,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 485.0625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 2.64,
+              "file_rms": 0.09606849402189255,
+              "passes_tightened_gate": true,
+              "peak": 0.9404211640357971
+            },
+            "audio_rms": 0.09606852382421494,
+            "events": 9,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 506.07940446650116,
+              "average_proportion": 0.6663288940359005,
+              "dal_ms": 931.7509775171108,
+              "emitted": true,
+              "first_emission_ms": 800.0,
+              "hypothesis_units": 132,
+              "laal_ms": 585.1165501165501,
+              "last_emission_ms": 3140.0,
+              "length_ratio": 1.064516129032258,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 124,
+              "tau": 104
+            },
+            "latency_text": {
+              "al_ms": 214.96503496503507,
+              "average_proportion": 0.6414922656960873,
+              "dal_ms": 832.0779220779223,
+              "emitted": true,
+              "first_emission_ms": 800.0,
+              "hypothesis_units": 14,
+              "laal_ms": 581.9780219780221,
+              "last_emission_ms": 3140.0,
+              "length_ratio": 1.2727272727272727,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 11,
+              "tau": 13
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.064516129032258,
+            "semantic_reference_tokens": 124,
+            "semantic_tokens": 132,
+            "session_text": {
+              "coverage": 0.45454545454545453,
+              "hypothesis_units": 14,
+              "length_ratio": 1.2727272727272727,
+              "reference_units": 11
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "EN_B00058_S07483_W000027",
+          "source_duration_ms": 3140.0
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 2.0,
+            "mean": 0.625,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.5,
+            "p90": 1.2999999999999998
+          },
+          "asr.empty_events": {
+            "max": 11.0,
+            "mean": 6.0,
+            "min": 3.0,
+            "n": 8,
+            "p50": 5.0,
+            "p90": 9.6
+          },
+          "asr.error_rate": {
+            "max": 0.425,
+            "mean": 0.17572583315590326,
+            "min": 0.031746031746031744,
+            "n": 8,
+            "p50": 0.09862187769164513,
+            "p90": 0.4014130434782609
+          },
+          "latency_speech.al_ms": {
+            "max": 4129.451366080482,
+            "mean": 2183.577704473978,
+            "min": 86.68359430534323,
+            "n": 8,
+            "p50": 2938.4698843147353,
+            "p90": 3598.0276373461975
+          },
+          "latency_speech.average_proportion": {
+            "max": 0.6469919838765193,
+            "mean": 0.5424973846655662,
+            "min": 0.44642269001665613,
+            "n": 8,
+            "p50": 0.5395489437081687,
+            "p90": 0.6247847750768584
+          },
+          "latency_speech.dal_ms": {
+            "max": 8640.000000000213,
+            "mean": 3346.7036338007997,
+            "min": 806.0514264848144,
+            "n": 8,
+            "p50": 3653.87910703366,
+            "p90": 5324.132007821805
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 8640.0,
+            "mean": 1680.0,
+            "min": 320.0,
+            "n": 8,
+            "p50": 640.0,
+            "p90": 3711.999999999999
+          },
+          "latency_speech.laal_ms": {
+            "max": 4129.451366080482,
+            "mean": 2183.577704473978,
+            "min": 86.68359430534323,
+            "n": 8,
+            "p50": 2938.4698843147353,
+            "p90": 3598.0276373461975
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 2560.0,
+            "mean": 1340.0,
+            "min": 640.0,
+            "n": 8,
+            "p50": 1280.0,
+            "p90": 1887.9999999999998
+          },
+          "latency_text.al_ms": {
+            "max": 357.0666666666663,
+            "mean": -2093.5843625105244,
+            "min": -4753.82857142857,
+            "n": 8,
+            "p50": -1672.296313980138,
+            "p90": -342.4471641791052
+          },
+          "latency_text.average_proportion": {
+            "max": 0.6103572786012923,
+            "mean": 0.5510926973922758,
+            "min": 0.4986473429951691,
+            "n": 8,
+            "p50": 0.5583481189087268,
+            "p90": 0.5845944839207909
+          },
+          "latency_text.dal_ms": {
+            "max": 8639.999999999978,
+            "mean": 1945.5556120217113,
+            "min": 320.0000000000027,
+            "n": 8,
+            "p50": 1018.5246753246797,
+            "p90": 4029.4029850746174
+          },
+          "latency_text.first_emission_ms": {
+            "max": 8640.0,
+            "mean": 1680.0,
+            "min": 320.0,
+            "n": 8,
+            "p50": 640.0,
+            "p90": 3711.999999999999
+          },
+          "latency_text.laal_ms": {
+            "max": 2081.833333333334,
+            "mean": 994.6064918892359,
+            "min": 60.40000000000029,
+            "n": 8,
+            "p50": 1121.282738095238,
+            "p90": 1594.3111940298509
+          },
+          "mt_free.commit_conflicts": {
+            "max": 49.0,
+            "mean": 35.75,
+            "min": 8.0,
+            "n": 8,
+            "p50": 37.5,
+            "p90": 47.599999999999994
+          },
+          "mt_free.coverage": {
+            "max": 0.34615384615384615,
+            "mean": 0.13931126249820852,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.11243386243386243,
+            "p90": 0.33031674208144796
+          },
+          "mt_free.length_ratio": {
+            "max": 0.6470588235294118,
+            "mean": 0.2525975314714235,
+            "min": 0.01818181818181818,
+            "n": 8,
+            "p50": 0.21560846560846558,
+            "p90": 0.5441176470588235
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 62.0,
+            "mean": 37.25,
+            "min": 8.0,
+            "n": 8,
+            "p50": 41.0,
+            "p90": 52.9
+          },
+          "mt_gold.coverage": {
+            "max": 0.36363636363636365,
+            "mean": 0.15684225122178386,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.13812785388127852,
+            "p90": 0.35614973262032085
+          },
+          "mt_gold.length_ratio": {
+            "max": 0.6470588235294118,
+            "mean": 0.23554523762118443,
+            "min": 0.019230769230769232,
+            "n": 8,
+            "p50": 0.1884830035514967,
+            "p90": 0.5122994652406416
+          },
+          "s2s.audible": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.audible_onset_ms": {
+            "max": 1892.375,
+            "mean": 552.7734375,
+            "min": 130.0625,
+            "n": 8,
+            "p50": 321.5,
+            "p90": 1056.9687499999998
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 1.0680437424058322,
+            "mean": 0.8351234116061856,
+            "min": 0.6046783625730994,
+            "n": 8,
+            "p50": 0.8380698079080523,
+            "p90": 1.0204131227217497
+          },
+          "s2s.clipping": {
+            "max": 1.0,
+            "mean": 0.25,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.0,
+            "p90": 1.0
+          },
+          "s2s.malformed_segments": {
+            "max": 1.0,
+            "mean": 0.25,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.0,
+            "p90": 1.0
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.passes_tightened_gate": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 0.982122905027933,
+            "mean": 0.830175278053559,
+            "min": 0.6696891191709845,
+            "n": 8,
+            "p50": 0.7980258710105066,
+            "p90": 0.9785546465990691
+          },
+          "s2s.session_coverage": {
+            "max": 0.76,
+            "mean": 0.4989607298571843,
+            "min": 0.31746031746031744,
+            "n": 8,
+            "p50": 0.4852941176470588,
+            "p90": 0.603925925925926
+          },
+          "s2s.session_length_ratio": {
+            "max": 1.5873015873015872,
+            "mean": 1.3645675591233608,
+            "min": 1.2,
+            "n": 8,
+            "p50": 1.3422459893048129,
+            "p90": 1.5127289377289377
+          },
+          "samples": 8
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 2.0,
+              "mean": 1.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.7000000000000002
+            },
+            "asr.empty_events": {
+              "max": 11.0,
+              "mean": 6.75,
+              "min": 3.0,
+              "n": 4,
+              "p50": 6.5,
+              "p90": 10.4
+            },
+            "asr.error_rate": {
+              "max": 0.10465116279069768,
+              "mean": 0.07159585225976824,
+              "min": 0.031746031746031744,
+              "n": 4,
+              "p50": 0.07499310725117177,
+              "p90": 0.09889683959451401
+            },
+            "latency_speech.al_ms": {
+              "max": 4129.451366080482,
+              "mean": 1839.8485682251578,
+              "min": 86.68359430534323,
+              "n": 4,
+              "p50": 1571.629656257403,
+              "p90": 3664.901633049367
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.6469919838765193,
+              "mean": 0.5505899298115721,
+              "min": 0.44642269001665613,
+              "n": 4,
+              "p50": 0.5544725226765563,
+              "p90": 0.6374746086766646
+            },
+            "latency_speech.dal_ms": {
+              "max": 8640.000000000213,
+              "mean": 3597.8394009383546,
+              "min": 806.0514264848144,
+              "n": 4,
+              "p50": 2472.6530886341952,
+              "p90": 7145.716666349053
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 8640.0,
+              "mean": 2520.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 560.0,
+              "p90": 6240.000000000002
+            },
+            "latency_speech.laal_ms": {
+              "max": 4129.451366080482,
+              "mean": 1839.8485682251578,
+              "min": 86.68359430534323,
+              "n": 4,
+              "p50": 1571.629656257403,
+              "p90": 3664.901633049367
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1600.0,
+              "mean": 1160.0,
+              "min": 640.0,
+              "n": 4,
+              "p50": 1200.0,
+              "p90": 1600.0
+            },
+            "latency_text.al_ms": {
+              "max": 357.0666666666663,
+              "mean": -2386.895652087564,
+              "min": -4350.359640359639,
+              "n": 4,
+              "p50": -2777.1448173286417,
+              "p90": -467.207745098039
+            },
+            "latency_text.average_proportion": {
+              "max": 0.6103572786012923,
+              "mean": 0.5482582623571157,
+              "min": 0.5062924691407663,
+              "n": 4,
+              "p50": 0.5381916508432021,
+              "p90": 0.5910335093586931
+            },
+            "latency_text.dal_ms": {
+              "max": 8639.999999999978,
+              "mean": 2532.8340365682143,
+              "min": 320.0000000000027,
+              "n": 4,
+              "p50": 585.6680731364377,
+              "p90": 6239.999999999991
+            },
+            "latency_text.first_emission_ms": {
+              "max": 8640.0,
+              "mean": 2520.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 560.0,
+              "p90": 6240.000000000002
+            },
+            "latency_text.laal_ms": {
+              "max": 2081.833333333334,
+              "mean": 969.8706318734007,
+              "min": 247.79220779220736,
+              "n": 4,
+              "p50": 774.9284931840309,
+              "p90": 1735.595833333334
+            },
+            "mt_free.commit_conflicts": {
+              "max": 49.0,
+              "mean": 35.25,
+              "min": 8.0,
+              "n": 4,
+              "p50": 42.0,
+              "p90": 48.400000000000006
+            },
+            "mt_free.coverage": {
+              "max": 0.34615384615384615,
+              "mean": 0.1998282218870454,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.22657952069716775,
+              "p90": 0.3393665158371041
+            },
+            "mt_free.length_ratio": {
+              "max": 0.6470588235294118,
+              "mean": 0.3569498910675381,
+              "min": 0.04,
+              "n": 4,
+              "p50": 0.37037037037037035,
+              "p90": 0.6029411764705883
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 62.0,
+              "mean": 41.5,
+              "min": 8.0,
+              "n": 4,
+              "p50": 48.0,
+              "p90": 58.10000000000001
+            },
+            "mt_gold.coverage": {
+              "max": 0.35294117647058826,
+              "mean": 0.12990196078431374,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.08333333333333333,
+              "p90": 0.2970588235294118
+            },
+            "mt_gold.length_ratio": {
+              "max": 0.6470588235294118,
+              "mean": 0.22749832411597118,
+              "min": 0.019230769230769232,
+              "n": 4,
+              "p50": 0.12185185185185185,
+              "p90": 0.5140522875816994
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 1892.375,
+              "mean": 899.953125,
+              "min": 400.375,
+              "n": 4,
+              "p50": 653.53125,
+              "p90": 1534.3437500000002
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.0680437424058322,
+              "mean": 0.9275363903727901,
+              "min": 0.6790505675954592,
+              "n": 4,
+              "p50": 0.9815256257449345,
+              "p90": 1.0476306196840826
+            },
+            "s2s.clipping": {
+              "max": 1.0,
+              "mean": 0.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.7000000000000002
+            },
+            "s2s.malformed_segments": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 0.982122905027933,
+              "mean": 0.8888000100089113,
+              "min": 0.7599653379549394,
+              "n": 4,
+              "p50": 0.9065558985263863,
+              "p90": 0.9805936514155628
+            },
+            "s2s.session_coverage": {
+              "max": 0.76,
+              "mean": 0.5669063180827887,
+              "min": 0.47058823529411764,
+              "n": 4,
+              "p50": 0.5185185185185186,
+              "p90": 0.6931111111111112
+            },
+            "s2s.session_length_ratio": {
+              "max": 1.4807692307692308,
+              "mean": 1.3888742249036368,
+              "min": 1.2,
+              "n": 4,
+              "p50": 1.437363834422658,
+              "p90": 1.4754273504273505
+            },
+            "samples": 4
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.7000000000000002
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 5.25,
+              "min": 4.0,
+              "n": 4,
+              "p50": 5.0,
+              "p90": 6.7
+            },
+            "asr.error_rate": {
+              "max": 0.425,
+              "mean": 0.2798558140520383,
+              "min": 0.09259259259259259,
+              "n": 4,
+              "p50": 0.3009153318077803,
+              "p90": 0.41489130434782606
+            },
+            "latency_speech.al_ms": {
+              "max": 3370.27461074579,
+              "mean": 2527.3068407227984,
+              "min": 137.28282730425744,
+              "n": 4,
+              "p50": 3300.834962420573,
+              "p90": 3350.896951178584
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.5666698010228903,
+              "mean": 0.5344048395195604,
+              "min": 0.4918516696390136,
+              "n": 4,
+              "p50": 0.5395489437081687,
+              "p90": 0.5623148172561709
+            },
+            "latency_speech.dal_ms": {
+              "max": 3903.045725459631,
+              "mean": 3095.567866663245,
+              "min": 991.4723605432098,
+              "n": 4,
+              "p50": 3743.876690325069,
+              "p90": 3883.847224145491
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 840.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 640.0,
+              "p90": 1312.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 3370.27461074579,
+              "mean": 2527.3068407227984,
+              "min": 137.28282730425744,
+              "n": 4,
+              "p50": 3300.834962420573,
+              "p90": 3350.896951178584
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 2560.0,
+              "mean": 1520.0,
+              "min": 960.0,
+              "n": 4,
+              "p50": 1280.0,
+              "p90": 2272.0
+            },
+            "latency_text.al_ms": {
+              "max": -642.2388059701499,
+              "mean": -1800.2730729334849,
+              "min": -4753.82857142857,
+              "n": 4,
+              "p50": -902.5124571676096,
+              "p90": -704.8512618562937
+            },
+            "latency_text.average_proportion": {
+              "max": 0.5735532862005761,
+              "mean": 0.553927132427436,
+              "min": 0.4986473429951691,
+              "n": 4,
+              "p50": 0.5717539502569993,
+              "p90": 0.5733142134871553
+            },
+            "latency_text.dal_ms": {
+              "max": 2053.4328358208936,
+              "mean": 1358.2771874752084,
+              "min": 479.9999999999958,
+              "n": 4,
+              "p50": 1449.8379570399723,
+              "p90": 1888.1909541038062
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 840.0,
+              "min": 480.0,
+              "n": 4,
+              "p50": 640.0,
+              "p90": 1312.0
+            },
+            "latency_text.laal_ms": {
+              "max": 1385.3731343283582,
+              "mean": 1019.342351905071,
+              "min": 60.40000000000029,
+              "n": 4,
+              "p50": 1315.798136645963,
+              "p90": 1364.7829331602857
+            },
+            "mt_free.commit_conflicts": {
+              "max": 44.0,
+              "mean": 36.25,
+              "min": 31.0,
+              "n": 4,
+              "p50": 35.0,
+              "p90": 42.2
+            },
+            "mt_free.coverage": {
+              "max": 0.1643835616438356,
+              "mean": 0.0787943031093716,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.07539682539682539,
+              "p90": 0.1436399217221135
+            },
+            "mt_free.length_ratio": {
+              "max": 0.3287671232876712,
+              "mean": 0.14824517187530886,
+              "min": 0.01818181818181818,
+              "n": 4,
+              "p50": 0.12301587301587301,
+              "p90": 0.287279843444227
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 44.0,
+              "mean": 33.0,
+              "min": 21.0,
+              "n": 4,
+              "p50": 33.5,
+              "p90": 42.2
+            },
+            "mt_gold.coverage": {
+              "max": 0.36363636363636365,
+              "mean": 0.18378254165925398,
+              "min": 0.09523809523809523,
+              "n": 4,
+              "p50": 0.13812785388127852,
+              "p90": 0.3045454545454546
+            },
+            "mt_gold.length_ratio": {
+              "max": 0.45454545454545453,
+              "mean": 0.2435921511263977,
+              "min": 0.14285714285714285,
+              "n": 4,
+              "p50": 0.1884830035514967,
+              "p90": 0.3757160647571607
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 242.625,
+              "mean": 205.59375,
+              "min": 130.0625,
+              "n": 4,
+              "p50": 224.84375,
+              "p90": 237.9375
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 0.8538647342995169,
+              "mean": 0.7427104328395813,
+              "min": 0.6046783625730994,
+              "n": 4,
+              "p50": 0.7561493172428544,
+              "p90": 0.8443877784646381
+            },
+            "s2s.clipping": {
+              "max": 1.0,
+              "mean": 0.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.7000000000000002
+            },
+            "s2s.malformed_segments": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 0.9684931506849315,
+              "mean": 0.7715505460982066,
+              "min": 0.6696891191709845,
+              "n": 4,
+              "p50": 0.7240099572684552,
+              "p90": 0.9005505694641265
+            },
+            "s2s.session_coverage": {
+              "max": 0.5,
+              "mean": 0.43101514163157995,
+              "min": 0.31746031746031744,
+              "n": 4,
+              "p50": 0.4533001245330012,
+              "p90": 0.48636363636363633
+            },
+            "s2s.session_length_ratio": {
+              "max": 1.5873015873015872,
+              "mean": 1.340260893343085,
+              "min": 1.2407407407407407,
+              "n": 4,
+              "p50": 1.2665006226650062,
+              "p90": 1.492929292929293
+            },
+            "samples": 4
+          }
+        }
+      },
+      "candidate": null,
+      "gate_failed_checks": [],
+      "gate_status": null,
+      "label": "long_rp11",
+      "run_root": "reports/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z/longform_delta5/probe_rp11",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 4,
+            "error_rate": 0.08547008547008547,
+            "errors": 10,
+            "final_reached_eos": true,
+            "malformed_write_events": 1,
+            "metric": "cer",
+            "reference_units": 117,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.34615384615384615,
+            "events": 72,
+            "final_hypothesis": "In this context it is about meeting these needs which is the most standard situation In fact when we look at this idea we also have",
+            "hypothesis_units": 26,
+            "length_ratio": 0.5,
+            "nonempty_events": 51,
+            "reference_units": 52,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 62,
+            "coverage": 0.0,
+            "events": 72,
+            "final_hypothesis": "Then",
+            "hypothesis_units": 1,
+            "length_ratio": 0.019230769230769232,
+            "nonempty_events": 64,
+            "reference_units": 52,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 1,
+              "WAIT": 70,
+              "WRITE_ASR": 69,
+              "WRITE_MT": 59,
+              "WRITE_SEMANTIC": 59
+            },
+            "audio_duration_seconds": 13.16,
+            "audio_over_source_ratio": 0.6790505675954592,
+            "audio_peak": 0.8749017119407654,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 1892.375,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 13.16,
+              "file_rms": 0.06458576768636703,
+              "passes_tightened_gate": true,
+              "peak": 0.8749017119407654
+            },
+            "audio_rms": 0.06458576768636703,
+            "events": 72,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 562.307056538044,
+              "average_proportion": 0.44642269001665613,
+              "dal_ms": 1286.250622772045,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 658,
+              "laal_ms": 562.307056538044,
+              "last_emission_ms": 19360.0,
+              "length_ratio": 0.8360864040660737,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 787,
+              "tau": 658
+            },
+            "latency_text": {
+              "al_ms": -4350.359640359639,
+              "average_proportion": 0.5062924691407663,
+              "dal_ms": 640.0000000000167,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 77,
+              "laal_ms": 247.79220779220736,
+              "last_emission_ms": 19360.0,
+              "length_ratio": 1.4807692307692308,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 52,
+              "tau": 77
+            },
+            "malformed_segments": 1,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.8360864040660737,
+            "semantic_length_ratio": 0.8360864040660737,
+            "semantic_reference_tokens": 787,
+            "semantic_tokens": 658,
+            "session_text": {
+              "coverage": 0.5,
+              "hypothesis_units": 77,
+              "length_ratio": 1.4807692307692308,
+              "reference_units": 52
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0003980703",
+          "source_duration_ms": 19380.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 9,
+            "error_rate": 0.10465116279069768,
+            "errors": 9,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 86,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 47,
+            "coverage": 0.0,
+            "events": 53,
+            "final_hypothesis": "But as",
+            "hypothesis_units": 2,
+            "length_ratio": 0.04,
+            "nonempty_events": 49,
+            "reference_units": 50,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 47,
+            "coverage": 0.0,
+            "events": 53,
+            "final_hypothesis": "But as",
+            "hypothesis_units": 2,
+            "length_ratio": 0.04,
+            "nonempty_events": 49,
+            "reference_units": 50,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 52,
+              "WRITE_ASR": 44,
+              "WRITE_MT": 25,
+              "WRITE_SEMANTIC": 25
+            },
+            "audio_duration_seconds": 17.54,
+            "audio_over_source_ratio": 1.0,
+            "audio_peak": 0.7016676664352417,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 698.9375,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 17.54,
+              "file_rms": 0.09133335202932358,
+              "passes_tightened_gate": true,
+              "peak": 0.7016676664352417
+            },
+            "audio_rms": 0.09133333712816238,
+            "events": 53,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 4129.451366080482,
+              "average_proportion": 0.6152673998770037,
+              "dal_ms": 8640.000000000213,
+              "emitted": true,
+              "first_emission_ms": 8640.0,
+              "hypothesis_units": 877,
+              "laal_ms": 4129.451366080482,
+              "last_emission_ms": 17540.0,
+              "length_ratio": 0.7599653379549394,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 1154,
+              "tau": 858
+            },
+            "latency_text": {
+              "al_ms": 357.0666666666663,
+              "average_proportion": 0.6103572786012923,
+              "dal_ms": 8639.999999999978,
+              "emitted": true,
+              "first_emission_ms": 8640.0,
+              "hypothesis_units": 60,
+              "laal_ms": 2081.833333333334,
+              "last_emission_ms": 17540.0,
+              "length_ratio": 1.2,
+              "maximum_gap_ms": 800.0,
+              "reference_units": 50,
+              "tau": 60
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.7599653379549394,
+            "semantic_length_ratio": 0.7599653379549394,
+            "semantic_reference_tokens": 1154,
+            "semantic_tokens": 877,
+            "session_text": {
+              "coverage": 0.76,
+              "hypothesis_units": 60,
+              "length_ratio": 1.2,
+              "reference_units": 50
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0003980934",
+          "source_duration_ms": 17540.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 11,
+            "error_rate": 0.06451612903225806,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 1,
+            "metric": "cer",
+            "reference_units": 93,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 49,
+            "coverage": 0.12962962962962962,
+            "events": 68,
+            "final_hypothesis": "Even when we identify a person in a certain way we are a",
+            "hypothesis_units": 13,
+            "length_ratio": 0.24074074074074073,
+            "nonempty_events": 63,
+            "reference_units": 54,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 49,
+            "coverage": 0.16666666666666666,
+            "events": 68,
+            "final_hypothesis": "Even when we define people in this way we are a",
+            "hypothesis_units": 11,
+            "length_ratio": 0.2037037037037037,
+            "nonempty_events": 63,
+            "reference_units": 54,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 67,
+              "WRITE_ASR": 58,
+              "WRITE_MT": 61,
+              "WRITE_SEMANTIC": 61
+            },
+            "audio_duration_seconds": 16.16,
+            "audio_over_source_ratio": 0.9630512514898689,
+            "audio_peak": 1.2027968168258667,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 608.125,
+              "available": true,
+              "clipping": true,
+              "duration_seconds": 16.16,
+              "file_rms": 0.0645025223493576,
+              "passes_tightened_gate": false,
+              "peak": 1.2027968168258667
+            },
+            "audio_rms": 0.064595527946949,
+            "events": 68,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 86.68359430534323,
+              "average_proportion": 0.493677645476109,
+              "dal_ms": 806.0514264848144,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 808,
+              "laal_ms": 86.68359430534323,
+              "last_emission_ms": 16780.0,
+              "length_ratio": 0.9770253929866989,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 827,
+              "tau": 791
+            },
+            "latency_text": {
+              "al_ms": -3163.77492877493,
+              "average_proportion": 0.5304385872271088,
+              "dal_ms": 531.3361462728587,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 79,
+              "laal_ms": 622.1486530347289,
+              "last_emission_ms": 16780.0,
+              "length_ratio": 1.462962962962963,
+              "maximum_gap_ms": 640.0,
+              "reference_units": 54,
+              "tau": 78
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.9770253929866989,
+            "semantic_length_ratio": 0.9770253929866989,
+            "semantic_reference_tokens": 827,
+            "semantic_tokens": 808,
+            "session_text": {
+              "coverage": 0.5370370370370371,
+              "hypothesis_units": 79,
+              "length_ratio": 1.462962962962963,
+              "reference_units": 54
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0003929091",
+          "source_duration_ms": 16780.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 2,
+            "empty_events": 3,
+            "error_rate": 0.031746031746031744,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "cer",
+            "reference_units": 63,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.3235294117647059,
+            "events": 35,
+            "final_hypothesis": "And I want to provide a small perspective that perhaps these are just happening simultaneously not in a causal relationship but in",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6470588235294118,
+            "nonempty_events": 32,
+            "reference_units": 34,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 8,
+            "coverage": 0.35294117647058826,
+            "events": 35,
+            "final_hypothesis": "But I want to provide a small perspective that perhaps these are just happening simultaneously not in a causal relationship but in",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6470588235294118,
+            "nonempty_events": 32,
+            "reference_units": 34,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 34,
+              "WRITE_ASR": 34,
+              "WRITE_MT": 32,
+              "WRITE_SEMANTIC": 32
+            },
+            "audio_duration_seconds": 17.58,
+            "audio_over_source_ratio": 1.0680437424058322,
+            "audio_peak": 0.815360426902771,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 400.375,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 17.58,
+              "file_rms": 0.05882268771529198,
+              "passes_tightened_gate": true,
+              "peak": 0.815360426902771
+            },
+            "audio_rms": 0.05882268026471138,
+            "events": 35,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 2580.952255976762,
+              "average_proportion": 0.6469919838765193,
+              "dal_ms": 3659.0555544963454,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 879,
+              "laal_ms": 2580.952255976762,
+              "last_emission_ms": 16460.0,
+              "length_ratio": 0.982122905027933,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 895,
+              "tau": 877
+            },
+            "latency_text": {
+              "al_ms": -2390.514705882353,
+              "average_proportion": 0.5459447144592953,
+              "dal_ms": 320.0000000000027,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 48,
+              "laal_ms": 927.7083333333329,
+              "last_emission_ms": 16460.0,
+              "length_ratio": 1.411764705882353,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 34,
+              "tau": 48
+            },
+            "malformed_segments": 1,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.982122905027933,
+            "semantic_length_ratio": 0.982122905027933,
+            "semantic_reference_tokens": 895,
+            "semantic_tokens": 879,
+            "session_text": {
+              "coverage": 0.47058823529411764,
+              "hypothesis_units": 48,
+              "length_ratio": 1.411764705882353,
+              "reference_units": 34
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0003927983",
+          "source_duration_ms": 16460.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.21052631578947367,
+            "errors": 8,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 38,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 31,
+            "coverage": 0.05555555555555555,
+            "events": 40,
+            "final_hypothesis": "受伤的",
+            "hypothesis_units": 3,
+            "length_ratio": 0.05555555555555555,
+            "nonempty_events": 34,
+            "reference_units": 54,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 29,
+            "coverage": 0.16666666666666666,
+            "events": 40,
+            "final_hypothesis": "仿佛受伤的肢体不再阻",
+            "hypothesis_units": 10,
+            "length_ratio": 0.18518518518518517,
+            "nonempty_events": 35,
+            "reference_units": 54,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 39,
+              "WRITE_ASR": 36,
+              "WRITE_MT": 25,
+              "WRITE_SEMANTIC": 25
+            },
+            "audio_duration_seconds": 10.34,
+            "audio_over_source_ratio": 0.6046783625730994,
+            "audio_peak": 0.8921303749084473,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 222.6875,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 10.34,
+              "file_rms": 0.08261203020811081,
+              "passes_tightened_gate": true,
+              "peak": 0.8921303749084473
+            },
+            "audio_rms": 0.08261207491159439,
+            "events": 40,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 3295.987512652709,
+              "average_proportion": 0.5269446989491783,
+              "dal_ms": 3839.050721079164,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 517,
+              "laal_ms": 3295.987512652709,
+              "last_emission_ms": 16800.0,
+              "length_ratio": 0.6696891191709845,
+              "maximum_gap_ms": 2560.0,
+              "reference_units": 772,
+              "tau": 517
+            },
+            "latency_text": {
+              "al_ms": -642.2388059701499,
+              "average_proportion": 0.5735532862005761,
+              "dal_ms": 2053.4328358208936,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 67,
+              "laal_ms": 1385.3731343283582,
+              "last_emission_ms": 16800.0,
+              "length_ratio": 1.2407407407407407,
+              "maximum_gap_ms": 2560.0,
+              "reference_units": 54,
+              "tau": 67
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.6696891191709845,
+            "semantic_length_ratio": 0.6696891191709845,
+            "semantic_reference_tokens": 772,
+            "semantic_tokens": 517,
+            "session_text": {
+              "coverage": 0.5,
+              "hypothesis_units": 67,
+              "length_ratio": 1.2407407407407407,
+              "reference_units": 54
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "LibriSpeech_0000079616",
+          "source_duration_ms": 17100.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.425,
+            "errors": 17,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 40,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 38,
+            "coverage": 0.0,
+            "events": 42,
+            "final_hypothesis": "德",
+            "hypothesis_units": 1,
+            "length_ratio": 0.01818181818181818,
+            "nonempty_events": 39,
+            "reference_units": 55,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 21,
+            "coverage": 0.36363636363636365,
+            "events": 42,
+            "final_hypothesis": "直到他们走到宫殿的台阶旁一位穿着银色布料制服的老白",
+            "hypothesis_units": 25,
+            "length_ratio": 0.45454545454545453,
+            "nonempty_events": 40,
+            "reference_units": 55,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 41,
+              "WRITE_ASR": 36,
+              "WRITE_MT": 34,
+              "WRITE_SEMANTIC": 34
+            },
+            "audio_duration_seconds": 13.88,
+            "audio_over_source_ratio": 0.8222748815165877,
+            "audio_peak": 0.7817344665527344,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 242.625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 13.88,
+              "file_rms": 0.05251606926321983,
+              "passes_tightened_gate": true,
+              "peak": 0.7817344665527344
+            },
+            "audio_rms": 0.052516043186187744,
+            "events": 42,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 3370.27461074579,
+              "average_proportion": 0.5521531884671592,
+              "dal_ms": 3903.045725459631,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 694,
+              "laal_ms": 3370.27461074579,
+              "last_emission_ms": 16480.0,
+              "length_ratio": 0.7060020345879959,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 983,
+              "tau": 694
+            },
+            "latency_text": {
+              "al_ms": -954.0779220779228,
+              "average_proportion": 0.5707515233581584,
+              "dal_ms": 1397.0493506493426,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 70,
+              "laal_ms": 1314.8571428571431,
+              "last_emission_ms": 16480.0,
+              "length_ratio": 1.2727272727272727,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 55,
+              "tau": 70
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.7060020345879959,
+            "semantic_length_ratio": 0.7060020345879959,
+            "semantic_reference_tokens": 983,
+            "semantic_tokens": 694,
+            "session_text": {
+              "coverage": 0.45454545454545453,
+              "hypothesis_units": 70,
+              "length_ratio": 1.2727272727272727,
+              "reference_units": 55
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "LibriSpeech_0000104521",
+          "source_duration_ms": 16880.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.391304347826087,
+            "errors": 18,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 46,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 32,
+            "coverage": 0.1643835616438356,
+            "events": 53,
+            "final_hypothesis": "还有一种现象使得上述提到的这是所谓的事实即尽管现",
+            "hypothesis_units": 24,
+            "length_ratio": 0.3287671232876712,
+            "nonempty_events": 49,
+            "reference_units": 73,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 38,
+            "coverage": 0.1095890410958904,
+            "events": 53,
+            "final_hypothesis": "还有一种现象可以提及这被称为",
+            "hypothesis_units": 14,
+            "length_ratio": 0.1917808219178082,
+            "nonempty_events": 49,
+            "reference_units": 73,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 52,
+              "WRITE_ASR": 46,
+              "WRITE_MT": 45,
+              "WRITE_SEMANTIC": 45
+            },
+            "audio_duration_seconds": 11.62,
+            "audio_over_source_ratio": 0.6900237529691211,
+            "audio_peak": 1.1316722631454468,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 227.0,
+              "available": true,
+              "clipping": true,
+              "duration_seconds": 11.62,
+              "file_rms": 0.07552988082170486,
+              "passes_tightened_gate": false,
+              "peak": 1.1316722631454468
+            },
+            "audio_rms": 0.07554218918085098,
+            "events": 53,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 3305.6824121884365,
+              "average_proportion": 0.5666698010228903,
+              "dal_ms": 3648.7026595709744,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 581,
+              "laal_ms": 3305.6824121884365,
+              "last_emission_ms": 16800.0,
+              "length_ratio": 0.7420178799489144,
+              "maximum_gap_ms": 960.0,
+              "reference_units": 783,
+              "tau": 581
+            },
+            "latency_text": {
+              "al_ms": -850.9469922572963,
+              "average_proportion": 0.5727563771558402,
+              "dal_ms": 1502.626563430602,
+              "emitted": true,
+              "first_emission_ms": 640.0,
+              "hypothesis_units": 92,
+              "laal_ms": 1316.7391304347827,
+              "last_emission_ms": 16800.0,
+              "length_ratio": 1.2602739726027397,
+              "maximum_gap_ms": 960.0,
+              "reference_units": 73,
+              "tau": 92
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.7420178799489144,
+            "semantic_length_ratio": 0.7420178799489144,
+            "semantic_reference_tokens": 783,
+            "semantic_tokens": 581,
+            "session_text": {
+              "coverage": 0.4520547945205479,
+              "hypothesis_units": 92,
+              "length_ratio": 1.2602739726027397,
+              "reference_units": 73
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "LibriSpeech_0000213211",
+          "source_duration_ms": 16840.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 4,
+            "error_rate": 0.09259259259259259,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 1,
+            "metric": "wer",
+            "reference_units": 54,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 44,
+            "coverage": 0.09523809523809523,
+            "events": 55,
+            "final_hypothesis": "但他们并没有将整个讨论提",
+            "hypothesis_units": 12,
+            "length_ratio": 0.19047619047619047,
+            "nonempty_events": 53,
+            "reference_units": 63,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 44,
+            "coverage": 0.09523809523809523,
+            "events": 55,
+            "final_hypothesis": "但他们并没有完全沉",
+            "hypothesis_units": 9,
+            "length_ratio": 0.14285714285714285,
+            "nonempty_events": 53,
+            "reference_units": 63,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 54,
+              "WRITE_ASR": 52,
+              "WRITE_MT": 51,
+              "WRITE_SEMANTIC": 51
+            },
+            "audio_duration_seconds": 14.14,
+            "audio_over_source_ratio": 0.8538647342995169,
+            "audio_peak": 0.8700605630874634,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 130.0625,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 14.14,
+              "file_rms": 0.07563450187444687,
+              "passes_tightened_gate": true,
+              "peak": 0.8700605630874634
+            },
+            "audio_rms": 0.07563449442386627,
+            "events": 55,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 137.28282730425744,
+              "average_proportion": 0.4918516696390136,
+              "dal_ms": 991.4723605432098,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 707,
+              "laal_ms": 137.28282730425744,
+              "last_emission_ms": 16160.0,
+              "length_ratio": 0.9684931506849315,
+              "maximum_gap_ms": 960.0,
+              "reference_units": 730,
+              "tau": 707
+            },
+            "latency_text": {
+              "al_ms": -4753.82857142857,
+              "average_proportion": 0.4986473429951691,
+              "dal_ms": 479.9999999999958,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 100,
+              "laal_ms": 60.40000000000029,
+              "last_emission_ms": 16160.0,
+              "length_ratio": 1.5873015873015872,
+              "maximum_gap_ms": 960.0,
+              "reference_units": 63,
+              "tau": 100
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.9684931506849315,
+            "semantic_length_ratio": 0.9684931506849315,
+            "semantic_reference_tokens": 730,
+            "semantic_tokens": 707,
+            "session_text": {
+              "coverage": 0.31746031746031744,
+              "hypothesis_units": 100,
+              "length_ratio": 1.5873015873015872,
+              "reference_units": 63
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "LibriSpeech_0000174311",
+          "source_duration_ms": 16560.0
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "all": {
+          "asr.early_eos_events": {
+            "max": 1.0,
+            "mean": 0.0625,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "asr.empty_events": {
+            "max": 7.0,
+            "mean": 3.375,
+            "min": 0.0,
+            "n": 16,
+            "p50": 4.0,
+            "p90": 6.0
+          },
+          "asr.error_rate": {
+            "max": 0.8333333333333334,
+            "mean": 0.23264338820682778,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.1449579831932773,
+            "p90": 0.5333333333333333
+          },
+          "latency_speech.al_ms": {
+            "max": 2040.0,
+            "mean": 569.4472000103385,
+            "min": -430.0,
+            "n": 7,
+            "p50": 551.1183851609383,
+            "p90": 1292.324428958576
+          },
+          "latency_speech.average_proportion": {
+            "max": 1.0,
+            "mean": 0.5312120529492158,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.4978111319574734,
+            "p90": 0.8369701894700826
+          },
+          "latency_speech.dal_ms": {
+            "max": 2039.999999999999,
+            "mean": 1446.5675747408968,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1600.0000000000023,
+            "p90": 1968.000000000009
+          },
+          "latency_speech.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_speech.laal_ms": {
+            "max": 2040.0,
+            "mean": 633.1348694460349,
+            "min": -430.0,
+            "n": 7,
+            "p50": 551.1183851609383,
+            "p90": 1470.7684538519397
+          },
+          "latency_speech.maximum_gap_ms": {
+            "max": 2880.0,
+            "mean": 937.1428571428571,
+            "min": 0.0,
+            "n": 7,
+            "p50": 320.0,
+            "p90": 2208.0
+          },
+          "latency_text.al_ms": {
+            "max": 2040.0,
+            "mean": 307.1029625136768,
+            "min": -1424.375,
+            "n": 7,
+            "p50": 410.6666666666667,
+            "p90": 1123.8041958041963
+          },
+          "latency_text.average_proportion": {
+            "max": 1.0,
+            "mean": 0.5916524083614111,
+            "min": 0.09815950920245399,
+            "n": 7,
+            "p50": 0.6424642464246425,
+            "p90": 0.8516276413478013
+          },
+          "latency_text.dal_ms": {
+            "max": 2745.595238095238,
+            "mean": 1583.3417185055841,
+            "min": 319.9999999999999,
+            "n": 7,
+            "p50": 1600.0000000000002,
+            "p90": 2322.2380952380954
+          },
+          "latency_text.first_emission_ms": {
+            "max": 2040.0,
+            "mean": 1137.142857142857,
+            "min": 320.0,
+            "n": 7,
+            "p50": 1280.0,
+            "p90": 1968.0
+          },
+          "latency_text.laal_ms": {
+            "max": 2040.0,
+            "mean": 905.7360566604265,
+            "min": -223.33333333333337,
+            "n": 7,
+            "p50": 1014.5454545454546,
+            "p90": 1622.2352941176473
+          },
+          "mt_free.commit_conflicts": {
+            "max": 37.0,
+            "mean": 9.6875,
+            "min": 0.0,
+            "n": 16,
+            "p50": 8.0,
+            "p90": 24.5
+          },
+          "mt_free.coverage": {
+            "max": 0.875,
+            "mean": 0.2921566846498912,
+            "min": 0.0,
+            "n": 16,
+            "p50": 0.19871794871794873,
+            "p90": 0.788888888888889
+          },
+          "mt_free.length_ratio": {
+            "max": 1.1875,
+            "mean": 0.5376741728983577,
+            "min": 0.0625,
+            "n": 16,
+            "p50": 0.48917748917748916,
+            "p90": 1.0734126984126986
+          },
+          "mt_gold.commit_conflicts": {
+            "max": 37.0,
+            "mean": 7.25,
+            "min": 0.0,
+            "n": 16,
+            "p50": 2.5,
+            "p90": 18.0
+          },
+          "mt_gold.coverage": {
+            "max": 0.9090909090909091,
+            "mean": 0.49523955814716686,
+            "min": 0.09230769230769231,
+            "n": 16,
+            "p50": 0.4642857142857143,
+            "p90": 0.8617424242424243
+          },
+          "mt_gold.length_ratio": {
+            "max": 1.1111111111111112,
+            "mean": 0.6783280201079114,
+            "min": 0.1076923076923077,
+            "n": 16,
+            "p50": 0.6586538461538461,
+            "p90": 1.0454545454545454
+          },
+          "s2s.audible": {
+            "max": 1.0,
+            "mean": 0.8571428571428571,
+            "min": 0.0,
+            "n": 7,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.audible_onset_ms": {
+            "max": 3355.25,
+            "mean": 1214.4910714285713,
+            "min": -1.0,
+            "n": 7,
+            "p50": 318.125,
+            "p90": 3043.9625000000005
+          },
+          "s2s.audio_over_source_ratio": {
+            "max": 1.3627450980392157,
+            "mean": 0.7758802044123495,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.9574579409160429,
+            "p90": 1.1801827527127355
+          },
+          "s2s.clipping": {
+            "max": 0.0,
+            "mean": 0.0,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.0,
+            "p90": 0.0
+          },
+          "s2s.malformed_segments": {
+            "max": 3.0,
+            "mean": 1.625,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.5,
+            "p90": 3.0
+          },
+          "s2s.natural_eos": {
+            "max": 1.0,
+            "mean": 0.5,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.5,
+            "p90": 1.0
+          },
+          "s2s.non_silent": {
+            "max": 1.0,
+            "mean": 0.875,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.passes_tightened_gate": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.pre_eos_speech": {
+            "max": 1.0,
+            "mean": 0.75,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "s2s.semantic_length_ratio": {
+            "max": 1.2010582010582012,
+            "mean": 0.7093075233367612,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.7397361226673006,
+            "p90": 1.126459192600925
+          },
+          "s2s.session_coverage": {
+            "max": 0.9,
+            "mean": 0.3255475427350427,
+            "min": 0.0,
+            "n": 8,
+            "p50": 0.2403846153846154,
+            "p90": 0.8387499999999999
+          },
+          "s2s.session_length_ratio": {
+            "max": 2.0625,
+            "mean": 1.050245240870241,
+            "min": 0.0,
+            "n": 8,
+            "p50": 1.0793269230769231,
+            "p90": 1.8087499999999999
+          },
+          "samples": 16
+        },
+        "by_direction": {
+          "cmn->eng": {
+            "asr.early_eos_events": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "asr.empty_events": {
+              "max": 6.0,
+              "mean": 3.25,
+              "min": 0.0,
+              "n": 8,
+              "p50": 3.5,
+              "p90": 5.3
+            },
+            "asr.error_rate": {
+              "max": 0.17073170731707318,
+              "mean": 0.06908714271402189,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.05862977602108037,
+              "p90": 0.1541606886657102
+            },
+            "latency_speech.al_ms": {
+              "max": 793.8740482642924,
+              "mean": 314.38473114654255,
+              "min": -430.0,
+              "n": 4,
+              "p50": 446.832438160939,
+              "p90": 721.0473493332862
+            },
+            "latency_speech.average_proportion": {
+              "max": 0.7282836491168042,
+              "mean": 0.4468011737265589,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.48038076829348875,
+              "p90": 0.659141893969005
+            },
+            "latency_speech.dal_ms": {
+              "max": 1713.1743700906884,
+              "mean": 1221.4932557965658,
+              "min": 320.0,
+              "n": 4,
+              "p50": 1426.3993265477875,
+              "p90": 1679.2220590634827
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_speech.laal_ms": {
+              "max": 1091.280756419899,
+              "mean": 388.73640818544425,
+              "min": -430.0,
+              "n": 4,
+              "p50": 446.832438160939,
+              "p90": 929.2320450422109
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 2880.0,
+              "mean": 1240.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1040.0,
+              "p90": 2544.0
+            },
+            "latency_text.al_ms": {
+              "max": 513.006993006993,
+              "mean": -181.00866841491842,
+              "min": -1424.375,
+              "n": 4,
+              "p50": 93.66666666666666,
+              "p90": 482.3048951048951
+            },
+            "latency_text.average_proportion": {
+              "max": 0.7527127355796688,
+              "mean": 0.5085891117152168,
+              "min": 0.09815950920245399,
+              "n": 4,
+              "p50": 0.5917421010393722,
+              "p90": 0.7196381888331609
+            },
+            "latency_text.dal_ms": {
+              "max": 1748.7058823529412,
+              "mean": 1254.4491978609626,
+              "min": 319.9999999999999,
+              "n": 4,
+              "p50": 1474.5454545454545,
+              "p90": 1704.094117647059
+            },
+            "latency_text.first_emission_ms": {
+              "max": 1600.0,
+              "mean": 680.0,
+              "min": 320.0,
+              "n": 4,
+              "p50": 400.0,
+              "p90": 1264.0000000000002
+            },
+            "latency_text.laal_ms": {
+              "max": 1343.7254901960785,
+              "mean": 661.9861511037982,
+              "min": -223.33333333333337,
+              "n": 4,
+              "p50": 763.7762237762238,
+              "p90": 1244.9714795008913
+            },
+            "mt_free.commit_conflicts": {
+              "max": 14.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 8.0,
+              "p90": 11.899999999999999
+            },
+            "mt_free.coverage": {
+              "max": 0.8,
+              "mean": 0.3870194042069042,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.26136363636363635,
+              "p90": 0.7844444444444445
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.675510773948274,
+              "min": 0.2777777777777778,
+              "n": 8,
+              "p50": 0.6870629370629371,
+              "p90": 1.0583333333333333
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 22.0,
+              "mean": 6.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.5,
+              "p90": 14.299999999999997
+            },
+            "mt_gold.coverage": {
+              "max": 0.8,
+              "mean": 0.422384213009213,
+              "min": 0.1111111111111111,
+              "n": 8,
+              "p50": 0.3035714285714286,
+              "p90": 0.7844444444444445
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.1111111111111112,
+              "mean": 0.619718475968476,
+              "min": 0.16666666666666666,
+              "n": 8,
+              "p50": 0.614010989010989,
+              "p90": 0.9633333333333334
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 2836.4375,
+              "mean": 1174.109375,
+              "min": -1.0,
+              "n": 4,
+              "p50": 930.5,
+              "p90": 2448.3687500000005
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.1019417475728155,
+              "mean": 0.8707788245291394,
+              "min": 0.4662576687116564,
+              "n": 4,
+              "p50": 0.9574579409160429,
+              "p90": 1.0604681341920599
+            },
+            "s2s.clipping": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 2.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 2.5,
+              "p90": 3.0
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.2010582010582012,
+              "mean": 0.7866970287761147,
+              "min": 0.4662576687116564,
+              "n": 4,
+              "p50": 0.7397361226673006,
+              "p90": 1.0854334781709085
+            },
+            "s2s.session_coverage": {
+              "max": 0.9,
+              "mean": 0.5135950854700855,
+              "min": 0.1111111111111111,
+              "n": 4,
+              "p50": 0.5216346153846154,
+              "p90": 0.87375
+            },
+            "s2s.session_length_ratio": {
+              "max": 2.0625,
+              "mean": 1.2632745726495727,
+              "min": 0.4444444444444444,
+              "n": 4,
+              "p50": 1.273076923076923,
+              "p90": 1.9537499999999999
+            },
+            "samples": 8
+          },
+          "eng->cmn": {
+            "asr.early_eos_events": {
+              "max": 1.0,
+              "mean": 0.125,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.0,
+              "p90": 0.2999999999999998
+            },
+            "asr.empty_events": {
+              "max": 7.0,
+              "mean": 3.5,
+              "min": 0.0,
+              "n": 8,
+              "p50": 4.0,
+              "p90": 6.3
+            },
+            "asr.error_rate": {
+              "max": 0.8333333333333334,
+              "mean": 0.3961996336996337,
+              "min": 0.11904761904761904,
+              "n": 8,
+              "p50": 0.35384615384615387,
+              "p90": 0.7166666666666667
+            },
+            "latency_speech.al_ms": {
+              "max": 2040.0,
+              "mean": 909.5304918287333,
+              "min": -8.989169675090473,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.average_proportion": {
+              "max": 1.0,
+              "mean": 0.6437598919127582,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.5236363636363637,
+              "p90": 0.9047272727272727
+            },
+            "latency_speech.dal_ms": {
+              "max": 2039.999999999999,
+              "mean": 1746.6666666666715,
+              "min": 1279.999999999999,
+              "n": 3,
+              "p50": 1920.000000000016,
+              "p90": 2016.0000000000023
+            },
+            "latency_speech.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_speech.laal_ms": {
+              "max": 2040.0,
+              "mean": 958.999484460156,
+              "min": 139.41780821917794,
+              "n": 3,
+              "p50": 697.5806451612902,
+              "p90": 1771.516129032258
+            },
+            "latency_speech.maximum_gap_ms": {
+              "max": 1600.0,
+              "mean": 533.3333333333334,
+              "min": 0.0,
+              "n": 3,
+              "p50": 0.0,
+              "p90": 1280.0
+            },
+            "latency_text.al_ms": {
+              "max": 2040.0,
+              "mean": 957.9184704184704,
+              "min": 410.1190476190476,
+              "n": 3,
+              "p50": 423.6363636363637,
+              "p90": 1716.7272727272727
+            },
+            "latency_text.average_proportion": {
+              "max": 1.0,
+              "mean": 0.7024034705563368,
+              "min": 0.40764331210191085,
+              "n": 3,
+              "p50": 0.6995670995670996,
+              "p90": 0.9399134199134199
+            },
+            "latency_text.dal_ms": {
+              "max": 2745.595238095238,
+              "mean": 2021.8650793650795,
+              "min": 1280.0000000000002,
+              "n": 3,
+              "p50": 2040.0,
+              "p90": 2604.4761904761904
+            },
+            "latency_text.first_emission_ms": {
+              "max": 2040.0,
+              "mean": 1746.6666666666667,
+              "min": 1280.0,
+              "n": 3,
+              "p50": 1920.0,
+              "p90": 2016.0
+            },
+            "latency_text.laal_ms": {
+              "max": 2040.0,
+              "mean": 1230.7359307359307,
+              "min": 423.6363636363637,
+              "n": 3,
+              "p50": 1228.5714285714284,
+              "p90": 1877.7142857142856
+            },
+            "mt_free.commit_conflicts": {
+              "max": 37.0,
+              "mean": 12.875,
+              "min": 0.0,
+              "n": 8,
+              "p50": 7.5,
+              "p90": 35.6
+            },
+            "mt_free.coverage": {
+              "max": 0.875,
+              "mean": 0.19729396509287814,
+              "min": 0.0,
+              "n": 8,
+              "p50": 0.08327759197324415,
+              "p90": 0.5382575757575756
+            },
+            "mt_free.length_ratio": {
+              "max": 1.1875,
+              "mean": 0.39983757184844143,
+              "min": 0.0625,
+              "n": 8,
+              "p50": 0.2965034965034965,
+              "p90": 0.8229166666666665
+            },
+            "mt_gold.commit_conflicts": {
+              "max": 37.0,
+              "mean": 8.0,
+              "min": 0.0,
+              "n": 8,
+              "p50": 2.5,
+              "p90": 20.9
+            },
+            "mt_gold.coverage": {
+              "max": 0.9090909090909091,
+              "mean": 0.5680949032851207,
+              "min": 0.09230769230769231,
+              "n": 8,
+              "p50": 0.5,
+              "p90": 0.8852272727272728
+            },
+            "mt_gold.length_ratio": {
+              "max": 1.0909090909090908,
+              "mean": 0.7369375642473469,
+              "min": 0.1076923076923077,
+              "n": 8,
+              "p50": 0.7821969696969697,
+              "p90": 1.0272727272727273
+            },
+            "s2s.audible": {
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0,
+              "n": 3,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.audible_onset_ms": {
+              "max": 3355.25,
+              "mean": 1268.3333333333333,
+              "min": 213.5,
+              "n": 3,
+              "p50": 236.25,
+              "p90": 2731.4500000000003
+            },
+            "s2s.audio_over_source_ratio": {
+              "max": 1.3627450980392157,
+              "mean": 0.6809815842955595,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.6805906195715112,
+              "p90": 1.2724670231729056
+            },
+            "s2s.clipping": {
+              "max": 0.0,
+              "mean": 0.0,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.0,
+              "p90": 0.0
+            },
+            "s2s.malformed_segments": {
+              "max": 3.0,
+              "mean": 1.25,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 2.4000000000000004
+            },
+            "s2s.natural_eos": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.non_silent": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.passes_tightened_gate": {
+              "max": 1.0,
+              "mean": 0.75,
+              "min": 0.0,
+              "n": 4,
+              "p50": 1.0,
+              "p90": 1.0
+            },
+            "s2s.pre_eos_speech": {
+              "max": 1.0,
+              "mean": 0.5,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.5,
+              "p90": 1.0
+            },
+            "s2s.semantic_length_ratio": {
+              "max": 1.094488188976378,
+              "mean": 0.6319180178974076,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.7165919413066264,
+              "p90": 1.0823872196480857
+            },
+            "s2s.session_coverage": {
+              "max": 0.3,
+              "mean": 0.1375,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.125,
+              "p90": 0.28500000000000003
+            },
+            "s2s.session_length_ratio": {
+              "max": 1.4,
+              "mean": 0.837215909090909,
+              "min": 0.0,
+              "n": 4,
+              "p50": 0.9744318181818181,
+              "p90": 1.37375
+            },
+            "samples": 8
+          }
+        }
+      },
+      "candidate": {
+        "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/extended_canaries/endmargin_epoch23_15shard_20260824T190227Z/iter_0002264",
+        "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_phase3_v4_e2e_simuls2st_pilot15_v1_endmargin_epoch23_15shard_20260824T190227Z_iter_0002264_hf"
+      },
+      "gate_failed_checks": [
+        "e_asr_structure_valid",
+        "e_mt_target_coverage",
+        "e_s2s_non_silent_pcm",
+        "e_s2s_pre_eos_target_semantic",
+        "e_s2s_pre_eos_target_text",
+        "e_s2s_semantic_coverage",
+        "e_s2s_structure_valid"
+      ],
+      "gate_status": "failed",
+      "label": "baseline_iter2264",
+      "run_root": "reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/stage2_paced_m1200_iter0002264_20260831T180448Z",
+      "samples": [
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.030303030303030304,
+            "errors": 1,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 33,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.16666666666666666,
+            "events": 16,
+            "final_hypothesis": "Such a feeling that I",
+            "hypothesis_units": 5,
+            "length_ratio": 0.2777777777777778,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.1111111111111111,
+            "events": 16,
+            "final_hypothesis": "Such a feeling",
+            "hypothesis_units": 3,
+            "length_ratio": 0.16666666666666666,
+            "nonempty_events": 10,
+            "reference_units": 18,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005985930",
+          "source_duration_ms": 8300.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.14285714285714285,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 5,
+            "coverage": 0.14285714285714285,
+            "events": 18,
+            "final_hypothesis": "他是银行的常任高级调解",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 7,
+            "coverage": 0.42857142857142855,
+            "events": 18,
+            "final_hypothesis": "他是常设参议院委员会的",
+            "hypothesis_units": 11,
+            "length_ratio": 0.5238095238095238,
+            "nonempty_events": 10,
+            "reference_units": 21,
+            "rollback_events": 0
+          },
+          "sample_id": "CommonVoice_EN_0000463919",
+          "source_duration_ms": 6200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 5,
+            "error_rate": 0.08695652173913043,
+            "errors": 2,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 23,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 9,
+            "coverage": 0.0625,
+            "events": 17,
+            "final_hypothesis": "He not only waited for",
+            "hypothesis_units": 5,
+            "length_ratio": 0.3125,
+            "nonempty_events": 14,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.625,
+            "events": 17,
+            "final_hypothesis": "He is no longer waiting to catch mosquitoes but is like a",
+            "hypothesis_units": 12,
+            "length_ratio": 0.75,
+            "nonempty_events": 13,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 3,
+              "WAIT": 13,
+              "WRITE_ASR": 13,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 5.84,
+            "audio_over_source_ratio": 0.9636963696369637,
+            "audio_peak": 0.6251153945922852,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 1542.875,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 5.84,
+              "file_rms": 0.05624864995479584,
+              "passes_tightened_gate": true,
+              "peak": 0.6251153945922852
+            },
+            "audio_rms": 0.056248653680086136,
+            "events": 17,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 342.54649116093964,
+              "average_proportion": 0.46295040462950404,
+              "dal_ms": 1252.798653095573,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 292,
+              "laal_ms": 342.54649116093964,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 0.8156424581005587,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 358,
+              "tau": 292
+            },
+            "latency_text": {
+              "al_ms": -1424.375,
+              "average_proportion": 0.6424642464246425,
+              "dal_ms": 1349.090909090909,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 33,
+              "laal_ms": 1014.5454545454546,
+              "last_emission_ms": 6060.0,
+              "length_ratio": 2.0625,
+              "maximum_gap_ms": 2880.0,
+              "reference_units": 16,
+              "tau": 26
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.8156424581005587,
+            "semantic_length_ratio": 0.8156424581005587,
+            "semantic_reference_tokens": 358,
+            "semantic_tokens": 292,
+            "session_text": {
+              "coverage": 0.8125,
+              "hypothesis_units": 33,
+              "length_ratio": 2.0625,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006199435",
+          "source_duration_ms": 6060.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 7,
+            "error_rate": 0.11904761904761904,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 42,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 37,
+            "coverage": 0.12307692307692308,
+            "events": 46,
+            "final_hypothesis": "这是我们长久以来的",
+            "hypothesis_units": 9,
+            "length_ratio": 0.13846153846153847,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 37,
+            "coverage": 0.09230769230769231,
+            "events": 46,
+            "final_hypothesis": "这是我长期以来",
+            "hypothesis_units": 7,
+            "length_ratio": 0.1076923076923077,
+            "nonempty_events": 43,
+            "reference_units": 65,
+            "rollback_events": 0
+          },
+          "sample_id": "LibriSpeech_0000031307",
+          "source_duration_ms": 13180.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 3,
+            "error_rate": 0.11764705882352941,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 8,
+            "coverage": 0.2727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to transform and temporarily cultivate the five",
+            "hypothesis_units": 15,
+            "length_ratio": 0.6818181818181818,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 8,
+            "coverage": 0.22727272727272727,
+            "events": 19,
+            "final_hypothesis": "And the second method of this position is to",
+            "hypothesis_units": 9,
+            "length_ratio": 0.4090909090909091,
+            "nonempty_events": 17,
+            "reference_units": 22,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007583994",
+          "source_duration_ms": 6680.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.8333333333333334,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 6,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 3,
+            "coverage": 0.0,
+            "events": 7,
+            "final_hypothesis": "看",
+            "hypothesis_units": 1,
+            "length_ratio": 0.1,
+            "nonempty_events": 4,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.5,
+            "events": 7,
+            "final_hypothesis": "这对我来说没什么意义",
+            "hypothesis_units": 10,
+            "length_ratio": 1.0,
+            "nonempty_events": 1,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 6,
+              "WRITE_ASR": 6,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 2.78,
+            "audio_over_source_ratio": 1.3627450980392157,
+            "audio_peak": 0.7035424709320068,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 213.5,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 2.78,
+              "file_rms": 0.10451056063175201,
+              "passes_tightened_gate": true,
+              "peak": 0.7035424709320068
+            },
+            "audio_rms": 0.10451056808233261,
+            "events": 7,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2039.999999999999,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 139,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.094488188976378,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 127,
+              "tau": 1
+            },
+            "latency_text": {
+              "al_ms": 2040.0,
+              "average_proportion": 1.0,
+              "dal_ms": 2040.0,
+              "emitted": true,
+              "first_emission_ms": 2040.0,
+              "hypothesis_units": 14,
+              "laal_ms": 2040.0,
+              "last_emission_ms": 2040.0,
+              "length_ratio": 1.4,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 10,
+              "tau": 1
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.094488188976378,
+            "semantic_reference_tokens": 127,
+            "semantic_tokens": 139,
+            "session_text": {
+              "coverage": 0.3,
+              "hypothesis_units": 14,
+              "length_ratio": 1.4,
+              "reference_units": 10
+            },
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "CommonVoice_EN_0000329073",
+          "source_duration_ms": 2040.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 6,
+            "error_rate": 0.17073170731707318,
+            "errors": 7,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 41,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.5357142857142857,
+            "events": 32,
+            "final_hypothesis": "Running your own place will continuously add value to your life and add points to your weaknesses which will only make you lose your way in failure early on.",
+            "hypothesis_units": 29,
+            "length_ratio": 1.0357142857142858,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 22,
+            "coverage": 0.35714285714285715,
+            "events": 32,
+            "final_hypothesis": "Running your own strengths will continuously add value to your life and add points to",
+            "hypothesis_units": 15,
+            "length_ratio": 0.5357142857142857,
+            "nonempty_events": 29,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0005612325",
+          "source_duration_ms": 10080.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 0,
+            "error_rate": 0.3,
+            "errors": 3,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.875,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔鲍勃哈雷和我再喝一杯威士忌",
+            "hypothesis_units": 19,
+            "length_ratio": 1.1875,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.5,
+            "events": 10,
+            "final_hypothesis": "回到蒙特利尔的鲍勃头",
+            "hypothesis_units": 10,
+            "length_ratio": 0.625,
+            "nonempty_events": 7,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 10,
+              "WRITE_ASR": 10
+            },
+            "audio_duration_seconds": 0.0,
+            "audio_over_source_ratio": 0.0,
+            "audio_peak": 0.0,
+            "audio_quality": {
+              "available": false,
+              "clipping": false,
+              "passes_tightened_gate": false,
+              "peak": 0.0
+            },
+            "audio_rms": 0.0,
+            "events": 10,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 161
+            },
+            "latency_text": {
+              "emitted": false,
+              "hypothesis_units": 0,
+              "reference_units": 16
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": false,
+            "semantic_coverage_clamped": 0.0,
+            "semantic_length_ratio": 0.0,
+            "semantic_reference_tokens": 161,
+            "semantic_tokens": 0,
+            "session_text": {
+              "coverage": 0.0,
+              "hypothesis_units": 0,
+              "length_ratio": 0.0,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": false,
+            "target_text_before_source_eos": false
+          },
+          "sample_id": "emilia_zh_0006401658",
+          "source_duration_ms": 3500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.14705882352941177,
+            "errors": 5,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 34,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 14,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police officer who received the alarm at the beginning of",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 15,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 11,
+            "coverage": 0.25,
+            "events": 22,
+            "final_hypothesis": "The police station that received the alarm at first didn't expect",
+            "hypothesis_units": 11,
+            "length_ratio": 0.39285714285714285,
+            "nonempty_events": 16,
+            "reference_units": 28,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0007203542",
+          "source_duration_ms": 9360.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 10,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 25,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 10,
+            "coverage": 0.3939393939393939,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和厄尔在当时电话里交谈但两",
+            "hypothesis_units": 22,
+            "length_ratio": 0.6666666666666666,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 3,
+            "coverage": 0.8484848484848485,
+            "events": 28,
+            "final_hypothesis": "那封信之后德克斯特和我通了几次电话但两人都知道他们不会再见面了",
+            "hypothesis_units": 31,
+            "length_ratio": 0.9393939393939394,
+            "nonempty_events": 24,
+            "reference_units": 33,
+            "rollback_events": 0
+          },
+          "sample_id": "emilia_zh_0004788301",
+          "source_duration_ms": 8200.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 2,
+            "coverage": 0.23076923076923078,
+            "events": 13,
+            "final_hypothesis": "The past has already passed He hopes that in",
+            "hypothesis_units": 9,
+            "length_ratio": 0.6923076923076923,
+            "nonempty_events": 10,
+            "reference_units": 13,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 2,
+              "WAIT": 11,
+              "WRITE_ASR": 11,
+              "WRITE_MT": 2,
+              "WRITE_SEMANTIC": 2
+            },
+            "audio_duration_seconds": 3.12,
+            "audio_over_source_ratio": 0.9512195121951219,
+            "audio_peak": 0.46334701776504517,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 2836.4375,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 3.12,
+              "file_rms": 0.032052118331193924,
+              "passes_tightened_gate": true,
+              "peak": 0.46334701776504517
+            },
+            "audio_rms": 0.032052092254161835,
+            "events": 13,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 551.1183851609383,
+              "average_proportion": 0.4978111319574734,
+              "dal_ms": 1600.0000000000023,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 156,
+              "laal_ms": 551.1183851609383,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.6638297872340425,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 235,
+              "tau": 156
+            },
+            "latency_text": {
+              "al_ms": 513.006993006993,
+              "average_proportion": 0.541019955654102,
+              "dal_ms": 1600.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1600.0,
+              "hypothesis_units": 11,
+              "laal_ms": 513.006993006993,
+              "last_emission_ms": 1920.0,
+              "length_ratio": 0.8461538461538461,
+              "maximum_gap_ms": 320.0,
+              "reference_units": 13,
+              "tau": 11
+            },
+            "malformed_segments": 3,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.6638297872340425,
+            "semantic_length_ratio": 0.6638297872340425,
+            "semantic_reference_tokens": 235,
+            "semantic_tokens": 156,
+            "session_text": {
+              "coverage": 0.23076923076923078,
+              "hypothesis_units": 11,
+              "length_ratio": 0.8461538461538461,
+              "reference_units": 13
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0005215832",
+          "source_duration_ms": 3280.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 1,
+            "empty_events": 6,
+            "error_rate": 0.3076923076923077,
+            "errors": 12,
+            "final_reached_eos": true,
+            "malformed_write_events": 2,
+            "metric": "wer",
+            "reference_units": 39,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 35,
+            "coverage": 0.043478260869565216,
+            "events": 40,
+            "final_hypothesis": "我坐在",
+            "hypothesis_units": 3,
+            "length_ratio": 0.06521739130434782,
+            "nonempty_events": 37,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 14,
+            "coverage": 0.391304347826087,
+            "events": 40,
+            "final_hypothesis": "我在第一次讲座中说我要尝试为你提供一个模式，你可以将我们",
+            "hypothesis_units": 28,
+            "length_ratio": 0.6086956521739131,
+            "nonempty_events": 35,
+            "reference_units": 46,
+            "rollback_events": 0
+          },
+          "sample_id": "EN_B00058_S05161_W000178",
+          "source_duration_ms": 13980.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 2,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 14,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.7777777777777778,
+            "events": 11,
+            "final_hypothesis": "Or do you have anything special you want to eat",
+            "hypothesis_units": 10,
+            "length_ratio": 1.1111111111111112,
+            "nonempty_events": 5,
+            "reference_units": 9,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "READ_NEXT": 1,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 1.52,
+            "audio_over_source_ratio": 0.4662576687116564,
+            "audio_peak": 0.0020581651479005814,
+            "audio_quality": {
+              "audible": false,
+              "audible_onset_ms": -1.0,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 1.52,
+              "file_rms": 0.0005051997723057866,
+              "passes_tightened_gate": false,
+              "peak": 0.0020581651479005814
+            },
+            "audio_rms": 0.0005049271858297288,
+            "events": 11,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -430.0,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 320.0,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 76,
+              "laal_ms": -430.0,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.4662576687116564,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 163,
+              "tau": 76
+            },
+            "latency_text": {
+              "al_ms": -223.33333333333337,
+              "average_proportion": 0.09815950920245399,
+              "dal_ms": 319.9999999999999,
+              "emitted": true,
+              "first_emission_ms": 320.0,
+              "hypothesis_units": 4,
+              "laal_ms": -223.33333333333337,
+              "last_emission_ms": 320.0,
+              "length_ratio": 0.4444444444444444,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 9,
+              "tau": 4
+            },
+            "malformed_segments": 2,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.4662576687116564,
+            "semantic_length_ratio": 0.4662576687116564,
+            "semantic_reference_tokens": 163,
+            "semantic_tokens": 76,
+            "session_text": {
+              "coverage": 0.1111111111111111,
+              "hypothesis_units": 4,
+              "length_ratio": 0.4444444444444444,
+              "reference_units": 9
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0006795452",
+          "source_duration_ms": 3260.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.4,
+            "errors": 4,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 10,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 11,
+            "coverage": 0.0,
+            "events": 14,
+            "final_hypothesis": "侦",
+            "hypothesis_units": 1,
+            "length_ratio": 0.0625,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 1,
+            "coverage": 0.875,
+            "events": 14,
+            "final_hypothesis": "童子军总统促成了当地动物园的建设",
+            "hypothesis_units": 16,
+            "length_ratio": 1.0,
+            "nonempty_events": 12,
+            "reference_units": 16,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "READ_NEXT": 3,
+              "WAIT": 10,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 3,
+              "WRITE_SEMANTIC": 3
+            },
+            "audio_duration_seconds": 5.84,
+            "audio_over_source_ratio": 1.0618181818181818,
+            "audio_peak": 0.8018474578857422,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 3355.25,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 5.84,
+              "file_rms": 0.06220008060336113,
+              "passes_tightened_gate": true,
+              "peak": 0.8018474578857422
+            },
+            "audio_rms": 0.06220013275742531,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": -8.989169675090473,
+              "average_proportion": 0.5236363636363637,
+              "dal_ms": 1920.000000000016,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 292,
+              "laal_ms": 139.41780821917794,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.0541516245487366,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 277,
+              "tau": 292
+            },
+            "latency_text": {
+              "al_ms": 410.1190476190476,
+              "average_proportion": 0.6995670995670996,
+              "dal_ms": 2745.595238095238,
+              "emitted": true,
+              "first_emission_ms": 1920.0,
+              "hypothesis_units": 21,
+              "laal_ms": 1228.5714285714284,
+              "last_emission_ms": 4640.0,
+              "length_ratio": 1.3125,
+              "maximum_gap_ms": 1600.0,
+              "reference_units": 16,
+              "tau": 21
+            },
+            "malformed_segments": 3,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.0541516245487366,
+            "semantic_reference_tokens": 277,
+            "semantic_tokens": 292,
+            "session_text": {
+              "coverage": 0.25,
+              "hypothesis_units": 21,
+              "length_ratio": 1.3125,
+              "reference_units": 16
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "CommonVoice_EN_0000392649",
+          "source_duration_ms": 5500.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 4,
+            "error_rate": 0.0,
+            "errors": 0,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "cer",
+            "reference_units": 17,
+            "source_rollbacks": 0
+          },
+          "direction": "cmn->eng",
+          "mt_free": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.8,
+            "events": 14,
+            "final_hypothesis": "They generally feel that some new factor is emerging",
+            "hypothesis_units": 9,
+            "length_ratio": 0.9,
+            "nonempty_events": 10,
+            "reference_units": 10,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "EOS": 1,
+              "WAIT": 13,
+              "WRITE_ASR": 10,
+              "WRITE_MT": 4,
+              "WRITE_SEMANTIC": 4
+            },
+            "audio_duration_seconds": 4.54,
+            "audio_over_source_ratio": 1.1019417475728155,
+            "audio_peak": 0.7275353074073792,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 318.125,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 4.54,
+              "file_rms": 0.08025745302438736,
+              "passes_tightened_gate": true,
+              "peak": 0.7275353074073792
+            },
+            "audio_rms": 0.08025752007961273,
+            "events": 14,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 793.8740482642924,
+              "average_proportion": 0.7282836491168042,
+              "dal_ms": 1713.1743700906884,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 227,
+              "laal_ms": 1091.280756419899,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.2010582010582012,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 189,
+              "tau": 164
+            },
+            "latency_text": {
+              "al_ms": 410.6666666666667,
+              "average_proportion": 0.7527127355796688,
+              "dal_ms": 1748.7058823529412,
+              "emitted": true,
+              "first_emission_ms": 480.0,
+              "hypothesis_units": 17,
+              "laal_ms": 1343.7254901960785,
+              "last_emission_ms": 4120.0,
+              "length_ratio": 1.7,
+              "maximum_gap_ms": 1760.0,
+              "reference_units": 10,
+              "tau": 12
+            },
+            "malformed_segments": 0,
+            "natural_eos": true,
+            "non_silent": true,
+            "semantic_coverage_clamped": 1.0,
+            "semantic_length_ratio": 1.2010582010582012,
+            "semantic_reference_tokens": 189,
+            "semantic_tokens": 227,
+            "session_text": {
+              "coverage": 0.9,
+              "hypothesis_units": 17,
+              "length_ratio": 1.7,
+              "reference_units": 10
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "emilia_zh_0004122419",
+          "source_duration_ms": 4120.0
+        },
+        {
+          "asr": {
+            "early_eos_events": 0,
+            "empty_events": 1,
+            "error_rate": 0.6666666666666666,
+            "errors": 6,
+            "final_reached_eos": true,
+            "malformed_write_events": 0,
+            "metric": "wer",
+            "reference_units": 9,
+            "source_rollbacks": 0
+          },
+          "direction": "eng->cmn",
+          "mt_free": {
+            "commit_conflicts": 2,
+            "coverage": 0.0,
+            "events": 9,
+            "final_hypothesis": "你只是一个",
+            "hypothesis_units": 5,
+            "length_ratio": 0.45454545454545453,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "mt_gold": {
+            "commit_conflicts": 0,
+            "coverage": 0.9090909090909091,
+            "events": 9,
+            "final_hypothesis": "并用这个来解决高方差问题",
+            "hypothesis_units": 12,
+            "length_ratio": 1.0909090909090908,
+            "nonempty_events": 6,
+            "reference_units": 11,
+            "rollback_events": 0
+          },
+          "s2s": {
+            "actions": {
+              "WAIT": 9,
+              "WRITE_ASR": 8,
+              "WRITE_MT": 1,
+              "WRITE_SEMANTIC": 1
+            },
+            "audio_duration_seconds": 0.94,
+            "audio_over_source_ratio": 0.29936305732484075,
+            "audio_peak": 0.8991097807884216,
+            "audio_quality": {
+              "audible": true,
+              "audible_onset_ms": 236.25,
+              "available": true,
+              "clipping": false,
+              "duration_seconds": 0.94,
+              "file_rms": 0.10252071917057037,
+              "passes_tightened_gate": true,
+              "peak": 0.8991097807884216
+            },
+            "audio_rms": 0.10252078622579575,
+            "events": 9,
+            "invalid_semantic_tokens": 0,
+            "latency_speech": {
+              "al_ms": 697.5806451612902,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1279.999999999999,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 47,
+              "laal_ms": 697.5806451612902,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.3790322580645161,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 124,
+              "tau": 47
+            },
+            "latency_text": {
+              "al_ms": 423.6363636363637,
+              "average_proportion": 0.40764331210191085,
+              "dal_ms": 1280.0000000000002,
+              "emitted": true,
+              "first_emission_ms": 1280.0,
+              "hypothesis_units": 7,
+              "laal_ms": 423.6363636363637,
+              "last_emission_ms": 1280.0,
+              "length_ratio": 0.6363636363636364,
+              "maximum_gap_ms": 0.0,
+              "reference_units": 11,
+              "tau": 7
+            },
+            "malformed_segments": 1,
+            "natural_eos": false,
+            "non_silent": true,
+            "semantic_coverage_clamped": 0.3790322580645161,
+            "semantic_length_ratio": 0.3790322580645161,
+            "semantic_reference_tokens": 124,
+            "semantic_tokens": 47,
+            "session_text": {
+              "coverage": 0.0,
+              "hypothesis_units": 7,
+              "length_ratio": 0.6363636363636364,
+              "reference_units": 11
+            },
+            "target_semantic_before_source_eos": true,
+            "target_text_before_source_eos": true
+          },
+          "sample_id": "EN_B00058_S07483_W000027",
+          "source_duration_ms": 3140.0
+        }
+      ]
+    }
+  ],
+  "schema_version": "uniss_e2e_streaming_s2st_metrics_v1"
+}

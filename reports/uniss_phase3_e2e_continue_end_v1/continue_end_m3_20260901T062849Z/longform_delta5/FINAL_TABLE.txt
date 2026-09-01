@@ -1,0 +1,27 @@
+========================================================================================================
+
+■ 短音频 rp=1.1   (S2S 样本 8 条,ASR/MT 样本 16 条)
+  【延迟】首次发音 580ms(中位 560)  LAAL 518ms  AL 428ms  AP 0.552  DAL 906ms
+  【ASR】cmn 错误率 0.074 (n=8)  eng 错误率 0.292 (n=8)
+  【MT gold-src】cmn->eng BLEU 27.67 chrF 43.66 (n=8)  eng->cmn BLEU 35.86 chrF 33.68 (n=8)
+  【MT free-src】cmn->eng BLEU 14.93 chrF 33.96 (n=8)  eng->cmn BLEU 17.51 chrF 22.21 (n=8)
+  【TTS】语义覆盖 0.844  自然收尾 1.00  malformed/样本 0.62  语音时长/源 0.853
+  【时间轴音频 n=4】真实可听起始中位 883ms  >4kHz 9.6%  峰值 0.749  内部静音 16.0%
+
+■ 长音频 rp=1.1   (S2S 样本 8 条,ASR/MT 样本 8 条)
+  【延迟】首次发音 1680ms(中位 640)  LAAL 2184ms  AL 2184ms  AP 0.542  DAL 3347ms
+  【ASR】cmn 错误率 0.072 (n=4)  eng 错误率 0.280 (n=4)
+  【MT gold-src】cmn->eng BLEU 0.56 chrF 11.13 (n=4)  eng->cmn BLEU 2.16 chrF 11.62 (n=4)
+  【MT free-src】cmn->eng BLEU 3.89 chrF 17.92 (n=4)  eng->cmn BLEU 0.16 chrF 4.00 (n=4)
+  【TTS】语义覆盖 0.830  自然收尾 1.00  malformed/样本 0.25  语音时长/源 0.838
+  【时间轴音频 n=4】真实可听起始中位 978ms  >4kHz 17.8%  峰值 0.911  内部静音 19.6%
+
+■ 基线 iter2264 δ=0   (S2S 样本 8 条,ASR/MT 样本 16 条)
+  【延迟】首次发音 1137ms(中位 1280)  LAAL 633ms  AL 569ms  AP 0.531  DAL 1447ms
+  【ASR】cmn 错误率 0.069 (n=8)  eng 错误率 0.396 (n=8)
+  【MT gold-src】cmn->eng BLEU 18.98 chrF 38.64 (n=8)  eng->cmn BLEU 27.66 chrF 30.48 (n=8)
+  【MT free-src】cmn->eng BLEU 16.73 chrF 36.89 (n=8)  eng->cmn BLEU 4.99 chrF 11.60 (n=8)
+  【TTS】语义覆盖 0.666  自然收尾 0.50  malformed/样本 1.62  语音时长/源 0.957
+
+========================================================================================================
+注:延迟为源时间轴(NCA);LAAL 按 Papi 2022;BLEU tokenize=zh(->cmn)/13a(->eng);真实可听起始来自时间轴渲染音频
