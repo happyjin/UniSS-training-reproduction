@@ -1,0 +1,40 @@
+{
+  "coverage_epochs": 1,
+  "family_blocks": {
+    "incremental_mt_event": 175,
+    "interleaved_e2e_s2st": 315,
+    "phase3_performance_replay": 129,
+    "phase3_quality_replay": 192,
+    "streaming_asr_event": 321
+  },
+  "family_consumed_samples": {
+    "incremental_mt_event": 22400,
+    "interleaved_e2e_s2st": 40320,
+    "phase3_performance_replay": 16512,
+    "phase3_quality_replay": 24576,
+    "streaming_asr_event": 41088
+  },
+  "family_effective_cycles": {
+    "incremental_mt_event": 0.8593570168034989,
+    "interleaved_e2e_s2st": 1.0042341220423412,
+    "phase3_performance_replay": 0.44133212166568664,
+    "phase3_quality_replay": 0.6246441642944286,
+    "streaming_asr_event": 3.0742985409652075
+  },
+  "family_records": {
+    "incremental_mt_event": 26066,
+    "interleaved_e2e_s2st": 40150,
+    "phase3_performance_replay": 37414,
+    "phase3_quality_replay": 39344,
+    "streaming_asr_event": 13365
+  },
+  "global_batch_size": 128,
+  "schema_version": "uniss_phase3_v4_e2e_training_geometry_v1",
+  "seed": 20260819,
+  "seq_length": 18000,
+  "status": "passed",
+  "task_pool_report": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/BUILD_COMPLETE.json",
+  "train_iters": 1132,
+  "train_samples": 144896,
+  "warmup_updates": 34
+}
