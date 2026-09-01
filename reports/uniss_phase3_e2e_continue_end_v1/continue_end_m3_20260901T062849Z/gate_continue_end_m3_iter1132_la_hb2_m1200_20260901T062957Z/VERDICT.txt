@@ -1,0 +1,13 @@
+status: failed  (2/6 项通过)
+
+判据                                    基线        本次              门线      偏置参考  
+WRITE_MT / event                   0.168     0.147          >= 0.5     0.863  FAIL
+natural_eos                        0.500     0.500        >= 0.875     1.000  FAIL
+semantic coverage                  0.666     0.448        >= 0.666     0.997  FAIL
+text length ratio (median)         1.030     0.324      [0.9, 1.2]     2.250  FAIL
+text length ratio (worst case)     1.930     1.093          <= 2.0     4.070  PASS
+ASR error rate                     0.233     0.183         <= 0.26         -  PASS
+
+最可能的原因: the continue-after-fragment margin did not move the decision
+
+下一步: The requirement is ~3 logits and the previous run moved 6.6 with the same weight, so first check loss/continue_after_fragment in the log: if it fell below ~0.1 the margin was satisfied on gold rows and the gap is exposure bias, which needs a roll-in form of this term. If it stayed near 0.76, raise the weight or the margin. Meanwhile the calibrated inference bias delta_cont=3 is available as a fallback.

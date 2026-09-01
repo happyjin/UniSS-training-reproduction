@@ -34,12 +34,20 @@ PREDICTIONS: tuple[dict[str, Any], ...] = (
         "bias_reference": 0.863,
         "cause": "the continue-after-fragment margin did not move the decision",
         "action": (
-            "The requirement is ~3 logits and the previous run moved 6.6 with the "
-            "same weight, so first check loss/continue_after_fragment in the log: "
-            "if it fell below ~0.1 the margin was satisfied on gold rows and the "
-            "gap is exposure bias, which needs a roll-in form of this term. If it "
-            "stayed near 0.76, raise the weight or the margin. Meanwhile the "
-            "calibrated inference bias delta_cont=3 is available as a fallback."
+            "Do NOT raise the weight or the margin. Two runs have now moved this "
+            "decision monotonically the WRONG way at inference: margin 1.0 took "
+            "the median gap -2.88 -> -3.75, margin 3.0 took it -2.88 -> -4.97, "
+            "while gold-row separation moved correctly both times (+0.105, "
+            "+0.40). Teacher-forced supervision makes the model a sharper "
+            "discriminator of gold WRITE vs gold WAIT contexts, and at inference "
+            "its own error-containing ASR history classifies as WAIT, so "
+            "sharpening amplifies the wrong side. This decision needs either a "
+            "true roll-in form -- supervised on the model's own generated ASR/MT "
+            "text, which the current task pool does not contain, since "
+            "boundary_rollin_rate substitutes semantic tokens only -- or it stays "
+            "an inference-side calibrated bias. Note the bias itself is damaged "
+            "by such a run: delta_cont=4 gives WRITE_MT 0.947 on iter_0002264 but "
+            "only 0.347 here, because +4 no longer crosses -4.97."
         ),
     },
     {
@@ -79,13 +87,17 @@ PREDICTIONS: tuple[dict[str, Any], ...] = (
         "bias_reference": 2.25,
         "cause": "content_end_margin did not teach the model to close a fragment",
         "action": (
-            "This is the term that has never existed before, so a miss here is the "
-            "most informative outcome. Check loss/content_end_margin on interleaved "
-            "batches: it started at 2.311, meaning END_CONTENT trailed by 0.21 "
-            "logits. If it did not fall, raise content_end_margin weight; if it "
-            "fell but the ratio did not, the over-generation is re-translation of "
-            "already-committed text, which is a commit-policy problem, not an "
-            "END problem."
+            "Check the direction first. If the ratio is ABOVE the band the term "
+            "did not take: content_end_margin moved END_CONTENT from 0.21 logits "
+            "behind its strongest competitor to 1.81 ahead in one epoch, so a "
+            "failure to move at all points at the weight. If the ratio is BELOW "
+            "the band the term took and is now harmful on its own: it shortens "
+            "every fragment, and with WRITE_MT still near 0.147 that means fewer "
+            "fragments times shorter each -- measured at 1.033 -> 0.324 with "
+            "semantic coverage 0.666 -> 0.448. The over-generation this term "
+            "targets was measured at delta_cont 3-4, where the model writes on "
+            "~90% of events; it is only correct jointly with a working speak "
+            "mechanism. Never train it alone."
         ),
     },
     {

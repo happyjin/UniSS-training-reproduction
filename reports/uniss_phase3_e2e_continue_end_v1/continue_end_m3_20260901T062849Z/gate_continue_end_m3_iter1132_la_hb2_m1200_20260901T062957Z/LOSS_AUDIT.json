@@ -1,0 +1,596 @@
+{
+ "confounded_terms": [
+  "boundary_ce",
+  "content_end_ce",
+  "content_end_margin",
+  "eos_ce",
+  "mt_ce",
+  "phase3_kl"
+ ],
+ "counts": {
+  "active_weighted": 12,
+  "aggregates": 2,
+  "components": 4,
+  "confounded_pooled": 6,
+  "dead_with_weight": 0,
+  "metrics_emitted": 25,
+  "negligible": 2,
+  "optimizing": 7,
+  "rising": 5,
+  "zero_weight_monitors": 5
+ },
+ "dead_with_weight": [],
+ "entries": [
+  {
+   "delta": 0.049877319230769324,
+   "fired_batch_share": 0.5627208480565371,
+   "first_quarter_mean": 0.6616993333333333,
+   "kind": "active",
+   "last_quarter_mean": 0.7115766525641026,
+   "median_supervised_rows": 23712.0,
+   "name": "asr_ce",
+   "pooled_delta": 0.05162549119496851,
+   "pooled_trend": "rising",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.049877319230769324,
+     "first_quarter_mean": 0.6616993333333333,
+     "last_quarter_mean": 0.7115766525641026
+    },
+    "streaming_asr": {
+     "batches": 321,
+     "delta": 0.035856291250000005,
+     "first_quarter_mean": 0.621106605,
+     "last_quarter_mean": 0.65696289625
+    }
+   },
+   "trend": "rising",
+   "weight": 1.0
+  },
+  {
+   "confounded_pooled": true,
+   "delta": -0.0025409468749999983,
+   "fired_batch_share": 0.7173144876325088,
+   "first_quarter_mean": 0.03429879775,
+   "kind": "component",
+   "last_quarter_mean": 0.031757850875,
+   "median_supervised_rows": 66189.565,
+   "name": "boundary_ce",
+   "pooled_delta": 0.10841406399014775,
+   "pooled_trend": "rising",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.013253893023255747,
+     "first_quarter_mean": 0.7348540790697674,
+     "last_quarter_mean": 0.7216001860465117
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.054114907692307646,
+     "first_quarter_mean": 0.3177019205128205,
+     "last_quarter_mean": 0.26358701282051283
+    },
+    "streaming_asr": {
+     "batches": 321,
+     "delta": -0.0025409468749999983,
+     "first_quarter_mean": 0.03429879775,
+     "last_quarter_mean": 0.031757850875
+    }
+   },
+   "trend": "optimizing",
+   "weight": null
+  },
+  {
+   "fired_batch_share": 0.0,
+   "kind": "aggregate",
+   "median_supervised_rows": 0.0,
+   "name": "boundary_eos",
+   "weight": 0.1
+  },
+  {
+   "delta": -0.0018927372093022754,
+   "fired_batch_share": 0.15459363957597172,
+   "first_quarter_mean": 0.33255206744186044,
+   "kind": "active",
+   "last_quarter_mean": 0.33065933023255817,
+   "median_supervised_rows": 73387.5,
+   "name": "commit_consistency",
+   "pooled_delta": -0.0018927372093022754,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.0018927372093022754,
+     "first_quarter_mean": 0.33255206744186044,
+     "last_quarter_mean": 0.33065933023255817
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.2
+  },
+  {
+   "confounded_pooled": true,
+   "delta": -0.012633744874999991,
+   "fired_batch_share": 0.7173144876325088,
+   "first_quarter_mean": 0.096980206125,
+   "kind": "monitor",
+   "last_quarter_mean": 0.08434646125,
+   "median_supervised_rows": 9211.375,
+   "name": "content_end_ce",
+   "pooled_delta": 0.04589601261083748,
+   "pooled_trend": "rising",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.013253893023255747,
+     "first_quarter_mean": 0.7348540790697674,
+     "last_quarter_mean": 0.7216001860465117
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.18526147435897433,
+     "first_quarter_mean": 0.5793623653846154,
+     "last_quarter_mean": 0.39410089102564105
+    },
+    "streaming_asr": {
+     "batches": 321,
+     "delta": -0.012633744874999991,
+     "first_quarter_mean": 0.096980206125,
+     "last_quarter_mean": 0.08434646125
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.0
+  },
+  {
+   "confounded_pooled": true,
+   "delta": -0.04490171000000001,
+   "fired_batch_share": 0.7173144876325088,
+   "first_quarter_mean": 0.20978439875000002,
+   "kind": "active",
+   "last_quarter_mean": 0.16488268875,
+   "median_supervised_rows": 9211.375,
+   "name": "content_end_margin",
+   "pooled_delta": 0.05365019999999998,
+   "pooled_trend": "rising",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.049447813953488406,
+     "first_quarter_mean": 1.1390996976744185,
+     "last_quarter_mean": 1.0896518837209301
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.26103399102564095,
+     "first_quarter_mean": 0.8694656679487179,
+     "last_quarter_mean": 0.608431676923077
+    },
+    "streaming_asr": {
+     "batches": 321,
+     "delta": -0.04490171000000001,
+     "first_quarter_mean": 0.20978439875000002,
+     "last_quarter_mean": 0.16488268875
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.25
+  },
+  {
+   "delta": -0.10262512820512804,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 1.3331741794871794,
+   "kind": "active",
+   "last_quarter_mean": 1.2305490512820514,
+   "median_supervised_rows": 9182.375,
+   "name": "continue_after_fragment",
+   "pooled_delta": -0.10262512820512804,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.10262512820512804,
+     "first_quarter_mean": 1.3331741794871794,
+     "last_quarter_mean": 1.2305490512820514
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.5
+  },
+  {
+   "confounded_pooled": true,
+   "delta": 0.0016145461923076938,
+   "fired_batch_share": 0.5627208480565371,
+   "first_quarter_mean": 0.015600526487179486,
+   "kind": "component",
+   "last_quarter_mean": 0.01721507267948718,
+   "median_supervised_rows": 1126.875,
+   "name": "eos_ce",
+   "pooled_delta": -0.0006802318930817612,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.0016145461923076938,
+     "first_quarter_mean": 0.015600526487179486,
+     "last_quarter_mean": 0.01721507267948718
+    },
+    "streaming_asr": {
+     "batches": 321,
+     "delta": 0.0009393722500000007,
+     "first_quarter_mean": 0.033663124375,
+     "last_quarter_mean": 0.034602496625
+    }
+   },
+   "trend": "rising",
+   "weight": null
+  },
+  {
+   "confounded_pooled": true,
+   "delta": -0.015233930232558368,
+   "fired_batch_share": 0.43286219081272087,
+   "first_quarter_mean": 1.9492577209302326,
+   "kind": "active",
+   "last_quarter_mean": 1.9340237906976743,
+   "median_supervised_rows": 7095.625,
+   "name": "mt_ce",
+   "pooled_delta": 0.007803311475409691,
+   "pooled_trend": "rising",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.015233930232558368,
+     "first_quarter_mean": 1.9492577209302326,
+     "last_quarter_mean": 1.9340237906976743
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.025938987179487283,
+     "first_quarter_mean": 1.7541216923076923,
+     "last_quarter_mean": 1.728182705128205
+    }
+   },
+   "trend": "optimizing",
+   "weight": 1.0
+  },
+  {
+   "confounded_pooled": true,
+   "delta": 0.014903113953488423,
+   "fired_batch_share": 0.43286219081272087,
+   "first_quarter_mean": 0.8957122162790697,
+   "kind": "active",
+   "last_quarter_mean": 0.9106153302325581,
+   "median_supervised_rows": 23329.25,
+   "name": "phase3_kl",
+   "pooled_delta": -0.10344808852458987,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": 0.014903113953488423,
+     "first_quarter_mean": 0.8957122162790697,
+     "last_quarter_mean": 0.9106153302325581
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.006981641025640917,
+     "first_quarter_mean": 1.5748041923076923,
+     "last_quarter_mean": 1.5678225512820514
+    }
+   },
+   "trend": "rising",
+   "weight": 0.25
+  },
+  {
+   "delta": -0.00015763181395348803,
+   "fired_batch_share": 0.43286219081272087,
+   "first_quarter_mean": 0.01035587911627907,
+   "kind": "active",
+   "last_quarter_mean": 0.010198247302325582,
+   "median_supervised_rows": 139422.4,
+   "name": "repetition_penalty",
+   "pooled_delta": -0.004733723795081968,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "incremental_mt": {
+     "batches": 175,
+     "delta": -0.00015763181395348803,
+     "first_quarter_mean": 0.01035587911627907,
+     "last_quarter_mean": 0.010198247302325582
+    },
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.00037990820512820433,
+     "first_quarter_mean": 0.03753830705128205,
+     "last_quarter_mean": 0.037158398846153844
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.3
+  },
+  {
+   "delta": 0.04804102499999985,
+   "fired_batch_share": 0.2835689045936396,
+   "first_quarter_mean": 4.0066960625,
+   "kind": "active",
+   "last_quarter_mean": 4.0547370874999995,
+   "median_supervised_rows": 215555.6,
+   "name": "replay_ce",
+   "pooled_delta": 0.04804102499999985,
+   "pooled_trend": "rising",
+   "strata": {
+    "replay": {
+     "batches": 321,
+     "delta": 0.04804102499999985,
+     "first_quarter_mean": 4.0066960625,
+     "last_quarter_mean": 4.0547370874999995
+    }
+   },
+   "trend": "rising",
+   "weight": 0.5
+  },
+  {
+   "fired_batch_share": 0.0,
+   "kind": "aggregate",
+   "median_supervised_rows": 0.0,
+   "name": "semantic_boundary_binary",
+   "weight": 0.0
+  },
+  {
+   "delta": -0.19085800000000042,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 2.78976458974359,
+   "kind": "component",
+   "last_quarter_mean": 2.5989065897435895,
+   "median_supervised_rows": 171.5,
+   "name": "semantic_boundary_binary_continue",
+   "pooled_delta": -0.19085800000000042,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.19085800000000042,
+     "first_quarter_mean": 2.78976458974359,
+     "last_quarter_mean": 2.5989065897435895
+    }
+   },
+   "trend": "optimizing",
+   "weight": null
+  },
+  {
+   "delta": -0.03546159102564106,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 0.8321953076923077,
+   "kind": "component",
+   "last_quarter_mean": 0.7967337166666666,
+   "median_supervised_rows": 26.875,
+   "name": "semantic_boundary_binary_end",
+   "pooled_delta": -0.03546159102564106,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.03546159102564106,
+     "first_quarter_mean": 0.8321953076923077,
+     "last_quarter_mean": 0.7967337166666666
+    }
+   },
+   "trend": "optimizing",
+   "weight": null
+  },
+  {
+   "delta": 0.00549516666666694,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 4.811992756410256,
+   "kind": "active",
+   "last_quarter_mean": 4.817487923076923,
+   "median_supervised_rows": 138264.4,
+   "name": "semantic_ce",
+   "pooled_delta": 0.00549516666666694,
+   "pooled_trend": "rising",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.00549516666666694,
+     "first_quarter_mean": 4.811992756410256,
+     "last_quarter_mean": 4.817487923076923
+    }
+   },
+   "trend": "rising",
+   "weight": 1.0
+  },
+  {
+   "delta": 0.06385503846153862,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 2.4587089743589745,
+   "kind": "monitor",
+   "last_quarter_mean": 2.522564012820513,
+   "median_supervised_rows": 30354.5,
+   "name": "semantic_continue_margin",
+   "pooled_delta": 0.06385503846153862,
+   "pooled_trend": "rising",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.06385503846153862,
+     "first_quarter_mean": 2.4587089743589745,
+     "last_quarter_mean": 2.522564012820513
+    }
+   },
+   "trend": "rising",
+   "weight": 0.0
+  },
+  {
+   "delta": -0.0049285217948717985,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 0.41073545384615384,
+   "kind": "active",
+   "last_quarter_mean": 0.40580693205128204,
+   "median_supervised_rows": 2554.25,
+   "name": "semantic_end_ce",
+   "pooled_delta": -0.0049285217948717985,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.0049285217948717985,
+     "first_quarter_mean": 0.41073545384615384,
+     "last_quarter_mean": 0.40580693205128204
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.5
+  },
+  {
+   "delta": 0.031498495,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 0.10169868448717949,
+   "kind": "active",
+   "last_quarter_mean": 0.1331971794871795,
+   "median_supervised_rows": 2554.25,
+   "name": "semantic_end_margin",
+   "pooled_delta": 0.031498495,
+   "pooled_trend": "rising",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.031498495,
+     "first_quarter_mean": 0.10169868448717949,
+     "last_quarter_mean": 0.1331971794871795
+    }
+   },
+   "trend": "rising",
+   "weight": 0.25
+  },
+  {
+   "delta": -0.20768579487179517,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 2.6567504487179487,
+   "kind": "negligible",
+   "last_quarter_mean": 2.4490646538461536,
+   "median_supervised_rows": 171.5,
+   "name": "semantic_rollin_continue_decision_margin",
+   "pooled_delta": -0.20768579487179517,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.20768579487179517,
+     "first_quarter_mean": 2.6567504487179487,
+     "last_quarter_mean": 2.4490646538461536
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.25
+  },
+  {
+   "delta": 0.5128033974358983,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 7.095965358974358,
+   "kind": "monitor",
+   "last_quarter_mean": 7.608768756410257,
+   "median_supervised_rows": 171.5,
+   "name": "semantic_rollin_continue_margin",
+   "pooled_delta": 0.5128033974358983,
+   "pooled_trend": "rising",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": 0.5128033974358983,
+     "first_quarter_mean": 7.095965358974358,
+     "last_quarter_mean": 7.608768756410257
+    }
+   },
+   "trend": "rising",
+   "weight": 0.0
+  },
+  {
+   "delta": -0.10748071923076918,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 1.4865582192307691,
+   "kind": "negligible",
+   "last_quarter_mean": 1.3790775,
+   "median_supervised_rows": 26.875,
+   "name": "semantic_rollin_end_ce",
+   "pooled_delta": -0.10748071923076918,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.10748071923076918,
+     "first_quarter_mean": 1.4865582192307691,
+     "last_quarter_mean": 1.3790775
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.25
+  },
+  {
+   "delta": -0.03181701794871783,
+   "fired_batch_share": 0.2782685512367491,
+   "first_quarter_mean": 1.061110117948718,
+   "kind": "monitor",
+   "last_quarter_mean": 1.0292931,
+   "median_supervised_rows": 26.875,
+   "name": "semantic_rollin_end_margin",
+   "pooled_delta": -0.03181701794871783,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "interleaved": {
+     "batches": 315,
+     "delta": -0.03181701794871783,
+     "first_quarter_mean": 1.061110117948718,
+     "last_quarter_mean": 1.0292931
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.0
+  },
+  {
+   "fired_batch_share": 0.0,
+   "kind": "monitor_dead",
+   "median_supervised_rows": 0.0,
+   "name": "speaker_continuity",
+   "weight": 0.0
+  },
+  {
+   "delta": -0.037259589999999954,
+   "fired_batch_share": 0.284452296819788,
+   "first_quarter_mean": 0.40994387374999997,
+   "kind": "active",
+   "last_quarter_mean": 0.37268428375,
+   "median_supervised_rows": 104174.7,
+   "name": "v1_asr_kl",
+   "pooled_delta": -0.034774423750000005,
+   "pooled_trend": "optimizing",
+   "strata": {
+    "streaming_asr": {
+     "batches": 321,
+     "delta": -0.037259589999999954,
+     "first_quarter_mean": 0.40994387374999997,
+     "last_quarter_mean": 0.37268428375
+    }
+   },
+   "trend": "optimizing",
+   "weight": 0.3
+  }
+ ],
+ "iterations_seen": 1132,
+ "log": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/logs/uniss_phase3_e2e_continue_end_v1/continue_end_m3_20260901T062849Z.log",
+ "negligible_terms": [
+  {
+   "name": "semantic_rollin_continue_decision_margin",
+   "rows": 171.5,
+   "weight": 0.25
+  },
+  {
+   "name": "semantic_rollin_end_ce",
+   "rows": 26.875,
+   "weight": 0.25
+  }
+ ],
+ "schema_version": "uniss_e2e_loss_audit_v1",
+ "status": "passed"
+}

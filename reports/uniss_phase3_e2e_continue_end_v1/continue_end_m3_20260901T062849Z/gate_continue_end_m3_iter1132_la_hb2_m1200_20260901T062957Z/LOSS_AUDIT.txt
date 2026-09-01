@@ -1,0 +1,34 @@
+loss 审计: passed   共 1132 个迭代
+  发出的指标 25  = 有效加权 12 + 权重0监控 5 + 合并项 2 + 组件 4 + 分母过小 2 + 带权重却从未开火 0
+  有效项中: 在优化 7  上升 5   (趋势按批类型分层;6 项的合并均值方向与分层相反)
+
+指标                                               权重     开火       分母          趋势  类别
+semantic_rollin_continue_decision_margin       0.25    28%      172  optimizing  negligible
+semantic_rollin_end_ce                         0.25    28%       27  optimizing  negligible
+asr_ce                                         1.00    56%    23712      rising  active
+mt_ce                                          1.00    43%     7096  optimizing  active  [合并均值方向相反,是构成假象]
+semantic_ce                                    1.00    28%   138264      rising  active
+continue_after_fragment                        0.50    28%     9182  optimizing  active
+replay_ce                                      0.50    28%   215556      rising  active
+semantic_end_ce                                0.50    28%     2554  optimizing  active
+repetition_penalty                             0.30    43%   139422  optimizing  active
+v1_asr_kl                                      0.30    28%   104175  optimizing  active
+content_end_margin                             0.25    72%     9211  optimizing  active  [合并均值方向相反,是构成假象]
+phase3_kl                                      0.25    43%    23329      rising  active  [合并均值方向相反,是构成假象]
+semantic_end_margin                            0.25    28%     2554      rising  active
+commit_consistency                             0.20    15%    73388  optimizing  active
+content_end_ce                                 0.00    72%     9211  optimizing  monitor  [合并均值方向相反,是构成假象]
+semantic_continue_margin                       0.00    28%    30354      rising  monitor
+semantic_rollin_continue_margin                0.00    28%      172      rising  monitor
+semantic_rollin_end_margin                     0.00    28%       27  optimizing  monitor
+speaker_continuity                             0.00     0%        0           -  monitor_dead
+boundary_eos                                   0.10     0%        0           -  aggregate
+semantic_boundary_binary                       0.00     0%        0           -  aggregate
+boundary_ce                                       ?    72%    66190  optimizing  component  [合并均值方向相反,是构成假象]
+eos_ce                                            ?    56%     1127      rising  component  [合并均值方向相反,是构成假象]
+semantic_boundary_binary_continue                 ?    28%      172  optimizing  component
+semantic_boundary_binary_end                      ?    28%       27  optimizing  component
+
+分母过小、贡献是噪声:
+  semantic_rollin_continue_decision_margin  权重 0.25  仅 172 行
+  semantic_rollin_end_ce  权重 0.25  仅 27 行

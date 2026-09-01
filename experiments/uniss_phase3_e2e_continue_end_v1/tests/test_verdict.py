@@ -110,3 +110,18 @@ def test_the_predictions_carry_the_measured_bias_sweep_reference() -> None:
     assert references["natural_eos"] == 1.00
     assert references["semantic_coverage"] == 0.997
     assert references["text_length_ratio_max"] == 4.07
+
+
+def test_the_continue_prescription_no_longer_tells_us_to_raise_the_margin() -> None:
+    """Two runs moved this decision monotonically the wrong way at inference."""
+    action = {p["key"]: p["action"] for p in v.PREDICTIONS}["write_mt_per_event"]
+    assert "Do NOT raise the weight or the margin" in action
+    assert "-4.97" in action and "-3.75" in action
+    assert "roll-in" in action
+
+
+def test_the_content_end_prescription_covers_both_directions() -> None:
+    """Below the band means the term took and is harmful alone, not that it failed."""
+    action = {p["key"]: p["action"] for p in v.PREDICTIONS}["text_length_ratio_median"]
+    assert "ABOVE the band" in action and "BELOW the band" in action
+    assert "Never train it alone" in action
