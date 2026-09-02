@@ -1,0 +1,25 @@
+{
+ "coverage_epochs": 1,
+ "family_blocks": {
+  "p2st_incremental_mt": 11,
+  "p2st_streaming_asr": 11,
+  "p2st_streaming_tts": 11
+ },
+ "family_rows": {
+  "p2st_incremental_mt": 163,
+  "p2st_streaming_asr": 925,
+  "p2st_streaming_tts": 1404
+ },
+ "family_weights": {
+  "p2st_incremental_mt": 0.3333333333333333,
+  "p2st_streaming_asr": 0.3333333333333333,
+  "p2st_streaming_tts": 0.3333333333333333
+ },
+ "global_batch_size": 128,
+ "pool_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v2_20260902T133623Z/POOL_MANIFEST.json",
+ "schema_version": "uniss_streaming_p2st_geometry_v1",
+ "seed": 20260819,
+ "total_blocks": 33,
+ "train_iters": 33,
+ "warmup_updates": 0
+}
