@@ -164,8 +164,9 @@ train_valid_test_datasets_provider.is_distributed = True
 
 
 def main() -> None:
+    # Must precede add_experiment_args: --e2e-smoke-family's argparse choices
+    # are read from TASK_FAMILIES at declaration time.
     install_p2st_overrides()
-    base.install_family_sampler()
 
     runtime = load_megatron_runtime()
     args = runtime.parse_and_validate_args(
@@ -173,6 +174,17 @@ def main() -> None:
         args_defaults={"tokenizer_type": "NullTokenizer"},
     )
     base.validate_experiment_args(args)
+    # The same four installers the base entry point runs, in the same order.
+    # install_joint_collate is the one that matters most here: Megatron's
+    # build_pretraining_data_loader never looks at dataset.collate_fn, so
+    # without it the loader falls back to default_collate and dies on the
+    # first ragged field.
+    base.install_e2e_lr_overrides(args)
+    base.install_family_sampler()
+    # These two live one level down, on the true-subsecond module the base
+    # trainer imports as its own ``base``.
+    base.base.install_joint_collate()
+    base.base.install_rerun_checkpoint_compatibility()
     if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
         print(
             json.dumps(
