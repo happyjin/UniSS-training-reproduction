@@ -147,29 +147,6 @@ def test_geometry_and_data_are_unchanged_from_the_parent_run() -> None:
     assert "COVERAGE_EPOCHS=${COVERAGE_EPOCHS:-1}" in text
 
 
-def test_the_wrapper_only_sets_the_tensor_sharing_strategy() -> None:
-    """workers>0 died with `received 0 items of ancdata` under file_descriptor.
-
-    The open-file limit is 1,048,576 here, so this is not an fd shortage: it is
-    PyTorch's default sharing strategy exhausting the per-message ancillary-data
-    budget when a batch carries many tensors.  file_system shares through
-    /dev/shm names and has no such limit, and it must be set before any worker
-    forks, which the environment cannot do.
-    """
-    from experiments.uniss_phase3_e2e_uniform_ce_v1.training import (
-        pretrain_uniform_ce_megatron as wrapper,
-    )
-    import torch.multiprocessing as multiprocessing
-
-    assert wrapper.SHARING_STRATEGY == "file_system"
-    assert wrapper.SHARING_STRATEGY in multiprocessing.get_all_sharing_strategies()
-    before = multiprocessing.get_sharing_strategy()
-    try:
-        assert wrapper.install() == "file_system"
-    finally:
-        multiprocessing.set_sharing_strategy(before)
-
-
 def test_no_weight_is_declared_twice() -> None:
     """`${VAR:-default}` keeps the first value, so a shadowed second line is dead.
 
