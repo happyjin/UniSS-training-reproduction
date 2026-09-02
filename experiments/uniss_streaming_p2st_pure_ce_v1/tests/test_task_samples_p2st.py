@@ -32,6 +32,8 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st impo
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
     SOURCE_PREFIX_V1,
+    TASK_TOKENS,
+    UNTRAINED_TASK_TOKENS,
     TOKEN_HOP_SAMPLES,
     causal_glm_token_count,
     build_p2st_incremental_mt_tasks,
@@ -255,13 +257,39 @@ def test_mt_v1_roll_in_variant_is_available(trajectories):
     assert produced >= 0
 
 
-def test_streaming_task_tokens_are_the_preallocated_ones(samples):
+def test_prompts_are_headed_by_the_trained_task_tokens(samples):
+    """Start from an embedding this lineage has actually moved.
+
+    TOKEN_TASK_STREAMING_ASR is emitted by the Stage-A pool, so the ASR family
+    keeps it.  The other two streaming task tokens are not trained here --
+    TASK_STREAMING_TEXT_TRANSLATION appears nowhere in the repository and
+    TASK_STREAMING_TTS only in another lineage -- while TASK_S2T_TRANSLATION
+    and TASK_TTS are used in 31 and 22 places by the interleaved family and by
+    offline phase3.  Heading the MT and TTS prompts with those is a strictly
+    warmer start, and TOKEN_STREAMING_MODE still marks the streaming variant.
+    """
     heads = {sample.family: sample.token_ids[0] for sample in samples}
     assert heads[FAMILY_P2ST_ASR] == c.TOKEN_TASK_STREAMING_ASR == 180_383
-    assert (
-        heads[FAMILY_P2ST_MT] == c.TOKEN_TASK_STREAMING_TEXT_TRANSLATION == 180_398
+    assert heads[FAMILY_P2ST_MT] == c.TOKEN_TASK_S2T_TRANSLATION == 180_380
+    assert heads[FAMILY_P2ST_TTS] == c.TOKEN_TASK_TTS == 180_375
+    assert heads == TASK_TOKENS
+    # Every prompt still carries the streaming marker, which is what keeps the
+    # reused tokens distinguishable from the offline phase3 prompts.
+    for sample in samples:
+        assert sample.token_ids[1] == c.TOKEN_STREAMING_MODE
+
+
+def test_the_untrained_token_set_is_still_reachable(trajectories):
+    """The choice is testable, not baked in."""
+    trajectory = trajectories[0]
+    built = build_p2st_streaming_tts_tasks(
+        trajectory,
+        encode_text=_encode,
+        task_token=UNTRAINED_TASK_TOKENS[FAMILY_P2ST_TTS],
     )
-    assert heads[FAMILY_P2ST_TTS] == c.TOKEN_TASK_STREAMING_TTS == 180_382
+    assert built
+    for sample in built:
+        assert sample.token_ids[0] == c.TOKEN_TASK_STREAMING_TTS
 
 
 def test_closed_form_reproduces_the_measured_frontend_counts():

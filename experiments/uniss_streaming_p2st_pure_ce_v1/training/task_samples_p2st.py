@@ -121,6 +121,38 @@ P2ST_FAMILIES = (FAMILY_P2ST_ASR, FAMILY_P2ST_MT, FAMILY_P2ST_TTS)
 SOURCE_PREFIX_GOLD = "gold"
 SOURCE_PREFIX_V1 = "v1"
 
+# Which task token heads each family's prompt.
+#
+# Measured across the repository: TOKEN_TASK_STREAMING_ASR is emitted by the
+# Stage-A training pool, whose prompt header is
+# ``[TASK_STREAMING_ASR, STREAMING_MODE, lang, *speaker]`` -- nearly this
+# module's ASR header -- so that embedding is trained in this lineage.  The
+# other two streaming task tokens are not: TASK_STREAMING_TEXT_TRANSLATION
+# appears nowhere at all, and TASK_STREAMING_TTS only in a different lineage.
+# Their trained counterparts are heavily used: TASK_S2T_TRANSLATION in 31
+# places and TASK_TTS in 22, by both the interleaved family and offline
+# phase3 -- including the phase3 ``tts`` mode whose whole-utterance duration
+# ratio is a healthy 1.039.
+#
+# So the MT and TTS families head their prompts with the trained tokens.  That
+# is not a loss of distinction: every prompt here also carries
+# TOKEN_STREAMING_MODE, and the interleaved family's own TTS segment is headed
+# by TASK_TTS too, so this task inherits what that segment already taught and
+# differs only in being an isolated sequence that ends with its own END rather
+# than competing with WAIT/WRITE for the same bucket.
+TASK_TOKENS = {
+    FAMILY_P2ST_ASR: c.TOKEN_TASK_STREAMING_ASR,
+    FAMILY_P2ST_MT: c.TOKEN_TASK_S2T_TRANSLATION,
+    FAMILY_P2ST_TTS: c.TOKEN_TASK_TTS,
+}
+# The never-trained alternative, kept addressable so the choice can be tested
+# rather than assumed.
+UNTRAINED_TASK_TOKENS = {
+    FAMILY_P2ST_ASR: c.TOKEN_TASK_STREAMING_ASR,
+    FAMILY_P2ST_MT: c.TOKEN_TASK_STREAMING_TEXT_TRANSLATION,
+    FAMILY_P2ST_TTS: c.TOKEN_TASK_STREAMING_TTS,
+}
+
 SAMPLE_RATE = 16_000
 TOKEN_HOP_MS = 80
 TOKEN_HOP_SAMPLES = SAMPLE_RATE * TOKEN_HOP_MS // 1000
@@ -299,6 +331,7 @@ def _glm_ids_for_prefix(
 def build_p2st_streaming_asr_tasks(
     trajectory: E2ETrajectory,
     *,
+    task_token: int = TASK_TOKENS[FAMILY_P2ST_ASR],
     encode_text: EncodeText,
     glm_token_count: Callable[[int], int] = causal_glm_token_count,
 ) -> list[P2STTaskSample]:
@@ -325,7 +358,7 @@ def build_p2st_streaming_asr_tasks(
         builder = _Builder()
         builder.observe(
             [
-                c.TOKEN_TASK_STREAMING_ASR,
+                task_token,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.src_lang),
             ]
@@ -364,6 +397,7 @@ def build_p2st_streaming_asr_tasks(
 def build_p2st_incremental_mt_tasks(
     trajectory: E2ETrajectory,
     *,
+    task_token: int = TASK_TOKENS[FAMILY_P2ST_MT],
     encode_text: EncodeText,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
 ) -> list[P2STTaskSample]:
@@ -400,7 +434,7 @@ def build_p2st_incremental_mt_tasks(
         builder = _Builder()
         builder.observe(
             [
-                c.TOKEN_TASK_STREAMING_TEXT_TRANSLATION,
+                task_token,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.tgt_lang),
                 c.TOKEN_START_CONTENT,
@@ -435,6 +469,7 @@ def build_p2st_incremental_mt_tasks(
 def build_p2st_streaming_tts_tasks(
     trajectory: E2ETrajectory,
     *,
+    task_token: int = TASK_TOKENS[FAMILY_P2ST_TTS],
     encode_text: EncodeText,
     speed: float = 1.0,
 ) -> list[P2STTaskSample]:
@@ -463,7 +498,7 @@ def build_p2st_streaming_tts_tasks(
         builder = _Builder()
         builder.observe(
             [
-                c.TOKEN_TASK_STREAMING_TTS,
+                task_token,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.tgt_lang),
                 c.speed_token_id(speed),
@@ -497,6 +532,8 @@ def build_p2st_streaming_tts_tasks(
 
 __all__ = [
     "P2STTaskSample",
+    "TASK_TOKENS",
+    "UNTRAINED_TASK_TOKENS",
     "TOKEN_HOP_SAMPLES",
     "causal_glm_token_count",
     "FAMILY_P2ST_ASR",
