@@ -1,0 +1,1125 @@
+{
+ "elapsed_seconds": 16.46,
+ "families": {
+  "p2st_incremental_mt": {
+   "bytes": 82491354,
+   "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_incremental_mt.jsonl.offsets.bin",
+    "binary_size_bytes": 1304,
+    "data_mtime_ns": 1788352812263111624,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_incremental_mt.jsonl",
+    "data_size_bytes": 82491354,
+    "offset_bytes": 8,
+    "records": 163,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+   },
+   "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_incremental_mt.jsonl",
+   "rows": 163,
+   "samples": 86083,
+   "supervised_tokens": 409216,
+   "used_tokens": 2661175
+  },
+  "p2st_streaming_asr": {
+   "bytes": 760264955,
+   "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_asr.jsonl.offsets.bin",
+    "binary_size_bytes": 7400,
+    "data_mtime_ns": 1788352812003106475,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_asr.jsonl",
+    "data_size_bytes": 760264955,
+    "offset_bytes": 8,
+    "records": 925,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+   },
+   "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_asr.jsonl",
+   "rows": 925,
+   "samples": 219628,
+   "supervised_tokens": 710216,
+   "used_tokens": 16122890
+  },
+  "p2st_streaming_tts": {
+   "bytes": 727341718,
+   "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_tts.jsonl.offsets.bin",
+    "binary_size_bytes": 11232,
+    "data_mtime_ns": 1788352813003126284,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_tts.jsonl",
+    "data_size_bytes": 727341718,
+    "offset_bytes": 8,
+    "records": 1404,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+   },
+   "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/packed/valid_p2st_streaming_tts.jsonl",
+   "rows": 1404,
+   "samples": 86085,
+   "supervised_tokens": 4918883,
+   "used_tokens": 24479025
+  }
+ },
+ "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+ "schema_version": "uniss_streaming_p2st_pool_v1",
+ "seq_length": 18000,
+ "skipped_count": 0,
+ "skipped_examples": [],
+ "split": "valid",
+ "tokenizer": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf",
+ "trajectories": 13469,
+ "workers": [
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0000.jsonl",
+     "rows": 3,
+     "samples": 2119,
+     "supervised_tokens": 8549,
+     "used_tokens": 42501
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0000.jsonl",
+     "rows": 11,
+     "samples": 3909,
+     "supervised_tokens": 13063,
+     "used_tokens": 195755
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0000.jsonl",
+     "rows": 23,
+     "samples": 2119,
+     "supervised_tokens": 104889,
+     "used_tokens": 396988
+    }
+   },
+   "range": [
+    0,
+    421
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 0
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0001.jsonl",
+     "rows": 3,
+     "samples": 2038,
+     "supervised_tokens": 8323,
+     "used_tokens": 40613
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0001.jsonl",
+     "rows": 10,
+     "samples": 3807,
+     "supervised_tokens": 12845,
+     "used_tokens": 178648
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0001.jsonl",
+     "rows": 21,
+     "samples": 2038,
+     "supervised_tokens": 99778,
+     "used_tokens": 372928
+    }
+   },
+   "range": [
+    421,
+    842
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 1
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0002.jsonl",
+     "rows": 3,
+     "samples": 2118,
+     "supervised_tokens": 8354,
+     "used_tokens": 41358
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0002.jsonl",
+     "rows": 10,
+     "samples": 3700,
+     "supervised_tokens": 12427,
+     "used_tokens": 170527
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0002.jsonl",
+     "rows": 22,
+     "samples": 2118,
+     "supervised_tokens": 98161,
+     "used_tokens": 384760
+    }
+   },
+   "range": [
+    842,
+    1263
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 2
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0003.jsonl",
+     "rows": 3,
+     "samples": 2075,
+     "supervised_tokens": 8348,
+     "used_tokens": 41039
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0003.jsonl",
+     "rows": 10,
+     "samples": 3741,
+     "supervised_tokens": 12614,
+     "used_tokens": 175591
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0003.jsonl",
+     "rows": 21,
+     "samples": 2075,
+     "supervised_tokens": 97348,
+     "used_tokens": 370995
+    }
+   },
+   "range": [
+    1263,
+    1684
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 3
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0004.jsonl",
+     "rows": 3,
+     "samples": 1937,
+     "supervised_tokens": 7906,
+     "used_tokens": 37123
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0004.jsonl",
+     "rows": 9,
+     "samples": 3616,
+     "supervised_tokens": 12174,
+     "used_tokens": 161403
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0004.jsonl",
+     "rows": 19,
+     "samples": 1937,
+     "supervised_tokens": 95184,
+     "used_tokens": 339429
+    }
+   },
+   "range": [
+    1684,
+    2105
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 4
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0005.jsonl",
+     "rows": 3,
+     "samples": 2114,
+     "supervised_tokens": 9058,
+     "used_tokens": 47351
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0005.jsonl",
+     "rows": 14,
+     "samples": 4284,
+     "supervised_tokens": 14094,
+     "used_tokens": 235498
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0005.jsonl",
+     "rows": 24,
+     "samples": 2114,
+     "supervised_tokens": 104416,
+     "used_tokens": 425675
+    }
+   },
+   "range": [
+    2105,
+    2526
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 5
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0006.jsonl",
+     "rows": 6,
+     "samples": 2808,
+     "supervised_tokens": 13231,
+     "used_tokens": 98394
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0006.jsonl",
+     "rows": 39,
+     "samples": 7545,
+     "supervised_tokens": 24829,
+     "used_tokens": 670737
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0006.jsonl",
+     "rows": 50,
+     "samples": 2808,
+     "supervised_tokens": 159878,
+     "used_tokens": 867142
+    }
+   },
+   "range": [
+    2526,
+    2947
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 6
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0007.jsonl",
+     "rows": 10,
+     "samples": 3940,
+     "supervised_tokens": 19384,
+     "used_tokens": 172402
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0007.jsonl",
+     "rows": 71,
+     "samples": 11542,
+     "supervised_tokens": 38535,
+     "used_tokens": 1240525
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0007.jsonl",
+     "rows": 87,
+     "samples": 3940,
+     "supervised_tokens": 238589,
+     "used_tokens": 1516401
+    }
+   },
+   "range": [
+    2947,
+    3368
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 7
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0008.jsonl",
+     "rows": 4,
+     "samples": 2105,
+     "supervised_tokens": 9822,
+     "used_tokens": 57014
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0008.jsonl",
+     "rows": 20,
+     "samples": 5159,
+     "supervised_tokens": 16508,
+     "used_tokens": 347769
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0008.jsonl",
+     "rows": 29,
+     "samples": 2105,
+     "supervised_tokens": 112488,
+     "used_tokens": 507321
+    }
+   },
+   "range": [
+    3368,
+    3789
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 8
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0009.jsonl",
+     "rows": 5,
+     "samples": 2616,
+     "supervised_tokens": 13144,
+     "used_tokens": 77211
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0009.jsonl",
+     "rows": 25,
+     "samples": 6544,
+     "supervised_tokens": 20619,
+     "used_tokens": 434154
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0009.jsonl",
+     "rows": 47,
+     "samples": 2616,
+     "supervised_tokens": 164094,
+     "used_tokens": 813322
+    }
+   },
+   "range": [
+    3789,
+    4210
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 9
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0010.jsonl",
+     "rows": 4,
+     "samples": 2529,
+     "supervised_tokens": 12169,
+     "used_tokens": 70799
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0010.jsonl",
+     "rows": 22,
+     "samples": 5966,
+     "supervised_tokens": 19048,
+     "used_tokens": 386999
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0010.jsonl",
+     "rows": 44,
+     "samples": 2529,
+     "supervised_tokens": 159955,
+     "used_tokens": 759384
+    }
+   },
+   "range": [
+    4210,
+    4631
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 10
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0011.jsonl",
+     "rows": 5,
+     "samples": 2752,
+     "supervised_tokens": 12976,
+     "used_tokens": 85914
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0011.jsonl",
+     "rows": 27,
+     "samples": 6884,
+     "supervised_tokens": 22342,
+     "used_tokens": 475167
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0011.jsonl",
+     "rows": 44,
+     "samples": 2752,
+     "supervised_tokens": 153966,
+     "used_tokens": 769315
+    }
+   },
+   "range": [
+    4631,
+    5052
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 11
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0012.jsonl",
+     "rows": 5,
+     "samples": 2908,
+     "supervised_tokens": 12820,
+     "used_tokens": 88716
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0012.jsonl",
+     "rows": 29,
+     "samples": 7422,
+     "supervised_tokens": 24354,
+     "used_tokens": 512398
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0012.jsonl",
+     "rows": 42,
+     "samples": 2908,
+     "supervised_tokens": 146297,
+     "used_tokens": 732886
+    }
+   },
+   "range": [
+    5052,
+    5473
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 12
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0013.jsonl",
+     "rows": 5,
+     "samples": 2786,
+     "supervised_tokens": 12644,
+     "used_tokens": 85833
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0013.jsonl",
+     "rows": 30,
+     "samples": 7427,
+     "supervised_tokens": 24472,
+     "used_tokens": 530981
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0013.jsonl",
+     "rows": 41,
+     "samples": 2786,
+     "supervised_tokens": 148876,
+     "used_tokens": 717296
+    }
+   },
+   "range": [
+    5473,
+    5894
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 13
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0014.jsonl",
+     "rows": 5,
+     "samples": 2808,
+     "supervised_tokens": 12791,
+     "used_tokens": 84123
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0014.jsonl",
+     "rows": 28,
+     "samples": 7013,
+     "supervised_tokens": 22809,
+     "used_tokens": 488191
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0014.jsonl",
+     "rows": 45,
+     "samples": 2808,
+     "supervised_tokens": 156635,
+     "used_tokens": 775226
+    }
+   },
+   "range": [
+    5894,
+    6315
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 14
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0015.jsonl",
+     "rows": 5,
+     "samples": 2531,
+     "supervised_tokens": 12706,
+     "used_tokens": 72644
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0015.jsonl",
+     "rows": 23,
+     "samples": 6112,
+     "supervised_tokens": 19349,
+     "used_tokens": 398051
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0015.jsonl",
+     "rows": 45,
+     "samples": 2531,
+     "supervised_tokens": 163543,
+     "used_tokens": 774315
+    }
+   },
+   "range": [
+    6315,
+    6736
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 15
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0016.jsonl",
+     "rows": 5,
+     "samples": 2709,
+     "supervised_tokens": 13724,
+     "used_tokens": 85084
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0016.jsonl",
+     "rows": 27,
+     "samples": 6829,
+     "supervised_tokens": 21751,
+     "used_tokens": 467289
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0016.jsonl",
+     "rows": 47,
+     "samples": 2710,
+     "supervised_tokens": 165074,
+     "used_tokens": 825873
+    }
+   },
+   "range": [
+    6736,
+    7157
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 16
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0017.jsonl",
+     "rows": 5,
+     "samples": 2592,
+     "supervised_tokens": 13347,
+     "used_tokens": 80548
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0017.jsonl",
+     "rows": 26,
+     "samples": 6978,
+     "supervised_tokens": 22048,
+     "used_tokens": 466680
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0017.jsonl",
+     "rows": 43,
+     "samples": 2593,
+     "supervised_tokens": 154825,
+     "used_tokens": 746193
+    }
+   },
+   "range": [
+    7157,
+    7578
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 17
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0018.jsonl",
+     "rows": 6,
+     "samples": 2796,
+     "supervised_tokens": 16335,
+     "used_tokens": 106938
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0018.jsonl",
+     "rows": 43,
+     "samples": 9401,
+     "supervised_tokens": 29436,
+     "used_tokens": 755922
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0018.jsonl",
+     "rows": 53,
+     "samples": 2796,
+     "supervised_tokens": 181152,
+     "used_tokens": 914916
+    }
+   },
+   "range": [
+    7578,
+    7999
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 18
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0019.jsonl",
+     "rows": 6,
+     "samples": 2759,
+     "supervised_tokens": 15982,
+     "used_tokens": 104228
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0019.jsonl",
+     "rows": 44,
+     "samples": 9360,
+     "supervised_tokens": 29357,
+     "used_tokens": 764542
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0019.jsonl",
+     "rows": 53,
+     "samples": 2759,
+     "supervised_tokens": 184655,
+     "used_tokens": 919499
+    }
+   },
+   "range": [
+    7999,
+    8420
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 19
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0020.jsonl",
+     "rows": 5,
+     "samples": 2724,
+     "supervised_tokens": 13172,
+     "used_tokens": 85001
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0020.jsonl",
+     "rows": 29,
+     "samples": 7234,
+     "supervised_tokens": 23203,
+     "used_tokens": 508606
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0020.jsonl",
+     "rows": 45,
+     "samples": 2724,
+     "supervised_tokens": 158026,
+     "used_tokens": 778729
+    }
+   },
+   "range": [
+    8420,
+    8841
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 20
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0021.jsonl",
+     "rows": 5,
+     "samples": 2824,
+     "supervised_tokens": 12558,
+     "used_tokens": 84449
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0021.jsonl",
+     "rows": 30,
+     "samples": 7299,
+     "supervised_tokens": 23950,
+     "used_tokens": 520454
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0021.jsonl",
+     "rows": 42,
+     "samples": 2824,
+     "supervised_tokens": 151481,
+     "used_tokens": 732784
+    }
+   },
+   "range": [
+    8841,
+    9262
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 21
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0022.jsonl",
+     "rows": 6,
+     "samples": 2791,
+     "supervised_tokens": 14559,
+     "used_tokens": 94546
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0022.jsonl",
+     "rows": 37,
+     "samples": 8279,
+     "supervised_tokens": 26254,
+     "used_tokens": 631841
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0022.jsonl",
+     "rows": 47,
+     "samples": 2791,
+     "supervised_tokens": 167174,
+     "used_tokens": 829261
+    }
+   },
+   "range": [
+    9262,
+    9683
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 22
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0023.jsonl",
+     "rows": 5,
+     "samples": 2616,
+     "supervised_tokens": 14368,
+     "used_tokens": 88994
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0023.jsonl",
+     "rows": 31,
+     "samples": 7485,
+     "supervised_tokens": 23741,
+     "used_tokens": 543556
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0023.jsonl",
+     "rows": 48,
+     "samples": 2616,
+     "supervised_tokens": 168148,
+     "used_tokens": 839776
+    }
+   },
+   "range": [
+    9683,
+    10104
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 23
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0024.jsonl",
+     "rows": 5,
+     "samples": 2713,
+     "supervised_tokens": 14014,
+     "used_tokens": 87383
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0024.jsonl",
+     "rows": 30,
+     "samples": 7184,
+     "supervised_tokens": 22521,
+     "used_tokens": 522049
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0024.jsonl",
+     "rows": 53,
+     "samples": 2713,
+     "supervised_tokens": 181910,
+     "used_tokens": 919301
+    }
+   },
+   "range": [
+    10104,
+    10525
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 24
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0025.jsonl",
+     "rows": 5,
+     "samples": 2550,
+     "supervised_tokens": 13351,
+     "used_tokens": 79666
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0025.jsonl",
+     "rows": 26,
+     "samples": 6628,
+     "supervised_tokens": 21135,
+     "used_tokens": 464417
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0025.jsonl",
+     "rows": 47,
+     "samples": 2550,
+     "supervised_tokens": 168698,
+     "used_tokens": 821809
+    }
+   },
+   "range": [
+    10525,
+    10946
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 25
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0026.jsonl",
+     "rows": 6,
+     "samples": 2844,
+     "supervised_tokens": 14868,
+     "used_tokens": 91652
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0026.jsonl",
+     "rows": 32,
+     "samples": 7517,
+     "supervised_tokens": 23649,
+     "used_tokens": 558649
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0026.jsonl",
+     "rows": 55,
+     "samples": 2844,
+     "supervised_tokens": 188704,
+     "used_tokens": 962695
+    }
+   },
+   "range": [
+    10946,
+    11367
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 26
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0027.jsonl",
+     "rows": 7,
+     "samples": 3311,
+     "supervised_tokens": 14665,
+     "used_tokens": 111985
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0027.jsonl",
+     "rows": 39,
+     "samples": 8274,
+     "supervised_tokens": 26878,
+     "used_tokens": 672784
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0027.jsonl",
+     "rows": 58,
+     "samples": 3311,
+     "supervised_tokens": 175395,
+     "used_tokens": 1018604
+    }
+   },
+   "range": [
+    11367,
+    11788
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 27
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0028.jsonl",
+     "rows": 7,
+     "samples": 3259,
+     "supervised_tokens": 14731,
+     "used_tokens": 110580
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0028.jsonl",
+     "rows": 41,
+     "samples": 8600,
+     "supervised_tokens": 28310,
+     "used_tokens": 705723
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0028.jsonl",
+     "rows": 54,
+     "samples": 3259,
+     "supervised_tokens": 173311,
+     "used_tokens": 938726
+    }
+   },
+   "range": [
+    11788,
+    12209
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 421,
+   "worker": 28
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0029.jsonl",
+     "rows": 6,
+     "samples": 3091,
+     "supervised_tokens": 13595,
+     "used_tokens": 101816
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0029.jsonl",
+     "rows": 37,
+     "samples": 7998,
+     "supervised_tokens": 25956,
+     "used_tokens": 642101
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0029.jsonl",
+     "rows": 51,
+     "samples": 3091,
+     "supervised_tokens": 162301,
+     "used_tokens": 888686
+    }
+   },
+   "range": [
+    12209,
+    12629
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 420,
+   "worker": 29
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0030.jsonl",
+     "rows": 6,
+     "samples": 3098,
+     "supervised_tokens": 13356,
+     "used_tokens": 98057
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0030.jsonl",
+     "rows": 34,
+     "samples": 7509,
+     "supervised_tokens": 24590,
+     "used_tokens": 583431
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0030.jsonl",
+     "rows": 50,
+     "samples": 3098,
+     "supervised_tokens": 159678,
+     "used_tokens": 873022
+    }
+   },
+   "range": [
+    12629,
+    13049
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 420,
+   "worker": 30
+  },
+  {
+   "families": {
+    "p2st_incremental_mt": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_incremental_mt.part0031.jsonl",
+     "rows": 6,
+     "samples": 3222,
+     "supervised_tokens": 14366,
+     "used_tokens": 107213
+    },
+    "p2st_streaming_asr": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_asr.part0031.jsonl",
+     "rows": 41,
+     "samples": 8382,
+     "supervised_tokens": 27355,
+     "used_tokens": 712452
+    },
+    "p2st_streaming_tts": {
+     "path": "data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v1_20260902T123956Z/parts/valid_p2st_streaming_tts.part0031.jsonl",
+     "rows": 54,
+     "samples": 3222,
+     "supervised_tokens": 174254,
+     "used_tokens": 945768
+    }
+   },
+   "range": [
+    13049,
+    13469
+   ],
+   "skipped": [],
+   "skipped_count": 0,
+   "trajectories": 420,
+   "worker": 31
+  }
+ ]
+}

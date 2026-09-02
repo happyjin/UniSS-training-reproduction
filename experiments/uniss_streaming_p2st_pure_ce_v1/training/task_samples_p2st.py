@@ -194,6 +194,15 @@ class P2STTaskSample:
         if len(self.source_glm_ids) != self.source_glm_length:
             raise ValueError("source_glm_ids must have one id per GLM position")
 
+    @property
+    def shifted_length(self) -> int:
+        """Supervised length after the next-token shift.
+
+        ``pack_task_samples`` reads this to lay samples out, so it has to
+        mean exactly what it means on ``E2ETaskSample``.
+        """
+        return len(self.token_ids) - 1
+
 
 class _Builder:
     """Accumulates one sequence, tracking the prompt/target split."""
