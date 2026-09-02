@@ -32,6 +32,8 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st impo
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
     SOURCE_PREFIX_V1,
+    TOKEN_HOP_SAMPLES,
+    causal_glm_token_count,
     build_p2st_incremental_mt_tasks,
     build_p2st_streaming_asr_tasks,
     build_p2st_streaming_tts_tasks,
@@ -164,7 +166,7 @@ def test_asr_prompt_is_exactly_the_causal_prefix(trajectories):
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.src_lang),
                 c.TOKEN_START_GLM,
-                *([c.glm_semantic_id(0)] * event.source_glm_end),
+                *([c.glm_semantic_id(0)] * causal_glm_token_count(event.source_pcm_end)),
                 c.TOKEN_END_GLM,
                 c.TOKEN_START_CONTENT,
                 *(_encode(committed) if committed else ()),
@@ -190,7 +192,14 @@ def test_asr_speech_indices_cover_exactly_the_causal_prefix(trajectories):
             )
             index = int(sample.sequence_id.rsplit(":", 1)[1])
             event = next(e for e in trajectory.events if e.event_index == index)
-            assert sample.source_glm_length == event.source_glm_end
+            # The frontend's own count, not the trajectory's offset: the two
+            # disagree on 15.4% of event boundaries, always by exactly 2, and
+            # _inject_causal_glm raises when glm_lengths is the smaller one.
+            assert sample.source_pcm_end == event.source_pcm_end
+            assert sample.source_glm_length == causal_glm_token_count(
+                event.source_pcm_end
+            )
+            assert sample.source_glm_length >= event.source_glm_end
 
 
 def test_tts_semantic_prefix_matches_the_recorded_offset(trajectories):
@@ -253,3 +262,135 @@ def test_streaming_task_tokens_are_the_preallocated_ones(samples):
         heads[FAMILY_P2ST_MT] == c.TOKEN_TASK_STREAMING_TEXT_TRANSLATION == 180_398
     )
     assert heads[FAMILY_P2ST_TTS] == c.TOKEN_TASK_STREAMING_TTS == 180_382
+
+
+def test_closed_form_reproduces_the_measured_frontend_counts():
+    """The eight cut/count pairs the GPU run pinned, plus the hop constant.
+
+    These came from ``frontend_prefix_parity`` on real audio, where
+    ``ceil(samples / 1280)`` matched the frontend on 201 of 201 event
+    boundaries.  Keeping them here means a change to the formula has to
+    disagree with a measurement, not just with an opinion.
+    """
+    assert TOKEN_HOP_SAMPLES == 1280
+    measured = {
+        0: 0,
+        5120: 4,
+        7680: 6,
+        15360: 12,
+        23040: 18,
+        43840: 35,
+        79360: 62,
+        111040: 87,
+        169920: 133,
+    }
+    for samples, tokens in measured.items():
+        assert causal_glm_token_count(samples) == tokens, samples
+
+
+def test_closed_form_is_never_short_of_the_recorded_offset(trajectories):
+    """``_inject_causal_glm`` raises when glm_lengths is the smaller number.
+
+    The trajectory's ``source_glm_end`` lags the frontend by one 160 ms block
+    on some boundaries, so the formula must never come out below it.
+    """
+    short = []
+    for trajectory in trajectories:
+        for event in trajectory.events:
+            if event.source_pcm_end <= 0:
+                continue
+            count = causal_glm_token_count(event.source_pcm_end)
+            if count < event.source_glm_end:
+                short.append((trajectory.sample_id, event.event_index))
+    assert not short, f"formula came out short on {short[:5]}"
+
+
+def test_asr_sample_carries_the_audio_cut(trajectories):
+    for trajectory in trajectories:
+        for sample in build_p2st_streaming_asr_tasks(
+            trajectory, encode_text=_encode
+        ):
+            assert sample.source_pcm_end > 0
+            index = int(sample.sequence_id.rsplit(":", 1)[1])
+            event = next(e for e in trajectory.events if e.event_index == index)
+            assert sample.source_pcm_end == event.source_pcm_end
+            assert sample.source_pcm_end <= trajectory.source_audio_frames
+
+
+def test_padded_glm_ids_stay_inside_the_codebook(samples):
+    """Padding must not invent an id the trainer would reject.
+
+    ``task_samples.py`` range-checks every GLM id against
+    ``GLM_SEMANTIC_SIZE``, so repeating the last recorded code is safe where
+    a sentinel would not be.
+    """
+    for sample in samples:
+        if sample.family != FAMILY_P2ST_ASR:
+            continue
+        assert len(sample.source_glm_ids) == sample.source_glm_length
+        for value in sample.source_glm_ids:
+            assert 0 <= value < c.GLM_SEMANTIC_SIZE
+
+
+def test_glm_token_count_is_injectable(trajectories):
+    """A caller can substitute a real frontend measurement for the formula."""
+    trajectory = trajectories[0]
+    doubled = build_p2st_streaming_asr_tasks(
+        trajectory,
+        encode_text=_encode,
+        glm_token_count=lambda samples: 2 * causal_glm_token_count(samples),
+    )
+    plain = build_p2st_streaming_asr_tasks(trajectory, encode_text=_encode)
+    assert len(doubled) == len(plain)
+    for wide, narrow in zip(doubled, plain):
+        assert wide.source_glm_length == 2 * narrow.source_glm_length
+        assert len(wide.source_glm_ids) == wide.source_glm_length
+        indices = [v for v in wide.speech_indices if v is not None]
+        assert indices == list(range(wide.source_glm_length))
+
+
+def test_acoustic_sample_without_a_cut_is_rejected():
+    """The dataclass refuses the shape that made _inject_causal_glm raise."""
+    from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
+        P2STTaskSample,
+    )
+
+    common = dict(
+        sample_id="x",
+        sequence_id="x:p2st_asr:1",
+        source_manifest_record=0,
+        family=FAMILY_P2ST_ASR,
+        token_ids=(c.TOKEN_START_GLM, c.glm_semantic_id(0), c.TOKEN_EOS),
+        loss_kinds=(LOSS_NONE, LOSS_NONE, LOSS_EOS),
+        speech_indices=(None, 0, None),
+        source_audio="/tmp/x.wav",
+        source_glm_length=1,
+        source_glm_ids=(0,),
+    )
+    P2STTaskSample(**common, source_pcm_end=1280)
+    with pytest.raises(ValueError, match="positive source_pcm_end"):
+        P2STTaskSample(**common)
+    with pytest.raises(ValueError, match="one id per GLM position"):
+        P2STTaskSample(
+            **{**common, "source_glm_ids": ()}, source_pcm_end=1280
+        )
+
+
+def test_text_sample_rejects_an_audio_cut():
+    from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
+        P2STTaskSample,
+    )
+
+    with pytest.raises(ValueError, match="no acoustic sidecar"):
+        P2STTaskSample(
+            sample_id="x",
+            sequence_id="x:p2st_mt:1",
+            source_manifest_record=0,
+            family=FAMILY_P2ST_MT,
+            token_ids=(c.TOKEN_START_CONTENT, c.TOKEN_EOS),
+            loss_kinds=(LOSS_NONE, LOSS_EOS),
+            speech_indices=(None, None),
+            source_audio=None,
+            source_glm_length=0,
+            source_pcm_end=1280,
+        )

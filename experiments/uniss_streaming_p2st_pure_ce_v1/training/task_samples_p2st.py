@@ -62,14 +62,36 @@ the source text committed before the supervised delta, and the target text
 and semantic tokens committed before it.  Nothing from a later event appears
 in a prompt.
 
-.. warning::
+The audio prefix
+----------------
+``StageAObjective._inject_causal_glm`` hard-raises unless the frontend's token
+count for the row's waveform equals ``glm_lengths``, tolerating only a single
+terminal codec slot.  A prefix-to-prefix ASR sample therefore has to cut the
+*audio* as well, which is what ``source_pcm_end`` carries, and its
+``source_glm_length`` has to be the count the frontend will actually return
+for that cut.
 
-   The audio-prefix wiring (``speech_indices`` / ``source_glm_length`` over a
-   truncated GLM prefix) is new here: the established
-   ``build_streaming_asr_task`` always passes the whole trajectory.  Validate
-   it with the bridge-parity gate before any GPU training.  The unit tests in
-   this experiment cover token layout, loss placement, causality and
-   alignment, which is what is checkable without a frontend.
+That count is a closed form.  Tokens arrive one per 80 ms hop
+(``TOKEN_HOP_SAMPLES`` = 16000 x 80 / 1000 = 1280), rounding a partial hop up:
+
+    tokens = ceil(samples / TOKEN_HOP_SAMPLES)
+
+verified against the frontend on 201 event boundaries from 12 real
+trajectories with no exception, and with no collisions across the 60 distinct
+cut points, so the count is a pure function of the sample count.  The same
+measurement showed the frontend is genuinely block-causal -- a prefix cut at
+``source_pcm_end`` reproduces the full run's tokens bit for bit -- so nothing
+in the prompt is conditioned on audio the session has not heard.
+
+The trajectory's own ``source_glm_end`` is *not* usable for this.  Checked on
+5000 trajectories, it agrees with the closed form only 84.6% of the time and
+is otherwise exactly 2 short, because its bookkeeping lags the frontend by one
+160 ms block.  Using it would make ``causal_length != length`` and raise.
+
+``glm_token_count`` is injectable so a caller can substitute a real frontend
+measurement, and ``_inject_causal_glm``'s own check is the backstop: a wrong
+count fails loudly on the first acoustic batch rather than training on a
+silent mismatch.
 """
 
 from __future__ import annotations
@@ -99,6 +121,21 @@ P2ST_FAMILIES = (FAMILY_P2ST_ASR, FAMILY_P2ST_MT, FAMILY_P2ST_TTS)
 SOURCE_PREFIX_GOLD = "gold"
 SOURCE_PREFIX_V1 = "v1"
 
+SAMPLE_RATE = 16_000
+TOKEN_HOP_MS = 80
+TOKEN_HOP_SAMPLES = SAMPLE_RATE * TOKEN_HOP_MS // 1000
+
+
+def causal_glm_token_count(samples: int) -> int:
+    """Tokens the causal frontend returns for ``samples`` of audio.
+
+    One token per 80 ms hop with a partial hop rounded up.  See the module
+    docstring for the measurement this reproduces.
+    """
+    if samples <= 0:
+        return 0
+    return -(-int(samples) // TOKEN_HOP_SAMPLES)
+
 EncodeText = Callable[[str], Sequence[int]]
 
 
@@ -126,6 +163,7 @@ class P2STTaskSample:
     source_audio: str | None
     source_glm_length: int
     source_glm_ids: tuple[int, ...] = ()
+    source_pcm_end: int = 0
     teacher_bindings: tuple[object, ...] = ()
     commit_key: str | None = None
     commit_positions: tuple[int, ...] = ()
@@ -141,6 +179,20 @@ class P2STTaskSample:
             raise ValueError("token, loss and speech arrays must be parallel")
         if not self.token_ids:
             raise ValueError("a task sample cannot be empty")
+        speech = [value for value in self.speech_indices if value is not None]
+        if self.source_audio is None:
+            if speech or self.source_glm_length or self.source_pcm_end:
+                raise ValueError("a text sample must carry no acoustic sidecar")
+            return
+        # An acoustic sample promises the trainer three things at once: where
+        # to cut the audio, how many tokens that cut yields, and that the
+        # prompt binds exactly those positions in order.
+        if self.source_pcm_end <= 0:
+            raise ValueError("an acoustic sample needs a positive source_pcm_end")
+        if speech != list(range(self.source_glm_length)):
+            raise ValueError("speech indices must cover the GLM prefix in order")
+        if len(self.source_glm_ids) != self.source_glm_length:
+            raise ValueError("source_glm_ids must have one id per GLM position")
 
 
 class _Builder:
@@ -208,25 +260,58 @@ def _source_prefix_before(event: TrajectoryEvent, kind: str) -> str:
     return prefix
 
 
+def _glm_ids_for_prefix(
+    trajectory: E2ETrajectory, event: TrajectoryEvent, glm_stop: int
+) -> tuple[int, ...]:
+    """Recorded GLM ids for the prefix, resized to the frontend's count.
+
+    Contents do not affect learning.  The trainer feeds the model
+    ``embedding(causal_codes + offset) + bridge_residual`` computed from the
+    waveform and uses ``glm_ids`` only to log
+    ``diagnostic/causal_glm_agreement``, which has read about 0.001 for the
+    whole of this lineage because the recorded codes come from the offline
+    GLM-4 tokenizer while the model consumes the causal frontend's codes.
+    What must be right is the length and the value range, so a prefix short of
+    the frontend's count is extended by repeating its last recorded code
+    rather than by inventing one.
+    """
+    recorded = [
+        int(value)
+        for item in trajectory.events
+        if item.event_index <= event.event_index
+        for value in item.source_glm_delta
+    ]
+    if len(recorded) >= glm_stop:
+        return tuple(recorded[:glm_stop])
+    filler = recorded[-1] if recorded else 0
+    return tuple(recorded + [filler] * (glm_stop - len(recorded)))
+
+
 def build_p2st_streaming_asr_tasks(
     trajectory: E2ETrajectory,
     *,
     encode_text: EncodeText,
-) -> list[E2ETaskSample]:
+    glm_token_count: Callable[[int], int] = causal_glm_token_count,
+) -> list[P2STTaskSample]:
     """One sample per event that transcribes new source text.
 
     Prompt: the causal source GLM prefix plus the transcript committed so far.
     Target: this event's transcript delta, then ``END_CONTENT`` and EOS.
+
+    The GLM length comes from ``glm_token_count(event.source_pcm_end)``, not
+    from ``event.source_glm_end`` -- see the module docstring for why the
+    trajectory's own offset cannot be used.
     """
-    output: list[E2ETaskSample] = []
+    output: list[P2STTaskSample] = []
     for event in trajectory.events:
         if not event.gold_source_delta.strip():
             continue
         delta = tuple(int(v) for v in encode_text(event.gold_source_delta))
         if not delta:
             continue
-        glm_stop = int(event.source_glm_end)
-        if glm_stop <= 0:
+        pcm_end = int(event.source_pcm_end)
+        glm_stop = int(glm_token_count(pcm_end))
+        if glm_stop <= 0 or pcm_end <= 0:
             continue
         builder = _Builder()
         builder.observe(
@@ -260,12 +345,8 @@ def build_p2st_streaming_asr_tasks(
                 speech_indices=tuple(builder.speech_indices),
                 source_audio=trajectory.source_audio,
                 source_glm_length=glm_stop,
-                source_glm_ids=tuple(
-                    int(value)
-                    for item in trajectory.events
-                    if item.event_index <= event.event_index
-                    for value in item.source_glm_delta
-                ),
+                source_glm_ids=_glm_ids_for_prefix(trajectory, event, glm_stop),
+                source_pcm_end=pcm_end,
             )
         )
     return output
@@ -276,7 +357,7 @@ def build_p2st_incremental_mt_tasks(
     *,
     encode_text: EncodeText,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
-) -> list[E2ETaskSample]:
+) -> list[P2STTaskSample]:
     """One sample per event that commits new target text.
 
     Prompt: the source transcript available at this event and the translation
@@ -289,7 +370,7 @@ def build_p2st_incremental_mt_tasks(
     exposure-bias question can be answered by a single flag rather than a new
     data build.
     """
-    output: list[E2ETaskSample] = []
+    output: list[P2STTaskSample] = []
     for event in trajectory.events:
         if not event.target_text_delta.strip():
             continue
@@ -347,7 +428,7 @@ def build_p2st_streaming_tts_tasks(
     *,
     encode_text: EncodeText,
     speed: float = 1.0,
-) -> list[E2ETaskSample]:
+) -> list[P2STTaskSample]:
     """One sample per event that speaks a new target fragment.
 
     This is the builder the interleaved pool never had: ``task_samples.py``
@@ -359,7 +440,7 @@ def build_p2st_streaming_tts_tasks(
     event, and the semantic tokens already spoken.  Target: this event's
     semantic delta, then ``END_SEMANTIC`` and EOS.
     """
-    output: list[E2ETaskSample] = []
+    output: list[P2STTaskSample] = []
     for event in trajectory.events:
         if not event.target_semantic_delta:
             continue
@@ -407,6 +488,8 @@ def build_p2st_streaming_tts_tasks(
 
 __all__ = [
     "P2STTaskSample",
+    "TOKEN_HOP_SAMPLES",
+    "causal_glm_token_count",
     "FAMILY_P2ST_ASR",
     "FAMILY_P2ST_MT",
     "FAMILY_P2ST_TTS",
