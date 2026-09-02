@@ -28,6 +28,10 @@ RUN_VALID_BUILD_REPORT=${RUN_VALID_BUILD_REPORT:-}
 # content weight, and here the boundary bucket is one unambiguous terminator
 # per sequence rather than the interleaved mixture of WAIT/WRITE/TASK tokens.
 RUN_BOUNDARY_EOS_WEIGHT=${RUN_BOUNDARY_EOS_WEIGHT:-1.0}
+# Uniform CE means every supervised token carries weight 1.0, replay included:
+# the README specifies "把两个 phase3_*_replay 家族按权重 1.0 混进来".  The base
+# default is 0.50, which is the interleaved recipe, not this one.
+RUN_REPLAY_WEIGHT=${RUN_REPLAY_WEIGHT:-1.0}
 RUN_V1_TRAIN_CACHE_AUDIT=${RUN_V1_TRAIN_CACHE_AUDIT:-}
 RUN_PHASE3_TRAIN_CACHE_AUDIT=${RUN_PHASE3_TRAIN_CACHE_AUDIT:-}
 RUN_V1_VALID_CACHE_AUDIT=${RUN_V1_VALID_CACHE_AUDIT:-}
@@ -242,6 +246,7 @@ cmd=(
   --e2e-checkpoint-fingerprints "${FINGERPRINTS}"
   --e2e-coverage-epochs "${RUN_COVERAGE_EPOCHS}"
   --e2e-boundary-eos-weight "${RUN_BOUNDARY_EOS_WEIGHT}"
+  --e2e-replay-weight "${RUN_REPLAY_WEIGHT}"
   --e2e-lr-qwen 2e-6
   --e2e-lr-qwen-io 5e-7
   --e2e-content-end-weight "${RUN_CONTENT_END_WEIGHT}"

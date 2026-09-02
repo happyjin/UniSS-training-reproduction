@@ -8,8 +8,11 @@
 # with zero terminal extensions and all three families' denominators firing,
 # the 201/201 frontend prefix causality, and the cascade mechanics at 4/4.
 #
-# Pure cross-entropy, three families, uniform block weights.  No teacher
-# caches exist for this pool and none are needed: every weighted term the
+# Pure cross-entropy.  Three prefix-to-prefix task families at 0.25 each plus
+# the two phase3 replay families at 0.15/0.10 -- the interleaved schedule's own
+# STEADY_WEIGHTS replay share, so the anti-forgetting pressure matches what
+# this lineage has always used.  No teacher caches exist for this pool and
+# none are needed: every weighted term the
 # objective can compute other than asr_ce, mt_ce, semantic_ce and the
 # boundary/EOS pair sees a zero denominator, which the family canary
 # confirmed term by term.
@@ -100,7 +103,7 @@ import sys
 from pathlib import Path
 
 from experiments.uniss_streaming_p2st_pure_ce_v1.training.p2st_schedule import (
-    UNIFORM_WEIGHTS,
+    POOL_WEIGHTS,
     family_blocks,
     required_total_blocks,
 )
@@ -110,9 +113,13 @@ gbs, epochs, seed = int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
 output = Path(sys.argv[5])
 rows = {family: int(value["rows"]) for family, value in manifest["families"].items()}
 total = required_total_blocks(
-    rows, global_batch_size=gbs, coverage_epochs=epochs, seed=seed
+    rows,
+    global_batch_size=gbs,
+    coverage_epochs=epochs,
+    seed=seed,
+    weights=POOL_WEIGHTS,
 )
-blocks = family_blocks(total, seed=seed)
+blocks = family_blocks(total, seed=seed, weights=POOL_WEIGHTS)
 output.write_text(
     json.dumps(
         {
@@ -125,8 +132,8 @@ output.write_text(
             "total_blocks": total,
             "train_iters": total,
             "warmup_updates": max(1, round(0.03 * total)),
-            "family_blocks": {f: blocks.count(f) for f in UNIFORM_WEIGHTS},
-            "family_weights": dict(UNIFORM_WEIGHTS),
+            "family_blocks": {f: blocks.count(f) for f in POOL_WEIGHTS},
+            "family_weights": dict(POOL_WEIGHTS),
         },
         indent=1,
         sort_keys=True,
