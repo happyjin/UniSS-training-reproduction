@@ -40,7 +40,9 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st impo
     FAMILY_P2ST_ASR,
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
-    P2ST_FAMILIES,
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
+    POOL_FAMILIES,
     causal_glm_token_count,
 )
 from training.simul_uniss.jsonl_index import load_index
@@ -55,6 +57,11 @@ PROXY_FAMILY = {
     FAMILY_P2ST_ASR: "streaming_asr_event",
     FAMILY_P2ST_MT: "incremental_mt_event",
     FAMILY_P2ST_TTS: "incremental_mt_event",
+    # The two replay families are the base experiment's own families, built by
+    # the base builder, so they need no proxy and no restoration -- the
+    # identity mapping keeps one code path for all five.
+    FAMILY_PHASE3_QUALITY: FAMILY_PHASE3_QUALITY,
+    FAMILY_PHASE3_PERFORMANCE: FAMILY_PHASE3_PERFORMANCE,
 }
 
 
@@ -73,7 +80,7 @@ def p2st_packed_task_to_runtime_item(
     audio_loader: AudioLoader | None = None,
 ) -> dict[str, object]:
     family = str(value.get("family"))
-    if family not in P2ST_FAMILIES:
+    if family not in POOL_FAMILIES:
         raise ValueError(f"unknown p2st task family {family!r}")
     proxy = dict(value)
     proxy["family"] = PROXY_FAMILY[family]
@@ -149,7 +156,7 @@ def collate_p2st_family(batch: list[dict[str, object]]) -> dict[str, object]:
     if len(families) != 1:
         raise ValueError("one optimizer microbatch cannot mix p2st task families")
     family = next(iter(families))
-    if family not in P2ST_FAMILIES:
+    if family not in POOL_FAMILIES:
         raise ValueError(f"unknown p2st task family {family!r}")
     proxied = []
     for value in batch:
@@ -180,7 +187,7 @@ class P2STPackedFamilyDataset(Dataset[dict[str, object]]):
         load_audio: bool = True,
         audio_loader: AudioLoader | None = None,
     ) -> None:
-        if family not in P2ST_FAMILIES:
+        if family not in POOL_FAMILIES:
             raise ValueError(f"unknown p2st task family {family!r}")
         self.path = Path(path).resolve()
         self.family = str(family)

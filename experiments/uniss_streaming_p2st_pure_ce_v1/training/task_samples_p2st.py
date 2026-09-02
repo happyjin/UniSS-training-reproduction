@@ -107,9 +107,13 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
     LOSS_ASR,
     LOSS_BOUNDARY,
     LOSS_EOS,
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
     LOSS_MT,
     LOSS_NONE,
+    LOSS_REPLAY,
     LOSS_SEMANTIC,
+    build_phase3_replay_tasks,
 )
 from training import constants_uniss as c
 
@@ -117,6 +121,17 @@ FAMILY_P2ST_ASR = "p2st_streaming_asr"
 FAMILY_P2ST_MT = "p2st_incremental_mt"
 FAMILY_P2ST_TTS = "p2st_streaming_tts"
 P2ST_FAMILIES = (FAMILY_P2ST_ASR, FAMILY_P2ST_MT, FAMILY_P2ST_TTS)
+
+# The two phase3 replay families are the anti-forgetting mechanism this
+# experiment's own README specified and the first pool omitted: "防遗忘沿用
+# phase3 自己的方式:靠数据混合,把两个 phase3_*_replay 家族按权重 1.0 混进来,
+# 不加任何 loss 项".  They are reused verbatim from the interleaved pool -- same
+# builder, same family names, same LOSS_REPLAY tag -- so ``replay_ce`` and the
+# base experiment's family ids need no new registration.  Without them C has no
+# anchor at all to the offline phase3 quality it inherits, while B' carried
+# replay at 0.50 plus two teacher KLs.
+REPLAY_FAMILIES = (FAMILY_PHASE3_QUALITY, FAMILY_PHASE3_PERFORMANCE)
+POOL_FAMILIES = P2ST_FAMILIES + REPLAY_FAMILIES
 
 SOURCE_PREFIX_GOLD = "gold"
 SOURCE_PREFIX_V1 = "v1"
@@ -205,7 +220,7 @@ class P2STTaskSample:
     commit_positions: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.family not in P2ST_FAMILIES:
+        if self.family not in POOL_FAMILIES:
             raise ValueError(f"unknown p2st task family {self.family!r}")
         if not (
             len(self.token_ids)
@@ -293,6 +308,41 @@ def _source_prefix_before(event: TrajectoryEvent, kind: str) -> str:
     prompt has to be the prefix with that delta removed -- otherwise the
     answer would be visible in the question.
     """
+    return _split_source_text(event, kind)[0]
+
+
+def _split_running_text(prefix: str, delta: str) -> tuple[str, str]:
+    """Split running text into committed prompt and supervised delta.
+
+    The separator between the two belongs to neither field.  Measured on 3710
+    English deltas in the 15-shard gold trajectories, ``gold_source_prefix``
+    is running text -- ``'I completely'`` -- while ``gold_source_delta`` is the
+    bare word -- ``'completely'`` -- and **0.0%** of deltas carry a leading
+    space.  Cutting at ``len(prefix) - len(delta)`` and then stripping the
+    committed side therefore deletes the space outright, and the pair the model
+    sees is ``'I'`` -> ``'completely'``.
+
+    That is what shipped in the first pool, and 400 training steps were enough
+    to make it permanent: the cascade transcribed "I can't think what takes" as
+    ``'Ithinksomethingwilltake'``.  Because the MT stage is prompted with
+    ``gold_source_prefix``, which *does* have spaces, it then received an
+    out-of-distribution string, which is the mechanism behind
+    "Well I'm glad I can inspire you" being translated as 忘恩负义激发你.
+
+    The separator has to be *supervised*, not injected by the prompt builder:
+    at inference the running hypothesis is the concatenation of the model's own
+    deltas, so a space the model never emits is a space that never appears.
+    Hence the whitespace goes to the target side, which is also the natural BPE
+    segmentation of running text.
+    """
+    if delta and prefix.endswith(delta):
+        committed = prefix[: len(prefix) - len(delta)].rstrip()
+        return committed, prefix[len(committed) :]
+    return prefix, delta
+
+
+def _split_source_text(event: TrajectoryEvent, kind: str) -> tuple[str, str]:
+    """``(committed prompt text, supervised delta)`` for the ASR task."""
     if kind == SOURCE_PREFIX_GOLD:
         prefix, delta = event.gold_source_prefix, event.gold_source_delta
     elif kind == SOURCE_PREFIX_V1:
@@ -300,9 +350,17 @@ def _source_prefix_before(event: TrajectoryEvent, kind: str) -> str:
         delta = event.v1_source_delta or ""
     else:
         raise ValueError(f"unknown source prefix kind {kind!r}")
-    if delta and prefix.endswith(delta):
-        return prefix[: len(prefix) - len(delta)].rstrip()
-    return prefix
+    return _split_running_text(prefix, delta)
+
+
+def _split_target_text(event: TrajectoryEvent) -> tuple[str, str]:
+    """``(committed prompt text, supervised delta)`` for the MT and TTS tasks.
+
+    The target side needs the same treatment as the source side, for the same
+    reason: on cmn->eng the target text is English running text, so a dropped
+    separator would break the translation the way it broke the transcript.
+    """
+    return _split_running_text(event.target_text_prefix, event.target_text_delta)
 
 
 def _glm_ids_for_prefix(
@@ -352,7 +410,8 @@ def build_p2st_streaming_asr_tasks(
     for event in trajectory.events:
         if not event.gold_source_delta.strip():
             continue
-        delta = tuple(int(v) for v in encode_text(event.gold_source_delta))
+        prefix, delta_text = _split_source_text(event, SOURCE_PREFIX_GOLD)
+        delta = tuple(int(v) for v in encode_text(delta_text))
         if not delta:
             continue
         pcm_end = int(event.source_pcm_end)
@@ -384,7 +443,6 @@ def build_p2st_streaming_asr_tasks(
             ],
             [None, *range(glm_stop), None],
         )
-        prefix = _source_prefix_before(event, SOURCE_PREFIX_GOLD)
         committed = tuple(int(v) for v in encode_text(prefix)) if prefix else ()
         # WRITE_GENERATE is unconditional here and lives in the *prompt*: it is
         # never a supervised target and the model never chooses it, so the
@@ -442,7 +500,8 @@ def build_p2st_incremental_mt_tasks(
     for event in trajectory.events:
         if not event.target_text_delta.strip():
             continue
-        delta = tuple(int(v) for v in encode_text(event.target_text_delta))
+        target_prefix, delta_text = _split_target_text(event)
+        delta = tuple(int(v) for v in encode_text(delta_text))
         if not delta:
             continue
         if source_prefix_kind == SOURCE_PREFIX_GOLD:
@@ -451,11 +510,6 @@ def build_p2st_incremental_mt_tasks(
             source_text = event.v1_source_prefix or ""
         if not source_text.strip():
             continue
-        target_prefix = event.target_text_prefix
-        if target_prefix.endswith(event.target_text_delta):
-            target_prefix = target_prefix[
-                : len(target_prefix) - len(event.target_text_delta)
-            ]
         builder = _Builder()
         # phase3's build_mt_sample, whose whole-utterance BLEU is 33-52, lays
         # this out as
@@ -542,7 +596,11 @@ def build_p2st_streaming_tts_tasks(
         if not event.target_semantic_delta:
             continue
         if text_scope == TEXT_SCOPE_DELTA:
-            fragment_text = event.target_text_delta
+            # The separator-carrying form, because at inference this prompt is
+            # filled with the delta the MT stage just generated, which does
+            # carry it.  Only cmn->eng is affected -- Chinese has no spaces --
+            # but a mismatch there would be invisible in the eng->cmn panel.
+            fragment_text = _split_target_text(event)[1]
         elif text_scope == TEXT_SCOPE_PREFIX:
             fragment_text = event.target_text_prefix
         else:
@@ -601,12 +659,52 @@ def build_p2st_streaming_tts_tasks(
     return output
 
 
+def build_p2st_phase3_replay_tasks(
+    trajectory: E2ETrajectory,
+    *,
+    encode_text: EncodeText,
+) -> list[P2STTaskSample]:
+    """The two whole-utterance phase3 replay samples for one trajectory.
+
+    Delegates to the interleaved pool's ``build_phase3_replay_tasks`` and only
+    re-wraps the result, so the replayed prompts are bit-identical to the ones
+    the lineage has always trained on.  Both samples are text-only --
+    ``source_audio`` is ``None`` and ``source_glm_length`` is 0 -- so they cost
+    no audio read and take no part in the causal-GLM injection.
+    """
+    output: list[P2STTaskSample] = []
+    for sample in build_phase3_replay_tasks(trajectory, encode_text=encode_text):
+        if not sample.token_ids:
+            continue
+        if any(kind not in (LOSS_NONE, LOSS_REPLAY) for kind in sample.loss_kinds):
+            raise ValueError("a replay sample may only carry replay supervision")
+        output.append(
+            P2STTaskSample(
+                sample_id=sample.sample_id,
+                sequence_id=sample.sequence_id,
+                source_manifest_record=sample.source_manifest_record,
+                family=sample.family,
+                token_ids=tuple(sample.token_ids),
+                loss_kinds=tuple(sample.loss_kinds),
+                speech_indices=tuple(sample.speech_indices),
+                source_audio=None,
+                source_glm_length=0,
+            )
+        )
+    return output
+
+
 __all__ = [
     "P2STTaskSample",
     "TASK_TOKENS",
     "UNTRAINED_TASK_TOKENS",
     "TOKEN_HOP_SAMPLES",
     "causal_glm_token_count",
+    "FAMILY_PHASE3_PERFORMANCE",
+    "FAMILY_PHASE3_QUALITY",
+    "POOL_FAMILIES",
+    "REPLAY_FAMILIES",
+    "build_p2st_phase3_replay_tasks",
     "FAMILY_P2ST_ASR",
     "FAMILY_P2ST_MT",
     "FAMILY_P2ST_TTS",

@@ -45,11 +45,15 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.p2st_schedule import (
     ThreeFamilySchedulePrefix,
     ThreeFamilySingleBlock,
     ThreeFamilyValidationSchedule,
+    POOL_WEIGHTS,
 )
 from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
     FAMILY_P2ST_ASR,
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
+    POOL_FAMILIES,
     P2ST_FAMILIES,
 )
 from training.pretrain_uniss_megatron import load_megatron_runtime
@@ -64,6 +68,17 @@ P2ST_REQUIRED_DENOMINATORS = {
     FAMILY_P2ST_ASR: ("asr_ce", "boundary_ce", "eos_ce"),
     FAMILY_P2ST_MT: ("mt_ce", "boundary_ce", "eos_ce"),
     FAMILY_P2ST_TTS: ("semantic_ce", "boundary_ce", "eos_ce"),
+}
+
+# The replay families keep the base trainer's own requirement -- they are the
+# base builder's samples, so ``base.REQUIRED_FAMILY_DENOMINATORS`` already
+# names ``replay_ce`` for both and ``base.FAMILY_IDS`` already holds their ids.
+# Listing them here would collide; this table exists only to report what is
+# expected of every family in the pool.
+POOL_REQUIRED_DENOMINATORS = {
+    **P2ST_REQUIRED_DENOMINATORS,
+    FAMILY_PHASE3_QUALITY: ("replay_ce",),
+    FAMILY_PHASE3_PERFORMANCE: ("replay_ce",),
 }
 
 
@@ -93,7 +108,7 @@ def _family_datasets(manifest: str) -> dict[str, P2STPackedFamilyDataset]:
         family: P2STPackedFamilyDataset.from_pool_manifest(
             manifest, family=family, load_audio=True
         )
-        for family in P2ST_FAMILIES
+        for family in POOL_FAMILIES
     }
 
 
@@ -109,12 +124,13 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         global_batch_size=int(args.global_batch_size),
         data_parallel_group_size=dp_microbatch,
         shuffle_seed=int(args.seed),
+        weights=POOL_WEIGHTS,
     )
     train.collate_fn = collate_p2st_family
     target_train = int(train_val_test_num_samples[0])
     if args.e2e_smoke_family:
         # A smoke is capped at two updates and one family owns a whole global
-        # batch, so a mixed smoke cannot reach all three families.  Naming the
+        # batch, so a mixed smoke cannot reach all five families.  Naming the
         # family is both the way around that and the stronger check.
         if int(args.train_iters) != 1 or target_train != int(args.global_batch_size):
             raise ValueError("one-family p2st canary requires exactly one update")
@@ -147,12 +163,13 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             global_batch_size=eval_global_batch,
             data_parallel_group_size=int(args.data_parallel_size) * eval_micro_batch,
             shuffle_seed=int(args.seed) + 1,
+            weights=POOL_WEIGHTS,
         )
         valid.collate_fn = collate_p2st_family
 
     runtime.print_rank_0(
         "> p2st datasets: "
-        f"families={{{', '.join(f'{n}:{len(train_sources[n])}' for n in P2ST_FAMILIES)}}} "
+        f"families={{{', '.join(f'{n}:{len(train_sources[n])}' for n in POOL_FAMILIES)}}} "
         f"blocks={train.total_blocks} samples={len(train)} "
         f"family_blocks={train.family_block_counts} "
         f"valid={0 if valid is None else len(valid)}"
@@ -191,10 +208,10 @@ def main() -> None:
                 {
                     "experiment": EXPERIMENT,
                     "load": str(Path(args.load).resolve()),
-                    "families": list(P2ST_FAMILIES),
+                    "families": list(POOL_FAMILIES),
                     "required_denominators": {
                         family: list(names)
-                        for family, names in P2ST_REQUIRED_DENOMINATORS.items()
+                        for family, names in POOL_REQUIRED_DENOMINATORS.items()
                     },
                     "speak_decision": "removed; switching is external at inference",
                     "teacher_bindings": 0,

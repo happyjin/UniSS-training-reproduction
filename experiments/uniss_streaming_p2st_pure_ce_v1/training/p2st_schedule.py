@@ -36,10 +36,45 @@ import torch
 from torch.utils.data import Dataset
 
 from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
+    FAMILY_P2ST_ASR,
+    FAMILY_P2ST_MT,
+    FAMILY_P2ST_TTS,
+    POOL_FAMILIES,
     P2ST_FAMILIES,
 )
 
 UNIFORM_WEIGHTS = {family: 1.0 / len(P2ST_FAMILIES) for family in P2ST_FAMILIES}
+
+# With replay mixed in, the three task families stay uniform among themselves
+# and the replay share is taken from the lineage's own steady state rather than
+# invented: the interleaved schedule's STEADY_WEIGHTS give phase3 replay
+# 0.15 + 0.10 = 0.25, and B''s realised geometry spent 321 of 1132 blocks on it.
+# Matching that number means the anti-forgetting pressure here is the same
+# strength this血脉 has always used, so a difference in forgetting is
+# attributable to the pure-CE change and not to a new mixing ratio.
+POOL_WEIGHTS = {
+    FAMILY_P2ST_ASR: 0.25,
+    FAMILY_P2ST_MT: 0.25,
+    FAMILY_P2ST_TTS: 0.25,
+    FAMILY_PHASE3_QUALITY: 0.15,
+    FAMILY_PHASE3_PERFORMANCE: 0.10,
+}
+assert abs(sum(POOL_WEIGHTS.values()) - 1.0) < 1e-12
+
+
+def scheduled_families(weights: Mapping[str, float]) -> tuple[str, ...]:
+    """The families a weight map actually schedules, in canonical order.
+
+    Deriving this from the weights rather than from a module constant is what
+    lets ``UNIFORM_WEIGHTS`` keep producing exactly the old three-family
+    schedule -- bit-identically, since the order is unchanged -- while
+    ``POOL_WEIGHTS`` produces five.
+    """
+    return tuple(
+        family for family in POOL_FAMILIES if float(weights.get(family, 0.0)) > 0.0
+    )
 
 
 def _stable_seed(seed: int, *values: object) -> int:
@@ -51,9 +86,18 @@ def _stable_seed(seed: int, *values: object) -> int:
 
 
 def largest_remainder(
-    total: int, weights: Mapping[str, float], families: Sequence[str] = P2ST_FAMILIES
+    total: int,
+    weights: Mapping[str, float],
+    families: Sequence[str] | None = None,
 ) -> dict[str, int]:
-    """Split ``total`` by ``weights`` with no block lost to rounding."""
+    """Split ``total`` by ``weights`` with no block lost to rounding.
+
+    ``families`` defaults to whichever families ``weights`` actually schedules,
+    so the same call works for the three-family task-only map and the
+    five-family map that includes phase3 replay.
+    """
+    if families is None:
+        families = scheduled_families(weights)
     if total < 0 or set(weights) != set(families):
         raise ValueError("invalid p2st family allocation geometry")
     if not math.isclose(sum(float(v) for v in weights.values()), 1.0, abs_tol=1e-9):
@@ -81,7 +125,8 @@ def family_blocks(
     if total_blocks <= 0:
         raise ValueError("p2st schedule must contain global blocks")
     counts = largest_remainder(total_blocks, weights)
-    blocks = [family for family in P2ST_FAMILIES for _ in range(counts[family])]
+    families = scheduled_families(weights)
+    blocks = [family for family in families for _ in range(counts[family])]
     generator = torch.Generator().manual_seed(_stable_seed(seed, "p2st_blocks"))
     order = torch.randperm(len(blocks), generator=generator).tolist()
     return tuple(blocks[index] for index in order)
@@ -98,7 +143,8 @@ def required_total_blocks(
     """Blocks needed for every family to be covered ``coverage_epochs`` times."""
     if global_batch_size <= 0 or coverage_epochs <= 0:
         raise ValueError("invalid p2st coverage geometry")
-    if set(family_rows) != set(P2ST_FAMILIES) or any(
+    families = scheduled_families(weights)
+    if set(family_rows) != set(families) or any(
         int(value) <= 0 for value in family_rows.values()
     ):
         raise ValueError("p2st coverage needs a positive row count per family")
@@ -110,14 +156,14 @@ def required_total_blocks(
         1,
         max(
             math.ceil(needed[family] / float(weights[family]))
-            for family in P2ST_FAMILIES
+            for family in families
         ),
     )
     # Rounding can leave a family one block short of its requirement, so close
     # the gap by measurement rather than by adding a fudge factor.
     while True:
         blocks = family_blocks(total, seed=seed, weights=weights)
-        if all(blocks.count(family) >= needed[family] for family in P2ST_FAMILIES):
+        if all(blocks.count(family) >= needed[family] for family in families):
             return total
         total += 1
 
@@ -143,10 +189,20 @@ class _BlockSchedule(Dataset):
         shuffle_seed: int,
         shuffle_samples: bool,
     ) -> None:
-        if set(datasets) != set(P2ST_FAMILIES) or any(
-            len(datasets[name]) <= 0 for name in P2ST_FAMILIES
+        # Whichever families this schedule's blocks name -- three for a
+        # task-only run, five once phase3 replay is mixed in -- must all be
+        # present and non-empty.  Deriving the set from the blocks keeps the
+        # three-family smoke schedules working unchanged.
+        families = tuple(dict.fromkeys(blocks))
+        if not families:
+            raise ValueError("p2st schedule must contain global blocks")
+        if set(datasets) != set(families) or any(
+            len(datasets[name]) <= 0 for name in families
         ):
-            raise ValueError("p2st schedule requires three non-empty family datasets")
+            raise ValueError(
+                "p2st schedule requires a non-empty dataset for each of "
+                f"{sorted(families)}"
+            )
         if global_batch_size <= 0 or data_parallel_group_size <= 0:
             raise ValueError("p2st schedule batch geometry must be positive")
         if global_batch_size % data_parallel_group_size:
@@ -163,17 +219,20 @@ class _BlockSchedule(Dataset):
         from megatron.core.datasets.utils import Split
 
         self.split = Split.train
+        self.families = tuple(
+            family for family in POOL_FAMILIES if family in set(families)
+        )
         self.family_block_counts = {
-            family: self.blocks.count(family) for family in P2ST_FAMILIES
+            family: self.blocks.count(family) for family in self.families
         }
-        running = {family: 0 for family in P2ST_FAMILIES}
+        running = {family: 0 for family in self.families}
         self._block_family_ordinals: list[int] = []
         for family in self.blocks:
             self._block_family_ordinals.append(running[family])
             running[family] += 1
         self._permutations: dict[tuple[str, int], torch.Tensor] = {}
         if shuffle_samples:
-            for family in P2ST_FAMILIES:
+            for family in self.families:
                 samples = self.family_block_counts[family] * self.global_batch_size
                 cycles = math.ceil(samples / len(self.datasets[family]))
                 for cycle in range(cycles):
@@ -224,7 +283,7 @@ class ThreeFamilyGlobalSchedule(_BlockSchedule):
         shuffle_seed: int,
         weights: Mapping[str, float] = UNIFORM_WEIGHTS,
     ) -> None:
-        rows = {family: len(datasets[family]) for family in P2ST_FAMILIES}
+        rows = {family: len(datasets[family]) for family in scheduled_families(weights)}
         total_blocks = required_total_blocks(
             rows,
             global_batch_size=int(global_batch_size),
@@ -257,16 +316,17 @@ class ThreeFamilyValidationSchedule(_BlockSchedule):
         global_batch_size: int,
         data_parallel_group_size: int,
         shuffle_seed: int,
+        weights: Mapping[str, float] = UNIFORM_WEIGHTS,
     ) -> None:
         if total_samples <= 0:
             raise ValueError("p2st validation needs a positive sample count")
         total_blocks = max(1, math.ceil(int(total_samples) / int(global_batch_size)))
+        families = scheduled_families(weights)
         # Round-robin rather than shuffled: a validation curve is only
         # comparable across steps if every evaluation sees the same batches in
         # the same order.
         blocks = tuple(
-            P2ST_FAMILIES[index % len(P2ST_FAMILIES)]
-            for index in range(total_blocks)
+            families[index % len(families)] for index in range(total_blocks)
         )
         super().__init__(
             datasets,
@@ -282,7 +342,9 @@ class ThreeFamilyValidationSchedule(_BlockSchedule):
 
 
 __all__ = [
+    "POOL_WEIGHTS",
     "UNIFORM_WEIGHTS",
+    "scheduled_families",
     "ThreeFamilySchedulePrefix",
     "ThreeFamilySingleBlock",
     "FamilyScheduledIndex",
@@ -318,8 +380,9 @@ class ThreeFamilySchedulePrefix(Dataset):
         self.data_parallel_group_size = int(dataset.data_parallel_group_size)
         self.total_blocks = self.total_samples // self.global_batch_size
         self.blocks = tuple(getattr(dataset, "blocks"))[: self.total_blocks]
+        self.families = tuple(getattr(dataset, "families", POOL_FAMILIES))
         self.family_block_counts = {
-            family: self.blocks.count(family) for family in P2ST_FAMILIES
+            family: self.blocks.count(family) for family in self.families
         }
         self.synchronize_task_family = True
         self.split = getattr(dataset, "split")
@@ -352,7 +415,7 @@ class ThreeFamilySingleBlock(Dataset):
     """
 
     def __init__(self, dataset: Dataset, family: str) -> None:
-        if family not in P2ST_FAMILIES:
+        if family not in POOL_FAMILIES:
             raise ValueError(f"unknown p2st canary family {family!r}")
         blocks = tuple(getattr(dataset, "blocks", ()))
         if family not in blocks:
@@ -368,8 +431,9 @@ class ThreeFamilySingleBlock(Dataset):
         self.source_block = blocks.index(family)
         self.total_blocks = 1
         self.blocks = (family,)
+        self.families = tuple(getattr(dataset, "families", POOL_FAMILIES))
         self.family_block_counts = {
-            name: int(name == family) for name in P2ST_FAMILIES
+            name: int(name == family) for name in self.families
         }
         self.synchronize_task_family = True
         self.split = getattr(dataset, "split", None)

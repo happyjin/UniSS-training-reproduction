@@ -28,6 +28,9 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
     LOSS_SEMANTIC,
 )
 from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
+    SOURCE_PREFIX_GOLD,
+    _split_source_text,
+    _split_target_text,
     FAMILY_P2ST_ASR,
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
@@ -232,8 +235,11 @@ def test_asr_prompt_is_exactly_the_causal_prefix(trajectories):
             assert tuple(sample.token_ids[:split]) == expected, (
                 f"{sample.sequence_id} prompt layout differs"
             )
+            # The supervised span is the delta *with its separator*, not the
+            # bare field: see _split_running_text for why the space has to be
+            # generated rather than injected by the prompt builder.
             assert tuple(sample.token_ids[split:-2]) == tuple(
-                _encode(event.gold_source_delta)
+                _encode(_split_source_text(event, SOURCE_PREFIX_GOLD)[1])
             )
 
 
@@ -479,3 +485,56 @@ def test_text_sample_rejects_an_audio_cut():
             source_glm_length=0,
             source_pcm_end=1280,
         )
+
+
+def test_committed_plus_delta_reproduces_the_running_text(trajectories):
+    """The separator must survive the prefix/delta cut.
+
+    ``gold_source_prefix`` is running text and ``gold_source_delta`` is the bare
+    word, so the space between them belongs to neither field.  The first pool
+    dropped it -- committed ``'I'`` and target ``'completely'`` -- and 400
+    training steps were enough for the cascade to transcribe "I can't think
+    what takes" as ``'Ithinksomethingwilltake'``, which then fed the MT stage
+    an out-of-distribution string.  Concatenation is the invariant that catches
+    it, and it has to hold on both the source and the target side because
+    cmn->eng makes the target English too.
+    """
+    checked = 0
+    for trajectory in trajectories:
+        for event in trajectory.events:
+            if event.gold_source_delta.strip():
+                committed, delta = _split_source_text(event, SOURCE_PREFIX_GOLD)
+                assert committed + delta == event.gold_source_prefix
+                assert not committed.endswith(" ")
+                checked += 1
+            if event.target_text_delta.strip():
+                committed, delta = _split_target_text(event)
+                assert committed + delta == event.target_text_prefix
+                assert not committed.endswith(" ")
+                checked += 1
+    assert checked > 0
+
+
+def test_non_initial_english_deltas_lead_with_a_space(trajectories):
+    """The concrete symptom, pinned as a number rather than a property.
+
+    Concatenation alone would also be satisfied by putting the space at the end
+    of the committed side, which is what the MT builder used to do -- and that
+    form is wrong for a different reason: the model never emits the space, so
+    the accumulated hypothesis still loses it.  Requiring the space on the
+    *delta* is what makes the fix load-bearing at inference.
+    """
+    leading = total = 0
+    for trajectory in trajectories:
+        if " " not in (trajectory.full_transcription or ""):
+            continue  # Chinese has no separators to lose
+        for event in trajectory.events:
+            if not event.gold_source_delta.strip():
+                continue
+            committed, delta = _split_source_text(event, SOURCE_PREFIX_GOLD)
+            if not committed:
+                continue  # utterance-initial word has no separator
+            total += 1
+            leading += delta.startswith(" ")
+    assert total > 0
+    assert leading == total, f"{total - leading} of {total} deltas lost the space"

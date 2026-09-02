@@ -47,10 +47,13 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st impo
     FAMILY_P2ST_ASR,
     FAMILY_P2ST_MT,
     FAMILY_P2ST_TTS,
-    P2ST_FAMILIES,
+    FAMILY_PHASE3_PERFORMANCE,
+    FAMILY_PHASE3_QUALITY,
+    POOL_FAMILIES,
     P2STTaskSample,
     SOURCE_PREFIX_GOLD,
     build_p2st_incremental_mt_tasks,
+    build_p2st_phase3_replay_tasks,
     build_p2st_streaming_asr_tasks,
     build_p2st_streaming_tts_tasks,
 )
@@ -96,7 +99,18 @@ def build_trajectory_samples(
     encode_text,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
 ) -> dict[str, list[P2STTaskSample]]:
-    """All three families for one trajectory, keyed by family."""
+    """Every pool family for one trajectory, keyed by family.
+
+    The two phase3 replay families come last and are whole-utterance rather
+    than per-event, so one trajectory yields exactly one sample for each.
+    """
+    replay = build_p2st_phase3_replay_tasks(trajectory, encode_text=encode_text)
+    by_family: dict[str, list[P2STTaskSample]] = {
+        FAMILY_PHASE3_QUALITY: [],
+        FAMILY_PHASE3_PERFORMANCE: [],
+    }
+    for sample in replay:
+        by_family[sample.family].append(sample)
     return {
         FAMILY_P2ST_ASR: build_p2st_streaming_asr_tasks(
             trajectory, encode_text=encode_text
@@ -109,6 +123,8 @@ def build_trajectory_samples(
         FAMILY_P2ST_TTS: build_p2st_streaming_tts_tasks(
             trajectory, encode_text=encode_text
         ),
+        FAMILY_PHASE3_QUALITY: by_family[FAMILY_PHASE3_QUALITY],
+        FAMILY_PHASE3_PERFORMANCE: by_family[FAMILY_PHASE3_PERFORMANCE],
     }
 
 
@@ -196,7 +212,7 @@ def _worker(task: tuple[object, ...]) -> dict[str, object]:
             Path(parts_root) / f"{split}_{family}.part{index:04d}.jsonl",
             int(seq_length),
         )
-        for family in P2ST_FAMILIES
+        for family in POOL_FAMILIES
     }
     trajectories = 0
     skipped: list[str] = []
@@ -344,7 +360,7 @@ def main() -> None:
         "workers": results,
         "families": {},
     }
-    for family in P2ST_FAMILIES:
+    for family in POOL_FAMILIES:
         parts = [
             parts_root / f"{args.split}_{family}.part{index:04d}.jsonl"
             for index in range(len(bounds))

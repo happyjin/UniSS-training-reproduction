@@ -28,6 +28,7 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.build_p2st_pools impor
     pack_p2st_samples,
 )
 from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st import (
+    REPLAY_FAMILIES,
     FAMILY_P2ST_ASR,
     causal_glm_token_count,
 )
@@ -112,6 +113,21 @@ def test_only_the_family_whitelist_blocks_the_established_reader(rows_by_family)
 
     checked = 0
     for family, rows in rows_by_family.items():
+        if family in REPLAY_FAMILIES:
+            # These two *are* the base experiment's families, built by its own
+            # builder, so the established reader accepts them unrenamed.  That
+            # is the point of reusing them: replay needs no fork.
+            for row in rows:
+                item = packed_task_to_runtime_item(
+                    row,
+                    seq_length=SEQ_LENGTH,
+                    load_audio=False,
+                    audio_loader=loader,
+                )
+                assert item["family"] == family
+                assert not item["acoustic_rows"]
+                checked += 1
+            continue
         for row in rows:
             with pytest.raises(ValueError, match="unknown family"):
                 packed_task_to_runtime_item(
