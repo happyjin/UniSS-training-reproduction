@@ -1,0 +1,75 @@
+{
+ "formal_training_authorized": false,
+ "known_open_problems": [
+  "the longest sample's TTS fragments still reach max_semantic_tokens; END_SEMANTIC in the isolated form needs training",
+  "first_audible equals the source end on three of four samples, so this is not yet simultaneous -- the metric training must move",
+  "the tts text_scope comparison came out bit-identical and is therefore undecided"
+ ],
+ "reports": [
+  "reports/uniss_streaming_p2st_pure_ce_v1/FAMILY_SMOKE.zh-CN.md",
+  "reports/uniss_streaming_p2st_pure_ce_v1/FRONTEND_PREFIX_PARITY.zh-CN.md",
+  "reports/uniss_streaming_p2st_pure_ce_v1/CASCADE_MECHANICS.zh-CN.md",
+  "reports/uniss_streaming_p2st_pure_ce_v1/PROMPT_ALIGNMENT.zh-CN.md"
+ ],
+ "schema_version": "uniss_streaming_p2st_structural_canary_v1",
+ "status": "passed",
+ "what_passed": {
+  "cascade_mechanics": {
+   "decision_token_free": "4/4",
+   "fragments_never_precede_source": "4/4",
+   "switch_rule_reproduced": "4/4",
+   "terminator_rate": [
+    1.0,
+    1.0,
+    1.0,
+    0.93
+   ]
+  },
+  "cpu_tests": 53,
+  "family_gpu_canary": {
+   "acoustic_rows": 3922.75,
+   "causal_glm_terminal_extensions": 0.0,
+   "inactive_terms_all_zero": [
+    "replay_ce",
+    "v1_asr_kl",
+    "phase3_kl",
+    "commit_consistency",
+    "every margin/rollin/binary term"
+   ],
+   "inject_causal_glm_raised": false,
+   "losses": {
+    "p2st_incremental_mt": {
+     "boundary_ce": 0.7115914,
+     "denominator": 23501.75,
+     "eos_ce": 3.58349,
+     "mt_ce": 3.446866
+    },
+    "p2st_streaming_asr": {
+     "asr_ce": 4.664177,
+     "boundary_ce": 0.6460545,
+     "denominator": 4849.125,
+     "eos_ce": 2.195854
+    },
+    "p2st_streaming_tts": {
+     "boundary_ce": 1.748313,
+     "denominator": 55814.38,
+     "eos_ce": 0.3496621,
+     "semantic_ce": 4.624094
+    }
+   },
+   "nan_iterations": 0,
+   "note": "one optimizer update per family, 8 cards, GBS 128 / MBS 2",
+   "skipped_iterations": 0,
+   "validate_family_denominators": "passed for all three families"
+  },
+  "frontend_prefix_parity": {
+   "causality": "201/201 prefixes reproduce the full run bit for bit",
+   "closed_form": "ceil(samples / 1280)",
+   "count_offsets": {
+    "0": 171,
+    "2": 30
+   },
+   "never_short_of_recorded_offset": "201/201"
+  }
+ }
+}
