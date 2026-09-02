@@ -30,7 +30,7 @@ def test_both_scripts_parse() -> None:
         assert subprocess.run(["bash", "-n", str(path)]).returncode == 0, path
 
 
-def test_the_entrypoint_differs_from_the_established_one_in_four_places() -> None:
+def test_the_entrypoint_differs_from_the_established_one_in_three_places() -> None:
     """Redirect the experiment directory, then declare and pass one argument.
 
     The redirect is required because this copy sits in a sibling experiment that
@@ -42,7 +42,7 @@ def test_the_entrypoint_differs_from_the_established_one_in_four_places() -> Non
         ["diff", str(established), str(ENTRYPOINT)], capture_output=True, text=True
     )
     hunks = [line for line in diff.stdout.splitlines() if re.match(r"^\d", line)]
-    assert len(hunks) == 4, diff.stdout
+    assert len(hunks) == 3, diff.stdout
     added = [line for line in diff.stdout.splitlines() if line.startswith("> ")]
     assert any("RUN_BOUNDARY_EOS_WEIGHT=" in line for line in added)
     assert any("--e2e-boundary-eos-weight" in line for line in added)
@@ -85,16 +85,10 @@ def test_no_objective_extension_is_installed() -> None:
         assert token not in text, token
     assert "run_e2e_megatron_uniform.sh" in text
     entry = read(ENTRYPOINT)
-    assert "pretrain_uniform_ce_megatron.py" in entry
-    wrapper = (
-        REPO_ROOT
-        / "experiments/uniss_phase3_e2e_uniform_ce_v1/training/pretrain_uniform_ce_megatron.py"
-    ).read_text(encoding="utf-8")
-    assert "trainer.main()" in wrapper, "the wrapper must delegate, not reimplement"
-    for token in ("weight", "objective", "loss", "LossTerm"):
-        assert token not in wrapper.split('"""')[2], (
-            f"the wrapper touches {token}; it may only set the sharing strategy"
-        )
+    assert "training/pretrain_e2e_megatron.py" in entry, "must use the established trainer"
+    assert not (
+        REPO_ROOT / "experiments/uniss_phase3_e2e_uniform_ce_v1/training"
+    ).exists(), "this experiment adds no Python at all"
 
 
 def test_the_distillation_anchors_are_kept() -> None:
@@ -113,23 +107,29 @@ def test_the_parent_is_iter_0002264() -> None:
     assert "PARENT_ITER=${PARENT_ITER:-0002264}" in text
 
 
-def test_dataloader_workers_are_not_zero() -> None:
-    """The dataset reopens the file inside __getitem__, so workers are safe.
+def test_dataloader_workers_stay_at_zero() -> None:
+    """Three launches established that workers above zero cannot survive here.
 
-    Every continuation launcher in this lineage hardcoded 0 while the
-    established default is 8, and the parent run ran at 47% mean GPU
-    utilisation with 46% of samples at 0%.
+    Eight workers died at step 11 with `received 0 items of ancdata` under the
+    default file_descriptor sharing strategy.  Switching to file_system moved the
+    failure rather than removing it: eight workers, then two, both died with
+    `Shared memory manager connection has timed out`, at step 11 and step 34.
+    /dev/shm is 996 GB with 600 KB used and a record is only about 0.7 MB, so it
+    is not capacity -- and two workers is sixteen processes, so it is not simply
+    client count either.  Zero is what this dataset supports, which is very
+    likely why every continuation launcher in this lineage hardcoded it.
     """
     text = read(LAUNCHER)
-    assert "RUN_NUM_WORKERS=0" not in text
-    assert 'RUN_NUM_WORKERS="${NUM_WORKERS:-2}"' in text, (
-        "8 workers is 64 processes across 8 ranks and times out the shared-memory "
-        "manager; 2 is 16 and survives"
-    )
+    assert 'RUN_NUM_WORKERS="${NUM_WORKERS:-0}"' in text
 
 
 def test_the_dataset_holds_no_file_handle_across_getitem() -> None:
-    """The precondition for the previous test, checked in the source."""
+    """Recorded because it is true and was not sufficient.
+
+    Reopening per access makes workers safe from pickling and stale handles, and
+    that was the reasoning for raising the count.  It did not survive contact:
+    the failure was in tensor sharing between processes, not in the dataset.
+    """
     source = (
         REPO_ROOT
         / "experiments/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/training/runtime_dataset.py"

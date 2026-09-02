@@ -38,7 +38,26 @@ Thinker-Talker 双流解决的 modality interference 的廉价部分版本
 **撤掉 margin 家族的理由:** 三次独立实验把推理侧决策 gap 单调推向错误方向
 (−2.88 → −3.75 → −4.97),同时 gold 行分离度每次都朝正确方向动。
 
-## 为什么 workers 从 0 改成 8
+## workers:试过,不行,回到 0
+
+**三次启动的结论:`num_workers > 0` 在这套数据上无法存活。**
+
+| 尝试 | 策略 | 结果 |
+|---|---|---|
+| workers=8 | 默认 `file_descriptor` | 第 11 步 `received 0 items of ancdata` |
+| workers=8 | `file_system` | 第 11 步 `Shared memory manager connection has timed out` |
+| workers=2 | `file_system` | **第 34 步 同一个超时** |
+
+**不是容量**:/dev/shm 996 GB、负载 600 KB,单条 record 约 0.7 MB。
+**不是简单的连接数**:2 workers 只有 16 个进程,同样死。
+**也不是 dataset 句柄**:`__getitem__` 每次重开文件,那一层是安全的 ——
+问题在进程间的 tensor 共享。
+
+**`RUN_NUM_WORKERS=0` 就是这套数据支持的值,这很可能正是本血脉三个续训脚本
+把它硬写成 0 的原因。** GPU 利用率 47% 是这条数据流水线的固有代价,
+要提升得换数据格式或加大 micro-batch(后者被显存挡住:137/141 GB)。
+
+## (已废弃)为什么 workers 从 0 改成 8
 
 `runtime_dataset.py::__getitem__` 每次访问都 `with self.path.open("rb")`,
 **不跨调用持有文件句柄**,所以多进程 dataloader 是安全的。
