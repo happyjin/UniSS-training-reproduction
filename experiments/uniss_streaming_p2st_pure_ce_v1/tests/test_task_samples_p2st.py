@@ -96,12 +96,65 @@ def test_all_three_families_are_produced(samples):
     assert families == {FAMILY_P2ST_ASR, FAMILY_P2ST_MT, FAMILY_P2ST_TTS}
 
 
-def test_no_speak_decision_token_anywhere(samples):
-    """The point of this pool: the model is never asked to choose."""
+def test_no_decision_token_is_ever_supervised(samples):
+    """The point of this pool: the model is never asked to choose.
+
+    The precise property is that no WAIT/WRITE token sits in a supervised
+    position, not that the byte never occurs.  The ASR prompt carries an
+    unconditional WRITE_GENERATE because Stage-A's format does and that is the
+    format the trained task token expects, but it is prompt, never target, so
+    the model can neither be scored on it nor generate it.
+    """
+    supervised_hits = 0
     for sample in samples:
-        for token in DECISION_TOKENS:
-            assert token not in sample.token_ids, (
-                f"{sample.sequence_id} contains decision token {token}"
+        for token, kind in zip(sample.token_ids, sample.loss_kinds):
+            if token in DECISION_TOKENS:
+                assert kind == LOSS_NONE, (
+                    f"{sample.sequence_id} supervises decision token {token}"
+                )
+                supervised_hits += 1
+    # WRITE_GENERATE now appears in all three prompts, because all three
+    # trained counterparts use it as the separator before the generated block.
+    # WAIT_READ appears in none of them: that is the token whose choice was
+    # the decision, and nothing here ever emits or is scored on it.
+    for sample in samples:
+        assert c.TOKEN_WAIT_READ not in sample.token_ids, sample.sequence_id
+        assert c.TOKEN_WRITE_GENERATE in sample.token_ids, sample.sequence_id
+    assert supervised_hits > 0
+
+
+def test_asr_prompt_matches_the_stage_a_header(trajectories):
+    """The layout that trained TOKEN_TASK_STREAMING_ASR, reproduced exactly."""
+    for trajectory in trajectories:
+        for sample in build_p2st_streaming_asr_tasks(
+            trajectory, encode_text=_encode
+        ):
+            head = sample.token_ids[: 3 + len(
+                c.wrap_global_tokens(trajectory.speaker_global)
+            )]
+            assert head == (
+                c.TOKEN_TASK_STREAMING_ASR,
+                c.TOKEN_STREAMING_MODE,
+                c.language_token_id(trajectory.src_lang),
+                *c.wrap_global_tokens(trajectory.speaker_global),
+            )
+            split = next(
+                i for i, k in enumerate(sample.loss_kinds) if k != LOSS_NONE
+            )
+            index = int(sample.sequence_id.rsplit(":", 1)[1])
+            event = next(e for e in trajectory.events if e.event_index == index)
+            committed = event.gold_source_prefix
+            committed = committed[
+                : len(committed) - len(event.gold_source_delta)
+            ].rstrip()
+            # Immediately before the supervised text: WRITE_GENERATE, lang,
+            # START_CONTENT, committed prefix -- Stage-A's output preamble.
+            preamble = 3 + len(_encode(committed) if committed else [])
+            assert sample.token_ids[split - preamble : split] == (
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(trajectory.src_lang),
+                c.TOKEN_START_CONTENT,
+                *(_encode(committed) if committed else ()),
             )
 
 
@@ -167,9 +220,12 @@ def test_asr_prompt_is_exactly_the_causal_prefix(trajectories):
                 c.TOKEN_TASK_STREAMING_ASR,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.src_lang),
+                *c.wrap_global_tokens(trajectory.speaker_global),
                 c.TOKEN_START_GLM,
                 *([c.glm_semantic_id(0)] * causal_glm_token_count(event.source_pcm_end)),
                 c.TOKEN_END_GLM,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(trajectory.src_lang),
                 c.TOKEN_START_CONTENT,
                 *(_encode(committed) if committed else ()),
             )
@@ -270,7 +326,8 @@ def test_prompts_are_headed_by_the_trained_task_tokens(samples):
     """
     heads = {sample.family: sample.token_ids[0] for sample in samples}
     assert heads[FAMILY_P2ST_ASR] == c.TOKEN_TASK_STREAMING_ASR == 180_383
-    assert heads[FAMILY_P2ST_MT] == c.TOKEN_TASK_S2T_TRANSLATION == 180_380
+    # T2T rather than S2T: this stage reads the committed source *text*.
+    assert heads[FAMILY_P2ST_MT] == c.TOKEN_TASK_T2T_TRANSLATION == 180_381
     assert heads[FAMILY_P2ST_TTS] == c.TOKEN_TASK_TTS == 180_375
     assert heads == TASK_TOKENS
     # Every prompt still carries the streaming marker, which is what keeps the

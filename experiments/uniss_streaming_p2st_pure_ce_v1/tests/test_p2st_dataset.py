@@ -27,7 +27,7 @@ from experiments.uniss_streaming_p2st_pure_ce_v1.training.task_samples_p2st impo
     causal_glm_token_count,
 )
 
-POOL_ROOT = Path("data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v2_20260902T133623Z")
+POOL_ROOT = Path("data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_v5_20260902T135453Z")
 MANIFEST = POOL_ROOT / "POOL_MANIFEST.json"
 
 

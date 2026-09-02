@@ -58,6 +58,7 @@ def main() -> None:
     parser.add_argument("--samples", type=int, default=3)
     parser.add_argument("--max-blocks", type=int, default=0)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--tts-text-scope", default="delta", choices=("delta", "prefix"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -95,6 +96,7 @@ def main() -> None:
     report: dict[str, object] = {
         "schema_version": 1,
         "candidate_hf": str(args.candidate_hf.resolve()),
+        "tts_text_scope": args.tts_text_scope,
         "claim_scope": (
             "mechanics only; this checkpoint has never trained on isolated "
             "prefix-to-prefix sequences, so quality is not a criterion here"
@@ -116,6 +118,7 @@ def main() -> None:
             src_lang=trajectory.src_lang,
             tgt_lang=trajectory.tgt_lang,
             speaker_global=trajectory.speaker_global,
+            tts_text_scope=args.tts_text_scope,
         )
         started = time.time()
         trace = session.run(

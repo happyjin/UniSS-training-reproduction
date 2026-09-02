@@ -119,6 +119,7 @@ def _generate(
     terminator: int,
     max_tokens: int,
     allowed: torch.Tensor | None = None,
+    first_allowed: torch.Tensor | None = None,
     penalty: float = 1.0,
     penalty_window: int = 0,
 ) -> tuple[list[int], bool]:
@@ -137,8 +138,14 @@ def _generate(
         output = model(inputs_embeds=inputs, past_key_values=past, use_cache=True)
         past = output.past_key_values
         recent = produced[-penalty_window:] if penalty_window > 0 else []
+        step_allowed = (
+            first_allowed if not produced and first_allowed is not None else allowed
+        )
         token = _greedy(
-            output.logits[0, -1], allowed=allowed, penalty=penalty, recent=recent
+            output.logits[0, -1],
+            allowed=step_allowed,
+            penalty=penalty,
+            recent=recent,
         )
         if token == terminator:
             return produced, True
@@ -168,6 +175,7 @@ class P2STCascadeSession:
         max_semantic_tokens: int = 384,
         semantic_penalty: float = 1.1,
         semantic_penalty_window: int = 8,
+        tts_text_scope: str = "delta",
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -181,14 +189,28 @@ class P2STCascadeSession:
         self.max_semantic_tokens = int(max_semantic_tokens)
         self.semantic_penalty = float(semantic_penalty)
         self.semantic_penalty_window = int(semantic_penalty_window)
+        if tts_text_scope not in ("delta", "prefix"):
+            raise ValueError(f"unknown tts text scope {tts_text_scope!r}")
+        self.tts_text_scope = tts_text_scope
         self.device = next(model.parameters()).device
         self.source_committer = StablePrefixCommitter(holdback=int(holdback))
         self.target_committer = StablePrefixCommitter(holdback=int(holdback))
         self.spoken_semantic: list[int] = []
         self.trace = CascadeTrace()
+        # The terminator has to be inside the allowed set or it can never be
+        # the argmax.  Leaving it out made every TTS stage run to
+        # max_semantic_tokens exactly, which looked like an untrained
+        # END_SEMANTIC and was in fact a mask that forbade it.  The
+        # established runtime avoids this with
+        # ``_restricted_semantic_choice(logits, allow_end=bool(generated))``:
+        # END becomes legal once at least one code exists, never on the first
+        # step, so a fragment cannot be empty.
+        codes = [
+            c.bicodec_semantic_id(code) for code in range(c.BICODEC_SEMANTIC_SIZE)
+        ]
+        self._semantic_first = torch.tensor(codes, device=self.device)
         self._semantic_allowed = torch.tensor(
-            [c.bicodec_semantic_id(code) for code in range(c.BICODEC_SEMANTIC_SIZE)],
-            device=self.device,
+            [*codes, c.TOKEN_END_SEMANTIC], device=self.device
         )
         self._last_end_ms = 0.0
 
@@ -211,17 +233,23 @@ class P2STCascadeSession:
 
     def _asr_prompt(self, hidden: torch.Tensor) -> torch.Tensor:
         committed = self.tokenizer.decode(self.source_committer.committed)
+        # Byte for byte the builder's layout, which is Stage-A's.  A drift
+        # between these two is exactly the mismatch that made the first run
+        # transcribe English audio as Chinese.
         head = self._embed(
             [
                 TASK_TOKENS[FAMILY_P2ST_ASR],
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(self.src_lang),
+                *c.wrap_global_tokens(self.speaker_global),
                 c.TOKEN_START_GLM,
             ]
         )
         tail = self._embed(
             [
                 c.TOKEN_END_GLM,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(self.src_lang),
                 c.TOKEN_START_CONTENT,
                 *self.tokenizer.encode(committed, add_special_tokens=False),
             ]
@@ -239,23 +267,35 @@ class P2STCascadeSession:
                 c.TOKEN_START_CONTENT,
                 *self.tokenizer.encode(source, add_special_tokens=False),
                 c.TOKEN_END_CONTENT,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(self.tgt_lang),
                 c.TOKEN_START_CONTENT,
                 *self.tokenizer.encode(target, add_special_tokens=False),
             ]
         )
 
-    def _tts_prompt(self) -> torch.Tensor:
-        target = self.tokenizer.decode(self.target_committer.committed)
+    def _tts_prompt(self, fragment_tokens: Sequence[int]) -> torch.Tensor:
+        # Only this fragment's words, matching the builder's ``delta`` scope:
+        # showing the whole committed prefix leaves the stopping point to be
+        # inferred, and the measured consequence was END_SEMANTIC never
+        # arriving.
+        target = self.tokenizer.decode(
+            list(fragment_tokens)
+            if self.tts_text_scope == "delta"
+            else list(self.target_committer.committed)
+        )
         return self._embed(
             [
                 TASK_TOKENS[FAMILY_P2ST_TTS],
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(self.tgt_lang),
-                c.speed_token_id(self.speed),
                 *c.wrap_global_tokens(self.speaker_global),
                 c.TOKEN_START_CONTENT,
                 *self.tokenizer.encode(target, add_special_tokens=False),
                 c.TOKEN_END_CONTENT,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(self.tgt_lang),
+                c.speed_token_id(self.speed),
                 c.TOKEN_START_SEMANTIC,
                 *c.encode_bicodec_semantic(self.spoken_semantic),
             ]
@@ -285,6 +325,7 @@ class P2STCascadeSession:
             stage = TASK_ASR
             source_delta = 0
             target_delta = 0
+            target_committed_tokens: list[int] = []
             while stage not in (TASK_READ, TASK_DONE):
                 if stage == TASK_ASR:
                     produced, ended = _generate(
@@ -310,13 +351,15 @@ class P2STCascadeSession:
                         final=exhausted,
                     )
                     target_delta = len(committed)
+                    target_committed_tokens = list(committed)
                 else:
                     produced, ended = _generate(
                         self.model,
-                        self._tts_prompt(),
+                        self._tts_prompt(target_committed_tokens),
                         terminator=c.TOKEN_END_SEMANTIC,
                         max_tokens=self.max_semantic_tokens,
                         allowed=self._semantic_allowed,
+                        first_allowed=self._semantic_first,
                         penalty=self.semantic_penalty,
                         penalty_window=self.semantic_penalty_window,
                     )

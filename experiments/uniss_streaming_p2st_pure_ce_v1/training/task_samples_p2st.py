@@ -142,7 +142,11 @@ SOURCE_PREFIX_V1 = "v1"
 # than competing with WAIT/WRITE for the same bucket.
 TASK_TOKENS = {
     FAMILY_P2ST_ASR: c.TOKEN_TASK_STREAMING_ASR,
-    FAMILY_P2ST_MT: c.TOKEN_TASK_S2T_TRANSLATION,
+    # C's MT stage reads the committed source *text*, not audio, so its
+    # trained counterpart is phase3's build_mt_sample, which heads a
+    # text-to-text translation with TASK_T2T_TRANSLATION.  Using the
+    # speech-to-text token would name a task this prompt does not perform.
+    FAMILY_P2ST_MT: c.TOKEN_TASK_T2T_TRANSLATION,
     FAMILY_P2ST_TTS: c.TOKEN_TASK_TTS,
 }
 # The never-trained alternative, kept addressable so the choice can be tested
@@ -356,11 +360,20 @@ def build_p2st_streaming_asr_tasks(
         if glm_stop <= 0 or pcm_end <= 0:
             continue
         builder = _Builder()
+        # Match Stage-A's own layout around the supervised span.  That pool is
+        # what trained TOKEN_TASK_STREAMING_ASR, and its sample is
+        #   [TASK_STREAMING_ASR, STREAMING_MODE, lang, *speaker]
+        #   ... START_GLM glm END_GLM WRITE_GENERATE lang START_CONTENT delta
+        # Three pieces were missing here, and the middle one is the likely
+        # cause of a measured failure: the cascade transcribed English audio as
+        # Chinese, and the only language cue was in the header, roughly ninety
+        # GLM tokens away from where the text begins.
         builder.observe(
             [
                 task_token,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.src_lang),
+                *c.wrap_global_tokens(trajectory.speaker_global),
             ]
         )
         builder.observe(
@@ -373,7 +386,19 @@ def build_p2st_streaming_asr_tasks(
         )
         prefix = _source_prefix_before(event, SOURCE_PREFIX_GOLD)
         committed = tuple(int(v) for v in encode_text(prefix)) if prefix else ()
-        builder.observe([c.TOKEN_START_CONTENT, *committed])
+        # WRITE_GENERATE is unconditional here and lives in the *prompt*: it is
+        # never a supervised target and the model never chooses it, so the
+        # property that matters -- that no WAIT-versus-WRITE decision is ever
+        # generated -- is untouched.  Stage-A's ASR has no WAIT branch either;
+        # every event with a text delta writes.
+        builder.observe(
+            [
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(trajectory.src_lang),
+                c.TOKEN_START_CONTENT,
+                *committed,
+            ]
+        )
         builder.supervise(delta, LOSS_ASR)
         builder.finish(c.TOKEN_END_CONTENT)
         output.append(
@@ -432,6 +457,15 @@ def build_p2st_incremental_mt_tasks(
                 : len(target_prefix) - len(event.target_text_delta)
             ]
         builder = _Builder()
+        # phase3's build_mt_sample, whose whole-utterance BLEU is 33-52, lays
+        # this out as
+        #   [TASK_T2T_TRANSLATION, lang, START_CONTENT src END_CONTENT,
+        #    WRITE_GENERATE, lang, START_CONTENT] -> target
+        # The WRITE_GENERATE and the repeated language token are the separator
+        # between the two content blocks.  Without them the second
+        # START_CONTENT reads as a continuation of the first, and the measured
+        # consequence was the cascade copying the source instead of
+        # translating it: "I think a" -> "I think a" on eng->cmn.
         builder.observe(
             [
                 task_token,
@@ -440,6 +474,8 @@ def build_p2st_incremental_mt_tasks(
                 c.TOKEN_START_CONTENT,
                 *(int(v) for v in encode_text(source_text)),
                 c.TOKEN_END_CONTENT,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(trajectory.tgt_lang),
                 c.TOKEN_START_CONTENT,
                 *(tuple(int(v) for v in encode_text(target_prefix))
                   if target_prefix else ()),
@@ -466,12 +502,17 @@ def build_p2st_incremental_mt_tasks(
     return output
 
 
+TEXT_SCOPE_PREFIX = "prefix"
+TEXT_SCOPE_DELTA = "delta"
+
+
 def build_p2st_streaming_tts_tasks(
     trajectory: E2ETrajectory,
     *,
     task_token: int = TASK_TOKENS[FAMILY_P2ST_TTS],
     encode_text: EncodeText,
     speed: float = 1.0,
+    text_scope: str = TEXT_SCOPE_DELTA,
 ) -> list[P2STTaskSample]:
     """One sample per event that speaks a new target fragment.
 
@@ -480,13 +521,33 @@ def build_p2st_streaming_tts_tasks(
     ever been trained inside the interleaved sequence, where its terminator
     competes with WAIT/WRITE for the same boundary bucket.
 
-    Prompt: the speaker identity, the target text committed through this
-    event, and the semantic tokens already spoken.  Target: this event's
-    semantic delta, then ``END_SEMANTIC`` and EOS.
+    Prompt: the speaker identity, the target text for this fragment, and the
+    semantic tokens already spoken.  Target: this event's semantic delta, then
+    ``END_SEMANTIC`` and EOS.
+
+    ``text_scope`` decides how much text the prompt shows, and it decides
+    whether ``END_SEMANTIC`` is predictable at all.  With ``prefix`` the prompt
+    carries every word committed so far while the target is only the newest
+    fragment's codes, so "how much to speak" has to be inferred from how long
+    the semantic prefix already is -- and the measured consequence was
+    END_SEMANTIC never arriving: every TTS stage in the cascade ran to
+    ``max_semantic_tokens`` exactly.  With ``delta`` the prompt carries just
+    this fragment's words, which is what SpeakStream's Scheme 1 feeds, so the
+    stopping point is determined by the prompt rather than inferred from it.
+    The earlier speech is still in the prompt as the semantic prefix, so
+    acoustic continuity is not lost.
     """
     output: list[P2STTaskSample] = []
     for event in trajectory.events:
         if not event.target_semantic_delta:
+            continue
+        if text_scope == TEXT_SCOPE_DELTA:
+            fragment_text = event.target_text_delta
+        elif text_scope == TEXT_SCOPE_PREFIX:
+            fragment_text = event.target_text_prefix
+        else:
+            raise ValueError(f"unknown text scope {text_scope!r}")
+        if not fragment_text.strip():
             continue
         spoken = _semantic_prefix(trajectory.events, event.event_index)
         if len(spoken) != int(event.target_semantic_start):
@@ -496,16 +557,26 @@ def build_p2st_streaming_tts_tasks(
                 f"{len(spoken)} != {event.target_semantic_start}"
             )
         builder = _Builder()
+        # phase3's build_tts_sample, whose whole-utterance duration ratio is a
+        # healthy 1.039, lays this out as
+        #   [TASK_TTS, lang, *speaker, START_CONTENT text END_CONTENT,
+        #    WRITE_GENERATE, lang, speed, START_SEMANTIC] -> semantic
+        # so the speed token belongs after WRITE_GENERATE, not in the header,
+        # and the separator is required here for the same reason as in MT.
+        # The measured consequence of omitting it was END_SEMANTIC never
+        # arriving: every TTS stage ran to max_semantic_tokens exactly.
         builder.observe(
             [
                 task_token,
                 c.TOKEN_STREAMING_MODE,
                 c.language_token_id(trajectory.tgt_lang),
-                c.speed_token_id(speed),
                 *c.wrap_global_tokens(trajectory.speaker_global),
                 c.TOKEN_START_CONTENT,
-                *(int(v) for v in encode_text(event.target_text_prefix)),
+                *(int(v) for v in encode_text(fragment_text)),
                 c.TOKEN_END_CONTENT,
+                c.TOKEN_WRITE_GENERATE,
+                c.language_token_id(trajectory.tgt_lang),
+                c.speed_token_id(speed),
                 c.TOKEN_START_SEMANTIC,
                 *c.encode_bicodec_semantic(spoken),
             ]
@@ -541,6 +612,8 @@ __all__ = [
     "FAMILY_P2ST_TTS",
     "P2ST_FAMILIES",
     "SOURCE_PREFIX_GOLD",
+    "TEXT_SCOPE_DELTA",
+    "TEXT_SCOPE_PREFIX",
     "SOURCE_PREFIX_V1",
     "build_p2st_incremental_mt_tasks",
     "build_p2st_streaming_asr_tasks",

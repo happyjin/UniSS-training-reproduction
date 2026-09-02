@@ -130,3 +130,57 @@ def test_malformed_states_are_rejected():
 def test_rule_trace_requires_one_delta_per_block():
     with pytest.raises(ValueError, match="one source and target delta"):
         rule_trace([1, 2], [1], blocks=2)
+
+
+def test_the_semantic_terminator_is_inside_the_allowed_set():
+    """Regression: a mask that forbids the terminator forbids termination.
+
+    The first cascade run showed every TTS stage reaching max_semantic_tokens
+    exactly, which read as an untrained END_SEMANTIC and was in fact this:
+    the allowed set held only the 8192 BiCodec codes, and END_SEMANTIC is not
+    one of them, so it could never be the argmax.  Fixing the mask took the
+    terminator rate from 0.93 to 1.00 on three of four samples and the wall
+    time from 8-9 s to 2.5-3.0 s.
+
+    The two-set shape is deliberate and matches the established runtime's
+    ``allow_end=bool(generated)``: END is legal after the first code and never
+    on it, so no fragment can be empty.
+    """
+    import torch
+
+    from training import constants_uniss as c
+
+    codes = [c.bicodec_semantic_id(code) for code in range(c.BICODEC_SEMANTIC_SIZE)]
+    first = torch.tensor(codes)
+    allowed = torch.tensor([*codes, c.TOKEN_END_SEMANTIC])
+
+    assert c.TOKEN_END_SEMANTIC not in set(codes), (
+        "the terminator must not be a codebook entry, or this check is vacuous"
+    )
+    assert c.TOKEN_END_SEMANTIC in set(allowed.tolist())
+    assert c.TOKEN_END_SEMANTIC not in set(first.tolist())
+    assert len(allowed) == len(first) + 1
+
+
+def test_the_masked_greedy_can_actually_pick_the_terminator():
+    """Exercise the selector itself, not just the sets."""
+    import torch
+
+    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import (
+        _greedy,
+    )
+    from training import constants_uniss as c
+
+    codes = [c.bicodec_semantic_id(code) for code in range(c.BICODEC_SEMANTIC_SIZE)]
+    allowed = torch.tensor([*codes, c.TOKEN_END_SEMANTIC])
+    first = torch.tensor(codes)
+
+    logits = torch.zeros(c.TOKEN_END_SEMANTIC + 8)
+    logits[c.TOKEN_END_SEMANTIC] = 10.0
+    logits[codes[3]] = 1.0
+
+    assert _greedy(logits, allowed=allowed, penalty=1.0, recent=()) == (
+        c.TOKEN_END_SEMANTIC
+    )
+    # On the first step the terminator is excluded, so a real code wins.
+    assert _greedy(logits, allowed=first, penalty=1.0, recent=()) == codes[3]
