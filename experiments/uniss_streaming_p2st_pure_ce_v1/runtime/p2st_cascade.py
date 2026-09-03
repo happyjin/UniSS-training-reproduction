@@ -22,6 +22,7 @@ before the audio that justified it has played.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import time
 from typing import Callable, Sequence
 
 import torch
@@ -74,6 +75,11 @@ class Fragment:
     semantic: tuple[int, ...]
     start_ms: float
     end_ms: float
+    # Which read step produced it, and the wall-clock-aware emission time that
+    # SimulEval's computation_aware scorers consume as "elapsed".  Reading
+    # perf_counter touches no tensor, so the generated codes stay bit-identical.
+    read_step: int = 0
+    elapsed_ms: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -91,7 +97,14 @@ class CascadeTrace:
     fragments: list[Fragment] = field(default_factory=list)
     source_deltas: list[int] = field(default_factory=list)
     target_deltas: list[int] = field(default_factory=list)
+    # One delta is appended per *read step*, and cascade_mechanics feeds
+    # len(source_deltas) to rule_trace, which raises unless there is exactly
+    # one delta per block.  So blocks counts read steps; the number of 160 ms
+    # audio blocks consumed is separate.  At stride 1 they are equal, which is
+    # why every existing report is unaffected.
     blocks: int = 0
+    audio_blocks: int = 0
+    read_stride: int = 1
     source_text: str = ""
     target_text: str = ""
     decision_tokens_generated: int = 0
@@ -238,6 +251,14 @@ class P2STCascadeSession:
         # it removes a forced empty commit, worth 240 ms of onset -- but there
         # is no evidence for it and one sample against.
         seed_commit: bool = False,
+        # How many 160 ms blocks are consumed per read step.  1 is the
+        # established behaviour and must stay bit-identical.  Larger values
+        # emulate the latency multiplier m that SimulS2ST-Omni sweeps over its
+        # 1000 ms chunks: k=6 is a 960 ms read step, close to its m=1, k=12 is
+        # 1920 ms, close to m=2.  The frontend's causal granularity is still
+        # 160 ms -- only the read *step* changes -- which the comparison report
+        # has to state.
+        read_stride: int = 1,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -279,6 +300,9 @@ class P2STCascadeSession:
         self.length_prior = length_prior
         self.length_prior_scale = float(length_prior_scale)
         self.length_prior_traces: list[dict[str, float]] = []
+        if int(read_stride) < 1:
+            raise ValueError("read_stride must be at least one block")
+        self.read_stride = int(read_stride)
         self.semantic_penalty = float(semantic_penalty)
         self.semantic_penalty_window = int(semantic_penalty_window)
         if tts_text_scope not in ("delta", "prefix"):
@@ -407,14 +431,25 @@ class P2STCascadeSession:
     # ------------------------------- the cascade -------------------------------
 
     def run(self, waveform, *, max_blocks: int | None = None) -> CascadeTrace:
+        started = time.perf_counter()
         cached = run_cached_frontend(self.frontend, waveform)
         hidden_all = cached.hidden[0]
         total_blocks = max(1, (len(waveform) + BLOCK_SAMPLES - 1) // BLOCK_SAMPLES)
         if max_blocks is not None:
             total_blocks = min(total_blocks, int(max_blocks))
-        self.trace.blocks = total_blocks
 
-        for block_index in range(total_blocks):
+        # Block indices at which a read step ends.  The final block is always
+        # included so the whole source is consumed no matter how the stride
+        # divides it; with stride 1 this is exactly range(total_blocks), so the
+        # established behaviour is untouched.
+        steps = list(range(self.read_stride - 1, total_blocks, self.read_stride))
+        if not steps or steps[-1] != total_blocks - 1:
+            steps.append(total_blocks - 1)
+        self.trace.blocks = len(steps)
+        self.trace.audio_blocks = total_blocks
+        self.trace.read_stride = self.read_stride
+
+        for step_position, block_index in enumerate(steps):
             samples = min(len(waveform), (block_index + 1) * BLOCK_SAMPLES)
             source_end_ms = int(round(1000.0 * samples / 16_000))
             # Block causality, measured 201/201: the prefix of the full run is
@@ -423,7 +458,7 @@ class P2STCascadeSession:
             if glm_stop <= 0:
                 continue
             hidden = hidden_all[:glm_stop]
-            exhausted = block_index == total_blocks - 1
+            exhausted = step_position == len(steps) - 1
 
             stage = TASK_ASR
             source_delta = 0
@@ -508,6 +543,14 @@ class P2STCascadeSession:
                     self._last_end_ms = end
                     self.trace.fragments.append(
                         Fragment(
+                            read_step=step_position,
+                            # SimulEval's computation-aware delay: when the
+                            # fragment could be heard by a listener who also
+                            # had to wait for our compute, not just for audio.
+                            elapsed_ms=max(
+                                start,
+                                1000.0 * (time.perf_counter() - started),
+                            ),
                             block_index=block_index,
                             source_end_ms=source_end_ms,
                             text=self.tokenizer.decode(

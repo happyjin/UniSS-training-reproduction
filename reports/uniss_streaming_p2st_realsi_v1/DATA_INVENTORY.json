@@ -1,0 +1,64 @@
+{
+ "channel_note": "released wav is 16 kHz stereo; nineteen of twenty files are lossy-codec dual mono (correlation >= 0.9972, rms(L-R)/rms(L) <= 0.075) and zh2en-07-ent is genuinely stereo (0.940 / 0.346), so the mean downmix is used",
+ "directions": {
+  "en2zh": {
+   "duration_ms": {
+    "max": 20960,
+    "median": 7130.0,
+    "min": 800
+   },
+   "per_recording": {
+    "en2zh-01-tech": 31,
+    "en2zh-02-health": 22,
+    "en2zh-03-edu": 41,
+    "en2zh-04-fin": 40,
+    "en2zh-05-law": 29,
+    "en2zh-06-env": 31,
+    "en2zh-07-ent": 39,
+    "en2zh-08-sci": 35,
+    "en2zh-09-sport": 57,
+    "en2zh-10-art": 21
+   },
+   "recording_minutes": 44.38,
+   "recordings": 10,
+   "segment_minutes": 42.6,
+   "segments_kept": 346,
+   "upstream_readme_segments": 347
+  },
+  "zh2en": {
+   "duration_ms": {
+    "max": 22150,
+    "median": 6170,
+    "min": 1880
+   },
+   "per_recording": {
+    "zh2en-01-tech": 51,
+    "zh2en-02-health": 30,
+    "zh2en-03-edu": 48,
+    "zh2en-04-fin": 29,
+    "zh2en-05-law": 49,
+    "zh2en-06-env": 34,
+    "zh2en-07-ent": 53,
+    "zh2en-08-sci": 37,
+    "zh2en-09-sport": 33,
+    "zh2en-10-art": 67
+   },
+   "recording_minutes": 51.1,
+   "recordings": 10,
+   "segment_minutes": 48.26,
+   "segments_kept": 431,
+   "upstream_readme_segments": 431
+  }
+ },
+ "downmix": "mean_of_channels",
+ "root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/raw/realsi/RealSI_data/data",
+ "sample_rate": 16000,
+ "schema_version": "realsi_p2st_inventory_v1",
+ "skipped": [],
+ "stereo_content_files": {
+  "zh2en-07-ent": {
+   "correlation": 0.94,
+   "difference_ratio": 0.346
+  }
+ }
+}
