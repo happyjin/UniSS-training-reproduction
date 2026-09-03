@@ -1,0 +1,100 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0004122419",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb_s2t1/audio/emilia_zh_0004122419__p2st__stereo.wav",
+   "source_duration_ms": 4120,
+   "blocks": 26,
+   "fragments": 4,
+   "semantic_tokens": 144,
+   "first_audible_ms": 2720.0,
+   "last_audible_ms": 5880.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "他们普遍感觉到某种新的因素正在诞生",
+   "target_hypothesis": "They generally feel that a new factor is emerging",
+   "transcription_reference": "他们普遍感觉到某种新的因素正在诞生。",
+   "translation_reference": "They generally feel that some new factor is being born.",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 5.88,
+    "concatenated_seconds": 2.88,
+    "queueing_delay_ms_mean": 40.0,
+    "queueing_delay_ms_max": 80.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 0.0,
+     "budget": 236.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 20.0,
+     "budget": 232.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 44.0,
+     "budget": 232.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4120.0,
+     "already_emitted": 56.0,
+     "budget": 350.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": 2,
+   "target_holdback": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 2720.0,
+     "placed_end_ms": 3120.0,
+     "semantic_tokens": 20,
+     "text": "They"
+    },
+    {
+     "fragment": 1,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3120.0,
+     "placed_end_ms": 3600.0,
+     "semantic_tokens": 24,
+     "text": "They generally"
+    },
+    {
+     "fragment": 2,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3600.0,
+     "placed_end_ms": 3840.0,
+     "semantic_tokens": 12,
+     "text": "They generally feel"
+    },
+    {
+     "fragment": 3,
+     "block_index": 25,
+     "source_end_ms": 4120,
+     "placed_start_ms": 4120.0,
+     "placed_end_ms": 5880.0,
+     "semantic_tokens": 88,
+     "text": "They generally feel that a new factor is emerging"
+    }
+   ]
+  }
+ ]
+}

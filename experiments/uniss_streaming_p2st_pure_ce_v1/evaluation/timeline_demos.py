@@ -87,7 +87,11 @@ def main() -> None:
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--tts-text-scope", default="delta")
     parser.add_argument("--max-semantic-tokens", type=int, default=384)
-    parser.add_argument("--semantic-penalty", type=float, default=1.1)
+    parser.add_argument("--tts-text-scope-unused", help=argparse.SUPPRESS, default=None)
+    # None, not a literal: an argparse default here silently shadows the
+    # runtime's own value.  It did -- 1.1 overrode the session's 1.3 and two
+    # samples went back to decoding as silence.
+    parser.add_argument("--semantic-penalty", type=float, default=None)
     # The default of 8 in p2st_cascade is too narrow.  Measured on
     # emilia_zh_0006795452: the TTS stage enters a repeating code loop whose
     # period is 28, so a window of 8 cannot see it; the stage runs to the 384
@@ -97,8 +101,11 @@ def main() -> None:
     # 0.8950) and at 64 at 177 codes (peak 0.9900) against gold's 163.  The m3
     # run had already found this -- its report directory is named
     # audio_timeline_rp11w64.
-    parser.add_argument("--semantic-penalty-window", type=int, default=64)
-    parser.add_argument("--holdback", type=int, default=2)
+    parser.add_argument("--semantic-penalty-window", type=int, default=None)
+    parser.add_argument("--holdback", type=int, default=1)
+    parser.add_argument("--source-holdback", type=int, default=None)
+    parser.add_argument("--target-holdback", type=int, default=None)
+    parser.add_argument("--seed-commit", action="store_true")
     parser.add_argument("--label", default="p2st")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--no-pace", action="store_true")
@@ -164,9 +171,20 @@ def main() -> None:
             tgt_lang=trajectory.tgt_lang,
             speaker_global=trajectory.speaker_global,
             holdback=args.holdback,
+            source_holdback=args.source_holdback,
+            target_holdback=args.target_holdback,
+            seed_commit=args.seed_commit,
             max_semantic_tokens=args.max_semantic_tokens,
-            semantic_penalty=args.semantic_penalty,
-            semantic_penalty_window=args.semantic_penalty_window,
+            **(
+                {"semantic_penalty": args.semantic_penalty}
+                if args.semantic_penalty is not None
+                else {}
+            ),
+            **(
+                {"semantic_penalty_window": args.semantic_penalty_window}
+                if args.semantic_penalty_window is not None
+                else {}
+            ),
             tts_text_scope=args.tts_text_scope,
             pace=not args.no_pace,
             pace_margin_ms=args.pace_margin_ms,
@@ -223,6 +241,17 @@ def main() -> None:
                 "translation_reference": trajectory.full_translation,
                 "placement": stats,
                 "pace_budgets": session.pace_budgets,
+                # Lowering the holdback buys latency and pays in revisions.  A
+                # conflict makes StablePrefixCommitter return [] and reset, so
+                # a run that commits earlier but conflicts more can be worse
+                # than one that waits; this is the number that decides it.
+                "holdback": args.holdback,
+                "source_holdback": args.source_holdback,
+                "target_holdback": args.target_holdback,
+                "revision_conflicts": {
+                    "source": session.source_committer.revision_conflicts,
+                    "target": session.target_committer.revision_conflicts,
+                },
                 "timeline": timeline,
             }
         )

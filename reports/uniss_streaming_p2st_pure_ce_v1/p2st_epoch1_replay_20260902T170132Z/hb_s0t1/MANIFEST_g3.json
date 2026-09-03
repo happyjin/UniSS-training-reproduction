@@ -1,0 +1,55 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0006795452",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb_s0t1/audio/emilia_zh_0006795452__p2st__stereo.wav",
+   "source_duration_ms": 3260,
+   "blocks": 21,
+   "fragments": 1,
+   "semantic_tokens": 226,
+   "first_audible_ms": 3260.0,
+   "last_audible_ms": 7780.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "还是说你有什么特别想知道的东西",
+   "target_hypothesis": "Or is there anything you particularly want to know",
+   "transcription_reference": "还是说你有什么特别想吃的东西。",
+   "translation_reference": "Or is there anything special you want to eat?",
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 7.78,
+    "concatenated_seconds": 4.52,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3260.0,
+     "already_emitted": 0.0,
+     "budget": 363.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": 0,
+   "target_holdback": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 20,
+     "source_end_ms": 3260,
+     "placed_start_ms": 3260.0,
+     "placed_end_ms": 7780.0,
+     "semantic_tokens": 226,
+     "text": "Or is there anything you particularly want to know"
+    }
+   ]
+  }
+ ]
+}

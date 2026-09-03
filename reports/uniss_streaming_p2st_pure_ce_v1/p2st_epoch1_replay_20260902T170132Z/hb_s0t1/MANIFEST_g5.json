@@ -1,0 +1,160 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb_s0t1/audio/LibriSpeech_0000213211__p2st__stereo.wav",
+   "source_duration_ms": 16840,
+   "blocks": 106,
+   "fragments": 8,
+   "semantic_tokens": 763,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 24480.0,
+   "terminator_rate": 0.875,
+   "source_hypothesis": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere with intensified special proclivity to him as such quality whether or not involved in greater frequency of congenfling versions not usually clear",
+   "target_hypothesis": "还有一种现象可以提到这被认为是一个事实即尽管现象在某种程度上普遍存在但随着他变得越来越特别容易出现这种品质无论是否涉及更频繁",
+   "transcription_reference": "There is one other phenomenon, which may be mentioned. This is the alleged fact that while the phenomena exist, to some extent everywhere, we seem to find a special proclivity to homosexuality, whether or not involving a greater frequency of congenital inversion is not usually clear.",
+   "translation_reference": "还有一种现象值得一提。这就是，在这些现象在某种程度上普遍存在的同时，我们似乎发现有一种特别倾向于同性恋的现象，无论这是否涉及更高的先天倒错频率，通常并不清楚。",
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 24.48,
+    "concatenated_seconds": 15.26,
+    "queueing_delay_ms_mean": 40.0,
+    "queueing_delay_ms_max": 320.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 14.0,
+     "source_end_ms": 2400.0,
+     "already_emitted": 32.0,
+     "budget": 188.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 51.0,
+     "budget": 249.0
+    },
+    {
+     "block_index": 26.0,
+     "source_end_ms": 4320.0,
+     "already_emitted": 64.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 44.0,
+     "source_end_ms": 7200.0,
+     "already_emitted": 80.0,
+     "budget": 380.0
+    },
+    {
+     "block_index": 65.0,
+     "source_end_ms": 10560.0,
+     "already_emitted": 115.0,
+     "budget": 384.0
+    },
+    {
+     "block_index": 94.0,
+     "source_end_ms": 15200.0,
+     "already_emitted": 347.0,
+     "budget": 384.0
+    },
+    {
+     "block_index": 104.0,
+     "source_end_ms": 16800.0,
+     "already_emitted": 379.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": 0,
+   "target_holdback": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 2720.0,
+     "semantic_tokens": 32,
+     "text": "还有一种"
+    },
+    {
+     "fragment": 1,
+     "block_index": 14,
+     "source_end_ms": 2400,
+     "placed_start_ms": 2720.0,
+     "placed_end_ms": 3100.0,
+     "semantic_tokens": 19,
+     "text": "还有一种现象"
+    },
+    {
+     "fragment": 2,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4000.0,
+     "placed_end_ms": 4260.0,
+     "semantic_tokens": 13,
+     "text": "还有一种现象可以"
+    },
+    {
+     "fragment": 3,
+     "block_index": 26,
+     "source_end_ms": 4320,
+     "placed_start_ms": 4320.0,
+     "placed_end_ms": 4640.0,
+     "semantic_tokens": 16,
+     "text": "还有一种现象可以提到"
+    },
+    {
+     "fragment": 4,
+     "block_index": 44,
+     "source_end_ms": 7200,
+     "placed_start_ms": 7200.0,
+     "placed_end_ms": 7900.0,
+     "semantic_tokens": 35,
+     "text": "还有一种现象可以提到这被认为"
+    },
+    {
+     "fragment": 5,
+     "block_index": 65,
+     "source_end_ms": 10560,
+     "placed_start_ms": 10560.0,
+     "placed_end_ms": 15200.0,
+     "semantic_tokens": 232,
+     "text": "还有一种现象可以提到这被认为是一个事实即尽管现象在某种程度上普遍存在但"
+    },
+    {
+     "fragment": 6,
+     "block_index": 94,
+     "source_end_ms": 15200,
+     "placed_start_ms": 15200.0,
+     "placed_end_ms": 15840.0,
+     "semantic_tokens": 32,
+     "text": "还有一种现象可以提到这被认为是一个事实即尽管现象在某种程度上普遍存在但随着"
+    },
+    {
+     "fragment": 7,
+     "block_index": 104,
+     "source_end_ms": 16800,
+     "placed_start_ms": 16800.0,
+     "placed_end_ms": 24480.0,
+     "semantic_tokens": 384,
+     "text": "还有一种现象可以提到这被认为是一个事实即尽管现象在某种程度上普遍存在但随着他变得越来越特别容易出现这种品质无论是否涉及更频繁"
+    }
+   ]
+  }
+ ]
+}

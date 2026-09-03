@@ -1,0 +1,70 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0005215832",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb_s2t1/audio/emilia_zh_0005215832__p2st__stereo.wav",
+   "source_duration_ms": 3280,
+   "blocks": 21,
+   "fragments": 2,
+   "semantic_tokens": 204,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 6740.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "过去的已经过去了他看好他以后的发展",
+   "target_hypothesis": "What has passed is past He hopes that his future development",
+   "transcription_reference": "过去的已经过去了，他看好他以后的发展。",
+   "translation_reference": "The past is in the past, he is optimistic about his future development.",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 6.74,
+    "concatenated_seconds": 4.08,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3280.0,
+     "already_emitted": 31.0,
+     "budget": 333.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": 2,
+   "target_holdback": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 2700.0,
+     "semantic_tokens": 31,
+     "text": "What"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3280,
+     "placed_start_ms": 3280.0,
+     "placed_end_ms": 6740.0,
+     "semantic_tokens": 173,
+     "text": "What has passed is past He hopes that his future development"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,70 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0006795452",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb1_seed/audio/emilia_zh_0006795452__p2st__stereo.wav",
+   "source_duration_ms": 3260,
+   "blocks": 21,
+   "fragments": 2,
+   "semantic_tokens": 196,
+   "first_audible_ms": 3200.0,
+   "last_audible_ms": 7120.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "还是说有什么特别好吃的东西",
+   "target_hypothesis": "Or is there anything particularly delicious",
+   "transcription_reference": "还是说你有什么特别想吃的东西。",
+   "translation_reference": "Or is there anything special you want to eat?",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 7.12,
+    "concatenated_seconds": 3.92,
+    "queueing_delay_ms_mean": 1050.0,
+    "queueing_delay_ms_max": 2100.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 19.0,
+     "source_end_ms": 3200.0,
+     "already_emitted": 0.0,
+     "budget": 260.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3260.0,
+     "already_emitted": 108.0,
+     "budget": 255.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 19,
+     "source_end_ms": 3200,
+     "placed_start_ms": 3200.0,
+     "placed_end_ms": 5360.0,
+     "semantic_tokens": 108,
+     "text": "Or is there"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3260,
+     "placed_start_ms": 5360.0,
+     "placed_end_ms": 7120.0,
+     "semantic_tokens": 88,
+     "text": "Or is there anything particularly delicious"
+    }
+   ]
+  }
+ ]
+}

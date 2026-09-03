@@ -35,6 +35,9 @@ from experiments.uniss_phasea_stateful_longepisode_rl_v1.runtime.commit import (
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.checkpoint_runtime import (  # noqa: E501
     run_cached_frontend,
 )
+from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.seeded_commit import (
+    SeededPrefixCommitter,
+)
 from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.length_prior import (
     LengthPrior,
     terminator_bias,
@@ -188,7 +191,19 @@ class P2STCascadeSession:
         tgt_lang: str,
         speaker_global: Sequence[int],
         speed: float = 1.0,
-        holdback: int = 2,
+        # 2 was the value inherited from the interleaved gate.  Swept on the
+        # eight demo samples, 1 dominates it and 0: at 1 the short-audio
+        # internal silence is 14.3% against 19.9% at 2 and 17.8% at 0, MT chrF
+        # is 72.88 against 64.19 and 50.85, semantic coverage 0.833/0.892
+        # against 0.810/0.740 and 0.646/0.709, and the first audible moment
+        # moves from 3360/3020 ms to 2550/2190 ms.  Revision conflicts stayed
+        # at zero for every sample at 1 and at 0, so the earlier release cost
+        # nothing in stability; what 0 costs is content, because it commits the
+        # raw longest common prefix and the unstable tail pollutes both the
+        # ASR prefix MT reads and the MT prefix TTS speaks.
+        holdback: int = 1,
+        source_holdback: int | None = None,
+        target_holdback: int | None = None,
         max_text_tokens: int = 64,
         max_semantic_tokens: int = 384,
         # 1.1 with a window of 8 was the original setting and it is measurably
@@ -212,6 +227,17 @@ class P2STCascadeSession:
         pace_tail_ms: float = 2000.0,
         length_prior: object | None = None,
         length_prior_scale: float = 1.0,
+        # Off by default.  Seeding changed exactly one of the eight demo
+        # samples -- the other seven came out bit-identical -- and it changed
+        # it for the worse: emilia_zh_0005215832 went from "The past has
+        # passed and he is optimistic about his future development" at chrF
+        # 75.85 to "In the past it has already passed He hopes that his future
+        # development" at 49.96, and its internal silence doubled from 13.0%
+        # to 26.0%.  The aggregate shift the seeding appeared to cause was
+        # that one sample.  The flag is kept because the mechanism is sound --
+        # it removes a forced empty commit, worth 240 ms of onset -- but there
+        # is no evidence for it and one sample against.
+        seed_commit: bool = False,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -259,8 +285,19 @@ class P2STCascadeSession:
             raise ValueError(f"unknown tts text scope {tts_text_scope!r}")
         self.tts_text_scope = tts_text_scope
         self.device = next(model.parameters()).device
-        self.source_committer = StablePrefixCommitter(holdback=int(holdback))
-        self.target_committer = StablePrefixCommitter(holdback=int(holdback))
+        # The two stages do not carry the same risk.  A revision of the ASR
+        # prefix is recoverable -- MT re-reads it every block -- while a
+        # revision of the target prefix is not, because TTS has already spoken
+        # it and audio cannot be retracted.  Keeping them separate lets the
+        # irrevocable stage stay conservative while the recoverable one runs
+        # ahead.
+        committer = SeededPrefixCommitter if seed_commit else StablePrefixCommitter
+        self.source_committer = committer(
+            holdback=int(holdback if source_holdback is None else source_holdback)
+        )
+        self.target_committer = committer(
+            holdback=int(holdback if target_holdback is None else target_holdback)
+        )
         self.spoken_semantic: list[int] = []
         self.trace = CascadeTrace()
         # The terminator has to be inside the allowed set or it can never be

@@ -1,0 +1,145 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0006199435",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb_s0t1/audio/emilia_zh_0006199435__p2st__stereo.wav",
+   "source_duration_ms": 6060,
+   "blocks": 38,
+   "fragments": 7,
+   "semantic_tokens": 278,
+   "first_audible_ms": 1440.0,
+   "last_audible_ms": 7140.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "他不再是等待着抓蚊子而是向时装模特那样走来走去",
+   "target_hypothesis": "He is no longer waiting to catch mosquitoes but walking towards the fashion",
+   "transcription_reference": "他不再是等待着抓蚊子，而是像时装模特那样走来走去。",
+   "translation_reference": "He was no longer waiting to catch mosquitoes, but was walking around like a fashion model.",
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 7.14,
+    "concatenated_seconds": 5.56,
+    "queueing_delay_ms_mean": 568.5714285714286,
+    "queueing_delay_ms_max": 1440.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 8.0,
+     "source_end_ms": 1440.0,
+     "already_emitted": 0.0,
+     "budget": 172.0
+    },
+    {
+     "block_index": 9.0,
+     "source_end_ms": 1600.0,
+     "already_emitted": 47.0,
+     "budget": 133.0
+    },
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 59.0,
+     "budget": 145.0
+    },
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 89.0,
+     "budget": 147.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 116.0,
+     "budget": 136.0
+    },
+    {
+     "block_index": 22.0,
+     "source_end_ms": 3680.0,
+     "already_emitted": 184.0,
+     "budget": 100.0
+    },
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5600.0,
+     "already_emitted": 201.0,
+     "budget": 179.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": 0,
+   "target_holdback": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 8,
+     "source_end_ms": 1440,
+     "placed_start_ms": 1440.0,
+     "placed_end_ms": 2380.0,
+     "semantic_tokens": 47,
+     "text": "He is no"
+    },
+    {
+     "fragment": 1,
+     "block_index": 9,
+     "source_end_ms": 1600,
+     "placed_start_ms": 2380.0,
+     "placed_end_ms": 2620.0,
+     "semantic_tokens": 12,
+     "text": "He is no longer"
+    },
+    {
+     "fragment": 2,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2620.0,
+     "placed_end_ms": 3220.0,
+     "semantic_tokens": 30,
+     "text": "He is no longer waiting to"
+    },
+    {
+     "fragment": 3,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 3220.0,
+     "placed_end_ms": 3760.0,
+     "semantic_tokens": 27,
+     "text": "He is no longer waiting to catch"
+    },
+    {
+     "fragment": 4,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3760.0,
+     "placed_end_ms": 5120.0,
+     "semantic_tokens": 68,
+     "text": "He is no longer waiting to catch mosquitoes"
+    },
+    {
+     "fragment": 5,
+     "block_index": 22,
+     "source_end_ms": 3680,
+     "placed_start_ms": 5120.0,
+     "placed_end_ms": 5460.0,
+     "semantic_tokens": 17,
+     "text": "He is no longer waiting to catch mosquitoes but"
+    },
+    {
+     "fragment": 6,
+     "block_index": 34,
+     "source_end_ms": 5600,
+     "placed_start_ms": 5600.0,
+     "placed_end_ms": 7140.0,
+     "semantic_tokens": 77,
+     "text": "He is no longer waiting to catch mosquitoes but walking towards the fashion"
+    }
+   ]
+  }
+ ]
+}

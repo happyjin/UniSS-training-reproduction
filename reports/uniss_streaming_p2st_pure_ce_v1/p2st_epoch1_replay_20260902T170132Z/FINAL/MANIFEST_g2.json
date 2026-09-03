@@ -1,0 +1,160 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0006199435",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/FINAL/audio/emilia_zh_0006199435__p2st__stereo.wav",
+   "source_duration_ms": 6060,
+   "blocks": 38,
+   "fragments": 8,
+   "semantic_tokens": 307,
+   "first_audible_ms": 1600.0,
+   "last_audible_ms": 8020.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "他不再是等待着抓蚊子而是想时装模特那样走来走去",
+   "target_hypothesis": "He is no longer waiting to catch mosquitoes but wants to walk around like a fashion model",
+   "transcription_reference": "他不再是等待着抓蚊子，而是像时装模特那样走来走去。",
+   "translation_reference": "He was no longer waiting to catch mosquitoes, but was walking around like a fashion model.",
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 8.02,
+    "concatenated_seconds": 6.14,
+    "queueing_delay_ms_mean": 330.0,
+    "queueing_delay_ms_max": 840.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 9.0,
+     "source_end_ms": 1600.0,
+     "already_emitted": 0.0,
+     "budget": 180.0
+    },
+    {
+     "block_index": 10.0,
+     "source_end_ms": 1760.0,
+     "already_emitted": 47.0,
+     "budget": 141.0
+    },
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 59.0,
+     "budget": 177.0
+    },
+    {
+     "block_index": 22.0,
+     "source_end_ms": 3680.0,
+     "already_emitted": 107.0,
+     "budget": 177.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4160.0,
+     "already_emitted": 156.0,
+     "budget": 152.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 194.0,
+     "budget": 138.0
+    },
+    {
+     "block_index": 32.0,
+     "source_end_ms": 5280.0,
+     "already_emitted": 201.0,
+     "budget": 163.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6060.0,
+     "already_emitted": 209.0,
+     "budget": 294.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 9,
+     "source_end_ms": 1600,
+     "placed_start_ms": 1600.0,
+     "placed_end_ms": 2540.0,
+     "semantic_tokens": 47,
+     "text": "He is no"
+    },
+    {
+     "fragment": 1,
+     "block_index": 10,
+     "source_end_ms": 1760,
+     "placed_start_ms": 2540.0,
+     "placed_end_ms": 2780.0,
+     "semantic_tokens": 12,
+     "text": "He is no longer"
+    },
+    {
+     "fragment": 2,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 2780.0,
+     "placed_end_ms": 3740.0,
+     "semantic_tokens": 48,
+     "text": "He is no longer waiting to catch"
+    },
+    {
+     "fragment": 3,
+     "block_index": 22,
+     "source_end_ms": 3680,
+     "placed_start_ms": 3740.0,
+     "placed_end_ms": 4720.0,
+     "semantic_tokens": 49,
+     "text": "He is no longer waiting to catch mosquitoes"
+    },
+    {
+     "fragment": 4,
+     "block_index": 25,
+     "source_end_ms": 4160,
+     "placed_start_ms": 4720.0,
+     "placed_end_ms": 5480.0,
+     "semantic_tokens": 38,
+     "text": "He is no longer waiting to catch mosquitoes but"
+    },
+    {
+     "fragment": 5,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 5480.0,
+     "placed_end_ms": 5620.0,
+     "semantic_tokens": 7,
+     "text": "He is no longer waiting to catch mosquitoes but wants"
+    },
+    {
+     "fragment": 6,
+     "block_index": 32,
+     "source_end_ms": 5280,
+     "placed_start_ms": 5620.0,
+     "placed_end_ms": 5780.0,
+     "semantic_tokens": 8,
+     "text": "He is no longer waiting to catch mosquitoes but wants to"
+    },
+    {
+     "fragment": 7,
+     "block_index": 37,
+     "source_end_ms": 6060,
+     "placed_start_ms": 6060.0,
+     "placed_end_ms": 8020.0,
+     "semantic_tokens": 98,
+     "text": "He is no longer waiting to catch mosquitoes but wants to walk around like a fashion model"
+    }
+   ]
+  }
+ ]
+}

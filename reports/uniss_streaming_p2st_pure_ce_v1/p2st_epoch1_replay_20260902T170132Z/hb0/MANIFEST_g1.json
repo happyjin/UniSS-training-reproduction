@@ -1,0 +1,98 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0005215832",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/hb0/audio/emilia_zh_0005215832__p2st__stereo.wav",
+   "source_duration_ms": 3280,
+   "blocks": 21,
+   "fragments": 4,
+   "semantic_tokens": 163,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 5340.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "过去的已经过去了他看好他以后的发展",
+   "target_hypothesis": "The past has already passed he hopes that his future development",
+   "transcription_reference": "过去的已经过去了，他看好他以后的发展。",
+   "translation_reference": "The past is in the past, he is optimistic about his future development.",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 5.34,
+    "concatenated_seconds": 3.26,
+    "queueing_delay_ms_mean": 945.0,
+    "queueing_delay_ms_max": 1380.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 15.0,
+     "source_end_ms": 2560.0,
+     "already_emitted": 93.0,
+     "budget": 135.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 101.0,
+     "budget": 151.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3280.0,
+     "already_emitted": 127.0,
+     "budget": 237.0
+    }
+   ],
+   "holdback": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 3940.0,
+     "semantic_tokens": 93,
+     "text": "The past has already passed"
+    },
+    {
+     "fragment": 1,
+     "block_index": 15,
+     "source_end_ms": 2560,
+     "placed_start_ms": 3940.0,
+     "placed_end_ms": 4100.0,
+     "semantic_tokens": 8,
+     "text": "The past has already passed he"
+    },
+    {
+     "fragment": 2,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 4100.0,
+     "placed_end_ms": 4620.0,
+     "semantic_tokens": 26,
+     "text": "The past has already passed he hopes that"
+    },
+    {
+     "fragment": 3,
+     "block_index": 20,
+     "source_end_ms": 3280,
+     "placed_start_ms": 4620.0,
+     "placed_end_ms": 5340.0,
+     "semantic_tokens": 36,
+     "text": "The past has already passed he hopes that his future development"
+    }
+   ]
+  }
+ ]
+}
