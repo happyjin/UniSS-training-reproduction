@@ -161,6 +161,51 @@ def build_read_grid(
     return events
 
 
+
+def load_gold_grid(
+    events: list[dict], *, glm_length: int, source_duration_ms: int
+) -> list[ReadEvent]:
+    """m3's own gold read schedule, clamped to the live frontend's frame count.
+
+    This exists to isolate the read schedule from everything else.  Running the
+    same weights, the same session, the same scorers and the same data under
+    both this and ``build_read_grid`` differs in exactly one thing -- when the
+    model is asked to decide -- which is the only way to say how much of m3's
+    published latency was the gold boundaries rather than the policy.
+
+    The stored ``source_glm_end`` can exceed what the live frontend produces by
+    a frame (``_speech_embeddings`` carries a terminal-extension branch for the
+    same reason), so ends are clamped and the last event is extended to cover
+    whatever remains.  Clamping can leave an event empty, which is legal: 15.8%
+    of gold events already admit no new audio.
+    """
+    grid: list[ReadEvent] = []
+    cursor = 0
+    for position, event in enumerate(events):
+        end = min(int(event["source_glm_end"]), glm_length)
+        grid.append(
+            ReadEvent(
+                event_index=position,
+                source_end_ms=min(int(event["source_end_ms"]), int(source_duration_ms)),
+                source_final=position == len(events) - 1,
+                source_glm_start=cursor,
+                source_glm_end=max(cursor, end),
+            )
+        )
+        cursor = max(cursor, end)
+    if not grid:
+        raise ValueError("gold event list is empty")
+    if grid[-1].source_glm_end < glm_length:
+        last = grid[-1]
+        grid[-1] = ReadEvent(
+            event_index=last.event_index,
+            source_end_ms=int(source_duration_ms),
+            source_final=True,
+            source_glm_start=last.source_glm_start,
+            source_glm_end=glm_length,
+        )
+    return grid
+
 class InstrumentedPacedSession(PacedInterleavedSession):
     """m3's paced session, with per-fragment termination recorded.
 
@@ -254,6 +299,15 @@ def main() -> None:
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--arm", required=True)
     parser.add_argument("--read-stride", type=int, default=1)
+    parser.add_argument(
+        "--gold-events",
+        default=None,
+        help=(
+            "JSON of {sample_id: [event, ...]}.  When given, m3 reads on its own "
+            "gold schedule instead of the uniform grid, which isolates the read "
+            "schedule from the data and the metric."
+        ),
+    )
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--num-shards", type=int, default=1)
     parser.add_argument("--device", default="cuda:0")
@@ -271,6 +325,15 @@ def main() -> None:
     args = parser.parse_args()
 
     rows = load_selection(args.selection)
+    gold_events = (
+        json.loads(Path(args.gold_events).read_text(encoding='utf-8'))
+        if args.gold_events
+        else None
+    )
+    if gold_events is not None:
+        missing = [r.sample_id for r in rows if r.sample_id not in gold_events]
+        if missing:
+            raise KeyError(f'no gold events for {len(missing)} samples, e.g. {missing[0]}')
     if args.num_shards > 1:
         rows = [
             row
@@ -318,11 +381,18 @@ def main() -> None:
         cached = run_cached_frontend(frontend, waveform)
         hidden = cached.hidden[0]
         embeddings = glm_embeddings(objective, model, hidden)
-        events = build_read_grid(
-            source_samples=len(waveform),
-            glm_length=len(hidden),
-            read_stride=args.read_stride,
-        )
+        if gold_events is not None:
+            events = load_gold_grid(
+                gold_events[row.sample_id],
+                glm_length=len(hidden),
+                source_duration_ms=row.source_duration_ms,
+            )
+        else:
+            events = build_read_grid(
+                source_samples=len(waveform),
+                glm_length=len(hidden),
+                read_stride=args.read_stride,
+            )
         session = InstrumentedPacedSession(
             model,
             tokenizer,
@@ -412,6 +482,7 @@ def main() -> None:
                 "sample_id": row.sample_id,
                 "arm": args.arm,
                 "read_stride": args.read_stride,
+                "read_schedule": "gold" if gold_events is not None else "uniform",
                 "read_step_ms": args.read_stride * BLOCK_MS,
                 "direction": row.direction,
                 "src_lang": row.src_lang,

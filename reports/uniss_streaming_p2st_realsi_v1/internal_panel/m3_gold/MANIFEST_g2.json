@@ -1,0 +1,898 @@
+{
+ "arm": "m3_gold",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000260719",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 8820,
+   "read_steps": 18,
+   "audio_blocks": 56,
+   "fragments": 3,
+   "semantic_tokens": 341,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/CommonVoice_EN_0000260719.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/CommonVoice_EN_0000260719.wav",
+   "placed_seconds": 13.38,
+   "concat_seconds": 6.82,
+   "delays": [
+    800.0,
+    1440.0,
+    7360.0
+   ],
+   "durations": [
+    320.0,
+    480.0,
+    6020.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     320.0
+    ],
+    [
+     1440.0,
+     480.0
+    ],
+    [
+     7360.0,
+     6020.0
+    ]
+   ],
+   "elapsed": [
+    2328.7512147799134,
+    3188.931808806956,
+    11375.668820925057
+   ],
+   "silences": [
+    800.0,
+    320.0,
+    5440.0
+   ],
+   "source_hypothesis": "The foundation finally funds Arabs students during two military using the transcendental to meditation program",
+   "target_hypothesis": "该基金会最终为阿拉伯学生提供了使用超验冥想进行军事教育的途径",
+   "transcription_reference": "The Foundation primarily funds atrisk students learning to meditate using the Transcendental Meditation program",
+   "translation_reference": "该基金会主要资助处于风险中的学生学习使用超觉静坐计划进行冥想",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    3,
+    26
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 13.38,
+    "concatenated_seconds": 6.82,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 14,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.40587355569005,
+   "rtf": 1.4065616276292574
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000523059",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4940,
+   "read_steps": 11,
+   "audio_blocks": 31,
+   "fragments": 1,
+   "semantic_tokens": 292,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/CommonVoice_EN_0000523059.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/CommonVoice_EN_0000523059.wav",
+   "placed_seconds": 10.48,
+   "concat_seconds": 5.84,
+   "delays": [
+    4640.0
+   ],
+   "durations": [
+    5840.0
+   ],
+   "intervals": [
+    [
+     4640.0,
+     5840.0
+    ]
+   ],
+   "elapsed": [
+    7763.757753185928
+   ],
+   "silences": [
+    4640.0
+   ],
+   "source_hypothesis": "I looked at the cylinder again I was completely terrified",
+   "target_hypothesis": "我再次看了看气缸我完全惊恐了",
+   "transcription_reference": "I looked at the cylinder again and was completely terrified",
+   "translation_reference": "我再次看了看那个圆筒完全被吓住了",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    14
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 10.48,
+    "concatenated_seconds": 5.84,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 10,
+   "read_next_events": 0,
+   "write_asr_events": 9,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 10,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.856154992245138,
+   "rtf": 1.5903147757581249
+  },
+  {
+   "sample_id": "EN_B00058_S00787_W000057",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 7640,
+   "read_steps": 23,
+   "audio_blocks": 48,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/EN_B00058_S00787_W000057.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/EN_B00058_S00787_W000057.wav",
+   "placed_seconds": 7.64,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "We have a an anger of hope and we see it every single day in the resistant anger of women and marginalized people",
+   "target_hypothesis": "我们怀着希望每天都能在女性和边缘化人群的抵抗愤怒中看到这种愤怒",
+   "transcription_reference": "We have an anger of hope and we see it every single day in the resistant anger of women and marginalized people",
+   "translation_reference": "我们怀有希望的愤怒每天都在女性和边缘化人群的反抗中看到这种愤怒",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 22,
+   "read_next_events": 0,
+   "write_asr_events": 22,
+   "write_mt_events": 1,
+   "write_semantic_events": 0,
+   "eos_event_index": 22,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.216152690351009,
+   "rtf": 0.5518524463810222
+  },
+  {
+   "sample_id": "LibriSpeech_0000108563",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 15320,
+   "read_steps": 43,
+   "audio_blocks": 96,
+   "fragments": 7,
+   "semantic_tokens": 796,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/LibriSpeech_0000108563.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/LibriSpeech_0000108563.wav",
+   "placed_seconds": 19.5,
+   "concat_seconds": 15.92,
+   "delays": [
+    1440.0,
+    1920.0,
+    4320.0,
+    7360.0,
+    11840.0,
+    14400.0,
+    15040.0
+   ],
+   "durations": [
+    2640.0,
+    180.0,
+    960.0,
+    4780.0,
+    4480.0,
+    2560.0,
+    320.0
+   ],
+   "intervals": [
+    [
+     1440.0,
+     2640.0
+    ],
+    [
+     4080.0,
+     180.0
+    ],
+    [
+     4320.0,
+     960.0
+    ],
+    [
+     7360.0,
+     4780.0
+    ],
+    [
+     12140.0,
+     4480.0
+    ],
+    [
+     16620.0,
+     2560.0
+    ],
+    [
+     19180.0,
+     320.0
+    ]
+   ],
+   "elapsed": [
+    4091.9354730285704,
+    4763.893200084567,
+    6678.267776034772,
+    12712.39972114563,
+    19222.515201196074,
+    23333.073008339852,
+    24174.427442252636
+   ],
+   "silences": [
+    1440.0,
+    0.0,
+    60.0,
+    2080.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "You're next he do not spread upon the hill tops that the growing board with fish be furnished If he are faint to chase the bound goat he sweep not in vain search the the oceans ruffled face",
+   "target_hypothesis": "你下一个他不在山顶上蔓延的那块地是种植着鱼的船长他扫地的船长如果他想追捕那条带鱼的船就去扫他如果想追捕那条带鱼的边界他就会在海里搜寻波涛汹涌的水面搜寻那片波涛汹涌的水面",
+   "transcription_reference": "Your nets ye do not spread upon the hill tops that the groaning board with fish be furnished If ye are fain to chase the bounding goat ye sweep not in vain Search the ocean's ruffled face",
+   "translation_reference": "你们不要在山顶上撒网以免餐桌上的鱼肉不足如果你们想要追逐跳跃的山羊就不要徒劳无功搜寻波涛汹涌的海面",
+   "terminator_rate": 0.42857142857142855,
+   "capped_stages": 4,
+   "mt_delta_chars": [
+    4,
+    2,
+    6,
+    12,
+    21,
+    25,
+    14
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 19.5,
+    "concatenated_seconds": 15.92,
+    "queueing_delay_ms_mean": 1260.0,
+    "queueing_delay_ms_max": 4140.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 40,
+   "read_next_events": 2,
+   "write_asr_events": 35,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": 42,
+   "eos_reached": true,
+   "malformed_segments": 4,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 24.457981762010604,
+   "rtf": 1.5964740053531725
+  },
+  {
+   "sample_id": "emilia_zh_0004049619",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7980,
+   "read_steps": 23,
+   "audio_blocks": 50,
+   "fragments": 4,
+   "semantic_tokens": 436,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0004049619.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0004049619.wav",
+   "placed_seconds": 13.5,
+   "concat_seconds": 8.72,
+   "delays": [
+    3680.0,
+    4320.0,
+    7200.0,
+    7520.0
+   ],
+   "durations": [
+    2200.0,
+    220.0,
+    5980.0,
+    320.0
+   ],
+   "intervals": [
+    [
+     3680.0,
+     2200.0
+    ],
+    [
+     5880.0,
+     220.0
+    ],
+    [
+     7200.0,
+     5980.0
+    ],
+    [
+     13180.0,
+     320.0
+    ]
+   ],
+   "elapsed": [
+    4470.90240707621,
+    5147.975291125476,
+    11730.51316011697,
+    12439.492211211473
+   ],
+   "silences": [
+    3680.0,
+    0.0,
+    1100.0,
+    0.0
+   ],
+   "source_hypothesis": "然后这个时候他干出一件事儿什么事儿呢他听说呀薛少家啊薛学校哥哥薛毅",
+   "target_hypothesis": "Then at this point he did something what did he hear Xue Shao's family Xue Shao's brother Xue Shao's",
+   "transcription_reference": "然后那个时候他干出一件事儿什么事儿呢他听说呀薛绍家啊薛薛绍的哥哥薛毅",
+   "translation_reference": "And at that time he did something What did he do He heard that in the Xue Shao family Xue Shao's brother Xue Yi",
+   "terminator_rate": 0.5,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    47,
+    5,
+    29,
+    19
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 13.5,
+    "concatenated_seconds": 8.72,
+    "queueing_delay_ms_mean": 1805.0,
+    "queueing_delay_ms_max": 5660.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 22,
+   "read_next_events": 1,
+   "write_asr_events": 19,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.716078290250152,
+   "rtf": 1.5934935200814726
+  },
+  {
+   "sample_id": "emilia_zh_0004789189",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6840,
+   "read_steps": 17,
+   "audio_blocks": 43,
+   "fragments": 3,
+   "semantic_tokens": 412,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0004789189.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0004789189.wav",
+   "placed_seconds": 14.52,
+   "concat_seconds": 8.24,
+   "delays": [
+    800.0,
+    6240.0,
+    6840.0
+   ],
+   "durations": [
+    340.0,
+    220.0,
+    7680.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     340.0
+    ],
+    [
+     6240.0,
+     220.0
+    ],
+    [
+     6840.0,
+     7680.0
+    ]
+   ],
+   "elapsed": [
+    1090.4954317957163,
+    3195.2702258713543,
+    10970.345224719495
+   ],
+   "silences": [
+    800.0,
+    5100.0,
+    380.0
+   ],
+   "source_hypothesis": "Else there's four possible scenarios for case What else might happen in this algorithm",
+   "target_hypothesis": "否则这个算法中还可能有四种情况可能会发生什么",
+   "transcription_reference": "Else there's a fourth possible scenario or case what else might happen in this algorithm",
+   "translation_reference": "否则还有一种可能的情况或案例即在这种算法中还可能发生什么",
+   "terminator_rate": 0.6666666666666666,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    2,
+    2,
+    18
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 14.52,
+    "concatenated_seconds": 8.24,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 16,
+   "read_next_events": 0,
+   "write_asr_events": 14,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 16,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.145710706710815,
+   "rtf": 1.629489869402166
+  },
+  {
+   "sample_id": "emilia_zh_0005215832",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3280,
+   "read_steps": 13,
+   "audio_blocks": 21,
+   "fragments": 2,
+   "semantic_tokens": 156,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0005215832.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0005215832.wav",
+   "placed_seconds": 4.72,
+   "concat_seconds": 3.12,
+   "delays": [
+    1600.0,
+    1920.0
+   ],
+   "durations": [
+    2800.0,
+    320.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     2800.0
+    ],
+    [
+     4400.0,
+     320.0
+    ]
+   ],
+   "elapsed": [
+    3765.7344401814044,
+    4364.641822874546
+   ],
+   "silences": [
+    1600.0,
+    0.0
+   ],
+   "source_hypothesis": "过去的已经过去了他看好他以后的发展",
+   "target_hypothesis": "The past has already passed he",
+   "transcription_reference": "过去的已经过去了他看好他以后的发展",
+   "translation_reference": "The past is in the past he is optimistic about his future development",
+   "terminator_rate": 0.0,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    27,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 4.72,
+    "concatenated_seconds": 3.12,
+    "queueing_delay_ms_mean": 1240.0,
+    "queueing_delay_ms_max": 2480.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 11,
+   "read_next_events": 2,
+   "write_asr_events": 11,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.1109318672679365,
+   "rtf": 1.5582109351426636
+  },
+  {
+   "sample_id": "emilia_zh_0005940898",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7560,
+   "read_steps": 24,
+   "audio_blocks": 48,
+   "fragments": 1,
+   "semantic_tokens": 384,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0005940898.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0005940898.wav",
+   "placed_seconds": 15.2,
+   "concat_seconds": 7.68,
+   "delays": [
+    7520.0
+   ],
+   "durations": [
+    7680.0
+   ],
+   "intervals": [
+    [
+     7520.0,
+     7680.0
+    ]
+   ],
+   "elapsed": [
+    11389.687011018395
+   ],
+   "silences": [
+    7520.0
+   ],
+   "source_hypothesis": "多那个说我们机呀它是就是设计出来是用来对付木头的嘛木头那种纤维素它很结实嘛",
+   "target_hypothesis": "Yes that machine is designed to deal with wood and that kind of fiber is very sturdy",
+   "transcription_reference": "对那个碎木机啊它是就是设计出来是用来对付木头的木头那种纤维素它很结实嘛",
+   "translation_reference": "Yes that wood chipper is designed to deal with wood specifically the cellulose in wood which is very tough",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    84
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 15.2,
+    "concatenated_seconds": 7.68,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 23,
+   "read_next_events": 0,
+   "write_asr_events": 22,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 23,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.478735254146159,
+   "rtf": 1.5183512240934074
+  },
+  {
+   "sample_id": "emilia_zh_0006524441",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3920,
+   "read_steps": 16,
+   "audio_blocks": 25,
+   "fragments": 3,
+   "semantic_tokens": 250,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0006524441.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0006524441.wav",
+   "placed_seconds": 6.6,
+   "concat_seconds": 5.0,
+   "delays": [
+    1600.0,
+    2720.0,
+    3920.0
+   ],
+   "durations": [
+    2800.0,
+    940.0,
+    1260.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     2800.0
+    ],
+    [
+     4400.0,
+     940.0
+    ],
+    [
+     5340.0,
+     1260.0
+    ]
+   ],
+   "elapsed": [
+    3834.0100557543337,
+    5700.572126079351,
+    7631.142559926957
+   ],
+   "silences": [
+    1600.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "其实你你就是你从美术的角度上来讲日本的漫画",
+   "target_hypothesis": "Actually from the perspective of art you know Japanese comics",
+   "transcription_reference": "其实你就是你从美术的角度上来讲日本的漫画",
+   "translation_reference": "Actually from an artistic perspective Japanese manga",
+   "terminator_rate": 0.6666666666666666,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    13,
+    23,
+    25
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 6.6,
+    "concatenated_seconds": 5.0,
+    "queueing_delay_ms_mean": 1033.3333333333333,
+    "queueing_delay_ms_max": 1680.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 15,
+   "read_next_events": 0,
+   "write_asr_events": 13,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 15,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.726284872740507,
+   "rtf": 1.9709910389644152
+  },
+  {
+   "sample_id": "emilia_zh_0007334605",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 11660,
+   "read_steps": 37,
+   "audio_blocks": 73,
+   "fragments": 7,
+   "semantic_tokens": 460,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0007334605.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0007334605.wav",
+   "placed_seconds": 11.66,
+   "concat_seconds": 9.2,
+   "delays": [
+    320.0,
+    2080.0,
+    2720.0,
+    4800.0,
+    5760.0,
+    6240.0,
+    8000.0
+   ],
+   "durations": [
+    1520.0,
+    1620.0,
+    780.0,
+    2080.0,
+    960.0,
+    300.0,
+    1940.0
+   ],
+   "intervals": [
+    [
+     320.0,
+     1520.0
+    ],
+    [
+     2080.0,
+     1620.0
+    ],
+    [
+     3700.0,
+     780.0
+    ],
+    [
+     4800.0,
+     2080.0
+    ],
+    [
+     6880.0,
+     960.0
+    ],
+    [
+     7840.0,
+     300.0
+    ],
+    [
+     8140.0,
+     1940.0
+    ]
+   ],
+   "elapsed": [
+    2506.665273103863,
+    4851.360594853759,
+    6017.758953850716,
+    9087.115995120257,
+    10672.042584978044,
+    11304.127219133079,
+    14224.33994198218
+   ],
+   "silences": [
+    320.0,
+    240.0,
+    0.0,
+    320.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "在争夺政权的激烈斗争中他找到了自己的岗位在鲜红的革命旗帜上也有他的祭地鲜血我们的旗帜在全世界飘扬",
+   "target_hypothesis": "In the fierce struggle for power he found his own position in the struggle for power and in the fresh red revolution straw his altar there was also his altar",
+   "transcription_reference": "在争夺政权的激烈斗争中他找到了自己的岗位在鲜红的革命旗帜上也有他的几滴鲜血我们的旗帜在全世界飘扬",
+   "translation_reference": "In the fierce struggle for power he found his place On the bright red revolutionary flag there are also his drops of blood Our flag flies all over the world",
+   "terminator_rate": 0.2857142857142857,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    2,
+    30,
+    3,
+    49,
+    32,
+    6,
+    35
+   ],
+   "mt_delta_chars_over_prior_bucket": 4,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 10.08,
+    "concatenated_seconds": 9.2,
+    "queueing_delay_ms_mean": 548.5714285714286,
+    "queueing_delay_ms_max": 1600.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 5,
+   "write_asr_events": 30,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 6,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 15.418060502037406,
+   "rtf": 1.3223036451147003
+  }
+ ]
+}

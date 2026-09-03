@@ -1,0 +1,1201 @@
+{
+ "arm": "m3_uniform",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000153781",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 2000,
+   "read_steps": 13,
+   "audio_blocks": 13,
+   "fragments": 2,
+   "semantic_tokens": 77,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/CommonVoice_EN_0000153781.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/CommonVoice_EN_0000153781.wav",
+   "placed_seconds": 2.1,
+   "concat_seconds": 1.54,
+   "delays": [
+    160.0,
+    1920.0
+   ],
+   "durations": [
+    1360.0,
+    180.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     1360.0
+    ],
+    [
+     1920.0,
+     180.0
+    ]
+   ],
+   "elapsed": [
+    3035.441691055894,
+    5375.569796189666
+   ],
+   "silences": [
+    160.0,
+    400.0
+   ],
+   "source_hypothesis": "do you a good health for the other other people",
+   "target_hypothesis": "我为其他人提供良好的健康服务吗",
+   "transcription_reference": "Your good health",
+   "translation_reference": "祝您健康",
+   "terminator_rate": 0.5,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    1,
+    14
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 2.1,
+    "concatenated_seconds": 1.54,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 12,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 12,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 6.687760789413005,
+   "rtf": 3.3438803947065026
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000496853",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 5140,
+   "read_steps": 33,
+   "audio_blocks": 33,
+   "fragments": 5,
+   "semantic_tokens": 316,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/CommonVoice_EN_0000496853.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/CommonVoice_EN_0000496853.wav",
+   "placed_seconds": 10.58,
+   "concat_seconds": 6.32,
+   "delays": [
+    160.0,
+    800.0,
+    1120.0,
+    4960.0,
+    5120.0
+   ],
+   "durations": [
+    240.0,
+    280.0,
+    180.0,
+    5460.0,
+    160.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     240.0
+    ],
+    [
+     800.0,
+     280.0
+    ],
+    [
+     1120.0,
+     180.0
+    ],
+    [
+     4960.0,
+     5460.0
+    ],
+    [
+     10420.0,
+     160.0
+    ]
+   ],
+   "elapsed": [
+    986.4078038372099,
+    1949.8369069769979,
+    2510.4014170356095,
+    12011.62762613967,
+    12427.062368020415
+   ],
+   "silences": [
+    160.0,
+    400.0,
+    40.0,
+    3660.0,
+    0.0
+   ],
+   "source_hypothesis": "do you do it will the s so so a fall fall to them Would you say we're be the clear little little be it they're a ball ball",
+   "target_hypothesis": "我做吗他们会这样摔倒吗你认为我们是明显的小球吗他们是不是个球",
+   "transcription_reference": "Were the sellers at fault damages would clearly be available",
+   "translation_reference": "如果卖家有过错显然可以索赔损害赔偿",
+   "terminator_rate": 0.6,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    1,
+    1,
+    1,
+    20,
+    7
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 10.58,
+    "concatenated_seconds": 6.32,
+    "queueing_delay_ms_mean": 1060.0,
+    "queueing_delay_ms_max": 5300.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 30,
+   "read_next_events": 2,
+   "write_asr_events": 27,
+   "write_mt_events": 5,
+   "write_semantic_events": 5,
+   "eos_event_index": 32,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.665559290908277,
+   "rtf": 2.4641165935619216
+  },
+  {
+   "sample_id": "EN_B00058_S00275_W000008",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6260,
+   "read_steps": 40,
+   "audio_blocks": 40,
+   "fragments": 5,
+   "semantic_tokens": 245,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/EN_B00058_S00275_W000008.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/EN_B00058_S00275_W000008.wav",
+   "placed_seconds": 7.94,
+   "concat_seconds": 4.9,
+   "delays": [
+    3040.0,
+    3200.0,
+    3360.0,
+    3520.0,
+    6260.0
+   ],
+   "durations": [
+    3260.0,
+    360.0,
+    180.0,
+    920.0,
+    180.0
+   ],
+   "intervals": [
+    [
+     3040.0,
+     3260.0
+    ],
+    [
+     6300.0,
+     360.0
+    ],
+    [
+     6660.0,
+     180.0
+    ],
+    [
+     6840.0,
+     920.0
+    ],
+    [
+     7760.0,
+     180.0
+    ]
+   ],
+   "elapsed": [
+    6944.463251158595,
+    7573.259840253741,
+    7993.058985099196,
+    9170.788946095854,
+    12323.62960325554
+   ],
+   "silences": [
+    3040.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "How out can you eat in the think of getting my married to a puppy and a sack the s old and will get you the beat now up if you for five years out to",
+   "target_hypothesis": "你怎么可能在想把我的结婚证拿到一个包里呢吃呢五年后你就会得到那张旧的",
+   "transcription_reference": "How can you even think of getting married to a princess The Sultan will get you beaten up if he finds out",
+   "translation_reference": "你怎么能想着和公主结婚呢苏丹要是知道了会让人把你打死的",
+   "terminator_rate": 0.8,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    17,
+    2,
+    1,
+    2,
+    12
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 7.94,
+    "concatenated_seconds": 4.9,
+    "queueing_delay_ms_mean": 2244.0,
+    "queueing_delay_ms_max": 3320.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 39,
+   "read_next_events": 0,
+   "write_asr_events": 35,
+   "write_mt_events": 5,
+   "write_semantic_events": 5,
+   "eos_event_index": 39,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.444751115050167,
+   "rtf": 1.987979411349867
+  },
+  {
+   "sample_id": "LibriSpeech_0000031307",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 13180,
+   "read_steps": 83,
+   "audio_blocks": 83,
+   "fragments": 11,
+   "semantic_tokens": 418,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/LibriSpeech_0000031307.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/LibriSpeech_0000031307.wav",
+   "placed_seconds": 15.92,
+   "concat_seconds": 8.36,
+   "delays": [
+    160.0,
+    3200.0,
+    8320.0,
+    8480.0,
+    8640.0,
+    8800.0,
+    8960.0,
+    9120.0,
+    9280.0,
+    11200.0,
+    13180.0
+   ],
+   "durations": [
+    240.0,
+    520.0,
+    300.0,
+    720.0,
+    240.0,
+    3140.0,
+    640.0,
+    160.0,
+    180.0,
+    2040.0,
+    180.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     240.0
+    ],
+    [
+     3200.0,
+     520.0
+    ],
+    [
+     8320.0,
+     300.0
+    ],
+    [
+     8620.0,
+     720.0
+    ],
+    [
+     9340.0,
+     240.0
+    ],
+    [
+     9580.0,
+     3140.0
+    ],
+    [
+     12720.0,
+     640.0
+    ],
+    [
+     13360.0,
+     160.0
+    ],
+    [
+     13520.0,
+     180.0
+    ],
+    [
+     13700.0,
+     2040.0
+    ],
+    [
+     15740.0,
+     180.0
+    ]
+   ],
+   "elapsed": [
+    1347.0129510387778,
+    4953.0473169870675,
+    10207.27477921173,
+    11743.676665239036,
+    12472.503378987312,
+    15974.293005187064,
+    16884.50742699206,
+    17276.40426903963,
+    17691.16391101852,
+    21765.55489236489,
+    24097.79723919928
+   ],
+   "silences": [
+    160.0,
+    2800.0,
+    4600.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "was the this one was a all on her to which I had had long as but by her to the be being in the new bore I I was not in mid to the foot turn at the eighth and to my my care to her head full of age of eld looked at self it was a very so a lect of sigh at him the are of jack to which i never for far them to",
+   "target_hypothesis": "他是那个一直陪伴着我的人但最终还是被她的我所处的环境所处的唯一一个我早已不再置身于新世界而是被允许在第八回合站在她的脚下全神贯注于她直到我完全沉浸在自己中直到我被带到新堡垒我完全沉浸在她的目光中看着自己的怀抱中直到我完全沉浸在她的目光中的怀抱中中中他那是一种非常轻松的叹息我从未真正理解他我所珍视的杰克",
+   "transcription_reference": "This was an honor to which I had long aspired But being a new boy I was not admitted to the fraternity until my character had fully developed itself It was a very select society the object of which I never fathomed",
+   "translation_reference": "这是一项我长久以来一直向往的荣誉但作为新人直到我的品格完全成熟之后我才有资格加入这个团体这是一个非常精英的社团其目的我从未完全理解",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    18,
+    7,
+    50,
+    25,
+    17,
+    4,
+    1,
+    1,
+    12,
+    15
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 15.92,
+    "concatenated_seconds": 8.36,
+    "queueing_delay_ms_mean": 1720.0,
+    "queueing_delay_ms_max": 4240.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 82,
+   "read_next_events": 0,
+   "write_asr_events": 72,
+   "write_mt_events": 11,
+   "write_semantic_events": 11,
+   "eos_event_index": 82,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 24.386791837401688,
+   "rtf": 1.850287696312723
+  },
+  {
+   "sample_id": "emilia_zh_0004036746",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5500,
+   "read_steps": 35,
+   "audio_blocks": 35,
+   "fragments": 6,
+   "semantic_tokens": 304,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0004036746.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0004036746.wav",
+   "placed_seconds": 7.84,
+   "concat_seconds": 6.08,
+   "delays": [
+    1760.0,
+    3360.0,
+    3520.0,
+    4480.0,
+    4640.0,
+    5500.0
+   ],
+   "durations": [
+    2960.0,
+    1300.0,
+    280.0,
+    1140.0,
+    160.0,
+    240.0
+   ],
+   "intervals": [
+    [
+     1760.0,
+     2960.0
+    ],
+    [
+     4720.0,
+     1300.0
+    ],
+    [
+     6020.0,
+     280.0
+    ],
+    [
+     6300.0,
+     1140.0
+    ],
+    [
+     7440.0,
+     160.0
+    ],
+    [
+     7600.0,
+     240.0
+    ]
+   ],
+   "elapsed": [
+    5214.412103407085,
+    8163.885782007128,
+    8690.292347222567,
+    10812.618872150779,
+    11205.91047219932,
+    12450.534324161708
+   ],
+   "silences": [
+    1760.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "可看见动物的血是因吐吐也一也得有过光亮了脚站在起来来所我就前去",
+   "target_hypothesis": "But seeing the animal's blood is due to vomiting it also needs to be bright to see the feet stand up and stand up I'll go",
+   "transcription_reference": "看见洞穴深处隐隐的有光亮就站起来走进去",
+   "translation_reference": "Seeing a faint light deep in the cave he stood up and walked in",
+   "terminator_rate": 0.5,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    48,
+    27,
+    7,
+    18,
+    13,
+    8
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 7.84,
+    "concatenated_seconds": 6.08,
+    "queueing_delay_ms_mean": 1763.3333333333333,
+    "queueing_delay_ms_max": 2800.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 2,
+   "write_asr_events": 29,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": 34,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.618773801252246,
+   "rtf": 2.29432250931859
+  },
+  {
+   "sample_id": "emilia_zh_0004788301",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 8200,
+   "read_steps": 52,
+   "audio_blocks": 52,
+   "fragments": 6,
+   "semantic_tokens": 570,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0004788301.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0004788301.wav",
+   "placed_seconds": 13.6,
+   "concat_seconds": 11.4,
+   "delays": [
+    1120.0,
+    1280.0,
+    4640.0,
+    4960.0,
+    5280.0,
+    8200.0
+   ],
+   "durations": [
+    2320.0,
+    120.0,
+    3400.0,
+    120.0,
+    260.0,
+    5180.0
+   ],
+   "intervals": [
+    [
+     1120.0,
+     2320.0
+    ],
+    [
+     3440.0,
+     120.0
+    ],
+    [
+     4640.0,
+     3400.0
+    ],
+    [
+     8040.0,
+     120.0
+    ],
+    [
+     8160.0,
+     260.0
+    ],
+    [
+     8420.0,
+     5180.0
+    ]
+   ],
+   "elapsed": [
+    4117.660274263471,
+    4468.017243314534,
+    11341.848290059716,
+    11837.17305213213,
+    12473.901045043021,
+    21090.088800992817
+   ],
+   "silences": [
+    1120.0,
+    0.0,
+    1080.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "I have to that let that to that ex that end in here and had sped both a kernal on the foot though of the two times in you are in the day but both knee knew the that they won the gown to meet me to again",
+   "target_hypothesis": "我必须让那件事发生让那件事在这里结束时双脚都流了两下眼泪尽管你已经已经两天了但你已经到了但两人都知道他们今天赢了你却知道他们又赢了你今天又赢了",
+   "transcription_reference": "After that letter dexter and ian had spoken on the phone a few times but they both knew that they weren't going to meet again",
+   "translation_reference": "在那封信之后德克斯特和伊恩通了几次电话但他们都知道他们不会再见面了",
+   "terminator_rate": 0.5,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    9,
+    1,
+    20,
+    1,
+    2,
+    38
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 13.6,
+    "concatenated_seconds": 11.4,
+    "queueing_delay_ms_mean": 1390.0,
+    "queueing_delay_ms_max": 3080.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 51,
+   "read_next_events": 0,
+   "write_asr_events": 46,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": 51,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 21.281997869256884,
+   "rtf": 2.5953655938118154
+  },
+  {
+   "sample_id": "emilia_zh_0005109124",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6320,
+   "read_steps": 40,
+   "audio_blocks": 40,
+   "fragments": 1,
+   "semantic_tokens": 268,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0005109124.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0005109124.wav",
+   "placed_seconds": 9.52,
+   "concat_seconds": 5.36,
+   "delays": [
+    4160.0
+   ],
+   "durations": [
+    5360.0
+   ],
+   "intervals": [
+    [
+     4160.0,
+     5360.0
+    ]
+   ],
+   "elapsed": [
+    9978.004082106054
+   ],
+   "silences": [
+    4160.0
+   ],
+   "source_hypothesis": "你应该想请去瞧的这印器一一一你和你明一下想把人是深的是是接上不同的两个两件事一起",
+   "target_hypothesis": "You should look at this printing machine and think about how deep you are with people",
+   "transcription_reference": "冥想技巧的练习和冥想本身是截然不同的两件事情",
+   "translation_reference": "The practice of meditation techniques and meditation itself are two entirely different things",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    85
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 9.52,
+    "concatenated_seconds": 5.36,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 38,
+   "read_next_events": 1,
+   "write_asr_events": 38,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 39,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.95383923780173,
+   "rtf": 1.8914302591458434
+  },
+  {
+   "sample_id": "emilia_zh_0005852526",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 9420,
+   "read_steps": 59,
+   "audio_blocks": 59,
+   "fragments": 3,
+   "semantic_tokens": 524,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0005852526.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0005852526.wav",
+   "placed_seconds": 19.44,
+   "concat_seconds": 10.48,
+   "delays": [
+    8960.0,
+    9120.0,
+    9280.0
+   ],
+   "durations": [
+    7680.0,
+    2640.0,
+    160.0
+   ],
+   "intervals": [
+    [
+     8960.0,
+     7680.0
+    ],
+    [
+     16640.0,
+     2640.0
+    ],
+    [
+     19280.0,
+     160.0
+    ]
+   ],
+   "elapsed": [
+    17288.574771024287,
+    20433.216760866344,
+    20774.949576705694
+   ],
+   "silences": [
+    8960.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "是所以就是我也是我得也有时候他可能不骗的放出来来之后我然后我我我也得自己去总总写问题题找我我也可以人你去给我提提一一一点所以我觉得他",
+   "target_hypothesis": "So sometimes he might not be able to be deceived and let me write questions and problems on my own so I can also ask you to give me a hint So I think he can also ask me to write questions and questions for me so I think he is",
+   "transcription_reference": "所以就是我也是得有时候可能一片子放出来之后然后我也得自己去总结问题找我认可的人去给我提意见所以我觉得",
+   "translation_reference": "So sometimes after a clip is released I have to summarize the issues myself and seek feedback from people I trust That's what I think",
+   "terminator_rate": 0.0,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    152,
+    70,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 19.44,
+    "concatenated_seconds": 10.48,
+    "queueing_delay_ms_mean": 5840.0,
+    "queueing_delay_ms_max": 10000.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 57,
+   "read_next_events": 1,
+   "write_asr_events": 55,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 58,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 20.908893150743097,
+   "rtf": 2.2196277230088213
+  },
+  {
+   "sample_id": "emilia_zh_0006463231",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 8180,
+   "read_steps": 52,
+   "audio_blocks": 52,
+   "fragments": 4,
+   "semantic_tokens": 405,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0006463231.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0006463231.wav",
+   "placed_seconds": 14.18,
+   "concat_seconds": 8.1,
+   "delays": [
+    6080.0,
+    6240.0,
+    6400.0,
+    8160.0
+   ],
+   "durations": [
+    7280.0,
+    160.0,
+    160.0,
+    500.0
+   ],
+   "intervals": [
+    [
+     6080.0,
+     7280.0
+    ],
+    [
+     13360.0,
+     160.0
+    ],
+    [
+     13520.0,
+     160.0
+    ],
+    [
+     13680.0,
+     500.0
+    ]
+   ],
+   "elapsed": [
+    13545.493993908167,
+    14787.234406918287,
+    15143.470596056432,
+    17262.3981051147
+   ],
+   "silences": [
+    6080.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "But one of that all is a the dull or is the southern of the lull y you're to told me and you in a a s of the year it in its see you're a a boy a and I'm he here at it is the month a",
+   "target_hypothesis": "但其中一个是你告诉我的那个傻瓜或你一年中的南方你是一个男孩一个男孩你是个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个男孩一个一年的",
+   "transcription_reference": "One thousand dollars said the lawyer tomman in a severe and serious voice And here is the money",
+   "translation_reference": "律师汤曼用严厉而认真的语气说道一千美元这是钱",
+   "terminator_rate": 0.25,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    33,
+    95,
+    2,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 14.18,
+    "concatenated_seconds": 8.1,
+    "queueing_delay_ms_mean": 4940.0,
+    "queueing_delay_ms_max": 7120.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 51,
+   "read_next_events": 0,
+   "write_asr_events": 47,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 51,
+   "eos_reached": true,
+   "malformed_segments": 4,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 17.40330585092306,
+   "rtf": 2.1275435025578315
+  },
+  {
+   "sample_id": "emilia_zh_0007324915",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 15020,
+   "read_steps": 94,
+   "audio_blocks": 94,
+   "fragments": 21,
+   "semantic_tokens": 911,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0007324915.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0007324915.wav",
+   "placed_seconds": 21.74,
+   "concat_seconds": 18.22,
+   "delays": [
+    3520.0,
+    5760.0,
+    5920.0,
+    6080.0,
+    6240.0,
+    6400.0,
+    6560.0,
+    6720.0,
+    6880.0,
+    7040.0,
+    7200.0,
+    7360.0,
+    9600.0,
+    9760.0,
+    9920.0,
+    10080.0,
+    12320.0,
+    12640.0,
+    12960.0,
+    13760.0,
+    15020.0
+   ],
+   "durations": [
+    4720.0,
+    240.0,
+    1020.0,
+    1300.0,
+    160.0,
+    100.0,
+    220.0,
+    160.0,
+    160.0,
+    100.0,
+    220.0,
+    160.0,
+    840.0,
+    1560.0,
+    160.0,
+    160.0,
+    2240.0,
+    320.0,
+    320.0,
+    800.0,
+    3260.0
+   ],
+   "intervals": [
+    [
+     3520.0,
+     4720.0
+    ],
+    [
+     8240.0,
+     240.0
+    ],
+    [
+     8480.0,
+     1020.0
+    ],
+    [
+     9500.0,
+     1300.0
+    ],
+    [
+     10800.0,
+     160.0
+    ],
+    [
+     10960.0,
+     100.0
+    ],
+    [
+     11060.0,
+     220.0
+    ],
+    [
+     11280.0,
+     160.0
+    ],
+    [
+     11440.0,
+     160.0
+    ],
+    [
+     11600.0,
+     100.0
+    ],
+    [
+     11700.0,
+     220.0
+    ],
+    [
+     11920.0,
+     160.0
+    ],
+    [
+     12080.0,
+     840.0
+    ],
+    [
+     12920.0,
+     1560.0
+    ],
+    [
+     14480.0,
+     160.0
+    ],
+    [
+     14640.0,
+     160.0
+    ],
+    [
+     14800.0,
+     2240.0
+    ],
+    [
+     17040.0,
+     320.0
+    ],
+    [
+     17360.0,
+     320.0
+    ],
+    [
+     17680.0,
+     800.0
+    ],
+    [
+     18480.0,
+     3260.0
+    ]
+   ],
+   "elapsed": [
+    8874.46108693257,
+    11300.392199773341,
+    12592.834999784827,
+    14084.077891893685,
+    14424.869063775986,
+    14802.734567783773,
+    15240.684889722615,
+    15580.366087611765,
+    15920.03606678918,
+    16318.103957921267,
+    16811.911826953292,
+    17185.22927770391,
+    20107.507043052465,
+    21905.477774795145,
+    22342.004416976124,
+    22779.079729691148,
+    27124.44165861234,
+    27897.913784720004,
+    28709.786601830274,
+    30261.39595080167,
+    34888.31155560911
+   ],
+   "silences": [
+    3520.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "在在如和和和色色相的被去去去全的每时时若我口之和后我就用变了一个样的这要以尽一牙去去举起去再把背脱一也是是日语的指后是是就会像一样哦我吐我误一一样",
+   "target_hypothesis": "When all the times are gone like the colors and colors I will change one when I speak and the color I speak and the last time I will change it to a different one one and I will use it and I will use it after I speak to raise my teeth and raise them with my mouth to raise them with my teeth and raise them with my mouth and then lift them back with my tongue after which I will take them off and then I will take them off with my tongue like I'll spit them off just like I spit them off I'm mistaken",
+   "transcription_reference": "再如何色香味俱全的美食入口之后就变了样只要一经牙齿咀嚼在被唾液湿润之后就会像呕吐物一样",
+   "translation_reference": "No matter what once the food that is perfect in color aroma and taste enters the mouth it changes Once chewed by the teeth and moistened by saliva it becomes like vomit",
+   "terminator_rate": 0.23809523809523808,
+   "capped_stages": 16,
+   "mt_delta_chars": [
+    54,
+    31,
+    22,
+    13,
+    5,
+    17,
+    15,
+    4,
+    4,
+    18,
+    18,
+    14,
+    18,
+    29,
+    28,
+    29,
+    39,
+    33,
+    45,
+    5,
+    58
+   ],
+   "mt_delta_chars_over_prior_bucket": 9,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 21,
+    "placed_seconds": 21.74,
+    "concatenated_seconds": 18.22,
+    "queueing_delay_ms_mean": 3725.714285714286,
+    "queueing_delay_ms_max": 4560.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 81,
+   "read_next_events": 12,
+   "write_asr_events": 73,
+   "write_mt_events": 21,
+   "write_semantic_events": 21,
+   "eos_event_index": 93,
+   "eos_reached": true,
+   "malformed_segments": 16,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 35.33944389363751,
+   "rtf": 2.3528258251423106
+  }
+ ]
+}

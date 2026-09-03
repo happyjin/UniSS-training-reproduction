@@ -1,0 +1,949 @@
+{
+ "arm": "m3_uniform",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000329073",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 2040,
+   "read_steps": 13,
+   "audio_blocks": 13,
+   "fragments": 2,
+   "semantic_tokens": 262,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/CommonVoice_EN_0000329073.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/CommonVoice_EN_0000329073.wav",
+   "placed_seconds": 6.94,
+   "concat_seconds": 5.24,
+   "delays": [
+    160.0,
+    2040.0
+   ],
+   "durations": [
+    340.0,
+    4900.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     340.0
+    ],
+    [
+     2040.0,
+     4900.0
+    ]
+   ],
+   "elapsed": [
+    1760.0984037853777,
+    8773.681722115725
+   ],
+   "silences": [
+    160.0,
+    1540.0
+   ],
+   "source_hypothesis": "was a the doesn't soon seem much from my main aim",
+   "target_hypothesis": "他似乎并不太符合我的主要目标",
+   "transcription_reference": "That doesn't say much for mine",
+   "translation_reference": "那对我的没说什么好话",
+   "terminator_rate": 0.5,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    1,
+    13
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 6.94,
+    "concatenated_seconds": 5.24,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 12,
+   "read_next_events": 0,
+   "write_asr_events": 11,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 12,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.537602617871016,
+   "rtf": 4.675295400917165
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000581204",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6000,
+   "read_steps": 38,
+   "audio_blocks": 38,
+   "fragments": 7,
+   "semantic_tokens": 354,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/CommonVoice_EN_0000581204.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/CommonVoice_EN_0000581204.wav",
+   "placed_seconds": 11.82,
+   "concat_seconds": 7.08,
+   "delays": [
+    160.0,
+    5120.0,
+    5280.0,
+    5440.0,
+    5600.0,
+    5760.0,
+    5920.0
+   ],
+   "durations": [
+    380.0,
+    5940.0,
+    160.0,
+    160.0,
+    160.0,
+    160.0,
+    120.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     380.0
+    ],
+    [
+     5120.0,
+     5940.0
+    ],
+    [
+     11060.0,
+     160.0
+    ],
+    [
+     11220.0,
+     160.0
+    ],
+    [
+     11380.0,
+     160.0
+    ],
+    [
+     11540.0,
+     160.0
+    ],
+    [
+     11700.0,
+     120.0
+    ]
+   ],
+   "elapsed": [
+    1047.7481461130083,
+    11694.26163006574,
+    12337.694631423801,
+    12582.115276250988,
+    12928.399480413646,
+    13352.103074081242,
+    13694.9057970196
+   ],
+   "silences": [
+    160.0,
+    4580.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "was a the the the end in you uses a gap as a general or a cycle or with its two in a pen it turned able upon up so",
+   "target_hypothesis": "他是使用间隔作为一般或循环的结束用其两端的两个独立的圆柱或用两个独立的圆柱来转动它从而向上旋转所以它能够向上旋转所以它",
+   "transcription_reference": "The engine uses a gas generator cycle with two independent turbopumps",
+   "translation_reference": "发动机采用燃气发生器循环配备两个独立的涡轮泵",
+   "terminator_rate": 0.2857142857142857,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    1,
+    24,
+    22,
+    0,
+    2,
+    9,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 11.82,
+    "concatenated_seconds": 7.08,
+    "queueing_delay_ms_mean": 4128.571428571428,
+    "queueing_delay_ms_max": 5780.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 5,
+   "write_asr_events": 30,
+   "write_mt_events": 6,
+   "write_semantic_events": 7,
+   "eos_event_index": 37,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 13.92077878024429,
+   "rtf": 2.320129796707382
+  },
+  {
+   "sample_id": "EN_B00058_S05725_W000021",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4720,
+   "read_steps": 30,
+   "audio_blocks": 30,
+   "fragments": 4,
+   "semantic_tokens": 279,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/EN_B00058_S05725_W000021.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/EN_B00058_S05725_W000021.wav",
+   "placed_seconds": 7.48,
+   "concat_seconds": 5.58,
+   "delays": [
+    1600.0,
+    3680.0,
+    4160.0,
+    4640.0
+   ],
+   "durations": [
+    1780.0,
+    2960.0,
+    620.0,
+    220.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     1780.0
+    ],
+    [
+     3680.0,
+     2960.0
+    ],
+    [
+     6640.0,
+     620.0
+    ],
+    [
+     7260.0,
+     220.0
+    ]
+   ],
+   "elapsed": [
+    3660.0081296637654,
+    8638.482293114066,
+    9767.929574940354,
+    10499.639686662704
+   ],
+   "silences": [
+    1600.0,
+    300.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "Now now we will call home and leave me you are the fun one in the one for my math to like I did it",
+   "target_hypothesis": "现在我们将回家离开你是我数学上的乐趣之一就像我一样这样",
+   "transcription_reference": "Now more commonly you'll see a function formatted like this",
+   "translation_reference": "现在更常见的是你会看到一个函数格式化成这样",
+   "terminator_rate": 0.75,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    9,
+    11,
+    5,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 7.48,
+    "concatenated_seconds": 5.58,
+    "queueing_delay_ms_mean": 1275.0,
+    "queueing_delay_ms_max": 2620.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 28,
+   "read_next_events": 1,
+   "write_asr_events": 25,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 29,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 10.688553149811924,
+   "rtf": 2.2645239724177806
+  },
+  {
+   "sample_id": "NCSSD_R_ZH_0000016460",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8880,
+   "read_steps": 56,
+   "audio_blocks": 56,
+   "fragments": 7,
+   "semantic_tokens": 459,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/NCSSD_R_ZH_0000016460.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/NCSSD_R_ZH_0000016460.wav",
+   "placed_seconds": 13.5,
+   "concat_seconds": 9.18,
+   "delays": [
+    4320.0,
+    4480.0,
+    5920.0,
+    6080.0,
+    6240.0,
+    6400.0,
+    8800.0
+   ],
+   "durations": [
+    5520.0,
+    160.0,
+    620.0,
+    420.0,
+    560.0,
+    320.0,
+    1580.0
+   ],
+   "intervals": [
+    [
+     4320.0,
+     5520.0
+    ],
+    [
+     9840.0,
+     160.0
+    ],
+    [
+     10000.0,
+     620.0
+    ],
+    [
+     10620.0,
+     420.0
+    ],
+    [
+     11040.0,
+     560.0
+    ],
+    [
+     11600.0,
+     320.0
+    ],
+    [
+     11920.0,
+     1580.0
+    ]
+   ],
+   "elapsed": [
+    10345.85194895044,
+    10690.730229951441,
+    12757.403439842165,
+    13429.992513731122,
+    14238.02618868649,
+    14756.78805494681,
+    18659.476013854146
+   ],
+   "silences": [
+    4320.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "和徐徐一也没听你一查一查是是就去去去接上手新的是我我他才走自己的心去去我或者去去寻找一一些新的一个新事情时",
+   "target_hypothesis": "I didn't listen to you check it out at all I just went to pick up the new one I took my own heart to go and I left my own heart and went I went to look for some new things",
+   "transcription_reference": "或许你可以尝试去接受新的事物探索自己的兴趣或者去寻找一些心灵的启示",
+   "translation_reference": "Perhaps you can try to accept new things explore your interests or seek some spiritual enlightenment",
+   "terminator_rate": 0.5714285714285714,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    77,
+    2,
+    24,
+    11,
+    13,
+    9,
+    35
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 13.5,
+    "concatenated_seconds": 9.18,
+    "queueing_delay_ms_mean": 3871.4285714285716,
+    "queueing_delay_ms_max": 5360.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 52,
+   "read_next_events": 3,
+   "write_asr_events": 48,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": 55,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 18.90167037397623,
+   "rtf": 2.1285664835558817
+  },
+  {
+   "sample_id": "emilia_zh_0004639707",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 10780,
+   "read_steps": 68,
+   "audio_blocks": 68,
+   "fragments": 7,
+   "semantic_tokens": 541,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0004639707.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0004639707.wav",
+   "placed_seconds": 13.56,
+   "concat_seconds": 10.82,
+   "delays": [
+    1600.0,
+    3040.0,
+    5760.0,
+    6080.0,
+    7680.0,
+    9120.0,
+    9920.0
+   ],
+   "durations": [
+    2600.0,
+    420.0,
+    3940.0,
+    100.0,
+    1820.0,
+    1440.0,
+    500.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     2600.0
+    ],
+    [
+     4200.0,
+     420.0
+    ],
+    [
+     5760.0,
+     3940.0
+    ],
+    [
+     9700.0,
+     100.0
+    ],
+    [
+     9800.0,
+     1820.0
+    ],
+    [
+     11620.0,
+     1440.0
+    ],
+    [
+     13060.0,
+     500.0
+    ]
+   ],
+   "elapsed": [
+    5378.244481980801,
+    7292.005168739706,
+    13964.7216219455,
+    14431.030877865851,
+    18024.2972089909,
+    20836.203068029135,
+    22187.718525063246
+   ],
+   "silences": [
+    1600.0,
+    0.0,
+    1140.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "I didn't too all through him in it this as soon as the people were building up over right I I used to be this now could not put puss a really a ball on on they can't even be poor or in out of it shall to use a them as sub way as to take get gank at the the muck arm of",
+   "target_hypothesis": "在这次经历中我并没有完全理解他的反应很快人们就开始逐渐明白了我以前就是这么做的现在我不能把球放在一个球上了他们甚至不能在上面放一个球他们不可能穷困或处于困境他们只能用这种方式来打盹",
+   "transcription_reference": "And in two or three minutes as soon as the people below realized that this now couldn't possibly be a bomb they came pouring out of the shelters of the subways to gape at the move",
+   "translation_reference": "两到三分钟后当下面的人意识到这肯定不是炸弹时他们从地铁的避难所蜂拥而出盯着这一幕看",
+   "terminator_rate": 0.5714285714285714,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    15,
+    14,
+    23,
+    1,
+    25,
+    9,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 13.56,
+    "concatenated_seconds": 10.82,
+    "queueing_delay_ms_mean": 1791.4285714285713,
+    "queueing_delay_ms_max": 3620.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 64,
+   "read_next_events": 3,
+   "write_asr_events": 60,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": 67,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 23.20826196903363,
+   "rtf": 2.152899997127424
+  },
+  {
+   "sample_id": "emilia_zh_0004954449",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5280,
+   "read_steps": 33,
+   "audio_blocks": 33,
+   "fragments": 1,
+   "semantic_tokens": 140,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0004954449.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0004954449.wav",
+   "placed_seconds": 5.28,
+   "concat_seconds": 2.8,
+   "delays": [
+    1600.0
+   ],
+   "durations": [
+    2800.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     2800.0
+    ]
+   ],
+   "elapsed": [
+    4533.02753996104
+   ],
+   "silences": [
+    1600.0
+   ],
+   "source_hypothesis": "其其内的是生你的却能显其现处无的是生也暗的然的是什么美美新新镜",
+   "target_hypothesis": "Its",
+   "transcription_reference": "其内在生命却能显现出生意盎然的审美心境",
+   "translation_reference": "Its inner life however can reveal a vibrant aesthetic mindset",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 4.4,
+    "concatenated_seconds": 2.8,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 1,
+   "write_asr_events": 32,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.853378898929805,
+   "rtf": 1.4873823672215538
+  },
+  {
+   "sample_id": "emilia_zh_0005338342",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4260,
+   "read_steps": 27,
+   "audio_blocks": 27,
+   "fragments": 1,
+   "semantic_tokens": 212,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0005338342.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0005338342.wav",
+   "placed_seconds": 7.28,
+   "concat_seconds": 4.24,
+   "delays": [
+    3040.0
+   ],
+   "durations": [
+    4240.0
+   ],
+   "intervals": [
+    [
+     3040.0,
+     4240.0
+    ]
+   ],
+   "elapsed": [
+    7449.60453081876
+   ],
+   "silences": [
+    3040.0
+   ],
+   "source_hypothesis": "我同时时其实本本是新写的是什么密信信信也有不带给杰克他",
+   "target_hypothesis": "At the same time what I actually wrote was a secret letter",
+   "transcription_reference": "同时其本身携带的神秘信息也有待被揭开",
+   "translation_reference": "At the same time the mysterious information it carries also awaits to be revealed",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    58
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 7.28,
+    "concatenated_seconds": 4.24,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 26,
+   "read_next_events": 1,
+   "write_asr_events": 26,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 8.64336254261434,
+   "rtf": 2.0289583433366998
+  },
+  {
+   "sample_id": "emilia_zh_0006199435",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6060,
+   "read_steps": 38,
+   "audio_blocks": 38,
+   "fragments": 4,
+   "semantic_tokens": 300,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0006199435.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0006199435.wav",
+   "placed_seconds": 8.24,
+   "concat_seconds": 6.0,
+   "delays": [
+    2240.0,
+    2400.0,
+    4640.0,
+    4800.0
+   ],
+   "durations": [
+    3440.0,
+    160.0,
+    1200.0,
+    1200.0
+   ],
+   "intervals": [
+    [
+     2240.0,
+     3440.0
+    ],
+    [
+     5680.0,
+     160.0
+    ],
+    [
+     5840.0,
+     1200.0
+    ],
+    [
+     7040.0,
+     1200.0
+    ]
+   ],
+   "elapsed": [
+    6026.798866223544,
+    6607.766889967024,
+    10102.316387929022,
+    11470.232533290982
+   ],
+   "silences": [
+    2240.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "他他不在站是等待着抓了他的啊而是想是使抓我们魔的特那一样走我了来走去去",
+   "target_hypothesis": "He didn't just stand there waiting to catch him he didn't just stand there waiting for him to catch him but he wanted to catch us like the magic of the demon and",
+   "transcription_reference": "他不再是等待着抓蚊子而是像时装模特那样走来走去",
+   "translation_reference": "He was no longer waiting to catch mosquitoes but was walking around like a fashion model",
+   "terminator_rate": 0.25,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    47,
+    56,
+    54,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 3,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 8.24,
+    "concatenated_seconds": 6.0,
+    "queueing_delay_ms_mean": 1680.0,
+    "queueing_delay_ms_max": 3280.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 35,
+   "read_next_events": 2,
+   "write_asr_events": 33,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 37,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.621951579116285,
+   "rtf": 2.0828302935835454
+  },
+  {
+   "sample_id": "emilia_zh_0006923139",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5740,
+   "read_steps": 36,
+   "audio_blocks": 36,
+   "fragments": 1,
+   "semantic_tokens": 340,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0006923139.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0006923139.wav",
+   "placed_seconds": 12.4,
+   "concat_seconds": 6.8,
+   "delays": [
+    5600.0
+   ],
+   "durations": [
+    6800.0
+   ],
+   "intervals": [
+    [
+     5600.0,
+     6800.0
+    ]
+   ],
+   "elapsed": [
+    12438.372266944498
+   ],
+   "silences": [
+    5600.0
+   ],
+   "source_hypothesis": "我们看完就是一款啊分成上成过程他们已经很会会很一些两开始要写一他他他他的钱被得关嘛",
+   "target_hypothesis": "We finished watching it and it was divided into two stages and they were already very much about to start writing about his money which was locked up",
+   "transcription_reference": "看来就是一款非常成功的产品会掩盖掉其他他的前辈的光芒",
+   "translation_reference": "It seems to be a very successful product that will overshadow the brilliance of its predecessors",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    149
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 12.4,
+    "concatenated_seconds": 6.8,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 34,
+   "read_next_events": 1,
+   "write_asr_events": 34,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 35,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.525870706886053,
+   "rtf": 2.182207440224051
+  },
+  {
+   "sample_id": "emilia_zh_0007453197",
+   "arm": "m3_uniform",
+   "read_stride": 1,
+   "read_schedule": "uniform",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4080,
+   "read_steps": 26,
+   "audio_blocks": 26,
+   "fragments": 2,
+   "semantic_tokens": 364,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_placed/emilia_zh_0007453197.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_uniform/translation_concat/emilia_zh_0007453197.wav",
+   "placed_seconds": 8.88,
+   "concat_seconds": 7.28,
+   "delays": [
+    1600.0,
+    4080.0
+   ],
+   "durations": [
+    2800.0,
+    4480.0
+   ],
+   "intervals": [
+    [
+     1600.0,
+     2800.0
+    ],
+    [
+     4400.0,
+     4480.0
+    ]
+   ],
+   "elapsed": [
+    4649.24929337576,
+    11542.732981033623
+   ],
+   "silences": [
+    1600.0,
+    0.0
+   ],
+   "source_hypothesis": "连门深才才让我挺的你你请你吃出可口到了吃成屎的戒",
+   "target_hypothesis": "It took me quite a while to get through the door you took out the mouth and finally managed to get rid of the shit",
+   "transcription_reference": "人们生产药品并且出口到全世界",
+   "translation_reference": "People produce medicines and export them to the world",
+   "terminator_rate": 0.0,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    48,
+    66
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 8.88,
+    "concatenated_seconds": 7.28,
+    "queueing_delay_ms_mean": 160.0,
+    "queueing_delay_ms_max": 320.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 25,
+   "read_next_events": 0,
+   "write_asr_events": 24,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 25,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.599929286167026,
+   "rtf": 2.8431199230801534
+  }
+ ]
+}

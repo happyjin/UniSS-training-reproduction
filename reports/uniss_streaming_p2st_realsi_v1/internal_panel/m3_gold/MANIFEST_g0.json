@@ -1,0 +1,853 @@
+{
+ "arm": "m3_gold",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000135518",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 7200,
+   "read_steps": 19,
+   "audio_blocks": 45,
+   "fragments": 4,
+   "semantic_tokens": 364,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/CommonVoice_EN_0000135518.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/CommonVoice_EN_0000135518.wav",
+   "placed_seconds": 10.48,
+   "concat_seconds": 7.28,
+   "delays": [
+    3200.0,
+    4640.0,
+    5440.0,
+    6080.0
+   ],
+   "durations": [
+    4400.0,
+    180.0,
+    2060.0,
+    640.0
+   ],
+   "intervals": [
+    [
+     3200.0,
+     4400.0
+    ],
+    [
+     7600.0,
+     180.0
+    ],
+    [
+     7780.0,
+     2060.0
+    ],
+    [
+     9840.0,
+     640.0
+    ]
+   ],
+   "elapsed": [
+    6805.460503324866,
+    7487.808923237026,
+    9963.590899016708,
+    10888.317928183824
+   ],
+   "silences": [
+    3200.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "A week a man has said aside for programs highlighting academic and professional achievements",
+   "target_hypothesis": "一个星期一个男人说突出学术和专业",
+   "transcription_reference": "A week in May is set aside for programs highlighting academic and professional achievement",
+   "translation_reference": "五月的一周被指定为举办突出学术和职业成就的活动",
+   "terminator_rate": 0.25,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    9,
+    2,
+    3,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 10.48,
+    "concatenated_seconds": 7.28,
+    "queueing_delay_ms_mean": 2265.0,
+    "queueing_delay_ms_max": 3760.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 15,
+   "read_next_events": 3,
+   "write_asr_events": 14,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 18,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.933922162279487,
+   "rtf": 1.6574891892054842
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000463919",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6200,
+   "read_steps": 18,
+   "audio_blocks": 39,
+   "fragments": 4,
+   "semantic_tokens": 43,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/CommonVoice_EN_0000463919.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/CommonVoice_EN_0000463919.wav",
+   "placed_seconds": 6.2,
+   "concat_seconds": 0.86,
+   "delays": [
+    1280.0,
+    1600.0,
+    4160.0,
+    5280.0
+   ],
+   "durations": [
+    240.0,
+    80.0,
+    240.0,
+    300.0
+   ],
+   "intervals": [
+    [
+     1280.0,
+     240.0
+    ],
+    [
+     1600.0,
+     80.0
+    ],
+    [
+     4160.0,
+     240.0
+    ],
+    [
+     5280.0,
+     300.0
+    ]
+   ],
+   "elapsed": [
+    1022.2208318300545,
+    1456.8578307516873,
+    3091.722212731838,
+    4189.68075979501
+   ],
+   "silences": [
+    1280.0,
+    80.0,
+    2480.0,
+    880.0
+   ],
+   "source_hypothesis": "He was the Chairman of the Standing Civic Mediation on Banking Trade and Commerce",
+   "target_hypothesis": "他是银行贸易和商业委员会的常驻公民调解主席",
+   "transcription_reference": "He was the Chairman of the Standing Senate Committee on Banking Trade and Commerce",
+   "translation_reference": "他曾担任常设参议院银行贸易和商业委员会主席",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    1,
+    2,
+    17
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 5.58,
+    "concatenated_seconds": 0.86,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 13,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.379032603930682,
+   "rtf": 0.7062955812791423
+  },
+  {
+   "sample_id": "EN_B00048_S09162_W000011",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 3820,
+   "read_steps": 15,
+   "audio_blocks": 24,
+   "fragments": 4,
+   "semantic_tokens": 110,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/EN_B00048_S09162_W000011.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/EN_B00048_S09162_W000011.wav",
+   "placed_seconds": 3.82,
+   "concat_seconds": 2.2,
+   "delays": [
+    1440.0,
+    2080.0,
+    3040.0,
+    3360.0
+   ],
+   "durations": [
+    1200.0,
+    320.0,
+    420.0,
+    260.0
+   ],
+   "intervals": [
+    [
+     1440.0,
+     1200.0
+    ],
+    [
+     2640.0,
+     320.0
+    ],
+    [
+     3040.0,
+     420.0
+    ],
+    [
+     3460.0,
+     260.0
+    ]
+   ],
+   "elapsed": [
+    2485.8376812189817,
+    3157.9515491612256,
+    4084.3078759498894,
+    4684.475269168615
+   ],
+   "silences": [
+    1440.0,
+    0.0,
+    80.0,
+    0.0
+   ],
+   "source_hypothesis": "Okay so basically he's just asking why are you doing this",
+   "target_hypothesis": "好的基本上他只是在问你为什么要做",
+   "transcription_reference": "Okay so basically he's just asking why are you doing this",
+   "translation_reference": "好的他基本上就是在问你为什么要做这个",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    8,
+    2,
+    4,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 3.72,
+    "concatenated_seconds": 2.2,
+    "queueing_delay_ms_mean": 165.0,
+    "queueing_delay_ms_max": 560.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 14,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 14,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.020368250086904,
+   "rtf": 1.3142325262007601
+  },
+  {
+   "sample_id": "EN_B00097_S02791_W000001",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 3520,
+   "read_steps": 14,
+   "audio_blocks": 22,
+   "fragments": 2,
+   "semantic_tokens": 87,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/EN_B00097_S02791_W000001.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/EN_B00097_S02791_W000001.wav",
+   "placed_seconds": 3.98,
+   "concat_seconds": 1.74,
+   "delays": [
+    2240.0,
+    3040.0
+   ],
+   "durations": [
+    1400.0,
+    340.0
+   ],
+   "intervals": [
+    [
+     2240.0,
+     1400.0
+    ],
+    [
+     3640.0,
+     340.0
+    ]
+   ],
+   "elapsed": [
+    2864.4483382813632,
+    3969.025570433587
+   ],
+   "silences": [
+    2240.0,
+    0.0
+   ],
+   "source_hypothesis": "They kind just forget about you and move on with their lives",
+   "target_hypothesis": "他们只是忘记了你和他们",
+   "transcription_reference": "They can't just forget about you and move on with their lives",
+   "translation_reference": "他们不能就这样忘记你继续他们的生活",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    8,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 3.98,
+    "concatenated_seconds": 1.74,
+    "queueing_delay_ms_mean": 300.0,
+    "queueing_delay_ms_max": 600.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 14,
+   "read_next_events": 0,
+   "write_asr_events": 12,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.21014808723703,
+   "rtf": 1.1960647975105199
+  },
+  {
+   "sample_id": "emilia_zh_0003998544",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3340,
+   "read_steps": 12,
+   "audio_blocks": 21,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0003998544.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0003998544.wav",
+   "placed_seconds": 3.34,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "哎大家还没有听说过过去其实那个过年又穿新衣服",
+   "target_hypothesis": "",
+   "transcription_reference": "哎大家还有没有听说过就是那个过年要穿新衣",
+   "translation_reference": "Hey has anyone heard about wearing new clothes during the New Year",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 12,
+   "read_next_events": 0,
+   "write_asr_events": 12,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 1.9457688010297716,
+   "rtf": 0.5825655092903508
+  },
+  {
+   "sample_id": "emilia_zh_0004731085",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4360,
+   "read_steps": 12,
+   "audio_blocks": 28,
+   "fragments": 2,
+   "semantic_tokens": 108,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0004731085.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0004731085.wav",
+   "placed_seconds": 4.36,
+   "concat_seconds": 2.16,
+   "delays": [
+    1440.0,
+    2720.0
+   ],
+   "durations": [
+    1000.0,
+    1160.0
+   ],
+   "intervals": [
+    [
+     1440.0,
+     1000.0
+    ],
+    [
+     2720.0,
+     1160.0
+    ]
+   ],
+   "elapsed": [
+    1916.1654128693044,
+    3572.1201887354255
+   ],
+   "silences": [
+    1440.0,
+    280.0
+   ],
+   "source_hypothesis": "Five minutes later whistles blew and the trains started at",
+   "target_hypothesis": "五分钟后哨声响起",
+   "transcription_reference": "Five minutes later whistles blue and the train started",
+   "translation_reference": "五分钟后哨声响起火车启动了",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 3.88,
+    "concatenated_seconds": 2.16,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 12,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.354558792896569,
+   "rtf": 0.9987520167193964
+  },
+  {
+   "sample_id": "emilia_zh_0005078359",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3100,
+   "read_steps": 10,
+   "audio_blocks": 20,
+   "fragments": 4,
+   "semantic_tokens": 226,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0005078359.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0005078359.wav",
+   "placed_seconds": 5.16,
+   "concat_seconds": 4.52,
+   "delays": [
+    640.0,
+    1120.0,
+    2720.0,
+    3100.0
+   ],
+   "durations": [
+    1840.0,
+    480.0,
+    1600.0,
+    600.0
+   ],
+   "intervals": [
+    [
+     640.0,
+     1840.0
+    ],
+    [
+     2480.0,
+     480.0
+    ],
+    [
+     2960.0,
+     1600.0
+    ],
+    [
+     4560.0,
+     600.0
+    ]
+   ],
+   "elapsed": [
+    2313.9397357590497,
+    3092.8144748322666,
+    5331.876519136131,
+    6272.542032878846
+   ],
+   "silences": [
+    640.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "劳动技术改为劳动与技术",
+   "target_hypothesis": "Labor technology is changed from labor to labor 和技术",
+   "transcription_reference": "劳动技术改为劳动与技术",
+   "translation_reference": "Labor technology is changed to labor and technology",
+   "terminator_rate": 0.25,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    5,
+    11,
+    31,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 5.16,
+    "concatenated_seconds": 4.52,
+    "queueing_delay_ms_mean": 765.0,
+    "queueing_delay_ms_max": 1460.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 9,
+   "read_next_events": 0,
+   "write_asr_events": 6,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": 9,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 6.416638930793852,
+   "rtf": 2.0698835260625326
+  },
+  {
+   "sample_id": "emilia_zh_0005652634",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5040,
+   "read_steps": 18,
+   "audio_blocks": 32,
+   "fragments": 3,
+   "semantic_tokens": 412,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0005652634.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0005652634.wav",
+   "placed_seconds": 10.48,
+   "concat_seconds": 8.24,
+   "delays": [
+    960.0,
+    1600.0,
+    5040.0
+   ],
+   "durations": [
+    2160.0,
+    640.0,
+    5440.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     2160.0
+    ],
+    [
+     3120.0,
+     640.0
+    ],
+    [
+     5040.0,
+     5440.0
+    ]
+   ],
+   "elapsed": [
+    3168.7352899461985,
+    4171.5936926193535,
+    11319.738959893584
+   ],
+   "silences": [
+    960.0,
+    0.0,
+    1280.0
+   ],
+   "source_hypothesis": "啊完了再把瓷器送到寝室的每一个同学的手里很辛苦",
+   "target_hypothesis": "Ah then let's get the porcelain and then deliver it to each of the students in the dormitory it's very hard",
+   "transcription_reference": "啊完了再把瓷器送到寝室的每一个同学的手里很辛苦",
+   "translation_reference": "Ah after that deliver the porcelain to every classmate in the dormitory it's quite tiring",
+   "terminator_rate": 0.0,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    7,
+    24,
+    76
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 10.48,
+    "concatenated_seconds": 8.24,
+    "queueing_delay_ms_mean": 506.6666666666667,
+    "queueing_delay_ms_max": 1520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 16,
+   "read_next_events": 1,
+   "write_asr_events": 15,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.733486445620656,
+   "rtf": 2.328072707464416
+  },
+  {
+   "sample_id": "emilia_zh_0006419842",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4000,
+   "read_steps": 11,
+   "audio_blocks": 25,
+   "fragments": 1,
+   "semantic_tokens": 180,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0006419842.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0006419842.wav",
+   "placed_seconds": 6.0,
+   "concat_seconds": 3.6,
+   "delays": [
+    2400.0
+   ],
+   "durations": [
+    3600.0
+   ],
+   "intervals": [
+    [
+     2400.0,
+     3600.0
+    ]
+   ],
+   "elapsed": [
+    4861.576263792813
+   ],
+   "silences": [
+    2400.0
+   ],
+   "source_hypothesis": "We this gall showed is that much ob splendid is beef",
+   "target_hypothesis": "我们这次的演出表明",
+   "transcription_reference": "All these scll show is that my husband is behave",
+   "translation_reference": "这些记录显示我的丈夫行为良好",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    9
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 6.0,
+    "concatenated_seconds": 3.6,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 10,
+   "read_next_events": 1,
+   "write_asr_events": 10,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.513733914121985,
+   "rtf": 1.3784334785304964
+  },
+  {
+   "sample_id": "emilia_zh_0007321057",
+   "arm": "m3_gold",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8420,
+   "read_steps": 21,
+   "audio_blocks": 53,
+   "fragments": 2,
+   "semantic_tokens": 270,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_placed/emilia_zh_0007321057.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold/translation_concat/emilia_zh_0007321057.wav",
+   "placed_seconds": 9.08,
+   "concat_seconds": 5.4,
+   "delays": [
+    3680.0,
+    6560.0
+   ],
+   "durations": [
+    4880.0,
+    520.0
+   ],
+   "intervals": [
+    [
+     3680.0,
+     4880.0
+    ],
+    [
+     8560.0,
+     520.0
+    ]
+   ],
+   "elapsed": [
+    6864.863576833159,
+    8189.4166162237525
+   ],
+   "silences": [
+    3680.0,
+    0.0
+   ],
+   "source_hypothesis": "然而他们呢就是一声不吭直接就参与念不过话说回来啊我特种侦察大队的队长不是",
+   "target_hypothesis": "However they just went into the chanting without a word but then again I",
+   "transcription_reference": "然而他们呢却是一声不吭直接就参与训练了不过话说回来了我是特种侦查大队的队长博士",
+   "translation_reference": "However they remained silent and immediately joined the training Speaking of which I am Doctor the captain of the Special Reconnaissance Unit",
+   "terminator_rate": 0.5,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    55,
+    17
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 9.08,
+    "concatenated_seconds": 5.4,
+    "queueing_delay_ms_mean": 1000.0,
+    "queueing_delay_ms_max": 2000.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 20,
+   "read_next_events": 1,
+   "write_asr_events": 19,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.103946924209595,
+   "rtf": 1.0812288508562464
+  }
+ ]
+}

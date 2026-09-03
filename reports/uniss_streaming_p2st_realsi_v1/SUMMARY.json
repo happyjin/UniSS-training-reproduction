@@ -281,7 +281,8 @@
     "en2zh": "0/346",
     "zh2en": "0/431"
    }
-  }
+  },
+  "RETRACTED_attribution": "The claim that m3's low published latency was caused by oracle segmentation (the gold read schedule) is WITHDRAWN.  An isolation run over the same 80 internal gold samples with the same weights, session and scorers, changing only the read schedule, gives LAAL 3466 (gold) vs 3221 (uniform 160 ms) and first-audible 2087 vs 1972, with 69/80 vs 75/80 samples emitting -- the blind grid is slightly BETTER and the effect is near zero in the opposite direction. The gold events are genuinely oracle-aligned (a median 0.429 of the available 160 ms read points, 15.8% admitting no new audio) but that does not move latency."
  },
  "c_source_asr_by_read_step": {
   "note": "The mechanism behind the asymmetric quality-latency cost in section 6: C's Chinese source ASR collapses at a fine read step while English barely moves.  Same punctuation-stripped code across all three arms.",
@@ -295,5 +296,92 @@
    "k25": 0.264,
    "k1": 0.804
   }
+ },
+ "why_m3_latency_grew": {
+  "report": "WHY_M3_LATENCY_GREW.zh-CN.md",
+  "chain_laal_ms": {
+   "published_per_token_gate": 518,
+   "my_reproduction_per_token_gate6": 581,
+   "step1_per_fragment_axis": 1681,
+   "step2_full_80_panel": 3466,
+   "step3_uniform_schedule": 3221,
+   "step4_realsi": [
+    4364,
+    3615
+   ]
+  },
+  "factors_ranked": [
+   {
+    "factor": "metric delay axis (per-token latency_family -> per-fragment SimulEval)",
+    "multiplier": 2.9,
+    "why": "latency_family's laal_step is source_duration/max(hyp_units, reference).  With per-token delays hyp_units is ~290 so the step is ~20.7 ms on a 6 s utterance while the delays themselves grow at exactly 20 ms per token -- the subtraction cancels the growth and LAAL degenerates to 'when speech starts'.  With per-fragment delays there are 3-5 points, the reference length is in chars/words (tens), the step is ~190 ms and the fragments are 1-2 s apart, so LAAL becomes 'when speech chunks arrive on average'. Two different questions, not two measurements of one quantity."
+   },
+   {
+    "factor": "source duration distribution",
+    "multiplier": 1.8,
+    "why": "LAAL is near-linear in source length: 1349 ms at 0-3 s, 1963 at 3-5 s, 3570 at 5-7 s, 5101 at 7-10 s (same arm, same metric, same schedule).  Median duration was 3700 ms for the gate 6, 5530 ms for the 80 panel, 6470 ms for RealSI.",
+    "duration_buckets_internal_gold": {
+     "0-3s": 1349,
+     "3-5s": 1963,
+     "5-7s": 3570,
+     "7-10s": 5101,
+     "10s+": 5478
+    }
+   },
+   {
+    "factor": "hand-picked demo samples",
+    "multiplier_on_first_audible": 0.26,
+    "why": "The published 883 ms first-audible came from streaming_demos_delta5's two short demos.  On the 80-sample panel they rank 1st and 6th fastest of 69 emitting samples (320 and 480 ms against a panel median of 1440 and p90 of 4320).  Reporting only the fastest k gives first-audible 320 ms at k=2 and 2087 ms at k=69.  Dominant for the 883 ms figure; only 0.86x on LAAL."
+   },
+   {
+    "factor": "read schedule (gold -> uniform)",
+    "multiplier": 0.93,
+    "why": "The blind grid is slightly better.  Retracted as an explanation."
+   },
+   {
+    "factor": "data domain (internal reconstructions -> RealSI real recordings)",
+    "multiplier_duration_matched": 1.03,
+    "why": "In the 5000-7000 ms bucket m3 scores LAAL 3104 internally and 3187 on RealSI, a 2.7% difference.  The domain costs quality (ASR-BLEU 1.73/0.80) but almost no latency."
+   }
+  ],
+  "duration_matched_5to7s": {
+   "internal_gold": {
+    "n": 20,
+    "emitting": 16,
+    "laal": 3570,
+    "laal_ca": 6052,
+    "first": 2340,
+    "chunks": 2.9,
+    "first_fragment_tokens": 144
+   },
+   "internal_uniform": {
+    "n": 20,
+    "emitting": 20,
+    "laal": 3104,
+    "laal_ca": 6806,
+    "first": 2072,
+    "chunks": 3.6,
+    "first_fragment_tokens": 148
+   },
+   "realsi_m3_uniform": {
+    "n": 186,
+    "emitting": 148,
+    "laal": 3187,
+    "laal_ca": 7071,
+    "first": 2684,
+    "chunks": 2.8,
+    "first_fragment_tokens": 136
+   },
+   "realsi_c_uniform": {
+    "n": 186,
+    "emitting": 186,
+    "laal": 3498,
+    "laal_ca": 4397,
+    "first": 2415,
+    "chunks": 5.3,
+    "first_fragment_tokens": 28
+   }
+  },
+  "rule": "LAAL moves by multiples when the delay axis granularity, the sample set or the source-duration distribution change, so any cross-report LAAL comparison must first state whether all three match.  This project's internal history uses the per-token axis; comparison against the paper requires the per-fragment axis.  The two must never be mixed, and the old internal figures are not evidence that latency used to be better."
  }
 }
