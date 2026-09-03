@@ -1,0 +1,37 @@
+{
+ "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_streaming_p2st_pure_ce_v1_p2st_epoch1_replay_20260902T170132Z_iter_0004236_hf",
+ "claim_scope": "mechanics only; this checkpoint has never trained on isolated prefix-to-prefix sequences, so quality is not a criterion here",
+ "decision_token_free": "1/1",
+ "fragments_never_precede_source": "1/1",
+ "matches_switch_rule": "1/1",
+ "samples": [
+  {
+   "blocks": 4,
+   "decision_token_free": true,
+   "direction": "eng->cmn",
+   "first_audible_ms": 640.0,
+   "fragments": 1,
+   "fragments_never_precede_source": true,
+   "matches_switch_rule": true,
+   "placed_end_ms": 820.0,
+   "sample_id": "NCSSD_R_EN_0000000083",
+   "semantic_tokens": 9,
+   "source_duration_ms": 6940,
+   "source_hypothesis": "I don't",
+   "stages_run": 6,
+   "target_hypothesis": "\u6211\u4e0d",
+   "task_counts": {
+    "asr": 4,
+    "mt": 1,
+    "tts": 1
+   },
+   "terminator_rate": 1.0,
+   "transcription_reference": "I completely agree It seems like what it takes up all our time and leaves no rude for personal life",
+   "translation_reference": "\u6211\u5b8c\u5168\u540c\u610f\u8fd9\u4f3c\u4e4e\u5360\u7528\u4e86\u6211\u4eec\u6240\u6709\u7684\u65f6\u95f4\u4ee5\u81f3\u4e8e\u6ca1\u6709\u7559\u4e0b\u4efb\u4f55\u79c1\u4eba\u751f\u6d3b\u7684\u65f6\u95f4",
+   "wall_seconds": 1.35
+  }
+ ],
+ "schema_version": 1,
+ "tts_text_scope": "delta",
+ "verdict": "pass"
+}

@@ -1,0 +1,31 @@
+{
+ "coverage_epochs": 1,
+ "family_blocks": {
+  "p2st_incremental_mt": 1059,
+  "p2st_streaming_asr": 1059,
+  "p2st_streaming_tts": 1059,
+  "phase3_performance_replay": 424,
+  "phase3_quality_replay": 635
+ },
+ "family_rows": {
+  "p2st_incremental_mt": 15795,
+  "p2st_streaming_asr": 135508,
+  "p2st_streaming_tts": 134553,
+  "phase3_performance_replay": 37870,
+  "phase3_quality_replay": 39800
+ },
+ "family_weights": {
+  "p2st_incremental_mt": 0.25,
+  "p2st_streaming_asr": 0.25,
+  "p2st_streaming_tts": 0.25,
+  "phase3_performance_replay": 0.1,
+  "phase3_quality_replay": 0.15
+ },
+ "global_batch_size": 128,
+ "pool_manifest": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_streaming_p2st_pure_ce_v1/p2st_pool_train_20260902T164243Z/POOL_MANIFEST.json",
+ "schema_version": "uniss_streaming_p2st_geometry_v1",
+ "seed": 20260819,
+ "total_blocks": 4236,
+ "train_iters": 4236,
+ "warmup_updates": 127
+}
