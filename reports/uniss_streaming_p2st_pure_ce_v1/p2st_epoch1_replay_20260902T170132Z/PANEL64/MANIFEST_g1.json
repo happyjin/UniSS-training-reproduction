@@ -1,0 +1,945 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000362482",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/CommonVoice_EN_0000362482__p2st__stereo.wav",
+   "source_duration_ms": 5560,
+   "blocks": 35,
+   "fragments": 4,
+   "semantic_tokens": 187,
+   "first_audible_ms": 2720.0,
+   "last_audible_ms": 7820.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "A person is standing near a row of identical red and white bicycles",
+   "target_hypothesis": "一个人站在一排同样的红白自行车旁边",
+   "transcription_reference": "A person is standing near a row of identical red and white bicycles.",
+   "translation_reference": "一个人站在一排相同的红白相间的自行车旁。",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 7.82,
+    "concatenated_seconds": 3.74,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 0.0,
+     "budget": 236.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 35.0,
+     "budget": 265.0
+    },
+    {
+     "block_index": 29.0,
+     "source_end_ms": 4800.0,
+     "already_emitted": 60.0,
+     "budget": 280.0
+    },
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5560.0,
+     "already_emitted": 74.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 2720.0,
+     "placed_end_ms": 3420.0,
+     "semantic_tokens": 35,
+     "text": "一个人"
+    },
+    {
+     "fragment": 1,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4000.0,
+     "placed_end_ms": 4500.0,
+     "semantic_tokens": 25,
+     "text": "一个人站在一"
+    },
+    {
+     "fragment": 2,
+     "block_index": 29,
+     "source_end_ms": 4800,
+     "placed_start_ms": 4800.0,
+     "placed_end_ms": 5080.0,
+     "semantic_tokens": 14,
+     "text": "一个人站在一排"
+    },
+    {
+     "fragment": 3,
+     "block_index": 34,
+     "source_end_ms": 5560,
+     "placed_start_ms": 5560.0,
+     "placed_end_ms": 7820.0,
+     "semantic_tokens": 113,
+     "text": "一个人站在一排同样的红白自行车旁边"
+    }
+   ]
+  },
+  {
+   "sample_id": "NCSSD_R_ZH_0000016460",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/NCSSD_R_ZH_0000016460__p2st__stereo.wav",
+   "source_duration_ms": 8880,
+   "blocks": 56,
+   "fragments": 11,
+   "semantic_tokens": 222,
+   "first_audible_ms": 2560.0,
+   "last_audible_ms": 10040.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "或许你可以尝试去接受新的事物探索自己的兴趣或者去寻找一些新的启示",
+   "target_hypothesis": "Perhaps you can try to accept new things explore your interests or seek some new insights",
+   "transcription_reference": "或许你可以尝试去接受新的事物，探索自己的兴趣，或者去寻找一些心灵的启示。",
+   "translation_reference": "Perhaps you can try to accept new things, explore your interests, or seek some spiritual enlightenment.",
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 10.04,
+    "concatenated_seconds": 4.44,
+    "queueing_delay_ms_mean": 69.0909090909091,
+    "queueing_delay_ms_max": 320.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 15.0,
+     "source_end_ms": 2560.0,
+     "already_emitted": 0.0,
+     "budget": 228.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3840.0,
+     "already_emitted": 35.0,
+     "budget": 257.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4160.0,
+     "already_emitted": 44.0,
+     "budget": 264.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 63.0,
+     "budget": 285.0
+    },
+    {
+     "block_index": 33.0,
+     "source_end_ms": 5440.0,
+     "already_emitted": 71.0,
+     "budget": 301.0
+    },
+    {
+     "block_index": 35.0,
+     "source_end_ms": 5760.0,
+     "already_emitted": 85.0,
+     "budget": 303.0
+    },
+    {
+     "block_index": 42.0,
+     "source_end_ms": 6880.0,
+     "already_emitted": 92.0,
+     "budget": 352.0
+    },
+    {
+     "block_index": 43.0,
+     "source_end_ms": 7040.0,
+     "already_emitted": 116.0,
+     "budget": 336.0
+    },
+    {
+     "block_index": 46.0,
+     "source_end_ms": 7520.0,
+     "already_emitted": 138.0,
+     "budget": 338.0
+    },
+    {
+     "block_index": 49.0,
+     "source_end_ms": 8000.0,
+     "already_emitted": 156.0,
+     "budget": 344.0
+    },
+    {
+     "block_index": 55.0,
+     "source_end_ms": 8880.0,
+     "already_emitted": 164.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 15,
+     "source_end_ms": 2560,
+     "placed_start_ms": 2560.0,
+     "placed_end_ms": 3260.0,
+     "semantic_tokens": 35,
+     "text": "Perhaps you"
+    },
+    {
+     "fragment": 1,
+     "block_index": 23,
+     "source_end_ms": 3840,
+     "placed_start_ms": 3840.0,
+     "placed_end_ms": 4020.0,
+     "semantic_tokens": 9,
+     "text": "Perhaps you can"
+    },
+    {
+     "fragment": 2,
+     "block_index": 25,
+     "source_end_ms": 4160,
+     "placed_start_ms": 4160.0,
+     "placed_end_ms": 4540.0,
+     "semantic_tokens": 19,
+     "text": "Perhaps you can try to"
+    },
+    {
+     "fragment": 3,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 4960.0,
+     "placed_end_ms": 5120.0,
+     "semantic_tokens": 8,
+     "text": "Perhaps you can try to accept"
+    },
+    {
+     "fragment": 4,
+     "block_index": 33,
+     "source_end_ms": 5440,
+     "placed_start_ms": 5440.0,
+     "placed_end_ms": 5720.0,
+     "semantic_tokens": 14,
+     "text": "Perhaps you can try to accept new"
+    },
+    {
+     "fragment": 5,
+     "block_index": 35,
+     "source_end_ms": 5760,
+     "placed_start_ms": 5760.0,
+     "placed_end_ms": 5900.0,
+     "semantic_tokens": 7,
+     "text": "Perhaps you can try to accept new things"
+    },
+    {
+     "fragment": 6,
+     "block_index": 42,
+     "source_end_ms": 6880,
+     "placed_start_ms": 6880.0,
+     "placed_end_ms": 7360.0,
+     "semantic_tokens": 24,
+     "text": "Perhaps you can try to accept new things explore"
+    },
+    {
+     "fragment": 7,
+     "block_index": 43,
+     "source_end_ms": 7040,
+     "placed_start_ms": 7360.0,
+     "placed_end_ms": 7800.0,
+     "semantic_tokens": 22,
+     "text": "Perhaps you can try to accept new things explore your"
+    },
+    {
+     "fragment": 8,
+     "block_index": 46,
+     "source_end_ms": 7520,
+     "placed_start_ms": 7800.0,
+     "placed_end_ms": 8160.0,
+     "semantic_tokens": 18,
+     "text": "Perhaps you can try to accept new things explore your interests"
+    },
+    {
+     "fragment": 9,
+     "block_index": 49,
+     "source_end_ms": 8000,
+     "placed_start_ms": 8160.0,
+     "placed_end_ms": 8320.0,
+     "semantic_tokens": 8,
+     "text": "Perhaps you can try to accept new things explore your interests or"
+    },
+    {
+     "fragment": 10,
+     "block_index": 55,
+     "source_end_ms": 8880,
+     "placed_start_ms": 8880.0,
+     "placed_end_ms": 10040.0,
+     "semantic_tokens": 58,
+     "text": "Perhaps you can try to accept new things explore your interests or seek some new insights"
+    }
+   ]
+  },
+  {
+   "sample_id": "VCTK_0000010524",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/VCTK_0000010524__p2st__stereo.wav",
+   "source_duration_ms": 2520,
+   "blocks": 16,
+   "fragments": 2,
+   "semantic_tokens": 95,
+   "first_audible_ms": 2240.0,
+   "last_audible_ms": 4140.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "And it had been a marvelous occasion",
+   "target_hypothesis": "这是一次奇妙的场合",
+   "transcription_reference": "And it had been a marvellous occasion.",
+   "translation_reference": "这曾是一个美妙的场合。",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 4.14,
+    "concatenated_seconds": 1.9,
+    "queueing_delay_ms_mean": 270.0,
+    "queueing_delay_ms_max": 540.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 13.0,
+     "source_end_ms": 2240.0,
+     "already_emitted": 0.0,
+     "budget": 212.0
+    },
+    {
+     "block_index": 15.0,
+     "source_end_ms": 2520.0,
+     "already_emitted": 41.0,
+     "budget": 285.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 13,
+     "source_end_ms": 2240,
+     "placed_start_ms": 2240.0,
+     "placed_end_ms": 3060.0,
+     "semantic_tokens": 41,
+     "text": "这是一"
+    },
+    {
+     "fragment": 1,
+     "block_index": 15,
+     "source_end_ms": 2520,
+     "placed_start_ms": 3060.0,
+     "placed_end_ms": 4140.0,
+     "semantic_tokens": 54,
+     "text": "这是一次奇妙的场合"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005078359",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005078359__p2st__stereo.wav",
+   "source_duration_ms": 3100,
+   "blocks": 20,
+   "fragments": 2,
+   "semantic_tokens": 246,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 7200.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "劳动技术改为劳动与技术",
+   "target_hypothesis": "The labor technology has been changed to labor technology",
+   "transcription_reference": "劳动技术改为劳动与技术。",
+   "translation_reference": "Labor technology is changed to labor and technology.",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 7.2,
+    "concatenated_seconds": 4.92,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 19.0,
+     "source_end_ms": 3100.0,
+     "already_emitted": 41.0,
+     "budget": 314.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 2900.0,
+     "semantic_tokens": 41,
+     "text": "The"
+    },
+    {
+     "fragment": 1,
+     "block_index": 19,
+     "source_end_ms": 3100,
+     "placed_start_ms": 3100.0,
+     "placed_end_ms": 7200.0,
+     "semantic_tokens": 205,
+     "text": "The labor technology has been changed to labor technology"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005313379",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005313379__p2st__stereo.wav",
+   "source_duration_ms": 6020,
+   "blocks": 38,
+   "fragments": 9,
+   "semantic_tokens": 456,
+   "first_audible_ms": 1920.0,
+   "last_audible_ms": 11040.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "贴住我们这个天花板和纸巾啊贴在上面然后用气流把它冲开",
+   "target_hypothesis": "Stick to our ceiling and paper巾贴上去然后用气流把它冲开",
+   "transcription_reference": "贴住我们的这个天花板和齿银啊，贴在上面，然后用气流把它冲开。",
+   "translation_reference": "Stick it to the ceiling and the silver teeth, then use the airflow to blow it off.",
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 11.04,
+    "concatenated_seconds": 9.12,
+    "queueing_delay_ms_mean": 1340.0,
+    "queueing_delay_ms_max": 3320.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 11.0,
+     "source_end_ms": 1920.0,
+     "already_emitted": 0.0,
+     "budget": 196.0
+    },
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 68.0,
+     "budget": 168.0
+    },
+    {
+     "block_index": 17.0,
+     "source_end_ms": 2880.0,
+     "already_emitted": 93.0,
+     "budget": 151.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4160.0,
+     "already_emitted": 151.0,
+     "budget": 157.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 196.0,
+     "budget": 152.0
+    },
+    {
+     "block_index": 33.0,
+     "source_end_ms": 5440.0,
+     "already_emitted": 210.0,
+     "budget": 162.0
+    },
+    {
+     "block_index": 35.0,
+     "source_end_ms": 5760.0,
+     "already_emitted": 280.0,
+     "budget": 108.0
+    },
+    {
+     "block_index": 36.0,
+     "source_end_ms": 5920.0,
+     "already_emitted": 359.0,
+     "budget": 37.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6020.0,
+     "already_emitted": 371.0,
+     "budget": 130.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 11,
+     "source_end_ms": 1920,
+     "placed_start_ms": 1920.0,
+     "placed_end_ms": 3280.0,
+     "semantic_tokens": 68,
+     "text": "Stick to"
+    },
+    {
+     "fragment": 1,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 3280.0,
+     "placed_end_ms": 3780.0,
+     "semantic_tokens": 25,
+     "text": "Stick to our"
+    },
+    {
+     "fragment": 2,
+     "block_index": 17,
+     "source_end_ms": 2880,
+     "placed_start_ms": 3780.0,
+     "placed_end_ms": 4940.0,
+     "semantic_tokens": 58,
+     "text": "Stick to our ceiling"
+    },
+    {
+     "fragment": 3,
+     "block_index": 25,
+     "source_end_ms": 4160,
+     "placed_start_ms": 4940.0,
+     "placed_end_ms": 5840.0,
+     "semantic_tokens": 45,
+     "text": "Stick to our ceiling and"
+    },
+    {
+     "fragment": 4,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 5840.0,
+     "placed_end_ms": 6120.0,
+     "semantic_tokens": 14,
+     "text": "Stick to our ceiling and paper"
+    },
+    {
+     "fragment": 5,
+     "block_index": 33,
+     "source_end_ms": 5440,
+     "placed_start_ms": 6120.0,
+     "placed_end_ms": 7520.0,
+     "semantic_tokens": 70,
+     "text": "Stick to our ceiling and paper巾贴上去"
+    },
+    {
+     "fragment": 6,
+     "block_index": 35,
+     "source_end_ms": 5760,
+     "placed_start_ms": 7520.0,
+     "placed_end_ms": 9100.0,
+     "semantic_tokens": 79,
+     "text": "Stick to our ceiling and paper巾贴上去然后用"
+    },
+    {
+     "fragment": 7,
+     "block_index": 36,
+     "source_end_ms": 5920,
+     "placed_start_ms": 9100.0,
+     "placed_end_ms": 9340.0,
+     "semantic_tokens": 12,
+     "text": "Stick to our ceiling and paper巾贴上去然后用气"
+    },
+    {
+     "fragment": 8,
+     "block_index": 37,
+     "source_end_ms": 6020,
+     "placed_start_ms": 9340.0,
+     "placed_end_ms": 11040.0,
+     "semantic_tokens": 85,
+     "text": "Stick to our ceiling and paper巾贴上去然后用气流把它冲开"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005338342",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005338342__p2st__stereo.wav",
+   "source_duration_ms": 4260,
+   "blocks": 27,
+   "fragments": 5,
+   "semantic_tokens": 386,
+   "first_audible_ms": 1280.0,
+   "last_audible_ms": 9460.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "同时其本身携带的神秘信息也有待解开",
+   "target_hypothesis": "At the same time the mysterious information it carries also needs to be unraveled",
+   "transcription_reference": "同时，其本身携带的神秘信息也有待被揭开。",
+   "translation_reference": "At the same time, the mysterious information it carries also awaits to be revealed.",
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 9.46,
+    "concatenated_seconds": 7.72,
+    "queueing_delay_ms_mean": 416.0,
+    "queueing_delay_ms_max": 2060.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 7.0,
+     "source_end_ms": 1280.0,
+     "already_emitted": 0.0,
+     "budget": 164.0
+    },
+    {
+     "block_index": 17.0,
+     "source_end_ms": 2880.0,
+     "already_emitted": 73.0,
+     "budget": 171.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3360.0,
+     "already_emitted": 98.0,
+     "budget": 170.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3840.0,
+     "already_emitted": 105.0,
+     "budget": 187.0
+    },
+    {
+     "block_index": 26.0,
+     "source_end_ms": 4260.0,
+     "already_emitted": 229.0,
+     "budget": 184.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 7,
+     "source_end_ms": 1280,
+     "placed_start_ms": 1280.0,
+     "placed_end_ms": 2740.0,
+     "semantic_tokens": 73,
+     "text": "At the same"
+    },
+    {
+     "fragment": 1,
+     "block_index": 17,
+     "source_end_ms": 2880,
+     "placed_start_ms": 2880.0,
+     "placed_end_ms": 3380.0,
+     "semantic_tokens": 25,
+     "text": "At the same time"
+    },
+    {
+     "fragment": 2,
+     "block_index": 20,
+     "source_end_ms": 3360,
+     "placed_start_ms": 3380.0,
+     "placed_end_ms": 3520.0,
+     "semantic_tokens": 7,
+     "text": "At the same time the"
+    },
+    {
+     "fragment": 3,
+     "block_index": 23,
+     "source_end_ms": 3840,
+     "placed_start_ms": 3840.0,
+     "placed_end_ms": 6320.0,
+     "semantic_tokens": 124,
+     "text": "At the same time the mysterious information it"
+    },
+    {
+     "fragment": 4,
+     "block_index": 26,
+     "source_end_ms": 4260,
+     "placed_start_ms": 6320.0,
+     "placed_end_ms": 9460.0,
+     "semantic_tokens": 157,
+     "text": "At the same time the mysterious information it carries also needs to be unraveled"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0006419842",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0006419842__p2st__stereo.wav",
+   "source_duration_ms": 4000,
+   "blocks": 25,
+   "fragments": 3,
+   "semantic_tokens": 146,
+   "first_audible_ms": 2240.0,
+   "last_audible_ms": 6000.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "These gals show is that osborne is brave",
+   "target_hypothesis": "这些女孩表明奥斯本勇敢",
+   "transcription_reference": " All these scll show is that my husband is behave.",
+   "translation_reference": "这些记录显示我的丈夫行为良好。",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 6.0,
+    "concatenated_seconds": 2.92,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 13.0,
+     "source_end_ms": 2240.0,
+     "already_emitted": 0.0,
+     "budget": 212.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3360.0,
+     "already_emitted": 21.0,
+     "budget": 247.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 46.0,
+     "budget": 354.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 13,
+     "source_end_ms": 2240,
+     "placed_start_ms": 2240.0,
+     "placed_end_ms": 2660.0,
+     "semantic_tokens": 21,
+     "text": "这些"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3360,
+     "placed_start_ms": 3360.0,
+     "placed_end_ms": 3860.0,
+     "semantic_tokens": 25,
+     "text": "这些女孩"
+    },
+    {
+     "fragment": 2,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4000.0,
+     "placed_end_ms": 6000.0,
+     "semantic_tokens": 100,
+     "text": "这些女孩表明奥斯本勇敢"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0006463231",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0006463231__p2st__stereo.wav",
+   "source_duration_ms": 8180,
+   "blocks": 52,
+   "fragments": 8,
+   "semantic_tokens": 397,
+   "first_audible_ms": 2400.0,
+   "last_audible_ms": 12040.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "One thousand dollars said the lawyer told man in a severe serious voice and here is the money",
+   "target_hypothesis": "一千美元律师用严厉而严肃的声音对那人说钱",
+   "transcription_reference": " One thousand dollars said the lawyer tomman in a severe and serious voice. And here is the money.",
+   "translation_reference": "律师汤曼用严厉而认真的语气说道：“一千美元。”这是钱。",
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 12.04,
+    "concatenated_seconds": 7.94,
+    "queueing_delay_ms_mean": 742.5,
+    "queueing_delay_ms_max": 3560.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 14.0,
+     "source_end_ms": 2400.0,
+     "already_emitted": 0.0,
+     "budget": 220.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 21.0,
+     "budget": 279.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 55.0,
+     "budget": 277.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 113.0,
+     "budget": 291.0
+    },
+    {
+     "block_index": 41.0,
+     "source_end_ms": 6720.0,
+     "already_emitted": 131.0,
+     "budget": 305.0
+    },
+    {
+     "block_index": 44.0,
+     "source_end_ms": 7200.0,
+     "already_emitted": 182.0,
+     "budget": 278.0
+    },
+    {
+     "block_index": 49.0,
+     "source_end_ms": 8000.0,
+     "already_emitted": 285.0,
+     "budget": 215.0
+    },
+    {
+     "block_index": 51.0,
+     "source_end_ms": 8180.0,
+     "already_emitted": 382.0,
+     "budget": 227.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 14,
+     "source_end_ms": 2400,
+     "placed_start_ms": 2400.0,
+     "placed_end_ms": 2820.0,
+     "semantic_tokens": 21,
+     "text": "一千"
+    },
+    {
+     "fragment": 1,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4000.0,
+     "placed_end_ms": 4680.0,
+     "semantic_tokens": 34,
+     "text": "一千美元"
+    },
+    {
+     "fragment": 2,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 4680.0,
+     "placed_end_ms": 5840.0,
+     "semantic_tokens": 58,
+     "text": "一千美元律师"
+    },
+    {
+     "fragment": 3,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 6080.0,
+     "placed_end_ms": 6440.0,
+     "semantic_tokens": 18,
+     "text": "一千美元律师用"
+    },
+    {
+     "fragment": 4,
+     "block_index": 41,
+     "source_end_ms": 6720,
+     "placed_start_ms": 6720.0,
+     "placed_end_ms": 7740.0,
+     "semantic_tokens": 51,
+     "text": "一千美元律师用严厉而"
+    },
+    {
+     "fragment": 5,
+     "block_index": 44,
+     "source_end_ms": 7200,
+     "placed_start_ms": 7740.0,
+     "placed_end_ms": 9800.0,
+     "semantic_tokens": 103,
+     "text": "一千美元律师用严厉而严肃的声音对那人"
+    },
+    {
+     "fragment": 6,
+     "block_index": 49,
+     "source_end_ms": 8000,
+     "placed_start_ms": 9800.0,
+     "placed_end_ms": 11740.0,
+     "semantic_tokens": 97,
+     "text": "一千美元律师用严厉而严肃的声音对那人说"
+    },
+    {
+     "fragment": 7,
+     "block_index": 51,
+     "source_end_ms": 8180,
+     "placed_start_ms": 11740.0,
+     "placed_end_ms": 12040.0,
+     "semantic_tokens": 15,
+     "text": "一千美元律师用严厉而严肃的声音对那人说钱"
+    }
+   ]
+  }
+ ]
+}

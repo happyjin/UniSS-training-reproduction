@@ -1,0 +1,960 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000581204",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/CommonVoice_EN_0000581204__p2st__stereo.wav",
+   "source_duration_ms": 6000,
+   "blocks": 38,
+   "fragments": 4,
+   "semantic_tokens": 201,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 7780.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "The engine uses a gas generator cycle with two independent turbo pumps The",
+   "target_hypothesis": "发动机使用一个带有两个独立涡轮泵的燃气发电机循环",
+   "transcription_reference": "The engine uses a gas generator cycle with two independent turbopumps.",
+   "translation_reference": "发动机采用燃气发生器循环，配备两个独立的涡轮泵。",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 7.78,
+    "concatenated_seconds": 4.02,
+    "queueing_delay_ms_mean": 150.0,
+    "queueing_delay_ms_max": 600.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 46.0,
+     "budget": 286.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 92.0,
+     "budget": 256.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6000.0,
+     "already_emitted": 112.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 3000.0,
+     "semantic_tokens": 46,
+     "text": "发动机"
+    },
+    {
+     "fragment": 1,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 4640.0,
+     "placed_end_ms": 5560.0,
+     "semantic_tokens": 46,
+     "text": "发动机使用一个带有"
+    },
+    {
+     "fragment": 2,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 5560.0,
+     "placed_end_ms": 5960.0,
+     "semantic_tokens": 20,
+     "text": "发动机使用一个带有两个"
+    },
+    {
+     "fragment": 3,
+     "block_index": 37,
+     "source_end_ms": 6000,
+     "placed_start_ms": 6000.0,
+     "placed_end_ms": 7780.0,
+     "semantic_tokens": 89,
+     "text": "发动机使用一个带有两个独立涡轮泵的燃气发电机循环"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0003998544",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0003998544__p2st__stereo.wav",
+   "source_duration_ms": 3340,
+   "blocks": 21,
+   "fragments": 3,
+   "semantic_tokens": 215,
+   "first_audible_ms": 1600.0,
+   "last_audible_ms": 6420.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "大家还没有听说过之前那个过年有穿新衣",
+   "target_hypothesis": "No one has heard of the new clothes worn during the New Year",
+   "transcription_reference": "哎，大家还有没有听说过，就是那个过年要穿新衣？",
+   "translation_reference": "Hey, has anyone heard about wearing new clothes during the New Year?",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 6.42,
+    "concatenated_seconds": 4.3,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 9.0,
+     "source_end_ms": 1600.0,
+     "already_emitted": 0.0,
+     "budget": 180.0
+    },
+    {
+     "block_index": 14.0,
+     "source_end_ms": 2400.0,
+     "already_emitted": 28.0,
+     "budget": 192.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3340.0,
+     "already_emitted": 61.0,
+     "budget": 306.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 9,
+     "source_end_ms": 1600,
+     "placed_start_ms": 1600.0,
+     "placed_end_ms": 2160.0,
+     "semantic_tokens": 28,
+     "text": "No one"
+    },
+    {
+     "fragment": 1,
+     "block_index": 14,
+     "source_end_ms": 2400,
+     "placed_start_ms": 2400.0,
+     "placed_end_ms": 3060.0,
+     "semantic_tokens": 33,
+     "text": "No one has heard"
+    },
+    {
+     "fragment": 2,
+     "block_index": 20,
+     "source_end_ms": 3340,
+     "placed_start_ms": 3340.0,
+     "placed_end_ms": 6420.0,
+     "semantic_tokens": 154,
+     "text": "No one has heard of the new clothes worn during the New Year"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0004717468",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0004717468__p2st__stereo.wav",
+   "source_duration_ms": 9660,
+   "blocks": 61,
+   "fragments": 12,
+   "semantic_tokens": 369,
+   "first_audible_ms": 1440.0,
+   "last_audible_ms": 12800.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "Harry didn't have a clue what was going on and neither ron nor hamani explained anything until they had dragged him all the way up to the empty grifking dog common room",
+   "target_hypothesis": "哈利不知道发生了什么罗恩和哈马尼直到把他拖到空荡荡的狗窝前才解释清楚",
+   "transcription_reference": " Harry didn't have a clue what was going on, and neither run nor harmany explained anything until they had dragged him all the way up to the empty griffin or commmonroom.",
+   "translation_reference": "哈利不知道发生了什么，直到他们把他一路拖到空无一人的格兰芬多公共休息室，罗恩和赫敏都没有解释任何事情。",
+   "placement": {
+    "fragments": 12,
+    "placed_seconds": 12.8,
+    "concatenated_seconds": 7.38,
+    "queueing_delay_ms_mean": 26.666666666666668,
+    "queueing_delay_ms_max": 160.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 8.0,
+     "source_end_ms": 1440.0,
+     "already_emitted": 0.0,
+     "budget": 172.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3360.0,
+     "already_emitted": 16.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 27.0,
+     "source_end_ms": 4480.0,
+     "already_emitted": 74.0,
+     "budget": 250.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 86.0,
+     "budget": 246.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 96.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5600.0,
+     "already_emitted": 126.0,
+     "budget": 254.0
+    },
+    {
+     "block_index": 41.0,
+     "source_end_ms": 6720.0,
+     "already_emitted": 147.0,
+     "budget": 289.0
+    },
+    {
+     "block_index": 46.0,
+     "source_end_ms": 7520.0,
+     "already_emitted": 167.0,
+     "budget": 309.0
+    },
+    {
+     "block_index": 47.0,
+     "source_end_ms": 7680.0,
+     "already_emitted": 183.0,
+     "budget": 301.0
+    },
+    {
+     "block_index": 49.0,
+     "source_end_ms": 8000.0,
+     "already_emitted": 191.0,
+     "budget": 309.0
+    },
+    {
+     "block_index": 56.0,
+     "source_end_ms": 9120.0,
+     "already_emitted": 203.0,
+     "budget": 353.0
+    },
+    {
+     "block_index": 60.0,
+     "source_end_ms": 9660.0,
+     "already_emitted": 212.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 8,
+     "source_end_ms": 1440,
+     "placed_start_ms": 1440.0,
+     "placed_end_ms": 1760.0,
+     "semantic_tokens": 16,
+     "text": "哈利"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3360,
+     "placed_start_ms": 3360.0,
+     "placed_end_ms": 4520.0,
+     "semantic_tokens": 58,
+     "text": "哈利不知道发生了"
+    },
+    {
+     "fragment": 2,
+     "block_index": 27,
+     "source_end_ms": 4480,
+     "placed_start_ms": 4520.0,
+     "placed_end_ms": 4760.0,
+     "semantic_tokens": 12,
+     "text": "哈利不知道发生了什么罗"
+    },
+    {
+     "fragment": 3,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 4760.0,
+     "placed_end_ms": 4960.0,
+     "semantic_tokens": 10,
+     "text": "哈利不知道发生了什么罗恩"
+    },
+    {
+     "fragment": 4,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 4960.0,
+     "placed_end_ms": 5560.0,
+     "semantic_tokens": 30,
+     "text": "哈利不知道发生了什么罗恩和"
+    },
+    {
+     "fragment": 5,
+     "block_index": 34,
+     "source_end_ms": 5600,
+     "placed_start_ms": 5600.0,
+     "placed_end_ms": 6020.0,
+     "semantic_tokens": 21,
+     "text": "哈利不知道发生了什么罗恩和哈马"
+    },
+    {
+     "fragment": 6,
+     "block_index": 41,
+     "source_end_ms": 6720,
+     "placed_start_ms": 6720.0,
+     "placed_end_ms": 7120.0,
+     "semantic_tokens": 20,
+     "text": "哈利不知道发生了什么罗恩和哈马尼"
+    },
+    {
+     "fragment": 7,
+     "block_index": 46,
+     "source_end_ms": 7520,
+     "placed_start_ms": 7520.0,
+     "placed_end_ms": 7840.0,
+     "semantic_tokens": 16,
+     "text": "哈利不知道发生了什么罗恩和哈马尼直到"
+    },
+    {
+     "fragment": 8,
+     "block_index": 47,
+     "source_end_ms": 7680,
+     "placed_start_ms": 7840.0,
+     "placed_end_ms": 8000.0,
+     "semantic_tokens": 8,
+     "text": "哈利不知道发生了什么罗恩和哈马尼直到把"
+    },
+    {
+     "fragment": 9,
+     "block_index": 49,
+     "source_end_ms": 8000,
+     "placed_start_ms": 8000.0,
+     "placed_end_ms": 8240.0,
+     "semantic_tokens": 12,
+     "text": "哈利不知道发生了什么罗恩和哈马尼直到把他拖"
+    },
+    {
+     "fragment": 10,
+     "block_index": 56,
+     "source_end_ms": 9120,
+     "placed_start_ms": 9120.0,
+     "placed_end_ms": 9300.0,
+     "semantic_tokens": 9,
+     "text": "哈利不知道发生了什么罗恩和哈马尼直到把他拖到"
+    },
+    {
+     "fragment": 11,
+     "block_index": 60,
+     "source_end_ms": 9660,
+     "placed_start_ms": 9660.0,
+     "placed_end_ms": 12800.0,
+     "semantic_tokens": 157,
+     "text": "哈利不知道发生了什么罗恩和哈马尼直到把他拖到空荡荡的狗窝前才解释清楚"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0004731085",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0004731085__p2st__stereo.wav",
+   "source_duration_ms": 4360,
+   "blocks": 28,
+   "fragments": 3,
+   "semantic_tokens": 191,
+   "first_audible_ms": 2720.0,
+   "last_audible_ms": 7980.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "Five minutes later whistles blue and trains started",
+   "target_hypothesis": "五分钟后哨声响起火车启动",
+   "transcription_reference": " Five minutes later, whistles, blue and the train started.",
+   "translation_reference": "五分钟后，哨声响起，火车启动了。",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 7.98,
+    "concatenated_seconds": 3.82,
+    "queueing_delay_ms_mean": 620.0,
+    "queueing_delay_ms_max": 1860.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 16.0,
+     "source_end_ms": 2720.0,
+     "already_emitted": 0.0,
+     "budget": 236.0
+    },
+    {
+     "block_index": 26.0,
+     "source_end_ms": 4320.0,
+     "already_emitted": 8.0,
+     "budget": 308.0
+    },
+    {
+     "block_index": 27.0,
+     "source_end_ms": 4360.0,
+     "already_emitted": 103.0,
+     "budget": 315.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 16,
+     "source_end_ms": 2720,
+     "placed_start_ms": 2720.0,
+     "placed_end_ms": 2880.0,
+     "semantic_tokens": 8,
+     "text": "五"
+    },
+    {
+     "fragment": 1,
+     "block_index": 26,
+     "source_end_ms": 4320,
+     "placed_start_ms": 4320.0,
+     "placed_end_ms": 6220.0,
+     "semantic_tokens": 95,
+     "text": "五分钟后哨声"
+    },
+    {
+     "fragment": 2,
+     "block_index": 27,
+     "source_end_ms": 4360,
+     "placed_start_ms": 6220.0,
+     "placed_end_ms": 7980.0,
+     "semantic_tokens": 88,
+     "text": "五分钟后哨声响起火车启动"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0004881254",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0004881254__p2st__stereo.wav",
+   "source_duration_ms": 3080,
+   "blocks": 20,
+   "fragments": 3,
+   "semantic_tokens": 110,
+   "first_audible_ms": 2400.0,
+   "last_audible_ms": 4600.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "You see i can ride the clouds",
+   "target_hypothesis": "你看我可以骑云",
+   "transcription_reference": " You see, i can't write the clouds.",
+   "translation_reference": "你看，我无法描绘云朵。",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 4.6,
+    "concatenated_seconds": 2.2,
+    "queueing_delay_ms_mean": 340.0,
+    "queueing_delay_ms_max": 880.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 14.0,
+     "source_end_ms": 2400.0,
+     "already_emitted": 0.0,
+     "budget": 220.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 39.0,
+     "budget": 213.0
+    },
+    {
+     "block_index": 19.0,
+     "source_end_ms": 3080.0,
+     "already_emitted": 78.0,
+     "budget": 276.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 14,
+     "source_end_ms": 2400,
+     "placed_start_ms": 2400.0,
+     "placed_end_ms": 3180.0,
+     "semantic_tokens": 39,
+     "text": "你看"
+    },
+    {
+     "fragment": 1,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3180.0,
+     "placed_end_ms": 3960.0,
+     "semantic_tokens": 39,
+     "text": "你看我可以"
+    },
+    {
+     "fragment": 2,
+     "block_index": 19,
+     "source_end_ms": 3080,
+     "placed_start_ms": 3960.0,
+     "placed_end_ms": 4600.0,
+     "semantic_tokens": 32,
+     "text": "你看我可以骑云"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005292975",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005292975__p2st__stereo.wav",
+   "source_duration_ms": 4640,
+   "blocks": 29,
+   "fragments": 4,
+   "semantic_tokens": 210,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 6620.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "Indifferent表示冷漠无动于衷或者是无所谓的意思",
+   "target_hypothesis": "Indifferent indicates indifference indifferent or indifferent meaning",
+   "transcription_reference": " Indifference表示冷漠、无动于衷，或者是无所谓的意思。",
+   "translation_reference": "Indifference indicates coldness, apathy, or a lack of concern.",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 6.62,
+    "concatenated_seconds": 4.2,
+    "queueing_delay_ms_mean": 280.0,
+    "queueing_delay_ms_max": 660.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 19.0,
+     "source_end_ms": 3200.0,
+     "already_emitted": 39.0,
+     "budget": 221.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3840.0,
+     "already_emitted": 104.0,
+     "budget": 188.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 134.0,
+     "budget": 298.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 2860.0,
+     "semantic_tokens": 39,
+     "text": "Ind"
+    },
+    {
+     "fragment": 1,
+     "block_index": 19,
+     "source_end_ms": 3200,
+     "placed_start_ms": 3200.0,
+     "placed_end_ms": 4500.0,
+     "semantic_tokens": 65,
+     "text": "Indifferent indicates"
+    },
+    {
+     "fragment": 2,
+     "block_index": 23,
+     "source_end_ms": 3840,
+     "placed_start_ms": 4500.0,
+     "placed_end_ms": 5100.0,
+     "semantic_tokens": 30,
+     "text": "Indifferent indicates indifference"
+    },
+    {
+     "fragment": 3,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 5100.0,
+     "placed_end_ms": 6620.0,
+     "semantic_tokens": 76,
+     "text": "Indifferent indicates indifference indifferent or indifferent meaning"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005590771",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005590771__p2st__stereo.wav",
+   "source_duration_ms": 10020,
+   "blocks": 63,
+   "fragments": 6,
+   "semantic_tokens": 478,
+   "first_audible_ms": 4480.0,
+   "last_audible_ms": 14920.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "然后又有自己特殊的运动爱好而且能力他是一个非常善于打篮球滑雪的这么一个人",
+   "target_hypothesis": "Then there is a special exercise hobby of his and he is very good at playing basketball and skiing",
+   "transcription_reference": "然后呢，又有自己特殊的运动爱好，而且和能力，他是一个非常善于打篮球和滑雪的这么一个人。",
+   "translation_reference": "Then, he has his own special sports hobbies and abilities; he is very good at playing basketball and skiing.",
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 14.92,
+    "concatenated_seconds": 9.56,
+    "queueing_delay_ms_mean": 826.6666666666666,
+    "queueing_delay_ms_max": 1940.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 27.0,
+     "source_end_ms": 4480.0,
+     "already_emitted": 0.0,
+     "budget": 324.0
+    },
+    {
+     "block_index": 41.0,
+     "source_end_ms": 6720.0,
+     "already_emitted": 68.0,
+     "budget": 368.0
+    },
+    {
+     "block_index": 50.0,
+     "source_end_ms": 8160.0,
+     "already_emitted": 152.0,
+     "budget": 356.0
+    },
+    {
+     "block_index": 52.0,
+     "source_end_ms": 8480.0,
+     "already_emitted": 221.0,
+     "budget": 303.0
+    },
+    {
+     "block_index": 57.0,
+     "source_end_ms": 9280.0,
+     "already_emitted": 270.0,
+     "budget": 294.0
+    },
+    {
+     "block_index": 62.0,
+     "source_end_ms": 10020.0,
+     "already_emitted": 330.0,
+     "budget": 371.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 27,
+     "source_end_ms": 4480,
+     "placed_start_ms": 4480.0,
+     "placed_end_ms": 5840.0,
+     "semantic_tokens": 68,
+     "text": "Then there is a"
+    },
+    {
+     "fragment": 1,
+     "block_index": 41,
+     "source_end_ms": 6720,
+     "placed_start_ms": 6720.0,
+     "placed_end_ms": 8400.0,
+     "semantic_tokens": 84,
+     "text": "Then there is a special exercise hobby"
+    },
+    {
+     "fragment": 2,
+     "block_index": 50,
+     "source_end_ms": 8160,
+     "placed_start_ms": 8400.0,
+     "placed_end_ms": 9780.0,
+     "semantic_tokens": 69,
+     "text": "Then there is a special exercise hobby of his and he"
+    },
+    {
+     "fragment": 3,
+     "block_index": 52,
+     "source_end_ms": 8480,
+     "placed_start_ms": 9780.0,
+     "placed_end_ms": 10760.0,
+     "semantic_tokens": 49,
+     "text": "Then there is a special exercise hobby of his and he is very good"
+    },
+    {
+     "fragment": 4,
+     "block_index": 57,
+     "source_end_ms": 9280,
+     "placed_start_ms": 10760.0,
+     "placed_end_ms": 11960.0,
+     "semantic_tokens": 60,
+     "text": "Then there is a special exercise hobby of his and he is very good at playing"
+    },
+    {
+     "fragment": 5,
+     "block_index": 62,
+     "source_end_ms": 10020,
+     "placed_start_ms": 11960.0,
+     "placed_end_ms": 14920.0,
+     "semantic_tokens": 148,
+     "text": "Then there is a special exercise hobby of his and he is very good at playing basketball and skiing"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0006186464",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0006186464__p2st__stereo.wav",
+   "source_duration_ms": 6620,
+   "blocks": 42,
+   "fragments": 10,
+   "semantic_tokens": 492,
+   "first_audible_ms": 1280.0,
+   "last_audible_ms": 11360.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "那个时候我就工作了之后我经常出去玩我就会发现我跟其他的朋友出去玩的时候",
+   "target_hypothesis": "At that time after I started working I often went out to play and I found that when I went out to play with other friends",
+   "transcription_reference": "那个时候我就工作了之后，我经常出去玩，我就会发现我跟其他的朋友出去玩的时候。",
+   "translation_reference": "At that time, after I started working, I often went out to play and noticed that when I went out with other friends.",
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 11.36,
+    "concatenated_seconds": 9.84,
+    "queueing_delay_ms_mean": 1130.0,
+    "queueing_delay_ms_max": 2240.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 7.0,
+     "source_end_ms": 1280.0,
+     "already_emitted": 0.0,
+     "budget": 164.0
+    },
+    {
+     "block_index": 11.0,
+     "source_end_ms": 1920.0,
+     "already_emitted": 32.0,
+     "budget": 164.0
+    },
+    {
+     "block_index": 15.0,
+     "source_end_ms": 2560.0,
+     "already_emitted": 52.0,
+     "budget": 176.0
+    },
+    {
+     "block_index": 17.0,
+     "source_end_ms": 2880.0,
+     "already_emitted": 119.0,
+     "budget": 125.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3360.0,
+     "already_emitted": 150.0,
+     "budget": 118.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3840.0,
+     "already_emitted": 200.0,
+     "budget": 92.0
+    },
+    {
+     "block_index": 29.0,
+     "source_end_ms": 4800.0,
+     "already_emitted": 218.0,
+     "budget": 122.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 281.0,
+     "budget": 67.0
+    },
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5600.0,
+     "already_emitted": 316.0,
+     "budget": 64.0
+    },
+    {
+     "block_index": 41.0,
+     "source_end_ms": 6620.0,
+     "already_emitted": 352.0,
+     "budget": 179.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 7,
+     "source_end_ms": 1280,
+     "placed_start_ms": 1280.0,
+     "placed_end_ms": 1920.0,
+     "semantic_tokens": 32,
+     "text": "At that"
+    },
+    {
+     "fragment": 1,
+     "block_index": 11,
+     "source_end_ms": 1920,
+     "placed_start_ms": 1920.0,
+     "placed_end_ms": 2320.0,
+     "semantic_tokens": 20,
+     "text": "At that time"
+    },
+    {
+     "fragment": 2,
+     "block_index": 15,
+     "source_end_ms": 2560,
+     "placed_start_ms": 2560.0,
+     "placed_end_ms": 3900.0,
+     "semantic_tokens": 67,
+     "text": "At that time after I started"
+    },
+    {
+     "fragment": 3,
+     "block_index": 17,
+     "source_end_ms": 2880,
+     "placed_start_ms": 3900.0,
+     "placed_end_ms": 4520.0,
+     "semantic_tokens": 31,
+     "text": "At that time after I started working I"
+    },
+    {
+     "fragment": 4,
+     "block_index": 20,
+     "source_end_ms": 3360,
+     "placed_start_ms": 4520.0,
+     "placed_end_ms": 5520.0,
+     "semantic_tokens": 50,
+     "text": "At that time after I started working I often went"
+    },
+    {
+     "fragment": 5,
+     "block_index": 23,
+     "source_end_ms": 3840,
+     "placed_start_ms": 5520.0,
+     "placed_end_ms": 5880.0,
+     "semantic_tokens": 18,
+     "text": "At that time after I started working I often went out to"
+    },
+    {
+     "fragment": 6,
+     "block_index": 29,
+     "source_end_ms": 4800,
+     "placed_start_ms": 5880.0,
+     "placed_end_ms": 7140.0,
+     "semantic_tokens": 63,
+     "text": "At that time after I started working I often went out to play and"
+    },
+    {
+     "fragment": 7,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 7140.0,
+     "placed_end_ms": 7840.0,
+     "semantic_tokens": 35,
+     "text": "At that time after I started working I often went out to play and I"
+    },
+    {
+     "fragment": 8,
+     "block_index": 34,
+     "source_end_ms": 5600,
+     "placed_start_ms": 7840.0,
+     "placed_end_ms": 8560.0,
+     "semantic_tokens": 36,
+     "text": "At that time after I started working I often went out to play and I found that"
+    },
+    {
+     "fragment": 9,
+     "block_index": 41,
+     "source_end_ms": 6620,
+     "placed_start_ms": 8560.0,
+     "placed_end_ms": 11360.0,
+     "semantic_tokens": 140,
+     "text": "At that time after I started working I often went out to play and I found that when I went out to play with other friends"
+    }
+   ]
+  }
+ ]
+}

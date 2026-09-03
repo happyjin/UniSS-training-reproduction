@@ -1,0 +1,255 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000031307",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/FIXED16/audio/LibriSpeech_0000031307__p2st__stereo.wav",
+   "source_duration_ms": 13180,
+   "blocks": 83,
+   "fragments": 10,
+   "semantic_tokens": 507,
+   "first_audible_ms": 4000.0,
+   "last_audible_ms": 15500.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "This was an honor to which I had long espired but being a new boy I was not admitted to the fraternity until my character had fully developed itself It was a very select society The object of which I never found",
+   "target_hypothesis": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格完全成熟它是一个非常精选的社会我从未找到",
+   "transcription_reference": "This was an honor to which I had long aspired, But being a new boy, I was not admitted to the fraternity until my character had fully developed itself. It was a very select society, the object of which I never fathomed.",
+   "translation_reference": "这是一项我长久以来一直向往的荣誉，但作为新人，直到我的品格完全成熟之后，我才有资格加入这个团体。这是一个非常精英的社团，其目的我从未完全理解。",
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 15.5,
+    "concatenated_seconds": 10.14,
+    "queueing_delay_ms_mean": 722.0,
+    "queueing_delay_ms_max": 1820.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 0.0,
+     "budget": 300.0
+    },
+    {
+     "block_index": 26.0,
+     "source_end_ms": 4320.0,
+     "already_emitted": 52.0,
+     "budget": 264.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 106.0,
+     "budget": 242.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 148.0,
+     "budget": 256.0
+    },
+    {
+     "block_index": 48.0,
+     "source_end_ms": 7840.0,
+     "already_emitted": 173.0,
+     "budget": 319.0
+    },
+    {
+     "block_index": 51.0,
+     "source_end_ms": 8320.0,
+     "already_emitted": 288.0,
+     "budget": 228.0
+    },
+    {
+     "block_index": 59.0,
+     "source_end_ms": 9600.0,
+     "already_emitted": 304.0,
+     "budget": 276.0
+    },
+    {
+     "block_index": 73.0,
+     "source_end_ms": 11840.0,
+     "already_emitted": 324.0,
+     "budget": 368.0
+    },
+    {
+     "block_index": 80.0,
+     "source_end_ms": 12960.0,
+     "already_emitted": 420.0,
+     "budget": 328.0
+    },
+    {
+     "block_index": 82.0,
+     "source_end_ms": 13180.0,
+     "already_emitted": 440.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4000.0,
+     "placed_end_ms": 5040.0,
+     "semantic_tokens": 52,
+     "text": "这是我长期以来"
+    },
+    {
+     "fragment": 1,
+     "block_index": 26,
+     "source_end_ms": 4320,
+     "placed_start_ms": 5040.0,
+     "placed_end_ms": 6120.0,
+     "semantic_tokens": 54,
+     "text": "这是我长期以来渴望的荣誉但"
+    },
+    {
+     "fragment": 2,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 6120.0,
+     "placed_end_ms": 6960.0,
+     "semantic_tokens": 42,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子"
+    },
+    {
+     "fragment": 3,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 6960.0,
+     "placed_end_ms": 7460.0,
+     "semantic_tokens": 25,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有"
+    },
+    {
+     "fragment": 4,
+     "block_index": 48,
+     "source_end_ms": 7840,
+     "placed_start_ms": 7840.0,
+     "placed_end_ms": 10140.0,
+     "semantic_tokens": 115,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的"
+    },
+    {
+     "fragment": 5,
+     "block_index": 51,
+     "source_end_ms": 8320,
+     "placed_start_ms": 10140.0,
+     "placed_end_ms": 10460.0,
+     "semantic_tokens": 16,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格"
+    },
+    {
+     "fragment": 6,
+     "block_index": 59,
+     "source_end_ms": 9600,
+     "placed_start_ms": 10460.0,
+     "placed_end_ms": 10860.0,
+     "semantic_tokens": 20,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格完全"
+    },
+    {
+     "fragment": 7,
+     "block_index": 73,
+     "source_end_ms": 11840,
+     "placed_start_ms": 11840.0,
+     "placed_end_ms": 13760.0,
+     "semantic_tokens": 96,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格完全成熟它是一个非常精选"
+    },
+    {
+     "fragment": 8,
+     "block_index": 80,
+     "source_end_ms": 12960,
+     "placed_start_ms": 13760.0,
+     "placed_end_ms": 14160.0,
+     "semantic_tokens": 20,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格完全成熟它是一个非常精选的社会"
+    },
+    {
+     "fragment": 9,
+     "block_index": 82,
+     "source_end_ms": 13180,
+     "placed_start_ms": 14160.0,
+     "placed_end_ms": 15500.0,
+     "semantic_tokens": 67,
+     "text": "这是我长期以来渴望的荣誉但作为一个新来的孩子我没有被允许加入兄弟会直到我的性格完全成熟它是一个非常精选的社会我从未找到"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0006795452",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/FIXED16/audio/emilia_zh_0006795452__p2st__stereo.wav",
+   "source_duration_ms": 3260,
+   "blocks": 21,
+   "fragments": 2,
+   "semantic_tokens": 196,
+   "first_audible_ms": 3200.0,
+   "last_audible_ms": 7120.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "还是说有什么特别好吃的东西",
+   "target_hypothesis": "Or is there anything particularly delicious",
+   "transcription_reference": "还是说你有什么特别想吃的东西。",
+   "translation_reference": "Or is there anything special you want to eat?",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 7.12,
+    "concatenated_seconds": 3.92,
+    "queueing_delay_ms_mean": 1050.0,
+    "queueing_delay_ms_max": 2100.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 19.0,
+     "source_end_ms": 3200.0,
+     "already_emitted": 0.0,
+     "budget": 260.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3260.0,
+     "already_emitted": 108.0,
+     "budget": 255.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 19,
+     "source_end_ms": 3200,
+     "placed_start_ms": 3200.0,
+     "placed_end_ms": 5360.0,
+     "semantic_tokens": 108,
+     "text": "Or is there"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3260,
+     "placed_start_ms": 5360.0,
+     "placed_end_ms": 7120.0,
+     "semantic_tokens": 88,
+     "text": "Or is there anything particularly delicious"
+    }
+   ]
+  }
+ ]
+}

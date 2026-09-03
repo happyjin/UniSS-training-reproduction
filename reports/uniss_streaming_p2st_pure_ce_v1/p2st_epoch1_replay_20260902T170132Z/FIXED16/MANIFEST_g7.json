@@ -1,0 +1,390 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0004788301",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/FIXED16/audio/emilia_zh_0004788301__p2st__stereo.wav",
+   "source_duration_ms": 8200,
+   "blocks": 52,
+   "fragments": 11,
+   "semantic_tokens": 440,
+   "first_audible_ms": 3040.0,
+   "last_audible_ms": 12000.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "After that letter dexter and ean had spoken on the phone a few times but they both knew that they weren't going to meet again",
+   "target_hypothesis": "那封信之后德克斯特和伊恩通了几次电话但两人都知道他们不会再见面了",
+   "transcription_reference": " After that letter, dexter and ian had spoken on the phone a few times, but they both knew that they weren't going to meet again.",
+   "translation_reference": "在那封信之后，德克斯特和伊恩通了几次电话，但他们都知道他们不会再见面了。",
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 12.0,
+    "concatenated_seconds": 8.8,
+    "queueing_delay_ms_mean": 1021.8181818181819,
+    "queueing_delay_ms_max": 2520.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 0.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 16.0,
+     "budget": 260.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3840.0,
+     "already_emitted": 126.0,
+     "budget": 166.0
+    },
+    {
+     "block_index": 26.0,
+     "source_end_ms": 4320.0,
+     "already_emitted": 139.0,
+     "budget": 177.0
+    },
+    {
+     "block_index": 36.0,
+     "source_end_ms": 5920.0,
+     "already_emitted": 151.0,
+     "budget": 245.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 178.0,
+     "budget": 226.0
+    },
+    {
+     "block_index": 42.0,
+     "source_end_ms": 6880.0,
+     "already_emitted": 211.0,
+     "budget": 233.0
+    },
+    {
+     "block_index": 43.0,
+     "source_end_ms": 7040.0,
+     "already_emitted": 246.0,
+     "budget": 206.0
+    },
+    {
+     "block_index": 46.0,
+     "source_end_ms": 7520.0,
+     "already_emitted": 266.0,
+     "budget": 210.0
+    },
+    {
+     "block_index": 48.0,
+     "source_end_ms": 7840.0,
+     "already_emitted": 311.0,
+     "budget": 181.0
+    },
+    {
+     "block_index": 51.0,
+     "source_end_ms": 8200.0,
+     "already_emitted": 376.0,
+     "budget": 234.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3040.0,
+     "placed_end_ms": 3360.0,
+     "semantic_tokens": 16,
+     "text": "那封"
+    },
+    {
+     "fragment": 1,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3520.0,
+     "placed_end_ms": 5720.0,
+     "semantic_tokens": 110,
+     "text": "那封信之后德克斯特和伊"
+    },
+    {
+     "fragment": 2,
+     "block_index": 23,
+     "source_end_ms": 3840,
+     "placed_start_ms": 5720.0,
+     "placed_end_ms": 5980.0,
+     "semantic_tokens": 13,
+     "text": "那封信之后德克斯特和伊恩"
+    },
+    {
+     "fragment": 3,
+     "block_index": 26,
+     "source_end_ms": 4320,
+     "placed_start_ms": 5980.0,
+     "placed_end_ms": 6220.0,
+     "semantic_tokens": 12,
+     "text": "那封信之后德克斯特和伊恩通"
+    },
+    {
+     "fragment": 4,
+     "block_index": 36,
+     "source_end_ms": 5920,
+     "placed_start_ms": 6220.0,
+     "placed_end_ms": 6760.0,
+     "semantic_tokens": 27,
+     "text": "那封信之后德克斯特和伊恩通了几次"
+    },
+    {
+     "fragment": 5,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 6760.0,
+     "placed_end_ms": 7420.0,
+     "semantic_tokens": 33,
+     "text": "那封信之后德克斯特和伊恩通了几次电话"
+    },
+    {
+     "fragment": 6,
+     "block_index": 42,
+     "source_end_ms": 6880,
+     "placed_start_ms": 7420.0,
+     "placed_end_ms": 8120.0,
+     "semantic_tokens": 35,
+     "text": "那封信之后德克斯特和伊恩通了几次电话但两"
+    },
+    {
+     "fragment": 7,
+     "block_index": 43,
+     "source_end_ms": 7040,
+     "placed_start_ms": 8120.0,
+     "placed_end_ms": 8520.0,
+     "semantic_tokens": 20,
+     "text": "那封信之后德克斯特和伊恩通了几次电话但两人都"
+    },
+    {
+     "fragment": 8,
+     "block_index": 46,
+     "source_end_ms": 7520,
+     "placed_start_ms": 8520.0,
+     "placed_end_ms": 9420.0,
+     "semantic_tokens": 45,
+     "text": "那封信之后德克斯特和伊恩通了几次电话但两人都知道"
+    },
+    {
+     "fragment": 9,
+     "block_index": 48,
+     "source_end_ms": 7840,
+     "placed_start_ms": 9420.0,
+     "placed_end_ms": 10720.0,
+     "semantic_tokens": 65,
+     "text": "那封信之后德克斯特和伊恩通了几次电话但两人都知道他们"
+    },
+    {
+     "fragment": 10,
+     "block_index": 51,
+     "source_end_ms": 8200,
+     "placed_start_ms": 10720.0,
+     "placed_end_ms": 12000.0,
+     "semantic_tokens": 64,
+     "text": "那封信之后德克斯特和伊恩通了几次电话但两人都知道他们不会再见面了"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0007583994",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/FIXED16/audio/emilia_zh_0007583994__p2st__stereo.wav",
+   "source_duration_ms": 6680,
+   "blocks": 42,
+   "fragments": 10,
+   "semantic_tokens": 348,
+   "first_audible_ms": 2240.0,
+   "last_audible_ms": 10440.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "而本座的第二个办法则是通过改变避林蛇舞魂的修炼方式从根源之上解决问题到",
+   "target_hypothesis": "And the second method for this is to change the cultivation method of the forest snake dance to solve the problem from the root to",
+   "transcription_reference": "而本座的第二个办法则是通过改变碧灵蛇武魂的修炼方式，从根源之上解决问道。",
+   "translation_reference": "And my second method is to change the cultivation method of the Green Spirit Snake soul, solving the problem at its root.",
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 10.44,
+    "concatenated_seconds": 6.96,
+    "queueing_delay_ms_mean": 392.0,
+    "queueing_delay_ms_max": 1520.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 13.0,
+     "source_end_ms": 2240.0,
+     "already_emitted": 0.0,
+     "budget": 212.0
+    },
+    {
+     "block_index": 15.0,
+     "source_end_ms": 2560.0,
+     "already_emitted": 29.0,
+     "budget": 199.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 48.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 83.0,
+     "budget": 193.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 91.0,
+     "budget": 209.0
+    },
+    {
+     "block_index": 33.0,
+     "source_end_ms": 5440.0,
+     "already_emitted": 109.0,
+     "budget": 263.0
+    },
+    {
+     "block_index": 35.0,
+     "source_end_ms": 5760.0,
+     "already_emitted": 114.0,
+     "budget": 274.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 168.0,
+     "budget": 236.0
+    },
+    {
+     "block_index": 40.0,
+     "source_end_ms": 6560.0,
+     "already_emitted": 193.0,
+     "budget": 235.0
+    },
+    {
+     "block_index": 41.0,
+     "source_end_ms": 6680.0,
+     "already_emitted": 236.0,
+     "budget": 298.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 13,
+     "source_end_ms": 2240,
+     "placed_start_ms": 2240.0,
+     "placed_end_ms": 2820.0,
+     "semantic_tokens": 29,
+     "text": "And the"
+    },
+    {
+     "fragment": 1,
+     "block_index": 15,
+     "source_end_ms": 2560,
+     "placed_start_ms": 2820.0,
+     "placed_end_ms": 3200.0,
+     "semantic_tokens": 19,
+     "text": "And the second"
+    },
+    {
+     "fragment": 2,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3200.0,
+     "placed_end_ms": 3900.0,
+     "semantic_tokens": 35,
+     "text": "And the second method for this"
+    },
+    {
+     "fragment": 3,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3900.0,
+     "placed_end_ms": 4060.0,
+     "semantic_tokens": 8,
+     "text": "And the second method for this is"
+    },
+    {
+     "fragment": 4,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 4060.0,
+     "placed_end_ms": 4420.0,
+     "semantic_tokens": 18,
+     "text": "And the second method for this is to change"
+    },
+    {
+     "fragment": 5,
+     "block_index": 33,
+     "source_end_ms": 5440,
+     "placed_start_ms": 5440.0,
+     "placed_end_ms": 5540.0,
+     "semantic_tokens": 5,
+     "text": "And the second method for this is to change the"
+    },
+    {
+     "fragment": 6,
+     "block_index": 35,
+     "source_end_ms": 5760,
+     "placed_start_ms": 5760.0,
+     "placed_end_ms": 6840.0,
+     "semantic_tokens": 54,
+     "text": "And the second method for this is to change the cultivation method"
+    },
+    {
+     "fragment": 7,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 6840.0,
+     "placed_end_ms": 7340.0,
+     "semantic_tokens": 25,
+     "text": "And the second method for this is to change the cultivation method of"
+    },
+    {
+     "fragment": 8,
+     "block_index": 40,
+     "source_end_ms": 6560,
+     "placed_start_ms": 7340.0,
+     "placed_end_ms": 8200.0,
+     "semantic_tokens": 43,
+     "text": "And the second method for this is to change the cultivation method of the forest snake"
+    },
+    {
+     "fragment": 9,
+     "block_index": 41,
+     "source_end_ms": 6680,
+     "placed_start_ms": 8200.0,
+     "placed_end_ms": 10440.0,
+     "semantic_tokens": 112,
+     "text": "And the second method for this is to change the cultivation method of the forest snake dance to solve the problem from the root to"
+    }
+   ]
+  }
+ ]
+}

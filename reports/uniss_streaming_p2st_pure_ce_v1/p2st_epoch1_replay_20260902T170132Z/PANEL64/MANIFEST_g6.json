@@ -1,0 +1,1005 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000523059",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/CommonVoice_EN_0000523059__p2st__stereo.wav",
+   "source_duration_ms": 4940,
+   "blocks": 31,
+   "fragments": 2,
+   "semantic_tokens": 99,
+   "first_audible_ms": 3520.0,
+   "last_audible_ms": 5500.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "I looked at cylinder again I was completely terrified the",
+   "target_hypothesis": "我再次看了看圆筒",
+   "transcription_reference": "I looked at the cylinder again and was completely terrified.",
+   "translation_reference": "我再次看了看那个圆筒，完全被吓住了。",
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 5.5,
+    "concatenated_seconds": 1.98,
+    "queueing_delay_ms_mean": 620.0,
+    "queueing_delay_ms_max": 1240.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 0.0,
+     "budget": 276.0
+    },
+    {
+     "block_index": 24.0,
+     "source_end_ms": 4000.0,
+     "already_emitted": 86.0,
+     "budget": 214.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3520.0,
+     "placed_end_ms": 5240.0,
+     "semantic_tokens": 86,
+     "text": "我再次看了看圆"
+    },
+    {
+     "fragment": 1,
+     "block_index": 24,
+     "source_end_ms": 4000,
+     "placed_start_ms": 5240.0,
+     "placed_end_ms": 5500.0,
+     "semantic_tokens": 13,
+     "text": "我再次看了看圆筒"
+    }
+   ]
+  },
+  {
+   "sample_id": "EN_B00097_S02791_W000001",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/EN_B00097_S02791_W000001__p2st__stereo.wav",
+   "source_duration_ms": 3520,
+   "blocks": 22,
+   "fragments": 5,
+   "semantic_tokens": 169,
+   "first_audible_ms": 1120.0,
+   "last_audible_ms": 5400.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "They can just forget you and move on with their lives",
+   "target_hypothesis": "他们可以忘记你继续过他们的生活",
+   "transcription_reference": " They can't just forget about you and move on with their lives.",
+   "translation_reference": "他们不能就这样忘记你，继续他们的生活。",
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 5.4,
+    "concatenated_seconds": 3.38,
+    "queueing_delay_ms_mean": 84.0,
+    "queueing_delay_ms_max": 280.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 6.0,
+     "source_end_ms": 1120.0,
+     "already_emitted": 0.0,
+     "budget": 156.0
+    },
+    {
+     "block_index": 13.0,
+     "source_end_ms": 2240.0,
+     "already_emitted": 23.0,
+     "budget": 189.0
+    },
+    {
+     "block_index": 17.0,
+     "source_end_ms": 2880.0,
+     "already_emitted": 43.0,
+     "budget": 201.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 65.0,
+     "budget": 187.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 82.0,
+     "budget": 294.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 6,
+     "source_end_ms": 1120,
+     "placed_start_ms": 1120.0,
+     "placed_end_ms": 1580.0,
+     "semantic_tokens": 23,
+     "text": "他们"
+    },
+    {
+     "fragment": 1,
+     "block_index": 13,
+     "source_end_ms": 2240,
+     "placed_start_ms": 2240.0,
+     "placed_end_ms": 2640.0,
+     "semantic_tokens": 20,
+     "text": "他们可以"
+    },
+    {
+     "fragment": 2,
+     "block_index": 17,
+     "source_end_ms": 2880,
+     "placed_start_ms": 2880.0,
+     "placed_end_ms": 3320.0,
+     "semantic_tokens": 22,
+     "text": "他们可以忘记"
+    },
+    {
+     "fragment": 3,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3320.0,
+     "placed_end_ms": 3660.0,
+     "semantic_tokens": 17,
+     "text": "他们可以忘记你"
+    },
+    {
+     "fragment": 4,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3660.0,
+     "placed_end_ms": 5400.0,
+     "semantic_tokens": 87,
+     "text": "他们可以忘记你继续过他们的生活"
+    }
+   ]
+  },
+  {
+   "sample_id": "LibriSpeech_0000265196",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/LibriSpeech_0000265196__p2st__stereo.wav",
+   "source_duration_ms": 13720,
+   "blocks": 86,
+   "fragments": 16,
+   "semantic_tokens": 416,
+   "first_audible_ms": 1280.0,
+   "last_audible_ms": 14880.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "I shall be really grateful if you will say nothing about this There are some in the house and neighbourhood who are silly enough as it is You stay here and if you do not feel inclined to go to bed read here books and",
+   "target_hypothesis": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里如果你不愿意上床在这里读书",
+   "transcription_reference": "I shall be really grateful if you will say nothing about this. There are some in the House and neighbourhood who are silly enough as it is. You stay here. And if you do not feel inclined to go to bed, read, here are books.",
+   "translation_reference": "如果您能对此事保持沉默，我将非常感激。这里有些人已经够愚蠢的了。你留在这里。如果你不想睡觉，可以看看书，这里有一些书。",
+   "placement": {
+    "fragments": 16,
+    "placed_seconds": 14.88,
+    "concatenated_seconds": 8.32,
+    "queueing_delay_ms_mean": 152.5,
+    "queueing_delay_ms_max": 620.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 7.0,
+     "source_end_ms": 1280.0,
+     "already_emitted": 0.0,
+     "budget": 164.0
+    },
+    {
+     "block_index": 11.0,
+     "source_end_ms": 1920.0,
+     "already_emitted": 13.0,
+     "budget": 183.0
+    },
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 24.0,
+     "budget": 180.0
+    },
+    {
+     "block_index": 22.0,
+     "source_end_ms": 3680.0,
+     "already_emitted": 43.0,
+     "budget": 241.0
+    },
+    {
+     "block_index": 30.0,
+     "source_end_ms": 4960.0,
+     "already_emitted": 65.0,
+     "budget": 283.0
+    },
+    {
+     "block_index": 32.0,
+     "source_end_ms": 5280.0,
+     "already_emitted": 112.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 39.0,
+     "source_end_ms": 6400.0,
+     "already_emitted": 152.0,
+     "budget": 268.0
+    },
+    {
+     "block_index": 44.0,
+     "source_end_ms": 7200.0,
+     "already_emitted": 197.0,
+     "budget": 263.0
+    },
+    {
+     "block_index": 58.0,
+     "source_end_ms": 9440.0,
+     "already_emitted": 223.0,
+     "budget": 349.0
+    },
+    {
+     "block_index": 59.0,
+     "source_end_ms": 9600.0,
+     "already_emitted": 253.0,
+     "budget": 327.0
+    },
+    {
+     "block_index": 63.0,
+     "source_end_ms": 10240.0,
+     "already_emitted": 255.0,
+     "budget": 357.0
+    },
+    {
+     "block_index": 66.0,
+     "source_end_ms": 10720.0,
+     "already_emitted": 280.0,
+     "budget": 356.0
+    },
+    {
+     "block_index": 71.0,
+     "source_end_ms": 11520.0,
+     "already_emitted": 296.0,
+     "budget": 380.0
+    },
+    {
+     "block_index": 72.0,
+     "source_end_ms": 11680.0,
+     "already_emitted": 334.0,
+     "budget": 350.0
+    },
+    {
+     "block_index": 81.0,
+     "source_end_ms": 13120.0,
+     "already_emitted": 344.0,
+     "budget": 384.0
+    },
+    {
+     "block_index": 85.0,
+     "source_end_ms": 13720.0,
+     "already_emitted": 358.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 7,
+     "source_end_ms": 1280,
+     "placed_start_ms": 1280.0,
+     "placed_end_ms": 1540.0,
+     "semantic_tokens": 13,
+     "text": "我"
+    },
+    {
+     "fragment": 1,
+     "block_index": 11,
+     "source_end_ms": 1920,
+     "placed_start_ms": 1920.0,
+     "placed_end_ms": 2140.0,
+     "semantic_tokens": 11,
+     "text": "我将"
+    },
+    {
+     "fragment": 2,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2140.0,
+     "placed_end_ms": 2520.0,
+     "semantic_tokens": 19,
+     "text": "我将非常"
+    },
+    {
+     "fragment": 3,
+     "block_index": 22,
+     "source_end_ms": 3680,
+     "placed_start_ms": 3680.0,
+     "placed_end_ms": 4120.0,
+     "semantic_tokens": 22,
+     "text": "我将非常感激"
+    },
+    {
+     "fragment": 4,
+     "block_index": 30,
+     "source_end_ms": 4960,
+     "placed_start_ms": 4960.0,
+     "placed_end_ms": 5900.0,
+     "semantic_tokens": 47,
+     "text": "我将非常感激如果你对此"
+    },
+    {
+     "fragment": 5,
+     "block_index": 32,
+     "source_end_ms": 5280,
+     "placed_start_ms": 5900.0,
+     "placed_end_ms": 6700.0,
+     "semantic_tokens": 40,
+     "text": "我将非常感激如果你对此无话可"
+    },
+    {
+     "fragment": 6,
+     "block_index": 39,
+     "source_end_ms": 6400,
+     "placed_start_ms": 6700.0,
+     "placed_end_ms": 7600.0,
+     "semantic_tokens": 45,
+     "text": "我将非常感激如果你对此无话可说房子里"
+    },
+    {
+     "fragment": 7,
+     "block_index": 44,
+     "source_end_ms": 7200,
+     "placed_start_ms": 7600.0,
+     "placed_end_ms": 8120.0,
+     "semantic_tokens": 26,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些"
+    },
+    {
+     "fragment": 8,
+     "block_index": 58,
+     "source_end_ms": 9440,
+     "placed_start_ms": 9440.0,
+     "placed_end_ms": 10040.0,
+     "semantic_tokens": 30,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很"
+    },
+    {
+     "fragment": 9,
+     "block_index": 59,
+     "source_end_ms": 9600,
+     "placed_start_ms": 10040.0,
+     "placed_end_ms": 10080.0,
+     "semantic_tokens": 2,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻"
+    },
+    {
+     "fragment": 10,
+     "block_index": 63,
+     "source_end_ms": 10240,
+     "placed_start_ms": 10240.0,
+     "placed_end_ms": 10740.0,
+     "semantic_tokens": 25,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在"
+    },
+    {
+     "fragment": 11,
+     "block_index": 66,
+     "source_end_ms": 10720,
+     "placed_start_ms": 10740.0,
+     "placed_end_ms": 11060.0,
+     "semantic_tokens": 16,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里"
+    },
+    {
+     "fragment": 12,
+     "block_index": 71,
+     "source_end_ms": 11520,
+     "placed_start_ms": 11520.0,
+     "placed_end_ms": 12280.0,
+     "semantic_tokens": 38,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里如果"
+    },
+    {
+     "fragment": 13,
+     "block_index": 72,
+     "source_end_ms": 11680,
+     "placed_start_ms": 12280.0,
+     "placed_end_ms": 12480.0,
+     "semantic_tokens": 10,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里如果你"
+    },
+    {
+     "fragment": 14,
+     "block_index": 81,
+     "source_end_ms": 13120,
+     "placed_start_ms": 13120.0,
+     "placed_end_ms": 13400.0,
+     "semantic_tokens": 14,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里如果你不愿意上"
+    },
+    {
+     "fragment": 15,
+     "block_index": 85,
+     "source_end_ms": 13720,
+     "placed_start_ms": 13720.0,
+     "placed_end_ms": 14880.0,
+     "semantic_tokens": 58,
+     "text": "我将非常感激如果你对此无话可说房子里和附近有些人确实很傻你留在这里如果你不愿意上床在这里读书"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0003996699",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0003996699__p2st__stereo.wav",
+   "source_duration_ms": 3760,
+   "blocks": 24,
+   "fragments": 3,
+   "semantic_tokens": 174,
+   "first_audible_ms": 1280.0,
+   "last_audible_ms": 5980.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "我不知道别人就是这个东西对我而言不是特别有用",
+   "target_hypothesis": "I don't know if others are particularly useful to me",
+   "transcription_reference": "我不知道别人就是这个东西，对我而言不是特别有用。",
+   "translation_reference": "I don't know if this thing is useful to others, but it's not particularly useful to me.",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 5.98,
+    "concatenated_seconds": 3.48,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 7.0,
+     "source_end_ms": 1280.0,
+     "already_emitted": 0.0,
+     "budget": 164.0
+    },
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 26.0,
+     "budget": 178.0
+    },
+    {
+     "block_index": 23.0,
+     "source_end_ms": 3760.0,
+     "already_emitted": 63.0,
+     "budget": 325.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 7,
+     "source_end_ms": 1280,
+     "placed_start_ms": 1280.0,
+     "placed_end_ms": 1800.0,
+     "semantic_tokens": 26,
+     "text": "I don't"
+    },
+    {
+     "fragment": 1,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 2820.0,
+     "semantic_tokens": 37,
+     "text": "I don't know if others"
+    },
+    {
+     "fragment": 2,
+     "block_index": 23,
+     "source_end_ms": 3760,
+     "placed_start_ms": 3760.0,
+     "placed_end_ms": 5980.0,
+     "semantic_tokens": 111,
+     "text": "I don't know if others are particularly useful to me"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0004789189",
+   "direction": "eng->cmn",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0004789189__p2st__stereo.wav",
+   "source_duration_ms": 6840,
+   "blocks": 43,
+   "fragments": 3,
+   "semantic_tokens": 280,
+   "first_audible_ms": 5600.0,
+   "last_audible_ms": 11200.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "There's a fourth possible scenario work case What else might happen in this algorithm",
+   "target_hypothesis": "还有第四种可能的情况工作案例这个算法还可能发生什么",
+   "transcription_reference": " Else, there's a fourth possible scenario or case what else might happen in this algorithm.",
+   "translation_reference": "否则，还有一种可能的情况或案例，即在这种算法中还可能发生什么。",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 11.2,
+    "concatenated_seconds": 5.6,
+    "queueing_delay_ms_mean": 1133.3333333333333,
+    "queueing_delay_ms_max": 1860.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5600.0,
+     "already_emitted": 0.0,
+     "budget": 380.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 117.0,
+     "budget": 287.0
+    },
+    {
+     "block_index": 42.0,
+     "source_end_ms": 6840.0,
+     "already_emitted": 139.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 34,
+     "source_end_ms": 5600,
+     "placed_start_ms": 5600.0,
+     "placed_end_ms": 7940.0,
+     "semantic_tokens": 117,
+     "text": "还有第四种可能的情况工作"
+    },
+    {
+     "fragment": 1,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 7940.0,
+     "placed_end_ms": 8380.0,
+     "semantic_tokens": 22,
+     "text": "还有第四种可能的情况工作案例"
+    },
+    {
+     "fragment": 2,
+     "block_index": 42,
+     "source_end_ms": 6840,
+     "placed_start_ms": 8380.0,
+     "placed_end_ms": 11200.0,
+     "semantic_tokens": 141,
+     "text": "还有第四种可能的情况工作案例这个算法还可能发生什么"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0004954449",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0004954449__p2st__stereo.wav",
+   "source_duration_ms": 5280,
+   "blocks": 33,
+   "fragments": 4,
+   "semantic_tokens": 135,
+   "first_audible_ms": 2080.0,
+   "last_audible_ms": 6480.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "其内在生命却能显现出生隐盎然的审美心境",
+   "target_hypothesis": "Its inner life can reveal a vivid aesthetic state",
+   "transcription_reference": "其内在生命，却能显现出生意盎然的审美心境。",
+   "translation_reference": "Its inner life, however, can reveal a vibrant aesthetic mindset.",
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 6.48,
+    "concatenated_seconds": 2.7,
+    "queueing_delay_ms_mean": 25.0,
+    "queueing_delay_ms_max": 100.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 12.0,
+     "source_end_ms": 2080.0,
+     "already_emitted": 0.0,
+     "budget": 204.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 53.0,
+     "budget": 199.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 66.0,
+     "budget": 210.0
+    },
+    {
+     "block_index": 32.0,
+     "source_end_ms": 5280.0,
+     "already_emitted": 75.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 12,
+     "source_end_ms": 2080,
+     "placed_start_ms": 2080.0,
+     "placed_end_ms": 3140.0,
+     "semantic_tokens": 53,
+     "text": "Its inner"
+    },
+    {
+     "fragment": 1,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3140.0,
+     "placed_end_ms": 3400.0,
+     "semantic_tokens": 13,
+     "text": "Its inner life"
+    },
+    {
+     "fragment": 2,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3520.0,
+     "placed_end_ms": 3700.0,
+     "semantic_tokens": 9,
+     "text": "Its inner life can"
+    },
+    {
+     "fragment": 3,
+     "block_index": 32,
+     "source_end_ms": 5280,
+     "placed_start_ms": 5280.0,
+     "placed_end_ms": 6480.0,
+     "semantic_tokens": 60,
+     "text": "Its inner life can reveal a vivid aesthetic state"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005070101",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005070101__p2st__stereo.wav",
+   "source_duration_ms": 13080,
+   "blocks": 82,
+   "fragments": 8,
+   "semantic_tokens": 706,
+   "first_audible_ms": 1920.0,
+   "last_audible_ms": 17160.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "就可能是法国人比任何其他民族都更不适合在专制制度的原址上建立一个和平而自由的法治国家",
+   "target_hypothesis": "It might be that the French are more unsuitable for the original site of the autocratic system than any other ethnic group to establish a peaceful and free state of law",
+   "transcription_reference": "就可能使法国人比任何其他民族都更不适合在专制制度的原址上建立一个和平而自由的法治国家。",
+   "translation_reference": "This might make the French less suited than any other people to establish a peaceful and free country governed by the rule of law on the site of a former autocracy.",
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 17.16,
+    "concatenated_seconds": 14.12,
+    "queueing_delay_ms_mean": 545.0,
+    "queueing_delay_ms_max": 1260.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 11.0,
+     "source_end_ms": 1920.0,
+     "already_emitted": 0.0,
+     "budget": 196.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3360.0,
+     "already_emitted": 121.0,
+     "budget": 147.0
+    },
+    {
+     "block_index": 37.0,
+     "source_end_ms": 6080.0,
+     "already_emitted": 152.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 44.0,
+     "source_end_ms": 7200.0,
+     "already_emitted": 213.0,
+     "budget": 247.0
+    },
+    {
+     "block_index": 49.0,
+     "source_end_ms": 8000.0,
+     "already_emitted": 285.0,
+     "budget": 215.0
+    },
+    {
+     "block_index": 50.0,
+     "source_end_ms": 8160.0,
+     "already_emitted": 299.0,
+     "budget": 209.0
+    },
+    {
+     "block_index": 55.0,
+     "source_end_ms": 8960.0,
+     "already_emitted": 359.0,
+     "budget": 189.0
+    },
+    {
+     "block_index": 81.0,
+     "source_end_ms": 13080.0,
+     "already_emitted": 523.0,
+     "budget": 331.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 11,
+     "source_end_ms": 1920,
+     "placed_start_ms": 1920.0,
+     "placed_end_ms": 4340.0,
+     "semantic_tokens": 121,
+     "text": "It might"
+    },
+    {
+     "fragment": 1,
+     "block_index": 20,
+     "source_end_ms": 3360,
+     "placed_start_ms": 4340.0,
+     "placed_end_ms": 4960.0,
+     "semantic_tokens": 31,
+     "text": "It might be that the"
+    },
+    {
+     "fragment": 2,
+     "block_index": 37,
+     "source_end_ms": 6080,
+     "placed_start_ms": 6080.0,
+     "placed_end_ms": 7300.0,
+     "semantic_tokens": 61,
+     "text": "It might be that the French are"
+    },
+    {
+     "fragment": 3,
+     "block_index": 44,
+     "source_end_ms": 7200,
+     "placed_start_ms": 7300.0,
+     "placed_end_ms": 8740.0,
+     "semantic_tokens": 72,
+     "text": "It might be that the French are more unsuitable"
+    },
+    {
+     "fragment": 4,
+     "block_index": 49,
+     "source_end_ms": 8000,
+     "placed_start_ms": 8740.0,
+     "placed_end_ms": 9020.0,
+     "semantic_tokens": 14,
+     "text": "It might be that the French are more unsuitable for"
+    },
+    {
+     "fragment": 5,
+     "block_index": 50,
+     "source_end_ms": 8160,
+     "placed_start_ms": 9020.0,
+     "placed_end_ms": 10220.0,
+     "semantic_tokens": 60,
+     "text": "It might be that the French are more unsuitable for the"
+    },
+    {
+     "fragment": 6,
+     "block_index": 55,
+     "source_end_ms": 8960,
+     "placed_start_ms": 10220.0,
+     "placed_end_ms": 13500.0,
+     "semantic_tokens": 164,
+     "text": "It might be that the French are more unsuitable for the original site of the autocratic system than any other ethnic"
+    },
+    {
+     "fragment": 7,
+     "block_index": 81,
+     "source_end_ms": 13080,
+     "placed_start_ms": 13500.0,
+     "placed_end_ms": 17160.0,
+     "semantic_tokens": 183,
+     "text": "It might be that the French are more unsuitable for the original site of the autocratic system than any other ethnic group to establish a peaceful and free state of law"
+    }
+   ]
+  },
+  {
+   "sample_id": "emilia_zh_0005940898",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/PANEL64/audio/emilia_zh_0005940898__p2st__stereo.wav",
+   "source_duration_ms": 7560,
+   "blocks": 48,
+   "fragments": 7,
+   "semantic_tokens": 250,
+   "first_audible_ms": 3520.0,
+   "last_audible_ms": 9280.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "对那个宋庆亚他就是设计出来是用来对付木头的木头那种纤维素它很结实嘛",
+   "target_hypothesis": "Yes Song Qingya was designed to deal with wood that kind of fiber which is very strong",
+   "transcription_reference": "对，那个碎木机啊，它是就是设计出来是用来对付木头的木头那种纤维素，它很结实嘛。",
+   "translation_reference": "Yes, that wood chipper is designed to deal with wood, specifically the cellulose in wood, which is very tough.",
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 9.28,
+    "concatenated_seconds": 5.0,
+    "queueing_delay_ms_mean": 140.0,
+    "queueing_delay_ms_max": 440.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 0.0,
+     "budget": 276.0
+    },
+    {
+     "block_index": 28.0,
+     "source_end_ms": 4640.0,
+     "already_emitted": 53.0,
+     "budget": 279.0
+    },
+    {
+     "block_index": 32.0,
+     "source_end_ms": 5280.0,
+     "already_emitted": 69.0,
+     "budget": 295.0
+    },
+    {
+     "block_index": 34.0,
+     "source_end_ms": 5600.0,
+     "already_emitted": 100.0,
+     "budget": 280.0
+    },
+    {
+     "block_index": 42.0,
+     "source_end_ms": 6880.0,
+     "already_emitted": 130.0,
+     "budget": 314.0
+    },
+    {
+     "block_index": 43.0,
+     "source_end_ms": 7040.0,
+     "already_emitted": 160.0,
+     "budget": 292.0
+    },
+    {
+     "block_index": 47.0,
+     "source_end_ms": 7560.0,
+     "already_emitted": 176.0,
+     "budget": 384.0
+    }
+   ],
+   "holdback": 1,
+   "source_holdback": null,
+   "target_holdback": null,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3520.0,
+     "placed_end_ms": 4580.0,
+     "semantic_tokens": 53,
+     "text": "Yes Song Qing"
+    },
+    {
+     "fragment": 1,
+     "block_index": 28,
+     "source_end_ms": 4640,
+     "placed_start_ms": 4640.0,
+     "placed_end_ms": 4960.0,
+     "semantic_tokens": 16,
+     "text": "Yes Song Qingya was"
+    },
+    {
+     "fragment": 2,
+     "block_index": 32,
+     "source_end_ms": 5280,
+     "placed_start_ms": 5280.0,
+     "placed_end_ms": 5900.0,
+     "semantic_tokens": 31,
+     "text": "Yes Song Qingya was designed"
+    },
+    {
+     "fragment": 3,
+     "block_index": 34,
+     "source_end_ms": 5600,
+     "placed_start_ms": 5900.0,
+     "placed_end_ms": 6500.0,
+     "semantic_tokens": 30,
+     "text": "Yes Song Qingya was designed to deal with"
+    },
+    {
+     "fragment": 4,
+     "block_index": 42,
+     "source_end_ms": 6880,
+     "placed_start_ms": 6880.0,
+     "placed_end_ms": 7480.0,
+     "semantic_tokens": 30,
+     "text": "Yes Song Qingya was designed to deal with wood that kind of"
+    },
+    {
+     "fragment": 5,
+     "block_index": 43,
+     "source_end_ms": 7040,
+     "placed_start_ms": 7480.0,
+     "placed_end_ms": 7800.0,
+     "semantic_tokens": 16,
+     "text": "Yes Song Qingya was designed to deal with wood that kind of fiber"
+    },
+    {
+     "fragment": 6,
+     "block_index": 47,
+     "source_end_ms": 7560,
+     "placed_start_ms": 7800.0,
+     "placed_end_ms": 9280.0,
+     "semantic_tokens": 74,
+     "text": "Yes Song Qingya was designed to deal with wood that kind of fiber which is very strong"
+    }
+   ]
+  }
+ ]
+}
