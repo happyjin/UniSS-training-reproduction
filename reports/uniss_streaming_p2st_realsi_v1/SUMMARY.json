@@ -106,5 +106,72 @@
    "en2zh": 29.09,
    "zh2en": 22.19
   }
+ },
+ "latency_note": "StreamLAAL reduces to LAAL on sentence-level data: its extra mwerSegmenter step aligning an unsegmented hypothesis stream to reference sentences is the identity when each item is already one sentence. The paper reports RealSI LAAL only in Figures 3/4 (no numeric table) and StreamLAAL only on long-form ACL60/60-dev Figure 5, so latency cannot be placed beside it.",
+ "latency": {
+  "en2zh": {
+   "k1": {
+    "num_chunks": 5.9,
+    "laal_nca": 4437,
+    "laal_ca": 5598,
+    "al": 4437,
+    "dal": 2864,
+    "start_offset": 2544,
+    "asr_bleu": 14.66,
+    "asr_bleu_raw": 12.3
+   },
+   "k25": {
+    "num_chunks": 1.1,
+    "laal_nca": 7313,
+    "laal_ca": 8415,
+    "al": 7313,
+    "dal": 7238,
+    "start_offset": 7238,
+    "asr_bleu": 17.33,
+    "asr_bleu_raw": 14.41
+   },
+   "offline": {
+    "num_chunks": 1.0,
+    "laal_nca": 7388,
+    "laal_ca": 8140,
+    "asr_bleu": 17.34,
+    "asr_bleu_raw": 14.47
+   }
+  },
+  "zh2en": {
+   "k1": {
+    "num_chunks": 5.5,
+    "laal_nca": 3681,
+    "laal_ca": 4684,
+    "al": 3681,
+    "dal": 2842,
+    "start_offset": 2573,
+    "asr_bleu": 10.37,
+    "asr_bleu_raw": 8.84
+   },
+   "k25": {
+    "num_chunks": 1.0,
+    "laal_nca": 6677,
+    "laal_ca": 7438,
+    "al": 6677,
+    "dal": 6656,
+    "start_offset": 6656,
+    "asr_bleu": 14.41,
+    "asr_bleu_raw": 12.81
+   },
+   "offline": {
+    "num_chunks": 1.0,
+    "laal_nca": 6718,
+    "laal_ca": 7349,
+    "asr_bleu": 14.43,
+    "asr_bleu_raw": 12.96
+   }
+  },
+  "unit": {
+   "en2zh": "char",
+   "zh2en": "word"
+  },
+  "simuleval_scorer_sha256": "2fbb749de96a0d361e673ce1b2c476dfc5f19a25c9a082bb71bed33e37d5e1fa",
+  "ap_not_usable": "SimulEval AP assumes len(delays) and reference_length share units; our delays are per speech chunk (5.5-5.9) against a reference length in chars/words (tens), so AP lands at 0.04-0.25 rather than anywhere meaningful. AL/LAAL/DAL are unaffected."
  }
 }

@@ -1,0 +1,15 @@
+SimulEval 1.1.0  latency_scorer.py sha256 = 2fbb749de96a0d361e673ce1b2c476dfc5f19a25c9a082bb71bed33e37d5e1fa
+句级数据上 StreamLAAL 退化为 LAAL:StreamLAAL 多出的 mwerSegmenter 切分步在每条已是一句时是恒等
+
+■ en2zh (En→Zh)   延迟单位 char
+  arm          读步ms     块数     LAAL  LAAL_CA       AL      DAL    Start       AP    BLEU BLEU_raw
+  k1            160    5.9     4437     5598     4437     2864     2544    0.120   14.66   12.30
+  k25          4000    1.1     7313     8415     7313     7238     7238    0.039   17.33   14.41
+  offline        整段    1.0     7388     8140     7388     7388     7388    0.038   17.34   14.47
+
+■ zh2en (Zh→En)   延迟单位 word
+  arm          读步ms     块数     LAAL  LAAL_CA       AL      DAL    Start       AP    BLEU BLEU_raw
+  k1            160    5.5     3681     4684     3681     2842     2573    0.248   10.37    8.84
+  k25          4000    1.0     6677     7438     6677     6656     6656    0.074   14.41   12.81
+  offline        整段    1.0     6718     7349     6718     6718     6718    0.073   14.43   12.96
+
