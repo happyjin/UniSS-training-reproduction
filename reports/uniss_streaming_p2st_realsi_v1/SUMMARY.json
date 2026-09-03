@@ -845,5 +845,141 @@
    "Then length matching (bp 0.79-0.83), worth +3.6/+2.3.  Terminator rate is already 1.000, so the shortfall is committed text volume, not END timing.",
    "Explicitly not: a delta-style unconditional write (m3 walked it to 347 ms at BLEU 1.36); pacer tuning (the margin 1200<->2000 control proves it is a no-op); TTS work in isolation (measured to contribute zero onset, and C's peak 0.776-0.859 and >4kHz 0.003 already match or beat m3)."
   ]
+ },
+ "laal_is_mostly_chunk_count": {
+  "report": "C_LATENCY_HOW_TO_FIX.zh-CN.md",
+  "formula": "LAAL = mean(d_i) - step*(N-1)/2 with step = source_duration/max(N, reference_length); N is the speech-chunk count, so a larger N subtracts more, independently of when audio actually arrives.",
+  "measured_mean_delay_ms": {
+   "k1": [
+    4998,
+    4681
+   ],
+   "k1_s1t0": [
+    4422,
+    4203
+   ],
+   "k25": [
+    7322,
+    6687
+   ],
+   "m3_k1": [
+    4861,
+    4313
+   ],
+   "m3_k1_d5": [
+    3866,
+    3790
+   ],
+   "order": "[en2zh, zh2en]"
+  },
+  "formula_credit_ms": {
+   "k1": [
+    562,
+    1001
+   ],
+   "k1_s1t0": [
+    735,
+    1206
+   ],
+   "k25": [
+    10,
+    10
+   ],
+   "m3_k1": [
+    497,
+    699
+   ],
+   "m3_k1_d5": [
+    3300,
+    3013
+   ]
+  },
+  "gap_split": {
+   "k1_to_m3d5_en2zh": {
+    "laal_gap": 3871,
+    "formula_credit": 2738,
+    "real_arrival": 1132,
+    "credit_share": 0.71
+   },
+   "s1t0_to_m3d5_en2zh": {
+    "laal_gap": 3120,
+    "formula_credit": 2565,
+    "real_arrival": 556,
+    "credit_share": 0.82
+   },
+   "s1t0_to_m3d5_zh2en": {
+    "laal_gap": 2219,
+    "formula_credit": 1807,
+    "real_arrival": 413,
+    "credit_share": 0.81
+   }
+  },
+  "consequence": "After s1t0 C's audio arrives on average only 413-556 ms later than m3 at delta=5, while LAAL reports 2219-3120 ms later.  Treating LAAL as the headline latency number at these operating points was inaccurate on my part; it is mostly chunk-count driven here.  It also means C could cut LAAL sharply by fragmenting each committed lump into smaller chunks without the audio arriving any earlier -- that is gaming the metric, so it must not be done, and LAAL must always be reported next to StartOffset and mean(d) so it is not misread.",
+  "real_gap_is_first_audible": {
+   "median_first_chunk_ms": {
+    "k1": [
+     2240,
+     2240
+    ],
+    "k1_s1t0": [
+     1440,
+     1440
+    ],
+    "m3_k1": [
+     2400,
+     2560
+    ],
+    "m3_k1_d5": [
+     320,
+     320
+    ]
+   },
+   "note": "s1t0 recovered 800 ms; 1120 ms remain against m3 at delta=5, and this number carries no formula term."
+  }
+ },
+ "commit_rate_is_the_bound": {
+  "chunks_per_read_step": {
+   "k1": [
+    0.111,
+    0.128
+   ],
+   "k1_s1t0": [
+    0.133,
+    0.154
+   ],
+   "m3_k1": [
+    0.044,
+    0.051
+   ],
+   "m3_k1_d5": [
+    0.756,
+    0.692
+   ]
+  },
+  "chars_per_chunk": {
+   "k1": [
+    5.0,
+    16.0
+   ],
+   "k1_s1t0": [
+    4.0,
+    13.3
+   ],
+   "m3_k1": [
+    17.0,
+    38.0
+   ],
+   "m3_k1_d5": [
+    1.7,
+    6.0
+   ]
+  },
+  "mechanism": "C speaks on about 1 read step in 8, and that is not policy conservatism -- releasing the target holdback moves it only 0.111 -> 0.133.  It is the source word rate: the ASR committer releases a word, MT re-translates, MT's LCP grows by a phrase, TTS speaks a phrase.  A 45-step utterance holds about a dozen words and therefore about a dozen release cycles.  m3 at delta=5 breaks that bound by writing MT at every event whether or not the source grew, i.e. by composing ahead of the audio, and the table shows the price: source ASR error 1.48, 1.8x text over-generation, ASR-BLEU 1.36."
+ },
+ "untried_cheap_experiment": {
+  "name": "word-boundary commit",
+  "what": "The ASR committer trims a fixed number of characters off the agreed prefix (LCP(previous, current) - holdback).  Releasing up to the last complete word instead would release earlier at the same risk, and the effect should be largest on English sources where trimming one character differs a lot from trimming to a word boundary.",
+  "not_the_same_as": "SeededPrefixCommitter, which seeded `previous` on the first call and measured worse; word-level trimming has never been tried.",
+  "cost": "inference-side only, tens of lines"
  }
 }
