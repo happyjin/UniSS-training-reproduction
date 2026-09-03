@@ -26,6 +26,9 @@ from typing import Callable, Sequence
 
 import torch
 
+from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.semantic_pacing import (
+    allowed_event_tokens,
+)
 from experiments.uniss_phasea_stateful_longepisode_rl_v1.runtime.commit import (
     StablePrefixCommitter,
 )
@@ -173,9 +176,21 @@ class P2STCascadeSession:
         holdback: int = 2,
         max_text_tokens: int = 64,
         max_semantic_tokens: int = 384,
-        semantic_penalty: float = 1.1,
-        semantic_penalty_window: int = 8,
+        # 1.1 with a window of 8 was the original setting and it is measurably
+        # broken.  On emilia_zh_0004122419 the TTS stage collapses into a
+        # period-3 code cycle -- 212 codes with 9 distinct values, then two
+        # fragments with 3 -- which BiCodec decodes to exact zero, peak 0.0000,
+        # while gold codes through the same decoder and speaker tokens give
+        # 0.7647.  Widening the window to 64 alone does not help because a
+        # penalty of 1.1 is too weak to close the logit gap; at 1.3 the same
+        # fragments come out 20/20 and 101/101 distinct at peak 0.6131, and
+        # 1.5 is bit-identical to 1.3, so the response has saturated.
+        semantic_penalty: float = 1.3,
+        semantic_penalty_window: int = 64,
         tts_text_scope: str = "delta",
+        pace: bool = True,
+        pace_margin_ms: float = 1200.0,
+        pace_tail_ms: float = 2000.0,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -187,6 +202,25 @@ class P2STCascadeSession:
         self.speed = float(speed)
         self.max_text_tokens = int(max_text_tokens)
         self.max_semantic_tokens = int(max_semantic_tokens)
+        # A simultaneous system cannot emit target audio faster than it
+        # receives source audio; if it does, the output can never be played
+        # back in step with the input.  Without this cap the cascade queued
+        # 51.4 s behind the source on emilia_zh_0003980703 and ran the speech
+        # to 2.97x the source duration, which is not simultaneous translation
+        # at all.  The budget rule is imported unchanged from the commit-policy
+        # experiment, which measured the BiCodec semantic rate at exactly 50
+        # tokens per second on every sample.
+        #
+        # It is an upper bound and nothing more.  It does not reschedule audio,
+        # so it does not close the gaps between fragments and it does not move
+        # the first fragment earlier -- those follow from the committer.  On
+        # emilia_zh_0003929091 every fragment already sits far below the
+        # budget (59 codes against 156 allowed at 1920 ms) and pacing changes
+        # that sample not at all.
+        self.pace = bool(pace)
+        self.pace_margin_ms = float(pace_margin_ms)
+        self.pace_tail_ms = float(pace_tail_ms)
+        self.pace_budgets: list[dict[str, float]] = []
         self.semantic_penalty = float(semantic_penalty)
         self.semantic_penalty_window = int(semantic_penalty_window)
         if tts_text_scope not in ("delta", "prefix"):
@@ -353,11 +387,31 @@ class P2STCascadeSession:
                     target_delta = len(committed)
                     target_committed_tokens = list(committed)
                 else:
+                    budget = self.max_semantic_tokens
+                    if self.pace:
+                        budget = min(
+                            budget,
+                            allowed_event_tokens(
+                                consumed_source_ms=float(source_end_ms),
+                                already_emitted=len(self.spoken_semantic),
+                                source_final=exhausted,
+                                margin_ms=self.pace_margin_ms,
+                                tail_ms=self.pace_tail_ms,
+                            ),
+                        )
+                        self.pace_budgets.append(
+                            {
+                                "block_index": float(block_index),
+                                "source_end_ms": float(source_end_ms),
+                                "already_emitted": float(len(self.spoken_semantic)),
+                                "budget": float(budget),
+                            }
+                        )
                     produced, ended = _generate(
                         self.model,
                         self._tts_prompt(target_committed_tokens),
                         terminator=c.TOKEN_END_SEMANTIC,
-                        max_tokens=self.max_semantic_tokens,
+                        max_tokens=budget,
                         allowed=self._semantic_allowed,
                         first_allowed=self._semantic_first,
                         penalty=self.semantic_penalty,

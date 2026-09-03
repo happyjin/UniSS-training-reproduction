@@ -101,6 +101,9 @@ def main() -> None:
     parser.add_argument("--holdback", type=int, default=2)
     parser.add_argument("--label", default="p2st")
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--no-pace", action="store_true")
+    parser.add_argument("--pace-margin-ms", type=float, default=1200.0)
+    parser.add_argument("--pace-tail-ms", type=float, default=2000.0)
     args = parser.parse_args()
 
     wanted = set(args.sample_ids)
@@ -164,6 +167,9 @@ def main() -> None:
             semantic_penalty=args.semantic_penalty,
             semantic_penalty_window=args.semantic_penalty_window,
             tts_text_scope=args.tts_text_scope,
+            pace=not args.no_pace,
+            pace_margin_ms=args.pace_margin_ms,
+            pace_tail_ms=args.pace_tail_ms,
         )
         trace = session.run(waveform, max_blocks=blocks)
         speech = [f for f in trace.fragments if f.semantic]
@@ -214,6 +220,7 @@ def main() -> None:
                 "transcription_reference": trajectory.full_transcription,
                 "translation_reference": trajectory.full_translation,
                 "placement": stats,
+                "pace_budgets": session.pace_budgets,
                 "timeline": timeline,
             }
         )

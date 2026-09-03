@@ -1,0 +1,78 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0004122419",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/timeline_demos_paced/audio/emilia_zh_0004122419__p2st__stereo.wav",
+   "source_duration_ms": 4120,
+   "blocks": 26,
+   "fragments": 3,
+   "semantic_tokens": 366,
+   "first_audible_ms": 3040.0,
+   "last_audible_ms": 10360.0,
+   "terminator_rate": 0.0,
+   "source_hypothesis": "他们普遍感觉到某种新的因素正在诞生",
+   "target_hypothesis": "They generally feel that a new factor is emerging",
+   "transcription_reference": "他们普遍感觉到某种新的因素正在诞生。",
+   "translation_reference": "They generally feel that some new factor is being born.",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 10.36,
+    "concatenated_seconds": 7.32,
+    "queueing_delay_ms_mean": 2466.6666666666665,
+    "queueing_delay_ms_max": 3760.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 0.0,
+     "budget": 212.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 212.0,
+     "budget": 24.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4120.0,
+     "already_emitted": 236.0,
+     "budget": 130.0
+    }
+   ],
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3040.0,
+     "placed_end_ms": 7280.0,
+     "semantic_tokens": 212,
+     "text": "They"
+    },
+    {
+     "fragment": 1,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 7280.0,
+     "placed_end_ms": 7760.0,
+     "semantic_tokens": 24,
+     "text": "They generally"
+    },
+    {
+     "fragment": 2,
+     "block_index": 25,
+     "source_end_ms": 4120,
+     "placed_start_ms": 7760.0,
+     "placed_end_ms": 10360.0,
+     "semantic_tokens": 130,
+     "text": "They generally feel that a new factor is emerging"
+    }
+   ]
+  }
+ ]
+}
