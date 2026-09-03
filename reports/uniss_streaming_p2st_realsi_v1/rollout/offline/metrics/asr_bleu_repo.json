@@ -1,0 +1,115 @@
+{
+  "groups": {
+    "realsi_offline_concat:cmn->eng": {
+      "bp": 0.8859519905554549,
+      "counts": [
+        2776,
+        1228,
+        635,
+        349
+      ],
+      "precisions": [
+        43.82696558257025,
+        20.799457994579946,
+        11.579139314369074,
+        6.88498717695798
+      ],
+      "ref_len": 7101,
+      "sample_count": 431,
+      "score": 14.546328705529294,
+      "sys_len": 6334,
+      "tokenizer": "13a",
+      "totals": [
+        6334,
+        5904,
+        5484,
+        5069
+      ]
+    },
+    "realsi_offline_concat:eng->cmn": {
+      "bp": 0.7653927822782033,
+      "counts": [
+        4207,
+        2272,
+        1270,
+        778
+      ],
+      "precisions": [
+        50.73564881813797,
+        28.59300276868865,
+        16.706129965798475,
+        10.707404349022847
+      ],
+      "ref_len": 10509,
+      "sample_count": 346,
+      "score": 17.274982794110898,
+      "sys_len": 8292,
+      "tokenizer": "zh",
+      "totals": [
+        8292,
+        7946,
+        7602,
+        7266
+      ]
+    },
+    "realsi_offline_placed:cmn->eng": {
+      "bp": 0.9759150957606216,
+      "counts": [
+        2773,
+        1223,
+        631,
+        347
+      ],
+      "precisions": [
+        40.00288517022504,
+        18.806704597877903,
+        10.373171132664803,
+        6.122088920254058
+      ],
+      "ref_len": 7101,
+      "sample_count": 431,
+      "score": 14.42832228232534,
+      "sys_len": 6932,
+      "tokenizer": "13a",
+      "totals": [
+        6932,
+        6503,
+        6083,
+        5668
+      ]
+    },
+    "realsi_offline_placed:eng->cmn": {
+      "bp": 0.7716948589064242,
+      "counts": [
+        4216,
+        2275,
+        1272,
+        781
+      ],
+      "precisions": [
+        50.51521687035706,
+        28.4375,
+        16.614420062695924,
+        10.669398907103826
+      ],
+      "ref_len": 10509,
+      "sample_count": 346,
+      "score": 17.335257645690948,
+      "sys_len": 8346,
+      "tokenizer": "zh",
+      "totals": [
+        8346,
+        8000,
+        7656,
+        7320
+      ]
+    }
+  },
+  "hypothesis_field": "asr_text",
+  "input_count": 1554,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": true,
+  "scored_count": 1554,
+  "skipped": [],
+  "skipped_count": 0
+}
