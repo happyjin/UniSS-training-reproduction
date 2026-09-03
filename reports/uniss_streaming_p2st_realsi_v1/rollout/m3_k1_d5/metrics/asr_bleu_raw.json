@@ -1,0 +1,51 @@
+{
+ "groups": {
+  "realsi_m3_k1_d5_concat:cmn->eng": {
+   "bleu": 0.5780326514151632,
+   "brevity_penalty": 1.0,
+   "chrf": 12.046897084610862,
+   "empty_hypotheses": 30,
+   "ref_len": 8223,
+   "samples": 431,
+   "sys_len": 10206,
+   "tokenize": "13a",
+   "tokenizer": "13a"
+  },
+  "realsi_m3_k1_d5_concat:eng->cmn": {
+   "bleu": 1.5268011533065537,
+   "brevity_penalty": 0.9714506808824455,
+   "chrf": 3.4713600927974673,
+   "empty_hypotheses": 0,
+   "ref_len": 11510,
+   "samples": 346,
+   "sys_len": 11186,
+   "tokenize": "zh",
+   "tokenizer": "zh"
+  },
+  "realsi_m3_k1_d5_placed:cmn->eng": {
+   "bleu": 0.6262720572376556,
+   "brevity_penalty": 1.0,
+   "chrf": 11.507987241178121,
+   "empty_hypotheses": 30,
+   "ref_len": 8223,
+   "samples": 431,
+   "sys_len": 10017,
+   "tokenize": "13a",
+   "tokenizer": "13a"
+  },
+  "realsi_m3_k1_d5_placed:eng->cmn": {
+   "bleu": 1.4121347903160018,
+   "brevity_penalty": 0.9691246794857562,
+   "chrf": 3.4739442838085797,
+   "empty_hypotheses": 0,
+   "ref_len": 11510,
+   "samples": 346,
+   "sys_len": 11160,
+   "tokenize": "zh",
+   "tokenizer": "zh"
+  }
+ },
+ "missing_reference_rows": 0,
+ "protocol": "raw_sacrebleu_no_normalization",
+ "sacrebleu": "2.5.1"
+}

@@ -1,0 +1,115 @@
+{
+  "groups": {
+    "realsi_m3_k1_d5_concat:cmn->eng": {
+      "bp": 1.0,
+      "counts": [
+        822,
+        95,
+        16,
+        3
+      ],
+      "precisions": [
+        11.466034314409262,
+        1.403664302600473,
+        0.2506658311138963,
+        0.04971826317533974
+      ],
+      "ref_len": 7101,
+      "sample_count": 431,
+      "score": 0.6692245970453992,
+      "sys_len": 7169,
+      "tokenizer": "13a",
+      "totals": [
+        7169,
+        6768,
+        6383,
+        6034
+      ]
+    },
+    "realsi_m3_k1_d5_concat:eng->cmn": {
+      "bp": 1.0,
+      "counts": [
+        1996,
+        353,
+        65,
+        19
+      ],
+      "precisions": [
+        16.158018295150974,
+        2.939951694844674,
+        0.5574136008918618,
+        0.16785935153282092
+      ],
+      "ref_len": 10509,
+      "sample_count": 346,
+      "score": 1.4519874015909622,
+      "sys_len": 12353,
+      "tokenizer": "zh",
+      "totals": [
+        12353,
+        12007,
+        11661,
+        11319
+      ]
+    },
+    "realsi_m3_k1_d5_placed:cmn->eng": {
+      "bp": 1.0,
+      "counts": [
+        838,
+        87,
+        15,
+        2
+      ],
+      "precisions": [
+        10.101253616200578,
+        1.1012658227848102,
+        0.1989389920424403,
+        0.027812543457099152
+      ],
+      "ref_len": 7101,
+      "sample_count": 431,
+      "score": 0.4980890727888382,
+      "sys_len": 8296,
+      "tokenizer": "13a",
+      "totals": [
+        8296,
+        7900,
+        7540,
+        7191
+      ]
+    },
+    "realsi_m3_k1_d5_placed:eng->cmn": {
+      "bp": 1.0,
+      "counts": [
+        2003,
+        364,
+        64,
+        15
+      ],
+      "precisions": [
+        16.015031582313902,
+        2.993174903379656,
+        0.5416384563303994,
+        0.1307531380753138
+      ],
+      "ref_len": 10509,
+      "sample_count": 346,
+      "score": 1.3573922859130363,
+      "sys_len": 12507,
+      "tokenizer": "zh",
+      "totals": [
+        12507,
+        12161,
+        11816,
+        11472
+      ]
+    }
+  },
+  "hypothesis_field": "asr_text",
+  "input_count": 1554,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": true,
+  "scored_count": 1554,
+  "skipped": [],
+  "skipped_count": 0
+}

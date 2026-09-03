@@ -1,0 +1,1870 @@
+{
+ "arm": "m3_gold_d5",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000329073",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 2040,
+   "read_steps": 7,
+   "audio_blocks": 13,
+   "fragments": 6,
+   "semantic_tokens": 71,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/CommonVoice_EN_0000329073.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/CommonVoice_EN_0000329073.wav",
+   "placed_seconds": 2.14,
+   "concat_seconds": 1.42,
+   "delays": [
+    640.0,
+    960.0,
+    1120.0,
+    1280.0,
+    1440.0,
+    1920.0
+   ],
+   "durations": [
+    360.0,
+    320.0,
+    220.0,
+    120.0,
+    180.0,
+    220.0
+   ],
+   "intervals": [
+    [
+     640.0,
+     360.0
+    ],
+    [
+     1000.0,
+     320.0
+    ],
+    [
+     1320.0,
+     220.0
+    ],
+    [
+     1540.0,
+     120.0
+    ],
+    [
+     1660.0,
+     180.0
+    ],
+    [
+     1920.0,
+     220.0
+    ]
+   ],
+   "elapsed": [
+    1464.6872319281101,
+    2176.67153198272,
+    2747.745859902352,
+    3216.864148154855,
+    3757.0076058618724,
+    4384.827585890889
+   ],
+   "silences": [
+    640.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    80.0
+   ],
+   "source_hypothesis": "At the Disney team much from main",
+   "target_hypothesis": "在迪士尼团队中从主要",
+   "transcription_reference": "That doesn't say much for mine",
+   "translation_reference": "那对我的没说什么好话",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    3,
+    2,
+    1,
+    1,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 2.14,
+    "concatenated_seconds": 1.42,
+    "queueing_delay_ms_mean": 120.0,
+    "queueing_delay_ms_max": 260.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 6,
+   "read_next_events": 0,
+   "write_asr_events": 6,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": 6,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.63370601600036,
+   "rtf": 2.761620596078608
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000581204",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6000,
+   "read_steps": 13,
+   "audio_blocks": 38,
+   "fragments": 9,
+   "semantic_tokens": 316,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/CommonVoice_EN_0000581204.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/CommonVoice_EN_0000581204.wav",
+   "placed_seconds": 7.4,
+   "concat_seconds": 6.32,
+   "delays": [
+    960.0,
+    1600.0,
+    1760.0,
+    2560.0,
+    3040.0,
+    3360.0,
+    3520.0,
+    4960.0,
+    5120.0
+   ],
+   "durations": [
+    2160.0,
+    640.0,
+    160.0,
+    280.0,
+    320.0,
+    80.0,
+    240.0,
+    2280.0,
+    160.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     2160.0
+    ],
+    [
+     3120.0,
+     640.0
+    ],
+    [
+     3760.0,
+     160.0
+    ],
+    [
+     3920.0,
+     280.0
+    ],
+    [
+     4200.0,
+     320.0
+    ],
+    [
+     4520.0,
+     80.0
+    ],
+    [
+     4600.0,
+     240.0
+    ],
+    [
+     4960.0,
+     2280.0
+    ],
+    [
+     7240.0,
+     160.0
+    ]
+   ],
+   "elapsed": [
+    4538.27428817749,
+    6075.118500273675,
+    6583.360415417701,
+    7696.259155403823,
+    8556.94113112986,
+    9293.364125303924,
+    10336.021412163973,
+    15104.282108135521,
+    15544.982895255089
+   ],
+   "silences": [
+    960.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    120.0,
+    0.0
+   ],
+   "source_hypothesis": "The engine uses a gas generator cycle with two independent turbul pumps",
+   "target_hypothesis": "该发动机使用一个燃气发生器循环以两个独立的涡轮泵循环循环",
+   "transcription_reference": "The engine uses a gas generator cycle with two independent turbopumps",
+   "translation_reference": "发动机采用燃气发生器循环配备两个独立的涡轮泵",
+   "terminator_rate": 0.4444444444444444,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    1,
+    5,
+    2,
+    5,
+    2,
+    1,
+    2,
+    8,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 7.4,
+    "concatenated_seconds": 6.32,
+    "queueing_delay_ms_mean": 1155.5555555555557,
+    "queueing_delay_ms_max": 2120.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 4,
+   "write_asr_events": 11,
+   "write_mt_events": 9,
+   "write_semantic_events": 9,
+   "eos_event_index": 12,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 15.986623210366815,
+   "rtf": 2.6644372017278024
+  },
+  {
+   "sample_id": "EN_B00058_S05725_W000021",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4720,
+   "read_steps": 16,
+   "audio_blocks": 30,
+   "fragments": 14,
+   "semantic_tokens": 194,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/EN_B00058_S05725_W000021.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/EN_B00058_S05725_W000021.wav",
+   "placed_seconds": 4.98,
+   "concat_seconds": 3.88,
+   "delays": [
+    480.0,
+    640.0,
+    800.0,
+    1440.0,
+    1600.0,
+    1760.0,
+    1920.0,
+    2080.0,
+    2240.0,
+    2720.0,
+    3680.0,
+    4000.0,
+    4160.0,
+    4640.0
+   ],
+   "durations": [
+    320.0,
+    320.0,
+    60.0,
+    420.0,
+    280.0,
+    100.0,
+    20.0,
+    320.0,
+    280.0,
+    460.0,
+    620.0,
+    440.0,
+    20.0,
+    220.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     320.0
+    ],
+    [
+     800.0,
+     320.0
+    ],
+    [
+     1120.0,
+     60.0
+    ],
+    [
+     1440.0,
+     420.0
+    ],
+    [
+     1860.0,
+     280.0
+    ],
+    [
+     2140.0,
+     100.0
+    ],
+    [
+     2240.0,
+     20.0
+    ],
+    [
+     2260.0,
+     320.0
+    ],
+    [
+     2580.0,
+     280.0
+    ],
+    [
+     2860.0,
+     460.0
+    ],
+    [
+     3680.0,
+     620.0
+    ],
+    [
+     4300.0,
+     440.0
+    ],
+    [
+     4740.0,
+     20.0
+    ],
+    [
+     4760.0,
+     220.0
+    ]
+   ],
+   "elapsed": [
+    1612.1796411462128,
+    2458.5670442320406,
+    2796.48839822039,
+    4101.918493863195,
+    4977.588968817145,
+    5704.957067035139,
+    6168.115154840052,
+    6984.865480102599,
+    7543.021400924772,
+    8511.62026496604,
+    10354.364554863423,
+    11773.804035037756,
+    12120.654023252428,
+    13009.163342881948
+   ],
+   "silences": [
+    480.0,
+    0.0,
+    0.0,
+    260.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    360.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "Now more commonly you see a function formated like this",
+   "target_hypothesis": "现在更多的常见的是你看到一个函数格式化像这样",
+   "transcription_reference": "Now more commonly you'll see a function formatted like this",
+   "translation_reference": "现在更常见的是你会看到一个函数格式化成这样",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    1,
+    2,
+    2,
+    1,
+    0,
+    2,
+    2,
+    2,
+    3,
+    1,
+    0,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 14,
+    "placed_seconds": 4.98,
+    "concatenated_seconds": 3.88,
+    "queueing_delay_ms_mean": 221.42857142857142,
+    "queueing_delay_ms_max": 580.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 15,
+   "read_next_events": 0,
+   "write_asr_events": 9,
+   "write_mt_events": 14,
+   "write_semantic_events": 14,
+   "eos_event_index": 15,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 13.913717282004654,
+   "rtf": 2.9478214580518336
+  },
+  {
+   "sample_id": "NCSSD_R_ZH_0000016460",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8880,
+   "read_steps": 25,
+   "audio_blocks": 56,
+   "fragments": 24,
+   "semantic_tokens": 458,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/NCSSD_R_ZH_0000016460.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/NCSSD_R_ZH_0000016460.wav",
+   "placed_seconds": 11.04,
+   "concat_seconds": 9.16,
+   "delays": [
+    800.0,
+    960.0,
+    1440.0,
+    2240.0,
+    2720.0,
+    2880.0,
+    3360.0,
+    3520.0,
+    3680.0,
+    3840.0,
+    4160.0,
+    4960.0,
+    5280.0,
+    5760.0,
+    5920.0,
+    6720.0,
+    6880.0,
+    7360.0,
+    7520.0,
+    7680.0,
+    8000.0,
+    8160.0,
+    8640.0,
+    8800.0
+   ],
+   "durations": [
+    2000.0,
+    80.0,
+    100.0,
+    220.0,
+    120.0,
+    120.0,
+    300.0,
+    80.0,
+    140.0,
+    140.0,
+    280.0,
+    480.0,
+    160.0,
+    280.0,
+    340.0,
+    3080.0,
+    80.0,
+    240.0,
+    20.0,
+    160.0,
+    120.0,
+    300.0,
+    260.0,
+    60.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     2000.0
+    ],
+    [
+     2800.0,
+     80.0
+    ],
+    [
+     2880.0,
+     100.0
+    ],
+    [
+     2980.0,
+     220.0
+    ],
+    [
+     3200.0,
+     120.0
+    ],
+    [
+     3320.0,
+     120.0
+    ],
+    [
+     3440.0,
+     300.0
+    ],
+    [
+     3740.0,
+     80.0
+    ],
+    [
+     3820.0,
+     140.0
+    ],
+    [
+     3960.0,
+     140.0
+    ],
+    [
+     4160.0,
+     280.0
+    ],
+    [
+     4960.0,
+     480.0
+    ],
+    [
+     5440.0,
+     160.0
+    ],
+    [
+     5760.0,
+     280.0
+    ],
+    [
+     6040.0,
+     340.0
+    ],
+    [
+     6720.0,
+     3080.0
+    ],
+    [
+     9800.0,
+     80.0
+    ],
+    [
+     9880.0,
+     240.0
+    ],
+    [
+     10120.0,
+     20.0
+    ],
+    [
+     10140.0,
+     160.0
+    ],
+    [
+     10300.0,
+     120.0
+    ],
+    [
+     10420.0,
+     300.0
+    ],
+    [
+     10720.0,
+     260.0
+    ],
+    [
+     10980.0,
+     60.0
+    ]
+   ],
+   "elapsed": [
+    3858.480592723936,
+    4526.111233048141,
+    5185.112395789474,
+    5852.598983794451,
+    6597.112933639437,
+    7088.373370002955,
+    7901.487566996366,
+    8361.02401604876,
+    8931.026276666671,
+    9495.75217999518,
+    10355.870483908802,
+    11221.030770801008,
+    11755.268646869808,
+    12389.758156612515,
+    12947.65446987003,
+    16310.077834874392,
+    16718.631715048105,
+    17284.69967469573,
+    17507.742205634713,
+    17994.760769885033,
+    18440.922033041716,
+    19069.63299261406,
+    19678.594266995788,
+    19942.164411768317
+   ],
+   "silences": [
+    800.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    60.0,
+    520.0,
+    0.0,
+    160.0,
+    0.0,
+    340.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "或许你可以尝试去接受新的事物探索自己的兴趣或者去寻找一些新的启示",
+   "target_hypothesis": "Perhaps you can try to to accept the new one thing and explore your own interest interest or to find the some new things insights and",
+   "transcription_reference": "或许你可以尝试去接受新的事物探索自己的兴趣或者去寻找一些心灵的启示",
+   "translation_reference": "Perhaps you can try to accept new things explore your interests or seek some spiritual enlightenment",
+   "terminator_rate": 0.9166666666666666,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    7,
+    4,
+    4,
+    4,
+    3,
+    3,
+    7,
+    4,
+    4,
+    4,
+    6,
+    12,
+    9,
+    9,
+    9,
+    3,
+    3,
+    5,
+    4,
+    5,
+    4,
+    7,
+    9,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 24,
+    "placed_seconds": 11.04,
+    "concatenated_seconds": 9.16,
+    "queueing_delay_ms_mean": 1045.8333333333333,
+    "queueing_delay_ms_max": 2920.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 22,
+   "read_next_events": 2,
+   "write_asr_events": 18,
+   "write_mt_events": 24,
+   "write_semantic_events": 24,
+   "eos_event_index": 24,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 20.45524298166856,
+   "rtf": 2.3035183537915045
+  },
+  {
+   "sample_id": "emilia_zh_0004639707",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 10780,
+   "read_steps": 39,
+   "audio_blocks": 68,
+   "fragments": 32,
+   "semantic_tokens": 596,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0004639707.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0004639707.wav",
+   "placed_seconds": 13.7,
+   "concat_seconds": 11.92,
+   "delays": [
+    160.0,
+    480.0,
+    640.0,
+    800.0,
+    960.0,
+    1440.0,
+    1760.0,
+    2080.0,
+    2240.0,
+    2400.0,
+    2880.0,
+    3040.0,
+    3680.0,
+    3840.0,
+    4000.0,
+    4160.0,
+    4320.0,
+    4480.0,
+    4640.0,
+    5120.0,
+    5280.0,
+    5760.0,
+    6240.0,
+    6560.0,
+    7520.0,
+    8320.0,
+    9280.0,
+    9440.0,
+    9760.0,
+    10080.0,
+    10240.0,
+    10720.0
+   ],
+   "durations": [
+    80.0,
+    180.0,
+    200.0,
+    20.0,
+    380.0,
+    280.0,
+    200.0,
+    340.0,
+    100.0,
+    220.0,
+    2080.0,
+    160.0,
+    640.0,
+    80.0,
+    240.0,
+    160.0,
+    160.0,
+    160.0,
+    160.0,
+    360.0,
+    280.0,
+    300.0,
+    260.0,
+    180.0,
+    220.0,
+    540.0,
+    460.0,
+    40.0,
+    320.0,
+    120.0,
+    20.0,
+    2980.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     80.0
+    ],
+    [
+     480.0,
+     180.0
+    ],
+    [
+     660.0,
+     200.0
+    ],
+    [
+     860.0,
+     20.0
+    ],
+    [
+     960.0,
+     380.0
+    ],
+    [
+     1440.0,
+     280.0
+    ],
+    [
+     1760.0,
+     200.0
+    ],
+    [
+     2080.0,
+     340.0
+    ],
+    [
+     2420.0,
+     100.0
+    ],
+    [
+     2520.0,
+     220.0
+    ],
+    [
+     2880.0,
+     2080.0
+    ],
+    [
+     4960.0,
+     160.0
+    ],
+    [
+     5120.0,
+     640.0
+    ],
+    [
+     5760.0,
+     80.0
+    ],
+    [
+     5840.0,
+     240.0
+    ],
+    [
+     6080.0,
+     160.0
+    ],
+    [
+     6240.0,
+     160.0
+    ],
+    [
+     6400.0,
+     160.0
+    ],
+    [
+     6560.0,
+     160.0
+    ],
+    [
+     6720.0,
+     360.0
+    ],
+    [
+     7080.0,
+     280.0
+    ],
+    [
+     7360.0,
+     300.0
+    ],
+    [
+     7660.0,
+     260.0
+    ],
+    [
+     7920.0,
+     180.0
+    ],
+    [
+     8100.0,
+     220.0
+    ],
+    [
+     8320.0,
+     540.0
+    ],
+    [
+     9280.0,
+     460.0
+    ],
+    [
+     9740.0,
+     40.0
+    ],
+    [
+     9780.0,
+     320.0
+    ],
+    [
+     10100.0,
+     120.0
+    ],
+    [
+     10240.0,
+     20.0
+    ],
+    [
+     10720.0,
+     2980.0
+    ]
+   ],
+   "elapsed": [
+    1418.5891789384186,
+    2086.481335107237,
+    2612.3881307430565,
+    2814.899907913059,
+    3539.251532871276,
+    4143.009007908404,
+    4669.44467369467,
+    5502.160938922316,
+    5805.124398786575,
+    6352.180477697402,
+    8746.226640883833,
+    9087.53801882267,
+    10071.320919785649,
+    10353.637215681374,
+    10881.026170682162,
+    11326.539592817426,
+    11666.70285910368,
+    12152.77194371447,
+    12597.061990760267,
+    13280.249210074544,
+    13890.744374133646,
+    14525.787224061787,
+    15114.107552915812,
+    15621.009185910225,
+    16499.54230291769,
+    17608.055657707155,
+    18617.556397803128,
+    18861.167947761714,
+    19507.806016132236,
+    19975.173050072044,
+    20178.97245893255,
+    23445.45924384147
+   ],
+   "silences": [
+    160.0,
+    240.0,
+    0.0,
+    0.0,
+    80.0,
+    100.0,
+    40.0,
+    120.0,
+    0.0,
+    0.0,
+    140.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    420.0,
+    0.0,
+    0.0,
+    0.0,
+    20.0,
+    460.0
+   ],
+   "source_hypothesis": "I didn't too to three minutes as soon as the people below realize the this now couldn't do possibly be a bomb They came pouring out of the shelters and the subways to game at the marvel",
+   "target_hypothesis": "我不太愿意把三个分钟作为很快就人们在下面开始意识到了这个现在的无法做到可能成为炸弹他们来了从避难所和地铁里涌出了游戏在商场",
+   "transcription_reference": "And in two or three minutes as soon as the people below realized that this now couldn't possibly be a bomb they came pouring out of the shelters of the subways to gape at the move",
+   "translation_reference": "两到三分钟后当下面的人意识到这肯定不是炸弹时他们从地铁的避难所蜂拥而出盯着这一幕看",
+   "terminator_rate": 0.6875,
+   "capped_stages": 10,
+   "mt_delta_chars": [
+    1,
+    2,
+    2,
+    0,
+    3,
+    2,
+    2,
+    2,
+    1,
+    2,
+    3,
+    2,
+    3,
+    1,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    1,
+    4,
+    5,
+    1,
+    2,
+    1,
+    0,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 32,
+    "placed_seconds": 13.7,
+    "concatenated_seconds": 11.92,
+    "queueing_delay_ms_mean": 746.25,
+    "queueing_delay_ms_max": 1920.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 35,
+   "read_next_events": 3,
+   "write_asr_events": 31,
+   "write_mt_events": 32,
+   "write_semantic_events": 32,
+   "eos_event_index": 38,
+   "eos_reached": true,
+   "malformed_segments": 10,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 24.120348405092955,
+   "rtf": 2.2375091284872872
+  },
+  {
+   "sample_id": "emilia_zh_0004954449",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5280,
+   "read_steps": 10,
+   "audio_blocks": 33,
+   "fragments": 7,
+   "semantic_tokens": 266,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0004954449.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0004954449.wav",
+   "placed_seconds": 6.28,
+   "concat_seconds": 5.32,
+   "delays": [
+    800.0,
+    1760.0,
+    1920.0,
+    2880.0,
+    4000.0,
+    4160.0,
+    5280.0
+   ],
+   "durations": [
+    2000.0,
+    360.0,
+    180.0,
+    780.0,
+    420.0,
+    580.0,
+    1000.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     2000.0
+    ],
+    [
+     2800.0,
+     360.0
+    ],
+    [
+     3160.0,
+     180.0
+    ],
+    [
+     3340.0,
+     780.0
+    ],
+    [
+     4120.0,
+     420.0
+    ],
+    [
+     4540.0,
+     580.0
+    ],
+    [
+     5280.0,
+     1000.0
+    ]
+   ],
+   "elapsed": [
+    2879.686743952334,
+    3720.626750960946,
+    4236.029062885791,
+    5388.308036141098,
+    6219.043058808893,
+    7150.7949428632855,
+    8668.988010846078
+   ],
+   "silences": [
+    800.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    160.0
+   ],
+   "source_hypothesis": "其内的生命却能显现深隐暗然的审美心境",
+   "target_hypothesis": "Its internal life can be revealed deeply underlying and aesthetic mind",
+   "transcription_reference": "其内在生命却能显现出生意盎然的审美心境",
+   "translation_reference": "Its inner life however can reveal a vibrant aesthetic mindset",
+   "terminator_rate": 0.8571428571428571,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    12,
+    5,
+    4,
+    12,
+    7,
+    11,
+    19
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 6.28,
+    "concatenated_seconds": 5.32,
+    "queueing_delay_ms_mean": 462.85714285714283,
+    "queueing_delay_ms_max": 1240.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 9,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": 9,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 8.827136370819062,
+   "rtf": 1.6718061308369434
+  },
+  {
+   "sample_id": "emilia_zh_0005338342",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4260,
+   "read_steps": 11,
+   "audio_blocks": 27,
+   "fragments": 10,
+   "semantic_tokens": 255,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0005338342.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0005338342.wav",
+   "placed_seconds": 5.74,
+   "concat_seconds": 5.1,
+   "delays": [
+    640.0,
+    960.0,
+    1600.0,
+    1920.0,
+    2880.0,
+    3040.0,
+    3360.0,
+    3680.0,
+    3840.0,
+    4260.0
+   ],
+   "durations": [
+    1840.0,
+    180.0,
+    160.0,
+    320.0,
+    1360.0,
+    140.0,
+    340.0,
+    200.0,
+    80.0,
+    480.0
+   ],
+   "intervals": [
+    [
+     640.0,
+     1840.0
+    ],
+    [
+     2480.0,
+     180.0
+    ],
+    [
+     2660.0,
+     160.0
+    ],
+    [
+     2820.0,
+     320.0
+    ],
+    [
+     3140.0,
+     1360.0
+    ],
+    [
+     4500.0,
+     140.0
+    ],
+    [
+     4640.0,
+     340.0
+    ],
+    [
+     4980.0,
+     200.0
+    ],
+    [
+     5180.0,
+     80.0
+    ],
+    [
+     5260.0,
+     480.0
+    ]
+   ],
+   "elapsed": [
+    2496.721863280982,
+    3001.476055942476,
+    3487.6255732961,
+    4176.4560411684215,
+    6047.355111222714,
+    6391.390483360738,
+    7060.971396043897,
+    7611.282812897116,
+    8020.650619175285,
+    8827.346773352474
+   ],
+   "silences": [
+    640.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "同时其本身携带的神秘信息也有待被揭开",
+   "target_hypothesis": "At the same time its own carrying mysterious information is also to be be uncovered",
+   "transcription_reference": "同时其本身携带的神秘信息也有待被揭开",
+   "translation_reference": "At the same time the mysterious information it carries also awaits to be revealed",
+   "terminator_rate": 0.9,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    16,
+    4,
+    4,
+    9,
+    23,
+    3,
+    5,
+    6,
+    3,
+    10
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 5.74,
+    "concatenated_seconds": 5.1,
+    "queueing_delay_ms_mean": 1012.0,
+    "queueing_delay_ms_max": 1520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 9,
+   "read_next_events": 1,
+   "write_asr_events": 10,
+   "write_mt_events": 10,
+   "write_semantic_events": 10,
+   "eos_event_index": 10,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.001402086112648,
+   "rtf": 2.1130051845334856
+  },
+  {
+   "sample_id": "emilia_zh_0006199435",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6060,
+   "read_steps": 17,
+   "audio_blocks": 38,
+   "fragments": 14,
+   "semantic_tokens": 289,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0006199435.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0006199435.wav",
+   "placed_seconds": 6.68,
+   "concat_seconds": 5.78,
+   "delays": [
+    160.0,
+    320.0,
+    800.0,
+    960.0,
+    1440.0,
+    1760.0,
+    2080.0,
+    2880.0,
+    3040.0,
+    4160.0,
+    4480.0,
+    4640.0,
+    5760.0,
+    5920.0
+   ],
+   "durations": [
+    1360.0,
+    160.0,
+    420.0,
+    40.0,
+    380.0,
+    300.0,
+    620.0,
+    120.0,
+    100.0,
+    1080.0,
+    80.0,
+    200.0,
+    800.0,
+    120.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     1360.0
+    ],
+    [
+     1520.0,
+     160.0
+    ],
+    [
+     1680.0,
+     420.0
+    ],
+    [
+     2100.0,
+     40.0
+    ],
+    [
+     2140.0,
+     380.0
+    ],
+    [
+     2520.0,
+     300.0
+    ],
+    [
+     2820.0,
+     620.0
+    ],
+    [
+     3440.0,
+     120.0
+    ],
+    [
+     3560.0,
+     100.0
+    ],
+    [
+     4160.0,
+     1080.0
+    ],
+    [
+     5240.0,
+     80.0
+    ],
+    [
+     5320.0,
+     200.0
+    ],
+    [
+     5760.0,
+     800.0
+    ],
+    [
+     6560.0,
+     120.0
+    ]
+   ],
+   "elapsed": [
+    2084.8324238322675,
+    2428.186791948974,
+    3192.2168279998004,
+    3561.0647001303732,
+    4435.3351457975805,
+    5102.940137963742,
+    6053.630985785276,
+    6504.321452695876,
+    6934.834225103259,
+    8447.68383493647,
+    8850.596627686173,
+    9249.2604739964,
+    10437.354523688555,
+    10879.701711703092
+   ],
+   "silences": [
+    160.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    500.0,
+    0.0,
+    0.0,
+    240.0,
+    0.0
+   ],
+   "source_hypothesis": "他不再是等待着抓蚊子而是向时装模特那样走来走去去",
+   "target_hypothesis": "He was no longer a waiter to catch the mosquitoes but he went to the fashion model to such and walked around to",
+   "transcription_reference": "他不再是等待着抓蚊子而是像时装模特那样走来走去",
+   "translation_reference": "He was no longer waiting to catch mosquitoes but was walking around like a fashion model",
+   "terminator_rate": 0.7857142857142857,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    2,
+    4,
+    10,
+    2,
+    7,
+    9,
+    15,
+    4,
+    3,
+    26,
+    3,
+    5,
+    18,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 14,
+    "placed_seconds": 6.68,
+    "concatenated_seconds": 5.78,
+    "queueing_delay_ms_mean": 612.8571428571429,
+    "queueing_delay_ms_max": 1200.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 14,
+   "read_next_events": 2,
+   "write_asr_events": 13,
+   "write_mt_events": 14,
+   "write_semantic_events": 14,
+   "eos_event_index": 16,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.163612938951701,
+   "rtf": 1.842180352962327
+  },
+  {
+   "sample_id": "emilia_zh_0006923139",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5740,
+   "read_steps": 15,
+   "audio_blocks": 36,
+   "fragments": 10,
+   "semantic_tokens": 274,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0006923139.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0006923139.wav",
+   "placed_seconds": 6.44,
+   "concat_seconds": 5.48,
+   "delays": [
+    960.0,
+    1440.0,
+    2560.0,
+    2880.0,
+    3520.0,
+    3680.0,
+    4320.0,
+    4640.0,
+    5120.0,
+    5600.0
+   ],
+   "durations": [
+    2160.0,
+    160.0,
+    1140.0,
+    100.0,
+    360.0,
+    160.0,
+    300.0,
+    420.0,
+    420.0,
+    260.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     2160.0
+    ],
+    [
+     3120.0,
+     160.0
+    ],
+    [
+     3280.0,
+     1140.0
+    ],
+    [
+     4420.0,
+     100.0
+    ],
+    [
+     4520.0,
+     360.0
+    ],
+    [
+     4880.0,
+     160.0
+    ],
+    [
+     5040.0,
+     300.0
+    ],
+    [
+     5340.0,
+     420.0
+    ],
+    [
+     5760.0,
+     420.0
+    ],
+    [
+     6180.0,
+     260.0
+    ]
+   ],
+   "elapsed": [
+    2979.7577052377164,
+    3479.84682302922,
+    5267.490092199296,
+    5689.860819838941,
+    6367.768628057092,
+    6848.33417320624,
+    7488.143227063119,
+    8223.391016945243,
+    9020.276226103306,
+    9620.495554991066
+   ],
+   "silences": [
+    960.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "看来就是一款非常成功产品会展开一下其他它前辈的光芒",
+   "target_hypothesis": "It seems that a very successful product will open up to other products that have been lighter",
+   "transcription_reference": "看来就是一款非常成功的产品会掩盖掉其他他的前辈的光芒",
+   "translation_reference": "It seems to be a very successful product that will overshadow the brilliance of its predecessors",
+   "terminator_rate": 0.9,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    8,
+    7,
+    24,
+    5,
+    5,
+    3,
+    9,
+    9,
+    15,
+    8
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 6.44,
+    "concatenated_seconds": 5.48,
+    "queueing_delay_ms_mean": 878.0,
+    "queueing_delay_ms_max": 1680.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 13,
+   "read_next_events": 1,
+   "write_asr_events": 13,
+   "write_mt_events": 10,
+   "write_semantic_events": 10,
+   "eos_event_index": 14,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.813655391801149,
+   "rtf": 1.7096960612893985
+  },
+  {
+   "sample_id": "emilia_zh_0007453197",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4080,
+   "read_steps": 11,
+   "audio_blocks": 26,
+   "fragments": 9,
+   "semantic_tokens": 225,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0007453197.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0007453197.wav",
+   "placed_seconds": 4.82,
+   "concat_seconds": 4.5,
+   "delays": [
+    320.0,
+    480.0,
+    960.0,
+    1440.0,
+    2240.0,
+    2400.0,
+    2880.0,
+    3200.0,
+    4000.0
+   ],
+   "durations": [
+    1520.0,
+    160.0,
+    340.0,
+    480.0,
+    940.0,
+    160.0,
+    420.0,
+    120.0,
+    360.0
+   ],
+   "intervals": [
+    [
+     320.0,
+     1520.0
+    ],
+    [
+     1840.0,
+     160.0
+    ],
+    [
+     2000.0,
+     340.0
+    ],
+    [
+     2340.0,
+     480.0
+    ],
+    [
+     2820.0,
+     940.0
+    ],
+    [
+     3760.0,
+     160.0
+    ],
+    [
+     3920.0,
+     420.0
+    ],
+    [
+     4340.0,
+     120.0
+    ],
+    [
+     4460.0,
+     360.0
+    ]
+   ],
+   "elapsed": [
+    2089.4663548097014,
+    2305.5480527691543,
+    2977.8539869003,
+    3767.816653009504,
+    4994.198984932154,
+    5211.477404925972,
+    5948.478681966662,
+    6389.885514974594,
+    7088.567447848618
+   ],
+   "silences": [
+    320.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "人们生产药品因此出口到全世界",
+   "target_hypothesis": "People produce 药品 Therefore exports to the world",
+   "transcription_reference": "人们生产药品并且出口到全世界",
+   "translation_reference": "People produce medicines and export them to the world",
+   "terminator_rate": 0.5555555555555556,
+   "capped_stages": 4,
+   "mt_delta_chars": [
+    6,
+    0,
+    8,
+    3,
+    10,
+    0,
+    8,
+    3,
+    10
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 4.82,
+    "concatenated_seconds": 4.5,
+    "queueing_delay_ms_mean": 875.5555555555555,
+    "queueing_delay_ms_max": 1360.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 2,
+   "write_asr_events": 7,
+   "write_mt_events": 7,
+   "write_semantic_events": 9,
+   "eos_event_index": 10,
+   "eos_reached": true,
+   "malformed_segments": 4,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.289862217847258,
+   "rtf": 1.7867309357468768
+  }
+ ]
+}

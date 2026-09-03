@@ -383,5 +383,234 @@
    }
   },
   "rule": "LAAL moves by multiples when the delay axis granularity, the sample set or the source-duration distribution change, so any cross-report LAAL comparison must first state whether all three match.  This project's internal history uses the per-token axis; comparison against the paper requires the per-fragment axis.  The two must never be mixed, and the old internal figures are not evidence that latency used to be better."
+ },
+ "m3_delta5_correction": {
+  "report": "C_VS_M3_DELTA5.zh-CN.md",
+  "what_was_wrong": "The earlier m3 arms used delta=0, m3's gate configuration.  m3's own streaming_demos_delta5/FINDINGS.zh-CN.md calls CONTINUE_WRITE_BIAS=5 the best streaming S2ST configuration in the whole project (5/6 gate criteria against 3/6 at delta=0) because it lifts WRITE_MT per event from 0.168 to 0.789.  Comparing C against delta=0 compared it against a configuration m3's authors set aside.",
+  "installation_validated": "install_bias(0,5) at runtime, no m3 file touched; measured WRITE_MT/event 0.774 on 80 samples against the documented 0.789 on 16.",
+  "realsi_777": {
+   "start_offset_ms": {
+    "m3_d0": [
+     2818,
+     2999
+    ],
+    "m3_d5": [
+     347,
+     805
+    ],
+    "c": [
+     2544,
+     2573
+    ]
+   },
+   "audible_onset_ms": {
+    "m3_d0": [
+     5470,
+     5760
+    ],
+    "m3_d5": [
+     840,
+     1100
+    ],
+    "c": [
+     4720,
+     4720
+    ]
+   },
+   "laal_ms": {
+    "m3_d0": [
+     4364,
+     3615
+    ],
+    "m3_d5": [
+     566,
+     778
+    ],
+    "c": [
+     4437,
+     3681
+    ]
+   },
+   "laal_ca_ms": {
+    "m3_d0": [
+     8416,
+     8282
+    ],
+    "m3_d5": [
+     3727,
+     4458
+    ],
+    "c": [
+     5598,
+     4684
+    ]
+   },
+   "asr_bleu": {
+    "m3_d0": [
+     1.73,
+     0.8
+    ],
+    "m3_d5": [
+     1.36,
+     0.5
+    ],
+    "c": [
+     14.66,
+     10.37
+    ]
+   },
+   "chunks": {
+    "m3_d0": [
+     4.7,
+     4.1
+    ],
+    "m3_d5": [
+     35.9,
+     31.0
+    ],
+    "c": [
+     5.9,
+     5.5
+    ]
+   },
+   "terminator": {
+    "m3_d0": [
+     0.5,
+     0.0
+    ],
+    "m3_d5": [
+     0.922,
+     0.827
+    ],
+    "c": [
+     1.0,
+     1.0
+    ]
+   },
+   "order": "[en2zh, zh2en]"
+  },
+  "verdict": "m3 at delta=5 is 3-8x faster on first-audible and LAAL; C is 10-20x better on content.  A real trade-off, not one side dominating.  delta=5 costs m3 6 BLEU on internal data but nothing on RealSI, because its RealSI quality is already at the floor (BLEU ~1).",
+  "oracle_segmentation_buys_asr_not_latency": {
+   "note": "Completes the earlier retraction: the gold schedule does help m3, but in recognition, not latency.",
+   "m3_asr_error_gold": [
+    0.248,
+    0.157
+   ],
+   "m3_asr_error_uniform": [
+    1.708,
+    0.849
+   ],
+   "m3_mt_bleu_gold": [
+    24,
+    20
+   ],
+   "m3_mt_bleu_uniform": [
+    3.1,
+    2.7
+   ],
+   "m3_laal_gold": 3466,
+   "m3_laal_uniform": 3221
+  }
+ },
+ "c_onset_diagnosis": {
+  "method": "onset_diagnosis.py reads trace.source_deltas / target_deltas (one committed-character count per read step) and Fragment.read_step, on the 80-sample internal panel at a 160 ms read step.",
+  "key_finding": "speech onset equals the MT committer's first release in 80/80 samples at every holdback, so TTS adds no delay at all; the entire onset is the ASR->MT commit chain.",
+  "symmetric": {
+   "0": {
+    "asr_onset_ms": 400,
+    "mt_onset_ms": 1120,
+    "speech_onset_ms": 1120,
+    "asr_error": [
+     0.245,
+     0.127
+    ],
+    "mt_bleu": [
+     26.89,
+     21.9
+    ],
+    "conflicts": 0
+   },
+   "1": {
+    "asr_onset_ms": 960,
+    "mt_onset_ms": 2080,
+    "speech_onset_ms": 2080,
+    "asr_error": [
+     0.164,
+     0.099
+    ],
+    "mt_bleu": [
+     38.82,
+     33.43
+    ],
+    "conflicts": 0
+   },
+   "2": {
+    "asr_onset_ms": 1440,
+    "mt_onset_ms": 2880,
+    "speech_onset_ms": 2880,
+    "asr_error": [
+     0.168,
+     0.093
+    ],
+    "mt_bleu": [
+     39.39,
+     33.11
+    ],
+    "conflicts": 0
+   }
+  },
+  "asymmetric": {
+   "s0t0": {
+    "speech_onset_ms": 1120,
+    "asr_error": [
+     0.245,
+     0.127
+    ],
+    "mt_bleu": [
+     26.89,
+     21.9
+    ],
+    "fragments": 6.0
+   },
+   "s1t0": {
+    "speech_onset_ms": 1600,
+    "asr_error": [
+     0.164,
+     0.099
+    ],
+    "mt_bleu": [
+     36.59,
+     29.05
+    ],
+    "fragments": 6.0
+   },
+   "s1t1": {
+    "speech_onset_ms": 2080,
+    "asr_error": [
+     0.164,
+     0.099
+    ],
+    "mt_bleu": [
+     38.82,
+     33.43
+    ],
+    "fragments": 4.0
+   },
+   "s2t0": {
+    "speech_onset_ms": 1980,
+    "asr_error": [
+     0.168,
+     0.093
+    ],
+    "mt_bleu": [
+     37.49,
+     30.32
+    ],
+    "fragments": 5.0
+   }
+  },
+  "conclusion": "Of the 2080 ms onset, 960 ms is the ASR committer and a further 1120 ms is the MT committer -- the MT half is the larger one.  Zero commit conflicts at every setting, so the holdback is pure conservatism rather than conflict avoidance.  s1t0, which was never tried before (only s0t1 and s2t1 were), buys 480 ms for 2.2/4.4 BLEU with the ASR error unchanged -- a 2.7x better exchange rate than s0t0's 960 ms for 11.9/11.5 BLEU.  So release the target committer, never the source committer.",
+  "real_fix": "Train the ASR stage on a uniform fine read grid.  C's Chinese source CER is 0.250 offline, 0.264 at k25 and 0.804 at k1 while English barely moves (0.363/0.390/0.421); m3 shows the same failure worse (0.248 -> 1.708); third-party ASR reads the same audio at 0.141/0.159 so the audio is fine; and because the onset is ASR-commit-bound, a better ASR agrees sooner and buys latency and quality together instead of trading them.  This is the only lever that improves both.",
+  "what_will_not_work": "A delta-style unconditional write.  m3 at delta=5 already walked that path to its end: 347 ms onset at ASR-BLEU 1.36, WER 1.75 and 1.8x text over-generation."
  }
 }

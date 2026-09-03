@@ -72,6 +72,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from experiments.uniss_phase3_e2e_commit_policy_v1.runtime.semantic_pacing import (
     PacedInterleavedSession,
 )
+from experiments.uniss_phase3_e2e_speak_decision_v1.diagnostics.biased_family_probe import (  # noqa: E501
+    install_bias,
+    install_semantic_decoding,
+)
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a_causal_whisper_asr import (  # noqa: E501
     evaluate_checkpoint as stage_a_eval,
 )
@@ -321,6 +325,18 @@ def main() -> None:
     parser.add_argument("--max-s2s-text-tokens", type=int, default=48)
     parser.add_argument("--pace-margin-ms", type=float, default=1200.0)
     parser.add_argument("--pace-tail-ms", type=float, default=2000.0)
+    # m3's documented best configuration is not its gate configuration.
+    # reports/.../streaming_demos_delta5/FINDINGS.zh-CN.md calls
+    # CONTINUE_WRITE_BIAS=5 "the best streaming S2ST configuration in the whole
+    # project" at 5/6 gate criteria, against 3/6 at delta=0, because it lifts
+    # WRITE_MT per event from 0.168 to 0.789.  Comparing C against delta=0 would
+    # be comparing against a configuration m3's own authors set aside.
+    parser.add_argument("--continue-write-bias", type=float, default=0.0)
+    parser.add_argument("--family-mt-bias", type=float, default=0.0)
+    parser.add_argument("--semantic-repetition-penalty", type=float, default=1.0)
+    parser.add_argument("--semantic-repetition-window", type=int, default=64)
+    parser.add_argument("--semantic-topk", type=int, default=1)
+    parser.add_argument("--minimum-semantic-fragment", type=int, default=0)
     parser.add_argument("--keep-stereo", action="store_true")
     args = parser.parse_args()
 
@@ -342,6 +358,23 @@ def main() -> None:
         ]
     if args.limit:
         rows = rows[: args.limit]
+
+    # Installed the way the probe installs it: a bias inside ``_choice`` only,
+    # with ``self.logits`` untouched, so generation elsewhere is unchanged.  It
+    # patches the classes at runtime rather than editing m3's files, and it
+    # reaches InstrumentedPacedSession through inheritance because that subclass
+    # overrides neither ``_choice`` nor ``run_event``.
+    if args.continue_write_bias or args.family_mt_bias:
+        if args.continue_write_bias < 0 or args.family_mt_bias < 0:
+            raise ValueError("biases must be non-negative")
+        install_bias(args.family_mt_bias, args.continue_write_bias)
+    if args.semantic_repetition_penalty > 1.0 or args.semantic_topk > 1:
+        install_semantic_decoding(
+            args.semantic_repetition_penalty,
+            args.semantic_repetition_window,
+            args.semantic_topk,
+            args.minimum_semantic_fragment,
+        )
 
     device = torch.device(args.device)
     tokenizer = AutoTokenizer.from_pretrained(args.candidate_hf, local_files_only=True)
@@ -544,6 +577,9 @@ def main() -> None:
                 "eos_event_index": eos_event,
                 "eos_reached": session.closed,
                 "malformed_segments": malformed,
+                "continue_write_bias": args.continue_write_bias,
+                "family_mt_bias": args.family_mt_bias,
+                "semantic_repetition_penalty": args.semantic_repetition_penalty,
                 "pace_margin_ms": args.pace_margin_ms,
                 "pace_tail_ms": args.pace_tail_ms,
                 "wall_seconds": wall,

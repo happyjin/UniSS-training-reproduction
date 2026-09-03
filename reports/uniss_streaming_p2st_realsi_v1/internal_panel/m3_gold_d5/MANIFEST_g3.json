@@ -1,0 +1,1978 @@
+{
+ "arm": "m3_gold_d5",
+ "samples": [
+  {
+   "sample_id": "CommonVoice_EN_0000317562",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 3380,
+   "read_steps": 9,
+   "audio_blocks": 22,
+   "fragments": 5,
+   "semantic_tokens": 111,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/CommonVoice_EN_0000317562.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/CommonVoice_EN_0000317562.wav",
+   "placed_seconds": 3.56,
+   "concat_seconds": 2.22,
+   "delays": [
+    1120.0,
+    1600.0,
+    2400.0,
+    2560.0,
+    3040.0
+   ],
+   "durations": [
+    440.0,
+    620.0,
+    600.0,
+    180.0,
+    380.0
+   ],
+   "intervals": [
+    [
+     1120.0,
+     440.0
+    ],
+    [
+     1600.0,
+     620.0
+    ],
+    [
+     2400.0,
+     600.0
+    ],
+    [
+     3000.0,
+     180.0
+    ],
+    [
+     3180.0,
+     380.0
+    ]
+   ],
+   "elapsed": [
+    1948.0486349202693,
+    3018.1497600860894,
+    4066.6558668017387,
+    4614.495303016156,
+    5405.232421122491
+   ],
+   "silences": [
+    1120.0,
+    40.0,
+    180.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "What can't be cheered must be a underdert",
+   "target_hypothesis": "不能欢呼的必须是一个弱者",
+   "transcription_reference": "What can't be cured must be endured",
+   "translation_reference": "不能治愈的就必须忍受",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    4,
+    2,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 3.56,
+    "concatenated_seconds": 2.22,
+    "queueing_delay_ms_mean": 116.0,
+    "queueing_delay_ms_max": 440.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 0,
+   "write_asr_events": 7,
+   "write_mt_events": 5,
+   "write_semantic_events": 5,
+   "eos_event_index": 8,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 6.450272107962519,
+   "rtf": 1.9083645289829938
+  },
+  {
+   "sample_id": "CommonVoice_EN_0000534499",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 3240,
+   "read_steps": 7,
+   "audio_blocks": 21,
+   "fragments": 6,
+   "semantic_tokens": 172,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/CommonVoice_EN_0000534499.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/CommonVoice_EN_0000534499.wav",
+   "placed_seconds": 4.6,
+   "concat_seconds": 3.44,
+   "delays": [
+    800.0,
+    960.0,
+    1600.0,
+    1760.0,
+    2080.0,
+    2240.0
+   ],
+   "durations": [
+    420.0,
+    20.0,
+    2360.0,
+    80.0,
+    400.0,
+    160.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     420.0
+    ],
+    [
+     1220.0,
+     20.0
+    ],
+    [
+     1600.0,
+     2360.0
+    ],
+    [
+     3960.0,
+     80.0
+    ],
+    [
+     4040.0,
+     400.0
+    ],
+    [
+     4440.0,
+     160.0
+    ]
+   ],
+   "elapsed": [
+    1073.683938011527,
+    1304.293456953019,
+    4218.353825155646,
+    4550.4039991647005,
+    5370.483574923128,
+    6227.7580089867115
+   ],
+   "silences": [
+    800.0,
+    0.0,
+    360.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "A mysterious thinker is",
+   "target_hypothesis": "一个神秘的思想家正在",
+   "transcription_reference": "A mysterious thinker",
+   "translation_reference": "一位神秘的思想家",
+   "terminator_rate": 0.5,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    2,
+    0,
+    2,
+    1,
+    3,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 4.6,
+    "concatenated_seconds": 3.44,
+    "queueing_delay_ms_mean": 1103.3333333333333,
+    "queueing_delay_ms_max": 2200.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 4,
+   "read_next_events": 2,
+   "write_asr_events": 4,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": 6,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 6.849069955293089,
+   "rtf": 2.113910480028731
+  },
+  {
+   "sample_id": "EN_B00058_S04249_W000109",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 12280,
+   "read_steps": 33,
+   "audio_blocks": 77,
+   "fragments": 30,
+   "semantic_tokens": 385,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/EN_B00058_S04249_W000109.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/EN_B00058_S04249_W000109.wav",
+   "placed_seconds": 12.28,
+   "concat_seconds": 7.7,
+   "delays": [
+    640.0,
+    1120.0,
+    1440.0,
+    1600.0,
+    1760.0,
+    2400.0,
+    2560.0,
+    3200.0,
+    3840.0,
+    4160.0,
+    4320.0,
+    4800.0,
+    5120.0,
+    5440.0,
+    5600.0,
+    5920.0,
+    6400.0,
+    7680.0,
+    8160.0,
+    8320.0,
+    8800.0,
+    9120.0,
+    9280.0,
+    9440.0,
+    9920.0,
+    10400.0,
+    10720.0,
+    11200.0,
+    11360.0,
+    12160.0
+   ],
+   "durations": [
+    340.0,
+    200.0,
+    400.0,
+    340.0,
+    20.0,
+    460.0,
+    20.0,
+    180.0,
+    1180.0,
+    180.0,
+    340.0,
+    440.0,
+    320.0,
+    200.0,
+    200.0,
+    400.0,
+    160.0,
+    200.0,
+    160.0,
+    20.0,
+    340.0,
+    240.0,
+    260.0,
+    160.0,
+    320.0,
+    100.0,
+    140.0,
+    260.0,
+    20.0,
+    100.0
+   ],
+   "intervals": [
+    [
+     640.0,
+     340.0
+    ],
+    [
+     1120.0,
+     200.0
+    ],
+    [
+     1440.0,
+     400.0
+    ],
+    [
+     1840.0,
+     340.0
+    ],
+    [
+     2180.0,
+     20.0
+    ],
+    [
+     2400.0,
+     460.0
+    ],
+    [
+     2860.0,
+     20.0
+    ],
+    [
+     3200.0,
+     180.0
+    ],
+    [
+     3840.0,
+     1180.0
+    ],
+    [
+     5020.0,
+     180.0
+    ],
+    [
+     5200.0,
+     340.0
+    ],
+    [
+     5540.0,
+     440.0
+    ],
+    [
+     5980.0,
+     320.0
+    ],
+    [
+     6300.0,
+     200.0
+    ],
+    [
+     6500.0,
+     200.0
+    ],
+    [
+     6700.0,
+     400.0
+    ],
+    [
+     7100.0,
+     160.0
+    ],
+    [
+     7680.0,
+     200.0
+    ],
+    [
+     8160.0,
+     160.0
+    ],
+    [
+     8320.0,
+     20.0
+    ],
+    [
+     8800.0,
+     340.0
+    ],
+    [
+     9140.0,
+     240.0
+    ],
+    [
+     9380.0,
+     260.0
+    ],
+    [
+     9640.0,
+     160.0
+    ],
+    [
+     9920.0,
+     320.0
+    ],
+    [
+     10400.0,
+     100.0
+    ],
+    [
+     10720.0,
+     140.0
+    ],
+    [
+     11200.0,
+     260.0
+    ],
+    [
+     11460.0,
+     20.0
+    ],
+    [
+     12160.0,
+     100.0
+    ]
+   ],
+   "elapsed": [
+    4398.344239685684,
+    5390.309054870158,
+    6515.726312063634,
+    7923.549911938608,
+    8144.246126990765,
+    9205.182359088212,
+    9435.993372928351,
+    10159.013989847153,
+    12474.990613758564,
+    13152.21404004842,
+    13927.571253851056,
+    14794.142341706902,
+    15959.45607777685,
+    16943.60395288095,
+    17718.000167049468,
+    19005.734100937843,
+    19854.790780693293,
+    20744.749298784882,
+    21581.086575984955,
+    21865.606162697077,
+    23524.865162093192,
+    24334.145202767104,
+    25378.067234996706,
+    26194.162177853286,
+    26987.805127631873,
+    27578.550197649747,
+    28333.64339498803,
+    29335.69005690515,
+    29642.781308852136,
+    30216.435256879777
+   ],
+   "silences": [
+    640.0,
+    140.0,
+    120.0,
+    0.0,
+    0.0,
+    200.0,
+    0.0,
+    320.0,
+    460.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    420.0,
+    280.0,
+    0.0,
+    460.0,
+    0.0,
+    0.0,
+    0.0,
+    120.0,
+    160.0,
+    220.0,
+    340.0,
+    0.0,
+    680.0
+   ],
+   "source_hypothesis": "And now let's introduce some aborigines This ask times could end term I'm going to call Q and this random variable here in the middle I'm going to call z",
+   "target_hypothesis": "现在让我们来介绍一些原住民这个问题有时会结束任期我将去打电话Q然后这个随机变量在这里在中间我将调用z",
+   "transcription_reference": "And now let's introduce some abbreviations This s times squared n term I'm going to call q And this random variable here in the middle I'm going to call z",
+   "translation_reference": "现在让我们介绍一些缩写这个s乘以n的平方项我将称之为q而这里的这个随机变量我将称之为z",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    3,
+    3,
+    2,
+    0,
+    3,
+    0,
+    2,
+    4,
+    1,
+    2,
+    2,
+    1,
+    1,
+    1,
+    3,
+    1,
+    2,
+    2,
+    0,
+    2,
+    2,
+    3,
+    1,
+    2,
+    1,
+    1,
+    2,
+    0,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 30,
+    "placed_seconds": 12.26,
+    "concatenated_seconds": 7.7,
+    "queueing_delay_ms_mean": 265.3333333333333,
+    "queueing_delay_ms_max": 900.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 0,
+   "write_asr_events": 28,
+   "write_mt_events": 30,
+   "write_semantic_events": 30,
+   "eos_event_index": 32,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 31.424678926821798,
+   "rtf": 2.559012941923599
+  },
+  {
+   "sample_id": "LibriSpeech_0000265196",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 13720,
+   "read_steps": 43,
+   "audio_blocks": 86,
+   "fragments": 31,
+   "semantic_tokens": 277,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/LibriSpeech_0000265196.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/LibriSpeech_0000265196.wav",
+   "placed_seconds": 13.78,
+   "concat_seconds": 5.54,
+   "delays": [
+    480.0,
+    640.0,
+    800.0,
+    1600.0,
+    1920.0,
+    2080.0,
+    3200.0,
+    3680.0,
+    4480.0,
+    5120.0,
+    5280.0,
+    5600.0,
+    5760.0,
+    6400.0,
+    6560.0,
+    7360.0,
+    8160.0,
+    8960.0,
+    9760.0,
+    9920.0,
+    10080.0,
+    10400.0,
+    10720.0,
+    11360.0,
+    11680.0,
+    12000.0,
+    12160.0,
+    12640.0,
+    12960.0,
+    13120.0,
+    13600.0
+   ],
+   "durations": [
+    240.0,
+    140.0,
+    80.0,
+    420.0,
+    180.0,
+    100.0,
+    100.0,
+    420.0,
+    100.0,
+    60.0,
+    200.0,
+    260.0,
+    100.0,
+    280.0,
+    140.0,
+    280.0,
+    280.0,
+    40.0,
+    280.0,
+    80.0,
+    100.0,
+    260.0,
+    60.0,
+    80.0,
+    60.0,
+    240.0,
+    300.0,
+    220.0,
+    180.0,
+    80.0,
+    180.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     240.0
+    ],
+    [
+     720.0,
+     140.0
+    ],
+    [
+     860.0,
+     80.0
+    ],
+    [
+     1600.0,
+     420.0
+    ],
+    [
+     2020.0,
+     180.0
+    ],
+    [
+     2200.0,
+     100.0
+    ],
+    [
+     3200.0,
+     100.0
+    ],
+    [
+     3680.0,
+     420.0
+    ],
+    [
+     4480.0,
+     100.0
+    ],
+    [
+     5120.0,
+     60.0
+    ],
+    [
+     5280.0,
+     200.0
+    ],
+    [
+     5600.0,
+     260.0
+    ],
+    [
+     5860.0,
+     100.0
+    ],
+    [
+     6400.0,
+     280.0
+    ],
+    [
+     6680.0,
+     140.0
+    ],
+    [
+     7360.0,
+     280.0
+    ],
+    [
+     8160.0,
+     280.0
+    ],
+    [
+     8960.0,
+     40.0
+    ],
+    [
+     9760.0,
+     280.0
+    ],
+    [
+     10040.0,
+     80.0
+    ],
+    [
+     10120.0,
+     100.0
+    ],
+    [
+     10400.0,
+     260.0
+    ],
+    [
+     10720.0,
+     60.0
+    ],
+    [
+     11360.0,
+     80.0
+    ],
+    [
+     11680.0,
+     60.0
+    ],
+    [
+     12000.0,
+     240.0
+    ],
+    [
+     12240.0,
+     300.0
+    ],
+    [
+     12640.0,
+     220.0
+    ],
+    [
+     12960.0,
+     180.0
+    ],
+    [
+     13140.0,
+     80.0
+    ],
+    [
+     13600.0,
+     180.0
+    ]
+   ],
+   "elapsed": [
+    2322.51229416579,
+    2941.4073224179447,
+    3423.922044225037,
+    4504.552416037768,
+    5020.338142290711,
+    5474.530310370028,
+    6198.485390283167,
+    7002.23145307973,
+    7588.8435072265565,
+    8122.372488025576,
+    8647.800593171269,
+    9229.882883373648,
+    9653.396020177752,
+    10264.573800377548,
+    10743.536048103124,
+    11586.494658142328,
+    12371.865972410887,
+    12744.555253069848,
+    13527.780004311353,
+    13941.108781378716,
+    14377.911951392889,
+    15142.166312318295,
+    15682.43683129549,
+    16132.628117222339,
+    16673.359447158873,
+    17244.969342369586,
+    17752.872398123145,
+    18327.81768217683,
+    18842.652179300785,
+    19258.977020159364,
+    19775.247316341847
+   ],
+   "silences": [
+    480.0,
+    0.0,
+    0.0,
+    660.0,
+    0.0,
+    0.0,
+    900.0,
+    380.0,
+    380.0,
+    540.0,
+    100.0,
+    120.0,
+    0.0,
+    440.0,
+    0.0,
+    540.0,
+    520.0,
+    520.0,
+    760.0,
+    0.0,
+    0.0,
+    180.0,
+    60.0,
+    580.0,
+    240.0,
+    260.0,
+    0.0,
+    100.0,
+    100.0,
+    0.0,
+    380.0
+   ],
+   "source_hypothesis": "I shall be ruling great till if you will say nothing about this there are some in a house and neighborhood who are silly enough fancy is You stay here and do few do not for kind to go to bed breed Here are books",
+   "target_hypothesis": "我将被统治到如果你对这件事什么都不说就有一些房子和邻居是足够愚蠢的邻居你留在这里并做几件不对去睡觉睡觉的人这里有书",
+   "transcription_reference": "I shall be really grateful if you will say nothing about this There are some in the House and neighbourhood who are silly enough as it is You stay here And if you do not feel inclined to go to bed read here are books",
+   "translation_reference": "如果您能对此事保持沉默我将非常感激这里有些人已经够愚蠢的了你留在这里如果你不想睡觉可以看看书这里有一些书",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    1,
+    1,
+    3,
+    2,
+    1,
+    1,
+    8,
+    1,
+    1,
+    2,
+    2,
+    1,
+    2,
+    1,
+    5,
+    2,
+    1,
+    4,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    1,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 31,
+    "placed_seconds": 13.78,
+    "concatenated_seconds": 5.54,
+    "queueing_delay_ms_mean": 27.096774193548388,
+    "queueing_delay_ms_max": 120.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 42,
+   "read_next_events": 0,
+   "write_asr_events": 41,
+   "write_mt_events": 31,
+   "write_semantic_events": 31,
+   "eos_event_index": 42,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 20.38495011534542,
+   "rtf": 1.4857835361038934
+  },
+  {
+   "sample_id": "emilia_zh_0004122419",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4120,
+   "read_steps": 14,
+   "audio_blocks": 26,
+   "fragments": 12,
+   "semantic_tokens": 154,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0004122419.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0004122419.wav",
+   "placed_seconds": 4.34,
+   "concat_seconds": 3.08,
+   "delays": [
+    320.0,
+    480.0,
+    960.0,
+    1600.0,
+    2080.0,
+    2240.0,
+    2400.0,
+    2560.0,
+    3040.0,
+    3360.0,
+    3520.0,
+    4000.0
+   ],
+   "durations": [
+    320.0,
+    160.0,
+    400.0,
+    420.0,
+    440.0,
+    100.0,
+    180.0,
+    140.0,
+    360.0,
+    140.0,
+    80.0,
+    340.0
+   ],
+   "intervals": [
+    [
+     320.0,
+     320.0
+    ],
+    [
+     640.0,
+     160.0
+    ],
+    [
+     960.0,
+     400.0
+    ],
+    [
+     1600.0,
+     420.0
+    ],
+    [
+     2080.0,
+     440.0
+    ],
+    [
+     2520.0,
+     100.0
+    ],
+    [
+     2620.0,
+     180.0
+    ],
+    [
+     2800.0,
+     140.0
+    ],
+    [
+     3040.0,
+     360.0
+    ],
+    [
+     3400.0,
+     140.0
+    ],
+    [
+     3540.0,
+     80.0
+    ],
+    [
+     4000.0,
+     340.0
+    ]
+   ],
+   "elapsed": [
+    974.2064429447055,
+    1348.5038899816573,
+    2106.5833689644933,
+    3029.351595789194,
+    3822.886064182967,
+    4132.425750140101,
+    4650.007843971252,
+    5127.677966840565,
+    5830.9630691073835,
+    6307.503888849169,
+    6594.901569187641,
+    7271.964912768453
+   ],
+   "silences": [
+    320.0,
+    0.0,
+    160.0,
+    240.0,
+    60.0,
+    0.0,
+    0.0,
+    0.0,
+    100.0,
+    0.0,
+    0.0,
+    380.0
+   ],
+   "source_hypothesis": "他们普遍感觉到某种新的因素正在诞生",
+   "target_hypothesis": "They were commonly sensing some kind of new new factor was in bearing",
+   "transcription_reference": "他们普遍感觉到某种新的因素正在诞生",
+   "translation_reference": "They generally feel that some new factor is being born",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    5,
+    9,
+    8,
+    10,
+    3,
+    4,
+    4,
+    7,
+    4,
+    3,
+    8
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 12,
+    "placed_seconds": 4.34,
+    "concatenated_seconds": 3.08,
+    "queueing_delay_ms_mean": 80.0,
+    "queueing_delay_ms_max": 280.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 13,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 12,
+   "write_semantic_events": 12,
+   "eos_event_index": 13,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.538194937165827,
+   "rtf": 1.8296589653315112
+  },
+  {
+   "sample_id": "emilia_zh_0004881254",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 3080,
+   "read_steps": 9,
+   "audio_blocks": 20,
+   "fragments": 8,
+   "semantic_tokens": 95,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0004881254.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0004881254.wav",
+   "placed_seconds": 3.34,
+   "concat_seconds": 1.9,
+   "delays": [
+    320.0,
+    800.0,
+    1440.0,
+    1600.0,
+    1920.0,
+    2240.0,
+    2400.0,
+    3040.0
+   ],
+   "durations": [
+    180.0,
+    360.0,
+    140.0,
+    180.0,
+    220.0,
+    180.0,
+    340.0,
+    300.0
+   ],
+   "intervals": [
+    [
+     320.0,
+     180.0
+    ],
+    [
+     800.0,
+     360.0
+    ],
+    [
+     1440.0,
+     140.0
+    ],
+    [
+     1600.0,
+     180.0
+    ],
+    [
+     1920.0,
+     220.0
+    ],
+    [
+     2240.0,
+     180.0
+    ],
+    [
+     2420.0,
+     340.0
+    ],
+    [
+     3040.0,
+     300.0
+    ]
+   ],
+   "elapsed": [
+    757.5341193005443,
+    1451.0721513070166,
+    1925.7481531240046,
+    2293.6613094061613,
+    2847.2975832410157,
+    3377.6645814068615,
+    3949.055591132492,
+    4613.68669802323
+   ],
+   "silences": [
+    320.0,
+    300.0,
+    280.0,
+    20.0,
+    140.0,
+    100.0,
+    0.0,
+    280.0
+   ],
+   "source_hypothesis": "You see i can ride the clouds",
+   "target_hypothesis": "你看到我可以骑这辆云",
+   "transcription_reference": "You see i can't write the clouds",
+   "translation_reference": "你看我无法描绘云朵",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    2,
+    1,
+    0,
+    2,
+    1,
+    2,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 3.34,
+    "concatenated_seconds": 1.9,
+    "queueing_delay_ms_mean": 2.5,
+    "queueing_delay_ms_max": 20.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 0,
+   "write_asr_events": 6,
+   "write_mt_events": 8,
+   "write_semantic_events": 8,
+   "eos_event_index": 8,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.841767189092934,
+   "rtf": 1.5720023341210825
+  },
+  {
+   "sample_id": "emilia_zh_0005292975",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4640,
+   "read_steps": 12,
+   "audio_blocks": 29,
+   "fragments": 11,
+   "semantic_tokens": 275,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0005292975.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0005292975.wav",
+   "placed_seconds": 6.62,
+   "concat_seconds": 5.5,
+   "delays": [
+    1120.0,
+    1600.0,
+    1760.0,
+    2400.0,
+    3200.0,
+    3360.0,
+    3520.0,
+    3680.0,
+    4160.0,
+    4320.0,
+    4640.0
+   ],
+   "durations": [
+    2320.0,
+    340.0,
+    120.0,
+    560.0,
+    900.0,
+    80.0,
+    100.0,
+    120.0,
+    220.0,
+    420.0,
+    320.0
+   ],
+   "intervals": [
+    [
+     1120.0,
+     2320.0
+    ],
+    [
+     3440.0,
+     340.0
+    ],
+    [
+     3780.0,
+     120.0
+    ],
+    [
+     3900.0,
+     560.0
+    ],
+    [
+     4460.0,
+     900.0
+    ],
+    [
+     5360.0,
+     80.0
+    ],
+    [
+     5440.0,
+     100.0
+    ],
+    [
+     5540.0,
+     120.0
+    ],
+    [
+     5660.0,
+     220.0
+    ],
+    [
+     5880.0,
+     420.0
+    ],
+    [
+     6300.0,
+     320.0
+    ]
+   ],
+   "elapsed": [
+    2952.3849887773395,
+    3620.1870408840477,
+    3942.835464607924,
+    4864.8202628828585,
+    6187.8484529443085,
+    6473.397778812796,
+    6906.516812741756,
+    7358.684755861759,
+    7908.6755737662315,
+    8662.806077860296,
+    9315.679616760463
+   ],
+   "silences": [
+    1120.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "indifference表示冷漠无动于衷或者是无所谓的意思",
+   "target_hypothesis": "indifference means that coldness is indifferent to or is not important meaning",
+   "transcription_reference": "Indifference表示冷漠无动于衷或者是无所谓的意思",
+   "translation_reference": "Indifference indicates coldness apathy or a lack of concern",
+   "terminator_rate": 0.9090909090909091,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    12,
+    6,
+    5,
+    9,
+    15,
+    3,
+    3,
+    3,
+    4,
+    10,
+    8
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 6.62,
+    "concatenated_seconds": 5.5,
+    "queueing_delay_ms_mean": 1556.3636363636363,
+    "queueing_delay_ms_max": 2020.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 10,
+   "read_next_events": 1,
+   "write_asr_events": 9,
+   "write_mt_events": 11,
+   "write_semantic_events": 11,
+   "eos_event_index": 11,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.559496725909412,
+   "rtf": 2.060236363342546
+  },
+  {
+   "sample_id": "emilia_zh_0005985930",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8300,
+   "read_steps": 16,
+   "audio_blocks": 52,
+   "fragments": 10,
+   "semantic_tokens": 332,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0005985930.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0005985930.wav",
+   "placed_seconds": 8.3,
+   "concat_seconds": 6.64,
+   "delays": [
+    480.0,
+    960.0,
+    1600.0,
+    2240.0,
+    2720.0,
+    3360.0,
+    3520.0,
+    4320.0,
+    4800.0,
+    5440.0
+   ],
+   "durations": [
+    1680.0,
+    480.0,
+    640.0,
+    640.0,
+    480.0,
+    640.0,
+    160.0,
+    800.0,
+    480.0,
+    640.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     1680.0
+    ],
+    [
+     2160.0,
+     480.0
+    ],
+    [
+     2640.0,
+     640.0
+    ],
+    [
+     3280.0,
+     640.0
+    ],
+    [
+     3920.0,
+     480.0
+    ],
+    [
+     4400.0,
+     640.0
+    ],
+    [
+     5040.0,
+     160.0
+    ],
+    [
+     5200.0,
+     800.0
+    ],
+    [
+     6000.0,
+     480.0
+    ],
+    [
+     6480.0,
+     640.0
+    ]
+   ],
+   "elapsed": [
+    2708.353686146438,
+    3470.024539157748,
+    4432.160109747201,
+    5364.691440016031,
+    6179.562029894441,
+    7260.306132026017,
+    7716.302576940507,
+    8828.540151007473,
+    9616.198853123933,
+    10547.747718170285
+   ],
+   "silences": [
+    480.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "那样的一个自己那个觉得哎一切都有可能啊然后自己哎未来一切充满希望啊",
+   "target_hypothesis": "Such a self that I think everything is possible and then I",
+   "transcription_reference": "那样的一个自己那个觉得啊一切都有可能啊然后自己哎未来一切充满希望啊",
+   "translation_reference": "Such a self one who feels that anything is possible and that the future is full of hope",
+   "terminator_rate": 0.0,
+   "capped_stages": 10,
+   "mt_delta_chars": [
+    4,
+    2,
+    5,
+    5,
+    8,
+    11,
+    3,
+    9,
+    9,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 7.12,
+    "concatenated_seconds": 6.64,
+    "queueing_delay_ms_mean": 1016.0,
+    "queueing_delay_ms_max": 1520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 7,
+   "read_next_events": 9,
+   "write_asr_events": 16,
+   "write_mt_events": 10,
+   "write_semantic_events": 10,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 11,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.396601020824164,
+   "rtf": 1.3730844603402605
+  },
+  {
+   "sample_id": "emilia_zh_0006722756",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4820,
+   "read_steps": 18,
+   "audio_blocks": 31,
+   "fragments": 14,
+   "semantic_tokens": 232,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0006722756.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0006722756.wav",
+   "placed_seconds": 5.84,
+   "concat_seconds": 4.64,
+   "delays": [
+    320.0,
+    800.0,
+    960.0,
+    1120.0,
+    1280.0,
+    1440.0,
+    1920.0,
+    2080.0,
+    2400.0,
+    2720.0,
+    3200.0,
+    3680.0,
+    3840.0,
+    4800.0
+   ],
+   "durations": [
+    260.0,
+    320.0,
+    140.0,
+    260.0,
+    40.0,
+    160.0,
+    540.0,
+    300.0,
+    260.0,
+    280.0,
+    240.0,
+    180.0,
+    620.0,
+    1040.0
+   ],
+   "intervals": [
+    [
+     320.0,
+     260.0
+    ],
+    [
+     800.0,
+     320.0
+    ],
+    [
+     1120.0,
+     140.0
+    ],
+    [
+     1260.0,
+     260.0
+    ],
+    [
+     1520.0,
+     40.0
+    ],
+    [
+     1560.0,
+     160.0
+    ],
+    [
+     1920.0,
+     540.0
+    ],
+    [
+     2460.0,
+     300.0
+    ],
+    [
+     2760.0,
+     260.0
+    ],
+    [
+     3020.0,
+     280.0
+    ],
+    [
+     3300.0,
+     240.0
+    ],
+    [
+     3680.0,
+     180.0
+    ],
+    [
+     3860.0,
+     620.0
+    ],
+    [
+     4800.0,
+     1040.0
+    ]
+   ],
+   "elapsed": [
+    983.5681547410786,
+    1659.205611795187,
+    2006.8231970071793,
+    2597.482664976269,
+    2848.9243909716606,
+    3342.7903465926647,
+    4412.06582589075,
+    5047.228890005499,
+    5644.165977835655,
+    6297.81593196094,
+    6873.316667973995,
+    7384.774685837328,
+    8254.533737897873,
+    9864.700790960342
+   ],
+   "silences": [
+    320.0,
+    220.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    200.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    140.0,
+    0.0,
+    320.0
+   ],
+   "source_hypothesis": "而男孩也从维修员的女儿妮娜口中得知狗狗故事",
+   "target_hypothesis": "And the boy was also a from a maintenance person daughter Nina said that she had learned the story of the dog",
+   "transcription_reference": "而男孩也从维修员的女儿妮娜口中得知狗狗的故事",
+   "translation_reference": "And the boy also learned the story of the dog from Nina the daughter of the repairman",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    8,
+    4,
+    5,
+    2,
+    5,
+    14,
+    7,
+    9,
+    5,
+    5,
+    5,
+    16,
+    21
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 14,
+    "placed_seconds": 5.84,
+    "concatenated_seconds": 4.64,
+    "queueing_delay_ms_mean": 130.0,
+    "queueing_delay_ms_max": 380.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 13,
+   "write_mt_events": 14,
+   "write_semantic_events": 14,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 10.238014976959676,
+   "rtf": 2.1240694972945384
+  },
+  {
+   "sample_id": "emilia_zh_0007338413",
+   "arm": "m3_gold_d5",
+   "read_stride": 1,
+   "read_schedule": "gold",
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6920,
+   "read_steps": 24,
+   "audio_blocks": 44,
+   "fragments": 20,
+   "semantic_tokens": 355,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_placed/emilia_zh_0007338413.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/internal_panel/m3_gold_d5/translation_concat/emilia_zh_0007338413.wav",
+   "placed_seconds": 7.6,
+   "concat_seconds": 7.1,
+   "delays": [
+    480.0,
+    960.0,
+    1120.0,
+    1600.0,
+    2080.0,
+    2400.0,
+    2560.0,
+    2880.0,
+    3200.0,
+    3520.0,
+    3680.0,
+    3840.0,
+    4000.0,
+    4480.0,
+    5120.0,
+    5280.0,
+    5440.0,
+    5920.0,
+    6720.0,
+    6880.0
+   ],
+   "durations": [
+    1680.0,
+    480.0,
+    160.0,
+    360.0,
+    80.0,
+    840.0,
+    40.0,
+    440.0,
+    300.0,
+    240.0,
+    100.0,
+    120.0,
+    140.0,
+    100.0,
+    500.0,
+    140.0,
+    120.0,
+    380.0,
+    780.0,
+    100.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     1680.0
+    ],
+    [
+     2160.0,
+     480.0
+    ],
+    [
+     2640.0,
+     160.0
+    ],
+    [
+     2800.0,
+     360.0
+    ],
+    [
+     3160.0,
+     80.0
+    ],
+    [
+     3240.0,
+     840.0
+    ],
+    [
+     4080.0,
+     40.0
+    ],
+    [
+     4120.0,
+     440.0
+    ],
+    [
+     4560.0,
+     300.0
+    ],
+    [
+     4860.0,
+     240.0
+    ],
+    [
+     5100.0,
+     100.0
+    ],
+    [
+     5200.0,
+     120.0
+    ],
+    [
+     5320.0,
+     140.0
+    ],
+    [
+     5460.0,
+     100.0
+    ],
+    [
+     5560.0,
+     500.0
+    ],
+    [
+     6060.0,
+     140.0
+    ],
+    [
+     6200.0,
+     120.0
+    ],
+    [
+     6320.0,
+     380.0
+    ],
+    [
+     6720.0,
+     780.0
+    ],
+    [
+     7500.0,
+     100.0
+    ]
+   ],
+   "elapsed": [
+    2492.7809252403677,
+    3277.7051869779825,
+    3724.8419439420104,
+    4431.859361939132,
+    4841.380233876407,
+    6031.5183801576495,
+    6401.709433179349,
+    7149.9269008636475,
+    7943.125483114272,
+    8510.714889038354,
+    8937.751043122262,
+    9388.046924956143,
+    9855.641464237124,
+    10303.342102095485,
+    11128.296168055385,
+    11596.884396858513,
+    11919.058400206268,
+    12628.502829000354,
+    13803.240408189595,
+    14231.945525854826
+   ],
+   "silences": [
+    480.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    20.0,
+    0.0
+   ],
+   "source_hypothesis": "那些老师如果知道他们只花了这么少的钱就能买到手的确会产生深刻印象的",
+   "target_hypothesis": "Those teachers if they know they just spend a such a little money they can buy it Indeed will be created a deep impression on",
+   "transcription_reference": "那些老师如果知道他们只花了这么少的钱就能买到手的确会产生深刻印象的",
+   "translation_reference": "Those teachers would indeed be deeply impressed if they knew they could buy it for such a small amount of money",
+   "terminator_rate": 0.75,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    5,
+    9,
+    3,
+    10,
+    5,
+    11,
+    2,
+    5,
+    9,
+    6,
+    5,
+    4,
+    4,
+    3,
+    7,
+    5,
+    3,
+    8,
+    18,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 20,
+    "placed_seconds": 7.6,
+    "concatenated_seconds": 7.1,
+    "queueing_delay_ms_mean": 969.0,
+    "queueing_delay_ms_max": 1520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 20,
+   "read_next_events": 3,
+   "write_asr_events": 20,
+   "write_mt_events": 20,
+   "write_semantic_events": 20,
+   "eos_event_index": 23,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.0,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 14.596308898180723,
+   "rtf": 2.109293193378717
+  }
+ ]
+}
