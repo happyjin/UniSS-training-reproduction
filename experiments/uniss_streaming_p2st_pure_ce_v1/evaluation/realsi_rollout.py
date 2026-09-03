@@ -76,6 +76,15 @@ def main() -> None:
     parser.add_argument("--max-semantic-tokens", type=int, default=512)
     parser.add_argument("--max-text-tokens", type=int, default=128)
     parser.add_argument("--length-prior-scale", type=float, default=1.0)
+    # Defaults are None so not passing them leaves P2STCascadeSession on its own
+    # holdback=1, keeping every published k1/k25/offline number byte-identical.
+    # onset_diagnosis measured why these matter: speech onset equals the MT
+    # committer's first release in 80/80 samples, of a 2080 ms onset 960 ms is
+    # the ASR committer and 1120 ms the MT committer, and there are zero commit
+    # conflicts at any setting -- so the target committer can be released
+    # without the source committer losing anything.
+    parser.add_argument("--source-holdback", type=int, default=None)
+    parser.add_argument("--target-holdback", type=int, default=None)
     parser.add_argument("--keep-stereo", action="store_true")
     args = parser.parse_args()
 
@@ -130,6 +139,14 @@ def main() -> None:
             max_text_tokens=args.max_text_tokens,
             length_prior_scale=args.length_prior_scale,
             read_stride=args.read_stride,
+            **(
+                {}
+                if args.source_holdback is None and args.target_holdback is None
+                else {
+                    "source_holdback": args.source_holdback,
+                    "target_holdback": args.target_holdback,
+                }
+            ),
         )
         trace = session.run(waveform)
         wall = time.perf_counter() - started
@@ -179,6 +196,8 @@ def main() -> None:
                 "sample_id": row.sample_id,
                 "arm": args.arm,
                 "read_stride": args.read_stride,
+                "source_holdback": args.source_holdback,
+                "target_holdback": args.target_holdback,
                 "read_step_ms": args.read_stride * 160,
                 "direction": row.direction,
                 "src_lang": row.src_lang,

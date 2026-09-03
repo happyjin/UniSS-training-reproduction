@@ -664,5 +664,186 @@
    "m3_k1_d5"
   ],
   "note": "Every metric this project tracks, all six operating points, one dataset, one code path."
+ },
+ "next_steps": {
+  "report": "NEXT_STEPS.zh-CN.md",
+  "comparability": "Valid as an operating-point comparison on a public benchmark -- the 777 frozen segments, the 160 ms read grid, the WhisperVQ frontend and its GLM embedding math, the BiCodec decoder, the timeline placement, the SimulEval scorers, the ASR-BLEU chain and the common ancestor checkpoint are all shared.  Not valid as a comparison of training recipes: the runtimes differ (isolated cascade with task prefixes against one interleaved session with decision tokens), neither model was ever trained on a uniform 160 ms grid, they degrade off-distribution by different amounts (m3's ASR 0.248 -> 1.708, C's Chinese 0.264 -> 0.804), and the knob spaces are asymmetric -- m3 has delta because it has decision tokens, C structurally has none and its analogue is the committer holdback.",
+  "verdict": "On RealSI, C, decisively: m3 scores ASR-BLEU 0.5-1.9 at any delta, and a BLEU of 1 is not a translation, so the latency of a non-translation is not a latency achievement.  But this is a statement about RealSI, not about m3 in general: on m3's own internal domain with the gold schedule, m3 at delta=5 is a genuine Pareto point (MT text BLEU 18/14 at LAAL 1401 against C's 39/33 at LAAL 3667).  The public benchmark is the one that counts.",
+  "s1t0_adopted": {
+   "realsi_777": {
+    "start_offset_ms": {
+     "k1": [
+      2544,
+      2573
+     ],
+     "k1_s1t0": [
+      1573,
+      1743
+     ],
+     "delta": [
+      -971,
+      -830
+     ]
+    },
+    "audible_onset_ms": {
+     "k1": [
+      2480,
+      2520
+     ],
+     "k1_s1t0": [
+      1640,
+      1880
+     ]
+    },
+    "laal_ms": {
+     "k1": [
+      4437,
+      3681
+     ],
+     "k1_s1t0": [
+      3686,
+      2997
+     ],
+     "delta": [
+      -751,
+      -684
+     ]
+    },
+    "asr_bleu": {
+     "k1": [
+      14.66,
+      10.37
+     ],
+     "k1_s1t0": [
+      14.01,
+      10.05
+     ],
+     "delta": [
+      -0.65,
+      -0.32
+     ]
+    },
+    "chunks": {
+     "k1": [
+      5.86,
+      5.53
+     ],
+     "k1_s1t0": [
+      7.38,
+      6.44
+     ]
+    },
+    "internal_silence": {
+     "k1": [
+      0.302,
+      0.309
+     ],
+     "k1_s1t0": [
+      0.347,
+      0.334
+     ]
+    }
+   },
+   "recommendation": "make s1t0 the default: about a second of onset for under 0.7 BLEU"
+  },
+  "decisive_finding": {
+   "statement": "On the samples where C's source ASR already works (error < 0.15), C k25 scores 25.66 En->Zh and 21.12 Zh->En -- at or above the paper's m=4 of 25.54 and near its 22.47. C's translation and synthesis are not worse than the paper's; the entire gap is the source ASR error distribution.",
+   "buckets_k25": {
+    "<0.15": [
+     25.66,
+     21.12
+    ],
+    "0.15-0.30": [
+     19.99,
+     12.27
+    ],
+    "0.30-0.50": [
+     14.51,
+     7.98
+    ],
+    "0.50-0.80": [
+     3.77,
+     1.93
+    ],
+    "all": [
+     17.33,
+     14.41
+    ]
+   },
+   "buckets_k1": {
+    "<0.15": [
+     19.86,
+     14.23
+    ],
+    "0.15-0.30": [
+     16.51,
+     9.83
+    ],
+    "0.30-0.50": [
+     12.05,
+     6.45
+    ],
+    "0.50-0.80": [
+     5.47,
+     1.91
+    ],
+    "all": [
+     14.66,
+     10.37
+    ]
+   },
+   "n_per_bucket_k25": {
+    "en2zh": [
+     73,
+     100,
+     96,
+     62,
+     15
+    ],
+    "zh2en": [
+     177,
+     132,
+     77,
+     37,
+     0
+    ]
+   }
+  },
+  "brevity_headroom": {
+   "k1": {
+    "measured": [
+     14.66,
+     10.37
+    ],
+    "bp": [
+     0.805,
+     0.819
+    ],
+    "bp1_ceiling": [
+     18.22,
+     12.66
+    ]
+   },
+   "k25": {
+    "measured": [
+     17.33,
+     14.41
+    ],
+    "bp": [
+     0.773,
+     0.918
+    ],
+    "bp1_ceiling": [
+     22.4,
+     15.7
+    ]
+   }
+  },
+  "priority": [
+   "DONE: adopt s1t0 as the default (config only, no training)",
+   "The one training run worth opening: pure CE plus an ASR family on a uniform 160 ms read grid, Chinese source weighted up.  Target k1 Chinese CER 0.804 -> about 0.26.  Four measurements agree on it, and it is the only lever that buys latency and quality together, because the onset is committer-bound and a better ASR agrees sooner.  Bucket analysis sizes the payoff at +8.3/+6.7 BLEU.",
+   "Then length matching (bp 0.79-0.83), worth +3.6/+2.3.  Terminator rate is already 1.000, so the shortfall is committed text volume, not END timing.",
+   "Explicitly not: a delta-style unconditional write (m3 walked it to 347 ms at BLEU 1.36); pacer tuning (the margin 1200<->2000 control proves it is a no-op); TTS work in isolation (measured to contribute zero onset, and C's peak 0.776-0.859 and >4kHz 0.003 already match or beat m3)."
+  ]
  }
 }
