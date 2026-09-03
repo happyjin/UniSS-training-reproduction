@@ -612,5 +612,57 @@
   "conclusion": "Of the 2080 ms onset, 960 ms is the ASR committer and a further 1120 ms is the MT committer -- the MT half is the larger one.  Zero commit conflicts at every setting, so the holdback is pure conservatism rather than conflict avoidance.  s1t0, which was never tried before (only s0t1 and s2t1 were), buys 480 ms for 2.2/4.4 BLEU with the ASR error unchanged -- a 2.7x better exchange rate than s0t0's 960 ms for 11.9/11.5 BLEU.  So release the target committer, never the source committer.",
   "real_fix": "Train the ASR stage on a uniform fine read grid.  C's Chinese source CER is 0.250 offline, 0.264 at k25 and 0.804 at k1 while English barely moves (0.363/0.390/0.421); m3 shows the same failure worse (0.248 -> 1.708); third-party ASR reads the same audio at 0.141/0.159 so the audio is fine; and because the onset is ASR-commit-bound, a better ASR agrees sooner and buys latency and quality together instead of trading them.  This is the only lever that improves both.",
   "what_will_not_work": "A delta-style unconditional write.  m3 at delta=5 already walked that path to its end: 347 ms onset at ASR-BLEU 1.36, WER 1.75 and 1.8x text over-generation."
+ },
+ "audible_onset_correction": {
+  "what_was_wrong": "Reported 真实可听起始 values added delays[0] to audio_quality.leading_silence_ms, double-counting.  leading_silence_ms is measured on the already-placed audio, so it is absolute: verified delays[0]=2240 against leading_silence=2440, the extra ~200 ms being the synthesized fragment's own head silence. The correct quantity is leading_silence_ms alone, which is what m3style.py used for the published 883/978 ms figures.",
+  "corrected_realsi_ms": {
+   "c_k1": [
+    2480,
+    2520
+   ],
+   "c_k25": [
+    7340,
+    6580
+   ],
+   "c_offline": [
+    7340,
+    6580
+   ],
+   "m3_d0": [
+    3100,
+    3200
+   ],
+   "m3_d0_m2000": [
+    3120,
+    3200
+   ],
+   "m3_d5": [
+    540,
+    680
+   ],
+   "order": "[en2zh, zh2en]"
+  },
+  "corrected_internal_panel_ms": {
+   "c_k1": 2620,
+   "m3_gold_d0": 2600,
+   "m3_gold_d5": 1620,
+   "m3_uniform_d0": 3400,
+   "m3_uniform_d5": 820
+  },
+  "effect_on_conclusions": "Directions unchanged everywhere except one: on the internal panel C and m3 delta=0 go from 'C worse by 730 ms' to essentially tied (2620 against 2600).  On RealSI C still beats m3 delta=0 (by 620/680 ms rather than the reported 750/1040) and m3 delta=5 still beats C by 4.6x/3.7x.",
+  "two_onset_quantities": "StartOffset is the first speech chunk's emission time (SimulEval aggregate); 真实可听起始 is the first voiced frame of the placed audio (energy-based, median).  They are different questions and the master table now reports StartOffset, its median, and the energy onset side by side so they can be read against each other."
+ },
+ "master_table": {
+  "report": "MASTER_TABLE.md",
+  "json": "MASTER_TABLE.json",
+  "arms": [
+   "k1",
+   "k25",
+   "offline",
+   "m3_k1",
+   "m3_k1_m2000",
+   "m3_k1_d5"
+  ],
+  "note": "Every metric this project tracks, all six operating points, one dataset, one code path."
  }
 }
