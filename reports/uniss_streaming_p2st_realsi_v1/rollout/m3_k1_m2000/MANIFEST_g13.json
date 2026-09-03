@@ -1,0 +1,3121 @@
+{
+ "arm": "m3_k1_m2000",
+ "samples": [
+  {
+   "sample_id": "en2zh-01-tech-s013",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6080,
+   "read_steps": 38,
+   "audio_blocks": 38,
+   "fragments": 1,
+   "semantic_tokens": 16,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-01-tech-s013.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-01-tech-s013.wav",
+   "placed_seconds": 6.08,
+   "concat_seconds": 0.32,
+   "delays": [
+    5280.0
+   ],
+   "durations": [
+    320.0
+   ],
+   "intervals": [
+    [
+     5280.0,
+     320.0
+    ]
+   ],
+   "elapsed": [
+    8396.880558226258
+   ],
+   "silences": [
+    5280.0
+   ],
+   "source_hypothesis": "Do you just well we do do it Do it to make sure that that we have a of a of a uh uh day to be able to build a one one a uh uh when there's",
+   "target_hypothesis": "你只是",
+   "transcription_reference": "Well we do do it to make sure that we have, uh, data available um, when there's an outage",
+   "translation_reference": "这样做是为了确保出现故障时数据依然可用。",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 5.6,
+    "concatenated_seconds": 0.32,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 38,
+   "read_next_events": 0,
+   "write_asr_events": 37,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.834044792223722,
+   "rtf": 1.6174415776683753
+  },
+  {
+   "sample_id": "en2zh-02-health-s006",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 20960,
+   "read_steps": 131,
+   "audio_blocks": 131,
+   "fragments": 11,
+   "semantic_tokens": 1052,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-02-health-s006.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-02-health-s006.wav",
+   "placed_seconds": 27.24,
+   "concat_seconds": 21.04,
+   "delays": [
+    640.0,
+    6560.0,
+    6720.0,
+    10080.0,
+    12320.0,
+    13600.0,
+    14560.0,
+    14880.0,
+    16480.0,
+    18880.0,
+    19040.0
+   ],
+   "durations": [
+    360.0,
+    5540.0,
+    2680.0,
+    180.0,
+    280.0,
+    720.0,
+    1440.0,
+    1380.0,
+    2600.0,
+    3180.0,
+    2680.0
+   ],
+   "intervals": [
+    [
+     640.0,
+     360.0
+    ],
+    [
+     6560.0,
+     5540.0
+    ],
+    [
+     12100.0,
+     2680.0
+    ],
+    [
+     14780.0,
+     180.0
+    ],
+    [
+     14960.0,
+     280.0
+    ],
+    [
+     15240.0,
+     720.0
+    ],
+    [
+     15960.0,
+     1440.0
+    ],
+    [
+     17400.0,
+     1380.0
+    ],
+    [
+     18780.0,
+     2600.0
+    ],
+    [
+     21380.0,
+     3180.0
+    ],
+    [
+     24560.0,
+     2680.0
+    ]
+   ],
+   "elapsed": [
+    2726.1242060922086,
+    14398.409703280777,
+    17478.98087417707,
+    21102.533543948084,
+    23651.578731369227,
+    25740.945196244866,
+    28294.48636993766,
+    30177.0439860411,
+    34634.05589712784,
+    40419.72827119753,
+    43478.44675229862
+   ],
+   "silences": [
+    640.0,
+    5560.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "So I'll do do the the sort of the the the that I do it at all of the time I have think it a while I'm I want of the other ext solution for our few trials or I am a how full full care is this on him is to try and show the phrase they're of are people people of a people in a state of this of this of of be being how full the the right of that that that are them how all we can do all we can do I am a the may could could each show show one people right already right get some some of a us of you as a simply top",
+   "target_hypothesis": "所以我会按照我一直以来的做法来做我认为在其他极端情况下的解决方案时我想要的其他解决方案我对他有多大的关心是尝试展示他们处于这种状态的全部状态对吧他们就是这样的对吧他们就是这样的我们能做些什么对吧我们能做些什么对吧我们每个人都能做些什么我能做到的事情我能做到吗每个人都能做到吗",
+   "transcription_reference": "So so the the the idea of, I think uh one, one of the direction for a future um health care system is trying to preserve people in a status of being healthy rather than, um, how we can deal with, um, the medical issues when people really get some uh severe symptom.",
+   "translation_reference": "所以我认为未来医疗保健系统的一大努力方向是，让人们保持健康状态，而不是等人们真正出现严重症状了，再去想怎么处理这些医疗问题。",
+   "terminator_rate": 0.9090909090909091,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    2,
+    31,
+    10,
+    16,
+    6,
+    5,
+    9,
+    9,
+    16,
+    18,
+    15
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 27.24,
+    "concatenated_seconds": 21.04,
+    "queueing_delay_ms_mean": 2600.0,
+    "queueing_delay_ms_max": 5520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 130,
+   "read_next_events": 1,
+   "write_asr_events": 120,
+   "write_mt_events": 11,
+   "write_semantic_events": 11,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 46.3802432641387,
+   "rtf": 2.2127978656554723
+  },
+  {
+   "sample_id": "en2zh-03-edu-s008",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6440,
+   "read_steps": 41,
+   "audio_blocks": 41,
+   "fragments": 3,
+   "semantic_tokens": 308,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-03-edu-s008.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-03-edu-s008.wav",
+   "placed_seconds": 10.08,
+   "concat_seconds": 6.16,
+   "delays": [
+    480.0,
+    4000.0,
+    4160.0
+   ],
+   "durations": [
+    80.0,
+    5920.0,
+    160.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     80.0
+    ],
+    [
+     4000.0,
+     5920.0
+    ],
+    [
+     9920.0,
+     160.0
+    ]
+   ],
+   "elapsed": [
+    2541.216162033379,
+    12163.020504172891,
+    12520.385068841279
+   ],
+   "silences": [
+    480.0,
+    3440.0,
+    0.0
+   ],
+   "source_hypothesis": "I am I I have to give in general or a look at each key case in has the you of all all of or be become a relatively in event in an in our code one tree",
+   "target_hypothesis": "我必须对每个关键案例进行概括并说明所有你",
+   "transcription_reference": "Um, I I think in general, look, education has to evolve. Uh-huh. Or become irrelevant in in our country",
+   "translation_reference": "我觉得总体来说，教育要不断发展，否则就会在我国变得无关紧要，",
+   "terminator_rate": 0.3333333333333333,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    1,
+    18,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 10.08,
+    "concatenated_seconds": 6.16,
+    "queueing_delay_ms_mean": 1920.0,
+    "queueing_delay_ms_max": 5760.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 38,
+   "read_next_events": 2,
+   "write_asr_events": 37,
+   "write_mt_events": 3,
+   "write_semantic_events": 3,
+   "eos_event_index": 40,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 14.842864854261279,
+   "rtf": 2.3047926792331177
+  },
+  {
+   "sample_id": "en2zh-03-edu-s032",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 10970,
+   "read_steps": 69,
+   "audio_blocks": 69,
+   "fragments": 8,
+   "semantic_tokens": 255,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-03-edu-s032.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-03-edu-s032.wav",
+   "placed_seconds": 10.97,
+   "concat_seconds": 5.1,
+   "delays": [
+    1440.0,
+    1600.0,
+    1760.0,
+    2400.0,
+    2560.0,
+    4800.0,
+    5120.0,
+    8320.0
+   ],
+   "durations": [
+    3440.0,
+    160.0,
+    160.0,
+    640.0,
+    160.0,
+    180.0,
+    180.0,
+    180.0
+   ],
+   "intervals": [
+    [
+     1440.0,
+     3440.0
+    ],
+    [
+     4880.0,
+     160.0
+    ],
+    [
+     5040.0,
+     160.0
+    ],
+    [
+     5200.0,
+     640.0
+    ],
+    [
+     5840.0,
+     160.0
+    ],
+    [
+     6000.0,
+     180.0
+    ],
+    [
+     6180.0,
+     180.0
+    ],
+    [
+     8320.0,
+     180.0
+    ]
+   ],
+   "elapsed": [
+    5949.525453150272,
+    6333.10955343768,
+    6712.937192991376,
+    8021.069451235235,
+    8370.705020148307,
+    10874.474289361387,
+    11566.810565069318,
+    14945.528276264668
+   ],
+   "silences": [
+    1440.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1960.0
+   ],
+   "source_hypothesis": "What are over the in am or would what with it I uh uh know me this you using the those data up to Do and and I look lay believe in school as a putting stuff card at like better as on on a disk struck at our work in twice as hard to meet the needs of to do",
+   "target_hypothesis": "在内存中或什么是什么它我用这些数据知道的吗我用这些数据来做什么吗我将学校作为",
+   "transcription_reference": "We're overly enamored with uh misusing those data and labeling schools and putting scarlet letters on districts that are working twice as hard to meet the needs of students.",
+   "translation_reference": "我们太痴迷于滥用那些数据，给学校贴标签，给那些加倍努力满足学生需求的地区贴上耻辱的标签。",
+   "terminator_rate": 0.375,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    5,
+    2,
+    1,
+    2,
+    1,
+    10,
+    11,
+    6
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 8.5,
+    "concatenated_seconds": 5.1,
+    "queueing_delay_ms_mean": 1862.5,
+    "queueing_delay_ms_max": 3280.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 66,
+   "read_next_events": 2,
+   "write_asr_events": 60,
+   "write_mt_events": 8,
+   "write_semantic_events": 8,
+   "eos_event_index": 68,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 17.609692776110023,
+   "rtf": 1.605259140939838
+  },
+  {
+   "sample_id": "en2zh-04-fin-s015",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 6410,
+   "read_steps": 41,
+   "audio_blocks": 41,
+   "fragments": 6,
+   "semantic_tokens": 233,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-04-fin-s015.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-04-fin-s015.wav",
+   "placed_seconds": 7.44,
+   "concat_seconds": 4.66,
+   "delays": [
+    160.0,
+    3040.0,
+    3200.0,
+    4480.0,
+    4800.0,
+    5600.0
+   ],
+   "durations": [
+    260.0,
+    2900.0,
+    560.0,
+    180.0,
+    100.0,
+    660.0
+   ],
+   "intervals": [
+    [
+     160.0,
+     260.0
+    ],
+    [
+     3040.0,
+     2900.0
+    ],
+    [
+     5940.0,
+     560.0
+    ],
+    [
+     6500.0,
+     180.0
+    ],
+    [
+     6680.0,
+     100.0
+    ],
+    [
+     6780.0,
+     660.0
+    ]
+   ],
+   "elapsed": [
+    1024.0345182828605,
+    7082.961837295443,
+    7986.875602975488,
+    9593.268380034715,
+    10084.927895106375,
+    11678.910658229142
+   ],
+   "silences": [
+    160.0,
+    2620.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "do all of the things in a mark are good at could pay a tension in to it is Well I can come at you to drive to how old you are well that you're in a com",
+   "target_hypothesis": "我在所有方面都做得很好能够关注它这确实很令人紧张好吧我可以开车送你去你你多大了",
+   "transcription_reference": "The only thing a marketer could pay attention to is what kind of car do you drive? How old are you? What's your income?",
+   "translation_reference": "营销人员能关注的就只是：你开什么车？你多大了？你收入多少？",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    15,
+    8,
+    10,
+    1,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 7.44,
+    "concatenated_seconds": 4.66,
+    "queueing_delay_ms_mean": 1303.3333333333333,
+    "queueing_delay_ms_max": 2740.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 40,
+   "read_next_events": 0,
+   "write_asr_events": 34,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": 40,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.71386115718633,
+   "rtf": 1.983441678188195
+  },
+  {
+   "sample_id": "en2zh-04-fin-s039",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 10290,
+   "read_steps": 65,
+   "audio_blocks": 65,
+   "fragments": 6,
+   "semantic_tokens": 321,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-04-fin-s039.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-04-fin-s039.wav",
+   "placed_seconds": 10.29,
+   "concat_seconds": 6.42,
+   "delays": [
+    800.0,
+    3840.0,
+    4000.0,
+    7680.0,
+    8000.0,
+    8160.0
+   ],
+   "durations": [
+    620.0,
+    5220.0,
+    160.0,
+    180.0,
+    180.0,
+    60.0
+   ],
+   "intervals": [
+    [
+     800.0,
+     620.0
+    ],
+    [
+     3840.0,
+     5220.0
+    ],
+    [
+     9060.0,
+     160.0
+    ],
+    [
+     9220.0,
+     180.0
+    ],
+    [
+     9400.0,
+     180.0
+    ],
+    [
+     9580.0,
+     60.0
+    ]
+   ],
+   "elapsed": [
+    2343.059674836695,
+    10954.791298601776,
+    11327.806354966015,
+    15442.337408661842,
+    16011.81433396414,
+    16454.278609715402
+   ],
+   "silences": [
+    800.0,
+    2420.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "But I can't to to see so many should have been vented this here I can't write in the the good thing in the I think as it wasn't a perfect fashion on my good or on this seat who said that I don't so sir for I don't want to be on so some me but I could have met you when",
+   "target_hypothesis": "但我不能看到这里竟然有这么多东西我无法用好的东西来写好东西我想这并不是我坐的那辆好车上的完美时尚或者说我不太适合我适合这个座位的人说我不太适合",
+   "transcription_reference": "But Sony should have invented the Hero camera, and they didn't. Because there wasn't a professional market around the scene who said, I don't surf, I don't wanna be on social media, but I could imagine what...",
+   "translation_reference": "索尼本应该发明 Hero 相机的，可他们没有。因为当时那个领域没有市场专员说，我不冲浪，我不想玩社交媒体，但我能想象......",
+   "terminator_rate": 0.6666666666666666,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    4,
+    22,
+    3,
+    27,
+    1,
+    14
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 9.64,
+    "concatenated_seconds": 6.42,
+    "queueing_delay_ms_mean": 1570.0,
+    "queueing_delay_ms_max": 5060.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 64,
+   "read_next_events": 1,
+   "write_asr_events": 59,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 3,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 18.756257486063987,
+   "rtf": 1.8227655477224478
+  },
+  {
+   "sample_id": "en2zh-05-law-s023",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 20511,
+   "read_steps": 129,
+   "audio_blocks": 129,
+   "fragments": 9,
+   "semantic_tokens": 995,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-05-law-s023.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-05-law-s023.wav",
+   "placed_seconds": 26.3,
+   "concat_seconds": 19.9,
+   "delays": [
+    6400.0,
+    8320.0,
+    8480.0,
+    11840.0,
+    12160.0,
+    14560.0,
+    14720.0,
+    17760.0,
+    17920.0
+   ],
+   "durations": [
+    7680.0,
+    2640.0,
+    160.0,
+    3360.0,
+    320.0,
+    2400.0,
+    60.0,
+    3140.0,
+    140.0
+   ],
+   "intervals": [
+    [
+     6400.0,
+     7680.0
+    ],
+    [
+     14080.0,
+     2640.0
+    ],
+    [
+     16720.0,
+     160.0
+    ],
+    [
+     16880.0,
+     3360.0
+    ],
+    [
+     20240.0,
+     320.0
+    ],
+    [
+     20560.0,
+     2400.0
+    ],
+    [
+     22960.0,
+     60.0
+    ],
+    [
+     23020.0,
+     3140.0
+    ],
+    [
+     26160.0,
+     140.0
+    ]
+   ],
+   "elapsed": [
+    16247.403180226684,
+    20890.29496628791,
+    21375.177750363946,
+    28253.53338709101,
+    29173.263752367347,
+    33949.662930332124,
+    34348.80907833576,
+    40555.392783135176,
+    40973.797399085015
+   ],
+   "silences": [
+    6400.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "So I'll work on me by the end of the year's see that we're going to be preparing resigns and some body who have has to to a agree to just stay exactly a against the my thousandth thousandth of will be this is a bit just for the this time I have to say so so that the next two course in who you true are is a an same sense to how has the little bit of these and how has has the be be the the the the the the the sheep will be the the kind of two should it you will an end there are right six the end of the two and act of the the lady gate it",
+   "target_hypothesis": "所以我会在年底工作确保我们正在准备辞职并找个人来同意只坚持我的第一千次我会这样做的这只是为了这次我说的这是同样的道理我确实想说的下两句话你真正属于的那个人也是同一种感觉的是怎样的吗这些和你将如何成为你真正",
+   "transcription_reference": "So what I mean by that is, this is that when I represent somebody who has egregious facts against them, I think, well, this isn't just for this client. This is, so that the next person who truly is innocent has the liberties and has the, the the the the shield of the constitution, if you will. And their rights being actively litigated.",
+   "translation_reference": "所以我的意思是，当我为一个被控有严重罪行的人辩护时，我会想，这不仅仅是为了这个客户。这是为了之后真正无辜的人能有宪法的保障和自由，为了他们的权利能够得到积极的维护。",
+   "terminator_rate": 0.2222222222222222,
+   "capped_stages": 7,
+   "mt_delta_chars": [
+    35,
+    1,
+    13,
+    15,
+    20,
+    1,
+    8,
+    4,
+    5
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 26.3,
+    "concatenated_seconds": 19.9,
+    "queueing_delay_ms_mean": 6095.555555555556,
+    "queueing_delay_ms_max": 8240.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 127,
+   "read_next_events": 1,
+   "write_asr_events": 119,
+   "write_mt_events": 9,
+   "write_semantic_events": 9,
+   "eos_event_index": 128,
+   "eos_reached": true,
+   "malformed_segments": 7,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 43.797214911319315,
+   "rtf": 2.1353037351333097
+  },
+  {
+   "sample_id": "en2zh-06-env-s018",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 8200,
+   "read_steps": 52,
+   "audio_blocks": 52,
+   "fragments": 1,
+   "semantic_tokens": 53,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-06-env-s018.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-06-env-s018.wav",
+   "placed_seconds": 9.26,
+   "concat_seconds": 1.06,
+   "delays": [
+    8200.0
+   ],
+   "durations": [
+    1060.0
+   ],
+   "intervals": [
+    [
+     8200.0,
+     1060.0
+    ]
+   ],
+   "elapsed": [
+    9770.60119388625
+   ],
+   "silences": [
+    8200.0
+   ],
+   "source_hypothesis": "So in an a old old so when part of it is the the uh um uh uh uh uh me many of these how it's are earned in look location in the next is sera in harr in way there are there high i out out of it while it more are",
+   "target_hypothesis": "所以从一个老的",
+   "transcription_reference": "And and also when part of it is that, um, many of these houses aren't in locations that are necessarily in harm's way. They're they're high up, uh a lot of them are,",
+   "translation_reference": "此外，还有一点，许多房屋所在的地方并不一定会受损，它们地势较高，很多这样的房子",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    7
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 9.26,
+    "concatenated_seconds": 1.06,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 51,
+   "read_next_events": 0,
+   "write_asr_events": 51,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 51,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.797740284819156,
+   "rtf": 1.1948463761974581
+  },
+  {
+   "sample_id": "en2zh-07-ent-s011",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 12020,
+   "read_steps": 76,
+   "audio_blocks": 76,
+   "fragments": 8,
+   "semantic_tokens": 147,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-07-ent-s011.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-07-ent-s011.wav",
+   "placed_seconds": 12.02,
+   "concat_seconds": 2.94,
+   "delays": [
+    2400.0,
+    2560.0,
+    2720.0,
+    3040.0,
+    3520.0,
+    3680.0,
+    3840.0,
+    10880.0
+   ],
+   "durations": [
+    1020.0,
+    220.0,
+    260.0,
+    100.0,
+    80.0,
+    140.0,
+    80.0,
+    1040.0
+   ],
+   "intervals": [
+    [
+     2400.0,
+     1020.0
+    ],
+    [
+     3420.0,
+     220.0
+    ],
+    [
+     3640.0,
+     260.0
+    ],
+    [
+     3900.0,
+     100.0
+    ],
+    [
+     4000.0,
+     80.0
+    ],
+    [
+     4080.0,
+     140.0
+    ],
+    [
+     4220.0,
+     80.0
+    ],
+    [
+     10880.0,
+     1040.0
+    ]
+   ],
+   "elapsed": [
+    4597.499997820705,
+    5063.023564871401,
+    5563.247870653868,
+    6049.186950083822,
+    6661.34609375149,
+    7054.6962870284915,
+    7368.496982846409,
+    15262.399092782289
+   ],
+   "silences": [
+    2400.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    6580.0
+   ],
+   "source_hypothesis": "That one time we need to you on just don't the this look looks like it uh me be let you know some things I'm you all a black house in the going one you to be able so some of of fuck in and some so you should be on it I see the this stick out of a stick that this is we had been most about gave a",
+   "target_hypothesis": "那一次我们只需要你不要让这看起来像这样一样呃我的我了知道有些事情我就是你",
+   "transcription_reference": "That looks like Leafeon. Do you do you know what this looks like? Um, like, you know sometimes you'll browsing on YouTube or some fucking site you shouldn't be on. Yeah. You see this ad of this weird mobile game.",
+   "translation_reference": "那个看起来像叶伊布。你知道这像什么吗？就像你在 YouTube 上看片或者在看某个不该看的网站的时候，就会看到这种广告或者奇奇怪怪的手机游戏推广。",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    17,
+    2,
+    2,
+    1,
+    1,
+    2,
+    1,
+    10
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 11.92,
+    "concatenated_seconds": 2.94,
+    "queueing_delay_ms_mean": 487.5,
+    "queueing_delay_ms_max": 920.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 76,
+   "read_next_events": 0,
+   "write_asr_events": 68,
+   "write_mt_events": 8,
+   "write_semantic_events": 8,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 16.707260605879128,
+   "rtf": 1.3899551252811255
+  },
+  {
+   "sample_id": "en2zh-07-ent-s035",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 2690,
+   "read_steps": 17,
+   "audio_blocks": 17,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-07-ent-s035.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-07-ent-s035.wav",
+   "placed_seconds": 2.69,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "Yeah I don't know this at the shit of fifty and just you're to you know hold your fog",
+   "target_hypothesis": "",
+   "transcription_reference": "Oh, yeah, yeah. This, if this had fed into security, no one would give a fuck.",
+   "translation_reference": "对。这个游戏要是没出名，没人会在意。",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 17,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 2.914184700231999,
+   "rtf": 1.0833400372609663
+  },
+  {
+   "sample_id": "en2zh-08-sci-s020",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4250,
+   "read_steps": 27,
+   "audio_blocks": 27,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-08-sci-s020.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-08-sci-s020.wav",
+   "placed_seconds": 4.25,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "That is the one that the one that I are all on the end I need miss in the up which should you there and my crew or",
+   "target_hypothesis": "",
+   "transcription_reference": "That's, oh man. I missed an opportunity there in my career.",
+   "translation_reference": "哎，我错过了职业生涯中的一次机会。",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 27,
+   "read_next_events": 0,
+   "write_asr_events": 27,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.484146011061966,
+   "rtf": 1.055093179073404
+  },
+  {
+   "sample_id": "en2zh-09-sport-s009",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4370,
+   "read_steps": 28,
+   "audio_blocks": 28,
+   "fragments": 1,
+   "semantic_tokens": 384,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-09-sport-s009.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-09-sport-s009.wav",
+   "placed_seconds": 12.05,
+   "concat_seconds": 7.68,
+   "delays": [
+    4370.0
+   ],
+   "durations": [
+    7680.0
+   ],
+   "intervals": [
+    [
+     4370.0,
+     7680.0
+    ]
+   ],
+   "elapsed": [
+    12901.296517811716
+   ],
+   "silences": [
+    4370.0
+   ],
+   "source_hypothesis": "But about the the it's a lead my maybe a lot lost for the the the this or pretty foul point player that I've been the power last",
+   "target_hypothesis": "但我觉得这可能是我失去的线索或者说是最近那个相当糟糕的玩家",
+   "transcription_reference": "Italy maybe lost the the the profile player that they've had in the past,",
+   "translation_reference": "意大利虽然失去了之前的当家球员，",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    29
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 12.05,
+    "concatenated_seconds": 7.68,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 27,
+   "read_next_events": 0,
+   "write_asr_events": 27,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 27,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.935068719089031,
+   "rtf": 2.959969958601609
+  },
+  {
+   "sample_id": "en2zh-09-sport-s033",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 4801,
+   "read_steps": 31,
+   "audio_blocks": 31,
+   "fragments": 1,
+   "semantic_tokens": 259,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-09-sport-s033.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-09-sport-s033.wav",
+   "placed_seconds": 9.981,
+   "concat_seconds": 5.18,
+   "delays": [
+    4801.0
+   ],
+   "durations": [
+    5180.0
+   ],
+   "intervals": [
+    [
+     4801.0,
+     5180.0
+    ]
+   ],
+   "elapsed": [
+    10784.56494724378
+   ],
+   "silences": [
+    4801.0
+   ],
+   "source_hypothesis": "So I I think what's going to happen is people will think the other is an a goal and general right in a normal way This is an great right to take in",
+   "target_hypothesis": "所以我认为会发生的是人们会认为这是目标而且通常来说这是一个很好的选择",
+   "transcription_reference": "So I think what's gonna happen is people will think, oh, this isn't the golden generation anymore; this isn't a great team,",
+   "translation_reference": "我觉得大家会认为这支球队已经不是黄金一代了，不是一支伟大的球队。",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    34
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 9.981,
+    "concatenated_seconds": 5.18,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 30,
+   "read_next_events": 0,
+   "write_asr_events": 30,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 30,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 10.834314354229718,
+   "rtf": 2.25667868240569
+  },
+  {
+   "sample_id": "en2zh-10-art-s000",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 8160,
+   "read_steps": 51,
+   "audio_blocks": 51,
+   "fragments": 5,
+   "semantic_tokens": 474,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/en2zh-10-art-s000.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/en2zh-10-art-s000.wav",
+   "placed_seconds": 12.2,
+   "concat_seconds": 9.48,
+   "delays": [
+    2720.0,
+    4640.0,
+    5920.0,
+    7360.0,
+    7520.0
+   ],
+   "durations": [
+    1960.0,
+    4680.0,
+    980.0,
+    1740.0,
+    120.0
+   ],
+   "intervals": [
+    [
+     2720.0,
+     1960.0
+    ],
+    [
+     4680.0,
+     4680.0
+    ],
+    [
+     9360.0,
+     980.0
+    ],
+    [
+     10340.0,
+     1740.0
+    ],
+    [
+     12080.0,
+     120.0
+    ]
+   ],
+   "elapsed": [
+    5477.449639234692,
+    12270.025869365782,
+    14650.68532526493,
+    18000.036602374166,
+    18360.86915899068
+   ],
+   "silences": [
+    2720.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "A little we did a a uh of a third thousand thousand of francs on its uh he had to put his end and it at it it in press of a gift to it to car and all French chess go and bar a rainy",
+   "target_hypothesis": "我们做了一个小小的三万法郎他不得不把他的结局放在最后在礼物的压印下去雕刻和所有法国的棋子上",
+   "transcription_reference": "Uh Louis of Thirteenth of France uh here had to present an im- im- impressive gift to Cardinal Francesco Barberini.",
+   "translation_reference": "法国国王路易十三必须送一件大礼给红衣主教弗朗西斯科·巴贝里尼。",
+   "terminator_rate": 0.6,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    13,
+    13,
+    7,
+    11,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 12.2,
+    "concatenated_seconds": 9.48,
+    "queueing_delay_ms_mean": 2204.0,
+    "queueing_delay_ms_max": 4560.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 50,
+   "read_next_events": 1,
+   "write_asr_events": 46,
+   "write_mt_events": 5,
+   "write_semantic_events": 5,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 3,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 19.17733093816787,
+   "rtf": 2.3501631051676313
+  },
+  {
+   "sample_id": "zh2en-01-tech-s003",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4660,
+   "read_steps": 30,
+   "audio_blocks": 30,
+   "fragments": 1,
+   "semantic_tokens": 332,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-01-tech-s003.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-01-tech-s003.wav",
+   "placed_seconds": 11.28,
+   "concat_seconds": 6.64,
+   "delays": [
+    4640.0
+   ],
+   "durations": [
+    6640.0
+   ],
+   "intervals": [
+    [
+     4640.0,
+     6640.0
+    ]
+   ],
+   "elapsed": [
+    11834.83361825347
+   ],
+   "silences": [
+    4640.0
+   ],
+   "source_hypothesis": "都哎哎都得你那那把事们给定一你也有跟家家哈好的的再做法",
+   "target_hypothesis": "Oh you have to decide everything for them and you should also do the same as your family",
+   "transcription_reference": "对对，那那八十分肯定有更加好的做法，",
+   "translation_reference": "Yes. Those who achieve 80 points must have better ways,",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    88
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 11.28,
+    "concatenated_seconds": 6.64,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 28,
+   "read_next_events": 1,
+   "write_asr_events": 28,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 29,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 11.928391182329506,
+   "rtf": 2.5597405970664173
+  },
+  {
+   "sample_id": "zh2en-01-tech-s027",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 4290,
+   "read_steps": 27,
+   "audio_blocks": 27,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-01-tech-s027.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-01-tech-s027.wav",
+   "placed_seconds": 4.29,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "那那可可能他会有点了了还想想和对上的呃呃或者是站位的的呃管你",
+   "target_hypothesis": "",
+   "transcription_reference": "那可能他忽略了横向和对上，呃或者是战略的管理。",
+   "translation_reference": "then maybe they ignore the lateral and upward, or strategic management.",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 27,
+   "read_next_events": 0,
+   "write_asr_events": 27,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 4.369271680247039,
+   "rtf": 1.0184782471438318
+  },
+  {
+   "sample_id": "zh2en-02-health-s000",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3180,
+   "read_steps": 20,
+   "audio_blocks": 20,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-02-health-s000.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-02-health-s000.wav",
+   "placed_seconds": 3.18,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "我的是那个话呢我们没写先先进了这个电影的长几节",
+   "target_hypothesis": "",
+   "transcription_reference": "好的，现在的话呢，我们先进入了这个电影的章节。",
+   "translation_reference": "Now let's move on to the part of the film,",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 20,
+   "read_next_events": 0,
+   "write_asr_events": 20,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 3.194533574860543,
+   "rtf": 1.0045703065599192
+  },
+  {
+   "sample_id": "zh2en-02-health-s024",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8320,
+   "read_steps": 52,
+   "audio_blocks": 52,
+   "fragments": 2,
+   "semantic_tokens": 468,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-02-health-s024.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-02-health-s024.wav",
+   "placed_seconds": 16.56,
+   "concat_seconds": 9.36,
+   "delays": [
+    7200.0,
+    7360.0
+   ],
+   "durations": [
+    7680.0,
+    1680.0
+   ],
+   "intervals": [
+    [
+     7200.0,
+     7680.0
+    ],
+    [
+     14880.0,
+     1680.0
+    ]
+   ],
+   "elapsed": [
+    15786.129038780928,
+    18047.576864715666
+   ],
+   "silences": [
+    7200.0,
+    0.0
+   ],
+   "source_hypothesis": "嗯嗯这也是为什么我就觉得呃可呢呢我你应该偏不只是对于于啊我一直想演的人了来说会是而通常来说是是一个非超强我他是个懂东西",
+   "target_hypothesis": "Well this is also why I think you shouldn't just be the person I've always wanted to play but usually it's a very strong who is not the one I've always wanted to play but usually they are very strong",
+   "transcription_reference": "嗯，这也是为什么我觉得，呃，可能影片不只是对于，啊未成年人来说或者是儿童来说，是一个非常，呃，toxic的东西，",
+   "translation_reference": "That's why I believe videos can be rather toxic not only to juniors or children;",
+   "terminator_rate": 0.0,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    120,
+    79
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 16.56,
+    "concatenated_seconds": 9.36,
+    "queueing_delay_ms_mean": 3760.0,
+    "queueing_delay_ms_max": 7520.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 52,
+   "read_next_events": 0,
+   "write_asr_events": 50,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 3,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 19.013025327585638,
+   "rtf": 2.285219390334812
+  },
+  {
+   "sample_id": "zh2en-03-edu-s018",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8630,
+   "read_steps": 54,
+   "audio_blocks": 54,
+   "fragments": 6,
+   "semantic_tokens": 350,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-03-edu-s018.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-03-edu-s018.wav",
+   "placed_seconds": 8.92,
+   "concat_seconds": 7.0,
+   "delays": [
+    1920.0,
+    2240.0,
+    2560.0,
+    3520.0,
+    4640.0,
+    6720.0
+   ],
+   "durations": [
+    1320.0,
+    480.0,
+    780.0,
+    1220.0,
+    2840.0,
+    360.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     1320.0
+    ],
+    [
+     3240.0,
+     480.0
+    ],
+    [
+     3720.0,
+     780.0
+    ],
+    [
+     4500.0,
+     1220.0
+    ],
+    [
+     5720.0,
+     2840.0
+    ],
+    [
+     8560.0,
+     360.0
+    ]
+   ],
+   "elapsed": [
+    3967.645838856697,
+    4873.83769499138,
+    6108.91489777714,
+    8475.474596954882,
+    12498.48895566538,
+    14878.54862306267
+   ],
+   "silences": [
+    1920.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "我们从从右往右也都到了了都想起来也也也到大去也对对对对对对对对眼睛就是人人就我是山上的我是我是后的",
+   "target_hypothesis": "We've moved from right to left to the right and then to the right and we all want to get up and go to the big people",
+   "transcription_reference": "我们从幼儿园到中小学，到大学，研究生，博士生，博士后，",
+   "translation_reference": "From kindergarten to primary and secondary schools, to universities, postgraduate students, doctoral students, and postdoctoral students,",
+   "terminator_rate": 0.8333333333333334,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    30,
+    13,
+    22,
+    30,
+    14,
+    7
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 8.92,
+    "concatenated_seconds": 7.0,
+    "queueing_delay_ms_mean": 1010.0,
+    "queueing_delay_ms_max": 1840.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 54,
+   "read_next_events": 0,
+   "write_asr_events": 48,
+   "write_mt_events": 6,
+   "write_semantic_events": 6,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 16.864069913048297,
+   "rtf": 1.9541216585223982
+  },
+  {
+   "sample_id": "zh2en-03-edu-s042",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 11820,
+   "read_steps": 74,
+   "audio_blocks": 74,
+   "fragments": 5,
+   "semantic_tokens": 556,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-03-edu-s042.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-03-edu-s042.wav",
+   "placed_seconds": 15.28,
+   "concat_seconds": 11.12,
+   "delays": [
+    4160.0,
+    5120.0,
+    5280.0,
+    5600.0,
+    9120.0
+   ],
+   "durations": [
+    6160.0,
+    960.0,
+    160.0,
+    320.0,
+    3520.0
+   ],
+   "intervals": [
+    [
+     4160.0,
+     6160.0
+    ],
+    [
+     10320.0,
+     960.0
+    ],
+    [
+     11280.0,
+     160.0
+    ],
+    [
+     11440.0,
+     320.0
+    ],
+    [
+     11760.0,
+     3520.0
+    ]
+   ],
+   "elapsed": [
+    11155.004382133484,
+    13164.421156048775,
+    13598.823985084891,
+    14343.361413106322,
+    21272.99606287852
+   ],
+   "silences": [
+    4160.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "你要不你你不对对啊啊你你你你你你你你你你你不你你你你把这字找了就叫叫翻法对让我们去想到到算你的意思吧叫soyouyoudo我是挺挺和和合适的",
+   "target_hypothesis": "You're not right you're not right you're not right you're not right you're not right you're not right you're not",
+   "transcription_reference": "那，这个，但是至少教学方法让我们想到上面的几个教授、阅读、视听结合、示范，",
+   "translation_reference": "According to this, at least we can come up with the teaching methods like the above lecturing, reading, audio-visual combination, and demonstration.",
+   "terminator_rate": 0.0,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    33,
+    34,
+    17,
+    17,
+    11
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 15.28,
+    "concatenated_seconds": 11.12,
+    "queueing_delay_ms_mean": 3936.0,
+    "queueing_delay_ms_max": 6000.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 72,
+   "read_next_events": 1,
+   "write_asr_events": 68,
+   "write_mt_events": 5,
+   "write_semantic_events": 5,
+   "eos_event_index": 73,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 23.856746815145016,
+   "rtf": 2.0183372940055
+  },
+  {
+   "sample_id": "zh2en-04-fin-s018",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7190,
+   "read_steps": 45,
+   "audio_blocks": 45,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-04-fin-s018.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-04-fin-s018.wav",
+   "placed_seconds": 7.19,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "你能你问我因为这只一种这一种类类别的啊你你用茶不品你他他是是是在叫呃啊八缸快吸了一个梦我",
+   "target_hypothesis": "",
+   "transcription_reference": "嗯，因为因为这种，这种类别的金融产品它是叫呃bankruptcy remote，",
+   "translation_reference": "Because this kind of financial product is called bankruptcy remote.",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 44,
+   "read_next_events": 0,
+   "write_asr_events": 44,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": 44,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 7.078106761910021,
+   "rtf": 0.9844376581237859
+  },
+  {
+   "sample_id": "zh2en-05-law-s013",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5080,
+   "read_steps": 32,
+   "audio_blocks": 32,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-05-law-s013.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-05-law-s013.wav",
+   "placed_seconds": 5.08,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "然后然后呢这个你你你如果不不愿意说起来给我你我吃的是都等你这个砖里一锅过来以后再去用",
+   "target_hypothesis": "",
+   "transcription_reference": "然后呢，这个你如果不愿意授权给我，我只能是等你这个专利期过了以后再去用，",
+   "translation_reference": "If you are not willing to authorize it to me, I can only use it after your patent period has expired.",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 32,
+   "read_next_events": 0,
+   "write_asr_events": 32,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.083328977692872,
+   "rtf": 1.000655310569463
+  },
+  {
+   "sample_id": "zh2en-05-law-s037",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 5470,
+   "read_steps": 35,
+   "audio_blocks": 35,
+   "fragments": 2,
+   "semantic_tokens": 311,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-05-law-s037.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-05-law-s037.wav",
+   "placed_seconds": 11.34,
+   "concat_seconds": 6.22,
+   "delays": [
+    5120.0,
+    5280.0
+   ],
+   "durations": [
+    5800.0,
+    420.0
+   ],
+   "intervals": [
+    [
+     5120.0,
+     5800.0
+    ],
+    [
+     10920.0,
+     420.0
+    ]
+   ],
+   "elapsed": [
+    11579.433870967478,
+    12368.709860369563
+   ],
+   "silences": [
+    5120.0,
+    0.0
+   ],
+   "source_hypothesis": "但但是你不能把它写上原来的那个样子啊比如时候我我画的画的可能我那里上的然后说这是打个分题画的的对吧",
+   "target_hypothesis": "But you can't write it the way it was originally For example when I draw it it might be on the map and then say this is a division question drawing and then say this is a division question drawing",
+   "transcription_reference": "当然你不能把它写上原来的名字啊，比如说我画画了个蒙娜丽莎，然后我说这是达芬奇画的，对吧？",
+   "translation_reference": "Of course, you can't write the name of original artist on it. For example, I draw a Mona Lisa and say this is painted by Da Vinci,",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    147,
+    49
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 11.34,
+    "concatenated_seconds": 6.22,
+    "queueing_delay_ms_mean": 2820.0,
+    "queueing_delay_ms_max": 5640.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 34,
+   "read_next_events": 0,
+   "write_asr_events": 32,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 34,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 12.657898274250329,
+   "rtf": 2.3140581854205355
+  },
+  {
+   "sample_id": "zh2en-06-env-s012",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6199,
+   "read_steps": 39,
+   "audio_blocks": 39,
+   "fragments": 0,
+   "semantic_tokens": 0,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-06-env-s012.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-06-env-s012.wav",
+   "placed_seconds": 6.199,
+   "concat_seconds": 0.0,
+   "delays": [],
+   "durations": [],
+   "intervals": [],
+   "elapsed": [],
+   "silences": [],
+   "source_hypothesis": "可我其实你在在给我的多借上一些一下啊这个连我都看的力是实的还有一个的定位的你和角色的呃",
+   "target_hypothesis": "",
+   "transcription_reference": "可否请你再给我们多介绍一下这个联盟，它的历史，还有一个定位和角色？",
+   "translation_reference": "could you please provide more details about this alliance, such as its history, as well as its positioning and role?",
+   "terminator_rate": 0.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 0,
+    "placed_seconds": 0.0,
+    "concatenated_seconds": 0.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 39,
+   "read_next_events": 0,
+   "write_asr_events": 39,
+   "write_mt_events": 0,
+   "write_semantic_events": 0,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 5.944984296802431,
+   "rtf": 0.9590231161158947
+  },
+  {
+   "sample_id": "zh2en-07-ent-s002",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3880,
+   "read_steps": 25,
+   "audio_blocks": 25,
+   "fragments": 2,
+   "semantic_tokens": 292,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-07-ent-s002.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-07-ent-s002.wav",
+   "placed_seconds": 7.12,
+   "concat_seconds": 5.84,
+   "delays": [
+    1280.0,
+    3840.0
+   ],
+   "durations": [
+    3280.0,
+    2560.0
+   ],
+   "intervals": [
+    [
+     1280.0,
+     3280.0
+    ],
+    [
+     4560.0,
+     2560.0
+    ]
+   ],
+   "elapsed": [
+    4778.975935652852,
+    9904.898422770202
+   ],
+   "silences": [
+    1280.0,
+    0.0
+   ],
+   "source_hypothesis": "我的一部电影的是谁说了我算我算我等也是师傅的对吧呢",
+   "target_hypothesis": "Who is the movie I'm talking about I'm the master's right I'm the master's right",
+   "transcription_reference": "或者说一部电影到底谁说了算？那导演是不是最高的呢？",
+   "translation_reference": "or who exactly has the final say? Is the director the most important person?",
+   "terminator_rate": 0.0,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    10,
+    70
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 7.12,
+    "concatenated_seconds": 5.84,
+    "queueing_delay_ms_mean": 360.0,
+    "queueing_delay_ms_max": 720.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 22,
+   "read_next_events": 2,
+   "write_asr_events": 22,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 24,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 10.031666658818722,
+   "rtf": 2.585481097633691
+  },
+  {
+   "sample_id": "zh2en-07-ent-s026",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7350,
+   "read_steps": 46,
+   "audio_blocks": 46,
+   "fragments": 4,
+   "semantic_tokens": 420,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-07-ent-s026.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-07-ent-s026.wav",
+   "placed_seconds": 12.56,
+   "concat_seconds": 8.4,
+   "delays": [
+    4160.0,
+    6080.0,
+    6240.0,
+    6400.0
+   ],
+   "durations": [
+    5300.0,
+    1840.0,
+    160.0,
+    1100.0
+   ],
+   "intervals": [
+    [
+     4160.0,
+     5300.0
+    ],
+    [
+     9460.0,
+     1840.0
+    ],
+    [
+     11300.0,
+     160.0
+    ],
+    [
+     11460.0,
+     1100.0
+    ]
+   ],
+   "elapsed": [
+    10202.695234678686,
+    14048.359896987677,
+    14441.994046792388,
+    15766.72645797953
+   ],
+   "silences": [
+    4160.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "我打个电话已经为自己的了一个不错创作我说我啊这个到去去教育很没厉害的啊啊这个厂已经你叫我用了可给你看了几",
+   "target_hypothesis": "I've made a call and it has already been a good creation for myself I said that going to education is not very impressive This factory has already called me to use me you",
+   "transcription_reference": "导演会因为自己的艺术创作说，啊，这个道具就要用很厉害的，啊，这个场景就要用特别厉害的场景。",
+   "translation_reference": "but the director, to defend his artistic creation, would claim that the props must be perfect, so are the settings.",
+   "terminator_rate": 0.75,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    121,
+    42,
+    3,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 4,
+    "placed_seconds": 12.56,
+    "concatenated_seconds": 8.4,
+    "queueing_delay_ms_mean": 3375.0,
+    "queueing_delay_ms_max": 5060.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 46,
+   "read_next_events": 0,
+   "write_asr_events": 42,
+   "write_mt_events": 4,
+   "write_semantic_events": 4,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 16.789108047727495,
+   "rtf": 2.284232387445918
+  },
+  {
+   "sample_id": "zh2en-07-ent-s050",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8380,
+   "read_steps": 53,
+   "audio_blocks": 53,
+   "fragments": 2,
+   "semantic_tokens": 395,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-07-ent-s050.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-07-ent-s050.wav",
+   "placed_seconds": 13.92,
+   "concat_seconds": 7.9,
+   "delays": [
+    480.0,
+    6240.0
+   ],
+   "durations": [
+    220.0,
+    7680.0
+   ],
+   "intervals": [
+    [
+     480.0,
+     220.0
+    ],
+    [
+     6240.0,
+     7680.0
+    ]
+   ],
+   "elapsed": [
+    1372.8935271501541,
+    15103.486261796206
+   ],
+   "silences": [
+    480.0,
+    5540.0
+   ],
+   "source_hypothesis": "啊啊我工也花了你他的回去心是靠很那个配和对比如说说说说月他大了就做后的时候是就这个归母母月也大了或者是是预算月多的就",
+   "target_hypothesis": "Ah I also spent your heart back on him which is very much in line with it For example when the moon is big he will be the mother",
+   "transcription_reference": "而工业化的电影，它的核心是靠团队的配合，比如说越大的剧组，或者是这个规模越大，或者是预算越多的剧组，",
+   "translation_reference": "An industrialized film, however, lays its core on teamwork. The larger the crew and the scale is and the better budget the crew has,",
+   "terminator_rate": 0.5,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    2,
+    126
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 2,
+    "placed_seconds": 13.92,
+    "concatenated_seconds": 7.9,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 51,
+   "read_next_events": 1,
+   "write_asr_events": 50,
+   "write_mt_events": 2,
+   "write_semantic_events": 2,
+   "eos_event_index": 52,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 17.63762932876125,
+   "rtf": 2.1047290368450176
+  },
+  {
+   "sample_id": "zh2en-08-sci-s021",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 8700,
+   "read_steps": 55,
+   "audio_blocks": 55,
+   "fragments": 8,
+   "semantic_tokens": 635,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-08-sci-s021.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-08-sci-s021.wav",
+   "placed_seconds": 15.74,
+   "concat_seconds": 12.7,
+   "delays": [
+    3040.0,
+    3200.0,
+    3360.0,
+    3520.0,
+    3680.0,
+    6080.0,
+    6240.0,
+    8700.0
+   ],
+   "durations": [
+    5040.0,
+    20.0,
+    180.0,
+    60.0,
+    60.0,
+    300.0,
+    60.0,
+    6980.0
+   ],
+   "intervals": [
+    [
+     3040.0,
+     5040.0
+    ],
+    [
+     8080.0,
+     20.0
+    ],
+    [
+     8100.0,
+     180.0
+    ],
+    [
+     8280.0,
+     60.0
+    ],
+    [
+     8340.0,
+     60.0
+    ],
+    [
+     8400.0,
+     300.0
+    ],
+    [
+     8700.0,
+     60.0
+    ],
+    [
+     8760.0,
+     6980.0
+    ]
+   ],
+   "elapsed": [
+    8783.806794323027,
+    9039.155859965831,
+    9559.745360165834,
+    9856.037771329284,
+    10157.463117036968,
+    12875.858725979924,
+    13169.51862629503,
+    23686.236487235874
+   ],
+   "silences": [
+    3040.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "就就是你你太你你去你去你去你去说上早了给地球上你叫早到一个上的组你的时候你在与宇宙中对你一百万颗恒星行星",
+   "target_hypothesis": "It's just that you are too I going to say it too early I will call the group on Earth early you and you will be the first to be the one to be the first to be the one to be the last to be the last to be the last to be the last to be the last to be the last to be the last to be",
+   "transcription_reference": "就是你在，你去地球上找，地球上，你只要找到一颗沙子，说明在宇宙中对应一百万颗恒星。",
+   "translation_reference": "That is, if a grain of sand on the earth corresponds to one million stars in the universe,",
+   "terminator_rate": 0.75,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    26,
+    2,
+    26,
+    2,
+    5,
+    30,
+    4,
+    181
+   ],
+   "mt_delta_chars_over_prior_bucket": 4,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 15.74,
+    "concatenated_seconds": 12.7,
+    "queueing_delay_ms_mean": 2985.0,
+    "queueing_delay_ms_max": 4880.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 53,
+   "read_next_events": 1,
+   "write_asr_events": 47,
+   "write_mt_events": 8,
+   "write_semantic_events": 8,
+   "eos_event_index": 54,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 23.867070066276938,
+   "rtf": 2.743341386928384
+  },
+  {
+   "sample_id": "zh2en-09-sport-s008",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 11220,
+   "read_steps": 71,
+   "audio_blocks": 71,
+   "fragments": 39,
+   "semantic_tokens": 532,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-09-sport-s008.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-09-sport-s008.wav",
+   "placed_seconds": 14.8,
+   "concat_seconds": 10.64,
+   "delays": [
+    4160.0,
+    4320.0,
+    4480.0,
+    4640.0,
+    4800.0,
+    4960.0,
+    5120.0,
+    5280.0,
+    5440.0,
+    5760.0,
+    5920.0,
+    6080.0,
+    6400.0,
+    6560.0,
+    6720.0,
+    6880.0,
+    7200.0,
+    7360.0,
+    7520.0,
+    7680.0,
+    7840.0,
+    8000.0,
+    8160.0,
+    8320.0,
+    8480.0,
+    8640.0,
+    8800.0,
+    8960.0,
+    9120.0,
+    9280.0,
+    9440.0,
+    9600.0,
+    9760.0,
+    9920.0,
+    10080.0,
+    10240.0,
+    10400.0,
+    10560.0,
+    11220.0
+   ],
+   "durations": [
+    6160.0,
+    160.0,
+    160.0,
+    80.0,
+    80.0,
+    320.0,
+    160.0,
+    100.0,
+    80.0,
+    100.0,
+    80.0,
+    80.0,
+    220.0,
+    220.0,
+    120.0,
+    80.0,
+    80.0,
+    80.0,
+    80.0,
+    120.0,
+    80.0,
+    140.0,
+    80.0,
+    160.0,
+    80.0,
+    120.0,
+    80.0,
+    120.0,
+    100.0,
+    80.0,
+    120.0,
+    80.0,
+    120.0,
+    80.0,
+    120.0,
+    80.0,
+    120.0,
+    100.0,
+    220.0
+   ],
+   "intervals": [
+    [
+     4160.0,
+     6160.0
+    ],
+    [
+     10320.0,
+     160.0
+    ],
+    [
+     10480.0,
+     160.0
+    ],
+    [
+     10640.0,
+     80.0
+    ],
+    [
+     10720.0,
+     80.0
+    ],
+    [
+     10800.0,
+     320.0
+    ],
+    [
+     11120.0,
+     160.0
+    ],
+    [
+     11280.0,
+     100.0
+    ],
+    [
+     11380.0,
+     80.0
+    ],
+    [
+     11460.0,
+     100.0
+    ],
+    [
+     11560.0,
+     80.0
+    ],
+    [
+     11640.0,
+     80.0
+    ],
+    [
+     11720.0,
+     220.0
+    ],
+    [
+     11940.0,
+     220.0
+    ],
+    [
+     12160.0,
+     120.0
+    ],
+    [
+     12280.0,
+     80.0
+    ],
+    [
+     12360.0,
+     80.0
+    ],
+    [
+     12440.0,
+     80.0
+    ],
+    [
+     12520.0,
+     80.0
+    ],
+    [
+     12600.0,
+     120.0
+    ],
+    [
+     12720.0,
+     80.0
+    ],
+    [
+     12800.0,
+     140.0
+    ],
+    [
+     12940.0,
+     80.0
+    ],
+    [
+     13020.0,
+     160.0
+    ],
+    [
+     13180.0,
+     80.0
+    ],
+    [
+     13260.0,
+     120.0
+    ],
+    [
+     13380.0,
+     80.0
+    ],
+    [
+     13460.0,
+     120.0
+    ],
+    [
+     13580.0,
+     100.0
+    ],
+    [
+     13680.0,
+     80.0
+    ],
+    [
+     13760.0,
+     120.0
+    ],
+    [
+     13880.0,
+     80.0
+    ],
+    [
+     13960.0,
+     120.0
+    ],
+    [
+     14080.0,
+     80.0
+    ],
+    [
+     14160.0,
+     120.0
+    ],
+    [
+     14280.0,
+     80.0
+    ],
+    [
+     14360.0,
+     120.0
+    ],
+    [
+     14480.0,
+     100.0
+    ],
+    [
+     14580.0,
+     220.0
+    ]
+   ],
+   "elapsed": [
+    10949.618679005653,
+    11627.818398177624,
+    12002.613762859255,
+    12314.274948090315,
+    12704.903270117939,
+    13290.060262195766,
+    13645.360745023936,
+    13975.804436951876,
+    14286.480390001088,
+    14764.628096017987,
+    15074.956584256142,
+    15384.698966983706,
+    15981.762205250561,
+    16434.77342184633,
+    16787.952311802655,
+    17101.911874022335,
+    17558.45378525555,
+    17869.83475321904,
+    18180.61455897987,
+    18544.178742915392,
+    18852.678271010518,
+    19225.935756228864,
+    19537.32029395178,
+    19926.986546255648,
+    20237.47739614919,
+    20586.905448231846,
+    20897.275377064943,
+    21246.602676808834,
+    21578.664291184396,
+    21892.276100814342,
+    22243.58850205317,
+    22552.28374293074,
+    22902.801567222923,
+    23212.523168884218,
+    23563.55336494744,
+    23883.109678979963,
+    24237.685058265924,
+    24567.41241319105,
+    25701.738778036088
+   ],
+   "silences": [
+    4160.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "他让米斯在第一个脚就是他做客的慢成的打到的前前场的左拱路去去扶灯来出来",
+   "target_hypothesis": "He made Miss He asked Miss to walk slowly in front of the left archway of the front court and she to to the left archway before the first room room to go to to the left room room to go to to it to it to it to it to it go to it to it to it to it go to help the light come out",
+   "transcription_reference": "上半场比赛的第一个角球是作客的曼城队拿到的。前场的左路。福登来处理。",
+   "translation_reference": "The first corner kick of the first half was taken by the visiting Man City. The left side of the front field, Foden will take it.",
+   "terminator_rate": 0.8717948717948718,
+   "capped_stages": 5,
+   "mt_delta_chars": [
+    12,
+    77,
+    8,
+    3,
+    20,
+    17,
+    5,
+    5,
+    3,
+    3,
+    3,
+    3,
+    9,
+    5,
+    5,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    27
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 39,
+    "placed_seconds": 14.8,
+    "concatenated_seconds": 10.64,
+    "queueing_delay_ms_mean": 4847.179487179487,
+    "queueing_delay_ms_max": 6000.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 66,
+   "read_next_events": 4,
+   "write_asr_events": 32,
+   "write_mt_events": 39,
+   "write_semantic_events": 39,
+   "eos_event_index": 70,
+   "eos_reached": true,
+   "malformed_segments": 5,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 26.182008084841073,
+   "rtf": 2.3335123070268335
+  },
+  {
+   "sample_id": "zh2en-09-sport-s032",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 3950,
+   "read_steps": 25,
+   "audio_blocks": 25,
+   "fragments": 1,
+   "semantic_tokens": 148,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-09-sport-s032.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-09-sport-s032.wav",
+   "placed_seconds": 3.95,
+   "concat_seconds": 2.96,
+   "delays": [
+    960.0
+   ],
+   "durations": [
+    2960.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     2960.0
+    ]
+   ],
+   "elapsed": [
+    4247.363388072699
+   ],
+   "silences": [
+    960.0
+   ],
+   "source_hypothesis": "对到这个时候啊就打的就见就我当时也有点不你也还是有这种的",
+   "target_hypothesis": "By this time",
+   "transcription_reference": "找C罗，这打的坚决果断一点也还是有机会的。",
+   "translation_reference": "and pass to Ronaldo. They still stand a chance if they play with resolution.",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    12
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 3.92,
+    "concatenated_seconds": 2.96,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 23,
+   "read_next_events": 1,
+   "write_asr_events": 23,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 24,
+   "eos_reached": true,
+   "malformed_segments": 1,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 6.988995334133506,
+   "rtf": 1.769365907375571
+  },
+  {
+   "sample_id": "zh2en-10-art-s023",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7600,
+   "read_steps": 48,
+   "audio_blocks": 48,
+   "fragments": 1,
+   "semantic_tokens": 384,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-10-art-s023.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-10-art-s023.wav",
+   "placed_seconds": 15.04,
+   "concat_seconds": 7.68,
+   "delays": [
+    7360.0
+   ],
+   "durations": [
+    7680.0
+   ],
+   "intervals": [
+    [
+     7360.0,
+     7680.0
+    ]
+   ],
+   "elapsed": [
+    15844.575994182378
+   ],
+   "silences": [
+    7360.0
+   ],
+   "source_hypothesis": "不知道这个厂当中有呼是死的呢是体他常常穿为一种的他穿墨的对对象他他他似乎会呼呼是是呃非非常的的很不中的叫对吧",
+   "target_hypothesis": "He doesn't know if there is a call for death in this factory it's often worn as a type of object he wears ink and it seems to be very disrespectful to him",
+   "transcription_reference": "不过呢，这个常常被忽视。所以呢，身体常常成为一种沉默的对象。它似乎，呃，非常的不重要，对吧？",
+   "translation_reference": "However, it is often overlooked. So the body often becomes a silent object. It seems very unimportant, right?",
+   "terminator_rate": 0.0,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    154
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 15.04,
+    "concatenated_seconds": 7.68,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 48,
+   "read_next_events": 0,
+   "write_asr_events": 47,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": null,
+   "eos_reached": false,
+   "malformed_segments": 2,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 16.168537720106542,
+   "rtf": 2.1274391736982294
+  },
+  {
+   "sample_id": "zh2en-10-art-s047",
+   "arm": "m3_k1_m2000",
+   "read_stride": 1,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 6280,
+   "read_steps": 40,
+   "audio_blocks": 40,
+   "fragments": 1,
+   "semantic_tokens": 143,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_placed/zh2en-10-art-s047.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/rollout/m3_k1_m2000/translation_concat/zh2en-10-art-s047.wav",
+   "placed_seconds": 9.14,
+   "concat_seconds": 2.86,
+   "delays": [
+    6280.0
+   ],
+   "durations": [
+    2860.0
+   ],
+   "intervals": [
+    [
+     6280.0,
+     2860.0
+    ]
+   ],
+   "elapsed": [
+    9489.319782238454
+   ],
+   "silences": [
+    6280.0
+   ],
+   "source_hypothesis": "这个时候我在会也是我我现在对这种对对这种东西这种它我最的一个说为了同一的这种火换觉得它会会断链",
+   "target_hypothesis": "At this point I also feel that for the same kind of thing I would most",
+   "transcription_reference": "这个时候才会出现这种，对，这种，这种才有这个所谓的统一的，这种幻觉才会断裂。",
+   "translation_reference": "Only at this time will this kind of so-called unified illusion break.",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    70
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 9.14,
+    "concatenated_seconds": 2.86,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 39,
+   "read_next_events": 0,
+   "write_asr_events": 39,
+   "write_mt_events": 1,
+   "write_semantic_events": 1,
+   "eos_event_index": 39,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "pace_margin_ms": 2000.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 9.537453477270901,
+   "rtf": 1.5187027830049205
+  }
+ ]
+}

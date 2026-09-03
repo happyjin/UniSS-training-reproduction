@@ -1,0 +1,51 @@
+{
+ "groups": {
+  "realsi_m3_k1_concat:cmn->eng": {
+   "bleu": 1.0083113032512079,
+   "brevity_penalty": 0.6488339843647168,
+   "chrf": 6.359338153044329,
+   "empty_hypotheses": 3,
+   "ref_len": 8223,
+   "samples": 431,
+   "sys_len": 5740,
+   "tokenize": "13a",
+   "tokenizer": "13a"
+  },
+  "realsi_m3_k1_concat:eng->cmn": {
+   "bleu": 1.536623828194282,
+   "brevity_penalty": 0.39076683822147823,
+   "chrf": 3.180888692589033,
+   "empty_hypotheses": 9,
+   "ref_len": 9159,
+   "samples": 264,
+   "sys_len": 4722,
+   "tokenize": "zh",
+   "tokenizer": "zh"
+  },
+  "realsi_m3_k1_placed:cmn->eng": {
+   "bleu": 0.5781366659070082,
+   "brevity_penalty": 1.0,
+   "chrf": 5.857475166978163,
+   "empty_hypotheses": 17,
+   "ref_len": 8223,
+   "samples": 431,
+   "sys_len": 13893,
+   "tokenize": "13a",
+   "tokenizer": "13a"
+  },
+  "realsi_m3_k1_placed:eng->cmn": {
+   "bleu": 1.4065317587923336,
+   "brevity_penalty": 0.4376200039339857,
+   "chrf": 2.9052928278279286,
+   "empty_hypotheses": 2,
+   "ref_len": 11510,
+   "samples": 346,
+   "sys_len": 6302,
+   "tokenize": "zh",
+   "tokenizer": "zh"
+  }
+ },
+ "missing_reference_rows": 0,
+ "protocol": "raw_sacrebleu_no_normalization",
+ "sacrebleu": "2.5.1"
+}

@@ -172,6 +172,128 @@
    "zh2en": "word"
   },
   "simuleval_scorer_sha256": "2fbb749de96a0d361e673ce1b2c476dfc5f19a25c9a082bb71bed33e37d5e1fa",
-  "ap_not_usable": "SimulEval AP assumes len(delays) and reference_length share units; our delays are per speech chunk (5.5-5.9) against a reference length in chars/words (tens), so AP lands at 0.04-0.25 rather than anywhere meaningful. AL/LAAL/DAL are unaffected."
+  "ap_not_usable": "SimulEval AP assumes len(delays) and reference_length share units; our delays are per speech chunk (5.5-5.9) against a reference length in chars/words (tens), so AP lands at 0.04-0.25 rather than anywhere meaningful. AL/LAAL/DAL are unaffected.",
+  "first_audible_definitions": "Two distinct quantities, both reported and not to be mixed: StartOffset is the first fragment's emission time (the internal reports' 首次发音 / first_emission_ms; it equals delays[0] because the first fragment never queues), while 真实可听起始 is audio_quality.leading_silence_ms -- the first voiced frame of the placed audio, energy-based.  For C at k1 they are 2544/2573 ms and 4720/4720 ms respectively."
+ },
+ "m3_control": {
+  "why": "m3's published latency was measured on trajectory.events, the gold event list.  Over 3000 gold trajectories / 42108 events the gold events are a median 0.429 of the available 160 ms read points (p10 0.327, p90 0.562), 15.8% admit no new audio, and their boundaries are the gold word boundaries -- oracle segmentation.  run_event reads only source_glm_start/end, source_end_ms and source_final, so the policy is genuinely free-running; it is the read schedule that is gold.",
+  "shared_with_c": [
+   "777 frozen RealSI segments",
+   "160 ms read grid",
+   "WhisperVQ frontend and its GLM embedding math",
+   "streaming BiCodec decoder",
+   "emission-timeline placement",
+   "SimulEval scorers",
+   "ASR-BLEU chain"
+  ],
+  "differs": "weights, and the runtime those weights were trained for",
+  "m3_config": "its own gate: pace margin 1200 ms, tail 2000 ms, cap 384, 4 fragments, 48 text tokens",
+  "en2zh": {
+   "m3": {
+    "laal": 4364,
+    "laal_ca": 8416,
+    "start_offset": 2818,
+    "start_offset_ca": 6620,
+    "audible_onset": 5470,
+    "audible": "268/346",
+    "terminator": 0.5,
+    "eos_rate": 0.558,
+    "asr_bleu": 1.73,
+    "asr_bleu_raw": 1.41,
+    "silent_samples": 68,
+    "chunks": 4.7
+   },
+   "m3_margin2000": {
+    "asr_bleu": 1.84,
+    "start_offset": 2818,
+    "audible": "268/346",
+    "laal": 4334
+   },
+   "c": {
+    "laal": 4437,
+    "laal_ca": 5598,
+    "start_offset": 2544,
+    "start_offset_ca": 3343,
+    "audible_onset": 4720,
+    "audible": "346/346",
+    "terminator": 1.0,
+    "asr_bleu": 14.66,
+    "chunks": 5.9
+   }
+  },
+  "zh2en": {
+   "m3": {
+    "laal": 3615,
+    "laal_ca": 8282,
+    "start_offset": 2999,
+    "start_offset_ca": 7228,
+    "audible_onset": 5760,
+    "audible": "317/431",
+    "terminator": 0.0,
+    "eos_rate": 0.529,
+    "asr_bleu": 0.8,
+    "asr_bleu_raw": 0.58,
+    "silent_samples": 102,
+    "chunks": 4.1
+   },
+   "m3_margin2000": {
+    "asr_bleu": 0.83,
+    "start_offset": 2999,
+    "audible": "317/431",
+    "laal": 3605
+   },
+   "c": {
+    "laal": 3681,
+    "laal_ca": 4684,
+    "start_offset": 2573,
+    "start_offset_ca": 3148,
+    "audible_onset": 4720,
+    "audible": "431/431",
+    "terminator": 1.0,
+    "asr_bleu": 10.37,
+    "chunks": 5.5
+   }
+  },
+  "pacer_ruled_out": "margin 1200 -> 2000 moves ASR-BLEU by 0.11 / 0.03, leaves first-audible identical to the millisecond and the audible count unchanged; the first fragment's median 127/164 tokens sits under its 200-token budget, so onset was never pace-limited.",
+  "low_internal_silence_is_an_artifact": "m3 emits a median 2 fragments against C's 5, its first fragment is a median 127/164 tokens (2.5-3.3 s of speech in one dump), and the internal-silence median counts only voiced files -- so m3's 22-26% fully silent samples never enter it.  Fewer, larger, later blobs, not smoother streaming.",
+  "layered": {
+   "m3_source_asr": {
+    "en_wer": 1.442,
+    "zh_cer": 0.842
+   },
+   "c_source_asr": {
+    "en_wer": 0.421,
+    "zh_cer": 0.804
+   },
+   "m3_mt_text_bleu": {
+    "en2zh": 3.01,
+    "zh2en": 1.75
+   },
+   "c_mt_text_bleu": {
+    "en2zh": 17.65,
+    "zh2en": 11.44
+   },
+   "m3_empty_mt": {
+    "en2zh": "68/346",
+    "zh2en": "100/431"
+   },
+   "c_empty_mt": {
+    "en2zh": "0/346",
+    "zh2en": "0/431"
+   }
+  }
+ },
+ "c_source_asr_by_read_step": {
+  "note": "The mechanism behind the asymmetric quality-latency cost in section 6: C's Chinese source ASR collapses at a fine read step while English barely moves.  Same punctuation-stripped code across all three arms.",
+  "en_wer": {
+   "offline": 0.363,
+   "k25": 0.39,
+   "k1": 0.421
+  },
+  "zh_cer": {
+   "offline": 0.25,
+   "k25": 0.264,
+   "k1": 0.804
+  }
  }
 }
