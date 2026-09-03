@@ -35,6 +35,10 @@ from experiments.uniss_phasea_stateful_longepisode_rl_v1.runtime.commit import (
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.checkpoint_runtime import (  # noqa: E501
     run_cached_frontend,
 )
+from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.length_prior import (
+    LengthPrior,
+    terminator_bias,
+)
 from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.switch_rule import (
     TASK_ASR,
     TASK_DONE,
@@ -99,8 +103,12 @@ def _greedy(
     allowed: torch.Tensor | None,
     penalty: float,
     recent: Sequence[int],
+    terminator: int | None = None,
+    terminator_bias: float = 0.0,
 ) -> int:
     values = logits.reshape(-1).float().clone()
+    if terminator is not None and terminator_bias:
+        values[terminator] = values[terminator] + float(terminator_bias)
     if penalty > 1.0 and recent:
         index = torch.tensor(list(dict.fromkeys(recent)), device=values.device)
         picked = values.index_select(0, index)
@@ -125,6 +133,7 @@ def _generate(
     first_allowed: torch.Tensor | None = None,
     penalty: float = 1.0,
     penalty_window: int = 0,
+    terminator_bias_fn: Callable[[int], float] | None = None,
 ) -> tuple[list[int], bool]:
     """Greedy generation from prompt embeddings, stopping at ``terminator``.
 
@@ -149,6 +158,12 @@ def _generate(
             allowed=step_allowed,
             penalty=penalty,
             recent=recent,
+            terminator=terminator,
+            terminator_bias=(
+                terminator_bias_fn(len(produced))
+                if terminator_bias_fn is not None
+                else 0.0
+            ),
         )
         if token == terminator:
             return produced, True
@@ -189,8 +204,14 @@ class P2STCascadeSession:
         semantic_penalty_window: int = 64,
         tts_text_scope: str = "delta",
         pace: bool = True,
-        pace_margin_ms: float = 1200.0,
+        # 2000 rather than 1200: with the length prior in place the binding
+        # constraint is that the cascade speaks too *little* -- long audio ran
+        # at 0.539x the source and was 50.1% silent -- so the pace budget
+        # should not also be pressing down on it.
+        pace_margin_ms: float = 2000.0,
         pace_tail_ms: float = 2000.0,
+        length_prior: object | None = None,
+        length_prior_scale: float = 1.0,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -221,6 +242,17 @@ class P2STCascadeSession:
         self.pace_margin_ms = float(pace_margin_ms)
         self.pace_tail_ms = float(pace_tail_ms)
         self.pace_budgets: list[dict[str, float]] = []
+        # ``log P(N <= n | text length)`` added to the END_SEMANTIC logit.  See
+        # runtime/length_prior.py for why the CDF and not the hazard, and why
+        # this is not the shape of the delta bias that failed to calibrate.
+        if length_prior is None and length_prior_scale:
+            try:
+                length_prior = LengthPrior.load()
+            except (OSError, ValueError, KeyError):
+                length_prior = None
+        self.length_prior = length_prior
+        self.length_prior_scale = float(length_prior_scale)
+        self.length_prior_traces: list[dict[str, float]] = []
         self.semantic_penalty = float(semantic_penalty)
         self.semantic_penalty_window = int(semantic_penalty_window)
         if tts_text_scope not in ("delta", "prefix"):
@@ -407,11 +439,23 @@ class P2STCascadeSession:
                                 "budget": float(budget),
                             }
                         )
+                    fragment_text = self.tokenizer.decode(
+                        list(target_committed_tokens)
+                        if self.tts_text_scope == "delta"
+                        else list(self.target_committer.committed)
+                    )
+                    bias_fn = terminator_bias(
+                        self.length_prior,
+                        text_length=len(fragment_text.strip()),
+                        language=self.tgt_lang,
+                        scale=self.length_prior_scale,
+                    )
                     produced, ended = _generate(
                         self.model,
                         self._tts_prompt(target_committed_tokens),
                         terminator=c.TOKEN_END_SEMANTIC,
                         max_tokens=budget,
+                        terminator_bias_fn=bias_fn,
                         allowed=self._semantic_allowed,
                         first_allowed=self._semantic_first,
                         penalty=self.semantic_penalty,

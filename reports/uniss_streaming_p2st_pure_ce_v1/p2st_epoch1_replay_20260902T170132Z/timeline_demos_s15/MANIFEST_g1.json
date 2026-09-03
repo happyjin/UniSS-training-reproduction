@@ -1,0 +1,78 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0005215832",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/timeline_demos_s15/audio/emilia_zh_0005215832__p2st__stereo.wav",
+   "source_duration_ms": 3280,
+   "blocks": 21,
+   "fragments": 3,
+   "semantic_tokens": 158,
+   "first_audible_ms": 2880.0,
+   "last_audible_ms": 6040.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "过去的已经过去了他看好他以后的发展",
+   "target_hypothesis": "The past has already passed and he hopes for his future development",
+   "transcription_reference": "过去的已经过去了，他看好他以后的发展。",
+   "translation_reference": "The past is in the past, he is optimistic about his future development.",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 6.04,
+    "concatenated_seconds": 3.16,
+    "queueing_delay_ms_mean": 373.3333333333333,
+    "queueing_delay_ms_max": 760.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 17.0,
+     "source_end_ms": 2880.0,
+     "already_emitted": 0.0,
+     "budget": 244.0
+    },
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 26.0,
+     "budget": 226.0
+    },
+    {
+     "block_index": 20.0,
+     "source_end_ms": 3280.0,
+     "already_emitted": 58.0,
+     "budget": 306.0
+    }
+   ],
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 17,
+     "source_end_ms": 2880,
+     "placed_start_ms": 2880.0,
+     "placed_end_ms": 3400.0,
+     "semantic_tokens": 26,
+     "text": "The"
+    },
+    {
+     "fragment": 1,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3400.0,
+     "placed_end_ms": 4040.0,
+     "semantic_tokens": 32,
+     "text": "The past has"
+    },
+    {
+     "fragment": 2,
+     "block_index": 20,
+     "source_end_ms": 3280,
+     "placed_start_ms": 4040.0,
+     "placed_end_ms": 6040.0,
+     "semantic_tokens": 100,
+     "text": "The past has already passed and he hopes for his future development"
+    }
+   ]
+  }
+ ]
+}

@@ -102,7 +102,8 @@ def main() -> None:
     parser.add_argument("--label", default="p2st")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--no-pace", action="store_true")
-    parser.add_argument("--pace-margin-ms", type=float, default=1200.0)
+    parser.add_argument("--pace-margin-ms", type=float, default=2000.0)
+    parser.add_argument("--length-prior-scale", type=float, default=1.0)
     parser.add_argument("--pace-tail-ms", type=float, default=2000.0)
     args = parser.parse_args()
 
@@ -170,6 +171,7 @@ def main() -> None:
             pace=not args.no_pace,
             pace_margin_ms=args.pace_margin_ms,
             pace_tail_ms=args.pace_tail_ms,
+            length_prior_scale=args.length_prior_scale,
         )
         trace = session.run(waveform, max_blocks=blocks)
         speech = [f for f in trace.fragments if f.semantic]

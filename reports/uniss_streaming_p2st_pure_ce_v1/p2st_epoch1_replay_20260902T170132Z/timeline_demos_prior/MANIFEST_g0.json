@@ -1,0 +1,78 @@
+{
+ "label": "p2st",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0004122419",
+   "direction": "cmn->eng",
+   "audio": "reports/uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/timeline_demos_prior/audio/emilia_zh_0004122419__p2st__stereo.wav",
+   "source_duration_ms": 4120,
+   "blocks": 26,
+   "fragments": 3,
+   "semantic_tokens": 141,
+   "first_audible_ms": 3040.0,
+   "last_audible_ms": 6060.0,
+   "terminator_rate": 1.0,
+   "source_hypothesis": "他们普遍感觉到某种新的因素正在诞生",
+   "target_hypothesis": "They generally feel that a new factor is emerging",
+   "transcription_reference": "他们普遍感觉到某种新的因素正在诞生。",
+   "translation_reference": "They generally feel that some new factor is being born.",
+   "placement": {
+    "fragments": 3,
+    "placed_seconds": 6.06,
+    "concatenated_seconds": 2.82,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "pace_budgets": [
+    {
+     "block_index": 18.0,
+     "source_end_ms": 3040.0,
+     "already_emitted": 0.0,
+     "budget": 252.0
+    },
+    {
+     "block_index": 21.0,
+     "source_end_ms": 3520.0,
+     "already_emitted": 20.0,
+     "budget": 256.0
+    },
+    {
+     "block_index": 25.0,
+     "source_end_ms": 4120.0,
+     "already_emitted": 44.0,
+     "budget": 362.0
+    }
+   ],
+   "timeline": [
+    {
+     "fragment": 0,
+     "block_index": 18,
+     "source_end_ms": 3040,
+     "placed_start_ms": 3040.0,
+     "placed_end_ms": 3440.0,
+     "semantic_tokens": 20,
+     "text": "They"
+    },
+    {
+     "fragment": 1,
+     "block_index": 21,
+     "source_end_ms": 3520,
+     "placed_start_ms": 3520.0,
+     "placed_end_ms": 4000.0,
+     "semantic_tokens": 24,
+     "text": "They generally"
+    },
+    {
+     "fragment": 2,
+     "block_index": 25,
+     "source_end_ms": 4120,
+     "placed_start_ms": 4120.0,
+     "placed_end_ms": 6060.0,
+     "semantic_tokens": 97,
+     "text": "They generally feel that a new factor is emerging"
+    }
+   ]
+  }
+ ]
+}
