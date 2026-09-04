@@ -1,0 +1,214 @@
+{
+ "arm": "m3_k6",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0003929091",
+   "arm": "m3_k6",
+   "read_stride": 6,
+   "read_schedule": "uniform",
+   "read_step_ms": 960,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16780,
+   "read_steps": 18,
+   "audio_blocks": 105,
+   "fragments": 16,
+   "semantic_tokens": 902,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_placed/emilia_zh_0003929091.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_concat/emilia_zh_0003929091.wav",
+   "placed_seconds": 20.44,
+   "concat_seconds": 18.04,
+   "delays": [
+    960.0,
+    1920.0,
+    2880.0,
+    3840.0,
+    4800.0,
+    5760.0,
+    6720.0,
+    7680.0,
+    8640.0,
+    9600.0,
+    12480.0,
+    13440.0,
+    14400.0,
+    15360.0,
+    16320.0,
+    16780.0
+   ],
+   "durations": [
+    800.0,
+    1140.0,
+    80.0,
+    540.0,
+    1400.0,
+    920.0,
+    2080.0,
+    1300.0,
+    840.0,
+    980.0,
+    2600.0,
+    1960.0,
+    580.0,
+    1080.0,
+    1220.0,
+    520.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     800.0
+    ],
+    [
+     1920.0,
+     1140.0
+    ],
+    [
+     3060.0,
+     80.0
+    ],
+    [
+     3840.0,
+     540.0
+    ],
+    [
+     4800.0,
+     1400.0
+    ],
+    [
+     6200.0,
+     920.0
+    ],
+    [
+     7120.0,
+     2080.0
+    ],
+    [
+     9200.0,
+     1300.0
+    ],
+    [
+     10500.0,
+     840.0
+    ],
+    [
+     11340.0,
+     980.0
+    ],
+    [
+     12480.0,
+     2600.0
+    ],
+    [
+     15080.0,
+     1960.0
+    ],
+    [
+     17040.0,
+     580.0
+    ],
+    [
+     17620.0,
+     1080.0
+    ],
+    [
+     18700.0,
+     1220.0
+    ],
+    [
+     19920.0,
+     520.0
+    ]
+   ],
+   "elapsed": [
+    3956.8487657234073,
+    6406.095826998353,
+    6905.37224477157,
+    8115.894002839923,
+    11137.822133023292,
+    13085.907137952745,
+    17938.668061047792,
+    20920.816127676517,
+    22912.71963296458,
+    25082.209452055395,
+    31154.017589986324,
+    35060.949929989874,
+    36200.5478348583,
+    38701.66938472539,
+    41013.36323283613,
+    42127.665736712515
+   ],
+   "silences": [
+    960.0,
+    160.0,
+    0.0,
+    700.0,
+    420.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    160.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "甚至当我们这种方式去论定人的手我们是一种近指的态度来看待每个人看待生活这本身需要你去好好琢磨一下如果生活真的是认定这个是对的人一切就会发生世界变得太简单了到过来讲",
+   "target_hypothesis": "Even when we think about it this way we are a kind of approach towards certainty to view everyone and view life from a certain perspective This itself requires you to think about it carefully If life is truly about the right person everything will take place and the world becomes too simple to explain",
+   "transcription_reference": "甚至当我们以这种方式去论定人的时候我们就是一种静止的态度来看待每个人看待生活这本身是需要你去好好琢磨一下的如果生活真的是认定这个是对的人一切就会以对的方式发生那世界就变得太简单了倒过来讲",
+   "translation_reference": "Even when we judge people in this way we adopt a static attitude towards each person and towards life This is something you need to seriously consider If life really were to confirm that this is the right person everything would happen in the right way then the world would be too simple Conversely",
+   "terminator_rate": 0.875,
+   "capped_stages": 2,
+   "mt_delta_chars": [
+    12,
+    24,
+    3,
+    14,
+    27,
+    17,
+    41,
+    12,
+    16,
+    25,
+    40,
+    16,
+    11,
+    26,
+    7,
+    11
+   ],
+   "mt_delta_chars_over_prior_bucket": 5,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 16,
+    "placed_seconds": 20.44,
+    "concatenated_seconds": 18.04,
+    "queueing_delay_ms_mean": 1137.5,
+    "queueing_delay_ms_max": 3140.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 18,
+   "write_mt_events": 16,
+   "write_semantic_events": 16,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 2,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 43.371793574653566,
+   "rtf": 2.5847314406825723
+  }
+ ]
+}

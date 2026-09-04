@@ -1,0 +1,142 @@
+{
+ "arm": "m3_k12",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "m3_k12",
+   "read_stride": 12,
+   "read_schedule": "uniform",
+   "read_step_ms": 1920,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 9,
+   "audio_blocks": 106,
+   "fragments": 8,
+   "semantic_tokens": 546,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 17.44,
+   "concat_seconds": 10.92,
+   "delays": [
+    1920.0,
+    3840.0,
+    5760.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    15360.0,
+    16840.0
+   ],
+   "durations": [
+    1100.0,
+    1920.0,
+    1780.0,
+    2420.0,
+    180.0,
+    1440.0,
+    1820.0,
+    260.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     1100.0
+    ],
+    [
+     3840.0,
+     1920.0
+    ],
+    [
+     5760.0,
+     1780.0
+    ],
+    [
+     7680.0,
+     2420.0
+    ],
+    [
+     10100.0,
+     180.0
+    ],
+    [
+     11520.0,
+     1440.0
+    ],
+    [
+     15360.0,
+     1820.0
+    ],
+    [
+     17180.0,
+     260.0
+    ]
+   ],
+   "elapsed": [
+    5177.709148731083,
+    10071.330908685923,
+    14830.996396951377,
+    21389.232243876904,
+    22216.59568697214,
+    26030.114029999822,
+    31102.140594739467,
+    31999.192335642874
+   ],
+   "silences": [
+    1920.0,
+    820.0,
+    0.0,
+    140.0,
+    0.0,
+    1240.0,
+    2400.0,
+    0.0
+   ],
+   "source_hypothesis": "There is one other phenomenon which this alleged fact that phenomena exist to some extent we seem to find a special proclivity to him as such whether or not an involvement congentflingence isn't usually clear",
+   "target_hypothesis": "还有一种现象可能提到这种现象这种所谓的事实是所谓的现象在某种程度上确实存在我们似乎在某种程度上找到了对他这种特殊倾向是否涉及先天的共通性通常并不明确",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    6,
+    10,
+    9,
+    12,
+    13,
+    8,
+    10,
+    6
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 17.44,
+    "concatenated_seconds": 10.92,
+    "queueing_delay_ms_mean": 105.0,
+    "queueing_delay_ms_max": 500.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 0,
+   "write_asr_events": 9,
+   "write_mt_events": 8,
+   "write_semantic_events": 8,
+   "eos_event_index": 8,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 33.01609042380005,
+   "rtf": 1.9605754408432334
+  }
+ ]
+}

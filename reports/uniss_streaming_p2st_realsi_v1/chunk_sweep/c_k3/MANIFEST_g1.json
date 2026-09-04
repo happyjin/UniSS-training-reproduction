@@ -1,0 +1,212 @@
+{
+ "arm": "c_k3",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000104521",
+   "arm": "c_k3",
+   "read_stride": 3,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 480,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16880,
+   "read_steps": 36,
+   "audio_blocks": 106,
+   "fragments": 17,
+   "semantic_tokens": 941,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k3/translation_placed/LibriSpeech_0000104521.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k3/translation_concat/LibriSpeech_0000104521.wav",
+   "placed_seconds": 24.58,
+   "concat_seconds": 18.82,
+   "delays": [
+    1920.0,
+    2400.0,
+    6720.0,
+    7200.0,
+    7680.0,
+    8160.0,
+    9120.0,
+    9600.0,
+    10080.0,
+    11040.0,
+    12960.0,
+    13440.0,
+    13920.0,
+    15840.0,
+    16320.0,
+    16800.0,
+    16880.0
+   ],
+   "durations": [
+    600.0,
+    360.0,
+    860.0,
+    2360.0,
+    180.0,
+    440.0,
+    520.0,
+    1120.0,
+    2700.0,
+    680.0,
+    380.0,
+    2460.0,
+    600.0,
+    1880.0,
+    1020.0,
+    1360.0,
+    1300.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     600.0
+    ],
+    [
+     2520.0,
+     360.0
+    ],
+    [
+     6720.0,
+     860.0
+    ],
+    [
+     7580.0,
+     2360.0
+    ],
+    [
+     9940.0,
+     180.0
+    ],
+    [
+     10120.0,
+     440.0
+    ],
+    [
+     10560.0,
+     520.0
+    ],
+    [
+     11080.0,
+     1120.0
+    ],
+    [
+     12200.0,
+     2700.0
+    ],
+    [
+     14900.0,
+     680.0
+    ],
+    [
+     15580.0,
+     380.0
+    ],
+    [
+     15960.0,
+     2460.0
+    ],
+    [
+     18420.0,
+     600.0
+    ],
+    [
+     19020.0,
+     1880.0
+    ],
+    [
+     20900.0,
+     1020.0
+    ],
+    [
+     21920.0,
+     1360.0
+    ],
+    [
+     23280.0,
+     1300.0
+    ]
+   ],
+   "elapsed": [
+    7235.339672770351,
+    7833.564582746476,
+    10086.253533139825,
+    13038.583045825362,
+    13493.394108023494,
+    14119.067294988781,
+    15246.11429311335,
+    16848.74013904482,
+    20087.63874368742,
+    21230.44471303001,
+    22250.908591784537,
+    25157.00156893581,
+    25995.152169838548,
+    28923.454484902322,
+    30362.37278673798,
+    32110.954589676112,
+    33728.574031963944
+   ],
+   "silences": [
+    1920.0,
+    0.0,
+    3840.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "Until they drew up beside the palace steps an aged winky dressed in a uniform of silver cloth came forward to assist them to alight Said the scarecrow to his personage show us at once to your master the emperor",
+   "target_hypothesis": "直到他们走到宫殿台阶旁一位年迈的穿着银色布料制服的老妇人走了过来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝",
+   "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+   "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    4,
+    7,
+    1,
+    2,
+    2,
+    4,
+    8,
+    2,
+    2,
+    5,
+    1,
+    5,
+    5,
+    6,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 17,
+    "placed_seconds": 24.58,
+    "concatenated_seconds": 18.82,
+    "queueing_delay_ms_mean": 2502.3529411764707,
+    "queueing_delay_ms_max": 6400.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 33.73481008084491,
+   "rtf": 1.9985077062111913
+  }
+ ]
+}

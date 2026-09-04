@@ -1,0 +1,151 @@
+{
+ "arm": "m3_k12",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0003980934",
+   "arm": "m3_k12",
+   "read_stride": 12,
+   "read_schedule": "uniform",
+   "read_step_ms": 1920,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 17540,
+   "read_steps": 10,
+   "audio_blocks": 110,
+   "fragments": 9,
+   "semantic_tokens": 358,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_placed/emilia_zh_0003980934.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_concat/emilia_zh_0003980934.wav",
+   "placed_seconds": 17.54,
+   "concat_seconds": 7.16,
+   "delays": [
+    1920.0,
+    3840.0,
+    5760.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    13440.0,
+    15360.0,
+    17280.0
+   ],
+   "durations": [
+    1600.0,
+    560.0,
+    1340.0,
+    1100.0,
+    460.0,
+    120.0,
+    580.0,
+    1320.0,
+    80.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     1600.0
+    ],
+    [
+     3840.0,
+     560.0
+    ],
+    [
+     5760.0,
+     1340.0
+    ],
+    [
+     7680.0,
+     1100.0
+    ],
+    [
+     9600.0,
+     460.0
+    ],
+    [
+     11520.0,
+     120.0
+    ],
+    [
+     13440.0,
+     580.0
+    ],
+    [
+     15360.0,
+     1320.0
+    ],
+    [
+     17280.0,
+     80.0
+    ]
+   ],
+   "elapsed": [
+    5986.831379123032,
+    7157.914834097028,
+    10168.30629017204,
+    12894.856221042573,
+    14055.529734119773,
+    14658.794859889895,
+    16080.732822883874,
+    19065.803125035018,
+    19586.56696602702
+   ],
+   "silences": [
+    1920.0,
+    320.0,
+    1360.0,
+    580.0,
+    820.0,
+    1460.0,
+    1800.0,
+    1340.0,
+    600.0
+   ],
+   "source_hypothesis": "伴随着大模型合成这种重新开始这样未来的发展方向呢我就会有这样的一个变化就是现在的所有这些公司所有的创业公司都会尽善尽美做获得管理公司整治疗管理",
+   "target_hypothesis": "With the synthesis of large models recovering the future direction of development I think there will be such a change Now all these companies will do their best to get the management company to do treatment management",
+   "transcription_reference": "但是随着大模型和人工智能的发展呢从现在开始在未来的发展的方向呢我觉得会有这样的一个变化就是现在呢所有的制药公司所有的创业公司包括医疗器械用大模型做的患者管理公司诊断治疗管理",
+   "translation_reference": "However with the development of large models and artificial intelligence from now on I believe there will be such a change in the direction of future development That is all pharmaceutical companies all startups including medical device companies will use large models for patient management company diagnosis and treatment management",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    34,
+    11,
+    38,
+    34,
+    24,
+    5,
+    17,
+    33,
+    21
+   ],
+   "mt_delta_chars_over_prior_bucket": 4,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 17.36,
+    "concatenated_seconds": 7.16,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 9,
+   "read_next_events": 0,
+   "write_asr_events": 9,
+   "write_mt_events": 9,
+   "write_semantic_events": 9,
+   "eos_event_index": 9,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 20.69591019814834,
+   "rtf": 1.1799264651167811
+  }
+ ]
+}

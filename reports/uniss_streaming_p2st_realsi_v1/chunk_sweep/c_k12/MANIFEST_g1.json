@@ -1,0 +1,104 @@
+{
+ "arm": "c_k12",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000104521",
+   "arm": "c_k12",
+   "read_stride": 12,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 1920,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16880,
+   "read_steps": 9,
+   "audio_blocks": 106,
+   "fragments": 5,
+   "semantic_tokens": 848,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_placed/LibriSpeech_0000104521.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_concat/LibriSpeech_0000104521.wav",
+   "placed_seconds": 29.68,
+   "concat_seconds": 16.96,
+   "delays": [
+    5760.0,
+    9600.0,
+    11520.0,
+    15360.0,
+    16880.0
+   ],
+   "durations": [
+    1040.0,
+    800.0,
+    800.0,
+    6560.0,
+    7760.0
+   ],
+   "intervals": [
+    [
+     5760.0,
+     1040.0
+    ],
+    [
+     9600.0,
+     800.0
+    ],
+    [
+     11520.0,
+     800.0
+    ],
+    [
+     15360.0,
+     6560.0
+    ],
+    [
+     21920.0,
+     7760.0
+    ]
+   ],
+   "elapsed": [
+    5760.0,
+    9600.0,
+    11520.0,
+    16105.281006079167,
+    25418.943437281996
+   ],
+   "silences": [
+    5760.0,
+    2800.0,
+    1120.0,
+    3040.0,
+    0.0
+   ],
+   "source_hypothesis": "Until they drew up beside the palace steps an aged winky dressed in a uniform of silver cloth came forward to assist them to alight Said the scarecrow to his personage show us at once to your master the emperor",
+   "target_hypothesis": "直到他们走到宫殿台阶旁一位穿着银色布衣服的老妇人走上前来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝",
+   "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+   "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    4,
+    3,
+    21,
+    24
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 29.68,
+    "concatenated_seconds": 16.96,
+    "queueing_delay_ms_mean": 1008.0,
+    "queueing_delay_ms_max": 5040.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 25.42611939786002,
+   "rtf": 1.5062866941860202
+  }
+ ]
+}

@@ -1,0 +1,187 @@
+{
+ "arm": "m3_k6",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "m3_k6",
+   "read_stride": 6,
+   "read_schedule": "uniform",
+   "read_step_ms": 960,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 18,
+   "audio_blocks": 107,
+   "fragments": 13,
+   "semantic_tokens": 332,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 17.2,
+   "concat_seconds": 6.64,
+   "delays": [
+    1920.0,
+    2880.0,
+    3840.0,
+    4800.0,
+    5760.0,
+    6720.0,
+    7680.0,
+    9600.0,
+    10560.0,
+    13440.0,
+    15360.0,
+    16320.0,
+    17100.0
+   ],
+   "durations": [
+    480.0,
+    1460.0,
+    680.0,
+    340.0,
+    340.0,
+    540.0,
+    100.0,
+    700.0,
+    560.0,
+    340.0,
+    440.0,
+    560.0,
+    100.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     480.0
+    ],
+    [
+     2880.0,
+     1460.0
+    ],
+    [
+     4340.0,
+     680.0
+    ],
+    [
+     5020.0,
+     340.0
+    ],
+    [
+     5760.0,
+     340.0
+    ],
+    [
+     6720.0,
+     540.0
+    ],
+    [
+     7680.0,
+     100.0
+    ],
+    [
+     9600.0,
+     700.0
+    ],
+    [
+     10560.0,
+     560.0
+    ],
+    [
+     13440.0,
+     340.0
+    ],
+    [
+     15360.0,
+     440.0
+    ],
+    [
+     16320.0,
+     560.0
+    ],
+    [
+     17100.0,
+     100.0
+    ]
+   ],
+   "elapsed": [
+    3172.739615663886,
+    6824.578430969268,
+    8428.327289875597,
+    9072.437057737261,
+    9972.241876646876,
+    11159.827509894967,
+    11704.228912945837,
+    13737.751726061106,
+    15060.584567952901,
+    16344.899921678007,
+    17829.524122644216,
+    19117.091075051576,
+    19634.014386683702
+   ],
+   "silences": [
+    1920.0,
+    480.0,
+    0.0,
+    0.0,
+    400.0,
+    620.0,
+    420.0,
+    1820.0,
+    260.0,
+    2320.0,
+    1580.0,
+    520.0,
+    220.0
+   ],
+   "source_hypothesis": "As rapid as if the inlandlonger impeded him The hunters backed hesitant standing over six feet He saw bloodnife lying along the clock it was four that the mustanger was king",
+   "target_hypothesis": "仿佛内陆的陆地一样迅速阻碍了他前进猎人们退缩了了六英尺外犹豫不决他看到钟上躺着血刀是四只那只野马王",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    9,
+    4,
+    2,
+    3,
+    3,
+    1,
+    8,
+    3,
+    6,
+    3,
+    4,
+    1
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 13,
+    "placed_seconds": 17.2,
+    "concatenated_seconds": 6.64,
+    "queueing_delay_ms_mean": 55.38461538461539,
+    "queueing_delay_ms_max": 500.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 17,
+   "write_mt_events": 13,
+   "write_semantic_events": 13,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 20.77230771863833,
+   "rtf": 1.2147548373472707
+  }
+ ]
+}

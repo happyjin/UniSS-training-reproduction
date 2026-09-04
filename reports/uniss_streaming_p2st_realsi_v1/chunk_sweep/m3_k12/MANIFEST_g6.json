@@ -1,0 +1,160 @@
+{
+ "arm": "m3_k12",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0003980703",
+   "arm": "m3_k12",
+   "read_stride": 12,
+   "read_schedule": "uniform",
+   "read_step_ms": 1920,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 19380,
+   "read_steps": 11,
+   "audio_blocks": 122,
+   "fragments": 10,
+   "semantic_tokens": 562,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_placed/emilia_zh_0003980703.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_concat/emilia_zh_0003980703.wav",
+   "placed_seconds": 19.78,
+   "concat_seconds": 11.24,
+   "delays": [
+    1920.0,
+    3840.0,
+    5760.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    13440.0,
+    15360.0,
+    17280.0,
+    19200.0
+   ],
+   "durations": [
+    1300.0,
+    700.0,
+    1180.0,
+    820.0,
+    2160.0,
+    1420.0,
+    640.0,
+    1280.0,
+    1160.0,
+    580.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     1300.0
+    ],
+    [
+     3840.0,
+     700.0
+    ],
+    [
+     5760.0,
+     1180.0
+    ],
+    [
+     7680.0,
+     820.0
+    ],
+    [
+     9600.0,
+     2160.0
+    ],
+    [
+     11760.0,
+     1420.0
+    ],
+    [
+     13440.0,
+     640.0
+    ],
+    [
+     15360.0,
+     1280.0
+    ],
+    [
+     17280.0,
+     1160.0
+    ],
+    [
+     19200.0,
+     580.0
+    ]
+   ],
+   "elapsed": [
+    5221.144652925432,
+    6941.789325792342,
+    9549.408570863307,
+    11186.30364490673,
+    16134.486461989582,
+    19202.266003005207,
+    20780.917504802346,
+    23938.81018878892,
+    26644.73468903452,
+    28058.27684700489
+   ],
+   "silences": [
+    1920.0,
+    620.0,
+    1220.0,
+    740.0,
+    1100.0,
+    0.0,
+    260.0,
+    1280.0,
+    640.0,
+    760.0
+   ],
+   "source_hypothesis": "那在这个当中他的安全就是来满足这些需求的啊也就是一种转变的一种其实如果我们去看这个创意的时候因为我们也会有一些创意评分的一些那么这一个其实得分非常高的可能的也是个特别特别有创意的东西",
+   "target_hypothesis": "In this case his safety is to meet these needs which is a shift in standards In fact if we look at this idea because when we look at the creative we also have some creative scoring and this one actually has very high scores It might also be a particularly creative thing",
+   "transcription_reference": "那在这个当中它的安全就是来满足这些需求的啊也就是一种很标准的一种情境下的一个需求嗯所以如果我们去看这个创意的时候因为我们也会有一些创意评分的一些工具吧那么这一个其实是得分非常高的可能大家也觉得说哎这也不是一个特别那种特别有创意的东西哈",
+   "translation_reference": "In this context its security is meant to meet these needs which is a standard requirement in a typical scenario So when we look at this creativity we also have some tools for evaluating creativity This one actually scores very high Perhaps everyone also feels that well this isn't something particularly creative",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    26,
+    20,
+    30,
+    11,
+    58,
+    35,
+    22,
+    21,
+    32,
+    15
+   ],
+   "mt_delta_chars_over_prior_bucket": 5,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 19.78,
+    "concatenated_seconds": 11.24,
+    "queueing_delay_ms_mean": 24.0,
+    "queueing_delay_ms_max": 240.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 10,
+   "read_next_events": 0,
+   "write_asr_events": 10,
+   "write_mt_events": 10,
+   "write_semantic_events": 10,
+   "eos_event_index": 10,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 29.188591228798032,
+   "rtf": 1.506119258451911
+  }
+ ]
+}

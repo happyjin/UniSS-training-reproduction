@@ -1,0 +1,104 @@
+{
+ "arm": "c_k12",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "c_k12",
+   "read_stride": 12,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 1920,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 9,
+   "audio_blocks": 106,
+   "fragments": 5,
+   "semantic_tokens": 454,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 23.66,
+   "concat_seconds": 9.08,
+   "delays": [
+    5760.0,
+    7680.0,
+    9600.0,
+    13440.0,
+    16840.0
+   ],
+   "durations": [
+    960.0,
+    580.0,
+    160.0,
+    560.0,
+    6820.0
+   ],
+   "intervals": [
+    [
+     5760.0,
+     960.0
+    ],
+    [
+     7680.0,
+     580.0
+    ],
+    [
+     9600.0,
+     160.0
+    ],
+    [
+     13440.0,
+     560.0
+    ],
+    [
+     16840.0,
+     6820.0
+    ]
+   ],
+   "elapsed": [
+    5760.0,
+    7680.0,
+    9600.0,
+    13440.0,
+    17870.996532961726
+   ],
+   "silences": [
+    5760.0,
+    960.0,
+    1340.0,
+    3680.0,
+    2840.0
+   ],
+   "source_hypothesis": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find especial proclivity to hemis sexuality while the unorthodox and greater frequency of congenflinversion is not usually clear",
+   "target_hypothesis": "还有一种现象可以提到这被认为是尽管现象在某种程度上普遍存在但我们似乎特别倾向于半性性而非正统且更频繁的变性通常并不明显",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    6,
+    4,
+    1,
+    4,
+    44
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 23.66,
+    "concatenated_seconds": 9.08,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 17.876728393603116,
+   "rtf": 1.06156344380066
+  }
+ ]
+}

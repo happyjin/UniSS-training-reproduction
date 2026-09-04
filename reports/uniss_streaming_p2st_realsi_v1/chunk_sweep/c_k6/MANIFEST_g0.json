@@ -1,0 +1,158 @@
+{
+ "arm": "c_k6",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "c_k6",
+   "read_stride": 6,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 960,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 18,
+   "audio_blocks": 107,
+   "fragments": 11,
+   "semantic_tokens": 607,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 21.72,
+   "concat_seconds": 12.14,
+   "delays": [
+    3840.0,
+    4800.0,
+    6720.0,
+    7680.0,
+    8640.0,
+    9600.0,
+    10560.0,
+    11520.0,
+    12480.0,
+    13440.0,
+    17100.0
+   ],
+   "durations": [
+    500.0,
+    1320.0,
+    800.0,
+    180.0,
+    460.0,
+    560.0,
+    1460.0,
+    840.0,
+    640.0,
+    760.0,
+    4620.0
+   ],
+   "intervals": [
+    [
+     3840.0,
+     500.0
+    ],
+    [
+     4800.0,
+     1320.0
+    ],
+    [
+     6720.0,
+     800.0
+    ],
+    [
+     7680.0,
+     180.0
+    ],
+    [
+     8640.0,
+     460.0
+    ],
+    [
+     9600.0,
+     560.0
+    ],
+    [
+     10560.0,
+     1460.0
+    ],
+    [
+     12020.0,
+     840.0
+    ],
+    [
+     12860.0,
+     640.0
+    ],
+    [
+     13500.0,
+     760.0
+    ],
+    [
+     17100.0,
+     4620.0
+    ]
+   ],
+   "elapsed": [
+    3840.0,
+    5218.501047696918,
+    6720.0,
+    7680.0,
+    8640.0,
+    9600.0,
+    10560.0,
+    12020.0,
+    12914.116830565035,
+    14098.557688761503,
+    20642.528691794723
+   ],
+   "silences": [
+    3840.0,
+    460.0,
+    600.0,
+    160.0,
+    780.0,
+    500.0,
+    400.0,
+    0.0,
+    0.0,
+    0.0,
+    2840.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the clock It was for that The mustanger was making a",
+   "target_hypothesis": "仿佛受伤的肢体不再阻碍他猎人怀疑他的意图超过了六英尺他看到那把血淋淋的刀刃沿着时钟摆动正是为了这个",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    5,
+    4,
+    1,
+    2,
+    2,
+    4,
+    4,
+    3,
+    2,
+    20
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 11,
+    "placed_seconds": 21.72,
+    "concatenated_seconds": 12.14,
+    "queueing_delay_ms_mean": 85.45454545454545,
+    "queueing_delay_ms_max": 500.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 20.6493624728173,
+   "rtf": 1.2075650568899006
+  }
+ ]
+}

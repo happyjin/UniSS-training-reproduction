@@ -1,0 +1,122 @@
+{
+ "arm": "c_k12",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "c_k12",
+   "read_stride": 12,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 1920,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 9,
+   "audio_blocks": 107,
+   "fragments": 7,
+   "semantic_tokens": 500,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k12/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 18.98,
+   "concat_seconds": 10.0,
+   "delays": [
+    5760.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    13440.0,
+    15360.0,
+    17100.0
+   ],
+   "durations": [
+    500.0,
+    2460.0,
+    400.0,
+    1100.0,
+    2660.0,
+    1040.0,
+    1840.0
+   ],
+   "intervals": [
+    [
+     5760.0,
+     500.0
+    ],
+    [
+     7680.0,
+     2460.0
+    ],
+    [
+     10140.0,
+     400.0
+    ],
+    [
+     11520.0,
+     1100.0
+    ],
+    [
+     13440.0,
+     2660.0
+    ],
+    [
+     16100.0,
+     1040.0
+    ],
+    [
+     17140.0,
+     1840.0
+    ]
+   ],
+   "elapsed": [
+    5760.0,
+    7680.0,
+    10140.0,
+    11520.0,
+    13440.0,
+    16100.0,
+    17948.262732941657
+   ],
+   "silences": [
+    5760.0,
+    1420.0,
+    0.0,
+    980.0,
+    820.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the clock It was for that The mustanger was making a",
+   "target_hypothesis": "仿佛受伤的肢体不再阻碍他猎人怀疑他的意图超过了六英尺他看到那把血淋淋的刀刃沿着时钟摆动正是为了这个",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    9,
+    1,
+    4,
+    8,
+    5,
+    20
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 18.98,
+    "concatenated_seconds": 10.0,
+    "queueing_delay_ms_mean": 188.57142857142858,
+    "queueing_delay_ms_max": 740.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 17.954436329659075,
+   "rtf": 1.049967036822168
+  }
+ ]
+}

@@ -1,0 +1,133 @@
+{
+ "arm": "m3_k12",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0003927983",
+   "arm": "m3_k12",
+   "read_stride": 12,
+   "read_schedule": "uniform",
+   "read_step_ms": 1920,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16460,
+   "read_steps": 9,
+   "audio_blocks": 103,
+   "fragments": 7,
+   "semantic_tokens": 983,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_placed/emilia_zh_0003927983.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k12/translation_concat/emilia_zh_0003927983.wav",
+   "placed_seconds": 24.3,
+   "concat_seconds": 19.66,
+   "delays": [
+    1920.0,
+    5760.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    13440.0,
+    16460.0
+   ],
+   "durations": [
+    3120.0,
+    2400.0,
+    1620.0,
+    3660.0,
+    100.0,
+    920.0,
+    7840.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     3120.0
+    ],
+    [
+     5760.0,
+     2400.0
+    ],
+    [
+     8160.0,
+     1620.0
+    ],
+    [
+     9780.0,
+     3660.0
+    ],
+    [
+     13440.0,
+     100.0
+    ],
+    [
+     13540.0,
+     920.0
+    ],
+    [
+     16460.0,
+     7840.0
+    ]
+   ],
+   "elapsed": [
+    6865.969648119062,
+    12821.347375400364,
+    16766.576713416725,
+    22022.739462088794,
+    22635.646167211235,
+    24863.8315172866,
+    35920.55017128587
+   ],
+   "silences": [
+    1920.0,
+    720.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2000.0
+   ],
+   "source_hypothesis": "而我想提供一个小小的视角也许这些仅仅是同时发生的并不是互为应国关系就是你的性格的这些特点并一定是有与父母离异造成的",
+   "target_hypothesis": "And I want to provide a small perspective perhaps these just happen simultaneously are not mutually your characteristics and",
+   "transcription_reference": "但是我想提供一个小小的这个视角啊就也许这些仅仅是同时发生的并不是互为因果关系就是你的性格的这些特点并不一定是由于父母离异造成的",
+   "translation_reference": "But I want to offer a small perspective that perhaps these are merely coincidental and not causally related That is the characteristics of your personality may not necessarily be due to your parents' divorce",
+   "terminator_rate": 0.5714285714285714,
+   "capped_stages": 3,
+   "mt_delta_chars": [
+    23,
+    32,
+    27,
+    17,
+    5,
+    16,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 7,
+    "placed_seconds": 24.3,
+    "concatenated_seconds": 19.66,
+    "queueing_delay_ms_mean": 382.85714285714283,
+    "queueing_delay_ms_max": 1920.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 8,
+   "read_next_events": 0,
+   "write_asr_events": 9,
+   "write_mt_events": 7,
+   "write_semantic_events": 7,
+   "eos_event_index": 8,
+   "eos_reached": true,
+   "malformed_segments": 3,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 36.899425853043795,
+   "rtf": 2.2417634175603762
+  }
+ ]
+}

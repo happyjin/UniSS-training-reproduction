@@ -1,0 +1,149 @@
+{
+ "arm": "c_k6",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000104521",
+   "arm": "c_k6",
+   "read_stride": 6,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 960,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16880,
+   "read_steps": 18,
+   "audio_blocks": 106,
+   "fragments": 10,
+   "semantic_tokens": 613,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_placed/LibriSpeech_0000104521.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_concat/LibriSpeech_0000104521.wav",
+   "placed_seconds": 20.7,
+   "concat_seconds": 12.26,
+   "delays": [
+    2880.0,
+    3840.0,
+    7680.0,
+    8640.0,
+    9600.0,
+    10560.0,
+    11520.0,
+    13440.0,
+    16320.0,
+    16880.0
+   ],
+   "durations": [
+    600.0,
+    360.0,
+    860.0,
+    1600.0,
+    400.0,
+    700.0,
+    900.0,
+    2460.0,
+    1120.0,
+    3260.0
+   ],
+   "intervals": [
+    [
+     2880.0,
+     600.0
+    ],
+    [
+     3840.0,
+     360.0
+    ],
+    [
+     7680.0,
+     860.0
+    ],
+    [
+     8640.0,
+     1600.0
+    ],
+    [
+     10240.0,
+     400.0
+    ],
+    [
+     10640.0,
+     700.0
+    ],
+    [
+     11520.0,
+     900.0
+    ],
+    [
+     13440.0,
+     2460.0
+    ],
+    [
+     16320.0,
+     1120.0
+    ],
+    [
+     17440.0,
+     3260.0
+    ]
+   ],
+   "elapsed": [
+    3435.308509040624,
+    4072.779610287398,
+    7680.0,
+    8640.0,
+    10240.0,
+    10699.65049624443,
+    12156.274939421564,
+    15593.119575176388,
+    17843.242226168513,
+    21790.747222024947
+   ],
+   "silences": [
+    2880.0,
+    360.0,
+    3480.0,
+    100.0,
+    0.0,
+    0.0,
+    180.0,
+    1020.0,
+    420.0,
+    0.0
+   ],
+   "source_hypothesis": "Until they drew up beside the palace steps an aged winky dressed in a uniform of silver cloth came forward to assist them to alight Said the scarecrow to his personage show us at once to your master the emperor",
+   "target_hypothesis": "直到他们走到宫殿台阶旁一位穿着银色布衣服的老妇人走上前来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝",
+   "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+   "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    4,
+    5,
+    2,
+    3,
+    6,
+    8,
+    6,
+    18
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 20.7,
+    "concatenated_seconds": 12.26,
+    "queueing_delay_ms_mean": 128.0,
+    "queueing_delay_ms_max": 640.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 21.79759265296161,
+   "rtf": 1.2913265789669202
+  }
+ ]
+}

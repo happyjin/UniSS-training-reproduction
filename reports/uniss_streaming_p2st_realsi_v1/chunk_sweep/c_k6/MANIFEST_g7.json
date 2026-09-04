@@ -1,0 +1,113 @@
+{
+ "arm": "c_k6",
+ "samples": [
+  {
+   "sample_id": "emilia_zh_0003980934",
+   "arm": "c_k6",
+   "read_stride": 6,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 960,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 17540,
+   "read_steps": 19,
+   "audio_blocks": 110,
+   "fragments": 6,
+   "semantic_tokens": 537,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_placed/emilia_zh_0003980934.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_concat/emilia_zh_0003980934.wav",
+   "placed_seconds": 23.8,
+   "concat_seconds": 10.74,
+   "delays": [
+    2880.0,
+    5760.0,
+    7680.0,
+    8640.0,
+    17280.0,
+    17540.0
+   ],
+   "durations": [
+    480.0,
+    1760.0,
+    740.0,
+    1240.0,
+    3380.0,
+    3140.0
+   ],
+   "intervals": [
+    [
+     2880.0,
+     480.0
+    ],
+    [
+     5760.0,
+     1760.0
+    ],
+    [
+     7680.0,
+     740.0
+    ],
+    [
+     8640.0,
+     1240.0
+    ],
+    [
+     17280.0,
+     3380.0
+    ],
+    [
+     20660.0,
+     3140.0
+    ]
+   ],
+   "elapsed": [
+    3140.0631610304117,
+    5915.052135940641,
+    7680.0,
+    9176.585651934147,
+    17280.0,
+    20660.0
+   ],
+   "silences": [
+    2880.0,
+    2400.0,
+    160.0,
+    220.0,
+    7400.0,
+    0.0
+   ],
+   "source_hypothesis": "但是随着大模型合成这种发展呢首先开始在未来的发展的方向呢我觉得会有这样的一个变化就是现在的所有这些公司所有的创业公司都会医疗器械应用大模型做的换得管理公司诊断治疗管理",
+   "target_hypothesis": "But as the development of large models progresses I think there will be such changes in the direction of future development All companies and startups will use medical devices to replace large models for management",
+   "transcription_reference": "但是随着大模型和人工智能的发展呢从现在开始在未来的发展的方向呢我觉得会有这样的一个变化就是现在呢所有的制药公司所有的创业公司包括医疗器械用大模型做的患者管理公司诊断治疗管理",
+   "translation_reference": "However with the development of large models and artificial intelligence from now on I believe there will be such a change in the direction of future development That is all pharmaceutical companies all startups including medical device companies will use large models for patient management company diagnosis and treatment management",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    6,
+    32,
+    11,
+    27,
+    79,
+    59
+   ],
+   "mt_delta_chars_over_prior_bucket": 4,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 23.8,
+    "concatenated_seconds": 10.74,
+    "queueing_delay_ms_mean": 520.0,
+    "queueing_delay_ms_max": 3120.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 20.245455587748438,
+   "rtf": 1.1542449023801846
+  }
+ ]
+}

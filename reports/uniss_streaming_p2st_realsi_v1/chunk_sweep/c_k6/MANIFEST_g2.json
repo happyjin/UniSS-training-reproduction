@@ -1,0 +1,149 @@
+{
+ "arm": "c_k6",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000174311",
+   "arm": "c_k6",
+   "read_stride": 6,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 960,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16560,
+   "read_steps": 18,
+   "audio_blocks": 104,
+   "fragments": 10,
+   "semantic_tokens": 724,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_placed/LibriSpeech_0000174311.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/c_k6/translation_concat/LibriSpeech_0000174311.wav",
+   "placed_seconds": 23.5,
+   "concat_seconds": 14.48,
+   "delays": [
+    2880.0,
+    3840.0,
+    5760.0,
+    6720.0,
+    7680.0,
+    9600.0,
+    11520.0,
+    13440.0,
+    16320.0,
+    16560.0
+   ],
+   "durations": [
+    580.0,
+    540.0,
+    300.0,
+    1220.0,
+    440.0,
+    1460.0,
+    1900.0,
+    860.0,
+    1200.0,
+    5980.0
+   ],
+   "intervals": [
+    [
+     2880.0,
+     580.0
+    ],
+    [
+     3840.0,
+     540.0
+    ],
+    [
+     5760.0,
+     300.0
+    ],
+    [
+     6720.0,
+     1220.0
+    ],
+    [
+     7940.0,
+     440.0
+    ],
+    [
+     9600.0,
+     1460.0
+    ],
+    [
+     11520.0,
+     1900.0
+    ],
+    [
+     13440.0,
+     860.0
+    ],
+    [
+     16320.0,
+     1200.0
+    ],
+    [
+     17520.0,
+     5980.0
+    ]
+   ],
+   "elapsed": [
+    3854.4218027964234,
+    4746.620927937329,
+    5786.6735039278865,
+    7653.817720711231,
+    8452.327591832727,
+    10554.435667581856,
+    13390.987642575055,
+    14896.348769776523,
+    17185.29432779178,
+    24164.959816727787
+   ],
+   "silences": [
+    2880.0,
+    380.0,
+    1380.0,
+    660.0,
+    0.0,
+    1220.0,
+    460.0,
+    20.0,
+    2020.0,
+    0.0
+   ],
+   "source_hypothesis": "But they do not engross the whole discourse so to themselves during their meals that they younger may not put in for a share On the contrary they engage them to talk that so they may in that free way of conversation find out the force of everyone spirit and observe his temper",
+   "target_hypothesis": "但他们并没有在用餐时全神贯注以至于年轻人可能不会参与其中相反他们让年轻人交谈以便以这种自由的方式了解每个人的精神状态并观察他的脾气",
+   "transcription_reference": "But they do not engross the whole discourse so to themselves during their meals that the younger may not put in for a share On the contrary they engage them to talk that so they may in that free way of conversation find out the force of every one's spirit and observe his temper",
+   "translation_reference": "但他们并不会在用餐时完全占据谈话不让年轻人有机会加入相反他们会邀请年轻人参与交谈以便在自由的对话中发现每个人的才华并观察其性格",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    3,
+    1,
+    7,
+    3,
+    7,
+    8,
+    4,
+    5,
+    24
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 23.5,
+    "concatenated_seconds": 14.48,
+    "queueing_delay_ms_mean": 122.0,
+    "queueing_delay_ms_max": 960.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 24.173519413918257,
+   "rtf": 1.4597535877969963
+  }
+ ]
+}

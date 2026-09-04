@@ -1,0 +1,205 @@
+{
+ "arm": "m3_k6",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000174311",
+   "arm": "m3_k6",
+   "read_stride": 6,
+   "read_schedule": "uniform",
+   "read_step_ms": 960,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16560,
+   "read_steps": 18,
+   "audio_blocks": 104,
+   "fragments": 15,
+   "semantic_tokens": 575,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_placed/LibriSpeech_0000174311.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k6/translation_concat/LibriSpeech_0000174311.wav",
+   "placed_seconds": 17.36,
+   "concat_seconds": 11.5,
+   "delays": [
+    960.0,
+    1920.0,
+    2880.0,
+    3840.0,
+    6720.0,
+    7680.0,
+    8640.0,
+    9600.0,
+    10560.0,
+    11520.0,
+    12480.0,
+    13440.0,
+    14400.0,
+    15360.0,
+    16320.0
+   ],
+   "durations": [
+    700.0,
+    620.0,
+    860.0,
+    220.0,
+    3580.0,
+    360.0,
+    240.0,
+    760.0,
+    240.0,
+    860.0,
+    340.0,
+    340.0,
+    380.0,
+    1360.0,
+    640.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     700.0
+    ],
+    [
+     1920.0,
+     620.0
+    ],
+    [
+     2880.0,
+     860.0
+    ],
+    [
+     3840.0,
+     220.0
+    ],
+    [
+     6720.0,
+     3580.0
+    ],
+    [
+     10300.0,
+     360.0
+    ],
+    [
+     10660.0,
+     240.0
+    ],
+    [
+     10900.0,
+     760.0
+    ],
+    [
+     11660.0,
+     240.0
+    ],
+    [
+     11900.0,
+     860.0
+    ],
+    [
+     12760.0,
+     340.0
+    ],
+    [
+     13440.0,
+     340.0
+    ],
+    [
+     14400.0,
+     380.0
+    ],
+    [
+     15360.0,
+     1360.0
+    ],
+    [
+     16720.0,
+     640.0
+    ]
+   ],
+   "elapsed": [
+    3957.097209058702,
+    5800.681319087744,
+    8020.5185087397695,
+    8893.261713907123,
+    19054.55809365958,
+    20029.333526734263,
+    20870.716779027134,
+    22892.19005405903,
+    23829.907727893442,
+    26016.197478864342,
+    26955.059996806085,
+    27932.8544116579,
+    29015.660903882235,
+    32352.232203818858,
+    33961.44452691078
+   ],
+   "silences": [
+    960.0,
+    260.0,
+    340.0,
+    100.0,
+    2660.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    340.0,
+    620.0,
+    580.0,
+    0.0
+   ],
+   "source_hypothesis": "But they do not growls to hold this course So to the themselves during their nourish may not put in foreasure on the contrary they engage them to talk that's all they may in that freeway conversation Find out the force of everyone's spirit and observe hyster",
+   "target_hypothesis": "但他们不咆哮以抑制这种声音当然对他们在用餐时的自己来说这可能不会带来任何乐趣相反相反他们与他们交谈他们可能在那条高速公路上只会这样交谈了解每个人精神的力量并观察他的脾气",
+   "transcription_reference": "But they do not engross the whole discourse so to themselves during their meals that the younger may not put in for a share On the contrary they engage them to talk that so they may in that free way of conversation find out the force of every one's spirit and observe his temper",
+   "translation_reference": "但他们并不会在用餐时完全占据谈话不让年轻人有机会加入相反他们会邀请年轻人参与交谈以便在自由的对话中发现每个人的才华并观察其性格",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    7,
+    5,
+    3,
+    19,
+    4,
+    2,
+    5,
+    4,
+    12,
+    2,
+    2,
+    3,
+    8,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 15,
+    "placed_seconds": 17.36,
+    "concatenated_seconds": 11.5,
+    "queueing_delay_ms_mean": 540.0,
+    "queueing_delay_ms_max": 2620.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 17,
+   "read_next_events": 0,
+   "write_asr_events": 17,
+   "write_mt_events": 15,
+   "write_semantic_events": 15,
+   "eos_event_index": 17,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 35.448932403698564,
+   "rtf": 2.140636014716097
+  }
+ ]
+}

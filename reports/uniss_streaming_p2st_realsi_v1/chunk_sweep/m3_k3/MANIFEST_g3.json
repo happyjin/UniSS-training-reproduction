@@ -1,0 +1,232 @@
+{
+ "arm": "m3_k3",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "m3_k3",
+   "read_stride": 3,
+   "read_schedule": "uniform",
+   "read_step_ms": 480,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 36,
+   "audio_blocks": 106,
+   "fragments": 18,
+   "semantic_tokens": 434,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k3/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/chunk_sweep/m3_k3/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 17.94,
+   "concat_seconds": 8.68,
+   "delays": [
+    3360.0,
+    3840.0,
+    4320.0,
+    5280.0,
+    5760.0,
+    6240.0,
+    7200.0,
+    9600.0,
+    10080.0,
+    11040.0,
+    11520.0,
+    12000.0,
+    12480.0,
+    12960.0,
+    13440.0,
+    15840.0,
+    16320.0,
+    16800.0
+   ],
+   "durations": [
+    2100.0,
+    160.0,
+    100.0,
+    300.0,
+    260.0,
+    300.0,
+    80.0,
+    180.0,
+    280.0,
+    500.0,
+    260.0,
+    1980.0,
+    140.0,
+    260.0,
+    280.0,
+    80.0,
+    280.0,
+    1140.0
+   ],
+   "intervals": [
+    [
+     3360.0,
+     2100.0
+    ],
+    [
+     5460.0,
+     160.0
+    ],
+    [
+     5620.0,
+     100.0
+    ],
+    [
+     5720.0,
+     300.0
+    ],
+    [
+     6020.0,
+     260.0
+    ],
+    [
+     6280.0,
+     300.0
+    ],
+    [
+     7200.0,
+     80.0
+    ],
+    [
+     9600.0,
+     180.0
+    ],
+    [
+     10080.0,
+     280.0
+    ],
+    [
+     11040.0,
+     500.0
+    ],
+    [
+     11540.0,
+     260.0
+    ],
+    [
+     12000.0,
+     1980.0
+    ],
+    [
+     13980.0,
+     140.0
+    ],
+    [
+     14120.0,
+     260.0
+    ],
+    [
+     14380.0,
+     280.0
+    ],
+    [
+     15840.0,
+     80.0
+    ],
+    [
+     16320.0,
+     280.0
+    ],
+    [
+     16800.0,
+     1140.0
+    ]
+   ],
+   "elapsed": [
+    9476.533158682287,
+    9981.377644930035,
+    10513.464204967022,
+    11663.457952905446,
+    12506.076299585402,
+    13297.11270192638,
+    13907.860919833183,
+    15178.351412992924,
+    15900.737988762558,
+    17103.453673887998,
+    17838.184953667223,
+    22670.699069742113,
+    23131.626877002418,
+    23902.695177588612,
+    24777.151925023645,
+    25921.506693586707,
+    26778.348905965686,
+    29315.042924601585
+   ],
+   "silences": [
+    3360.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    620.0,
+    2320.0,
+    300.0,
+    680.0,
+    0.0,
+    200.0,
+    0.0,
+    0.0,
+    0.0,
+    1180.0,
+    400.0,
+    200.0
+   ],
+   "source_hypothesis": "There is one other no witch may be men mentioned this is the alleged fact that waller phenomena exerts to extend everywhere where we've seen to find a special preclivity to such quality Why though not in full of great conceit congen for planship is not usually clear",
+   "target_hypothesis": "还有一只其他女巫可能不是男人这个是据称沃尔勒现象对我们发现特殊的倾向在我们发现如此的品质时在其他地方都存在为什么即使不是在充满对通常明确的自由意志性我们",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    14,
+    2,
+    1,
+    2,
+    3,
+    2,
+    1,
+    4,
+    2,
+    8,
+    2,
+    12,
+    3,
+    5,
+    2,
+    1,
+    2,
+    10
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": null,
+    "target": null
+   },
+   "placement": {
+    "fragments": 18,
+    "placed_seconds": 17.94,
+    "concatenated_seconds": 8.68,
+    "queueing_delay_ms_mean": 404.44444444444446,
+    "queueing_delay_ms_max": 1620.0,
+    "unused_translation_samples": 0
+   },
+   "wait_events": 35,
+   "read_next_events": 0,
+   "write_asr_events": 34,
+   "write_mt_events": 18,
+   "write_semantic_events": 18,
+   "eos_event_index": 35,
+   "eos_reached": true,
+   "malformed_segments": 0,
+   "continue_write_bias": 5.0,
+   "family_mt_bias": 0.0,
+   "semantic_repetition_penalty": 1.1,
+   "pace_margin_ms": 1200.0,
+   "pace_tail_ms": 2000.0,
+   "wall_seconds": 30.741947673726827,
+   "rtf": 1.8255313345443485
+  }
+ ]
+}
