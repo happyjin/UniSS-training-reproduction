@@ -41,6 +41,14 @@ from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v1.stage_a
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.checkpoint_runtime import (  # noqa: E501
     make_cached_frontend,
 )
+import os
+import tempfile
+
+
+def out_silence_dir() -> str:
+    return os.environ.get("TMPDIR") or tempfile.gettempdir()
+
+
 from experiments.uniss_streaming_p2st_pure_ce_v1.data.public_corpus import load_selection
 from experiments.uniss_streaming_p2st_pure_ce_v1.evaluation.timeline_demos import (
     SAMPLE_RATE,
@@ -92,6 +100,16 @@ def main() -> None:
     # first-audible to source end would fit at 1.06 occupancy.  Default 1.0
     # leaves every published number unchanged.
     parser.add_argument("--speed", type=float, default=1.0)
+    # SimulS2ST-Omni's --enable-wait-silence-decode, ported.  Their agent
+    # synthesizes cached silence codes through the vocoder on wait/idle chunks
+    # "instead of emitting no audio"; without it their own comment says wait
+    # chunks emit nothing, which is what this cascade does and what makes the
+    # placed timeline 20-44% exact digital zeros with hard edges.  Measured on
+    # their demo audio: quiet frames sit at 0.0005-0.0007 RMS, not at zero.
+    # Filling the gaps with in-distribution silence codes and decoding the whole
+    # timeline as ONE stream also lets the decoder's 80 ms crossfade span the
+    # silence-to-speech transitions, which post-hoc pasting cannot.
+    parser.add_argument("--silence-fill", action="store_true")
     parser.add_argument("--source-holdback", type=int, default=None)
     parser.add_argument("--target-holdback", type=int, default=None)
     parser.add_argument("--keep-stereo", action="store_true")
@@ -126,6 +144,19 @@ def main() -> None:
     frontend = make_cached_frontend(objective, device)
     codec = BiCodecTokenizer(args.bicodec_model, device=device)
     codec.model.eval().requires_grad_(False)
+    silence_codes: list[int] = []
+    if args.silence_fill:
+        # One second of digital silence tokenized by the same BiCodec, so the
+        # filler is in-distribution rather than a constant.
+        scratch = Path(out_silence_dir()) / f"silence_{os.getpid()}.wav"
+        scratch.parent.mkdir(parents=True, exist_ok=True)
+        sf.write(str(scratch), np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE,
+                 subtype="PCM_16")
+        _, semantic = codec.tokenize(str(scratch))
+        silence_codes = [int(v) for v in torch.as_tensor(semantic).reshape(-1).tolist()]
+        if not silence_codes:
+            raise ValueError("BiCodec produced no semantic codes for silence")
+        print(f"silence filler: {len(silence_codes)} codes for 1 s", flush=True)
 
     out = Path(args.output_root) / args.arm
     manifest: list[dict] = []
@@ -164,6 +195,21 @@ def main() -> None:
         mono = decode_fragments(
             codec, row.speaker_global, [tuple(f.semantic) for f in speech]
         )
+        isochronous = None
+        if args.silence_fill and speech:
+            runs: list[tuple[int, ...]] = []
+            cursor_ms = 0.0
+            for fragment in speech:
+                gap_ms = max(0.0, float(fragment.source_end_ms) - cursor_ms)
+                n_silence = int(round(gap_ms / SEMANTIC_MS_PER_TOKEN))
+                if n_silence > 0:
+                    pool = silence_codes
+                    repeats = -(-n_silence // max(1, len(pool)))
+                    runs.append(tuple((pool * repeats)[:n_silence]))
+                    cursor_ms += n_silence * SEMANTIC_MS_PER_TOKEN
+                runs.append(tuple(fragment.semantic))
+                cursor_ms += len(fragment.semantic) * SEMANTIC_MS_PER_TOKEN
+            isochronous = decode_fragments(codec, row.speaker_global, runs)
         schedule = [(int(f.source_end_ms), len(f.semantic)) for f in speech]
         placed, placement = place_on_timeline(mono, schedule, len(waveform))
 
@@ -173,6 +219,10 @@ def main() -> None:
         concat_seconds = write_mono(
             out / "translation_concat" / f"{row.sample_id}.wav", mono
         )
+        if isochronous is not None:
+            write_mono(
+                out / "translation_isochronous" / f"{row.sample_id}.wav", isochronous
+            )
         if args.keep_stereo:
             total = max(len(waveform), len(placed))
             stereo = np.zeros((total, 2), dtype=np.float32)

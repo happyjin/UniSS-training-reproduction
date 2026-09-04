@@ -1,0 +1,1822 @@
+{
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 107,
+   "audio_blocks": 107,
+   "fragments": 20,
+   "semantic_tokens": 807,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 21.46,
+   "concat_seconds": 16.14,
+   "delays": [
+    2240.0,
+    3040.0,
+    3360.0,
+    3520.0,
+    5120.0,
+    5440.0,
+    7200.0,
+    7520.0,
+    8960.0,
+    10240.0,
+    10720.0,
+    10880.0,
+    11200.0,
+    12320.0,
+    13440.0,
+    14240.0,
+    14720.0,
+    16160.0,
+    16640.0,
+    17100.0
+   ],
+   "durations": [
+    500.0,
+    580.0,
+    680.0,
+    320.0,
+    340.0,
+    700.0,
+    500.0,
+    580.0,
+    1060.0,
+    1140.0,
+    300.0,
+    480.0,
+    620.0,
+    540.0,
+    580.0,
+    3540.0,
+    300.0,
+    2380.0,
+    240.0,
+    760.0
+   ],
+   "intervals": [
+    [
+     2240.0,
+     500.0
+    ],
+    [
+     3040.0,
+     580.0
+    ],
+    [
+     3620.0,
+     680.0
+    ],
+    [
+     4300.0,
+     320.0
+    ],
+    [
+     5120.0,
+     340.0
+    ],
+    [
+     5460.0,
+     700.0
+    ],
+    [
+     7200.0,
+     500.0
+    ],
+    [
+     7700.0,
+     580.0
+    ],
+    [
+     8960.0,
+     1060.0
+    ],
+    [
+     10240.0,
+     1140.0
+    ],
+    [
+     11380.0,
+     300.0
+    ],
+    [
+     11680.0,
+     480.0
+    ],
+    [
+     12160.0,
+     620.0
+    ],
+    [
+     12780.0,
+     540.0
+    ],
+    [
+     13440.0,
+     580.0
+    ],
+    [
+     14240.0,
+     3540.0
+    ],
+    [
+     17780.0,
+     300.0
+    ],
+    [
+     18080.0,
+     2380.0
+    ],
+    [
+     20460.0,
+     240.0
+    ],
+    [
+     20700.0,
+     760.0
+    ]
+   ],
+   "elapsed": [
+    3629.6081310138106,
+    5070.05103584379,
+    6175.8786351419985,
+    6687.795276287943,
+    8006.230473984033,
+    9099.136098288,
+    10698.48132925108,
+    11682.136656250805,
+    13701.607122085989,
+    15808.64401999861,
+    16445.92194724828,
+    17207.82296406105,
+    18169.59859384224,
+    19813.86417010799,
+    21165.413348935544,
+    26018.22311617434,
+    26616.122388280928,
+    30392.11185509339,
+    30982.08374204114,
+    32130.42196119204
+   ],
+   "silences": [
+    2240.0,
+    300.0,
+    0.0,
+    0.0,
+    500.0,
+    0.0,
+    1040.0,
+    0.0,
+    680.0,
+    220.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    120.0,
+    220.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that La Mustanger was making a",
+   "target_hypothesis": "仿佛受伤的肢体不再阻碍他猎人怀疑他的意图超过了六英尺他看到了躺在斗篷上的血淋淋的刀刃那是为了那个拉马斯特杰正在做",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    3,
+    2,
+    2,
+    1,
+    2,
+    2,
+    4,
+    4,
+    2,
+    1,
+    2,
+    1,
+    2,
+    10,
+    1,
+    9,
+    1,
+    3
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 20,
+    "placed_seconds": 21.46,
+    "concatenated_seconds": 16.14,
+    "queueing_delay_ms_mean": 826.0,
+    "queueing_delay_ms_max": 3820.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 32.13631984172389,
+   "rtf": 1.8793169498084143
+  },
+  {
+   "sample_id": "LibriSpeech_0000104521",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16880,
+   "read_steps": 106,
+   "audio_blocks": 106,
+   "fragments": 18,
+   "semantic_tokens": 860,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/LibriSpeech_0000104521.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/LibriSpeech_0000104521.wav",
+   "placed_seconds": 21.68,
+   "concat_seconds": 17.2,
+   "delays": [
+    1120.0,
+    2080.0,
+    5440.0,
+    6080.0,
+    6720.0,
+    7040.0,
+    8640.0,
+    9120.0,
+    9600.0,
+    10240.0,
+    10400.0,
+    10720.0,
+    12320.0,
+    12960.0,
+    15840.0,
+    16000.0,
+    16320.0,
+    16880.0
+   ],
+   "durations": [
+    600.0,
+    360.0,
+    1720.0,
+    1200.0,
+    120.0,
+    360.0,
+    440.0,
+    960.0,
+    1800.0,
+    1060.0,
+    1160.0,
+    380.0,
+    500.0,
+    1200.0,
+    1380.0,
+    1560.0,
+    820.0,
+    1580.0
+   ],
+   "intervals": [
+    [
+     1120.0,
+     600.0
+    ],
+    [
+     2080.0,
+     360.0
+    ],
+    [
+     5440.0,
+     1720.0
+    ],
+    [
+     7160.0,
+     1200.0
+    ],
+    [
+     8360.0,
+     120.0
+    ],
+    [
+     8480.0,
+     360.0
+    ],
+    [
+     8840.0,
+     440.0
+    ],
+    [
+     9280.0,
+     960.0
+    ],
+    [
+     10240.0,
+     1800.0
+    ],
+    [
+     12040.0,
+     1060.0
+    ],
+    [
+     13100.0,
+     1160.0
+    ],
+    [
+     14260.0,
+     380.0
+    ],
+    [
+     14640.0,
+     500.0
+    ],
+    [
+     15140.0,
+     1200.0
+    ],
+    [
+     16340.0,
+     1380.0
+    ],
+    [
+     17720.0,
+     1560.0
+    ],
+    [
+     19280.0,
+     820.0
+    ],
+    [
+     20100.0,
+     1580.0
+    ]
+   ],
+   "elapsed": [
+    2868.9522282220423,
+    3851.9461820833385,
+    7599.029137287289,
+    9459.29233636707,
+    10076.291039120406,
+    10726.603756193072,
+    12501.549873966724,
+    14033.24117930606,
+    16403.977326117456,
+    17983.5357661359,
+    19419.920057058334,
+    20159.213547129184,
+    21424.340229015797,
+    23405.954043380916,
+    26796.760941389948,
+    28766.65996434167,
+    30226.078409235924,
+    32544.945484027267
+   ],
+   "silences": [
+    1120.0,
+    360.0,
+    3000.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "Until they drew up beside the palace steps an aged winky dressed in a uniform of silver cloth came forward to assist them to alight Said the Scarecrow to his personage show us at once to your master the emperor",
+   "target_hypothesis": "直到他们走到宫殿的台阶旁一位年迈的穿着银色布料制服的老妇人走上前来帮助他们下车稻草人说他本人立刻带我们去见你的主人皇帝",
+   "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+   "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    8,
+    4,
+    1,
+    2,
+    2,
+    4,
+    4,
+    4,
+    2,
+    2,
+    2,
+    4,
+    5,
+    5,
+    4,
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 18,
+    "placed_seconds": 21.68,
+    "concatenated_seconds": 17.2,
+    "queueing_delay_ms_mean": 1450.0,
+    "queueing_delay_ms_max": 3540.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 32.55158479977399,
+   "rtf": 1.9284114217875588
+  },
+  {
+   "sample_id": "LibriSpeech_0000174311",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16560,
+   "read_steps": 104,
+   "audio_blocks": 104,
+   "fragments": 15,
+   "semantic_tokens": 595,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/LibriSpeech_0000174311.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/LibriSpeech_0000174311.wav",
+   "placed_seconds": 19.26,
+   "concat_seconds": 11.9,
+   "delays": [
+    960.0,
+    1760.0,
+    4320.0,
+    4640.0,
+    4960.0,
+    5760.0,
+    6080.0,
+    7520.0,
+    10720.0,
+    11200.0,
+    13120.0,
+    13440.0,
+    13760.0,
+    16000.0,
+    16560.0
+   ],
+   "durations": [
+    580.0,
+    540.0,
+    300.0,
+    1220.0,
+    440.0,
+    680.0,
+    320.0,
+    60.0,
+    1340.0,
+    440.0,
+    160.0,
+    2180.0,
+    440.0,
+    2320.0,
+    880.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     580.0
+    ],
+    [
+     1760.0,
+     540.0
+    ],
+    [
+     4320.0,
+     300.0
+    ],
+    [
+     4640.0,
+     1220.0
+    ],
+    [
+     5860.0,
+     440.0
+    ],
+    [
+     6300.0,
+     680.0
+    ],
+    [
+     6980.0,
+     320.0
+    ],
+    [
+     7520.0,
+     60.0
+    ],
+    [
+     10720.0,
+     1340.0
+    ],
+    [
+     12060.0,
+     440.0
+    ],
+    [
+     13120.0,
+     160.0
+    ],
+    [
+     13440.0,
+     2180.0
+    ],
+    [
+     15620.0,
+     440.0
+    ],
+    [
+     16060.0,
+     2320.0
+    ],
+    [
+     18380.0,
+     880.0
+    ]
+   ],
+   "elapsed": [
+    3622.066994663328,
+    5026.166403666139,
+    7574.315296951681,
+    9510.851648636162,
+    10244.219181593508,
+    11513.865146785975,
+    12195.554242935032,
+    13109.966820571572,
+    17004.042790737003,
+    17905.574223957956,
+    19385.685461573303,
+    22225.143807940185,
+    22939.786604605615,
+    27233.180640731007,
+    28485.156294889748
+   ],
+   "silences": [
+    960.0,
+    220.0,
+    2020.0,
+    20.0,
+    0.0,
+    0.0,
+    0.0,
+    220.0,
+    3140.0,
+    0.0,
+    620.0,
+    160.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "But they do not engross the whole discourse so to themselves during their meals that the younger may not put in for a share on the contrary engage them to talk that so they may in that free way of conversation Find out the force of everyone spirit and observe his temper",
+   "target_hypothesis": "但他们并没有在用餐时全神贯注以至于年轻人不会为他们分一杯相反他们则会以这种自由的方式交谈了解每个人的精神力量并观察他的脾气",
+   "transcription_reference": "But they do not engross the whole discourse so to themselves during their meals that the younger may not put in for a share On the contrary they engage them to talk that so they may in that free way of conversation find out the force of every one's spirit and observe his temper",
+   "translation_reference": "但他们并不会在用餐时完全占据谈话不让年轻人有机会加入相反他们会邀请年轻人参与交谈以便在自由的对话中发现每个人的才华并观察其性格",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    3,
+    1,
+    7,
+    3,
+    3,
+    2,
+    1,
+    9,
+    2,
+    1,
+    9,
+    2,
+    11,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 15,
+    "placed_seconds": 19.26,
+    "concatenated_seconds": 11.9,
+    "queueing_delay_ms_mean": 462.6666666666667,
+    "queueing_delay_ms_max": 1860.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 28.492000196129084,
+   "rtf": 1.7205314128097273
+  },
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 106,
+   "audio_blocks": 106,
+   "fragments": 20,
+   "semantic_tokens": 710,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 20.24,
+   "concat_seconds": 14.2,
+   "delays": [
+    960.0,
+    2240.0,
+    2720.0,
+    4320.0,
+    4480.0,
+    5440.0,
+    5760.0,
+    5920.0,
+    6400.0,
+    7200.0,
+    7360.0,
+    8960.0,
+    9440.0,
+    9600.0,
+    10560.0,
+    10720.0,
+    13280.0,
+    15840.0,
+    16000.0,
+    16840.0
+   ],
+   "durations": [
+    360.0,
+    720.0,
+    300.0,
+    500.0,
+    200.0,
+    200.0,
+    560.0,
+    320.0,
+    440.0,
+    600.0,
+    400.0,
+    960.0,
+    240.0,
+    320.0,
+    200.0,
+    2940.0,
+    540.0,
+    160.0,
+    2980.0,
+    1260.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     360.0
+    ],
+    [
+     2240.0,
+     720.0
+    ],
+    [
+     2960.0,
+     300.0
+    ],
+    [
+     4320.0,
+     500.0
+    ],
+    [
+     4820.0,
+     200.0
+    ],
+    [
+     5440.0,
+     200.0
+    ],
+    [
+     5760.0,
+     560.0
+    ],
+    [
+     6320.0,
+     320.0
+    ],
+    [
+     6640.0,
+     440.0
+    ],
+    [
+     7200.0,
+     600.0
+    ],
+    [
+     7800.0,
+     400.0
+    ],
+    [
+     8960.0,
+     960.0
+    ],
+    [
+     9920.0,
+     240.0
+    ],
+    [
+     10160.0,
+     320.0
+    ],
+    [
+     10560.0,
+     200.0
+    ],
+    [
+     10760.0,
+     2940.0
+    ],
+    [
+     13700.0,
+     540.0
+    ],
+    [
+     15840.0,
+     160.0
+    ],
+    [
+     16000.0,
+     2980.0
+    ],
+    [
+     18980.0,
+     1260.0
+    ]
+   ],
+   "elapsed": [
+    3384.6785463392735,
+    5723.378865048289,
+    6643.58364790678,
+    8772.648346144706,
+    9309.933519922197,
+    10595.789958257228,
+    11917.661817278713,
+    12692.9848222062,
+    13777.58496394381,
+    15053.281524218619,
+    15669.085291214287,
+    17684.166237246245,
+    18353.299295064062,
+    18839.317590929568,
+    19783.966877963394,
+    23378.191185183823,
+    25829.58547724411,
+    28448.290122207254,
+    32148.89080123976,
+    34236.99101712555
+   ],
+   "silences": [
+    960.0,
+    920.0,
+    0.0,
+    1060.0,
+    0.0,
+    420.0,
+    120.0,
+    0.0,
+    0.0,
+    120.0,
+    0.0,
+    760.0,
+    0.0,
+    0.0,
+    80.0,
+    0.0,
+    0.0,
+    1600.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find special proclivity to hemis sexuality while the unorthodox and greater frequency of congenflinversion is not usually clear",
+   "target_hypothesis": "有另一种现象可能被提及这是所谓的事实即虽然现象存在在某种程度上我们似乎在所有地方都能找到对半性性有特殊倾向而非正统且更频繁的先天性变化",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    1,
+    5,
+    2,
+    3,
+    1,
+    1,
+    5,
+    1,
+    2,
+    2,
+    2,
+    6,
+    2,
+    2,
+    1,
+    8,
+    3,
+    1,
+    14,
+    5
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 20,
+    "placed_seconds": 20.24,
+    "concatenated_seconds": 14.2,
+    "queueing_delay_ms_mean": 265.0,
+    "queueing_delay_ms_max": 2140.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 34.24385633924976,
+   "rtf": 2.0334831555373967
+  },
+  {
+   "sample_id": "emilia_zh_0003927983",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16460,
+   "read_steps": 103,
+   "audio_blocks": 103,
+   "fragments": 19,
+   "semantic_tokens": 917,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/emilia_zh_0003927983.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/emilia_zh_0003927983.wav",
+   "placed_seconds": 21.22,
+   "concat_seconds": 18.34,
+   "delays": [
+    1440.0,
+    1760.0,
+    2720.0,
+    3360.0,
+    3840.0,
+    4320.0,
+    6720.0,
+    7200.0,
+    7840.0,
+    9440.0,
+    11360.0,
+    12160.0,
+    12320.0,
+    12640.0,
+    14560.0,
+    14880.0,
+    15520.0,
+    15680.0,
+    16460.0
+   ],
+   "durations": [
+    1100.0,
+    460.0,
+    840.0,
+    860.0,
+    460.0,
+    1000.0,
+    1160.0,
+    260.0,
+    420.0,
+    2580.0,
+    1920.0,
+    260.0,
+    840.0,
+    980.0,
+    1540.0,
+    2040.0,
+    480.0,
+    260.0,
+    880.0
+   ],
+   "intervals": [
+    [
+     1440.0,
+     1100.0
+    ],
+    [
+     2540.0,
+     460.0
+    ],
+    [
+     3000.0,
+     840.0
+    ],
+    [
+     3840.0,
+     860.0
+    ],
+    [
+     4700.0,
+     460.0
+    ],
+    [
+     5160.0,
+     1000.0
+    ],
+    [
+     6720.0,
+     1160.0
+    ],
+    [
+     7880.0,
+     260.0
+    ],
+    [
+     8140.0,
+     420.0
+    ],
+    [
+     9440.0,
+     2580.0
+    ],
+    [
+     12020.0,
+     1920.0
+    ],
+    [
+     13940.0,
+     260.0
+    ],
+    [
+     14200.0,
+     840.0
+    ],
+    [
+     15040.0,
+     980.0
+    ],
+    [
+     16020.0,
+     1540.0
+    ],
+    [
+     17560.0,
+     2040.0
+    ],
+    [
+     19600.0,
+     480.0
+    ],
+    [
+     20080.0,
+     260.0
+    ],
+    [
+     20340.0,
+     880.0
+    ]
+   ],
+   "elapsed": [
+    4024.4215349666774,
+    4943.097956012934,
+    6357.78134316206,
+    7645.966358948499,
+    8384.059029165655,
+    9847.7370319888,
+    12225.979693233967,
+    12885.486998129636,
+    13792.062744032592,
+    17487.791873980314,
+    20781.934471335262,
+    21462.88828831166,
+    22583.626829087734,
+    23885.2190929465,
+    26751.19678117335,
+    29262.00041733682,
+    30194.497627206147,
+    30661.412400193512,
+    32106.424618978053
+   ],
+   "silences": [
+    1440.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    560.0,
+    0.0,
+    0.0,
+    880.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "而我想提供一个小小的这个视角啊就也许这些仅仅是同时发生的并不是互为因果关系就是你的性格的这些特点并不一定是由于父母离异造成的",
+   "target_hypothesis": "And I want to provide a small perspective perhaps these are just happening simultaneously not in a causal relationship but in your personality these characteristics may not necessarily be due to the parents' divorce",
+   "transcription_reference": "但是我想提供一个小小的这个视角啊就也许这些仅仅是同时发生的并不是互为因果关系就是你的性格的这些特点并不一定是由于父母离异造成的",
+   "translation_reference": "But I want to offer a small perspective that perhaps these are merely coincidental and not causally related That is the characteristics of your personality may not necessarily be due to your parents' divorce",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    7,
+    11,
+    2,
+    6,
+    12,
+    8,
+    6,
+    9,
+    29,
+    25,
+    4,
+    8,
+    12,
+    22,
+    20,
+    7,
+    3,
+    21
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 19,
+    "placed_seconds": 21.22,
+    "concatenated_seconds": 18.34,
+    "queueing_delay_ms_mean": 1444.2105263157894,
+    "queueing_delay_ms_max": 4400.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 32.11468547862023,
+   "rtf": 1.9510744519210346
+  },
+  {
+   "sample_id": "emilia_zh_0003929091",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16780,
+   "read_steps": 105,
+   "audio_blocks": 105,
+   "fragments": 22,
+   "semantic_tokens": 894,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/emilia_zh_0003929091.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/emilia_zh_0003929091.wav",
+   "placed_seconds": 22.66,
+   "concat_seconds": 17.88,
+   "delays": [
+    1280.0,
+    1600.0,
+    2720.0,
+    3520.0,
+    3840.0,
+    4160.0,
+    5280.0,
+    9120.0,
+    9440.0,
+    10400.0,
+    11360.0,
+    11680.0,
+    12000.0,
+    12320.0,
+    13120.0,
+    13440.0,
+    13600.0,
+    13760.0,
+    15200.0,
+    15520.0,
+    16000.0,
+    16480.0
+   ],
+   "durations": [
+    1180.0,
+    160.0,
+    440.0,
+    1200.0,
+    160.0,
+    160.0,
+    1040.0,
+    1260.0,
+    1880.0,
+    1920.0,
+    160.0,
+    320.0,
+    480.0,
+    480.0,
+    200.0,
+    800.0,
+    800.0,
+    1160.0,
+    1360.0,
+    1580.0,
+    700.0,
+    440.0
+   ],
+   "intervals": [
+    [
+     1280.0,
+     1180.0
+    ],
+    [
+     2460.0,
+     160.0
+    ],
+    [
+     2720.0,
+     440.0
+    ],
+    [
+     3520.0,
+     1200.0
+    ],
+    [
+     4720.0,
+     160.0
+    ],
+    [
+     4880.0,
+     160.0
+    ],
+    [
+     5280.0,
+     1040.0
+    ],
+    [
+     9120.0,
+     1260.0
+    ],
+    [
+     10380.0,
+     1880.0
+    ],
+    [
+     12260.0,
+     1920.0
+    ],
+    [
+     14180.0,
+     160.0
+    ],
+    [
+     14340.0,
+     320.0
+    ],
+    [
+     14660.0,
+     480.0
+    ],
+    [
+     15140.0,
+     480.0
+    ],
+    [
+     15620.0,
+     200.0
+    ],
+    [
+     15820.0,
+     800.0
+    ],
+    [
+     16620.0,
+     800.0
+    ],
+    [
+     17420.0,
+     1160.0
+    ],
+    [
+     18580.0,
+     1360.0
+    ],
+    [
+     19940.0,
+     1580.0
+    ],
+    [
+     21520.0,
+     700.0
+    ],
+    [
+     22220.0,
+     440.0
+    ]
+   ],
+   "elapsed": [
+    3479.205940850079,
+    3876.9930847920477,
+    5188.144335057586,
+    7257.361403200775,
+    7656.2131978571415,
+    8140.416047070175,
+    10046.970216091722,
+    13909.198402892798,
+    16244.428900070488,
+    19099.982214160264,
+    19827.49834097922,
+    20424.75948203355,
+    21253.949388861656,
+    22002.085398882627,
+    22739.567670971155,
+    23932.842519134283,
+    25022.764732129872,
+    26433.446856215596,
+    28907.86634478718,
+    31118.922013789415,
+    32370.648000855,
+    33214.35833675787
+   ],
+   "silences": [
+    1280.0,
+    0.0,
+    100.0,
+    360.0,
+    0.0,
+    0.0,
+    240.0,
+    2800.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "甚至当我们以这种方式去认定人的时候我们就是一种静止的态度来看待每个人看待生活这本身是需要你去好好琢磨一下的如果生活真的是认定这个是对的人一切就会以对的方式发生那世界就变得太简单了倒过来讲",
+   "target_hypothesis": "Even when we define people in this way we are a state of stillness When everyone views life it itself requires you to think about it carefully If life is really defined as the right person everything will be happening in the right way and the world becomes too simple",
+   "transcription_reference": "甚至当我们以这种方式去论定人的时候我们就是一种静止的态度来看待每个人看待生活这本身是需要你去好好琢磨一下的如果生活真的是认定这个是对的人一切就会以对的方式发生那世界就变得太简单了倒过来讲",
+   "translation_reference": "Even when we judge people in this way we adopt a static attitude towards each person and towards life This is something you need to seriously consider If life really were to confirm that this is the right person everything would happen in the right way then the world would be too simple Conversely",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    8,
+    7,
+    22,
+    4,
+    2,
+    19,
+    28,
+    23,
+    25,
+    3,
+    5,
+    10,
+    8,
+    3,
+    17,
+    11,
+    8,
+    27,
+    14,
+    12,
+    7
+   ],
+   "mt_delta_chars_over_prior_bucket": 3,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 22,
+    "placed_seconds": 22.66,
+    "concatenated_seconds": 17.88,
+    "queueing_delay_ms_mean": 2129.090909090909,
+    "queueing_delay_ms_max": 5740.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 33.38456508284435,
+   "rtf": 1.9895449989776128
+  },
+  {
+   "sample_id": "emilia_zh_0003980703",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 19380,
+   "read_steps": 122,
+   "audio_blocks": 122,
+   "fragments": 27,
+   "semantic_tokens": 784,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/emilia_zh_0003980703.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/emilia_zh_0003980703.wav",
+   "placed_seconds": 20.44,
+   "concat_seconds": 15.68,
+   "delays": [
+    1120.0,
+    2240.0,
+    3680.0,
+    3840.0,
+    4000.0,
+    5280.0,
+    6240.0,
+    7040.0,
+    8320.0,
+    8640.0,
+    8960.0,
+    9760.0,
+    9920.0,
+    10400.0,
+    10880.0,
+    12320.0,
+    13120.0,
+    14080.0,
+    14880.0,
+    15200.0,
+    16160.0,
+    16320.0,
+    16480.0,
+    17120.0,
+    17920.0,
+    18400.0,
+    19380.0
+   ],
+   "durations": [
+    580.0,
+    760.0,
+    160.0,
+    420.0,
+    80.0,
+    1000.0,
+    960.0,
+    380.0,
+    680.0,
+    220.0,
+    280.0,
+    180.0,
+    500.0,
+    1140.0,
+    360.0,
+    1660.0,
+    800.0,
+    480.0,
+    420.0,
+    340.0,
+    220.0,
+    1820.0,
+    300.0,
+    240.0,
+    240.0,
+    600.0,
+    860.0
+   ],
+   "intervals": [
+    [
+     1120.0,
+     580.0
+    ],
+    [
+     2240.0,
+     760.0
+    ],
+    [
+     3680.0,
+     160.0
+    ],
+    [
+     3840.0,
+     420.0
+    ],
+    [
+     4260.0,
+     80.0
+    ],
+    [
+     5280.0,
+     1000.0
+    ],
+    [
+     6280.0,
+     960.0
+    ],
+    [
+     7240.0,
+     380.0
+    ],
+    [
+     8320.0,
+     680.0
+    ],
+    [
+     9000.0,
+     220.0
+    ],
+    [
+     9220.0,
+     280.0
+    ],
+    [
+     9760.0,
+     180.0
+    ],
+    [
+     9940.0,
+     500.0
+    ],
+    [
+     10440.0,
+     1140.0
+    ],
+    [
+     11580.0,
+     360.0
+    ],
+    [
+     12320.0,
+     1660.0
+    ],
+    [
+     13980.0,
+     800.0
+    ],
+    [
+     14780.0,
+     480.0
+    ],
+    [
+     15260.0,
+     420.0
+    ],
+    [
+     15680.0,
+     340.0
+    ],
+    [
+     16160.0,
+     220.0
+    ],
+    [
+     16380.0,
+     1820.0
+    ],
+    [
+     18200.0,
+     300.0
+    ],
+    [
+     18500.0,
+     240.0
+    ],
+    [
+     18740.0,
+     240.0
+    ],
+    [
+     18980.0,
+     600.0
+    ],
+    [
+     19580.0,
+     860.0
+    ]
+   ],
+   "elapsed": [
+    3345.874527003616,
+    4999.139613937587,
+    6069.520190823823,
+    6775.463259778917,
+    7009.403621777892,
+    8979.941134806722,
+    10783.01625000313,
+    11819.075002800673,
+    13378.402065951377,
+    13939.625144936144,
+    14590.363060124218,
+    15221.917601767927,
+    15984.094595070928,
+    17687.601407058537,
+    18436.50937685743,
+    21217.258531134576,
+    22694.276697933674,
+    23826.81915583089,
+    24805.745049845427,
+    25388.7815088965,
+    26453.122975770384,
+    28748.98088676855,
+    29225.013867020607,
+    30094.09841382876,
+    30819.48408810422,
+    31890.53294295445,
+    34009.28431516513
+   ],
+   "silences": [
+    1120.0,
+    540.0,
+    680.0,
+    0.0,
+    0.0,
+    940.0,
+    0.0,
+    0.0,
+    700.0,
+    0.0,
+    0.0,
+    260.0,
+    0.0,
+    0.0,
+    0.0,
+    380.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    140.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "那在这个当中他的安全就是来满足这些需求的啊也就是一种怎么标准的一种情境下的一个需求其实如果我们去看这个创意的时候因为我们也会有一些创意评分的一些工具吧那么这一个其实是得分非常高的咱们大家也觉得说哎这个不是一个特别那种特别有创意的东西哈",
+   "target_hypothesis": "In this case his safety is to meet these needs which is a standard situation In fact if we look at this idea we also have some tools for evaluating creativity So this is actually a very high score and we all think that this is not a particularly creative thing",
+   "transcription_reference": "那在这个当中它的安全就是来满足这些需求的啊也就是一种很标准的一种情境下的一个需求嗯所以如果我们去看这个创意的时候因为我们也会有一些创意评分的一些工具吧那么这一个其实是得分非常高的可能大家也觉得说哎这也不是一个特别那种特别有创意的东西哈",
+   "translation_reference": "In this context its security is meant to meet these needs which is a standard requirement in a typical scenario So when we look at this creativity we also have some tools for evaluating creativity This one actually scores very high Perhaps everyone also feels that well this isn't something particularly creative",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    7,
+    16,
+    6,
+    11,
+    6,
+    9,
+    11,
+    10,
+    8,
+    6,
+    8,
+    5,
+    5,
+    8,
+    10,
+    32,
+    3,
+    5,
+    12,
+    2,
+    5,
+    22,
+    6,
+    10,
+    9,
+    13,
+    15
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 27,
+    "placed_seconds": 20.44,
+    "concatenated_seconds": 15.68,
+    "queueing_delay_ms_mean": 335.55555555555554,
+    "queueing_delay_ms_max": 1720.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 34.014834709931165,
+   "rtf": 1.7551514298210096
+  },
+  {
+   "sample_id": "emilia_zh_0003980934",
+   "arm": "c_k1_silencefill",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 17540,
+   "read_steps": 110,
+   "audio_blocks": 110,
+   "fragments": 13,
+   "semantic_tokens": 683,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_placed/emilia_zh_0003980934.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/silence_fill/c_k1_silencefill/translation_concat/emilia_zh_0003980934.wav",
+   "placed_seconds": 19.96,
+   "concat_seconds": 13.66,
+   "delays": [
+    960.0,
+    1280.0,
+    1920.0,
+    5280.0,
+    6880.0,
+    7200.0,
+    8640.0,
+    10880.0,
+    11360.0,
+    12800.0,
+    13760.0,
+    14240.0,
+    17440.0
+   ],
+   "durations": [
+    320.0,
+    200.0,
+    740.0,
+    1260.0,
+    900.0,
+    2040.0,
+    1540.0,
+    1560.0,
+    560.0,
+    240.0,
+    1440.0,
+    340.0,
+    2520.0
+   ],
+   "intervals": [
+    [
+     960.0,
+     320.0
+    ],
+    [
+     1280.0,
+     200.0
+    ],
+    [
+     1920.0,
+     740.0
+    ],
+    [
+     5280.0,
+     1260.0
+    ],
+    [
+     6880.0,
+     900.0
+    ],
+    [
+     7780.0,
+     2040.0
+    ],
+    [
+     9820.0,
+     1540.0
+    ],
+    [
+     11360.0,
+     1560.0
+    ],
+    [
+     12920.0,
+     560.0
+    ],
+    [
+     13480.0,
+     240.0
+    ],
+    [
+     13760.0,
+     1440.0
+    ],
+    [
+     15200.0,
+     340.0
+    ],
+    [
+     17440.0,
+     2520.0
+    ]
+   ],
+   "elapsed": [
+    2624.369330704212,
+    3097.2649757750332,
+    4421.3339406996965,
+    8243.811881635338,
+    10608.932432718575,
+    13234.95018761605,
+    15828.059738967568,
+    18965.93393571675,
+    19872.210826724768,
+    20943.749961908907,
+    23426.641264930367,
+    24167.813292704523,
+    28568.47165990621
+   ],
+   "silences": [
+    960.0,
+    0.0,
+    440.0,
+    2620.0,
+    340.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    40.0,
+    0.0,
+    1900.0
+   ],
+   "source_hypothesis": "但是随着大模型合成这种发展呢重新开始这样未来的发展的方向呢我觉得会有这样的一个变化就是现在所有的制药公司所有的创业公司都会医疗器械应用大模型做的换得管理公司诊断治疗管理",
+   "target_hypothesis": "But as large models are synthesized this development will start anew and I think there will be such a change in the direction of future development all pharmaceutical companies and startups will apply medical devices to large models and make management decisions",
+   "transcription_reference": "但是随着大模型和人工智能的发展呢从现在开始在未来的发展的方向呢我觉得会有这样的一个变化就是现在呢所有的制药公司所有的创业公司包括医疗器械用大模型做的患者管理公司诊断治疗管理",
+   "translation_reference": "However with the development of large models and artificial intelligence from now on I believe there will be such a change in the direction of future development That is all pharmaceutical companies all startups including medical device companies will use large models for patient management company diagnosis and treatment management",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    3,
+    13,
+    33,
+    16,
+    31,
+    48,
+    29,
+    13,
+    5,
+    31,
+    7,
+    30
+   ],
+   "mt_delta_chars_over_prior_bucket": 6,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 13,
+    "placed_seconds": 19.96,
+    "concatenated_seconds": 13.66,
+    "queueing_delay_ms_mean": 418.46153846153845,
+    "queueing_delay_ms_max": 1560.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 28.643900129012764,
+   "rtf": 1.6330615809015259
+  }
+ ]
+}
