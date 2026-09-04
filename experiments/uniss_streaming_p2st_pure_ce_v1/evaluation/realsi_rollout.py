@@ -83,6 +83,15 @@ def main() -> None:
     # the ASR committer and 1120 ms the MT committer, and there are zero commit
     # conflicts at any setting -- so the target committer can be released
     # without the source committer losing anything.
+    # The BiCodec speed token is a training-time conditioning token the cascade
+    # already passes (p2st_cascade.py:425) but has always held at 1.0.  It is
+    # the only knob that redistributes speech over time instead of changing how
+    # much of it there is, which is what the measured timeline calls for: on the
+    # demo sample C emits 6000 ms of speech carrying 3680 ms of internal holes
+    # and a 3630 ms tail overhang, while the same audio spread from
+    # first-audible to source end would fit at 1.06 occupancy.  Default 1.0
+    # leaves every published number unchanged.
+    parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--source-holdback", type=int, default=None)
     parser.add_argument("--target-holdback", type=int, default=None)
     parser.add_argument("--keep-stereo", action="store_true")
@@ -138,6 +147,7 @@ def main() -> None:
             max_semantic_tokens=args.max_semantic_tokens,
             max_text_tokens=args.max_text_tokens,
             length_prior_scale=args.length_prior_scale,
+            speed=args.speed,
             read_stride=args.read_stride,
             **(
                 {}
@@ -196,6 +206,7 @@ def main() -> None:
                 "sample_id": row.sample_id,
                 "arm": args.arm,
                 "read_stride": args.read_stride,
+                "speed": args.speed,
                 "source_holdback": args.source_holdback,
                 "target_holdback": args.target_holdback,
                 "read_step_ms": args.read_stride * 160,

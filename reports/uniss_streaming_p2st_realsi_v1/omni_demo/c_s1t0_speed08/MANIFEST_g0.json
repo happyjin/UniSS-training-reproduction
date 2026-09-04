@@ -1,0 +1,104 @@
+{
+ "arm": "c_s1t0_speed08",
+ "samples": [
+  {
+   "sample_id": "omni_demo_zh2en_414",
+   "arm": "c_s1t0_speed08",
+   "read_stride": 1,
+   "speed": 0.8,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7410,
+   "read_steps": 47,
+   "audio_blocks": 47,
+   "fragments": 5,
+   "semantic_tokens": 311,
+   "translation_placed": "reports/uniss_streaming_p2st_realsi_v1/omni_demo/c_s1t0_speed08/translation_placed/omni_demo_zh2en_414.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_realsi_v1/omni_demo/c_s1t0_speed08/translation_concat/omni_demo_zh2en_414.wav",
+   "placed_seconds": 11.2,
+   "concat_seconds": 6.22,
+   "delays": [
+    1760.0,
+    3680.0,
+    5760.0,
+    6720.0,
+    7410.0
+   ],
+   "durations": [
+    400.0,
+    380.0,
+    3100.0,
+    860.0,
+    1480.0
+   ],
+   "intervals": [
+    [
+     1760.0,
+     400.0
+    ],
+    [
+     3680.0,
+     380.0
+    ],
+    [
+     5760.0,
+     3100.0
+    ],
+    [
+     8860.0,
+     860.0
+    ],
+    [
+     9720.0,
+     1480.0
+    ]
+   ],
+   "elapsed": [
+    2484.8720617592335,
+    4108.8834959082305,
+    9209.642260801047,
+    10918.36626874283,
+    13130.803608801216
+   ],
+   "silences": [
+    1760.0,
+    1520.0,
+    1700.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "呃他就这个就就就显现了医生已经注意到这个呃自己的这个心心慌啊什么心跳啊之类的",
+   "target_hypothesis": "Well it just shows that the doctor has already noticed his own anxiety heart palpitations and such",
+   "transcription_reference": "",
+   "translation_reference": "",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    8,
+    42,
+    16,
+    28
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 11.2,
+    "concatenated_seconds": 6.22,
+    "queueing_delay_ms_mean": 890.0,
+    "queueing_delay_ms_max": 2310.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 13.137792060151696,
+   "rtf": 1.7729813846358564
+  }
+ ]
+}
