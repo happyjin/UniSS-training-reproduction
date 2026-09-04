@@ -981,5 +981,81 @@
   "what": "The ASR committer trims a fixed number of characters off the agreed prefix (LCP(previous, current) - holdback).  Releasing up to the last complete word instead would release earlier at the same risk, and the effect should be largest on English sources where trimming one character differs a lot from trimming to a word boundary.",
   "not_the_same_as": "SeededPrefixCommitter, which seeded `previous` on the first call and measured worse; word-level trimming has never been tried.",
   "cost": "inference-side only, tens of lines"
+ },
+ "m3_error_attribution": {
+  "report": "M3_WHERE_IS_THE_ERROR.zh-CN.md",
+  "question": "m3 at delta=5+rp1.1 sounds smooth but translates wrongly -- is it ASR, incremental MT or TTS?",
+  "answer": "ASR and TTS, with the interleaved architecture as a distinct fourth loss.  Incremental MT is innocent.",
+  "demo_sample": {
+   "asr_cer_vs_paraformer": {
+    "m3_d5_rp11": 0.707,
+    "c_s1t0": 0.171
+   },
+   "note_audio_is_recognizable": "C reaches 0.171 on the same file, so the recording is not the problem",
+   "mt_is_faithful_to_its_own_asr": [
+    [
+     "他就我这个人叫",
+     "he just said I was a person called"
+    ],
+    [
+     "就就有就险下了",
+     "just just having a danger down"
+    ],
+    [
+     "于是你像住一个到",
+     "so you looked like a body into this place"
+    ],
+    [
+     "新货荒",
+     "new stock wasteland"
+    ],
+    [
+     "什么新调",
+     "or something new adjustment"
+    ]
+   ],
+   "tts_fidelity_whisper_vs_own_text": {
+    "m3_d5_rp11": 0.304,
+    "c_s1t0": 0.706,
+    "m3_d5_rp13": 0.0,
+    "m3_d5_rp13_note": "Whisper rejected it as implausible_after_single_item_retry, so rp=1.3 is worse for m3 than its own choice of 1.1 despite also zeroing the spectral freeze"
+   }
+  },
+  "m3_own_gate_16_samples": {
+   "asr_error": {
+    "cmn->eng": 0.037,
+    "eng->cmn": 0.227
+   },
+   "offline_teacher_gold_source_bleu": {
+    "cmn->eng": 9.97,
+    "eng->cmn": 3.92
+   },
+   "m3_gold_source_bleu": {
+    "cmn->eng": 27.67,
+    "eng->cmn": 35.86
+   },
+   "m3_own_asr_bleu": {
+    "cmn->eng": 14.93,
+    "eng->cmn": 17.51
+   },
+   "m3_interleaved_s2s_bleu": {
+    "cmn->eng": 7.45,
+    "eng->cmn": 0.1
+   },
+   "reading": "With ASR error at only 0.037 on cmn, MT capability given gold source is 27.67/35.86 -- above the offline teacher measured the same way -- yet the same weights and the same ASR input collapse from 17.51 to 0.10 once MT runs inside the interleaved session rather than as a standalone incremental rollout.  The interleaved session gates MT behind a decision token (WRITE_MT per event 0.147 at delta=0, coverage 0.295) and interleaves semantic TTS tokens into the same KV cache, polluting the context the MT continuation reads.  Confirmed incidentally this session: adding a repetition penalty, which touches only semantic decoding, changed the MT text too."
+  },
+  "ranking": {
+   "realsi_demo": [
+    "ASR 0.707",
+    "TTS 0.304",
+    "(MT innocent)"
+   ],
+   "in_domain": [
+    "interleaved architecture 17.51->0.10",
+    "ASR prefix-error propagation -12.7/-18.4",
+    "(MT capability fine)"
+   ]
+  },
+  "implication_for_c": "C is structurally immune to the fourth loss -- three isolated cascade stages, MT with its own task prefix and a clean context, no shared continuation with TTS.  That explains a 10-20x ASR-BLEU advantage on RealSI between two models whose gold-source MT is comparable.  C's TTS fidelity is 0.706 against m3's 0.304, spectral freeze 0.000 and >4 kHz 0.004.  C's one remaining large problem is still the source ASR -- a fourth independent line of evidence pointing at the same fix."
  }
 }
