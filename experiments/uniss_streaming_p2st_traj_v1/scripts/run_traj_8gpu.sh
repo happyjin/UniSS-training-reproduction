@@ -13,12 +13,16 @@
 # Differences from C's launcher, all of them intentional:
 #   * OWN_NAME, so outputs land under this experiment;
 #   * parent is C's iter_0004236 rather than B' iter_0001132;
-#   * COVERAGE_EPOCHS defaults to 3.  The NIR-stratified pool holds 503,785
+#   * COVERAGE_EPOCHS defaults to 2.  The NIR-stratified pool holds 503,785
 #     trajectories against C's 1,325,243 -- the composition is reached by
-#     downsampling because build_p2st_pools rejects duplicate sequence_ids --
-#     so three coverage epochs put the number of samples seen at 1.51M against
-#     C's 1.33M.  That is 14% more, stated rather than hidden; the alternative
-#     of two epochs would have been 24% fewer.
+#     downsampling because build_p2st_pools rejects duplicate sequence_ids.
+#     Packed rows do not fall in the same proportion as trajectories, though:
+#     the length reweighting favours longer utterances, which yield more samples
+#     each, so the pool holds 43-46% of C's rows rather than 38%.  Measured
+#     geometry at GBS 128: one epoch gives 1940 iterations, two give 3876 and
+#     three give 5812, against C's 4236.  Two epochs is 92% of C, the closest
+#     match available, so the optimisation-step count stays comparable and the
+#     result is attributable to the pool composition rather than to run length.
 #   * SAVE_INTERVAL defaults to 100 so the step-100 and step-200 checkpoints
 #     exist for the early external evaluations, with EVAL_INTERVAL left at 400.
 set -euo pipefail
@@ -61,9 +65,12 @@ for path in "${RUN_REPORT_ROOT}" "${RUN_LOG}" "${RUN_SAVE_DIR}" "${RUN_TENSORBOA
 done
 mkdir -p "${RUN_REPORT_ROOT}" "$(dirname -- "${RUN_LOG}")"
 
+# The fingerprint key must be "v1": validate_v1_fingerprint_manifest reads
+# manifest["checkpoints"]["v1"], so the name is a contract with the audit rather
+# than a label, even though the parent here is C and not the V1 stage.
 "${PYTHON_BIN}" -m \
   experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.data.fingerprint \
-  --checkpoint "parent=${PARENT_CHECKPOINT}" --workers 12 \
+  --checkpoint "v1=${PARENT_CHECKPOINT}" --workers 12 \
   --output "${RUN_FINGERPRINTS}" >/dev/null
 
 # Same existence check the established launcher makes.  This pool carries zero
@@ -81,7 +88,7 @@ done
 
 RUN_GBS=${RUN_GBS:-128}
 RUN_SEED=${RUN_SEED:-20260819}
-COVERAGE_EPOCHS=${COVERAGE_EPOCHS:-3}
+COVERAGE_EPOCHS=${COVERAGE_EPOCHS:-2}
 
 PYTHONPATH="${REPO_ROOT}" "${PYTHON_BIN}" - \
   "${TRAIN_POOL_MANIFEST}" "${RUN_GBS}" "${COVERAGE_EPOCHS}" "${RUN_SEED}" \
