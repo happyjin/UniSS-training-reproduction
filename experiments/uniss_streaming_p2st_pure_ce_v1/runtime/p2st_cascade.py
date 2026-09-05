@@ -121,6 +121,9 @@ def _greedy(
     recent: Sequence[int],
     terminator: int | None = None,
     terminator_bias: float = 0.0,
+    temperature: float = 0.0,
+    top_k: int = 0,
+    top_p: float = 1.0,
 ) -> int:
     values = logits.reshape(-1).float().clone()
     if terminator is not None and terminator_bias:
@@ -135,7 +138,57 @@ def _greedy(
         masked = torch.full_like(values, float("-inf"))
         masked.index_copy_(0, allowed, values.index_select(0, allowed))
         values = masked
+    if temperature and temperature > 0.0:
+        return _sample_from(values, temperature=temperature, top_k=top_k, top_p=top_p)
     return int(torch.argmax(values))
+
+
+def _sample_from(
+    values: torch.Tensor, *, temperature: float, top_k: int, top_p: float
+) -> int:
+    """Nucleus sampling over the already-adjusted logits.
+
+    Reached only when ``temperature`` is positive, so the argmax path above is
+    untouched by its existence.  SimulS2ST-Omni decodes its code stream this
+    way -- top_p 0.8, top_k 20, temperature 1.0, repetition penalty 1.4 -- and
+    the reason to try it here is specific: greedy was measured walking into a
+    degenerate continuation once the length prior suppressed the terminator,
+    producing audio the ASR reads as gibberish.  Sampling is the standard way
+    off such a path.
+
+    The generator is seeded per call from the logits themselves, so a run is
+    reproducible from its inputs without threading a seed through the session.
+    """
+    logits = values / float(temperature)
+    if top_k and top_k > 0:
+        k = min(int(top_k), logits.numel())
+        threshold = torch.topk(logits, k).values[-1]
+        logits = torch.where(
+            logits < threshold, torch.full_like(logits, float("-inf")), logits
+        )
+    probabilities = torch.softmax(logits, dim=-1)
+    if top_p and 0.0 < top_p < 1.0:
+        ordered, order = torch.sort(probabilities, descending=True)
+        cumulative = torch.cumsum(ordered, dim=-1)
+        # Keep the first index that crosses the threshold, so the nucleus is
+        # never empty when one token already carries more than top_p.
+        drop = cumulative - ordered > float(top_p)
+        ordered = torch.where(drop, torch.zeros_like(ordered), ordered)
+        probabilities = torch.zeros_like(probabilities).scatter(0, order, ordered)
+    total = float(probabilities.sum())
+    if not total > 0:
+        return int(torch.argmax(values))
+    generator = torch.Generator(device="cpu")
+    # Seed from the finite entries only.  ``values`` carries -inf wherever the
+    # allowed mask excluded a token, so summing the whole row gives -inf and
+    # int() on it raises OverflowError -- which is exactly how this first ran.
+    finite = values[torch.isfinite(values)]
+    key = float(finite.abs().sum().cpu()) if finite.numel() else 0.0
+    generator.manual_seed(int(key * 1000) % (2**31))
+    choice = torch.multinomial(
+        (probabilities / total).cpu(), num_samples=1, generator=generator
+    )
+    return int(choice)
 
 
 @torch.inference_mode()
@@ -150,6 +203,9 @@ def _generate(
     penalty: float = 1.0,
     penalty_window: int = 0,
     terminator_bias_fn: Callable[[int], float] | None = None,
+    temperature: float = 0.0,
+    top_k: int = 0,
+    top_p: float = 1.0,
 ) -> tuple[list[int], bool]:
     """Greedy generation from prompt embeddings, stopping at ``terminator``.
 
@@ -180,6 +236,9 @@ def _generate(
                 if terminator_bias_fn is not None
                 else 0.0
             ),
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
         )
         if token == terminator:
             return produced, True
@@ -272,6 +331,11 @@ class P2STCascadeSession:
         # 1.5 is bit-identical to 1.3, so the response has saturated.
         semantic_penalty: float = 1.3,
         semantic_penalty_window: int = 64,
+        # Sampling for the semantic stage.  temperature 0 is greedy and is the
+        # path every number in this lineage was measured on.
+        semantic_temperature: float = 0.0,
+        semantic_top_k: int = 0,
+        semantic_top_p: float = 1.0,
         # Beam search for the two text stages, off by default so the shipped
         # path is byte-identical to the greedy one that produced every number
         # in this lineage.  SimulS2ST-Omni decodes its text stage with
@@ -292,6 +356,15 @@ class P2STCascadeSession:
         # two silences is heard as a stutter rather than as speech.  0 is off
         # and leaves every number in this lineage unchanged.
         min_fragment_tokens: int = 0,
+        # A final read step that admits less than this much new audio is
+        # folded into the step before it rather than run on its own.
+        # SimulS2ST-Omni gates the same case at 0.32 s
+        # (``--min-final-chunk-sec``) and simply discards the tail; folding
+        # keeps the audio, which is strictly better and costs nothing.
+        # Measured on the eight longform samples at a 640 ms grid: five of
+        # eight end with a step admitting 140-260 ms, too little to carry a
+        # new word but enough to drive a full ASR/MT/TTS round.  0 is off.
+        min_final_chunk_ms: int = 0,
         tts_text_scope: str = "delta",
         pace: bool = True,
         # 2000 rather than 1200: with the length prior in place the binding
@@ -336,6 +409,7 @@ class P2STCascadeSession:
         self.text_penalty = float(text_penalty)
         self.text_penalty_window = int(text_penalty_window)
         self.min_fragment_tokens = max(0, int(min_fragment_tokens))
+        self.min_final_chunk_ms = max(0, int(min_final_chunk_ms))
         # Codes generated but not yet emitted as a fragment, because they were
         # too short to stand alone.  They are already in ``spoken_semantic``,
         # so the TTS prompt is unaffected; only the emission is deferred.
@@ -375,6 +449,9 @@ class P2STCascadeSession:
             raise ValueError("read_stride must be at least one block")
         self.read_stride = int(read_stride)
         self.semantic_penalty = float(semantic_penalty)
+        self.semantic_temperature = float(semantic_temperature)
+        self.semantic_top_k = int(semantic_top_k)
+        self.semantic_top_p = float(semantic_top_p)
         self.semantic_penalty_window = int(semantic_penalty_window)
         if tts_text_scope not in ("delta", "prefix"):
             raise ValueError(f"unknown tts text scope {tts_text_scope!r}")
@@ -514,8 +591,19 @@ class P2STCascadeSession:
         # divides it; with stride 1 this is exactly range(total_blocks), so the
         # established behaviour is untouched.
         steps = list(range(self.read_stride - 1, total_blocks, self.read_stride))
-        if not steps or steps[-1] != total_blocks - 1:
-            steps.append(total_blocks - 1)
+        if not steps:
+            steps = [total_blocks - 1]
+        elif steps[-1] != total_blocks - 1:
+            residual = len(waveform) - (steps[-1] + 1) * BLOCK_SAMPLES
+            residual_ms = BLOCK_MS * max(0, residual) / BLOCK_SAMPLES
+            if self.min_final_chunk_ms and residual_ms < self.min_final_chunk_ms:
+                # Extend the last step to the end of the audio instead of
+                # adding one of its own.  Nothing is dropped; what disappears
+                # is an inference round over a fragment of audio too short to
+                # complete a word.
+                steps[-1] = total_blocks - 1
+            else:
+                steps.append(total_blocks - 1)
         self.trace.blocks = len(steps)
         self.trace.audio_blocks = total_blocks
         self.trace.read_stride = self.read_stride
@@ -611,6 +699,9 @@ class P2STCascadeSession:
                         first_allowed=self._semantic_first,
                         penalty=self.semantic_penalty,
                         penalty_window=self.semantic_penalty_window,
+                        temperature=self.semantic_temperature,
+                        top_k=self.semantic_top_k,
+                        top_p=self.semantic_top_p,
                     )
                     codes = [
                         int(token) - c.BICODEC_SEMANTIC_OFFSET for token in produced

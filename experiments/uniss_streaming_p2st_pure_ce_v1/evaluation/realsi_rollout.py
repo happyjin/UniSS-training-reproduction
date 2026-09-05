@@ -92,6 +92,15 @@ def main() -> None:
     parser.add_argument("--text-penalty-window", type=int, default=0)
     # 16 codes is 320 ms at 20 ms per code.
     parser.add_argument("--min-fragment-tokens", type=int, default=0)
+    # SimulS2ST-Omni gates the source tail at 320 ms.
+    parser.add_argument("--min-final-chunk-ms", type=int, default=0)
+    # SimulS2ST-Omni's talker: top_p 0.8, top_k 20, temperature 1.0, rep 1.4.
+    # temperature 0 keeps the greedy path.
+    parser.add_argument("--semantic-temperature", type=float, default=0.0)
+    parser.add_argument("--semantic-top-k", type=int, default=0)
+    parser.add_argument("--semantic-top-p", type=float, default=1.0)
+    parser.add_argument("--semantic-penalty", type=float, default=None)
+    parser.add_argument("--semantic-penalty-window", type=int, default=None)
     # Defaults are None so not passing them leaves P2STCascadeSession on its own
     # holdback=1, keeping every published k1/k25/offline number byte-identical.
     # onset_diagnosis measured why these matter: speech onset equals the MT
@@ -191,6 +200,20 @@ def main() -> None:
             text_penalty=args.text_penalty,
             text_penalty_window=args.text_penalty_window,
             min_fragment_tokens=args.min_fragment_tokens,
+            min_final_chunk_ms=args.min_final_chunk_ms,
+            semantic_temperature=args.semantic_temperature,
+            semantic_top_k=args.semantic_top_k,
+            semantic_top_p=args.semantic_top_p,
+            **(
+                {}
+                if args.semantic_penalty is None
+                else {"semantic_penalty": args.semantic_penalty}
+            ),
+            **(
+                {}
+                if args.semantic_penalty_window is None
+                else {"semantic_penalty_window": args.semantic_penalty_window}
+            ),
             speed=args.speed,
             read_stride=args.read_stride,
             **(
@@ -274,6 +297,10 @@ def main() -> None:
                 "text_penalty": args.text_penalty,
                 "text_penalty_window": args.text_penalty_window,
                 "min_fragment_tokens": args.min_fragment_tokens,
+                "min_final_chunk_ms": args.min_final_chunk_ms,
+                "semantic_temperature": args.semantic_temperature,
+                "semantic_top_k": args.semantic_top_k,
+                "semantic_top_p": args.semantic_top_p,
                 "speed": args.speed,
                 "source_holdback": args.source_holdback,
                 "target_holdback": args.target_holdback,

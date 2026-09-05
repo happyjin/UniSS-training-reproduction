@@ -157,3 +157,39 @@ def test_repetition_penalty_reaches_the_beam():
     )
     assert plain[:2] == [1, 1]
     assert penalised[:2] != [1, 1]
+
+
+def test_sampling_survives_a_masked_logit_row():
+    """The first sampling run died here.
+
+    ``_greedy`` sets every disallowed token to -inf, so a seed derived from
+    the row's sum is -inf and int() on it raises OverflowError.  The allowed
+    set is how the semantic stage restricts generation to code tokens, so this
+    is the normal case there, not an edge one.
+    """
+    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import _greedy
+
+    logits = torch.tensor([0.0, 5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    allowed = torch.tensor([1, 2])
+    token = _greedy(
+        logits, allowed=allowed, penalty=1.0, recent=[], terminator=TERMINATOR,
+        temperature=1.0, top_k=20, top_p=0.8,
+    )
+    assert token in (1, 2)
+
+
+def test_sampling_is_reproducible_for_one_row():
+    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import _greedy
+
+    logits = torch.tensor([0.0, 5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    kw = dict(allowed=None, penalty=1.0, recent=[], terminator=TERMINATOR,
+              temperature=1.0, top_k=20, top_p=0.8)
+    assert _greedy(logits, **kw) == _greedy(logits, **kw)
+
+
+def test_temperature_zero_is_still_argmax():
+    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import _greedy
+
+    logits = torch.tensor([0.0, 5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    assert _greedy(logits, allowed=None, penalty=1.0, recent=[],
+                   terminator=TERMINATOR, temperature=0.0) == 1

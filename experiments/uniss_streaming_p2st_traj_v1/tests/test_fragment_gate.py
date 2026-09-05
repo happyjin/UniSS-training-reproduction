@@ -93,3 +93,66 @@ def test_duration_arithmetic_is_unchanged_by_merging():
     total_off = sum(len(f) for f in _run(CHUNKS, 0)) * SEMANTIC_MS_PER_TOKEN
     total_on = sum(len(f) for f in _run(CHUNKS, 16)) * SEMANTIC_MS_PER_TOKEN
     assert total_off == total_on
+
+
+class _Grid:
+    """The read-step grid, lifted out so the tail gate can be driven directly."""
+
+    def __init__(self, block_samples: int, block_ms: int) -> None:
+        self.block_samples = block_samples
+        self.block_ms = block_ms
+
+    def steps(self, samples: int, stride: int, min_final_ms: int) -> list[int]:
+        total_blocks = -(-samples // self.block_samples)
+        steps = list(range(stride - 1, total_blocks, stride))
+        if not steps:
+            return [total_blocks - 1]
+        if steps[-1] != total_blocks - 1:
+            residual = samples - (steps[-1] + 1) * self.block_samples
+            residual_ms = self.block_ms * max(0, residual) / self.block_samples
+            if min_final_ms and residual_ms < min_final_ms:
+                steps[-1] = total_blocks - 1
+            else:
+                steps.append(total_blocks - 1)
+        return steps
+
+
+GRID = _Grid(block_samples=2560, block_ms=160)  # 160 ms at 16 kHz
+
+
+def test_tail_gate_off_keeps_the_established_grid():
+    # 17.1 s at stride 4: a 460 ms tail gets its own step, as it always has.
+    steps = GRID.steps(int(17.1 * 16000), 4, 0)
+    assert steps[-1] == -(-int(17.1 * 16000) // 2560) - 1
+    assert len(steps) == len(GRID.steps(int(17.1 * 16000), 4, 0))
+
+
+def test_a_short_tail_is_folded_not_dropped():
+    """The whole audio must still be read; only the extra round disappears."""
+    samples = int(16.78 * 16000)  # 140 ms tail at stride 4
+    total_blocks = -(-samples // 2560)
+    without = GRID.steps(samples, 4, 0)
+    with_gate = GRID.steps(samples, 4, 320)
+    assert len(with_gate) == len(without) - 1
+    # Both still finish on the final block, so no audio is left unread.
+    assert without[-1] == with_gate[-1] == total_blocks - 1
+
+
+def test_a_long_tail_still_gets_its_own_step():
+    samples = int(16.56 * 16000)  # 560 ms tail
+    assert len(GRID.steps(samples, 4, 320)) == len(GRID.steps(samples, 4, 0))
+
+
+def test_the_grid_always_ends_on_the_last_block():
+    for seconds in (3.0, 7.4, 16.46, 19.38):
+        for stride in (1, 2, 4, 6):
+            samples = int(seconds * 16000)
+            total_blocks = -(-samples // 2560)
+            for gate in (0, 320):
+                assert GRID.steps(samples, stride, gate)[-1] == total_blocks - 1
+
+
+def test_stride_one_is_never_affected():
+    """At stride 1 every block is a step, so there is no partial tail."""
+    samples = int(16.78 * 16000)
+    assert GRID.steps(samples, 1, 320) == GRID.steps(samples, 1, 0)
