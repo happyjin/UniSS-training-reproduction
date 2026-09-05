@@ -78,7 +78,7 @@ Where this deliberately differs
   the terminator immediately* -- ``END_CONTENT`` for ASR and MT -- which is a
   token the model already has and already knows how to produce.  The cost is
   that the IDLE lesson lands in the ``boundary_eos`` bucket rather than in a
-  bucket of its own; see ``STEP2_DESIGN`` in the experiment README.
+  bucket of its own; see reports/uniss_streaming_p2st_traj_v1/STEP2_DESIGN.zh-CN.md
 * **TTS emits no IDLE by default.**  Their Talker is asked on every chunk; our
   cascade invokes the TTS stage only when the MT stage produced text, so a
   "speak nothing" sample would train a condition inference never presents.
