@@ -1,0 +1,913 @@
+{
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 27,
+   "audio_blocks": 107,
+   "fragments": 1,
+   "semantic_tokens": 29,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 17.1,
+   "concat_seconds": 0.58,
+   "delays": [
+    10880.0
+   ],
+   "durations": [
+    580.0
+   ],
+   "intervals": [
+    [
+     10880.0,
+     580.0
+    ]
+   ],
+   "elapsed": [
+    10880.0
+   ],
+   "silences": [
+    10880.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the clock It was for that The mustanger was making",
+   "target_hypothesis": "猎人",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 11.46,
+    "concatenated_seconds": 0.58,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 9.64556843554601,
+   "rtf": 0.5640683295640941
+  },
+  {
+   "sample_id": "LibriSpeech_0000104521",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16880,
+   "read_steps": 27,
+   "audio_blocks": 106,
+   "fragments": 15,
+   "semantic_tokens": 699,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/LibriSpeech_0000104521.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/LibriSpeech_0000104521.wav",
+   "placed_seconds": 21.18,
+   "concat_seconds": 13.98,
+   "delays": [
+    2560.0,
+    3200.0,
+    6400.0,
+    7040.0,
+    7680.0,
+    8320.0,
+    9600.0,
+    10240.0,
+    10880.0,
+    11520.0,
+    14080.0,
+    15360.0,
+    16000.0,
+    16640.0,
+    16880.0
+   ],
+   "durations": [
+    640.0,
+    340.0,
+    1040.0,
+    880.0,
+    880.0,
+    400.0,
+    460.0,
+    160.0,
+    1040.0,
+    2020.0,
+    400.0,
+    540.0,
+    900.0,
+    2460.0,
+    1820.0
+   ],
+   "intervals": [
+    [
+     2560.0,
+     640.0
+    ],
+    [
+     3200.0,
+     340.0
+    ],
+    [
+     6400.0,
+     1040.0
+    ],
+    [
+     7440.0,
+     880.0
+    ],
+    [
+     8320.0,
+     880.0
+    ],
+    [
+     9200.0,
+     400.0
+    ],
+    [
+     9600.0,
+     460.0
+    ],
+    [
+     10240.0,
+     160.0
+    ],
+    [
+     10880.0,
+     1040.0
+    ],
+    [
+     11920.0,
+     2020.0
+    ],
+    [
+     14080.0,
+     400.0
+    ],
+    [
+     15360.0,
+     540.0
+    ],
+    [
+     16000.0,
+     900.0
+    ],
+    [
+     16900.0,
+     2460.0
+    ],
+    [
+     19360.0,
+     1820.0
+    ]
+   ],
+   "elapsed": [
+    2658.7559529580176,
+    3200.0,
+    6400.0,
+    7440.0,
+    8320.0,
+    9200.0,
+    9600.0,
+    10240.0,
+    10880.0,
+    12394.644537940621,
+    14080.0,
+    15360.0,
+    16000.0,
+    18425.85291294381,
+    20383.174414280802
+   ],
+   "silences": [
+    2560.0,
+    0.0,
+    2860.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    180.0,
+    480.0,
+    0.0,
+    140.0,
+    880.0,
+    100.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "Until they drew up beside the palace steps an aged winky dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage show us at once to your master the emperor",
+   "target_hypothesis": "直到他们走到宫殿台阶旁一个穿着银色布衣服的老妇人走上前来帮助他们下车稻草人对他的人物说立刻带我们去见你的主人皇帝",
+   "transcription_reference": "Until they drew up beside the palace steps an aged winkie dressed in a uniform of silver cloth came forward to assist them to alight said the scarecrow to his personage Show us at once to your master the emperor",
+   "translation_reference": "直到他们来到宫殿的台阶旁一位身穿银色制服的老卫兵上前帮助他们下马稻草人对这位人物说立刻带我们去见你们的主人皇帝",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    4,
+    3,
+    2,
+    2,
+    2,
+    1,
+    6,
+    6,
+    2,
+    8,
+    3,
+    5,
+    8
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 15,
+    "placed_seconds": 21.18,
+    "concatenated_seconds": 13.98,
+    "queueing_delay_ms_mean": 337.3333333333333,
+    "queueing_delay_ms_max": 2480.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 20.388632256072015,
+   "rtf": 1.2078573611417072
+  },
+  {
+   "sample_id": "LibriSpeech_0000174311",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16560,
+   "read_steps": 26,
+   "audio_blocks": 104,
+   "fragments": 8,
+   "semantic_tokens": 375,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/LibriSpeech_0000174311.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/LibriSpeech_0000174311.wav",
+   "placed_seconds": 18.84,
+   "concat_seconds": 7.5,
+   "delays": [
+    2560.0,
+    3200.0,
+    5120.0,
+    6400.0,
+    8320.0,
+    8960.0,
+    9600.0,
+    16560.0
+   ],
+   "durations": [
+    580.0,
+    460.0,
+    240.0,
+    340.0,
+    200.0,
+    1160.0,
+    2240.0,
+    2280.0
+   ],
+   "intervals": [
+    [
+     2560.0,
+     580.0
+    ],
+    [
+     3200.0,
+     460.0
+    ],
+    [
+     5120.0,
+     240.0
+    ],
+    [
+     6400.0,
+     340.0
+    ],
+    [
+     8320.0,
+     200.0
+    ],
+    [
+     8960.0,
+     1160.0
+    ],
+    [
+     10120.0,
+     2240.0
+    ],
+    [
+     16560.0,
+     2280.0
+    ]
+   ],
+   "elapsed": [
+    2762.3900324106216,
+    3462.0322082191706,
+    5120.0,
+    6400.0,
+    8320.0,
+    8960.0,
+    10120.0,
+    16560.0
+   ],
+   "silences": [
+    2560.0,
+    60.0,
+    1460.0,
+    1040.0,
+    1580.0,
+    440.0,
+    0.0,
+    4200.0
+   ],
+   "source_hypothesis": "But they do not engross the whole discourse so to themselves during their meals that they younger may not put in for a share on the contrary they engage them to talk that so they may in that free way of conversation find out the force of everyone's spirit and observe his temper",
+   "target_hypothesis": "但他们并没有在用餐时全身心投入以至于年轻人可能不会为他们分一杯羹相反他们",
+   "transcription_reference": "But they do not engross the whole discourse so to themselves during their meals that the younger may not put in for a share On the contrary they engage them to talk that so they may in that free way of conversation find out the force of every one's spirit and observe his temper",
+   "translation_reference": "但他们并不会在用餐时完全占据谈话不让年轻人有机会加入相反他们会邀请年轻人参与交谈以便在自由的对话中发现每个人的才华并观察其性格",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    3,
+    1,
+    3,
+    1,
+    7,
+    8,
+    10
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 18.84,
+    "concatenated_seconds": 7.5,
+    "queueing_delay_ms_mean": 65.0,
+    "queueing_delay_ms_max": 520.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 14.05198718700558,
+   "rtf": 0.848549950906134
+  },
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 27,
+   "audio_blocks": 106,
+   "fragments": 1,
+   "semantic_tokens": 50,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 16.84,
+   "concat_seconds": 1.0,
+   "delays": [
+    4480.0
+   ],
+   "durations": [
+    1000.0
+   ],
+   "intervals": [
+    [
+     4480.0,
+     1000.0
+    ]
+   ],
+   "elapsed": [
+    4480.0
+   ],
+   "silences": [
+    4480.0
+   ],
+   "source_hypothesis": "There is one other phenomena which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to him as sexuality while the unorthodox and great frequency of congenfling versions is not usually clear",
+   "target_hypothesis": "还有一种现象",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    6
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 1,
+    "placed_seconds": 5.48,
+    "concatenated_seconds": 1.0,
+    "queueing_delay_ms_mean": 0.0,
+    "queueing_delay_ms_max": 0.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 7.103339145891368,
+   "rtf": 0.42181348847335914
+  },
+  {
+   "sample_id": "emilia_zh_0003927983",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16460,
+   "read_steps": 26,
+   "audio_blocks": 103,
+   "fragments": 6,
+   "semantic_tokens": 735,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/emilia_zh_0003927983.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/emilia_zh_0003927983.wav",
+   "placed_seconds": 25.8,
+   "concat_seconds": 14.7,
+   "delays": [
+    3200.0,
+    4480.0,
+    6400.0,
+    10880.0,
+    16000.0,
+    16460.0
+   ],
+   "durations": [
+    1720.0,
+    660.0,
+    1320.0,
+    1200.0,
+    3600.0,
+    6200.0
+   ],
+   "intervals": [
+    [
+     3200.0,
+     1720.0
+    ],
+    [
+     4920.0,
+     660.0
+    ],
+    [
+     6400.0,
+     1320.0
+    ],
+    [
+     10880.0,
+     1200.0
+    ],
+    [
+     16000.0,
+     3600.0
+    ],
+    [
+     19600.0,
+     6200.0
+    ]
+   ],
+   "elapsed": [
+    4217.357870191336,
+    5159.371824003756,
+    6800.823676399887,
+    10880.0,
+    16000.0,
+    20371.611460112035
+   ],
+   "silences": [
+    3200.0,
+    0.0,
+    820.0,
+    3160.0,
+    3920.0,
+    0.0
+   ],
+   "source_hypothesis": "但是我想提供一个小小的这个视角啊就也许这些仅仅是同时发生的并不是互为因果关系就是你的性格的这些特点并不一定是由于父母离异造成的",
+   "target_hypothesis": "But I want to provide a small perspective that perhaps these are just happening simultaneously not in a causal relationship but rather the characteristics of your personality may not necessarily be caused by the",
+   "transcription_reference": "但是我想提供一个小小的这个视角啊就也许这些仅仅是同时发生的并不是互为因果关系就是你的性格的这些特点并不一定是由于父母离异造成的",
+   "translation_reference": "But I want to offer a small perspective that perhaps these are merely coincidental and not causally related That is the characteristics of your personality may not necessarily be due to your parents' divorce",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    21,
+    8,
+    12,
+    19,
+    63,
+    88
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 25.8,
+    "concatenated_seconds": 14.7,
+    "queueing_delay_ms_mean": 596.6666666666666,
+    "queueing_delay_ms_max": 3140.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 20.38006994407624,
+   "rtf": 1.2381573477567582
+  },
+  {
+   "sample_id": "emilia_zh_0003929091",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 16780,
+   "read_steps": 27,
+   "audio_blocks": 105,
+   "fragments": 9,
+   "semantic_tokens": 496,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/emilia_zh_0003929091.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/emilia_zh_0003929091.wav",
+   "placed_seconds": 21.34,
+   "concat_seconds": 9.92,
+   "delays": [
+    2560.0,
+    3840.0,
+    5760.0,
+    6400.0,
+    8960.0,
+    11520.0,
+    12160.0,
+    16640.0,
+    16780.0
+   ],
+   "durations": [
+    1120.0,
+    180.0,
+    2040.0,
+    300.0,
+    440.0,
+    100.0,
+    1040.0,
+    1500.0,
+    3200.0
+   ],
+   "intervals": [
+    [
+     2560.0,
+     1120.0
+    ],
+    [
+     3840.0,
+     180.0
+    ],
+    [
+     5760.0,
+     2040.0
+    ],
+    [
+     7800.0,
+     300.0
+    ],
+    [
+     8960.0,
+     440.0
+    ],
+    [
+     11520.0,
+     100.0
+    ],
+    [
+     12160.0,
+     1040.0
+    ],
+    [
+     16640.0,
+     1500.0
+    ],
+    [
+     18140.0,
+     3200.0
+    ]
+   ],
+   "elapsed": [
+    3299.007962923497,
+    3840.0,
+    6388.208758085966,
+    7800.0,
+    8960.0,
+    11520.0,
+    12160.0,
+    16640.0,
+    18140.0
+   ],
+   "silences": [
+    2560.0,
+    160.0,
+    1740.0,
+    0.0,
+    860.0,
+    2120.0,
+    540.0,
+    3440.0,
+    0.0
+   ],
+   "source_hypothesis": "甚至当我们以这种方式去认定人的时候我们就是一种静止的态度来看待每个人看待生活这本身是需要你去好好琢磨一下的如果生活真的是认定这个是对的人一切就会以对的方式发生那世界就变得太简单了倒过来讲",
+   "target_hypothesis": "Even when we identify people in this way we view each person and life with a static attitude which requires you to carefully consider If life is truly defined as the right person everything will happen in the right way",
+   "transcription_reference": "甚至当我们以这种方式去论定人的时候我们就是一种静止的态度来看待每个人看待生活这本身是需要你去好好琢磨一下的如果生活真的是认定这个是对的人一切就会以对的方式发生那世界就变得太简单了倒过来讲",
+   "translation_reference": "Even when we judge people in this way we adopt a static attitude towards each person and towards life This is something you need to seriously consider If life really were to confirm that this is the right person everything would happen in the right way then the world would be too simple Conversely",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    9,
+    3,
+    31,
+    5,
+    12,
+    4,
+    69,
+    11,
+    74
+   ],
+   "mt_delta_chars_over_prior_bucket": 3,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 9,
+    "placed_seconds": 21.34,
+    "concatenated_seconds": 9.92,
+    "queueing_delay_ms_mean": 306.6666666666667,
+    "queueing_delay_ms_max": 1400.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 17.21778579102829,
+   "rtf": 1.0260897372484081
+  },
+  {
+   "sample_id": "emilia_zh_0003980703",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 19380,
+   "read_steps": 31,
+   "audio_blocks": 122,
+   "fragments": 5,
+   "semantic_tokens": 580,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/emilia_zh_0003980703.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/emilia_zh_0003980703.wav",
+   "placed_seconds": 21.64,
+   "concat_seconds": 11.6,
+   "delays": [
+    3840.0,
+    10880.0,
+    12160.0,
+    13440.0,
+    19380.0
+   ],
+   "durations": [
+    840.0,
+    2540.0,
+    2260.0,
+    5080.0,
+    880.0
+   ],
+   "intervals": [
+    [
+     3840.0,
+     840.0
+    ],
+    [
+     10880.0,
+     2540.0
+    ],
+    [
+     13420.0,
+     2260.0
+    ],
+    [
+     15680.0,
+     5080.0
+    ],
+    [
+     20760.0,
+     880.0
+    ]
+   ],
+   "elapsed": [
+    3875.3104731440544,
+    10880.0,
+    13420.0,
+    18818.44827812165,
+    21651.815192773938
+   ],
+   "silences": [
+    3840.0,
+    6200.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "那在这个当中它的安全就是来满足这些需求的啊也就是一种怎么标准的一种情境下的一种需求其实如果我们去看这个创意的时候因为我们也会有一些创意评分的一些工具吧那么这一个是得分非常高的咱们大家也觉得说哎这也不是一个特别那种特别有创意的东西哈",
+   "target_hypothesis": "Then in this case its safety is to meet these needs which is a situation under a certain standard In fact when we look at this idea we also have some tools for evaluating creativity So this one has very high scores and we all think that this is not something particularly creative",
+   "transcription_reference": "那在这个当中它的安全就是来满足这些需求的啊也就是一种很标准的一种情境下的一个需求嗯所以如果我们去看这个创意的时候因为我们也会有一些创意评分的一些工具吧那么这一个其实是得分非常高的可能大家也觉得说哎这也不是一个特别那种特别有创意的东西哈",
+   "translation_reference": "In this context its security is meant to meet these needs which is a standard requirement in a typical scenario So when we look at this creativity we also have some tools for evaluating creativity This one actually scores very high Perhaps everyone also feels that well this isn't something particularly creative",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    12,
+    50,
+    35,
+    84,
+    99
+   ],
+   "mt_delta_chars_over_prior_bucket": 4,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 21.64,
+    "concatenated_seconds": 11.6,
+    "queueing_delay_ms_mean": 976.0,
+    "queueing_delay_ms_max": 2240.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 21.658762125764042,
+   "rtf": 1.1175831850239444
+  },
+  {
+   "sample_id": "emilia_zh_0003980934",
+   "arm": "step2_0000100_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 17540,
+   "read_steps": 28,
+   "audio_blocks": 110,
+   "fragments": 8,
+   "semantic_tokens": 326,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_placed/emilia_zh_0003980934.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000100_k4/translation_concat/emilia_zh_0003980934.wav",
+   "placed_seconds": 17.54,
+   "concat_seconds": 6.52,
+   "delays": [
+    1920.0,
+    2560.0,
+    4480.0,
+    5120.0,
+    7040.0,
+    7680.0,
+    8320.0,
+    10240.0
+   ],
+   "durations": [
+    320.0,
+    200.0,
+    160.0,
+    1040.0,
+    500.0,
+    2340.0,
+    1000.0,
+    960.0
+   ],
+   "intervals": [
+    [
+     1920.0,
+     320.0
+    ],
+    [
+     2560.0,
+     200.0
+    ],
+    [
+     4480.0,
+     160.0
+    ],
+    [
+     5120.0,
+     1040.0
+    ],
+    [
+     7040.0,
+     500.0
+    ],
+    [
+     7680.0,
+     2340.0
+    ],
+    [
+     10020.0,
+     1000.0
+    ],
+    [
+     11020.0,
+     960.0
+    ]
+   ],
+   "elapsed": [
+    3010.7459467835724,
+    3411.826531868428,
+    4480.0,
+    5204.8250660300255,
+    7040.0,
+    9034.084337763488,
+    10226.982248947024,
+    11704.460478853434
+   ],
+   "silences": [
+    1920.0,
+    320.0,
+    1720.0,
+    480.0,
+    880.0,
+    140.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "但是随着大模型合成过程的发展呢重新开始再有未来的发展的方向呢我觉得会有这样的一个变化就是现在的所有的这些公司所有的创业公司都会以医疗器械用大模型做的换的管理公司诊断治疗管理",
+   "target_hypothesis": "But as the development of large models progresses and the direction of future development begins I think there will be such a change",
+   "transcription_reference": "但是随着大模型和人工智能的发展呢从现在开始在未来的发展的方向呢我觉得会有这样的一个变化就是现在呢所有的制药公司所有的创业公司包括医疗器械用大模型做的患者管理公司诊断治疗管理",
+   "translation_reference": "However with the development of large models and artificial intelligence from now on I believe there will be such a change in the direction of future development That is all pharmaceutical companies all startups including medical device companies will use large models for patient management company diagnosis and treatment management",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    3,
+    3,
+    4,
+    21,
+    7,
+    51,
+    15,
+    28
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 8,
+    "placed_seconds": 11.98,
+    "concatenated_seconds": 6.52,
+    "queueing_delay_ms_mean": 310.0,
+    "queueing_delay_ms_max": 1700.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 13.047502491157502,
+   "rtf": 0.7438712936805874
+  }
+ ]
+}

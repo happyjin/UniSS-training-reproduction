@@ -1,0 +1,149 @@
+{
+ "arm": "base_step1_k4",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "base_step1_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 27,
+   "audio_blocks": 107,
+   "fragments": 10,
+   "semantic_tokens": 612,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/base_step1_k4/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/base_step1_k4/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 19.2,
+   "concat_seconds": 12.24,
+   "delays": [
+    4480.0,
+    5760.0,
+    6400.0,
+    8320.0,
+    10240.0,
+    10880.0,
+    11520.0,
+    12160.0,
+    15360.0,
+    17100.0
+   ],
+   "durations": [
+    1920.0,
+    500.0,
+    240.0,
+    1060.0,
+    1700.0,
+    1560.0,
+    280.0,
+    1140.0,
+    2920.0,
+    920.0
+   ],
+   "intervals": [
+    [
+     4480.0,
+     1920.0
+    ],
+    [
+     6400.0,
+     500.0
+    ],
+    [
+     6900.0,
+     240.0
+    ],
+    [
+     8320.0,
+     1060.0
+    ],
+    [
+     10240.0,
+     1700.0
+    ],
+    [
+     11940.0,
+     1560.0
+    ],
+    [
+     13500.0,
+     280.0
+    ],
+    [
+     13780.0,
+     1140.0
+    ],
+    [
+     15360.0,
+     2920.0
+    ],
+    [
+     18280.0,
+     920.0
+    ]
+   ],
+   "elapsed": [
+    4659.510827157646,
+    6400.0,
+    6900.0,
+    8320.0,
+    10240.0,
+    11940.0,
+    13500.0,
+    13780.0,
+    17382.717146072537,
+    18781.558602117002
+   ],
+   "silences": [
+    4480.0,
+    0.0,
+    0.0,
+    1180.0,
+    860.0,
+    0.0,
+    0.0,
+    0.0,
+    440.0,
+    0.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the clock It was for that The mustanger was making a",
+   "target_hypothesis": "仿佛受伤的肢体不再阻碍他猎人怀疑他的意图超过了六英尺他看到那把血淋淋的刀刃沿着时钟摆动正是为了这个",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    9,
+    2,
+    1,
+    4,
+    4,
+    4,
+    2,
+    3,
+    14,
+    6
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 10,
+    "placed_seconds": 19.2,
+    "concatenated_seconds": 12.24,
+    "queueing_delay_ms_mean": 698.0,
+    "queueing_delay_ms_max": 1980.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 18.786738708615303,
+   "rtf": 1.0986396905622984
+  }
+ ]
+}

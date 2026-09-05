@@ -1,0 +1,113 @@
+{
+ "arm": "step2_0000200_k4",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000213211",
+   "arm": "step2_0000200_k4",
+   "read_stride": 4,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 640,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 16840,
+   "read_steps": 27,
+   "audio_blocks": 106,
+   "fragments": 6,
+   "semantic_tokens": 619,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000200_k4/translation_placed/LibriSpeech_0000213211.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/longform_curve/step2_0000200_k4/translation_concat/LibriSpeech_0000213211.wav",
+   "placed_seconds": 27.08,
+   "concat_seconds": 12.38,
+   "delays": [
+    3200.0,
+    3840.0,
+    5120.0,
+    7040.0,
+    11520.0,
+    16840.0
+   ],
+   "durations": [
+    1040.0,
+    300.0,
+    480.0,
+    160.0,
+    160.0,
+    10240.0
+   ],
+   "intervals": [
+    [
+     3200.0,
+     1040.0
+    ],
+    [
+     4240.0,
+     300.0
+    ],
+    [
+     5120.0,
+     480.0
+    ],
+    [
+     7040.0,
+     160.0
+    ],
+    [
+     11520.0,
+     160.0
+    ],
+    [
+     16840.0,
+     10240.0
+    ]
+   ],
+   "elapsed": [
+    3288.337415084243,
+    4240.0,
+    5120.0,
+    7040.0,
+    11520.0,
+    18619.338090065867
+   ],
+   "silences": [
+    3200.0,
+    0.0,
+    580.0,
+    1440.0,
+    4320.0,
+    5160.0
+   ],
+   "source_hypothesis": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to him as sexuality while there were not involved in a greater frequency of congenfling version is not usually clear",
+   "target_hypothesis": "还有一种现象可能被提及这被认为尽管这些现象在某种程度上普遍存在但我们似乎发现他对性行为有一种特殊的倾向而在没有涉及更频繁的同性恋版本的情况下这种倾向通常并不明显",
+   "transcription_reference": "There is one other phenomenon which may be mentioned This is the alleged fact that while the phenomena exist to some extent everywhere we seem to find a special proclivity to homosexuality whether or not involving a greater frequency of congenital inversion is not usually clear",
+   "translation_reference": "还有一种现象值得一提这就是在这些现象在某种程度上普遍存在的同时我们似乎发现有一种特别倾向于同性恋的现象无论这是否涉及更高的先天倒错频率通常并不清楚",
+   "terminator_rate": 0.8333333333333334,
+   "capped_stages": 1,
+   "mt_delta_chars": [
+    6,
+    2,
+    3,
+    1,
+    1,
+    67
+   ],
+   "mt_delta_chars_over_prior_bucket": 1,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 6,
+    "placed_seconds": 27.08,
+    "concatenated_seconds": 12.38,
+    "queueing_delay_ms_mean": 66.66666666666667,
+    "queueing_delay_ms_max": 400.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 18.625419466290623,
+   "rtf": 1.1060225336277092
+  }
+ ]
+}
