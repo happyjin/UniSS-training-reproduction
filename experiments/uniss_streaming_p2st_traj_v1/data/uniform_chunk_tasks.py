@@ -79,6 +79,22 @@ Where this deliberately differs
   token the model already has and already knows how to produce.  The cost is
   that the IDLE lesson lands in the ``boundary_eos`` bucket rather than in a
   bucket of its own; see reports/uniss_streaming_p2st_traj_v1/STEP2_DESIGN.zh-CN.md
+* **MT emits no IDLE when ``mt_idle_ratio`` is 0, which is the measured
+  recommendation.**  Two numbers decide this, taken over 3000 trajectories
+  and 33,777 chunks.  On a chunk that admits at least one gold event -- 90%
+  of them, and the only case inference presents -- the ASR label is nearly
+  determined, ``P(idle) = 0.089``, because "was anything said in this 640 ms"
+  is a property of the audio.  The MT label on the same chunks is
+  ``P(idle) = 0.469``: a coin flip, because it encodes when the *aligner*
+  chose to commit a translation, which is not visible in the input at all.
+  Training on it cannot teach when to wait; it can only raise the model's
+  prior for terminating.  And it is redundant besides -- ``switch_rule``
+  already routes an empty MT delta to ``TASK_READ`` -- so at inference the
+  runtime expresses the read/wait step whether or not the model was taught
+  to.  Measured consequence of leaving it on: at 200 steps the MT stage
+  terminated on 26 of 27 read steps and the translation collapsed from 164
+  characters to 2, while the ASR stage was untouched.
+
 * **TTS emits no IDLE by default.**  Their Talker is asked on every chunk; our
   cascade invokes the TTS stage only when the MT stage produced text, so a
   "speak nothing" sample would train a condition inference never presents.
@@ -388,6 +404,7 @@ def build_uniform_chunk_mt_tasks(
     encode_text: EncodeText,
     chunk_ms: int = DEFAULT_CHUNK_MS,
     idle_ratio: float = DEFAULT_IDLE_RATIO,
+    mt_idle_ratio: float | None = None,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
     glm_token_count: Callable[[int], int] = causal_glm_token_count,
 ) -> list[P2STTaskSample]:
@@ -426,7 +443,11 @@ def build_uniform_chunk_mt_tasks(
             idle.append(window.chunk_index)
         plan.append((window, source_text, committed, delta))
 
-    keep = _keep_idle(idle, len(content), idle_ratio)
+    keep = _keep_idle(
+        idle,
+        len(content),
+        idle_ratio if mt_idle_ratio is None else float(mt_idle_ratio),
+    )
     output: list[P2STTaskSample] = []
     for window, source_text, committed, delta in plan:
         if not delta and window.chunk_index not in keep:
@@ -594,6 +615,7 @@ def build_uniform_chunk_samples(
     encode_text: EncodeText,
     chunk_ms: int = DEFAULT_CHUNK_MS,
     idle_ratio: float = DEFAULT_IDLE_RATIO,
+    mt_idle_ratio: float | None = None,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
     tts_idle: bool = False,
 ) -> dict[str, list[P2STTaskSample]]:
@@ -616,6 +638,7 @@ def build_uniform_chunk_samples(
             encode_text=encode_text,
             chunk_ms=chunk_ms,
             idle_ratio=idle_ratio,
+            mt_idle_ratio=mt_idle_ratio,
             source_prefix_kind=source_prefix_kind,
         ),
         FAMILY_P2ST_TTS: build_uniform_chunk_tts_tasks(

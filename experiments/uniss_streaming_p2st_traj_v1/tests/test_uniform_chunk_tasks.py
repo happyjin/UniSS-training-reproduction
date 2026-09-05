@@ -363,3 +363,60 @@ def test_larger_chunks_yield_fewer_samples(trajectories):
             )
         counts.append(total)
     assert counts[0] > counts[1] > counts[2]
+
+
+def test_mt_idle_ratio_overrides_the_shared_one(trajectories):
+    """The MT family must be switchable off on its own.
+
+    Measured over 3000 trajectories: on a chunk that admits a gold event the
+    ASR idle label is P=0.089 and the MT one is P=0.469.  The first carries
+    almost all its information, the second is a coin flip, so they cannot be
+    supervised at the same rate and the knob has to be separable.
+    """
+    asr_idle = 0
+    for trajectory in trajectories:
+        built = build_uniform_chunk_samples(
+            trajectory, encode_text=_encode, mt_idle_ratio=0.0
+        )
+        for sample in built[FAMILY_P2ST_MT]:
+            assert sample.loss_kinds.count(LOSS_MT) > 0, "no MT sample may be IDLE"
+        asr_idle += sum(
+            1 for s in built[FAMILY_P2ST_ASR] if s.loss_kinds.count(LOSS_ASR) == 0
+        )
+    # ... while the ASR family keeps its read/wait steps.  Counted across the
+    # sample rather than per utterance: the ASR idle rate is about 0.10, so a
+    # single short utterance can legitimately have none.
+    assert asr_idle > 0
+
+
+def test_mt_idle_ratio_defaults_to_the_shared_one(trajectories):
+    for trajectory in trajectories:
+        a = build_uniform_chunk_mt_tasks(trajectory, encode_text=_encode)
+        b = build_uniform_chunk_mt_tasks(
+            trajectory, encode_text=_encode, mt_idle_ratio=None
+        )
+        assert a == b
+
+
+def test_asr_idle_label_carries_more_signal_than_mt(trajectories):
+    """The measurement the split rests on, kept honest against the data.
+
+    On chunks that admit at least one gold event -- the only case inference
+    presents, since the runtime calls MT only after ASR commits -- the ASR
+    idle rate must stay far from a coin flip and the MT one must stay near it.
+    """
+    asr_idle = mt_idle = total = 0
+    for trajectory in trajectories:
+        for window in chunk_windows(trajectory, chunk_ms=DEFAULT_CHUNK_MS):
+            if not window.events:
+                continue
+            total += 1
+            asr_idle += int(
+                not any(e.gold_source_delta.strip() for e in window.events)
+            )
+            mt_idle += int(
+                not any(e.target_text_delta.strip() for e in window.events)
+            )
+    assert total > 0
+    assert asr_idle / total < 0.30, "the ASR label must stay informative"
+    assert 0.30 < mt_idle / total < 0.70, "the MT label is near chance"

@@ -80,6 +80,7 @@ def build_trajectory_samples(
     encode_text,
     chunk_ms: int = DEFAULT_CHUNK_MS,
     idle_ratio: float = DEFAULT_IDLE_RATIO,
+    mt_idle_ratio: float | None = None,
     tts_idle: bool = False,
     source_prefix_kind: str = SOURCE_PREFIX_GOLD,
 ) -> dict[str, list]:
@@ -89,6 +90,7 @@ def build_trajectory_samples(
         encode_text=encode_text,
         chunk_ms=chunk_ms,
         idle_ratio=idle_ratio,
+        mt_idle_ratio=mt_idle_ratio,
         source_prefix_kind=source_prefix_kind,
         tts_idle=tts_idle,
     )
@@ -115,6 +117,7 @@ def _worker(task: tuple[object, ...]) -> dict[str, object]:
         chunk_ms,
         idle_ratio,
         tts_idle,
+        mt_idle_ratio,
     ) = task
     from transformers import AutoTokenizer
 
@@ -148,6 +151,9 @@ def _worker(task: tuple[object, ...]) -> dict[str, object]:
                     encode_text=encode,
                     chunk_ms=int(chunk_ms),
                     idle_ratio=float(idle_ratio),
+                    mt_idle_ratio=(
+                        None if mt_idle_ratio is None else float(mt_idle_ratio)
+                    ),
                     tts_idle=bool(tts_idle),
                 )
             except ValueError as error:
@@ -199,6 +205,17 @@ def parse_args() -> argparse.Namespace:
         help="cap on IDLE samples per content sample, per family, per utterance",
     )
     parser.add_argument(
+        "--mt-idle-ratio",
+        type=float,
+        default=None,
+        help=(
+            "IDLE cap for the MT family alone; defaults to --idle-ratio.  "
+            "0.0 is the measured recommendation: on chunks that admit a gold "
+            "event the MT idle label is P=0.469, a coin flip, where the ASR "
+            "label is P=0.089"
+        ),
+    )
+    parser.add_argument(
         "--tts-idle",
         action="store_true",
         help="also teach the TTS family to speak nothing on an empty chunk",
@@ -232,7 +249,8 @@ def main() -> None:
     print(
         f"trajectories={total} workers={len(bounds)} "
         f"seq_length={args.seq_length} chunk_ms={args.chunk_ms} "
-        f"idle_ratio={args.idle_ratio} tts_idle={args.tts_idle}"
+        f"idle_ratio={args.idle_ratio} mt_idle_ratio={args.mt_idle_ratio} "
+        f"tts_idle={args.tts_idle}"
     )
 
     tasks = [
@@ -248,6 +266,7 @@ def main() -> None:
             int(args.chunk_ms),
             float(args.idle_ratio),
             bool(args.tts_idle),
+            args.mt_idle_ratio,
         )
         for index, (start, stop) in enumerate(bounds)
     ]
@@ -267,6 +286,7 @@ def main() -> None:
         "seq_length": int(args.seq_length),
         "chunk_ms": int(args.chunk_ms),
         "idle_ratio": float(args.idle_ratio),
+        "mt_idle_ratio": args.mt_idle_ratio,
         "tts_idle": bool(args.tts_idle),
         "trajectories": sum(int(r["trajectories"]) for r in results),
         "skipped_count": sum(int(r["skipped_count"]) for r in results),
