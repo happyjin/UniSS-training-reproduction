@@ -1,0 +1,104 @@
+{
+ "arm": "nir_omni_demo",
+ "samples": [
+  {
+   "sample_id": "omni_demo_zh2en_414",
+   "arm": "nir_omni_demo",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "zh2en",
+   "src_lang": "cmn",
+   "tgt_lang": "eng",
+   "source_duration_ms": 7410,
+   "read_steps": 47,
+   "audio_blocks": 47,
+   "fragments": 5,
+   "semantic_tokens": 317,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/audio/nir_omni_demo/translation_placed/omni_demo_zh2en_414.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/audio/nir_omni_demo/translation_concat/omni_demo_zh2en_414.wav",
+   "placed_seconds": 12.04,
+   "concat_seconds": 6.34,
+   "delays": [
+    1760.0,
+    4960.0,
+    6560.0,
+    7040.0,
+    7410.0
+   ],
+   "durations": [
+    560.0,
+    300.0,
+    1700.0,
+    2580.0,
+    1200.0
+   ],
+   "intervals": [
+    [
+     1760.0,
+     560.0
+    ],
+    [
+     4960.0,
+     300.0
+    ],
+    [
+     6560.0,
+     1700.0
+    ],
+    [
+     8260.0,
+     2580.0
+    ],
+    [
+     10840.0,
+     1200.0
+    ]
+   ],
+   "elapsed": [
+    2118.593221064657,
+    4960.0,
+    7072.861724998802,
+    9923.880508169532,
+    11360.130834858865
+   ],
+   "silences": [
+    1760.0,
+    2640.0,
+    1300.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "呃他就这个就就就显现了医生已经注意到这个呃自己的这个心心慌啊什么心跳之类的",
+   "target_hypothesis": "Well this has shown that the doctor has already noticed his own anxiety and heartbeat",
+   "transcription_reference": "",
+   "translation_reference": "",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    4,
+    5,
+    30,
+    32,
+    14
+   ],
+   "mt_delta_chars_over_prior_bucket": 2,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 5,
+    "placed_seconds": 12.04,
+    "concatenated_seconds": 6.34,
+    "queueing_delay_ms_mean": 930.0,
+    "queueing_delay_ms_max": 3430.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 11.36503900680691,
+   "rtf": 1.5337434557094345
+  }
+ ]
+}

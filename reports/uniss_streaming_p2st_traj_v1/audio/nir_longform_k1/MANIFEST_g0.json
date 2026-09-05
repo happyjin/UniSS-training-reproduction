@@ -1,0 +1,239 @@
+{
+ "arm": "nir_longform_k1",
+ "samples": [
+  {
+   "sample_id": "LibriSpeech_0000079616",
+   "arm": "nir_longform_k1",
+   "read_stride": 1,
+   "speed": 1.0,
+   "source_holdback": 1,
+   "target_holdback": 0,
+   "read_step_ms": 160,
+   "direction": "en2zh",
+   "src_lang": "eng",
+   "tgt_lang": "cmn",
+   "source_duration_ms": 17100,
+   "read_steps": 107,
+   "audio_blocks": 107,
+   "fragments": 20,
+   "semantic_tokens": 719,
+   "translation_placed": "reports/uniss_streaming_p2st_traj_v1/audio/nir_longform_k1/translation_placed/LibriSpeech_0000079616.wav",
+   "translation_concat": "reports/uniss_streaming_p2st_traj_v1/audio/nir_longform_k1/translation_concat/LibriSpeech_0000079616.wav",
+   "placed_seconds": 19.72,
+   "concat_seconds": 14.38,
+   "delays": [
+    2240.0,
+    3040.0,
+    3360.0,
+    3520.0,
+    4640.0,
+    5440.0,
+    7200.0,
+    7520.0,
+    8960.0,
+    10240.0,
+    10720.0,
+    10880.0,
+    11200.0,
+    12320.0,
+    12640.0,
+    14240.0,
+    15840.0,
+    16000.0,
+    16640.0,
+    17100.0
+   ],
+   "durations": [
+    480.0,
+    680.0,
+    1040.0,
+    320.0,
+    400.0,
+    220.0,
+    440.0,
+    440.0,
+    920.0,
+    1240.0,
+    320.0,
+    240.0,
+    240.0,
+    2180.0,
+    260.0,
+    1360.0,
+    1700.0,
+    220.0,
+    760.0,
+    920.0
+   ],
+   "intervals": [
+    [
+     2240.0,
+     480.0
+    ],
+    [
+     3040.0,
+     680.0
+    ],
+    [
+     3720.0,
+     1040.0
+    ],
+    [
+     4760.0,
+     320.0
+    ],
+    [
+     5080.0,
+     400.0
+    ],
+    [
+     5480.0,
+     220.0
+    ],
+    [
+     7200.0,
+     440.0
+    ],
+    [
+     7640.0,
+     440.0
+    ],
+    [
+     8960.0,
+     920.0
+    ],
+    [
+     10240.0,
+     1240.0
+    ],
+    [
+     11480.0,
+     320.0
+    ],
+    [
+     11800.0,
+     240.0
+    ],
+    [
+     12040.0,
+     240.0
+    ],
+    [
+     12320.0,
+     2180.0
+    ],
+    [
+     14500.0,
+     260.0
+    ],
+    [
+     14760.0,
+     1360.0
+    ],
+    [
+     16120.0,
+     1700.0
+    ],
+    [
+     17820.0,
+     220.0
+    ],
+    [
+     18040.0,
+     760.0
+    ],
+    [
+     18800.0,
+     920.0
+    ]
+   ],
+   "elapsed": [
+    2955.736877862364,
+    4110.678315162659,
+    5355.878102127463,
+    5789.900370873511,
+    6711.454852949828,
+    7292.124322149903,
+    8567.53829214722,
+    9174.464461859316,
+    10767.99717405811,
+    12604.677023831755,
+    13178.121575154364,
+    13564.281599130481,
+    14006.910345051438,
+    16905.449556186795,
+    17345.502600073814,
+    19516.16984885186,
+    21950.27344301343,
+    22314.20927401632,
+    23387.88875285536,
+    24490.651070140302
+   ],
+   "silences": [
+    2240.0,
+    320.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1500.0,
+    0.0,
+    880.0,
+    360.0,
+    0.0,
+    0.0,
+    0.0,
+    40.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_hypothesis": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the clock It was for that La Mustanger was making a",
+   "target_hypothesis": "仿佛受伤的肢体不再阻碍他猎人怀疑他的意图超过了六英尺他看到了那把血淋淋的刀刃沿着时钟摆动正是为了这个拉马斯特杰正在做",
+   "transcription_reference": "As rapidly as if the injured limb no longer impeded him The hunter suspected his intent standing over six feet He saw the bloody knife blade lying along the cloak It was for that the Mustanger was making",
+   "translation_reference": "仿佛受伤的肢体不再妨碍他一般迅速猎人怀疑他的意图站在六英尺多高他看到带血的刀刃躺在斗篷上这就是那个牛仔想要的",
+   "terminator_rate": 1.0,
+   "capped_stages": 0,
+   "mt_delta_chars": [
+    2,
+    2,
+    3,
+    2,
+    2,
+    1,
+    2,
+    2,
+    4,
+    4,
+    2,
+    1,
+    2,
+    8,
+    1,
+    6,
+    6,
+    1,
+    3,
+    4
+   ],
+   "mt_delta_chars_over_prior_bucket": 0,
+   "revision_conflicts": {
+    "source": 0,
+    "target": 0
+   },
+   "placement": {
+    "fragments": 20,
+    "placed_seconds": 19.72,
+    "concatenated_seconds": 14.38,
+    "queueing_delay_ms_mean": 615.0,
+    "queueing_delay_ms_max": 1860.0,
+    "unused_translation_samples": 0
+   },
+   "wall_seconds": 24.496942749712616,
+   "rtf": 1.432569751445182
+  }
+ ]
+}
