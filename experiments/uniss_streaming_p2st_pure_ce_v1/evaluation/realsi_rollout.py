@@ -84,6 +84,14 @@ def main() -> None:
     parser.add_argument("--max-semantic-tokens", type=int, default=512)
     parser.add_argument("--max-text-tokens", type=int, default=128)
     parser.add_argument("--length-prior-scale", type=float, default=1.0)
+    # 1 keeps the greedy path this lineage was measured on.  SimulS2ST-Omni
+    # uses 4 on its text stage (paper section 4.1).
+    parser.add_argument("--text-num-beams", type=int, default=1)
+    parser.add_argument("--text-length-penalty", type=float, default=1.0)
+    parser.add_argument("--text-penalty", type=float, default=1.0)
+    parser.add_argument("--text-penalty-window", type=int, default=0)
+    # 16 codes is 320 ms at 20 ms per code.
+    parser.add_argument("--min-fragment-tokens", type=int, default=0)
     # Defaults are None so not passing them leaves P2STCascadeSession on its own
     # holdback=1, keeping every published k1/k25/offline number byte-identical.
     # onset_diagnosis measured why these matter: speech onset equals the MT
@@ -178,6 +186,11 @@ def main() -> None:
             max_semantic_tokens=args.max_semantic_tokens,
             max_text_tokens=args.max_text_tokens,
             length_prior_scale=args.length_prior_scale,
+            text_num_beams=args.text_num_beams,
+            text_length_penalty=args.text_length_penalty,
+            text_penalty=args.text_penalty,
+            text_penalty_window=args.text_penalty_window,
+            min_fragment_tokens=args.min_fragment_tokens,
             speed=args.speed,
             read_stride=args.read_stride,
             **(
@@ -256,6 +269,11 @@ def main() -> None:
                 "sample_id": row.sample_id,
                 "arm": args.arm,
                 "read_stride": args.read_stride,
+                "text_num_beams": args.text_num_beams,
+                "text_length_penalty": args.text_length_penalty,
+                "text_penalty": args.text_penalty,
+                "text_penalty_window": args.text_penalty_window,
+                "min_fragment_tokens": args.min_fragment_tokens,
                 "speed": args.speed,
                 "source_holdback": args.source_holdback,
                 "target_holdback": args.target_holdback,

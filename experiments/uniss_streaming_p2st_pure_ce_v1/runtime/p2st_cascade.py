@@ -190,6 +190,48 @@ def _generate(
     return produced, False
 
 
+def _generate_text(
+    model,
+    prompt_embeds: torch.Tensor,
+    *,
+    terminator: int,
+    max_tokens: int,
+    num_beams: int,
+    length_penalty: float,
+    penalty: float = 1.0,
+    penalty_window: int = 0,
+) -> tuple[list[int], bool]:
+    """Greedy unless more than one beam is asked for.
+
+    Kept as a one-line dispatch rather than a flag inside ``_generate`` so the
+    greedy path stays literally the function it has always been, and so the
+    beam implementation can live in the experiment that introduced it.
+    """
+    if int(num_beams) <= 1:
+        return _generate(
+            model,
+            prompt_embeds,
+            terminator=terminator,
+            max_tokens=max_tokens,
+            penalty=penalty,
+            penalty_window=penalty_window,
+        )
+    from experiments.uniss_streaming_p2st_traj_v1.runtime.beam_text import (
+        beam_generate,
+    )
+
+    return beam_generate(
+        model,
+        prompt_embeds,
+        terminator=terminator,
+        max_tokens=max_tokens,
+        num_beams=int(num_beams),
+        length_penalty=float(length_penalty),
+        penalty=float(penalty),
+        penalty_window=int(penalty_window),
+    )
+
+
 class P2STCascadeSession:
     """One streaming session over one source utterance."""
 
@@ -230,6 +272,26 @@ class P2STCascadeSession:
         # 1.5 is bit-identical to 1.3, so the response has saturated.
         semantic_penalty: float = 1.3,
         semantic_penalty_window: int = 64,
+        # Beam search for the two text stages, off by default so the shipped
+        # path is byte-identical to the greedy one that produced every number
+        # in this lineage.  SimulS2ST-Omni decodes its text stage with
+        # num_beams=4 (paper section 4.1); see
+        # experiments/uniss_streaming_p2st_traj_v1/runtime/beam_text.py.
+        text_num_beams: int = 1,
+        text_length_penalty: float = 1.0,
+        # The text stages have never had a repetition penalty; the semantic
+        # stage has carried 1.3 with a 64-code window since the repeating-loop
+        # failure.  SimulS2ST-Omni runs 1.1 on its text stage.  1.0 is a no-op
+        # and keeps the established path unchanged.
+        text_penalty: float = 1.0,
+        text_penalty_window: int = 0,
+        # Hold a fragment shorter than this many codes back and merge it into
+        # the next one instead of emitting a stub.  Measured on the eight
+        # longform samples at iter 200: 13.7% of fragments are under 320 ms
+        # (16 codes) and the shortest is 140 ms, and a 140 ms burst between
+        # two silences is heard as a stutter rather than as speech.  0 is off
+        # and leaves every number in this lineage unchanged.
+        min_fragment_tokens: int = 0,
         tts_text_scope: str = "delta",
         pace: bool = True,
         # 2000 rather than 1200: with the length prior in place the binding
@@ -269,6 +331,15 @@ class P2STCascadeSession:
         self.speaker_global = tuple(int(v) for v in speaker_global)
         self.speed = float(speed)
         self.max_text_tokens = int(max_text_tokens)
+        self.text_num_beams = max(1, int(text_num_beams))
+        self.text_length_penalty = float(text_length_penalty)
+        self.text_penalty = float(text_penalty)
+        self.text_penalty_window = int(text_penalty_window)
+        self.min_fragment_tokens = max(0, int(min_fragment_tokens))
+        # Codes generated but not yet emitted as a fragment, because they were
+        # too short to stand alone.  They are already in ``spoken_semantic``,
+        # so the TTS prompt is unaffected; only the emission is deferred.
+        self._pending_codes: list[int] = []
         self.max_semantic_tokens = int(max_semantic_tokens)
         # A simultaneous system cannot emit target audio faster than it
         # receives source audio; if it does, the output can never be played
@@ -466,11 +537,15 @@ class P2STCascadeSession:
             target_committed_tokens: list[int] = []
             while stage not in (TASK_READ, TASK_DONE):
                 if stage == TASK_ASR:
-                    produced, ended = _generate(
+                    produced, ended = _generate_text(
                         self.model,
                         self._asr_prompt(hidden),
                         terminator=c.TOKEN_END_CONTENT,
                         max_tokens=self.max_text_tokens,
+                        num_beams=self.text_num_beams,
+                        length_penalty=self.text_length_penalty,
+                        penalty=self.text_penalty,
+                        penalty_window=self.text_penalty_window,
                     )
                     committed = self.source_committer.update(
                         list(self.source_committer.committed) + produced,
@@ -478,11 +553,15 @@ class P2STCascadeSession:
                     )
                     source_delta = len(committed)
                 elif stage == TASK_MT:
-                    produced, ended = _generate(
+                    produced, ended = _generate_text(
                         self.model,
                         self._mt_prompt(),
                         terminator=c.TOKEN_END_CONTENT,
                         max_tokens=self.max_text_tokens,
+                        num_beams=self.text_num_beams,
+                        length_penalty=self.text_length_penalty,
+                        penalty=self.text_penalty,
+                        penalty_window=self.text_penalty_window,
                     )
                     committed = self.target_committer.update(
                         list(self.target_committer.committed) + produced,
@@ -538,6 +617,40 @@ class P2STCascadeSession:
                     ]
                     self.spoken_semantic.extend(codes)
                     committed = codes
+                    # Merge a stub into the next fragment rather than emitting
+                    # it.  The codes stay in ``spoken_semantic`` either way, so
+                    # what changes is when they are heard, not what is said.
+                    if self._pending_codes:
+                        codes = self._pending_codes + codes
+                        self._pending_codes = []
+                    if (
+                        self.min_fragment_tokens
+                        and len(codes) < self.min_fragment_tokens
+                        and not exhausted
+                    ):
+                        self._pending_codes = codes
+                        codes = []
+                    if not codes:
+                        # Nothing emitted this step; the stage still ran, so it
+                        # is recorded below like any other.
+                        self.trace.stages.append(
+                            StageRun(
+                                task=stage,
+                                block_index=block_index,
+                                generated=len(produced),
+                                committed=len(committed),
+                                stopped_on_terminator=bool(ended),
+                            )
+                        )
+                        stage = next_task(
+                            SwitchState(
+                                stage=stage,
+                                source_delta=source_delta,
+                                target_delta=target_delta,
+                                source_exhausted=exhausted,
+                            )
+                        )
+                        continue
                     start = max(float(source_end_ms), self._last_end_ms)
                     end = start + len(codes) * SEMANTIC_MS_PER_TOKEN
                     self._last_end_ms = end
@@ -580,6 +693,29 @@ class P2STCascadeSession:
                 )
             self.trace.source_deltas.append(source_delta)
             self.trace.target_deltas.append(target_delta)
+
+        # Flush whatever the gate is still holding.  The last read step runs
+        # the TTS stage only if the MT stage committed something, so without
+        # this a held stub is simply lost -- audio the model generated and the
+        # listener never hears.
+        if self._pending_codes:
+            codes = self._pending_codes
+            self._pending_codes = []
+            start = max(float(source_end_ms), self._last_end_ms)
+            end = start + len(codes) * SEMANTIC_MS_PER_TOKEN
+            self._last_end_ms = end
+            self.trace.fragments.append(
+                Fragment(
+                    read_step=len(steps) - 1,
+                    elapsed_ms=max(start, 1000.0 * (time.perf_counter() - started)),
+                    block_index=steps[-1],
+                    source_end_ms=source_end_ms,
+                    text=self.tokenizer.decode(self.target_committer.committed),
+                    semantic=tuple(codes),
+                    start_ms=start,
+                    end_ms=end,
+                )
+            )
 
         self.trace.source_text = self.tokenizer.decode(
             self.source_committer.committed
