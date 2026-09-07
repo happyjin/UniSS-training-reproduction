@@ -259,6 +259,9 @@ def _generate_text(
     length_penalty: float,
     penalty: float = 1.0,
     penalty_window: int = 0,
+    temperature: float = 0.0,
+    top_k: int = 0,
+    top_p: float = 1.0,
 ) -> tuple[list[int], bool]:
     """Greedy unless more than one beam is asked for.
 
@@ -274,6 +277,9 @@ def _generate_text(
             max_tokens=max_tokens,
             penalty=penalty,
             penalty_window=penalty_window,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
         )
     from experiments.uniss_streaming_p2st_traj_v1.runtime.beam_text import (
         beam_generate,
@@ -349,6 +355,12 @@ class P2STCascadeSession:
         # and keeps the established path unchanged.
         text_penalty: float = 1.0,
         text_penalty_window: int = 0,
+        # Sampling for the two text stages.  NaturalFlow's candidate pool is
+        # built by sampling whole translations at temperature 1.0 and picking
+        # among them; 0 keeps the greedy path this lineage was measured on.
+        text_temperature: float = 0.0,
+        text_top_k: int = 0,
+        text_top_p: float = 1.0,
         # Hold a fragment shorter than this many codes back and merge it into
         # the next one instead of emitting a stub.  Measured on the eight
         # longform samples at iter 200: 13.7% of fragments are under 320 ms
@@ -408,6 +420,9 @@ class P2STCascadeSession:
         self.text_length_penalty = float(text_length_penalty)
         self.text_penalty = float(text_penalty)
         self.text_penalty_window = int(text_penalty_window)
+        self.text_temperature = float(text_temperature)
+        self.text_top_k = int(text_top_k)
+        self.text_top_p = float(text_top_p)
         self.min_fragment_tokens = max(0, int(min_fragment_tokens))
         self.min_final_chunk_ms = max(0, int(min_final_chunk_ms))
         # Codes generated but not yet emitted as a fragment, because they were
@@ -634,6 +649,9 @@ class P2STCascadeSession:
                         length_penalty=self.text_length_penalty,
                         penalty=self.text_penalty,
                         penalty_window=self.text_penalty_window,
+                        temperature=self.text_temperature,
+                        top_k=self.text_top_k,
+                        top_p=self.text_top_p,
                     )
                     committed = self.source_committer.update(
                         list(self.source_committer.committed) + produced,
@@ -650,6 +668,9 @@ class P2STCascadeSession:
                         length_penalty=self.text_length_penalty,
                         penalty=self.text_penalty,
                         penalty_window=self.text_penalty_window,
+                        temperature=self.text_temperature,
+                        top_k=self.text_top_k,
+                        top_p=self.text_top_p,
                     )
                     committed = self.target_committer.update(
                         list(self.target_committer.committed) + produced,

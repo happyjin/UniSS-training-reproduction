@@ -90,6 +90,9 @@ def main() -> None:
     parser.add_argument("--text-length-penalty", type=float, default=1.0)
     parser.add_argument("--text-penalty", type=float, default=1.0)
     parser.add_argument("--text-penalty-window", type=int, default=0)
+    parser.add_argument("--text-temperature", type=float, default=0.0)
+    parser.add_argument("--text-top-k", type=int, default=0)
+    parser.add_argument("--text-top-p", type=float, default=1.0)
     # 16 codes is 320 ms at 20 ms per code.
     parser.add_argument("--min-fragment-tokens", type=int, default=0)
     # SimulS2ST-Omni gates the source tail at 320 ms.
@@ -199,6 +202,9 @@ def main() -> None:
             text_length_penalty=args.text_length_penalty,
             text_penalty=args.text_penalty,
             text_penalty_window=args.text_penalty_window,
+            text_temperature=args.text_temperature,
+            text_top_k=args.text_top_k,
+            text_top_p=args.text_top_p,
             min_fragment_tokens=args.min_fragment_tokens,
             min_final_chunk_ms=args.min_final_chunk_ms,
             semantic_temperature=args.semantic_temperature,
@@ -296,6 +302,9 @@ def main() -> None:
                 "text_length_penalty": args.text_length_penalty,
                 "text_penalty": args.text_penalty,
                 "text_penalty_window": args.text_penalty_window,
+                "text_temperature": args.text_temperature,
+                "text_top_k": args.text_top_k,
+                "text_top_p": args.text_top_p,
                 "min_fragment_tokens": args.min_fragment_tokens,
                 "min_final_chunk_ms": args.min_final_chunk_ms,
                 "semantic_temperature": args.semantic_temperature,
