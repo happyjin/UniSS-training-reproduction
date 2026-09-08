@@ -52,7 +52,9 @@ from experiments.uniss_phase3_v4_e2e_simuls2st_pilot15_v1.training.task_samples 
     FAMILY_PHASE3_PERFORMANCE,
     FAMILY_PHASE3_QUALITY,
     FAMILY_STREAMING_ASR,
+    LOSS_BOUNDARY,
     LOSS_NONE,
+    LOSS_SEMANTIC,
     TASK_FAMILIES,
 )
 from training import constants_uniss as c
@@ -1309,6 +1311,7 @@ def semantic_boundary_rollin_candidates(
     logits: torch.Tensor,
     input_ids: torch.Tensor,
     labels: torch.Tensor,
+    loss_kinds: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Return model semantic choices that can replace the final gold token.
 
@@ -1326,9 +1329,14 @@ def semantic_boundary_rollin_candidates(
     if flat_inputs.shape != flat_labels.shape:
         raise ValueError("semantic boundary roll-in input/label geometry differs")
     candidates = torch.full_like(flat_inputs, -1)
-    ends = torch.nonzero(
-        flat_labels == c.TOKEN_END_SEMANTIC, as_tuple=False
-    ).reshape(-1)
+    is_end = flat_labels == c.TOKEN_END_SEMANTIC
+    if loss_kinds is not None:
+        # An END_SEMANTIC label in the prompt is not a supervised boundary, and
+        # the binary boundary term asserts LOSS_BOUNDARY on every END row.
+        is_end = is_end & (
+            loss_kinds.reshape(-1).to(device=flat_labels.device) == LOSS_BOUNDARY
+        )
+    ends = torch.nonzero(is_end, as_tuple=False).reshape(-1)
     if ends.numel() == 0:
         return candidates.reshape_as(input_ids)
     if bool((ends <= 0).any()):
@@ -1365,6 +1373,7 @@ def semantic_rollin_continue_candidates(
     *,
     sample_boundaries: list[list[tuple[int, int]]],
     tail: int,
+    loss_kinds: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Return model semantic inputs for pre-END rows that wrongly prefer END.
 
@@ -1418,6 +1427,20 @@ def semantic_rollin_continue_candidates(
         & (inputs_2d >= semantic_start)
         & (inputs_2d < semantic_stop)
     )
+    if loss_kinds is not None:
+        # A label inside the semantic span is not by itself a supervised
+        # semantic row.  The p2st TTS family carries earlier fragments' codes
+        # in the prompt, in span on both sides but with LOSS_NONE, and the
+        # binary boundary term asserts LOSS_SEMANTIC on every CONTINUE row --
+        # 156 of 41,424 tail rows measured, enough to abort the run at
+        # iteration 15.  Narrowing the mask cannot change the interleaved
+        # family, where the invariant already holds on every tail row.
+        kinds_2d = (
+            loss_kinds.reshape(-1)
+            .to(device=labels_2d.device)
+            .reshape(row_count, row_width)
+        )
+        tail_mask &= kinds_2d == LOSS_SEMANTIC
     flat_tail = tail_mask.reshape(-1)
     positions = torch.nonzero(flat_tail, as_tuple=False).reshape(-1)
     candidates = torch.full_like(flat_inputs, -1)
@@ -1891,10 +1914,12 @@ def _semantic_boundary_rollin_output_processor(**kwargs) -> torch.Tensor:
     if hidden.ndim != 3 or hidden.shape[1] != 1 or logits.shape[1] != 1:
         raise ValueError("semantic roll-in expects flattened TP=PP=1 logits")
     context = kwargs["context"]
+    loss_kinds = context.get("loss_kinds")
     end_candidates = semantic_boundary_rollin_candidates(
         logits[:, 0],
         context["input_ids"],
         kwargs["labels"],
+        loss_kinds,
     )
     continue_candidates = semantic_rollin_continue_candidates(
         logits[:, 0],
@@ -1902,6 +1927,7 @@ def _semantic_boundary_rollin_output_processor(**kwargs) -> torch.Tensor:
         kwargs["labels"],
         sample_boundaries=context["sample_boundaries"],
         tail=int(context["continue_tail"]),
+        loss_kinds=loss_kinds,
     )
     return torch.stack((end_candidates, continue_candidates), dim=0)
 
@@ -2160,6 +2186,7 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
                     output_processor=_semantic_boundary_rollin_output_processor,
                     output_processor_context={
                         "input_ids": effective_input_ids,
+                        "loss_kinds": e2e_batch["loss_kinds"],
                         "sample_boundaries": e2e_batch["sample_boundaries"],
                         "continue_tail": int(
                             e2e_batch["semantic_rollin_continue_tail"].item()
