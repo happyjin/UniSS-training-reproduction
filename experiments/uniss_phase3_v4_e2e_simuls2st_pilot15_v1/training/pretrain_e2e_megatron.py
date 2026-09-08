@@ -1238,7 +1238,7 @@ def corrupt_interleaved_semantic_prefixes(
         raise ValueError("semantic prefix corruption input/label geometry differs")
     if (
         not training
-        or family not in semantic_rollin_families()
+        or family != FAMILY_INTERLEAVED
         or float(rate) == 0.0
         or input_ids.numel() == 0
     ):
@@ -1637,7 +1637,7 @@ def apply_symmetric_model_generated_semantic_rollin(
     empty_mask = torch.zeros_like(input_ids, dtype=torch.bool)
     disabled = (
         not training
-        or family != FAMILY_INTERLEAVED
+        or family not in semantic_rollin_families()
         or float(rate) == 0.0
         or input_ids.numel() == 0
     )

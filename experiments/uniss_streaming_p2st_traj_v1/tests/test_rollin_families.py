@@ -67,3 +67,49 @@ def test_rollin_is_disabled_for_a_family_outside_the_set(monkeypatch):
     )
     assert result.selected_tokens == 0
     assert result.eligible_tokens == 0
+
+
+def test_rollin_runs_for_an_opted_in_family(monkeypatch, p2st_registered):
+    """The positive direction, which the deny test above cannot catch.
+
+    The first attempt at this change patched the family gate in
+    ``corrupt_interleaved_semantic_prefixes`` instead of the roll-in function,
+    and every deny-direction test still passed because the default set excludes
+    the p2st families either way.  A whole training launch was spent finding
+    that out, so assert that an opted-in family actually reaches the candidate
+    accounting.
+    """
+    import torch
+
+    import training.constants_uniss as c
+
+    monkeypatch.setenv(ENV, "p2st_streaming_tts")
+    ids = torch.zeros((1, 6), dtype=torch.long)
+    # two model-proposed codes inside the BiCodec semantic span, which is what
+    # the function counts as eligible
+    end = torch.full((1, 6), -1, dtype=torch.long)
+    end[0, 2] = c.BICODEC_SEMANTIC_OFFSET + 5
+    cont = torch.full((1, 6), -1, dtype=torch.long)
+    cont[0, 4] = c.BICODEC_SEMANTIC_OFFSET + 9
+    result = base.apply_symmetric_model_generated_semantic_rollin(
+        ids, end, cont,
+        sample_boundaries=[[(0, 6)]],
+        family="p2st_streaming_tts",
+        training=True, rate=1.0, ramp_updates=0, continue_ratio=0.5, update=0,
+    )
+    assert result.eligible_tokens == 2, "the opted-in family must be counted"
+    assert result.effective_rate > 0.0
+
+
+def test_prefix_corruption_keeps_its_own_family_gate(monkeypatch, p2st_registered):
+    """The roll-in variable must not silently widen prefix corruption too."""
+    import torch
+
+    monkeypatch.setenv(ENV, "p2st_streaming_tts")
+    ids = torch.zeros((1, 6), dtype=torch.long)
+    effective, corrupted, eligible, rate = base.corrupt_interleaved_semantic_prefixes(
+        ids, ids.clone(),
+        family="p2st_streaming_tts",
+        training=True, rate=1.0, tail=4, ramp_updates=0, update=0,
+    )
+    assert corrupted == 0 and eligible == 0 and rate == 0.0
