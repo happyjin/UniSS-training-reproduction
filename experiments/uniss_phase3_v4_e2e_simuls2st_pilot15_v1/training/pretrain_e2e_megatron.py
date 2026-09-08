@@ -67,6 +67,42 @@ from training.pretrain_uniss_megatron import load_megatron_runtime
 
 V1_MODEL_PREFIXES = ("embedding.", "decoder.", "output_layer.", "stage_a_objective.")
 FAMILY_IDS = {name: index for index, name in enumerate(TASK_FAMILIES)}
+
+# Which task families model-generated semantic roll-in applies to.
+#
+# Roll-in has always been gated on FAMILY_INTERLEAVED, so on the p2st pools --
+# whose families are p2st_streaming_tts, p2st_streaming_asr,
+# p2st_incremental_mt and the two replays -- it silently did nothing, and the
+# code stream was only ever trained under teacher forcing.  That matches what
+# free-running generation does at inference: it renders a given text in 0.74 of
+# gold's codes, and forcing it longer produces silence rather than speech,
+# while the length prior that reproduces gold's density distribution to within
+# 6% still carries 1.5x gold's internal silence.  Training the model to
+# continue from its own codes is the remaining explanation.
+#
+# The default is the historical set, so every existing run is unchanged; a run
+# opts in by naming its families in the environment.
+SEMANTIC_ROLLIN_FAMILIES_ENV = "UNISS_SEMANTIC_ROLLIN_FAMILIES"
+
+# Families already reported by the roll-in gate diagnostic, per process.
+_ROLLIN_GATE_REPORTED: set[str] = set()
+
+
+def semantic_rollin_families() -> frozenset[str]:
+    """Families eligible for semantic roll-in, from the environment."""
+
+    raw = os.environ.get(SEMANTIC_ROLLIN_FAMILIES_ENV, "").strip()
+    if not raw:
+        return frozenset({FAMILY_INTERLEAVED})
+    names = frozenset(part.strip() for part in raw.split(",") if part.strip())
+    unknown = names - set(TASK_FAMILIES)
+    if unknown:
+        raise ValueError(
+            f"unknown semantic roll-in families {sorted(unknown)}; "
+            f"known families are {sorted(TASK_FAMILIES)}"
+        )
+    return names
+
 OBJECTIVE_METRIC_NAMES = (
     *(f"loss/{name}" for name in E2E_TERM_NAMES),
     *(f"denominator/{name}" for name in E2E_TERM_NAMES),
@@ -1202,7 +1238,7 @@ def corrupt_interleaved_semantic_prefixes(
         raise ValueError("semantic prefix corruption input/label geometry differs")
     if (
         not training
-        or family != FAMILY_INTERLEAVED
+        or family not in semantic_rollin_families()
         or float(rate) == 0.0
         or input_ids.numel() == 0
     ):
@@ -2086,9 +2122,25 @@ def attach_e2e_forward(model: nn.Module, *, allow_missing_teachers: bool) -> Non
         configured_rollin_rate = float(
             e2e_batch["semantic_boundary_rollin_rate"].item()
         )
+        # One line per process the first time a family is seen, so a run can
+        # be checked to have actually enabled roll-in rather than assumed to.
+        # Step 3 set a roll-in rate that the family gate silently discarded and
+        # the only evidence was a zero in a diagnostic that is zero for four
+        # families out of five anyway.
+        if family not in _ROLLIN_GATE_REPORTED:
+            _ROLLIN_GATE_REPORTED.add(family)
+            print(
+                f"[rollin gate] family={family!r} "
+                f"training={bool(self.training)} "
+                f"families={sorted(semantic_rollin_families())} "
+                f"configured_rate={configured_rollin_rate} "
+                f"ramp_updates={int(e2e_batch['semantic_boundary_rollin_ramp_updates'].item())} "
+                f"update={update}",
+                flush=True,
+            )
         if (
             bool(self.training)
-            and family == FAMILY_INTERLEAVED
+            and family in semantic_rollin_families()
             and configured_rollin_rate > 0.0
         ):
             with torch.no_grad():
