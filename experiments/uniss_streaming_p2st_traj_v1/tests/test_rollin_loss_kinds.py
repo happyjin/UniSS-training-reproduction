@@ -60,7 +60,9 @@ def test_continue_candidates_skip_unsupervised_prompt_rows():
     )
     picked = lambda t: sorted(int(i) for i in (t.reshape(-1) >= 0).nonzero().reshape(-1))
     assert picked(without) == [1, 2, 3], "prompt rows are eligible without loss kinds"
-    assert picked(with_kinds) == [2, 3], "only the supervised semantic rows survive"
+    # row 2 is supervised but its decision row (1) is prompt, so only row 3
+    # survives -- see test_continue_candidates_require_a_supervised_decision_row
+    assert picked(with_kinds) == [3], "both the candidate and its decision row must be supervised"
 
 
 def test_end_candidates_require_a_supervised_boundary():
@@ -81,3 +83,22 @@ def test_omitting_loss_kinds_preserves_the_historical_behaviour():
     a = semantic_boundary_rollin_candidates(logits, inputs, labels)
     b = semantic_boundary_rollin_candidates(logits, inputs, labels, None)
     assert torch.equal(a, b)
+
+
+def test_continue_candidates_require_a_supervised_decision_row():
+    """The binary term receives the decision row at p - 1, not the row at p.
+
+    Narrowing only the candidate row left the run crashing at iteration 15 a
+    second time, on the same assertion, because a candidate at a supervised
+    row can still be decided by an unsupervised one.
+    """
+    logits, inputs, labels, kinds = _row()
+    # row 2 is supervised, but its decision row (1) is prompt
+    kinds[0] = torch.tensor([LOSS_NONE, LOSS_NONE, LOSS_SEMANTIC,
+                             LOSS_SEMANTIC, LOSS_BOUNDARY])
+    picked = semantic_rollin_continue_candidates(
+        logits, inputs, labels, sample_boundaries=[[(0, 5)]], tail=12,
+        loss_kinds=kinds,
+    )
+    chosen = sorted(int(i) for i in (picked.reshape(-1) >= 0).nonzero().reshape(-1))
+    assert chosen == [3], "only a candidate whose decision row is supervised survives"

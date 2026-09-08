@@ -1466,6 +1466,20 @@ def semantic_rollin_continue_candidates(
     prediction_positions = prediction_positions[not_first_runtime_token]
     if positions.numel() == 0:
         return candidates.reshape_as(input_ids)
+    if loss_kinds is not None:
+        # The decision row is p - 1, and it is that row -- not p -- which the
+        # binary boundary term receives as the CONTINUE mask and asserts to be
+        # a supervised semantic row.  Filtering here rather than on the mask
+        # afterwards keeps every derived count consistent, which the roll-in
+        # result's own cross-checks require.
+        flat_kinds = loss_kinds.reshape(-1).to(device=flat_inputs.device)
+        supervised_decision = (
+            flat_kinds.index_select(0, prediction_positions) == LOSS_SEMANTIC
+        )
+        positions = positions[supervised_decision]
+        prediction_positions = prediction_positions[supervised_decision]
+        if positions.numel() == 0:
+            return candidates.reshape_as(input_ids)
     rows = logits.index_select(0, prediction_positions).float()
     semantic_values, semantic_ids = rows[:, semantic_start:semantic_stop].max(dim=-1)
     end_wins = rows[:, c.TOKEN_END_SEMANTIC] >= semantic_values
