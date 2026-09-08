@@ -1,5 +1,67 @@
 # 当前最佳模型:与 SimulS2ST-Omni Dec-only 的对比、checkpoint 路径、推理方法
 
+> **2026-09-08 更新。** 最佳模型已由步骤 3 的 `rollin_20260906T094846Z/iter_0001592`
+> 换成语义 roll-in 的 **`rollin_soft_20260908T190728Z/iter_0000050`**,
+> ASR-BLEU 由 18.75 / 13.71 变为 **18.57 / 14.36**(合计 32.46 → 32.93),
+> 内部静音 5.4% → **5.1%**,RTF 1.49 → **1.41**。
+> 本文正文中所有 18.75 / 13.71 的数字是**旧最佳**,与论文的逐档对比结论不变
+> (新模型在两个方向上的合计更高),细节见 §零。
+
+## 零、语义 roll-in:这一版最佳模型是怎么来的
+
+**问题**:自由生成时模型对同一段文本只用 gold 的 **0.74 倍**码数 —— 说得太快、
+把词吞掉,这就是听感上"发音突然停止"的来源。而唯一能补回长度的手段(长度先验)
+是给 `END_SEMANTIC` 加**全局** logit 偏置,它把整条密度分布一起平移,
+所以抬中位数必然把 p90 拉到 gold 的 2 倍,多出来的码渲染成停顿 —— 那是"卡顿"。
+
+**三个被推翻的假设**(全部实测,细节见 `WHY_IT_STOPS_ROOT_CAUSE.zh-CN.md`):
+
+1. 模型生成静音码 —— 否。RealSI 777 四档先验下 ≥500 ms 的静音码串 0.000–0.003 个/条,
+   gold 目标码里是 0;全量训练池 20 万条同为 0.01 个/条。
+2. 退化重复 —— 否,而且方向相反:我们最长同码连续 1.1,gold 是 2.0。
+3. 密度分布不对 —— 否。prior 4.0 已经把密度分布复现到 gold 的 6% 以内
+   (中位 1.01 对 1.00,p10 0.68 对 0.66,p90 2.06 对 1.94),内部静音仍是 1.5 倍。
+   一个**硬性的逐片段码预算**把离散度从 3.0× 收紧到 1.3×,BLEU 却从 18.75 掉到 15.82
+   —— 同密度差 2.93 分,证明**离散度是必需的信号,不是要消除的噪声**。
+
+**真正的原因是曝光偏差**:训练时永远是教师强制,模型从未学过如何从**自己产生的码**继续。
+`pretrain_e2e_megatron.py` 的 roll-in 一直被 `family == FAMILY_INTERLEAVED` 挡住,
+而我们的家族是 `p2st_streaming_tts`,所以步骤 3 设的
+`RUN_SEMANTIC_BOUNDARY_ROLLIN_RATE=0.25` **从未生效过**。
+
+放开族闸门后,第一个读数就印证了诊断:约 473 个 `END_SEMANTIC` 边界上,
+**CONTINUE 侧(模型错误地想提前结束)有 442 个候选,END 侧只有 14.6 个 —— 30 倍不对称**。
+
+**关键的配置教训**:第一版把损失放在了 END 侧(`ROLLIN_END_WEIGHT=0.25`,
+CONTINUE 侧三个权重全为 0),等于在训练模型**提前结束** ——
+无先验密度从 0.72 单调掉到 0.53、语音时长少了 40%。
+把权重移到 CONTINUE 侧后方向立刻掰回。
+
+**收益集中在头 50 步**,两种力度都如此:
+
+| RealSI 777 | 先验 | En→Zh | Zh→En | 合计 | c/char | 静音% | RTF |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 无先验基线 | off | 14.29 | 10.12 | 24.41 | 0.74 | 3.4% | 1.12 |
+| roll-in hard@50 | off | 16.01 | 12.48 | 28.49 | 0.87 | 4.5% | 1.50 |
+| roll-in hard@100 | off | 16.10 | 12.97 | 29.07 | 1.11 | 5.6% | 1.71 |
+| **旧最佳 prior4** | 4.0 | **18.75** | 13.71 | 32.46 | 1.01 | 5.4% | 1.49 |
+| roll-in hard@50 + prior4 | 4.0 | **19.12** | 13.92 | **33.05** | 1.06 | 5.8% | 1.67 |
+| **新最佳 soft@50 + prior4** | 4.0 | 18.57 | **14.36** | **32.93** | 1.06 | **5.1%** | **1.41** |
+
+文本 BLEU 全程恒为 18.28 / 11.07,所以这些差异**全部是声学可懂度**,不是翻译质量。
+
+**两点必须说清**:
+
+* roll-in **不能替代**长度先验 —— 无先验最好只到 16.01/12.48,离 18.75 还差 2.7 分。
+  它修的是"从自己的码继续"的能力,先验补的是总长度,两者叠加才有效。
+* **50 步之后继续训练是有害的**。hard 版 @100 的无先验密度冲到 0.98 但静音翻倍
+  (7.4% → 15.4%),prior4 侧密度到 1.28、静音 15.6%;soft 版 @100 无先验停滞
+  (0.82 → 0.84)而 prior4 侧同样冲到 1.16 / 14.7%。降权重只推后了冲过头的时点,
+  没有提高上限。两版都在第 50 步见顶,所以两次训练都在有结论后主动停止。
+
+hard 与 soft 的合计只差 0.12(33.05 对 32.93,噪声量级),但 soft
+**静音更低(5.1% 对 5.8%)、RTF 更低(1.41 对 1.67)**,所以选 soft 作为新最佳。
+
 ## 一、与论文 Dec-only 基线的详细对比
 
 论文的 Dec-only 是**与我们同类的架构** —— 统一解码器直接预测语义码,
@@ -114,10 +176,17 @@ unified decoder is too heavy for efficient continuous audio generation"*),
 
 ```
 Megatron 原生:
-  checkpoints/uniss_streaming_p2st_traj_v1/rollin_20260906T094846Z/iter_0001592
+  checkpoints/uniss_streaming_p2st_traj_v1/rollin_soft_20260908T190728Z/iter_0000050
 
 HF 导出(推理用这个):
-  checkpoints/exported_hf/uniss_streaming_p2st_traj_v1_rollin_20260906T094846Z_iter_0001592_hf
+  checkpoints/exported_hf/uniss_streaming_p2st_traj_v1_rollin_soft_20260908T190728Z_iter_0000050_hf
+```
+
+次优(En→Zh 更强 0.55,但静音与 RTF 更差,如果只看 En→Zh 可用它):
+
+```
+  checkpoints/uniss_streaming_p2st_traj_v1/rollin_cont_20260908T172437Z/iter_0000050
+  checkpoints/exported_hf/uniss_streaming_p2st_traj_v1_rollin_cont_20260908T172437Z_iter_0000050_hf
 ```
 
 **世系**(每一步都是前一步的继续训练):
@@ -129,7 +198,8 @@ HF 导出(推理用这个):
 | C(纯 CE) | `uniss_streaming_p2st_pure_ce_v1/p2st_epoch1_replay_20260902T170132Z/iter_0004236` | 事件级三家族 |
 | 步骤 1 | `uniss_streaming_p2st_traj_v1/nir_stratified_20260904T225149Z/iter_0003876` | NIR 单调性分层 |
 | 步骤 2 | `uniss_streaming_p2st_traj_v1/chunk640_asridle_20260905T170518Z/iter_0003180` | 640 ms 固定网格 + ASR IDLE |
-| **步骤 3(最佳)** | **`rollin_20260906T094846Z/iter_0001592`** | 同池再训 1592 步(roll-in 实际未激活,见 STEP1_TO_3_RESULT §三.2) |
+| 步骤 3 | `rollin_20260906T094846Z/iter_0001592` | 同池再训 1592 步(roll-in 实际未激活,见 STEP1_TO_3_RESULT §三.2) |
+| **步骤 4(最佳)** | **`rollin_soft_20260908T190728Z/iter_0000050`** | 语义 roll-in 真正生效,CONTINUE 侧加权 0.10 / margin 0.5,**只训 50 步**(见 §零) |
 
 ## 三、推理方法
 
@@ -155,7 +225,7 @@ ${LD_LIBRARY_PATH:-}:$NVLIB"
 ```bash
 $PYTHON_BIN -m experiments.uniss_streaming_p2st_pure_ce_v1.evaluation.realsi_rollout \
   --selection    data/processed/realsi_p2st_v1/REALSI_SENT_SELECTION.json \
-  --candidate-hf checkpoints/exported_hf/uniss_streaming_p2st_traj_v1_rollin_20260906T094846Z_iter_0001592_hf \
+  --candidate-hf checkpoints/exported_hf/uniss_streaming_p2st_traj_v1_rollin_soft_20260908T190728Z_iter_0000050_hf \
   --v1-checkpoint "$V1_CHECKPOINT" \
   --whispervq-model "$WHISPERVQ_MODEL" \
   --bicodec-model pretrained_models/UniSS/bicodec \
@@ -216,6 +286,21 @@ $PYTHON_BIN -m experiments.uniss_streaming_p2st_traj_v1.evaluation.silence_budge
 **比较时务必同时跑 `--length-prior-scale 1.0` 的 arm**,否则训练侧的进步会被推理参数掩盖。
 
 ### 可听样例
+
+`reports/uniss_streaming_p2st_traj_v1/LISTEN_rollin/` —— 同样 8 条,可直接 A/B:
+
+| 目录 | 内容 |
+|---|---|
+| `A_old_best_prior4/` | 旧最佳(18.75 / 13.71) |
+| `B_rollin_hard50_prior4/` | roll-in hard@50 + prior4(19.12 / 13.92) |
+| `C_rollin_soft50_prior4/` | **新最佳** soft@50 + prior4(18.57 / 14.36) |
+| `D_rollin_hard50_noprior/` | roll-in hard@50,先验关闭(16.01 / 12.48) |
+| `E_gold/` | gold 参考 |
+
+立体声,左 = 源音频,右 = 译音,严格按发出时间线放置。
+建议听 A → C 判断卡顿是否改善,听 D 感受"完全不用长度先验"的效果。
+
+### 旧的可听样例
 
 ```
 reports/uniss_streaming_p2st_traj_v1/longform_curve/
