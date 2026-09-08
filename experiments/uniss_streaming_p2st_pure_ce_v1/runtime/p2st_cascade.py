@@ -143,6 +143,65 @@ def _greedy(
     return int(torch.argmax(values))
 
 
+# Gold semantic codes per target character, measured over the training pool's
+# own targets (346,961 en2zh and 289,923 zh2en word chunks): the median chunk
+# spends this many codes on each character it speaks.  Keyed by target
+# language, so en2zh reads 11.80 and zh2en 3.76.
+GOLD_CODES_PER_CHAR = {"cmn": 11.80, "eng": 3.76}
+
+
+def budget_from_text(text: str, tgt_lang: str, scale: float) -> int:
+    """Codes this fragment should spend, from its own text.
+
+    This is the analytic stand-in for a trained duration predictor: it hits
+    gold's *median* density exactly and carries none of its spread.  The point
+    of running it is to separate two failures that the length prior conflates.
+    The prior is a global logit bias, so raising the median from 0.81 to 0.91
+    of gold also drags p90 from 1.76 to 2.05 -- the over-stretched tail that is
+    heard as a stall.  A per-fragment budget cannot do that, because each
+    fragment gets its own target.
+
+    If forcing this budget still leaves ~13% internal silence, then the codes
+    that fill it are padding and a budget is the wrong fix; if internal silence
+    falls towards gold's 8.6%, only the predictor remains to be trained.
+    """
+    characters = len(text.strip())
+    density = GOLD_CODES_PER_CHAR.get(str(tgt_lang)[:3])
+    if characters < 1 or not density or scale <= 0.0:
+        return 0
+    return max(1, int(round(characters * density * float(scale))))
+
+
+def floor_bias(floor: int) -> Callable[[int], float]:
+    """Forbid the terminator until ``floor`` codes exist.
+
+    Expressed through the existing ``terminator_bias_fn`` hook, which already
+    receives the number of codes produced so far, so the budget needs no change
+    to the generation loop itself.
+    """
+
+    def bias(produced: int) -> float:
+        return float("-inf") if produced < int(floor) else 0.0
+
+    return bias
+
+
+# Seeded by ``seed_sampling``.  None until a caller asks for sampling, so the
+# greedy path carries no RNG state at all.
+_SAMPLING_GENERATOR: torch.Generator | None = None
+
+
+def seed_sampling(seed: int) -> None:
+    """Seed this process's sampling RNG.
+
+    A caller that wants several distinct candidates must pass a different seed
+    for each; otherwise every rollout of the same audio comes out identical.
+    """
+    global _SAMPLING_GENERATOR
+    _SAMPLING_GENERATOR = torch.Generator(device="cpu")
+    _SAMPLING_GENERATOR.manual_seed(int(seed))
+
+
 def _sample_from(
     values: torch.Tensor, *, temperature: float, top_k: int, top_p: float
 ) -> int:
@@ -178,13 +237,16 @@ def _sample_from(
     total = float(probabilities.sum())
     if not total > 0:
         return int(torch.argmax(values))
-    generator = torch.Generator(device="cpu")
-    # Seed from the finite entries only.  ``values`` carries -inf wherever the
-    # allowed mask excluded a token, so summing the whole row gives -inf and
-    # int() on it raises OverflowError -- which is exactly how this first ran.
-    finite = values[torch.isfinite(values)]
-    key = float(finite.abs().sum().cpu()) if finite.numel() else 0.0
-    generator.manual_seed(int(key * 1000) % (2**31))
+    # Draw from the module generator, seeded once per process by
+    # ``seed_sampling``.  The first version derived the seed from the logits
+    # themselves, so identical inputs gave an identical "random" draw and
+    # twelve sampled rollouts came back byte-for-byte identical -- with a test
+    # pinning that as reproducibility.  Reproducibility has to come from a seed
+    # the caller picks, not from the data being sampled.
+    global _SAMPLING_GENERATOR
+    if _SAMPLING_GENERATOR is None:
+        seed_sampling(0)
+    generator = _SAMPLING_GENERATOR
     choice = torch.multinomial(
         (probabilities / total).cpu(), num_samples=1, generator=generator
     )
@@ -387,6 +449,7 @@ class P2STCascadeSession:
         pace_tail_ms: float = 2000.0,
         length_prior: object | None = None,
         length_prior_scale: float = 1.0,
+        semantic_budget_scale: float = 0.0,
         # Off by default.  Seeding changed exactly one of the eight demo
         # samples -- the other seven came out bit-identical -- and it changed
         # it for the worse: emilia_zh_0005215832 went from "The past has
@@ -459,6 +522,7 @@ class P2STCascadeSession:
                 length_prior = None
         self.length_prior = length_prior
         self.length_prior_scale = float(length_prior_scale)
+        self.semantic_budget_scale = float(semantic_budget_scale)
         self.length_prior_traces: list[dict[str, float]] = []
         if int(read_stride) < 1:
             raise ValueError("read_stride must be at least one block")
@@ -710,6 +774,20 @@ class P2STCascadeSession:
                         language=self.tgt_lang,
                         scale=self.length_prior_scale,
                     )
+                    if self.semantic_budget_scale > 0.0:
+                        # A hard per-fragment budget replaces the soft global
+                        # bias: cap the run at the target and forbid the
+                        # terminator until it is reached, so the fragment
+                        # spends exactly the codes its own text calls for.
+                        # ``budget`` already carries the pace and
+                        # max_semantic_tokens limits, so taking the minimum
+                        # keeps both of those guarantees intact.
+                        target = budget_from_text(
+                            fragment_text, self.tgt_lang, self.semantic_budget_scale
+                        )
+                        if target > 0:
+                            budget = min(int(budget), target)
+                            bias_fn = floor_bias(budget)
                     produced, ended = _generate(
                         self.model,
                         self._tts_prompt(target_committed_tokens),

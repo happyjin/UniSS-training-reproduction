@@ -93,10 +93,17 @@ def main() -> None:
     parser.add_argument("--text-temperature", type=float, default=0.0)
     parser.add_argument("--text-top-k", type=int, default=0)
     parser.add_argument("--text-top-p", type=float, default=1.0)
+    # Distinct candidates need distinct seeds; see p2st_cascade.seed_sampling.
+    parser.add_argument("--sampling-seed", type=int, default=0)
     # 16 codes is 320 ms at 20 ms per code.
     parser.add_argument("--min-fragment-tokens", type=int, default=0)
     # SimulS2ST-Omni gates the source tail at 320 ms.
     parser.add_argument("--min-final-chunk-ms", type=int, default=0)
+    # Analytic stand-in for a trained duration predictor: spend
+    # characters x gold-median-density codes on each fragment, as a hard
+    # budget rather than the length prior's global logit bias.  0 disables it,
+    # leaving every published number byte-identical.
+    parser.add_argument("--semantic-budget-scale", type=float, default=0.0)
     # SimulS2ST-Omni's talker: top_p 0.8, top_k 20, temperature 1.0, rep 1.4.
     # temperature 0 keeps the greedy path.
     parser.add_argument("--semantic-temperature", type=float, default=0.0)
@@ -135,6 +142,12 @@ def main() -> None:
     parser.add_argument("--keep-stereo", action="store_true")
     args = parser.parse_args()
 
+    if args.sampling_seed:
+        from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import (
+            seed_sampling,
+        )
+
+        seed_sampling(args.sampling_seed)
     rows = load_selection(args.selection)
     if args.num_shards > 1:
         rows = [row for index, row in enumerate(rows) if index % args.num_shards == args.shard_index]
@@ -206,6 +219,7 @@ def main() -> None:
             text_top_k=args.text_top_k,
             text_top_p=args.text_top_p,
             min_fragment_tokens=args.min_fragment_tokens,
+            semantic_budget_scale=args.semantic_budget_scale,
             min_final_chunk_ms=args.min_final_chunk_ms,
             semantic_temperature=args.semantic_temperature,
             semantic_top_k=args.semantic_top_k,
@@ -305,7 +319,9 @@ def main() -> None:
                 "text_temperature": args.text_temperature,
                 "text_top_k": args.text_top_k,
                 "text_top_p": args.text_top_p,
+                "sampling_seed": args.sampling_seed,
                 "min_fragment_tokens": args.min_fragment_tokens,
+                "semantic_budget_scale": args.semantic_budget_scale,
                 "min_final_chunk_ms": args.min_final_chunk_ms,
                 "semantic_temperature": args.semantic_temperature,
                 "semantic_top_k": args.semantic_top_k,
