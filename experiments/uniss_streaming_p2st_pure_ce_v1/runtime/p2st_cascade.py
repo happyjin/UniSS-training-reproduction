@@ -36,6 +36,9 @@ from experiments.uniss_phasea_stateful_longepisode_rl_v1.runtime.commit import (
 from experiments.uniss_phase3_v4_quality_first_true_streaming_pilot15_v2.stage_a_causal_whisper_asr.checkpoint_runtime import (  # noqa: E501
     run_cached_frontend,
 )
+from experiments.uniss_streaming_p2st_traj_v1.runtime.backlog_commit import (
+    BacklogCappedCommitter,
+)
 from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.seeded_commit import (
     SeededPrefixCommitter,
 )
@@ -450,6 +453,10 @@ class P2STCascadeSession:
         length_prior: object | None = None,
         length_prior_scale: float = 1.0,
         semantic_budget_scale: float = 0.0,
+        target_backlog_cap: int = 0,
+        target_backlog_keep: int = 0,
+        source_backlog_cap: int = 0,
+        source_backlog_keep: int = 0,
         # Off by default.  Seeding changed exactly one of the eight demo
         # samples -- the other seven came out bit-identical -- and it changed
         # it for the worse: emilia_zh_0005215832 went from "The past has
@@ -543,12 +550,43 @@ class P2STCascadeSession:
         # irrevocable stage stay conservative while the recoverable one runs
         # ahead.
         committer = SeededPrefixCommitter if seed_commit else StablePrefixCommitter
-        self.source_committer = committer(
-            holdback=int(holdback if source_holdback is None else source_holdback)
+        source_holdback_value = int(
+            holdback if source_holdback is None else source_holdback
         )
-        self.target_committer = committer(
-            holdback=int(holdback if target_holdback is None else target_holdback)
+        if int(source_backlog_cap) > 0:
+            # Capping the target backlog moved the tail dump only from 21.4% to
+            # 17.4% and left the longest stall at 2850 ms, and a cap of 16 never
+            # fired at all -- so the target was not holding text back, it had
+            # none to hold.  MT is conditioned on the committed *source* prefix,
+            # so when that prefix stops growing MT produces nothing new, and the
+            # dump is the final flush of the source reaching MT at last.  The
+            # deadline therefore belongs here as well.
+            self.source_committer = BacklogCappedCommitter(
+                holdback=source_holdback_value,
+                max_backlog=int(source_backlog_cap),
+                keep_tail=int(source_backlog_keep),
+            )
+        else:
+            self.source_committer = committer(holdback=source_holdback_value)
+        target_holdback_value = int(
+            holdback if target_holdback is None else target_holdback
         )
+        if int(target_backlog_cap) > 0:
+            # The target committer releases only the longest common prefix of
+            # two consecutive hypotheses.  Near the end of an utterance MT keeps
+            # revising its ending, so that prefix stops growing and nothing is
+            # speakable until the final read step commits the remainder at once
+            # -- measured at 21.4% of the whole translation in 3.5 s, and the
+            # one stall a playout buffer cannot reach.  A deadline releases the
+            # backlog before then, at the cost of speaking text a second
+            # hypothesis has not yet confirmed.
+            self.target_committer = BacklogCappedCommitter(
+                holdback=target_holdback_value,
+                max_backlog=int(target_backlog_cap),
+                keep_tail=int(target_backlog_keep),
+            )
+        else:
+            self.target_committer = committer(holdback=target_holdback_value)
         self.spoken_semantic: list[int] = []
         self.trace = CascadeTrace()
         # The terminator has to be inside the allowed set or it can never be

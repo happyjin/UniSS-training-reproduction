@@ -104,6 +104,12 @@ def main() -> None:
     # budget rather than the length prior's global logit bias.  0 disables it,
     # leaving every published number byte-identical.
     parser.add_argument("--semantic-budget-scale", type=float, default=0.0)
+    # Release the target backlog on a deadline instead of only when the stable
+    # prefix grows.  0 keeps the historical behaviour exactly.
+    parser.add_argument("--target-backlog-cap", type=int, default=0)
+    parser.add_argument("--target-backlog-keep", type=int, default=0)
+    parser.add_argument("--source-backlog-cap", type=int, default=0)
+    parser.add_argument("--source-backlog-keep", type=int, default=0)
     # SimulS2ST-Omni's talker: top_p 0.8, top_k 20, temperature 1.0, rep 1.4.
     # temperature 0 keeps the greedy path.
     parser.add_argument("--semantic-temperature", type=float, default=0.0)
@@ -220,6 +226,10 @@ def main() -> None:
             text_top_p=args.text_top_p,
             min_fragment_tokens=args.min_fragment_tokens,
             semantic_budget_scale=args.semantic_budget_scale,
+            target_backlog_cap=args.target_backlog_cap,
+            target_backlog_keep=args.target_backlog_keep,
+            source_backlog_cap=args.source_backlog_cap,
+            source_backlog_keep=args.source_backlog_keep,
             min_final_chunk_ms=args.min_final_chunk_ms,
             semantic_temperature=args.semantic_temperature,
             semantic_top_k=args.semantic_top_k,
@@ -322,6 +332,10 @@ def main() -> None:
                 "sampling_seed": args.sampling_seed,
                 "min_fragment_tokens": args.min_fragment_tokens,
                 "semantic_budget_scale": args.semantic_budget_scale,
+                "target_backlog_cap": args.target_backlog_cap,
+                "target_backlog_keep": args.target_backlog_keep,
+                "source_backlog_cap": args.source_backlog_cap,
+                "source_backlog_keep": args.source_backlog_keep,
                 "min_final_chunk_ms": args.min_final_chunk_ms,
                 "semantic_temperature": args.semantic_temperature,
                 "semantic_top_k": args.semantic_top_k,
