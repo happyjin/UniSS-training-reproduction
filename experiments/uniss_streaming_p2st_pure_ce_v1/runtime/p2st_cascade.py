@@ -146,6 +146,34 @@ def _greedy(
     return int(torch.argmax(values))
 
 
+def end_margin(values: torch.Tensor, terminator: int, allowed: torch.Tensor | None) -> float:
+    """How decisively the terminator beats the best legal continuation.
+
+    A fragment that stops mid-phone is a fragment whose terminator won only
+    narrowly: measured on the placed audio, 40.2% of boundaries have full voice
+    on both sides and the spectra either side are as similar as two windows
+    inside one sound.  Training this margin moved that number to 22.5%, so the
+    signal is in the logits; this reads it at inference.
+    """
+    row = values.reshape(-1)
+    start = c.BICODEC_SEMANTIC_OFFSET
+    stop = start + c.BICODEC_SEMANTIC_SIZE
+    if allowed is None:
+        codes = row[start:stop]
+    else:
+        # Only codes the mask admits may set the bar.  When the mask admits
+        # none, the terminator has no opposition and the margin is unbounded --
+        # falling back to the whole span here would invent a competitor that
+        # this step could not have chosen.
+        mask = (allowed >= start) & (allowed < stop)
+        if not bool(mask.any()):
+            return float("inf")
+        codes = row.index_select(0, allowed[mask])
+    if codes.numel() == 0:
+        return float("inf")
+    return float(row[terminator]) - float(codes.max())
+
+
 # Gold semantic codes per target character, measured over the training pool's
 # own targets (346,961 en2zh and 289,923 zh2en word chunks): the median chunk
 # spends this many codes on each character it speaks.  Keyed by target
@@ -271,6 +299,8 @@ def _generate(
     temperature: float = 0.0,
     top_k: int = 0,
     top_p: float = 1.0,
+    end_min_margin: float = 0.0,
+    end_overrun_tokens: int = 0,
 ) -> tuple[list[int], bool]:
     """Greedy generation from prompt embeddings, stopping at ``terminator``.
 
@@ -283,6 +313,7 @@ def _generate(
     inputs = prompt_embeds.unsqueeze(0)
     past = None
     produced: list[int] = []
+    overrun = 0
     for _ in range(int(max_tokens)):
         output = model(inputs_embeds=inputs, past_key_values=past, use_cache=True)
         past = output.past_key_values
@@ -305,6 +336,32 @@ def _generate(
             top_k=top_k,
             top_p=top_p,
         )
+        if (
+            token == terminator
+            and float(end_min_margin) > 0.0
+            and int(end_overrun_tokens) > 0
+            and overrun < int(end_overrun_tokens)
+        ):
+            # The terminator won, but only just -- the phone is still being
+            # spoken.  Take the best code instead and let the fragment finish
+            # the syllable.  What this adds is speech, not waiting: the extra
+            # codes are emitted in this same fragment, so onset and the read
+            # schedule are untouched.  The budget bounds it so a narrow margin
+            # cannot run the stage to its cap.
+            row = output.logits[0, -1].reshape(-1).float()
+            if end_margin(row, terminator, step_allowed) < float(end_min_margin):
+                overrun += 1
+                token = _greedy(
+                    output.logits[0, -1],
+                    allowed=step_allowed,
+                    penalty=penalty,
+                    recent=recent,
+                    terminator=terminator,
+                    terminator_bias=float("-inf"),
+                    temperature=temperature,
+                    top_k=top_k,
+                    top_p=top_p,
+                )
         if token == terminator:
             return produced, True
         produced.append(token)
@@ -453,6 +510,8 @@ class P2STCascadeSession:
         length_prior: object | None = None,
         length_prior_scale: float = 1.0,
         semantic_budget_scale: float = 0.0,
+        semantic_end_min_margin: float = 0.0,
+        semantic_end_overrun_tokens: int = 0,
         target_backlog_cap: int = 0,
         target_backlog_keep: int = 0,
         source_backlog_cap: int = 0,
@@ -530,6 +589,8 @@ class P2STCascadeSession:
         self.length_prior = length_prior
         self.length_prior_scale = float(length_prior_scale)
         self.semantic_budget_scale = float(semantic_budget_scale)
+        self.semantic_end_min_margin = float(semantic_end_min_margin)
+        self.semantic_end_overrun_tokens = int(semantic_end_overrun_tokens)
         self.length_prior_traces: list[dict[str, float]] = []
         if int(read_stride) < 1:
             raise ValueError("read_stride must be at least one block")
@@ -839,6 +900,8 @@ class P2STCascadeSession:
                         temperature=self.semantic_temperature,
                         top_k=self.semantic_top_k,
                         top_p=self.semantic_top_p,
+                        end_min_margin=self.semantic_end_min_margin,
+                        end_overrun_tokens=self.semantic_end_overrun_tokens,
                     )
                     codes = [
                         int(token) - c.BICODEC_SEMANTIC_OFFSET for token in produced

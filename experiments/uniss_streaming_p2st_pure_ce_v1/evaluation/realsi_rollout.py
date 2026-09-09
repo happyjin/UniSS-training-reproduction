@@ -110,6 +110,10 @@ def main() -> None:
     parser.add_argument("--target-backlog-keep", type=int, default=0)
     parser.add_argument("--source-backlog-cap", type=int, default=0)
     parser.add_argument("--source-backlog-keep", type=int, default=0)
+    # Finish the syllable: accept END_SEMANTIC only when it beats the best code
+    # by this margin, for at most this many extra codes.  0 disables it.
+    parser.add_argument("--semantic-end-min-margin", type=float, default=0.0)
+    parser.add_argument("--semantic-end-overrun-tokens", type=int, default=0)
     # SimulS2ST-Omni's talker: top_p 0.8, top_k 20, temperature 1.0, rep 1.4.
     # temperature 0 keeps the greedy path.
     parser.add_argument("--semantic-temperature", type=float, default=0.0)
@@ -230,6 +234,8 @@ def main() -> None:
             target_backlog_keep=args.target_backlog_keep,
             source_backlog_cap=args.source_backlog_cap,
             source_backlog_keep=args.source_backlog_keep,
+            semantic_end_min_margin=args.semantic_end_min_margin,
+            semantic_end_overrun_tokens=args.semantic_end_overrun_tokens,
             min_final_chunk_ms=args.min_final_chunk_ms,
             semantic_temperature=args.semantic_temperature,
             semantic_top_k=args.semantic_top_k,
@@ -336,6 +342,8 @@ def main() -> None:
                 "target_backlog_keep": args.target_backlog_keep,
                 "source_backlog_cap": args.source_backlog_cap,
                 "source_backlog_keep": args.source_backlog_keep,
+                "semantic_end_min_margin": args.semantic_end_min_margin,
+                "semantic_end_overrun_tokens": args.semantic_end_overrun_tokens,
                 "min_final_chunk_ms": args.min_final_chunk_ms,
                 "semantic_temperature": args.semantic_temperature,
                 "semantic_top_k": args.semantic_top_k,
