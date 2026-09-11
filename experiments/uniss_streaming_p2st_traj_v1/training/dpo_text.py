@@ -165,6 +165,10 @@ def main() -> None:
     # compare against; an adapter at 100 and 200 steps costs a few megabytes
     # and makes the damage, if any, visible while it is still small.
     ap.add_argument("--save-steps", default="100,200,400")
+    # A held-out slice, so configurations can be compared without spending a
+    # 20-minute RealSI arm on each.  Training margin is far too noisy to choose
+    # on: at four pairs per step the accuracy can only take five values.
+    ap.add_argument("--val-fraction", type=float, default=0.1)
     ap.add_argument("--device", default="cuda:0")
     args = ap.parse_args()
 
@@ -214,13 +218,72 @@ def main() -> None:
     rng = random.Random(args.seed)
     order = list(range(len(examples)))
     rng.shuffle(order)
+    held = max(0, int(len(order) * args.val_fraction))
+    validation, order = order[:held], order[held:]
+    if not order:
+        raise SystemExit("--val-fraction left nothing to train on")
+    print(f"  {len(order)} train, {len(validation)} held out", flush=True)
     cursor = 0
 
     reference_cache: dict[tuple[int, str], tuple[float, int]] = {}
+
+    def score_pair(index: int, *, grad: bool):
+        """Normalised policy and reference log-probability for both sides."""
+        out = {}
+        for side in ("chosen", "rejected"):
+            key = (index, side)
+            if key not in reference_cache:
+                with torch.no_grad(), lora.adapters_disabled(layers):
+                    value, length = stream_logprob(
+                        model, tokenizer, examples[index][side],
+                        tgt_lang=examples[index]["tgt_lang"], device=device,
+                    )
+                reference_cache[key] = (
+                    float(value) if value is not None else None, length
+                )
+            ref_value, length = reference_cache[key]
+            if ref_value is None or length == 0:
+                return None
+            context = torch.enable_grad() if grad else torch.no_grad()
+            with context:
+                policy, _ = stream_logprob(
+                    model, tokenizer, examples[index][side],
+                    tgt_lang=examples[index]["tgt_lang"], device=device,
+                )
+            out[side] = (policy, ref_value, length)
+        return out
+
+    def validate() -> dict:
+        if not validation:
+            return {}
+        wins = 0.0
+        margins = 0.0
+        seen = 0
+        for index in validation:
+            scores = score_pair(index, grad=False)
+            if scores is None:
+                continue
+            cp, cr, cl = scores["chosen"]
+            rp, rr, rl = scores["rejected"]
+            margin = float((cp - cr) / cl - (rp - rr) / rl)
+            wins += float(margin > 0)
+            margins += margin
+            seen += 1
+        if not seen:
+            return {}
+        return {"val_accuracy": wins / seen, "val_margin": margins / seen,
+                "val_pairs": seen}
+
     history = []
     for step in range(1, args.steps + 1):
         optimiser.zero_grad(set_to_none=True)
-        totals = {"loss": 0.0, "margin": 0.0, "accuracy": 0.0, "chosen_logp": 0.0}
+        # ``base_accuracy`` is the share of pairs the *frozen* policy already
+        # scores the right way round.  The DPO margin cannot answer that: it is
+        # defined against the reference, so it is identically zero on the first
+        # step whatever the model believes.  This is the number that says
+        # whether there is anything to learn.
+        totals = {"loss": 0.0, "margin": 0.0, "accuracy": 0.0,
+                  "chosen_logp": 0.0, "base_accuracy": 0.0, "base_margin": 0.0}
         used = 0
         for _ in range(args.batch_pairs):
             if cursor >= len(order):
@@ -228,41 +291,14 @@ def main() -> None:
                 cursor = 0
             index = order[cursor]
             cursor += 1
-            example = examples[index]
 
-            scores = {}
-            for side in ("chosen", "rejected"):
-                key = (index, side)
-                if key not in reference_cache:
-                    with torch.no_grad(), lora.adapters_disabled(layers):
-                        value, length = stream_logprob(
-                            model,
-                            tokenizer,
-                            example[side],
-                            tgt_lang=example["tgt_lang"],
-                            device=device,
-                        )
-                    reference_cache[key] = (
-                        float(value) if value is not None else None,
-                        length,
-                    )
-                ref_value, length = reference_cache[key]
-                if ref_value is None or length == 0:
-                    scores = {}
-                    break
-                policy, _ = stream_logprob(
-                    model,
-                    tokenizer,
-                    example[side],
-                    tgt_lang=example["tgt_lang"],
-                    device=device,
-                )
-                scores[side] = (policy, ref_value, length)
-            if len(scores) != 2:
+            scores = score_pair(index, grad=True)
+            if scores is None:
                 continue
 
             chosen_policy, chosen_ref, chosen_len = scores["chosen"]
             rejected_policy, rejected_ref, rejected_len = scores["rejected"]
+            base_margin = chosen_ref / chosen_len - rejected_ref / rejected_len
             margin = (chosen_policy - chosen_ref) / chosen_len - (
                 rejected_policy - rejected_ref
             ) / rejected_len
@@ -275,6 +311,8 @@ def main() -> None:
             totals["margin"] += float(margin)
             totals["accuracy"] += float(margin > 0)
             totals["chosen_logp"] += float(chosen_policy) / chosen_len
+            totals["base_accuracy"] += float(base_margin > 0)
+            totals["base_margin"] += float(base_margin)
             used += 1
 
         if used == 0:
@@ -295,10 +333,21 @@ def main() -> None:
                 f"step {step:4d}  loss {row['loss']:.4f}  "
                 f"margin {row['margin']:+.4f}  acc {row['accuracy']:.2f}  "
                 f"chosen_logp/tok {row['chosen_logp']:+.3f}  "
+                f"base_acc {row['base_accuracy']:.2f}  "
+                f"base_margin {row['base_margin']:+.4f}  "
                 f"|g| {row['grad_norm']:.3f}",
                 flush=True,
             )
         if step in save_steps:
+            measured = validate()
+            if measured:
+                row.update(measured)
+                print(
+                    f"  held out: accuracy {measured['val_accuracy']:.3f}  "
+                    f"margin {measured['val_margin']:+.4f}  "
+                    f"on {measured['val_pairs']} pairs",
+                    flush=True,
+                )
             snapshot = Path(args.output)
             snapshot.mkdir(parents=True, exist_ok=True)
             torch.save(
