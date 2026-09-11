@@ -14,15 +14,19 @@ score is
 
 normalised by the total number of produced tokens.
 
-Why normalise.  Measured over 2715 pairs, the low-silence candidate does *not*
-say more, and does not start earlier: total committed text is a tie (median
-difference 0 characters) and so is the onset (median 0 ms, identical in 44% of
-pairs).  What it does is spread the same text over more read steps -- median
-one fragment more -- committing about one character less at each.  So the
-preference is about *distribution*, not amount.  That is precisely why the
-normalisation is load-bearing: the preferred stream runs more MT steps and
-therefore emits more tokens in total, and an unnormalised objective would
-penalise it for exactly the property it is supposed to reward.
+Why normalise.  Measured on recorded streams over 551 onset-guarded pairs, the
+preferred candidate runs *more* read steps (13.73 against 12.76), commits at
+more of them (empty share 0.515 against 0.566) and emits *less* at each (5.46
+against 6.21 tokens), for slightly fewer tokens overall (76.2 against 81.1).
+The preference is therefore about how the same text is distributed, not how
+much of it there is.
+
+That is what makes the normalisation load-bearing.  Summed log probabilities
+are a length comparison as much as a quality one, and here the preferred stream
+happens to be the shorter of the two -- so an unnormalised margin would be
+partly satisfied by brevity alone, rewarding the model for emitting fewer
+tokens per step, which is precisely the stopping behaviour that leaves the
+gaps.  Dividing by token count makes the comparison per decision instead.
 
 The reference policy is this same module with the adapters switched off, which
 makes ``policy == reference`` exact at step 0 and costs no extra memory.
