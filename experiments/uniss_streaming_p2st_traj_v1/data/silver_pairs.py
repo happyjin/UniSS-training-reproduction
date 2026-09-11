@@ -30,7 +30,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import sacrebleu
@@ -48,6 +50,28 @@ def sentence_bleu(hypothesis: str, reference: str, direction: str) -> float:
     return sacrebleu.sentence_bleu(
         hypothesis, [reference], tokenize="zh" if direction == "en2zh" else "13a"
     ).score
+
+
+def score_group(task: tuple[str, list]) -> list[dict]:
+    """Score one sample's candidates.  Module level so a process pool can
+    pickle it; it touches only the manifest row and the wav on disk."""
+    sample_id, members = task
+    rows = []
+    for arm, sample in members:
+        direction = sample.get("direction") or (
+            "zh2en" if sample.get("src_lang") == "cmn" else "en2zh"
+        )
+        hypothesis = sample["target_hypothesis"]
+        reference = sample["translation_reference"]
+        rows.append({
+            "arm": arm,
+            "silence_ratio": silence_ratio(Path(str(sample["translation_placed"]))),
+            "bleu": sentence_bleu(hypothesis, reference, direction),
+            "chrf": sacrebleu.sentence_chrf(hypothesis, [reference]).score,
+            "text": hypothesis, "direction": direction,
+            "sample_id": sample_id, "reference": reference,
+        })
+    return rows
 
 
 def pair_for_group(
@@ -96,6 +120,9 @@ def main() -> None:
     parser.add_argument("--silence-margin", type=float, default=DEFAULT_SILENCE_MARGIN)
     parser.add_argument("--min-chrf", type=float, default=0.0)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument(
+        "--workers", type=int, default=min(48, os.cpu_count() or 8)
+    )
     args = parser.parse_args()
 
     groups: dict[str, list[dict]] = {}
@@ -108,41 +135,38 @@ def main() -> None:
     if not groups:
         raise SystemExit(f"no arms matched {args.pattern} under {args.arm_root}")
 
+    ordered = sorted(groups.items())
+    if args.limit:
+        ordered = ordered[: args.limit]
+
+    # Scoring is one wav read and two sacrebleu calls per candidate -- eight
+    # times per group and entirely CPU bound, so it runs across the box rather
+    # than down a single core.  ``map`` keeps the results in group order, so
+    # the output is identical to the serial version.
     pairs: list[dict] = []
     reasons: dict[str, int] = {}
-    for index, (sample_id, members) in enumerate(sorted(groups.items())):
-        if args.limit and index >= args.limit:
-            break
-        rows = []
-        for arm, sample in members:
-            direction = sample.get("direction") or (
-                "zh2en" if sample.get("src_lang") == "cmn" else "en2zh"
-            )
-            hypothesis = sample["target_hypothesis"]
-            reference = sample["translation_reference"]
-            rows.append({
-                "arm": arm,
-                "silence_ratio": silence_ratio(Path(str(sample["translation_placed"]))),
-                "bleu": sentence_bleu(hypothesis, reference, direction),
-                "chrf": sacrebleu.sentence_chrf(hypothesis, [reference]).score,
-                "text": hypothesis, "direction": direction,
-                "sample_id": sample_id, "reference": reference,
-            })
-        chosen, rejected, why = pair_for_group(
-            rows, bleu_margin=args.bleu_margin,
-            silence_margin=args.silence_margin, min_chrf=args.min_chrf,
+    with ProcessPoolExecutor(max_workers=args.workers) as pool:
+        scored = pool.map(
+            score_group, [(sid, members) for sid, members in ordered], chunksize=8
         )
-        reasons[why] = reasons.get(why, 0) + 1
-        if chosen is None or rejected is None:
-            continue
-        pairs.append({
-            "sample_id": sample_id, "direction": chosen["direction"],
-            "reference": chosen["reference"],
-            "chosen": {"arm": chosen["arm"], "text": chosen["text"],
-                       "silence_ratio": chosen["silence_ratio"], "bleu": chosen["bleu"]},
-            "rejected": {"arm": rejected["arm"], "text": rejected["text"],
-                         "silence_ratio": rejected["silence_ratio"], "bleu": rejected["bleu"]},
-        })
+        for (sample_id, _members), rows in zip(ordered, scored):
+            chosen, rejected, why = pair_for_group(
+                rows, bleu_margin=args.bleu_margin,
+                silence_margin=args.silence_margin, min_chrf=args.min_chrf,
+            )
+            reasons[why] = reasons.get(why, 0) + 1
+            if chosen is None or rejected is None:
+                continue
+            pairs.append({
+                "sample_id": sample_id, "direction": chosen["direction"],
+                "reference": chosen["reference"],
+                "chosen": {"arm": chosen["arm"], "text": chosen["text"],
+                           "silence_ratio": chosen["silence_ratio"],
+                           "bleu": chosen["bleu"]},
+                "rejected": {"arm": rejected["arm"], "text": rejected["text"],
+                             "silence_ratio": rejected["silence_ratio"],
+                             "bleu": rejected["bleu"]},
+            })
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(json.dumps({"pairs": pairs}, ensure_ascii=False), encoding="utf-8")
     print(f"{len(pairs)} pairs from {len(groups)} groups")
