@@ -370,6 +370,8 @@ def main() -> None:
                         "codes": [[int(c) for c in f.semantic] for f in speech],
                         "starts_ms": [float(f.source_end_ms) for f in speech],
                         "texts": [f.text for f in speech],
+                        "source_texts": [f.source_prefix for f in speech],
+                        "mt_steps": trace.mt_steps,
                     }
                 ),
                 "semantic_tokens": sum(len(f.semantic) for f in speech),

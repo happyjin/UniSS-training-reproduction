@@ -83,6 +83,11 @@ class Fragment:
     # perf_counter touches no tensor, so the generated codes stay bit-identical.
     read_step: int = 0
     elapsed_ms: float = 0.0
+    # The source the model had actually committed when it chose to say this.
+    # DPO on the text stream has to condition on the same partial source the
+    # policy saw, or training teaches it to run ahead of the audio.  Defaulted
+    # so every existing caller and every existing report is unaffected.
+    source_prefix: str = ""
 
 
 @dataclass(frozen=True)
@@ -110,6 +115,13 @@ class CascadeTrace:
     read_stride: int = 1
     source_text: str = ""
     target_text: str = ""
+    # One entry per read step that ran the MT stage: the exact prompt context
+    # and the tokens the model itself produced.  This is the *text stream* --
+    # the object DPO scores -- and it has to include the steps that produced
+    # no speech, because choosing to stay silent is the decision that creates
+    # the gaps.  Recording ``produced`` rather than ``committed`` keeps it the
+    # policy's own output instead of the commit rule's.
+    mt_steps: list[dict] = field(default_factory=list)
     decision_tokens_generated: int = 0
 
     def task_sequence(self) -> list[str]:
@@ -822,6 +834,12 @@ class P2STCascadeSession:
                     )
                     source_delta = len(committed)
                 elif stage == TASK_MT:
+                    mt_source_prefix = self.tokenizer.decode(
+                        self.source_committer.committed
+                    )
+                    mt_target_prefix = self.tokenizer.decode(
+                        self.target_committer.committed
+                    )
                     produced, ended = _generate_text(
                         self.model,
                         self._mt_prompt(),
@@ -841,6 +859,17 @@ class P2STCascadeSession:
                     )
                     target_delta = len(committed)
                     target_committed_tokens = list(committed)
+                    self.trace.mt_steps.append(
+                        {
+                            "read_step": int(step_position),
+                            "source_end_ms": int(source_end_ms),
+                            "source_prefix": mt_source_prefix,
+                            "target_prefix": mt_target_prefix,
+                            "produced": [int(t) for t in produced],
+                            "ended": bool(ended),
+                            "committed": int(len(committed)),
+                        }
+                    )
                 else:
                     budget = self.max_semantic_tokens
                     if self.pace:
@@ -960,6 +989,9 @@ class P2STCascadeSession:
                             text=self.tokenizer.decode(
                                 self.target_committer.committed
                             ),
+                            source_prefix=self.tokenizer.decode(
+                                self.source_committer.committed
+                            ),
                             semantic=tuple(codes),
                             start_ms=start,
                             end_ms=end,
@@ -1002,6 +1034,9 @@ class P2STCascadeSession:
                     block_index=steps[-1],
                     source_end_ms=source_end_ms,
                     text=self.tokenizer.decode(self.target_committer.committed),
+                    source_prefix=self.tokenizer.decode(
+                        self.source_committer.committed
+                    ),
                     semantic=tuple(codes),
                     start_ms=start,
                     end_ms=end,
