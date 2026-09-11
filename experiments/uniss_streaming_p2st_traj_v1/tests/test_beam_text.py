@@ -178,13 +178,32 @@ def test_sampling_survives_a_masked_logit_row():
     assert token in (1, 2)
 
 
-def test_sampling_is_reproducible_for_one_row():
-    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import _greedy
+def test_sampling_is_reproducible_from_the_seed_not_the_logits():
+    """The bug this replaces cost twelve identical "sampled" rollouts.
 
-    logits = torch.tensor([0.0, 5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    The seed used to be derived from the logits, so the same input always drew
+    the same token and every candidate came out byte-identical -- and the old
+    version of this test called that reproducibility.  Reproducibility must
+    come from the seed the caller sets; two different seeds on the same logits
+    must be able to differ.
+    """
+    from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import (
+        _greedy,
+        seed_sampling,
+    )
+
+    logits = torch.tensor([0.0, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5, -9.0])
     kw = dict(allowed=None, penalty=1.0, recent=[], terminator=TERMINATOR,
-              temperature=1.0, top_k=20, top_p=0.8)
-    assert _greedy(logits, **kw) == _greedy(logits, **kw)
+              temperature=1.0, top_k=20, top_p=0.95)
+    seed_sampling(1234)
+    a = [_greedy(logits, **kw) for _ in range(24)]
+    seed_sampling(1234)
+    b = [_greedy(logits, **kw) for _ in range(24)]
+    assert a == b, "the same seed must reproduce the same draws"
+    seed_sampling(4321)
+    c = [_greedy(logits, **kw) for _ in range(24)]
+    assert c != a, "a different seed must be able to draw differently"
+    assert len(set(a)) > 1, "sampling must not collapse onto one token"
 
 
 def test_temperature_zero_is_still_argmax():

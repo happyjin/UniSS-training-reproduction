@@ -52,9 +52,22 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--num-shards", type=int, default=1)
+    # Sampling, so a chosen candidate's codes can be reproduced from its seed.
+    # The rollout writes no codes, and re-running with the same seed is exact
+    # because the sampler is seeded per call rather than from the logits.
+    parser.add_argument("--text-temperature", type=float, default=0.0)
+    parser.add_argument("--text-top-k", type=int, default=0)
+    parser.add_argument("--text-top-p", type=float, default=1.0)
+    parser.add_argument("--sampling-seed", type=int, default=0)
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
 
+    if args.sampling_seed:
+        from experiments.uniss_streaming_p2st_pure_ce_v1.runtime.p2st_cascade import (
+            seed_sampling,
+        )
+
+        seed_sampling(args.sampling_seed)
     rows = load_selection(args.selection)
     if args.num_shards > 1:
         rows = [r for i, r in enumerate(rows) if i % args.num_shards == args.shard_index]
@@ -103,6 +116,9 @@ def main() -> None:
             length_prior_scale=args.length_prior_scale,
             min_fragment_tokens=args.min_fragment_tokens,
             min_final_chunk_ms=args.min_final_chunk_ms,
+            text_temperature=args.text_temperature,
+            text_top_k=args.text_top_k,
+            text_top_p=args.text_top_p,
             read_stride=args.read_stride,
             source_holdback=args.source_holdback,
             target_holdback=args.target_holdback,
@@ -119,6 +135,10 @@ def main() -> None:
                 # a fragment boundary, where the gap is a placement decision
                 # rather than something the model generated.
                 "fragments": [[int(c) for c in f.semantic] for f in speech],
+                # the trajectory rebuild needs where each fragment was emitted
+                # and what text it had committed by then
+                "starts_ms": [float(f.source_end_ms) for f in speech],
+                "texts": [f.text for f in speech],
             }
         )
         print(f"[{position + 1}/{len(rows)}] {row.sample_id} "

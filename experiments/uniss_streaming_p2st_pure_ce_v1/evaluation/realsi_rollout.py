@@ -114,6 +114,10 @@ def main() -> None:
     # by this margin, for at most this many extra codes.  0 disables it.
     parser.add_argument("--semantic-end-min-margin", type=float, default=0.0)
     parser.add_argument("--semantic-end-overrun-tokens", type=int, default=0)
+    # Write the per-fragment codes into the manifest.  Without this a second
+    # pass through code_dump is needed to recover them, which on a 20k slice is
+    # four hours of GPU for data the rollout already had in memory.
+    parser.add_argument("--dump-codes", action="store_true")
     # SimulS2ST-Omni's talker: top_p 0.8, top_k 20, temperature 1.0, rep 1.4.
     # temperature 0 keeps the greedy path.
     parser.add_argument("--semantic-temperature", type=float, default=0.0)
@@ -359,6 +363,15 @@ def main() -> None:
                 "read_steps": trace.blocks,
                 "audio_blocks": trace.audio_blocks,
                 "fragments": len(speech),
+                **(
+                    {}
+                    if not args.dump_codes
+                    else {
+                        "codes": [[int(c) for c in f.semantic] for f in speech],
+                        "starts_ms": [float(f.source_end_ms) for f in speech],
+                        "texts": [f.text for f in speech],
+                    }
+                ),
                 "semantic_tokens": sum(len(f.semantic) for f in speech),
                 "translation_placed": str(out / "translation_placed" / f"{row.sample_id}.wav"),
                 "translation_concat": str(out / "translation_concat" / f"{row.sample_id}.wav"),
