@@ -167,6 +167,12 @@ def main() -> None:
     ).to(device)
     model.config.use_cache = False
     model.gradient_checkpointing_enable()
+    # With every base weight frozen -- embeddings included, deliberately --
+    # the input to the first checkpointed block carries no grad, and each
+    # block is then recomputed without building a graph.  Training would run
+    # to completion and change nothing.  This is the one line that prevents
+    # that, and the zero-gradient check below is its alarm.
+    model.enable_input_require_grads()
 
     layers = lora.inject(model, rank=args.rank, alpha=args.alpha)
     params = lora.trainable_parameters(layers)
@@ -264,6 +270,11 @@ def main() -> None:
         if used == 0:
             continue
         norm = torch.nn.utils.clip_grad_norm_(params, 1.0)
+        if step == 1 and float(norm) == 0.0:
+            raise SystemExit(
+                "no gradient reached the adapter on the first step; the run "
+                "would train nothing"
+            )
         optimiser.step()
         schedule.step()
         row = {k: v / used for k, v in totals.items()}
