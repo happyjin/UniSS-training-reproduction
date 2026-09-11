@@ -12,11 +12,17 @@ score is
 
     logp = sum_i log p(produced_i + <end> | mt_prompt(source_i, target_i))
 
-normalised by the total number of produced tokens.  Normalising matters here
-more than it does in the usual chat setting: the two candidates differ mostly
-in *how much text they emit*, so an unnormalised objective would be dominated
-by length and would simply prefer the shorter stream -- the opposite of what
-we want.
+normalised by the total number of produced tokens.
+
+Why normalise.  Measured over 2715 pairs, the low-silence candidate does *not*
+say more, and does not start earlier: total committed text is a tie (median
+difference 0 characters) and so is the onset (median 0 ms, identical in 44% of
+pairs).  What it does is spread the same text over more read steps -- median
+one fragment more -- committing about one character less at each.  So the
+preference is about *distribution*, not amount.  That is precisely why the
+normalisation is load-bearing: the preferred stream runs more MT steps and
+therefore emits more tokens in total, and an unnormalised objective would
+penalise it for exactly the property it is supposed to reward.
 
 The reference policy is this same module with the adapters switched off, which
 makes ``policy == reference`` exact at step 0 and costs no extra memory.

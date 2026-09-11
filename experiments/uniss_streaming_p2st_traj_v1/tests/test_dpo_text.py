@@ -124,12 +124,12 @@ def test_the_margin_is_zero_before_any_update():
 
 
 def test_length_normalisation_does_not_reward_saying_less():
-    """The whole point: a shorter stream must not win on length alone.
+    """A stream must not win on token count alone.
 
-    Without normalisation the rejected stream here -- which says a third as
-    much -- has the larger (less negative) total log-probability, so an
-    unnormalised objective would prefer exactly the silent candidate we are
-    trying to move away from.
+    In the real pairs the preferred candidate spreads the same text over more
+    read steps, so it emits more tokens in total; unnormalised, its summed log
+    probability is the more negative of the two and the objective would push
+    against it.  This is that arithmetic in miniature.
     """
     model = _model()
     tok = _Tokenizer()
