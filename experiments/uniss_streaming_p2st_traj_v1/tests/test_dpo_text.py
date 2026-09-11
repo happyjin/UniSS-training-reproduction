@@ -157,3 +157,46 @@ def test_pairs_without_a_recorded_stream_are_dropped():
     ]
     got = build_examples(pairs, arms)
     assert len(got) == 1 and got[0]["sample_id"] == "s1"
+
+
+def test_a_saved_adapter_reproduces_the_trained_model():
+    """Save, reload into a fresh model, merge, unwrap -- same outputs.
+
+    This is the path that produces the checkpoint the evaluator measures, so a
+    silent failure here would look exactly like 'the training had no effect'.
+    """
+    from torch import nn
+
+    trained = _model()
+    layers = lora.inject(trained, rank=4, alpha=8.0)
+    with torch.no_grad():
+        for layer in layers:
+            layer.b.normal_(std=0.02)
+    ids = torch.tensor([[5, 9, 13, 21]])
+    with torch.no_grad():
+        want = trained(input_ids=ids).logits
+
+    blob = {"state": lora.state_dict(layers), "rank": 4, "alpha": 8.0}
+
+    fresh = _model()
+    reloaded = lora.inject(fresh, rank=blob["rank"], alpha=blob["alpha"])
+    lora.load_state_dict(reloaded, blob["state"])
+    lora.merge(reloaded)
+    for parent in fresh.modules():
+        for name, child in list(parent.named_children()):
+            if isinstance(child, lora.LoRALinear):
+                setattr(parent, name, child.base)
+    assert not any(isinstance(m, lora.LoRALinear) for m in fresh.modules())
+    assert all(isinstance(m, nn.Linear) for m in fresh.modules() if "proj" in str(type(m)).lower() or False)
+    with torch.no_grad():
+        got = fresh(input_ids=ids).logits
+    assert torch.allclose(want, got, atol=2e-2), (want - got).abs().max()
+
+
+def test_loading_an_adapter_with_missing_layers_is_refused():
+    model = _model()
+    layers = lora.inject(model, rank=4, alpha=8.0)
+    state = lora.state_dict(layers)
+    partial = {k: v for k, v in state.items() if "layers.0" not in k}
+    with __import__("pytest").raises(SystemExit):
+        lora.load_state_dict(layers, partial)

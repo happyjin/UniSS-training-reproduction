@@ -150,6 +150,11 @@ def main() -> None:
     ap.add_argument("--nll-weight", type=float, default=0.05)
     ap.add_argument("--seed", type=int, default=17)
     ap.add_argument("--log-every", type=int, default=10)
+    # Snapshots early as well as late.  Both earlier attempts to move these
+    # weights were judged only at the end, and by then there was nothing to
+    # compare against; an adapter at 100 and 200 steps costs a few megabytes
+    # and makes the damage, if any, visible while it is still small.
+    ap.add_argument("--save-steps", default="100,200,400")
     ap.add_argument("--device", default="cuda:0")
     args = ap.parse_args()
 
@@ -189,6 +194,7 @@ def main() -> None:
     schedule = torch.optim.lr_scheduler.OneCycleLR(
         optimiser, max_lr=args.lr, total_steps=args.steps, pct_start=0.1
     )
+    save_steps = {int(v) for v in args.save_steps.split(",") if v.strip()}
     rng = random.Random(args.seed)
     order = list(range(len(examples)))
     rng.shuffle(order)
@@ -271,6 +277,15 @@ def main() -> None:
                 f"|g| {row['grad_norm']:.3f}",
                 flush=True,
             )
+        if step in save_steps:
+            snapshot = Path(args.output)
+            snapshot.mkdir(parents=True, exist_ok=True)
+            torch.save(
+                {"state": lora.state_dict(layers), "rank": args.rank,
+                 "alpha": args.alpha, "step": step},
+                snapshot / f"adapter_step{step:04d}.pt",
+            )
+            print(f"  saved adapter_step{step:04d}.pt", flush=True)
 
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)

@@ -70,10 +70,13 @@ def inject(
 ) -> list[LoRALinear]:
     """Wrap every ``nn.Linear`` whose attribute name is in ``targets``."""
     wrapped: list[LoRALinear] = []
-    for module in model.modules():
+    for parent_name, module in list(model.named_modules()):
         for name, child in list(module.named_children()):
             if name in targets and isinstance(child, nn.Linear):
                 layer = LoRALinear(child, rank, alpha)
+                # Carry the qualified name so a saved adapter can be matched
+                # back to its module by name rather than by traversal order.
+                layer.lora_name = f"{parent_name}.{name}" if parent_name else name
                 setattr(module, name, layer)
                 wrapped.append(layer)
     if not wrapped:
@@ -102,12 +105,23 @@ def trainable_parameters(layers: list[LoRALinear]) -> list[nn.Parameter]:
     return [p for layer in layers for p in (layer.a, layer.b)]
 
 
-def state_dict(layers: list[LoRALinear], names: list[str]) -> dict:
+def state_dict(layers: list[LoRALinear]) -> dict:
     return {
-        f"{name}.{which}": getattr(layer, which).detach().cpu()
-        for name, layer in zip(names, layers)
+        f"{layer.lora_name}.{which}": getattr(layer, which).detach().cpu()
+        for layer in layers
         for which in ("a", "b")
     }
+
+
+def load_state_dict(layers: list[LoRALinear], state: dict) -> None:
+    by_name = {layer.lora_name: layer for layer in layers}
+    missing = set(by_name) - {k.rsplit(".", 1)[0] for k in state}
+    if missing:
+        raise SystemExit(f"adapter is missing {len(missing)} layers, e.g. {sorted(missing)[:3]}")
+    for key, value in state.items():
+        name, which = key.rsplit(".", 1)
+        with torch.no_grad():
+            getattr(by_name[name], which).copy_(value.to(by_name[name].a.device))
 
 
 def merge(layers: list[LoRALinear]) -> None:
