@@ -62,15 +62,46 @@ def main() -> None:
     parser.add_argument("--rollout-root", required=True)
     parser.add_argument("--baseline", default="base")
     parser.add_argument("--workers", type=int, default=32)
+    parser.add_argument(
+        "--arm", action="append", default=[],
+        help="compare only these arms; repeat.  Default is every arm that "
+             "covers the baseline's samples.",
+    )
+    parser.add_argument("--min-coverage", type=float, default=0.99)
     parser.add_argument("--output")
     args = parser.parse_args()
 
     arms = load(Path(args.rollout_root))
     if args.baseline not in arms:
         raise SystemExit(f"no baseline arm {args.baseline!r} under {args.rollout_root}")
-    ids = sorted(set.intersection(*(set(a) for a in arms.values())))
+    if args.arm:
+        wanted = set(args.arm) | {args.baseline}
+        arms = {name: rows for name, rows in arms.items() if name in wanted}
+
+    # The baseline defines the sample set.  Arms that do not cover it are
+    # dropped rather than allowed to shrink it: a rollout root accumulates
+    # arms from older experiments -- one here holds 65 samples and another
+    # none -- and intersecting everything silently reduced the comparison to
+    # nothing.  Dropping them is right because the comparison is paired, so an
+    # arm missing samples cannot be paired against the baseline anyway.
+    ids = sorted(arms[args.baseline])
     if not ids:
-        raise SystemExit("the arms share no samples")
+        raise SystemExit(f"the baseline arm {args.baseline!r} is empty")
+    covered, skipped = {}, []
+    for name, rows in arms.items():
+        share = len(set(ids) & set(rows)) / len(ids)
+        if share >= args.min_coverage:
+            covered[name] = rows
+        else:
+            skipped.append((name, share))
+    arms = covered
+    ids = sorted(set.intersection(*(set(a) for a in arms.values())))
+    if skipped:
+        print(
+            f"skipped {len(skipped)} arm(s) that do not cover the baseline: "
+            + ", ".join(f"{n} ({s:.0%})" for n, s in sorted(skipped)[:6])
+            + ("..." if len(skipped) > 6 else "")
+        )
 
     tasks = [
         (arm, i, str(arms[arm][i]["translation_placed"])) for arm in arms for i in ids

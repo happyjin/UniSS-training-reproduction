@@ -41,3 +41,43 @@ def test_onset_reads_the_first_delay_and_survives_an_empty_one():
     assert onset_ms({"starts_ms": [640.0]}) == 640.0
     assert onset_ms({"delays": []}) == 0.0
     assert onset_ms({}) == 0.0
+
+
+def test_an_arm_that_does_not_cover_the_baseline_is_dropped_not_intersected(tmp_path):
+    """A rollout root accumulates arms; one short arm must not erase the rest.
+
+    Intersecting every arm reduced a real comparison to zero samples, because
+    two arms left over from older experiments held 65 samples and none.
+    """
+    import json
+    import subprocess
+    import sys
+
+    import numpy as np
+    import soundfile as sf
+
+    def write(name, ids):
+        d = tmp_path / name
+        d.mkdir(parents=True, exist_ok=True)
+        rows = []
+        for i in ids:
+            wav = d / f"{i}.wav"
+            sf.write(str(wav), np.zeros(1600, dtype="float32"), 16_000)
+            rows.append({
+                "sample_id": i, "translation_placed": str(wav),
+                "fragments": 3, "target_hypothesis": "abc", "delays": [100.0],
+            })
+        (d / "MANIFEST.json").write_text(json.dumps({"samples": rows}))
+
+    write("base", [f"s{i}" for i in range(10)])
+    write("good", [f"s{i}" for i in range(10)])
+    write("stub", ["s0"])
+
+    out = subprocess.run(
+        [sys.executable, "-m",
+         "experiments.uniss_streaming_p2st_traj_v1.evaluation.flow_screen",
+         "--rollout-root", str(tmp_path), "--baseline", "base", "--workers", "2"],
+        capture_output=True, text=True,
+    )
+    assert "skipped 1 arm" in out.stdout, out.stdout + out.stderr
+    assert "10 paired samples" in out.stdout, out.stdout + out.stderr
