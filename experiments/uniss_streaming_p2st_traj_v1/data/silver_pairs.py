@@ -82,6 +82,7 @@ def pair_for_group(
     *,
     bleu_margin: float,
     onset_tolerance_ms: float = 0.0,
+    bleu_margin_mode: str = "separation",
     silence_margin: float,
     min_chrf: float,
 ) -> tuple[dict, dict, str] | tuple[None, None, str]:
@@ -96,18 +97,30 @@ def pair_for_group(
     if scale <= 0.0:
         return None, None, "the group has no silence spread"
     floor = max(silence_margin * scale, 1e-6)
-    # The BLEU margin is read as a *quality match*, not a minimum separation:
-    # the pair must differ in flow and agree in quality, or DPO learns "translate
-    # better" instead of "speak continuously", which is not what the objective
-    # is for.  The paper states the margin without saying which way it cuts, so
-    # this interpretation is a choice, and it is the one that makes the pair
-    # isolate the axis being optimised.
+    # Which way the BLEU margin cuts.
+    #
+    # "separation" is the paper's: *"a chosen candidate must outperform its
+    # rejected counterpart by a translation quality margin beta"* -- the chosen
+    # one has to be at least ``bleu_margin`` BLEU better.  This is the default
+    # because it is what NaturalFlow specifies.
+    #
+    # "match" is the reading the first run here used, on the mistaken belief
+    # that the paper left the direction open: the pair must agree in quality to
+    # within the margin, so that it differs only in flow.  That reasoning
+    # stands on its own -- it isolates the axis being optimised -- but it is
+    # not the paper's, and conflating the two would misreport the reproduction.
+    if bleu_margin_mode == "separation":
+        quality = lambda r: float(chosen["bleu"]) - float(r["bleu"]) >= bleu_margin
+    elif bleu_margin_mode == "match":
+        quality = lambda r: abs(float(chosen["bleu"]) - float(r["bleu"])) <= bleu_margin
+    else:
+        raise ValueError(f"unknown bleu margin mode {bleu_margin_mode!r}")
     worse = [
         r for r in rows
         if r is not chosen
         and r.get("silence_ratio") is not None
         and float(r["silence_ratio"]) - float(chosen["silence_ratio"]) >= floor
-        and abs(float(chosen["bleu"]) - float(r["bleu"])) <= bleu_margin
+        and quality(r)
     ]
     if not worse:
         return None, None, "no candidate cleared both margins"
@@ -137,6 +150,12 @@ def main() -> None:
     parser.add_argument("--silence-margin", type=float, default=DEFAULT_SILENCE_MARGIN)
     parser.add_argument("--min-chrf", type=float, default=0.0)
     parser.add_argument("--onset-tolerance-ms", type=float, default=0.0)
+    parser.add_argument(
+        "--bleu-margin-mode", choices=("separation", "match"), default="separation",
+        help="separation is the paper's: the chosen candidate must be at least "
+             "--bleu-margin better.  match requires the pair to agree in "
+             "quality to within it.",
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument(
         "--workers", type=int, default=min(48, os.cpu_count() or 8)
@@ -172,6 +191,7 @@ def main() -> None:
                 rows, bleu_margin=args.bleu_margin,
                 silence_margin=args.silence_margin, min_chrf=args.min_chrf,
                 onset_tolerance_ms=args.onset_tolerance_ms,
+                bleu_margin_mode=args.bleu_margin_mode,
             )
             reasons[why] = reasons.get(why, 0) + 1
             if chosen is None or rejected is None:
