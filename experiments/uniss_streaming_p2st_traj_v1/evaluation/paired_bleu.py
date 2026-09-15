@@ -23,9 +23,12 @@ from pathlib import Path
 
 import sacrebleu
 
-# en->zh is scored with sacrebleu's Chinese tokenizer, zh->en with 13a, which
-# is what the ASR-BLEU chain uses; mixing them would not be comparable.
+from evaluation import text_metrics
+
+# en->zh is scored with sacrebleu's Chinese tokenizer, zh->en with 13a.
 TOKENIZER = {"en2zh": "zh", "zh2en": "13a"}
+# The target language each direction produces, for the repo protocol.
+LANGUAGE = {"en2zh": "cmn", "zh2en": "eng"}
 
 
 def load(path: Path, direction: str) -> dict[str, tuple[str, str]]:
@@ -41,8 +44,38 @@ def load(path: Path, direction: str) -> dict[str, tuple[str, str]]:
     return rows
 
 
-def corpus_bleu(hypotheses: list[str], references: list[str], tokenize: str) -> float:
+def corpus_bleu(
+    hypotheses: list[str], references: list[str], tokenize: str,
+    *, protocol: str = "repo", language: str = "cmn",
+) -> float:
+    """Corpus BLEU under one of the project's two protocols.
+
+    ``repo`` is ``evaluation.text_metrics``: strip punctuation, simplify
+    Chinese, then score.  Every headline ASR-BLEU this project has published
+    is that one, and it is also the better fit here because ASR output carries
+    no punctuation to begin with.  ``raw`` is bare sacrebleu.
+
+    The choice is not cosmetic: the normalisation changes the reference length
+    (10509 against 11510 tokens on en->zh), which moves the brevity penalty
+    onto a different system and, on one checkpoint here, flipped the sign of
+    the measured difference.
+    """
+    if protocol not in ("repo", "raw"):
+        raise ValueError(f"unknown protocol {protocol!r}")
+    if protocol == "repo":
+        hypotheses = normalise(hypotheses, language)
+        references = normalise(references, language)
     return sacrebleu.corpus_bleu(hypotheses, [references], tokenize=tokenize).score
+
+
+def normalise(texts: list[str], language: str) -> list[str]:
+    """The repo protocol's normalisation: strip punctuation, simplify Chinese.
+
+    Pulled out of the scoring call so a bootstrap normalises each string once
+    rather than once per resample -- a thousand passes of OpenCC over the same
+    777 utterances, which is most of the run time and changes no result.
+    """
+    return [text_metrics.normalize_for_bleu(t, language) for t in texts]
 
 
 def paired_bootstrap(
@@ -52,6 +85,8 @@ def paired_bootstrap(
     tokenize: str,
     samples: int = 1000,
     seed: int = 12345,
+    protocol: str = "repo",
+    language: str = "cmn",
 ) -> dict:
     ids = sorted(set(system) & set(baseline))
     if not ids:
@@ -59,8 +94,13 @@ def paired_bootstrap(
     sys_h = [system[i][0] for i in ids]
     base_h = [baseline[i][0] for i in ids]
     refs = [system[i][1] for i in ids]
+    if protocol == "repo":
+        sys_h, base_h, refs = (normalise(x, language) for x in (sys_h, base_h, refs))
 
-    observed = corpus_bleu(sys_h, refs, tokenize) - corpus_bleu(base_h, refs, tokenize)
+    # Already normalised above when the protocol asks for it, so the scorer is
+    # bare sacrebleu either way from here on.
+    score = lambda h, r: corpus_bleu(h, r, tokenize, protocol="raw", language=language)
+    observed = score(sys_h, refs) - score(base_h, refs)
     rng = random.Random(seed)
     deltas = []
     n = len(ids)
@@ -69,7 +109,7 @@ def paired_bootstrap(
         h1 = [sys_h[i] for i in pick]
         h0 = [base_h[i] for i in pick]
         r = [refs[i] for i in pick]
-        deltas.append(corpus_bleu(h1, r, tokenize) - corpus_bleu(h0, r, tokenize))
+        deltas.append(score(h1, r) - score(h0, r))
     deltas.sort()
     lo = deltas[int(0.025 * samples)]
     hi = deltas[int(0.975 * samples) - 1]
@@ -90,16 +130,19 @@ def main() -> None:
     parser.add_argument("--baseline", required=True)
     parser.add_argument("--arm", action="append", required=True)
     parser.add_argument("--samples", type=int, default=1000)
+    parser.add_argument("--protocol", choices=("repo", "raw"), default="repo")
     args = parser.parse_args()
 
     root = Path(args.rollout_root)
+    print(f"protocol: {args.protocol}\n")
     print(f"{'arm':>16} {'direction':>9} {'n':>5} {'delta':>8} {'95% CI':>18} {'p':>7}")
     for arm in args.arm:
         for direction, tokenize in TOKENIZER.items():
             base = load(root / args.baseline / "asr" / "asr_results.jsonl", direction)
             system = load(root / arm / "asr" / "asr_results.jsonl", direction)
             got = paired_bootstrap(
-                system, base, tokenize=tokenize, samples=args.samples
+                system, base, tokenize=tokenize, samples=args.samples,
+                protocol=args.protocol, language=LANGUAGE[direction],
             )
             flag = "" if got["ci_low"] <= 0 <= got["ci_high"] else "  *"
             print(
