@@ -52,3 +52,15 @@ def test_an_empty_candidate_earns_nothing():
 
 def test_a_single_candidate_has_no_evidence():
     assert mbr_scores(["只有一个"], language="cmn", kind="chrf") == [0.0]
+
+
+def test_pool_agreement_is_the_mean_pairwise_utility():
+    """The number that says how much variation MBR has to work with.
+
+    A pool of identical candidates agrees perfectly and offers nothing; a pool
+    of unrelated ones agrees not at all.
+    """
+    identical = mbr_scores(["A B C", "A B C", "A B C"], language="eng", kind="chrf")
+    assert sum(identical) / 3 == 100.0
+    varied = mbr_scores(["A B C", "D E F", "G H I"], language="eng", kind="chrf")
+    assert sum(varied) / 3 < 50.0

@@ -132,6 +132,12 @@ def _choose_for_sample(task):
             )
     out["first"] = 0
     out["quietest"] = min(range(len(sil)), key=lambda i: sil[i])
+    # How much the pool disagrees with itself.  MBR can only exploit variation
+    # that exists, so a sharpened model -- which is what preference training
+    # produces -- may leave it less to work with even while decoding better.
+    # The mean MBR score is exactly the mean pairwise utility of the group.
+    agreement = mbr_scores(texts, language=language, kind=kinds[0])
+    out["_agreement"] = sum(agreement) / max(1, len(agreement))
     # The reference-aware bounds, reported only as bounds.
     ref = rows[0]["reference"]
     tokenize = "zh" if language == "cmn" else "13a"
@@ -203,6 +209,11 @@ def main() -> None:
 
     lookup = {i: rows for i, _, rows, _, _ in per_sample}
     directions = {i: d for i, d, _, _, _ in per_sample}
+    agreements = [p.pop("_agreement") for p in picks.values() if "_agreement" in p]
+    if agreements:
+        print(f"\npool agreement (mean pairwise {kinds[0]}): "
+              f"{statistics.mean(agreements):.2f}  "
+              f"-- lower means more for MBR to exploit", flush=True)
     strategies = sorted(next(iter(picks.values())).keys())
     report = {}
     print(f"\n{'strategy':>22} {'en→zh':>8} {'zh→en':>8} {'合计':>8} {'静音':>8}")
