@@ -1,0 +1,119 @@
+{
+  "by_language": {
+    "cmn": {
+      "accepted_rate": 0.7592852137351086,
+      "accepted_records": 4334,
+      "clean_records": 2118,
+      "error_rate": 0.2502199592436808,
+      "errors": 44081,
+      "metric": "cer",
+      "noisy_content_records": 2216,
+      "quarantine_records": 1374,
+      "records": 5708,
+      "reference_units": 176169
+    },
+    "eng": {
+      "accepted_rate": 0.751449555469656,
+      "accepted_records": 5832,
+      "clean_records": 1760,
+      "error_rate": 0.38975875486381323,
+      "errors": 50084,
+      "metric": "wer",
+      "noisy_content_records": 4072,
+      "quarantine_records": 1929,
+      "records": 7761,
+      "reference_units": 128500
+    }
+  },
+  "checks": {
+    "accepted_rollout_rate_meets_minimum": true,
+    "all_records_classified_once": true,
+    "every_language_retains_rollout_supervision": true,
+    "final_eos_rate_meets_minimum": true,
+    "quarantine_rate_within_limit": true
+  },
+  "formal_training_authorized": false,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "manifest": {
+    "by_language": {
+      "cmn": {
+        "errors": 44081,
+        "records": 5708,
+        "reference_units": 176169,
+        "stratum:clean": 2118,
+        "stratum:noisy_content": 2216,
+        "stratum:quarantine": 1374
+      },
+      "eng": {
+        "errors": 50084,
+        "records": 7761,
+        "reference_units": 128500,
+        "stratum:clean": 1760,
+        "stratum:noisy_content": 4072,
+        "stratum:quarantine": 1929
+      }
+    },
+    "bytes": 6125033,
+    "counts": {
+      "accepted_rollout_records": 10166,
+      "early_eos_events": 625,
+      "events": 263391,
+      "final_eos_samples": 13469,
+      "malformed_write_events": 5305,
+      "records": 13469,
+      "stratum:clean": 3878,
+      "stratum:noisy_content": 6288,
+      "stratum:quarantine": 3303
+    },
+    "index": {
+      "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/valid_quality_strata.jsonl.offsets.bin",
+      "binary_size_bytes": 107752,
+      "data_mtime_ns": 1787239749069641367,
+      "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/valid_quality_strata.jsonl",
+      "data_size_bytes": 6125033,
+      "offset_bytes": 8,
+      "records": 13469,
+      "schema_version": "simul_uniss_jsonl_offsets_v1"
+    },
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/valid_quality_strata.jsonl",
+    "records": 13469,
+    "sha256": "7ad903a42d31c54fa113988f3c49b93ea68872fa1fe98adce00e9cde8df26836"
+  },
+  "merge_report": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/MERGE.json",
+  "policy": {
+    "chinese_clean_cer": 0.2,
+    "english_clean_wer": 0.3,
+    "maximum_quarantine_rate": 0.4,
+    "minimum_accepted_rate": 0.6,
+    "minimum_final_eos_rate": 0.99,
+    "quarantine_allowed_task_families": [
+      "incremental_mt_event:gold_source_only",
+      "phase3_quality_replay",
+      "phase3_performance_replay"
+    ],
+    "quarantine_protocol_errors": [
+      "malformed_write",
+      "early_eos",
+      "missing_final_eos"
+    ]
+  },
+  "rollouts": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/valid_v1_rollouts.jsonl",
+  "schema_version": "uniss_phase3_v4_e2e_simuls2st_rollout_quality_gate_v1",
+  "status": "passed",
+  "summary": {
+    "accepted_rollout_rate": 0.7547702130818917,
+    "accepted_rollout_records": 10166,
+    "clean_rate": 0.28792040982997996,
+    "clean_records": 3878,
+    "early_eos_events": 625,
+    "events": 263391,
+    "final_eos_rate": 1.0,
+    "final_eos_samples": 13469,
+    "malformed_write_events": 5305,
+    "noisy_content_rate": 0.4668498032519118,
+    "noisy_content_records": 6288,
+    "quarantine_rate": 0.24522978691810826,
+    "quarantine_records": 3303,
+    "records": 13469
+  }
+}

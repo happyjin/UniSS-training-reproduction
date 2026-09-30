@@ -1,0 +1,41 @@
+{
+  "cache_schema": "uniss_phase3_v4_e2e_v1_asr_teacher_cache_v1",
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "counts": {
+    "final_requests": 2650486,
+    "history:gold_asr": 23014259,
+    "history:v1_asr": 23014259,
+    "records": 1325243,
+    "reference_in_topk": 228345991,
+    "requests": 46028518,
+    "teacher_positions": 229598335,
+    "teacher_top1_correct": 219375783
+  },
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/train_gold_trajectories.jsonl",
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf",
+  "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/train_v1_asr_teacher_cache.jsonl.offsets.bin",
+    "binary_size_bytes": 10601944,
+    "data_mtime_ns": 1787289998040517148,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/train_v1_asr_teacher_cache.jsonl",
+    "data_size_bytes": 21731329092,
+    "offset_bytes": 8,
+    "records": 1325243,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+  },
+  "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/train_v1_asr_teacher_cache.jsonl",
+  "output_bytes": 21731329092,
+  "output_sha256": "c41c003eba9b796b41fbe6925b6a25a5ac7565a8e6b0b68d45c5f4d877f68c33",
+  "parts_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/parts",
+  "reference_in_topk_rate": 0.9945455005150625,
+  "runtime_sha256": "c1766a9746ba61cd5ed80b827d22f16cecc92ebd2b312ab15935d70cf2a5c3a3",
+  "schema_version": "uniss_phase3_v4_e2e_v1_asr_teacher_merge_v1",
+  "selection_start": 0,
+  "selection_stop": 1325243,
+  "status": "passed",
+  "teacher_top1_accuracy": 0.955476367021564,
+  "temperature": 1.5,
+  "topk": 32,
+  "v1_hf_sha256": "e1089b6afaaf56babac717ed9a28d559a3d5b4a8d8c011354ad4a013f99772db",
+  "world_size": 32
+}

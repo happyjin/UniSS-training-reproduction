@@ -1,0 +1,330 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_10u_20260821T121426Z_hf",
+  "cuda_visible_devices": "6",
+  "device": "cuda:0",
+  "elapsed_seconds": 21.891754128970206,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 1129073,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 2,
+        "error_rate": 0.2857142857142857,
+        "errors": 4,
+        "event_hypotheses": [
+          "还是",
+          "还是",
+          "还是说",
+          "还是说",
+          "还是说你",
+          "还是说你什么",
+          "还是说你什么特别",
+          "还是说你什么特别事情",
+          "还是说你什么特别事情这",
+          "还是说你什么特别事情这的",
+          "还是说你什么特别事情这的东西"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "还是说你什么特别事情这的东西",
+        "malformed_write_events": 1,
+        "metric": "cer",
+        "reference_units": 14,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 9,
+        "coverage": 0.0,
+        "events": 11,
+        "final_hypothesis": "Still",
+        "hypothesis_units": 1,
+        "nonempty_events": 11,
+        "raw_hypotheses": [
+          "Still",
+          "Still",
+          "Or rather",
+          "Or rather",
+          "Or you",
+          "Or what about you",
+          "Or what are you special about",
+          "Or is it something special about you?",
+          "Or is it something special about you?",
+          "Or is it something special about you?",
+          "Or is it something special about you?"
+        ],
+        "reference_units": 9,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 9,
+        "coverage": 0.0,
+        "events": 11,
+        "final_hypothesis": "Still",
+        "hypothesis_units": 1,
+        "nonempty_events": 11,
+        "raw_hypotheses": [
+          "Still",
+          "Still",
+          "Or rather",
+          "Or rather",
+          "Or you have",
+          "Or do you have something",
+          "Or do you have something special?",
+          "Or do you have something special you want to",
+          "Or do you have something you really want to eat?",
+          "Or do you have something special you want to eat?",
+          "Or do you have something special you want to eat?"
+        ],
+        "reference_units": 9,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 0.0,
+          "error": null,
+          "finite": true,
+          "non_silent": false,
+          "path": null,
+          "peak": 0.0,
+          "rms": 0.0,
+          "samples": 0
+        },
+        "events": [
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "EOS"
+            ],
+            "event_index": 0,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "And"
+            ],
+            "semantic_tokens": 0,
+            "source_end_ms": 160,
+            "source_final": false,
+            "source_glm_end": 2,
+            "source_glm_start": 0
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 2,
+        "natural_eos": true,
+        "semantic_coverage": 0.0,
+        "semantic_reference_tokens": 163,
+        "semantic_tokens": 0,
+        "source_hypothesis": "",
+        "source_rollback_events": 0,
+        "target_hypothesis": "And",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 9,
+        "coverage": 0.0,
+        "events": 11,
+        "final_hypothesis": "Still",
+        "hypothesis_units": 1,
+        "nonempty_events": 11,
+        "raw_hypotheses": [
+          "Still",
+          "Still",
+          "Or rather",
+          "Or rather",
+          "Or you have",
+          "Or do you have something?",
+          "Or do you have something special?",
+          "Or do you have something you really want?",
+          "Or do you have something you really want to eat?",
+          "Or do you have something you really want to eat?",
+          "Or do you have something you really want to eat?"
+        ],
+        "reference_units": 9,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 9898,
+      "sample_id": "emilia_zh_0006795452",
+      "source_duration_ms": 3260,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "还是说你有什么特别想吃的东西",
+      "translation_reference": "Or is there anything special you want to eat"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 4,
+        "error_rate": 0.6,
+        "errors": 6,
+        "event_hypotheses": [
+          "To",
+          "To scathed",
+          "To scathed",
+          "To scathed persian",
+          "To scathed persian fossil head",
+          "To scathed persian fossil head the",
+          "To scathed persian fossil head the",
+          "To scathed persian fossil head the building",
+          "To scathed persian fossil head the building of",
+          "To scathed persian fossil head the building of to",
+          "To scathed persian fossil head the building of to local",
+          "To scathed persian fossil head the building of to local",
+          "To scathed persian fossil head the building of to local zoo",
+          "To scathed persian fossil head the building of to local zoo"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "To scathed persian fossil head the building of to local zoo",
+        "malformed_write_events": 1,
+        "metric": "wer",
+        "reference_units": 10,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 13,
+        "coverage": 0.0,
+        "events": 14,
+        "final_hypothesis": "到",
+        "hypothesis_units": 1,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "到",
+          "被",
+          "被",
+          "被刺穿",
+          "剥削珀斯化石头部",
+          "将珀斯化石头部剥去",
+          "将珀斯化石头部剥去",
+          "将这座建筑的珀斯化石头部砸碎",
+          "将珀斯化石头部的建筑",
+          "将珀斯化石头部的建筑烧毁",
+          "将珀斯化石头部的建筑扩展到当地",
+          "将珀斯化石头部的建筑扩展到当地",
+          "将珀斯化石头部的建筑扩展到当地动物园。",
+          "将珀斯化石头部的建筑扩展到当地动物园。"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 13,
+        "coverage": 0.0625,
+        "events": 14,
+        "final_hypothesis": "的",
+        "hypothesis_units": 1,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "的",
+          "童子军",
+          "童子军",
+          "童子军总统",
+          "童子军总统促成",
+          "童子军总统促成了",
+          "童子军总统促成了",
+          "童子军总统促成了建设",
+          "童子军总统促成了建设",
+          "童子军总统促成了建筑的建设",
+          "童子军团长促成了当地建筑的建设。",
+          "童子军团长促成了当地建筑的建设。",
+          "童子军会长促了当地动物园的建设。",
+          "童子军会长促了当地动物园的建设。"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 0.0,
+          "error": null,
+          "finite": true,
+          "non_silent": false,
+          "path": null,
+          "peak": 0.0,
+          "rms": 0.0,
+          "samples": 0
+        },
+        "events": [
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "EOS"
+            ],
+            "event_index": 0,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "这"
+            ],
+            "semantic_tokens": 0,
+            "source_end_ms": 1280,
+            "source_final": false,
+            "source_glm_end": 16,
+            "source_glm_start": 0
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 2,
+        "natural_eos": true,
+        "semantic_coverage": 0.0,
+        "semantic_reference_tokens": 277,
+        "semantic_tokens": 0,
+        "source_hypothesis": "",
+        "source_rollback_events": 0,
+        "target_hypothesis": "这",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 13,
+        "coverage": 0.0,
+        "events": 14,
+        "final_hypothesis": ".The",
+        "hypothesis_units": 4,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          ".The",
+          "童子军",
+          "童子军",
+          "童子军总统",
+          "童子军总统促成",
+          "童子军总统促成了",
+          "童子军总统促成了",
+          "童子军校长促成了建设。",
+          "童子军总统促成了建筑物的建设。",
+          "童子军总统促成了建筑的建设。",
+          "童子军会长促了当地建筑的建设。",
+          "童子军会长促了当地建筑的建设。",
+          "童子军会长促了当地动物园的建设。",
+          "童子军会长促了当地动物园的建设。"
+        ],
+        "reference_units": 16,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 1564,
+      "sample_id": "CommonVoice_EN_0000392649",
+      "source_duration_ms": 5500,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "The Scout president facilitated the building of the local zoo",
+      "translation_reference": "童子军会长促成了当地动物园的建设"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_20260821T123000Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 6
+}

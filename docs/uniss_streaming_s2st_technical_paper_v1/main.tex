@@ -1,0 +1,764 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+\setCJKmainfont[AutoFakeBold=2]{Droid Sans Fallback}
+\setCJKsansfont[AutoFakeBold=2]{Droid Sans Fallback}
+\setCJKmonofont[AutoFakeBold=2]{Droid Sans Fallback}
+
+\usepackage[a4paper,margin=2.15cm]{geometry}
+\usepackage{amsmath,amssymb,bm,mathtools}
+\usepackage{booktabs,tabularx,longtable,multirow,array}
+\usepackage{graphicx,xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric,backgrounds}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage{xurl}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{fancyhdr}
+\usepackage{listings}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=green!35!black,
+  urlcolor=blue!65!black,
+  pdftitle={UniSS Offline-to-Streaming Speech-to-Speech Translation Technical Report},
+  pdfauthor={Jason Lee (Li Jin)}
+}
+
+\definecolor{offlineblue}{RGB}{41,98,160}
+\definecolor{streamgreen}{RGB}{46,125,50}
+\definecolor{futureorange}{RGB}{230,126,34}
+\definecolor{frozen}{RGB}{235,238,241}
+\definecolor{trainable}{RGB}{220,242,220}
+\definecolor{warning}{RGB}{255,237,213}
+
+\newcommand{\vect}[1]{\bm{#1}}
+\newcommand{\mat}[1]{\bm{#1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Vocab}{\mathcal{V}}
+\newcommand{\Loss}{\mathcal{L}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\todoRL}{\textsc{Proposed-RL}}
+\newcommand{\checked}{\textcolor{streamgreen}{\ensuremath{\checkmark}}}
+\newcommand{\failed}{\textcolor{red!70!black}{\ensuremath{\times}}}
+\newcommand{\pathcode}[1]{\texttt{\detokenize{#1}}}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\renewcommand{\arraystretch}{1.16}
+\setlength{\tabcolsep}{5pt}
+\setlength{\emergencystretch}{2em}
+\setlist{nosep,leftmargin=2em}
+\captionsetup{font=small,labelfont=bf}
+\renewcommand{\abstractname}{摘要}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\refname}{参考文献}
+\renewcommand{\appendixname}{附录}
+\crefname{figure}{图}{图}
+\Crefname{figure}{图}{图}
+\crefname{table}{表}{表}
+\Crefname{table}{表}{表}
+\crefname{equation}{式}{式}
+\Crefname{equation}{式}{式}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{UniSS Offline--Streaming S2ST 技术报告}
+\rhead{2026-08-25}
+\cfoot{\thepage}
+\setlength{\headheight}{14pt}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!5},
+  columns=fullflexible
+}
+
+\title{\textbf{从离线统一语音建模到因果增量生成：\\
+UniSS Phase 1--3、Streaming Stage A/B 与质量感知强化学习路线}}
+\author{Jason Lee（李琎）\\
+\small UniSS Training Reproduction and Simultaneous S2ST Project}
+\date{2026 年 8 月 25 日}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本文系统总结一个从离线语音到语音翻译（speech-to-speech translation, S2ST）扩展到流式/同声传译的完整工程与研究路线。离线部分以 Qwen2.5-0.5B-Instruct 为共享自回归主干，在统一文本、GLM 声学 token、BiCodec semantic token 词表中依次执行 Phase 1 基础多任务对齐、Phase 2 直接 S2ST 与能力回放、Phase 3 Quality/Performance 聚焦训练。该公开 UniST-198 复现使用 19,785,924 条训练记录；最佳 Phase 3 checkpoint 在 UniST test 上取得 Quality 模式中英/英中 Text-BLEU 39.38/48.17、Speech-BLEU 22.73/46.31，并在相对 Phase 2 的 24 个主要高优指标单元中提升 21 个。
+
+流式部分不替换离线成功架构，而从 Phase 3 权重出发进行两步因果适配。Stage A 以 chunk-causal WhisperVQ、声学桥接层和共享 Qwen 学习 append-only 流式 ASR；训练 381 步数值稳定，但自由运行加权 WER/CER 为 27.14\%，尚未通过质量门。Stage B 冻结 Stage A 因果声学前端，仅以低学习率更新共享 Qwen，在 streaming ASR、incremental MT、端到端 semantic delta 与 Phase 3 replay 五任务族上联合训练 2,264 步。其英到中 160/320\,ms operating points 将首次目标音频从 4.22\,s 分别降低至 2.40/2.88\,s，即提前 1.82/1.34\,s；然而短块输出不完整，中到英方向又因不可撤销 ASR 前缀错误而退化，因此本文不将 Stage B 描述为双向全面成功。
+
+在此基础上，本文提出一个尚待执行的质量感知 GRPO 阶段：对同一输入采样多条 READ/WRITE--内容--语音轨迹，以最终翻译、前缀可支持性、首写时延、平均 token 时延、完整度、非静音和边界连续性构造多目标 reward，并用参考策略 KL 保护 Phase 3 与 Stage B 能力。旧 action-only GRPO 实验表明，仅优化二分类动作头虽可使中到英 Text-BLEU 提升 1.87，但 First WRITE 反而增加 41.85\,ms；Reward-v2 则初步展示了在保持双向文本质量时降低 24.7--46.5\,ms ATD 的可能性。本文的核心贡献是：给出统一 token 空间的可复现离线课程、保持离线能力的因果前端迁移、带真实增量轨迹和 quarantine routing 的共享解码器训练，以及对成功、失败和未来强化学习阶段边界清晰的端到端评估框架。
+\end{abstract}
+
+\noindent\textbf{关键词：} 语音到语音翻译；同声传译；流式 ASR；增量机器翻译；语音 token；多任务学习；GRPO；质量--时延权衡
+
+\section{引言}
+
+直接 S2ST 的目标是将源语音中的语义、语言和说话风格映射为目标语言语音。离线系统可在完整语句到达后统一规划翻译与语音，因此容易获得较高的完整性；同声传译系统则必须在未来尚不可见时作出不可回滚决定。设 16\,kHz 源波形为向量 $\vect{s}\in\R^{N}$，其中 $N$ 是采样点数，$N/16000$ 为音频秒数。离线系统估计 $p_\theta(\vect{y}\mid\vect{s})$，其中 $\vect{y}=(y_1,\ldots,y_L)\in\Vocab^L$ 是长度为 $L$ 的目标输出 token 序列，$\Vocab$ 是统一词表。流式系统在第 $k$ 个到达时刻只能访问前缀 $\vect{s}_{1:n_k}\in\R^{n_k}$，并输出 append-only 增量 $\Delta\vect{y}_k$；已经写出的 $\Delta\vect{y}_{1:k-1}$ 不允许回滚。因此，流式 S2ST 同时面临三类冲突：信息不足与过早输出、等待与交互时延、以及碎片化生成与语音连续性。
+
+本项目以 UniSS 的统一表达式 S2ST 思路为离线基础\cite{cheng2025uniss}，使用 Qwen2.5\cite{yang2024qwen25} 的共享 Transformer 和 BiCodec 条件/语义 token。离线训练采用 Megatron-LM\cite{shoeybi2019megatron}，在公开 UniST 的 198 个训练 shard 上完成三阶段课程。流式路线借鉴 prefix-to-prefix/wait-$k$ 的 READ/WRITE 抽象\cite{ma2019stacl}、StreamSpeech 的多任务和 multi-chunk 训练动机\cite{zhang2024streamspeech}，但保留 Phase 3 架构与声码器，重点研究如何将非因果声学表示替换为因果前端并保护已获得的翻译与语音能力。
+
+本文需要回答四个可检验问题：
+
+\begin{enumerate}
+  \item 一个 0.5B 共享自回归模型能否通过 Phase 1--3 课程在公开全量数据上稳定获得 ASR、翻译与语音生成能力？
+  \item 在不丢弃最佳 Phase 3 权重的条件下，chunk-causal 声学前端能否支持 append-only streaming ASR？
+  \item 共享 Qwen 能否在冻结前端后同时学习 ASR delta、incremental MT delta 和 target semantic delta，并保留离线能力？
+  \item 监督学习不能直接优化的质量--时延权衡，是否可由轨迹级 GRPO 进一步改善？
+\end{enumerate}
+
+本文的贡献与创新点如下。
+
+\begin{itemize}
+  \item \textbf{统一 token 空间的三阶段离线课程。} 在同一个 24 层、隐藏维 896 的 Qwen 主干内联合建模文本、GLM 与 BiCodec semantic token；Phase 2 使用 2:1 主任务/Phase 1 replay，Phase 3 再聚焦 Quality/Performance。该设计在相同 UniST test 协议下令 Phase 3 相对 Phase 2 的 24 个主要指标单元提升 21 个。
+  \item \textbf{Phase 3 能力锚定的因果声学迁移。} Stage A 不是从头训练流式系统，而是将 chunk-causal WhisperVQ 和桥接表示接入 Phase 3 主干，并保留精确 Phase 3 replay；这使因果适配与原有 S2ST 能力的归因边界清晰。
+  \item \textbf{单一共享解码器上的五任务增量联合训练。} Stage B 将 streaming ASR、incremental MT、interleaved S2ST semantic delta 与两种 Phase 3 replay 置于同一全局 schedule；以 gold/free-running history、alignment confidence 和 clean/noisy/quarantine strata 控制监督可靠性。
+  \item \textbf{面向完整度的 END-margin 与 commit consistency。} 对过早 END 的 logit 施加 margin，并约束相同已提交前缀在后续事件中保持一致；实验显示英到中短块首音频明显提前，但双向质量门仍失败，从而暴露 aggressive WRITE 的真实代价。
+  \item \textbf{质量感知的轨迹级强化学习方案。} 不再只优化 WAIT/WRITE 二分类动作，而把最终文本、semantic/音频有效性、前缀安全和多种时延联合成 reward；本文给出严格的 GRPO 公式、训练顺序和必须超过的 matched-SFT/Pareto 判据。
+\end{itemize}
+
+\section{相关工作}
+
+\subsection{统一表达式 S2ST}
+
+UniSS 将源声学、文本与目标语音语义 token 置于统一语言模型词表中，通过 Quality 和 Performance 两种生成协议兼顾显式推理路径与直接生成\cite{cheng2025uniss}。本文的 Offline Phase 1--3 是其公开数据、0.5B 主干上的工程复现，而非原论文 1.5B 和非公开语料的严格等价复现。Whisper 的大规模弱监督预训练为声学编码提供强表示\cite{radford2022whisper}；Qwen2.5 提供共享自回归语言建模主干\cite{yang2024qwen25}。BiCodec/Spark-TTS 类语音 tokenizer 将全局说话人条件与局部 semantic token 分离，为 ``your voice'' S2ST 提供可解码的目标语音表示\cite{wang2025sparktts}。
+
+\subsection{流式翻译与流式 S2ST}
+
+STACL 将 simultaneous translation 表述为 prefix-to-prefix 生成，并以 wait-$k$ 控制延迟\cite{ma2019stacl}。固定策略简单，但不能根据当前前缀的语义歧义自适应等待。StreamSpeech 通过流式编码器、多任务学习、multi-chunk 训练以及 CTC 计数估计可提交的源/目标 token 数\cite{zhang2024streamspeech}。本文借鉴其 ``一个模型覆盖多个延迟 operating points'' 与辅助 ASR/MT 保护端到端能力的动机，但没有照搬其独立 NAR unit CTC 解码器；当前目标语音仍由 Phase 3 的共享自回归 LM head 生成 BiCodec semantic token。
+
+\subsection{强化学习与组相对策略优化}
+
+GRPO 通过同一输入的一组采样响应计算组内标准化优势，省去独立 value critic，并使用 KL 约束避免策略偏离参考模型\cite{shao2024deepseekmath}。对于 simultaneous S2ST，监督 trajectory 只告诉模型某个近似 READ/WRITE 决策，而真正目标是翻译质量、语音可懂度、完整性与延迟的 Pareto 权衡。因而轨迹级强化学习具有直接 motivation：它可对多个均为 ``合法'' 的提交时机进行相对排序。然而旧 action-only 实验也表明，reward 若缺少内容和完整度项，策略会学到 ``更保守但更慢'' 的错误解。
+
+\section{问题定义与总体系统}
+
+\subsection{统一序列建模}
+
+设统一词表大小为 $V=180{,}407$，其 Megatron padding 后大小为 $V'=180{,}480$。对一条训练样本，prompt、源表示、转录、翻译与目标 semantic token 被串接为离散序列 $\vect{z}=(z_1,\ldots,z_T)\in\Vocab^T$，其中 $T\leq18{,}000$。嵌入矩阵 $\mat{W}_{\mathrm{emb}}\in\R^{V'\times d}$ 将每个 token 映射为 $d=896$ 维向量。共享 Transformer $f_\theta$ 输出隐藏矩阵 $\mat{H}=f_\theta(\vect{z}_{<T})\in\R^{T\times d}$，语言模型头 $\mat{W}_{\mathrm{lm}}\in\R^{V'\times d}$ 给出
+\begin{equation}
+  p_\theta(z_t\mid\vect{z}_{<t})
+  =\operatorname{softmax}\!\left(\mat{W}_{\mathrm{lm}}\vect{h}_t\right),
+  \qquad \vect{h}_t\in\R^d.
+  \label{eq:ar}
+\end{equation}
+其中 $\vect{h}_t$ 是第 $t$ 个位置的 $d$ 维隐藏向量。统一自回归交叉熵为
+\begin{equation}
+  \Loss_{\mathrm{CE}}(\theta;\vect{z},\vect{m})
+  =-\frac{1}{\sum_{t=1}^{T}m_t}
+  \sum_{t=1}^{T}m_t\log p_\theta(z_t\mid\vect{z}_{<t}),
+  \label{eq:ce}
+\end{equation}
+其中监督掩码 $\vect{m}=(m_1,\ldots,m_T)\in\{0,1\}^{T}$ 指示哪些位置计入 loss。不同任务不是独立网络 head，而是由 task/mode/language token、输入区段和 $\vect{m}$ 定义。
+
+\subsection{离线与流式条件的差异}
+
+离线模型在生成目标时读取完整源条件 $\vect{x}_{1:S}$，其中 $\vect{x}\in\Vocab^S$ 是长度为 $S$ 的源 GLM/token 序列。流式模型在事件 $k$ 只读取 $\vect{x}_{1:s_k}$，$s_k\leq S$，并生成目标增量 $\Delta\vect{y}_k\in\Vocab^{\ell_k}$。已提交目标前缀为
+\begin{equation}
+  \vect{y}^{\mathrm{commit}}_k
+  =\Delta\vect{y}_1\oplus\Delta\vect{y}_2\oplus\cdots\oplus\Delta\vect{y}_k,
+  \label{eq:commit}
+\end{equation}
+其中 $\oplus$ 表示序列拼接，$\ell_k$ 是第 $k$ 个事件写出的 token 数。严格因果性要求 $\Delta\vect{y}_k$ 仅依赖 $\vect{s}_{1:n_k}$ 和历史提交，不依赖 $\vect{s}_{n_k+1:N}$。
+
+\subsection{系统架构}
+
+\Cref{fig:architecture} 展示从 Offline Phase 1--3 到 Streaming Stage A/B，再到拟议 RL 的完整继承关系。灰色模块冻结，绿色模块在对应阶段更新，橙色虚线模块表示尚待执行。
+
+\begin{figure*}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/architecture.tikz.tex}}
+  \caption{UniSS Offline--Streaming--RL 总体系统。Stage A 从最佳 Phase 3 初始化；Stage B 冻结因果声学前端并低学习率更新共享 Qwen；拟议 RL 只在质量门修复后执行。}
+  \label{fig:architecture}
+\end{figure*}
+
+\section{方法}
+
+\subsection{Offline Phase 1：统一基础能力对齐}
+
+Phase 1 的 motivation 是先解决统一词表中的基本映射，再训练直接 S2ST。对同一原始记录构造四类任务：ASR、speech-to-text translation (S2TT)、TTS 和 transcription-to-translation MT proxy。设各任务损失为 $\Loss_{\mathrm{asr}}$、$\Loss_{\mathrm{s2tt}}$、$\Loss_{\mathrm{tts}}$ 与 $\Loss_{\mathrm{mt}}$，它们均是\cref{eq:ce} 在不同监督掩码上的实例。Phase 1 的样本级目标为
+\begin{equation}
+ \Loss_{\mathrm{P1}}
+ =\E_{q\sim\mathrm{Cat}(\vect{\pi}^{(1)})}
+ \left[\Loss_q\right],
+ \quad
+ \vect{\pi}^{(1)}\in[0,1]^4,
+ \quad \sum_{j=1}^{4}\pi_j^{(1)}=1,
+ \label{eq:p1}
+\end{equation}
+其中 $\vect{\pi}^{(1)}$ 是四维任务采样概率向量，$q$ 是本批次任务类型。实际训练先运行 3,300 步，再从该 checkpoint 以低学习率、新 optimizer 与 cyclic shuffle recovery 15,465 步，以修复原高学习率后段的 loss/gradient 爆炸。
+
+\subsection{Offline Phase 2：直接 S2ST 与 replay}
+
+Phase 2 引入 Quality、Performance 和 Direct S2ST。其 motivation 是让共享模型学习完整目标文本与语音 token 路径，同时避免覆盖 Phase 1 的基础 ASR/S2TT/TTS/MT 能力。设 Phase 2 主任务分布为 $\mathcal{D}_{\mathrm{P2}}$，Phase 1 replay 分布为 $\mathcal{D}_{\mathrm{P1}}$，按 2:1 比例混合：
+\begin{equation}
+ \Loss_{\mathrm{P2}}
+ =\frac{2}{3}\E_{u\sim\mathcal{D}_{\mathrm{P2}}}\Loss_{\mathrm{CE}}(u)
+ +\frac{1}{3}\E_{v\sim\mathcal{D}_{\mathrm{P1}}}\Loss_{\mathrm{CE}}(v).
+ \label{eq:p2}
+\end{equation}
+Phase 2 只加载 Phase 1 模型权重，不加载 optimizer/RNG，从而把它定义为可独立审计的新阶段。
+
+\subsection{Offline Phase 3：Quality/Performance 聚焦}
+
+Phase 3 从 Phase 2 `iter\_0015381` 初始化，只保留最终 Quality 与 Performance 两种任务。设模式变量 $c\in\{Q,P\}$，Phase 3 目标为
+\begin{equation}
+ \Loss_{\mathrm{P3}}
+ =\rho\,\E_{u\sim\mathcal{D}_{Q}}\Loss_{\mathrm{CE}}(u)
+ +(1-\rho)\,\E_{v\sim\mathcal{D}_{P}}\Loss_{\mathrm{CE}}(v),
+ \label{eq:p3}
+\end{equation}
+其中 $\rho\in[0,1]$ 是 Quality 模式占比。Quality 路径通常显式生成源转写、目标翻译和语音 semantic token；Performance 路径较短，面向质量与推理长度的平衡。Phase 3 的核心不是增加新模块，而是缩小任务熵并把容量集中到最终 S2ST 输出。
+
+\subsection{Streaming Stage A：因果声学前端与增量 ASR}
+
+原 Phase 3 输入使用完整 source GLM，无法直接接受逐块 PCM。Stage A 将 16\,kHz 波形前缀转为 80 维 log-Mel 矩阵 $\mat{X}_{1:t}\in\R^{t\times80}$；chunk-causal WhisperVQ 编码器输出 $\mat{A}_{1:u}=g_\phi(\mat{X}_{1:t},\mat{C}_{k-1})\in\R^{u\times1280}$，其中 $\mat{C}_{k-1}$ 是仅由历史块构成的缓存状态，$u$ 是当前可见声学步数。桥接映射
+\begin{equation}
+ \mat{E}^{\mathrm{ac}}=\operatorname{LN}(\mat{A})\mat{W}_{b}+\vect{b}_{b},
+ \quad \mat{W}_{b}\in\R^{1280\times896},
+ \quad \vect{b}_{b}\in\R^{896},
+ \label{eq:bridge}
+\end{equation}
+得到可注入 Qwen 的声学嵌入 $\mat{E}^{\mathrm{ac}}\in\R^{u\times896}$。
+
+Stage A 的声明目标为
+\begin{align}
+ \Loss_A={}&1.00\Loss_{\mathrm{AR\text{-}ASR}}
+ +0.30\Loss_{\mathrm{CTC}}
+ +0.20\Loss_{\mathrm{teacher\text{-}KL}}
+ +0.10\Loss_{\mathrm{multi\text{-}chunk}}\nonumber\\
+ &+0.10\Loss_{\mathrm{cache/full}}
+ +1.00\Loss_{\mathrm{offline\text{-}ASR\text{-}replay}}
+ +1.00\Loss_{\mathrm{P3\text{-}replay}}.
+ \label{eq:stagea}
+\end{align}
+其中 $\Loss_{\mathrm{AR\text{-}ASR}}$ 是 append-only ASR delta 的 CE；$\Loss_{\mathrm{CTC}}$ 使用声学帧到源文本的单调边缘化。对长度为 $J$ 的源文本 $\vect{a}\in\Vocab^J$ 和 $u$ 帧 CTC posterior $\mat{P}\in[0,1]^{u\times(V_{\mathrm{asr}}+1)}$，有
+\begin{equation}
+ \Loss_{\mathrm{CTC}}=-\log\sum_{\vect{\pi}\in\mathcal{B}^{-1}(\vect{a})}
+ \prod_{r=1}^{u}P_{r,\pi_r},
+ \label{eq:ctc}
+\end{equation}
+其中 $V_{\mathrm{asr}}$ 是 ASR 标签词表大小，$\vect{\pi}$ 是 $u$ 维含 blank 的对齐路径，$\mathcal{B}$ 删除 blank 和重复标签。$\Loss_{\mathrm{multi\text{-}chunk}}$ 约束同一音频在不同 chunk 下的隐藏表示；replay 项保护 offline 能力。必须说明：本次正式运行中 teacher-KL 的有效 denominator 为 0，cache/full consistency 实际只作为外部 gate，因此不能将 Stage A 收益归因于这两项。
+
+Chunk curriculum 从 1,280/960\,ms 逐步收紧到 640/320/160\,ms。若以训练覆盖率 $r\in[0,1]$ 表示进度，则采样集合为
+\begin{equation}
+ \mathcal{C}(r)=
+ \begin{cases}
+ \{1280,960\}, & 0\le r<0.10,\\
+ \{960,640\}, & 0.10\le r<0.35,\\
+ \{640,320\}, & 0.35\le r<0.70,\\
+ \{320,160\}, & 0.70\le r\le1.
+ \end{cases}
+ \label{eq:chunkcurr}
+\end{equation}
+
+\subsection{Streaming Stage B：共享 Qwen 的五任务增量联合训练}
+
+Stage B 的 motivation 是：Stage A 只建立 streaming ASR 接口，尚不能保证增量翻译与连续目标语音。为保护 Stage A 的因果声学能力，Stage B 冻结 WhisperVQ、bridge 和 CTC head，只训练共享 Qwen。Transformer body 的最大学习率为 $2\times10^{-6}$，tied embedding/LM head 的最大学习率为 $5\times10^{-7}$。
+
+每条 utterance 被转为事件序列 $\vect{\tau}=(e_1,\ldots,e_K)$，其中 $K$ 是事件数。事件
+\begin{equation}
+ e_k=(t_k,\Delta\vect{a}_k,\Delta\vect{b}_k,
+ \Delta\vect{u}_k,q_k)
+ \label{eq:event}
+\end{equation}
+包含源时间 $t_k\in\R_{\ge0}$、ASR token 增量 $\Delta\vect{a}_k\in\Vocab^{J_k}$、目标文本增量 $\Delta\vect{b}_k\in\Vocab^{M_k}$、目标 semantic 增量 $\Delta\vect{u}_k\in\Vocab^{U_k}$ 和 alignment confidence $q_k\in[0,1]$。$J_k,M_k,U_k$ 分别是事件 $k$ 新提交的三类 token 数。gold history 提供稳定监督，free-running history 暴露模型自己的前缀错误；低置信样本按 clean、noisy-content 和 quarantine 路由，quarantine 样本只进入 Phase 3 replay，不进入严格增量主任务。
+
+稳态五任务比例为 streaming ASR 25\%、incremental MT 20\%、E2E S2ST 30\%、Phase 3 Quality replay 15\%、Phase 3 Performance replay 10\%。总体目标为
+\begin{align}
+ \Loss_B={}&1.00\Loss_{\mathrm{ASR}-\Delta}
+ +1.00\Loss_{\mathrm{MT}-\Delta}
+ +1.00\Loss_{\mathrm{semantic}-\Delta}
+ +0.50\Loss_{\mathrm{replay}}\nonumber\\
+ &+0.30\Loss_{\mathrm{V1\text{-}ASR\text{-}KL}}
+ +0.25\Loss_{\mathrm{P3\text{-}KL}}
+ +0.20\Loss_{\mathrm{commit}}
+ +0.10\Loss_{\mathrm{boundary}}\nonumber\\
+ &+0.50\Loss_{\mathrm{semantic\text{-}END}}
+ +0.25\Loss_{\mathrm{END\text{-}margin}}.
+ \label{eq:stageb}
+\end{align}
+对于相同 committed prefix 的两个事件，设 student posterior 分别为 $\vect{p}^{(k)},\vect{p}^{(k+1)}\in[0,1]^{V'}$，则
+\begin{equation}
+ \Loss_{\mathrm{commit}}=
+ \frac{1}{|\mathcal{I}|}\sum_{i\in\mathcal{I}}
+ \KL\!\left(\vect{p}^{(k)}_i\middle\|\vect{p}^{(k+1)}_i\right),
+ \label{eq:commitkl}
+\end{equation}
+其中 $\mathcal{I}$ 是已经提交且在相邻事件中语义应保持不变的位置集合。为减少 semantic 流过早终止，设 END token 的 logit 为 $l_{\mathrm{end}}\in\R$，正确内容 token 的 logit 为 $l_{y}\in\R$，margin $m=2$，则
+\begin{equation}
+ \Loss_{\mathrm{END\text{-}margin}}
+ =\max\left(0,m+l_{\mathrm{end}}-l_y\right).
+ \label{eq:endmargin}
+\end{equation}
+该项鼓励在内容尚未完成时使 $l_y\ge l_{\mathrm{end}}+m$。它能改善 ``过早 END''，但若上游 ASR 前缀错误，则也可能更坚定地延长错误翻译，因此必须与 free-running 双向质量 gate 联合判断。
+
+\subsection{拟议 RL 阶段：质量感知的轨迹级 GRPO}
+
+旧 GRPO 只训练冻结 backbone 上的二分类 action head，无法直接修复内容和 semantic 完整性。本文拟议的 RL 阶段从 Stage B 综合 checkpoint（当前候选为 `iter\_0001132`，或后续质量修复后的 selected checkpoint）初始化，在冻结声学前端和 BiCodec 的同时，训练共享 Qwen 顶层 adapter/action policy；content/semantic posterior 通过强 reference KL 保护。
+
+对输入 $\vect{s}$ 采样 $G$ 条完整轨迹 $\{\vect{\tau}_i\}_{i=1}^{G}$。轨迹 reward 定义为
+\begin{align}
+ R_i={}&w_q Q_i+w_p P_i-w_f\widetilde{F}_i-w_a\widetilde{A}_i
+ -w_l\widetilde{L}_i-w_{\mathrm{pre}}U_i-w_{\mathrm{wait}}W_i\nonumber\\
+ &+w_c C_i+w_s S_i+w_b B_i,
+ \label{eq:reward}
+\end{align}
+其中 $Q_i\in[0,1]$ 是双向归一化翻译/语音质量，$P_i\in[0,1]$ 是 prefix support/safety，$\widetilde{F}_i,\widetilde{A}_i,\widetilde{L}_i\in\R_{\ge0}$ 分别是归一化 First WRITE、ATD 与 LAAL，$U_i,W_i\in[0,1]$ 是 premature WRITE 和 unnecessary WAIT，$C_i,S_i,B_i\in[0,1]$ 分别是内容完整度、semantic 非静音覆盖和音频边界连续性。所有 $w_\cdot\ge0$ 为 reward 权重。
+
+组内均值与标准差为
+\begin{equation}
+ \mu_R=\frac1G\sum_{i=1}^G R_i,
+ \qquad
+ \sigma_R=\sqrt{\frac1G\sum_{i=1}^G(R_i-\mu_R)^2},
+ \label{eq:groupstats}
+\end{equation}
+优势为
+\begin{equation}
+ A_i=\frac{R_i-\mu_R}{\sigma_R+\epsilon},
+ \label{eq:advantage}
+\end{equation}
+其中 $\epsilon>0$ 防止除零。策略目标为
+\begin{equation}
+ \Loss_{\mathrm{GRPO}}
+ =-\frac1G\sum_{i=1}^{G}A_i\log\pi_\theta(\vect{\tau}_i\mid\vect{s})
+ +\beta\KL\!\left(\pi_\theta\middle\|\pi_{\mathrm{ref}}\right)
+ +\lambda_{\mathrm{replay}}\Loss_{\mathrm{replay}},
+ \label{eq:grpo}
+\end{equation}
+其中 $\pi_\theta$ 是待训练策略，$\pi_{\mathrm{ref}}$ 是冻结 Stage B/Phase 3 参考策略，$\beta,\lambda_{\mathrm{replay}}\ge0$。RL 成功的必要条件不是 reward 上升，而是相对 matched continued-SFT 同时保持双向质量并降低 First WRITE/ATD，且至少一个 operating point 位于 fixed wait-$k$ Pareto frontier 左上方。
+
+\section{实验}
+
+\subsection{数据构成}
+
+主要数据为公开 UniST。训练集包含 198 个 parquet shard、19,785,924 条记录；dev 7,965 条，test 23,369 条。每条记录包含 ID、源/目标语言、源转录、目标翻译、source GLM token、source/target BiCodec semantic token 和 32 个全局说话人 token。Offline 各阶段的未 pack/pack 规模见\cref{tab:data_scale}。
+
+\begin{table}[H]
+\centering
+\caption{Offline Phase 1--3 数据规模。Phase 2 的 2:1 表示主任务与 Phase 1 replay 比例。}
+\label{tab:data_scale}
+\begin{tabularx}{\textwidth}{lrrY}
+\toprule
+阶段 & 未 packed 样本 & 18k packed 样本 & 任务构成 \\
+\midrule
+Phase 1 & 79,143,696 & 800,632 & ASR、S2TT、TTS、MT proxy \\
+Phase 2 原始 & 59,357,772 & \multirow{2}{*}{1,968,716} & Quality、Performance、Direct S2ST \\
+Phase 2 + replay & 89,036,658 & & Phase 2:Phase 1 replay = 2:1 \\
+Phase 3 & 39,571,848 & 1,161,587 & Quality、Performance \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Streaming Stage A/B 使用固定 15-shard pilot 以控制实验成本。Stage A 来源记录 1,325,243 条，形成 16,195 个 18k train pack。Stage B 将同一批 utterance 展开为 25,997,984 个 train events 和 263,391 个 valid events；其中 7,666,418 个 train event 在源 EOS 前包含非空目标 WRITE。质量分层得到 clean 385,051、noisy-content 616,445、quarantine 323,747 条记录。
+
+\subsection{数据制作与真实样例}
+
+Offline 数据制作先对每条 parquet 记录按 task token 构造 JSONL，再用长度 18,000 的 sequence packing 与 reset attention mask 保持样本边界。Stage B 在此基础上增加时间事件、ASR/MT/semantic delta、confidence、gold/free-running history 和 quarantine route。
+
+原始 UniST 首条真实样本如下：
+\begin{lstlisting}
+id: NCSSD_R_EN_0000000000
+src_lang: eng
+tgt_lang: cmn
+transcription:
+  Hello, I'm looking for a book on mindfulness. Can you help me?
+translation:
+  你好，我在寻找一本关于正念的书。你能帮我吗？
+source_glm length: 53
+source_bicodec length: 211
+target_bicodec length: 178
+bicodec_global length: 32
+\end{lstlisting}
+
+该样本在 Stage B 中形成 15 个 streaming events。前四个事件的真实结构见\cref{tab:event_demo}。空 target delta 表示当前源前缀仍不足以安全提交翻译，而非缺失标签。
+
+\begin{table}[H]
+\centering
+\caption{同一真实样本的 Stage B 增量 trajectory demo。}
+\label{tab:event_demo}
+\begin{tabularx}{\textwidth}{crrYYYc}
+\toprule
+事件 & 起点/ms & 终点/ms & source delta/prefix & target delta & semantic slice & confidence \\
+\midrule
+0 & 0 & 480 & `Hello' & 空 & 空 & -- \\
+1 & 480 & 640 & prefix=`Hello' & `你好' & $[0{:}28]$ & 0.7227 \\
+2 & 640 & 800 & `I'm' & 空 & 空 & -- \\
+3 & 800 & 960 & 更新 source prefix & `我在' & $[28{:}40]$ & 0.6443 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Discussion.}
+该数据结构把 ``什么时候写'' 变成可监督的事件级问题，同时显式保留音频 semantic 范围。但 alignment confidence 约 0.64--0.72 也说明自动 trajectory 不是人工真值；若无分层和 quarantine，噪声会直接训练不可撤销错误。
+
+\subsection{模型与训练设置}
+
+Offline 主干为 24 层 Qwen2.5-0.5B，隐藏维 $d=896$，FFN 维 4,864，14 个 attention heads、2 个 KV heads，sequence length 18,000，BF16。训练在单机 8 GPU 上使用 Megatron-LM，tensor parallel 和 pipeline parallel 均为 1，micro batch 2、global batch 128、AdamW $(\beta_1,\beta_2)=(0.9,0.95)$ 与 FlashAttention。
+
+\begin{table}[H]
+\centering
+\caption{各阶段训练预算与最终 validation loss。Stage B 的 validation 为训练后 fixed-16 free-running gate，而非训练循环内常规 validation loss。}
+\label{tab:training_budget}
+\begin{tabularx}{\textwidth}{lrrrY}
+\toprule
+阶段 & 训练步数 & 数据范围 & 最终/代表 loss & 初始化与更新范围 \\
+\midrule
+Phase 1 & 3,300+15,465 & UniST-198 & 约 5.3098 & 全模型；后段低 LR recovery \\
+Phase 2 & 15,381 & UniST-198 & 约 4.2881 & 从 P1 权重，全模型 \\
+Phase 3 & 9,075 & UniST-198 & 3.80985 & 从 P2 权重，全模型 \\
+Stage A & 381 & 15 shards, 3 coverage & 数值稳定 & 因果前端/bridge/shared Qwen \\
+Stage B & 2,264 & 15 shards, 3 coverage & 多任务 trade-off & 冻结前端，仅 shared Qwen \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{评价指标}
+
+文本质量使用 corpus Text-BLEU；Speech-BLEU 先用目标语言 ASR 转写生成音频再计算 BLEU，因此同时包含翻译、TTS 和评估 ASR 误差。AutoPCP 衡量跨语言韵律/表达相似度代理，UTMOS 是预测自然度 MOS。对源/生成音频时长 $d_s,d_y\in\R_{>0}$，SLC-$\delta$ 定义为
+\begin{equation}
+ \mathrm{SLC}_{\delta}
+ =\frac1M\sum_{i=1}^{M}
+ \mathbb{I}\left(1-\delta\le\frac{d_y^{(i)}}{d_s^{(i)}}\le1+\delta\right),
+ \label{eq:slc}
+\end{equation}
+其中 $M$ 是样本数，$\delta\in\{0.2,0.4\}$，范围为 $[0,1]$，越高越好。
+
+Streaming ASR 使用 WER/CER。First WRITE/First audio 是第一次提交目标文本/非静音目标音频时已经读取的源时间。若第 $j$ 个目标 token 在源时间 $g(j)$ 写出，参考目标长度为 $L^*$，则当前报告中的平均 token delay proxy 为
+\begin{equation}
+ \mathrm{ATD}_{\mathrm{proxy}}
+ =\frac{1}{L}\sum_{j=1}^{L}\left[g(j)-\frac{j-1}{\max(L^*,1)}d_s\right],
+ \label{eq:atdproxy}
+\end{equation}
+其中 $L$ 是生成目标长度。由于诊断样本无严格词级/音频级人工对齐，本文中的 LAAL/ATD 均标为 proxy，不能冒充标准 SimulEval 指标。计算实时率为 $\mathrm{RTF}=t_{\mathrm{wall}}/d_s$；batch-one RTF$<1$ 表示计算快于实时，但不保证策略的 First WRITE 足够低。
+
+\section{实验结果与讨论}
+
+\subsection{Offline Phase 1--3：训练收敛与课程收益}
+
+\Cref{tab:training_budget} 显示 validation loss 从 Phase 1 的约 5.31 降到 Phase 2 的约 4.29，再到 Phase 3 的 3.81。Phase 1 recovery 解决了原高 LR 后段不稳定；Phase 2 replay 在引入直接 S2ST 时保留基础任务；Phase 3 进一步把容量集中于最终两种推理模式。
+
+\begin{table}[H]
+\centering
+\caption{Phase 2 到 Phase 3 的整体变化摘要（UniST dev/test，同协议）。}
+\label{tab:p2p3_summary}
+\begin{tabularx}{\textwidth}{lCCY}
+\toprule
+集合 & 提升单元 & 下降单元 & 讨论 \\
+\midrule
+dev & 23/24 & 1/24 & AutoPCP、SLC、BLEU 广泛改善，极少量指标下降 \\
+test & 21/24 & 3/24 & 主要翻译/语义指标提高；少量下降集中在 UTMOS \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Discussion.}
+Phase 3 的收益不是新架构带来的，而是 curriculum/task concentration 的结果。21/24 的 test 单元改善支持 ``先广覆盖对齐，再直接 S2ST，再最终任务聚焦'' 的离线训练顺序；但 UTMOS 的少量下降说明 token-level CE 不能完全代表感知自然度，后续仍需音频级选择或偏好优化。
+
+\subsection{Offline Phase 3：最佳 UniST test 结果}
+
+\begin{table}[H]
+\centering
+\caption{最佳 Offline Phase 3 `iter\_0009075` 在 UniST test 上的完整主要指标。}
+\label{tab:p3_test}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrr}
+\toprule
+模式 & 方向 & Text-BLEU & Speech-BLEU & AutoPCP & SLC-0.2 & SLC-0.4 & UTMOS \\
+\midrule
+Performance & 中$\rightarrow$英 & 32.4509 & 19.3770 & \textbf{2.9118} & 0.6324 & \textbf{0.8782} & 3.6676 \\
+Performance & 英$\rightarrow$中 & 40.5404 & 38.9953 & \textbf{3.2765} & 0.7184 & \textbf{0.9421} & 3.3516 \\
+Quality & 中$\rightarrow$英 & \textbf{39.3753} & \textbf{22.7268} & 2.8850 & \textbf{0.6358} & 0.8712 & \textbf{3.6680} \\
+Quality & 英$\rightarrow$中 & \textbf{48.1698} & \textbf{46.3063} & 3.2752 & \textbf{0.7246} & 0.9349 & \textbf{3.3586} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Discussion.}
+Quality 模式在两方向的 Text/Speech-BLEU 均优于 Performance，证明显式中间文本路径有利于内容质量；Performance 的 AutoPCP/SLC 某些单元更高，说明更短生成路径并非所有语音属性都更差。中到英 Speech-BLEU 明显低于英到中，揭示英文目标语音可懂度/semantic 泛化仍是离线系统的主要弱项。
+
+\subsection{Streaming Stage A：因果 ASR 已建立，但自由运行质量门失败}
+
+Stage A 完成 381/381 步，0 skipped、0 NaN，并在 source EOS 前输出 972/972 个 pre-final event，说明事件 grammar 和因果可见性链路已跑通。然而自由运行 ASR 与 offline anchor 的差距明显。
+
+\begin{table}[H]
+\centering
+\caption{Stage A 正式训练与自由运行 ASR 结果。}
+\label{tab:stagea}
+\begin{tabularx}{\textwidth}{lrrY}
+\toprule
+指标 & Stage A & Offline anchor & 解释 \\
+\midrule
+加权 WER/CER & 27.1432\% & -- & 双语聚合，未通过门限 \\
+中文 CER & 21.0112\% & 5.4661\% & 因果短块相对 offline 明显退化 \\
+英文 WER & 35.3399\% & 5.6072\% & 英文 free-running 退化更严重 \\
+Causal-full error & 14.4546\% & -- & 完整因果输入仍好于逐块 free-running \\
+Teacher-forced accuracy & 92.0737\% & -- & 条件正确时 token 预测较强 \\
+CTC all-blank & 15 & 0（期望） & 部分样本 CTC 未提供有效对齐 \\
+Event stop failure & 27 & 0（期望） & 仍有结构停止失败 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Discussion.}
+Teacher-forced 92.07\% 与 free-running 27.14\% error 的反差说明主要问题不是 ``完全没学会 ASR token''，而是前缀误差在不可回滚生成中累积。Causal-full 14.45\% 又说明 chunk 边界与状态推进带来额外退化。由于 teacher-KL denominator 为 0，不能声称蒸馏有效；Stage A 应被定性为 ``结构性跑通、质量门失败的因果 ASR checkpoint''。
+
+\subsection{Streaming Stage B：训练目标学习与多任务冲突}
+
+Stage B 完成三个 15-shard coverage epoch、2,264 iterations，0 NaN、0 skipped。ASR CE、MT CE 和 semantic END-margin 明显下降，但 replay/KL/边界目标未同步改善。
+
+\begin{table}[H]
+\centering
+\caption{Stage B 训练 scalar 的前 10\% 与后 10\% 非零均值。}
+\label{tab:stageb_losses}
+\begin{tabularx}{\textwidth}{llrrY}
+\toprule
+训练段 & 指标 & 前期 & 后期 & 趋势 \\
+\midrule
+Epoch 1 & ASR CE & 1.716 & 0.954 & 改善 \\
+Epoch 1 & MT CE & 4.699 & 2.079 & 改善 \\
+Epoch 1 & semantic END margin & 2.528 & 0.070 & 明显改善 \\
+Epoch 1 & replay CE & 4.018 & 4.056 & 基本不变、略差 \\
+Epoch 1 & V1 ASR KL & 0.255 & 0.338 & retention 漂移增大 \\
+Epoch 2--3 & ASR CE & 0.818 & 0.684 & 改善 \\
+Epoch 2--3 & MT CE & 2.098 & 1.780 & 改善 \\
+Epoch 2--3 & semantic END margin & 0.070 & 0.046 & 改善 \\
+Epoch 2--3 & boundary/EOS & 0.198 & 0.534 & 变差 \\
+Epoch 2--3 & content END CE & 0.830 & 1.096 & 变差 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Discussion.}
+END-margin 已经学到 ``不要过早结束''，但边界/EOS 和 content END CE 变差，表示完整性约束之间存在冲突。V1 ASR KL 上升说明只训练 shared Qwen 仍会改变 Stage A posterior，冻结前端不等于冻结 streaming ASR 行为。下一版需要按 free-running 双向质量动态提高 ASR/replay KL，而不是单独继续增大 END-margin。
+
+\subsection{Streaming Stage B：checkpoint 选择与双向不对称}
+
+\begin{table}[H]
+\centering
+\caption{Stage B 三个 checkpoint 的 fixed-16 free-running validation。error 越低、chrF/coverage 越高越好。}
+\label{tab:stageb_ckpt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Checkpoint & 中文 ASR error & 英文 ASR error & free 中$\rightarrow$英 chrF & free 英$\rightarrow$中 chrF & semantic coverage & 非静音 \\
+\midrule
+iter 1132 & 0.1174 & 0.3097 & \textbf{24.078} & \textbf{5.414} & \textbf{0.875} & \textbf{7/8} \\
+iter 1207 & 0.1033 & 0.3355 & 21.312 & 4.827 & 0.682 & 6/8 \\
+iter 2264 & \textbf{0.0892} & \textbf{0.3032} & 21.216 & 4.630 & 0.797 & \textbf{7/8} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Discussion.}
+最终 checkpoint 的 ASR error 最低，但 MT/semantic 最佳点出现在 iter 1132，说明继续训练提高了局部 ASR retention，却牺牲了自由运行翻译。三个 checkpoint 均未通过 ASR structure、target coverage、S2S structure 和完整非静音 gate；因此 iter 1132 只是失败候选中的综合试听点，不是正式 selected model。
+
+\subsection{Stage A/B 相同音频的时延与内容比较}
+
+严格因果 cascade 使用 160\,ms 物理 PCM 输入块，决策 chunk 为 160/320/640/1280\,ms。MT 只能读取已提交 ASR，TTS 只能读取新提交目标文本。\Cref{tab:en2zh_latency} 给出 4.22\,s 英到中样本。
+
+\begin{table}[H]
+\centering
+\caption{英到中：Stage A/B 的 First audio 与内容。单位均为 ms；LAAL 为 proxy。}
+\label{tab:en2zh_latency}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrl}
+\toprule
+Stage & chunk & First ASR & First MT & First audio & LAAL proxy & 生成翻译 \\
+\midrule
+A & 160 & 1120 & 1600 & 4220 & 1378 & `你好，我' \\
+B & 160 & \textbf{960} & 1600 & \textbf{2400} & 1793 & `你好我正在找一本书我'（不完整） \\
+A & 320 & 1280 & 1920 & 4220 & 1698 & `你好，我' \\
+B & 320 & 1280 & 1920 & \textbf{2880} & 2033 & `你好我正在找一本书我'（不完整） \\
+A & 640 & 1920 & 3200 & 4220 & 2105 & 完整正确 \\
+B & 640 & 1920 & \textbf{2560} & 4220 & \textbf{1885} & 完整正确 \\
+A & 1280 & 2560 & 4220 & 4220 & 2332 & 完整正确 \\
+B & 1280 & 2560 & \textbf{3840} & 4220 & \textbf{2181} & 完整正确 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+短块 160/320\,ms 下，Stage B First audio 分别提前
+\begin{equation}
+ \Delta F_{160}=4220-2400=1820\ \mathrm{ms},\qquad
+ \Delta F_{320}=4220-2880=1340\ \mathrm{ms}.
+ \label{eq:firstaudio_gain}
+\end{equation}
+这是当前 streaming 创新带来的最明确时延收益，但输出尚不完整。640/1280\,ms 可保持内容，然而 First audio 仍为源 EOS 的 4.22\,s。
+
+\begin{table}[H]
+\centering
+\caption{中到英：Stage A/B 的 First audio 与生成内容。源音频 9.66\,s。}
+\label{tab:zh2en_latency}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrl}
+\toprule
+Stage & chunk & First ASR & First MT & First audio & 生成翻译 \\
+\midrule
+A & 160 & 960 & 1760 & 2560 & `That actually,'（不完整） \\
+B & 160 & 1120 & 1440 & 1760 & `The horse actually waited for us'（错译） \\
+A & 320 & 1280 & 2240 & 9660 & `That'（不完整） \\
+B & 320 & 1280 & 1920 & 2240 & `The horse ...'（错译） \\
+A & 640 & 1920 & 4480 & 6400 & 完整、语义基本正确 \\
+B & 640 & 1920 & 2560 & 3840 & `The horse actually waited for us'（错译） \\
+A & 1280 & 2560 & 6400 & 7680 & 完整、语义基本正确 \\
+B & 1280 & 2560 & 3840 & 9660 & `The'（截断） \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Discussion.}
+中到英 Stage B 的低 First audio 是由错误且不可回滚的前缀 ``马其实'' 驱动，不能视为有效时延改善。该结果验证了一个关键结论：simultaneous 指标必须与内容完整度联合报告；负 EndOffset 或更早 First audio 可能只代表模型更早说错或更早停止。
+
+\subsection{旧 action-only GRPO：质量改善但时延未改善}
+
+旧 Stage7A 在 23,369 条 test 上比较 Stage6 baseline (E0)、matched continued SFT (E1)、GRPO group size 4 (E2) 和 group size 8 (E3)。backbone 冻结，仅训练 WAIT/WRITE action head。
+
+\begin{table}[H]
+\centering
+\caption{旧 action-only GRPO 的主要质量与时延结果。该实验不是当前 Stage B 上的 RL。}
+\label{tab:old_grpo}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+实验 & Text-BLEU 中$\rightarrow$英 & Text-BLEU 英$\rightarrow$中 & First WRITE & ATD & Premature & Unnecessary WAIT \\
+\midrule
+E0 Stage6 & 26.378 & \textbf{40.560} & \textbf{3986.4} & \textbf{1807.3} & 0.031 & 0.158 \\
+E1 continued SFT & 26.240 & 40.480 & 3991.0 & 1808.4 & 0.030 & 0.157 \\
+E2 GRPO G4 & 27.587 & 40.224 & 4055.4 & 1839.0 & \textbf{0.027} & 0.164 \\
+E3 GRPO G8 & \textbf{28.109} & 40.355 & 4032.8 & 1827.5 & 0.029 & 0.162 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+相对 matched E1，E3 的中到英 Text-BLEU 提升 $28.109-26.240=1.869$，但 First WRITE 增加 41.85\,ms、ATD 增加 19.14\,ms。GRPO 减少少量 premature WRITE，却增加 unnecessary WAIT，说明旧 reward 学到了偏保守策略。
+
+\paragraph{Discussion.}
+该实验反证了 ``使用 RL 即会降低时延''。若 reward 没有显式 First WRITE/ATD、双向质量、完整度和音频有效性，组内优势会偏向安全等待。它直接构成\cref{eq:reward} 中多目标 reward 的 motivation。
+
+\subsection{Reward-v2 初步证据与未来 RL 判据}
+
+Reward-v2 的 R0--R3 在 dev 上使用更明确的 coverage、latency 与 bilingual/adaptive-KL 设计。\Cref{tab:rewardv2} 是旧 Stage6 action-head 上的初步结果，不应归因于当前 Stage B。
+
+\begin{table}[H]
+\centering
+\caption{Reward-v2 dev 结果。R1 是 matched rebalanced+coverage control。}
+\label{tab:rewardv2}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+实验 & 中$\rightarrow$英 Text-BLEU & 英$\rightarrow$中 Text-BLEU & First WRITE & ATD & Premature & Unnecessary WAIT \\
+\midrule
+R0 E3-v1+bias & 27.592 & 37.724 & 4205.6 & 1890.0 & 0.032 & 0.150 \\
+R1 coverage & 28.952 & 37.610 & 4234.1 & 1907.9 & 0.031 & 0.149 \\
+R2 explicit latency & 28.983 & 37.458 & \textbf{4111.2} & \textbf{1861.4} & 0.037 & \textbf{0.141} \\
+R3 bilingual+adaptive KL & \textbf{29.277} & \textbf{37.694} & 4157.5 & 1883.2 & 0.035 & 0.144 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+相对 R1，R2 的 First WRITE/ATD 分别降低 122.9/46.5\,ms，但英到中 Text-BLEU 下降 0.152；R3 的 First WRITE/ATD 降低 76.6/24.7\,ms，同时两方向 Text-BLEU 分别提高 0.325/0.084。该趋势支持 bilingual quality 与 adaptive KL 的必要性，但仍是单种子 dev 证据。
+
+\paragraph{Discussion.}
+未来 Stage B RL 必须至少包含：matched continued-SFT、fixed wait-$k$ frontier、三个随机种子、10,000 次 paired bootstrap、batch-one latency、双向 Text/Speech-BLEU、UTMOS/AutoPCP、premature/unnecessary WAIT、final flush 与非静音完整度。只有 GRPO 点在质量不下降的前提下更低延迟，才能主张独立贡献。
+
+\section{消融解释与误差分析}
+
+\subsection{Replay 的价值与不足}
+
+Offline Phase 2 的 replay 与 Phase 3 聚焦共同带来 21/24 test 单元提升，说明 replay 对课程迁移有效。Stage B 中 replay CE 基本不变而 V1 ASR KL 增大，说明固定 0.50 replay 和 0.30 ASR KL 尚不足以抵抗 shared Qwen 在多任务下的 posterior drift。建议以 free-running bilingual gate 动态调节 retention 权重，而非只看训练 CE。
+
+\subsection{Chunk curriculum 的作用边界}
+
+多 chunk 训练让同一模型支持 160--1,280\,ms operating points，避免每个延迟点训练独立模型；但短 chunk 的可见语义更少，错误前缀更可能被永久提交。Stage B 英到中短块时延改善而内容不完整、中到英早写错译，表明 curriculum 需要联合 prefix support/safety，而不能只降低 chunk size。
+
+\subsection{END-margin 的双刃剑效应}
+
+END-margin 从 2.528 降到 0.070，证明优化目标可学习；但 boundary/EOS 和 content END CE 后期变差。其根因是 margin 只回答 ``继续写还是结束''，不回答 ``当前内容是否正确''。若 ASR 前缀错误，margin 会让错误 semantic 序列更完整。未来应把 margin 与翻译 entailment/coverage、source-prefix support 和 teacher posterior 联合门控。
+
+\subsection{说话人和语音连续性}
+
+当前 Stage B speaker-continuity 权重为 0，因为没有可靠的跨 fragment speaker embedding sidecar。离线 Phase 3 使用源语音的 32 个全局 BiCodec token 作为说话人条件；推理时固定该条件可保持全局音色，但分段 semantic 生成、短片段声码器上下文和错误语言内容仍会造成听感音色漂移。因而未来需增加真实跨片段 speaker embedding consistency 和边界 cross-fade/holdback 评估，不能用 AutoPCP 单独替代 speaker identity。
+
+\section{局限性与有效性威胁}
+
+\begin{itemize}
+  \item Offline 结果是公开 UniST-198、0.5B 主干复现，不是 UniSS 原论文 1.5B 和全部语料的严格复现；不可把数值直接当作论文排名。
+  \item Stage A/B 只在固定 15-shard pilot 上训练，Stage B checkpoint gate 使用 fixed-16 free-running 样本；其时延音频对比又只有两条代表性 utterance，尚不能给出总体统计显著性。
+  \item Stage A teacher-KL denominator 为 0，cache/full consistency 是外部 gate；这两项不能被宣称为已验证有效的 loss。
+  \item Stage B 训练循环没有常规 held-out validation loss；本文的 ``validation'' 是训练后 fixed-16 free-running gate。
+  \item LAAL/ATD 是当前因果提交时间上的 proxy，不具备严格人工词级/音频级对齐，不能与其他论文绝对值直接排名。
+  \item 旧 E0--E3/R0--R3 GRPO 属于 frozen Stage6 action head，不是当前 Stage B 上的 full-content/semantic RL；其结果仅用于 reward 设计证据。
+  \item Stage B 英到中短块的 First audio 改善伴随内容截断，中到英更早输出则是错译；因此本文只主张 ``局部 operating point 的首包时延改善''，不主张 ``双向整体 S2ST 已成功''。
+\end{itemize}
+
+\section{结论与下一步}
+
+本文完成了从 Offline Phase 1--3 到 Streaming Stage A/B 的统一技术叙述。离线三阶段课程在公开全量数据上稳定训练，并以 Phase 3 `iter\_0009075` 获得当前最佳结果；Phase 3 相对 Phase 2 在 UniST test 的 24 个主要高优单元中提升 21 个。Stage A 成功建立因果 PCM--声学嵌入--append-only ASR 的结构链，但 free-running ASR 尚未通过门限。Stage B 在共享 Qwen 上联合增量 ASR/MT/semantic 与 replay，使英到中 160/320\,ms 首音频分别提前 1.82/1.34\,s，却暴露双向质量不对称和过早错误 commit。
+
+下一步不应直接扩大当前 Stage B 或重复旧 action-only GRPO。推荐顺序是：（1）先用更强 free-running ASR/MT retention 和 prefix support 修复中到英不可回滚错误；（2）补充严格 validation split、双向大规模因果评估和非代理对齐；（3）在 selected Stage B 上执行\cref{eq:reward,eq:grpo} 的质量感知 GRPO，并与 matched SFT/fixed wait-$k$ frontier 比较；（4）只有在双向质量保持、完整非静音和时延同时改善时，再扩展到 full198。该路线的创新不在于隐藏失败，而在于用同一统一模型、可审计数据与可归因 gate 将 ``离线质量''、``因果可用性'' 和 ``真正的质量--时延 Pareto 改善'' 分开验证。
+
+\appendix
+\section{复现路径与关键资产}
+
+\begin{longtable}{p{0.28\textwidth}p{0.66\textwidth}}
+\toprule
+资产 & 仓库相对路径 \\
+\midrule
+\endfirsthead
+\toprule
+资产 & 仓库相对路径 \\
+\midrule
+\endhead
+Offline 总览 & \path{docs/uniss_training_reproduction/uniss_project_offline_phase1_3_and_streaming_stage_a_b_colleague_overview.md} \\
+Phase2/3 详细评估 & \path{docs/uniss_training_reproduction/uniss_full198_phase2_phase3_detailed_evaluation_report.md} \\
+Stage A 结果 & \path{reports/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/STAGE_A_RESULT_REPORT.md} \\
+Stage B 实现审计 & \path{docs/uniss_training_reproduction/uniss_phase3_v4_e2e_simuls2st_native_megatron_implementation_report.md} \\
+Stage A/B 音频评估 & \path{eval_outputs/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/stage_b_endmargin_best_iter1132_stage_a_protocol_20260825T114500Z/STAGE_B_VS_STAGE_A_STREAMING_EVALUATION_REPORT.md} \\
+旧 GRPO test & \path{eval_outputs/simul_uniss_stage7a_15shard_v1/full_test_e2e_v1/stage7a_four_way_full_test_report.md} \\
+Reward-v2 dev & \path{eval_outputs/simul_uniss_stage7a_reward_v2_15shard_v1/full_dev_e2e_v1/reward_v2_four_way_full_dev_report.md} \\
+Phase 3 checkpoint & \path{checkpoints/uniss_qwen0p5b_phase3_unist198_after_phase2_v4/iter_0009075} \\
+Stage A checkpoint & \path{checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381} \\
+\bottomrule
+\end{longtable}
+
+\section{训练与评估状态边界}
+
+\begin{table}[H]
+\centering
+\caption{本文各结论的完成状态。}
+\begin{tabularx}{\textwidth}{lCY}
+\toprule
+项目 & 状态 & 可主张结论 \\
+\midrule
+Offline Phase 1--3 & \checked & full198 训练完成；Phase 3 为当前最佳 offline \\
+Streaming Stage A & \failed & 结构/数值跑通，free-running ASR gate 失败 \\
+Streaming Stage B & \failed & 三 coverage 完成；局部英到中时延改善，双向总 gate 失败 \\
+旧 action-only GRPO & \checked & 实验完成，但未改善 matched-SFT quality--latency Pareto \\
+Reward-v2 action-head & \checked & dev 初步有正向趋势，尚非当前 Stage B RL \\
+质量感知 Stage B GRPO & 橙色拟议 & 尚未执行，不得写作已获得收益 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,174 @@
+{
+  "authorization_rule": "A passed canary checkpoint is used only to validate the implementation. The formal run must restart from the immutable V1 compound checkpoint.",
+  "canary_report": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/post_task_pool_canaries/post_task_pool_canary_p4_replayfix_w0_20260821T085848Z/CANARY_REPORT.json",
+    "sha256": "17fda0e5c4ecad74cb91adf7f5db0b45ba2c026c44a12bc25921f1549a6caa64"
+  },
+  "candidate": {
+    "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/learning_canaries/learning_canary_10u_20260821T121426Z/iter_0000010",
+    "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_10u_20260821T121426Z_hf"
+  },
+  "checks": {
+    "e_asr_cmn_retained": true,
+    "e_asr_eng_retained": false,
+    "e_asr_source_rollback_zero": true,
+    "e_asr_structure_valid": false,
+    "e_mt_all_directions_present": true,
+    "e_mt_bleu_retention": true,
+    "e_mt_chrf_retention": true,
+    "e_mt_free_all_directions_present": true,
+    "e_mt_free_target_rollback_zero": true,
+    "e_mt_generation_terminated": true,
+    "e_mt_target_coverage": false,
+    "e_mt_target_rollback_zero": true,
+    "e_s2s_non_silent_pcm": true,
+    "e_s2s_pre_eos_target_semantic": true,
+    "e_s2s_pre_eos_target_text": true,
+    "e_s2s_present": true,
+    "e_s2s_rollback_zero": true,
+    "e_s2s_semantic_coverage": true,
+    "e_s2s_semantic_tokens_valid": true,
+    "e_s2s_structure_valid": false
+  },
+  "formal_initialization": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "formal_training_authorized": false,
+  "metrics": {
+    "e_asr": {
+      "cmn": {
+        "early_eos_events": 0,
+        "empty_events": 25,
+        "empty_samples": 0,
+        "error_rate": 0.19248826291079812,
+        "errors": 41,
+        "final_eos_samples": 8,
+        "limit": 0.210112,
+        "malformed_write_events": 4,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 213
+      },
+      "eng": {
+        "early_eos_events": 0,
+        "empty_events": 27,
+        "empty_samples": 0,
+        "error_rate": 0.36774193548387096,
+        "errors": 57,
+        "final_eos_samples": 8,
+        "limit": 0.353399,
+        "malformed_write_events": 2,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 155
+      }
+    },
+    "e_mt": {
+      "free_running_source": {
+        "commit_conflicts": 274,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 1.3910166779559368,
+            "candidate_bleu": 0.0455117824901572,
+            "candidate_chrf": 5.127986003459692,
+            "chrf_retention": 0.8516334157576776,
+            "phase3_bleu": 0.032718358601591745,
+            "phase3_chrf": 6.021353681733411,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 0.6359550131295102,
+            "candidate_bleu": 0.02806851284516098,
+            "candidate_chrf": 2.6695563581794364,
+            "chrf_retention": 0.853715526910477,
+            "phase3_bleu": 0.044136003751329686,
+            "phase3_chrf": 3.1269858331385056,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.06334501473767779,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "gold_source": {
+        "commit_conflicts": 269,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 20.813033989692464,
+            "candidate_bleu": 0.6809683096618757,
+            "candidate_chrf": 14.777035758637242,
+            "chrf_retention": 2.4541052626530435,
+            "phase3_bleu": 0.032718358601591745,
+            "phase3_chrf": 6.021353681733411,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 2.3819456639763663,
+            "candidate_bleu": 0.10512956276072438,
+            "candidate_chrf": 6.14671453316387,
+            "chrf_retention": 1.9656995142170217,
+            "phase3_bleu": 0.044136003751329686,
+            "phase3_chrf": 3.1269858331385056,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.14169322902339207,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      }
+    },
+    "e_s2s_free": {
+      "invalid_semantic_tokens": 0,
+      "malformed_segments": 47,
+      "non_silent_pcm": 8,
+      "samples": 8,
+      "semantic_coverage_mean": 1.0,
+      "semantic_coverage_min": 1.0,
+      "source_rollback_events": 0,
+      "target_rollback_events": 0,
+      "target_semantic_before_source_eos": 8,
+      "target_text_before_source_eos": 8
+    }
+  },
+  "schema_version": "uniss_phase3_v4_e2e_free_running_gate_v1",
+  "selection": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_20260821T123000Z/SELECTION.json",
+    "samples": 16,
+    "sha256": "e6354641a2ba6a425ccd050eac19d28be7cbc72c9aa68d5a653f9b0c603361e0"
+  },
+  "status": "failed",
+  "worker_reports": [
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_00.json",
+      "sha256": "19aa0004ffbffd8f1d28a14116a424629de35b730db92e8f1cc23ed5bb7743e5"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_01.json",
+      "sha256": "dbc8c51337e3191caf7963da718cca722a09f767b86ae5e8631417740bebd3a8"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_02.json",
+      "sha256": "80157e01840098e9b54c2703562ba99da1c708c1f86eaeb891c8d72b1899a8f2"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_03.json",
+      "sha256": "8d195c432eecf4dcbcdeaa57e22eb5c42be400ea70c085719327c26856397cf3"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_04.json",
+      "sha256": "54d335a3bd05773001a80cbd4df4468568d6d29ea38ca65a958e83246c595299"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_05.json",
+      "sha256": "10632d9efe28267368f82a600f1d2fae0b5b62c6104b84115abd3bdb25eaad54"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_06.json",
+      "sha256": "6359255047950404cb18e924b3eea2758cc410aad0cb17050319e03186084970"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning10u_eventgrammar_20260821T220552Z/workers/worker_07.json",
+      "sha256": "5cc1c0e6608af2a0c9ed1216066b04e9371148693c6d6310f4d132db492694eb"
+    }
+  ]
+}

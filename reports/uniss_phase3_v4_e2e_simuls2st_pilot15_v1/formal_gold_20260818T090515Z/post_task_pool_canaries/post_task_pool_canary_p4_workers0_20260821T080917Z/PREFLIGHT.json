@@ -1,0 +1,226 @@
+{
+  "canary_scope": [
+    {
+      "family": null,
+      "name": "structural",
+      "train_iters": 2
+    },
+    {
+      "family": "streaming_asr_event",
+      "name": "streaming_asr_event",
+      "train_iters": 1
+    },
+    {
+      "family": "incremental_mt_event",
+      "name": "incremental_mt_event",
+      "train_iters": 1
+    },
+    {
+      "family": "interleaved_e2e_s2st",
+      "name": "interleaved_e2e_s2st",
+      "train_iters": 1
+    },
+    {
+      "family": "phase3_quality_replay",
+      "name": "phase3_quality_replay",
+      "train_iters": 1
+    },
+    {
+      "family": "phase3_performance_replay",
+      "name": "phase3_performance_replay",
+      "train_iters": 1
+    }
+  ],
+  "data_run_id": "formal_gold_20260818T090515Z",
+  "formal_training_authorized": false,
+  "gold_gate": {
+    "formal_training_authorized": false,
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/GOLD_TRAJECTORY_GATE.json",
+    "sha256": "051ec15f80c243f5285052e4d4ab4313932d01273404cc66c44946b1dc4c7132"
+  },
+  "next_required_gates": [
+    "free_running_e_asr_e_mt_e_s2s_validation",
+    "frozen_parameter_bitwise_audit",
+    "explicit_formal_training_authorization"
+  ],
+  "schema_version": "uniss_e2e_post_task_pool_canary_preflight_v1",
+  "status": "passed",
+  "task_pool_run_id": "task_pool_formal_p4_20260820T154500Z",
+  "task_pools": {
+    "train": {
+      "families": {
+        "incremental_mt_event": {
+          "bytes": 17069751473,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/packed/train_incremental_mt_event.jsonl",
+          "records": 26066,
+          "required_counts": {
+            "commit_consistency_positions": 119412431,
+            "loss:boundary_ce": 14899169,
+            "loss:mt_ce": 33849408,
+            "teacher:phase3:positions": 48748577
+          },
+          "supervised_tokens": 48748577
+        },
+        "interleaved_e2e_s2st": {
+          "bytes": 29810609225,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/packed/train_interleaved_e2e_s2st.jsonl",
+          "records": 40150,
+          "required_counts": {
+            "loss:asr_ce": 20259110,
+            "loss:boundary_ce": 165463189,
+            "loss:eos_ce": 1001496,
+            "loss:mt_ce": 17631668,
+            "loss:semantic_ce": 346728267,
+            "teacher:phase3:positions": 58345576
+          },
+          "supervised_tokens": 551083730
+        },
+        "phase3_performance_replay": {
+          "bytes": 16061703402,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/packed/train_phase3_performance_replay.jsonl",
+          "records": 37414,
+          "required_counts": {
+            "loss:phase3_replay_ce": 498322068
+          },
+          "supervised_tokens": 498322068
+        },
+        "phase3_quality_replay": {
+          "bytes": 16801109174,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/packed/train_phase3_quality_replay.jsonl",
+          "records": 39344,
+          "required_counts": {
+            "loss:phase3_replay_ce": 531885982
+          },
+          "supervised_tokens": 531885982
+        },
+        "streaming_asr_event": {
+          "bytes": 10929836916,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/packed/train_streaming_asr_event.jsonl",
+          "records": 13365,
+          "required_counts": {
+            "loss:asr_ce": 20259110,
+            "loss:boundary_ce": 65699604,
+            "teacher:v1_asr:positions": 86960210
+          },
+          "supervised_tokens": 86960210
+        }
+      },
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_train/BUILD_COMPLETE.json",
+      "quality_gate": {
+        "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_train/QUALITY_GATE.json",
+        "sha256": "9f80bec1fb3470ca8a55c11db23354696d0d79676bbf56df2786f0dcd4e1f5d8"
+      },
+      "records": 1325243,
+      "seq_length": 18000,
+      "sha256": "b97e53a427555cd49da60309837d5b1151b9b3f0cd09d6b2657b007446a72e54",
+      "split": "train"
+    },
+    "valid": {
+      "families": {
+        "incremental_mt_event": {
+          "bytes": 184863105,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/packed/valid_incremental_mt_event.jsonl",
+          "records": 296,
+          "required_counts": {
+            "commit_consistency_positions": 1216070,
+            "loss:boundary_ce": 150799,
+            "loss:mt_ce": 343531,
+            "teacher:phase3:positions": 494330
+          },
+          "supervised_tokens": 494330
+        },
+        "interleaved_e2e_s2st": {
+          "bytes": 313110744,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/packed/valid_interleaved_e2e_s2st.jsonl",
+          "records": 437,
+          "required_counts": {
+            "loss:asr_ce": 205138,
+            "loss:boundary_ce": 1675126,
+            "loss:eos_ce": 10166,
+            "loss:mt_ce": 179025,
+            "loss:semantic_ce": 3520908,
+            "teacher:phase3:positions": 591750
+          },
+          "supervised_tokens": 5590363
+        },
+        "phase3_performance_replay": {
+          "bytes": 174211063,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/packed/valid_phase3_performance_replay.jsonl",
+          "records": 408,
+          "required_counts": {
+            "loss:phase3_replay_ce": 5063615
+          },
+          "supervised_tokens": 5063615
+        },
+        "phase3_quality_replay": {
+          "bytes": 182279517,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/packed/valid_phase3_quality_replay.jsonl",
+          "records": 429,
+          "required_counts": {
+            "loss:phase3_replay_ce": 5403556
+          },
+          "supervised_tokens": 5403556
+        },
+        "streaming_asr_event": {
+          "bytes": 123655390,
+          "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/packed/valid_streaming_asr_event.jsonl",
+          "records": 169,
+          "required_counts": {
+            "loss:asr_ce": 205138,
+            "loss:boundary_ce": 666100,
+            "teacher:v1_asr:positions": 881404
+          },
+          "supervised_tokens": 881404
+        }
+      },
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/task_pools/task_pool_formal_p4_20260820T154500Z_valid/BUILD_COMPLETE.json",
+      "quality_gate": {
+        "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_rollouts/v1_rollout_formal_20260818T114000Z_valid/QUALITY_GATE.json",
+        "sha256": "ee7cc69323353428666c08ae7980d116196edb885cd15d077e1187665dd291a3"
+      },
+      "records": 13469,
+      "seq_length": 18000,
+      "sha256": "f91cd2c73c5dbc3ad50eb1273e113de9fc3d907d0a5671cb53898b6416dc6762",
+      "split": "valid"
+    }
+  },
+  "teacher_caches": {
+    "phase3_train": {
+      "cache_kind": "phase3",
+      "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/phase3_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_phase3_train/train_phase3_teacher_cache.jsonl",
+      "output_bytes": 16571293208,
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/phase3_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_phase3_train/AUDIT.json",
+      "records": 1325243,
+      "sha256": "079c86c43e24fb62428a8f96c9846e0f3a779e1654ee01834f397a2846f98e05",
+      "split": "train"
+    },
+    "phase3_valid": {
+      "cache_kind": "phase3",
+      "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/phase3_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_phase3_valid/valid_phase3_teacher_cache.jsonl",
+      "output_bytes": 167969514,
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/phase3_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_phase3_valid/AUDIT.json",
+      "records": 13469,
+      "sha256": "f13045612e14edaacf336fbffc6d23ad8a3a557751e53b1d6b7a259038afd4ea",
+      "split": "valid"
+    },
+    "v1_train": {
+      "cache_kind": "v1_asr",
+      "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/train_v1_asr_teacher_cache.jsonl",
+      "output_bytes": 21731329092,
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_train/AUDIT.json",
+      "records": 1325243,
+      "sha256": "2536cdb7fe5a1e42c56451f58fc282a7764b740d102f736c81dce2bafffae59d",
+      "split": "train"
+    },
+    "v1_valid": {
+      "cache_kind": "v1_asr",
+      "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_valid/valid_v1_asr_teacher_cache.jsonl",
+      "output_bytes": 219979372,
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_formal_p4_20260820T154500Z_v1_valid/AUDIT.json",
+      "records": 13469,
+      "sha256": "29e4bcae79b366352d82099145a70df161447495e6ed0a422f16d95b29f3dfab",
+      "split": "valid"
+    }
+  },
+  "teacher_run_id": "teacher_cache_formal_p4_20260820T154500Z"
+}

@@ -1,0 +1,41 @@
+{
+  "cache_schema": "uniss_phase3_v4_e2e_v1_asr_teacher_cache_v1",
+  "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "counts": {
+    "final_requests": 128,
+    "history:gold_asr": 804,
+    "history:v1_asr": 804,
+    "records": 64,
+    "reference_in_topk": 7853,
+    "requests": 1608,
+    "teacher_positions": 7973,
+    "teacher_top1_correct": 7411
+  },
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/uniss_stage_a_formal8_iter_0000381_hf",
+  "index": {
+    "binary_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_parity_p4_20260820T154000Z_v1_smoke/valid_v1_asr_teacher_cache.jsonl.offsets.bin",
+    "binary_size_bytes": 512,
+    "data_mtime_ns": 1787241498134200052,
+    "data_path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_parity_p4_20260820T154000Z_v1_smoke/valid_v1_asr_teacher_cache.jsonl",
+    "data_size_bytes": 731934,
+    "offset_bytes": 8,
+    "records": 64,
+    "schema_version": "simul_uniss_jsonl_offsets_v1"
+  },
+  "output": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_parity_p4_20260820T154000Z_v1_smoke/valid_v1_asr_teacher_cache.jsonl",
+  "output_bytes": 731934,
+  "output_sha256": "d8bb0d4660960035a4dd5e709ef138becd01937b63f73418a679894b8a7f41b5",
+  "parts_root": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/v1_asr_teacher_cache/teacher_cache_parity_p4_20260820T154000Z_v1_smoke/parts",
+  "reference_in_topk_rate": 0.9849492035620219,
+  "runtime_sha256": "c1766a9746ba61cd5ed80b827d22f16cecc92ebd2b312ab15935d70cf2a5c3a3",
+  "schema_version": "uniss_phase3_v4_e2e_v1_asr_teacher_merge_v1",
+  "selection_start": 0,
+  "selection_stop": 64,
+  "status": "passed",
+  "teacher_top1_accuracy": 0.9295121033488022,
+  "temperature": 1.5,
+  "topk": 32,
+  "v1_hf_sha256": "e1089b6afaaf56babac717ed9a28d559a3d5b4a8d8c011354ad4a013f99772db",
+  "world_size": 32
+}

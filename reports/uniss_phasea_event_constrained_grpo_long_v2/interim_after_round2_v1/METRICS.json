@@ -1,0 +1,463 @@
+{
+  "schema_version": "uniss_event_constrained_grpo_long_v2_evaluation_v1",
+  "status": "passed",
+  "claim_scope": "train_seen_only",
+  "geometry": {
+    "episodes": 64,
+    "group_size": 4,
+    "candidates_per_arm": 256
+  },
+  "arms": [
+    {
+      "label": "历史Stateful64x4",
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_phasea_stateful_longepisode_rl_v1/formal_train64_g4_v1/ROLLOUT_MERGED.json",
+      "round_index": null,
+      "all": {
+        "candidates": 256,
+        "reward": {
+          "mean": 2.504794409682023,
+          "p50": 2.448828977789924,
+          "p95": 3.1639320885291893
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.2997942993039512,
+          "p50": 0.24712643678160917,
+          "p95": 0.608843537414966
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.18946204922194382,
+          "p50": 0.1813010952763073,
+          "p95": 0.363551032855408
+        },
+        "translation_length_ratio": {
+          "mean": 0.36269274647559596,
+          "p50": 0.35294117647058826,
+          "p95": 0.6244897959183674
+        },
+        "spoken_text_fraction": {
+          "mean": 0.999921875,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 21945.46875,
+          "p50": 8320.0,
+          "p95": 67120.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 31074.609375,
+          "p50": 33500.0,
+          "p95": 60000.0
+        },
+        "coverage_audio": {
+          "mean": 0.3362264581177008,
+          "p50": 0.34143377885783716,
+          "p95": 0.5947368421052631
+        },
+        "audio_writes": {
+          "mean": 9.84765625,
+          "p50": 10.0,
+          "p95": 16.0
+        },
+        "pending": {
+          "mean": 0.00390625,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "tts_failures": {
+          "mean": 0.015625,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "rtf": {
+          "mean": 4.634306126081719,
+          "p50": 4.559068839186813,
+          "p95": 6.4809434070031395
+        },
+        "healthy_fraction": 0.9990234375
+      },
+      "best_of_four": {
+        "candidates": 64,
+        "reward": {
+          "mean": 2.5950263201536754,
+          "p50": 2.5522645503562393,
+          "p95": 3.3488832986016277
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.2997942993039512,
+          "p50": 0.24712643678160917,
+          "p95": 0.608843537414966
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.19514912100876994,
+          "p50": 0.1965799342409265,
+          "p95": 0.3643514751905121
+        },
+        "translation_length_ratio": {
+          "mean": 0.37652904900487993,
+          "p50": 0.36860068259385664,
+          "p95": 0.6693877551020408
+        },
+        "spoken_text_fraction": {
+          "mean": 1.0,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 25628.125,
+          "p50": 7680.0,
+          "p95": 68680.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 25935.9375,
+          "p50": 27100.0,
+          "p95": 58800.0
+        },
+        "coverage_audio": {
+          "mean": 0.3483902375167423,
+          "p50": 0.3458860759493671,
+          "p95": 0.622568093385214
+        },
+        "audio_writes": {
+          "mean": 10.3125,
+          "p50": 10.0,
+          "p95": 18.0
+        },
+        "pending": {
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "tts_failures": {
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "rtf": {
+          "mean": 4.667099965004574,
+          "p50": 4.612075495937406,
+          "p95": 6.4809434070031395
+        },
+        "healthy_fraction": 1.0
+      }
+    },
+    {
+      "label": "ActionWarmup后",
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_phasea_event_constrained_grpo_long_v2/fresh_round1_g4_w64_formal_v1/ROLLOUT_MERGED.json",
+      "round_index": 1,
+      "all": {
+        "candidates": 256,
+        "reward": {
+          "mean": -4.848713534428762,
+          "p50": -5.683234008439524,
+          "p95": 0.5808708464642467
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.26107149646887057,
+          "p50": 0.22295081967213115,
+          "p95": 0.509090909090909
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.17805638241127952,
+          "p50": 0.15565354224366168,
+          "p95": 0.3645610930895918
+        },
+        "translation_length_ratio": {
+          "mean": 0.3394899368328633,
+          "p50": 0.3102310231023102,
+          "p95": 0.651685393258427
+        },
+        "spoken_text_fraction": {
+          "mean": 0.9923773328134287,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 4391.25,
+          "p50": 2880.0,
+          "p95": 8320.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 18793.359375,
+          "p50": 18400.0,
+          "p95": 31300.0
+        },
+        "coverage_audio": {
+          "mean": 0.35961613382391533,
+          "p50": 0.3261352810416005,
+          "p95": 0.6737067646158555
+        },
+        "audio_writes": {
+          "mean": 18.27734375,
+          "p50": 18.0,
+          "p95": 30.0
+        },
+        "pending": {
+          "mean": 0.2265625,
+          "p50": 0.0,
+          "p95": 2.0
+        },
+        "tts_failures": {
+          "mean": 0.8671875,
+          "p50": 0.0,
+          "p95": 8.0
+        },
+        "rtf": {
+          "mean": 11.840125048782582,
+          "p50": 11.300727941977236,
+          "p95": 17.23761742308791
+        },
+        "healthy_fraction": 0.9609983490497492
+      },
+      "best_of_four": {
+        "candidates": 64,
+        "reward": {
+          "mean": -3.394552171493988,
+          "p50": -2.858054143568284,
+          "p95": 0.7787729245806438
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.26107149646887057,
+          "p50": 0.22295081967213115,
+          "p95": 0.509090909090909
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.17991692236377957,
+          "p50": 0.16663901991750013,
+          "p95": 0.37494007056456335
+        },
+        "translation_length_ratio": {
+          "mean": 0.3438119302835666,
+          "p50": 0.329608938547486,
+          "p95": 0.6298342541436464
+        },
+        "spoken_text_fraction": {
+          "mean": 0.9971781420647227,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 4265.0,
+          "p50": 2880.0,
+          "p95": 6080.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 16650.0,
+          "p50": 16100.0,
+          "p95": 24800.0
+        },
+        "coverage_audio": {
+          "mean": 0.36610142586173083,
+          "p50": 0.34179566563467495,
+          "p95": 0.7025862068965517
+        },
+        "audio_writes": {
+          "mean": 18.515625,
+          "p50": 18.0,
+          "p95": 30.0
+        },
+        "pending": {
+          "mean": 0.078125,
+          "p50": 0.0,
+          "p95": 1.0
+        },
+        "tts_failures": {
+          "mean": 0.265625,
+          "p50": 0.0,
+          "p95": 4.0
+        },
+        "rtf": {
+          "mean": 12.095748853073863,
+          "p50": 11.640041337549238,
+          "p95": 17.23761742308791
+        },
+        "healthy_fraction": 0.9856938940348867
+      }
+    },
+    {
+      "label": "GRPO-Round1后",
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/uniss_phasea_event_constrained_grpo_long_v2/fresh_round2_g4_w64_formal_v1/ROLLOUT_MERGED.json",
+      "round_index": 2,
+      "all": {
+        "candidates": 256,
+        "reward": {
+          "mean": -4.8574975892524375,
+          "p50": -5.657139417411236,
+          "p95": 0.476405840342049
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.26107149646887057,
+          "p50": 0.22295081967213115,
+          "p95": 0.509090909090909
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.17880630787216864,
+          "p50": 0.16282861988209507,
+          "p95": 0.35623557815092405
+        },
+        "translation_length_ratio": {
+          "mean": 0.3382422928219312,
+          "p50": 0.31230283911671924,
+          "p95": 0.6298342541436464
+        },
+        "spoken_text_fraction": {
+          "mean": 0.990683305999259,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 4292.5,
+          "p50": 3200.0,
+          "p95": 7360.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 18761.71875,
+          "p50": 18900.0,
+          "p95": 31300.0
+        },
+        "coverage_audio": {
+          "mean": 0.35742738212509656,
+          "p50": 0.326015037593985,
+          "p95": 0.6687192118226601
+        },
+        "audio_writes": {
+          "mean": 18.3125,
+          "p50": 18.0,
+          "p95": 29.0
+        },
+        "pending": {
+          "mean": 0.2578125,
+          "p50": 0.0,
+          "p95": 2.0
+        },
+        "tts_failures": {
+          "mean": 0.9375,
+          "p50": 0.0,
+          "p95": 5.0
+        },
+        "rtf": {
+          "mean": 11.881907448135742,
+          "p50": 11.221435556819385,
+          "p95": 17.472263653601313
+        },
+        "healthy_fraction": 0.9561416613165344
+      },
+      "best_of_four": {
+        "candidates": 64,
+        "reward": {
+          "mean": -3.460308006846711,
+          "p50": -3.1134827394547555,
+          "p95": 0.8862386157854261
+        },
+        "asr_teacher_similarity": {
+          "mean": 0.26107149646887057,
+          "p50": 0.22295081967213115,
+          "p95": 0.509090909090909
+        },
+        "mt_teacher_similarity": {
+          "mean": 0.1804552593991017,
+          "p50": 0.16321366602751436,
+          "p95": 0.36780232011682507
+        },
+        "translation_length_ratio": {
+          "mean": 0.3448190648540767,
+          "p50": 0.3108108108108108,
+          "p95": 0.6179775280898876
+        },
+        "spoken_text_fraction": {
+          "mean": 0.9976244932252214,
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "first_write_ms": {
+          "mean": 4145.0,
+          "p50": 2880.0,
+          "p95": 5760.0
+        },
+        "maximum_internal_silence_ms": {
+          "mean": 17603.125,
+          "p50": 18200.0,
+          "p95": 28600.0
+        },
+        "coverage_audio": {
+          "mean": 0.3641684471978,
+          "p50": 0.3417375455650061,
+          "p95": 0.6687192118226601
+        },
+        "audio_writes": {
+          "mean": 18.609375,
+          "p50": 18.0,
+          "p95": 30.0
+        },
+        "pending": {
+          "mean": 0.09375,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "tts_failures": {
+          "mean": 0.28125,
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "rtf": {
+          "mean": 12.311426896459237,
+          "p50": 11.374594915179534,
+          "p95": 18.090890206452784
+        },
+        "healthy_fraction": 0.9899040435139573
+      }
+    }
+  ],
+  "training_validations": {
+    "GRPO-Round1": {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/logs/uniss_phasea_event_constrained_grpo_long_v2/event_grpo_round1_g4_w64_formal_v1.log",
+      "terminal": {
+        "iteration": 142,
+        "metrics": {
+          "loss/total": 0.02898628,
+          "PPL": 1.000353,
+          "loss/policy": 0.02792434,
+          "loss/reference_kl": 0.0353976,
+          "loss/phase3_replay": 0.0,
+          "loss/reference_anchor": 1.393209e-08,
+          "diagnostic/rl_tokens": 933.0,
+          "diagnostic/control_tokens": 66.375,
+          "diagnostic/mt_tokens": 495.75,
+          "diagnostic/tts_tokens": 370.875,
+          "diagnostic/replay_tokens": 0.0,
+          "diagnostic/ratio_mean": 0.9831867,
+          "diagnostic/ratio_clipped_fraction": 0.0726921,
+          "diagnostic/control_ratio_clipped_fraction": 0.0009920635,
+          "diagnostic/advantage_mean": -0.02127288,
+          "diagnostic/control_advantage_mean": 0.02288842,
+          "diagnostic/policy_update_rms": 0.0003528415
+        }
+      }
+    },
+    "GRPO-Round2": {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/logs/uniss_phasea_event_constrained_grpo_long_v2/event_grpo_round2_g4_w64_formal_v1.log",
+      "terminal": {
+        "iteration": 142,
+        "metrics": {
+          "loss/total": -0.04751399,
+          "PPL": 1.000353,
+          "loss/policy": -0.04756831,
+          "loss/reference_kl": 0.001811201,
+          "loss/phase3_replay": 0.0,
+          "loss/reference_anchor": 3.741697e-09,
+          "diagnostic/rl_tokens": 842.25,
+          "diagnostic/control_tokens": 65.875,
+          "diagnostic/mt_tokens": 410.3125,
+          "diagnostic/tts_tokens": 366.0625,
+          "diagnostic/replay_tokens": 0.0,
+          "diagnostic/ratio_mean": 0.9862255,
+          "diagnostic/ratio_clipped_fraction": 0.04653077,
+          "diagnostic/control_ratio_clipped_fraction": 0.0009920635,
+          "diagnostic/advantage_mean": 0.04950506,
+          "diagnostic/control_advantage_mean": 0.03169688,
+          "diagnostic/policy_update_rms": 0.000352664
+        }
+      }
+    }
+  }
+}

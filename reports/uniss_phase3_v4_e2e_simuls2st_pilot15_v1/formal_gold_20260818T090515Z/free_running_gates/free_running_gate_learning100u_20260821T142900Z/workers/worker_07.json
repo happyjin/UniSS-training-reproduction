@@ -1,0 +1,322 @@
+{
+  "candidate_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_100u_20260821T132822Z_hf",
+  "cuda_visible_devices": "7",
+  "device": "cuda:0",
+  "elapsed_seconds": 20.803667990025133,
+  "gold": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/data/processed/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/source_events/valid_gold_trajectories.jsonl",
+  "gpu_name": "NVIDIA H200",
+  "host": "ip-172-16-90-133.ap-southeast-3.compute.internal",
+  "num_workers": 8,
+  "phase3_hf": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/qwen0p5b_phase3_unist198_iter_0009075_hf",
+  "pid": 2149544,
+  "platform": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "samples": [
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 4,
+        "error_rate": 0.11764705882352941,
+        "errors": 2,
+        "event_hypotheses": [
+          "他们",
+          "他们",
+          "他们普遍的",
+          "他们普遍的感觉",
+          "他们普遍的感觉到",
+          "他们普遍的感觉到某种",
+          "他们普遍的感觉到某种",
+          "他们普遍的感觉到某种心",
+          "他们普遍的感觉到某种心的",
+          "他们普遍的感觉到某种心的因素",
+          "他们普遍的感觉到某种心的因素正在",
+          "他们普遍的感觉到某种心的因素正在",
+          "他们普遍的感觉到某种心的因素正在诞生",
+          "他们普遍的感觉到某种心的因素正在诞生"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "他们普遍的感觉到某种心的因素正在诞生",
+        "malformed_write_events": 0,
+        "metric": "cer",
+        "reference_units": 17,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 11,
+        "coverage": 0.2,
+        "events": 14,
+        "final_hypothesis": "They are generally",
+        "hypothesis_units": 3,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They are generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel a certain kind of heart.",
+          "They generally feel a certain kind of heart.",
+          "They generally feel a certain factor of the mind.",
+          "They generally feel that some factor of the mind is",
+          "They generally feel that some factor of the mind is",
+          "They generally feel that some kind of mental factor is being born.",
+          "They generally feel that some kind of mental factor is being born."
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 7,
+        "coverage": 0.3,
+        "events": 14,
+        "final_hypothesis": "They generally feel a certain",
+        "hypothesis_units": 5,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel some new",
+          "They generally feel some new",
+          "They generally feel some new factor.",
+          "They generally feel that some new factor is emerging.",
+          "They generally feel that some new factor is emerging.",
+          "They generally feel that some new factor is being created.",
+          "They generally feel that some new factor is being created."
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 0.0,
+          "error": null,
+          "finite": true,
+          "non_silent": false,
+          "path": null,
+          "peak": 0.0,
+          "rms": 0.0,
+          "samples": 0
+        },
+        "events": [
+          {
+            "asr_deltas": [
+              "他们"
+            ],
+            "chosen_continuations": [
+              "WRITE_ASR",
+              "EOS"
+            ],
+            "event_index": 0,
+            "malformed_segments": 1,
+            "mt_deltas": [],
+            "semantic_tokens": 0,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 0
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 2,
+        "natural_eos": true,
+        "semantic_coverage": 0.0,
+        "semantic_reference_tokens": 189,
+        "semantic_tokens": 0,
+        "source_hypothesis": "他们",
+        "source_rollback_events": 0,
+        "target_hypothesis": "",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": false
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 7,
+        "coverage": 0.3,
+        "events": 14,
+        "final_hypothesis": "They generally feel a certain",
+        "hypothesis_units": 5,
+        "nonempty_events": 14,
+        "raw_hypotheses": [
+          "They",
+          "They",
+          "They generally",
+          "They generally feel",
+          "They generally feel",
+          "They generally feel a certain",
+          "They generally feel a certain",
+          "They generally feel some new",
+          "They generally feel some new",
+          "They generally feel some new factor.",
+          "They generally feel that some new factor is happening.",
+          "They generally feel that some new factor is happening.",
+          "They generally feel that some new factor is being created.",
+          "They generally feel that some new factor is being created."
+        ],
+        "reference_units": 10,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 4101,
+      "sample_id": "emilia_zh_0004122419",
+      "source_duration_ms": 4120,
+      "src_lang": "cmn",
+      "tgt_lang": "eng",
+      "transcription_reference": "他们普遍感觉到某种新的因素正在诞生",
+      "translation_reference": "They generally feel that some new factor is being born"
+    },
+    {
+      "e_asr": {
+        "early_eos_events": 0,
+        "empty_events": 1,
+        "error_rate": 0.7777777777777778,
+        "errors": 7,
+        "event_hypotheses": [
+          "And",
+          "And you are",
+          "And you are suffrage",
+          "And you are suffrage",
+          "And you are suffrage fakes",
+          "And you are suffrage fakes I'll",
+          "And you are suffrage fakes I'll highway",
+          "And you are suffrage fakes I'll highway earrings",
+          "And you are suffrage fakes I'll highway earrings problem"
+        ],
+        "final_reached_eos": true,
+        "hypothesis": "And you are suffrage fakes I'll highway earrings problem",
+        "malformed_write_events": 0,
+        "metric": "wer",
+        "reference_units": 9,
+        "source_rollbacks": 0
+      },
+      "e_mt_free": {
+        "commit_conflicts": 8,
+        "coverage": 0.09090909090909091,
+        "events": 9,
+        "final_hypothesis": "并且",
+        "hypothesis_units": 2,
+        "nonempty_events": 9,
+        "raw_hypotheses": [
+          "并且",
+          "而你就是",
+          "而你是选举权",
+          "而你是选举权",
+          "而你是选举权的假象",
+          "而你就是选举的假象，我",
+          "而你就是选举的假象，我将 highway",
+          "而你就是假的选举人，我将高声耳语。",
+          "而你就是选举的假象，我会用公路耳环解决问题。"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_mt_gold": {
+        "commit_conflicts": 8,
+        "coverage": 0.09090909090909091,
+        "events": 9,
+        "final_hypothesis": "并且",
+        "hypothesis_units": 2,
+        "nonempty_events": 9,
+        "raw_hypotheses": [
+          "并且",
+          "并使用",
+          "并用这个来",
+          "并用这个来",
+          "并用这个来修复",
+          "并用这个来修复一个",
+          "并用这个来修复一个高",
+          "并用这个来解决高方差",
+          "并用这个来解决高方差问题"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "e_s2s_free": {
+        "audio": {
+          "duration_seconds": 0.0,
+          "error": null,
+          "finite": true,
+          "non_silent": false,
+          "path": null,
+          "peak": 0.0,
+          "rms": 0.0,
+          "samples": 0
+        },
+        "events": [
+          {
+            "asr_deltas": [],
+            "chosen_continuations": [
+              "WRITE_MT",
+              "EOS"
+            ],
+            "event_index": 0,
+            "malformed_segments": 1,
+            "mt_deltas": [
+              "而"
+            ],
+            "semantic_tokens": 0,
+            "source_end_ms": 320,
+            "source_final": false,
+            "source_glm_end": 4,
+            "source_glm_start": 0
+          }
+        ],
+        "invalid_semantic_tokens": 0,
+        "malformed_segments": 2,
+        "natural_eos": true,
+        "semantic_coverage": 0.0,
+        "semantic_reference_tokens": 124,
+        "semantic_tokens": 0,
+        "source_hypothesis": "",
+        "source_rollback_events": 0,
+        "target_hypothesis": "而",
+        "target_rollback_events": 0,
+        "target_semantic_before_source_eos": false,
+        "target_text_before_source_eos": true
+      },
+      "phase3_mt_gold": {
+        "commit_conflicts": 7,
+        "coverage": 0.18181818181818182,
+        "events": 9,
+        "final_hypothesis": "并且使用",
+        "hypothesis_units": 4,
+        "nonempty_events": 9,
+        "raw_hypotheses": [
+          "并且",
+          "并且使用",
+          "并使用这个来",
+          "并使用这个来",
+          "并用这个来修复",
+          "并用这个来修复一个",
+          "并用这个来修复一个高",
+          "并用这个来解决高方差",
+          "并用这个来解决高方差问题。"
+        ],
+        "reference_units": 11,
+        "rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "record_index": 13241,
+      "sample_id": "EN_B00058_S07483_W000027",
+      "source_duration_ms": 3140,
+      "src_lang": "eng",
+      "tgt_lang": "cmn",
+      "transcription_reference": "And use this to fix a high variance problem",
+      "translation_reference": "并用此来解决高方差问题"
+    }
+  ],
+  "schema_version": "uniss_phase3_v4_e2e_free_running_worker_v1",
+  "selection": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning100u_20260821T142900Z/SELECTION.json",
+  "status": "complete",
+  "v1_checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "worker_index": 7
+}

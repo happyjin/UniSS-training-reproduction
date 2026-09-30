@@ -1,0 +1,174 @@
+{
+  "authorization_rule": "A passed canary checkpoint is used only to validate the implementation. The formal run must restart from the immutable V1 compound checkpoint.",
+  "canary_report": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/post_task_pool_canaries/post_task_pool_canary_p4_replayfix_w0_20260821T085848Z/CANARY_REPORT.json",
+    "sha256": "17fda0e5c4ecad74cb91adf7f5db0b45ba2c026c44a12bc25921f1549a6caa64"
+  },
+  "candidate": {
+    "checkpoint": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/learning_canaries/learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z/iter_0000100",
+    "hf_model": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/exported_hf/e2e_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_hf"
+  },
+  "checks": {
+    "e_asr_cmn_retained": true,
+    "e_asr_eng_retained": false,
+    "e_asr_source_rollback_zero": true,
+    "e_asr_structure_valid": false,
+    "e_mt_all_directions_present": true,
+    "e_mt_bleu_retention": false,
+    "e_mt_chrf_retention": false,
+    "e_mt_free_all_directions_present": true,
+    "e_mt_free_target_rollback_zero": true,
+    "e_mt_generation_terminated": true,
+    "e_mt_target_coverage": false,
+    "e_mt_target_rollback_zero": true,
+    "e_s2s_non_silent_pcm": true,
+    "e_s2s_pre_eos_target_semantic": true,
+    "e_s2s_pre_eos_target_text": true,
+    "e_s2s_present": true,
+    "e_s2s_rollback_zero": true,
+    "e_s2s_semantic_coverage": false,
+    "e_s2s_semantic_tokens_valid": true,
+    "e_s2s_structure_valid": false
+  },
+  "formal_initialization": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/checkpoints/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1/stage_a_formal/stage_a_formal8_20260816T224100Z/iter_0000381",
+  "formal_training_authorized": false,
+  "metrics": {
+    "e_asr": {
+      "cmn": {
+        "early_eos_events": 0,
+        "empty_events": 25,
+        "empty_samples": 0,
+        "error_rate": 0.20657276995305165,
+        "errors": 44,
+        "final_eos_samples": 8,
+        "limit": 0.210112,
+        "malformed_write_events": 0,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 213
+      },
+      "eng": {
+        "early_eos_events": 2,
+        "empty_events": 29,
+        "empty_samples": 0,
+        "error_rate": 0.4838709677419355,
+        "errors": 75,
+        "final_eos_samples": 8,
+        "limit": 0.353399,
+        "malformed_write_events": 4,
+        "samples": 8,
+        "source_rollbacks": 0,
+        "units": 155
+      }
+    },
+    "e_mt": {
+      "free_running_source": {
+        "commit_conflicts": 268,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 16.524983145423843,
+            "candidate_bleu": 0.5406703244372367,
+            "candidate_chrf": 8.79733918931567,
+            "chrf_retention": 1.4610234931064732,
+            "phase3_bleu": 0.032718358601591745,
+            "phase3_chrf": 6.021353681733411,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 2.103768761933582,
+            "candidate_bleu": 0.09285194596863079,
+            "candidate_chrf": 3.4321524995531054,
+            "chrf_retention": 1.0975913172297007,
+            "phase3_bleu": 0.044136003751329686,
+            "phase3_chrf": 3.1269858331385056,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.10769597627613932,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      },
+      "gold_source": {
+        "commit_conflicts": 264,
+        "directions": {
+          "cmn->eng": {
+            "bleu_retention": 118.01836684272178,
+            "candidate_bleu": 3.861367247934376,
+            "candidate_chrf": 20.47755334764848,
+            "chrf_retention": 3.4008222120832903,
+            "phase3_bleu": 0.032718358601591745,
+            "phase3_chrf": 6.021353681733411,
+            "samples": 8
+          },
+          "eng->cmn": {
+            "bleu_retention": 0.19662101532999401,
+            "candidate_bleu": 0.008678065870194868,
+            "candidate_chrf": 2.9595553134985506,
+            "chrf_retention": 0.9464562589745066,
+            "phase3_bleu": 0.044136003751329686,
+            "phase3_chrf": 3.1269858331385056,
+            "samples": 8
+          }
+        },
+        "target_coverage_mean": 0.144563795956459,
+        "target_coverage_min": 0.0,
+        "target_rollback_events": 0,
+        "unterminated_generations": 0
+      }
+    },
+    "e_s2s_free": {
+      "invalid_semantic_tokens": 0,
+      "malformed_segments": 32,
+      "non_silent_pcm": 8,
+      "samples": 8,
+      "semantic_coverage_mean": 0.9891732283464567,
+      "semantic_coverage_min": 0.9133858267716536,
+      "source_rollback_events": 0,
+      "target_rollback_events": 0,
+      "target_semantic_before_source_eos": 8,
+      "target_text_before_source_eos": 8
+    }
+  },
+  "schema_version": "uniss_phase3_v4_e2e_free_running_gate_v1",
+  "selection": {
+    "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning100u_20260821T142900Z/SELECTION.json",
+    "samples": 16,
+    "sha256": "e6354641a2ba6a425ccd050eac19d28be7cbc72c9aa68d5a653f9b0c603361e0"
+  },
+  "status": "failed",
+  "worker_reports": [
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_00.json",
+      "sha256": "12acfb76638ea816d9a919671f0d840b13f8672985dd9a2fdbd40213d4639a32"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_01.json",
+      "sha256": "be15256914df08ac154cc3edab6b00c85f37a69413381af6bdde7b04c21ffd8a"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_02.json",
+      "sha256": "58882f89ac0e465577dc047632720af8e81146629956de612e2897965a8cd1f3"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_03.json",
+      "sha256": "48fff7da507002f2fa691f532bf88ae88eae3a592fb1d1e726e4c0439adbcad1"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_04.json",
+      "sha256": "0e83c5d02f6f5790d9891d97690f6a4b9c8eaf3745f2798abdc77653d583c3b4"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_05.json",
+      "sha256": "e74207d46d79618b087790230bb4672bf9989dbd4cbd1a91b5e030cef9a864d2"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_06.json",
+      "sha256": "537a1f31ddeae45ddaa04980e54712b644c17ee3c794f2fbf6ff1e47848c8154"
+    },
+    {
+      "path": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/reports/uniss_phase3_v4_e2e_simuls2st_pilot15_v1/formal_gold_20260818T090515Z/free_running_gates/free_running_gate_learning_canary_allfamily_100u_semendmargin_boundarycorr_r0p5_t1_strat_20260823T004500Z_sem384_20260823T004500Z/workers/worker_07.json",
+      "sha256": "628961038b84dadbcf714ef2ebfb4d3ada827c73cae147f7136e2c7e67ef4408"
+    }
+  ]
+}
