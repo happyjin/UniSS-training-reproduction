@@ -1,0 +1,1951 @@
+{
+  "groups": {
+    "performance:cmn->eng": {
+      "bp": 1.0,
+      "counts": [
+        69044,
+        43950,
+        29487,
+        19751
+      ],
+      "precisions": [
+        22.034217438064267,
+        14.629323888903683,
+        10.249289185187244,
+        7.172401270994099
+      ],
+      "ref_len": 123746,
+      "sample_count": 14052,
+      "score": 12.407093439033071,
+      "sys_len": 313349,
+      "tokenizer": "13a",
+      "totals": [
+        313349,
+        300424,
+        287698,
+        275375
+      ]
+    },
+    "performance:eng->cmn": {
+      "bp": 0.9730984933450542,
+      "counts": [
+        137332,
+        102404,
+        77460,
+        60278
+      ],
+      "precisions": [
+        74.23271099771894,
+        58.21849274571338,
+        46.42020291609485,
+        38.11541234049549
+      ],
+      "ref_len": 190047,
+      "sample_count": 9106,
+      "score": 51.17086802758248,
+      "sys_len": 185002,
+      "tokenizer": "zh",
+      "totals": [
+        185002,
+        175896,
+        166867,
+        158146
+      ]
+    },
+    "quality:cmn->eng": {
+      "bp": 1.0,
+      "counts": [
+        70592,
+        46213,
+        31599,
+        21539
+      ],
+      "precisions": [
+        21.916583357653355,
+        14.943331554865726,
+        10.653203647826308,
+        7.570107582057239
+      ],
+      "ref_len": 123847,
+      "sample_count": 14082,
+      "score": 12.748252041221674,
+      "sys_len": 322094,
+      "tokenizer": "13a",
+      "totals": [
+        322094,
+        309255,
+        296615,
+        284527
+      ]
+    },
+    "quality:eng->cmn": {
+      "bp": 0.9713176035737884,
+      "counts": [
+        140252,
+        106654,
+        82052,
+        64833
+      ],
+      "precisions": [
+        75.9222870010989,
+        60.727910446061514,
+        49.252378522764786,
+        41.06837444414884
+      ],
+      "ref_len": 190107,
+      "sample_count": 9105,
+      "score": 53.67651919833739,
+      "sys_len": 184731,
+      "tokenizer": "zh",
+      "totals": [
+        184731,
+        175626,
+        166595,
+        157866
+      ]
+    }
+  },
+  "hypothesis_field": "asr_text",
+  "input_count": 46712,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": false,
+  "scored_count": 46345,
+  "skipped": [
+    {
+      "id": "magicdata_0000026602",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000014732",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023563",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001810",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000011905",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017698",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021139",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030076",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018725",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021693",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029926",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000020987",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015697",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029990",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023838",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021999",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000033471",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034710",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016570",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018986",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024604",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019065",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001224",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022014",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029770",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017075",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021320",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029759",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022704",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016592",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034852",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028188",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034360",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016562",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001214",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021993",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017972",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022895",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016828",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019257",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034639",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017298",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028159",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030036",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030071",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018054",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034640",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015599",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023134",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016754",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019545",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030406",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024291",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029844",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019215",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029893",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034821",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024711",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016331",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017308",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018966",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015664",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024636",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029868",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029771",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029871",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029799",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015588",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021997",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016546",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029666",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019129",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000014508",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016764",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018943",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000000428",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021948",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029863",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030070",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029740",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000020994",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023352",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029896",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023356",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029630",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028333",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016823",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035788",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022032",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019325",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017595",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021491",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000027046",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029854",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016649",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001698",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024588",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016767",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018160",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017566",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029646",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029752",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015607",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017991",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000000432",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022012",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017190",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024801",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018138",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021327",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023466",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029626",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016847",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029972",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029944",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018962",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021727",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000032505",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000014179",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019065",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030042",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022250",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029918",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030069",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022570",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019732",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016543",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001485",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022267",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022814",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029974",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030013",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016602",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024655",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035554",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024778",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000025429",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029770",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016540",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029625",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029756",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016718",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018676",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024739",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021766",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029955",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018985",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034547",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016535",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000000541",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022367",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016500",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029596",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016661",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029653",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035657",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035982",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016605",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021637",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022248",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034998",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029742",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017234",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023516",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034357",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029975",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001754",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029684",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030020",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019089",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019875",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000025391",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035969",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019080",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029609",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029973",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019207",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030032",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034348",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019398",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022337",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029933",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019005",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022921",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000027082",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000031779",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021968",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029806",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016487",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030076",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035511",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016664",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022027",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029926",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034581",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021873",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022080",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034587",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019423",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021313",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022254",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000031610",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035539",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019462",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021297",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029722",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029848",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030058",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000020463",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029603",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024564",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029660",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024586",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022144",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029718",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024950",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000026327",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030054",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029740",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000001620",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029953",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034614",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016557",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024749",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029897",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024252",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000025032",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029915",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016546",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017987",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022986",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034631",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017777",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029802",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030048",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024581",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029889",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029934",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029827",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018121",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021590",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022277",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028025",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023219",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030042",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035145",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016598",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016719",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016785",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030110",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016764",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022431",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016787",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015273",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028237",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018138",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022495",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030049",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016838",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022340",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029891",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021864",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021868",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029987",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000036039",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000012717",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000000054",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000014544",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022366",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022788",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030091",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035537",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018150",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029863",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029963",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029906",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015145",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016604",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021065",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000013103",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021025",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022182",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029569",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029985",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_CN_0000000738",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029725",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016637",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016710",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017577",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021275",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023604",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035857",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016545",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029929",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016517",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000027620",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029902",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034374",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034550",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022114",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029646",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029735",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029979",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022274",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016510",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019391",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024583",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000035544",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021924",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000027111",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029579",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029879",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029943",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000013841",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022280",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030045",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019321",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029596",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029965",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034490",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029997",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034317",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019033",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029989",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029960",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016699",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034745",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017876",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000017901",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022987",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000022576",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000023611",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029756",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019131",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029914",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030064",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034741",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021307",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029712",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030067",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000028148",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015681",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024224",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000034481",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000019358",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030058",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015117",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029778",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000030111",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024233",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000021977",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015425",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000018121",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000033558",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000024218",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000016517",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000015322",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000002617",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "gigaspeech_podcast_0000009265",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "gigaspeech_podcast_0000009208",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000003109",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000002567",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "gigaspeech_youtube_0000025593",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000000215",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000000934",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000000292",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "gigaspeech_podcast_0000009242",
+      "mode": "performance",
+      "reason": "missing_text"
+    }
+  ],
+  "skipped_count": 367
+}

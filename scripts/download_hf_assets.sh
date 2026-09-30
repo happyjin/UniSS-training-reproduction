@@ -64,6 +64,9 @@ case "${TARGET}" in
   qwen0p5b)
     download_model "Qwen/Qwen2.5-0.5B-Instruct" "${REPO_ROOT}/pretrained_models/Qwen2.5-0.5B-Instruct"
     ;;
+  qwen3b)
+    download_model "Qwen/Qwen2.5-3B-Instruct" "${REPO_ROOT}/pretrained_models/Qwen2.5-3B-Instruct"
+    ;;
   unist)
     download_dataset "cmots/UniST" "${REPO_ROOT}/data/raw/UniST"
     ;;
@@ -73,7 +76,7 @@ case "${TARGET}" in
     download_dataset "cmots/UniST" "${REPO_ROOT}/data/raw/UniST"
     ;;
   *)
-    echo "Usage: $0 [--dry-run] {uniss|qwen|qwen0p5b|unist|all}" >&2
+    echo "Usage: $0 [--dry-run] {uniss|qwen|qwen0p5b|qwen3b|unist|all}" >&2
     exit 2
     ;;
 esac

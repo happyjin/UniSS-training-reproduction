@@ -1,0 +1,151 @@
+{
+  "groups": {
+    "performance:cmn->eng": {
+      "bp": 0.9765953823362465,
+      "counts": [
+        84781,
+        55608,
+        38214,
+        26304
+      ],
+      "precisions": [
+        69.28420244020037,
+        51.43649986125243,
+        40.692152060483444,
+        32.86808531907184
+      ],
+      "ref_len": 125265,
+      "sample_count": 14257,
+      "score": 45.63124730048431,
+      "sys_len": 122367,
+      "tokenizer": "13a",
+      "totals": [
+        122367,
+        108110,
+        93910,
+        80029
+      ]
+    },
+    "performance:eng->cmn": {
+      "bp": 0.9912696140243829,
+      "counts": [
+        142927,
+        107854,
+        82555,
+        64988
+      ],
+      "precisions": [
+        75.8189177289389,
+        60.11928651059086,
+        48.46341248642461,
+        40.217088611511635
+      ],
+      "ref_len": 190164,
+      "sample_count": 9111,
+      "score": 54.11850590302312,
+      "sys_len": 188511,
+      "tokenizer": "zh",
+      "totals": [
+        188511,
+        179400,
+        170345,
+        161593
+      ]
+    },
+    "quality:cmn->eng": {
+      "bp": 0.985323181370839,
+      "counts": [
+        89151,
+        60296,
+        42318,
+        29640
+      ],
+      "precisions": [
+        72.22739830350561,
+        55.22876116326998,
+        44.556519541778975,
+        36.5533316067927
+      ],
+      "ref_len": 125256,
+      "sample_count": 14256,
+      "score": 49.745646009792566,
+      "sys_len": 123431,
+      "tokenizer": "13a",
+      "totals": [
+        123431,
+        109175,
+        94976,
+        81087
+      ]
+    },
+    "quality:eng->cmn": {
+      "bp": 0.9902583675177655,
+      "counts": [
+        146552,
+        112848,
+        87878,
+        70227
+      ],
+      "precisions": [
+        77.8434653281279,
+        62.98797709284542,
+        51.65981811661934,
+        43.523556899735986
+      ],
+      "ref_len": 190108,
+      "sample_count": 9107,
+      "score": 57.06079123669408,
+      "sys_len": 188265,
+      "tokenizer": "zh",
+      "totals": [
+        188265,
+        179158,
+        170109,
+        161354
+      ]
+    }
+  },
+  "hypothesis_field": "generated_translation",
+  "input_count": 46738,
+  "reference_field": "translation_ref",
+  "score_empty_hypotheses": false,
+  "scored_count": 46731,
+  "skipped": [
+    {
+      "id": "VCTK_0000017588",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000001015",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000002464",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "CommonVoice_EN_0000001362",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "VCTK_0000003865",
+      "mode": "quality",
+      "reason": "missing_text"
+    },
+    {
+      "id": "VCTK_0000003865",
+      "mode": "performance",
+      "reason": "missing_text"
+    },
+    {
+      "id": "magicdata_0000029973",
+      "mode": "quality",
+      "reason": "missing_text"
+    }
+  ],
+  "skipped_count": 7
+}
