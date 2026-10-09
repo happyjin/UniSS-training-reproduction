@@ -161,6 +161,7 @@ def build_tasks(
     *,
     output_root: Path,
     resume: bool,
+    expected_pairs: int = 4897,
 ) -> list[CanonicalTask]:
     tasks: list[CanonicalTask] = []
     seen: set[str] = set()
@@ -189,8 +190,10 @@ def build_tasks(
                 resume=resume,
             )
         )
-    if len(tasks) != 4897:
-        raise ValueError(f"CVSS-T zh/en test must contain 4,897 pairs, found {len(tasks)}")
+    if expected_pairs and len(tasks) != expected_pairs:
+        raise ValueError(
+            f"CVSS-T zh/en split must contain {expected_pairs:,} pairs, found {len(tasks)}"
+        )
     return tasks
 
 
@@ -240,11 +243,17 @@ def canonicalize(args: argparse.Namespace) -> dict[str, object]:
     output_root = Path(args.output_root)
     manifest_dir = output_root / "manifests"
     summary_path = output_root / "canonical_summary.json"
-    pair_manifest_path = manifest_dir / "cvss_t_zh_en_test_pairs.jsonl"
+    split = args.split_name
+    pair_manifest_path = manifest_dir / f"cvss_t_zh_en_{split}_pairs.jsonl"
     if summary_path.exists() and not args.resume:
         raise FileExistsError(f"Refusing to reuse canonical output without --resume: {output_root}")
 
-    tasks = build_tasks(iter_jsonl(input_manifest), output_root=output_root, resume=args.resume)
+    tasks = build_tasks(
+        iter_jsonl(input_manifest),
+        output_root=output_root,
+        resume=args.resume,
+        expected_pairs=args.expected_pairs,
+    )
     if args.workers == 1:
         pair_rows = [_canonicalize_task(task) for task in tasks]
     else:
@@ -259,8 +268,8 @@ def canonicalize(args: argparse.Namespace) -> dict[str, object]:
     zh_en_rows, en_zh_rows = build_direction_rows(pair_rows)
     manifest_dir.mkdir(parents=True, exist_ok=True)
     write_jsonl(pair_manifest_path, pair_rows)
-    write_jsonl(manifest_dir / "cvss_t_zh_en_test.jsonl", zh_en_rows)
-    write_jsonl(manifest_dir / "cvss_t_en_zh_test.jsonl", en_zh_rows)
+    write_jsonl(manifest_dir / f"cvss_t_zh_en_{split}.jsonl", zh_en_rows)
+    write_jsonl(manifest_dir / f"cvss_t_en_zh_{split}.jsonl", en_zh_rows)
     summary = {
         "input_manifest": str(input_manifest.resolve()),
         "output_root": str(output_root.resolve()),
@@ -274,7 +283,7 @@ def canonicalize(args: argparse.Namespace) -> dict[str, object]:
         "subtype": CANONICAL_SUBTYPE,
         "source_reused_count": sum(bool(row["source_reused"]) for row in pair_rows),
         "target_reused_count": sum(bool(row["target_reused"]) for row in pair_rows),
-        "ready_for_tokenization": len(pair_rows) == 4897,
+        "ready_for_tokenization": len(pair_rows) == args.expected_pairs,
     }
     write_json(summary_path, summary)
     return summary
@@ -287,6 +296,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--chunksize", type=int, default=8)
     parser.add_argument("--resume", action="store_true")
+    # The count is a guard against a silently truncated manifest, not a
+    # property of the canonicalisation. It defaults to the test split's 4,897
+    # so every existing caller behaves exactly as before; the dev split passes
+    # its own count. 0 disables the check.
+    parser.add_argument("--expected-pairs", type=int, default=4897)
+    # Names the emitted manifests. Defaults to "test" so existing callers
+    # write the same filenames they always have; a dev run says so, because a
+    # file called ..._test_pairs.jsonl sitting in a dev directory is how a
+    # reported number quietly gets contaminated later.
+    parser.add_argument("--split-name", default="test")
     args = parser.parse_args(argv)
     if args.workers < 1 or args.chunksize < 1:
         parser.error("--workers and --chunksize must be positive")
