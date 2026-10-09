@@ -62,24 +62,28 @@ def log(message: str) -> None:
         print(message, flush=True)
 
 
-def encode_prompts(processor, rows: list[dict]) -> list[dict]:
-    """Tokenise once up front; the text does not change between epochs."""
+def encode_prompts(processor, rows: list[dict], *, chunk: int = 2048) -> list[dict]:
+    """Tokenise once up front; the text does not change between epochs.
+
+    Templated and tokenised in chunks rather than row by row -- at a million
+    rows the per-call overhead of the fast tokenizer dominates everything
+    else in startup, and every rank pays it.
+    """
     tokenizer = processor.tokenizer
-    prepared = []
-    for row in rows:
-        prompt = processor.apply_chat_template(
-            [tts_prompt(row["text"], row["lang"])],
+    prepared: list[dict] = []
+    for start in range(0, len(rows), chunk):
+        block = rows[start : start + chunk]
+        templated = processor.apply_chat_template(
+            [tts_prompt(row["text"], row["lang"]) for row in block],
             add_generation_prompt=True,
             tokenize=False,
         )
-        prompt_text = prompt[0] if isinstance(prompt, list) else prompt
-        prepared.append(
-            {
-                **row,
-                "prompt_ids": tokenizer(prompt_text, add_special_tokens=False)["input_ids"],
-                "reply_ids": tokenizer(row["text"], add_special_tokens=False)["input_ids"],
-            }
-        )
+        prompt_ids = tokenizer(list(templated), add_special_tokens=False)["input_ids"]
+        reply_ids = tokenizer(
+            [row["text"] for row in block], add_special_tokens=False
+        )["input_ids"]
+        for row, prompt, reply in zip(block, prompt_ids, reply_ids):
+            prepared.append({**row, "prompt_ids": prompt, "reply_ids": reply})
     return prepared
 
 
@@ -155,7 +159,7 @@ def main() -> None:
     ap.add_argument("--model", default="pretrained_models/Qwen2.5-Omni-3B")
     ap.add_argument("--parquet-root", default="data/raw/UniST")
     ap.add_argument("--shards", nargs="+", required=True)
-    ap.add_argument("--dev-parquet", required=True)
+    ap.add_argument("--dev-parquet", nargs="+", required=True)
     ap.add_argument("--dev-subset", required=True)
     ap.add_argument("--rows-per-shard", type=int, default=0)
     ap.add_argument("--batch-size", type=int, default=8)
@@ -297,8 +301,13 @@ def main() -> None:
     log("STAGE1 DONE")
 
 
-def load_dev(dev_parquet: str, subset_manifest: str, max_codes: int) -> list[dict]:
-    """CVSS-T dev rows, restricted to the fixed curve subset."""
+def load_dev(dev_parquets: list[str], subset_manifest: str, max_codes: int) -> list[dict]:
+    """CVSS-T dev rows, restricted to the fixed curve subset.
+
+    Both direction files are read: the training shards carry Chinese and
+    English targets alike, and a curve watching only one of them would miss
+    half of what the Talker is being asked to learn.
+    """
     import pyarrow.parquet as pq
 
     wanted = {
@@ -306,11 +315,15 @@ def load_dev(dev_parquet: str, subset_manifest: str, max_codes: int) -> list[dic
         for line in Path(subset_manifest).read_text(encoding="utf-8").splitlines()
         if line.strip()
     }
-    table = pq.read_table(
-        dev_parquet, columns=["id", "translation", "tgt_lang", "target_bicodec"]
-    )
+    records = []
+    for path in dev_parquets:
+        records.extend(
+            pq.read_table(
+                path, columns=["id", "translation", "tgt_lang", "target_bicodec"]
+            ).to_pylist()
+        )
     rows = []
-    for record in table.to_pylist():
+    for record in records:
         if record["id"] not in wanted:
             continue
         codes = record["target_bicodec"]
@@ -319,12 +332,15 @@ def load_dev(dev_parquet: str, subset_manifest: str, max_codes: int) -> list[dic
             continue
         rows.append(
             {
-                "id": record["id"],
+                # The same utterance appears once per direction, so the id
+                # alone would collide and silently halve the dev set.
+                "id": f"{record['id']}:{record['tgt_lang']}",
                 "text": text,
                 "lang": record["tgt_lang"],
                 "codes": np.asarray(codes, dtype=np.int16),
             }
         )
+    rows.sort(key=lambda row: row["id"])
     return rows
 
 
