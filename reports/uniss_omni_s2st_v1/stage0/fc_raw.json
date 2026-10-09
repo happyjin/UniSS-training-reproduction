@@ -1,0 +1,637 @@
+{
+ "report": {
+  "samples": 12,
+  "output_mask": null,
+  "uniform_ce": 9.010913347279288,
+  "vocab": 8448,
+  "code_size": 8192,
+  "max_code_seen": 8165,
+  "causal_ok": true,
+  "causal_max_leak": 0.0,
+  "causal_min_movement": 0.59375,
+  "sweep": [
+   {
+    "head_scale": 1.0,
+    "mean_ce": 11.61929726600647,
+    "mean_entropy": 6.50792936484019,
+    "mean_reserved_mass": 0.07860897795277803,
+    "max_reserved_mass": 0.36269238591194153,
+    "mean_eos_mass": 0.07853491048444994,
+    "mean_other_reserved_mass": 7.407074273283835e-05
+   },
+   {
+    "head_scale": 0.1,
+    "mean_ce": 9.623114267985025,
+    "mean_entropy": 7.42699259519577,
+    "mean_reserved_mass": 0.1955005795074006,
+    "max_reserved_mass": 0.7962387800216675,
+    "mean_eos_mass": 0.1922440689522773,
+    "mean_other_reserved_mass": 0.0032565063952840014
+   },
+   {
+    "head_scale": 0.0,
+    "mean_ce": 9.606313784917196,
+    "mean_entropy": 7.4326579968134565,
+    "mean_reserved_mass": 0.19717101364706954,
+    "max_reserved_mass": 0.7992672920227051,
+    "mean_eos_mass": 0.19362120749428868,
+    "mean_other_reserved_mass": 0.003549813276019146
+   }
+  ]
+ },
+ "sweep": [
+  {
+   "head_scale": 1.0,
+   "mean_ce": 11.61929726600647,
+   "mean_entropy": 6.50792936484019,
+   "mean_reserved_mass": 0.07860897795277803,
+   "max_reserved_mass": 0.36269238591194153,
+   "mean_eos_mass": 0.07853491048444994,
+   "mean_other_reserved_mass": 7.407074273283835e-05,
+   "rows": [
+    {
+     "id": "CommonVoice_EN_0000264342",
+     "codes": 53,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      53,
+      8448
+     ],
+     "ce": 11.887738227844238,
+     "entropy": 7.1625471115112305,
+     "reserved_mass": 0.004822110291570425,
+     "eos_mass": 0.004821217153221369,
+     "other_reserved_mass": 8.926451187107887e-07
+    },
+    {
+     "id": "CommonVoice_EN_0000274948",
+     "codes": 54,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      54,
+      8448
+     ],
+     "ce": 10.714356422424316,
+     "entropy": 7.432692050933838,
+     "reserved_mass": 0.007674642372876406,
+     "eos_mass": 0.007673402316868305,
+     "other_reserved_mass": 1.2406205769366352e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000274938",
+     "codes": 57,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      57,
+      8448
+     ],
+     "ce": 12.905510902404785,
+     "entropy": 4.007840156555176,
+     "reserved_mass": 0.33942028880119324,
+     "eos_mass": 0.3394201099872589,
+     "other_reserved_mass": 2.014477473721854e-07
+    },
+    {
+     "id": "CommonVoice_EN_0000264323",
+     "codes": 59,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      59,
+      8448
+     ],
+     "ce": 12.119330406188965,
+     "entropy": 6.773014545440674,
+     "reserved_mass": 0.0030012396164238453,
+     "eos_mass": 0.0029960505198687315,
+     "other_reserved_mass": 5.1892761803173926e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000264312",
+     "codes": 60,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      60,
+      8448
+     ],
+     "ce": 11.345013618469238,
+     "entropy": 6.508247375488281,
+     "reserved_mass": 0.05546584352850914,
+     "eos_mass": 0.05540004372596741,
+     "other_reserved_mass": 6.580055196536705e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000274950",
+     "codes": 62,
+     "reply_tokens": 5,
+     "logits": [
+      1,
+      62,
+      8448
+     ],
+     "ce": 12.108620643615723,
+     "entropy": 7.0613274574279785,
+     "reserved_mass": 0.0005999776185490191,
+     "eos_mass": 0.0005985833704471588,
+     "other_reserved_mass": 1.3942863006377593e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000263775",
+     "codes": 63,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      63,
+      8448
+     ],
+     "ce": 11.93420696258545,
+     "entropy": 6.390669822692871,
+     "reserved_mass": 0.032007377594709396,
+     "eos_mass": 0.03198454529047012,
+     "other_reserved_mass": 2.2832655304227956e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000260038",
+     "codes": 64,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      64,
+      8448
+     ],
+     "ce": 11.623185157775879,
+     "entropy": 4.992920875549316,
+     "reserved_mass": 0.36269238591194153,
+     "eos_mass": 0.3625767230987549,
+     "other_reserved_mass": 0.00011567801993805915
+    },
+    {
+     "id": "CommonVoice_EN_0000274961",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 11.49881649017334,
+     "entropy": 6.841731071472168,
+     "reserved_mass": 0.039711467921733856,
+     "eos_mass": 0.03970983996987343,
+     "other_reserved_mass": 1.6285835044982377e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000264317",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 11.284457206726074,
+     "entropy": 7.255256652832031,
+     "reserved_mass": 0.0012820319971069694,
+     "eos_mass": 0.0012810780899599195,
+     "other_reserved_mass": 9.537419600746944e-07
+    },
+    {
+     "id": "CommonVoice_EN_0000266578",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 11.120681762695312,
+     "entropy": 6.980391025543213,
+     "reserved_mass": 0.0025145462714135647,
+     "eos_mass": 0.0024736160412430763,
+     "other_reserved_mass": 4.093011739314534e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000272944",
+     "codes": 66,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      66,
+      8448
+     ],
+     "ce": 10.889649391174316,
+     "entropy": 6.688514232635498,
+     "reserved_mass": 0.09411582350730896,
+     "eos_mass": 0.09348371624946594,
+     "other_reserved_mass": 0.000632106966804713
+    }
+   ]
+  },
+  {
+   "head_scale": 0.1,
+   "mean_ce": 9.623114267985025,
+   "mean_entropy": 7.42699259519577,
+   "mean_reserved_mass": 0.1955005795074006,
+   "max_reserved_mass": 0.7962387800216675,
+   "mean_eos_mass": 0.1922440689522773,
+   "mean_other_reserved_mass": 0.0032565063952840014,
+   "rows": [
+    {
+     "id": "CommonVoice_EN_0000264342",
+     "codes": 53,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      53,
+      8448
+     ],
+     "ce": 9.586410522460938,
+     "entropy": 8.459344863891602,
+     "reserved_mass": 0.06222479045391083,
+     "eos_mass": 0.062143970280885696,
+     "other_reserved_mass": 8.081280248006806e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000274948",
+     "codes": 54,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      54,
+      8448
+     ],
+     "ce": 9.078889846801758,
+     "entropy": 8.77751350402832,
+     "reserved_mass": 0.03748711571097374,
+     "eos_mass": 0.037476733326911926,
+     "other_reserved_mass": 1.03797401607153e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000274938",
+     "codes": 57,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      57,
+      8448
+     ],
+     "ce": 11.778038024902344,
+     "entropy": 2.1180427074432373,
+     "reserved_mass": 0.7962387800216675,
+     "eos_mass": 0.7959787249565125,
+     "other_reserved_mass": 0.0002599741274025291
+    },
+    {
+     "id": "CommonVoice_EN_0000264323",
+     "codes": 59,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      59,
+      8448
+     ],
+     "ce": 9.112775802612305,
+     "entropy": 8.902957916259766,
+     "reserved_mass": 0.015844831243157387,
+     "eos_mass": 0.015174112282693386,
+     "other_reserved_mass": 0.0006707218126393855
+    },
+    {
+     "id": "CommonVoice_EN_0000264312",
+     "codes": 60,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      60,
+      8448
+     ],
+     "ce": 9.387049674987793,
+     "entropy": 7.89775276184082,
+     "reserved_mass": 0.16341757774353027,
+     "eos_mass": 0.14586207270622253,
+     "other_reserved_mass": 0.017555471509695053
+    },
+    {
+     "id": "CommonVoice_EN_0000274950",
+     "codes": 62,
+     "reply_tokens": 5,
+     "logits": [
+      1,
+      62,
+      8448
+     ],
+     "ce": 9.140677452087402,
+     "entropy": 8.822608947753906,
+     "reserved_mass": 0.02151399478316307,
+     "eos_mass": 0.020212946459650993,
+     "other_reserved_mass": 0.0013010477414354682
+    },
+    {
+     "id": "CommonVoice_EN_0000263775",
+     "codes": 63,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      63,
+      8448
+     ],
+     "ce": 9.693181991577148,
+     "entropy": 7.640012741088867,
+     "reserved_mass": 0.16247056424617767,
+     "eos_mass": 0.16193723678588867,
+     "other_reserved_mass": 0.0005333586013875902
+    },
+    {
+     "id": "CommonVoice_EN_0000260038",
+     "codes": 64,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      64,
+      8448
+     ],
+     "ce": 10.616209983825684,
+     "entropy": 4.189629554748535,
+     "reserved_mass": 0.5839574933052063,
+     "eos_mass": 0.5837332010269165,
+     "other_reserved_mass": 0.00022431384422816336
+    },
+    {
+     "id": "CommonVoice_EN_0000274961",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.24805736541748,
+     "entropy": 7.959778785705566,
+     "reserved_mass": 0.1564178466796875,
+     "eos_mass": 0.14188623428344727,
+     "other_reserved_mass": 0.014531604945659637
+    },
+    {
+     "id": "CommonVoice_EN_0000264317",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.277519226074219,
+     "entropy": 8.568793296813965,
+     "reserved_mass": 0.0499546192586422,
+     "eos_mass": 0.0499480739235878,
+     "other_reserved_mass": 6.5467152126075234e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000266578",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.06452751159668,
+     "entropy": 8.858406066894531,
+     "reserved_mass": 0.025157656520605087,
+     "eos_mass": 0.024969113990664482,
+     "other_reserved_mass": 0.0001885453675640747
+    },
+    {
+     "id": "CommonVoice_EN_0000272944",
+     "codes": 66,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      66,
+      8448
+     ],
+     "ce": 9.494033813476562,
+     "entropy": 6.929069995880127,
+     "reserved_mass": 0.27132168412208557,
+     "eos_mass": 0.2676064074039459,
+     "other_reserved_mass": 0.0037152995355427265
+    }
+   ]
+  },
+  {
+   "head_scale": 0.0,
+   "mean_ce": 9.606313784917196,
+   "mean_entropy": 7.4326579968134565,
+   "mean_reserved_mass": 0.19717101364706954,
+   "max_reserved_mass": 0.7992672920227051,
+   "mean_eos_mass": 0.19362120749428868,
+   "mean_other_reserved_mass": 0.003549813276019146,
+   "rows": [
+    {
+     "id": "CommonVoice_EN_0000264342",
+     "codes": 53,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      53,
+      8448
+     ],
+     "ce": 9.524787902832031,
+     "entropy": 8.475188255310059,
+     "reserved_mass": 0.06239175423979759,
+     "eos_mass": 0.06231047585606575,
+     "other_reserved_mass": 8.127655746648088e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000274948",
+     "codes": 54,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      54,
+      8448
+     ],
+     "ce": 9.055355072021484,
+     "entropy": 8.78853988647461,
+     "reserved_mass": 0.03815627843141556,
+     "eos_mass": 0.03814539313316345,
+     "other_reserved_mass": 1.0886560630751774e-05
+    },
+    {
+     "id": "CommonVoice_EN_0000274938",
+     "codes": 57,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      57,
+      8448
+     ],
+     "ce": 11.853719711303711,
+     "entropy": 2.099947929382324,
+     "reserved_mass": 0.7992672920227051,
+     "eos_mass": 0.7989627718925476,
+     "other_reserved_mass": 0.00030452830833382905
+    },
+    {
+     "id": "CommonVoice_EN_0000264323",
+     "codes": 59,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      59,
+      8448
+     ],
+     "ce": 9.02819538116455,
+     "entropy": 8.92742919921875,
+     "reserved_mass": 0.016219288110733032,
+     "eos_mass": 0.015435576438903809,
+     "other_reserved_mass": 0.0007837103330530226
+    },
+    {
+     "id": "CommonVoice_EN_0000264312",
+     "codes": 60,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      60,
+      8448
+     ],
+     "ce": 9.411243438720703,
+     "entropy": 7.900387287139893,
+     "reserved_mass": 0.16662147641181946,
+     "eos_mass": 0.14769402146339417,
+     "other_reserved_mass": 0.01892743818461895
+    },
+    {
+     "id": "CommonVoice_EN_0000274950",
+     "codes": 62,
+     "reply_tokens": 5,
+     "logits": [
+      1,
+      62,
+      8448
+     ],
+     "ce": 9.094841957092285,
+     "entropy": 8.850312232971191,
+     "reserved_mass": 0.0221952423453331,
+     "eos_mass": 0.020650004968047142,
+     "other_reserved_mass": 0.0015452367952093482
+    },
+    {
+     "id": "CommonVoice_EN_0000263775",
+     "codes": 63,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      63,
+      8448
+     ],
+     "ce": 9.67839527130127,
+     "entropy": 7.653169631958008,
+     "reserved_mass": 0.1632605791091919,
+     "eos_mass": 0.1627269685268402,
+     "other_reserved_mass": 0.0005336173926480114
+    },
+    {
+     "id": "CommonVoice_EN_0000260038",
+     "codes": 64,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      64,
+      8448
+     ],
+     "ce": 10.610284805297852,
+     "entropy": 4.1728434562683105,
+     "reserved_mass": 0.586766242980957,
+     "eos_mass": 0.586540699005127,
+     "other_reserved_mass": 0.00022560320212505758
+    },
+    {
+     "id": "CommonVoice_EN_0000274961",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.232377052307129,
+     "entropy": 7.949224472045898,
+     "reserved_mass": 0.1610213667154312,
+     "eos_mass": 0.14480353891849518,
+     "other_reserved_mass": 0.016217855736613274
+    },
+    {
+     "id": "CommonVoice_EN_0000264317",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.247926712036133,
+     "entropy": 8.58209228515625,
+     "reserved_mass": 0.050212398171424866,
+     "eos_mass": 0.050205569714307785,
+     "other_reserved_mass": 6.8278723119874485e-06
+    },
+    {
+     "id": "CommonVoice_EN_0000266578",
+     "codes": 65,
+     "reply_tokens": 4,
+     "logits": [
+      1,
+      65,
+      8448
+     ],
+     "ce": 9.038992881774902,
+     "entropy": 8.873963356018066,
+     "reserved_mass": 0.025786058977246284,
+     "eos_mass": 0.02559429407119751,
+     "other_reserved_mass": 0.00019176224304828793
+    },
+    {
+     "id": "CommonVoice_EN_0000272944",
+     "codes": 66,
+     "reply_tokens": 3,
+     "logits": [
+      1,
+      66,
+      8448
+     ],
+     "ce": 9.499645233154297,
+     "entropy": 6.918797969818115,
+     "reserved_mass": 0.2741541862487793,
+     "eos_mass": 0.27038517594337463,
+     "other_reserved_mass": 0.0037690161261707544
+    }
+   ]
+  }
+ ],
+ "probes": [
+  {
+   "perturbed_input_index": 1,
+   "max_delta_at_or_before": 0.0,
+   "delta_at_perturbed": 0.59375,
+   "max_delta_after": 3.625
+  },
+  {
+   "perturbed_input_index": 34,
+   "max_delta_at_or_before": 0.0,
+   "delta_at_perturbed": 2.515625,
+   "max_delta_after": 0.875
+  },
+  {
+   "perturbed_input_index": 65,
+   "max_delta_at_or_before": 0.0,
+   "delta_at_perturbed": 1.53125,
+   "max_delta_after": null
+  }
+ ]
+}
