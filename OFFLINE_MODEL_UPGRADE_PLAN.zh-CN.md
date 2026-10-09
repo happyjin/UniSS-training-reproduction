@@ -190,6 +190,81 @@ CUHKSZ 把决策写进词表让模型自己学。后者实现更简单(只需在
 
 ---
 
+## 四之二、保住说话人与韵律:这是我们现在最强的地方
+
+### 4.2.1 先确认优势有多实在
+
+CVSS-T Table 1 排名(1 = 最好,共 10 个方法):
+
+| 指标 | 方向 | 我们的值 | 排名 |
+|---|---|---:|---|
+| **AutoPCP** | zh→en | 2.8837 / 2.9073 | **第 1/10 名** |
+| **UTMOS** | en→zh | 3.8839 / 3.8855 | **第 1/10 名** |
+| AutoPCP | en→zh | 2.7715 / 2.7889 | 第 4/10 |
+| SLC-0.2 / SLC-0.4 | 双向 | — | 第 3/10 |
+| *(对照)* Speech-BLEU | — | — | 第 8–10/10 |
+
+**韵律和音质是我们唯二进前列的指标,换架构时必须当成约束,不能当成可牺牲项。**
+
+### 4.2.2 拆开看:哪部分真的有风险
+
+查了管线,说话人信息的来源是明确的 —— `evaluation/cvss_t/tokenize.py` 里:
+
+```python
+"direction": "cmn->eng", ... "bicodec_global": zh_global   # 源音频的 global
+"direction": "eng->cmn", ... "bicodec_global": en_global   # 源音频的 global
+```
+
+**`bicodec_global` 是从源音频提取的 32 个全局 token,直接交给 BiCodec 解码器,完全不经过 LLM。**
+(`merge_tokenized.py` 校验长度必须为 32。)
+
+于是三种能力的风险完全不同:
+
+| 能力 | 承载者 | 换 LLM 架构的风险 |
+|---|---|---|
+| **音色 / 说话人身份(SIM-O)** | 源音频的 32 个 global token,**绕过 LLM** | **零** |
+| **韵律(AutoPCP)** | LLM 生成的语义码轨迹 | 有,见下 |
+| **时长一致(SLC)** | 生成的码数量 | 有 |
+| 音质(UTMOS) | 码质量 + 声码器 | 部分 |
+
+### 4.2.3 韵律的风险:离线会降,流式会反超
+
+论文 Table 1(**离线** CVSS-T)确实显示 Dec-only 声学更好:
+
+| 架构 | A.PCP en→zh / zh→en | SIM-O en→zh / zh→en |
+|---|---:|---:|
+| Dec-only | **2.96 / 2.75** | **0.45 / 0.59** |
+| Thinker–Talker | 2.70 / 2.64 | 0.35 / 0.45 |
+
+**但那句论断的结尾限定词是 *"prior to trajectory finetuning"*。** 论文 §4(第 545 行)给出之后的情况:
+
+> *"Unlike in the offline setting, **the streaming Talker consistently outperforms Dec-only on A.PCP**.
+> More importantly, as the latency multiplier m increases, **the Talker's A.PCP scores actually exceed
+> our offline S2ST baseline**. This proves that chunked text-code generation via trajectory supervision
+> **actively improves local rhythm**, rather than merely preserving it."*
+
+并且 Dec-only 在流式下还有**额外的延迟惩罚**(第 2193 行):
+用单个 3B 主干预测稠密声学码是计算瓶颈,*"severely inflating its delay compared with the
+lightweight 0.4B Talker"* —— 我们 AL 已经 4.6 s,这一条对我们是加分项。
+
+**结论:轨迹监督不是可选项,它正是让 Talker 的韵律反超的机制。缺了它,换架构就是净损失。**
+
+### 4.2.4 保住优势的四条硬约束
+
+写进方案,任何一条不满足就不采纳新架构:
+
+1. **保留 BiCodec,不换 DualCodec。** 论文换了码本,我们不换 —— 32 个 global token 的说话人通路、
+   现有声码器、`StreamingBiCodecDecoder` 的 50 token 左上下文全部原样保留。
+   Talker 的 codec embedding 与输出头按 **BiCodec 语义码本**重新初始化。
+2. **轨迹监督必做**(Stage 3),否则只会拿到离线那版更差的 A.PCP。
+3. **跨块音色延续要保留。** 论文保留最近 **4 s 源音频 + 2 s 已生成音频**作为 flow-matching 的
+   prompt 上下文,*"improves timbre consistency and smooths transitions across chunks"*;
+   我们现有的 50 token 左上下文是同一思路,迁移时不能丢。
+4. **A.PCP 作为验收门,不是观察项。** 每个阶段都测,**低于当前的 2.7715 / 2.8837 即判定失败**,
+   回退而不是"用翻译收益解释掉"。
+
+---
+
 ## 五、推荐方案:分三步走,每步有决策门
 
 ### 第 0 步(先做,2–3 小时,纯推理):判别实验
@@ -218,7 +293,57 @@ scripts/download_hf_assets.sh   # 需新增 omni 条目
 论文原文:*"the codec embedding and output head re-initialized for the DualCodec vocabulary"*。
 我们用的是 BiCodec,需确认码本规模可对齐。
 
-### 第 2 步:双流三阶段训练(按论文配方)
+### 第 2 步:双流三阶段训练(按论文配方,但保留我们的 BiCodec 通路)
+
+#### 2.0 组件取舍:哪些换、哪些一个字不动
+
+| 组件 | 现在 | 换成 | 理由 |
+|---|---|---|---|
+| 文本主干 | Qwen2.5-0.5B(词表扩到 180,407) | **Qwen2.5-Omni Thinker** | 原生音频对齐,不必硬塞 28,471 个语音 token |
+| 码生成 | 与文本共用同一个 AR 头 | **独立 Talker** | 消除模态干扰(+4.00 ASR-BLEU),且流式延迟更低 |
+| 音频编码器 | WhisperVQ + GLM bridge | **Omni 自带编码器(冻结)** | 原生对齐;冻结以保住大规模预训练得到的语音理解 |
+| **语义码本** | **BiCodec** | **不变** | 论文用 DualCodec,我们**不跟** —— 换码本会动摇说话人通路 |
+| **全局说话人 token** | **源音频 32 token** | **不变** | 绕过 LLM,是我们 SIM-O 的来源 |
+| **声码器 / 流式解码器** | **BiCodec + 50 token 左上下文** | **不变** | 跨块音色延续的机制,必须保留 |
+| 评测链 | `cvss_t_zh_en_phase3_v1/` | **不变** | 保证与历史数字可比 |
+
+**Talker 的改造点只有一处**:codec embedding 与输出头按 **BiCodec 语义码本规模**重新初始化
+(论文对 DualCodec 做的是同一件事:*"the codec embedding and output head re-initialized for the
+DualCodec vocabulary"*)。
+
+已核实我们的码本布局(`training/constants_uniss.py`):
+
+```
+BiCodec global   : offset 151665,码本 4096   → 每条取 32 个 token,绕过 LLM
+BiCodec semantic : offset 155761,码本 8192   → Talker 输出头只需覆盖这 8192
+GLM semantic     : offset 163953,码本 16384  → 源侧表示,不经 Talker
+```
+
+**Talker 的输出头是 8192 维,比论文 Dec-only 追加的 16,384 小一半** —— 这对双流是有利的,
+轻量 Talker 要学的码本更小。
+
+#### 2.1 三阶段配方(论文的,两种架构共享同一数据混合与 token 预算)
+
+```
+Stage 1 Warmup
+  只训 Talker,数据为 TTS。目标:让 Talker 在 BiCodec 8192 码本上收敛,
+  Thinker 完全冻结。验收:TTS 重建的 A.PCP 不低于当前管线。
+
+Stage 2 Joint Pretraining
+  ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5
+  Thinker 与 Talker 各自挂 LoRA。验收:CVSS-T 离线 Text-BLEU 超过当前 24.15 / 15.33。
+
+Stage 3 Streaming Finetuning  ← 保住韵律的关键一步,不可省
+  合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头,
+  在增广的流式轨迹上微调(ASR/S2TT/MT/S2ST)。
+  验收:A.PCP 不低于 2.7715(en→zh)/ 2.8837(zh→en)。
+```
+
+**为什么 Stage 3 不能省**:论文的 A.PCP 反超正是发生在轨迹监督之后
+(*"chunked text-code generation via trajectory supervision actively improves local rhythm"*)。
+只做 Stage 1–2 会停在离线那版更差的声学水平上。
+
+
 
 论文的三阶段,两种架构**共享完全相同的数据混合、优化器与 token 预算**:
 
