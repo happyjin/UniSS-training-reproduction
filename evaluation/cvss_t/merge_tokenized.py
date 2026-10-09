@@ -72,8 +72,9 @@ def merge_tokenized(args: argparse.Namespace) -> dict[str, object]:
     ]
     zh_en_rows = merge_direction(zh_en_parts, expected_pairs=args.expected_pairs, direction="cmn->eng")
     en_zh_rows = merge_direction(en_zh_parts, expected_pairs=args.expected_pairs, direction="eng->cmn")
-    zh_en_path = output_dir / "cvss_t_zh_en_test.parquet"
-    en_zh_path = output_dir / "cvss_t_en_zh_test.parquet"
+    split = getattr(args, "split_name", "test")
+    zh_en_path = output_dir / f"cvss_t_zh_en_{split}.parquet"
+    en_zh_path = output_dir / f"cvss_t_en_zh_{split}.parquet"
     write_final_parquet(zh_en_path, zh_en_rows)
     write_final_parquet(en_zh_path, en_zh_rows)
 
@@ -81,7 +82,7 @@ def merge_tokenized(args: argparse.Namespace) -> dict[str, object]:
     zh_en_manifests = create_manifests(
         zh_en_path,
         manifest_root / "zh_en",
-        split_name="test",
+        split_name=split,
         seed=args.seed,
         smoke_count=args.smoke_count,
         listen_count=args.listen_count,
@@ -89,7 +90,7 @@ def merge_tokenized(args: argparse.Namespace) -> dict[str, object]:
     en_zh_manifests = create_manifests(
         en_zh_path,
         manifest_root / "en_zh",
-        split_name="test",
+        split_name=split,
         seed=args.seed,
         smoke_count=args.smoke_count,
         listen_count=args.listen_count,
@@ -113,6 +114,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--num-shards", type=int, required=True)
     parser.add_argument("--expected-pairs", type=int, default=4897)
     parser.add_argument("--seed", type=int, default=20260728)
+    # Defaults to "test" so existing callers emit the same filenames and the
+    # same split field they always have. A dev run says so: a file named
+    # ..._test.parquet sitting in a dev directory is how a dev split gets
+    # picked up by a test glob and contaminates a reported number.
+    parser.add_argument("--split-name", default="test")
     parser.add_argument("--smoke-count", type=int, default=10)
     parser.add_argument("--listen-count", type=int, default=50)
     return parser.parse_args(argv)

@@ -167,3 +167,23 @@ def test_limit_stops_early(world):
         )
     )
     assert [r.sample_id for r in rows] == ["A"]
+
+
+def test_require_audio_false_keeps_records_whose_tar_is_absent(world):
+    """The TTS warmup reads text and codes only; locality is irrelevant to it."""
+    tmp_path, audio_root, parquet_root, offset, length = world
+    absent = _row("A", offset, length, 0, bicodec_len=3)
+    absent["audios"] = [absent["audios"][0].replace("00000.tar", "09999.tar")]
+    manifest = tmp_path / "m.jsonl"
+    _manifest(manifest, [absent])
+
+    (utterance,) = list(
+        iter_utterances(
+            manifest,
+            audio_root=audio_root,
+            parquet_root=parquet_root,
+            require_audio=False,
+        )
+    )
+    assert utterance.sample_id == "A"
+    assert utterance.target_bicodec.tolist() == [1, 2, 3]

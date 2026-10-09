@@ -48,6 +48,7 @@ def build_direction_records(
     en_glm: object,
     en_bicodec: object,
     tokenizer_model: str,
+    split_name: str = "test",
 ) -> tuple[dict[str, object], dict[str, object]]:
     zh_glm_values = coerce_tokens(zh_glm, field_name="zh_glm")
     en_glm_values = coerce_tokens(en_glm, field_name="en_glm")
@@ -68,7 +69,7 @@ def build_direction_records(
         "pair_id": sample_id,
         "pair_index": pair_index,
         "dataset_name": "CVSS-T",
-        "split": "test",
+        "split": split_name,
         "tokenizer_model": tokenizer_model,
         "source_zh_audio_sha256": pair.get("source_zh_audio_sha256"),
         "target_en_audio_sha256": pair.get("target_en_audio_sha256"),
@@ -164,6 +165,7 @@ def tokenize_shard(args: argparse.Namespace) -> dict[str, object]:
             en_glm=en_glm,
             en_bicodec=en_bicodec,
             tokenizer_model=str(Path(args.speech_tokenizer).resolve()),
+            split_name=args.split_name,
         )
         zh_en_rows.append(zh_en)
         en_zh_rows.append(en_zh)
@@ -193,6 +195,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--num-shards", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--limit-pairs", type=int, default=0)
+    # Defaults to the split every existing caller tokenises, so their records
+    # carry the same split field as before.
+    parser.add_argument("--split-name", default="test")
     return parser.parse_args(argv)
 
 
