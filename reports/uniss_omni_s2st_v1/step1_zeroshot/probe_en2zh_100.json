@@ -1,0 +1,614 @@
+{
+ "report": {
+  "model": "pretrained_models/Qwen2.5-Omni-3B",
+  "direction": "en2zh",
+  "pairs": 100,
+  "bleu": 32.66158402111039,
+  "sys_len": 1817,
+  "ref_len": 1692,
+  "bp": 1.0,
+  "empty": 0
+ },
+ "rows": [
+  {
+   "id": "common_voice_zh-CN_18603804.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18603804.mp3.wav",
+   "reference": "虽然这些用法多了一些行为，但实际上也只是某些基础行为」行为。",
+   "hypothesis": "尽管这种方法涉及更多的过程，但基本过程是基本的。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986982.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986982.mp3.wav",
+   "reference": "社会主义平等党是英国的一个托洛茨基主义政党。",
+   "hypothesis": "社会主义平等党是英国的一个托洛茨基主义政党。"
+  },
+  {
+   "id": "common_voice_zh-CN_19003421.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19003421.mp3.wav",
+   "reference": "通常在一个基数下的回文数在另一个基数下就不再是回文数。",
+   "hypothesis": "在一般情况下，一个基数下的回文数在另一个基数下就不再是回文数了。"
+  },
+  {
+   "id": "common_voice_zh-CN_19004852.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19004852.mp3.wav",
+   "reference": "现任驻华大使是班浩然。",
+   "hypothesis": "现任驻华大使是戈塔姆·班巴瓦莱。"
+  },
+  {
+   "id": "common_voice_zh-CN_19491013.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19491013.mp3.wav",
+   "reference": "此外亦有供缠足女性穿着的高跟弓鞋。",
+   "hypothesis": "此外，还有女性穿的高跟鞋，鞋跟向上翘，这是为了在旧时代束缚女性的脚。"
+  },
+  {
+   "id": "common_voice_zh-CN_19125309.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19125309.mp3.wav",
+   "reference": "普兰女娄菜",
+   "hypothesis": "马兰根皮纳特"
+  },
+  {
+   "id": "common_voice_zh-CN_18778731.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18778731.mp3.wav",
+   "reference": "作品中辛辣的言论让众多日本女性读者心有戚戚焉，因此也曾在网路上掀起风潮。",
+   "hypothesis": "作品中的辛辣评论让很多日本女性读者感到悲伤，因此在网上也掀起了一股热潮。"
+  },
+  {
+   "id": "common_voice_zh-CN_18999678.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18999678.mp3.wav",
+   "reference": "弗朗西斯科也开始尝试音乐创作。",
+   "hypothesis": "弗朗西斯科也开始作曲。"
+  },
+  {
+   "id": "common_voice_zh-CN_18978356.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18978356.mp3.wav",
+   "reference": "在托尔金是一种有很大力量但低智慧的生物。",
+   "hypothesis": "在托尔金的幻想世界中，它是一种强大的生物，但智力低下。"
+  },
+  {
+   "id": "common_voice_zh-CN_18592641.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18592641.mp3.wav",
+   "reference": "你知道我们怎么活着的吗？",
+   "hypothesis": "你知道我们是如何生存下来的吗？"
+  },
+  {
+   "id": "common_voice_zh-CN_19339672.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19339672.mp3.wav",
+   "reference": "祖父毛仁民。",
+   "hypothesis": "他的曾祖父毛润之。"
+  },
+  {
+   "id": "common_voice_zh-CN_18987198.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18987198.mp3.wav",
+   "reference": "两者之间亦长期存在军种对立的情形。",
+   "hypothesis": "还有两个政党之间长期的军事对抗。"
+  },
+  {
+   "id": "common_voice_zh-CN_18640065.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18640065.mp3.wav",
+   "reference": "邵肆又称“邵四元帅”，而邵荣又称“邵六元帅”，未详二人是否同族。",
+   "hypothesis": "萧瑟也被称为萧瑟将军，而萧龙也被称为萧留将军。不清楚他们是否是同一种族。"
+  },
+  {
+   "id": "common_voice_zh-CN_18984018.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18984018.mp3.wav",
+   "reference": "对故事情节进行了大面积普及。",
+   "hypothesis": "这个故事的故事情节已经广为流传。"
+  },
+  {
+   "id": "common_voice_zh-CN_18771313.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18771313.mp3.wav",
+   "reference": "本物种是一种杂食动物，一般栖息于森林中的小溪流。",
+   "hypothesis": "这个物种是杂食性的，栖息在森林中的溪流中。"
+  },
+  {
+   "id": "common_voice_zh-CN_18669990.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18669990.mp3.wav",
+   "reference": "之后在取得神学博士学位。",
+   "hypothesis": "之后获得了神学博士学位。"
+  },
+  {
+   "id": "common_voice_zh-CN_18776329.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18776329.mp3.wav",
+   "reference": "目前河南省各省辖市均设有服务中心来办理卡片购买和充值服务。",
+   "hypothesis": "河南省下辖的所有城市和区县都有卡购买和信用卡充值中心。"
+  },
+  {
+   "id": "common_voice_zh-CN_18909519.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18909519.mp3.wav",
+   "reference": "祖父武士成。",
+   "hypothesis": "祖父吴世昌"
+  },
+  {
+   "id": "common_voice_zh-CN_18995227.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18995227.mp3.wav",
+   "reference": "南京大屠杀的总死亡人数在中国及日本史学界是一个备受争议的话题。",
+   "hypothesis": "南京大屠杀的死亡人数是一个在中日两国的史学界中存在争议的话题。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986527.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986527.mp3.wav",
+   "reference": "道光二十四年十月升为鹿港同知。",
+   "hypothesis": "他被提升为庐江郡的郡守。"
+  },
+  {
+   "id": "common_voice_zh-CN_18981076.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18981076.mp3.wav",
+   "reference": "它们都是对称加密算法。",
+   "hypothesis": "它们都是对称密钥算法。"
+  },
+  {
+   "id": "common_voice_zh-CN_18664209.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18664209.mp3.wav",
+   "reference": "乔特罗斯玛丽的名字来源于两校的合并。",
+   "hypothesis": "Chote Rosemary Hall的名字来源于两所学校的合并。"
+  },
+  {
+   "id": "common_voice_zh-CN_18664012.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18664012.mp3.wav",
+   "reference": "大卫·詹姆斯·哈德森美国音频工程师。",
+   "hypothesis": "David James Hudson，美国音频工程师。"
+  },
+  {
+   "id": "common_voice_zh-CN_18705229.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18705229.mp3.wav",
+   "reference": "二氮杂环丙烷是在三元环中含有两个氮原子的杂环化合物。",
+   "hypothesis": "二氮杂环丙烷是一种含有两个氮原子的三元环杂环化合物。"
+  },
+  {
+   "id": "common_voice_zh-CN_18742992.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18742992.mp3.wav",
+   "reference": "他也是一名专业屠夫。",
+   "hypothesis": "他还是一个专业的屠夫。"
+  },
+  {
+   "id": "common_voice_zh-CN_18803001.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18803001.mp3.wav",
+   "reference": "片中的大部分的场景都是在导演的故乡长崎县长崎市取景。",
+   "hypothesis": "这部电影的大部分场景都是在导演的家乡名古屋市拍摄的。"
+  },
+  {
+   "id": "common_voice_zh-CN_18773767.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18773767.mp3.wav",
+   "reference": "李一本，字汝培，河南汝州郏县人，军籍，明朝政治人物。",
+   "hypothesis": "李俨本，字汝佩，是元朝的军事官员和政治人物，出生于江浙行省的嘉善县。"
+  },
+  {
+   "id": "common_voice_zh-CN_18829838.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18829838.mp3.wav",
+   "reference": "就在赵孝庵准备操纵机炮狠揍敌舰时，他的身旁又落下一颗炮弹，致使他身负重伤。",
+   "hypothesis": "当赵小年正要操作机枪射击敌舰时，另一枚炮弹在他旁边落下，使他受了重伤。"
+  },
+  {
+   "id": "common_voice_zh-CN_18777529.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18777529.mp3.wav",
+   "reference": "南荆州改为佑州，下辖宜都郡。",
+   "hypothesis": "南江州改名为越州，属于越州郡。"
+  },
+  {
+   "id": "common_voice_zh-CN_20010039.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20010039.mp3.wav",
+   "reference": "担任广西花红药业股份有限公司董事长。",
+   "hypothesis": "他是广西汉华医疗产业有限公司的董事长。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986976.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986976.mp3.wav",
+   "reference": "他是高丽大学建校以来首次在首尔大学出身的校长。",
+   "hypothesis": "他是继首尔大学成立以来，第一位从首尔大学毕业的校长。"
+  },
+  {
+   "id": "common_voice_zh-CN_18689593.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18689593.mp3.wav",
+   "reference": "曾任教于杜克大学和哈佛大学。",
+   "hypothesis": "他在杜克大学和哈佛大学任教。"
+  },
+  {
+   "id": "common_voice_zh-CN_19416776.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19416776.mp3.wav",
+   "reference": "他擅长反手抽击。",
+   "hypothesis": "他擅长反手击球。"
+  },
+  {
+   "id": "common_voice_zh-CN_18888702.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18888702.mp3.wav",
+   "reference": "塞沃尔是位于英格兰北柴郡沃灵顿郊区的一个城市。",
+   "hypothesis": "费尔沃是英格兰北柴郡沃灵顿郊区的一个城市。"
+  },
+  {
+   "id": "common_voice_zh-CN_18701797.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18701797.mp3.wav",
+   "reference": "据媒体报导，当时包括涉案者莫世健以及其他高等教育工作人员在内，至少有四人在场。",
+   "hypothesis": "至少有四人出席，包括毛细菌和其他高等教育人员。"
+  },
+  {
+   "id": "common_voice_zh-CN_19011114.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19011114.mp3.wav",
+   "reference": "他是伊凡四世之子。",
+   "hypothesis": "他是阿凡达四世的儿子。"
+  },
+  {
+   "id": "common_voice_zh-CN_19495159.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19495159.mp3.wav",
+   "reference": "中华民国政治家和外交官。",
+   "hypothesis": "这位政治家和外交家是中华民国时期的人物。"
+  },
+  {
+   "id": "common_voice_zh-CN_18773305.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18773305.mp3.wav",
+   "reference": "陶学修，广西全州人，明朝政治人物。",
+   "hypothesis": "赵士尧，广西钦州人，明朝政治人物。"
+  },
+  {
+   "id": "common_voice_zh-CN_19125311.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19125311.mp3.wav",
+   "reference": "莱兹人口变化图示",
+   "hypothesis": "人口变化图。"
+  },
+  {
+   "id": "common_voice_zh-CN_18661533.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18661533.mp3.wav",
+   "reference": "满洲镶蓝旗人。",
+   "hypothesis": "一个蓝旗边的满洲人。"
+  },
+  {
+   "id": "common_voice_zh-CN_20009584.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20009584.mp3.wav",
+   "reference": "生于比利时的布鲁塞尔埃特尔贝克的一个中层家庭。",
+   "hypothesis": "出生在比利时布鲁塞尔埃特尔比克的一个中产阶级家庭。"
+  },
+  {
+   "id": "common_voice_zh-CN_18774760.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18774760.mp3.wav",
+   "reference": "钟善辅，四川涪陵人，又名钟世民，笔名中山虎、山虎，中国共产党早期领导人。",
+   "hypothesis": "江山甫，四川富顺人，笔名江山甫、山甫，是中国共产党早期领导人。"
+  },
+  {
+   "id": "common_voice_zh-CN_18992595.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18992595.mp3.wav",
+   "reference": "本站有轮椅专用出口直通两月台。",
+   "hypothesis": "车站有一个专为轮椅设计的出口，通往两个站台。"
+  },
+  {
+   "id": "common_voice_zh-CN_18664113.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18664113.mp3.wav",
+   "reference": "阿伦·福特知名。",
+   "hypothesis": "艾伦·福尔特是著名的。"
+  },
+  {
+   "id": "common_voice_zh-CN_18990148.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18990148.mp3.wav",
+   "reference": "岐山操是唐代大诗人韩愈作的一篇琴操诗。",
+   "hypothesis": "《客从南来》是唐代伟大诗人韩愈所作的一首诗。"
+  },
+  {
+   "id": "common_voice_zh-CN_19001773.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19001773.mp3.wav",
+   "reference": "动态范围最大值和最小值的比值。",
+   "hypothesis": "最大动态范围与最小动态范围的比值。"
+  },
+  {
+   "id": "common_voice_zh-CN_18991932.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18991932.mp3.wav",
+   "reference": "米格尔恩是德国萨克森州的一个市镇。",
+   "hypothesis": "Mögeln是德国萨克森州的一个小镇。"
+  },
+  {
+   "id": "common_voice_zh-CN_18976180.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18976180.mp3.wav",
+   "reference": "蜡莲绣球为绣球花科绣球属下的一个种。",
+   "hypothesis": "hydrangea strigosum 'hd' 是 hydrangea l. 的一个物种。"
+  },
+  {
+   "id": "common_voice_zh-CN_18981162.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18981162.mp3.wav",
+   "reference": "狭瓣虎耳草为虎耳草科虎耳草属下的一个种。",
+   "hypothesis": "假 Hercules 桔梗是桔梗科桔梗属的植物。"
+  },
+  {
+   "id": "common_voice_zh-CN_18981081.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18981081.mp3.wav",
+   "reference": "长年从事中国史学史及中西史学比较研究。",
+   "hypothesis": "长期研究中国史学和中西史学比较研究。"
+  },
+  {
+   "id": "common_voice_zh-CN_20073520.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20073520.mp3.wav",
+   "reference": "宏杨中国武术。",
+   "hypothesis": "推广中国武术"
+  },
+  {
+   "id": "common_voice_zh-CN_18776330.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18776330.mp3.wav",
+   "reference": "置直合六人，其官属同左备身府，又增门尉、门候，以分掌门禁守卫。",
+   "hypothesis": "机构有六个职位，与左卫、右卫、中卫相同，包括门卫和门长。"
+  },
+  {
+   "id": "common_voice_zh-CN_18995040.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18995040.mp3.wav",
+   "reference": "阿拉伯叙利亚通讯社声称政府军成功包围了反对派占领的古塔东部地区。",
+   "hypothesis": "叙利亚阿拉伯通讯社说，政府军成功包围了反政府武装控制的戈塔东部地区。"
+  },
+  {
+   "id": "common_voice_zh-CN_18977977.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18977977.mp3.wav",
+   "reference": "前身是大谷女子短期大学。",
+   "hypothesis": "它以前被称为大谷女子短期大学。"
+  },
+  {
+   "id": "common_voice_zh-CN_18594909.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18594909.mp3.wav",
+   "reference": "黑尔斯格罗夫是位于美国加利福尼亚州门多西诺县的一个非建制地区。",
+   "hypothesis": "Hale Groves是位于美国加利福尼亚州门多西诺县的一个未建制地区。"
+  },
+  {
+   "id": "common_voice_zh-CN_18977921.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18977921.mp3.wav",
+   "reference": "目前无法推定伊朗网军是不是伊朗官方政府的人。",
+   "hypothesis": "现在我们不能假设伊朗的黑客军队属于伊朗政府。"
+  },
+  {
+   "id": "common_voice_zh-CN_19893331.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19893331.mp3.wav",
+   "reference": "还有文献说明施琅在台设立机构为巩固本家在台湾势力。",
+   "hypothesis": "还有文件显示，林锡在台湾设立了机构以巩固其家族的政治权力。"
+  },
+  {
+   "id": "common_voice_zh-CN_18978156.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18978156.mp3.wav",
+   "reference": "如月弦太朗",
+   "hypothesis": "你认为我应该做什么？"
+  },
+  {
+   "id": "common_voice_zh-CN_19260923.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19260923.mp3.wav",
+   "reference": "曾先后遭国民党军和侵华日军烧毁。",
+   "hypothesis": "这个地方已经被国民党和日本侵略者烧毁了。"
+  },
+  {
+   "id": "common_voice_zh-CN_19513141.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19513141.mp3.wav",
+   "reference": "粗掌大权蟹为扇蟹科大权蟹属的动物。",
+   "hypothesis": "Dicapta是宏蟹科的一种动物。"
+  },
+  {
+   "id": "common_voice_zh-CN_20018884.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20018884.mp3.wav",
+   "reference": "境内有天台山脉与大雷山脉。",
+   "hypothesis": "其中包含天台山和大雷山。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986174.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986174.mp3.wav",
+   "reference": "联合市。",
+   "hypothesis": "联合市"
+  },
+  {
+   "id": "common_voice_zh-CN_18978001.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18978001.mp3.wav",
+   "reference": "该剧的简体中文版已经由翻译家罗念生翻译出版。",
+   "hypothesis": "这出戏剧的简化中文版已经由译者刘念真翻译并出版。"
+  },
+  {
+   "id": "common_voice_zh-CN_18999570.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18999570.mp3.wav",
+   "reference": "美国前总统克林顿及国务卿希拉里在二十世纪七十年代均执教于该校法学院。",
+   "hypothesis": "前美国总统比尔·克林顿和国务卿希拉里·克林顿在20世纪70年代曾是该大学法学院的教师。"
+  },
+  {
+   "id": "common_voice_zh-CN_18990057.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18990057.mp3.wav",
+   "reference": "张爱玲在本书中在空前深刻的程度上表现了现代社会两性心理的基本意蕴。",
+   "hypothesis": "陈泰来这本书代表了现代性心理学的基本含义。"
+  },
+  {
+   "id": "common_voice_zh-CN_18722707.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18722707.mp3.wav",
+   "reference": "在他的职业生涯中，温德创下了六项世界记录，并获得了六项英联邦运动会金牌。",
+   "hypothesis": "在他的职业生涯中，温德尔打破了六项世界纪录并赢得了六枚英联邦运动会金牌。"
+  },
+  {
+   "id": "common_voice_zh-CN_18966867.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18966867.mp3.wav",
+   "reference": "大植英次是一位日本指挥家。",
+   "hypothesis": "Ago 是一位日本指挥家。"
+  },
+  {
+   "id": "common_voice_zh-CN_18722588.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18722588.mp3.wav",
+   "reference": "藤井有邻馆的馆舍本身也是一件艺术品。",
+   "hypothesis": "尤因肯博物馆的建筑本身就是一件艺术品。"
+  },
+  {
+   "id": "common_voice_zh-CN_18663999.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18663999.mp3.wav",
+   "reference": "莫里森是位于美国加利福尼亚州埃尔多拉多县的一个非建制地区。",
+   "hypothesis": "莫里森是美国加利福尼亚州埃尔多拉多县的一个非建制地区。"
+  },
+  {
+   "id": "common_voice_zh-CN_18978170.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18978170.mp3.wav",
+   "reference": "从而所有华裔人士或土生葡人不论意愿均被赋予中国国籍。",
+   "hypothesis": "从那时起，所有华裔或葡萄牙裔本地居民都将被授予中国国籍，无论他们的意愿如何。"
+  },
+  {
+   "id": "common_voice_zh-CN_19003483.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19003483.mp3.wav",
+   "reference": "目前巴尔的摩校园警察部门正考虑合并进巴尔的摩警察局。",
+   "hypothesis": "巴尔的摩校园警察局正在考虑与巴尔的摩警察局合并。"
+  },
+  {
+   "id": "common_voice_zh-CN_19792572.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19792572.mp3.wav",
+   "reference": "丰特内尔蒙特比。",
+   "hypothesis": "白日梦"
+  },
+  {
+   "id": "common_voice_zh-CN_18758944.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18758944.mp3.wav",
+   "reference": "池建美，山东高唐人，汉族，中国共产党党员。",
+   "hypothesis": "崔建梅，汉族，山东省广饶县人，中国共产党党员。"
+  },
+  {
+   "id": "common_voice_zh-CN_19296366.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19296366.mp3.wav",
+   "reference": "孙传芳墓地是孙传芳生前在北京购置。",
+   "hypothesis": "孙权在生前就为自己修建了陵墓。"
+  },
+  {
+   "id": "common_voice_zh-CN_18985061.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18985061.mp3.wav",
+   "reference": "整洁短浆蟹为梭子蟹科短浆蟹属的动物。",
+   "hypothesis": "巴勒密达是普特尼的动物。"
+  },
+  {
+   "id": "common_voice_zh-CN_18999691.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18999691.mp3.wav",
+   "reference": "大部分人参观大峡谷都只去了它的南缘。",
+   "hypothesis": "大多数人只参观大峡谷的南端。"
+  },
+  {
+   "id": "common_voice_zh-CN_19526176.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19526176.mp3.wav",
+   "reference": "南安普顿足球俱乐部。",
+   "hypothesis": "南安普顿足球俱乐部"
+  },
+  {
+   "id": "common_voice_zh-CN_19005253.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19005253.mp3.wav",
+   "reference": "岛田车站",
+   "hypothesis": "新宿站"
+  },
+  {
+   "id": "common_voice_zh-CN_19499579.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19499579.mp3.wav",
+   "reference": "明代属延安府。",
+   "hypothesis": "在明朝的延安府的管辖之下。"
+  },
+  {
+   "id": "common_voice_zh-CN_18715332.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18715332.mp3.wav",
+   "reference": "晋安王刘子勋在寻阳即皇帝位，张悦为吏部尚书，与邓琬共同辅政。",
+   "hypothesis": "刘锡山是晋南的皇帝，张宇是官府事务的部长，邓广是政府的助手。"
+  },
+  {
+   "id": "common_voice_zh-CN_19580760.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19580760.mp3.wav",
+   "reference": "担任全国妇联西南区工作委员会副主任。",
+   "hypothesis": "担任过中国妇女联合会西南地区工作委员会副主任。"
+  },
+  {
+   "id": "common_voice_zh-CN_19000621.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19000621.mp3.wav",
+   "reference": "角色设计由台湾漫画家游素兰设计。",
+   "hypothesis": "这个角色是由台湾的漫画家Usulan设计的。"
+  },
+  {
+   "id": "common_voice_zh-CN_18979005.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18979005.mp3.wav",
+   "reference": "目前效力于德乙球队柏林联盟。",
+   "hypothesis": "现在他效力于德甲的柏林联合足球俱乐部。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986580.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986580.mp3.wav",
+   "reference": "病毒颗粒大约是细菌大小的百分之一。",
+   "hypothesis": "病毒的大小大约是细菌的十分之一。"
+  },
+  {
+   "id": "common_voice_zh-CN_18982744.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18982744.mp3.wav",
+   "reference": "耳叶马蓝为爵床科马蓝属的植物。",
+   "hypothesis": "石蒜科石蒜属植物。"
+  },
+  {
+   "id": "common_voice_zh-CN_19962284.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19962284.mp3.wav",
+   "reference": "成为广西第一个电视国际频道。",
+   "hypothesis": "它已经成为广西的第一个国际频道。"
+  },
+  {
+   "id": "common_voice_zh-CN_18987195.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18987195.mp3.wav",
+   "reference": "他的母亲是一名出色的维纳琴演奏家。",
+   "hypothesis": "他的母亲是一位著名的维也纳音乐家。"
+  },
+  {
+   "id": "common_voice_zh-CN_19893328.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_19893328.mp3.wav",
+   "reference": "高台湖是一个位于中国青海省治多县的湖泊。",
+   "hypothesis": "高海湖位于中国青海省贵德县。"
+  },
+  {
+   "id": "common_voice_zh-CN_18608375.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18608375.mp3.wav",
+   "reference": "还好我们跑得快",
+   "hypothesis": "幸运的是，我们跑得很快。"
+  },
+  {
+   "id": "common_voice_zh-CN_18663187.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18663187.mp3.wav",
+   "reference": "该村庄建于多米尼克的陡峭地带上。",
+   "hypothesis": "该城镇建在多米尼加最陡峭的地形上。"
+  },
+  {
+   "id": "common_voice_zh-CN_18981069.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18981069.mp3.wav",
+   "reference": "台湾台南地方检察署。",
+   "hypothesis": "台湾台南区检察官办公室"
+  },
+  {
+   "id": "common_voice_zh-CN_18994919.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18994919.mp3.wav",
+   "reference": "后移居旗冒洋行的大史巷。",
+   "hypothesis": "后来他们搬到了大理路的齐茂外商公司。"
+  },
+  {
+   "id": "common_voice_zh-CN_18776347.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18776347.mp3.wav",
+   "reference": "该列车经由京叶线和外房线运行。",
+   "hypothesis": "火车运行在东京千叶线和千叶香川线上。"
+  },
+  {
+   "id": "common_voice_zh-CN_18986632.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18986632.mp3.wav",
+   "reference": "双斑豆娘鱼为雀鲷科豆娘鱼属的鱼类。",
+   "hypothesis": "阿布德夫德夫是 Pomacentridae 亚科阿布德夫德夫鱼科的鱼类。"
+  },
+  {
+   "id": "common_voice_zh-CN_18687360.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18687360.mp3.wav",
+   "reference": "范围包括平冢市、茅崎市、中郡。",
+   "hypothesis": "包括：爱媛县、岛根县、冈山县。"
+  },
+  {
+   "id": "common_voice_zh-CN_18979678.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18979678.mp3.wav",
+   "reference": "最后一环为黑色。",
+   "hypothesis": "最后一个圆圈是黑色的。"
+  },
+  {
+   "id": "common_voice_zh-CN_18991364.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18991364.mp3.wav",
+   "reference": "他也被授予了作战勋带。",
+   "hypothesis": "他因在战争中的英勇表现而被授予奖章。"
+  },
+  {
+   "id": "common_voice_zh-CN_18813073.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_18813073.mp3.wav",
+   "reference": "夏克里克避暑别墅区是位于美国加利福尼亚州阿尔派恩县的一个非建制地区。",
+   "hypothesis": "谢溪夏季住宅区是美国加利福尼亚州阿尔派恩县的一个非建制地区。"
+  },
+  {
+   "id": "common_voice_zh-CN_20006205.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20006205.mp3.wav",
+   "reference": "本套也是所有剧场版里最多英语配音版本的剧场版。",
+   "hypothesis": "这是最英国的电影。"
+  },
+  {
+   "id": "common_voice_zh-CN_20070788.mp3",
+   "audio": "/opt/dlami/nvme/jasonleeeli/CVSS/canonical_16k/cvss_t_zh_en_test/target_en/common_voice_zh-CN_20070788.mp3.wav",
+   "reference": "尤其在西半球最多样。",
+   "hypothesis": "特别是，它在西半球最为多样。"
+  }
+ ]
+}
