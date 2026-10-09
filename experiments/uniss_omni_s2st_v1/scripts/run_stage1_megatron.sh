@@ -54,7 +54,8 @@ mkdir -p "${SAVE_DIR}" "${TB_DIR}"
   experiments/uniss_omni_s2st_v1/training/pretrain_omni_talker_megatron.py \
   --omni-model pretrained_models/Qwen2.5-Omni-3B \
   --omni-parquet-root data/raw/UniST \
-  --omni-shards "${SHARDS[@]}" \
+  ${OMNI_CACHE:+--omni-cache "${OMNI_CACHE}"} \
+  ${OMNI_CACHE:---omni-shards "${SHARDS[@]}"} \
   --omni-dev-parquet "${DEV}/cvss_t_zh_en_dev.parquet" "${DEV}/cvss_t_en_zh_dev.parquet" \
   --omni-dev-subset "${SUBSET}" \
   --omni-rows-per-shard "${ROWS_PER_SHARD}" \

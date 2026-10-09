@@ -36,15 +36,30 @@ from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import build_codec_
 from experiments.uniss_omni_s2st_v1.training.tts_data import build_thinker_batch
 
 
-def bucket_shuffle(rows: list[dict], *, micro_batch: int, seed: int) -> list[dict]:
-    """Sort by code length, then shuffle whole micro-batch-sized chunks."""
+def bucket_order(
+    code_lengths: np.ndarray, *, micro_batch: int, seed: int
+) -> np.ndarray:
+    """Sort by code length, then shuffle whole micro-batch-sized chunks.
+
+    Returns a permutation of row indices rather than the rows themselves:
+    at 17M utterances, materialising them would cost more than the model.
+    """
     if micro_batch < 1:
         raise ValueError("micro_batch must be positive")
-    order = sorted(range(len(rows)), key=lambda i: len(rows[i]["codes"]))
-    chunks = [order[start : start + micro_batch] for start in range(0, len(order), micro_batch)]
+    order = np.argsort(code_lengths, kind="stable")
+    chunks = order.size // micro_batch
+    head = order[: chunks * micro_batch].reshape(chunks, micro_batch)
     rng = np.random.default_rng(seed)
-    rng.shuffle(chunks)
-    return [rows[i] for chunk in chunks for i in chunk]
+    rng.shuffle(head, axis=0)
+    tail = order[chunks * micro_batch :]
+    return np.concatenate([head.reshape(-1), tail])
+
+
+def bucket_shuffle(rows: list[dict], *, micro_batch: int, seed: int) -> list[dict]:
+    """The list-of-rows form, kept for the small dev splits and the tests."""
+    lengths = np.asarray([len(row["codes"]) for row in rows])
+    order = bucket_order(lengths, micro_batch=micro_batch, seed=seed)
+    return [rows[int(i)] for i in order]
 
 
 class OmniTtsDataset(Dataset):
@@ -65,30 +80,39 @@ class OmniTtsDataset(Dataset):
         repeat: int = 1,
         epochs: int = 1,
     ):
-        if not rows:
+        if not len(rows):
             raise ValueError("no rows")
         if epochs < 1:
             raise ValueError("epochs must be positive")
-        if bucket:
-            # One bucket shuffle per epoch, each with its own seed: the
-            # batches stay length-homogeneous while no two passes present
-            # them in the same order.
-            self.rows = [
-                row
-                for epoch in range(epochs)
-                for row in bucket_shuffle(rows, micro_batch=micro_batch, seed=seed + epoch)
-            ]
-        else:
-            self.rows = list(rows) * epochs
-        if truncate_to is not None:
-            if truncate_to > len(self.rows):
-                raise ValueError(
-                    f"asked to truncate to {truncate_to} rows but only"
-                    f" {len(self.rows)} are available"
-                )
-            self.rows = self.rows[:truncate_to]
         if repeat < 1:
             raise ValueError("repeat must be positive")
+        self.source = rows
+
+        if hasattr(rows, "code_lengths"):
+            lengths = rows.code_lengths()
+        else:
+            lengths = np.asarray([len(row["codes"]) for row in rows])
+
+        if truncate_to is not None:
+            if truncate_to > len(rows):
+                raise ValueError(
+                    f"asked to truncate to {truncate_to} rows but only"
+                    f" {len(rows)} are available"
+                )
+
+        orders = []
+        for epoch in range(epochs):
+            if bucket:
+                # One bucket shuffle per epoch, each with its own seed: the
+                # batches stay length-homogeneous while no two passes
+                # present them in the same order.
+                order = bucket_order(lengths, micro_batch=micro_batch, seed=seed + epoch)
+            else:
+                order = np.arange(len(rows))
+            if truncate_to is not None:
+                order = order[:truncate_to]
+            orders.append(order)
+        self.order = np.concatenate(orders)
         self.repeat = repeat
         self.bos_id = bos_id
         self.pad_id = pad_id
@@ -98,10 +122,10 @@ class OmniTtsDataset(Dataset):
         self.collate_fn = self.collate
 
     def __len__(self) -> int:
-        return len(self.rows) * self.repeat
+        return len(self.order) * self.repeat
 
     def __getitem__(self, index: int) -> dict:
-        row = self.rows[index % len(self.rows)]
+        row = self.source[int(self.order[index % len(self.order)])]
         return {
             "prompt_ids": row["prompt_ids"],
             "reply_ids": row["reply_ids"],

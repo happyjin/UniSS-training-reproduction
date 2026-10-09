@@ -83,7 +83,16 @@ def encode_prompts(processor, rows: list[dict], *, chunk: int = 2048) -> list[di
             [row["text"] for row in block], add_special_tokens=False
         )["input_ids"]
         for row, prompt, reply in zip(block, prompt_ids, reply_ids):
-            prepared.append({**row, "prompt_ids": prompt, "reply_ids": reply})
+            # int32 arrays rather than Python lists: at 20M rows the list
+            # form is tens of GB per rank for the token ids alone, and every
+            # rank loads its own copy.
+            prepared.append(
+                {
+                    **row,
+                    "prompt_ids": np.asarray(prompt, dtype=np.int32),
+                    "reply_ids": np.asarray(reply, dtype=np.int32),
+                }
+            )
     return prepared
 
 

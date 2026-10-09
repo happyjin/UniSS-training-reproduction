@@ -18,6 +18,7 @@ import pyarrow.parquet as pq
 import torch
 
 COLUMNS = ["id", "translation", "tgt_lang", "target_bicodec", "bicodec_global"]
+GLOBAL_TOKEN_COUNT = 32
 
 LANGUAGE_NAME = {"cmn": "Chinese", "eng": "English", "zh": "Chinese", "en": "English"}
 
@@ -130,13 +131,15 @@ def build_thinker_batch(
 
     for row, (prompt, reply) in enumerate(zip(prompt_ids, reply_ids)):
         start = prompt_width - len(prompt)
-        input_ids[row, start:prompt_width] = torch.tensor(prompt, dtype=torch.long)
+        input_ids[row, start:prompt_width] = torch.as_tensor(
+            np.asarray(prompt), dtype=torch.long
+        )
         attention_mask[row, start:prompt_width] = 1
-        input_ids[row, prompt_width : prompt_width + len(reply)] = torch.tensor(
-            reply, dtype=torch.long
+        input_ids[row, prompt_width : prompt_width + len(reply)] = torch.as_tensor(
+            np.asarray(reply), dtype=torch.long
         )
         attention_mask[row, prompt_width : prompt_width + len(reply)] = 1
-        replies[row, : len(reply)] = torch.tensor(reply, dtype=torch.long)
+        replies[row, : len(reply)] = torch.as_tensor(np.asarray(reply), dtype=torch.long)
         reply_mask[row, : len(reply)] = 1
 
     return ThinkerBatch(
@@ -146,3 +149,63 @@ def build_thinker_batch(
         reply_ids=replies.to(device),
         reply_mask=reply_mask.to(device),
     )
+
+
+class CachedTtsCorpus:
+    """The flat cache from ``build_tts_cache``, as row views.
+
+    Values stay memory-mapped and each row is a slice into them, so a rank
+    holds no copy of the corpus and startup is a few seconds rather than the
+    half hour the parquets cost.
+    """
+
+    def __init__(self, cache_dir: str | Path):
+        import json
+
+        self.root = Path(cache_dir)
+        self.meta = json.loads((self.root / "meta.json").read_text(encoding="utf-8"))
+        load = lambda name: np.load(self.root / name, mmap_mode="r")
+        self.prompt_values = load("prompt_values.npy")
+        self.prompt_offsets = np.load(self.root / "prompt_offsets.npy")
+        self.reply_values = load("reply_values.npy")
+        self.reply_offsets = np.load(self.root / "reply_offsets.npy")
+        self.code_values = load("code_values.npy")
+        self.code_offsets = np.load(self.root / "code_offsets.npy")
+        self.global_values = load("global_values.npy")
+        rows = int(self.meta["rows"])
+        for name, offsets in (
+            ("prompt", self.prompt_offsets),
+            ("reply", self.reply_offsets),
+            ("code", self.code_offsets),
+        ):
+            if offsets.size - 1 != rows:
+                raise ValueError(
+                    f"{name} offsets describe {offsets.size - 1} rows,"
+                    f" meta says {rows}"
+                )
+        if self.global_values.shape != (rows, GLOBAL_TOKEN_COUNT):
+            raise ValueError(
+                f"globals are {self.global_values.shape},"
+                f" expected ({rows}, {GLOBAL_TOKEN_COUNT})"
+            )
+        self.rows = rows
+
+    def __len__(self) -> int:
+        return self.rows
+
+    def __getitem__(self, index: int) -> dict:
+        return {
+            "prompt_ids": self.prompt_values[
+                self.prompt_offsets[index] : self.prompt_offsets[index + 1]
+            ],
+            "reply_ids": self.reply_values[
+                self.reply_offsets[index] : self.reply_offsets[index + 1]
+            ],
+            "codes": self.code_values[
+                self.code_offsets[index] : self.code_offsets[index + 1]
+            ],
+            "globals": self.global_values[index],
+        }
+
+    def code_lengths(self) -> np.ndarray:
+        return np.diff(self.code_offsets)

@@ -51,7 +51,10 @@ def add_omni_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group = parser.add_argument_group(title="UniSS Omni Talker warmup")
     group.add_argument("--omni-model", type=str, required=True)
     group.add_argument("--omni-parquet-root", type=str, required=True)
-    group.add_argument("--omni-shards", type=str, nargs="+", required=True)
+    group.add_argument("--omni-shards", type=str, nargs="+", default=[])
+    # A cache built by build_tts_cache: the parquets cost half an hour per
+    # rank to read and tokenise, and every rank pays it separately.
+    group.add_argument("--omni-cache", type=str, default=None)
     group.add_argument("--omni-dev-parquet", type=str, nargs="+", required=True)
     group.add_argument("--omni-dev-subset", type=str, required=True)
     group.add_argument("--omni-rows-per-shard", type=int, default=0)
@@ -153,10 +156,18 @@ def _rows(args, *, split: str):
         encode_prompts,
         load_dev,
     )
-    from experiments.uniss_omni_s2st_v1.training.tts_data import read_rows
+    from experiments.uniss_omni_s2st_v1.training.tts_data import (
+        CachedTtsCorpus,
+        read_rows,
+    )
 
     processor = load_audio_text_processor(args.omni_model)
     if split == "train":
+        if args.omni_cache:
+            # Already tokenised and memory-mapped; nothing to encode.
+            return processor, CachedTtsCorpus(args.omni_cache)
+        if not args.omni_shards:
+            raise ValueError("pass --omni-cache or --omni-shards")
         paths = [Path(args.omni_parquet_root) / name for name in args.omni_shards]
         rows = read_rows(
             paths,
