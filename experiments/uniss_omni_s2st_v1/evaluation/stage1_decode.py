@@ -16,9 +16,26 @@ import argparse
 import json
 from pathlib import Path
 
+import soundfile as sf
 import torch
 
 from training.generate_unist_eval_audio import maybe_decode_audio
+
+
+def duration_seconds(path: str | None) -> float | None:
+    """Length of an audio file, or None if it cannot be read.
+
+    The repo's result validator rejects a row whose source or reference
+    duration is missing or non-positive, so these have to be present and
+    real rather than carried over from a manifest.
+    """
+    if not path:
+        return None
+    try:
+        info = sf.info(path)
+    except Exception:
+        return None
+    return float(info.frames / info.samplerate) if info.samplerate else None
 
 
 def main() -> None:
@@ -63,9 +80,15 @@ def main() -> None:
                 device=device,
             )
             record = {
-                **{k: v for k, v in row.items() if k not in ("semantic_values", "global_values")},
+                **{k: v for k, v in row.items() if k not in ("semantic_values", "global_values", "gold_semantic_values")},
                 "audio_path": audio_path,
                 "error": error,
+                "source_audio_duration_seconds": duration_seconds(
+                    row.get("source_audio_path")
+                ),
+                "reference_audio_duration_seconds": duration_seconds(
+                    row.get("reference_audio_path")
+                ),
                 "generated_text_raw": "",
                 "generated_text_clean": "",
             }

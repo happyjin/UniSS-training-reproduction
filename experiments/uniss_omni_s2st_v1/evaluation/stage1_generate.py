@@ -177,6 +177,7 @@ def main() -> None:
                 "id", "translation", "transcription", "tgt_lang", "src_lang",
                 "target_bicodec", "bicodec_global", "direction",
                 "source_audio_path", "reference_audio_path",
+                "synthetic_source", "synthetic_reference",
             ],
         )
         for record in table.to_pylist():
@@ -240,6 +241,11 @@ def main() -> None:
                         "semantic_token_count": len(codes),
                         "source_audio_path": record["source_audio_path"],
                         "reference_audio_path": record["reference_audio_path"],
+                        # The repo's result validator checks these against
+                        # the direction; CVSS-T's English side is TTS and
+                        # its Chinese side is real Common Voice.
+                        "synthetic_source": bool(record["synthetic_source"]),
+                        "synthetic_reference": bool(record["synthetic_reference"]),
                     },
                     ensure_ascii=False,
                 )
