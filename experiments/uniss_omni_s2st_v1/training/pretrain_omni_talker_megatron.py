@@ -193,7 +193,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         )
         args.eval_iters = affordable
 
-    def build(rows, seed):
+    def build(rows, seed, **kwargs):
         return OmniTtsDataset(
             rows,
             bos_id=model.talker.codec_bos_token,
@@ -202,9 +202,20 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             text_pad_id=processor.tokenizer.pad_token_id or 0,
             micro_batch=int(args.micro_batch_size),
             seed=seed,
+            **kwargs,
         )
 
-    return build(train_rows, args.omni_seed), build(dev_rows, args.omni_seed + 1), None
+    # One evaluation's worth of rows, repeated once per evaluation the run
+    # will perform (plus a margin for the one at the end and any extra
+    # Megatron decides to do). Truncating rather than cycling over the whole
+    # dev split keeps every evaluation on identical utterances.
+    per_eval = int(args.eval_iters) * int(args.global_batch_size)
+    evaluations = int(args.train_iters) // max(1, int(args.eval_interval)) + 4
+    return (
+        build(train_rows, args.omni_seed),
+        build(dev_rows, args.omni_seed + 1, truncate_to=per_eval, repeat=evaluations),
+        None,
+    )
 
 
 train_valid_test_datasets_provider.is_distributed = True

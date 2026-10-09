@@ -13,6 +13,13 @@ micro-batch-sized chunks and shuffling the *chunks* keeps each batch
 length-homogeneous while leaving the order random. This relies on the
 sampler handing out contiguous, micro-batch-aligned ranges, which
 ``MegatronPretrainingSampler`` (``--dataloader-type single``) does.
+
+``--dataloader-type single`` also means the validation iterator is a single
+pass: Megatron builds it once, and the second evaluation finds it empty.
+Rather than switching to ``cyclic``, which reshuffles and so throws the
+bucketing away, the validation set is truncated to exactly one evaluation's
+worth of rows and repeated. Every evaluation then scores the *same*
+utterances -- which is what makes the points on a curve comparable at all.
 """
 
 from __future__ import annotations
@@ -50,12 +57,24 @@ class OmniTtsDataset(Dataset):
         micro_batch: int = 1,
         seed: int = 20261009,
         bucket: bool = True,
+        truncate_to: int | None = None,
+        repeat: int = 1,
     ):
         if not rows:
             raise ValueError("no rows")
         self.rows = (
             bucket_shuffle(rows, micro_batch=micro_batch, seed=seed) if bucket else list(rows)
         )
+        if truncate_to is not None:
+            if truncate_to > len(self.rows):
+                raise ValueError(
+                    f"asked to truncate to {truncate_to} rows but only"
+                    f" {len(self.rows)} are available"
+                )
+            self.rows = self.rows[:truncate_to]
+        if repeat < 1:
+            raise ValueError("repeat must be positive")
+        self.repeat = repeat
         self.bos_id = bos_id
         self.pad_id = pad_id
         self.eos_id = eos_id
@@ -64,7 +83,7 @@ class OmniTtsDataset(Dataset):
         self.collate_fn = self.collate
 
     def __len__(self) -> int:
-        return len(self.rows)
+        return len(self.rows) * self.repeat
 
     def __getitem__(self, index: int) -> dict:
         row = self.rows[index % len(self.rows)]
