@@ -179,6 +179,20 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         f"omni warmup: {len(train_rows)} train rows, {len(dev_rows)} dev rows"
     )
 
+    # The dev split is a fixed 1,994 utterances, so the number of eval
+    # iterations it can supply depends on the batch size. Megatron does not
+    # check: asking for more raises StopIteration from inside the eval loop,
+    # a hundred iterations into the run. Clamping here means changing
+    # --micro-batch-size cannot reintroduce that.
+    affordable = max(1, len(dev_rows) // max(1, int(args.global_batch_size)))
+    if int(args.eval_iters) > affordable:
+        runtime.print_rank_0(
+            f"omni warmup: eval_iters {args.eval_iters} exceeds what"
+            f" {len(dev_rows)} dev rows supply at global batch"
+            f" {args.global_batch_size}; using {affordable}"
+        )
+        args.eval_iters = affordable
+
     def build(rows, seed):
         return OmniTtsDataset(
             rows,
