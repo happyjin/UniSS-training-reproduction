@@ -171,6 +171,11 @@ def main() -> None:
     ap.add_argument("--save-every", type=int, default=1000)
     ap.add_argument("--dev-batches", type=int, default=24)
     ap.add_argument("--head-scale", type=float, default=0.1)
+    # 1.0 is Omni's own code-row scale. Larger values give the code a
+    # fighting chance against the Thinker hidden state it is summed with,
+    # whose row norm is 36x higher; whether that helps is an experiment,
+    # not a conclusion.
+    ap.add_argument("--embed-scale", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=20261009)
     ap.add_argument("--max-codes", type=int, default=600)
     ap.add_argument("--output", required=True)
@@ -201,7 +206,9 @@ def main() -> None:
         del model.token2wav
     talker = model.talker
     layout = read_codec_layout(talker.config)
-    retarget_talker_codebook(talker, seed=args.seed, head_scale=args.head_scale)
+    retarget_talker_codebook(
+        talker, seed=args.seed, head_scale=args.head_scale, embed_scale=args.embed_scale
+    )
     output_mask = valid_output_mask(layout, device=device)
 
     model.thinker.requires_grad_(False)

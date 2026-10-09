@@ -24,11 +24,18 @@ measured on this checkpoint, embed_tokens code rows have element-wise std
 0.1096 against the reserved rows' 0.0102, and codec_head 0.0204 against
 0.0109 -- so a whole-tensor statistic is neither.
 
-``head_scale`` then multiplies the head's draw. It exists because the right
-answer is not obvious and is better measured than argued: a head drawn at
-the pretrained scale is as *confident* as a trained one while being random,
-which is a worse starting point than a flat one. See
-``reports/uniss_omni_s2st_v1/stage0/`` for the sweep.
+``head_scale`` and ``embed_scale`` then multiply those draws. Both exist
+because the right answer is not obvious and is better measured than argued.
+
+For the head: drawn at the pretrained scale it is as *confident* as a
+trained head while being random, which is a worse starting point than a
+flat one (``reports/uniss_omni_s2st_v1/stage0/``).
+
+For the embedding: the Talker sums the code embedding with the Thinker
+hidden state *before* projecting, and those hidden states have row norm
+173 against the code rows' 4.78. At Omni's own scale the code a step was
+given survives that sum at a ratio of 0.028, and measurably so -- see
+``reports/uniss_omni_s2st_v1/stage1/CONDITIONING_SCALE.zh-CN.md``.
 """
 
 from __future__ import annotations
@@ -106,6 +113,7 @@ def retarget_talker_codebook(
     code_size: int = BICODEC_SEMANTIC_SIZE,
     seed: int = 20261009,
     head_scale: float = 1.0,
+    embed_scale: float = 1.0,
 ) -> dict:
     """Re-draw the code rows of the Talker's embedding and output head."""
     layout = read_codec_layout(talker.config, code_size=code_size)
@@ -125,7 +133,9 @@ def retarget_talker_codebook(
     generator = torch.Generator(device="cpu").manual_seed(seed)
     return {
         "layout": layout,
-        "embed_tokens": _redraw_(embedding.weight, layout.code_size, generator),
+        "embed_tokens": _redraw_(
+            embedding.weight, layout.code_size, generator, scale=embed_scale
+        ),
         "codec_head": _redraw_(
             head.weight, layout.code_size, generator, scale=head_scale
         ),

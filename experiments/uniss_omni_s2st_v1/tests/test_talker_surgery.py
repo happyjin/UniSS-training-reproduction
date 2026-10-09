@@ -133,3 +133,19 @@ def test_apply_output_mask_checks_its_width():
     layout = read_codec_layout(_config())
     with pytest.raises(ValueError, match="slots"):
         apply_output_mask(torch.zeros(1, 2, 10), valid_output_mask(layout))
+
+
+def test_embed_scale_shrinks_the_embedding_draw():
+    talker, embedding = _talker()
+    retarget_talker_codebook(talker, seed=5, embed_scale=1.0)
+    full = embedding.weight[:BICODEC_SEMANTIC_SIZE].std().item()
+    retarget_talker_codebook(talker, seed=5, embed_scale=4.0)
+    bigger = embedding.weight[:BICODEC_SEMANTIC_SIZE].std().item()
+    assert bigger == pytest.approx(full * 4.0, rel=0.1)
+
+
+def test_embed_and_head_scales_are_independent():
+    talker, embedding = _talker()
+    retarget_talker_codebook(talker, seed=5, embed_scale=8.0, head_scale=0.0)
+    assert torch.count_nonzero(talker.codec_head.weight[:BICODEC_SEMANTIC_SIZE]) == 0
+    assert embedding.weight[:BICODEC_SEMANTIC_SIZE].std().item() > 0
