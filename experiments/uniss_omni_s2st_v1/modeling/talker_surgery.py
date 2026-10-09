@@ -46,6 +46,8 @@ import torch
 from torch import nn
 
 BICODEC_SEMANTIC_SIZE = 8192
+BICODEC_GLOBAL_SIZE = 4096
+BICODEC_GLOBAL_COUNT = 32
 
 
 @dataclass(frozen=True)

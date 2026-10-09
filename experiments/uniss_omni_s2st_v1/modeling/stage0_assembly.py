@@ -118,6 +118,26 @@ def build_codec_sequence(
     return inputs, labels, mask
 
 
+def prefix_labels(labels: torch.Tensor, width: int, ignore_index: int = -100) -> torch.Tensor:
+    """Pad labels on the left for a conditioning prefix that is not predicted."""
+    if width <= 0:
+        return labels
+    pad = torch.full(
+        (labels.shape[0], width), ignore_index, dtype=labels.dtype, device=labels.device
+    )
+    return torch.cat([pad, labels], dim=1)
+
+
+def prefix_mask(mask: torch.Tensor, width: int) -> torch.Tensor:
+    """Extend an attention mask to cover a conditioning prefix."""
+    if width <= 0:
+        return mask
+    ones = torch.ones(
+        (mask.shape[0], width), dtype=mask.dtype, device=mask.device
+    )
+    return torch.cat([ones, mask], dim=1)
+
+
 def reply_token_span(
     prompt_length: int, reply_length: int
 ) -> slice:

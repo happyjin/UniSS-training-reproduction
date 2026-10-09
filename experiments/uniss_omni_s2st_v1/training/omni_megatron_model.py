@@ -12,6 +12,16 @@ The objective is Stage 1's: target text in, BiCodec codes out. The Thinker
 is frozen and runs under no_grad; only the Talker trains, which includes
 the re-drawn code embedding, the re-drawn output head and
 ``thinker_to_talker_proj``.
+
+``global_prefix`` puts the utterance's 32 ``bicodec_global`` tokens in
+front of the code stream, as a prefix the Talker attends to but does not
+predict. This project's own working TTS recipe does exactly that --
+``training/sample_builders.py: build_tts_sample`` wraps the global tokens
+into the prompt before the semantic codes -- and without them the Talker
+has to predict a speaker's semantic codes while marginalising over every
+speaker it has seen. The tokens come from a different codebook (4,096
+entries, not the Talker's 8,192), so they get their own embedding rather
+than slots in the code vocabulary.
 """
 
 from __future__ import annotations
@@ -21,8 +31,14 @@ import torch.nn.functional as F
 
 from megatron.core.models.huggingface import HuggingFaceModule
 
-from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import build_text_stream
+from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import (
+    build_text_stream,
+    prefix_labels,
+    prefix_mask,
+)
 from experiments.uniss_omni_s2st_v1.modeling.talker_surgery import (
+    BICODEC_GLOBAL_COUNT,
+    BICODEC_GLOBAL_SIZE,
     apply_output_mask,
     read_codec_layout,
     retarget_talker_codebook,
@@ -34,7 +50,7 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
     """Teacher-forced code cross-entropy, with the Thinker held frozen."""
 
     def __init__(self, config, *, model_path: str, head_scale: float,
-                 embed_scale: float, seed: int):
+                 embed_scale: float, seed: int, global_prefix: bool = False):
         super().__init__(config)
         from transformers import Qwen2_5OmniForConditionalGeneration
 
@@ -60,6 +76,30 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
         self.thinker.eval()
         self.talker.requires_grad_(True)
 
+        self.global_prefix = bool(global_prefix)
+        if self.global_prefix:
+            hidden = omni.talker.get_input_embeddings().weight.shape[1]
+            embedding = torch.nn.Embedding(BICODEC_GLOBAL_SIZE, hidden)
+            # Drawn at the code rows' scale so the prefix enters the sum on
+            # the same footing as a code does.
+            with torch.no_grad():
+                reference = omni.talker.get_input_embeddings().weight[
+                    : self.layout.code_size
+                ].to(torch.float32)
+                generator = torch.Generator(device="cpu").manual_seed(seed + 1)
+                embedding.weight.copy_(
+                    torch.empty_like(embedding.weight, dtype=torch.float32)
+                    .normal_(
+                        mean=reference.mean().item(),
+                        std=reference.std().item(),
+                        generator=generator,
+                    )
+                    .to(embedding.weight.dtype)
+                )
+            self.global_embed = embedding.to(
+                omni.talker.get_input_embeddings().weight.dtype
+            )
+
         self.register_buffer(
             "output_mask", valid_output_mask(self.layout), persistent=False
         )
@@ -80,6 +120,7 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
         codec_input_ids,
         codec_labels,
         codec_mask,
+        bicodec_global=None,
     ):
         reply_start = int(reply_start.flatten()[0])
         reply_width = reply_ids.shape[1]
@@ -103,7 +144,11 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
                 torch.tensor([[self.talker.text_pad_token]], device=device)
             )
 
-        steps = codec_input_ids.shape[1]
+        prefix_width = BICODEC_GLOBAL_COUNT if self.global_prefix else 0
+        if self.global_prefix and bicodec_global is None:
+            raise ValueError("global_prefix is on but the batch has no bicodec_global")
+
+        steps = codec_input_ids.shape[1] + prefix_width
         # Each row's stream must run out at its own reply length. Padded to
         # the batch width, a short reply would be conditioned on a longer
         # neighbour's pad embeddings.
@@ -122,6 +167,12 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
         text_stream = torch.cat(streams, dim=0).to(dtype=hidden.dtype)
 
         codec_embeds = self.talker.get_input_embeddings()(codec_input_ids)
+        if self.global_prefix:
+            codec_embeds = torch.cat(
+                [self.global_embed(bicodec_global), codec_embeds], dim=1
+            )
+            codec_labels = prefix_labels(codec_labels, prefix_width)
+            codec_mask = prefix_mask(codec_mask, prefix_width)
         lm_input = self.talker.thinker_to_talker_proj(codec_embeds + text_stream)
         position_ids = (
             torch.arange(steps, device=device)

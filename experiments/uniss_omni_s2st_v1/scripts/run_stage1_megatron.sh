@@ -34,6 +34,7 @@ MIN_LR="${MIN_LR:-2e-6}"
 ROWS_PER_SHARD="${ROWS_PER_SHARD:-0}"
 EXTRA=()
 [[ -n "${EXIT_INTERVAL:-}" ]] && EXTRA+=(--exit-interval "${EXIT_INTERVAL}")
+[[ "${GLOBAL_PREFIX:-0}" == "1" ]] && EXTRA+=(--omni-global-prefix)
 # Resume if this save directory already holds a checkpoint. Megatron then
 # restores the optimiser, the LR schedule and consumed_train_samples, so an
 # interrupted run continues rather than restarting from zero.

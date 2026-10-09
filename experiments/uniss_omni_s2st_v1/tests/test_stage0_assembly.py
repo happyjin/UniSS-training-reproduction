@@ -8,6 +8,8 @@ import torch
 from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import (
     build_codec_sequence,
     build_text_stream,
+    prefix_labels,
+    prefix_mask,
 )
 
 EOS = torch.full((1, 1, 4), 9.0)
@@ -88,3 +90,25 @@ def test_eos_lands_at_each_rows_own_length():
 def test_an_empty_batch_is_an_error():
     with pytest.raises(ValueError, match="no sequences"):
         build_codec_sequence([], bos_id=90, pad_id=91)
+
+
+def test_prefix_labels_marks_the_prefix_unpredicted():
+    labels = torch.tensor([[5, 6, -100]])
+    assert prefix_labels(labels, 2).tolist() == [[-100, -100, 5, 6, -100]]
+
+
+def test_prefix_mask_lets_the_prefix_be_attended():
+    assert prefix_mask(torch.tensor([[1, 1, 0]]), 2).tolist() == [[1, 1, 1, 1, 0]]
+
+
+def test_a_zero_width_prefix_changes_nothing():
+    labels = torch.tensor([[5, 6]])
+    mask = torch.tensor([[1, 0]])
+    assert torch.equal(prefix_labels(labels, 0), labels)
+    assert torch.equal(prefix_mask(mask, 0), mask)
+
+
+def test_prefix_helpers_keep_the_batch():
+    labels = torch.tensor([[5], [6], [7]])
+    assert prefix_labels(labels, 4).shape == (3, 5)
+    assert prefix_mask(torch.ones(3, 1, dtype=torch.long), 4).shape == (3, 5)

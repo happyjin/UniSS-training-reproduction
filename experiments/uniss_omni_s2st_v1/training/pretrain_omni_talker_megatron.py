@@ -59,6 +59,9 @@ def add_omni_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--omni-head-scale", type=float, default=0.1)
     group.add_argument("--omni-embed-scale", type=float, default=1.0)
     group.add_argument("--omni-seed", type=int, default=20261009)
+    # UniSS's own TTS prompt carries the 32 bicodec_global tokens before the
+    # semantic codes; off by default so the two layouts can be compared.
+    group.add_argument("--omni-global-prefix", action="store_true")
     return parser
 
 
@@ -93,6 +96,7 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
         head_scale=args.omni_head_scale,
         embed_scale=args.omni_embed_scale,
         seed=args.omni_seed,
+        global_prefix=bool(args.omni_global_prefix),
     )
     _MODEL = model
     if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
@@ -106,6 +110,7 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
                     "frozen_parameters_m": round(frozen / 1e6, 1),
                     "head_scale": args.omni_head_scale,
                     "embed_scale": args.omni_embed_scale,
+                    "global_prefix": bool(args.omni_global_prefix),
                 },
                 sort_keys=True,
             ),
@@ -135,6 +140,7 @@ def forward_step(data_iterator, model):
         codec_input_ids=batch["codec_input_ids"],
         codec_labels=batch["codec_labels"],
         codec_mask=batch["codec_mask"],
+        bicodec_global=batch.get("bicodec_global"),
     )
     return output, loss_func
 

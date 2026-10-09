@@ -14,11 +14,19 @@ from experiments.uniss_omni_s2st_v1.training.tts_data import (
 )
 
 
-def _parquet(tmp_path, ids, texts, langs, codes):
+def _parquet(tmp_path, ids, texts, langs, codes, globals_=None):
+    if globals_ is None:
+        globals_ = [list(range(32))] * len(ids)
     path = tmp_path / "train-00001.parquet"
     pq.write_table(
         pa.table(
-            {"id": ids, "translation": texts, "tgt_lang": langs, "target_bicodec": codes}
+            {
+                "id": ids,
+                "translation": texts,
+                "tgt_lang": langs,
+                "target_bicodec": codes,
+                "bicodec_global": globals_,
+            }
         ),
         path,
     )
@@ -31,6 +39,7 @@ def test_reads_text_and_codes(tmp_path):
     assert row["id"] == "A" and row["text"] == "你好" and row["lang"] == "cmn"
     assert row["codes"].tolist() == [1, 2, 3, 4, 5]
     assert row["codes"].dtype == np.int16
+    assert row["globals"].shape == (32,)
 
 
 def test_drops_rows_no_stage_could_learn_from(tmp_path):
@@ -91,3 +100,12 @@ def test_mismatched_batch_sizes_are_rejected():
 def test_an_empty_batch_is_rejected():
     with pytest.raises(ValueError, match="empty batch"):
         build_thinker_batch([], [], pad_id=0)
+
+
+def test_rows_without_speaker_tokens_are_dropped(tmp_path):
+    """The Talker is conditioned on them; a row without them cannot be used."""
+    path = _parquet(
+        tmp_path, ["A", "B"], ["x", "y"], ["cmn"] * 2,
+        [[1, 2, 3, 4]] * 2, globals_=[list(range(32)), None],
+    )
+    assert [r["id"] for r in read_rows([path])] == ["A"]

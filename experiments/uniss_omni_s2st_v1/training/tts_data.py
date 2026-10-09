@@ -17,7 +17,7 @@ import numpy as np
 import pyarrow.parquet as pq
 import torch
 
-COLUMNS = ["id", "translation", "tgt_lang", "target_bicodec"]
+COLUMNS = ["id", "translation", "tgt_lang", "target_bicodec", "bicodec_global"]
 
 LANGUAGE_NAME = {"cmn": "Chinese", "eng": "English", "zh": "Chinese", "en": "English"}
 
@@ -37,7 +37,8 @@ def read_rows(
         for record in table.to_pylist():
             text = (record["translation"] or "").strip()
             codes = record["target_bicodec"]
-            if not text or codes is None:
+            globals_ = record.get("bicodec_global")
+            if not text or codes is None or not globals_:
                 continue
             if not min_codes <= len(codes) <= max_codes:
                 continue
@@ -47,6 +48,7 @@ def read_rows(
                     "text": text,
                     "lang": record["tgt_lang"],
                     "codes": np.asarray(codes, dtype=np.int16),
+                    "globals": np.asarray(globals_, dtype=np.int16),
                 }
             )
             taken += 1

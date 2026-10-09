@@ -326,7 +326,10 @@ def load_dev(dev_parquets: list[str], subset_manifest: str, max_codes: int) -> l
     for path in dev_parquets:
         records.extend(
             pq.read_table(
-                path, columns=["id", "translation", "tgt_lang", "target_bicodec"]
+                path,
+                columns=[
+                    "id", "translation", "tgt_lang", "target_bicodec", "bicodec_global",
+                ],
             ).to_pylist()
         )
     rows = []
@@ -335,7 +338,10 @@ def load_dev(dev_parquets: list[str], subset_manifest: str, max_codes: int) -> l
             continue
         codes = record["target_bicodec"]
         text = (record["translation"] or "").strip()
-        if not text or codes is None or not 4 <= len(codes) <= max_codes:
+        globals_ = record.get("bicodec_global")
+        if not text or codes is None or not globals_:
+            continue
+        if not 4 <= len(codes) <= max_codes:
             continue
         rows.append(
             {
@@ -345,6 +351,7 @@ def load_dev(dev_parquets: list[str], subset_manifest: str, max_codes: int) -> l
                 "text": text,
                 "lang": record["tgt_lang"],
                 "codes": np.asarray(codes, dtype=np.int16),
+                "globals": np.asarray(globals_, dtype=np.int16),
             }
         )
     rows.sort(key=lambda row: row["id"])

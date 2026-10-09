@@ -106,6 +106,7 @@ class OmniTtsDataset(Dataset):
             "prompt_ids": row["prompt_ids"],
             "reply_ids": row["reply_ids"],
             "codes": row["codes"],
+            "globals": row["globals"],
         }
 
     def collate(self, samples: list[dict]) -> dict:
@@ -129,6 +130,11 @@ class OmniTtsDataset(Dataset):
             "codec_input_ids": codec_ids,
             "codec_labels": labels,
             "codec_mask": codec_mask,
+            # The 32 speaker tokens. UniSS's own TTS prompt carries them
+            # before the semantic codes, and the Talker is given the same.
+            "bicodec_global": torch.stack(
+                [torch.as_tensor(s["globals"], dtype=torch.long) for s in samples]
+            ),
         }
 
 
