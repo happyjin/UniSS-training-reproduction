@@ -18,8 +18,12 @@
 **Thinker–Talker 比 Dec-only 高 +4.00 ASR-BLEU(en→zh)**,而且 **Dec-only 还多烧 2 倍 GPU 小时**。
 
 另外一个关键的成本事实:**不需要重做我们现在这套 43k 步的全量预训练**。
-IWSLT 那篇在 30B 基座上**只做 LoRA**,SimulS2ST-Omni 全程也是 LoRA + 三阶段轻量适配,
-用 **~2k 小时**配对 S2ST(还能再砍 90% 仍鲁棒)。
+SimulS2ST-Omni 全程是 LoRA + 三阶段轻量适配,用 **~2k 小时**配对 S2ST(砍 90% 仍鲁棒);
+IWSLT 那篇更极端,只在 Thinker 的 q/k/v/o 上插 r=16 的 LoRA、3 个 epoch、
+220K 块级样本就拿到了 SOTA 级结果。
+
+**但 IWSLT 那篇不能当作换基座的模板** —— 它禁用了 Talker,是语音→文本系统,
+不产生语音。它可借鉴的是**数据构造方法**与 **`<wait>` 策略内化**,见 §2.3 与 §4.1。
 
 ---
 
@@ -59,16 +63,51 @@ syntax-aware、chunk-aligned 的监督,**完全不需要配对 S2ST 语料**。
 
 **这直接否定了"我们差是因为没有 WMT17 2.3B token"这个解释。**
 
-### 2.3 CUHKSZ 的路线(IWSLT 2026)
+### 2.3 CUHKSZ 的路线(IWSLT 2026)—— 注意:这是语音→**文本**
+
+**先说清边界,否则会误用。** 这套系统**不产生语音**:论文明确禁用了
+Qwen3-Omni 的 Talker(语音合成)与 vision 模块,
+原话 *"our task produces text from audio and never routes information through
+these modalities"*。因此:
+
+* 它的 **40.5 BLEU 是 MCIF 上的 S2TT BLEU**,与我们 CVSS-T 的 ASR-BLEU **不可比**;
+* **它不能作为我们 S2ST 的换基座模板** —— 我们需要语音输出,而它把语音输出模块关掉了。
 
 ```
 基座    Qwen3-Omni-30B-A3B(原生音频-文本对齐,MoE 30B 总 / 3B 激活)
-适配    Constrained 条件下只对 LLM 做 LoRA
-监督    用 Qwen3-30B-Instruct 从 ASR 语料合成翻译目标
-策略    模型自己预测 <wait> token,在语义不完整的边界等待
-执行    vLLM 上的轻量流式 agent,固定 chunk,有界对话历史
-结果    En→Zh 40.5 BLEU @ 1.95s;2–4s 档 42.1 BLEU @ 2.16s
+        音频编码器冻结;Talker 与 vision 训练时禁用
+适配    仅在 Thinker 的 q_proj/k_proj/v_proj/o_proj 上插 LoRA
+        r=16, α=32, dropout 0.05, peak LR 1e-4(En→Zh), batch 128, 3 epoch, 8×A100
+数据    LibriSpeech 960h + CommonVoice17 1,470h + CoVoST2 425h + VoxPopuli 530h
+        = 3,385 小时 → 质量过滤后 **220K 块级样本**
+执行    vLLM 上的轻量 agent,单张 A800;唯一的延迟参数是 chunk_sec
+结果    En→Zh 低延迟档 40.46 BLEU / 73.54 XCOMET @ 1954 ms(CA LongYAAL)
+        高延迟档 42.14 / 75.74 @ 2164 ms
 ```
+
+**但它有两项对我们真正可迁移的贡献:**
+
+**(a) 用一次 LLM 调用取代三个串联模型的数据构造。**
+传统做法(含我们的 Stage-A)靠 spaCy 分块 + Whisper 词级时间戳 + SimAlign 双语对齐
+三者交集来启发式地推出 `<wait>` 决策,论文批评其
+*"compounding errors and disagreements among models that were never explicitly
+trained to be mutually consistent"*。他们改用**单个文本 LLM(Qwen3-32B)一次调用**
+同时产出:句法感知源分块、块级双语对齐、目标侧重排序、`<wait>` 决策,
+输出 JSON;**唯一的非 LLM 信号是一次 Whisper-large-v3 强制对齐**拿时间戳。
+
+四条**可后验校验**的硬约束写在 prompt 里:
+每块 ≤7 个源词;所有源块拼接 == 原转录(忽略空白);
+所有非 `<wait>` 目标块拼接 == 参考译文;最后一块不得为 `<wait>`。
+
+四维质量过滤(权重 **0.3:0.3:0.3:0.1**):时间戳完整性/单调性、文本长度与完整性、
+对齐一致性、**决策平衡度**(奖励每句 READ:WRITE 接近语料均值 **约 3:1**),
+并刻意保留一定比例的边缘样本(极短/极长/疑问句/异常标点)防止分布变窄。
+
+**(b) 把 read/write 策略内化成 `<wait>` token,且推理时可无重训调档。**
+扫 `chunk_sec` 从 0.64 s 到 6.40 s 即可遍历质量/延迟曲线,**不需要重训**;
+而且**改变 chunk 大小不改变 `<wait>` 决策的比例**,模型改为调整每步输出的 token 数 ——
+论文据此认为句法感知监督泛化到了训练时的静态边界之外。
+919 条中空输出 ≤0.4%。
 
 ---
 
@@ -116,7 +155,7 @@ Phase3  9,075 步 ≈  8.1 h
 |---|---|---|---|---|---|
 | **A. 只放大** | Qwen2.5-1.5B(**已在本地**) | Dec-only 不变 | 参考 UniSS 1.5B:ASR-BLEU 约 32/24.7 | 约 **5–6 天**(3.6× 参数) | 低。但保留了论文证明较差的架构 |
 | **B. 换 Omni + 双流** | Qwen2.5-Omni-3B/7B | **Thinker–Talker** | 参考论文:**31.12 / 25.18** | LoRA 三阶段,**比 A 省一半 GPU 小时** | 中。需实现双流,DualCodec 适配 |
-| **C. 走 CUHKSZ 路线** | Qwen3-Omni-30B-A3B | 单流 + `<wait>` | En→Zh 40.5 @ 1.95s | 只 LoRA,但 30B 推理重 | 高。部署算力、vLLM 流式 agent 全新 |
+| ~~C. 走 CUHKSZ 路线~~ | Qwen3-Omni-30B-A3B | 单流 + `<wait>` | **不适用** | — | **排除:该系统禁用 Talker,只出文本,不做 S2ST** |
 
 ### 为什么不推荐 A(只放大)
 
@@ -132,6 +171,22 @@ WMT17 2.3B token + 7.71 万小时语音训出来的;我们只有公开 UniST,
   我们当前词表 151,936 → 180,407 的扩展正是模态干扰的来源;
 * 它直击我们最大的短板(zh→en 英文生成);
 * 数据上只要 ~2k 小时配对 S2ST,我们现有的 UniST 198 shard 远超这个量。
+
+---
+
+### 4.1 从 CUHKSZ 借什么(不换基座也能用)
+
+它的基座路线不适用于 S2ST,但两项方法是**独立于基座**的,可以直接搬到我们现有管线:
+
+| 借鉴项 | 替换我们的什么 | 预期好处 |
+|---|---|---|
+| **单 LLM 调用产出分块+对齐+重排+`<wait>`** | Stage-A 的多模型对齐链路 | 消除串联误差;我们现有 NIR 单调性过滤可保留为后验校验 |
+| **四条硬约束 + 四维质量过滤(3:1 决策平衡)** | 我们的配对筛选 | 我们实测空提交步占 54.2%(约 1:1),与其 3:1 的目标分布差距很大,值得对照 |
+| **`<wait>` token 内化策略** | 我们固定的读步 + 门槛 | 一个检查点靠 `chunk_sec` 遍历延迟档,**不重训** |
+
+第三项与 REINA 是**同一目标的两条路**:REINA 外挂一个 6M 策略头估信息增益,
+CUHKSZ 把决策写进词表让模型自己学。后者实现更简单(只需在训练数据里插 `<wait>`),
+但需要重新构造带 `<wait>` 标注的训练集。
 
 ---
 
