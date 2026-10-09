@@ -47,6 +47,15 @@ SHARDS=(train-00001.parquet train-00004.parquet train-00013.parquet train-00030.
         train-00040.parquet train-00067.parquet train-00070.parquet train-00124.parquet
         train-00142.parquet train-00164.parquet)
 
+# A prebuilt cache or the raw shards, never both. An array rather than a
+# ${VAR:+...} expansion: the latter splits the path on whitespace and the
+# failure surfaces as argparse rejecting a stray positional.
+if [[ -n "${OMNI_CACHE:-}" ]]; then
+  SOURCE_ARGS=(--omni-cache "${OMNI_CACHE}")
+else
+  SOURCE_ARGS=(--omni-shards "${SHARDS[@]}")
+fi
+
 mkdir -p "${SAVE_DIR}" "${TB_DIR}"
 
 "${ENV_ROOT}/bin/torchrun" \
@@ -54,8 +63,7 @@ mkdir -p "${SAVE_DIR}" "${TB_DIR}"
   experiments/uniss_omni_s2st_v1/training/pretrain_omni_talker_megatron.py \
   --omni-model pretrained_models/Qwen2.5-Omni-3B \
   --omni-parquet-root data/raw/UniST \
-  ${OMNI_CACHE:+--omni-cache "${OMNI_CACHE}"} \
-  ${OMNI_CACHE:---omni-shards "${SHARDS[@]}"} \
+  "${SOURCE_ARGS[@]}" \
   --omni-dev-parquet "${DEV}/cvss_t_zh_en_dev.parquet" "${DEV}/cvss_t_en_zh_dev.parquet" \
   --omni-dev-subset "${SUBSET}" \
   --omni-rows-per-shard "${ROWS_PER_SHARD}" \
