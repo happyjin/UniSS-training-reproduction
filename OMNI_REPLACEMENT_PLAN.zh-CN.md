@@ -30,32 +30,75 @@ zh→en 还更高(26.41 vs 24.39),语音上则高出 23 个 ASR-BLEU。
 
 ---
 
-## 一、最大的障碍:我们没有训练用的原始音频
+## 一、数据:障碍已经消失 —— S3 上有现成的真实音频
 
-已核实:
+### 1.1 已核实的内容
 
 ```
-UniST parquet 字段:source_glm / source_bicodec / target_glm / target_bicodec
-                    / bicodec_global / transcription / translation / ...
-                    —— 全部是 token 化表示,没有任何音频字段
-磁盘原始音频:RealSI 777 条(测试集)+ data/raw 20 条,其余为 0
-余量:2.4 TB
+s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_backup/
+    opt/dlami/nvme/zeyangsong/data/unist/
+      raw/                                  210 个 parquet(208 个训练输入)
+      converted/unist_qwen3_s2s_v2/
+        manifests/manifest-train-*.jsonl    198 个,149.6 GB
+        speech/unist_bicodec_qwen3_v2/      662 个 indexed-WDS tar,2.01 TiB
+        rejects/  state/  logs/  _SUMMARY.json
 ```
 
-**Omni 的音频编码器吃原始波形,不吃我们的 `glm_semantic` token。**
-现有 1.47 TB 打包数据对 Omni **完全不可用**,必须重建音频。
+`_SUMMARY.json` 的关键字段:
 
-### 三条路,按成本排
+| 字段 | 值 |
+|---|---|
+| `rows` | **19,227,252**(原 19,826,439,质量过滤剔除 599,187) |
+| `source_audio_bytes` | 2,211,796,760,762 ≈ **2.01 TiB** |
+| `qwen_codec_frames` | 1,704,324,507 @ 12 Hz ≈ **39,450 小时** |
+| `qwen_tokenizer` | **Qwen3-TTS-Tokenizer-12Hz**(16 码本,manifest 自带的目标码) |
+| `bicodec_model` | **Spark-TTS-0.5B/BiCodec** ← **正是我们在用的** |
+| `license` | **CC-BY-NC-4.0**(非商用,需注意) |
 
-| 路径 | 做法 | 存储 | 风险 |
-|---|---|---|---|
-| **A. BiCodec 回解**(推荐先试) | `source_bicodec + bicodec_global` → BiCodec 解码 → 波形 | **~2k 小时 ≈ 230 GB** | 编解码重建有损,Omni 编码器要吃"带 codec 痕迹"的音频 |
-| B. 取回原始语料 | UniST 来源为 LibriTTS-R / GigaSpeech / CommonVoice / WenetSpeech4TTS / MagicData / NCSSD / DailyTalk / HiFi-TTS | TB 级下载 + 与 UniST 行重新对齐 | 工程量大,但音频是真的 |
-| C. 全量回解 | 19.8M 条全部解码 | **~3.2 TB > 余量 2.4 TB** | **不可行** |
+**源音频总量 ≈ 39,450 小时,是论文所用 2,000 小时的约 20 倍。**
 
-**选 A,且只做 ~2k 小时** —— 这正是 SimulS2ST-Omni 的数据规模
-(*"only ~2,000 hours of high-quality Chinese-English paired S2ST data"*),
-论文还证明砍到 10% 仍鲁棒。
+### 1.2 已端到端验证
+
+**音频可取用**:manifest 的 `audios` 是 `wds://...tar?offset=&length=&format=flac`,
+按字节范围直取即可:
+
+```
+offset=512 length=19216  →  19,216 字节  →  FLAC 可解码:1.24 s / 16 kHz / 单声道
+与 manifest 的 source_duration_ms: 1240 完全吻合 ✅
+```
+
+**回链可用**:`provenance` 带 `source_parquet` + `source_row_index`,实测
+
+```
+manifest: train-00000.parquet 第 249 行,target_bicodec_len 54,bicodec_global_len 32
+本地核对: id=NCSSD_R_EN_0000000666,转录/译文一致,
+          target_bicodec 长度 54 ✅,bicodec_global 长度 32 ✅
+```
+
+**所以可以同时拿到:真实源音频(给 Omni 编码器)+ 我们的 BiCodec 目标码与 32 个
+global token(保住 A.PCP 第 1 名的说话人通路)。**
+
+### 1.3 目标码用哪一套 —— 这是必须做的选择
+
+| 选项 | 来源 | 代价 |
+|---|---|---|
+| **BiCodec 8,192**(推荐) | 经 `provenance` 回链到本地 parquet 的 `target_bicodec` + `bicodec_global` | 训练时要同时读 manifest(音频)与本地 parquet(目标码) |
+| Qwen3-TTS-12Hz 16 码本 | manifest 自带 `target_codec_codes` | 省事,但**放弃 32 个 global token 通路 = 放弃 A.PCP 优势**,且要换声码器 |
+
+**选 BiCodec。** 我们唯一进 Table 1 前列的两个指标(A.PCP 第 1、UTMOS 第 1)都依赖这条通路。
+
+### 1.4 落地策略:先取子集,不必拉全量
+
+2.01 TiB 对 2.4 TB 余量太满。按论文规模取子集:
+
+```
+39,450 小时 / 198 个 train shard ≈ 199 小时/shard
+2,000 小时  →  约 10 个 shard  →  约 101 GB
+```
+
+**先拉 10 个 shard(~2,000 小时,101 GB)**,与论文规模对齐;
+论文还证明砍到 10%(200 小时)仍鲁棒,所以这个量是充裕的。
+不够再增量拉取,**不必一次性落地 2 TiB**。
 
 ---
 
@@ -78,72 +121,124 @@ UniST parquet 字段:source_glm / source_bicodec / target_glm / target_bicodec
 
 ---
 
-## 三、实施顺序
+## 三、替换方式与训练过程
 
-### 第 1 步:现成 Omni 在**我们的**测试集上到底强多少(1 天,纯推理)
-
-**这一步不能跳。** 34.85 是论文在他们的协议下测的;
-我们要知道的是 Omni 在 **CVSS-T + 我们的 ASR 协议**下相对 24.15 / 15.33 的真实差距。
+### 3.1 一张图:数据如何流进新架构
 
 ```
-下载   Qwen2.5-Omni-3B(以及 7B,用于判断规模是否必要)
-验证   离线可加载;Thinker / Talker / 音频编码器三部分可分离
-测试   RealSI 777 条真实音频 + CVSS-T,只跑 S2TT(语音→文本)
-对照   我们的 Text-BLEU 24.15 / 15.33
+S3 tar (FLAC, offset/length)          本地 parquet (provenance 回链)
+        │                                      │
+        │ 字节范围读 → FLAC 解码                 │ target_bicodec (8,192 码本)
+        │                                      │ bicodec_global (32 token)
+        ▼                                      ▼
+  Omni 音频编码器(冻结)                   ┌──────────────┐
+        │                                │              │
+        ▼                                │              │
+   Omni Thinker ──→ 目标文本 Y^text ──────┤              │
+        │                                │   Talker φ   │
+        └── 隐状态 H_θ ───────────────────┤  (头=8,192)   │
+                                         └──────┬───────┘
+                                                ▼
+                                       BiCodec 语义码 Y^code
+                                                │
+                              + 32 个 global token(源音频,绕过 LLM)
+                                                ▼
+                                    BiCodec 声码器 → 目标语音
 ```
 
-**决策门**:
-* Omni 3B 的 Text-BLEU 显著高于 24.15 / 15.33 → 继续;
-* 若差距远小于论文的 +10 → 说明差距来自协议或数据而非基座,**停下重新评估**。
+**源侧**:真实 FLAC → Omni 原生编码器(**不再用 WhisperVQ + GLM bridge**)。
+**目标侧**:文本由 Thinker 出,语义码由 Talker 出,**说话人仍走 32 个 global token**。
 
-### 第 2 步:Talker 手术与码本对齐(2–3 天)
+### 3.2 目标函数
 
-```
-初始化  Omni Talker
-替换    codec embedding 与输出头 → BiCodec 语义码本 8,192
-        + 4 个特殊 token(codec_bos / codec_eos / codec_pad / codec_mask)
-        (论文对 DualCodec 16,384 做的是同一件事)
-验证    用真实 (文本, BiCodec 码) 对做教师强制,确认 Talker 能收敛到我们的码空间
-```
-
-**决策门**:Talker 在 BiCodec 码本上的教师强制困惑度是否正常收敛。
-
-### 第 3 步:重建 ~2k 小时训练音频(2–3 天)
+块分解目标不变(论文式 1、式 2),离线是 `C=1, g₁=|X|` 的特例:
 
 ```
-选样    从 UniST 198 shard 按 NIR 难度/长度分层抽样(nir_score.py / nir_stratify.py 已实现)
-解码    BiCodec(source_bicodec, bicodec_global) → 16 kHz 单声道波形
-        8 卡并行,复用 evaluation/decode_audio.py 的批量解码
-产出    ~230 GB,新目录,不动任何现有数据
-抽检    随机 200 条人工试听 + UTMOS,确认重建音频可用作编码器输入
+C_c = ( X_{1:g_c},  Y_{<c}^text,  Y_{<c}^code )
+
+log p(Y^text, Y^code | X, τ) = Σ_c log p(Y_c^text, Y_c^code | C_c)
 ```
 
-**决策门**:重建音频的 UTMOS 若显著低于源音频,说明 codec 痕迹太重,
-改走路径 B(取回原始语料)。
-
-### 第 4 步:三阶段训练
+**参数化从单头换成双流(式 4):**
 
 ```
-Stage 1  Talker warmup
-         冻结 Thinker 与音频编码器,只训 Talker,仅用 TTS 数据,2 epoch
+现在   p_θ(Y_c^text, Y_c^code | C_c)              一个 AR 头,180,480 路 softmax
+                                                  实测:码占 95.2% 梯度,文本只占 4.8%
 
-Stage 2  联合预训练
-         ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5
-         Thinker 与 Talker 各挂 LoRA;音频编码器保持冻结
-         ⚠ 保留 UniSS 的 Quality / Performance 双模式任务定义 ——
-           论文配方里没有 Q/P,照抄会丢掉我们 Q 比 P 高 3.57–5.06 BLEU 的能力
+换后   p_θ(Y_c^text | C_c) · p_φ(Y_c^code | C_c, Y_c^text, H_θ)
 
-Stage 3  流式轨迹微调
-         合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头
-         在块轨迹上微调 —— A.PCP 反超发生在这一步,不可省
+       L = Σ_c [ L_text(c) + λ · L_code(c) ]
+
+       L_text(c) = −Σ_i log p_θ(y_i | C_c, y_<i)                  # Thinker,文本词表
+       L_code(c) = −Σ_j log p_φ(z_j | C_c, Y_c^text, H_θ, z_<j)   # Talker,8,192 路
 ```
 
-**全程 LoRA,不做全参数预训练。** 论文在 8×A800 上即可完成。
+**Talker 不预测文本** —— 它在文本已定之后才生成码,这就是保护文本规划的机制。
+`λ` 按两项损失各自 token 数归一后等权(论文正文未给此值)。
 
-### 第 5 步:评估
+### 3.3 要新建的组件
 
-复用 `experiments/evaluation/cvss_t_zh_en_phase3_v1/run_full_evaluation.sh`,
-沿用 `whisper-large-v3-attention-mask-v2` 协议,同时报告泄漏审计。
+| 组件 | 说明 |
+|---|---|
+| **WDS 音频 resolver** | 解析 `wds://` URI → 本地 tar 的 `offset`/`length` → FLAC 字节 → 解码。README 给了映射公式:`${WDS_AUDIO_ROOT}/${process_version}/${后续相对路径}` |
+| **双源数据集** | 同时读 manifest(音频 + 文本)与本地 parquet(`target_bicodec` + `bicodec_global`),按 `provenance.source_row_index` 对齐 |
+| **Talker 模块** | Omni talker,codec embedding 与输出头换成 BiCodec 8,192 + 4 个特殊 token |
+| **交叉条件通路** | `H_θ` → Talker;Omni Thinker 与 Talker 维度不同,需投影层 |
+| **双头 loss** | 两个交叉熵 + λ 加权 |
+
+### 3.4 训练过程(三阶段,全程 LoRA)
+
+```
+Stage 0  手术与空操作验证                                    【新增,论文没有】
+    组装 Thinker + Talker + 交叉通路,不训练。
+    验收:用 gold 文本喂 Talker,前向不报错、维度对齐、
+          BiCodec 码空间输出分布合理。
+    成本:零训练。
+
+Stage 1  Talker warmup                                  【抄 SimulS2ST-Omni】
+    冻结 Omni 音频编码器与 Thinker,只训 Talker 与交叉通路。
+    数据:TTS 任务(目标文本 → BiCodec 码),2 epoch。
+    目的:让全新的 8,192 输出头在我们的码空间上收敛。
+    验收:TTS 重建的 A.PCP 不低于当前管线。
+
+Stage 2  联合预训练                                      【混合配方】
+    Thinker 与 Talker 各挂 LoRA;音频编码器保持冻结。
+    混合比以论文的 ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5 为起点,
+    ⚠ 但保留 UniSS 的 Quality / Performance 双模式任务定义 ——
+      论文配方里没有 Q/P,照抄会丢掉我们 Q 比 P 高 3.57–5.06 BLEU 的能力。
+    验收:CVSS-T Text-BLEU > 24.15 / 15.33。
+
+Stage 3  流式轨迹微调                                    【抄 SimulS2ST-Omni】
+    合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头,
+    在块轨迹上微调(ASR/S2TT/MT/S2ST)。
+    基建已有:NIR 单调性过滤、固定块重分箱、轨迹池均已实现验证。
+    这一步是 A.PCP 反超的来源,不可省。
+    验收:A.PCP ≥ 2.7889 / 2.9073,UTMOS en→zh ≥ 3.8855。
+```
+
+### 3.5 执行顺序与决策门
+
+```
+第 1 步  现成 Omni 在我们的测试集上到底强多少          1 天,纯推理
+    下载 Qwen2.5-Omni-3B(以及 7B 做规模对照)
+    在 CVSS-T 上只跑 S2TT,用我们的 ASR 协议
+    对照我们的 Text-BLEU 24.15 / 15.33
+    门:差距远小于论文的 +10 → 停下,差距不在基座
+
+第 2 步  拉 10 个 train shard                        半天,约 101 GB
+    ≈ 2,000 小时,与论文规模对齐
+    同时拉对应的 manifest
+
+第 3 步  Stage 0 手术与空操作验证                      1 天
+    门:前向打通、维度对齐
+
+第 4 步  Stage 1 → 2 → 3                             按论文,约 Dec-only 全量的一半 GPU 小时
+    每阶段按 3.4 的验收门把关
+
+第 5 步  CVSS-T 全量评测                              1 天
+    复用 experiments/evaluation/cvss_t_zh_en_phase3_v1/run_full_evaluation.sh
+    沿用 whisper-large-v3-attention-mask-v2 协议,同时报告泄漏审计
+```
 
 ---
 
@@ -173,12 +268,13 @@ Stage 3  流式轨迹微调
 
 ## 六、风险
 
-1. **重建音频的 codec 痕迹** —— 第 3 步的决策门专门挡这个;
+1. ~~重建音频的 codec 痕迹~~ —— **已消除**:S3 上是真实 FLAC,不需要回解;
 2. **BiCodec 与 Omni Talker 的架构匹配** —— 论文换的是 DualCodec,我们的码本更小(8,192 vs 16,384),
    理论上更容易,但需第 2 步验证;
 3. **流式成果作废** —— 已接受,现有检查点与报告保留不动;
 4. **Q/P 双模式** —— 论文配方里没有,Stage 2 必须自己保住;
-5. **磁盘** —— 2.4 TB 余量,2k 小时音频约 230 GB,可行;全量回解不可行。
+5. **磁盘** —— 余量 2.4 TB;先拉 10 个 shard 约 101 GB(~2,000 小时),不必落地全量 2.01 TiB。
+6. **许可** —— 该数据集标注 **CC-BY-NC-4.0(非商用)**,任何对外发布前须确认合规。
 
 ---
 
