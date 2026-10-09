@@ -67,13 +67,19 @@ case "${TARGET}" in
   unist)
     download_dataset "cmots/UniST" "${REPO_ROOT}/data/raw/UniST"
     ;;
+  omni3b)
+    download_model "Qwen/Qwen2.5-Omni-3B" "${REPO_ROOT}/pretrained_models/Qwen2.5-Omni-3B"
+    ;;
+  omni7b)
+    download_model "Qwen/Qwen2.5-Omni-7B" "${REPO_ROOT}/pretrained_models/Qwen2.5-Omni-7B"
+    ;;
   all)
     download_model "cmots/UniSS" "${REPO_ROOT}/pretrained_models/UniSS"
     download_model "Qwen/Qwen2.5-1.5B-Instruct" "${REPO_ROOT}/pretrained_models/Qwen2.5-1.5B-Instruct"
     download_dataset "cmots/UniST" "${REPO_ROOT}/data/raw/UniST"
     ;;
   *)
-    echo "Usage: $0 [--dry-run] {uniss|qwen|qwen0p5b|unist|all}" >&2
+    echo "Usage: $0 [--dry-run] {uniss|qwen|qwen0p5b|unist|omni3b|omni7b|all}" >&2
     exit 2
     ;;
 esac
