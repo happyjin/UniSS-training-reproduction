@@ -265,127 +265,250 @@ lightweight 0.4B Talker"* —— 我们 AL 已经 4.6 s,这一条对我们是加
 
 ---
 
-## 五、推荐方案:分三步走,每步有决策门
+## 五、实施计划:目标函数、训练过程、分阶段验收
 
-### 第 0 步(先做,2–3 小时,纯推理):判别实验
+### 5.0 先量到的机制:文本规划只拿到 4.8% 的梯度
 
-**在投入任何训练之前,先把"规模 / 架构 / 数据"三个因素拆开。**
+当前是单一交叉熵、单一 180,480 路 softmax,文本与语义码在同一条序列里。
+实测 RealSI 777 条:
 
-| 实验 | 做法 | 回答什么 |
-|---|---|---|
-| **0a 纯文本 MT 对照** | 用**未经 UniSS 训练的** Qwen2.5-0.5B / 1.5B,在 CVSS-T 的 4,897 条参考文本上做纯文本 zh↔en 翻译,比 BLEU | 同家族仅规模差 3.6×,在这个语言对上 MT 能力差多少 |
-| **0b UniSS 训练的代价** | 把 0a 的基座 BLEU 与我们 Phase3 的 Text-BLEU(24.15 / 15.33)比 | **扩词表 + 三阶段训练到底损失了多少原生 MT 能力** |
-| **0c 英文生成专项** | 只看 zh→en:基座纯文本 BLEU vs 我们的 15.33 | 确认英文短板是基座自带还是训练引入 |
+| 方向 | 文本 token | 语义码 token | 码:文本 |
+|---|---:|---:|---:|
+| en→zh | 17.4 | 385.4 | **22.2×** |
+| zh→en | 18.1 | 332.0 | **18.3×** |
 
-**决策门**:
-* 若 0b 显示我们的 Text-BLEU **远低于**基座原生 MT 能力 → 问题在训练配方,**换模型救不了**,应先修配方;
-* 若基座原生能力本身就低 → 规模/基座是真瓶颈,进入第 1 步。
+**全量:文本 13,818 / 语义码 276,457 —— 码预测占梯度的 95.2%,文本规划只占 4.8%。**
 
-### 第 1 步:获取并验证 Omni 基座(半天)
+这把论文那句 *"modality interference harms intermediate text planning"* 变成了一个具体数字,
+也指出了两种强度不同的干预:**重新配平损失** 与 **拆成双流**。前者一行代码,后者要改架构。
+
+---
+
+### 5.1 阶段 A:损失配平 —— 完整的离线实施设计
+
+**先做这一步,因为它不改架构、不改数据、不改推理,而且已核实可以零磁盘成本实现。**
+
+#### A.1 已核实的实现路径
+
+离线训练用的是 **Megatron 原版 `forward_step`,没有任何自定义 loss**
+(`training/pretrain_uniss_megatron.py:301`)。Megatron 的 GPT 损失是:
+
+```
+loss = Σ(losses × loss_mask) / Σ(loss_mask)
+```
+
+而 `loss_mask` 是**逐 token 的 float32 权重**,由数据集直接读入
+(`training/megatron_uniss_dataset.py:122`)。**所以配平是给这个数组赋非 1 的值,
+不需要动任何训练代码。**
+
+实测一条 18,000 token 的打包记录:
+
+| 被监督位置 | 数量 | 占比 |
+|---|---:|---:|
+| 文本 | 1,028 | **8.1%** |
+| BiCodec 语义码 | 11,352 | **90.0%** |
+| 特殊 token | 239 | 1.9% |
+
+**要让文本占 50% 的梯度,`w_text / w_code = 11.0`。**
+
+⚠ **必须按 `labels` 索引,不是 `tokens`。** 实测 `labels[i] == tokens[i+1]` 占 99.761%
+(差额来自打包样本边界),两者在模态边界处的计数不同(文本 985 vs 1028)。
+按 `tokens` 加权会在每个模态切换点错配一个位置。
+
+#### A.2 代码改动(约 5 行,默认恒等)
+
+改在 `training/megatron_uniss_dataset.py` 的 `packed_json_to_megatron_item`:
+
+```python
+loss_mask = _tensor_from_int_list(item, "loss_mask", seq_length, torch.float32)
+# 默认 1.0/1.0 即恒等,现有实验完全不受影响
+if TEXT_LOSS_WEIGHT != 1.0 or CODE_LOSS_WEIGHT != 1.0:
+    is_text = labels <= c.BICODEC_GLOBAL_OFFSET - 1          # 0..151,664
+    loss_mask = loss_mask * torch.where(
+        is_text, TEXT_LOSS_WEIGHT, CODE_LOSS_WEIGHT)
+```
+
+权重由环境变量注入,默认 1.0 —— **不新建数据、不占磁盘、不改既有行为**。
+(若改为重写打包文件,每个变体要 385 GB,而当前余量只有 2.4 TB。)
+
+**必须配的测试**:
+1. 权重为 1.0 时产出与现在逐位相同(恒等);
+2. 权重生效时,文本位置的 mask 恰为 `w_text`、码位置恰为 `w_code`;
+3. 按 `labels` 而非 `tokens` 判断 —— 构造一个模态边界样本断言边界那一位的归属。
+
+#### A.3 训练过程
+
+**起点**:现有 Phase2 终检查点,**不重跑 Phase1/Phase2**。
+
+```
+LOAD   checkpoints/uniss_qwen0p5b_phase2_unist198_from_phase1_fast_decay_v4/iter_0015381
+语义   FINETUNE=1  LOAD_OPTIM=0  LOAD_RNG=0        # 新阶段,不带上阶段 optimizer
+数据   data/megatron/phase3_unist198/packed_train.jsonl   (1,161,587 条,不变)
+几何   8×H200,TP1/PP1,mbs 2,gbs 128,seq 18000,BF16
+日程   9,075 步,LR 1e-5 → 1e-6 cosine,warmup 200,clip 0.5
+           cyclic shuffle,--no-data-sharding,full validation,eval 每 100 步
+隔离   新的 SAVE_DIR / RUN_DIR / LOG_PATH,绝不覆盖现有 Phase3
+```
+
+**两个臂**(顺序跑,各约 8.1 小时):
+
+| 臂 | w_text | w_code | 文本梯度占比 | 用意 |
+|---|---:|---:|---:|---|
+| `phase3_wt4` | 4 | 1 | **26.5%** | 温和,先看方向 |
+| `phase3_wt11` | 11 | 1 | **49.8%** | 文本与码等权 |
+
+先跑 `wt4`。若 Text-BLEU 有提升且 A.PCP 未跌,再跑 `wt11` 看是否单调。
+
+#### A.4 评估
+
+复用现成链路,**一行不改**:
 
 ```bash
-# 下载 Qwen2.5-Omni-3B(或 7B,视显存与目标而定)
-scripts/download_hf_assets.sh   # 需新增 omni 条目
-# 验证:音频编码器、Thinker、Talker 三部分完整,且能离线加载
-```
+CUDA_VISIBLE_DEVICES=0 experiments/evaluation/uniss_full198_phase2_phase3/export_exact.sh phase3
+# 注意:HF_OUTPUT 必须是新路径,脚本拒绝覆盖已有导出
 
-**决策门**:Talker 的 codec embedding 与输出头能否按 DualCodec/BiCodec 词表重新初始化。
-论文原文:*"the codec embedding and output head re-initialized for the DualCodec vocabulary"*。
-我们用的是 BiCodec,需确认码本规模可对齐。
-
-### 第 2 步:双流三阶段训练(按论文配方,但保留我们的 BiCodec 通路)
-
-#### 2.0 组件取舍:哪些换、哪些一个字不动
-
-| 组件 | 现在 | 换成 | 理由 |
-|---|---|---|---|
-| 文本主干 | Qwen2.5-0.5B(词表扩到 180,407) | **Qwen2.5-Omni Thinker** | 原生音频对齐,不必硬塞 28,471 个语音 token |
-| 码生成 | 与文本共用同一个 AR 头 | **独立 Talker** | 消除模态干扰(+4.00 ASR-BLEU),且流式延迟更低 |
-| 音频编码器 | WhisperVQ + GLM bridge | **Omni 自带编码器(冻结)** | 原生对齐;冻结以保住大规模预训练得到的语音理解 |
-| **语义码本** | **BiCodec** | **不变** | 论文用 DualCodec,我们**不跟** —— 换码本会动摇说话人通路 |
-| **全局说话人 token** | **源音频 32 token** | **不变** | 绕过 LLM,是我们 SIM-O 的来源 |
-| **声码器 / 流式解码器** | **BiCodec + 50 token 左上下文** | **不变** | 跨块音色延续的机制,必须保留 |
-| 评测链 | `cvss_t_zh_en_phase3_v1/` | **不变** | 保证与历史数字可比 |
-
-**Talker 的改造点只有一处**:codec embedding 与输出头按 **BiCodec 语义码本规模**重新初始化
-(论文对 DualCodec 做的是同一件事:*"the codec embedding and output head re-initialized for the
-DualCodec vocabulary"*)。
-
-已核实我们的码本布局(`training/constants_uniss.py`):
-
-```
-BiCodec global   : offset 151665,码本 4096   → 每条取 32 个 token,绕过 LLM
-BiCodec semantic : offset 155761,码本 8192   → Talker 输出头只需覆盖这 8192
-GLM semantic     : offset 163953,码本 16384  → 源侧表示,不经 Talker
-```
-
-**Talker 的输出头是 8192 维,比论文 Dec-only 追加的 16,384 小一半** —— 这对双流是有利的,
-轻量 Talker 要学的码本更小。
-
-#### 2.1 三阶段配方(论文的,两种架构共享同一数据混合与 token 预算)
-
-```
-Stage 1 Warmup
-  只训 Talker,数据为 TTS。目标:让 Talker 在 BiCodec 8192 码本上收敛,
-  Thinker 完全冻结。验收:TTS 重建的 A.PCP 不低于当前管线。
-
-Stage 2 Joint Pretraining
-  ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5
-  Thinker 与 Talker 各自挂 LoRA。验收:CVSS-T 离线 Text-BLEU 超过当前 24.15 / 15.33。
-
-Stage 3 Streaming Finetuning  ← 保住韵律的关键一步,不可省
-  合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头,
-  在增广的流式轨迹上微调(ASR/S2TT/MT/S2ST)。
-  验收:A.PCP 不低于 2.7715(en→zh)/ 2.8837(zh→en)。
-```
-
-**为什么 Stage 3 不能省**:论文的 A.PCP 反超正是发生在轨迹监督之后
-(*"chunked text-code generation via trajectory supervision actively improves local rhythm"*)。
-只做 Stage 1–2 会停在离线那版更差的声学水平上。
-
-
-
-论文的三阶段,两种架构**共享完全相同的数据混合、优化器与 token 预算**:
-
-```
-Stage 1 (Warmup)
-  Thinker–Talker:只训 Talker,数据为 TTS
-  (Dec-only 需要双分支 LoRA 预热防模态欠拟合 —— 又一条双流更简单的证据)
-
-Stage 2 (Joint Pretraining)
-  ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5
-  两种架构同一混合比
-
-Stage 3 (Streaming Finetuning)
-  合并 Stage-2 adapter,挂新的 LoRA,冻结 embedding 与预测头,
-  在增广的流式轨迹上微调(ASR/S2TT/MT/S2ST)
-```
-
-**数据构造**(我们已有大部分工具):
-
-| 论文做法 | 我们的现状 |
-|---|---|
-| 从公开 ASR/S2TT 语料经跨语言对齐 + 单调性过滤构造 ~2k 小时配对 S2ST | `data/processed/phase2_unist198_sharded` 已有 5,935 万条;**NIR 单调性过滤已实现**(`experiments/uniss_streaming_p2st_traj_v1/data/nir_score.py` / `nir_stratify.py`) |
-| 按 NIR 做难度/长度分层配额 | 已实现并验证过(池内 NIR 均值 11.64%) |
-| 转录级清洗:两套 ASR 交叉核验(Qwen3-ASR-1.7B + Whisper-large-v3),按 WER/长度阈值保留 80–95% | **未做**,需新增 |
-
-### 第 3 步:评估与对照
-
-复用现成的 CVSS-T 评测链(**完全不用改**):
-
-```
 experiments/evaluation/cvss_t_zh_en_phase3_v1/run_full_evaluation.sh
 ```
 
-对照必须包含:
-* 我们现在的 0.5B Dec-only(23.58 / 12.05);
-* 新基座的 Dec-only(若做了 A 作为对照);
-* 新基座的 Thinker–Talker;
-* 论文 Table 1 的 3B 两行。
+必须沿用 `whisper-large-v3-attention-mask-v2` 协议,并同时报告泄漏审计。
 
-**注意评测口径**:报告须沿用 `whisper-large-v3-attention-mask-v2` 协议
-(旧版 batched Whisper 未传 attention mask,曾把 zh→en Speech-BLEU 从 6.99 错报为 1.75),
-并**同时报告数据泄漏审计**(当前归一化文本命中 1,705 条训练记录)。
+#### A.5 验收门
+
+对照当前 Phase3(Quality 模式):
+
+| 指标 | 当前 | 判定 |
+|---|---:|---|
+| **Text-BLEU** en→zh / zh→en | 24.15 / 15.33 | **提升 ≥ +1.5 → 机制证实** |
+| Speech-BLEU | 23.58 / 12.05 | 同向变化 |
+| **A.PCP** en→zh / zh→en | 2.7889 / **2.9073** | **跌超 0.05 → 判失败回退** |
+| **UTMOS** en→zh | **3.8855** | 跌超 0.05 → 判失败回退 |
+| SLC-0.2 | 0.7022 / 0.6343 | 不显著退化 |
+
+**A.PCP 与 UTMOS 是否决项,不是观察项。** 削弱码的梯度本来就可能伤韵律与音质,
+这正是这一轮最需要盯的风险。
+
+#### A.6 成本与时间线
+
+| 步骤 | 内容 | 时间 |
+|---|---|---|
+| 1 | 实现 + 单测 | 半天 |
+| 2 | `phase3_wt4` 训练 | **8.1 h** |
+| 3 | 导出 + CVSS-T 全量评测 | 约 1 天 |
+| 4 | (视结果)`phase3_wt11` | 8.1 h + 1 天 |
+
+**约两天拿到第一个答案**,而且不触碰 Phase1/Phase2、不触碰流式线、不新增数据。
+
+#### A.7 这一步也为阶段 B 提供定量输入
+
+阶段 B 的双流损失 `L = L_text + λ·L_code` 里的 `λ`,论文正文没有给。
+阶段 A 扫出的最优文本梯度占比,**就是 λ 的直接标定** ——
+所以即使阶段 A 的收益有限,它也不是白跑。
+
+### 5.2 阶段 B:拆双流(方案 0 —— 不换基座、不换编码器)
+
+#### B.1 替换清单
+
+| 组件 | 现在 | 改为 | 依据 |
+|---|---|---|---|
+| 码预测路径 | 与文本共用 AR 头 | **独立 Talker** | 论文 +4.00 ASR-BLEU 的来源 |
+| Thinker 输出头 | 180,480 路 | 切到 `0..151,664`(文本) | — |
+| Talker 输出头 | — | `155,761..163,952`(**8,192** 码) | 我们的 BiCodec 码本 |
+| Talker 初始化 | — | **现有 decoder 的副本** | 它已训 43k 步生成这套码;论文说 Omni 初始化只是 *"a modest optimization aid"* |
+| 交叉条件通路 | 无 | **H_θ → Talker**(新增) | 式 (4) |
+| 嵌入表 | `tie_word_embeddings=True`,文本与码共享 | **拆开**(新增 8,192×896 ≈ 7.3M 参数) | 共享嵌入是模态耦合的一部分 |
+| 音频编码器 | WhisperVQ + GLM bridge | **不动** | 动它会废掉流式管线与本轮 DPO 成果 |
+| BiCodec / global / 声码器 / 流式解码器 | — | **不动** | 说话人通路与跨块音色 |
+| 评测链 | — | **不动** | 保证与历史可比 |
+
+#### B.2 目标函数
+
+**不变的是轨迹定义与块分解(论文式 1、式 2,两种架构共用):**
+
+```
+C_c = ( X_{1:g_c},  Y_{<c}^text,  Y_{<c}^code )                      (1)
+
+log p(Y^text, Y^code | X, τ) = Σ_{c=1..C} log p(Y_c^text, Y_c^code | C_c)   (2)
+
+离线是 C=1、g_1=|X| 的特例;流式是 C>1 —— 同一目标覆盖两者。
+```
+
+**变的是 p(· | C_c) 的参数化:**
+
+```
+现在(Dec-only,式 5)
+    p_θ(Y_c^text, Y_c^code | C_c),   V = V_text ∪ V_code
+    L = −Σ_c Σ_{v∈chunk} log p_θ(v | ·)                    # 一个 CE,180,480 路
+
+阶段B(Thinker–Talker,式 4)
+    p(Y_c^text, Y_c^code | C_c)
+        = p_θ(Y_c^text | C_c) · p_φ(Y_c^code | C_c, Y_c^text, H_θ)
+
+    L = Σ_c [ L_text(c) + λ · L_code(c) ]
+
+    L_text(c) = −Σ_{i∈Y_c^text} log p_θ(y_i | C_c, y_<i)             # 151,665 路
+    L_code(c) = −Σ_{j∈Y_c^code} log p_φ(z_j | C_c, Y_c^text, H_θ, z_<j)  # 8,192 路
+```
+
+其中 `H_θ` 是 Thinker 生成本块文本时的中间隐状态序列。
+**关键:Talker 不预测文本 —— 它在文本已定之后才生成码**,这就是保护文本规划的机制。
+
+**λ 的设定**:论文正文未给。鉴于 5.0 测到的 18–22× token 比,
+建议 `λ` 使两项损失**按各自 token 数归一后等权**,并在阶段 A 的结果上校准。
+
+#### B.3 训练过程:混合配方,不照抄任何一方
+
+我们的起点与两篇论文都不同 —— **主干已过完整 UniSS Phase1–3(43k 步)**,
+语音-文本对齐早已建立,所以照抄 SimulS2ST-Omni 的三阶段会有冗余。
+
+```
+Stage 0  手术与空操作验证                                         【新增,论文没有】
+    从现有检查点复制出 Thinker 与 Talker,切头、建交叉通路。
+    验收:用 gold 文本喂 Talker、两者同权重初始化时,
+          码预测应复现当前模型的输出。不复现 = 手术错了。
+    成本:零训练,纯前向比对。
+
+Stage 1  Talker warmup                                    【抄 SimulS2ST-Omni】
+    冻结 Thinker,只训 Talker 与新的交叉通路,仅用 TTS 数据。
+    论文为 2 epoch;我们的 Talker 已会生成这套码,预计更短。
+    验收:TTS 重建的 A.PCP 不低于当前管线。
+
+Stage 2  轻量联合适配                                  【缩水版,非论文完整 Stage 2】
+    Thinker 与 Talker 各挂 LoRA。
+    目的仅为让 Thinker 适应"不再预测码"的输出分布,
+    **不是**重新学对齐 —— 那在 43k 步里已经做过。
+    ⚠ 任务定义沿用 UniSS 的 Quality / Performance 双模式,
+      不照抄论文 0.2:1:0.5:1:1.5 的混合比 —— 那里面没有 Q/P 概念,
+      照抄会丢掉我们 Q 比 P 高 3.57–5.06 BLEU 的能力。
+
+Stage 3  流式轨迹微调                                     【抄 SimulS2ST-Omni】
+    合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头,
+    在块轨迹上微调。
+    **基建已有**:`uniform_chunk_tasks.py` 的固定块重分箱、
+    NIR 单调性过滤、轨迹池都已实现并验证。
+    这一步是 A.PCP 反超的来源,不可省。
+```
+
+#### B.4 每阶段的验收门
+
+| 阶段 | 必须满足 | 失败处理 |
+|---|---|---|
+| Stage 0 | 码预测复现当前模型 | 手术有误,修正后重来 |
+| Stage 1 | TTS 的 A.PCP ≥ 当前 | Talker 容量或交叉通路有问题 |
+| Stage 2 | CVSS-T Text-BLEU > 24.15 / 15.33 | 回退到阶段 A 的结果 |
+| **Stage 3** | **A.PCP ≥ 2.7715(en→zh)/ 2.8837(zh→en)** | **回退,不得用翻译收益解释掉** |
+| Stage 3 | RealSI 流式指标不低于 pf_guard | 回退 |
+
+---
+
+### 5.3 阶段 C:换基座(只在 A、B 都做完后再评估)
+
+若阶段 B 证实双流有效,再考虑放大主干或换 Omni。
+**此时才有依据判断**:双流的收益是否依赖大主干。
+
+**注意成本**:换 Omni 原生编码器会使 p2st 级联、Stage A/B、本轮 DPO 全部失效
+(级联的 ASR prompt 建在 `bridge_projection` + `GLM_SEMANTIC_OFFSET` 上,
+WhisperVQ 被六个以上实验脚本依赖)。放大主干(Qwen2.5-1.5B,已在本地,
+tokenizer 相同)不触发这个问题,是更稳的放大路径。
 
 ---
 
