@@ -185,6 +185,10 @@ def main() -> None:
                         "translation_ref": record["translation"],
                         "semantic_values": codes,
                         "global_values": list(record["bicodec_global"]),
+                        # Kept so the gold decode -- this vocoder's ceiling
+                        # for the same utterance and the same 32 speaker
+                        # tokens -- can be produced without regenerating.
+                        "gold_semantic_values": gold,
                         "gold_semantic_count": len(gold),
                         "semantic_token_count": len(codes),
                         "source_audio_path": record["source_audio_path"],
