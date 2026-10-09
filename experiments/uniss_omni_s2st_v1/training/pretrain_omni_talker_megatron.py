@@ -211,8 +211,18 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     # dev split keeps every evaluation on identical utterances.
     per_eval = int(args.eval_iters) * int(args.global_batch_size)
     evaluations = int(args.train_iters) // max(1, int(args.eval_interval)) + 4
+    # The training iterator is single-pass too. One epoch of 816k rows is
+    # iteration 2,128 at global batch 384, so a 5,000-iteration run has to
+    # be handed its epochs up front or it stops a little over a third of
+    # the way in.
+    needed = int(args.train_iters) * int(args.global_batch_size)
+    epochs = -(-needed // max(1, len(train_rows))) + 1
+    runtime.print_rank_0(
+        f"omni warmup: {needed} train samples wanted from {len(train_rows)}"
+        f" rows -> {epochs} epochs"
+    )
     return (
-        build(train_rows, args.omni_seed),
+        build(train_rows, args.omni_seed, epochs=epochs),
         build(dev_rows, args.omni_seed + 1, truncate_to=per_eval, repeat=evaluations),
         None,
     )

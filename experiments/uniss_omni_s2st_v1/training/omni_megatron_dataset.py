@@ -14,12 +14,16 @@ length-homogeneous while leaving the order random. This relies on the
 sampler handing out contiguous, micro-batch-aligned ranges, which
 ``MegatronPretrainingSampler`` (``--dataloader-type single``) does.
 
-``--dataloader-type single`` also means the validation iterator is a single
-pass: Megatron builds it once, and the second evaluation finds it empty.
+``--dataloader-type single`` means both iterators are single-pass. The
+training set runs out after one epoch -- at global batch 384 that is
+iteration 2,128 of 5,000 -- and the validation set after the first
+evaluation. Megatron builds each once and never restarts it.
 Rather than switching to ``cyclic``, which reshuffles and so throws the
-bucketing away, the validation set is truncated to exactly one evaluation's
-worth of rows and repeated. Every evaluation then scores the *same*
-utterances -- which is what makes the points on a curve comparable at all.
+bucketing away, both are made long enough up front: the training set is
+concatenated over as many epochs as the run consumes, and the validation
+set is truncated to exactly one evaluation's worth of rows and repeated.
+Every evaluation then scores the *same* utterances -- which is what makes
+the points on a curve comparable at all.
 """
 
 from __future__ import annotations
@@ -59,12 +63,23 @@ class OmniTtsDataset(Dataset):
         bucket: bool = True,
         truncate_to: int | None = None,
         repeat: int = 1,
+        epochs: int = 1,
     ):
         if not rows:
             raise ValueError("no rows")
-        self.rows = (
-            bucket_shuffle(rows, micro_batch=micro_batch, seed=seed) if bucket else list(rows)
-        )
+        if epochs < 1:
+            raise ValueError("epochs must be positive")
+        if bucket:
+            # One bucket shuffle per epoch, each with its own seed: the
+            # batches stay length-homogeneous while no two passes present
+            # them in the same order.
+            self.rows = [
+                row
+                for epoch in range(epochs)
+                for row in bucket_shuffle(rows, micro_batch=micro_batch, seed=seed + epoch)
+            ]
+        else:
+            self.rows = list(rows) * epochs
         if truncate_to is not None:
             if truncate_to > len(self.rows):
                 raise ValueError(

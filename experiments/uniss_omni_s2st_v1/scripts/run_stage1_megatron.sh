@@ -34,6 +34,13 @@ MIN_LR="${MIN_LR:-2e-6}"
 ROWS_PER_SHARD="${ROWS_PER_SHARD:-0}"
 EXTRA=()
 [[ -n "${EXIT_INTERVAL:-}" ]] && EXTRA+=(--exit-interval "${EXIT_INTERVAL}")
+# Resume if this save directory already holds a checkpoint. Megatron then
+# restores the optimiser, the LR schedule and consumed_train_samples, so an
+# interrupted run continues rather than restarting from zero.
+if [[ -s "${SAVE_DIR}/latest_checkpointed_iteration.txt" ]]; then
+  EXTRA+=(--load "${SAVE_DIR}")
+  echo "resuming from iteration $(cat "${SAVE_DIR}/latest_checkpointed_iteration.txt")"
+fi
 
 SHARDS=(train-00001.parquet train-00004.parquet train-00013.parquet train-00030.parquet
         train-00040.parquet train-00067.parquet train-00070.parquet train-00124.parquet
