@@ -50,7 +50,8 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
     """Teacher-forced code cross-entropy, with the Thinker held frozen."""
 
     def __init__(self, config, *, model_path: str, head_scale: float,
-                 embed_scale: float, seed: int, global_prefix: bool = False):
+                 embed_scale: float, seed: int, global_prefix: bool = False,
+                 init_from_uniss: str | None = None):
         super().__init__(config)
         from transformers import Qwen2_5OmniForConditionalGeneration
 
@@ -66,6 +67,18 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
         retarget_talker_codebook(
             omni.talker, seed=seed, head_scale=head_scale, embed_scale=embed_scale
         )
+        self.transfer_report = None
+        if init_from_uniss:
+            # Seeds the layers and the code head from a shape-identical
+            # model that already emits BiCodec codes, after the re-draw so
+            # the rows it does not cover keep a sane scale.
+            from experiments.uniss_omni_s2st_v1.modeling.talker_transfer import (
+                transfer_into_talker,
+            )
+
+            self.transfer_report = transfer_into_talker(
+                omni.talker, init_from_uniss, code_size=self.layout.code_size
+            )
 
         # Assigned through __setattr__ so HuggingFaceModule tags every
         # parameter for the cross-TP gradient all-reduce it needs.

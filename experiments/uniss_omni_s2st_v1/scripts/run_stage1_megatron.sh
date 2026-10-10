@@ -19,8 +19,9 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
-DEV=/opt/dlami/nvme/jasonleeeli/CVSS/tokenized/cvss_t_zh_en_dev_v1
-SUBSET=/opt/dlami/nvme/jasonleeeli/CVSS/manifests/cvss_t_zh_en_dev_v1/cvss_t_zh_en_dev_subset1000.jsonl
+# In-project copies: this filesystem is the NVMe the work is meant to stay on.
+DEV="${DEV:-${REPO_ROOT}/data/cvss_t/tokenized/cvss_t_zh_en_dev_v1}"
+SUBSET="${SUBSET:-${REPO_ROOT}/data/cvss_t/manifests/cvss_t_zh_en_dev_v1/cvss_t_zh_en_dev_subset1000.jsonl}"
 SAVE_DIR="${SAVE_DIR:-${REPO_ROOT}/checkpoints/uniss_omni_s2st_v1/stage1_megatron}"
 TB_DIR="${TB_DIR:-${REPO_ROOT}/runs/uniss_omni_s2st_v1/stage1_megatron}"
 
@@ -35,6 +36,7 @@ ROWS_PER_SHARD="${ROWS_PER_SHARD:-0}"
 EXTRA=()
 [[ -n "${EXIT_INTERVAL:-}" ]] && EXTRA+=(--exit-interval "${EXIT_INTERVAL}")
 [[ "${GLOBAL_PREFIX:-0}" == "1" ]] && EXTRA+=(--omni-global-prefix)
+[[ -n "${INIT_FROM_UNISS:-}" ]] && EXTRA+=(--omni-init-from-uniss "${INIT_FROM_UNISS}")
 # Resume if this save directory already holds a checkpoint. Megatron then
 # restores the optimiser, the LR schedule and consumed_train_samples, so an
 # interrupted run continues rather than restarting from zero.

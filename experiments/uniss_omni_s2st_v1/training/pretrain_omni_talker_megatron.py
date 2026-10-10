@@ -65,6 +65,9 @@ def add_omni_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     # UniSS's own TTS prompt carries the 32 bicodec_global tokens before the
     # semantic codes; off by default so the two layouts can be compared.
     group.add_argument("--omni-global-prefix", action="store_true")
+    # An exported UniSS HF checkpoint to seed the Talker's layers and code
+    # head from. Same transformer, already trained on BiCodec codes.
+    group.add_argument("--omni-init-from-uniss", type=str, default=None)
     return parser
 
 
@@ -100,6 +103,7 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
         embed_scale=args.omni_embed_scale,
         seed=args.omni_seed,
         global_prefix=bool(args.omni_global_prefix),
+        init_from_uniss=args.omni_init_from_uniss,
     )
     _MODEL = model
     if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
@@ -114,6 +118,7 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
                     "head_scale": args.omni_head_scale,
                     "embed_scale": args.omni_embed_scale,
                     "global_prefix": bool(args.omni_global_prefix),
+                    "transfer": model.transfer_report,
                 },
                 sort_keys=True,
             ),
