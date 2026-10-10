@@ -71,6 +71,7 @@ mkdir -p "${SAVE_DIR}" "${TB_DIR}"
   --omni-rows-per-shard "${ROWS_PER_SHARD}" \
   --omni-head-scale "${HEAD_SCALE:-0.1}" \
   --omni-max-text-tokens "${MAX_TEXT_TOKENS:-256}" \
+  --omni-bucket-scope "${BUCKET_SCOPE:-micro}" \
   --omni-embed-scale "${EMBED_SCALE:-1.0}" \
   --tokenizer-type NullTokenizer \
   --vocab-size 8448 \

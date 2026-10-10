@@ -63,6 +63,16 @@ def add_omni_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     # lands in an ordinary batch. The p99 is 41 tokens; 256 discards two
     # rows in 16.18M and removes a reproducible OOM.
     group.add_argument("--omni-max-text-tokens", type=int, default=256)
+    # Chunk size for the length buckets. The global batch keeps every rank
+    # in a step on one bucket, which lifted utilisation from 62% to ~95%
+    # and cut the step from 502 ms to 316 -- but it also makes all 384 rows
+    # in an optimiser step nearly the same length, and dev sat ~0.19 worse
+    # for six consecutive evaluations after the switch. Defaulting back to
+    # the micro-batch, which produced the 6.855 plateau; "global" is there
+    # to re-measure the trade rather than argue about it.
+    group.add_argument(
+        "--omni-bucket-scope", choices=("micro", "global"), default="micro"
+    )
     group.add_argument("--omni-head-scale", type=float, default=0.1)
     group.add_argument("--omni-embed-scale", type=float, default=1.0)
     group.add_argument("--omni-seed", type=int, default=20261009)
@@ -226,10 +236,11 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             pad_id=model.talker.codec_pad_token,
             eos_id=model.layout.special_ids["eos"],
             text_pad_id=processor.tokenizer.pad_token_id or 0,
-            # The global batch, not the micro-batch: a step's eight ranks
-            # must draw from one bucket or they wait on each other at the
-            # gradient all-reduce.
-            micro_batch=int(args.global_batch_size),
+            micro_batch=(
+                int(args.global_batch_size)
+                if args.omni_bucket_scope == "global"
+                else int(args.micro_batch_size)
+            ),
             seed=seed,
             max_text_tokens=int(args.omni_max_text_tokens),
             **kwargs,

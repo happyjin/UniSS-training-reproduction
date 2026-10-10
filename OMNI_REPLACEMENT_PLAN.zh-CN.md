@@ -204,9 +204,30 @@ Stage 1  Talker warmup                                  【抄 SimulS2ST-Omni】
 Stage 2  联合预训练                                      【混合配方】
     Thinker 与 Talker 各挂 LoRA;音频编码器保持冻结。
     混合比以论文的 ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5 为起点,
-    ⚠ 但保留 UniSS 的 Quality / Performance 双模式任务定义 ——
-      论文配方里没有 Q/P,照抄会丢掉我们 Q 比 P 高 3.57–5.06 BLEU 的能力。
+    其中 S2ST 那一份**只用 Quality,不要 Performance**(2026-10-10 决定,理由见下)。
     验收:CVSS-T Text-BLEU > 24.15 / 15.33。
+
+    ── 只保留 Quality 的依据 ────────────────────────────────────
+    Q 与 P 都是**离线**模式,区别只在目标序列的构成,与流式无关:
+        Quality      (SLOW_MODE)     转写 → 译文 → 语义码
+        Performance  (BALANCE_MODE)  译文 → 语义码(跳过转写)
+
+    1. Q 实测更好。项目自己的 UniST test 全量(n=14,232 / 9,110):
+           eng→cmn  ASR-BLEU   quality 46.31   performance 39.00   (+7.31)
+           cmn→eng  ASR-BLEU   quality  1.75   performance  1.48   (该方向两者皆坏)
+    2. 项目自己的流式线早已 quality-first。
+       experiments/uniss_phase3_v4_quality_first_true_streaming_pilot15_v1..v9
+       与 uniss_stagea_quality_first_joint_grpo_v1 全部如此,
+       same_prefix_teacher.py 用的是 TOKEN_SLOW_MODE。
+       用 performance 的 subsecond_v2 是更早的一条线。
+    3. 去掉 P 不影响流式。流式是 Stage 3 的块轨迹,与 Q/P 正交;
+       P 省下的只是首声延迟,而块轨迹已在更低层面解决延迟。
+    4. Omni 具备 ASR,Quality 的转写段可行 —— 实测中文源语音字错率约 9.9%
+       (6 条 CVSS-T dev,两条完全正确,错误集中在专名)。
+    5. Q/P 本来就不是 Omni 的东西。它们是 UniSS 在 180,480 词表里自定义的
+       两个控制 token;换到 Omni 后由我们自己定义,少定义一个没有兼容负担。
+
+    P 的配额并入 Quality。
 
 Stage 3  流式轨迹微调                                    【抄 SimulS2ST-Omni】
     合并 Stage-2 adapter,挂新 LoRA,冻结 embedding 与预测头,
@@ -272,7 +293,10 @@ Stage 3  流式轨迹微调                                    【抄 SimulS2ST-
 2. **BiCodec 与 Omni Talker 的架构匹配** —— 论文换的是 DualCodec,我们的码本更小(8,192 vs 16,384),
    理论上更容易,但需第 2 步验证;
 3. **流式成果作废** —— 已接受,现有检查点与报告保留不动;
-4. **Q/P 双模式** —— 论文配方里没有,Stage 2 必须自己保住;
+4. ~~**Q/P 双模式**~~ —— **已决定只保留 Quality**(2026-10-10)。Q 在项目自己的
+   全量测试上比 P 高 7.31 ASR-BLEU,项目的流式线 v1..v9 本就是 quality-first,
+   且 Q/P 与流式正交 —— 去掉 P 只放弃首声延迟的捷径,而那由 Stage 3 的块轨迹解决。
+   详见 Stage 2 条目下的依据。
 5. **磁盘** —— 余量 2.4 TB;先拉 10 个 shard 约 101 GB(~2,000 小时),不必落地全量 2.01 TiB。
 6. **许可** —— 该数据集标注 **CC-BY-NC-4.0(非商用)**,任何对外发布前须确认合规。
 
