@@ -79,6 +79,7 @@ class OmniTtsDataset(Dataset):
         truncate_to: int | None = None,
         repeat: int = 1,
         epochs: int = 1,
+        max_text_tokens: int = 0,
     ):
         if not len(rows):
             raise ValueError("no rows")
@@ -90,8 +91,29 @@ class OmniTtsDataset(Dataset):
 
         if hasattr(rows, "code_lengths"):
             lengths = rows.code_lengths()
+            text = rows.text_lengths() if hasattr(rows, "text_lengths") else None
         else:
             lengths = np.asarray([len(row["codes"]) for row in rows])
+            text = np.asarray(
+                [len(row["prompt_ids"]) + len(row["reply_ids"]) for row in rows]
+            )
+
+        # Buckets are built from code length, so a row whose *text* is
+        # pathological lands in an ordinary batch and takes it down: 2 of
+        # 16.18M rows carry 2,000 reply tokens against a median of 14, and
+        # one of them put a 4,054-token sequence in a 48-row batch, which
+        # is a 47 GiB attention allocation and a hard OOM at the same
+        # iteration every run.
+        self.dropped_long_text = 0
+        if max_text_tokens and text is not None:
+            keep = np.flatnonzero(text <= max_text_tokens)
+            self.dropped_long_text = int(len(text) - keep.size)
+            if keep.size == 0:
+                raise ValueError(
+                    f"max_text_tokens={max_text_tokens} discards every row"
+                )
+        else:
+            keep = None
 
         if truncate_to is not None:
             if truncate_to > len(rows):
@@ -100,15 +122,24 @@ class OmniTtsDataset(Dataset):
                     f" {len(rows)} are available"
                 )
 
+        if keep is not None:
+            lengths_for_order = lengths[keep]
+        else:
+            lengths_for_order = lengths
+
         orders = []
         for epoch in range(epochs):
             if bucket:
                 # One bucket shuffle per epoch, each with its own seed: the
                 # batches stay length-homogeneous while no two passes
                 # present them in the same order.
-                order = bucket_order(lengths, micro_batch=micro_batch, seed=seed + epoch)
+                order = bucket_order(
+                    lengths_for_order, micro_batch=micro_batch, seed=seed + epoch
+                )
             else:
-                order = np.arange(len(rows))
+                order = np.arange(lengths_for_order.size)
+            if keep is not None:
+                order = keep[order]
             if truncate_to is not None:
                 order = order[:truncate_to]
             orders.append(order)

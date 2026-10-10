@@ -209,3 +209,7 @@ class CachedTtsCorpus:
 
     def code_lengths(self) -> np.ndarray:
         return np.diff(self.code_offsets)
+
+    def text_lengths(self) -> np.ndarray:
+        """Prompt plus reply tokens, which is what the Thinker attends over."""
+        return np.diff(self.prompt_offsets) + np.diff(self.reply_offsets)

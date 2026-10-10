@@ -59,6 +59,10 @@ def add_omni_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument("--omni-dev-subset", type=str, required=True)
     group.add_argument("--omni-rows-per-shard", type=int, default=0)
     group.add_argument("--omni-max-codes", type=int, default=600)
+    # Buckets come from code length, so a row with pathological *text*
+    # lands in an ordinary batch. The p99 is 41 tokens; 256 discards two
+    # rows in 16.18M and removes a reproducible OOM.
+    group.add_argument("--omni-max-text-tokens", type=int, default=256)
     group.add_argument("--omni-head-scale", type=float, default=0.1)
     group.add_argument("--omni-embed-scale", type=float, default=1.0)
     group.add_argument("--omni-seed", type=int, default=20261009)
@@ -224,6 +228,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             text_pad_id=processor.tokenizer.pad_token_id or 0,
             micro_batch=int(args.micro_batch_size),
             seed=seed,
+            max_text_tokens=int(args.omni_max_text_tokens),
             **kwargs,
         )
 
@@ -243,8 +248,14 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         f"omni warmup: {needed} train samples wanted from {len(train_rows)}"
         f" rows -> {epochs} epochs"
     )
+    train_dataset = build(train_rows, args.omni_seed, epochs=epochs)
+    if getattr(train_dataset, "dropped_long_text", 0):
+        runtime.print_rank_0(
+            f"omni warmup: dropped {train_dataset.dropped_long_text} rows over"
+            f" {args.omni_max_text_tokens} text tokens"
+        )
     return (
-        build(train_rows, args.omni_seed, epochs=epochs),
+        train_dataset,
         build(dev_rows, args.omni_seed + 1, truncate_to=per_eval, repeat=evaluations),
         None,
     )
