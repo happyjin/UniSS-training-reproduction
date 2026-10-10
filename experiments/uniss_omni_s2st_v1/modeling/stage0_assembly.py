@@ -143,3 +143,44 @@ def reply_token_span(
 ) -> slice:
     """Positions of the gold reply inside a teacher-forced Thinker forward."""
     return slice(prompt_length, prompt_length + reply_length)
+
+
+def build_text_stream_batched(
+    reply_hidden: torch.Tensor,
+    reply_embeds: torch.Tensor,
+    reply_lengths: torch.Tensor,
+    *,
+    steps: int,
+    eos_embed: torch.Tensor,
+    pad_embed: torch.Tensor,
+) -> torch.Tensor:
+    """``build_text_stream`` for a whole batch, with no host synchronisation.
+
+    The per-row form needs each row's own text length, and reading it as a
+    Python int (``int(mask[row].sum())``) synchronises the device. Done
+    once per row per micro-batch that drains the pipeline forty-eight times
+    a step, which is most of the gap between 62% and full utilisation.
+
+    Here the lengths stay on the device and the layout is expressed as a
+    gather plus two selects: positions below a row's length take its text,
+    the position at its length takes eos, everything beyond takes pad.
+    """
+    if reply_hidden.shape != reply_embeds.shape:
+        raise ValueError(
+            f"hidden {tuple(reply_hidden.shape)} and embeds"
+            f" {tuple(reply_embeds.shape)} must agree"
+        )
+    batch, width, dim = reply_hidden.shape
+    stream = reply_hidden + reply_embeds
+    device = stream.device
+
+    positions = torch.arange(steps, device=device)
+    index = positions.clamp(max=max(0, width - 1)).view(1, steps, 1).expand(batch, steps, dim)
+    gathered = stream.gather(1, index)
+
+    lengths = reply_lengths.view(batch, 1).to(device)
+    grid = positions.view(1, steps)
+    in_text = (grid < lengths).unsqueeze(-1)
+    at_eos = (grid == lengths).unsqueeze(-1)
+    tail = torch.where(at_eos, eos_embed.to(stream.dtype), pad_embed.to(stream.dtype))
+    return torch.where(in_text, gathered, tail)

@@ -8,6 +8,7 @@ import torch
 from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import (
     build_codec_sequence,
     build_text_stream,
+    build_text_stream_batched,
     prefix_labels,
     prefix_mask,
 )
@@ -112,3 +113,44 @@ def test_prefix_helpers_keep_the_batch():
     labels = torch.tensor([[5], [6], [7]])
     assert prefix_labels(labels, 4).shape == (3, 5)
     assert prefix_mask(torch.ones(3, 1, dtype=torch.long), 4).shape == (3, 5)
+
+
+def test_batched_text_stream_matches_the_per_row_form():
+    """The vectorised builder exists for speed; it must not change values."""
+    torch.manual_seed(0)
+    batch, width, dim, steps = 6, 7, 4, 20
+    hidden = torch.randn(batch, width, dim)
+    embeds = torch.randn(batch, width, dim)
+    eos = torch.randn(1, 1, dim)
+    pad = torch.randn(1, 1, dim)
+    lengths = torch.tensor([1, 3, 7, 2, 5, 7])
+    reference = torch.cat(
+        [
+            build_text_stream(
+                hidden[i : i + 1, : int(lengths[i])],
+                embeds[i : i + 1, : int(lengths[i])],
+                steps=steps, eos_embed=eos, pad_embed=pad,
+            )
+            for i in range(batch)
+        ],
+        dim=0,
+    )
+    assert torch.allclose(
+        reference,
+        build_text_stream_batched(
+            hidden, embeds, lengths, steps=steps, eos_embed=eos, pad_embed=pad
+        ),
+        atol=1e-6,
+    )
+
+
+def test_batched_form_also_truncates_when_steps_is_short():
+    hidden = torch.ones(2, 5, 3)
+    embeds = torch.ones(2, 5, 3) * 2
+    lengths = torch.tensor([5, 4])
+    out = build_text_stream_batched(
+        hidden, embeds, lengths, steps=3,
+        eos_embed=torch.full((1, 1, 3), 9.0), pad_embed=torch.full((1, 1, 3), 7.0),
+    )
+    assert out.shape == (2, 3, 3)
+    assert out[0, :, 0].tolist() == [3.0, 3.0, 3.0]

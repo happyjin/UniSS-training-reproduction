@@ -32,7 +32,7 @@ import torch.nn.functional as F
 from megatron.core.models.huggingface import HuggingFaceModule
 
 from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import (
-    build_text_stream,
+    build_text_stream_batched,
     prefix_labels,
     prefix_mask,
 )
@@ -162,22 +162,20 @@ class OmniTalkerWarmupModel(HuggingFaceModule):
             raise ValueError("global_prefix is on but the batch has no bicodec_global")
 
         steps = codec_input_ids.shape[1] + prefix_width
-        # Each row's stream must run out at its own reply length. Padded to
+        # Each row's stream runs out at its own reply length -- padded to
         # the batch width, a short reply would be conditioned on a longer
-        # neighbour's pad embeddings.
-        streams = []
-        for row in range(hidden.shape[0]):
-            length = int(reply_mask[row].sum())
-            streams.append(
-                build_text_stream(
-                    hidden[row : row + 1, :length].float(),
-                    embeds[row : row + 1, :length].float(),
-                    steps=steps,
-                    eos_embed=eos_embed.float(),
-                    pad_embed=pad_embed.float(),
-                )
-            )
-        text_stream = torch.cat(streams, dim=0).to(dtype=hidden.dtype)
+        # neighbour's pad embeddings. Built for the whole batch at once:
+        # the per-row form read each length back as a Python int, which
+        # synchronises the device once per row per micro-batch and is most
+        # of the gap between 62% utilisation and full.
+        text_stream = build_text_stream_batched(
+            hidden.float(),
+            embeds.float(),
+            reply_mask.sum(dim=1),
+            steps=steps,
+            eos_embed=eos_embed.float(),
+            pad_embed=pad_embed.float(),
+        ).to(dtype=hidden.dtype)
 
         codec_embeds = self.talker.get_input_embeddings()(codec_input_ids)
         if self.global_prefix:
