@@ -9,10 +9,17 @@ saturating the GPUs rather than something buried in the dataset.
 Rows are bucket-shuffled rather than plain-shuffled: utterances carry 4 to
 600 codes, and a micro-batch drawn uniformly pads to its longest member, so
 most of the batch would be padding. Sorting by code length, cutting into
-micro-batch-sized chunks and shuffling the *chunks* keeps each batch
-length-homogeneous while leaving the order random. This relies on the
-sampler handing out contiguous, micro-batch-aligned ranges, which
-``MegatronPretrainingSampler`` (``--dataloader-type single``) does.
+chunks and shuffling the *chunks* keeps each batch length-homogeneous while
+leaving the order random. This relies on the sampler handing out
+contiguous, aligned ranges, which ``MegatronPretrainingSampler``
+(``--dataloader-type single``) does.
+
+The chunk is the **global** batch, not the micro-batch. Megatron splits one
+global batch across the ranks, so micro-batch-sized chunks put eight
+unrelated buckets in the same step: one rank gets 600-code rows while
+another gets 50, and because the gradient all-reduce is a barrier the seven
+fast ranks wait on the slow one. Measured before the change, utilisation
+swung between 44% and 90% and averaged 62%.
 
 ``--dataloader-type single`` means both iterators are single-pass. The
 training set runs out after one epoch -- at global batch 384 that is
@@ -39,7 +46,11 @@ from experiments.uniss_omni_s2st_v1.training.tts_data import build_thinker_batch
 def bucket_order(
     code_lengths: np.ndarray, *, micro_batch: int, seed: int
 ) -> np.ndarray:
-    """Sort by code length, then shuffle whole micro-batch-sized chunks.
+    """Sort by code length, then shuffle whole chunks of ``micro_batch`` rows.
+
+    Pass the *global* batch size: every rank in a step then draws from the
+    same bucket, so none of them waits at the all-reduce for a neighbour
+    that happened to get longer utterances.
 
     Returns a permutation of row indices rather than the rows themselves:
     at 17M utterances, materialising them would cost more than the model.

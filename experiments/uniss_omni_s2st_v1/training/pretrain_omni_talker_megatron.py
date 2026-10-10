@@ -226,7 +226,10 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
             pad_id=model.talker.codec_pad_token,
             eos_id=model.layout.special_ids["eos"],
             text_pad_id=processor.tokenizer.pad_token_id or 0,
-            micro_batch=int(args.micro_batch_size),
+            # The global batch, not the micro-batch: a step's eight ranks
+            # must draw from one bucket or they wait on each other at the
+            # gradient all-reduce.
+            micro_batch=int(args.global_batch_size),
             seed=seed,
             max_text_tokens=int(args.omni_max_text_tokens),
             **kwargs,
