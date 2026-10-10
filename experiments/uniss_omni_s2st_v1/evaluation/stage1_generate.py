@@ -55,6 +55,8 @@ def generate_codes(
     output_mask,
     device,
     max_steps: int = 600,
+    global_embed=None,
+    bicodec_global=None,
     temperature: float = 0.9,
     top_k: int = 40,
     top_p: float = 0.8,
@@ -86,21 +88,40 @@ def generate_codes(
     pad_embed = thinker.get_input_embeddings()(
         torch.tensor([[talker.text_pad_token]], device=device)
     )
+    # The prefix consumes the first text hidden states, exactly as it does
+    # in training: there the stream is built for prefix + codes together,
+    # so starting the code loop at stream position 0 would feed every step
+    # the text of the step before it.
+    prefix_width = 0 if global_embed is None else int(bicodec_global.shape[-1])
     text_stream = build_text_stream(
         hidden.float(), embeds.float(),
-        steps=max_steps, eos_embed=eos_embed.float(), pad_embed=pad_embed.float(),
+        steps=max_steps + prefix_width,
+        eos_embed=eos_embed.float(), pad_embed=pad_embed.float(),
     ).to(dtype=hidden.dtype)
 
     codes: list[int] = []
-    current = torch.tensor([[talker.codec_bos_token]], device=device)
     past = None
+    if prefix_width:
+        prefix = global_embed(bicodec_global.to(device).view(1, -1))
+        lm_input = talker.thinker_to_talker_proj(
+            prefix + text_stream[:, :prefix_width, :]
+        )
+        positions = (
+            torch.arange(prefix_width, device=device).view(1, 1, -1).expand(3, 1, -1)
+        )
+        past = talker.model(
+            inputs_embeds=lm_input, position_ids=positions,
+            use_cache=True, return_dict=True,
+        ).past_key_values
+    current = torch.tensor([[talker.codec_bos_token]], device=device)
     generator = torch.Generator(device=device).manual_seed(seed)
     for step in range(max_steps):
         codec_embed = talker.get_input_embeddings()(current)
+        offset = prefix_width + step
         lm_input = talker.thinker_to_talker_proj(
-            codec_embed + text_stream[:, step : step + 1, :]
+            codec_embed + text_stream[:, offset : offset + 1, :]
         )
-        position = torch.tensor([[[step]]], device=device).expand(3, 1, 1)
+        position = torch.tensor([[[offset]]], device=device).expand(3, 1, 1)
         result = talker.model(
             inputs_embeds=lm_input,
             position_ids=position,
@@ -158,6 +179,7 @@ def main() -> None:
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--num-shards", type=int, default=1)
     ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--no-global-prefix", action="store_true")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
 
@@ -199,6 +221,16 @@ def main() -> None:
     retarget_talker_codebook(model.talker, head_scale=0.1)
     state = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     missing, unexpected = model.talker.load_state_dict(state["talker"], strict=False)
+    global_embed = None
+    if state.get("global_embed") is not None and not args.no_global_prefix:
+        weight = state["global_embed"]
+        global_embed = torch.nn.Embedding(weight.shape[0], weight.shape[1])
+        with torch.no_grad():
+            global_embed.weight.copy_(weight)
+        global_embed = global_embed.to(device=model.device, dtype=weight.dtype)
+        print(f"speaker prefix: {tuple(weight.shape)}", flush=True)
+    elif state.get("global_embed") is None:
+        print("checkpoint carries no speaker prefix", flush=True)
     print(
         f"loaded step {state.get('step')}:"
         f" {len(missing)} missing, {len(unexpected)} unexpected",
