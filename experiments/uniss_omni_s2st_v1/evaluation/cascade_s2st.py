@@ -85,7 +85,8 @@ def main() -> None:
     ap.add_argument("--model", default="pretrained_models/Qwen2.5-Omni-3B")
     ap.add_argument("--checkpoint", required=True)
     ap.add_argument("--dev-parquet", nargs="+", required=True)
-    ap.add_argument("--subset", required=True)
+    ap.add_argument("--subset", default=None,
+                    help="restrict to the ids in this manifest; omit for the whole split")
     ap.add_argument("--speech-tokenizer", default="pretrained_models/UniSS")
     ap.add_argument("--limit", type=int, default=24)
     ap.add_argument("--shard", type=int, default=0)
@@ -102,11 +103,13 @@ def main() -> None:
     from transformers import Qwen2_5OmniForConditionalGeneration
     from uniss import UniSSTokenizer
 
-    wanted = {
-        json.loads(line)["id"]
-        for line in Path(args.subset).read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    }
+    wanted = None
+    if args.subset:
+        wanted = {
+            json.loads(line)["id"]
+            for line in Path(args.subset).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
     rows = []
     for path in args.dev_parquet:
         table = pq.read_table(
@@ -114,9 +117,13 @@ def main() -> None:
             columns=[
                 "id", "translation", "transcription", "src_lang", "tgt_lang",
                 "bicodec_global", "target_bicodec", "source_audio_path",
+                "reference_audio_path", "synthetic_source", "synthetic_reference",
+                "source_audio_duration_seconds", "reference_audio_duration_seconds",
             ],
         )
-        rows.extend(r for r in table.to_pylist() if r["id"] in wanted)
+        rows.extend(
+            r for r in table.to_pylist() if wanted is None or r["id"] in wanted
+        )
     rows.sort(key=lambda r: (r["id"], r["tgt_lang"]))
     if args.limit:
         rows = rows[: args.limit]
@@ -180,12 +187,23 @@ def main() -> None:
         records.append(
             {
                 "index": index, "name": name, "id": row["id"],
+                # The repo's metric scripts read this schema.
+                "mode": "tts",
                 "src_lang": row["src_lang"], "tgt_lang": row["tgt_lang"],
+                "dataset_name": "CVSS-T",
+                "transcription_ref": row["transcription"],
+                "translation_ref": row["translation"],
+                "generated_text_raw": "", "generated_text_clean": "",
                 "source_audio_path": row["source_audio_path"],
+                "reference_audio_path": row["reference_audio_path"],
+                "source_audio_duration_seconds": row["source_audio_duration_seconds"],
+                "reference_audio_duration_seconds": row["reference_audio_duration_seconds"],
+                "synthetic_source": bool(row["synthetic_source"]),
+                "synthetic_reference": bool(row["synthetic_reference"]),
                 "reference_text": row["translation"],
                 "translated_text": hypothesis,
                 "codes": len(codes), "gold_codes": len(row["target_bicodec"]),
-                "audio_path": audio_path,
+                "audio_path": audio_path, "error": None,
             }
         )
         print(f"  {name}  译文: {hypothesis[:48]}", flush=True)

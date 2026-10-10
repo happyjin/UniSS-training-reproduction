@@ -178,6 +178,7 @@ run_autopcp_shards() {
       --input "${RESULTS_PATH}" \
       --output-dir "${part_dir}" \
       --comparator-path "${AUTOPCP_COMPARATOR}" \
+      --encoder-model "${AUTOPCP_ENCODER:-${MODEL_ROOT}/wav2vec2-large-xlsr-53}" \
       --device cuda:0 \
       --pick-layer 9 \
       --symmetrize \
