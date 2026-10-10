@@ -57,6 +57,8 @@ def generate_codes(
     max_steps: int = 600,
     global_embed=None,
     bicodec_global=None,
+    min_codes: int = 0,
+    trace_eos: bool = False,
     temperature: float = 0.9,
     top_k: int = 40,
     top_p: float = 0.8,
@@ -133,6 +135,21 @@ def generate_codes(
         logits = apply_output_mask(
             talker.codec_head(result.last_hidden_state[:, -1, :]), output_mask
         ).float()
+        eos_id = layout.special_ids["eos"]
+        if trace_eos and step < 12:
+            probs = logits.softmax(dim=-1)[0]
+            top = probs.topk(3)
+            print(
+                f"      step {step:>3}  P(eos)={float(probs[eos_id]):.4f}"
+                f"  top3={[(int(i), round(float(v), 4)) for v, i in zip(*top)]}",
+                flush=True,
+            )
+        if step < min_codes:
+            # Teacher forcing puts P(eos) at 0.000 everywhere until the true
+            # end, so an early stop here is drift rather than a decision.
+            # Holding eos back for a floor measures how much of the collapse
+            # it accounts for.
+            logits[0, eos_id] = torch.finfo(logits.dtype).min
         if repetition_penalty != 1.0 and codes:
             seen = torch.tensor(sorted(set(codes)), device=device)
             picked = logits[0, seen]
@@ -157,7 +174,7 @@ def generate_codes(
             token = int(
                 torch.multinomial(scaled.softmax(dim=-1), 1, generator=generator)
             )
-        if token == layout.special_ids["eos"]:
+        if token == eos_id:
             break
         codes.append(token)
         current = torch.tensor([[token]], device=device)
@@ -180,6 +197,8 @@ def main() -> None:
     ap.add_argument("--num-shards", type=int, default=1)
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--no-global-prefix", action="store_true")
+    ap.add_argument("--min-codes", type=int, default=0)
+    ap.add_argument("--trace-eos", action="store_true")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
 
@@ -238,6 +257,12 @@ def main() -> None:
     )
     model.eval()
     output_mask = valid_output_mask(layout, device=model.device)
+    if state.get("global_embed") is not None and global_embed is None:
+        # Only --no-global-prefix may drop it. Loading the prefix and then
+        # not passing it is how the last run decoded without the
+        # conditioning it was trained with, and nothing said so.
+        if not args.no_global_prefix:
+            raise SystemExit("the speaker prefix was loaded but not wired in")
 
     out_dir = Path(args.output)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -250,6 +275,14 @@ def main() -> None:
                 max_steps=args.max_steps, temperature=args.temperature,
                 top_k=args.top_k, top_p=args.top_p,
                 repetition_penalty=args.repetition_penalty,
+                min_codes=args.min_codes,
+                trace_eos=args.trace_eos,
+                global_embed=global_embed,
+                bicodec_global=(
+                    None
+                    if global_embed is None
+                    else torch.as_tensor(record["bicodec_global"], dtype=torch.long)
+                ),
             )
             gold = list(record["target_bicodec"])
             handle.write(
