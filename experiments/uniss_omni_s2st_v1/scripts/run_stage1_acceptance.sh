@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Stage 1 acceptance: generate codes, decode them, score the audio.
 #
+# Sampled decoding, not greedy. Omni's Talker declares do_sample=True with
+# top-k 40, top-p 0.8 and temperature 0.9 in its own generate(), and greedy
+# decoding of this codec LM degenerates: measured at iteration 12,000, six
+# of twelve utterances fell into a 1-to-4 code cycle and ran to the length
+# cap, while sampling produced none.
+#
 # Generation and decoding shard across 8 GPUs; scoring reuses the project's
 # own run_objective_metrics.sh so the numbers are comparable to every
 # published figure rather than produced by a parallel implementation.
@@ -28,6 +34,9 @@ for i in 0 1 2 3 4 5 6 7; do
     --checkpoint "${CKPT}" \
     --dev-parquet "${DEV}/cvss_t_zh_en_dev.parquet" "${DEV}/cvss_t_en_zh_dev.parquet" \
     --subset "${SUBSET}" --limit "${LIMIT}" \
+    --temperature "${TEMPERATURE:-0.9}" \
+    --repetition-penalty "${REPETITION_PENALTY:-1.3}" \
+    --max-steps "${MAX_STEPS:-700}" \
     --shard $i --num-shards 8 --output "${OUT}" \
     > "${OUT}/logs/generate_${i}.log" 2>&1 &
 done
