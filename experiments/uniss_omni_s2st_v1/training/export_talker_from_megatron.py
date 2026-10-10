@@ -40,15 +40,22 @@ def main() -> None:
     metadata = reader.read_metadata()
     # Megatron nests the model under "model"; the wrapper's own prefix is
     # "talker." because that is the attribute name on OmniTalkerWarmupModel.
+    # Anchored at the start of the key, not matched anywhere in it. The
+    # checkpoint also holds optimizer.state.exp_avg.talker.*,
+    # exp_avg_sq.talker.* and fp32_param.talker.*, and a substring match
+    # pulls all four in -- which then collapse onto one name when the
+    # prefix is stripped, so the last one written wins. Adam's first moment
+    # is near zero, and a Talker exported with exp_avg in place of
+    # model.norm.weight predicts a constant.
     wanted = {
         key: torch.empty(
-            value.size, dtype=value.properties.dtype if hasattr(value, "properties") else torch.bfloat16
+            value.size,
+            dtype=value.properties.dtype
+            if hasattr(value, "properties")
+            else torch.bfloat16,
         )
         for key, value in metadata.state_dict_metadata.items()
-        if ".talker." in key
-        or key.startswith("talker.")
-        or ".global_embed." in key
-        or key.startswith("global_embed.")
+        if key.startswith("talker.") or key.startswith("global_embed.")
     }
     if not wanted:
         sample = list(metadata.state_dict_metadata)[:5]
@@ -59,10 +66,15 @@ def main() -> None:
     talker: dict[str, torch.Tensor] = {}
     extras: dict[str, torch.Tensor] = {}
     for key, tensor in wanted.items():
-        if "global_embed." in key:
-            extras["global_embed.weight"] = tensor
+        if key.startswith("global_embed."):
+            extras[key] = tensor
             continue
-        talker[key.split("talker.", 1)[1]] = tensor
+        stripped = key[len("talker.") :]
+        if stripped in talker:
+            raise SystemExit(
+                f"two checkpoint keys map to {stripped!r}; refusing to guess"
+            )
+        talker[stripped] = tensor
     iteration = int(source.name.split("_")[-1])
 
     out = Path(args.output)
@@ -70,6 +82,15 @@ def main() -> None:
     payload = {"talker": talker, "step": iteration, "source": str(source)}
     if extras:
         payload["global_embed"] = extras["global_embed.weight"]
+    # A trained RMSNorm sits near 1. Near zero means an optimiser moment
+    # was exported in its place, which produces a constant-output model
+    # that nothing downstream would flag.
+    norm = talker.get("model.norm.weight")
+    if norm is not None and float(norm.float().abs().mean()) < 0.01:
+        raise SystemExit(
+            f"model.norm.weight has mean |w| {float(norm.float().abs().mean()):.2e};"
+            " that is an optimiser moment, not a trained norm"
+        )
     torch.save(payload, out)
     total = sum(t.numel() for t in talker.values()) + sum(
         t.numel() for t in extras.values()
