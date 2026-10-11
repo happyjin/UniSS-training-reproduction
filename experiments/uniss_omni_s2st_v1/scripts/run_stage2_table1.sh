@@ -68,6 +68,15 @@ if [ "$STAGE" = "both" ] || [ "$STAGE" = "metrics" ]; then
     # ASR-BLEU, Text-BLEU and A.PCP, through the repo's own harness.
     EXPECTED_PAIRS=$N MODES=tts \
       bash experiments/uniss_omni_s2st_v1/scripts/run_stage1_metrics.sh "$D" "$DIR" 2>&1 | tail -6
+    # Text-BLEU. The shared harness looks for a vllm generation file and
+    # skips when there is none, which was right for Stage 1 -- a TTS task
+    # translates nothing, so there was no generated translation to score.
+    # Stage 2 produces one, and it is a Table 1 column, so it is scored
+    # here from the same results file. text_metrics reads tgt_lang and
+    # picks the zh tokenizer for Chinese targets on its own.
+    $PY -m evaluation.text_metrics \
+      --input "$D/results.jsonl" --output "$D/metrics/text_bleu.json" \
+      --hypothesis-field translated_text --reference-field translation_ref 2>&1 | tail -2
     # SIM-O is separate: the repo's speaker_similarity scores against one
     # shared reference, and the paper's definition is per utterance against
     # its own paired reference.
