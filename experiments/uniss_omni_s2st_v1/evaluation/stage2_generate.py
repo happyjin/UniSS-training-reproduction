@@ -46,15 +46,19 @@ LANG_KEY = {"eng": "en", "cmn": "zh", "en": "en", "zh": "zh"}
 def split_reply(reply: str) -> tuple[str, str]:
     """Quality mode's reply is transcript then translation, one per line.
 
-    A reply with no newline is a model that skipped the transcript; the
-    whole thing is then the translation rather than nothing.
+    Training's target is exactly ``f"{transcript}\n{translation}"`` with a
+    single-line transcript, so the translation is the second line -- not
+    the last. The two agree on a well-formed reply and disagree when the
+    model runs on, which it does: a reply cut off mid-translation came
+    back as three lines, and taking the last one scored a fragment of a
+    retry instead of the translation.
     """
     lines = [line.strip() for line in reply.splitlines() if line.strip()]
     if not lines:
         return "", ""
     if len(lines) == 1:
         return "", lines[0]
-    return "\n".join(lines[:-1]), lines[-1]
+    return lines[0], lines[1]
 
 
 @torch.no_grad()
