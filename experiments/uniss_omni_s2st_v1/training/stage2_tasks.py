@@ -120,6 +120,17 @@ def needs_audio(task: str) -> bool:
     return task in ("asr", "s2tt", "s2st")
 
 
+def uses_tts_cache(task: str) -> bool:
+    """Which pool a task draws from, which is not the same question.
+
+    MT needs no waveform but does need the source transcript and the
+    language pair, and the TTS cache carries neither -- it holds token ids
+    and codes, built so the TTS task never re-tokenises. So MT draws from
+    the manifest pool and simply does not load the audio.
+    """
+    return task == "tts"
+
+
 def supervises_text(task: str) -> bool:
     return task != "tts"
 

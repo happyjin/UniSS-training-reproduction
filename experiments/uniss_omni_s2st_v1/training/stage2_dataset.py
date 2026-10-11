@@ -50,10 +50,25 @@ class Stage2Dataset(Dataset):
         self.schedule = schedule
         self.global_batch = int(global_batch)
         rng = np.random.default_rng(seed)
-        # An independent draw per step per pool, so two steps of the same
-        # task do not see the same rows.
-        self.audio_cursor = rng.integers(0, max(1, len(corpus.audio_rows)), size=len(schedule))
-        self.text_cursor = rng.integers(0, max(1, len(corpus.text_corpus)), size=len(schedule))
+
+        # A real permutation of each pool, not a contiguous window from a
+        # random offset: manifest neighbours come from the same corpus and
+        # the same shard, so a window is a biased sample of one source.
+        self.audio_order = rng.permutation(max(1, len(corpus.audio_rows)))
+        self.text_order = rng.permutation(max(1, len(corpus.text_corpus)))
+
+        # Where each step starts in its pool, so __getitem__ stays a pure
+        # function of the index and the dataloader workers agree.
+        self.offsets: list[int] = []
+        consumed = {"audio": 0, "text": 0}
+        for task in schedule:
+            pool = "text" if stage2_tasks.uses_tts_cache(task) else "audio"
+            self.offsets.append(consumed[pool])
+            consumed[pool] += self.global_batch
+        self.epochs = {
+            "audio": consumed["audio"] / max(1, len(corpus.audio_rows)),
+            "text": consumed["text"] / max(1, len(corpus.text_corpus)),
+        }
         self.collate_fn = self.collate
 
     def __len__(self) -> int:
@@ -63,14 +78,30 @@ class Stage2Dataset(Dataset):
         step, position = divmod(index, self.global_batch)
         step = min(step, len(self.schedule) - 1)
         task = self.schedule[step]
-        if stage2_tasks.needs_audio(task):
-            row = self.corpus.audio_sample(int(self.audio_cursor[step]) + position)
-        else:
-            row = self.corpus.text_sample(int(self.text_cursor[step]) + position)
+        cursor = self.offsets[step] + position
+        if stage2_tasks.uses_tts_cache(task):
+            order = self.text_order
+            row = self.corpus.text_sample(int(order[cursor % order.size]))
+            # The cache is already tokenised; re-templating from text would
+            # need raw text it deliberately does not store.
+            return {
+                "task": task,
+                "audio": None,
+                "prompt_ids": row["prompt_ids"],
+                "reply_ids": row["reply_ids"],
+                "user_text": None,
+                "text_target": None,
+                "codes": row["codes"],
+                "globals": row["globals"],
+            }
+        order = self.audio_order
+        row = self.corpus.audio_sample(int(order[cursor % order.size]))
         sample = stage2_tasks.build(task, row)
         return {
             "task": task,
-            "audio": sample.audio_path,
+            "audio": sample.audio_path if stage2_tasks.needs_audio(task) else None,
+            "prompt_ids": None,
+            "reply_ids": None,
             "user_text": sample.user_text,
             "text_target": sample.text_target,
             "codes": sample.codes,
@@ -85,6 +116,8 @@ class Stage2Dataset(Dataset):
             "task": task,
             "user_text": [s["user_text"] for s in samples],
             "text_target": [s["text_target"] for s in samples],
+            "prompt_ids": [s["prompt_ids"] for s in samples],
+            "reply_ids": [s["reply_ids"] for s in samples],
         }
         if stage2_tasks.needs_audio(task):
             batch["waveforms"] = [self.corpus.waveform(s["audio"])[0] for s in samples]

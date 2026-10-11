@@ -73,12 +73,33 @@ class AudioTextOmniProcessor(Qwen2_5OmniProcessor):
         self.audio_eos_token = self.tokenizer.audio_eos_token
 
 
-def load_audio_text_processor(model_dir: str | Path) -> AudioTextOmniProcessor:
-    """Build the audio+text processor from the checkpoint's own components."""
+def load_audio_text_processor(
+    model_dir: str | Path, *, max_audio_seconds: float | None = None
+) -> AudioTextOmniProcessor:
+    """Build the audio+text processor from the checkpoint's own components.
+
+    ``max_audio_seconds`` shortens the mel the feature extractor pads to.
+    Qwen2.5-Omni ships ``chunk_length=300``, so every utterance -- ours
+    average about five seconds -- becomes a 300-second mel: 30,000 frames,
+    485 ms of CPU for a batch of eight, and the audio tower reading sixty
+    times more than it needs. The placeholder count is taken from
+    ``feature_attention_mask.sum(-1)``, the real length, so shortening the
+    pad does not change a single token of the prompt. Audio longer than
+    the cap is truncated, which is why this is a parameter and not a
+    constant.
+    """
     model_dir = Path(model_dir)
     tokenizer = AutoTokenizer.from_pretrained(str(model_dir))
     image_processor = Qwen2VLImageProcessor.from_pretrained(str(model_dir))
     feature_extractor = WhisperFeatureExtractor.from_pretrained(str(model_dir))
+    if max_audio_seconds:
+        feature_extractor.chunk_length = float(max_audio_seconds)
+        feature_extractor.n_samples = int(
+            max_audio_seconds * feature_extractor.sampling_rate
+        )
+        feature_extractor.nb_max_frames = (
+            feature_extractor.n_samples // feature_extractor.hop_length
+        )
     chat_template = json.loads(
         (model_dir / "chat_template.json").read_text(encoding="utf-8")
     )["chat_template"]

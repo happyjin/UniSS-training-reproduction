@@ -143,15 +143,10 @@ class Stage2Corpus:
     def text_sample(self, index: int) -> dict:
         row = self.text_corpus[index % len(self.text_corpus)]
         return {
-            "audio": None,
-            "source_transcript": "",
-            "target_text": row.get("text", ""),
-            "source_lang": row.get("lang", ""),
-            "target_lang": row.get("lang", ""),
+            "prompt_ids": row["prompt_ids"],
+            "reply_ids": row["reply_ids"],
             "codes": row["codes"],
             "globals": row["globals"],
-            "prompt_ids": row.get("prompt_ids"),
-            "reply_ids": row.get("reply_ids"),
         }
 
     def waveform(self, uri: str):
