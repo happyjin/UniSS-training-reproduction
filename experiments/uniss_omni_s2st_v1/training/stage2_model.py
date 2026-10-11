@@ -92,6 +92,15 @@ class Stage2Model(HuggingFaceModule):
             self.thinker, rank=lora_rank, alpha=lora_alpha, targets=THINKER_TARGETS
         )
         # The audio tower stays frozen even where it matched a target name.
+        # inject() walks the whole Thinker, so the audio tower gets adapters
+        # too -- and then this freezes it, so their B stays at zero and they
+        # are exact identities for the whole run. Measured at iteration 500:
+        # 144 of 240 B matrices had moved, the 144 being the text LM's.
+        # Harmless, but 7.86M of the 22.61M "trainable" parameters are dead
+        # weight in the forward and the checkpoint. Stage 3 should inject
+        # into self.thinker.model instead of self.thinker; changing it here
+        # mid-run would restart training for a 1-2% step, which is not worth
+        # the data already seen.
         tower = getattr(self.thinker, "audio_tower", None)
         if tower is not None:
             for parameter in tower.parameters():
