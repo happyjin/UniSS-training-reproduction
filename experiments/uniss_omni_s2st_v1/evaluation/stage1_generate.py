@@ -64,26 +64,36 @@ def generate_codes(
     top_p: float = 0.8,
     repetition_penalty: float = 1.05,
     seed: int = 20261009,
+    reply_states=None,
 ) -> list[int]:
     """Autoregressive decode of one utterance's code stream.
 
     Sampling parameters default to the Talker's own, declared on Omni's
     ``generate``. ``temperature=0`` falls back to greedy, for comparison.
+
+    ``reply_states`` is for Stage 2, where the reply the Talker speaks was
+    generated from source audio rather than handed in as text: the caller
+    passes the ``(hidden, embeds)`` it already computed and ``text``/``lang``
+    go unused. Left at ``None`` this templates a TTS prompt and runs the
+    Thinker itself, which is Stage 1's path unchanged.
     """
     thinker, talker = model.thinker, model.talker
-    templated = processor.apply_chat_template(
-        [tts_prompt(text, lang)], add_generation_prompt=True, tokenize=False
-    )
-    prompt_text = templated[0] if isinstance(templated, list) else templated
-    tokenizer = processor.tokenizer
-    prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
-    reply_ids = tokenizer(text, add_special_tokens=False)["input_ids"]
+    if reply_states is None:
+        templated = processor.apply_chat_template(
+            [tts_prompt(text, lang)], add_generation_prompt=True, tokenize=False
+        )
+        prompt_text = templated[0] if isinstance(templated, list) else templated
+        tokenizer = processor.tokenizer
+        prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
+        reply_ids = tokenizer(text, add_special_tokens=False)["input_ids"]
 
-    ids = torch.tensor([prompt_ids + reply_ids], device=device)
-    out = thinker(input_ids=ids, output_hidden_states=True, return_dict=True)
-    hidden = out.hidden_states[-1][:, len(prompt_ids) :, :]
-    reply = torch.tensor([reply_ids], device=device)
-    embeds = thinker.get_input_embeddings()(reply)
+        ids = torch.tensor([prompt_ids + reply_ids], device=device)
+        out = thinker(input_ids=ids, output_hidden_states=True, return_dict=True)
+        hidden = out.hidden_states[-1][:, len(prompt_ids) :, :]
+        reply = torch.tensor([reply_ids], device=device)
+        embeds = thinker.get_input_embeddings()(reply)
+    else:
+        hidden, embeds = reply_states
     eos_embed = thinker.get_input_embeddings()(
         torch.tensor([[talker.text_eos_token]], device=device)
     )

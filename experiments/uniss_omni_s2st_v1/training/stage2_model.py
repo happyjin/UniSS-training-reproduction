@@ -42,7 +42,7 @@ from experiments.uniss_streaming_p2st_traj_v1.training import lora
 # Attention only. The CUHKSZ IWSLT 2026 system adapts q/k/v/o at r=16 and
 # leaves the MLP alone; widening the adapter to the MLP is a change to
 # make deliberately and measure, not to inherit by default.
-THINKER_TARGETS = ("q_proj", "k_proj", "v_proj", "o_proj")
+from experiments.uniss_omni_s2st_v1.training.stage2_tasks import THINKER_TARGETS
 
 
 class Stage2Model(HuggingFaceModule):

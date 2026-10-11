@@ -38,6 +38,12 @@ SYSTEM = (
 # The ratio the paper trains at. Keys are the task names below.
 MIXTURE = {"asr": 0.2, "s2tt": 1.0, "mt": 0.5, "tts": 1.0, "s2st": 1.5}
 
+# Which of the Thinker's projections the Stage 2 LoRA wraps. It lives here
+# rather than beside the model because evaluation has to inject the same
+# four to load the adapter, and this module is the one with no Megatron
+# import for an eval environment to trip over.
+THINKER_TARGETS = ("q_proj", "k_proj", "v_proj", "o_proj")
+
 
 @dataclass(frozen=True)
 class TaskSample:

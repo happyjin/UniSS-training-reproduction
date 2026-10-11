@@ -29,7 +29,7 @@ from pathlib import Path
 import torch
 import torch.distributed.checkpoint as dcp
 
-from experiments.uniss_omni_s2st_v1.training.stage2_model import THINKER_TARGETS
+from experiments.uniss_omni_s2st_v1.training.stage2_tasks import THINKER_TARGETS
 
 
 def is_adapter(key: str) -> bool:
