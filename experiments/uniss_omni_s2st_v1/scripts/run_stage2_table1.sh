@@ -32,6 +32,12 @@ OUT="${OUT:?set OUT to an output directory}"
 LIMIT="${LIMIT:-0}"
 GPUS="${GPUS:-0 1 2 3 4 5 6 7}"
 STAGE="${STAGE:-both}"
+# "translation" starts the Talker's text stream at the translation rather
+# than at the transcript; a diagnostic, not how stage 2 trained.
+TALKER_TEXT="${TALKER_TEXT:-full}"
+# Optional id allowlist. One file may hold both directions: the ids do
+# not overlap, so each run keeps only its own.
+SUBSET="${SUBSET:-}"
 
 PAIRS=("cmn_eng cvss_t_zh_en_test cmn->eng" "eng_cmn cvss_t_en_zh_test eng->cmn")
 
@@ -42,12 +48,15 @@ if [ "$STAGE" = "both" ] || [ "$STAGE" = "gen" ]; then
     # One directory per direction: the project's validator requires a
     # single direction per results file.
     rm -rf "$OUT/$NAME"; mkdir -p "$OUT/$NAME/logs"
+    subset_args=()
+    [ -n "$SUBSET" ] && subset_args=(--subset "$SUBSET")
     shards=0; for _ in $GPUS; do shards=$((shards + 1)); done
     index=0
     for gpu in $GPUS; do
       CUDA_VISIBLE_DEVICES=$gpu $PY -m experiments.uniss_omni_s2st_v1.evaluation.stage2_generate \
         --checkpoint "$CKPT" --dev-parquet "$TOKENIZED/$PQ.parquet" --limit "$LIMIT" \
         --shard $index --num-shards $shards --output "$OUT/$NAME" \
+        --talker-text "$TALKER_TEXT" "${subset_args[@]}" \
         > "$OUT/$NAME/logs/gen_$index.log" 2>&1 &
       index=$((index + 1))
     done

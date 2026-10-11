@@ -61,9 +61,39 @@ def split_reply(reply: str) -> tuple[str, str]:
     return lines[0], lines[1]
 
 
+def translation_start(tokenizer, ids: list[int]) -> int:
+    """Index in ``ids`` where the translation begins.
+
+    Quality mode's reply is transcript, newline, translation. The newline
+    may be its own token or merged into a neighbour, so the boundary is
+    found by decoding prefixes rather than by searching for a token id.
+    Returns 0 when there is no newline -- a reply with no transcript is
+    all translation.
+    """
+    for i in range(1, len(ids) + 1):
+        if "\n" in tokenizer.decode(ids[:i]):
+            return i
+    return 0
+
+
 @torch.no_grad()
-def speak(model, processor, audio_path, src_lang, tgt_lang, *, max_new_tokens):
-    """Generate the reply, then the hidden states the Talker reads."""
+def speak(model, processor, audio_path, src_lang, tgt_lang, *, max_new_tokens,
+          talker_text: str = "full"):
+    """Generate the reply, then the hidden states the Talker reads.
+
+    ``talker_text`` picks which of those states the Talker gets.
+
+    "full" is what Stage 2 trained on: the whole reply, transcript first.
+    build_text_stream lays one state per codec step from step 0, so the
+    first ~16 steps -- the opening third of a second of every utterance --
+    are conditioned on the source-language transcript while the Talker is
+    supposed to be speaking the translation.
+
+    "translation" starts the stream at the translation instead, which is
+    the text the codes actually correspond to. It is a diagnostic: the
+    model was not trained this way, so it measures whether that onset
+    mismatch is what costs Stage 2 its intelligibility.
+    """
     waveform, _ = sf.read(audio_path, dtype="float32")
     sample = stage2_tasks.build(
         "s2st",
@@ -111,6 +141,10 @@ def speak(model, processor, audio_path, src_lang, tgt_lang, *, max_new_tokens):
     embeds = model.thinker.get_input_embeddings()(
         torch.tensor([keep], device=model.device)
     )
+    if talker_text == "translation":
+        start = translation_start(tokenizer, keep)
+        if start and start < len(keep):
+            hidden, embeds = hidden[:, start:, :], embeds[:, start:, :]
     return reply, (hidden, embeds)
 
 
@@ -131,6 +165,7 @@ def main() -> None:
     ap.add_argument("--lora-rank", type=int, default=32)
     ap.add_argument("--lora-alpha", type=float, default=64.0)
     ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--talker-text", choices=("full", "translation"), default="full")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
 
@@ -210,6 +245,7 @@ def main() -> None:
         reply, states = speak(
             model, processor, row["source_audio_path"],
             row["src_lang"], row["tgt_lang"], max_new_tokens=args.max_new_tokens,
+            talker_text=args.talker_text,
         )
         transcript, translation = split_reply(reply)
         codes = []
