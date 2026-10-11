@@ -50,7 +50,8 @@ class Stage2Model(HuggingFaceModule):
 
     def __init__(self, config, *, model_path: str, talker_state: str | None,
                  lora_rank: int = 32, lora_alpha: float = 64.0,
-                 code_weight: float = 1.0, seed: int = 20261011):
+                 code_weight: float = 1.0, seed: int = 20261011,
+                 recompute: bool = True):
         super().__init__(config)
         from transformers import Qwen2_5OmniForConditionalGeneration
 
@@ -99,6 +100,26 @@ class Stage2Model(HuggingFaceModule):
         self.talker = omni.talker
         self.talker.requires_grad_(True)
         self.global_embed.requires_grad_(True)
+
+        if recompute:
+            # Activation memory, not compute, is what bounds the batch here:
+            # source audio runs from 1 to 24.9 seconds, and a full shuffle
+            # puts the longest utterances in an ordinary batch. At micro
+            # batch 16 a five-second average fits in 65 GB and a
+            # 25-second one would want roughly 240. Recomputing the
+            # Thinker's activations trades about a third of the step for a
+            # ceiling that does not depend on what the shuffle drew.
+            #
+            # use_reentrant=False because the base weights are frozen: the
+            # reentrant form needs an input that requires grad, and with
+            # LoRA the first thing that does is several layers in.
+            self.thinker.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
+            self.talker.model.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
+        self.recompute = recompute
 
         self.register_buffer(
             "output_mask", valid_output_mask(self.layout), persistent=False

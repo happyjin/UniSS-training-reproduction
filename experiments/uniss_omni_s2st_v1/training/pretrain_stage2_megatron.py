@@ -49,6 +49,7 @@ def add_stage2_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     # median 5.1 s and at most 24.9 s, so 30 truncates nothing and takes the
     # feature extraction for a batch of eight from 477 ms to 43.
     group.add_argument("--omni-max-audio-seconds", type=float, default=30.0)
+    group.add_argument("--omni-no-recompute", action="store_true")
     return parser
 
 
@@ -91,6 +92,7 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
         lora_alpha=args.omni_lora_alpha,
         code_weight=args.omni_code_weight,
         seed=args.omni_seed,
+        recompute=not args.omni_no_recompute,
     )
     _MODEL = model
     _PROCESSOR = load_audio_text_processor(
