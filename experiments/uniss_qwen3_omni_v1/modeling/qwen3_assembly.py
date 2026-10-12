@@ -94,7 +94,16 @@ def build_assembly(
     dtype: torch.dtype = torch.bfloat16,
     head_scale: float = 0.1,
     attn: str = "sdpa",
+    thinker_from: str = "qwen3",
 ) -> Assembly:
+    """``thinker_from='qwen25'`` builds the control arm.
+
+    Everything else is identical -- the same Talker weights, the same
+    surgery, the same prefix, the same marker parameters -- so a probe run
+    against it measures the Talker on the representation it was trained
+    for. Without that line, a near-zero score on the Qwen3 arm cannot be
+    told apart from a bug in the probe.
+    """
     from transformers import (
         Qwen2_5OmniForConditionalGeneration,
         Qwen3OmniMoeForConditionalGeneration,
@@ -135,14 +144,24 @@ def build_assembly(
         del donor.token2wav
     del donor
 
-    omni3 = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
-        qwen3_dir, dtype=dtype, attn_implementation=attn
-    )
-    for attr in ("talker", "code2wav", "token2wav"):
-        if hasattr(omni3, attr):
-            delattr(omni3, attr)
-    thinker = omni3.thinker.to(dev)
-    del omni3
+    if thinker_from == "qwen25":
+        donor2 = Qwen2_5OmniForConditionalGeneration.from_pretrained(
+            qwen25_dir, dtype=dtype
+        )
+        for attr in ("talker", "token2wav"):
+            if hasattr(donor2, attr):
+                delattr(donor2, attr)
+        thinker = donor2.thinker.to(dev)
+        del donor2
+    else:
+        omni3 = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
+            qwen3_dir, dtype=dtype, attn_implementation=attn
+        )
+        for attr in ("talker", "code2wav", "token2wav"):
+            if hasattr(omni3, attr):
+                delattr(omni3, attr)
+        thinker = omni3.thinker.to(dev)
+        del omni3
     torch.cuda.empty_cache()
 
     embed = thinker.get_input_embeddings().weight
@@ -161,7 +180,13 @@ def build_assembly(
         pad_init=embed[TEXT_PAD_ROW].detach().cpu(),
     ).to(dev)
 
-    processor = Qwen3OmniMoeProcessor.from_pretrained(qwen3_dir)
+    if thinker_from == "qwen25":
+        from experiments.uniss_omni_s2st_v1.runtime.omni_processor import (
+            load_audio_text_processor,
+        )
+        processor = load_audio_text_processor(qwen25_dir)
+    else:
+        processor = Qwen3OmniMoeProcessor.from_pretrained(qwen3_dir)
     return Assembly(
         thinker=thinker, talker=talker, global_embed=global_embed, markers=markers,
         processor=processor, tokenizer=processor.tokenizer, layout=layout,
