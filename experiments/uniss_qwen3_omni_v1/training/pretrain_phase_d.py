@@ -191,7 +191,7 @@ def main() -> None:
         train_valid_test_datasets_provider,
         runtime.ModelType.encoder_or_decoder,
         forward_step,
-        model_provider_func=model_provider,
+        model_provider=model_provider,
     )
     print("PHASE_D_MEGATRON_DONE", flush=True)
 

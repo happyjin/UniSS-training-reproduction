@@ -21,6 +21,12 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 export CUDA_DEVICE_MAX_CONNECTIONS=1
+# inductor shells out to triton's ptxas, which lives in the base
+# environment and is not executable here, so every compiled region raises
+# PermissionError and takes the run with it. Nothing in this model needs
+# compiling -- the Thinker runs under no_grad and the Talker is 24 small
+# layers -- so dynamo is off and everything runs eager.
+export TORCHDYNAMO_DISABLE="${TORCHDYNAMO_DISABLE:-1}"
 
 CACHE="${CACHE:-${REPO_ROOT}/data/unist_omni_v1/tts_cache_full}"
 TALKER="${TALKER:-${REPO_ROOT}/checkpoints/uniss_omni_s2st_v1/stage1_transfer/exported/talker_iter0040000.pt}"
@@ -42,7 +48,11 @@ MIN_LR="${MIN_LR:-2e-6}"
 EXTRA=()
 [ "${NO_RECOMPUTE:-0}" = "1" ] && EXTRA+=(--omni-no-recompute)
 
-"${ENV_ROOT}/bin/torchrun" \
+# python -m torch.distributed.run rather than the torchrun console script:
+# the overlay venv inherits torch from the base environment but has no
+# entry point of its own, and the base environment's torchrun would run
+# the base python, which is the transformers 4.53 this cannot use.
+"${ENV_ROOT}/bin/python" -m torch.distributed.run \
   --nproc_per_node "${NPROC}" --master_port "${MASTER_PORT:-29601}" \
   experiments/uniss_qwen3_omni_v1/training/pretrain_phase_d.py \
   --qwen3-path "${QWEN3:-pretrained_models/Qwen3-Omni-30B-A3B-Instruct}" \
@@ -78,4 +88,8 @@ EXTRA=()
   --tensorboard-dir "${TB_DIR}" --log-throughput \
   --seed 20261012 \
   "${EXTRA[@]}"
+status=$?
+# Without this a failed launch still prints the completion marker, and
+# anything waiting on that marker treats a crash as a finished run.
+[ "${status}" -ne 0 ] && { echo "PHASE_D_MEGATRON_FAILED status=${status}"; exit "${status}"; }
 echo "PHASE_D_MEGATRON_DONE"
