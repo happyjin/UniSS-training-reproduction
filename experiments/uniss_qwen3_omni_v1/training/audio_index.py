@@ -44,6 +44,14 @@ class AudioIndex:
         if self.row_index.size != self.rows:
             raise ValueError("row_index length disagrees with meta")
 
+    def parquet_names(self) -> set[str]:
+        """The parquet files these rows point at, without building rows.
+
+        ParquetCodeIndex needs the set; constructing 19 million AudioRow
+        objects to collect it would undo the point of the index.
+        """
+        return set(self._fields["parquet"])
+
     def __len__(self) -> int:
         return self.rows
 

@@ -128,7 +128,15 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         manifests = sorted(p for pat in args.omni_manifests for p in glob.glob(pat))
         audio_rows = read_audio_rows(manifests, audio_root=args.omni_audio_root,
                                      limit=args.omni_audio_limit)
-    corpus = Stage2Corpus(audio_rows, ParquetCodeIndex(args.omni_parquet_root),
+    # ParquetCodeIndex loads one flat array per parquet it is named, so it
+    # needs the set of names the rows actually point at. Measured at 9.8
+    # GiB for all 198 against 1,992 GiB of memory, so all of them is fine.
+    if hasattr(audio_rows, "parquet_names"):
+        names = audio_rows.parquet_names()
+    else:
+        names = {r.parquet for r in audio_rows}
+    corpus = Stage2Corpus(audio_rows,
+                          ParquetCodeIndex(args.omni_parquet_root, names),
                           CachedTtsCorpus(args.omni_tts_cache),
                           audio_root=args.omni_audio_root)
     gbs = int(args.global_batch_size)
