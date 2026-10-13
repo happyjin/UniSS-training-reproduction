@@ -37,7 +37,8 @@ INSTRUCTION = {
 
 
 @torch.no_grad()
-def translate_and_state(a, audio_path, tgt_lang, max_new_tokens):
+def translate_and_state(a, audio_path, tgt_lang, max_new_tokens,
+                        single_pass=False):
     """The translation, and the states the Thinker wrote it from."""
     waveform, _ = sf.read(audio_path, dtype="float32")
     conversation = [{"role": "user", "content": [
@@ -59,18 +60,52 @@ def translate_and_state(a, audio_path, tgt_lang, max_new_tokens):
     # utterance took and then made the Talker speak the overrun until it
     # hit its own 700-step ceiling. Same shape as the stage 1 bug where
     # max_new_tokens was silently overridden and a 26.65 became 13.91.
+    gen = {}
+    if single_pass:
+        # Ask generate to hand back the states it computed anyway. The
+        # second forward below exists only because the default generate
+        # throws them away -- not because the Talker needs anything the
+        # first pass cannot produce. Streaming cannot afford a second
+        # pass over a reply it has not finished writing, so this is the
+        # path phase F has to use.
+        gen = {"output_hidden_states": True, "return_dict_in_generate": True}
     out = a.thinker.generate(
         **inputs, max_new_tokens=max_new_tokens, do_sample=False,
         eos_token_id=tok.eos_token_id,
         pad_token_id=tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id,
+        **gen,
     )
-    reply_ids = out[0][prompt_length:]
+    sequences = out.sequences if single_pass else out
+    reply_ids = sequences[0][prompt_length:]
     hypothesis = tok.decode(reply_ids, skip_special_tokens=True).strip()
     # The Talker was trained on the states of content tokens; the trailing
     # turn marker was never in a gold reply.
     keep = [int(t) for t in reply_ids if int(t) not in tok.all_special_ids]
     if not keep:
         return hypothesis, None
+    if single_pass:
+        # out.hidden_states has one entry per generated token. Entry 0 is
+        # the prompt forward, whose last position emitted reply token 0;
+        # entry j+1 is the forward of reply token j, so that is where the
+        # state sitting at token j's own position lives -- the same
+        # position the two-pass forward slices out. A token emitted and
+        # never fed back (the final one, or a truncated reply) has no
+        # entry, which is why the loop stops rather than indexing past.
+        steps = out.hidden_states
+        rows, kept = [], []
+        for i, t in enumerate(int(x) for x in reply_ids):
+            if i + 1 >= len(steps):
+                break
+            if t in tok.all_special_ids:
+                continue
+            rows.append(steps[i + 1][-1][:, 0, :])
+            kept.append(t)
+        if not rows:
+            return hypothesis, None
+        hidden = torch.stack(rows, dim=1)
+        embeds = a.thinker.get_input_embeddings()(
+            torch.tensor([kept], device=a.device))
+        return hypothesis, (hidden, embeds)
     ids = torch.cat([inputs["input_ids"][0],
                      torch.tensor(keep, device=a.device)]).unsqueeze(0)
     forward = {"input_ids": ids, "output_hidden_states": True, "return_dict": True}
@@ -86,6 +121,8 @@ def translate_and_state(a, audio_path, tgt_lang, max_new_tokens):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--talker-checkpoint", required=True)
+    ap.add_argument("--single-pass", action="store_true",
+                    help="take the states from generate, not a second forward")
     ap.add_argument("--phase-d-checkpoint", required=True)
     ap.add_argument("--dev-parquet", required=True)
     ap.add_argument("--subset", default=None)
@@ -144,7 +181,8 @@ def main() -> None:
     records = []
     for position, row in enumerate(rows):
         hypothesis, states = translate_and_state(
-            a, row["source_audio_path"], row["tgt_lang"], args.max_new_tokens)
+            a, row["source_audio_path"], row["tgt_lang"], args.max_new_tokens,
+            single_pass=args.single_pass)
         codes = []
         if states is not None:
             codes = generate_codes(
