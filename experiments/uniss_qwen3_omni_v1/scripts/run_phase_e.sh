@@ -36,7 +36,7 @@ LOAD_ARG=""
   --nproc_per_node "${NPROC}" --master_port "${MASTER_PORT:-29701}" \
   experiments/uniss_qwen3_omni_v1/training/pretrain_phase_e.py \
   --phase-d-checkpoint "${PHASE_D}" \
-  --omni-manifests "${REPO_ROOT}/data/unist_omni_v1/manifests/manifest-train-*.jsonl" \
+  --omni-audio-index "${AUDIO_INDEX:-${REPO_ROOT}/data/unist_omni_v1/audio_index_full}" \
   --omni-parquet-root "${REPO_ROOT}/data/raw/UniST" \
   --omni-audio-root "${REPO_ROOT}/data/unist_omni_v1/speech" \
   --omni-tts-cache "${REPO_ROOT}/data/unist_omni_v1/tts_cache_full" \

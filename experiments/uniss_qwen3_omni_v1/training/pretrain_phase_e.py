@@ -32,7 +32,11 @@ def add_phase_e_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
                    default="pretrained_models/Qwen3-Omni-30B-A3B-Instruct")
     g.add_argument("--qwen25-path", type=str, default="pretrained_models/Qwen2.5-Omni-3B")
     g.add_argument("--phase-d-checkpoint", type=str, required=True)
-    g.add_argument("--omni-manifests", type=str, nargs="+", required=True)
+    g.add_argument("--omni-manifests", type=str, nargs="+", default=[])
+    # Built once by build_audio_index. Scanning the manifests instead costs
+    # every rank a parse of 19,186,799 JSON lines -- measured at over
+    # sixteen minutes with the GPUs idle, paid again on every restart.
+    g.add_argument("--omni-audio-index", type=str, default=None)
     g.add_argument("--omni-parquet-root", type=str, required=True)
     g.add_argument("--omni-audio-root", type=str, required=True)
     g.add_argument("--omni-tts-cache", type=str, required=True)
@@ -116,10 +120,14 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     if model is None:
         raise RuntimeError("datasets requested before the model was built")
 
-    import glob
-    manifests = sorted(p for pat in args.omni_manifests for p in glob.glob(pat))
-    audio_rows = read_audio_rows(manifests, audio_root=args.omni_audio_root,
-                                 limit=args.omni_audio_limit)
+    if args.omni_audio_index:
+        from experiments.uniss_qwen3_omni_v1.training.audio_index import AudioIndex
+        audio_rows = AudioIndex(args.omni_audio_index)
+    else:
+        import glob
+        manifests = sorted(p for pat in args.omni_manifests for p in glob.glob(pat))
+        audio_rows = read_audio_rows(manifests, audio_root=args.omni_audio_root,
+                                     limit=args.omni_audio_limit)
     corpus = Stage2Corpus(audio_rows, ParquetCodeIndex(args.omni_parquet_root),
                           CachedTtsCorpus(args.omni_tts_cache),
                           audio_root=args.omni_audio_root)
