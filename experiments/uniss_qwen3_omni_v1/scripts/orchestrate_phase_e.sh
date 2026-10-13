@@ -116,7 +116,8 @@ last_gain() {
   /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${TSV}" <<'PY'
 import sys
 rows=[l.split("\t") for l in open(sys.argv[1]).read().splitlines()[1:] if l.strip()]
-print(f"{float(rows[-1][3])-float(rows[-2][3]):.2f}" if len(rows)>=2 else "999")
+rows=[r for r in rows if r[3]!="NA" and "-single" not in r[0]]
+print(f"{float(rows[-1][3])-float(rows[-2][3]):.2f}" if len(rows)>=2 else ("999" if rows else "NA"))
 PY
 }
 
@@ -136,9 +137,23 @@ while :; do
     sleep 60
   done
   stop_training
-  run_probe "${next}" || log "iter ${next} 探针未完成"
+  if ! run_probe "${next}"; then
+    # Without this the loop finds the same target again, sees a
+    # checkpoint already past it, and stops training on the spot --
+    # start, stop, fail, forever, with the run burning in between.
+    # Two attempts, then write a sentinel so the target is retired and
+    # training gets to keep going.
+    n=$(cat "${STATE}/fail_${next}" 2>/dev/null || echo 0); n=$((n+1))
+    echo "${n}" > "${STATE}/fail_${next}"
+    log "iter ${next} 探针未完成（第 ${n} 次）"
+    if [ "${n}" -ge 2 ]; then
+      printf "%s\tNA\tNA\tNA\n" "${next}" >> "${TSV}"
+      log "iter ${next} 放弃探针，继续训练"
+    fi
+  fi
   if [ "${next}" = "${TRAIN_ITERS}" ]; then
     gain=$(last_gain); log "最后一点，较上次增益 ${gain}"
+    [ "${gain}" = "NA" ] && { log "最后一点无有效分数，不延长"; break; }
     flat=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -c "
 print('1' if float('${gain}') < float('${GAIN_STOP}') else '0')")
     if [ "${flat}" = "1" ] || [ "${TRAIN_ITERS}" -ge "${MAX_ITERS}" ]; then
