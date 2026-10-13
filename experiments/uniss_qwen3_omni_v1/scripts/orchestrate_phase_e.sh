@@ -28,7 +28,7 @@ PROBE_LIMIT="${PROBE_LIMIT:-64}"
 COMPARE_AT="${COMPARE_AT:-4000}"
 STATE="${RUN_DIR}/orchestrator"; mkdir -p "${STATE}"
 TSV="${STATE}/probes.tsv"
-[ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\n" > "${TSV}"
+[ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\ttext_zh2en\ttext_en2zh\n" > "${TSV}"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "${STATE}/orchestrator.log"; }
 
 latest_iter() { cat "${RUN_DIR}/latest_checkpointed_iteration.txt" 2>/dev/null || echo 0; }
@@ -77,14 +77,18 @@ run_probe() {
     OUT="${out}" LIMIT="${PROBE_LIMIT}" \
     bash experiments/uniss_qwen3_omni_v1/scripts/run_e2e_probe.sh >> "${STATE}/probe.log" 2>&1
   local line
-  line=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}/asr_bleu.json" "${it}" <<'PY'
+  line=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}" "${it}" <<'PY'
 import json, sys
-try: g = json.load(open(sys.argv[1]))["groups"]
-except Exception: sys.exit(1)
-z = next((v["score"] for k, v in g.items() if "cmn->eng" in k), None)
-e = next((v["score"] for k, v in g.items() if "eng->cmn" in k), None)
+def pair(path):
+    try: g = json.load(open(path))["groups"]
+    except Exception: return None, None
+    return (next((v["score"] for k, v in g.items() if "cmn->eng" in k), None),
+            next((v["score"] for k, v in g.items() if "eng->cmn" in k), None))
+z, e = pair(f"{sys.argv[1]}/asr_bleu.json")
 if z is None or e is None: sys.exit(1)
-print(f"{sys.argv[2]}\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}")
+tz, te = pair(f"{sys.argv[1]}/text_bleu.json")
+f = lambda v: "NA" if v is None else f"{v:.2f}"
+print(f"{sys.argv[2]}\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}\t{f(tz)}\t{f(te)}")
 PY
 ) || { log "打分失败 ${it}"; return 1; }
   echo "${line}" >> "${TSV}"
@@ -99,14 +103,18 @@ PY
       OUT="${out}_sp" LIMIT="${PROBE_LIMIT}" SINGLE_PASS=1 \
       bash experiments/uniss_qwen3_omni_v1/scripts/run_e2e_probe.sh \
       >> "${STATE}/probe.log" 2>&1
-    sp=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}_sp/asr_bleu.json" "${it}" <<'PY2'
+    sp=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}_sp" "${it}" <<'PY2'
 import json, sys
-try: g = json.load(open(sys.argv[1]))["groups"]
-except Exception: sys.exit(1)
-z = next((v["score"] for k, v in g.items() if "cmn->eng" in k), None)
-e = next((v["score"] for k, v in g.items() if "eng->cmn" in k), None)
+def pair(path):
+    try: g = json.load(open(path))["groups"]
+    except Exception: return None, None
+    return (next((v["score"] for k, v in g.items() if "cmn->eng" in k), None),
+            next((v["score"] for k, v in g.items() if "eng->cmn" in k), None))
+z, e = pair(f"{sys.argv[1]}/asr_bleu.json")
 if z is None or e is None: sys.exit(1)
-print(f"{sys.argv[2]}-single\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}")
+tz, te = pair(f"{sys.argv[1]}/text_bleu.json")
+f = lambda v: "NA" if v is None else f"{v:.2f}"
+print(f"{sys.argv[2]}-single\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}\t{f(tz)}\t{f(te)}")
 PY2
 ) && { echo "${sp}" >> "${TSV}"; log "单次: ${sp}"; } || log "单次对照失败"
   fi
@@ -147,7 +155,7 @@ while :; do
     echo "${n}" > "${STATE}/fail_${next}"
     log "iter ${next} 探针未完成（第 ${n} 次）"
     if [ "${n}" -ge 2 ]; then
-      printf "%s\tNA\tNA\tNA\n" "${next}" >> "${TSV}"
+      printf "%s\tNA\tNA\tNA\tNA\tNA\n" "${next}" >> "${TSV}"
       log "iter ${next} 放弃探针，继续训练"
     fi
   fi
