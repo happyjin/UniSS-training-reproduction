@@ -65,6 +65,7 @@ def generate_codes(
     repetition_penalty: float = 1.05,
     seed: int = 20261009,
     reply_states=None,
+    markers=None,
 ) -> list[int]:
     """Autoregressive decode of one utterance's code stream.
 
@@ -94,12 +95,20 @@ def generate_codes(
         embeds = thinker.get_input_embeddings()(reply)
     else:
         hidden, embeds = reply_states
-    eos_embed = thinker.get_input_embeddings()(
-        torch.tensor([[talker.text_eos_token]], device=device)
-    )
-    pad_embed = thinker.get_input_embeddings()(
-        torch.tensor([[talker.text_pad_token]], device=device)
-    )
+    if markers is not None:
+        # Phase D's Thinker is Qwen3's, whose rows at the Talker's reserved
+        # text pad and eos indices were never trained for that job -- and
+        # Qwen2.5-Omni holds the same vector in both of them anyway, so the
+        # distinction never carried a signal. The assembly carries the two
+        # as parameters instead.
+        eos_embed, pad_embed = markers
+    else:
+        eos_embed = thinker.get_input_embeddings()(
+            torch.tensor([[talker.text_eos_token]], device=device)
+        )
+        pad_embed = thinker.get_input_embeddings()(
+            torch.tensor([[talker.text_pad_token]], device=device)
+        )
     # The prefix consumes the first text hidden states, exactly as it does
     # in training: there the stream is built for prefix + codes together,
     # so starting the code loop at stream position 0 would feed every step

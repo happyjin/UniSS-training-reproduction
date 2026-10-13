@@ -47,6 +47,15 @@ LR="${LR:-6e-5}"
 MIN_LR="${MIN_LR:-2e-6}"
 EXTRA=()
 [ "${NO_RECOMPUTE:-0}" = "1" ] && EXTRA+=(--omni-no-recompute)
+# Resume from SAVE_DIR when it already holds a checkpoint. The probe needs
+# the whole card -- training reserves 92 GiB and the probe wants 62 -- so a
+# run has to be stopped to measure it, and stopping must not cost the
+# iterations since the last save.
+LOAD_ARG=""
+[ -f "${SAVE_DIR}/latest_checkpointed_iteration.txt" ] && LOAD_ARG="--load ${SAVE_DIR}"
+# Extending a run changes lr-decay-iters, and the scheduler saved in the
+# checkpoint would otherwise win and keep decaying to the old horizon.
+LOAD_ARG="${LOAD_ARG} ${OVERRIDE_SCHED:-}"
 
 # python -m torch.distributed.run rather than the torchrun console script:
 # the overlay venv inherits torch from the base environment but has no
@@ -83,6 +92,7 @@ EXTRA=()
   --no-create-attention-mask-in-dataloader \
   --no-gradient-accumulation-fusion \
   --save "${SAVE_DIR}" --save-interval "${SAVE_INTERVAL:-1000}" \
+  ${LOAD_ARG} \
   --eval-interval "${EVAL_INTERVAL:-500}" --eval-iters "${EVAL_ITERS:-8}" \
   --log-interval "${LOG_INTERVAL:-20}" \
   --tensorboard-dir "${TB_DIR}" --log-throughput \
