@@ -25,6 +25,8 @@ states, so the forward runs; only the text term is dropped.
 
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass
 
 LANGUAGE = {"cmn": "Chinese", "eng": "English", "zh": "Chinese", "en": "English"}
@@ -57,6 +59,15 @@ class TaskSample:
     globals: object | None          # the 32 speaker tokens, or None
 
 
+# The reply shape the s2st task supervises. "transcript+translation" is
+# what stage 2 and phase E v1 trained under; it cost phase E its end-to-end
+# score, because inference asks for the translation alone and the talker
+# had never read a reply without a foreign transcript in front of it.
+# Left unset nothing changes, so stage 2 and every finished run keep the
+# behaviour they were measured with.
+S2ST_REPLY = os.environ.get("UNISS_S2ST_REPLY", "transcript+translation")
+
+
 def _instruction(task: str, src_lang: str, tgt_lang: str, text: str | None) -> str:
     source = LANGUAGE.get(src_lang, src_lang)
     target = LANGUAGE.get(tgt_lang, tgt_lang)
@@ -69,6 +80,11 @@ def _instruction(task: str, src_lang: str, tgt_lang: str, text: str | None) -> s
     if task == "tts":
         return f"Read this {target} text aloud: {text}"
     if task == "s2st":
+        if S2ST_REPLY == "translation":
+            # Word for word the s2tt instruction, which is what the e2e
+            # probe sends. Identical prompt, identical reply shape.
+            return (f"Listen to the {source} speech and translate it into"
+                    f" {target}. Reply with the {target} translation only.")
         return (
             f"Listen to the {source} speech, transcribe it, translate it into"
             f" {target}, and speak the translation."
@@ -101,11 +117,16 @@ def build(task: str, row: dict) -> TaskSample:
                           None, row["codes"], row["globals"])
     if task == "s2st":
         # Quality mode: the transcript precedes the translation, so the
-        # model plans through what was said before what to say.
+        # model plans through what was said before what to say. That plan
+        # is only worth its cost if inference reproduces it -- phase E v1
+        # did not, and scored 12.06 where the same weights scored 26.27 on
+        # the reply they were trained on.
+        reply = translation
+        if transcript and S2ST_REPLY == "transcript+translation":
+            reply = f"{transcript}\n{translation}"
         return TaskSample(
             task, row["audio"], _instruction(task, src, tgt, None),
-            f"{transcript}\n{translation}" if transcript else translation,
-            row["codes"], row["globals"],
+            reply, row["codes"], row["globals"],
         )
     raise ValueError(f"unknown task {task!r}")
 
