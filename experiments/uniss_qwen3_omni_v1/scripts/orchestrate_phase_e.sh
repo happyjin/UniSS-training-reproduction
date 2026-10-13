@@ -25,6 +25,7 @@ GAIN_STOP="${GAIN_STOP:-1.5}"
 MBS="${MBS:-32}"; GBS="${GBS:-512}"
 LR="${LR:-6e-5}"; MIN_LR="${MIN_LR:-2e-6}"
 PROBE_LIMIT="${PROBE_LIMIT:-64}"
+COMPARE_AT="${COMPARE_AT:-4000}"
 STATE="${RUN_DIR}/orchestrator"; mkdir -p "${STATE}"
 TSV="${STATE}/probes.tsv"
 [ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\n" > "${TSV}"
@@ -88,6 +89,27 @@ PY
 ) || { log "打分失败 ${it}"; return 1; }
   echo "${line}" >> "${TSV}"
   log "iter ${it}: ${line}   （对照 Phase B 级联 27.68 / 34.14）"
+  # One checkpoint, one sample set, one flag between them: the only
+  # honest way to price the numerical gap between the parallel forward
+  # training uses and the incremental decode phase F will be stuck with.
+  if [ "${it}" = "${COMPARE_AT}" ]; then
+    log "单次调用对照 iter ${it}"
+    CKPT="${ckpt}" \
+      TALKER="${REPO_ROOT}/checkpoints/uniss_omni_s2st_v1/stage1_transfer/exported/talker_iter0040000.pt" \
+      OUT="${out}_sp" LIMIT="${PROBE_LIMIT}" SINGLE_PASS=1 \
+      bash experiments/uniss_qwen3_omni_v1/scripts/run_e2e_probe.sh \
+      >> "${STATE}/probe.log" 2>&1
+    sp=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}_sp/asr_bleu.json" "${it}" <<'PY2'
+import json, sys
+try: g = json.load(open(sys.argv[1]))["groups"]
+except Exception: sys.exit(1)
+z = next((v["score"] for k, v in g.items() if "cmn->eng" in k), None)
+e = next((v["score"] for k, v in g.items() if "eng->cmn" in k), None)
+if z is None or e is None: sys.exit(1)
+print(f"{sys.argv[2]}-single\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}")
+PY2
+) && { echo "${sp}" >> "${TSV}"; log "单次: ${sp}"; } || log "单次对照失败"
+  fi
 }
 
 last_gain() {
