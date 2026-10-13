@@ -62,7 +62,11 @@ run_probe() {
   local it="$1" tag ckpt out
   tag=$(printf "%07d" "${it}")
   ckpt="${RUN_DIR}/exported/phase_e_iter${tag}.pt"
-  out="${REPO_ROOT}/eval_outputs/uniss_qwen3_omni_v1/e2e_iter${it}"
+  # Namespaced by run: run_e2e_probe rm -rf's its output directory, so a
+  # bare e2e_iter${it} let v2's probe delete v1's outputs at the same
+  # iteration. The scores survived in probes.tsv; the waveforms did not.
+  out="${REPO_ROOT}/eval_outputs/uniss_qwen3_omni_v1/$(basename "${RUN_DIR}")/e2e_iter${it}"
+  mkdir -p "$(dirname "${out}")"
   log "导出 iter ${it}"
   # export_phase_d matches talker./global_embed./markers., which are the
   # same three names Phase E trains.
