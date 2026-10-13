@@ -50,9 +50,21 @@ def translate_and_state(a, audio_path, tgt_lang, max_new_tokens):
                          return_tensors="pt")
     inputs = {k: (v.to(a.device) if hasattr(v, "to") else v) for k, v in inputs.items()}
     prompt_length = inputs["input_ids"].shape[1]
-    out = a.thinker.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
-    reply_ids = out[0][prompt_length:]
     tok = a.tokenizer
+    # eos_token_id explicitly, because thinker_config.text_config has it as
+    # None: the top-level Qwen3OmniMoe generate supplies one, and calling
+    # the Thinker's own generate goes around that. Without it nothing ever
+    # stops and every reply runs to max_new_tokens -- measured at 135
+    # tokens against Phase A's 20.7, which cost 17 of the 32 seconds an
+    # utterance took and then made the Talker speak the overrun until it
+    # hit its own 700-step ceiling. Same shape as the stage 1 bug where
+    # max_new_tokens was silently overridden and a 26.65 became 13.91.
+    out = a.thinker.generate(
+        **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+        eos_token_id=tok.eos_token_id,
+        pad_token_id=tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id,
+    )
+    reply_ids = out[0][prompt_length:]
     hypothesis = tok.decode(reply_ids, skip_special_tokens=True).strip()
     # The Talker was trained on the states of content tokens; the trailing
     # turn marker was never in a gold reply.
