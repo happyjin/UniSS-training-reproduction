@@ -35,15 +35,27 @@ INSTRUCTION = {
            "Reply with the Chinese translation only.",
 }
 
+# What phase E's s2st task actually puts in front of the thinker. Its gold
+# reply is "{transcript}\n{translation}", so the talker has only ever read
+# states where a foreign-language transcript precedes the text it speaks.
+# The instruction above produces neither the same prompt nor the same reply
+# shape, which is the mismatch --task-format exists to measure.
+S2ST_INSTRUCTION = {
+    "eng": "Listen to the Chinese speech, transcribe it, translate it into"
+           " English, and speak the translation.",
+    "cmn": "Listen to the English speech, transcribe it, translate it into"
+           " Chinese, and speak the translation.",
+}
+
 
 @torch.no_grad()
 def translate_and_state(a, audio_path, tgt_lang, max_new_tokens,
-                        single_pass=False):
+                        single_pass=False, instruction=None, gold_reply=None):
     """The translation, and the states the Thinker wrote it from."""
     waveform, _ = sf.read(audio_path, dtype="float32")
     conversation = [{"role": "user", "content": [
         {"type": "audio", "audio": audio_path},
-        {"type": "text", "text": INSTRUCTION[tgt_lang]},
+        {"type": "text", "text": instruction or INSTRUCTION[tgt_lang]},
     ]}]
     text = a.processor.apply_chat_template(
         [conversation], add_generation_prompt=True, tokenize=False)
@@ -60,6 +72,24 @@ def translate_and_state(a, audio_path, tgt_lang, max_new_tokens,
     # utterance took and then made the Talker speak the overrun until it
     # hit its own 700-step ceiling. Same shape as the stage 1 bug where
     # max_new_tokens was silently overridden and a 26.65 became 13.91.
+    if gold_reply is not None:
+        # Oracle: hand the thinker the exact reply training teacher-forces,
+        # so the talker reads the conditioning it was trained on and
+        # generation drops out of the question entirely.
+        keep = tok(gold_reply, add_special_tokens=False)["input_ids"]
+        if not keep:
+            return gold_reply, None
+        ids = torch.cat([inputs["input_ids"][0],
+                         torch.tensor(keep, device=a.device)]).unsqueeze(0)
+        forward = {"input_ids": ids, "output_hidden_states": True, "return_dict": True}
+        for k in ("input_features", "feature_attention_mask"):
+            if k in inputs:
+                forward[k] = inputs[k]
+        st = a.thinker(**forward)
+        hidden = st.hidden_states[-1][:, -len(keep):, :]
+        embeds = a.thinker.get_input_embeddings()(torch.tensor([keep], device=a.device))
+        return gold_reply, (hidden, embeds)
+
     gen = {}
     if single_pass:
         # Ask generate to hand back the states it computed anyway. The
@@ -123,6 +153,10 @@ def main() -> None:
     ap.add_argument("--talker-checkpoint", required=True)
     ap.add_argument("--single-pass", action="store_true",
                     help="take the states from generate, not a second forward")
+    ap.add_argument("--task-format", choices=["s2tt", "s2st"], default="s2tt",
+                    help="s2st uses the instruction phase E trained under")
+    ap.add_argument("--oracle-reply", action="store_true",
+                    help="teacher-force the gold transcript+translation reply")
     ap.add_argument("--phase-d-checkpoint", required=True)
     ap.add_argument("--dev-parquet", required=True)
     ap.add_argument("--subset", default=None)
@@ -180,9 +214,17 @@ def main() -> None:
 
     records = []
     for position, row in enumerate(rows):
+        instruction = (S2ST_INSTRUCTION if args.task_format == "s2st"
+                       else INSTRUCTION)[row["tgt_lang"]]
+        gold = None
+        if args.oracle_reply:
+            tr = (row.get("transcription") or "").strip()
+            tl = (row.get("translation") or "").strip()
+            gold = f"{tr}\n{tl}" if tr else tl
         hypothesis, states = translate_and_state(
             a, row["source_audio_path"], row["tgt_lang"], args.max_new_tokens,
-            single_pass=args.single_pass)
+            single_pass=args.single_pass, instruction=instruction,
+            gold_reply=gold)
         codes = []
         if states is not None:
             codes = generate_codes(

@@ -33,6 +33,7 @@ for pair in "cmn_eng cvss_t_zh_en_test" "eng_cmn cvss_t_en_zh_test"; do
       --talker-checkpoint "${TALKER}" --phase-d-checkpoint "${CKPT}" \
       --dev-parquet "${T}/${PQ}.parquet" --limit "${LIMIT}" \
       ${SINGLE_PASS:+--single-pass} \
+      ${TASK_FORMAT:+--task-format "${TASK_FORMAT}"} ${ORACLE:+--oracle-reply} \
       --shard $i --num-shards $shards --output "$D" > "$D/logs/g_$i.log" 2>&1 &
     i=$((i+1))
   done
