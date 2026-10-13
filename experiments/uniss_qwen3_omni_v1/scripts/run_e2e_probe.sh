@@ -12,6 +12,17 @@
 # four minutes, and eight at once on 192 cores had five crawling while
 # three ran.
 set -uo pipefail
+
+# Never delete. A non-empty output directory is the user's to clear,
+# not this script's -- an rm -rf here once destroyed a finished run's
+# waveforms because two runs chose the same path.
+refuse_if_present() {
+  if [ -d "$1" ] && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
+    echo "拒绝覆盖已有输出: $1" >&2
+    echo "换一个输出路径，或由你手动清理后重跑。" >&2
+    exit 1
+  fi
+}
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 export PYTHONPATH=. PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false
 export HF_HOME="${HF_HOME:-/opt/dlami/nvme/jasonleeeli/cache/huggingface}"
@@ -21,7 +32,8 @@ T="${T:-${REPO_ROOT}/data/cvss_t/tokenized/cvss_t_zh_en_v1}"
 TALKER="${TALKER:?}"; CKPT="${CKPT:?}"; OUT="${OUT:?}"
 LIMIT="${LIMIT:-64}"; GPUS="${GPUS:-0 1 2 3 4 5 6 7}"; STAGGER="${STAGGER:-90}"
 
-rm -rf "${OUT}"; mkdir -p "${OUT}"
+refuse_if_present "${OUT}"
+mkdir -p "${OUT}"
 for pair in "cmn_eng cvss_t_zh_en_test" "eng_cmn cvss_t_en_zh_test"; do
   set -- $pair; NAME=$1; PQ=$2
   D="${OUT}/${NAME}"; mkdir -p "$D/logs"

@@ -67,6 +67,11 @@ run_probe() {
   # iteration. The scores survived in probes.tsv; the waveforms did not.
   out="${REPO_ROOT}/eval_outputs/uniss_qwen3_omni_v1/$(basename "${RUN_DIR}")/e2e_iter${it}"
   mkdir -p "$(dirname "${out}")"
+  # A retry gets its own directory. The probe refuses to write into a
+  # non-empty one now -- it no longer deletes -- so a second attempt
+  # must not aim at the first attempt's leftovers.
+  att=$(cat "${STATE}/fail_${it}" 2>/dev/null || echo 0)
+  [ "${att}" != "0" ] && out="${out}_r${att}"
   log "导出 iter ${it}"
   # export_phase_d matches talker./global_embed./markers., which are the
   # same three names Phase E trains.

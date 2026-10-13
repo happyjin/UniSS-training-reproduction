@@ -17,6 +17,17 @@
 # LIMIT=24 for a smoke test; LIMIT=0 (the default) is the whole split.
 # STAGE=gen or STAGE=metrics runs half of it; the default runs both.
 set -uo pipefail
+
+# Never delete. A non-empty output directory is the user's to clear,
+# not this script's -- an rm -rf here once destroyed a finished run's
+# waveforms because two runs chose the same path.
+refuse_if_present() {
+  if [ -d "$1" ] && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
+    echo "拒绝覆盖已有输出: $1" >&2
+    echo "换一个输出路径，或由你手动清理后重跑。" >&2
+    exit 1
+  fi
+}
 cd "$(dirname "${BASH_SOURCE[0]}")/../../.." || exit 1
 REPO_ROOT=$PWD
 
@@ -47,7 +58,7 @@ if [ "$STAGE" = "both" ] || [ "$STAGE" = "gen" ]; then
     set -- $pair; NAME=$1; PQ=$2; DIR=$3
     # One directory per direction: the project's validator requires a
     # single direction per results file.
-    rm -rf "$OUT/$NAME"; mkdir -p "$OUT/$NAME/logs"
+    refuse_if_present "$OUT/$NAME"; mkdir -p "$OUT/$NAME/logs"
     subset_args=()
     [ -n "$SUBSET" ] && subset_args=(--subset "$SUBSET")
     shards=0; for _ in $GPUS; do shards=$((shards + 1)); done
@@ -73,7 +84,7 @@ if [ "$STAGE" = "both" ] || [ "$STAGE" = "metrics" ]; then
     D="$OUT/$NAME"
     N=$(wc -l < "$D/results.jsonl")
     echo "===== $DIR  ($N 条) ====="
-    rm -rf "$D/metrics"
+    refuse_if_present "$D/metrics"
     # ASR-BLEU, Text-BLEU and A.PCP, through the repo's own harness.
     EXPECTED_PAIRS=$N MODES=tts \
       bash experiments/uniss_omni_s2st_v1/scripts/run_stage1_metrics.sh "$D" "$DIR" 2>&1 | tail -6

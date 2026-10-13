@@ -6,6 +6,17 @@
 # five processes fighting while three ran. The weights are in page cache by
 # then, so the stagger buys CPU, not I/O.
 set -uo pipefail
+
+# Never delete. A non-empty output directory is the user's to clear,
+# not this script's -- an rm -rf here once destroyed a finished run's
+# waveforms because two runs chose the same path.
+refuse_if_present() {
+  if [ -d "$1" ] && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
+    echo "拒绝覆盖已有输出: $1" >&2
+    echo "换一个输出路径，或由你手动清理后重跑。" >&2
+    exit 1
+  fi
+}
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 export PYTHONPATH=. PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false
 export HF_HOME="${HF_HOME:-/opt/dlami/nvme/jasonleeeli/cache/huggingface}"
@@ -16,7 +27,7 @@ LIMIT="${LIMIT:-0}"; GPUS="${GPUS:-0 1 2 3 4 5 6 7}"; STAGGER="${STAGGER:-90}"
 
 for pair in "cmn_eng cvss_t_zh_en_test cmn->eng" "eng_cmn cvss_t_en_zh_test eng->cmn"; do
   set -- $pair; NAME=$1; PQ=$2; LABEL=$3
-  D="${OUT}/${NAME}"; rm -rf "$D"; mkdir -p "$D/logs"
+  D="${OUT}/${NAME}"; refuse_if_present "$D"; mkdir -p "$D/logs"
   shards=0; for _ in $GPUS; do shards=$((shards+1)); done
   i=0
   for g in $GPUS; do
