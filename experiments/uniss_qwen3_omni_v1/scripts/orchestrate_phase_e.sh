@@ -37,13 +37,14 @@ SINGLE_PASS="${SINGLE_PASS:-1}"
 # exports iter_<target>, and a save interval coarser than the probe
 # spacing leaves it exporting a directory that was never written.
 SAVE_INTERVAL="${SAVE_INTERVAL:-1000}"
+RUN_SCRIPT="${RUN_SCRIPT:-experiments/uniss_qwen3_omni_v1/scripts/run_phase_e.sh}"
 STATE="${RUN_DIR}/orchestrator"; mkdir -p "${STATE}"
 TSV="${STATE}/probes.tsv"
 [ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\ttext_zh2en\ttext_en2zh\n" > "${TSV}"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "${STATE}/orchestrator.log"; }
 
 latest_iter() { cat "${RUN_DIR}/latest_checkpointed_iteration.txt" 2>/dev/null || echo 0; }
-training_up() { ps -eo args 2>/dev/null | grep -q "[p]retrain_phase_e"; }
+training_up() { ps -eo args 2>/dev/null | grep -qE "[p]retrain_phase_(e|f)"; }
 
 start_training() {
   local iters="$1" sched=""
@@ -55,7 +56,7 @@ start_training() {
     SAVE_INTERVAL="${SAVE_INTERVAL}" \
     LOG_INTERVAL=20 MASTER_PORT="${MASTER_PORT:-29705}" \
     SAVE_DIR="${RUN_DIR}" TB_DIR="${REPO_ROOT}/runs/uniss_qwen3_omni_v1/$(basename "${RUN_DIR}")" \
-    setsid nohup bash experiments/uniss_qwen3_omni_v1/scripts/run_phase_e.sh \
+    setsid nohup bash "${RUN_SCRIPT}" \
       >> "${STATE}/train.log" 2>&1 < /dev/null &
   disown
   sleep 90
@@ -63,7 +64,7 @@ start_training() {
 
 stop_training() {
   log "停止训练"
-  ps -eo pid,args 2>/dev/null | grep "[p]retrain_phase_e" | awk '{print $1}' \
+  ps -eo pid,args 2>/dev/null | grep -E "[p]retrain_phase_(e|f)" | awk '{print $1}' \
     | while read p; do kill "$p" 2>/dev/null; done
   local w=0
   while training_up && [ $w -lt 40 ]; do sleep 5; w=$((w+1)); done

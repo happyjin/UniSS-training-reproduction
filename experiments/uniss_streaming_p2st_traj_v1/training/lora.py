@@ -67,10 +67,22 @@ def inject(
     rank: int = 128,
     alpha: float = 256.0,
     targets: tuple[str, ...] = DEFAULT_TARGETS,
+    layer_filter=None,
 ) -> list[LoRALinear]:
-    """Wrap every ``nn.Linear`` whose attribute name is in ``targets``."""
+    """Wrap every ``nn.Linear`` whose attribute name is in ``targets``.
+
+    ``layer_filter`` takes the qualified parent name and returns whether to
+    wrap there. Left None every match is wrapped, which is what stage 2 ran.
+    It exists for the 48-layer MoE thinker: autograd keeps activations only
+    back to the earliest parameter that needs a gradient, so confining the
+    adapters to the top layers bounds activation memory by how many layers
+    are below the first one -- and the talker reads the last layer, which is
+    where the leverage is anyway.
+    """
     wrapped: list[LoRALinear] = []
     for parent_name, module in list(model.named_modules()):
+        if layer_filter is not None and not layer_filter(parent_name):
+            continue
         for name, child in list(module.named_children()):
             if name in targets and isinstance(child, nn.Linear):
                 layer = LoRALinear(child, rank, alpha)

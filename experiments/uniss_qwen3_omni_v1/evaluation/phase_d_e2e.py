@@ -204,6 +204,24 @@ def main() -> None:
             wrap_projection,
         )
         wrap_projection(a.talker)
+    if state.get("thinker_lora"):
+        # Phase F trains an adapter on the Thinker's top layers. Inject the
+        # same shape before loading, or the probe measures a Thinker that
+        # never saw this run.
+        from experiments.uniss_omni_s2st_v1.training.stage2_tasks import (
+            THINKER_TARGETS,
+        )
+        from experiments.uniss_streaming_p2st_traj_v1.training import lora
+        names = {k.rsplit(".", 1)[0] for k in state["thinker_lora"]}
+        layers = lora.inject(
+            a.thinker, rank=int(state.get("lora_rank", 32)),
+            alpha=float(state.get("lora_alpha", 64.0)),
+            targets=THINKER_TARGETS,
+            layer_filter=lambda n: any(x.startswith(n + ".") for x in names),
+        )
+        lora.load_state_dict(layers, state["thinker_lora"])
+        a.thinker.requires_grad_(False)
+        print(f"thinker LoRA: {len(layers)} layers loaded", flush=True)
     info = a.talker.load_state_dict(state["talker"], strict=False)
     stray = [k for k in list(info.missing_keys) + list(info.unexpected_keys)
              if "thinker_to_talker_proj" in k]

@@ -26,6 +26,18 @@ import torch.distributed.checkpoint as dcp
 PREFIXES = ("talker.", "global_embed.", "markers.")
 
 
+def _is_adapter(key: str) -> bool:
+    """A phase F LoRA tensor. Phase D and E have none and this stays empty.
+
+    Without the adapter a phase F probe would run the frozen Thinker and
+    score a model that was never trained -- believable, and wrong.
+    """
+    parts = key.split(".")
+    return (parts[0] == "thinker" and len(parts) >= 3
+            and parts[-1] in ("a", "b")
+            and parts[-2] in ("q_proj", "k_proj", "v_proj", "o_proj"))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--checkpoint-dir", required=True)
@@ -44,7 +56,7 @@ def main() -> None:
             dtype=value.properties.dtype if hasattr(value, "properties") else torch.bfloat16,
         )
         for key, value in metadata.state_dict_metadata.items()
-        if key.startswith(PREFIXES)
+        if key.startswith(PREFIXES) or _is_adapter(key)
     }
     if not wanted:
         sample = list(metadata.state_dict_metadata)[:5]
@@ -53,10 +65,15 @@ def main() -> None:
 
     talker: dict[str, torch.Tensor] = {}
     markers: dict[str, torch.Tensor] = {}
+    adapter: dict[str, torch.Tensor] = {}
     global_embed = None
     for key, tensor in wanted.items():
         if key.startswith("global_embed."):
             global_embed = tensor
+        elif _is_adapter(key):
+            # lora.load_state_dict matches on lora_name, which is relative
+            # to the Thinker.
+            adapter[key[len("thinker."):]] = tensor
         elif key.startswith("markers."):
             markers[key[len("markers."):]] = tensor
         else:
@@ -83,7 +100,16 @@ def main() -> None:
     iteration = int(source.name.split("_")[-1])
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"talker": talker, "proj_variant": proj_variant, "global_embed": global_embed,
+    if adapter:
+        # B starts at zero; an all-zero B is the frozen Thinker wearing a
+        # trained model's name.
+        if not any(k.endswith(".b") and float(t.float().abs().max()) > 0
+                   for k, t in adapter.items()):
+            raise SystemExit("every LoRA B is still zero; this checkpoint did not train")
+        if len(adapter) % 2:
+            raise SystemExit(f"{len(adapter)} adapter tensors is odd; each layer needs a and b")
+    torch.save({"talker": talker, "proj_variant": proj_variant,
+                "thinker_lora": adapter, "global_embed": global_embed,
                 "markers": markers, "step": iteration, "source": str(source)}, out)
     print(json.dumps({
         "talker_tensors": len(talker), "markers": sorted(markers),
