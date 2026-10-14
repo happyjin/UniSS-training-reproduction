@@ -100,8 +100,11 @@ def forward_step(data_iterator, model):
     from experiments.uniss_omni_s2st_v1.training.stage2_batch import build_batch
 
     batch = next(data_iterator)
+    # supervise_eos: the thinker is trainable here, and without the
+    # end-of-turn token in its labels it is never told a reply ends.
     inputs = build_batch(batch, _PROCESSOR, _MODEL.talker, _MODEL.layout,
-                         device=torch.cuda.current_device())
+                         device=torch.cuda.current_device(),
+                         supervise_eos=True)
     # text_labels and supervise_text stay: the Thinker has an adapter now,
     # and without the text term LoRA is free to wreck the translation to
     # make the Talker's job easier. Text-BLEU has sat at 38.34 / 39.24

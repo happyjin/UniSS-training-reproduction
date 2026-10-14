@@ -20,8 +20,25 @@ from experiments.uniss_omni_s2st_v1.modeling.stage0_assembly import build_codec_
 from experiments.uniss_omni_s2st_v1.training import stage2_tasks
 
 
-def build_batch(batch: dict, processor, talker, layout, *, device) -> dict:
-    """One collated batch -> model keyword arguments."""
+def build_batch(batch: dict, processor, talker, layout, *, device,
+                supervise_eos: bool = False) -> dict:
+    """One collated batch -> model keyword arguments.
+
+    ``supervise_eos`` adds the end-of-turn token to the thinker's text
+    target. Without it the labels stop at the last content token and the
+    model is never told the reply ends, so a trainable thinker drifts
+    toward "keep producing" and starts looping -- measured at phase F
+    iter 1000, where text-BLEU fell from 38.34 to 5.25 on outputs like
+    "Liu Yuzi. Liu Yuzi. Liu Yuzi." while the teacher-forced dev CE was
+    still improving. It defaults off because stage 2 and phase E were
+    measured without it, and phase E froze the thinker so it could not
+    have been bitten.
+
+    The token goes into the thinker's input and labels only. reply_ids
+    and reply_mask stay as they were: they are the talker's view of the
+    text, and the talker's stream is aligned to codec positions that no
+    end-of-turn token belongs to.
+    """
     task = batch["task"]
     if stage2_tasks.uses_tts_cache(task):
         return _build_cached(batch, processor, talker, layout, device=device)
@@ -53,11 +70,15 @@ def build_batch(batch: dict, processor, talker, layout, *, device) -> dict:
 
     supervise_text = stage2_tasks.supervises_text(task)
     reply = tokenizer(list(batch["text_target"]), add_special_tokens=False)["input_ids"]
+    eos_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    if eos_id is None or eos_id < 0:
+        eos_id = tokenizer.eos_token_id
+    add_eos = bool(supervise_eos and supervise_text and eos_id is not None)
 
     rows = prompt_ids.shape[0]
     prompt_width = prompt_ids.shape[1]
     reply_width = max(len(r) for r in reply)
-    total = prompt_width + reply_width
+    total = prompt_width + reply_width + (1 if add_eos else 0)
 
     input_ids = torch.full((rows, total), pad_id, dtype=torch.long)
     attention = torch.zeros((rows, total), dtype=torch.long)
@@ -76,6 +97,13 @@ def build_batch(batch: dict, processor, talker, layout, *, device) -> dict:
         reply_mask[row, :length] = 1
         if supervise_text:
             text_labels[row, prompt_width : prompt_width + length] = tensor
+        if add_eos:
+            # One position past this row's reply, so a short row is told to
+            # stop where it actually ends rather than after the padding.
+            at = prompt_width + length
+            input_ids[row, at] = eos_id
+            attention[row, at] = 1
+            text_labels[row, at] = eos_id
 
     out = {
         "thinker_input_ids": input_ids.to(device),
