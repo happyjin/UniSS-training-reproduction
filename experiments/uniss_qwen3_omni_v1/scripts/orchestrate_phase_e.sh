@@ -26,6 +26,17 @@ MBS="${MBS:-32}"; GBS="${GBS:-512}"
 LR="${LR:-6e-5}"; MIN_LR="${MIN_LR:-2e-6}"
 PROBE_LIMIT="${PROBE_LIMIT:-64}"
 COMPARE_AT="${COMPARE_AT:-4000}"
+# One thinker call, everywhere. Streaming cannot afford a second pass over
+# a reply it has not finished writing, so the delivered path is the
+# single-pass one and the probe should measure that path, not a sibling of
+# it. The two were measured against each other twice -- v1 at -1.62, v2 at
+# +1.06, straddling zero on 64 samples -- so nothing is given up by
+# switching, and v2 iter 4000 carries both numbers as the bridge.
+SINGLE_PASS="${SINGLE_PASS:-1}"
+# Every probe point needs a checkpoint sitting exactly on it: run_probe
+# exports iter_<target>, and a save interval coarser than the probe
+# spacing leaves it exporting a directory that was never written.
+SAVE_INTERVAL="${SAVE_INTERVAL:-1000}"
 STATE="${RUN_DIR}/orchestrator"; mkdir -p "${STATE}"
 TSV="${STATE}/probes.tsv"
 [ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\ttext_zh2en\ttext_en2zh\n" > "${TSV}"
@@ -40,7 +51,8 @@ start_training() {
   log "启动训练 -> ${iters} 步"
   OVERRIDE_SCHED="${sched}" PHASE_D="${PHASE_D}" MBS="${MBS}" GBS="${GBS}" \
     TRAIN_ITERS="${iters}" WARMUP_ITERS=200 LR="${LR}" MIN_LR="${MIN_LR}" \
-    NUM_WORKERS=6 EVAL_INTERVAL=500 EVAL_ITERS=4 SAVE_INTERVAL=2000 \
+    NUM_WORKERS=6 EVAL_INTERVAL=500 EVAL_ITERS=4 \
+    SAVE_INTERVAL="${SAVE_INTERVAL}" \
     LOG_INTERVAL=20 MASTER_PORT="${MASTER_PORT:-29705}" \
     SAVE_DIR="${RUN_DIR}" TB_DIR="${REPO_ROOT}/runs/uniss_qwen3_omni_v1/$(basename "${RUN_DIR}")" \
     setsid nohup bash experiments/uniss_qwen3_omni_v1/scripts/run_phase_e.sh \
@@ -83,7 +95,7 @@ run_probe() {
   log "端到端探针 iter ${it}"
   CKPT="${ckpt}" \
     TALKER="${REPO_ROOT}/checkpoints/uniss_omni_s2st_v1/stage1_transfer/exported/talker_iter0040000.pt" \
-    OUT="${out}" LIMIT="${PROBE_LIMIT}" \
+    OUT="${out}" LIMIT="${PROBE_LIMIT}" SINGLE_PASS="${SINGLE_PASS}" \
     bash experiments/uniss_qwen3_omni_v1/scripts/run_e2e_probe.sh >> "${STATE}/probe.log" 2>&1
   local line
   line=$(/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python - "${out}" "${it}" <<'PY'
@@ -101,7 +113,7 @@ print(f"{sys.argv[2]}\t{z:.2f}\t{e:.2f}\t{(z+e)/2:.2f}\t{f(tz)}\t{f(te)}")
 PY
 ) || { log "打分失败 ${it}"; return 1; }
   echo "${line}" >> "${TSV}"
-  log "iter ${it}: ${line}   （对照 Phase B 级联 27.68 / 34.14）"
+  log "iter ${it}: ${line}   （对照 Phase B 级联同 64 条 32.22 / 36.21）"
   # One checkpoint, one sample set, one flag between them: the only
   # honest way to price the numerical gap between the parallel forward
   # training uses and the incremental decode phase F will be stuck with.
