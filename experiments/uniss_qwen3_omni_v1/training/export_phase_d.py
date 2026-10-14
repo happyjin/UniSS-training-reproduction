@@ -70,6 +70,10 @@ def main() -> None:
     for name in ("eos", "pad"):
         if name not in markers:
             raise SystemExit(f"markers.{name} is missing")
+    # The eval side has to build the same module before loading, and a
+    # strict=False load would otherwise drop the MLP in silence.
+    proj_variant = ("mlp" if any(k.startswith("thinker_to_talker_proj.base")
+                                 for k in talker) else "linear")
     norm = talker.get("model.norm.weight")
     if norm is not None and float(norm.float().abs().mean()) < 0.01:
         raise SystemExit(
@@ -79,7 +83,7 @@ def main() -> None:
     iteration = int(source.name.split("_")[-1])
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"talker": talker, "global_embed": global_embed,
+    torch.save({"talker": talker, "proj_variant": proj_variant, "global_embed": global_embed,
                 "markers": markers, "step": iteration, "source": str(source)}, out)
     print(json.dumps({
         "talker_tensors": len(talker), "markers": sorted(markers),

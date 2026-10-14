@@ -195,7 +195,23 @@ def main() -> None:
 
     a = build_assembly(talker_checkpoint=args.talker_checkpoint, device=args.device)
     state = torch.load(args.phase_d_checkpoint, map_location="cpu", weights_only=False)
-    a.talker.load_state_dict(state["talker"], strict=False)
+    # The checkpoint says which projection its weights belong to. Build
+    # that module first: strict=False would otherwise load an MLP
+    # checkpoint into a bare linear without a word, and the probe would
+    # quietly measure the wrong model.
+    if state.get("proj_variant") == "mlp":
+        from experiments.uniss_qwen3_omni_v1.modeling.qwen3_assembly import (
+            wrap_projection,
+        )
+        wrap_projection(a.talker)
+    info = a.talker.load_state_dict(state["talker"], strict=False)
+    stray = [k for k in list(info.missing_keys) + list(info.unexpected_keys)
+             if "thinker_to_talker_proj" in k]
+    if stray:
+        raise SystemExit(f"projection keys did not match: {stray}")
+    print(f"talker loaded: proj={state.get('proj_variant', 'linear')}, "
+          f"missing {len(info.missing_keys)}, unexpected {len(info.unexpected_keys)}",
+          flush=True)
     with torch.no_grad():
         a.global_embed.weight.copy_(state["global_embed"].to(a.global_embed.weight.dtype))
         a.markers.eos.copy_(state["markers"]["eos"])

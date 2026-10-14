@@ -116,6 +116,16 @@ class PhaseEModel(HuggingFaceModule):
 
         self.thinker.requires_grad_(False)
         self.thinker.eval()
+        # A fixed linear cannot express an input-dependent rotation, which
+        # is what the audio-conditioned states ask of it. The wrap starts
+        # as a no-op, so turning it on mid-run keeps everything trained.
+        self.proj_variant = "linear"
+        if os.environ.get("UNISS_PHASE_E_PROJ") == "mlp":
+            from experiments.uniss_qwen3_omni_v1.modeling.qwen3_assembly import (
+                wrap_projection,
+            )
+            wrap_projection(talker)
+            self.proj_variant = "mlp"
         self.talker.requires_grad_(True)
         self.global_embed.requires_grad_(True)
         self.markers.requires_grad_(True)
@@ -138,6 +148,9 @@ class PhaseEModel(HuggingFaceModule):
         def count(m):
             return sum(p.numel() for p in m.parameters() if p.requires_grad)
         return {"talker_m": round(count(self.talker) / 1e6, 1),
+                "proj_variant": self.proj_variant,
+                "proj_m": round(
+                    count(self.talker.thinker_to_talker_proj) / 1e6, 2),
                 "global_embed_m": round(count(self.global_embed) / 1e6, 2),
                 "markers": count(self.markers),
                 "thinker_frozen_m": round(

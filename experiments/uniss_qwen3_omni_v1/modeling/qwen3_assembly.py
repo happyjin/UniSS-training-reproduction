@@ -38,6 +38,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from experiments.uniss_omni_s2st_v1.modeling.talker_surgery import (
     read_codec_layout,
@@ -50,6 +51,54 @@ from experiments.uniss_omni_s2st_v1.modeling.talker_surgery import (
 TEXT_PAD_ROW = 151_859
 TEXT_EOS_ROW = 151_861
 THINKER_HIDDEN = 2048
+
+
+class ResidualMLPProjection(nn.Module):
+    """The trained linear, plus a non-linear correction that starts at zero.
+
+    thinker_to_talker_proj is one Linear(2048 -> 896) that stage 1 fit on
+    15.36M TTS-prompt states. Phase E hands it states from an S2TT
+    conversation: cosine 0.674 from the old family, norm 191.8 against
+    143.6. A fixed linear map can only learn the average rotation, and the
+    rotation here is input-dependent -- how much audio bleeds into a text
+    position depends on the utterance.
+
+    So: keep the linear as the main path and add a branch beside it. The
+    down projection is zero-initialised, so at step zero this module's
+    output equals the bare linear's, bit for bit, and nothing trained so
+    far is discarded. LayerNorm goes first because the 25% norm gap is the
+    one part of the shift a fixed map genuinely cannot absorb.
+    """
+
+    def __init__(self, base: nn.Linear, hidden: int = 2048):
+        super().__init__()
+        self.base = base
+        self.norm = nn.LayerNorm(base.in_features)
+        self.up = nn.Linear(base.in_features, hidden)
+        self.down = nn.Linear(hidden, base.out_features)
+        nn.init.zeros_(self.down.weight)
+        nn.init.zeros_(self.down.bias)
+
+    @property
+    def in_features(self) -> int:
+        return self.base.in_features
+
+    @property
+    def out_features(self) -> int:
+        return self.base.out_features
+
+    def forward(self, x):
+        return self.base(x) + self.down(F.silu(self.up(self.norm(x))))
+
+
+def wrap_projection(talker) -> bool:
+    """Swap in the residual MLP. Returns False if it is already wrapped."""
+    proj = talker.thinker_to_talker_proj
+    if isinstance(proj, ResidualMLPProjection):
+        return False
+    talker.thinker_to_talker_proj = ResidualMLPProjection(proj).to(
+        dtype=proj.weight.dtype, device=proj.weight.device)
+    return True
 
 
 @dataclass
