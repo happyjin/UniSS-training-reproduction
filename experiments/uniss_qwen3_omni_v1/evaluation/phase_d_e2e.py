@@ -153,6 +153,9 @@ def main() -> None:
     ap.add_argument("--talker-checkpoint", required=True)
     ap.add_argument("--single-pass", action="store_true",
                     help="take the states from generate, not a second forward")
+    ap.add_argument("--cascade", action="store_true",
+                    help="speak the generated text through a TTS prompt, not the "
+                         "S2TT states -- one thinker doing both jobs")
     ap.add_argument("--task-format", choices=["s2tt", "s2st"], default="s2tt",
                     help="s2st uses the instruction phase E trained under")
     ap.add_argument("--oracle-reply", action="store_true",
@@ -259,8 +262,17 @@ def main() -> None:
             a, row["source_audio_path"], row["tgt_lang"], args.max_new_tokens,
             single_pass=args.single_pass, instruction=instruction,
             gold_reply=gold)
+        if args.cascade:
+            # The talker's trained conditioning, fed this run's own
+            # translation. generate_codes templates a TTS prompt and runs
+            # the thinker over it when reply_states is None, so the same
+            # Qwen3 both translates and encodes -- no Qwen2.5 anywhere.
+            # Separates "the talker cannot speak" from "the talker cannot
+            # read audio-conditioned states", which the end-to-end number
+            # alone cannot.
+            states = None
         codes = []
-        if states is not None:
+        if states is not None or args.cascade:
             codes = generate_codes(
                 model, a.processor, hypothesis, row["tgt_lang"],
                 layout=a.layout, output_mask=a.output_mask, device=a.device,
@@ -269,7 +281,12 @@ def main() -> None:
                 global_embed=a.global_embed,
                 bicodec_global=torch.as_tensor(row["bicodec_global"], dtype=torch.long),
                 reply_states=states,
-                markers=a.markers.embeds(states[0].dtype, a.device))
+                # The trained markers either way. Falling back to the
+                # embedding rows would hand the cascade Qwen3's untrained
+                # pad and eos vectors and score a handicap as a result.
+                markers=a.markers.embeds(
+                    torch.float32 if states is None else states[0].dtype,
+                    a.device))
         index = args.shard + position * args.num_shards
         name = f"{index:05d}_{row['src_lang']}2{row['tgt_lang']}"
         audio_path = None
