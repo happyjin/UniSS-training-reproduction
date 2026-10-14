@@ -227,12 +227,16 @@ class PhaseFModel(HuggingFaceModule):
         if bool(supervise_text.flatten()[0]):
             # Megatron's forward_step does no shifting, so it is done here:
             # position t predicts token t+1.
-            logits = out.logits[:, :-1, :].float()
             labels = text_labels[:, 1:]
-            text_loss = F.cross_entropy(
-                logits.reshape(-1, logits.shape[-1]), labels.reshape(-1),
-                ignore_index=-100,
-            )
+            # Gather before the float cast. An audio prompt runs 1000+
+            # positions and the reply is about 20 of them, so casting the
+            # whole sequence to float32 over a 152,064 vocabulary spends
+            # 9.7 GB at micro batch 16 to score positions that are all
+            # -100. Selecting first makes it 195 MB.
+            sel = labels != -100
+            if sel.any():
+                text_loss = F.cross_entropy(
+                    out.logits[:, :-1, :][sel].float(), labels[sel])
 
         code_loss = zero
         if codec_input_ids is not None:
