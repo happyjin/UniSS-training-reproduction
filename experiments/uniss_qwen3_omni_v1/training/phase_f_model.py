@@ -175,6 +175,26 @@ class PhaseFModel(HuggingFaceModule):
         self.register_buffer("output_mask", valid_output_mask(self.layout),
                              persistent=False)
 
+    def sharded_state_dict(self, prefix="", sharded_offsets=(), metadata=None):
+        """Only what trains. The thinker is 31.7B of frozen weights that
+        come back from from_pretrained on every start, and writing them
+        made a checkpoint 65 GB -- ten of those is 650 GB against 679 GB
+        free, so a 10,000-step run would have filled the disk around
+        iteration 9,000.
+
+        The adapter and the talker are what this run produces: 393M plus
+        4.46M, about 5 GB once the optimiser's fp32 copies are counted.
+        Save and load filter on the same predicate, so the key sets
+        match and a resume finds exactly what it wrote.
+        """
+        full = super().sharded_state_dict(prefix, sharded_offsets, metadata)
+        frozen = {prefix + name for name, param in self.named_parameters()
+                  if not param.requires_grad}
+        kept = {k: v for k, v in full.items() if k not in frozen}
+        if not kept:
+            raise SystemExit("every key was filtered out; the predicate is wrong")
+        return kept
+
     def trainable_report(self) -> dict:
         def count(m):
             return sum(p.numel() for p in m.parameters() if p.requires_grad)
