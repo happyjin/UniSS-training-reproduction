@@ -22,6 +22,8 @@ train, so the objective is the code cross-entropy alone.
 
 from __future__ import annotations
 
+import os
+
 import torch
 import torch.nn.functional as F
 
@@ -51,6 +53,15 @@ THINKER_HIDDEN = 2048
 # forgotten while the joint one is learned. asr/s2tt/mt are dropped --
 # they only supervise text, and no text is supervised here.
 MIXTURE = {"s2st": 3.0, "tts": 1.0}
+# The tts task trains on the state family the talker already knows: a TTS
+# prompt, median norm 143.6. The s2st task trains on what inference sends,
+# median norm 191.8 and 48 degrees away. Measured on 267 token positions,
+# cosine 0.674 -- two different regions, not a small correction. Spending
+# a quarter of the budget pulling the projection back toward the region
+# inference never visits is worse than spending none, which is what
+# UNISS_PHASE_E_MIXTURE=s2st does. Unset, the mixture is as v1 and v2 ran.
+if os.environ.get("UNISS_PHASE_E_MIXTURE") == "s2st":
+    MIXTURE = {"s2st": 1.0}
 
 
 class PhaseEModel(HuggingFaceModule):
