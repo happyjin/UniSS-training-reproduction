@@ -135,8 +135,12 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         names = audio_rows.parquet_names()
     else:
         names = {r.parquet for r in audio_rows}
+    # a2s supervises the source utterance, so its codes have to be loaded;
+    # every other mixture reads exactly the columns it always read.
+    want_source = "a2s" in MIXTURE
     corpus = Stage2Corpus(audio_rows,
-                          ParquetCodeIndex(args.omni_parquet_root, names),
+                          ParquetCodeIndex(args.omni_parquet_root, names,
+                                           with_source=want_source),
                           CachedTtsCorpus(args.omni_tts_cache),
                           audio_root=args.omni_audio_root)
     gbs = int(args.global_batch_size)

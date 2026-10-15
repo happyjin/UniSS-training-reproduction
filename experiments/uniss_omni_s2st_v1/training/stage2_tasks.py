@@ -73,6 +73,13 @@ def _instruction(task: str, src_lang: str, tgt_lang: str, text: str | None) -> s
     target = LANGUAGE.get(tgt_lang, tgt_lang)
     if task == "asr":
         return f"Listen to the {source} speech and transcribe it. Reply with the {source} transcription only."
+    if task == "a2s":
+        # Same conditioning as asr -- audio in, transcript out -- but the
+        # talker speaks that transcript instead of the task ending at text.
+        # The point is the state family: this is the only task that puts the
+        # talker on audio-conditioned states with a target it can reach, so
+        # it can learn to read them before s2st asks it to translate too.
+        return f"Listen to the {source} speech and transcribe it. Reply with the {source} transcription only."
     if task == "s2tt":
         return f"Listen to the {source} speech and translate it into {target}. Reply with the {target} translation only."
     if task == "mt":
@@ -106,6 +113,12 @@ def build(task: str, row: dict) -> TaskSample:
     if task == "asr":
         return TaskSample(task, row["audio"], _instruction(task, src, tgt, None),
                           transcript, None, None)
+    if task == "a2s":
+        if row.get("source_codes") is None:
+            raise SystemExit(
+                "a2s needs source_codes; build ParquetCodeIndex(with_source=True)")
+        return TaskSample(task, row["audio"], _instruction(task, src, tgt, None),
+                          transcript, row["source_codes"], row["globals"])
     if task == "s2tt":
         return TaskSample(task, row["audio"], _instruction(task, src, tgt, None),
                           translation, None, None)
@@ -144,7 +157,7 @@ def conversation(sample: TaskSample) -> list[dict]:
 
 
 def needs_audio(task: str) -> bool:
-    return task in ("asr", "s2tt", "s2st")
+    return task in ("asr", "s2tt", "s2st", "a2s")
 
 
 def uses_tts_cache(task: str) -> bool:
@@ -163,4 +176,4 @@ def supervises_text(task: str) -> bool:
 
 
 def supervises_codes(task: str) -> bool:
-    return task in ("tts", "s2st")
+    return task in ("tts", "s2st", "a2s")

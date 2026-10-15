@@ -89,11 +89,23 @@ class ParquetCodeIndex:
     2.5M rows of codes, which is 1.3 GB as int16 and far more as Python.
     """
 
-    def __init__(self, parquet_root: str | Path, names: set[str]):
+    def __init__(self, parquet_root: str | Path, names: set[str],
+                 *, with_source: bool = False):
+        """``with_source`` also loads each row's own audio codes.
+
+        The a2s task supervises the source utterance rather than the
+        translation, so it needs source_bicodec. Left False nothing is
+        read that was not read before, and the extra array costs roughly
+        what target_bicodec costs -- about 10 GiB per rank across all 198
+        shards, against 1,992 GiB of memory.
+        """
         self.codes: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         self.globals: dict[str, np.ndarray] = {}
+        self.source_codes: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self.with_source = bool(with_source)
+        columns = list(PARQUET_COLUMNS) + (["source_bicodec"] if with_source else [])
         for name in sorted(names):
-            table = pq.read_table(Path(parquet_root) / name, columns=PARQUET_COLUMNS)
+            table = pq.read_table(Path(parquet_root) / name, columns=columns)
             codes = table["target_bicodec"].combine_chunks()
             self.codes[name] = (
                 codes.values.to_numpy(zero_copy_only=False).astype(np.int16),
@@ -105,10 +117,20 @@ class ParquetCodeIndex:
                 .astype(np.int16)
                 .reshape(-1, 32)
             )
+            if with_source:
+                src = table["source_bicodec"].combine_chunks()
+                self.source_codes[name] = (
+                    src.values.to_numpy(zero_copy_only=False).astype(np.int16),
+                    src.offsets.to_numpy().astype(np.int64),
+                )
 
     def get(self, parquet: str, index: int) -> tuple[np.ndarray, np.ndarray]:
         values, offsets = self.codes[parquet]
         return values[offsets[index] : offsets[index + 1]], self.globals[parquet][index]
+
+    def get_source(self, parquet: str, index: int) -> np.ndarray:
+        values, offsets = self.source_codes[parquet]
+        return values[offsets[index] : offsets[index + 1]]
 
 
 class Stage2Corpus:
@@ -130,7 +152,7 @@ class Stage2Corpus:
     def audio_sample(self, index: int) -> dict:
         row = self.audio_rows[index % len(self.audio_rows)]
         codes, globals_ = self.code_index.get(row.parquet, row.row_index)
-        return {
+        sample = {
             "audio": row.audio_uri,
             "source_transcript": row.source_transcript,
             "target_text": row.target_text,
@@ -139,6 +161,10 @@ class Stage2Corpus:
             "codes": codes,
             "globals": globals_,
         }
+        if self.code_index.with_source:
+            sample["source_codes"] = self.code_index.get_source(
+                row.parquet, row.row_index)
+        return sample
 
     def text_sample(self, index: int) -> dict:
         row = self.text_corpus[index % len(self.text_corpus)]

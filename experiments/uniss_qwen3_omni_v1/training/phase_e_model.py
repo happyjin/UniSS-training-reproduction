@@ -62,6 +62,15 @@ MIXTURE = {"s2st": 3.0, "tts": 1.0}
 # UNISS_PHASE_E_MIXTURE=s2st does. Unset, the mixture is as v1 and v2 ran.
 if os.environ.get("UNISS_PHASE_E_MIXTURE") == "s2st":
     MIXTURE = {"s2st": 1.0}
+elif os.environ.get("UNISS_PHASE_E_MIXTURE") == "a2s":
+    # The talker reads audio-conditioned states at 0.69 and TTS-prompt
+    # states at 31.08, and three runs have failed to close that by training
+    # on s2st alone -- it asks the talker to learn the new state family and
+    # the translation at the same time, from zero. a2s splits them: speak
+    # the transcript you just heard, which is the same conditioning with a
+    # target the talker can actually reach. s2st stays in at a third, so
+    # nothing lets it settle for copying the audio instead of reading text.
+    MIXTURE = {"a2s": 2.0, "s2st": 1.0}
 
 
 class PhaseEModel(HuggingFaceModule):
