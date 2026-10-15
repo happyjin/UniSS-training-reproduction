@@ -148,6 +148,25 @@ class PhaseEModel(HuggingFaceModule):
         self.register_buffer("output_mask", valid_output_mask(self.layout),
                              persistent=False)
 
+    def sharded_state_dict(self, prefix="", sharded_offsets=(), metadata=None):
+        """Only what trains. Writing the frozen 31.7B thinker made every
+        save 65 GB, and at one save per 500 steps a 10,000-step run wanted
+        1.3 TB against 533 GB free. The thinker comes back from
+        from_pretrained on every start and is never modified.
+
+        Same predicate on save and load, so the key sets match and a
+        resume finds what it wrote. Phase F has carried this since its
+        own disk ran short; phase E did not, which is how a 65 GB
+        checkpoint appeared again.
+        """
+        full = super().sharded_state_dict(prefix, sharded_offsets, metadata)
+        frozen = {prefix + name for name, param in self.named_parameters()
+                  if not param.requires_grad}
+        kept = {k: v for k, v in full.items() if k not in frozen}
+        if not kept:
+            raise SystemExit("every key was filtered out; the predicate is wrong")
+        return kept
+
     def train(self, mode: bool = True):
         super().train(mode)
         self.thinker.eval()
