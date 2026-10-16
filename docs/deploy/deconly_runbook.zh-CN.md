@@ -4,7 +4,8 @@
 
 读完这份文档你应该能:起训、看懂日志、在指定步数做端到端探针、把分数放进和其他路线同一张表里比较。
 
-> **状态:代码已写完并通过语法与批构造器检查,但从未跑过一步。**前向、显存、吞吐都还没有实测数据。第 6 节列出首次运行必须盯的东西。
+> **状态:前向和反向已在 CPU 上验证通过;显存、吞吐、Megatron 集成和推理脚本仍未验证。**
+> 第 7 节列出首次 GPU 运行必须盯的东西,以及为什么仍然要先跑 50 步冒烟。
 
 ---
 
@@ -103,6 +104,7 @@ training/export_deconly.py       导出 audio_embed / audio_head / global_embed 
 evaluation/deconly_e2e.py        端到端推理（两段 generate，共享 KV cache）
 scripts/run_deconly.sh           训练启动
 scripts/run_deconly_probe.sh     探针（8 卡分片 + ASR + BLEU）
+scripts/orchestrate_deconly.sh   编排器：停训 → 导出 → 探针 → 续训，全自动
 ```
 
 ---
@@ -212,7 +214,29 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly_probe.sh
 DECONLY_PROBE_DONE
 ```
 
-### 5.3 建议的探针点
+### 5.3 全自动:用编排器
+
+不想手动停训/导出/探针的话,直接用编排器,它会在每个探针点停训 → 导出 → 跑探针 → 续训,**每个测量点零步损失**:
+
+```bash
+RUN2=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
+
+setsid nohup env \
+  UNISS_S2ST_REPLY=translation \
+  RUN_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN2 \
+  MBS=8 GBS=256 LR=1e-4 MIN_LR=2e-5 \
+  TRAIN_ITERS=20000 PROBE_AT="500 2000 4000 8000" \
+  MAX_ITERS=30000 EXTEND_BY=5000 GAIN_STOP=1.0 PROBE_LIMIT=64 \
+  SAVE_INTERVAL=500 MASTER_PORT=29753 \
+  bash experiments/uniss_qwen3_omni_v1/scripts/orchestrate_deconly.sh \
+  > /tmp/deconly_orch.log 2>&1 < /dev/null & disown
+```
+
+分数会追加到 `$RUN_DIR/orchestrator/probes.tsv`,日志在 `orchestrator/orchestrator.log`。
+
+**`PROBE_AT` 的每个值都必须能被 `SAVE_INTERVAL` 整除**,否则编排器会去导出一个从没写过的 checkpoint 然后失败。
+
+### 5.4 建议的探针点
 
 ```
 iter   500    最早的健康检查：Text-BLEU 有没有塌
@@ -267,25 +291,35 @@ Dec-only 跑到 8,000 步  > 25   有竞争力，继续
 
 ---
 
-## 7. 首次运行必须盯的东西
+## 7. 已验证 / 未验证
 
-**代码从未跑过一步。**以下都没有实测数据:
+### 已在 CPU 上验证通过
+
+```
+前向          total 14.48   text_ce 4.06   code_ce 10.41（随机参考 ln 8193 = 9.01）
+反向          跑通，40 秒
+梯度路由      audio_embed / global_embed / audio_head 全部非零
+              LoRA .b 64/64 非零，.a 0/64 —— 零初始化 B 的预期行为，全部 64 层都在图里
+冻结参数      0 个拿到梯度
+音频合并      inputs_embeds + input_features 同传，模型仍按 input_ids 定位并 scatter 音频
+索引算术      code_start 正确，无越界
+```
+
+### 仍未验证 —— 第一次 GPU 运行要盯这些
 
 | 项 | 风险 | 怎么查 |
 |---|---|---|
-| **显存** | 序列约 413 位(双流约 81),MBS 8 可能仍 OOM | 看前 20 步 `nvidia-smi`;OOM 就降到 4 |
-| **吞吐** | 估计 10–15 样本/秒(双流是 155) | 日志里的 `elapsed time per iteration` |
-| **前向** | `inputs_embeds` + `input_features` 同传的音频合并路径**只做过源码核对,没跑过** | 第一步不报错即通过 |
-| **码损失量级** | `code_ce` 起步应在 8–9(ln 8193 ≈ 9.0) | 低于 5 说明标签对齐有问题 |
+| **显存** | 序列约 400 位(双流约 81),MBS 8 可能 OOM | 前 20 步看 `nvidia-smi`;OOM 降到 4 |
+| **吞吐** | 估计 10–15 样本/秒(双流 155) | 日志 `elapsed time per iteration` |
+| **Megatron 集成** | `model_provider` / `forward_step` / 数据集 provider 整条链没跑过。CPU 测试用了假 config 直接构造模型,绕开了这一层 | 第一步不报错即通过 |
+| **`deconly_e2e.py`** | 推理脚本一步没跑过 | 第一次探针 |
 | **modality underfitting** | 一个头学、另一个被忽略 | `text_ce` 和 `code_ce` 要**同时**下降 |
 
-**建议第一次只跑 50 步就停**,确认上面五项,再放长线。
+**所以第一次仍然只跑 50 步:**
 
 ```bash
 TRAIN_ITERS=50 SAVE_INTERVAL=50 ... bash .../run_deconly.sh
 ```
-
----
 
 ## 8. 不要做的事
 

@@ -89,8 +89,17 @@ def model_provider(pre_process=True, post_process=True, vp_stage=None,
 
 
 def loss_func(output_tensor):
+    """forward returns [total, text_ce, code_ce]; the metrics start at 1.
+
+    Phase F reused phase E's mapping, which assumed the first element was
+    also the first metric -- true there, where forward returned [loss,
+    supervised_tokens] and the loss was the code CE. Here the first
+    element is the weighted sum, so enumerate without the offset logs the
+    total under "text_ce" and the text CE under "code_ce", and the code
+    CE never appears at all.
+    """
     return output_tensor[0], OrderedDict(
-        (n, output_tensor[i]) for i, n in enumerate(METRIC_NAMES))
+        (n, output_tensor[i + 1]) for i, n in enumerate(METRIC_NAMES))
 
 
 def forward_step(data_iterator, model):
