@@ -234,7 +234,20 @@ setsid nohup env \
 
 分数会追加到 `$RUN_DIR/orchestrator/probes.tsv`,日志在 `orchestrator/orchestrator.log`。
 
-**`PROBE_AT` 的每个值都必须能被 `SAVE_INTERVAL` 整除**,否则编排器会去导出一个从没写过的 checkpoint 然后失败。
+**先用 `DRY_RUN=1` 校验配置。**把上面命令里的 `setsid nohup env` 换成 `env`、加上 `DRY_RUN=1`、去掉末尾的 `> ... &  disown`,它会检查完配置就退出,不启动任何训练:
+
+```bash
+DRY_RUN=1 RUN_DIR=... PROBE_AT="500 2000 4000 8000" SAVE_INTERVAL=500 \
+  bash experiments/uniss_qwen3_omni_v1/scripts/orchestrate_deconly.sh
+# -> DRY_RUN=1，不启动。配置检查通过。
+```
+
+编排器在启动前会挡住两类配置错误,两类都踩过、且都不会自己说清楚:
+
+- **`PROBE_AT` 的值不能被 `SAVE_INTERVAL` 整除** —— 导出会去找一个从没写过的 `iter_XXXXXXX`
+- **首个探针点 ≤ `WARMUP_ITERS`** —— Megatron 的 `assert lr_warmup_steps < lr_decay_steps` 会在重启循环里反复触发,编排器会一直重试
+
+> **不要为了「看看它会干什么」去跑编排器。**它内部是 `setsid nohup ... & disown`,`timeout` 或 Ctrl-C 杀掉的只是编排器本身,已经起来的 8 卡训练会继续活着。要看配置就用 `DRY_RUN=1`。
 
 ### 5.4 建议的探针点
 

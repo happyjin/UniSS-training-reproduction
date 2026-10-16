@@ -29,7 +29,7 @@ from pathlib import Path
 import soundfile as sf
 import torch
 
-from experiments.uniss_qwen3_omni_v1.training.deconly_model import (
+from experiments.uniss_qwen3_omni_v1.training.deconly_batch import (
     BICODEC_GLOBAL_SIZE,
     CODE_EOS,
     CODE_VOCAB,
@@ -139,11 +139,16 @@ def translate_and_speak(thinker, processor, pieces, audio_path, tgt_lang,
 def main() -> None:
     import pyarrow.parquet as pq
 
-    from experiments.uniss_qwen3_omni_v1.modeling.qwen3_assembly import build_assembly
+    from transformers import (
+        Qwen3OmniMoeForConditionalGeneration,
+        Qwen3OmniMoeProcessor,
+    )
     from uniss import UniSSTokenizer
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--deconly-checkpoint", required=True)
+    ap.add_argument("--qwen3-dir",
+                    default="pretrained_models/Qwen3-Omni-30B-A3B-Instruct")
     ap.add_argument("--dev-parquet", required=True)
     ap.add_argument("--speech-tokenizer", default="pretrained_models/UniSS")
     ap.add_argument("--limit", type=int, default=64)
@@ -155,11 +160,22 @@ def main() -> None:
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
 
-    a = build_assembly(thinker_from="qwen3", device=args.device)
-    thinker = a.thinker
-    pieces = load_pieces(args.deconly_checkpoint, thinker, a.device)
+    device = torch.device(args.device)
+    # Not build_assembly: it loads Qwen2.5-Omni-3B to harvest a talker,
+    # and this route has none. Eight shards would each read 7 GB from
+    # disk for a module never called.
+    omni3 = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
+        args.qwen3_dir, dtype=torch.bfloat16, attn_implementation="sdpa")
+    for attr in ("talker", "code2wav", "token2wav"):
+        if hasattr(omni3, attr):
+            delattr(omni3, attr)
+    thinker = omni3.thinker.to(device).eval()
+    del omni3
+    torch.cuda.empty_cache()
+    processor = Qwen3OmniMoeProcessor.from_pretrained(args.qwen3_dir)
+    pieces = load_pieces(args.deconly_checkpoint, thinker, device)
     vocoder = UniSSTokenizer.from_pretrained(
-        args.speech_tokenizer, device=torch.device(args.device))
+        args.speech_tokenizer, device=device)
 
     rows = pq.read_table(args.dev_parquet, columns=[
         "id", "translation", "src_lang", "tgt_lang", "bicodec_global",
@@ -176,16 +192,16 @@ def main() -> None:
     records = []
     for position, row in enumerate(rows):
         hypothesis, codes = translate_and_speak(
-            thinker, a.processor, pieces, row["source_audio_path"],
+            thinker, processor, pieces, row["source_audio_path"],
             row["tgt_lang"], list(row["bicodec_global"]),
             max_new_tokens=args.max_new_tokens, max_codes=args.max_codes,
-            device=a.device)
+            device=device)
         index = args.shard + position * args.num_shards
         name = f"{index:05d}_{row['src_lang']}2{row['tgt_lang']}"
         audio_path = None
         if codes:
             tokens = torch.tensor([*row["bicodec_global"], *codes],
-                                  dtype=torch.long, device=a.device)
+                                  dtype=torch.long, device=device)
             vocoder.save_audio(vocoder.decode(tokens),
                                out_dir / "wav" / f"{name}.wav", sample_rate=16000)
             audio_path = str(out_dir / "wav" / f"{name}.wav")

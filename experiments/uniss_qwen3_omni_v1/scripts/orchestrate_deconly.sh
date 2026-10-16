@@ -16,7 +16,6 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 
 RUN_DIR="${RUN_DIR:?}"
-PHASE_D="${PHASE_D:?}"
 TRAIN_ITERS="${TRAIN_ITERS:-15000}"
 PROBE_AT="${PROBE_AT:-4000 8000 12000}"
 MAX_ITERS="${MAX_ITERS:-25000}"
@@ -25,16 +24,38 @@ GAIN_STOP="${GAIN_STOP:-1.5}"
 MBS="${MBS:-32}"; GBS="${GBS:-512}"
 LR="${LR:-6e-5}"; MIN_LR="${MIN_LR:-2e-6}"
 PROBE_LIMIT="${PROBE_LIMIT:-64}"
-# a reply it has not finished writing, so the delivered path is the
-# single-pass one and the probe should measure that path, not a sibling of
-# it. The two were measured against each other twice -- v1 at -1.62, v2 at
-# +1.06, straddling zero on 64 samples -- so nothing is given up by
-# switching, and v2 iter 4000 carries both numbers as the bridge.
 # Every probe point needs a checkpoint sitting exactly on it: run_probe
 # exports iter_<target>, and a save interval coarser than the probe
 # spacing leaves it exporting a directory that was never written.
 SAVE_INTERVAL="${SAVE_INTERVAL:-1000}"
 RUN_SCRIPT="${RUN_SCRIPT:-experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh}"
+WARMUP_ITERS="${WARMUP_ITERS:-200}"
+# Checking a config should not cost eight GPUs. start_training setsids and
+# disowns, so a timeout or a Ctrl-C on this script leaves the run it
+# already launched alive -- there is no way to "just see what it would
+# do" without this.
+DRY_RUN="${DRY_RUN:-0}"
+
+# Checked before anything starts, because neither failure is legible once
+# it happens. A probe point off the save grid sends the exporter at a
+# directory that was never written; a first segment shorter than the
+# warmup trips assert lr_warmup_steps < lr_decay_steps inside the restart
+# loop, so the orchestrator retries it forever.
+first=""
+for t in ${PROBE_AT}; do
+  if [ $(( t % SAVE_INTERVAL )) -ne 0 ]; then
+    echo "PROBE_AT 的 ${t} 不能被 SAVE_INTERVAL=${SAVE_INTERVAL} 整除；" >&2
+    echo "iter_${t} 永远不会被写出，导出会失败。" >&2
+    exit 1
+  fi
+  [ -z "${first}" ] && first="${t}"
+done
+if [ -n "${first}" ] && [ "${first}" -le "${WARMUP_ITERS}" ]; then
+  echo "首个探针点 ${first} 不大于 WARMUP_ITERS=${WARMUP_ITERS}；" >&2
+  echo "Megatron 要求 lr_warmup_steps < lr_decay_steps，会崩溃重启循环。" >&2
+  exit 1
+fi
+
 STATE="${RUN_DIR}/orchestrator"; mkdir -p "${STATE}"
 TSV="${STATE}/probes.tsv"
 [ -f "${TSV}" ] || printf "iter\tzh2en\ten2zh\tmean\ttext_zh2en\ttext_en2zh\n" > "${TSV}"
@@ -47,8 +68,12 @@ start_training() {
   local iters="$1" sched=""
   [ -f "${RUN_DIR}/latest_checkpointed_iteration.txt" ] && sched="--override-opt-param-scheduler"
   log "启动训练 -> ${iters} 步"
-  OVERRIDE_SCHED="${sched}" PHASE_D="${PHASE_D}" MBS="${MBS}" GBS="${GBS}" \
-    TRAIN_ITERS="${iters}" WARMUP_ITERS=200 LR="${LR}" MIN_LR="${MIN_LR}" \
+  if [ "${DRY_RUN}" = "1" ]; then
+    log "DRY_RUN=1，不启动。配置检查通过。"
+    exit 0
+  fi
+  OVERRIDE_SCHED="${sched}" MBS="${MBS}" GBS="${GBS}" \
+    TRAIN_ITERS="${iters}" WARMUP_ITERS="${WARMUP_ITERS}" LR="${LR}" MIN_LR="${MIN_LR}" \
     NUM_WORKERS=6 EVAL_INTERVAL=500 EVAL_ITERS=4 \
     SAVE_INTERVAL="${SAVE_INTERVAL}" \
     LOG_INTERVAL=20 MASTER_PORT="${MASTER_PORT:-29705}" \

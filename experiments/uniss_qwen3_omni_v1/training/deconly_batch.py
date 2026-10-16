@@ -36,6 +36,15 @@ from experiments.uniss_omni_s2st_v1.training import stage2_tasks
 BICODEC_GLOBAL_COUNT = 32
 IGNORE = -100
 
+# The codec geometry lives here rather than with the model because the
+# inference script needs it and importing the model would pull in
+# megatron, which the evaluation environment does not have.
+BICODEC_CODES = 8192          # the semantic codebook
+BICODEC_GLOBAL_SIZE = 4096    # the speaker codebook
+CODE_EOS = BICODEC_CODES      # one past the codes, so 8,193 classes in all
+CODE_VOCAB = BICODEC_CODES + 1
+THINKER_HIDDEN = 2048
+
 
 def build_deconly_batch(batch: dict, processor, *, device,
                         code_eos: int | None = None) -> dict:

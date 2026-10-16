@@ -47,12 +47,14 @@ from megatron.core.models.huggingface import HuggingFaceModule
 from experiments.uniss_omni_s2st_v1.training.stage2_tasks import THINKER_TARGETS
 from experiments.uniss_streaming_p2st_traj_v1.training import lora
 
-THINKER_HIDDEN = 2048
-BICODEC_CODES = 8192          # the semantic codebook
-BICODEC_GLOBAL_SIZE = 4096    # the speaker codebook
-CODE_EOS = BICODEC_CODES      # one past the codes, so 8,193 classes in all
-CODE_VOCAB = BICODEC_CODES + 1
-IGNORE = -100
+from experiments.uniss_qwen3_omni_v1.training.deconly_batch import (  # noqa: F401
+    BICODEC_CODES,
+    BICODEC_GLOBAL_SIZE,
+    CODE_EOS,
+    CODE_VOCAB,
+    IGNORE,
+    THINKER_HIDDEN,
+)
 
 # Only the top layers carry adapters: autograd keeps activations back to
 # the earliest parameter needing a gradient, so this bounds memory by how
