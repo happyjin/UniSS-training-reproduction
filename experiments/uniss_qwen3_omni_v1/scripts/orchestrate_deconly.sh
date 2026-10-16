@@ -35,6 +35,11 @@ WARMUP_ITERS="${WARMUP_ITERS:-200}"
 # already launched alive -- there is no way to "just see what it would
 # do" without this.
 DRY_RUN="${DRY_RUN:-0}"
+# The exporter refuses an adapter-free checkpoint unless told the run was
+# meant to be one, because that is also what a checkpoint that never
+# trained looks like.
+NO_LORA=""
+[ "${UNISS_DECONLY_LORA_FROM:-}" = "none" ] && NO_LORA="--no-lora"
 
 # Checked before anything starts, because neither failure is legible once
 # it happens. A probe point off the save grid sends the exporter at a
@@ -114,7 +119,7 @@ run_probe() {
   PYTHONPATH=.:third_party/Megatron-LM CUDA_VISIBLE_DEVICES="" \
     /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python \
     -m experiments.uniss_qwen3_omni_v1.training.export_deconly \
-    --checkpoint-dir "${RUN_DIR}/iter_${tag}" --output "${ckpt}" \
+    --checkpoint-dir "${RUN_DIR}/iter_${tag}" --output "${ckpt}" ${NO_LORA} \
     >> "${STATE}/export.log" 2>&1 || { log "导出失败 ${it}"; return 1; }
   log "端到端探针 iter ${it}"
   # No TALKER and no SINGLE_PASS: the thinker writes the reply and then

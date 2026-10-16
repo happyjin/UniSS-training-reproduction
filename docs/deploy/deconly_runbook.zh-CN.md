@@ -118,7 +118,65 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 # 训练用 qwen3omni 环境（transformers 5.19.0），脚本内部已指定，无需手动 activate
 ```
 
-### 4.2 第一段:热身(防 modality underfitting)
+### 4.2 两种模式:Thinker 动还是不动
+
+| | **A. 带 LoRA**(默认) | **B. 冻结 Thinker** |
+|---|---|---|
+| 开关 | 不设 | `UNISS_DECONLY_LORA_FROM=none` |
+| 可训练 | 46.5M(含 LoRA 4.5M) | **42.0M,全在序列两端** |
+| Thinker | 第 32–47 层 q/k/v/o 被改 | **与发布版逐比特一致** |
+| `text_ce` | 有效,梯度流进 LoRA | **自动置零** —— 背后没有可训练参数 |
+| 翻译 | 可能被改坏,靠 `text_ce` 拦 | **可证明不变**(38.34 / 39.24) |
+| 显存 | 保留 16 层激活 | **保留 48 层** —— 最早的可训练参数 `audio_embed` 喂第 0 层 |
+
+> **B 的显存可能更高,不是更低。**省掉 `lm_head` 约 570 MB 和 5% FLOPs,多出 32 层激活边界。谁大没测过。
+
+B 回答的是一个更窄、也更干净的问题:**冻结的骨干,光靠一张新的输入表和一个新的输出头,能不能吐码。**
+
+```bash
+UNISS_DECONLY_LORA_FROM=none \
+UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt \
+... 其余同下
+```
+
+`UNISS_DECONLY_GLOBAL_INIT` 让 `global_embed` 从双流训好的那张表起步,而不是从噪声。phase_d 练了 14,000 步,形状正好 `(4096, 2048)`。形状对不上会直接报错。
+
+**导出时要加 `--no-lora`**(编排器会自动加)。没有它的话,空 adapter 会被当成「这个 checkpoint 根本没训练」—— 两者长得一样。
+
+### 4.2b 最快的验证:过拟合 200 条
+
+比 50 步冒烟有信息量得多。冒烟只说明不崩,这个说明**能不能学**。
+
+```bash
+RUN=deconly_overfit_$(date -u +%Y%m%dT%H%M%SZ)
+
+AUDIO_LIMIT=200 \
+UNISS_S2ST_REPLY=translation \
+SAVE_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN \
+TB_DIR=$PWD/runs/uniss_qwen3_omni_v1/$RUN \
+MBS=8 GBS=64 LR=1e-4 MIN_LR=1e-4 \
+TRAIN_ITERS=500 WARMUP_ITERS=20 \
+SAVE_INTERVAL=500 EVAL_INTERVAL=10000 LOG_INTERVAL=10 \
+MASTER_PORT=29757 \
+bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh 2>&1 | tee /tmp/deconly_overfit.log
+```
+
+200 条 / GBS 64 ≈ 3 个 batch 一轮,500 步 ≈ 160 轮,足够背下来。只看 `code_ce`:
+
+```
+ln(8193) = 9.01     起点
+掉到 1 以下          → 管线接对了，模型有能力学码
+卡在 6–7 不动        → 结构有问题。去查三处：
+                       code_start 的 start-1 错位
+                       audio_embed 的初始化尺度
+                       code_labels 的对齐
+```
+
+然后**在同样这 200 条上跑探针**(`LIMIT=64`,`--dev-parquet` 指向同一份)。训练集上 ASR-BLEU 高 → 训练、导出、推理、声码器整条链都正确,剩下的只是泛化。
+
+> 过拟合测试建议**保留 LoRA**(模式 A),甚至 `UNISS_DECONLY_LORA_FROM=24` 给更多容量。要的是「容量管够还学不会,那就是接线错了」—— 容量不足导致的失败会污染结论。
+
+### 4.3 第一段:热身(防 modality underfitting)
 
 论文给 Dec-only 专门设了热身阶段 —— **不先热身,模型会只学一个模态、忽略另一个**。
 
@@ -139,7 +197,7 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh \
 
 `UNISS_DECONLY_MIXTURE=warmup` 给出 `asr 0.2 : s2tt 1.0 : s2st 1.5` —— asr 和 s2tt 撑住文本侧,s2st 教码侧。
 
-### 4.3 第二段:正式训练
+### 4.4 第二段:正式训练
 
 ```bash
 RUN2=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
@@ -159,12 +217,14 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh \
 
 > **热身到正式之间没有自动接力。**Megatron 会在 `SAVE_DIR` 存在 checkpoint 时自动 `--load`,所以如果想接着热身的权重训,把 `SAVE_DIR` 设成同一个目录并调大 `TRAIN_ITERS`,不要换目录。
 
-### 4.4 关键环境变量
+### 4.5 关键环境变量
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `UNISS_DECONLY_MIXTURE` | 不设 = `s2st 100%` | 设 `warmup` = `asr/s2tt/s2st = 0.2:1:1.5` |
-| `UNISS_DECONLY_LORA_FROM` | `32` | LoRA 起始层。`all` = 全部 48 层(显存会大很多) |
+| `UNISS_DECONLY_LORA_FROM` | `32` | LoRA 起始层。`all` = 全部 48 层;**`none` = 完全不动 Thinker**(见 4.2) |
+| `UNISS_DECONLY_GLOBAL_INIT` | 不设 = 随机 | `global_embed` 从双流导出暖启动,需 `(4096, 2048)` |
+| `AUDIO_LIMIT` | `0` = 全量 | 限制样本数,过拟合测试用 |
 | `MBS` | **8** | 序列比双流长约 5 倍,**不要照搬双流的 32** |
 | `GBS` | 256 | |
 | `LR` / `MIN_LR` | 1e-4 / 2e-5 | 论文 Stage 2 的值 |

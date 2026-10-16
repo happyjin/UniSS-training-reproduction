@@ -10,10 +10,11 @@ of its own. So the loop here is two generate passes over one model:
        sample codes one at a time, feeding
        each back through audio_embed
 
-Both passes share a KV cache, so the second does not re-read the audio.
-That is the whole point of the route: one model, one sequence, and the
-codes conditioned on everything the model heard rather than on a summary
-handed over a projection.
+The code loop continues from the cache generate built, so the audio
+tower runs once and the prompt is read once. That is the whole point of
+the route: one model, one sequence, and the codes conditioned on
+everything the model heard rather than on a summary handed over a
+projection.
 
 Scored exactly as the two-stream probe is -- same 64 utterances per
 direction, same vocoder, same ASR, same evaluation.text_metrics -- so the
@@ -60,14 +61,19 @@ def load_pieces(path, thinker, device):
     global_embed.load_state_dict(state["global_embed"])
     audio_head.load_state_dict(state["audio_head"])
 
+    # An empty adapter is not a missing one: UNISS_DECONLY_LORA_FROM=none
+    # trains the edges only and leaves the thinker bit-identical to the
+    # release. Injecting zero-rank adapters would still change the graph.
     names = {k.rsplit(".", 1)[0] for k in state["thinker_lora"]}
-    layers = lora.inject(
-        thinker, rank=32, alpha=64.0, targets=THINKER_TARGETS,
-        layer_filter=lambda n: any(x.startswith(n + ".") for x in names))
-    lora.load_state_dict(layers, state["thinker_lora"])
+    layers = []
+    if names:
+        layers = lora.inject(
+            thinker, rank=32, alpha=64.0, targets=THINKER_TARGETS,
+            layer_filter=lambda n: any(x.startswith(n + ".") for x in names))
+        lora.load_state_dict(layers, state["thinker_lora"])
     thinker.requires_grad_(False)
-    print(f"deconly loaded: step {state.get('step')}, {len(layers)} LoRA layers",
-          flush=True)
+    how = f"{len(layers)} LoRA layers" if layers else "thinker frozen, no adapter"
+    print(f"deconly loaded: step {state.get('step')}, {how}", flush=True)
     return (audio_embed.to(device).eval(), global_embed.to(device).eval(),
             audio_head.to(device).eval())
 
@@ -101,23 +107,24 @@ def translate_and_speak(thinker, processor, pieces, audio_path, tgt_lang,
     if not hypothesis:
         return hypothesis, []
 
-    # Re-forward the whole prompt plus reply once, to start the code loop
-    # from a cache that saw the audio. Cheaper than it looks: it is the
-    # only full pass the code side needs.
-    embeds = thinker.get_input_embeddings()(sequences)
-    forward = {"input_ids": sequences, "inputs_embeds": embeds,
-               "use_cache": True, "return_dict": True,
-               "output_hidden_states": True}
-    for k in ("input_features", "feature_attention_mask"):
-        if k in inputs:
-            forward[k] = inputs[k]
-    state = thinker(**forward)
-    past = state.past_key_values
+    # Continue from the cache generate already built. Re-forwarding the
+    # sequence here would run the audio tower and all 48 layers over the
+    # prompt a second time, for states the cache already holds.
+    past = out.past_key_values
 
+    # generate leaves the cache one short of the sequence: the last token
+    # it sampled came from the previous step's logits and was never itself
+    # forwarded. Reading the length rather than assuming it keeps this
+    # right whichever convention the version follows.
+    cached = past.get_seq_length()
     # The 32 speaker slots go in before any code is asked for: they carry
     # the voice and the model has to see them to condition on it.
     spk = global_embed(torch.as_tensor([speaker], device=device, dtype=torch.long))
-    state = thinker(inputs_embeds=spk, past_key_values=past, use_cache=True,
+    step = spk
+    if cached < sequences.shape[1]:
+        tail = thinker.get_input_embeddings()(sequences[:, cached:])
+        step = torch.cat([tail.to(spk.dtype), spk], dim=1)
+    state = thinker(inputs_embeds=step, past_key_values=past, use_cache=True,
                     return_dict=True, output_hidden_states=True)
     past = state.past_key_values
     hidden = state.hidden_states[-1][:, -1:, :]

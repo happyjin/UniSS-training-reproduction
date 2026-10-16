@@ -60,6 +60,16 @@ from experiments.uniss_qwen3_omni_v1.training.deconly_batch import (  # noqa: F4
 # the earliest parameter needing a gradient, so this bounds memory by how
 # many layers sit above the first one. "all" adapts the whole text LM.
 LORA_LAYERS_FROM = os.environ.get("UNISS_DECONLY_LORA_FROM", "32")
+# "none" leaves the thinker bit-identical to the release: the only trained
+# tensors are the two embeddings and the head, all at the edges of the
+# sequence. The translation is then provably unchanged, and the question
+# the run answers narrows to whether a frozen backbone can emit codes
+# given nothing but a new input table and a new output head.
+#
+# global_embed can start from a two-stream export rather than from noise.
+# phase_d trained one for 14,000 steps at exactly this shape -- 4096 rows
+# of 2048 -- so the speaker conditioning does not have to be relearned.
+GLOBAL_INIT = os.environ.get("UNISS_DECONLY_GLOBAL_INIT", "")
 # Mixture over stage2_tasks. tts is excluded: it draws from a cache of
 # Qwen2.5 token ids, which this route cannot read.
 MIXTURE = {"s2st": 1.0}
@@ -106,10 +116,23 @@ class DecOnlyModel(HuggingFaceModule):
 
         # inject() freezes everything it walks, so the adapters go in first
         # and the new modules are created after.
-        self.thinker_lora = lora.inject(
-            self.thinker, rank=lora_rank, alpha=lora_alpha,
-            targets=THINKER_TARGETS, layer_filter=_layer_filter(),
-        )
+        if LORA_LAYERS_FROM == "none":
+            self.thinker_lora = []
+            self.thinker.requires_grad_(False)
+            # text_ce's only gradient outlet is the adapter: lm_head and
+            # every layer under it are frozen. Left on it would cost a
+            # 152,064-way softmax over the whole sequence to produce a
+            # gradient that is identically zero.
+            if self.text_weight:
+                print("[deconly] LORA_FROM=none: text_weight -> 0"
+                      " (no trainable parameter lies behind text_ce)",
+                      flush=True)
+                self.text_weight = 0.0
+        else:
+            self.thinker_lora = lora.inject(
+                self.thinker, rank=lora_rank, alpha=lora_alpha,
+                targets=THINKER_TARGETS, layer_filter=_layer_filter(),
+            )
         self.lora_from = LORA_LAYERS_FROM
 
         dtype = self.thinker.get_input_embeddings().weight.dtype
@@ -126,6 +149,21 @@ class DecOnlyModel(HuggingFaceModule):
             nn.init.normal_(mod.weight, std=scale)
         nn.init.normal_(self.audio_head.weight, std=scale)
         nn.init.zeros_(self.audio_head.bias)
+
+        if GLOBAL_INIT:
+            donor = torch.load(GLOBAL_INIT, map_location="cpu",
+                               weights_only=False).get("global_embed")
+            if donor is None:
+                raise SystemExit(f"{GLOBAL_INIT} carries no global_embed")
+            if tuple(donor.shape) != tuple(self.global_embed.weight.shape):
+                raise SystemExit(
+                    f"global_embed is {tuple(self.global_embed.weight.shape)}"
+                    f" but {GLOBAL_INIT} holds {tuple(donor.shape)}")
+            with torch.no_grad():
+                self.global_embed.weight.copy_(donor)
+            print(f"[deconly] global_embed warm-started from {GLOBAL_INIT}",
+                  flush=True)
+        self.global_init = GLOBAL_INIT
 
         for mod in (self.audio_embed, self.global_embed, self.audio_head):
             mod.requires_grad_(True)
@@ -160,6 +198,8 @@ class DecOnlyModel(HuggingFaceModule):
             "thinker_lora_m": round(adapter / 1e6, 2),
             "thinker_lora_layers": len(self.thinker_lora),
             "lora_from": self.lora_from,
+            "global_init": self.global_init or "random",
+            "text_weight": self.text_weight,
             "thinker_frozen_m": round(
                 sum(p.numel() for p in self.thinker.parameters()) / 1e6, 1),
             "audio_embed_m": round(count(self.audio_embed) / 1e6, 2),

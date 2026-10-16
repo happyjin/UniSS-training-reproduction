@@ -33,6 +33,12 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--checkpoint-dir", required=True)
     ap.add_argument("--output", required=True)
+    # The all-zero-B guard below is the only thing standing between a
+    # believable file and a frozen model scored as if it trained. With no
+    # adapter at all that guard has nothing to check, so the absence has
+    # to be declared rather than inferred.
+    ap.add_argument("--no-lora", action="store_true",
+                    help="the run was trained with UNISS_DECONLY_LORA_FROM=none")
     args = ap.parse_args()
 
     source = Path(args.checkpoint_dir)
@@ -69,13 +75,24 @@ def main() -> None:
     for name, state in modules.items():
         if not state:
             raise SystemExit(f"{name} is missing from {source}")
-    if not adapter:
-        raise SystemExit("no LoRA tensors found; the thinker would load unadapted")
+    if not adapter and not args.no_lora:
+        raise SystemExit(
+            "no LoRA tensors found; the thinker would load unadapted."
+            " Pass --no-lora if the run was trained with"
+            " UNISS_DECONLY_LORA_FROM=none.")
+    if adapter and args.no_lora:
+        raise SystemExit(
+            f"--no-lora was passed but {len(adapter)} adapter tensors are"
+            " present; this checkpoint did train the thinker")
     if len(adapter) % 2:
         raise SystemExit(f"{len(adapter)} adapter tensors is odd; each layer needs a and b")
-    if not any(k.endswith(".b") and float(t.float().abs().max()) > 0
-               for k, t in adapter.items()):
+    if adapter and not any(k.endswith(".b") and float(t.float().abs().max()) > 0
+                           for k, t in adapter.items()):
         raise SystemExit("every LoRA B is still zero; this checkpoint did not train")
+    # With the thinker frozen the embeddings are the only evidence the run
+    # happened, so they carry the check instead.
+    if not adapter and float(modules["audio_head"]["weight"].float().abs().max()) == 0:
+        raise SystemExit("audio_head is all zero; this checkpoint did not train")
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -84,6 +101,7 @@ def main() -> None:
         "global_embed": modules["global_embed"],
         "audio_head": modules["audio_head"],
         "thinker_lora": adapter,
+        "thinker_frozen": not adapter,
         "step": int(source.name.split("_")[-1]),
         "source": str(source),
     }
@@ -93,6 +111,7 @@ def main() -> None:
         "step": payload["step"],
         "lora_tensors": len(adapter),
         "lora_layers": len(adapter) // 2,
+        "thinker_frozen": not adapter,
         "audio_embed": list(modules["audio_embed"]["weight"].shape),
         "audio_head": list(modules["audio_head"]["weight"].shape),
     }, indent=2))
