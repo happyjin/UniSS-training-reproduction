@@ -62,23 +62,30 @@ inputs_embeds 由脚本自己造：
 
 ### 可训练参数
 
+默认路线(`UNISS_DECONLY_LORA_FROM=none`)**完全不动 Thinker**:
+
 ```
-Qwen3 Thinker  31,723.7 M  ❄️ 冻结
-  └ LoRA 第 32–47 层 q/k/v/o，r32/α64      4.5 M  ✓
-audio_embed    Embedding(8193, 2048)      16.8 M  ✓
-global_embed   Embedding(4096, 2048)       8.4 M  ✓
-audio_head     Linear(2048, 8193)         16.8 M  ✓
+Qwen3 Thinker  31,723.7 M  ❄️ 冻结，与发布版逐比特一致
+音频塔                     ❄️ 冻结
+lm_head                    ❄️ 冻结
+global_embed   Embedding(4096, 2048)       8.4 M  ✓  说话人槽的输入
+audio_embed    Embedding(8193, 2048)      16.8 M  ✓  码的输入
+audio_head     Linear(2048, 8193)         16.8 M  ✓  码的输出
                                         ─────────
-                                          46.5 M  = 全部参数的 0.15%
+                                          42.0 M  = 全部参数的 0.13%
 ```
+
+加 `UNISS_DECONLY_LORA_FROM=32` 会额外训 LoRA 第 32–47 层 q/k/v/o(r32/α64,4.5 M,合计 46.5 M),代价见 4.2。
 
 ### 损失
 
 ```
-L = w_text · text_ce + w_code · code_ce          默认 1.0 / 1.0
+L = w_text · text_ce + w_code · code_ce
 ```
 
-两项都做 causal-LM 移位。监督单流的任务只贡献一项。
+**默认路线下 `w_text` 会被自动置零**,所以实际只有 `code_ce` 一项。原因:`lm_head` 和它下面每一层都冻结,`text_ce` 背后一个可训练参数都没有,梯度恒为零。该项仍然照算照记 —— 一切冻结它就不会变,是免费的健康指示灯。
+
+带 LoRA 时两项都有效,`w_text` 的作用是拦住 LoRA 为了码把翻译改坏。两项都做 causal-LM 移位。
 
 ### 两个容易写错、这里已经处理的点
 
@@ -116,18 +123,25 @@ scripts/orchestrate_deconly.sh   编排器：停训 → 导出 → 探针 → �
 ```bash
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 # 训练用 qwen3omni 环境（transformers 5.19.0），脚本内部已指定，无需手动 activate
+
+# 默认路线：Thinker 完全不动，只训序列两端的 42.0M
+export UNISS_DECONLY_LORA_FROM=none
+export UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt
+export UNISS_S2ST_REPLY=translation
 ```
 
-### 4.2 两种模式:Thinker 动还是不动
+**这三行一次 export，后面每条命令都靠它。**换终端要重新 export。编排器那条命令会把它们显式写进 `env`，因为 `setsid` 之后的环境要自己带。
 
-| | **A. 带 LoRA**(默认) | **B. 冻结 Thinker** |
+### 4.2 两种模式:默认不动 Thinker
+
+| | **B. 冻结 Thinker**(本文档默认) | **A. 带 LoRA**(备选) |
 |---|---|---|
-| 开关 | 不设 | `UNISS_DECONLY_LORA_FROM=none` |
-| 可训练 | 46.5M(含 LoRA 4.5M) | **42.0M,全在序列两端** |
-| Thinker | 第 32–47 层 q/k/v/o 被改 | **与发布版逐比特一致** |
-| `text_ce` | 有效,梯度流进 LoRA | **自动置零** —— 背后没有可训练参数 |
-| 翻译 | 可能被改坏,靠 `text_ce` 拦 | **可证明不变**(38.34 / 39.24) |
-| 显存 | 保留 16 层激活 | **保留 48 层** —— 最早的可训练参数 `audio_embed` 喂第 0 层 |
+| 开关 | `UNISS_DECONLY_LORA_FROM=none` | 不设,或设成 `32` |
+| 可训练 | **42.0M,全在序列两端** | 46.5M(含 LoRA 4.5M) |
+| Thinker | **与发布版逐比特一致** | 第 32–47 层 q/k/v/o 被改 |
+| `text_ce` | **自动置零** —— 背后没有可训练参数 | 有效,梯度流进 LoRA |
+| 翻译 | **可证明不变**(38.34 / 39.24) | 可能被改坏,靠 `text_ce` 拦 |
+| 显存 | **保留 48 层** —— 最早的可训练参数 `audio_embed` 喂第 0 层 | 保留 16 层激活 |
 
 > **B 的显存可能更高,不是更低。**省掉 `lm_head` 约 570 MB 和 5% FLOPs,多出 32 层激活边界。谁大没测过。
 
@@ -137,16 +151,11 @@ B 回答的是一个更窄、也更干净的问题:**冻结的骨干,光靠一�
 
 **导出时要加 `--no-lora`**(编排器会自动加)。没有它的话,空 adapter 会被当成「这个 checkpoint 根本没训练」—— 两者长得一样。
 
-#### 模式 B 完整流程,三条命令
+> **默认路线不能配 `UNISS_DECONLY_MIXTURE=warmup`。**asr 和 s2tt 只监督文本,而 `text_ce` 已被置零,这类 batch 里没有任何可训练参数进入计算图,backward 会直接报 `does not require grad` —— 2.7 份里有 1.2 份,44% 的 batch 崩。模型启动时会拦住这个组合并说明原因。热身只在带 LoRA 时有意义(见 4.3)。
 
-先把这两行设成环境变量,后面三步都用它:
+#### 完整流程,三条命令
 
-```bash
-cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
-export UNISS_DECONLY_LORA_FROM=none
-export UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt
-export UNISS_S2ST_REPLY=translation
-```
+4.1 的三行 export 要先执行。
 
 **第 1 步 —— 50 步冒烟。必须先跑这个,不要跳。**代码从未在 GPU 上跑过一步,显存和吞吐都没有实测数据。
 
@@ -217,9 +226,18 @@ ln(8193) = 9.01     起点
 
 然后**在同样这 200 条上跑探针**(`LIMIT=64`,`--dev-parquet` 指向同一份)。训练集上 ASR-BLEU 高 → 训练、导出、推理、声码器整条链都正确,剩下的只是泛化。
 
-> 过拟合测试建议**保留 LoRA**(模式 A),甚至 `UNISS_DECONLY_LORA_FROM=24` 给更多容量。要的是「容量管够还学不会,那就是接线错了」—— 容量不足导致的失败会污染结论。
+> **先用默认路线(冻结 Thinker)跑这个测试** —— 测的就是你实际要训的东西。
+>
+> 如果 `code_ce` 卡住不降,**再用 `UNISS_DECONLY_LORA_FROM=24` 重跑一次**来区分两种原因:
+>
+> ```
+> 加了 LoRA 就能过拟合   → 管线是对的，是冻结骨干容量不够 → 这条路线走不通，回到带 LoRA
+> 加了 LoRA 还是卡住     → 接线错了 → 查 start-1 错位 / audio_embed 尺度 / code_labels 对齐
+> ```
 
-### 4.3 第一段:热身(防 modality underfitting)
+### 4.3 热身(**只在带 LoRA 时适用**)
+
+> **默认路线(冻结 Thinker)跳过这一节。**热身是为了防止两个头一个学一个被忽略,而默认路线只有一个头在训(`text_ce` 已置零),没有可偏向的对象。配上去会被启动时的守卫拦住。本节只在你改用带 LoRA 时才相关。
 
 论文给 Dec-only 专门设了热身阶段 —— **不先热身,模型会只学一个模态、忽略另一个**。
 
@@ -265,7 +283,7 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh \
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `UNISS_DECONLY_MIXTURE` | 不设 = `s2st 100%` | 设 `warmup` = `asr/s2tt/s2st = 0.2:1:1.5` |
-| `UNISS_DECONLY_LORA_FROM` | `32` | LoRA 起始层。`all` = 全部 48 层;**`none` = 完全不动 Thinker**(见 4.2) |
+| `UNISS_DECONLY_LORA_FROM` | 代码默认 `32`,**本文档 4.1 export 成 `none`** | `none` = 完全不动 Thinker(见 4.2);数字 = LoRA 起始层;`all` = 全部 48 层 |
 | `UNISS_DECONLY_GLOBAL_INIT` | 不设 = 随机 | `global_embed` 从双流导出暖启动,需 `(4096, 2048)` |
 | `AUDIO_LIMIT` | `0` = 全量 | 限制样本数,过拟合测试用 |
 | `MBS` | **8** | 序列比双流长约 5 倍,**不要照搬双流的 32** |
@@ -288,8 +306,10 @@ PYTHONPATH=.:third_party/Megatron-LM CUDA_VISIBLE_DEVICES="" \
   /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python \
   -m experiments.uniss_qwen3_omni_v1.training.export_deconly \
   --checkpoint-dir $R/iter_$IT \
-  --output $R/exported/deconly_iter$IT.pt
+  --output $R/exported/deconly_iter$IT.pt --no-lora
 ```
+
+**默认路线必须带 `--no-lora`。**没有它,空 adapter 会被当成「这个 checkpoint 根本没训练」而拒绝 —— 两者长得一样。带 LoRA 训的则**不能**加这个开关,加了会报错。编排器按 `UNISS_DECONLY_LORA_FROM` 自动决定。
 
 导出会在两种情况下**直接报错而不是产出一个看着正常的文件**:
 
@@ -325,6 +345,8 @@ DECONLY_PROBE_DONE
 RUN2=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
 
 setsid nohup env \
+  UNISS_DECONLY_LORA_FROM=none \
+  UNISS_DECONLY_GLOBAL_INIT=$UNISS_DECONLY_GLOBAL_INIT \
   UNISS_S2ST_REPLY=translation \
   RUN_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN2 \
   MBS=8 GBS=256 LR=1e-4 MIN_LR=2e-5 \
@@ -417,6 +439,9 @@ Dec-only 跑到 8,000 步  > 25   有竞争力，继续
 梯度路由      audio_embed / global_embed / audio_head 全部非零
               LoRA .b 64/64 非零，.a 0/64 —— 零初始化 B 的预期行为，全部 64 层都在图里
 冻结参数      0 个拿到梯度
+两种模式      带 LoRA 和冻结 Thinker 都验过。冻结模式下 thinker 可训练参数 0 个，
+              可训练合计 42.0M/31,761M，text_weight 自动置零，total == code_ce
+global_embed  从 phase_d 暖启动，形状 (4096, 2048) 对齐
 音频合并      inputs_embeds + input_features 同传，模型仍按 input_ids 定位并 scatter 音频
 索引算术      code_start 正确，无越界
 推理全链路    load_pieces → 文本 generate → 复用 KV cache → 说话人槽 → 码循环 → 声码器

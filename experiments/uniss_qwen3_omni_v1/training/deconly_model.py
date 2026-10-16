@@ -119,6 +119,24 @@ class DecOnlyModel(HuggingFaceModule):
         if LORA_LAYERS_FROM == "none":
             self.thinker_lora = []
             self.thinker.requires_grad_(False)
+            # A task that supervises only text has nothing left to train
+            # here: text_ce is about to be zeroed, and with no codes in
+            # the batch neither code table is scattered in, so no
+            # trainable parameter reaches the graph at all. The loss then
+            # has no grad_fn and backward raises -- on 44% of batches for
+            # the warmup mixture, which is a crash loop rather than a
+            # slow run.
+            from experiments.uniss_omni_s2st_v1.training.stage2_tasks import (
+                supervises_codes,
+            )
+            textonly = [t for t in MIXTURE if not supervises_codes(t)]
+            if textonly:
+                raise SystemExit(
+                    f"UNISS_DECONLY_LORA_FROM=none cannot train {textonly}:"
+                    " these tasks supervise text only, and with the thinker"
+                    " frozen that leaves no trainable parameter in the graph."
+                    " Drop UNISS_DECONLY_MIXTURE (s2st alone), or train with"
+                    " an adapter.")
             # text_ce's only gradient outlet is the adapter: lm_head and
             # every layer under it are frozen. Left on it would cost a
             # 152,064-way softmax over the whole sequence to produce a
