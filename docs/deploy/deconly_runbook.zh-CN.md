@@ -133,15 +133,58 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 
 B 回答的是一个更窄、也更干净的问题:**冻结的骨干,光靠一张新的输入表和一个新的输出头,能不能吐码。**
 
-```bash
-UNISS_DECONLY_LORA_FROM=none \
-UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt \
-... 其余同下
-```
-
-`UNISS_DECONLY_GLOBAL_INIT` 让 `global_embed` 从双流训好的那张表起步,而不是从噪声。phase_d 练了 14,000 步,形状正好 `(4096, 2048)`。形状对不上会直接报错。
+`UNISS_DECONLY_GLOBAL_INIT` 让 `global_embed` 从双流训好的那张表起步,而不是从噪声。phase_d 练了 14,000 步,形状正好 `(4096, 2048)`。形状对不上会直接报错,不会静默广播。
 
 **导出时要加 `--no-lora`**(编排器会自动加)。没有它的话,空 adapter 会被当成「这个 checkpoint 根本没训练」—— 两者长得一样。
+
+#### 模式 B 完整流程,三条命令
+
+先把这两行设成环境变量,后面三步都用它:
+
+```bash
+cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
+export UNISS_DECONLY_LORA_FROM=none
+export UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt
+export UNISS_S2ST_REPLY=translation
+```
+
+**第 1 步 —— 50 步冒烟。必须先跑这个,不要跳。**代码从未在 GPU 上跑过一步,显存和吞吐都没有实测数据。
+
+```bash
+RUN=deconly_smoke_$(date -u +%Y%m%dT%H%M%SZ)
+SAVE_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN \
+TB_DIR=$PWD/runs/uniss_qwen3_omni_v1/$RUN \
+MBS=8 GBS=64 LR=1e-4 MIN_LR=1e-4 \
+TRAIN_ITERS=50 WARMUP_ITERS=10 \
+SAVE_INTERVAL=50 EVAL_INTERVAL=10000 LOG_INTERVAL=5 \
+MASTER_PORT=29751 \
+bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh 2>&1 | tee /tmp/deconly_smoke.log
+```
+
+前 20 步盯 `nvidia-smi`。OOM 就把 `MBS` 降到 4,再不行降到 2。
+
+**第 2 步 —— 过拟合 200 条。**这一步回答「管线能不能学」,见 4.2b。
+
+**第 3 步 —— 正式训练 + 自动探针。**
+
+```bash
+RUN=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
+setsid nohup env \
+  UNISS_DECONLY_LORA_FROM=none \
+  UNISS_DECONLY_GLOBAL_INIT=$UNISS_DECONLY_GLOBAL_INIT \
+  UNISS_S2ST_REPLY=translation \
+  RUN_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN \
+  MBS=8 GBS=256 LR=1e-4 MIN_LR=2e-5 \
+  TRAIN_ITERS=20000 PROBE_AT="2000 4000 8000 14000" \
+  MAX_ITERS=30000 EXTEND_BY=5000 GAIN_STOP=1.0 PROBE_LIMIT=64 \
+  SAVE_INTERVAL=2000 MASTER_PORT=29753 \
+  bash experiments/uniss_qwen3_omni_v1/scripts/orchestrate_deconly.sh \
+  > /tmp/deconly_orch.log 2>&1 < /dev/null & disown
+```
+
+探针点刻意对齐主线双流的 2000 / 4000 / 14000,方便直接比。分数在 `$RUN_DIR/orchestrator/probes.tsv`。
+
+> 正式训练前先用 `DRY_RUN=1` 校验一次配置(把 `setsid nohup env` 换成 `env`、加 `DRY_RUN=1`、去掉末尾的重定向和 `& disown`)。
 
 ### 4.2b 最快的验证:过拟合 200 条
 
