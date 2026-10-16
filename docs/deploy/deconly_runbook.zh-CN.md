@@ -316,7 +316,12 @@ Dec-only 跑到 8,000 步  > 25   有竞争力，继续
 冻结参数      0 个拿到梯度
 音频合并      inputs_embeds + input_features 同传，模型仍按 input_ids 定位并 scatter 音频
 索引算术      code_start 正确，无越界
+推理全链路    load_pieces → 文本 generate → 复用 KV cache → 说话人槽 → 码循环 → 声码器
+              用随机权重的合成 checkpoint 跑通 1 条样本，4 个码解码出 0.080 秒音频
+              （4 × 20 ms，BiCodec 的 50 Hz 对得上），译文正确、无报错
 ```
+
+> 合成 checkpoint 的码是噪声,这一项验证的是路径不是质量。
 
 ### 仍未验证 —— 第一次 GPU 运行要盯这些
 
@@ -325,7 +330,7 @@ Dec-only 跑到 8,000 步  > 25   有竞争力，继续
 | **显存** | 序列约 400 位(双流约 81),MBS 8 可能 OOM | 前 20 步看 `nvidia-smi`;OOM 降到 4 |
 | **吞吐** | 估计 10–15 样本/秒(双流 155) | 日志 `elapsed time per iteration` |
 | **Megatron 集成** | `model_provider` / `forward_step` / 数据集 provider 整条链没跑过。CPU 测试用了假 config 直接构造模型,绕开了这一层 | 第一步不报错即通过 |
-| **`deconly_e2e.py`** | 推理脚本一步没跑过 | 第一次探针 |
+| **8 卡并发探针** | 单条在 CPU 上通过，8 个分片同时抢卡没试过 | 第一次探针；分片日志在 `$OUT/<方向>/logs/` |
 | **modality underfitting** | 一个头学、另一个被忽略 | `text_ce` 和 `code_ce` 要**同时**下降 |
 
 **所以第一次仍然只跑 50 步:**
