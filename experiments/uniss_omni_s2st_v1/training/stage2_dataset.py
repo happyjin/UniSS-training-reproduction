@@ -14,6 +14,8 @@ a step therefore draws the same task from the same seeded schedule.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -49,6 +51,7 @@ class Stage2Dataset(Dataset):
         self.corpus = corpus
         self.schedule = schedule
         self.global_batch = int(global_batch)
+        self.seed = int(seed)
         rng = np.random.default_rng(seed)
 
         # A real permutation of each pool, not a contiguous window from a
@@ -61,10 +64,39 @@ class Stage2Dataset(Dataset):
         # function of the index and the dataloader workers agree.
         self.offsets: list[int] = []
         consumed = {"audio": 0, "text": 0}
-        for task in schedule:
+
+        # Off by default: every epoch then replays the one permutation drawn
+        # above, batch for batch, which is what every run before this one
+        # trained on. UNISS_RESHUFFLE_EACH_EPOCH=1 keeps the first epoch as
+        # it was and draws a fresh order for each one after.
+        #
+        # UNISS_RESHUFFLE_FROM_STEP is for switching a run that is already
+        # part-way through a later epoch. Positions served before that step
+        # keep the order they were served in, and only the remainder of the
+        # epoch is shuffled -- so the epoch still holds each row exactly
+        # once. Shuffling the whole epoch instead would serve some rows
+        # twice and skip others, since its first part has already happened.
+        self.reshuffle = os.environ.get("UNISS_RESHUFFLE_EACH_EPOCH") == "1"
+        from_step = int(os.environ.get("UNISS_RESHUFFLE_FROM_STEP", "0"))
+        self.reshuffle_from = {"audio": 0, "text": 0}
+        for step, task in enumerate(schedule):
+            if step == from_step:
+                self.reshuffle_from = dict(consumed)
             pool = "text" if stage2_tasks.uses_tts_cache(task) else "audio"
             self.offsets.append(consumed[pool])
             consumed[pool] += self.global_batch
+        if from_step >= len(schedule):
+            self.reshuffle_from = dict(consumed)
+        self._orders: dict[tuple[str, int], np.ndarray] = {}
+        # Only a schedule that reaches a second pass has anything to
+        # reshuffle; the dev set built beside the train set never does, and
+        # announcing a switch for it would read as if it applied.
+        if self.reshuffle and consumed["audio"] > len(corpus.audio_rows):
+            n = max(1, len(corpus.audio_rows))
+            at = self.reshuffle_from["audio"]
+            print(f"[stage2_dataset] reshuffle each epoch from step {from_step}:"
+                  f" audio cursor {at:,} = epoch {at // n + 1}, position {at % n:,}"
+                  f" of {n:,}", flush=True)
         self.epochs = {
             "audio": consumed["audio"] / max(1, len(corpus.audio_rows)),
             "text": consumed["text"] / max(1, len(corpus.text_corpus)),
@@ -74,14 +106,49 @@ class Stage2Dataset(Dataset):
     def __len__(self) -> int:
         return len(self.schedule) * self.global_batch
 
+    def _epoch_order(self, pool: str, epoch: int) -> np.ndarray:
+        """The row order for one pass over a pool.
+
+        Epoch 0 is always the permutation drawn at construction. A later
+        epoch gets its own, seeded by (seed, epoch, pool) so every rank and
+        every dataloader worker derives the same one without talking.
+        """
+        base = self.audio_order if pool == "audio" else self.text_order
+        n = base.size
+        keep = min(max(self.reshuffle_from[pool] - epoch * n, 0), n)
+        if epoch == 0 or keep == n:
+            return base
+        key = (pool, epoch)
+        if key not in self._orders:
+            rng = np.random.default_rng(
+                [self.seed, epoch, 0 if pool == "audio" else 1])
+            if keep == 0:
+                order = base[rng.permutation(n)]
+            else:
+                tail = base[keep:].copy()
+                rng.shuffle(tail)
+                order = np.concatenate([base[:keep], tail])
+            # A worker straddles at most one boundary per batch; two
+            # entries is enough, and each is 77 MB at int32.
+            if len(self._orders) >= 2:
+                self._orders.pop(next(iter(self._orders)))
+            self._orders[key] = order.astype(np.int32 if n < 2**31 else np.int64)
+        return self._orders[key]
+
+    def _row(self, pool: str, cursor: int) -> int:
+        base = self.audio_order if pool == "audio" else self.text_order
+        if not self.reshuffle:
+            return int(base[cursor % base.size])
+        epoch, pos = divmod(cursor, base.size)
+        return int(self._epoch_order(pool, epoch)[pos])
+
     def __getitem__(self, index: int) -> dict:
         step, position = divmod(index, self.global_batch)
         step = min(step, len(self.schedule) - 1)
         task = self.schedule[step]
         cursor = self.offsets[step] + position
         if stage2_tasks.uses_tts_cache(task):
-            order = self.text_order
-            row = self.corpus.text_sample(int(order[cursor % order.size]))
+            row = self.corpus.text_sample(self._row("text", cursor))
             # The cache is already tokenised; re-templating from text would
             # need raw text it deliberately does not store.
             return {
@@ -94,8 +161,7 @@ class Stage2Dataset(Dataset):
                 "codes": row["codes"],
                 "globals": row["globals"],
             }
-        order = self.audio_order
-        row = self.corpus.audio_sample(int(order[cursor % order.size]))
+        row = self.corpus.audio_sample(self._row("audio", cursor))
         sample = stage2_tasks.build(task, row)
         return {
             "task": task,
