@@ -69,6 +69,7 @@ LOAD_ARG=""
   --eval-interval "${EVAL_INTERVAL:-500}" --eval-iters "${EVAL_ITERS:-4}" \
   --log-interval "${LOG_INTERVAL:-20}" \
   --tensorboard-dir "${TB_DIR}" --log-throughput \
+  ${OVERRIDE_SCHED:-} \
   --seed 20261013 "${EXTRA[@]}"
 status=$?
 [ "${status}" -ne 0 ] && { echo "PHASE_E_MEGATRON_FAILED status=${status}"; exit "${status}"; }
