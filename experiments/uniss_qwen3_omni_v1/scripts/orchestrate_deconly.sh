@@ -46,17 +46,23 @@ NO_LORA=""
 # directory that was never written; a first segment shorter than the
 # warmup trips assert lr_warmup_steps < lr_decay_steps inside the restart
 # loop, so the orchestrator retries it forever.
-first=""
-for t in ${PROBE_AT}; do
+# The final target is probed and the extensions land on the grid too, so
+# they are held to it as well as PROBE_AT.
+for t in ${PROBE_AT} "${TRAIN_ITERS}" "${EXTEND_BY}"; do
   if [ $(( t % SAVE_INTERVAL )) -ne 0 ]; then
-    echo "PROBE_AT 的 ${t} 不能被 SAVE_INTERVAL=${SAVE_INTERVAL} 整除；" >&2
-    echo "iter_${t} 永远不会被写出，导出会失败。" >&2
+    echo "${t}（PROBE_AT / TRAIN_ITERS / EXTEND_BY）不能被 SAVE_INTERVAL=${SAVE_INTERVAL} 整除；" >&2
+    echo "对应的 iter 永远不会被写出，导出会失败。" >&2
     exit 1
   fi
-  [ -z "${first}" ] && first="${t}"
 done
-if [ -n "${first}" ] && [ "${first}" -le "${WARMUP_ITERS}" ]; then
-  echo "首个探针点 ${first} 不大于 WARMUP_ITERS=${WARMUP_ITERS}；" >&2
+# Every launch is given the whole horizon -- start_training "${TRAIN_ITERS}"
+# -- and a probe point is reached by stopping the run, not by ending it. So
+# Megatron's lr_warmup_steps < lr_decay_steps compares the horizon with the
+# warmup, and an early probe point is fine. (This guard once compared the
+# first probe point instead, carried over from a run whose horizon really
+# was 100, and refused a 100-step probe that would have worked.)
+if [ "${TRAIN_ITERS}" -le "${WARMUP_ITERS}" ]; then
+  echo "TRAIN_ITERS=${TRAIN_ITERS} 不大于 WARMUP_ITERS=${WARMUP_ITERS}；" >&2
   echo "Megatron 要求 lr_warmup_steps < lr_decay_steps，会崩溃重启循环。" >&2
   exit 1
 fi
@@ -67,7 +73,17 @@ TSV="${STATE}/probes.tsv"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "${STATE}/orchestrator.log"; }
 
 latest_iter() { cat "${RUN_DIR}/latest_checkpointed_iteration.txt" 2>/dev/null || echo 0; }
-training_up() { ps -eo args 2>/dev/null | grep -q "[p]retrain_deconly"; }
+# Training is a python process with pretrain_deconly.py among its
+# arguments. Matching the bare string also matched any shell whose command
+# line mentioned it -- a grep of the logs, or the very command that ran a
+# DRY_RUN of this script -- and a false "up" leaves the loop waiting for a
+# checkpoint nothing is writing; stop_training would have killed those
+# shells too.
+deconly_pids() {
+  ps -eo pid=,args= 2>/dev/null \
+    | awk '$2 ~ /\/python[0-9.]*$/ && / experiments\/uniss_qwen3_omni_v1\/training\/pretrain_deconly\.py( |$)/ {print $1}'
+}
+training_up() { [ -n "$(deconly_pids)" ]; }
 
 start_training() {
   local iters="$1" sched=""
@@ -91,8 +107,7 @@ start_training() {
 
 stop_training() {
   log "停止训练"
-  ps -eo pid,args 2>/dev/null | grep "[p]retrain_deconly" | awk '{print $1}' \
-    | while read p; do kill "$p" 2>/dev/null; done
+  deconly_pids | while read p; do kill "$p" 2>/dev/null; done
   local w=0
   while training_up && [ $w -lt 40 ]; do sleep 5; w=$((w+1)); done
   sleep 25

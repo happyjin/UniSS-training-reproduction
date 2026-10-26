@@ -78,9 +78,48 @@ def load_pieces(path, thinker, device):
             audio_head.to(device).eval())
 
 
+# The two-stream talker's decoding, which every phase_h number was taken
+# with: temperature 0.9, top-k 40, top-p 0.8, repetition penalty 1.3, a
+# fixed seed. This script first decoded greedily with no penalty, and the
+# decoding sweep measured what that does to a code stream -- the same
+# talker, greedy at penalty 1.0, ran to the 700-code ceiling on 75% of
+# utterances. A decoder-only probe decoded that way would be scored
+# against phase_h with one hand tied, so the defaults now match.
+TEMPERATURE = 0.9
+TOP_K = 40
+TOP_P = 0.8
+REPETITION_PENALTY = 1.3
+SEED = 20261009
+
+
+def sample_next(logits, codes, *, temperature, top_k, top_p,
+                repetition_penalty, generator) -> int:
+    """stage1_generate's per-step choice, line for line, on a [1, V] row."""
+    if repetition_penalty != 1.0 and codes:
+        seen = torch.tensor(sorted(set(codes)), device=logits.device)
+        picked = logits[0, seen]
+        logits[0, seen] = torch.where(
+            picked > 0, picked / repetition_penalty, picked * repetition_penalty)
+    if temperature <= 0:
+        return int(logits.argmax(dim=-1))
+    scaled = logits / temperature
+    if top_k:
+        kth = scaled.topk(min(top_k, scaled.shape[-1]), dim=-1).values[..., -1:]
+        scaled = scaled.masked_fill(scaled < kth, float("-inf"))
+    if top_p < 1.0:
+        ordered, index = scaled.sort(dim=-1, descending=True)
+        cumulative = ordered.softmax(dim=-1).cumsum(dim=-1)
+        drop = cumulative - ordered.softmax(dim=-1) > top_p
+        ordered = ordered.masked_fill(drop, float("-inf"))
+        scaled = torch.full_like(scaled, float("-inf")).scatter(-1, index, ordered)
+    return int(torch.multinomial(scaled.softmax(dim=-1), 1, generator=generator))
+
+
 @torch.no_grad()
 def translate_and_speak(thinker, processor, pieces, audio_path, tgt_lang,
-                        speaker, *, max_new_tokens, max_codes, device):
+                        speaker, *, max_new_tokens, max_codes, device,
+                        temperature=TEMPERATURE, top_k=TOP_K, top_p=TOP_P,
+                        repetition_penalty=REPETITION_PENALTY, seed=SEED):
     audio_embed, global_embed, audio_head = pieces
     tok = processor.tokenizer
     waveform, _ = sf.read(audio_path, dtype="float32")
@@ -130,8 +169,12 @@ def translate_and_speak(thinker, processor, pieces, audio_path, tgt_lang,
     hidden = state.hidden_states[-1][:, -1:, :]
 
     codes = []
+    generator = torch.Generator(device=device).manual_seed(seed)
     for _ in range(max_codes):
-        nxt = int(audio_head(hidden).argmax(dim=-1).flatten()[0])
+        logits = audio_head(hidden)[:, -1, :].float()
+        nxt = sample_next(logits, codes, temperature=temperature, top_k=top_k,
+                          top_p=top_p, repetition_penalty=repetition_penalty,
+                          generator=generator)
         if nxt == CODE_EOS:
             break
         codes.append(nxt)
@@ -163,6 +206,12 @@ def main() -> None:
     ap.add_argument("--num-shards", type=int, default=1)
     ap.add_argument("--max-new-tokens", type=int, default=256)
     ap.add_argument("--max-codes", type=int, default=700)
+    ap.add_argument("--temperature", type=float, default=TEMPERATURE,
+                    help="0 decodes greedily")
+    ap.add_argument("--top-k", type=int, default=TOP_K)
+    ap.add_argument("--top-p", type=float, default=TOP_P)
+    ap.add_argument("--repetition-penalty", type=float, default=REPETITION_PENALTY)
+    ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
@@ -202,6 +251,8 @@ def main() -> None:
             thinker, processor, pieces, row["source_audio_path"],
             row["tgt_lang"], list(row["bicodec_global"]),
             max_new_tokens=args.max_new_tokens, max_codes=args.max_codes,
+            temperature=args.temperature, top_k=args.top_k, top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty, seed=args.seed,
             device=device)
         index = args.shard + position * args.num_shards
         name = f"{index:05d}_{row['src_lang']}2{row['tgt_lang']}"
@@ -217,6 +268,9 @@ def main() -> None:
             "src_lang": row["src_lang"], "tgt_lang": row["tgt_lang"],
             "dataset_name": "CVSS-T", "audio_path": audio_path,
             "codes": len(codes), "translated_text": hypothesis,
+            "decode": {"temperature": args.temperature, "top_k": args.top_k,
+                       "top_p": args.top_p, "repetition_penalty": args.repetition_penalty,
+                       "seed": args.seed},
             "generated_text_raw": hypothesis, "generated_text_clean": hypothesis,
             "translation_ref": row["translation"], "reference_text": row["translation"],
             "error": None if codes else "no codes",

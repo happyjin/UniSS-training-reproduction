@@ -115,6 +115,25 @@ def forward_step(data_iterator, model):
     return model(**inputs), loss_func
 
 
+class _FirstRows:
+    """The first ``n`` rows of an AudioIndex, behind the three things the
+    corpus uses: len, indexing, and the parquet names to load codes from."""
+
+    def __init__(self, rows, n: int):
+        self.rows, self.n = rows, min(int(n), len(rows))
+
+    def __len__(self) -> int:
+        return self.n
+
+    def __getitem__(self, i: int):
+        if not 0 <= i < self.n:
+            raise IndexError(i)
+        return self.rows[i]
+
+    def parquet_names(self) -> set[str]:
+        return {self.rows[i].parquet for i in range(self.n)}
+
+
 def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None):
     from transformers import Qwen3OmniMoeProcessor
 
@@ -136,6 +155,12 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     if args.omni_audio_index:
         from experiments.uniss_qwen3_omni_v1.training.audio_index import AudioIndex
         audio_rows = AudioIndex(args.omni_audio_index)
+        if args.omni_audio_limit:
+            # read_audio_rows applies the limit on the manifest path only, so
+            # with an index AUDIO_LIMIT=200 silently trained on all 19M rows
+            # -- an overfit test that could not overfit.
+            audio_rows = _FirstRows(audio_rows, args.omni_audio_limit)
+            runtime.print_rank_0(f"deconly: audio pool limited to {len(audio_rows):,} rows")
     else:
         import glob
         manifests = sorted(p for pat in args.omni_manifests for p in glob.glob(pat))

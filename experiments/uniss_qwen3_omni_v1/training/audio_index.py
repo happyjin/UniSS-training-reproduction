@@ -43,6 +43,18 @@ class AudioIndex:
         self.row_index = np.load(self.root / "row_index.npy")
         if self.row_index.size != self.rows:
             raise ValueError("row_index length disagrees with meta")
+        # Optional, written by data_clean/build_clean_index.py: the source's
+        # duration (so a run without the Thinker need not decode audio to
+        # know it) and the source GLM tokens re-tokenised from the local
+        # audio, which is what inference sees.
+        self.source_ms = np.load(self.root / "source_ms.npy") if (self.root / "source_ms.npy").exists() else None
+        glm = self.root / "teacher_glm_values.npy"
+        self._teacher_glm = (np.load(glm, mmap_mode="r"), np.load(self.root / "teacher_glm_offsets.npy")) \
+            if glm.exists() else None
+
+    def teacher_glm(self, i: int) -> list[int]:
+        values, offsets = self._teacher_glm
+        return values[offsets[i] : offsets[i + 1]].tolist()
 
     def parquet_names(self) -> set[str]:
         """The parquet files these rows point at, without building rows.

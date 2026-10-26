@@ -90,7 +90,7 @@ class ParquetCodeIndex:
     """
 
     def __init__(self, parquet_root: str | Path, names: set[str],
-                 *, with_source: bool = False):
+                 *, with_source: bool = False, with_glm: bool = False):
         """``with_source`` also loads each row's own audio codes.
 
         The a2s task supervises the source utterance rather than the
@@ -98,12 +98,19 @@ class ParquetCodeIndex:
         read that was not read before, and the extra array costs roughly
         what target_bicodec costs -- about 10 GiB per rank across all 198
         shards, against 1,992 GiB of memory.
+
+        ``with_glm`` also loads each row's source_glm, the GLM-4 content
+        tokens UniSS reads the source speech as (12.5 a second, a quarter
+        of what source_bicodec costs). Left False nothing changes.
         """
         self.codes: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         self.globals: dict[str, np.ndarray] = {}
         self.source_codes: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self.glm: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         self.with_source = bool(with_source)
-        columns = list(PARQUET_COLUMNS) + (["source_bicodec"] if with_source else [])
+        self.with_glm = bool(with_glm)
+        columns = (list(PARQUET_COLUMNS) + (["source_bicodec"] if with_source else [])
+                   + (["source_glm"] if with_glm else []))
         for name in sorted(names):
             table = pq.read_table(Path(parquet_root) / name, columns=columns)
             codes = table["target_bicodec"].combine_chunks()
@@ -123,6 +130,13 @@ class ParquetCodeIndex:
                     src.values.to_numpy(zero_copy_only=False).astype(np.int16),
                     src.offsets.to_numpy().astype(np.int64),
                 )
+            if with_glm:
+                glm = table["source_glm"].combine_chunks()
+                self.glm[name] = (
+                    # GLM-4 ids run to 16,383, inside int16's range.
+                    glm.values.to_numpy(zero_copy_only=False).astype(np.int16),
+                    glm.offsets.to_numpy().astype(np.int64),
+                )
 
     def get(self, parquet: str, index: int) -> tuple[np.ndarray, np.ndarray]:
         values, offsets = self.codes[parquet]
@@ -130,6 +144,10 @@ class ParquetCodeIndex:
 
     def get_source(self, parquet: str, index: int) -> np.ndarray:
         values, offsets = self.source_codes[parquet]
+        return values[offsets[index] : offsets[index + 1]]
+
+    def get_glm(self, parquet: str, index: int) -> np.ndarray:
+        values, offsets = self.glm[parquet]
         return values[offsets[index] : offsets[index + 1]]
 
 
@@ -164,6 +182,8 @@ class Stage2Corpus:
         if self.code_index.with_source:
             sample["source_codes"] = self.code_index.get_source(
                 row.parquet, row.row_index)
+        if getattr(self.code_index, "with_glm", False):
+            sample["source_glm"] = self.code_index.get_glm(row.parquet, row.row_index)
         return sample
 
     def text_sample(self, index: int) -> dict:

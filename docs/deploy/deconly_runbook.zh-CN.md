@@ -4,8 +4,8 @@
 
 读完这份文档你应该能:起训、看懂日志、在指定步数做端到端探针、把分数放进和其他路线同一张表里比较。
 
-> **状态:前向和反向已在 CPU 上验证通过;显存、吞吐、Megatron 集成和推理脚本仍未验证。**
-> 第 7 节列出首次 GPU 运行必须盯的东西,以及为什么仍然要先跑 50 步冒烟。
+> **状态:冻结 Thinker 模式已在 8×H200 上跑通 50 步冒烟,训练、保存、导出、推理全链路正常(2026-10-19)。**
+> 冒烟测出并修掉了一个只在 GPU 上出现的 bug;实测的显存、步时和推理速度见第 7 节。
 
 ---
 
@@ -126,7 +126,6 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 
 # 默认路线：Thinker 完全不动，只训序列两端的 42.0M
 export UNISS_DECONLY_LORA_FROM=none
-export UNISS_DECONLY_GLOBAL_INIT=$PWD/checkpoints/uniss_qwen3_omni_v1/phase_d_20261012T083329Z/exported/phase_d_iter0014000.pt
 export UNISS_S2ST_REPLY=translation
 ```
 
@@ -147,7 +146,15 @@ export UNISS_S2ST_REPLY=translation
 
 B 回答的是一个更窄、也更干净的问题:**冻结的骨干,光靠一张新的输入表和一个新的输出头,能不能吐码。**
 
-`UNISS_DECONLY_GLOBAL_INIT` 让 `global_embed` 从双流训好的那张表起步,而不是从噪声。phase_d 练了 14,000 步,形状正好 `(4096, 2048)`。形状对不上会直接报错,不会静默广播。
+> **不要设 `UNISS_DECONLY_GLOBAL_INIT`。**这份文档早先建议从 phase_d 继承 `global_embed`,理由是形状同为 `(4096, 2048)`。这是错的:那张表在双流路线里加在 **Thinker 最后一层隐状态**上(范数约 190),而 decoder-only 把它当作 **Thinker 第 0 层的输入嵌入**。两者不是同一个空间,而且尺度差很多:
+>
+> ```
+> Thinker 输入嵌入      每行范数 0.80
+> phase_d global_embed  每行范数 7.47（9.4 倍）
+> 随机初始化（默认）     每行范数 0.77
+> ```
+>
+> 继承过来的方向没有意义,尺度还会让冻结的 Thinker 看到训练分布之外的输入。默认的随机初始化就是按输入嵌入的尺度来的。
 
 **导出时要加 `--no-lora`**(编排器会自动加)。没有它的话,空 adapter 会被当成「这个 checkpoint 根本没训练」—— 两者长得一样。
 
@@ -180,7 +187,6 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh 2>&1 | tee /tmp/deco
 RUN=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
 setsid nohup env \
   UNISS_DECONLY_LORA_FROM=none \
-  UNISS_DECONLY_GLOBAL_INIT=$UNISS_DECONLY_GLOBAL_INIT \
   UNISS_S2ST_REPLY=translation \
   RUN_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN \
   MBS=8 GBS=256 LR=1e-4 MIN_LR=2e-5 \
@@ -212,6 +218,8 @@ SAVE_INTERVAL=500 EVAL_INTERVAL=10000 LOG_INTERVAL=10 \
 MASTER_PORT=29757 \
 bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh 2>&1 | tee /tmp/deconly_overfit.log
 ```
+
+> `AUDIO_LIMIT` 早先在索引路径上**不生效**:`read_audio_rows` 只在按 manifest 读数据时才截断,而 `run_deconly.sh` 用的是 `audio_index_full`,于是「200 条过拟合」其实在全部 1,919 万条上训练。`pretrain_deconly.py` 现在会在索引上截断,启动日志会打印 `audio pool limited to 200 rows` 和 `coverage audio 160.00 epochs`,两行都要看到。
 
 200 条 / GBS 64 ≈ 3 个 batch 一轮,500 步 ≈ 160 轮,足够背下来。只看 `code_ce`:
 
@@ -284,8 +292,8 @@ bash experiments/uniss_qwen3_omni_v1/scripts/run_deconly.sh \
 |---|---|---|
 | `UNISS_DECONLY_MIXTURE` | 不设 = `s2st 100%` | 设 `warmup` = `asr/s2tt/s2st = 0.2:1:1.5` |
 | `UNISS_DECONLY_LORA_FROM` | 代码默认 `32`,**本文档 4.1 export 成 `none`** | `none` = 完全不动 Thinker(见 4.2);数字 = LoRA 起始层;`all` = 全部 48 层 |
-| `UNISS_DECONLY_GLOBAL_INIT` | 不设 = 随机 | `global_embed` 从双流导出暖启动,需 `(4096, 2048)` |
-| `AUDIO_LIMIT` | `0` = 全量 | 限制样本数,过拟合测试用 |
+| `UNISS_DECONLY_GLOBAL_INIT` | 不设 = 随机 | **不要设**(见 4.2):双流的表和 Thinker 输入嵌入不在同一空间,尺度大 9.4 倍 |
+| `AUDIO_LIMIT` | `0` = 全量 | 只用训练池的前 N 行,过拟合测试用。日志里应出现 `audio pool limited to N rows` |
 | `MBS` | **8** | 序列比双流长约 5 倍,**不要照搬双流的 32** |
 | `GBS` | 256 | |
 | `LR` / `MIN_LR` | 1e-4 / 2e-5 | 论文 Stage 2 的值 |
@@ -346,7 +354,6 @@ RUN2=deconly_main_$(date -u +%Y%m%dT%H%M%SZ)
 
 setsid nohup env \
   UNISS_DECONLY_LORA_FROM=none \
-  UNISS_DECONLY_GLOBAL_INIT=$UNISS_DECONLY_GLOBAL_INIT \
   UNISS_S2ST_REPLY=translation \
   RUN_DIR=$PWD/checkpoints/uniss_qwen3_omni_v1/$RUN2 \
   MBS=8 GBS=256 LR=1e-4 MIN_LR=2e-5 \
@@ -441,7 +448,6 @@ Dec-only 跑到 8,000 步  > 25   有竞争力，继续
 冻结参数      0 个拿到梯度
 两种模式      带 LoRA 和冻结 Thinker 都验过。冻结模式下 thinker 可训练参数 0 个，
               可训练合计 42.0M/31,761M，text_weight 自动置零，total == code_ce
-global_embed  从 phase_d 暖启动，形状 (4096, 2048) 对齐
 音频合并      inputs_embeds + input_features 同传，模型仍按 input_ids 定位并 scatter 音频
 索引算术      code_start 正确，无越界
 推理全链路    load_pieces → 文本 generate → 复用 KV cache → 说话人槽 → 码循环 → 声码器
@@ -451,21 +457,28 @@ global_embed  从 phase_d 暖启动，形状 (4096, 2048) 对齐
 
 > 合成 checkpoint 的码是噪声,这一项验证的是路径不是质量。
 
-### 仍未验证 —— 第一次 GPU 运行要盯这些
+### 已在 GPU 上验证(8×H200,冻结 Thinker,2026-10-19)
 
-| 项 | 风险 | 怎么查 |
-|---|---|---|
-| **显存** | 序列约 400 位(双流约 81),MBS 8 可能 OOM | 前 20 步看 `nvidia-smi`;OOM 降到 4 |
-| **吞吐** | 估计 10–15 样本/秒(双流 155) | 日志 `elapsed time per iteration` |
-| **Megatron 集成** | `model_provider` / `forward_step` / 数据集 provider 整条链没跑过。CPU 测试用了假 config 直接构造模型,绕开了这一层 | 第一步不报错即通过 |
-| **8 卡并发探针** | 单条在 CPU 上通过，8 个分片同时抢卡没试过 | 第一次探针；分片日志在 `$OUT/<方向>/logs/` |
-| **modality underfitting** | 一个头学、另一个被忽略 | `text_ce` 和 `code_ce` 要**同时**下降 |
-
-**所以第一次仍然只跑 50 步:**
-
-```bash
-TRAIN_ITERS=50 SAVE_INTERVAL=50 ... bash .../run_deconly.sh
 ```
+Megatron 训练   50 步跑通；code_ce 10.62 → 9.01，grad norm 0.80，NaN/skip 0
+显存            MBS 8 时每卡 79–85 GB / 143 GB
+步时            GBS 64（每卡 1 个 micro-batch）3.6–4.4 s，约 18 样本/秒（双流约 150）
+保存            iter_0000050 共 561 MB（只存 42M 可训练参数和优化器状态）
+导出            --no-lora 正常，thinker_frozen=true
+推理            deconly_e2e 在 GPU 上跑通；每个码约 0.1 s
+                一条约 250 码 → 25–30 s（双流约 6.5 s）；64 条探针约 15–20 分钟
+```
+
+**冒烟发现并修掉的 bug**:`deconly_model.forward` 原地写入说话人和码的嵌入时报
+`a view of a leaf Variable that requires grad is being used in an in-place operation`。
+打开梯度检查点时,transformers 会给输入嵌入挂钩子,把输出设成需要梯度的叶子张量;CPU 验证关了检查点,所以没碰到。现在写入前先 `clone()`。
+
+### 仍未验证
+
+| 项 | 怎么查 |
+|---|---|
+| **能不能学会吐码** | 4.2b 的 200 条过拟合:`code_ce` 要降到 1 以下 |
+| **8 卡并发探针** | 第一次探针;分片日志在 `$OUT/<方向>/logs/` |
 
 ## 8. 不要做的事
 

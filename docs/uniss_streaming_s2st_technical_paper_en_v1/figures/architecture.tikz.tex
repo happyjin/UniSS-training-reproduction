@@ -1,0 +1,51 @@
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  node distance=5mm and 7mm,
+  box/.style={draw,rounded corners=2pt,align=center,minimum height=8mm,inner sep=4pt},
+  offline/.style={box,fill=offlineblue!12,draw=offlineblue!70!black},
+  stream/.style={box,fill=trainable,draw=streamgreen!75!black},
+  freeze/.style={box,fill=frozen,draw=gray!65},
+  future/.style={box,fill=futureorange!15,draw=futureorange!80!black,dashed},
+  arr/.style={-{Latex[length=2mm]},thick},
+  soft/.style={-{Latex[length=2mm]},dashed,thick}
+]
+  \node[offline] (data) {UniST-198\\text/GLM/BiCodec};
+  \node[offline,right=of data] (p1) {Phase 1\\ASR/S2TT/TTS/MT};
+  \node[offline,right=of p1] (p2) {Phase 2\\Q/P/Direct S2ST\\+ P1 replay};
+  \node[offline,right=of p2] (p3) {Phase 3 best\\Q/P focus\\iter 9075};
+  \draw[arr] (data)--(p1);
+  \draw[arr] (p1)--(p2);
+  \draw[arr] (p2)--(p3);
+
+  \node[stream,below=13mm of p1] (causal) {Chunk-causal\\WhisperVQ};
+  \node[stream,right=of causal] (bridge) {Bridge\\1280$\rightarrow$896};
+  \node[stream,right=of bridge] (stageaq) {Stage A shared Qwen\\append-only ASR};
+  \node[freeze,right=of stageaq] (ctc) {CTC diagnostic\\+ causal gate};
+  \draw[arr] (causal)--(bridge);
+  \draw[arr] (bridge)--(stageaq);
+  \draw[arr] (stageaq)--(ctc);
+
+  \node[freeze,below=13mm of causal] (fa) {Frozen Stage A\\frontend+bridge};
+  \node[stream,right=of fa] (qwen) {Trainable shared Qwen\\low LR};
+  \node[stream,right=of qwen] (deltas) {ASR $\Delta$ / MT $\Delta$\\semantic $\Delta$};
+  \node[freeze,right=of deltas] (codec) {Frozen BiCodec\\target PCM};
+  \draw[arr] (fa)--(qwen);
+  \draw[arr] (qwen)--(deltas);
+  \draw[arr] (deltas)--(codec);
+
+  \node[future,below=13mm of fa] (rlinit) {Selected Stage B\\reference policy};
+  \node[future,right=of rlinit] (rollout) {Group rollout\\READ/WRITE+content+audio};
+  \node[future,right=of rollout] (reward) {Bilingual reward\\quality+latency+coverage};
+  \node[future,right=of reward] (grpo) {GRPO adapter/policy\\reference KL};
+  \draw[arr,dashed] (rlinit)--(rollout);
+  \draw[arr,dashed] (rollout)--(reward);
+  \draw[arr,dashed] (reward)--(grpo);
+  \draw[soft] (qwen.south)--++(0,-5mm)-|(rlinit.north);
+
+  \begin{scope}[on background layer]
+    \node[draw=offlineblue!55,rounded corners,fit=(data)(p3),inner sep=5mm,label={[offlineblue!70!black]above:Offline Phase 1--3 (completed)}] {};
+    \node[draw=streamgreen!55,rounded corners,fit=(causal)(ctc),inner sep=5mm,label={[streamgreen!70!black]above:Streaming Stage A (trained; quality gate failed)}] {};
+    \node[draw=streamgreen!55,rounded corners,fit=(fa)(codec),inner sep=5mm,label={[streamgreen!70!black]above:Streaming Stage B (trained; bilingual gate failed)}] {};
+    \node[draw=futureorange!65,rounded corners,dashed,fit=(rlinit)(grpo),inner sep=5mm,label={[futureorange!85!black]below:Quality-aware RL (proposed; not executed)}] {};
+  \end{scope}
+\end{tikzpicture}

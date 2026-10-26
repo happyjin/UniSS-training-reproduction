@@ -66,9 +66,13 @@ LORA_LAYERS_FROM = os.environ.get("UNISS_DECONLY_LORA_FROM", "32")
 # the run answers narrows to whether a frozen backbone can emit codes
 # given nothing but a new input table and a new output head.
 #
-# global_embed can start from a two-stream export rather than from noise.
-# phase_d trained one for 14,000 steps at exactly this shape -- 4096 rows
-# of 2048 -- so the speaker conditioning does not have to be relearned.
+# Left unset, and do not point it at a two-stream export. The shapes match
+# -- 4096 rows of 2048 -- but the spaces do not: the two-stream table is
+# added to the thinker's last-layer states, whose norm is near 190, while
+# here it is an input embedding at layer 0. Measured row norms: phase_d's
+# table 7.47, the thinker's own input embeddings 0.80, so a warm start
+# would hand the frozen backbone inputs nine times off its distribution in
+# directions that mean nothing there. The default init is at input scale.
 GLOBAL_INIT = os.environ.get("UNISS_DECONLY_GLOBAL_INIT", "")
 # Mixture over stage2_tasks. tts is excluded: it draws from a cache of
 # Qwen2.5 token ids, which this route cannot read.
@@ -240,6 +244,12 @@ class DecOnlyModel(HuggingFaceModule):
         # so passing both keeps the audio path intact.
         embeds = self.thinker.get_input_embeddings()(input_ids)
         if has_codes:
+            # With gradient checkpointing on, transformers hooks the input
+            # embedding so its output is a leaf that requires grad, and a
+            # slice assignment into a leaf is refused. The clone is no
+            # longer a leaf; the CPU check ran without checkpointing and
+            # never met the hook.
+            embeds = embeds.clone()
             width = code_ids.shape[1]
             spk = self.global_embed(speaker_ids)
             embeds[:, start - spk.shape[1] : start, :] = spk.to(embeds.dtype)
