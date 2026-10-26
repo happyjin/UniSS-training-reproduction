@@ -28,7 +28,7 @@ import numpy as np
 import soundfile as sf
 import torch
 
-from experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream import RELEASE
+from experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream import RELEASE, load_thinker
 from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import (
     AUDIO_PAD, EOS_ID, NEW0, NEW_END, N_SLOT, SPK0, SDProjector, interleave, n_speaker_tokens, post_to_tokens)
 
@@ -121,7 +121,6 @@ def main() -> None:
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    from transformers import Qwen3OmniMoeForConditionalGeneration
     from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import _get_feat_extract_output_lengths
 
     from experiments.uniss_qwen3_omni_v1.training import pretrain_thinker_gstar as pg
@@ -132,9 +131,7 @@ def main() -> None:
     proc = pg.processor(RELEASE)
     tok = proc.tokenizer
     dev = torch.device("cuda")
-    omni = Qwen3OmniMoeForConditionalGeneration.from_pretrained(args.thinker, torch_dtype=torch.bfloat16)
-    thinker = omni.thinker.to(dev).eval()
-    del omni
+    thinker = load_thinker(args.thinker)
     sd_proj = SDProjector(N_SLOT, thinker.config.text_config.hidden_size)
     sd_proj.load_state_dict(torch.load(Path(args.thinker) / "sd_proj.pt"))
     sd_proj = sd_proj.to(dev, torch.bfloat16).eval()

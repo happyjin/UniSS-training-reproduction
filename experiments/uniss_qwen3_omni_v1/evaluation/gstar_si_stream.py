@@ -43,6 +43,23 @@ def parse(raw: str, dur_s: float, inst: str) -> list[dict]:
             for k, a, x, b in SEG.findall(raw) if x.strip()]
 
 
+def load_thinker(path: str):
+    """The Thinker of a merged checkpoint, loaded straight onto the card with a bounded CPU thread count: eight shards
+    each converting the MoE experts on the CPU with every core at once took 20-30 min to load."""
+    import gc
+    import os
+
+    from transformers import Qwen3OmniMoeForConditionalGeneration
+
+    torch.set_num_threads(int(os.environ.get("GSTAR_THREADS", max(4, (os.cpu_count() or 32) // 8))))
+    omni = Qwen3OmniMoeForConditionalGeneration.from_pretrained(path, torch_dtype=torch.bfloat16, device_map={"": 0})
+    thinker = omni.thinker.eval()
+    del omni
+    gc.collect()
+    torch.cuda.empty_cache()
+    return thinker
+
+
 @torch.no_grad()
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
@@ -63,7 +80,6 @@ def main() -> None:
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    from transformers import Qwen3OmniMoeForConditionalGeneration
     from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import _get_feat_extract_output_lengths
 
     from experiments.uniss_qwen3_omni_v1.training import pretrain_thinker_gstar as pg
@@ -74,9 +90,7 @@ def main() -> None:
     proc = pg.processor(RELEASE)
     tok = proc.tokenizer
     dev = torch.device("cuda")
-    omni = Qwen3OmniMoeForConditionalGeneration.from_pretrained(args.thinker, torch_dtype=torch.bfloat16)
-    thinker = omni.thinker.to(dev).eval()
-    del omni
+    thinker = load_thinker(args.thinker)
     sd_proj = None
     if args.inst == "gstar":
         sd_proj = SDProjector(N_SLOT, thinker.config.text_config.hidden_size)
