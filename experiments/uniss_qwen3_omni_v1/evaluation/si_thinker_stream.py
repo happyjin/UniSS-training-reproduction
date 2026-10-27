@@ -209,6 +209,9 @@ def main() -> None:
     ap.add_argument("--br-online", action="store_true", help="bayesrisk: update each talk's posterior after its sentences; named o")
     ap.add_argument("--br-like-w", type=float, default=0.0, help="bayesrisk --br-online: likelihood weight (A4 correction); "
                     "0: the model file's 1/dispersion")
+    ap.add_argument("--br-loss", choices=("event", "unit"), default="event",
+                    help="bayesrisk: event -- one revision costs C_err once (the paper's loss); unit -- every wrong unit heard "
+                         "costs C_err, every stable unit withheld C_lat D; named u")
     ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
     ap.add_argument("--seed", type=int, default=20261021)
@@ -242,6 +245,7 @@ def main() -> None:
                       + (f"s{args.br_cost_sil:g}g{args.br_g0:g}l{args.br_lambda:g}" if args.br_cost_sil else "")
                       + (f"f{args.br_cost_frag:g}" if args.br_cost_frag else "") + (f"e{args.br_cost_seam:g}" if args.br_cost_seam else "")
                       + ("p" if args.br_playback else "") + (f"o{args.br_like_w:g}" if args.br_online else "")
+                      + ("u" if args.br_loss == "unit" else "")
                       + (f"r{args.sw_queue_rate:g}" if args.sw_queue_rate else "")) if args.policy == "bayesrisk"
                 else f"_bel{Path(args.belief).stem}t{g:g}m{args.belief_min}s{args.belief_sigma:g}" if args.policy == "belief"
                 else f"_head{Path(args.head).stem}{'l' if args.decision == 'bayes' else 't'}{g:g}"
@@ -314,7 +318,7 @@ def main() -> None:
                    "c_frag": args.br_cost_frag, "frag_min": args.br_frag_min or (3 if zh else 4), "c_seam": args.br_cost_seam,
                    "playback": args.br_playback, "speed_step": 1 / 60, "shift_per_s": 3.0, "shift_max": 6.0,
                    "rate": args.sw_queue_rate or (0.191 if zh else 0.339), "mc": args.br_mc, "like_w": args.br_like_w,
-                   "seed": args.seed}
+                   "seed": args.seed, "loss": args.br_loss}
             dump = None
             if args.br_dump:
                 Path(args.br_dump).mkdir(parents=True, exist_ok=True)

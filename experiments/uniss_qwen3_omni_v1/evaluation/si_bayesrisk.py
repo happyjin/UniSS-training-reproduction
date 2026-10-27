@@ -11,6 +11,10 @@ predictive P(S >= a) by Monte Carlo over theta. The action minimises the posteri
 with C_err = 1, C_lat = (1 - sigmoid(b)) / window (b: the bias, as in ABC), D = max(window - p, D_min) for the p
 seconds of speech still to play, and l_sil the listener-silence cost phi(g) = (g-g0)+ + lam (g-g0)+^2 per silence.
 With C_sil = C_frag = C_seam = 0 and P = 0 it is ABC + SDR (Prop. 1 of the doc).
+--br-loss unit instead charges every wrong unit heard and every stable unit withheld,
+    R(a) = C_err E[(a - S)+] + C_lat D E[(min(S, K) - a)+],   C_lat = (1 - sigmoid(b)) / sigmoid(b) / window,
+whose argmin commits the longest prefix with P(S >= a) > 1 / (1 + C_lat D): under the event loss (one revision
+charged once) the global argmin commits long drafts past a doubtful unit.
 
 --br-dump writes every non-final read's statistics and, once its sentence ends, its stable length S (the whole-
 sentence continuation from the read's committed prefix, no reference): the data the posterior is fitted on
@@ -180,9 +184,14 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
     full_p = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[eos_id], logit_bias={wait_id: -100.0})
     rng = np.random.default_rng(cfg.get("seed", 0))
     W = window / 1000.0
+    unit_loss = cfg.get("loss", "event") == "unit"
     tau0 = 1.0 / (1.0 + np.exp(-bias))
-    c_lat = (1.0 - tau0) / W
-    d_min = (1.0 - cfg["tau_max"]) / c_lat
+    if unit_loss:   # commit iff P(S >= a+1) > 1 / (1 + C_lat D): tau0 at D = window
+        c_lat = (1.0 - tau0) / tau0 / W
+        d_min = (1.0 - cfg["tau_max"]) / cfg["tau_max"] / c_lat
+    else:
+        c_lat = (1.0 - tau0) / W
+        d_min = (1.0 - cfg["tau_max"]) / c_lat
     talk_post = {}
     for it in items:
         it.update(committed=[], blocks=[], drafts=[], done=False, busy=0.0, spoken="", prev_abs=None, reads=[], r=0,
@@ -235,14 +244,19 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                 speed = 1.0 + (cfg["speed_step"] * min(cfg["shift_max"], cfg["shift_per_s"] * p) if cfg["playback"] else 0.0)
                 D = max(W - p, d_min)
                 g = max(0.0, it["t"] - it["busy"]) / 1000.0 if p == 0 else 0.0
-                tail = np.concatenate([np.cumsum(ge[:K][::-1])[::-1], [0.0]])   # sum_{u >= a} P(S >= u)
+                if unit_loss:   # E[(a - S)+] and E[(min(S, K) - a)+]
+                    err_c = np.concatenate([[0.0], np.cumsum(1.0 - ge[1:K + 1])])
+                    tail = np.concatenate([np.cumsum(ge[1:K + 1][::-1])[::-1], [0.0]])
+                else:   # 1[S < a] and sum_{u >= a} P(S >= u)
+                    err_c = 1.0 - ge[:K + 1]
+                    tail = np.concatenate([np.cumsum(ge[:K][::-1])[::-1], [0.0]])
                 best, a = None, 0
                 for cand in range(K + 1):
                     blk = gu[:cand]
                     if cand and has_loop(it["committed"] + blk) and not has_loop(it["committed"]):
                         continue
                     ncu = content_units(blk, zh)
-                    risk = (1.0 - ge[cand]) + c_lat * D * tail[cand]
+                    risk = err_c[cand] + c_lat * D * tail[cand]
                     if cfg["c_sil"]:
                         dur = len(blk) * cfg["rate"] / speed
                         if ncu == 0:
@@ -351,6 +365,11 @@ def _selftest() -> None:
     R_ = [(1 - ge[a]) + c * Dk * tail[a] for a in range(3)]
     for a in range(2):
         assert np.sign(R_[a + 1] - R_[a]) == np.sign((1 - rho[a]) - c * Dk)
+    # unit loss: the argmin is the longest prefix whose marginal survival passes 1 / (1 + C_lat D)
+    rho = np.array([0.95, 0.6, 0.99, 0.99]); ge = np.concatenate([[1], np.cumprod(rho)]); cD = 0.5
+    err_c = np.concatenate([[0.0], np.cumsum(1.0 - ge[1:])]); tail = np.concatenate([np.cumsum(ge[1:][::-1])[::-1], [0.0]])
+    a_star = int(np.argmin(err_c + cD * tail))
+    assert a_star == max([a for a in range(5) if all(ge[u + 1] > 1 / (1 + cD) for u in range(a))])
     print("si_bayesrisk selftest ok")
 
 
