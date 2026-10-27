@@ -165,6 +165,9 @@ def main() -> None:
                          "continuations (wait barred, 24 tokens) and commit the prefix --start-vote-gamma of them agree on "
                          "(TAF / RALCP at sentence starts); named _sv<n>g<gamma>")
     ap.add_argument("--start-vote-gamma", type=float, default=0.75)
+    ap.add_argument("--hyg-first-min", type=int, default=0,
+                    help="with --hygiene: the shortest first block of a sentence (0: --hyg-min); the playback buffer joins "
+                         "a short first block to what follows; named f<n>")
     ap.add_argument("--hyg-hold-ms", type=int, default=0,
                     help="with --hygiene: text the draft has but a rule holds back goes out once it has been held this long "
                          "while the talker is idle (0: no limit); named hold<ms>")
@@ -202,7 +205,8 @@ def main() -> None:
     if (args.hygiene or args.clean) and args.policy != "selfwait":
         raise SystemExit("--hygiene / --clean are implemented for the selfwait policy only")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
-    extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
+    extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"f{args.hyg_first_min}" if hyg_min and args.hyg_first_min else "") \
+        + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
         + ("_cln" if args.clean else "") + (f"_urg{args.sw_urgency:g}m{args.sw_urgency_min:g}" if args.sw_urgency else "") \
         + (f"_sv{args.start_vote}g{args.start_vote_gamma:g}" if args.start_vote else "")
     if args.sw_urgency and not (args.policy == "selfwait" and args.sw_queue_rate):
@@ -307,7 +311,7 @@ def main() -> None:
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
                            "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min}
                    if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
-                   fluency={"hyg_min": hyg_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms, "start_vote": args.start_vote,
+                   fluency={"hyg_min": hyg_min, "hyg_first_min": args.hyg_first_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms, "start_vote": args.start_vote,
                             "start_vote_gamma": args.start_vote_gamma} if (hyg_min or args.clean or args.start_vote) else None,
                    virtual_list=vlist, lr=lr, adapt=adapt)
 
@@ -537,7 +541,8 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 if fluency and fluency["hyg_min"]:   # no dangling end, no fragment while the talker is idle (si_fluency_rules)
                     from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
                     raw_new, idle = new, it["busy"] <= it["t"]
-                    new = hygiene(it["committed"], new, zh, idle, fluency["hyg_min"])
+                    hmin = fluency["hyg_first_min"] if fluency.get("hyg_first_min") and not it["committed"] else fluency["hyg_min"]
+                    new = hygiene(it["committed"], new, zh, idle, hmin)
                     if fluency.get("hold_ms") and idle and len(new) < len(raw_new) and any(
                             re.search(r"[A-Za-z0-9一-鿿]", u) for u in raw_new[len(new):]):
                         if it["held_t"] is None:   # a rule holds text the draft has: at most hold_ms while the talker is idle
