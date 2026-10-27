@@ -28,6 +28,25 @@ QWEN3 = str(REPO / "pretrained_models/Qwen3-Omni-30B-A3B-Instruct")
 DUMPS = "data/si_bayes_lr_v1/dump_*/dumps/*.jsonl,data/si_belief_v1/shard_*/dumps/*.jsonl"
 
 
+def chrf(h: str, r: str, n: int = 6, beta: float = 2.0) -> float:
+    """Sentence chrF (Popovic 2015) on characters, spaces removed, x100 -- sacrebleu is not in the vLLM env."""
+    from collections import Counter
+
+    h, r = h.replace(" ", ""), r.replace(" ", "")
+    ps, rs = [], []
+    for k in range(1, n + 1):
+        hc = Counter(h[i: i + k] for i in range(len(h) - k + 1))
+        rc = Counter(r[i: i + k] for i in range(len(r) - k + 1))
+        m = sum((hc & rc).values())
+        if hc:
+            ps.append(m / sum(hc.values()))
+        if rc:
+            rs.append(m / sum(rc.values()))
+    p = sum(ps) / len(ps) if ps else 0.0
+    q = sum(rs) / len(rs) if rs else 0.0
+    return 0.0 if p + q == 0 else 100 * (1 + beta ** 2) * p * q / (beta ** 2 * p + q)
+
+
 def lcp(a, b):
     k = 0
     while k < min(len(a), len(b)) and a[k] == b[k]:
@@ -68,13 +87,11 @@ def main() -> None:
         todo += rs[: args.per_dir]
     todo = todo[args.shard:: args.num_shards]
 
-    from sacrebleu.metrics import CHRF
     from transformers import Qwen3OmniMoeProcessor
     from vllm import LLM, SamplingParams
 
     from experiments.uniss_qwen3_omni_v1.training.e2_batch import inference_instruction
 
-    chrf = CHRF()
     processor = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     instr = inference_instruction()
     heads = {}
@@ -117,13 +134,13 @@ def main() -> None:
         for k, r in enumerate(todo):
             ref = items[r["id"]]["translation"]
             orc = join(r["oracle"], r["dir"])
-            c0 = chrf.sentence_score(orc, [ref]).score
+            c0 = chrf(orc, ref)
             n0 = max(1, len(orc.replace(" ", "")) if r["dir"] == "en2zh" else len(orc.split()))
             best, best_full, best_c = r["lcp"], None, None
             for L in r["cands"]:   # longest first
                 full = fulls[(k, L)]
                 n1 = len(full.replace(" ", "")) if r["dir"] == "en2zh" else len(full.split())
-                c1 = chrf.sentence_score(full, [ref]).score
+                c1 = chrf(full, ref)
                 if c1 >= c0 - args.slack and 0.8 <= n1 / n0 <= 1.25:
                     best, best_full, best_c = L, full, c1
                     break
