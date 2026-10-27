@@ -1,0 +1,48 @@
+{
+ "en2zh": {
+  "items": 600,
+  "accepted": 436,
+  "accept_rate": 0.727,
+  "lang_ok": 0.995,
+  "digits_ok": 0.998,
+  "meta_ok": 1.0,
+  "nonempty": 1.0,
+  "len_ratio_p10_p50_p90": [
+   0.865,
+   1.0,
+   1.0
+  ],
+  "all: bleu_oracle_vs_ref": 54.25,
+  "all: bleu_rewrite_vs_ref": 54.65,
+  "accepted: bleu_oracle_vs_ref": 52.89,
+  "accepted: bleu_rewrite_vs_ref": 57.78,
+  "accepted: len_ratio_mean": 0.981,
+  "accepted: chrf_rewrite_oracle_mean": 82.52,
+  "start_reads": 1297,
+  "start_first_unit_agree_oracle": 0.644,
+  "start_first_unit_agree_rewrite": 0.625
+ },
+ "zh2en": {
+  "items": 600,
+  "accepted": 409,
+  "accept_rate": 0.682,
+  "lang_ok": 0.998,
+  "digits_ok": 0.997,
+  "meta_ok": 0.975,
+  "nonempty": 1.0,
+  "len_ratio_p10_p50_p90": [
+   0.783,
+   1.0,
+   1.0
+  ],
+  "all: bleu_oracle_vs_ref": 40.15,
+  "all: bleu_rewrite_vs_ref": 40.53,
+  "accepted: bleu_oracle_vs_ref": 38.58,
+  "accepted: bleu_rewrite_vs_ref": 43.05,
+  "accepted: len_ratio_mean": 0.962,
+  "accepted: chrf_rewrite_oracle_mean": 89.66,
+  "start_reads": 1219,
+  "start_first_unit_agree_oracle": 0.65,
+  "start_first_unit_agree_rewrite": 0.636
+ }
+}

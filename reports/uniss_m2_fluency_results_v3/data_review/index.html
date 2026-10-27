@@ -1,0 +1,85 @@
+<title>第 3 步训练数据审核</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root { --bg:#f5f4f0; --panel:#fff; --ink:#1d2024; --mute:#626a72; --rule:#dddbd4; --soft:#eeede7; --ok:#1f7a5a; --bad:#b0442c; --hl:#fdf1c7;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#16181a; --panel:#1f2225; --ink:#e8e6e1; --mute:#9aa1a8; --rule:#33373b; --soft:#2a2e31; --ok:#5cc49c; --bad:#e3826a; --hl:#4a4020; color-scheme: dark } }
+:root[data-theme="dark"] { --bg:#16181a; --panel:#1f2225; --ink:#e8e6e1; --mute:#9aa1a8; --rule:#33373b; --soft:#2a2e31; --ok:#5cc49c; --bad:#e3826a; --hl:#4a4020; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+h1 { font-size: 1.6rem; margin: 0; text-wrap: balance; } h2 { font-size: 1.2rem; margin: 0; } h3 { font-size: 1rem; margin: 0; }
+p { margin: 0; } .mute { color: var(--mute); } .lede { color: var(--mute); max-width: 75ch; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; min-width: 0; }
+.scroll { overflow-x: auto; } table { border-collapse: collapse; font-size: 0.86rem; width: 100%; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+th { color: var(--mute); font-weight: 500; white-space: nowrap; } td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; font-size: 0.75rem; padding: 0 8px; border-radius: 99px; color: #fff; }
+.tag.ok { background: var(--ok); } .tag.bad { background: var(--bad); }
+.verdict { font-weight: 700; } .verdict.bad { color: var(--bad); } .verdict.ok { color: var(--ok); }
+.card { display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 10px; }
+.row { display: grid; grid-template-columns: 6.5em 1fr; gap: 2px 10px; font-size: 0.9rem; }
+.row .k { color: var(--mute); } .new { background: var(--hl); padding: 0 3px; border-radius: 3px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; } button { font: inherit; padding: 3px 12px; border: 1px solid var(--rule); background: var(--soft); color: var(--ink); border-radius: 99px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+audio { height: 30px; width: min(100%, 320px); }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+</style>
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <h1>第 3 步训练数据审核：旧数据与新数据</h1>
+    <p class="lede">全部来自 UniST 训练语料（每个方向 2 万句及其 oracle dump）。经检查，与 RealSI、ACL dev 在 id、音频、参考译文三方面都没有任何重叠，两个测试集没有用于造数据。</p>
+    <p class="lede">要解决的问题：句首读取点（还没提交任何内容）有 36% 的草稿一开头就和全句 oracle 不一致，旧训练数据在这些点上全部教 Thinker 等待，这正是“新句子迟迟不开口”的来源。</p>
+  </header>
+  <section class="panel" id="A"><h2>A. 第一次尝试：同传风格改写（审核未通过，已放弃）</h2></section>
+  <section class="panel" id="B"><h2>B. 采用的方案：前缀约束的句首 oracle</h2></section>
+  <section class="panel" id="C"><h2>B 的抽样（每个方向 24 条采用、12 条拒绝）</h2>
+    <div class="filters" id="filters"></div><div id="samples" style="display:grid;gap:10px"></div></section>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const h = (t, a = {}, ...k) => { const e = document.createElement(t); for (const [x, v] of Object.entries(a)) { if (x === "text") e.textContent = v; else if (x === "html") e.innerHTML = v; else e.setAttribute(x, v); } for (const c of k) if (c) e.append(c); return e; };
+const DIR = { en2zh: "英→中", zh2en: "中→英" };
+const RS = { "not supported by the reference": "内容没有参考支持", "chrF below the oracle": "整句比原 oracle 差", "length": "整句长度异常",
+  "cuts a word": "把词切开", "ellipsis": "含省略号", "latin in Chinese": "中文里夹英文", "function words only": "只有虚词" };
+function table(head, rows) { const t = h("table"); t.append(h("thead", {}, h("tr", {}, ...head.map(x => h("th", { text: x })))));
+  const b = h("tbody"); for (const r of rows) b.append(h("tr", {}, ...r.map((x, i) => h("td", { text: String(x), class: i && typeof x === "number" ? "num" : "" })))); t.append(b); return h("div", { class: "scroll" }, t); }
+fetch("manifest.json").then(r => r.json()).then(m => {
+  const A = $("#A"), s = m.rewrite_summary;
+  A.append(h("p", { text: "做法：用 Qwen3-Omni 听原音频、看原译文，把全句 oracle 改写成同传风格（按说话顺序、简洁、去口头禅）。每个方向试了 600 句。" }));
+  A.append(table(["指标", "英→中", "中→英"], [
+    ["自动检查采用率", (s.en2zh.accept_rate * 100).toFixed(1) + "%", (s.zh2en.accept_rate * 100).toFixed(1) + "%"],
+    ["句首首字一致率：原 oracle", (s.en2zh.start_first_unit_agree_oracle * 100).toFixed(1) + "%", (s.zh2en.start_first_unit_agree_oracle * 100).toFixed(1) + "%"],
+    ["句首首字一致率：改写后", (s.en2zh.start_first_unit_agree_rewrite * 100).toFixed(1) + "%", (s.zh2en.start_first_unit_agree_rewrite * 100).toFixed(1) + "%"],
+    ["采用部分 BLEU：原 oracle → 改写", `${s.en2zh["accepted: bleu_oracle_vs_ref"]} → ${s.en2zh["accepted: bleu_rewrite_vs_ref"]}`, `${s.zh2en["accepted: bleu_oracle_vs_ref"]} → ${s.zh2en["accepted: bleu_rewrite_vs_ref"]}`]]));
+  A.append(h("p", { class: "verdict bad", text: "审核结论：不合格。核心目标（句首更贴近源语顺序）没有达到，首字一致率反而下降；BLEU 的“提升”主要来自英文逗号换成中文全角标点，语音 ASR-BLEU 不带标点，这部分不会兑现；还有少量删信息。" }));
+  for (const e of m.rewrite_examples) A.append(h("div", { class: "card" },
+    h("div", {}, h("span", { class: "tag " + (e.accepted ? "ok" : "bad"), text: e.accepted ? "自动采用" : "自动拒绝" }), h("span", { class: "mute", text: `  ${DIR[e.dir]} · 长度比 ${e.len_ratio} · chrF ${e.chrf_oracle_ref} → ${e.chrf_rewrite_ref}` })),
+    h("div", { class: "row" }, h("span", { class: "k", text: "人工参考" }), h("span", { text: e.ref })),
+    h("div", { class: "row" }, h("span", { class: "k", text: "原 oracle" }), h("span", { text: e.oracle })),
+    h("div", { class: "row" }, h("span", { class: "k", text: "改写" }), h("span", { text: e.rewrite }))));
+  const B = $("#B"), f = m.funnel;
+  B.append(h("p", { text: "做法：在句首读取点，强制全句模型以 Thinker 当时的草稿开头（取草稿的 1 个单位、一半或全部），在听到全句的情况下续写。如果续写出来的整句和人工参考一样好，说明这个开头可以放心先说，就把它作为新的训练目标；否则保留旧目标（等待）。" }));
+  B.append(table(["", "英→中", "中→英"], [
+    ["抽取的句首读取点", f.en2zh.start_reads, f.zh2en.start_reads],
+    ["初筛可延长（整句 chrF ≥ oracle−1）", f.en2zh.first_pass_lengthened, f.zh2en.first_pass_lengthened],
+    ["人工审核后严格过滤、最终采用", f.en2zh.kept, f.zh2en.kept],
+    ...Object.keys(RS).map(k => ["  拒绝：" + RS[k], f.en2zh.rejected[k] || 0, f.zh2en.rejected[k] || 0])]));
+  B.append(h("p", { text: "第一轮人工核读发现三类问题：英文草稿被切成单个字母（“Y”“T”）、意思没有参考支持的开头（“当时,它相当不错”对应“那时，我心中非常清楚”）、把词切开（“其他”取成“其”）。据此加了严格过滤：整句 chrF 不得低于原 oracle（不留余量）、长度比 0.85–1.2、中文不夹英文、不含省略号、必须在词边界结束、目标里 ≥70% 的实词要在人工参考中出现、只有虚词的目标不能超过 3 个单位或以句号结束。" }));
+  B.append(h("p", { class: "verdict ok", text: "审核结论：严格过滤后合格。只改动 8,090 个句首读取点的目标（约占全部训练行的 3%），其余训练行与 v1 完全相同；句首读取行加倍采样。" }));
+  const cont = $("#samples"), fl = $("#filters"); let cur = "all";
+  const opts = [["all", "全部"], ["en2zh 采用", "英→中 采用"], ["en2zh 拒绝", "英→中 拒绝"], ["zh2en 采用", "中→英 采用"], ["zh2en 拒绝", "中→英 拒绝"]];
+  const render = () => { cont.replaceChildren(); for (const x of m.samples) { if (cur !== "all" && cur !== `${x.dir} ${x.tag}`) continue;
+    cont.append(h("div", { class: "card" },
+      h("div", {}, h("span", { class: "tag " + (x.tag === "采用" ? "ok" : "bad"), text: x.tag }), h("span", { class: "mute", text: `  ${DIR[x.dir]} · 读取时刻 ${x.t.toFixed(1)} s / 全长 ${x.dur} s · 整句 chrF ${x.c0} → ${x.c1 ?? "—"}${x.reason ? " · 拒绝原因：" + (RS[x.reason] || x.reason) : ""}` })),
+      h("audio", { controls: "", preload: "none", src: x.audio }),
+      h("div", { class: "row" }, h("span", { class: "k", text: "当时的草稿" }), h("span", { text: x.draft })),
+      h("div", { class: "row" }, h("span", { class: "k", text: "旧目标" }), h("span", { text: x.old || "（空：等待）" })),
+      h("div", { class: "row" }, h("span", { class: "k", text: x.tag === "采用" ? "新目标" : "被拒的目标" }), h("span", { class: "new", text: x.new || "（空）" })),
+      h("div", { class: "row" }, h("span", { class: "k", text: "以它开头的整句" }), h("span", { text: x.full || "—" })),
+      h("div", { class: "row" }, h("span", { class: "k", text: "原 oracle" }), h("span", { text: x.oracle })),
+      h("div", { class: "row" }, h("span", { class: "k", text: "人工参考" }), h("span", { text: x.ref })))); } };
+  for (const [k, n] of opts) { const b = h("button", { type: "button", "aria-pressed": String(k === cur), text: n }); b.onclick = () => { cur = k; for (const c of fl.children) c.setAttribute("aria-pressed", String(c === b)); render(); }; fl.append(b); }
+  render();
+});
+</script>
