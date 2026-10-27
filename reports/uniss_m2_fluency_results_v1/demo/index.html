@@ -1,0 +1,161 @@
+<title>M2 流畅度对比</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f4f3ef; --panel: #ffffff; --ink: #1d2024; --mute: #626a72; --rule: #dcdad3; --soft: #ecebe5;
+  --old: #8a6f4d; --new: #1f7a6a; --pause: #c8553d; --src: #b9b5aa; --accent: #1f7a6a;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16181a; --panel: #1f2225; --ink: #e8e6e1; --mute: #9aa1a8; --rule: #33373b; --soft: #2a2e31;
+  --old: #c9a679; --new: #56c2ac; --pause: #e0775f; --src: #5d6064; --accent: #56c2ac; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16181a; --panel: #1f2225; --ink: #e8e6e1; --mute: #9aa1a8; --rule: #33373b; --soft: #2a2e31;
+  --old: #c9a679; --new: #56c2ac; --pause: #e0775f; --src: #5d6064; --accent: #56c2ac; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+h1 { font-size: 1.7rem; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.2rem; margin: 0; }
+.lede { color: var(--mute); max-width: 72ch; margin: 0; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 0.86rem; width: 100%; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--mute); font-weight: 500; }
+td.good { color: var(--new); font-weight: 600; }
+td.bad { color: var(--pause); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--mute); align-items: center; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.card { display: grid; gap: 10px; }
+.card-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+.card-head code { font: 600 0.85rem var(--f-mono); }
+.tag { font-size: 0.75rem; padding: 1px 8px; border-radius: 99px; background: var(--soft); color: var(--mute); letter-spacing: 0.04em; }
+.src, .ref { margin: 0; font-size: 0.9rem; }
+.src { color: var(--ink); } .ref { color: var(--mute); }
+.sys { display: grid; gap: 6px; border-left: 3px solid var(--c); padding-left: 10px; }
+.sys-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.sys-name { font-weight: 700; color: var(--c); min-width: 3.5em; }
+.stats { font-size: 0.8rem; color: var(--mute); font-variant-numeric: tabular-nums; }
+audio { width: min(100%, 360px); height: 34px; }
+.track { position: relative; height: 26px; background: var(--soft); border-radius: 4px; overflow: hidden; }
+.srcbar { position: absolute; top: 0; height: 4px; background: var(--src); }
+.blk { position: absolute; top: 7px; height: 14px; border-radius: 3px; background: var(--c); opacity: 0.85; border: 0; padding: 0; cursor: pointer; }
+.gap { position: absolute; top: 21px; height: 4px; background: var(--pause); }
+.head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: 0.6; }
+.btext { font-size: 0.9rem; margin: 0; overflow-wrap: anywhere; }
+.btext span { color: var(--mute); padding: 0 3px; }
+@media (max-width: 520px) { .sys-name { min-width: 0; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <h1>M2 同传流畅度：改进前后对比</h1>
+    <p class="lede">同一个 Thinker、同一个 Talker、同一句源语，只改两条推理规则：<b>提交卫生</b>（不在功能词或词中间结束一块；Talker 空闲时不发太短的碎块；不发纯标点块）和<b>口语清洗</b>（Talker 不读 uh/um/嗯 等口头禅和紧邻重复）。不训练任何模型。</p>
+    <p class="lede">每句两个播放器都是立体声：左声道原声、右声道译音，按真实时间轴播放，等待的静音原样保留，戴耳机最清楚。时间轴里，灰线是源语时长，色块是每一块译音，红线是 ≥1 秒的停顿；点色块可以跳到那里播放。</p>
+  </header>
+  <section class="panel" id="summary"><h2>全集指标（RealSI）</h2></section>
+  <div id="dirs" style="display:grid;gap:22px"></div>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "text") el.textContent = v; else if (v != null) el.setAttribute(k, v); }
+  for (const k of kids) if (k) el.append(k);
+  return el;
+};
+const DIRNAME = { en2zh: "英→中", zh2en: "中→英" };
+const ROWS = [
+  ["asr_bleu", "语音 ASR-BLEU", 2, +1], ["laal_s", "LAAL（s）", 2, -1], ["excess_pause_s_per_100u", "异常停顿负担（s/100 单位）", 2, -1],
+  ["utt_with_pause_ge1s", "有 ≥1 s 停顿的句子", "%", -1], ["pauses_ge1_per_100u", "≥1 s 停顿 /100 单位", 2, -1],
+  ["silence_ratio", "静音比", 3, -1], ["one_unit_blocks", "单字（词）块", "%", -1], ["adjacent_rate_jump_gt1.5x", "相邻块语速差 >1.5 倍", "%", -1],
+  ["talker_err", "Talker 读错率", "%", -1], ["utt_talker_err_gt0.2", "读错 >20% 的句子", "%", -1],
+  ["tail_s_p50", "源语结束后还在说 p50（s）", 2, -1], ["utmos", "UTMOS", 2, +1],
+];
+const fmt = (v, f) => v == null ? "—" : f === "%" ? (100 * v).toFixed(1) + "%" : Number(v).toFixed(f);
+
+function summary(d) {
+  const box = $("#summary");
+  for (const g of d.dirs) {
+    const s = d.summary[g.dir];
+    const t = h("table");
+    t.append(h("thead", {}, h("tr", {}, h("th", { text: DIRNAME[g.dir] }), h("th", { text: "M2" }), h("th", { text: g.label }), h("th", { text: "变化" }))));
+    const tb = h("tbody");
+    for (const [k, name, f, dirn] of ROWS) {
+      const a = s.m2[k], b = s.new[k];
+      if (a == null && b == null) continue;
+      let delta = "—", cls = null;
+      if (a != null && b != null) {
+        const dv = b - a;
+        delta = (dv >= 0 ? "+" : "") + (f === "%" ? (100 * dv).toFixed(1) + " 点" : dv.toFixed(f === 3 ? 3 : 2));
+        const rel = Math.abs(dv) / (Math.abs(a) || 1);
+        if (rel > 0.02) cls = dv * dirn > 0 ? "good" : "bad";
+      }
+      tb.append(h("tr", {}, h("td", { text: name }), h("td", { text: fmt(a, f) }), h("td", { text: fmt(b, f) }), h("td", { text: delta, class: cls })));
+    }
+    t.append(tb);
+    box.append(h("div", { class: "scroll" }, t));
+    if (s.new.vs_base_bleu) box.append(h("p", { class: "stats", text:
+      `${DIRNAME[g.dir]} ASR-BLEU 差 ${s.new.vs_base_bleu.diff > 0 ? "+" : ""}${s.new.vs_base_bleu.diff}，95% 区间 [${s.new.vs_base_bleu.ci95.join(", ")}]，配对 bootstrap 单侧 p = ${s.new.vs_base_bleu.p_b_not_better}。` }));
+  }
+  box.append(h("div", { class: "legend" },
+    h("span", {}, h("i", { class: "sw", style: "background:var(--new)" }), "绿色：变好"),
+    h("span", {}, h("i", { class: "sw", style: "background:var(--pause)" }), "红色：变差（相对变化 >2%）")));
+}
+
+function lane(side, total, audio, color) {
+  const tr = h("div", { class: "track" });
+  for (const b of side.blocks) {
+    const bar = h("button", { class: "blk", type: "button", title: `${b.s.toFixed(2)}s  ${b.text}`, "aria-label": `跳到 ${b.s.toFixed(1)} 秒` });
+    bar.style.left = `${(b.s / total) * 100}%`;
+    bar.style.width = `${Math.max(0.6, (b.d / total) * 100)}%`;
+    bar.style.setProperty("--c", color);
+    bar.addEventListener("click", () => { audio.currentTime = b.s; audio.play(); });
+    tr.append(bar);
+  }
+  for (const [a, c] of side.pauses) {
+    if (c - a < 1.0) continue;
+    const g = h("div", { class: "gap" });
+    g.style.left = `${(a / total) * 100}%`; g.style.width = `${((c - a) / total) * 100}%`;
+    tr.append(g);
+  }
+  const head = h("div", { class: "head" }); head.style.left = "0%"; tr.append(head);
+  audio.addEventListener("timeupdate", () => { head.style.left = `${Math.min(100, (audio.currentTime / total) * 100)}%`; });
+  return tr;
+}
+
+function card(it, label) {
+  const total = Math.max(it.src_s, ...[it.m2, it.new].flatMap(s => s.blocks.map(b => b.s + b.d))) + 0.3;
+  const sec = h("article", { class: "panel card" });
+  sec.append(h("div", { class: "card-head" }, h("code", { text: it.id }), h("span", { class: "tag", text: it.why }),
+    h("span", { class: "stats", text: `源语 ${it.src_s.toFixed(1)} s` })));
+  sec.append(h("p", { class: "src", text: "原文：" + it.src }), h("p", { class: "ref", text: "参考译文：" + it.ref }));
+  for (const [key, name, color] of [["m2", "M2", "var(--old)"], ["new", label, "var(--new)"]]) {
+    const s = it[key];
+    const audio = h("audio", { controls: "", preload: "none", src: it.audio[key] });
+    const sb = h("div", { class: "srcbar" }); sb.style.left = "0"; sb.style.width = `${(it.src_s / total) * 100}%`;
+    const tr = lane(s, total, audio, color); tr.prepend(sb);
+    const txt = h("p", { class: "btext" });
+    s.blocks.forEach((b, k) => { if (k) txt.append(h("span", { text: "/" })); txt.append(document.createTextNode(b.text.trim())); });
+    const box = h("div", { class: "sys" }); box.style.setProperty("--c", color);
+    box.append(h("div", { class: "sys-top" }, h("span", { class: "sys-name", text: name }), audio,
+      h("span", { class: "stats", text: `≥1 s 停顿 ${s.n_long} 次 · 超额停顿 ${s.excess.toFixed(1)} s · 源语结束后还说 ${s.end_after.toFixed(1)} s` })), tr, txt);
+    sec.append(box);
+  }
+  return sec;
+}
+
+fetch("manifest.json").then(r => r.json()).then(d => {
+  summary(d);
+  for (const g of d.dirs) {
+    const wrap = h("section", { style: "display:grid;gap:14px" }, h("h2", { text: `${DIRNAME[g.dir]}：${g.items.length} 句（前 6 句是停顿改善最多的，后 4 句随机抽样）` }));
+    for (const it of g.items) wrap.append(card(it, g.label));
+    $("#dirs").append(wrap);
+  }
+}).catch(() => { $("#dirs").append(h("p", { class: "lede", text: "试听数据没有加载成功，请刷新页面。" })); });
+</script>
