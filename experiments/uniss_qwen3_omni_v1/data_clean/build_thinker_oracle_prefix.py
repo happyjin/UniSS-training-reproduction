@@ -49,6 +49,8 @@ def main() -> None:
     ap.add_argument("--oracle-rewrites", default="", help="jsonl {id, rewrite, accepted} (fluency plan v3)")
     ap.add_argument("--rewrite-offline-share", type=float, default=0.5)
     ap.add_argument("--clean-targets", action="store_true")
+    ap.add_argument("--start-oracle", default="", help="build_start_oracle.py output: a start read's target becomes the "
+                                                      "draft's first best_L units when that is longer than the agreement")
     ap.add_argument("--start-boost", type=int, default=1)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -69,6 +71,12 @@ def main() -> None:
                 rew[r["id"]] = r["rewrite"]
     reads, finals, offline = [], [], {}
     n_start_rew = [0, 0]
+    start_L = {}
+    if args.start_oracle:
+        for line in open(args.start_oracle, encoding="utf-8"):
+            r = json.loads(line)
+            start_L[(r["id"], int(r["t"]))] = int(r["best_L"])
+    n_start_L = [0, 0]
     for f in sorted({f for pat in args.dumps.split(",") for f in glob.glob(pat)}):
         d = "en2zh" if "_en2zh_" in f else "zh2en"
         zh = d == "en2zh"
@@ -89,6 +97,11 @@ def main() -> None:
                 n_start_rew[0] += 1
                 n_start_rew[1] += lcp(r["draft_units"], oracle) > 0
             L = lcp(r["draft_units"], oracle)
+            if r["n_committed"] == 0 and (r["id"], t) in start_L:   # the prefix-constrained start oracle
+                n_start_L[0] += 1
+                if start_L[(r["id"], t)] > L:
+                    n_start_L[1] += 1
+                    L = start_L[(r["id"], t)]
             target = cont[: spans[L - 1]] if L and L <= len(spans) else ""
             row = {"id": r["id"], "audio": audio[r["id"]][0], "dir": d, "t_ms": t, "dur_ms": audio[r["id"]][1],
                    "prefix": prefix, "target": target, "end": "wait", "kind": "read"}
@@ -140,6 +153,7 @@ def main() -> None:
              "empty_wait_share": round(sum(r["end"] == "wait" and not r["target"] for r in rows) / len(rows), 3),
              "offline_share": round(sum(r["kind"] == "offline" for r in rows) / len(rows), 3),
              "en2zh": sum(r["dir"] == "en2zh" for r in rows), "zh2en": sum(r["dir"] == "zh2en" for r in rows),
+             "start_reads_with_start_oracle": n_start_L[0], "start_targets_lengthened": n_start_L[1],
              "start_reads_with_rewrite": n_start_rew[0], "their_agreement": round(n_start_rew[1] / max(1, n_start_rew[0]), 3),
              "args": {k: v for k, v in vars(args).items() if k != "out"}}
     (out / "README.md").write_text("Plan 4b rows (see data_clean/build_thinker_oracle_prefix.py).\n\n"
