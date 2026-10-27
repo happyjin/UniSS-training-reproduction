@@ -160,6 +160,13 @@ def main() -> None:
                          "function word or inside a Chinese word, is not punctuation alone, and while the talker is idle is "
                          "not shorter than --hyg-min units unless it ends a clause; named _hyg<min>")
     ap.add_argument("--hyg-min", type=int, default=0, help="with --hygiene: the shortest block (0: 3 Chinese characters / 2 words)")
+    ap.add_argument("--hyg-hold-ms", type=int, default=0,
+                    help="with --hygiene: text the draft has but a rule holds back goes out once it has been held this long "
+                         "while the talker is idle (0: no limit); named hold<ms>")
+    ap.add_argument("--sw-urgency", type=float, default=0.0,
+                    help="selfwait policy with --sw-queue-rate: the wait-marker bias falls by this much per second the talker "
+                         "has been idle (fluency plan v2), down to --sw-urgency-min; named _urg<k>m<min>")
+    ap.add_argument("--sw-urgency-min", type=float, default=-3.0)
     ap.add_argument("--clean", action="store_true",
                     help="selfwait policy (fluency step 2, si_fluency_rules.clean): the talker's text loses fillers and "
                          "immediate repeats; the Thinker's committed text is unchanged; named _cln")
@@ -190,7 +197,10 @@ def main() -> None:
     if (args.hygiene or args.clean) and args.policy != "selfwait":
         raise SystemExit("--hygiene / --clean are implemented for the selfwait policy only")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
-    extra += (f"_hyg{hyg_min}" if hyg_min else "") + ("_cln" if args.clean else "")
+    extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
+        + ("_cln" if args.clean else "") + (f"_urg{args.sw_urgency:g}m{args.sw_urgency_min:g}" if args.sw_urgency else "")
+    if args.sw_urgency and not (args.policy == "selfwait" and args.sw_queue_rate):
+        raise SystemExit("--sw-urgency needs the selfwait policy with --sw-queue-rate (the talker's queue)")
     sw_extra = ("" if args.policy != "selfwait" else
                 (f"q{args.sw_queue_rate:g}" + (f"c{args.queue_tau_max:g}" if args.queue_tau_max < 1 else "") if args.sw_queue_rate else "")
                 + (f"ad{args.sw_adapt}e{args.sw_eps:g}" + (f"g{args.sw_gamma:g}" if args.sw_adapt == "aci" else
@@ -289,8 +299,9 @@ def main() -> None:
                    selfwait=g if args.policy == "selfwait" else None, oracle=args.oracle and scorer is not None,
                    oracle_commit=args.policy == "oracle", queue_rate=args.queue_rate, queue_tau_max=args.queue_tau_max, mbr=args.mbr, mbr_final_only=args.mbr_final_only,
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
-                           "kappa": args.sw_kappa, "n0": args.sw_n0} if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
-                   fluency={"hyg_min": hyg_min, "clean": args.clean} if (hyg_min or args.clean) else None,
+                           "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min}
+                   if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
+                   fluency={"hyg_min": hyg_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms} if (hyg_min or args.clean) else None,
                    virtual_list=vlist, lr=lr, adapt=adapt)
 
 
@@ -390,7 +401,7 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
     greedy_lp = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS], logprobs=5)
     records = []
     for it in items:
-        it.update(committed=[], prev=None, prev_greedy=None, blocks=[], drafts=[], done=False, busy=0, spoken="")   # nothing from an earlier run
+        it.update(committed=[], prev=None, prev_greedy=None, blocks=[], drafts=[], done=False, busy=0, spoken="", held_t=None)   # nothing from an earlier run
     nxt = {}
     sw_seq = bool(sw_cfg and sw_cfg["adapt"] != "none")
     sw_talk = {}   # selfwait adaptation: talk -> {"b": offset, "reads", "errs", "trace"}
@@ -424,6 +435,8 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                     tau = max(tau, min(queue_tau_max, 1 - (1 - tau) * max(0.0, window - max(0, it["busy"] - it["t"])) / window))
                     tau = min(tau, 0.9975)
                     b = float(np.log(tau / (1 - tau)))
+                if sw_cfg.get("urgency"):   # the longer the talker has sat idle, the cheaper committing (fluency plan v2)
+                    b = max(sw_cfg["urgency_min"], b - sw_cfg["urgency"] * max(0, it["t"] - it["busy"]) / 1000)
                 plist[k] = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS, WAIT_MARK],
                                           logit_bias={WAIT_MARK: float(b)})
         results = llm.generate(prompts, plist, use_tqdm=False)
@@ -501,7 +514,16 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 new = draft[n:]
                 if fluency and fluency["hyg_min"]:   # no dangling end, no fragment while the talker is idle (si_fluency_rules)
                     from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
-                    new = hygiene(it["committed"], new, zh, it["busy"] <= it["t"], fluency["hyg_min"])
+                    raw_new, idle = new, it["busy"] <= it["t"]
+                    new = hygiene(it["committed"], new, zh, idle, fluency["hyg_min"])
+                    if fluency.get("hold_ms") and idle and len(new) < len(raw_new) and any(
+                            re.search(r"[A-Za-z0-9一-鿿]", u) for u in raw_new[len(new):]):
+                        if it["held_t"] is None:   # a rule holds text the draft has: at most hold_ms while the talker is idle
+                            it["held_t"] = it["t"]
+                        elif it["t"] - it["held_t"] >= fluency["hold_ms"]:
+                            new = raw_new
+                    if new:
+                        it["held_t"] = None
                 if sw_seq and new and it["t"] < it["dur_ms"]:
                     it["reads"].append((join(it["committed"], zh), list(new)))
             elif scorer is not None:
