@@ -1,0 +1,97 @@
+<title>M2 连续同传对比</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f4f3ef; --panel: #ffffff; --ink: #1d2024; --mute: #626a72; --rule: #dcdad3; --soft: #ecebe5;
+  --old: #a0703c; --new: #1f7a6a; --grid: #e4e2db;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16181a; --panel: #1f2225; --ink: #e8e6e1; --mute: #9aa1a8; --rule: #33373b; --soft: #2a2e31;
+  --old: #d6a46a; --new: #56c2ac; --grid: #2c3034; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16181a; --panel: #1f2225; --ink: #e8e6e1; --mute: #9aa1a8; --rule: #33373b; --soft: #2a2e31;
+  --old: #d6a46a; --new: #56c2ac; --grid: #2c3034; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+h1 { font-size: 1.65rem; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.1rem; margin: 0; }
+.lede { color: var(--mute); max-width: 72ch; margin: 0; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.head code { font: 600 0.85rem var(--f-mono); }
+.tag { font-size: 0.75rem; padding: 1px 8px; border-radius: 99px; background: var(--soft); color: var(--mute); }
+.sys { display: grid; gap: 4px; border-left: 3px solid var(--c); padding-left: 10px; }
+.sys-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.name { font-weight: 700; color: var(--c); }
+.stats { font-size: 0.82rem; color: var(--mute); font-variant-numeric: tabular-nums; }
+audio { width: min(100%, 420px); height: 34px; }
+.chart { width: 100%; height: auto; display: block; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--mute); }
+.sw { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 6px; }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <h1>M2 连续同传：原系统与改进后对比</h1>
+    <p class="lede">每段是一场演讲开头约 100 秒，按真实时间轴<b>连续</b>播放：前一句的译音没说完，后一句就得排队，积压会一直延续下去。左声道原声，右声道译音，戴耳机听最清楚。</p>
+    <p class="lede"><b>M2</b>：原系统。<b>改进后</b>：提交卫生 + 口语清洗（v1），加上播放端 S1：削掉块首尾静音，只在有积压时把语速提到最多 1.1 倍（v2）。曲线是每一块的“落后时间”：Thinker 提交它之后，又等了多久才轮到它开口。</p>
+  </header>
+  <div id="items" style="display:grid;gap:20px"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const h = (tag, attrs = {}, ...kids) => { const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "text") el.textContent = v; else el.setAttribute(k, v); }
+  for (const k of kids) if (k) el.append(k); return el; };
+const NS = "http://www.w3.org/2000/svg";
+const sv = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
+const DIR = { en2zh: "RealSI 英→中", zh2en: "RealSI 中→英", acl: "ACL 60/60 英→中（长演讲）" };
+
+function chart(it, audios) {
+  const W = 900, H = 170, pl = 40, pr = 10, pt = 10, pb = 26;
+  const ymax = Math.max(4, ...Object.values(it.sys).flatMap(s => s.lags.map(l => l[1]))) * 1.1;
+  const x = t => pl + (t / it.win) * (W - pl - pr), y = v => pt + (1 - v / ymax) * (H - pt - pb);
+  const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart", role: "img", "aria-label": "落后时间曲线" });
+  for (let v = 0; v <= ymax; v += ymax > 8 ? 2 : 1) {
+    svg.append(sv("line", { x1: pl, x2: W - pr, y1: y(v), y2: y(v), stroke: "var(--grid)" }));
+    const tx = sv("text", { x: pl - 6, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--mute)" }); tx.textContent = v + "s"; svg.append(tx);
+  }
+  for (let t = 0; t <= it.win; t += 20) {
+    const tx = sv("text", { x: x(t), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: "var(--mute)" }); tx.textContent = t + "s"; svg.append(tx);
+  }
+  for (const [k, color] of [["m2", "var(--old)"], ["new", "var(--new)"]]) {
+    const pts = it.sys[k].lags.map(l => `${x(l[0]).toFixed(1)},${y(l[1]).toFixed(1)}`).join(" ");
+    svg.append(sv("polyline", { points: pts, fill: "none", stroke: color, "stroke-width": 2 }));
+  }
+  const head = sv("line", { x1: pl, x2: pl, y1: pt, y2: H - pb, stroke: "var(--ink)", "stroke-opacity": 0.5 });
+  svg.append(head);
+  for (const a of audios) a.addEventListener("timeupdate", () => { const p = x(Math.min(it.win, a.currentTime)); head.setAttribute("x1", p); head.setAttribute("x2", p); });
+  return svg;
+}
+
+fetch("manifest.json").then(r => r.json()).then(d => {
+  for (const it of d.items) {
+    const card = h("section", { class: "panel" });
+    card.append(h("div", { class: "head" }, h("h2", { text: DIR[it.dir] }), h("code", { text: it.talk }), h("span", { class: "tag", text: it.kind }),
+      h("span", { class: "stats", text: `从演讲第 ${it.start_s} 秒起，约 ${it.win} 秒` })));
+    const audios = [];
+    for (const [k, name, color] of [["m2", "M2", "var(--old)"], ["new", "改进后", "var(--new)"]]) {
+      const s = it.sys[k];
+      const a = h("audio", { controls: "", preload: "none", src: s.audio }); audios.push(a);
+      const box = h("div", { class: "sys" }); box.style.setProperty("--c", color);
+      box.append(h("div", { class: "sys-top" }, h("span", { class: "name", text: name }), a,
+        h("span", { class: "stats", text: `平均落后 ${s.lag_mean.toFixed(1)} s · 最多落后 ${s.lag_max.toFixed(1)} s` })));
+      card.append(box);
+    }
+    card.append(chart(it, audios));
+    card.append(h("div", { class: "legend" }, h("span", {}, h("i", { class: "sw", style: "background:var(--old)" }), "M2 的落后时间"),
+      h("span", {}, h("i", { class: "sw", style: "background:var(--new)" }), "改进后的落后时间")));
+    $("#items").append(card);
+  }
+}).catch(() => { $("#items").append(h("p", { class: "lede", text: "试听数据没有加载成功，请刷新页面。" })); });
+</script>
