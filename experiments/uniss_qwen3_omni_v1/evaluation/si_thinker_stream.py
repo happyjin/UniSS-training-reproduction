@@ -75,7 +75,7 @@ def main() -> None:
     ap.add_argument("--windows", required=True, help="read windows in seconds, comma-separated; one file each")
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--policy", choices=("la2", "hold", "vote", "head", "selfwait", "belief", "oracle"),
+    ap.add_argument("--policy", choices=("la2", "hold", "vote", "head", "selfwait", "belief", "oracle", "bayesrisk"),
                     default="la2", help="oracle: commit what the Thinker would still say with the whole sentence heard -- "
                                         "the stability label itself as the policy, an upper bound, not a system")
     ap.add_argument("--belief", default="", help="belief policy: an si_belief checkpoint (prior g + likelihood ratio h)")
@@ -194,16 +194,33 @@ def main() -> None:
     ap.add_argument("--snap", action="store_true", help="end each read at a pause within its last 200 ms")
     ap.add_argument("--prompt", choices=("base", "stream"), default="base")
     ap.add_argument("--hold", type=int, default=0, help="hold policy: units held back (default 2 English words, 3 Chinese characters)")
+    ap.add_argument("--br-model", default="", help="bayesrisk policy (si_bayesrisk): the fitted posterior json "
+                    "(data_clean/fit_bayesrisk_posterior.py); empty: the prior alone, i.e. the ABC posterior; named _br<stem>")
+    ap.add_argument("--br-cost-sil", type=float, default=0.0, help="bayesrisk: listener-silence cost (per phi unit); named s<c>")
+    ap.add_argument("--br-g0", type=float, default=0.5, help="bayesrisk: silence the listener does not notice, seconds")
+    ap.add_argument("--br-lambda", type=float, default=1.0, help="bayesrisk: quadratic weight of silence beyond g0")
+    ap.add_argument("--br-cost-frag", type=float, default=0.0, help="bayesrisk: short block while the talker is idle; named f<c>")
+    ap.add_argument("--br-frag-min", type=int, default=0, help="bayesrisk: content units a block needs (default 3 Chinese, 4 English)")
+    ap.add_argument("--br-cost-seam", type=float, default=0.0, help="bayesrisk: block ending on a dangling word; named e<c>")
+    ap.add_argument("--br-playback", action="store_true", help="bayesrisk: the talker speeds up with its queue (si_infer "
+                    "--speed-policy queue: 3 steps a second of queue, at most 6, ~1.67%% a step); named p")
+    ap.add_argument("--br-tau-max", type=float, default=0.9975, help="bayesrisk: SDR's cap, as a floor on the waiting cost")
+    ap.add_argument("--br-mc", type=int, default=64, help="bayesrisk: Monte Carlo draws of theta")
+    ap.add_argument("--br-online", action="store_true", help="bayesrisk: update each talk's posterior after its sentences; named o")
+    ap.add_argument("--br-like-w", type=float, default=1.0, help="bayesrisk --br-online: likelihood weight (A4 correction)")
+    ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
     ap.add_argument("--seed", type=int, default=20261021)
     args = ap.parse_args()
     windows = [float(w) for w in args.windows.split(",")]
     gammas = ([float(g) for g in args.gammas.split(",")] if args.policy == "vote" else
               [float(x) for x in args.taus.split(",")] if args.policy in ("head", "belief") else
-              [float(x) for x in args.wait_biases.split(",")] if args.policy == "selfwait" else [None])
+              [float(x) for x in args.wait_biases.split(",")] if args.policy in ("selfwait", "bayesrisk") else [None])
     extra = ("_snap" if args.snap else "") + ("_sp" if args.prompt == "stream" else "") + (f"_mbr{'f' if args.mbr_final_only else ''}{args.mbr}" if args.mbr else "")
-    if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2"):
-        raise SystemExit("--hygiene / --clean are implemented for the selfwait and la2 policies only")
+    if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2", "bayesrisk"):
+        raise SystemExit("--hygiene / --clean are implemented for the selfwait, la2 and bayesrisk policies only")
+    if args.hygiene and args.policy == "bayesrisk":
+        raise SystemExit("bayesrisk replaces --hygiene with its fragment and seam costs (--br-cost-frag / --br-cost-seam)")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
     extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"f{args.hyg_first_min}" if hyg_min and args.hyg_first_min else "") \
         + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
@@ -220,6 +237,11 @@ def main() -> None:
         base = ("" if args.policy == "la2" else "_oraclecommit" if args.policy == "oracle" else f"_hold{args.hold or ''}" if args.policy == "hold" else
                 f"_vote{args.n}g{g:g}" + (f"T{args.temperature:g}" if args.temperature != 0.7 else "")
                 if args.policy == "vote" else f"_sw{args.thinker_tag}b{g:g}" if args.policy == "selfwait"
+                else (f"_br{args.thinker_tag}b{g:g}" + (f"m{Path(args.br_model).stem}" if args.br_model else "")
+                      + (f"s{args.br_cost_sil:g}g{args.br_g0:g}l{args.br_lambda:g}" if args.br_cost_sil else "")
+                      + (f"f{args.br_cost_frag:g}" if args.br_cost_frag else "") + (f"e{args.br_cost_seam:g}" if args.br_cost_seam else "")
+                      + ("p" if args.br_playback else "") + (f"o{args.br_like_w:g}" if args.br_online else "")
+                      + (f"r{args.sw_queue_rate:g}" if args.sw_queue_rate else "")) if args.policy == "bayesrisk"
                 else f"_bel{Path(args.belief).stem}t{g:g}m{args.belief_min}s{args.belief_sigma:g}" if args.policy == "belief"
                 else f"_head{Path(args.head).stem}{'l' if args.decision == 'bayes' else 't'}{g:g}"
                 + (f"a{args.agree_beta:g}" if args.agree_beta is not None else "")
@@ -284,6 +306,21 @@ def main() -> None:
             run_belief(llm, SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS], logprobs=5),
                        items, head, zh, int(round(w * 1000)), out, f"{args.direction} {out.stem}", load_belief(args.belief),
                        g, args.belief_min, args.belief_sigma or None, args.look_units)
+            continue
+        if args.policy == "bayesrisk":
+            from experiments.uniss_qwen3_omni_v1.evaluation.si_bayesrisk import load_model, run_bayesrisk
+            cfg = {"tau_max": args.br_tau_max, "c_sil": args.br_cost_sil, "g0": args.br_g0, "lam": args.br_lambda,
+                   "c_frag": args.br_cost_frag, "frag_min": args.br_frag_min or (3 if zh else 4), "c_seam": args.br_cost_seam,
+                   "playback": args.br_playback, "speed_step": 1 / 60, "shift_per_s": 3.0, "shift_max": 6.0,
+                   "rate": args.sw_queue_rate or (0.191 if zh else 0.339), "mc": args.br_mc, "like_w": args.br_like_w,
+                   "seed": args.seed}
+            dump = None
+            if args.br_dump:
+                Path(args.br_dump).mkdir(parents=True, exist_ok=True)
+                dump = Path(args.br_dump) / f"{out.stem}.jsonl"
+            run_bayesrisk(llm, items, head, zh, int(round(w * 1000)), out, f"{args.direction} {out.stem}", g, cfg,
+                          load_model(args.br_model, args.direction), units, join, WAIT_MARK, THINKER_EOS,
+                          clean=args.clean, dump=dump, online=args.br_online)
             continue
         hold = (args.hold or (3 if zh else 2)) if args.policy == "hold" else None
         vote = (args.n, g) if args.policy == "vote" else None
