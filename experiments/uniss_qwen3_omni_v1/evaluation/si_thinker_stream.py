@@ -202,8 +202,8 @@ def main() -> None:
               [float(x) for x in args.taus.split(",")] if args.policy in ("head", "belief") else
               [float(x) for x in args.wait_biases.split(",")] if args.policy == "selfwait" else [None])
     extra = ("_snap" if args.snap else "") + ("_sp" if args.prompt == "stream" else "") + (f"_mbr{'f' if args.mbr_final_only else ''}{args.mbr}" if args.mbr else "")
-    if (args.hygiene or args.clean) and args.policy != "selfwait":
-        raise SystemExit("--hygiene / --clean are implemented for the selfwait policy only")
+    if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2"):
+        raise SystemExit("--hygiene / --clean are implemented for the selfwait and la2 policies only")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
     extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"f{args.hyg_first_min}" if hyg_min and args.hyg_first_min else "") \
         + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
@@ -626,6 +626,10 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                     while agreed < min(len(draft), len(it["prev"])) and draft[agreed] == it["prev"][agreed]:
                         agreed += 1
                 new = draft[n: agreed] if agreed > n else []
+                if fluency and fluency["hyg_min"] and it["t"] < it["dur_ms"]:   # the same hygiene on LocalAgreement
+                    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
+                    hmin = fluency["hyg_first_min"] if fluency.get("hyg_first_min") and not it["committed"] else fluency["hyg_min"]
+                    new = hygiene(it["committed"], new, zh, it["busy"] <= it["t"], hmin)
                 it["prev"] = draft
                 it["look"] = join(draft[max(n, agreed): max(n, agreed) + look_units], zh) if look_units else ""
             if new or it["done"]:
