@@ -160,6 +160,11 @@ def main() -> None:
                          "function word or inside a Chinese word, is not punctuation alone, and while the talker is idle is "
                          "not shorter than --hyg-min units unless it ends a clause; named _hyg<min>")
     ap.add_argument("--hyg-min", type=int, default=0, help="with --hygiene: the shortest block (0: 3 Chinese characters / 2 words)")
+    ap.add_argument("--start-vote", type=int, default=0,
+                    help="selfwait policy: at a read with nothing committed where the model waits, sample this many "
+                         "continuations (wait barred, 24 tokens) and commit the prefix --start-vote-gamma of them agree on "
+                         "(TAF / RALCP at sentence starts); named _sv<n>g<gamma>")
+    ap.add_argument("--start-vote-gamma", type=float, default=0.75)
     ap.add_argument("--hyg-hold-ms", type=int, default=0,
                     help="with --hygiene: text the draft has but a rule holds back goes out once it has been held this long "
                          "while the talker is idle (0: no limit); named hold<ms>")
@@ -198,7 +203,8 @@ def main() -> None:
         raise SystemExit("--hygiene / --clean are implemented for the selfwait policy only")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
     extra += (f"_hyg{hyg_min}" if hyg_min else "") + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
-        + ("_cln" if args.clean else "") + (f"_urg{args.sw_urgency:g}m{args.sw_urgency_min:g}" if args.sw_urgency else "")
+        + ("_cln" if args.clean else "") + (f"_urg{args.sw_urgency:g}m{args.sw_urgency_min:g}" if args.sw_urgency else "") \
+        + (f"_sv{args.start_vote}g{args.start_vote_gamma:g}" if args.start_vote else "")
     if args.sw_urgency and not (args.policy == "selfwait" and args.sw_queue_rate):
         raise SystemExit("--sw-urgency needs the selfwait policy with --sw-queue-rate (the talker's queue)")
     sw_extra = ("" if args.policy != "selfwait" else
@@ -301,7 +307,8 @@ def main() -> None:
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
                            "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min}
                    if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
-                   fluency={"hyg_min": hyg_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms} if (hyg_min or args.clean) else None,
+                   fluency={"hyg_min": hyg_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms, "start_vote": args.start_vote,
+                            "start_vote_gamma": args.start_vote_gamma} if (hyg_min or args.clean or args.start_vote) else None,
                    virtual_list=vlist, lr=lr, adapt=adapt)
 
 
@@ -440,6 +447,19 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 plist[k] = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS, WAIT_MARK],
                                           logit_bias={WAIT_MARK: float(b)})
         results = llm.generate(prompts, plist, use_tqdm=False)
+        start_votes = {}
+        if selfwait is not None and fluency and fluency.get("start_vote"):   # TAF / RALCP at sentence starts only
+            todo = []
+            for k, (it, res) in enumerate(zip(live, results)):
+                if it["committed"] or it["t"] >= it["dur_ms"] or units(res.outputs[0].text, zh):
+                    continue
+                todo.append(k)
+            if todo:
+                sv = SamplingParams(n=fluency["start_vote"], temperature=0.7, top_p=0.95, max_tokens=24,
+                                    stop_token_ids=[THINKER_EOS], logit_bias={WAIT_MARK: -100.0}, seed=seed + r)
+                for k, g in zip(todo, llm.generate([prompts[k] for k in todo], sv, use_tqdm=False)):
+                    cands = [units(o.text, zh) for o in g.outputs]
+                    start_votes[k] = ralcp(cands, fluency["start_vote"], fluency["start_vote_gamma"])
         if mbr and selfwait is None and vote is None:   # Bayes risk over what to say, before deciding what to commit
             mp = SamplingParams(n=mbr, temperature=0.7, top_p=0.95, max_tokens=160, stop_token_ids=[THINKER_EOS],
                                 seed=seed + r, logprobs=5 if scorer else None)
@@ -512,6 +532,8 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                     it["prev_greedy"] = gu[len(new):]   # what the next draft continues from
             elif selfwait is not None:   # everything said before the wait marker is committed
                 new = draft[n:]
+                if not new and k in start_votes:   # the model waits at a sentence start: the samples' consensus instead
+                    new = list(start_votes[k])
                 if fluency and fluency["hyg_min"]:   # no dangling end, no fragment while the talker is idle (si_fluency_rules)
                     from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
                     raw_new, idle = new, it["busy"] <= it["t"]
