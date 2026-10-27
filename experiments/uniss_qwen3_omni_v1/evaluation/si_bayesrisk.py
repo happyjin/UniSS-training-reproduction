@@ -7,7 +7,7 @@ stopping after u units. Each unit gets a statistic vector T (FEATS); the surviva
 with theta ~ N(m, P) (prior mean: the ABC logit with weight 1, so the model alone is ABC) gives the posterior
 predictive P(S >= a) by Monte Carlo over theta. The action minimises the posterior expected loss
     R(a) = C_err (1 - P(S>=a)) + C_lat D sum_{u>=a} P(S>=u) + C_sil l_sil(a) + C_frag [short block, idle]
-           + C_seam [dangling end] + inf [repeat loop],
+           + C_seam [dangling end] + inf [repeat loop] + inf [a inside one of the draft's tokens],
 with C_err = 1, C_lat = (1 - sigmoid(b)) / window (b: the bias, as in ABC), D = max(window - p, D_min) for the p
 seconds of speech still to play, and l_sil the listener-silence cost phi(g) = (g-g0)+ + lam (g-g0)+^2 per silence.
 With C_sil = C_frag = C_seam = 0 and P = 0 it is ABC + SDR (Prop. 1 of the doc).
@@ -251,7 +251,10 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                     err_c = 1.0 - ge[:K + 1]
                     tail = np.concatenate([np.cumsum(ge[:K][::-1])[::-1], [0.0]])
                 best, a = None, 0
+                fi = FEATS.index("forced")
                 for cand in range(K + 1):
+                    if 0 < cand < K and X[cand, fi] > 0:   # the action set: token boundaries only -- a prompt that ends
+                        continue                          # inside the draft's token is out of the Thinker's distribution
                     blk = gu[:cand]
                     if cand and has_loop(it["committed"] + blk) and not has_loop(it["committed"]):
                         continue
