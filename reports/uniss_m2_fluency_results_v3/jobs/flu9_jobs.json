@@ -1,0 +1,130 @@
+[
+ {
+  "id": "sp_flu6-ssm3",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3_m0.5 WINDOW=0.5 BLOCKS_SUFFIX=_swop1b0.5q0.191_hyg3_cln SPEED_SHIFT=-3 DIRS=en2zh bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3_m0.5/realsi_en2zh/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssm3",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssm3"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3_m0.5 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3_m0.5/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3_m0.5/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp0",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0_m0.5 WINDOW=0.5 BLOCKS_SUFFIX=_swop1b0.5q0.191_hyg3_cln SPEED_SHIFT=0 DIRS=en2zh bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0_m0.5/realsi_en2zh/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp0"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0_m0.5 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0_m0.5/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0_m0.5/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp3",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3_m0.5 WINDOW=0.5 BLOCKS_SUFFIX=_swop1b0.5q0.191_hyg3_cln SPEED_SHIFT=3 DIRS=en2zh bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3_m0.5/realsi_en2zh/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp3",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp3"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3_m0.5 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3_m0.5/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3_m0.5/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp6",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6_m0.5 WINDOW=0.5 BLOCKS_SUFFIX=_swop1b0.5q0.191_hyg3_cln SPEED_SHIFT=6 DIRS=en2zh bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6_m0.5/realsi_en2zh/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp6",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp6"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6_m0.5 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6_m0.5/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6_m0.5/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssm3-zh",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3-zh_m1 WINDOW=1 BLOCKS_SUFFIX=_swop1b-1q0.339_hyg4_cln SPEED_SHIFT=-3 DIRS=zh2en bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3-zh_m1/realsi_zh2en/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssm3-zh",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssm3-zh"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3-zh_m1 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3-zh_m1/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssm3-zh_m1/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp0-zh",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0-zh_m1 WINDOW=1 BLOCKS_SUFFIX=_swop1b-1q0.339_hyg4_cln SPEED_SHIFT=0 DIRS=zh2en bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0-zh_m1/realsi_zh2en/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp0-zh",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp0-zh"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0-zh_m1 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0-zh_m1/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp0-zh_m1/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp3-zh",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3-zh_m1 WINDOW=1 BLOCKS_SUFFIX=_swop1b-1q0.339_hyg4_cln SPEED_SHIFT=3 DIRS=zh2en bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3-zh_m1/realsi_zh2en/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp3-zh",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp3-zh"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3-zh_m1 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3-zh_m1/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp3-zh_m1/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ },
+ {
+  "id": "sp_flu6-ssp6-zh",
+  "gpus": 2,
+  "vllm": true,
+  "deps": [],
+  "cmd": "env EXPORT_DIR=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500 LIMIT=120 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 TEXT_POLICY=file BLOCKS_DIR=eval_outputs/uniss_qwen3_omni_v1/realsi_thinker_stream_fluency_v1 GPUS=\"$GPUS\" OUT=eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6-zh_m1 WINDOW=1 BLOCKS_SUFFIX=_swop1b-1q0.339_hyg4_cln SPEED_SHIFT=6 DIRS=zh2en bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && [ -f eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6-zh_m1/realsi_zh2en/results.jsonl ]"
+ },
+ {
+  "id": "asr_flu6-ssp6-zh",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [
+   "sp_flu6-ssp6-zh"
+  ],
+  "cmd": "/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python /tmp/claude-0/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/scratchpad/p8_prep.py eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6-zh_m1 > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6-zh_m1/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_flu6-ssp6-zh_m1/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16"
+ }
+]
