@@ -6,7 +6,8 @@ per-character map, so cleaning a prefix equals the prefix of the cleaned sentenc
 
 A sentence is split into arrival units: whitespace words with their attached punctuation
 (the word-level incremental protocol of Ma et al. 2020 and Stephenson et al. 2021 [R40]).
-Unit u owns its characters plus the single space that follows it.
+Unit u owns its characters plus the single space that precedes it, as in LLM token streams (" word"):
+when unit j has arrived the text is cleaned[:end_j] and nothing reveals whether the sentence goes on.
 """
 import re
 import unicodedata
@@ -47,20 +48,18 @@ def intersperse(ids, item=0):
 
 
 def split_units(cleaned):
-  """Return [(start, end)] character spans; each unit includes its trailing space."""
+  """Return [(start, end)] character spans; each unit includes its leading space."""
   spans = []
   for m in re.finditer(r"\S+", cleaned):
-    end = m.end() + 1 if m.end() < len(cleaned) else m.end()
-    spans.append((m.start(), end))
+    spans.append((m.start() - 1 if m.start() > 0 else 0, m.end()))
   return spans
 
 
 def char_span_to_token_span(start, end, n_chars):
-  """Map a character span to the interspersed token span (blank before each char).
+  """Map a character span to the interspersed token span.
 
-  Token 2*i+1 is char i; the blank 2*i precedes it. A unit owns the blanks before its
-  characters, and the final unit also owns the trailing blank.
+  Token 2*i+1 is char i and token 2*i+2 is the blank after it; a unit owns each of its chars with the blank
+  that follows (so a word owns its final blank, where word-final lengthening lands). The first unit also owns
+  the leading blank, token 0. The spans of all units tile the 2*n_chars+1 tokens.
   """
-  t_start = 2 * start
-  t_end = 2 * end + (1 if end == n_chars else 0)
-  return t_start, t_end
+  return (0 if start == 0 else 2 * start + 1), 2 * end + 1
