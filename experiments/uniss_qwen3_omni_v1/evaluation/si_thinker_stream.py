@@ -207,7 +207,8 @@ def main() -> None:
     ap.add_argument("--br-tau-max", type=float, default=0.9975, help="bayesrisk: SDR's cap, as a floor on the waiting cost")
     ap.add_argument("--br-mc", type=int, default=64, help="bayesrisk: Monte Carlo draws of theta")
     ap.add_argument("--br-online", action="store_true", help="bayesrisk: update each talk's posterior after its sentences; named o")
-    ap.add_argument("--br-like-w", type=float, default=1.0, help="bayesrisk --br-online: likelihood weight (A4 correction)")
+    ap.add_argument("--br-like-w", type=float, default=0.0, help="bayesrisk --br-online: likelihood weight (A4 correction); "
+                    "0: the model file's 1/dispersion")
     ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
     ap.add_argument("--seed", type=int, default=20261021)

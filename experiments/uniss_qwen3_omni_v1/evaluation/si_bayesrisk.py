@@ -26,14 +26,14 @@ import time
 
 import numpy as np
 
-FEATS = ("bias", "abc", "content", "agree", "pause", "pos", "start")
+FEATS = ("bias", "abc", "forced", "content", "agree", "pause", "pos", "start")
 CAP = 15.0
 
 
 def prior_model() -> dict:
     m = np.zeros(len(FEATS))
     m[FEATS.index("abc")] = 1.0
-    return {"mu": m, "P": np.zeros((len(FEATS), len(FEATS))), "psi": np.zeros(len(FEATS))}
+    return {"mu": m, "P": np.zeros((len(FEATS), len(FEATS))), "psi": np.zeros(len(FEATS)), "like_w": 1.0}
 
 
 def load_model(path: str, direction: str) -> dict:
@@ -43,7 +43,7 @@ def load_model(path: str, direction: str) -> dict:
     assert tuple(j["feats"]) == FEATS, j["feats"]
     d = j["dirs"][direction]
     return {"mu": np.asarray(d["mu"], float), "P": np.asarray(d["Sigma"], float),
-            "psi": np.asarray(d.get("psi", [0.0] * len(FEATS)), float)}
+            "psi": np.asarray(d.get("psi", [0.0] * len(FEATS)), float), "like_w": float(d.get("like_w", 1.0))}
 
 
 def unit_stats(out, cont: str, zh: bool, wait_id: int, eos_id: int) -> tuple[list[float], list[float]]:
@@ -75,15 +75,16 @@ def unit_stats(out, cont: str, zh: bool, wait_id: int, eos_id: int) -> tuple[lis
 def features(lw, lc, gu, prev_abs, n, pause, start) -> np.ndarray:
     X = np.zeros((len(gu), len(FEATS)))
     for u in range(len(gu)):
+        forced = 0.0
         if np.isfinite(lw[u]):
             h = min(np.exp(lw[u]), 1 - 1e-9)
             abc = float(np.log1p(-h) - lw[u])
-        else:
-            abc = CAP
+        else:   # inside a token that began with an earlier unit: the model cannot stop here
+            abc, forced = 0.0, 1.0
         agree = 0.0
         if prev_abs is not None and n + u < len(prev_abs):
             agree = 1.0 if prev_abs[n + u] == gu[u] else -1.0
-        X[u] = (1.0, float(np.clip(abc, -10, CAP)), float(np.clip(lc[u], -10, 0)), agree, pause, np.log1p(u), start)
+        X[u] = (1.0, float(np.clip(abc, -10, CAP)), forced, float(np.clip(lc[u], -10, 0)), agree, pause, np.log1p(u), start)
     return X
 
 
@@ -114,7 +115,7 @@ def p_survive(X: np.ndarray, mu: np.ndarray, P: np.ndarray, rng, M: int) -> np.n
     else:
         L = np.linalg.cholesky(P + 1e-9 * np.eye(len(mu)))
         th = mu[None, :] + rng.standard_normal((M, len(mu))) @ L.T
-    rho = 1.0 / (1.0 + np.exp(-(th @ X.T)))   # [M, K]
+    rho = 1.0 / (1.0 + np.exp(-np.clip(th @ X.T, -30, 30)))   # [M, K]
     ge = np.concatenate([np.ones((len(th), 1)), np.cumprod(rho, axis=1)], axis=1)
     return ge.mean(0)
 
@@ -124,16 +125,28 @@ def laplace_update(mu, P, rows, y, w=1.0, iters=25):
     if not len(y):
         return mu, P
     Pinv = np.linalg.inv(P + 1e-9 * np.eye(len(mu)))
+
+    def neg_log_post(t):
+        z = rows @ t
+        return 0.5 * (t - mu) @ Pinv @ (t - mu) + w * float(np.sum(np.logaddexp(0, z) - y * z))
+
     th = mu.copy()
-    for _ in range(iters):
-        s = 1.0 / (1.0 + np.exp(-(rows @ th)))
+    f = neg_log_post(th)
+    for _ in range(iters):   # Newton with backtracking: the ABC logit's cap separates some rows
+        s = 1.0 / (1.0 + np.exp(-np.clip(rows @ th, -30, 30)))
         g = Pinv @ (th - mu) - w * rows.T @ (y - s)
         H = Pinv + w * (rows * (s * (1 - s))[:, None]).T @ rows
         step = np.linalg.solve(H, g)
-        th = th - step
-        if np.abs(step).max() < 1e-6:
+        lr = 1.0
+        while lr > 1e-4 and neg_log_post(th - lr * step) > f:
+            lr /= 2
+        th = th - lr * step
+        f_new = neg_log_post(th)
+        if abs(f - f_new) < 1e-8 * max(1.0, abs(f)):
+            f = f_new
             break
-    s = 1.0 / (1.0 + np.exp(-(rows @ th)))
+        f = f_new
+    s = 1.0 / (1.0 + np.exp(-np.clip(rows @ th, -30, 30)))
     H = Pinv + w * (rows * (s * (1 - s))[:, None]).T @ rows
     return th, np.linalg.inv(H)
 
@@ -287,7 +300,7 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                     rows = [label_rows(X, L) for X, L in labs]
                     R = np.concatenate([r_[0] for r_ in rows])
                     y = np.concatenate([r_[1] for r_ in rows])
-                    mu, P = laplace_update(mu, P, R, y, cfg["like_w"])
+                    mu, P = laplace_update(mu, P, R, y, cfg["like_w"] or model["like_w"])
                     talk_post[talk] = (mu, P)
                     trace.setdefault(talk, []).append({"id": it["id"], "mu": np.round(mu, 3).tolist(),
                                                        "sd": np.round(np.sqrt(np.diag(P)), 3).tolist()})
@@ -319,7 +332,7 @@ def _selftest() -> None:
     assert has_loop(["Or."] * 4) and not has_loop(["Or."] * 3)
     assert not has_loop("a b c d e f".split())
     assert loop_free([], ["x", "y", "x", "y", "x", "y", "z"]) == 5
-    X = np.array([[1, 2.0, 0, 0, 0, 0, 0], [1, -1.0, 0, 0, 0, 0, 0]])
+    X = np.array([[1, 2.0, 0, 0, 0, 0, 0, 0], [1, -1.0, 0, 0, 0, 0, 0, 0]])
     m = prior_model()
     ge = p_survive(X, m["mu"], m["P"], np.random.default_rng(0), 8)
     s = 1 / (1 + np.exp(-np.array([2.0, -1.0])))
@@ -328,8 +341,8 @@ def _selftest() -> None:
     assert y.tolist() == [1.0, 0.0] and len(R) == 2
     R, y = label_rows(X, 2)
     assert y.tolist() == [1.0, 1.0]
-    mu, P = laplace_update(m["mu"], np.eye(7), np.tile(X, (50, 1)), np.tile([1.0, 0.0], 50))
-    assert P.shape == (7, 7) and np.all(np.linalg.eigvalsh(P) > 0)
+    mu, P = laplace_update(m["mu"], np.eye(8), np.tile(X, (50, 1)), np.tile([1.0, 0.0], 50))
+    assert P.shape == (8, 8) and np.all(np.linalg.eigvalsh(P) > 0)
     # Prop. 1: with no extra costs and P = 0, the risk's first difference has the threshold's sign
     rho = np.array([0.9, 0.5]); ge = np.concatenate([[1], np.cumprod(rho)]); c, Dk = 0.4, 1.0
     tail = np.concatenate([np.cumsum(ge[:2][::-1])[::-1], [0]])

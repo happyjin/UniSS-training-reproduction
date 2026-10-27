@@ -6,6 +6,7 @@ stable length S. Per direction:
   * theta's posterior N(mu, Sigma): Laplace around the MAP under the prior N(m0, S0), m0 = the ABC logit with weight 1;
   * 2-fold cross-validation by sentence: NLL / ECE / AUC of the ABC posterior alone (theta = m0) and of the fit (A1);
   * dispersion: mean (sum of a sentence's Pearson residuals)^2 / its rows -- 1 when its reads are independent (A4);
+     Sigma is inflated by it and the online likelihood weight is its inverse;
   * Psi (between-group variance of the bias and ABC weights): empirical Bayes, Laplace marginal likelihood on a grid,
     over the source corpora of the items (the training domain has no talks); --psi fixes it instead.
 
@@ -62,7 +63,7 @@ def metrics(p: np.ndarray, y: np.ndarray) -> dict:
 
 
 def sig(z):
-    return 1.0 / (1.0 + np.exp(-z))
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -30, 30)))
 
 
 def fit(X, y, m0, S0):
@@ -113,7 +114,7 @@ def main() -> None:
         X, y, sid, grp = load(args.dumps, d, args.items)
         if not len(y):
             continue
-        fold = np.array([zlib.crc32(s.encode()) % 2 for s in sid])
+        fold = np.array([zlib.crc32(("cv:" + s).encode()) % 2 for s in sid])   # the dev items all have crc32 % 50 == 0
         cv_prior, cv_fit, cv_y = [], [], []
         for k in (0, 1):
             tr, te = fold != k, fold == k
@@ -124,7 +125,7 @@ def main() -> None:
         cv_y = np.concatenate(cv_y)
         mu, Sigma = fit(X, y, m0, S0)
         s = sig(X @ mu)
-        r = (y - s) / np.sqrt(s * (1 - s))
+        r = (y - s) / np.sqrt(np.clip(s * (1 - s), 1e-9, None))
         per = {}
         for i, v in zip(sid, r):
             a = per.setdefault(i, [0.0, 0])
@@ -147,13 +148,17 @@ def main() -> None:
             psi_src = "hyper-prior (fewer than 3 source corpora with enough rows)"
         psi = np.zeros(len(FEATS))
         psi[list(TALK_DIMS)] = psi2
-        res["dirs"][d] = {"mu": mu.round(5).tolist(), "Sigma": Sigma.tolist(), "psi": psi.tolist(), "psi_source": psi_src,
+        # A4: a sentence's reads are correlated (dispersion > 1): Sigma grows by the dispersion and an online update
+        # counts each label 1/dispersion times, as many independent rows as the data are worth
+        infl = max(1.0, disp)
+        res["dirs"][d] = {"mu": mu.round(5).tolist(), "Sigma": (Sigma * infl).tolist(), "psi": psi.tolist(), "psi_source": psi_src,
+                          "like_w": round(1.0 / infl, 4),
                           "psi_grid": grid, "rows": int(len(y)), "sentences": len(per), "groups": groups,
                           "dispersion": round(disp, 3),
                           "cv_abc_prior": metrics(np.concatenate(cv_prior), cv_y),
                           "cv_fitted": metrics(np.concatenate(cv_fit), cv_y),
                           "mu_by_feat": dict(zip(FEATS, mu.round(3).tolist())),
-                          "sd_by_feat": dict(zip(FEATS, np.sqrt(np.diag(Sigma)).round(4).tolist()))}
+                          "sd_by_feat": dict(zip(FEATS, np.sqrt(np.diag(Sigma * infl)).round(4).tolist()))}
         print(d, json.dumps({k: v for k, v in res["dirs"][d].items() if k not in ("Sigma", "mu", "psi_grid")}), flush=True)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "x", encoding="utf-8") as fh:
