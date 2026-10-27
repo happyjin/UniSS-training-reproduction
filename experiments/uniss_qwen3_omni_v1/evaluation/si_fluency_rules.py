@@ -227,5 +227,32 @@ def _selftest() -> None:
     print("selftest", "OK" if not bad else f"{len(bad)} failed", f"({len(cases)} cases)")
 
 
+def clean_blocks_file(src: str, dst: str, zh: bool) -> None:
+    """An si_thinker_stream blocks file with every block's text cleaned as --clean would (commits unchanged)."""
+    import json
+    from pathlib import Path
+
+    if Path(dst).exists():
+        raise SystemExit(f"refusing to overwrite {dst}")
+    with open(src, encoding="utf-8") as fi, open(dst, "x", encoding="utf-8") as fo:
+        for line in fi:
+            r = json.loads(line)
+            spoken, blocks = "", []
+            for b in r["blocks"]:
+                t = clean(spoken, b["text"], zh)
+                spoken += t
+                if content_units(list(t) if zh else t.split(), zh) or b["final"]:
+                    blocks.append({**b, "text": t, "raw": b["text"]})
+            if blocks and not blocks[-1]["text"].strip() and len(blocks) > 1:
+                blocks = blocks[:-1]
+                blocks[-1]["final"] = True
+            fo.write(json.dumps({**r, "blocks": blocks, "spoken": spoken}, ensure_ascii=False) + "\n")
+
+
 if __name__ == "__main__":
-    _selftest()
+    import sys
+
+    if len(sys.argv) == 4 and sys.argv[1] in ("--clean-blocks-zh", "--clean-blocks-en"):
+        clean_blocks_file(sys.argv[2], sys.argv[3], sys.argv[1].endswith("zh"))
+    else:
+        _selftest()
