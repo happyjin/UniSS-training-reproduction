@@ -353,9 +353,15 @@ def main() -> None:
     ap.add_argument("--blocks-file", default="")
     ap.add_argument("--align", default=str(REPO / "eval_outputs/uniss_qwen3_omni_v1/realsi_align_v1"))
     ap.add_argument("--min-words", type=int, default=2, help="word policy: words a block waits for (the last excepted)")
-    ap.add_argument("--speed-policy", choices=("fixed", "block"), default="fixed",
+    ap.add_argument("--speed-policy", choices=("fixed", "block", "queue"), default="fixed",
                     help="fixed: --speed for every block; block: per block, the source since the last write over the "
-                         "block's natural length (--codes-per-unit), as T1c's speed tokens are trained")
+                         "block's natural length (--codes-per-unit), as T1c's speed tokens are trained; queue (fluency plan "
+                         "v3): the block pace, then faster by --queue-shift-per-s steps a second of speech still queued when "
+                         "the block is written (from the earlier blocks' codes, >= 0.5 s), at most --queue-shift-max, and at "
+                         "least --final-shift for a sentence's last block")
+    ap.add_argument("--queue-shift-per-s", type=float, default=3.0)
+    ap.add_argument("--queue-shift-max", type=int, default=6)
+    ap.add_argument("--final-shift", type=int, default=2)
     ap.add_argument("--speed-shift", type=int, default=0,
                     help="block policy: ask every block this many speed steps faster (+) or slower (-) than its pace")
     ap.add_argument("--codes-per-unit", type=float, default=12.0,
@@ -504,6 +510,7 @@ def main() -> None:
                 max(b["write_ms"] - w_prev, 1) / 1000, max(10, round(args.codes_per_unit * spoken_units(b["text"], tgt))))
                 + args.speed_shift, SPEED_0), SPEED_0 + 34)
             w_prev = b["write_ms"]
+            b["speed_base"] = b["speed"]
     timing["front_end"] = time.time() - t0
     if voice_memory is not None:
         print(f"voice memory: {len(voice_memory.state)} talks, {voice_memory.resets} speaker resets", flush=True)
@@ -519,6 +526,16 @@ def main() -> None:
         for n_it, it in enumerate(items):
             if r >= len(it["blocks"]):
                 continue
+            if args.speed_policy == "queue":   # the queue this block is written into, from the codes spoken so far
+                end_prev = 0
+                for x in it["blocks"][:r]:
+                    end_prev = max(x["write_ms"], end_prev) + len(x["codes"]) * 20
+                bq = it["blocks"][r]
+                q = max(0, end_prev - bq["write_ms"]) / 1000
+                shift = min(args.queue_shift_max, int(round(args.queue_shift_per_s * q))) if q >= 0.5 else 0
+                if bq["final"]:
+                    shift = max(shift, args.final_shift)
+                bq["speed"] = min(max(bq["speed_base"] + shift, SPEED_0), SPEED_0 + 34)
             glm = it["blocks"][r]["glm"]
             seq = [TASK_S2S, BALANCE, lang, START_GLOBAL] + [GLOBAL_0 + g for g in it["voice"]] + [END_GLOBAL]
             g_prev = 0
