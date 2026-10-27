@@ -52,6 +52,8 @@ def main() -> None:
     ap.add_argument("--start-oracle", default="", help="build_start_oracle.py output: a start read's target becomes the "
                                                       "draft's first best_L units when that is longer than the agreement")
     ap.add_argument("--start-boost", type=int, default=1)
+    ap.add_argument("--lengthened-boost", type=int, default=1,
+                    help="with --start-oracle: repeat only the start reads whose target the start oracle lengthened")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     out = Path(args.out)
@@ -97,15 +99,17 @@ def main() -> None:
                 n_start_rew[0] += 1
                 n_start_rew[1] += lcp(r["draft_units"], oracle) > 0
             L = lcp(r["draft_units"], oracle)
+            lengthened = False
             if r["n_committed"] == 0 and (r["id"], t) in start_L:   # the prefix-constrained start oracle
                 n_start_L[0] += 1
                 if start_L[(r["id"], t)] > L:
                     n_start_L[1] += 1
                     L = start_L[(r["id"], t)]
+                    lengthened = True
             target = cont[: spans[L - 1]] if L and L <= len(spans) else ""
             row = {"id": r["id"], "audio": audio[r["id"]][0], "dir": d, "t_ms": t, "dur_ms": audio[r["id"]][1],
                    "prefix": prefix, "target": target, "end": "wait", "kind": "read"}
-            reads.extend([row] * (args.start_boost if r["n_committed"] == 0 else 1))
+            reads.extend([row] * ((args.start_boost if r["n_committed"] == 0 else 1) * (args.lengthened_boost if lengthened else 1)))
             if r["n_committed"] == 0 and r["id"] not in offline:   # the oracle of an empty prefix: the greedy whole
                 ou = r["oracle_units"]
                 whole = "".join(ou) if zh else " ".join(ou)
