@@ -70,7 +70,8 @@ def metrics(runs, rows, gt_dur, gt_y, ref=None, eps=None, w=(0.5, 0.5), ystd=Non
       n_units += 1
       if u.get("certified"):
         cert += 1
-        if eps is not None and float((np.array(w) * np.abs(np.array(u["y"]) - gt_y[uid][u["i"]]) / ystd).sum()) > eps:
+        target = np.array(u["y_full"]) if "y_full" in u else gt_y[uid][u["i"]]
+        if eps is not None and float((np.array(w) * np.abs(np.array(u["y"]) - target) / ystd).sum()) > eps:
           viol = True
     traj_viol += viol
     if "compute_s" in rec:

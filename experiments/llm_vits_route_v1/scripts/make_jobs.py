@@ -70,8 +70,8 @@ def main():
     jobs.append({"id": f"{Path(ev).name}-e0_offline", "cmd": cmd, "done": f"{off}/commits.jsonl"})
   elif a.stage == "dump":
     m = ["--model", ckpt(exp, a.model), "--probe", ckpt(exp, "e1"), "--policy", "dump"]
-    add(f"dump_{a.model}_train", m + ["--limit", str(a.train_limit)], split="train", out_root=str(exp / "t3"), render=False)
-    add(f"dump_{a.model}_calib", m, split="calib", out_root=str(exp / "t3"), render=False)
+    add(f"dump_{a.model}_train", m + ["--limit", str(a.train_limit)], split="train", out_root=str(exp / f"t3{a.tag}"), render=False)
+    add(f"dump_{a.model}_calib", m, split="calib", out_root=str(exp / f"t3{a.tag}"), render=False)
   else:
     m = ["--model", ckpt(exp, a.model)]
     pr = ["--probe", ckpt(exp, "e1")]

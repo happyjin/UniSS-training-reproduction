@@ -6,7 +6,9 @@ Policies (k_max caps the wait; the end of stream always allows commitment):
   spread:TAU         E6 acoustic-impact gate (T2 geometry): wait while the E1 probe's plans for unit i under the M
                      imagined LLM futures disagree by more than TAU (mean abs deviation of Y, averaged over coords)
   t3:EPS             T3 certificate: commit when B = sum_l w_l (|y_hat - mu_l| + Q s_l) <= EPS (risk head + Q from
-                     calibration); a deadline commit is an uncertified override and is flagged
+                     calibration); a deadline commit is an uncertified override and is flagged. The certified target is
+                     the same model's full-context plan y_full of the unit (recorded), so a certified commit is one that
+                     waiting for the whole sentence would not have changed by more than EPS
   dump               no policy: record the T3 feature vector at every (i, j <= i+k_max) along the k_max trajectory
 Outputs <out>/commits.jsonl (+ wavs/ when --render).
 """
@@ -102,6 +104,7 @@ def main():
       t0 = time.time()
       rec = {"utt_id": r["utt_id"], "units": [], "dump": []}
       for i in range(sim.U):
+        y_full = sim.plan(i, sim.U - 1)["y"].tolist() if pname in ("t3", "dump") else None
         j = i
         while True:
           plan = sim.plan(i, j)
@@ -124,12 +127,14 @@ def main():
               go = deadline or b <= float(pval)
               info["certified"] = bool(b <= float(pval))
             else:
-              rec["dump"].append({"i": i, "j": j, **feat})
+              rec["dump"].append({"i": i, "j": j, "y_full": y_full, **feat})
               go = deadline
           if go:
             break
           j += 1
         sim.commit(i, j, plan)
+        if y_full is not None:
+          info["y_full"] = y_full
         rec["units"].append({"i": i, "j": j, "y": plan["y"].tolist(), "dur": plan["dur"].tolist(), **info})
       rec["compute_s"] = time.time() - t0
       if args.render:

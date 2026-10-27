@@ -1,7 +1,9 @@
 """T3: fit the Gaussian risk head F_eta on training trajectories, calibrate one trajectory-level radius Q_conf.
 
-Targets Y* are the real recording's unit prosody (log word frames, log1p pause frames), standardised with training
-statistics. Calibration score of trajectory i (T3.2): S_i = max over its predetermined grid (unit, visible j <= unit +
+Targets Y* (unit prosody: log word frames, log1p pause frames) are by default the same model's full-context plan of
+the unit (handbook T1/T3: a full-context reference), so the guarantee is about commitment regret: a certified commit
+is within eps of what waiting for the whole sentence would have produced. --target gt uses the recording instead
+(its irreducible variability makes the set width almost independent of lookahead). Standardised with training stats. Calibration score of trajectory i (T3.2): S_i = max over its predetermined grid (unit, visible j <= unit +
 k_max) and coordinates of |Y* - mu| / s; Q_conf = S_(ceil((n+1)(1-a))). Each LJSpeech utterance is one exchangeable
 trajectory. The certificate (T3.4) B = sum_l w_l (|y_hat_l - mu_l| + Q_conf s_l) bounds the weighted L1 distance from
 the plan to every point of the set, so P(exists certified commit with d_w(y_hat, Y*) > eps) <= a (T3.5).
@@ -67,14 +69,17 @@ class RiskHead:
     return float((W * (np.abs(yh - mu[0]) + self.meta["q_conf"] * s[0])).sum())
 
 
-def load_dump(path, gt):
+def load_dump(path, gt, target="full"):
+  """path: a commits jsonl or a directory of commits*.jsonl shards."""
+  p = Path(path)
+  files = sorted(p.glob("commits*.jsonl")) if p.is_dir() else [p]
   X, Y, YH, traj = [], [], [], []
-  for line in open(path):
+  for line in (l for f in files for l in open(f)):
     rec = json.loads(line)
     ys = gt[rec["utt_id"]]
     for d in rec["dump"]:
       X.append(feat_vec(d))
-      Y.append(ys[d["i"]])
+      Y.append(d["y_full"] if target == "full" else ys[d["i"]])
       YH.append(d["y_hat"])
       traj.append(rec["utt_id"])
   return np.stack(X), np.stack(Y), np.stack(YH), np.array(traj)
@@ -86,6 +91,8 @@ def main():
   ap.add_argument("--calib-dump", required=True)
   ap.add_argument("--align-dir", required=True)
   ap.add_argument("--a-risk", type=float, default=0.1)
+  ap.add_argument("--target", default="full", choices=["full", "gt"],
+                  help="full: the model's own full-context plan (commitment regret); gt: the recording")
   ap.add_argument("--epochs", type=int, default=30)
   ap.add_argument("--out", required=True)
   args = ap.parse_args()
@@ -93,8 +100,8 @@ def main():
   if out.exists():
     raise FileExistsError(out)
   gt = {d["utt_id"]: prosody_y(d["units"]) for d in map(json.loads, open(Path(args.align_dir) / "unit_prosody.jsonl"))}
-  Xt, Yt, _, _ = load_dump(args.train_dump, gt)
-  Xc, Yc, YHc, Tc = load_dump(args.calib_dump, gt)
+  Xt, Yt, _, _ = load_dump(args.train_dump, gt, args.target)
+  Xc, Yc, YHc, Tc = load_dump(args.calib_dump, gt, args.target)
   fm, fs = Xt.mean(0), Xt.std(0) + 1e-6
   ym, ys = Yt.mean(0), Yt.std(0) + 1e-6
   torch.manual_seed(0)
@@ -123,7 +130,7 @@ def main():
   b = math.ceil((n + 1) * (1 - args.a_risk))
   q = float(np.sort(scores)[b - 1]) if b <= n else float("inf")
   meta = {"f_mean": fm.tolist(), "f_std": fs.tolist(), "y_mean": ym.tolist(), "y_std": ys.tolist(), "q_conf": q,
-          "a_risk": args.a_risk, "n_cal": n, "b": b, "w": W.tolist(),
+          "a_risk": args.a_risk, "target": args.target, "n_cal": n, "b": b, "w": W.tolist(),
           "calib_score_quantiles": np.quantile(scores, [0.5, 0.9, 0.95]).tolist(),
           "train_rows": int(len(Xt)), "calib_rows": int(len(Xc))}
   torch.save({"net": net.state_dict(), "meta": meta}, out)
