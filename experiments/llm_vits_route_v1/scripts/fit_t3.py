@@ -26,11 +26,13 @@ from stream_common import prosody_y  # noqa: E402
 W = np.array([0.5, 0.5])
 
 
-def feat_vec(f, k_max=3):
+def feat_vec(f, lite=False, k_max=3):
+  """lite drops the acoustic-impact probe (M imagined futures), keeping only features that cost nothing extra."""
   look = np.zeros(k_max + 1)
   look[min(f["look"], k_max)] = 1.0
-  return np.concatenate([f["y_hat"], f["probe_mean"], f["probe_mad"], [f["entropy"], f["p_punct"], f["end"],
-                         f["n_chars"], f["punct_end"]], look]).astype(np.float32)
+  probe = [] if lite else [*f["probe_mean"], *f["probe_mad"]]
+  return np.concatenate([f["y_hat"], probe, [f["entropy"], f["p_punct"], f["end"], f["n_chars"], f["punct_end"]],
+                         look]).astype(np.float32)
 
 
 class RiskNet(nn.Module):
@@ -48,6 +50,7 @@ class RiskHead:
   def __init__(self, net, meta, dev):
     self.net, self.meta, self.dev = net.to(dev).eval(), meta, dev
     self.fm, self.fs = np.array(meta["f_mean"]), np.array(meta["f_std"])
+    self.lite = bool(meta.get("lite", False))
     self.ym, self.ys = np.array(meta["y_mean"]), np.array(meta["y_std"])
 
   @classmethod
@@ -58,7 +61,7 @@ class RiskHead:
     return cls(net, ck["meta"], dev)
 
   def predict(self, feats):
-    x = (np.stack([feat_vec(f) for f in feats]) - self.fm) / self.fs
+    x = (np.stack([feat_vec(f, self.lite) for f in feats]) - self.fm) / self.fs
     with torch.no_grad():
       mu, s = self.net(torch.from_numpy(x.astype(np.float32)).to(self.dev))
     return mu.cpu().numpy(), s.cpu().numpy()
@@ -69,7 +72,7 @@ class RiskHead:
     return float((W * (np.abs(yh - mu[0]) + self.meta["q_conf"] * s[0])).sum())
 
 
-def load_dump(path, gt, target="full"):
+def load_dump(path, gt, target="full", lite=False):
   """path: a commits jsonl or a directory of commits*.jsonl shards."""
   p = Path(path)
   files = sorted(p.glob("commits*.jsonl")) if p.is_dir() else [p]
@@ -78,7 +81,7 @@ def load_dump(path, gt, target="full"):
     rec = json.loads(line)
     ys = gt[rec["utt_id"]]
     for d in rec["dump"]:
-      X.append(feat_vec(d))
+      X.append(feat_vec(d, lite))
       Y.append(d["y_full"] if target == "full" else ys[d["i"]])
       YH.append(d["y_hat"])
       traj.append(rec["utt_id"])
@@ -94,14 +97,15 @@ def main():
   ap.add_argument("--target", default="full", choices=["full", "gt"],
                   help="full: the model's own full-context plan (commitment regret); gt: the recording")
   ap.add_argument("--epochs", type=int, default=30)
+  ap.add_argument("--lite", action="store_true", help="no acoustic-impact probe features (no extra compute)")
   ap.add_argument("--out", required=True)
   args = ap.parse_args()
   out = Path(args.out)
   if out.exists():
     raise FileExistsError(out)
   gt = {d["utt_id"]: prosody_y(d["units"]) for d in map(json.loads, open(Path(args.align_dir) / "unit_prosody.jsonl"))}
-  Xt, Yt, _, _ = load_dump(args.train_dump, gt, args.target)
-  Xc, Yc, YHc, Tc = load_dump(args.calib_dump, gt, args.target)
+  Xt, Yt, _, _ = load_dump(args.train_dump, gt, args.target, args.lite)
+  Xc, Yc, YHc, Tc = load_dump(args.calib_dump, gt, args.target, args.lite)
   fm, fs = Xt.mean(0), Xt.std(0) + 1e-6
   ym, ys = Yt.mean(0), Yt.std(0) + 1e-6
   torch.manual_seed(0)
@@ -130,7 +134,7 @@ def main():
   b = math.ceil((n + 1) * (1 - args.a_risk))
   q = float(np.sort(scores)[b - 1]) if b <= n else float("inf")
   meta = {"f_mean": fm.tolist(), "f_std": fs.tolist(), "y_mean": ym.tolist(), "y_std": ys.tolist(), "q_conf": q,
-          "a_risk": args.a_risk, "target": args.target, "n_cal": n, "b": b, "w": W.tolist(),
+          "a_risk": args.a_risk, "target": args.target, "lite": args.lite, "n_cal": n, "b": b, "w": W.tolist(),
           "calib_score_quantiles": np.quantile(scores, [0.5, 0.9, 0.95]).tolist(),
           "train_rows": int(len(Xt)), "calib_rows": int(len(Xc))}
   torch.save({"net": net.state_dict(), "meta": meta}, out)

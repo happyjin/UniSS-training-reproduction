@@ -43,8 +43,11 @@ def load_stream(path, backbone_config, backbone_ckpt, dev):
 
 
 def features(sim, probe, i, j, plan, qz):
-  """T3/T2 features of committing unit i with units 0..j visible."""
-  ys = np.stack(probe.plan_imagined(i, j, probe.future_seqs(j)))
+  """T3/T2 features of committing unit i with units 0..j visible (probe None: no impact-probe features)."""
+  if probe is not None:
+    ys = np.stack(probe.plan_imagined(i, j, probe.future_seqs(j)))
+  else:
+    ys = np.zeros((1, 2))
   dev = np.abs(ys - ys.mean(0)).mean(0)
   word = sim.row["clean"][sim.row["units"][i][0]:sim.row["units"][i][1]].strip()
   return {"y_hat": plan["y"].tolist(), "probe_mean": ys.mean(0).tolist(), "probe_mad": dev.tolist(),
@@ -83,13 +86,13 @@ def main():
     (out / "wavs").mkdir(exist_ok=True)
   model = load_stream(args.model, args.backbone_config, args.backbone_ckpt, dev)
   pname, _, pval = args.policy.partition(":")
-  need_probe = pname in ("spread", "t3", "dump")
-  probe_model = load_stream(args.probe, args.backbone_config, args.backbone_ckpt, dev) if need_probe else None
-  cands = load_cands(sorted(glob.glob(args.cands))) if (model.use_future or need_probe) else None
   risk = None
   if pname == "t3":
     from fit_t3 import RiskHead
     risk = RiskHead.load(args.risk, dev)
+  need_probe = pname in ("spread", "dump") or (pname == "t3" and not risk.lite)
+  probe_model = load_stream(args.probe, args.backbone_config, args.backbone_ckpt, dev) if need_probe else None
+  cands = load_cands(sorted(glob.glob(args.cands))) if (model.use_future or need_probe) else None
   rows = [json.loads(l) for l in open(args.manifest)]
   rows = [r for r in rows if r["split"] == args.split]
   if args.limit:
@@ -101,10 +104,12 @@ def main():
       kw = dict(cands=cands, noise_w=args.noise_w, noise_z=args.noise_z)
       sim = Simulator(model, r, dev, qwen=qz if model.use_qwen else None, **kw)
       probe = Simulator(probe_model, r, dev, **kw) if need_probe else None
-      t0 = time.time()
+      t0, excluded = time.time(), 0.0
       rec = {"utt_id": r["utt_id"], "units": [], "dump": []}
       for i in range(sim.U):
+        t_ref = time.time()   # the full-context reference plan is evaluation-only: excluded from compute_s
         y_full = sim.plan(i, sim.U - 1)["y"].tolist() if pname in ("t3", "dump") else None
+        excluded += time.time() - t_ref
         j = i
         while True:
           plan = sim.plan(i, j)
@@ -136,7 +141,7 @@ def main():
         if y_full is not None:
           info["y_full"] = y_full
         rec["units"].append({"i": i, "j": j, "y": plan["y"].tolist(), "dur": plan["dur"].tolist(), **info})
-      rec["compute_s"] = time.time() - t0
+      rec["compute_s"] = time.time() - t0 - excluded
       if args.render:
         wav = sim.render_incremental()
         sf.write(out / "wavs" / f"{r['utt_id']}.wav", wav, 22050)
