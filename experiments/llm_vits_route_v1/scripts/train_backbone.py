@@ -133,7 +133,8 @@ def main():
       loss_disc, _, _ = discriminator_loss(y_d_hat_r, y_d_hat_g)
       opt_d.zero_grad(set_to_none=True)
       loss_disc.backward()
-      gn_d = commons.clip_grad_value_(net_d.parameters(), None)
+      log_now = rank == 0 and (step + 1) % tr["log_every"] == 0
+      gn_d = torch.nn.utils.clip_grad_norm_(net_d.parameters(), float("inf")) if log_now else 0.0
       opt_d.step()
 
       y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = net_d(y, y_hat)
@@ -145,7 +146,7 @@ def main():
       loss_g = loss_gen + loss_fm + loss_mel + loss_dur + loss_kl
       opt_g.zero_grad(set_to_none=True)
       loss_g.backward()
-      gn_g = commons.clip_grad_value_(net_g.parameters(), None)
+      gn_g = torch.nn.utils.clip_grad_norm_(net_g.parameters(), float("inf")) if log_now else 0.0
       opt_g.step()
       step += 1
 
