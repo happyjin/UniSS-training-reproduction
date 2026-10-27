@@ -33,6 +33,7 @@ CAP = 15.0
 def prior_model() -> dict:
     m = np.zeros(len(FEATS))
     m[FEATS.index("abc")] = 1.0
+    m[FEATS.index("forced")] = CAP   # where the model cannot stop, ABC never stops: survival ~1
     return {"mu": m, "P": np.zeros((len(FEATS), len(FEATS))), "psi": np.zeros(len(FEATS)), "like_w": 1.0}
 
 
@@ -335,6 +336,7 @@ def _selftest() -> None:
     X = np.array([[1, 2.0, 0, 0, 0, 0, 0, 0], [1, -1.0, 0, 0, 0, 0, 0, 0]])
     m = prior_model()
     ge = p_survive(X, m["mu"], m["P"], np.random.default_rng(0), 8)
+    assert p_survive(np.array([[1, 0, 1.0, 0, 0, 0, 0, 0]]), m["mu"], m["P"], None, 1)[1] > 0.999
     s = 1 / (1 + np.exp(-np.array([2.0, -1.0])))
     assert np.allclose(ge, [1, s[0], s[0] * s[1]])
     R, y = label_rows(X, 1)
