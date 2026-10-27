@@ -155,6 +155,14 @@ def main() -> None:
     ap.add_argument("--sw-eps", type=float, default=0.1)
     ap.add_argument("--sw-kappa", type=float, default=1.0)
     ap.add_argument("--sw-n0", type=float, default=20.0, help="beta: prior strength in reads")
+    ap.add_argument("--hygiene", action="store_true",
+                    help="selfwait policy (fluency step 1, si_fluency_rules.hygiene): a non-final block does not end on a "
+                         "function word or inside a Chinese word, is not punctuation alone, and while the talker is idle is "
+                         "not shorter than --hyg-min units unless it ends a clause; named _hyg<min>")
+    ap.add_argument("--hyg-min", type=int, default=0, help="with --hygiene: the shortest block (0: 3 Chinese characters / 2 words)")
+    ap.add_argument("--clean", action="store_true",
+                    help="selfwait policy (fluency step 2, si_fluency_rules.clean): the talker's text loses fillers and "
+                         "immediate repeats; the Thinker's committed text is unchanged; named _cln")
     ap.add_argument("--look-units", type=int, default=0,
                     help="head / belief policy: beside each committed block, keep the next this many draft units it holds "
                          "back as \"look\" (the talker's lookahead; si_infer --lookahead); 0: none")
@@ -179,6 +187,10 @@ def main() -> None:
               [float(x) for x in args.taus.split(",")] if args.policy in ("head", "belief") else
               [float(x) for x in args.wait_biases.split(",")] if args.policy == "selfwait" else [None])
     extra = ("_snap" if args.snap else "") + ("_sp" if args.prompt == "stream" else "") + (f"_mbr{'f' if args.mbr_final_only else ''}{args.mbr}" if args.mbr else "")
+    if (args.hygiene or args.clean) and args.policy != "selfwait":
+        raise SystemExit("--hygiene / --clean are implemented for the selfwait policy only")
+    hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
+    extra += (f"_hyg{hyg_min}" if hyg_min else "") + ("_cln" if args.clean else "")
     sw_extra = ("" if args.policy != "selfwait" else
                 (f"q{args.sw_queue_rate:g}" + (f"c{args.queue_tau_max:g}" if args.queue_tau_max < 1 else "") if args.sw_queue_rate else "")
                 + (f"ad{args.sw_adapt}e{args.sw_eps:g}" + (f"g{args.sw_gamma:g}" if args.sw_adapt == "aci" else
@@ -278,6 +290,7 @@ def main() -> None:
                    oracle_commit=args.policy == "oracle", queue_rate=args.queue_rate, queue_tau_max=args.queue_tau_max, mbr=args.mbr, mbr_final_only=args.mbr_final_only,
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
                            "kappa": args.sw_kappa, "n0": args.sw_n0} if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
+                   fluency={"hyg_min": hyg_min, "clean": args.clean} if (hyg_min or args.clean) else None,
                    virtual_list=vlist, lr=lr, adapt=adapt)
 
 
@@ -364,7 +377,8 @@ def draft_tokens(out, cont: str, zh: bool) -> dict:
 
 def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=None, snap=False, seed=0,
                dump=None, scorer=None, temperature=0.7, relabel=None, selfwait=None, oracle=False, look_units=0,
-               virtual_ms=0, virtual_list=(), lr=None, adapt=None, oracle_commit=False, queue_rate=0.0, queue_tau_max=1.0, mbr=0, mbr_final_only=False, sw_cfg=None):
+               virtual_ms=0, virtual_list=(), lr=None, adapt=None, oracle_commit=False, queue_rate=0.0, queue_tau_max=1.0, mbr=0, mbr_final_only=False, sw_cfg=None,
+               fluency=None):
     from vllm import SamplingParams
     # Plan 4A: one greedy pass that stops at the wait marker; at the last read the marker is barred
     sw_read = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS, WAIT_MARK],
@@ -376,7 +390,7 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
     greedy_lp = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS], logprobs=5)
     records = []
     for it in items:
-        it.update(committed=[], prev=None, prev_greedy=None, blocks=[], drafts=[], done=False, busy=0)   # nothing from an earlier run
+        it.update(committed=[], prev=None, prev_greedy=None, blocks=[], drafts=[], done=False, busy=0, spoken="")   # nothing from an earlier run
     nxt = {}
     sw_seq = bool(sw_cfg and sw_cfg["adapt"] != "none")
     sw_talk = {}   # selfwait adaptation: talk -> {"b": offset, "reads", "errs", "trace"}
@@ -485,6 +499,9 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                     it["prev_greedy"] = gu[len(new):]   # what the next draft continues from
             elif selfwait is not None:   # everything said before the wait marker is committed
                 new = draft[n:]
+                if fluency and fluency["hyg_min"]:   # no dangling end, no fragment while the talker is idle (si_fluency_rules)
+                    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
+                    new = hygiene(it["committed"], new, zh, it["busy"] <= it["t"], fluency["hyg_min"])
                 if sw_seq and new and it["t"] < it["dur_ms"]:
                     it["reads"].append((join(it["committed"], zh), list(new)))
             elif scorer is not None:
@@ -563,12 +580,21 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 it["prev"] = draft
                 it["look"] = join(draft[max(n, agreed): max(n, agreed) + look_units], zh) if look_units else ""
             if new or it["done"]:
-                text = join(new, zh)
-                it["blocks"].append({"write_ms": it["t"], "text": ("" if zh or not n else " ") + text, "final": it["done"],
-                                     **({"look": it.get("look", "")} if look_units and not it["done"] else {})})
+                text = ("" if zh or not n else " ") + join(new, zh)
+                said = len(new)
+                if fluency and fluency["clean"]:   # the talker says the block without fillers and repeats; the Thinker keeps them
+                    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import clean, content_units
+                    raw, text = text, clean(it["spoken"], text, zh)
+                    said = len(units(text, zh))
+                    it["spoken"] += text
+                    if content_units(units(text, zh), zh) or it["done"]:
+                        it["blocks"].append({"write_ms": it["t"], "text": text, "raw": raw, "final": it["done"]})
+                else:
+                    it["blocks"].append({"write_ms": it["t"], "text": text, "final": it["done"],
+                                         **({"look": it.get("look", "")} if look_units and not it["done"] else {})})
                 it["committed"] += new
-                if sw_cfg and sw_cfg["rate"] and new:
-                    it["busy"] = max(it["busy"], it["t"]) + len(new) * sw_cfg["rate"] * 1000
+                if sw_cfg and sw_cfg["rate"] and said:
+                    it["busy"] = max(it["busy"], it["t"]) + said * sw_cfg["rate"] * 1000
                 if queue_rate:
                     it["busy"] = max(it["busy"], it["t"]) + len(new) * queue_rate * 1000
         if sw_seq:   # sentences that ended: label their reads by the whole-sentence continuation, move the talk's bias
@@ -636,6 +662,7 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 blocks = blocks[:-1]
                 blocks[-1]["final"] = True
             fh.write(json.dumps({"id": it["id"], "translation": join(it["committed"], zh), "blocks": blocks,
+                                 **({"spoken": it["spoken"]} if fluency and fluency["clean"] else {}),
                                  "drafts": it["drafts"]}, ensure_ascii=False) + "\n")
     if adapt is not None:
         out.with_suffix(".adapt.json").write_text(json.dumps(adapt.summary()), encoding="utf-8")
