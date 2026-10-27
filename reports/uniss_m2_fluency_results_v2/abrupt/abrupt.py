@@ -48,7 +48,8 @@ def talk_wav(items, talk):
 out = {}
 for spec in sys.argv[1:]:
     name, run, items, thf, mode = spec.split("=")
-    s1 = mode.startswith("s1")   # mode: plain | s1[b<buffer s>][q]  (q: squeeze inner silences)
+    s1 = mode.startswith("s1")   # mode: plain | s1[b<buffer s>][q] | s0[b..][q] (s0: trim without tempo; q: squeeze)
+    trim = mode.startswith("s")
     mb = re.search(r"b([\d.]+)", mode); buf = float(mb.group(1)) if mb else 0.0; sq = mode.endswith("q")
     rows, meta = load(Path(run), items)
     TH = {r["id"]: r for r in map(json.loads, open(thf))}
@@ -61,7 +62,7 @@ for spec in sys.argv[1:]:
     for talk, rs in talks.items():
         rs.sort(key=lambda r: meta[r["id"]][1]); segs, k0, rowmap = [], 0, {}
         for r in rs:
-            segs.append(segments(r, meta[r["id"]][1], k0, trim=s1, squeeze_inner=sq)); k0 += len(r["blocks"]); rowmap[r["id"]] = r
+            segs.append(segments(r, meta[r["id"]][1], k0, trim=trim, squeeze_inner=sq)); k0 += len(r["blocks"]); rowmap[r["id"]] = r
         pl = schedule(segs, s1, 1.10, 1.0, 1.05, buf, 1.5)
         for r in rs:
             mine = sorted((x for x in pl if x["seg"] == r["id"]), key=lambda x: x["k"])
