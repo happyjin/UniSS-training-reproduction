@@ -96,3 +96,31 @@
 **第 4 步：不重训 Talker。**
 - 速度试验证明 speed token 有效：加快 6 档约快 10%，ASR-BLEU 基本不变，UTMOS −0.03 / −0.07。
 - 改为推理策略 `si_infer --speed-policy queue`，按每块写入时的积压选 speed token。
+
+## 读写时机：文献参考与可用的标签构造（补充）
+
+调研结论：现在 ABC 的训练标签是“草稿中与全句续写字面一致的最长前缀”，和 MU 论文的基础算法相同：
+R. Zhang et al., *Learning Adaptive Segmentation Policy for Simultaneous Translation*, EMNLP 2020, Algorithm 1。
+那篇论文也指出“字面一致”过严，全句模型调整语序后，句首很难对上。之后的工作大多把标准放宽为“提交后整句的似然或质量不受损”，或者改用强化学习。
+
+按 BLEU 风险从低到高，可用于本项目的做法：
+
+| # | 做法 | 来源 | 本项目怎么用 | BLEU 风险 |
+|---|---|---|---|---|
+| 1 | **结果等价代替字面一致**：在任何读取点（不只句首）尝试更长的提交，只要全句模型以它为前缀续写后的整句质量不低于 oracle 就接受；先用 N 个候选（N-best 或采样）做预筛 | MU（EMNLP 2020，top-10 候选匹配）；RALCP（Wang et al., ALTA 2024, arXiv 2309.06706）；tailored reference（Guo et al., Findings EMNLP 2023, arXiv 2310.13588） | 前缀约束 oracle 已在句首实现（v4/v5）；下一步扩到句中读取点，并加入采样候选的投票预筛 | 低：门槛 ε 直接控制 |
+| 2 | **用 Thinker 自身似然确定每个词的最早可写时刻**：对 oracle 译文的每个词 y_j，在各读取时刻 t 算 log p(y_j \| audio[:t], y<j)，取跳变最大的时刻，或首次接近全句水平的时刻，作为它的延迟；平滑成单调后，在读取点 t 提交所有延迟 ≤ t 的词 | Hibiki 上下文对齐（ICML 2025, arXiv 2502.03382）；BS-SiMT 二分搜索最优策略（ACL 2023, arXiv 2305.12774）；ITST（EMNLP 2022, arXiv 2210.12357） | 用 vLLM 的 prompt_logprobs 对每个读取点做一次强制解码；目标总是 oracle 的前缀 | 低到中：设最小滞后，防过早提交 |
+| 3 | **保真约束的单调 oracle**：以早期草稿为前缀生成全句 oracle，只保留对参考 BLEU 不低于原 oracle 的 | MU++；Chen et al. EMNLP 2021（arXiv 2010.11247） | 即现在的严格过滤，可再加句级 BLEU 门槛 | 中 |
+| 4 | **推理时的句首投票（不训练）**：在尚未提交任何内容的读取点采样 K=4–8 个草稿，提交投票一致度 ≥ γ 的前缀；或在连续两次读取的下一词分布稳定、最大概率 > α 时提交 | TAF（NAACL 2025, arXiv 2410.22499）；RALCP；LSG（AAAI 2025, arXiv 2501.00868） | si_thinker_stream 已有投票策略的实现，可只在句首启用 | 低到中：γ 可调；只在句首增加计算 |
+| 5 | **偏好优化**：同一读取状态下，通过门槛的更长提交优于等待，等待优于不通过门槛的提交，DPO 加小的延迟项 | SimulPL（ICLR 2025, arXiv 2502.00634） | 用做法 1 的标签构造偏好对，LoRA 上做 DPO | 低到中 |
+| 6 | **带门槛的强化学习**：奖励 = 部分输出对参考前缀的 BLEU + 最终 BLEU；只有最终 BLEU ≥ SFT 时才计入延迟奖励 | Hibiki-Zero（arXiv 2602.11072）；HPO 门槛（arXiv 2604.21045）；Seed LiveInterpret 2.0（arXiv 2507.17527） | 最后做；用 BLEU 而不是神经指标做门槛 | 中：长音频上有掉 BLEU、奖励投机的先例 |
+
+文献提醒：只优化 COMET、MetricX 或单调性的方法往往掉 BLEU（HPO、SimPOTrans、MU++）。保证目标是原参考或 oracle 的前缀、或加入对参考 BLEU 约束的方法能保住 BLEU（tailored reference、Hibiki 上下文对齐）。本项目的硬门槛是 ASR-BLEU，所以优先做 1、2、4。
+
+**执行顺序**：
+1. v5（做法 1 的句首版）出结果；
+2. 做法 4（推理时句首投票，不训练，最快）；
+3. 做法 2（似然对齐延迟标签，重训 LoRA）；
+4. 做法 1 扩到全部读取点；
+5. 做法 5 和 6 作为第二阶段。
+
+每一步都必须过 ASR-BLEU 门槛。
