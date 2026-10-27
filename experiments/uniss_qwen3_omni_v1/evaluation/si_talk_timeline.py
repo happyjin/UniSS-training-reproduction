@@ -92,12 +92,24 @@ def trim_edges(a: np.ndarray, keep: float = 0.06) -> np.ndarray:
     return a[max(0, idx[0] - k) * 160: min(n, idx[-1] + 1 + k) * 160]
 
 
-def schedule(segs: list[dict], tempo: bool, fast_max: float = 1.15, slow: float = 0.92, final: float = 1.10) -> list[dict]:
-    """segs: [{offset, blocks:[{commit_ms (talk clock), dur_ms, audio, final}]}] -> played blocks in order."""
+def schedule(segs: list[dict], tempo: bool, fast_max: float = 1.15, slow: float = 0.92, final: float = 1.10,
+             buffer_s: float = 0.0, buffer_wait_s: float = 0.0) -> list[dict]:
+    """segs: [{offset, blocks:[{commit_ms (talk clock), dur_ms, audio, final}]}] -> played blocks in order.
+    buffer_s > 0: adaptive playout -- a block that would start on an idle talker waits until buffer_s seconds of
+    committed speech are ready (itself and the blocks committed behind it), at most buffer_wait_s after its commit,
+    and never when it ends its segment; a burst then plays without the gaps in between (causal: only commits so far)."""
     blocks = sorted((b for s in segs for b in s["blocks"]), key=lambda b: (b["commit"], b["k"]))
     out, free, prev_r = [], -1e9, 1.0
     for i, b in enumerate(blocks):
         start = max(b["commit"], free)
+        if buffer_s > 0 and start == b["commit"] and not b["final"]:
+            t, limit = b["commit"], b["commit"] + buffer_wait_s * 1000
+            while t < limit:
+                ready = sum(x["dur"] for x in blocks[i:] if x["commit"] <= t) / 1000
+                if ready >= buffer_s or any(x["final"] and x["commit"] <= t for x in blocks[i:] if x["seg"] == b["seg"]):
+                    break
+                t += 50
+            start = min(t, limit)
         r = 1.0
         if tempo:
             waiting = sum(x["dur"] for x in blocks[i + 1:] if x["commit"] <= start) / 1000
@@ -116,7 +128,28 @@ def schedule(segs: list[dict], tempo: bool, fast_max: float = 1.15, slow: float 
     return out
 
 
-def segments(row: dict, offset: int, k0: int, trim: bool = False) -> dict:
+def squeeze(a: np.ndarray, longest: float = 0.35, keep: float = 0.25) -> np.ndarray:
+    """A block whose inner silences longer than `longest` s are cut to `keep` s (the Talker's own pauses)."""
+    n = len(a) // 160
+    if n < 10:
+        return a
+    db = 10 * np.log10(np.mean(a[: n * 160].reshape(n, 160) ** 2, 1) + 1e-12)
+    on = db > np.percentile(db, 90) - 35
+    out, i = [], 0
+    while i < n:
+        j = i
+        while j < n and on[j] == on[i]:
+            j += 1
+        seg = a[i * 160: j * 160]
+        if not on[i] and i > 0 and j < n and (j - i) / 100 > longest:
+            k = int(keep * 100) * 160
+            seg = np.concatenate([seg[: k // 2], seg[len(seg) - k // 2:]])
+        out.append(seg)
+        i = j
+    return np.concatenate(out + [a[n * 160:]])
+
+
+def segments(row: dict, offset: int, k0: int, trim: bool = False, squeeze_inner: bool = False) -> dict:
     x, sr = sf.read(row["audio_path"], dtype="float32", always_2d=True)
     x = x.mean(1)
     assert sr == SR
@@ -125,6 +158,8 @@ def segments(row: dict, offset: int, k0: int, trim: bool = False) -> dict:
         a = x[int(b["start_ms"] * 16): int((b["start_ms"] + b["dur_ms"]) * 16)]
         if trim:
             a = trim_edges(a)
+        if squeeze_inner:
+            a = squeeze(a)
         bl.append({"seg": row["id"], "k": k0 + k, "commit": offset + b["write_ms"], "dur": len(a) / 16, "audio": a,
                    "final": b["final"], "text": b["text"], "offset": offset})
     return {"offset": offset, "blocks": bl, "dur_ms": row["source_duration_ms"]}
@@ -167,6 +202,9 @@ def main() -> None:
     ap.add_argument("--tempo-slow", type=float, default=0.92, help="--tempo: the rate with nothing waiting (1: never slower)")
     ap.add_argument("--tempo-final", type=float, default=1.10, help="--tempo: the least rate of a segment's last block")
     ap.add_argument("--trim", action="store_true", help="cut each block's edge silence beyond 60 ms before playing it")
+    ap.add_argument("--squeeze", action="store_true", help="cut each block's inner silences over 0.35 s to 0.25 s")
+    ap.add_argument("--buffer", type=float, default=0.0, help="adaptive playout: seconds of speech to gather on an idle talker")
+    ap.add_argument("--buffer-wait", type=float, default=1.5, help="--buffer: the longest a block waits for it")
     ap.add_argument("--out", required=True, help="talk-mode summary json")
     ap.add_argument("--wav-dir", default="", help="write the stitched talks here (and measure their pauses)")
     ap.add_argument("--write-run", default="", help="segment mode: write the re-timed run here (needs --tempo)")
@@ -187,7 +225,8 @@ def main() -> None:
                 if not row.get("blocks"):
                     fh.write(json.dumps(row, ensure_ascii=False) + "\n")
                     continue
-                played = schedule([segments(row, 0, 0, args.trim)], args.tempo, args.tempo_max, args.tempo_slow, args.tempo_final)
+                played = schedule([segments(row, 0, 0, args.trim, args.squeeze)], args.tempo, args.tempo_max, args.tempo_slow,
+                                  args.tempo_final, args.buffer, args.buffer_wait)
                 n = int(max(b["start"] + b["play_dur"] for b in played) * 16) + int(0.3 * SR)
                 y = np.zeros(n, dtype=np.float32)
                 for b in played:
@@ -210,9 +249,9 @@ def main() -> None:
         rs.sort(key=lambda r: meta[r["id"]][1])
         segs, k0 = [], 0
         for r in rs:
-            segs.append(segments(r, meta[r["id"]][1], k0, args.trim))
+            segs.append(segments(r, meta[r["id"]][1], k0, args.trim, args.squeeze))
             k0 += len(r["blocks"])
-        played = schedule(segs, args.tempo, args.tempo_max, args.tempo_slow, args.tempo_final)
+        played = schedule(segs, args.tempo, args.tempo_max, args.tempo_slow, args.tempo_final, args.buffer, args.buffer_wait)
         end = max(meta[r["id"]][1] + r["source_duration_ms"] for r in rs)
         per[talk] = talk_metrics(played, end, Path(args.wav_dir) / f"{talk}.wav" if args.wav_dir else None)
         by_seg = defaultdict(list)
