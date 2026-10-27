@@ -1,0 +1,184 @@
+{
+ "v3_zh2en": {
+  "asr_bleu": 21.43,
+  "text_bleu": 21.46,
+  "laal_s": 1.683,
+  "first_block_s_p50": 2.0,
+  "end_offset_s_p50": 2.2,
+  "end_offset_s_p90": 4.19,
+  "blocks_per_utt": 3.31,
+  "one_unit_blocks": 0.078,
+  "punct_only_blocks": 0.0,
+  "excess_pause_s_per_100u": 5.27,
+  "utt_with_pause_ge1s": 0.464,
+  "pauses_ge1_per_100u": 3.36,
+  "pauses_ge0.25_per_100u": 8.77,
+  "silence_ratio": 0.293,
+  "mean_length_of_run_u": 6.87,
+  "speech_rate_u_per_s": 2.55,
+  "adjacent_rate_jump_gt1.5x": 0.237,
+  "word_seam_excess": 0.0,
+  "phrase_seam_excess": 1.04,
+  "blocks_queued": 0.293,
+  "queued_s_p90": 2.17,
+  "tail_s_p50": 2.18,
+  "talker_err": 0.0375,
+  "utt_talker_err_gt0.2": 0.044,
+  "stutter_per_100u": 0.0,
+  "text_repeat_per_100u": 0.254,
+  "utmos": 3.229
+ },
+ "brA-b-0.5_zh2en": {
+  "asr_bleu": 21.03,
+  "text_bleu": 21.41,
+  "laal_s": 1.557,
+  "first_block_s_p50": 1.0,
+  "end_offset_s_p50": 1.91,
+  "end_offset_s_p90": 3.85,
+  "blocks_per_utt": 3.95,
+  "one_unit_blocks": 0.139,
+  "punct_only_blocks": 0.0,
+  "excess_pause_s_per_100u": 6.78,
+  "utt_with_pause_ge1s": 0.499,
+  "pauses_ge1_per_100u": 3.87,
+  "pauses_ge0.25_per_100u": 11.36,
+  "silence_ratio": 0.341,
+  "mean_length_of_run_u": 5.77,
+  "speech_rate_u_per_s": 2.41,
+  "adjacent_rate_jump_gt1.5x": 0.338,
+  "word_seam_excess": 0.0,
+  "phrase_seam_excess": 2.13,
+  "blocks_queued": 0.261,
+  "queued_s_p90": 1.81,
+  "tail_s_p50": 1.91,
+  "talker_err": 0.0532,
+  "utt_talker_err_gt0.2": 0.067,
+  "stutter_per_100u": 0.014,
+  "text_repeat_per_100u": 0.374,
+  "utmos": 3.205,
+  "vs_base_bleu": {
+   "sentences": 431,
+   "a_bleu": 21.43,
+   "b_bleu": 21.03,
+   "diff": -0.406,
+   "ci95": [
+    -1.634,
+    0.55
+   ],
+   "p_b_not_better": 0.843,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": -0.024,
+   "ci95": [
+    -0.067,
+    0.015
+   ]
+  }
+ },
+ "brP-b-0.5_zh2en": {
+  "asr_bleu": 21.59,
+  "text_bleu": 22.1,
+  "laal_s": 1.536,
+  "first_block_s_p50": 1.0,
+  "end_offset_s_p50": 1.9,
+  "end_offset_s_p90": 3.48,
+  "blocks_per_utt": 5.06,
+  "one_unit_blocks": 0.197,
+  "punct_only_blocks": 0.0,
+  "excess_pause_s_per_100u": 5.97,
+  "utt_with_pause_ge1s": 0.376,
+  "pauses_ge1_per_100u": 2.55,
+  "pauses_ge0.25_per_100u": 15.03,
+  "silence_ratio": 0.336,
+  "mean_length_of_run_u": 4.81,
+  "speech_rate_u_per_s": 2.44,
+  "adjacent_rate_jump_gt1.5x": 0.376,
+  "word_seam_excess": 0.0,
+  "phrase_seam_excess": 2.83,
+  "blocks_queued": 0.263,
+  "queued_s_p90": 1.57,
+  "tail_s_p50": 1.88,
+  "talker_err": 0.0718,
+  "utt_talker_err_gt0.2": 0.093,
+  "stutter_per_100u": 0.013,
+  "text_repeat_per_100u": 0.361,
+  "utmos": 3.214,
+  "vs_base_bleu": {
+   "sentences": 431,
+   "a_bleu": 21.43,
+   "b_bleu": 21.59,
+   "diff": 0.154,
+   "ci95": [
+    -0.94,
+    1.199
+   ],
+   "p_b_not_better": 0.424,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": -0.015,
+   "ci95": [
+    -0.055,
+    0.027
+   ]
+  }
+ },
+ "brPO-b-0.5_zh2en": {
+  "asr_bleu": 21.93,
+  "text_bleu": 22.37,
+  "laal_s": 1.615,
+  "first_block_s_p50": 1.0,
+  "end_offset_s_p50": 1.86,
+  "end_offset_s_p90": 3.61,
+  "blocks_per_utt": 5.2,
+  "one_unit_blocks": 0.207,
+  "punct_only_blocks": 0.0,
+  "excess_pause_s_per_100u": 6.02,
+  "utt_with_pause_ge1s": 0.355,
+  "pauses_ge1_per_100u": 2.48,
+  "pauses_ge0.25_per_100u": 15.14,
+  "silence_ratio": 0.336,
+  "mean_length_of_run_u": 4.8,
+  "speech_rate_u_per_s": 2.44,
+  "adjacent_rate_jump_gt1.5x": 0.394,
+  "word_seam_excess": 0.0,
+  "phrase_seam_excess": 3.06,
+  "blocks_queued": 0.26,
+  "queued_s_p90": 1.64,
+  "tail_s_p50": 1.84,
+  "talker_err": 0.0692,
+  "utt_talker_err_gt0.2": 0.1,
+  "stutter_per_100u": 0.0,
+  "text_repeat_per_100u": 0.343,
+  "utmos": 3.226,
+  "vs_base_bleu": {
+   "sentences": 431,
+   "a_bleu": 21.43,
+   "b_bleu": 21.93,
+   "diff": 0.491,
+   "ci95": [
+    -0.689,
+    1.741
+   ],
+   "p_b_not_better": 0.195,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": 0.0,
+   "ci95": [
+    -0.044,
+    0.044
+   ]
+  }
+ }
+}

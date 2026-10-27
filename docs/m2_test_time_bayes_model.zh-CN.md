@@ -230,12 +230,22 @@ $$
 
 ## 10. 实现对应
 
-在 `si_thinker_stream.py` 中新增以下参数，全部默认关闭，默认行为与 v3 逐字节相同：
-- `--policy bayesrisk`；
-- `--post-model <json>`：训练域拟合的 $\mu,\Sigma,\hat\Psi$ 和统计量定义；
-- `--cost-err/--cost-lat/--cost-sil/--cost-frag/--cost-seam/--cost-talk`；
-- `--sil-g0`、`--sil-lambda`；
-- `--playback-aware`；
-- `--online-update`。
+在 `si_thinker_stream.py` 中新增 `--policy bayesrisk`（决策在 `si_bayesrisk.py`），参数全部默认关闭，v3 的默认行为不变：
+- `--br-model <json>`：训练域拟合的 $\mu,\Sigma,\hat\Psi$ 和似然权重；不给时用先验（即 ABC）；
+- `--br-loss {event,unit}`、`--br-cost-sil`、`--br-g0`、`--br-lambda`、`--br-cost-frag`、`--br-frag-min`、`--br-cost-seam`；
+- `--br-playback`（播放感知的滞后 $D$）、`--br-tau-max`、`--br-mc`；
+- `--br-online`、`--br-like-w`（在线 Laplace 更新及其似然权重）、`--br-dump`（导出训练用的链式标签）。
 
 拟合脚本放在 `data_clean/`，只读 UniST 训练域留出集。RealSI 和 ACL 只用于测试。
+
+## 11. 实现后的修正（结果见 [m2_bayesrisk_results_v1.zh-CN.md](m2_bayesrisk_results_v1.zh-CN.md)）
+
+1. **按事件计的损失在全局 argmin 下会退化。** §4 中“一次修改只计一次 $C_\mathrm{err}$”的写法，会让含可疑单位的长草稿的期望损失被摊薄，全局最优于是整段提交。改为按单位计：
+   $$R(a)=C_\mathrm{err}\,\mathbb E[(a-S)^+]+C_\mathrm{lat}D\,\mathbb E[(\min(S,K)-a)^+],\qquad C_\mathrm{lat}=\frac{1-\sigma(b)}{\sigma(b)\,\Delta}.$$
+   - 其 argmin 是对边际存活概率取阈值：$a^\*=\max\{a: P(S\ge a)>1/(1+C_\mathrm{lat}D)\}$。
+   - 因为 $P(S\ge a)$ 随 $a$ 单调，这个阈值是唯一的。
+   - 在先验下它恰好是 ABC，命题 1 不变。
+2. **动作集合 $\mathcal A$ 只包含 token 边界。** 在多字 token 中间提交，会让 Thinker 在不完整的 token 后续写，产生零宽字符和断词。这是模型之外的约束（Thinker 的 prompt 必须以完整 token 结尾），不是概率判断。
+3. **新增统计量 `forced`。** token 内部的单位没有等待标记的 hazard，ABC logit 只能取上限 15。为此加一个指示量 `forced`，其先验均值取 15，使“只用先验”时与 ABC 逐字节一致。
+4. **近似 A4 的处理。** 同一句多次读取的 Pearson 离散度为 6–7：$\Sigma$ 乘以离散度，在线更新的似然权重取其倒数。
+5. **RealSI 结果指出损失的缺口。** 碎块和切点代价有限时，Bayes 动作会在短语中间提交，突兀停顿变为 v3 的 1.4–3 倍。按命题 2，应把提交卫生作为硬约束（$C_\mathrm{frag}\to\infty$），并让切点代价随切点类型变化。

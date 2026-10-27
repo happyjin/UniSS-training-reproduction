@@ -1,0 +1,184 @@
+{
+ "v3b2_en2zh": {
+  "asr_bleu": 30.11,
+  "text_bleu": 31.2,
+  "laal_s": 2.672,
+  "first_block_s_p50": 2.5,
+  "end_offset_s_p50": 3.12,
+  "end_offset_s_p90": 5.82,
+  "blocks_per_utt": 3.19,
+  "one_unit_blocks": 0.009,
+  "punct_only_blocks": 0.021,
+  "excess_pause_s_per_100u": 4.22,
+  "utt_with_pause_ge1s": 0.425,
+  "pauses_ge1_per_100u": 1.74,
+  "pauses_ge0.25_per_100u": 5.25,
+  "silence_ratio": 0.279,
+  "mean_length_of_run_u": 11.7,
+  "speech_rate_u_per_s": 3.94,
+  "adjacent_rate_jump_gt1.5x": 0.128,
+  "word_seam_excess": 0.0,
+  "phrase_seam_excess": 2.72,
+  "blocks_queued": 0.327,
+  "queued_s_p90": 2.66,
+  "tail_s_p50": 3.02,
+  "talker_err": 0.0307,
+  "utt_talker_err_gt0.2": 0.02,
+  "stutter_per_100u": 0.105,
+  "text_repeat_per_100u": 0.285,
+  "utmos": 3.347
+ },
+ "brA-b2_en2zh": {
+  "asr_bleu": 29.62,
+  "text_bleu": 30.78,
+  "laal_s": 2.517,
+  "first_block_s_p50": 2.0,
+  "end_offset_s_p50": 2.98,
+  "end_offset_s_p90": 5.03,
+  "blocks_per_utt": 4.22,
+  "one_unit_blocks": 0.025,
+  "punct_only_blocks": 0.012,
+  "excess_pause_s_per_100u": 3.29,
+  "utt_with_pause_ge1s": 0.376,
+  "pauses_ge1_per_100u": 1.67,
+  "pauses_ge0.25_per_100u": 5.63,
+  "silence_ratio": 0.255,
+  "mean_length_of_run_u": 11.23,
+  "speech_rate_u_per_s": 4.02,
+  "adjacent_rate_jump_gt1.5x": 0.178,
+  "word_seam_excess": 0.03,
+  "phrase_seam_excess": 2.41,
+  "blocks_queued": 0.392,
+  "queued_s_p90": 2.1,
+  "tail_s_p50": 2.83,
+  "talker_err": 0.0298,
+  "utt_talker_err_gt0.2": 0.012,
+  "stutter_per_100u": 0.095,
+  "text_repeat_per_100u": 0.313,
+  "utmos": 3.319,
+  "vs_base_bleu": {
+   "sentences": 346,
+   "a_bleu": 30.11,
+   "b_bleu": 29.62,
+   "diff": -0.495,
+   "ci95": [
+    -1.142,
+    0.219
+   ],
+   "p_b_not_better": 0.899,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": -0.028,
+   "ci95": [
+    -0.059,
+    0.001
+   ]
+  }
+ },
+ "brPF-b0.75_en2zh": {
+  "asr_bleu": 29.62,
+  "text_bleu": 31.14,
+  "laal_s": 2.785,
+  "first_block_s_p50": 2.0,
+  "end_offset_s_p50": 2.74,
+  "end_offset_s_p90": 5.55,
+  "blocks_per_utt": 5.73,
+  "one_unit_blocks": 0.036,
+  "punct_only_blocks": 0.004,
+  "excess_pause_s_per_100u": 3.17,
+  "utt_with_pause_ge1s": 0.347,
+  "pauses_ge1_per_100u": 1.39,
+  "pauses_ge0.25_per_100u": 6.45,
+  "silence_ratio": 0.26,
+  "mean_length_of_run_u": 10.3,
+  "speech_rate_u_per_s": 4.02,
+  "adjacent_rate_jump_gt1.5x": 0.245,
+  "word_seam_excess": 0.04,
+  "phrase_seam_excess": 2.49,
+  "blocks_queued": 0.448,
+  "queued_s_p90": 1.16,
+  "tail_s_p50": 2.64,
+  "talker_err": 0.0375,
+  "utt_talker_err_gt0.2": 0.029,
+  "stutter_per_100u": 0.056,
+  "text_repeat_per_100u": 0.358,
+  "utmos": 3.334,
+  "vs_base_bleu": {
+   "sentences": 346,
+   "a_bleu": 30.11,
+   "b_bleu": 29.62,
+   "diff": -0.492,
+   "ci95": [
+    -1.395,
+    0.324
+   ],
+   "p_b_not_better": 0.874,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": -0.013,
+   "ci95": [
+    -0.045,
+    0.018
+   ]
+  }
+ },
+ "brPFO-b0.75_en2zh": {
+  "asr_bleu": 29.72,
+  "text_bleu": 30.95,
+  "laal_s": 2.71,
+  "first_block_s_p50": 1.5,
+  "end_offset_s_p50": 2.73,
+  "end_offset_s_p90": 5.77,
+  "blocks_per_utt": 5.68,
+  "one_unit_blocks": 0.035,
+  "punct_only_blocks": 0.005,
+  "excess_pause_s_per_100u": 3.46,
+  "utt_with_pause_ge1s": 0.355,
+  "pauses_ge1_per_100u": 1.47,
+  "pauses_ge0.25_per_100u": 6.69,
+  "silence_ratio": 0.27,
+  "mean_length_of_run_u": 10.03,
+  "speech_rate_u_per_s": 3.95,
+  "adjacent_rate_jump_gt1.5x": 0.233,
+  "word_seam_excess": 0.03,
+  "phrase_seam_excess": 2.69,
+  "blocks_queued": 0.439,
+  "queued_s_p90": 1.34,
+  "tail_s_p50": 2.62,
+  "talker_err": 0.0376,
+  "utt_talker_err_gt0.2": 0.029,
+  "stutter_per_100u": 0.066,
+  "text_repeat_per_100u": 0.332,
+  "utmos": 3.305,
+  "vs_base_bleu": {
+   "sentences": 346,
+   "a_bleu": 30.11,
+   "b_bleu": 29.72,
+   "diff": -0.392,
+   "ci95": [
+    -1.269,
+    0.385
+   ],
+   "p_b_not_better": 0.835,
+   "seeds": [
+    1,
+    1
+   ]
+  },
+  "vs_base_utmos": {
+   "diff": -0.042,
+   "ci95": [
+    -0.073,
+    -0.011
+   ]
+  }
+ }
+}
