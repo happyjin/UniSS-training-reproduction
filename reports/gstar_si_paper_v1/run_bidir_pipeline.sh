@@ -20,11 +20,11 @@ for p in ${D}/e2e_gstar_bidir_v1 ${ABC} ${EV}/${O2} ${EV}/${S2} ${EV}/${O2N}; do
   [ -e "$p" ] && { log "拒绝覆盖已有输出: $p"; exit 1; }
 done
 
-until grep -q -E "ZH_DATA_DONE|failed" logs/zh_data_final.log; do sleep 30; done
-grep -q ZH_DATA_DONE logs/zh_data_final.log || { log "zh data failed"; exit 1; }
+until grep -q -E "ZH_DATA_DONE|failed" logs/zh_data_v8.log; do sleep 30; done
+grep -q ZH_DATA_DONE logs/zh_data_v8.log || { log "zh data failed"; exit 1; }
 ${PYE} - <<'PY' || { log "A8_FAIL: the diarizer tracks the Chinese meetings much worse than the English ones"; exit 2; }
 import json, sys
-s = json.load(open("data/ami_multispk_si_v1/zh_mix_v7/audit_diar.json"))["summary"]
+s = json.load(open("data/ami_multispk_si_v1/zh_mix_v8/audit_diar.json"))["summary"]
 gaps = {k: v["der_zh"] - v["der_en"] for k, v in s.items() if isinstance(v, dict)}
 print("A8 gaps", gaps)
 sys.exit(0 if all(g <= 10 for g in gaps.values()) else 1)
