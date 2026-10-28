@@ -156,7 +156,7 @@ def main():
                 info["certified"] = bool(ok)
               go = deadline or (q_stop <= q_wait and ok)
             else:
-              rec["dump"].append({"i": i, "j": j, "y_full": y_full, **feat})
+              rec["dump"].append({"i": i, "j": j, "y_full": y_full, "probe_ys": sim.last_probe_ys.tolist(), **feat})
               go = deadline
           if go:
             break
