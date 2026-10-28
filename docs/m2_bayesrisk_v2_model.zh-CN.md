@@ -239,3 +239,188 @@ v2 的参数空间包含这两点，所以 dev 上的最优 v2 成员在 dev 目
 | A9 | $\tau$ 依赖策略，用策略迭代求不动点 | 观察 $J$ 分布逐轮的 KL；不收敛时取最后两轮的平均 |
 | A10 | Talker 时长使用实测表（替代 A6 的均值） | 与 RealSI 上实测的 dur 比较，误差的 p90 < 0.3 s |
 | A11 | 对偶上升在 dev 上收敛 | 约束违约量与 $\lambda$ 的轨迹单调收敛 |
+
+## 5. 严格的先验、似然与后验（v2 完整概率模型）
+
+本节把 §2–§3 中需要从数据推断的部分，全部写成“先验 × 似然 → 后验 → 后验预测”的形式。不是推断问题的部分，在 §5.8 单独列出。
+
+### 5.1 数据与参数
+
+**数据（全部来自训练域 dev；测试时只用自标注，见 §5.6）：**
+
+| 数据 | 内容 |
+|---|---|
+| $\mathcal D_S$ | 每次读取 $(n,k)$ 的统计量 $\{\mathbf T_{k,u}\}_{u<K_k}$ 和稳定长度 $S_k$。$S_k$ 用 Thinker 听完整句后的续写自动得到，不需要参考译文 |
+| $\mathcal D_J$ | 在策略 $\pi_\psi$ 下，每次提交 $(k,a)$ 的协变量 $\mathbf x_{k,a}$、观测到的等待次数 $J^\mathrm{obs}$ 和删失标记 $c\in\{0,1\}$（$c=1$ 表示句子在下一次提交前结束） |
+| $\mathcal D_r$ | 每个提交块的 Talker 实测时长 $r$ 和块特征 $\mathbf z$（字数、末字类型、语速档位） |
+
+**参数：**
+
+| 参数 | 含义 | 维度 |
+|---|---|---|
+| $\omega$；$\delta_s$；$b_n$ | 存活链：群体系数；场 $s$ 的偏差；句 $n$ 的随机截距 | $p$；$p$；1 |
+| $\gamma\in\{0,1\}^{p'}$ | 候选新统计量（§2.7）是否进入模型 | $p'$ |
+| $\nu$；$\epsilon_s$；$c_n$ | 下一次提交的 hazard：群体系数；场偏差；句随机截距 | $q$；$q$；1 |
+| $\beta,\sigma_r^2$ | Talker 时长的对数线性模型 | $d$；1 |
+| $\Psi,\Phi,\tau_b^2,\tau_c^2$ | 方差超参数 | — |
+
+### 5.2 先验
+
+各块之间相互独立：
+$$
+p(\Theta)=p(\omega,\gamma)\,\prod_s\mathcal N(\delta_s;0,\Psi)\prod_n\mathcal N(b_n;0,\tau_b^2)\;\cdot\;\mathcal N(\nu;n_0,V_0)\prod_s\mathcal N(\epsilon_s;0,\Phi)\prod_n\mathcal N(c_n;0,\tau_c^2)\;\cdot\;p(\beta,\sigma_r^2).
+$$
+
+**1. 存活链：群体系数，对新统计量用 spike-and-slab 先验。** 把 $\omega$ 分成已有的 $p$ 维 $\omega_\mathrm{base}$ 和候选的 $p'$ 维 $\omega_\mathrm{new}$：
+$$
+\omega_\mathrm{base}\sim\mathcal N(m_0,S_0),\quad m_0=(1,0,\dots,0)\ \ (\text{ABC logit 的系数为 1，即先验均值就是 ABC}),
+$$
+$$
+\omega_{\mathrm{new},j}\mid\gamma_j\sim\gamma_j\,\mathcal N(0,s^2)+(1-\gamma_j)\,\delta_0,\qquad \gamma_j\sim\mathrm{Bernoulli}(\tfrac12).
+$$
+
+**2. 下一次提交的 hazard。** $n_0$ 取“常数 hazard 等于 dev 上 v3 的平均提交率”对应的 logit，其余分量取 0；$V_0=\mathrm{diag}(2.5^2)$。
+
+**3. Talker 时长：共轭的 Normal–Inverse-Gamma 先验。**
+$$
+\sigma_r^2\sim\mathrm{IG}(a_0,b_0),\qquad \beta\mid\sigma_r^2\sim\mathcal N(\beta_0,\sigma_r^2\Lambda_0^{-1}).
+$$
+
+**4. 方差超参数。** 用 type-II 极大似然（经验 Bayes，即 v1 的 A3）。也可以改为全 Bayes：给每个标准差一个 half-Cauchy(0, 1) 先验，再用 NUTS 采样。两种做法的差异在 §4 的 A2 检查中报告。
+
+### 5.3 似然
+
+**(a) 存活链。** 用句随机截距 $b_n$ 取代 v1 里的“离散度修正”：v1 §11 第 4 点那种做法属于 generalized Bayes，而这里是严格的层级模型。
+$$
+P(S_k\ge u{+}1\mid S_k\ge u,\ \mathbf T_{k,u},\theta_s,b_n)=\sigma\big(\theta_s^\top\mathbf T_{k,u}+b_n\big),\qquad \theta_s=\omega+\delta_s,
+$$
+$$
+\mathcal L^S_k(\theta_s,b_n)=\Big[1-\sigma(\theta_s^\top\mathbf T_{k,S_k}+b_n)\Big]^{\mathbf 1[S_k<K_k]}\prod_{u<S_k}\sigma(\theta_s^\top\mathbf T_{k,u}+b_n).
+$$
+句 $n$ 的边际似然把 $b_n$ 积掉（一维积分，用 Gauss–Hermite 求积，节点数增加时收敛到精确值）：
+$$
+\mathcal L^S_n(\theta_s)=\int\prod_{k\in n}\mathcal L^S_k(\theta_s,b)\ \mathcal N(b;0,\tau_b^2)\,db .
+$$
+同一句的各次读取共用 $b_n$，因此在边际上正相关。这正是 v1 中离散度 6–7 的来源，现在它由模型本身表达，而不是事后修正。
+
+**(b) 下一次提交时间：带右删失的离散时间生存似然。** 协变量全部在**提交时刻 $k$ 已知**：
+$$
+\mathbf x_{k,a,j}=\big(\mathbf f(\mathbf T_k,a,\mathrm{seam}(a),\sigma_k,\xi_k,\psi),\ \mathbf e_j\big),
+$$
+其中 $\mathbf e_j$ 是步数 $j$ 的独热编码，$\psi$ 是当前策略的参数（阈值、$\lambda$），不含任何未来的统计量。设 $h_j=\sigma(\theta^{J\top}_s\mathbf x_{k,a,j}+c_n)$，$\theta^J_s=\nu+\epsilon_s$，则
+$$
+\mathcal L^J_{k,a}(\theta^J_s,c_n)=\Big[h_{J^\mathrm{obs}}\Big]^{1-c}\prod_{i<J^\mathrm{obs}}(1-h_i)\cdot\Big[1-h_{J^\mathrm{obs}}\Big]^{c}.
+$$
+- $c=1$ 时，最后一个因子表示“到句末仍未提交”的删失；
+- 句级的 $c_n$ 与 (a) 一样用求积积掉。
+
+**为什么这个似然可以用来学一个依赖策略的量。** $J$ 依赖于策略，但策略 $\pi_\psi$ 的每个动作只是观测量（$\mathbf T,\xi$）和已知参数 $\psi$ 的确定函数，而且 $\psi$ 已经放进了协变量。因此动作的选择机制是可忽略的（sequential ignorability）：条件似然 $p(J\mid\mathbf x,\theta^J)$ 不需要对策略的选择机制建模，就可以直接用于推断。
+
+策略迭代（§2.3）的每一轮，都在新的 $\psi$ 下补充数据。用旧轮数据预测新策略下的 $J$，靠的是协变量 $\psi$ 外推；外推范围只限于 dev 上实际出现过的 $\psi$ 区间。
+
+**(c) Talker 时长。**
+$$
+\log r\mid\mathbf z,\beta,\sigma_r^2\sim\mathcal N(\mathbf z^\top\beta,\sigma_r^2).
+$$
+
+**A8（条件独立）的精确含义：** 给定 $(\mathbf T_k,\mathbf x_{k,a},\mathbf z)$ 和参数，$S_k$、$J_k(a)$、$r$ 三者条件独立。§4 中的检验针对的就是这一条。
+
+### 5.4 后验
+
+先验各块独立，而三类似然各自只含互不重叠的参数，所以**联合后验精确地分解为三块**：
+$$
+p(\Theta\mid\mathcal D)=
+\underbrace{p(\omega,\gamma,\{\delta_s\}\mid\mathcal D_S)}_{\text{存活链}}\;
+\underbrace{p(\nu,\{\epsilon_s\}\mid\mathcal D_J)}_{\text{下一次提交}}\;
+\underbrace{p(\beta,\sigma_r^2\mid\mathcal D_r)}_{\text{Talker 时长}},
+$$
+其中
+$$
+p(\omega,\gamma,\{\delta_s\}\mid\mathcal D_S)\propto p(\omega,\gamma)\prod_s\Big[\mathcal N(\delta_s;0,\Psi)\prod_{n\in s}\mathcal L^S_n(\omega+\delta_s)\Big],
+$$
+$$
+p(\nu,\{\epsilon_s\}\mid\mathcal D_J)\propto \mathcal N(\nu;n_0,V_0)\prod_s\Big[\mathcal N(\epsilon_s;0,\Phi)\prod_{n\in s}\int\prod_{(k,a)\in n}\mathcal L^J_{k,a}(\nu+\epsilon_s,c)\,\mathcal N(c;0,\tau_c^2)\,dc\Big].
+$$
+
+**Talker 时长有闭式后验（共轭）。** 设设计矩阵为 $Z$，$y=\log r$：
+$$
+\Lambda_N=\Lambda_0+Z^\top Z,\quad \beta_N=\Lambda_N^{-1}(\Lambda_0\beta_0+Z^\top y),\quad a_N=a_0+\tfrac{N}{2},\quad b_N=b_0+\tfrac12\big(y^\top y+\beta_0^\top\Lambda_0\beta_0-\beta_N^\top\Lambda_N\beta_N\big).
+$$
+
+**前两块没有闭式解：**
+- 用 Laplace 近似（A2），并在小样本上与 NUTS 对比；
+- spike-and-slab 部分对 $2^{p'}$ 个模型（$p'\le 3$）逐一做 Laplace 近似，得到边际似然 $p(\mathcal D_S\mid\gamma)$，然后
+  $$
+  P(\gamma\mid\mathcal D_S)=\frac{p(\mathcal D_S\mid\gamma)\,p(\gamma)}{\sum_{\gamma'}p(\mathcal D_S\mid\gamma')\,p(\gamma')},\qquad
+  P(\gamma_j{=}1\mid\mathcal D_S)=\sum_{\gamma:\gamma_j=1}P(\gamma\mid\mathcal D_S).
+  $$
+  这就把 §2.7 的“AUC 门槛”换成了严格的 Bayes 模型选择：后验包含概率大于 0.5 才保留该统计量。AUC 仍然报告，但只作为辅助检查。
+
+### 5.5 后验预测（决策需要的三个量）
+
+对测试场 $s$，先验取 $\theta_s\sim\mathcal N(\mu_S,\Sigma_S+\hat\Psi)$、$\theta^J_s\sim\mathcal N(\mu_J,\Sigma_J+\hat\Phi)$。当前句还没有自标注，所以 $b_n,c_n$ 按它们的先验积分。
+
+**存活概率：**
+$$
+\hat P_k(S_k\ge a)=\sum_\gamma P(\gamma\mid\mathcal D_S)\,\mathbb E_{\theta_s,b}\Big[\prod_{u<a}\sigma(\theta_s^\top\mathbf T_{k,u}+b)\Big].
+$$
+
+**下一次提交的等待次数：**
+$$
+\hat P_k(J=j\mid a)=\mathbb E_{\theta^J_s,c}\Big[h_j\prod_{i<j}(1-h_i)\Big].
+$$
+
+**Talker 时长：** 后验预测是 Student-t 分布，
+$$
+\log\mathrm{dur}(a)\sim t_{2a_N}\Big(\mathbf z_a^\top\beta_N,\ \tfrac{b_N}{a_N}\big(1+\mathbf z_a^\top\Lambda_N^{-1}\mathbf z_a\big)\Big).
+$$
+
+三个期望都用 Monte Carlo 计算（A7，$M=64$）。注意都是“对乘积求期望”，不能先逐项求期望再相乘。
+
+**期望损失。** 由 A8 和后验的精确分解，三个量在后验预测下相互独立，因此
+$$
+\mathbb E\big[\mathbf 1[G_k(a)\ge g_0]\big]=\sum_{j}\hat P_k(J=j\mid a)\ P\Big(\mathrm{dur}(a)\le j\Delta-p_k-g_0\Big),
+$$
+$$
+\mathbb E\big[\varphi(G_k(a))\big]=\sum_j\hat P_k(J=j\mid a)\ \mathbb E_{\mathrm{dur}}\Big[\varphi\big((j\Delta-p_k-\mathrm{dur}(a))^+\big)\Big].
+$$
+代入 §2.4，即得 $R_k(a)$。
+
+### 5.6 测试场的在线后验（Bayes 滤波）
+
+每句结束后，用 Thinker 的整句续写得到该句各次读取的 $S_k$，从播放日志得到每次提交实际的 $J$（包括删失）。两者都不需要参考译文。然后更新两块场参数：
+$$
+p(\theta_s,\theta^J_s\mid\mathcal Y_s^{(\le n)})\propto p(\theta_s\mid\mathcal Y_s^{(<n)})\,\mathcal L^S_n(\theta_s)\ \cdot\ p(\theta^J_s\mid\mathcal Y_s^{(<n)})\,\mathcal L^J_n(\theta^J_s)
+\approx\mathcal N(\mu^{(n)}_{s},\Sigma^{(n)}_{s})\,\mathcal N(\mu^{J(n)}_{s},\Sigma^{J(n)}_{s}).
+$$
+- 这一步用 Laplace 假设密度滤波（A2）。
+- 句随机截距已经在 $\mathcal L_n$ 中积掉，因此**不再需要** v1 那种乘以 $1/\text{离散度}$ 的似然权重，滤波是严格的 Bayes 更新。
+- 标签只用于之后的句子，不存在使用未来信息的问题。
+- 在线更新还要求测试场 $\psi$ 的取值落在训练覆盖的范围内，这一点由 §5.3(b) 的外推说明保证。
+
+### 5.7 Bayes 动作
+
+$$
+a^\star_k(\lambda)=\arg\min_{a\in\mathcal A_k}\ R_k(a;\lambda),
+$$
+其中 $R_k(a;\lambda)$ 是 §2.4 的期望损失在 §5.5 后验预测下的值，并取 $C_\mathrm{seam}(M)=\lambda$。
+
+### 5.8 哪些部分不是 Bayes 推断
+
+| 部分 | 性质 | 怎么确定 |
+|---|---|---|
+| $C_\mathrm{err},C_\mathrm{lat},C_\mathrm{sil},g_0$ | 偏好，只有比值有意义 | 沿用 v1，在训练域 dev 上确定 |
+| $\lambda$（取 $C_\mathrm{seam}(M)=\lambda$） | 约束优化的对偶变量，不是随机变量 | §2.5 的对偶上升；约束中的期望可以用 §5.5 的后验预测在 dev 上计算，也可以用经验频率，两者都报告 |
+| 动作集合 $\mathcal A_k$ | 硬约束 | 规则（§2.2） |
+| 是否付出采样 $R$ 条草稿的计算 | 决策 | 后验包含概率 > 0.5，**并且**在 dev 上 Bayes 风险的下降超过计算带来的延迟代价 |
+| RealSI 上的判定 | 评测，不属于模型 | 配对 bootstrap（频率派）。也可以同时报告 Bayesian bootstrap 下的 $P(\Delta\text{BLEU}>0\mid\text{RealSI})$，两者都只算一次 |
+
+### 5.9 与 v1 的对应
+
+| v1 | v2 |
+|---|---|
+| 离散度修正（似然乘以 $1/\phi$，generalized Bayes） | 句随机截距 $b_n$，严格的层级模型 |
+| 下一个窗口一定能接上（$J\equiv1$） | $J$ 的生存似然和后验预测 |
+| Talker 时长取均值（A6） | 共轭后验，后验预测为 Student-t |
+| 新统计量用 AUC 门槛 | spike-and-slab，看后验包含概率 |
+| 碎块/切点代价是固定常数 | 硬约束 + 对偶变量 $\lambda$ |
