@@ -68,6 +68,7 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--inst", choices=["gstar", "sd"], default="gstar")
     ap.add_argument("--post-key", default="offline")
+    ap.add_argument("--dir", default="en2zh", choices=["en2zh", "zh2en"], help="the instruction's direction")
     ap.add_argument("--zero-sd", action="store_true")
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--max-new", type=int, default=400)
@@ -112,7 +113,7 @@ def main() -> None:
             prompts = []
             for w, n in zip(ws, n_audio):
                 m = n_speaker_tokens(n) if args.inst == "gstar" else 0
-                prompts.append(tok(pg.head(args.inst).replace("<|audio_pad|>", "<|audio_pad|>" * (n + m)),
+                prompts.append(tok(pg.head(args.inst, args.dir).replace("<|audio_pad|>", "<|audio_pad|>" * (n + m)),
                                    add_special_tokens=False)["input_ids"])
             L = max(len(p) for p in prompts)
             ids = torch.full((len(ws), L), tok.pad_token_id or 0, dtype=torch.long)

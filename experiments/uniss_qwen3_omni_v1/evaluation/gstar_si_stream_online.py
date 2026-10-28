@@ -108,6 +108,7 @@ def main() -> None:
     ap.add_argument("--policy", choices=["wait", "la2"], required=True)
     ap.add_argument("--window", type=float, default=1.0, help="read period, s")
     ap.add_argument("--post-key", default="lowlat")
+    ap.add_argument("--dir", default="en2zh", choices=["en2zh", "zh2en"], help="the instruction's direction")
     ap.add_argument("--lookahead-ms", type=int, default=1040)
     ap.add_argument("--zero-sd", action="store_true")
     ap.add_argument("--batch", type=int, default=16)
@@ -136,7 +137,7 @@ def main() -> None:
     sd_proj.load_state_dict(torch.load(Path(args.thinker) / "sd_proj.pt"))
     sd_proj = sd_proj.to(dev, torch.bfloat16).eval()
     emb_layer = thinker.get_input_embeddings()
-    head_ids = tok(pg.head("gstar"), add_special_tokens=False)["input_ids"]
+    head_ids = tok(pg.head("gstar", args.dir), add_special_tokens=False)["input_ids"]
     pad_at = head_ids.index(AUDIO_PAD)
     win_ms = round(args.window * 1000)
 

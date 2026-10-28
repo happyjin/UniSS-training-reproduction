@@ -56,7 +56,7 @@ def main() -> None:
             if ov <= 0:
                 return -1.0
             iou = ov / (max(u["end_s"], s["end_s"]) - min(u["begin_s"], s["start_s"]))
-            return iou + SequenceMatcher(None, u["zh"], s["text"]).ratio()
+            return iou + SequenceMatcher(None, u.get("ref", u["zh"]), s["text"]).ratio()
 
         for s in segs:
             best = max(ref, key=lambda u: fit(u, s), default=None)
@@ -80,7 +80,7 @@ def main() -> None:
             examples["slot"].append({"id": w["id"], "ref": [(u["slot"], u["begin_s"], u["en"][:60]) for u in ref],
                                      "hyp": [(s["spk"], s["start_s"], s["text"][:30]) for s in segs]})
         if omit and len(examples["omission"]) < args.examples:
-            examples["omission"].append({"id": w["id"], "ref": [(u["slot"], u["begin_s"], u["zh"][:30]) for u in ref],
+            examples["omission"].append({"id": w["id"], "ref": [(u["slot"], u["begin_s"], u.get("ref", u["zh"])[:30]) for u in ref],
                                          "hyp": [(s["spk"], s["start_s"], s["text"][:30]) for s in segs]})
         if rec["format_fail"] and len(examples["format"]) < args.examples:
             examples["format"].append({"id": w["id"], "raw": h.get("raw", "")[:200]})

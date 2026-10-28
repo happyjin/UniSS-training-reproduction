@@ -130,22 +130,24 @@ def main() -> None:
     W = [w for w in W if w["id"] in H]
     asr = {r["id"]: r.get("asr_text", "") for r in map(json.loads, open(args.asr, encoding="utf-8"))} if args.asr else None
     from experiments.uniss_qwen3_omni_v1.evaluation.si_metrics import laal, units
+    eng = any(w.get("dir") == "zh2en" for w in W)   # zh->en windows: English references in "ref", word units
+    lang, sep = ("eng", " ") if eng else ("cmn", "")
     for w in W:
         talk = sorted((u for u in w["utts"] if not u["hesitation"]), key=lambda u: u["begin_s"])
         w["_ref"] = defaultdict(str)
         for u in talk:
-            w["_ref"][u["speaker_id"]] += u["zh"].strip()
-        w["_ref_plain"] = "".join(u["zh"].strip() for u in talk)
+            w["_ref"][u["speaker_id"]] += sep + u.get("ref", u["zh"]).strip()
+        w["_ref_plain"] = sep.join(u.get("ref", u["zh"]).strip() for u in talk)
         w["_hyp"] = defaultdict(str)
         for s in H[w["id"]]["segments"]:
-            w["_hyp"][s["spk"]] += s["text"]
-        w["_hyp_plain"] = "".join(s["text"] for s in sorted(H[w["id"]]["segments"], key=lambda s: s["start_s"]))
+            w["_hyp"][s["spk"]] += sep + s["text"]
+        w["_hyp_plain"] = sep.join(s["text"] for s in sorted(H[w["id"]]["segments"], key=lambda s: s["start_s"]))
         if asr is not None:
             w["_asr"] = {k: asr.get(f"{w['id']}__S{k}", "") for k in w["_hyp"]}
         bl = H[w["id"]].get("blocks")
         if bl:
-            delays = [b["write_ms"] for b in bl for _ in units(b["text"], "cmn")]
-            w["_laal"] = laal(delays, w["dur_ms"], len(units(w["_ref_plain"], "cmn"))) if delays else None
+            delays = [b["write_ms"] for b in bl for _ in units(b["text"], lang)]
+            w["_laal"] = laal(delays, w["dur_ms"], len(units(w["_ref_plain"], lang))) if delays else None
             first_ref = min((u["begin_s"] for u in w["utts"] if not u["hesitation"]), default=0.0)
             w["_first"] = bl[0]["write_ms"] - 1000 * first_ref
         sp = [(u["begin_s"], u["end_s"]) for u in talk]
@@ -166,7 +168,7 @@ def main() -> None:
         sess_map[m] = match(hyp, ref)
     groups = {"all": W, "single_spk": [w for w in W if w["_nspk"] == 1], "multi_spk": [w for w in W if w["_nspk"] > 1],
               "overlap": [w for w in W if w["_overlap"]], "strict_review": [w for w in W if w.get("strict_review")]}
-    bleu, chrf = BLEU(tokenize="zh"), CHRF()
+    bleu, chrf = BLEU(tokenize="13a" if eng else "zh"), CHRF()
     res = {}
     for g, ws in groups.items():
         if not ws:
@@ -198,7 +200,7 @@ def main() -> None:
             pa = [p for w in ws for p in pairs_of(w["_asr"], w["_ref"], sess_map[w["meeting"]])]
             res[g]["cpASR_BLEU_session"] = round(bleu.corpus_score([a for a, _ in pa], [[b for _, b in pa]]).score, 2)
             res[g]["ASR_BLEU_speaker_blind"] = round(bleu.corpus_score(
-                ["".join(w["_asr"][k] for k in sorted(w["_asr"])) for w in ws], [[w["_ref_plain"] for w in ws]]).score, 2)
+                [sep.join(w["_asr"][k] for k in sorted(w["_asr"])) for w in ws], [[w["_ref_plain"] for w in ws]]).score, 2)
         lags = [w["_laal"] for w in ws if w.get("_laal") is not None]
         if lags:
             res[g]["LAAL_s"] = round(float(np.mean(lags)) / 1000, 3)
