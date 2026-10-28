@@ -214,6 +214,8 @@ def main() -> None:
                          "costs C_err, every stable unit withheld C_lat D; named u")
     ap.add_argument("--br-hyg-min", type=int, default=0, help="bayesrisk v2: hard action set, v3's hygiene with this "
                     "minimum (3 Chinese characters / 4 English words in v3); named h<m>")
+    ap.add_argument("--br-hyg-mode", choices=("argmin", "trim"), default="argmin", help="bayesrisk v2 --br-hyg-min: "
+                    "trim restricts the action to blocks no longer than the unconstrained Bayes action; named t")
     ap.add_argument("--br-next", default="", help="bayesrisk v2: next-commit hazard posterior json "
                     "(data_clean/fit_next_commit_hazard.py); named n<stem>")
     ap.add_argument("--br-abrupt", type=float, default=0.0, help="bayesrisk v2: Lagrange multiplier of the expected abrupt "
@@ -254,7 +256,7 @@ def main() -> None:
                       + (f"f{args.br_cost_frag:g}" if args.br_cost_frag else "") + (f"e{args.br_cost_seam:g}" if args.br_cost_seam else "")
                       + ("p" if args.br_playback else "") + (f"o{args.br_like_w:g}" if args.br_online else "")
                       + ("u" if args.br_loss == "unit" else "")
-                      + (f"h{args.br_hyg_min}" if args.br_hyg_min else "")
+                      + (f"h{args.br_hyg_min}" + ("t" if args.br_hyg_mode == "trim" else "") if args.br_hyg_min else "")
                       + (f"a{args.br_abrupt:g}n{Path(args.br_next).stem}" if args.br_abrupt else "")
                       + (f"r{args.sw_queue_rate:g}" if args.sw_queue_rate else "")) if args.policy == "bayesrisk"
                 else f"_bel{Path(args.belief).stem}t{g:g}m{args.belief_min}s{args.belief_sigma:g}" if args.policy == "belief"
@@ -328,7 +330,7 @@ def main() -> None:
                    "c_frag": args.br_cost_frag, "frag_min": args.br_frag_min or (3 if zh else 4), "c_seam": args.br_cost_seam,
                    "playback": args.br_playback, "speed_step": 1 / 60, "shift_per_s": 3.0, "shift_max": 6.0,
                    "rate": args.sw_queue_rate or (0.191 if zh else 0.339), "mc": args.br_mc, "like_w": args.br_like_w,
-                   "seed": args.seed, "loss": args.br_loss, "hyg_min": args.br_hyg_min, "abrupt": args.br_abrupt,
+                   "seed": args.seed, "loss": args.br_loss, "hyg_min": args.br_hyg_min, "hyg_mode": args.br_hyg_mode, "abrupt": args.br_abrupt,
                    "next_model": load_next(args.br_next)}
             dump = None
             if args.br_dump:

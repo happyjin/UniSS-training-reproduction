@@ -20,6 +20,9 @@ v2 (docs/m2_bayesrisk_v2_model.zh-CN.md):
   --br-hyg-min m   hard action set: a block is admissible only if v3's hygiene (si_fluency_rules.hygiene) would commit
                    it unchanged (no dangling end, >= m content units while the Talker is idle unless it ends a clause);
                    this is C_frag -> infinity (Prop. 2 of the v1 model)
+  --br-hyg-mode    argmin: the Bayes action over the admissible blocks; trim: over the admissible blocks no longer than
+                   the unconstrained Bayes action (the rule may only delay speech, never advance it, as v3's hygiene
+                   trims the self-wait prefix; argmin can jump past the confident prefix to the next admissible end)
   --br-next json   posterior of the next-commit hazard P(J = j | J >= j, x) = sigmoid(eta . x_j + c_n) (fitted by
                    data_clean/fit_next_commit_hazard.py), x known at the read (NEXT_BASE) plus the step j
   --br-abrupt lam  the expected abrupt-pause cost lam * 1[source speaking] * 1[mid-phrase seam] * P(G >= g0), G the
@@ -333,6 +336,9 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                 best, a = None, 0
                 fi = FEATS.index("forced")
                 speaking = 1.0 - pause
+                a_free = K + 1
+                if cfg.get("hyg_min") and cfg.get("hyg_mode") == "trim":   # the unconstrained unit-loss action
+                    a_free = int(np.argmin(err_c + c_lat * D * tail))
                 v2 = cfg.get("hyg_min", 0) or lam > 0 or rec_out is not None
                 seams = draft_seams(it["committed"], gu, zh) if v2 else [None] * (K + 1)
                 idle = it["busy"] <= it["t"]
@@ -342,6 +348,8 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                     blk = gu[:cand]
                     if cand and has_loop(it["committed"] + blk) and not has_loop(it["committed"]):
                         continue
+                    if cand > a_free:
+                        break
                     if cand and cfg.get("hyg_min") and hygiene(it["committed"], blk, zh, idle, cfg["hyg_min"]) != blk:
                         continue   # v2 hard action set: v3's hygiene would not commit this block as it is
                     ncu = content_units(blk, zh)
