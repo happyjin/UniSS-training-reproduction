@@ -67,6 +67,7 @@ def main():
   ap.add_argument("--k-max", type=int, default=3)
   ap.add_argument("--risk", default=None, help="t3 risk head json (from fit_t3.py)")
   ap.add_argument("--policy-head", default=None, help="T1 / T2 / T5 head (from fit_policies.py)")
+  ap.add_argument("--render-lookahead", type=int, default=0, help="--render: decoder right context in frames")
   ap.add_argument("--dec-ckpt", default=None, help="replace the frozen HiFi-GAN decoder (e.g. S5's, train_s5_wavlm.py)")
   ap.add_argument("--backbone-config", required=True)
   ap.add_argument("--backbone-ckpt", required=True)
@@ -170,7 +171,7 @@ def main():
         rec["units"].append({"i": i, "j": j, "y": plan["y"].tolist(), "dur": plan["dur"].tolist(), **info})
       rec["compute_s"] = time.time() - t0 - excluded
       if args.render:
-        wav = sim.render_incremental()
+        wav = sim.render_incremental(lookahead=args.render_lookahead)
         sf.write(out / "wavs" / f"{r['utt_id']}.wav", wav, 22050)
       if not rec["dump"]:
         rec.pop("dump")

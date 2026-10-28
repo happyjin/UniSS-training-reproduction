@@ -128,22 +128,30 @@ class Simulator:
     self.decisions.append(j)
 
   @torch.no_grad()
-  def render_incremental(self, left_ctx=48):
-    """Committed unit by committed unit: flow inverse over committed frames only, decoder with left context."""
+  def render_incremental(self, left_ctx=48, lookahead=0):
+    """Committed unit by committed unit: flow inverse over committed frames only, decoder with left context. With
+    lookahead R > 0 the last R committed frames are held back as the decoder's right context and played after the
+    next commit (latency + R frames); played frames never change."""
     flow, dec = self.m.frozen["flow"], self.m.frozen["dec"]
     hop = 256
     zp_all = torch.zeros(192, 0, device=self.dev)
-    z_done = torch.zeros(192, 0, device=self.dev)
+    z_emit = torch.zeros(192, 0, device=self.dev)
     pieces = []
-    for zp in self.committed_zp:
-      if zp.size(1) == 0:
+    for n, zp in enumerate(self.committed_zp):
+      last = n == len(self.committed_zp) - 1
+      if zp.size(1) == 0 and not last:
         continue
       zp_all = torch.cat([zp_all, zp], 1)
+      if zp_all.size(1) == 0:
+        continue
       mask = torch.ones(1, 1, zp_all.size(1), device=self.dev)
       z = flow(zp_all[None], mask, reverse=True)[0]
-      z_new = z[:, z_done.size(1):]
-      z_done = torch.cat([z_done, z_new], 1)
-      s = max(0, z_done.size(1) - z_new.size(1) - left_ctx)
-      o = dec(z_done[None, :, s:])[0, 0]
-      pieces.append(o[(z_done.size(1) - z_new.size(1) - s) * hop:])
+      emitted = z_emit.size(1)
+      z = torch.cat([z_emit, z[:, emitted:]], 1)
+      end = z.size(1) if last else max(emitted, z.size(1) - lookahead)
+      if end > emitted:
+        s = max(0, emitted - left_ctx)
+        o = dec(z[None, :, s:])[0, 0]
+        pieces.append(o[(emitted - s) * hop:(end - s) * hop])
+        z_emit = z[:, :end]
     return torch.cat(pieces).float().cpu().numpy() if pieces else np.zeros(0, dtype=np.float32)
