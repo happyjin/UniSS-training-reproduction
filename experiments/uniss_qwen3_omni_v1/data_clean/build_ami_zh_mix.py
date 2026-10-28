@@ -177,6 +177,14 @@ def mix_one(job):
         if spk_rms.get(u["speaker_id"]) and len(active):
             g = float(np.clip(spk_rms[u["speaker_id"]] / (np.sqrt(np.mean(active ** 2)) + 1e-9), 0.05, 10.0))
         y = y * g
+        en_dur = max(1e-3, u["en_end"] - u["en_begin"])
+        rate = 1.0
+        if args.tempo_max > 1.0 and len(y) / SR > en_dur:   # speak faster, pitch kept, at most --tempo-max
+            import librosa
+            rate = float(min(args.tempo_max, len(y) / SR / en_dur))
+            y = librosa.effects.time_stretch(y, rate=rate).astype(np.float32)
+        if args.clips_dir and (u["cer"] is None or u["cer"] > GATE["max_cer"]):
+            sf.write(str(Path(args.clips_dir) / f"{u['record_id']}.wav"), y, SR)
         start = u["en_begin"]
         shift = max(0.0, last_end.get(u["speaker_id"], -1.0) + 0.05 - start)
         start += shift
@@ -186,8 +194,7 @@ def mix_one(job):
         out[a: a + len(y)] += y
         end = start + len(y) / SR
         last_end[u["speaker_id"]] = end
-        en_dur = max(1e-3, u["en_end"] - u["en_begin"])
-        r.update(placed=True, zh_begin=round(start, 3), zh_end=round(end, 3), shift_s=round(shift, 3),
+        r.update(placed=True, tempo=round(rate, 3), zh_begin=round(start, 3), zh_end=round(end, 3), shift_s=round(shift, 3),
                  ratio=round((end - start) / en_dur, 3), inner_sil_s=round(inner, 3), gain=round(g, 3))
         rows.append(r)
     n_out = max(n_sess, int(np.max(np.nonzero(out)[0]) + 1 if out.any() else n_sess) + SR // 2)
@@ -218,6 +225,8 @@ def mix(args) -> None:
         raise SystemExit(f"拒绝覆盖已有输出: {out} / {adir}")
     (out / "utts").mkdir(parents=True)
     adir.mkdir(parents=True)
+    if args.clips_dir:
+        Path(args.clips_dir).mkdir(parents=True)
     by_m = load_meta()
     meetings = sorted(m for m in by_m if (DATA / "session_audio/ihm_mix" / f"{m}.Mix-Headset.wav").exists())
     if args.limit:
@@ -256,14 +265,29 @@ def groups_of(us: list[dict], key_b: str, key_e: str, max_s: float = 20.0) -> li
     return gs
 
 
+def cer_of(hyp: str, ref: str) -> float:
+    import re
+    h, r = re.sub(r"[\W_]", "", hyp or ""), re.sub(r"[\W_]", "", ref or "")
+    if not r:
+        return 0.0 if not h else 1.0
+    prev = list(range(len(h) + 1))
+    for i, cr in enumerate(r, 1):
+        cur = [i] + [0] * len(h)
+        for j, ch in enumerate(h, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (cr != ch))
+        prev = cur
+    return prev[-1] / len(r)
+
+
 def bad_reason(u: dict) -> str | None:
-    """§11.5 gate for one non-hesitation utterance of the Chinese meeting."""
+    """§11.5 gate for one non-hesitation utterance of the Chinese meeting. The chain's Whisper CER is unreliable on
+    very short Chinese clips, so a clip it rejects passes if a second ASR (Paraformer, u["cer2"]) hears it."""
     if not u["placed"]:
         return [f for f in u["flags"] if f != "hesitation"][0] if u["flags"] else "not_placed"
-    if u["cer"] is None:
-        return "no_cer"
-    if u["cer"] > GATE["max_cer"]:
-        return "cer"
+    ok1 = u["cer"] is not None and u["cer"] <= GATE["max_cer"]
+    ok2 = u.get("cer2") is not None and u["cer2"] <= GATE["max_cer"]
+    if not (ok1 or ok2):
+        return "cer" if (u["cer"] is not None or u.get("cer2") is not None) else "no_cer"
     if u["inner_sil_s"] > GATE["max_inner_sil_s"]:
         return "inner_silence"
     if u["ratio"] > GATE["max_ratio"] and (u["en_end"] - u["en_begin"]) >= GATE["short_en_s"]:
@@ -275,6 +299,12 @@ def audit(args) -> None:
     out = Path(args.out)
     split_of = json.load(open(DATA / "meetings.json"))
     U = {f.stem: [json.loads(l) for l in open(f, encoding="utf-8")] for f in sorted((out / "utts").glob("*.jsonl"))}
+    if args.recheck:
+        asr = {r["id"]: r.get("asr_text", "") for r in map(json.loads, open(args.recheck, encoding="utf-8"))}
+        for us in U.values():
+            for u in us:
+                if u["record_id"] in asr:
+                    u["cer2"] = round(cer_of(asr[u["record_id"]], u["zh"]), 4)
     res = {"gate": GATE, "splits": {}, "meetings": {}}
     agg = defaultdict(lambda: defaultdict(float))
     ratios = defaultdict(list)
@@ -299,10 +329,12 @@ def audit(args) -> None:
             if u["zh_begin"] < last.get(u["speaker_id"], -1) - 1e-3:
                 self_ov += 1
             last[u["speaker_id"]] = max(last.get(u["speaker_id"], -1), u["zh_end"])
-        # windows on the Chinese clock, built from every non-hesitation utterance (placed or not), then gated
-        g_en = groups_of(placed, "en_begin", "en_end")
-        g_zh = groups_of([u for u in placed], "zh_begin", "zh_end")
-        kept = [g for g in g_zh if not any(u["_bad"] for u in g)]
+        # windows: the English utterance groups (every non-hesitation utterance, so a missing clip fails its window);
+        # a kept window spans its members' Chinese times. Groups on the Chinese clock only for comparison.
+        g_en = groups_of(talk, "en_begin", "en_end")
+        g_zh = groups_of(placed, "zh_begin", "zh_end")
+        kept = [g for g in g_en if not any(u["_bad"] for u in g)
+                and max(u["zh_end"] for u in g) - min(u["zh_begin"] for u in g) <= 20.5]
         multi = lambda gs: sum(len({u["speaker_id"] for u in g}) > 1 for g in gs) / max(1, len(gs))   # noqa: E731
         mm = {"split": sp, "utts": len(talk), "placed": len(placed), "coverage": len(placed) / max(1, len(talk)),
               "bad": dict(bad), "overlap_ratio_en": en["overlap_s"] / max(1e-6, en["speech_s"]),
@@ -357,11 +389,14 @@ def main() -> None:
     a.add_argument("--audio-dir", default="", help="where the meeting wavs go (default session_audio/<name>)")
     a.add_argument("--squeeze", type=float, default=0.0, help="cut inner pauses longer than this (s); 0 = off")
     a.add_argument("--background", type=int, default=1)
+    a.add_argument("--tempo-max", type=float, default=1.0, help="speed up clips longer than the English, at most this")
+    a.add_argument("--clips-dir", default="", help="also write the clips the CER gate rejects, for the ASR recheck")
     a.add_argument("--procs", type=int, default=48)
     a.add_argument("--limit", type=int, default=0)
     a = sub.add_parser("audit")
     a.add_argument("--out", required=True)
     a.add_argument("--name", default="audit.json")
+    a.add_argument("--recheck", default="", help="Paraformer transcripts of the rejected clips (asr_transcribe output)")
     args = ap.parse_args()
     {"mix": mix, "audit": audit}[args.cmd](args)
 
