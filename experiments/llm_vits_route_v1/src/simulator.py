@@ -80,11 +80,14 @@ class Simulator:
     if m.use_future:
       cids, clens = self._encode_seqs(self.future_seqs(j))
       fut = m.future_features(cids, clens, 1, blk)
+    r_noise = None
+    if getattr(m, "use_diff", False):   # S1: the diffusion draw of r is fixed per (utterance, unit)
+      r_noise = torch.randn(1, m.diff.steps + 1, m.diff.r_dim, generator=unit_rng(self.seed, self.uid, i, 4)).to(self.dev)
     x, m_p, logs_p, x_mask, dur_cond, _ = m.forward_step(ids, lens, blk, qfeat=qfeat, q_last_idx=lens - 1, fut=fut,
-                                                         hist=hist, hist_lens=hist_len, r_mode="prior")
+                                                         hist=hist, hist_lens=hist_len, r_mode="prior", r_noise=r_noise)
     logw = m.dp(x, blk, cond=dur_cond, reverse=True, noise_scale=self.noise_w, noise=self._noise(i, tv))
     w = torch.ceil(torch.exp(logw) * blk)[0, 0, a:b].long().cpu().numpy()
-    return {"dur": w, "m_p": m_p[0, :, a:b], "logs_p": logs_p[0, :, a:b], "y": self.y_of(i, w)}
+    return {"dur": w, "m_p": m_p[0, :, a:b], "logs_p": logs_p[0, :, a:b], "h": x[0, :, a:b], "y": self.y_of(i, w)}
 
   def _noise(self, i, tv):
     """SDP noise for unit i, identical at every visible length (common random numbers)."""

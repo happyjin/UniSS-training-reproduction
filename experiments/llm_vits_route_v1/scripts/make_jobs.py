@@ -36,6 +36,12 @@ def main():
   ap.add_argument("--spread", default="")
   ap.add_argument("--t3", default="")
   ap.add_argument("--risk", default="")
+  ap.add_argument("--gamma", default="", help="T1 thresholds (needs --t1-head)")
+  ap.add_argument("--ot", default="", help="T2 thresholds (needs --t2-head)")
+  ap.add_argument("--t5", default="", help="T5 LAM or LAM:EPS values, comma separated (needs --t5-head)")
+  ap.add_argument("--t1-head", default="")
+  ap.add_argument("--t2-head", default="")
+  ap.add_argument("--t5-head", default="")
   ap.add_argument("--render", action="store_true")
   ap.add_argument("--noise-w", type=float, default=0.0)
   ap.add_argument("--tag", default="")
@@ -81,6 +87,12 @@ def main():
       add(f"{a.model}_spread_{t}", m + pr + ["--policy", f"spread:{t}"])
     for t in filter(None, a.t3.split(",")):
       add(f"t3_{a.model}_{t}", m + pr + ["--policy", f"t3:{t}", "--risk", a.risk])
+    for t in filter(None, a.gamma.split(",")):
+      add(f"t1_{a.model}_{t}", m + pr + ["--policy", f"gamma:{t}", "--policy-head", a.t1_head])
+    for t in filter(None, a.ot.split(",")):
+      add(f"t2_{a.model}_{t}", m + pr + ["--policy", f"ot:{t}", "--policy-head", a.t2_head])
+    for t in filter(None, a.t5.split(",")):
+      add(f"t5_{a.model}_{t.replace(':', '_')}", m + pr + ["--policy", f"t5:{t}", "--policy-head", a.t5_head, "--risk", a.risk])
   if Path(a.out).exists():
     sys.exit(f"refusing to overwrite {a.out}")
   json.dump(jobs, open(a.out, "w"), indent=1)
