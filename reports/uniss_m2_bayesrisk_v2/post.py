@@ -1,4 +1,5 @@
-"""RealSI post-processing of the bayesrisk v2 systems (after jobs/realsi_jobs.json): per system the continuous-timeline
+"""RealSI post-processing of the bayesrisk v2 systems (after jobs/realsi_jobs.json; --round r2: the second zh2en test
+after jobs/realsi_r2_jobs.json, written to final_r2_zh2en.json / matched_r2.md next to the first round's systems): per system the continuous-timeline
 abrupt analysis (reports/uniss_m2_fluency_results_v2/abrupt/abrupt.py, mode s1b1.2q) and UTMOS; then the comparison
 with the whole v3 curve (final_<d>.json), a paired bootstrap of every system against the nearest-LAAL v3 point
 (pair_<system>.json), and the matched-LAAL table (matched.md). v3's numbers come from the same runs and scripts as the
@@ -40,7 +41,16 @@ def sh(cmd):
     subprocess.run(["bash", "-c", cmd], cwd=ROOT, check=True)
 
 
+SYS_R2 = [("br3Pd-a1-b0_zh2en", "br3Pd-a1-zh-b0_m1", "zh2en", "1", "_brop1b0mposterior_dev_v3puda1nnext_it3_zh2en_cln"),
+          ("br3Pd-a1-b0.5_zh2en", "br3Pd-a1-zh-b0.5_m1", "zh2en", "1", "_brop1b0.5mposterior_dev_v3puda1nnext_it3_zh2en_cln")]
+
+
 def main():
+    global SYS
+    r2 = sys.argv[1:] == ["--round", "r2"]
+    tag = "_r2" if r2 else ""
+    if r2:
+        SYS = [s for s in SYS if s[2] == "zh2en"] + SYS_R2
     (HERE / "abrupt").mkdir(exist_ok=True)
     (HERE / "utmos").mkdir(exist_ok=True)
     procs = []
@@ -58,8 +68,8 @@ def main():
     for p in procs:
         assert p.wait() == 0, p.args
     ut_args = f"--utmos {V1}/utmos_all.jsonl " + " ".join(f"--utmos {HERE}/utmos/{n}.jsonl" for n, *_ in SYS)
-    for d in ("en2zh", "zh2en"):
-        out = HERE / f"final_{d}.json"
+    for d in (("zh2en",) if r2 else ("en2zh", "zh2en")):
+        out = HERE / f"final{tag}_{d}.json"
         runs = [f"--run {k}={E}/system_{v}/realsi_{d}" for k, v in V3[d].items()]
         runs += [f"--run {n}={E}/system_{sd}/realsi_{dd}" for n, sd, dd, *_ in SYS if dd == d]
         if not out.exists():
@@ -73,7 +83,10 @@ def main():
             if not po.exists():
                 sh(f"{CMP} --base {near} {ut_args} --run {near}={E}/system_{V3[d][near]}/realsi_{d} "
                    f"--run {n}={E}/system_{sd}/realsi_{d} --out {po} > {po.with_suffix('.log')} 2>&1")
-    sh(f"{EV} {HERE}/matched.py {HERE}/final_en2zh.json {HERE}/final_zh2en.json > {HERE}/matched.md")
+    if r2:
+        sh(f"{EV} {HERE}/matched.py {HERE}/final_r2_zh2en.json > {HERE}/matched_r2.md")
+    else:
+        sh(f"{EV} {HERE}/matched.py {HERE}/final_en2zh.json {HERE}/final_zh2en.json > {HERE}/matched.md")
     print("POST_DONE", flush=True)
 
 
