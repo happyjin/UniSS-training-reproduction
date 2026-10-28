@@ -203,6 +203,10 @@ def mix_one(job):
             import librosa
             rate = float(min(args.tempo_max, len(y) / SR / en_dur))
             y = librosa.effects.time_stretch(y, rate=rate).astype(np.float32)
+        elif args.tempo_min < 1.0 and len(y) / SR < en_dur and len(y) >= SR // 2:   # slower, at most 1/--tempo-min
+            import librosa
+            rate = float(max(args.tempo_min, len(y) / SR / en_dur))
+            y = librosa.effects.time_stretch(y, rate=rate).astype(np.float32)
         if args.clips_dir and args.clips_map is None and (u["cer"] is None or u["cer"] > GATE["max_cer"]):
             sf.write(str(Path(args.clips_dir) / f"{u['record_id']}.wav"), y, SR)
         start = u["en_begin"]
@@ -435,6 +439,8 @@ def main() -> None:
     a.add_argument("--background", type=int, default=1)
     a.add_argument("--bg-quantile", type=float, default=0.75, help="background frames at or below this energy quantile")
     a.add_argument("--max-gain", type=float, default=4.0, help="loudness gain cap per clip")
+    a.add_argument("--tempo-min", type=float, default=1.0,
+                   help="slow down clips shorter than the English (>= 0.5 s), rate at least this (0.8 = 1.25x longer)")
     a.add_argument("--tempo-max", type=float, default=1.0, help="speed up clips longer than the English, at most this")
     a.add_argument("--clips-from", default="", help="si_infer results.jsonl of re-spoken clips (id = record_id)")
     a.add_argument("--exclude", default="", help="jsonl {record_id, reason}: utterances left out (audit --write-exclude)")
