@@ -33,12 +33,14 @@ def main() -> None:
     ap.add_argument("--data", default=str(REPO / "data/ami_multispk_si_v1"))
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--num-shards", type=int, default=1)
+    ap.add_argument("--audio", default="ihm_mix", help="session_audio/<audio>: ihm_mix, or a Chinese mix (<meeting>.wav)")
+    ap.add_argument("--out-name", default="", help="diar/<out-name> (default nemotron_<preset>)")
     args = ap.parse_args()
 
     from nemo.collections.asr.models import SortformerEncLabelModel
 
     data = Path(args.data)
-    out = data / "diar" / f"nemotron_{args.preset}"
+    out = data / "diar" / (args.out_name or f"nemotron_{args.preset}")
     out.mkdir(parents=True, exist_ok=True)
     meetings = sorted(json.load(open(data / "meetings.json")))[args.shard:: args.num_shards]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,7 +52,7 @@ def main() -> None:
     for i, m in enumerate(meetings, 1):
         if (out / f"{m}.post.pt").exists():
             continue
-        wav = data / "session_audio" / "ihm_mix" / f"{m}.Mix-Headset.wav"
+        wav = data / "session_audio" / args.audio / (f"{m}.Mix-Headset.wav" if args.audio == "ihm_mix" else f"{m}.wav")
         dur = sf.info(str(wav)).duration
         with torch.no_grad():
             segs, probs = model.diarize(audio=[str(wav)], batch_size=1, include_tensor_outputs=True, verbose=False)
