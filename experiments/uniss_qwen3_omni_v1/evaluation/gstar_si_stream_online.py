@@ -6,6 +6,10 @@ its reply so far as the start of its answer, then:
   --policy wait  (a model trained on streaming rows) generates until <|box_end|>; all of it is committed;
   --policy la2   (any model, e.g. the offline O-G1) generates to the end; the longest common prefix, in tokens,
                  of this continuation and the previous one is committed (LocalAgreement-2).
+  --policy abc   a model trained on ABC rows: like wait, with a bias on the wait logit (--bias b0), optionally
+                 state-dependent on the single-channel speech queue (--sdr) and with fluent realisation (--fr: a block
+                 may not end on a dangling unit, and while the talker is idle it needs 3 Chinese characters / 4 English
+                 words unless it closes a segment; the rest waits)
   --policy oracle  ABC labels (plan v9 §3): at every read the draft (audio so far, causal speaker stream) and the
                  oracle (the whole window, full speaker stream) both continue the committed tokens to the end; their
                  longest common prefix, cut back to a point where decoding and re-tokenising the committed text gives
@@ -26,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import time
 import zlib
 from pathlib import Path
@@ -111,7 +116,10 @@ def main() -> None:
     ap.add_argument("--thinker", required=True)
     ap.add_argument("--windows", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--policy", choices=["wait", "la2", "oracle"], required=True)
+    ap.add_argument("--policy", choices=["wait", "la2", "oracle", "abc"], required=True)
+    ap.add_argument("--bias", type=float, default=0.0, help="abc: b0, added to the wait logit (> 0 waits more)")
+    ap.add_argument("--sdr", action="store_true", help="abc: state-dependent bias from the speech queue (plan v9 §5)")
+    ap.add_argument("--fr", action="store_true", help="abc: fluent realisation, commit only admissible blocks")
     ap.add_argument("--window-set", default="", help="oracle: read periods to choose from per window, e.g. 0.5,1,2,4")
     ap.add_argument("--window", type=float, default=1.0, help="read period, s")
     ap.add_argument("--post-key", default="lowlat")
@@ -194,8 +202,12 @@ def main() -> None:
         o = thinker.model(inputs_embeds=emb, attention_mask=mask, use_cache=True, return_dict=True)
         pkv = o.past_key_values
 
+        bias = torch.as_tensor([s.get("bias", 0.0) for s in states], device=dev, dtype=torch.float32)
+
         def pick(h, fin_row):
             lg = thinker.lm_head(h).float()
+            if args.policy == "abc":
+                lg[:, WAIT_ID] += bias
             lg[fin_row, WAIT_ID] = -1e9   # the last read ends the window
             if args.policy in ("la2", "oracle"):
                 lg[:, WAIT_ID] = -1e9
@@ -224,6 +236,79 @@ def main() -> None:
         return gen
 
     periods = [round(float(v) * 1000) for v in args.window_set.split(",")] if args.window_set else [win_ms]
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_metrics import units
+    lang = "eng" if args.dir == "zh2en" else "cmn"
+    zh = lang == "cmn"
+    RHO = {"cmn": 0.19, "eng": 0.34}   # spoken seconds per unit (the talker's training output)
+
+    def sdr_bias(q: float, period_ms: int) -> float:
+        tau0 = 1.0 / (1.0 + math.exp(-args.bias))
+        tau = min(0.9975, 1.0 - (1.0 - tau0) * max(0.0, period_ms / 1000 - q) / (period_ms / 1000))
+        return math.log(tau / (1.0 - tau))
+
+    def split_tail(committed: list[int], new: list[int]):
+        """new -> (index after the last closed segment, the open segment's text token positions, its committed text)."""
+        open_seg, start_seen = False, False
+        seg_text = []
+        for i in committed:   # where the committed tokens leave off: inside a segment's text or not
+            if SPK0 <= i < NEW_END:
+                open_seg, start_seen, seg_text = True, False, []
+            elif NEW0 <= i < SPK0:
+                if open_seg and not start_seen:
+                    start_seen = True
+                elif open_seg:
+                    open_seg, seg_text = False, []
+            elif open_seg and start_seen:
+                seg_text.append(i)
+        safe, text_pos = 0, []
+        for j, i in enumerate(new):
+            if SPK0 <= i < NEW_END:
+                open_seg, start_seen, seg_text, text_pos = True, False, [], []
+                safe = j   # a header may be committed on its own
+            elif NEW0 <= i < SPK0:
+                if open_seg and not start_seen:
+                    start_seen = True
+                    safe = j + 1
+                elif open_seg:
+                    open_seg, text_pos, safe = False, [], j + 1   # a closed segment is always admissible
+            elif open_seg and start_seen:
+                text_pos.append(j)
+        return safe, text_pos, seg_text
+
+    def fr_cut(s: dict, new: list[int]) -> list[int]:
+        """Fluent realisation: the longest admissible prefix of this read's new tokens."""
+        safe, text_pos, seg_text = split_tail(s["committed"], new)
+        if not text_pos:
+            return new
+        idle = s["q"] <= 0.0
+        before = units(tok.decode(seg_text, skip_special_tokens=False), lang)
+        cand = units(tok.decode([new[j] for j in text_pos], skip_special_tokens=False), lang)
+        keep = hygiene(before, cand, zh, idle, 3 if zh else 4)
+        if len(keep) == len(cand):
+            return new
+        best = safe if safe <= text_pos[0] else text_pos[0]
+        for m in range(len(text_pos), 0, -1):   # the longest token prefix whose text is the kept units
+            u = units(tok.decode([new[j] for j in text_pos[:m]], skip_special_tokens=False), lang)
+            if len(u) <= len(keep) and u == keep[: len(u)] and len(u) == len(keep):
+                best = text_pos[m - 1] + 1
+                break
+        return new[:best]
+
+    def spoken_of(s: dict, new: list[int]):
+        """Units of text committed now and how many times the speaker changes."""
+        a, changes = 0, 0
+        txt = []
+        for i in new:
+            if SPK0 <= i < NEW_END:
+                k = i - SPK0 + 1
+                if s["last_spk"] is not None and k != s["last_spk"]:
+                    changes += 1
+                s["last_spk"] = k
+            elif not (NEW0 <= i < SPK0) and i not in (EOS_ID, WAIT_ID):
+                txt.append(i)
+        a = len(units(tok.decode(txt, skip_special_tokens=False), lang)) if txt else 0
+        return a, changes
 
     def stable_cut(committed: list[int], new: list[int], k: int) -> int:
         """Largest k' <= k whose committed text re-tokenises to the same ids (a prompt that ends inside a merged token
@@ -244,13 +329,15 @@ def main() -> None:
                 assert sr == 16000
                 states.append({"w": w, "wav": x.mean(1), "post": np.load(w["post"][args.post_key]).astype(np.float32),
                                "committed": [], "prev": None, "parser": Parser(tok), "blocks": [], "done": False,
-                               "dur": int(round(len(x) / 16)), "r": 0, "reads": [],
+                               "dur": int(round(len(x) / 16)), "r": 0, "reads": [], "q": 0.0, "last_spk": None,
                                "period": periods[zlib.crc32(w["id"].encode()) % len(periods)]})
             while any(not s["done"] for s in states):
                 live = [s for s in states if not s["done"]]
                 for s in live:
                     s["r"] += 1
                     s["t"] = min(s["r"] * s["period"], s["dur"])
+                    if args.policy == "abc":
+                        s["bias"] = sdr_bias(s["q"], s["period"]) if args.sdr else args.bias
                 finals = [s["t"] >= s["dur"] for s in live]
                 gens = generate(live, finals)
                 if args.policy == "oracle":
@@ -268,10 +355,15 @@ def main() -> None:
                                            "k": k})
                     elif fin or args.policy == "wait":
                         new = body
+                    elif args.policy == "abc":
+                        new = fr_cut(s, body) if args.fr else body
                     else:   # LA2: what this continuation and the previous one agree on
                         k = lcp(body, s["prev"]) if s["prev"] is not None else 0
                         new, s["prev"] = body[:k], body[k:]   # the rest is what the next read is compared with
                     s["committed"] += new
+                    if args.policy == "abc":   # the single-channel queue after this read's commitment
+                        a_units, n_changes = spoken_of(s, new)
+                        s["q"] = max(0.0, s["q"] + RHO[lang] * a_units + 0.2 * n_changes - s["period"] / 1000)
                     s["blocks"] += s["parser"].feed(new, s["t"])
                     if fin:
                         s["parser"].close(s["dur"] / 1000, s["t"])
