@@ -23,6 +23,9 @@ v2 (docs/m2_bayesrisk_v2_model.zh-CN.md):
   --br-hyg-mode    argmin: the Bayes action over the admissible blocks; trim: over the admissible blocks no longer than
                    the unconstrained Bayes action (the rule may only delay speech, never advance it, as v3's hygiene
                    trims the self-wait prefix; argmin can jump past the confident prefix to the next admissible end)
+  --br-dangle      the doc's hard exclusion of seams inside a word or after a function word (C_seam(W) = C_seam(P-fw) =
+                   infinity, v2 model §2.4) without the minimum-length rule: a block must have content and must not end
+                   on a dangling word (si_fluency_rules.trim_dangling); like trim it never lengthens the Bayes action
   --br-next json   posterior of the next-commit hazard P(J = j | J >= j, x) = sigmoid(eta . x_j + c_n) (fitted by
                    data_clean/fit_next_commit_hazard.py), x known at the read (NEXT_BASE) plus the step j
   --br-abrupt lam  the expected abrupt-pause cost lam * 1[source speaking] * 1[mid-phrase seam] * P(G >= g0), G the
@@ -337,9 +340,9 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                 fi = FEATS.index("forced")
                 speaking = 1.0 - pause
                 a_free = K + 1
-                if cfg.get("hyg_min") and cfg.get("hyg_mode") == "trim":   # the unconstrained unit-loss action
+                if (cfg.get("hyg_min") and cfg.get("hyg_mode") == "trim") or cfg.get("dangle"):   # the unconstrained action
                     a_free = int(np.argmin(err_c + c_lat * D * tail))
-                v2 = cfg.get("hyg_min", 0) or lam > 0 or rec_out is not None
+                v2 = cfg.get("hyg_min", 0) or cfg.get("dangle") or lam > 0 or rec_out is not None
                 seams = draft_seams(it["committed"], gu, zh) if v2 else [None] * (K + 1)
                 idle = it["busy"] <= it["t"]
                 for cand in range(K + 1):
@@ -350,6 +353,8 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                         continue
                     if cand > a_free:
                         break
+                    if cand and cfg.get("dangle") and (not content_units(blk, zh) or trim_dangling(it["committed"], blk, zh) != blk):
+                        continue   # no block ending inside a word or after a function word
                     if cand and cfg.get("hyg_min") and hygiene(it["committed"], blk, zh, idle, cfg["hyg_min"]) != blk:
                         continue   # v2 hard action set: v3's hygiene would not commit this block as it is
                     ncu = content_units(blk, zh)
@@ -493,6 +498,9 @@ def _selftest() -> None:
     from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
     assert hygiene([], ["the"], False, True, 4) == []                    # dangling function word: inadmissible
     assert hygiene(["I", "said"], ["it", "is", "fine,"], False, True, 4) == ["it", "is", "fine,"]   # a clause end
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import trim_dangling
+    assert trim_dangling(["We"], ["went", "to", "the"], False) != ["went", "to", "the"]   # --br-dangle excludes it
+    assert trim_dangling(["We"], ["went", "home"], False) == ["went", "home"]             # a short block is fine
     print("si_bayesrisk selftest ok")
 
 

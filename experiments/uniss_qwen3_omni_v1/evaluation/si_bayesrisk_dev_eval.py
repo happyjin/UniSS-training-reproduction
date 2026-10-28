@@ -13,6 +13,13 @@ whether the source was speaking during it (energy VAD of the item's audio, as ab
 abrupt = mid-clause seam (P, P-fw, W) while the source speaks, per minute of modelled speech. Pauses inside a block
 (the Talker's own) are not modelled.
 
+--timeline talk replaces the isolated sentences by pseudo-talks: items in id order, TALK_N per talk, each sentence's
+source placed after the previous one with TALK_GAP_S of silence, and the blocks played on one continuous talk clock
+with the playback rules of the RealSI analysis (si_talk_timeline.schedule as abrupt.py calls it, mode s1b1.2q: tempo
+1.0 idle / up to 1.10 with a queue / 1.05 on a final block, adaptive playout buffer 1.2 s waiting at most 1.5 s), on
+durations only (units x rate). Every silence >= 0.5 s on that clock counts, the ones between two sentences as
+S-between, so the measure sees the pauses that a committed block leaves before the next one actually plays.
+
     python -m experiments.uniss_qwen3_omni_v1.evaluation.si_bayesrisk_dev_eval --direction en2zh \
         --run name=blocks.jsonl ... --out dev.json
 """
@@ -27,6 +34,78 @@ import numpy as np
 
 from evaluation.text_metrics import corpus_bleu
 from experiments.uniss_qwen3_omni_v1.evaluation.si_metrics import laal, units
+
+
+TALK_N, TALK_GAP_S = 8, 0.3
+
+
+def play_schedule(blocks: list[dict], fast_max=1.10, slow=1.0, final=1.05, buffer_s=1.2, buffer_wait_s=1.5) -> list[dict]:
+    """si_talk_timeline.schedule on durations: blocks [{commit, dur, final, seg, k}] (ms) -> start / play_dur added."""
+    blocks = sorted(blocks, key=lambda b: (b["commit"], b["k"]))
+    out, free, prev_r = [], -1e9, 1.0
+    for i, b in enumerate(blocks):
+        start = max(b["commit"], free)
+        if buffer_s > 0 and start == b["commit"] and not b["final"]:
+            t, limit = b["commit"], b["commit"] + buffer_wait_s * 1000
+            while t < limit:
+                ready = sum(x["dur"] for x in blocks[i:] if x["commit"] <= t) / 1000
+                if ready >= buffer_s or any(x["final"] and x["commit"] <= t for x in blocks[i:] if x["seg"] == b["seg"]):
+                    break
+                t += 50
+            start = min(t, limit)
+        waiting = sum(x["dur"] for x in blocks[i + 1:] if x["commit"] <= start) / 1000
+        r = min(fast_max, 1.05 + 0.05 * waiting) if waiting > 0 else (slow if not b["final"] else 1.0)
+        if b["final"]:
+            r = max(r, final)
+        r = float(np.clip(r, prev_r - 0.1, prev_r + 0.1))
+        prev_r = r
+        d = b["dur"] / r
+        out.append({**b, "start": start, "play_dur": d})
+        free = start + d
+    return out
+
+
+def talk_score(path: str, durs: dict, lang: str, rate: float, audio: dict) -> dict:
+    """Pseudo-talk listening measures (see --timeline talk)."""
+    from collections import Counter
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_stats import seam_types
+    rows = sorted((json.loads(l) for l in open(path, encoding="utf-8")), key=lambda r: r["id"])
+    rows = [r for r in rows if r["id"] in durs]
+    n_pause = n_abrupt = n_between = 0
+    speech_s, where = 0.0, Counter()
+    for t0 in range(0, len(rows), TALK_N):
+        talk = rows[t0: t0 + TALK_N]
+        off, blocks, seams, place = 0.0, [], {}, []
+        for r in talk:
+            bl = [b for b in r["blocks"] if units(b["text"], lang)]
+            seams[r["id"]] = seam_types(bl, "cmn" if lang == "cmn" else "eng", "".join(b["text"] for b in bl)) if len(bl) > 1 else []
+            for k, b in enumerate(bl):
+                blocks.append({"commit": off + float(b["write_ms"]), "dur": len(units(b["text"], lang)) * rate * 1000,
+                               "final": bool(b.get("final")) or k == len(bl) - 1, "seg": r["id"], "k": len(blocks), "kk": k})
+            place.append((int(off // 10), audio[r["id"]]))
+            off += durs[r["id"]] + TALK_GAP_S * 1000
+        on_talk = np.zeros(int(off // 10) + 1, bool)   # the talk's source VAD, 10 ms frames
+        for i0, v in place:
+            on_talk[i0: i0 + len(v)] = v[: max(0, len(on_talk) - i0)]
+        pl = play_schedule(blocks)
+        speech_s += sum(b["play_dur"] for b in pl) / 1000
+        for a, b in zip(pl, pl[1:]):
+            g0, g1 = a["start"] + a["play_dur"], b["start"]
+            if g1 - g0 < 500:
+                continue
+            n_pause += 1
+            seg = on_talk[int(g0 // 10): int(g1 // 10)]
+            speaking = bool(len(seg)) and seg.mean() > 0.5
+            if a["seg"] != b["seg"]:
+                where["S-between"] += 1
+                n_between += 1
+                continue
+            w = seams[a["seg"]][a["kk"]] if a["kk"] < len(seams[a["seg"]]) else "?"
+            where[w] += 1
+            n_abrupt += speaking and w in ("P", "P-fw", "W")
+    return {"talk_pauses_ge0.5_per_min": round(60 * n_pause / max(speech_s, 1e-9), 2),
+            "talk_abrupt_per_min": round(60 * n_abrupt / max(speech_s, 1e-9), 2),
+            "talk_where": {k: round(v / max(n_pause, 1), 3) for k, v in where.most_common()}}
 
 
 def src_vad(path: str) -> np.ndarray:
@@ -130,7 +209,7 @@ def main() -> None:
     ap.add_argument("--items", default="data/si_thinker_oracle_prefix_v1/dev_items_{d}.jsonl")
     ap.add_argument("--run", action="append", required=True, help="name=blocks.jsonl")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--timeline", choices=("gaps", "full"), default="gaps")
+    ap.add_argument("--timeline", choices=("gaps", "full", "talk"), default="gaps")
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -141,11 +220,13 @@ def main() -> None:
     for line in open(args.items.format(d=args.direction), encoding="utf-8"):
         r = json.loads(line)
         refs[r["id"]], durs[r["id"]], wavs[r["id"]] = r["translation"], r["dur_ms"], r["audio"]
-    audio = {k: src_vad(v) for k, v in wavs.items()} if args.timeline == "full" else None
+    audio = {k: src_vad(v) for k, v in wavs.items()} if args.timeline in ("full", "talk") else None
     res = {}
     for spec in args.run:
         name, path = spec.split("=", 1)
         res[name] = score(path, refs, durs, lang, rate, audio)
+        if args.timeline == "talk":
+            res[name].update(talk_score(path, durs, lang, rate, audio))
         print(name, json.dumps(res[name]), flush=True)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "x", encoding="utf-8") as fh:

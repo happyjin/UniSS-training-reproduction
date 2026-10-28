@@ -1,7 +1,7 @@
 """Dev systems against the v3 dev curve at the same LAAL (linear interpolation; outside the curve's range the nearest
 segment is extrapolated and marked). Inputs: si_bayesrisk_dev_eval --timeline full json files; runs named v3* form the
 curve.
-    python dev_matched.py it0b_zh2en.json [more.json ...]
+    python dev_matched.py [--abrupt-key talk_abrupt_per_min] it0b_zh2en.json [more.json ...]
 Prints, per system: LAAL, BLEU (delta vs v3), abrupt per minute (ratio vs v3), one-unit blocks, gaps >= 1 s."""
 import json
 import sys
@@ -22,18 +22,22 @@ def at(x, xs, ys):
 
 
 def main():
+    args = sys.argv[1:]
+    key = "abrupt_per_min"
+    if args[:1] == ["--abrupt-key"]:
+        key, args = args[1], args[2:]
     res = {}
-    for f in sys.argv[1:]:
+    for f in args:
         res.update(json.load(open(f)))
     xb, yb = curve(res, "bleu")
-    xa, ya = curve(res, "abrupt_per_min")
+    xa, ya = curve(res, key)
     for k, v in res.items():
         if k.startswith("v3"):
             continue
         b, ex = at(v["laal_s"], xb, yb)
         a, _ = at(v["laal_s"], xa, ya)
         print(f"{k:14s} LAAL {v['laal_s']:.2f}{'*' if ex else ' '} BLEU {v['bleu']:.2f} ({v['bleu'] - b:+.2f})  "
-              f"abrupt {v['abrupt_per_min']:.2f}/min (x{v['abrupt_per_min'] / a:.2f})  one-unit {v['one_unit_blocks']:.3f}  "
+              f"abrupt {v[key]:.2f}/min (x{v[key] / a:.2f})  one-unit {v['one_unit_blocks']:.3f}  "
               f"gaps>=1s {v['gaps_ge1s_per_100u']:.2f}/100u")
 
 
