@@ -1,0 +1,143 @@
+{
+ "feats": [
+  "bias",
+  "abc",
+  "forced",
+  "content",
+  "agree",
+  "pause",
+  "pos",
+  "start",
+  "age",
+  "flips",
+  "seen"
+ ],
+ "dirs": {
+  "en2zh": {
+   "rows": 135714,
+   "sentences": 408,
+   "committed_mismatch": 0,
+   "cv": {
+    "abc": {
+     "nll": 0.4886,
+     "ece": 0.0662,
+     "auc": 0.8258,
+     "n": 135714
+    },
+    "fit_T": {
+     "nll": 0.3073,
+     "ece": 0.0072,
+     "auc": 0.8502,
+     "n": 135714
+    },
+    "fit_T+age": {
+     "nll": 0.304,
+     "ece": 0.0078,
+     "auc": 0.8548,
+     "n": 135714
+    },
+    "fit_T+history": {
+     "nll": 0.3044,
+     "ece": 0.0073,
+     "auc": 0.8544,
+     "n": 135714
+    }
+   },
+   "gate_auc_gain": 0.0042,
+   "theta": {
+    "bias": 0.9832,
+    "abc": 0.2397,
+    "forced": 2.1814,
+    "content": 1.6911,
+    "agree": -0.0904,
+    "pause": -0.2925,
+    "pos": -0.0419,
+    "start": -0.1204,
+    "age": 0.7447,
+    "flips": 0.0343,
+    "seen": 0.0662
+   },
+   "sd": {
+    "bias": 0.0271,
+    "abc": 0.0041,
+    "forced": 0.0343,
+    "content": 0.0275,
+    "agree": 0.0177,
+    "pause": 0.036,
+    "pos": 0.0107,
+    "start": 0.0186,
+    "age": 0.0534,
+    "flips": 0.0505,
+    "seen": 0.0575
+   },
+   "history_mean": {
+    "age": 0.576,
+    "flips": 0.734,
+    "seen": 1.153
+   }
+  },
+  "zh2en": {
+   "rows": 63007,
+   "sentences": 397,
+   "committed_mismatch": 0,
+   "cv": {
+    "abc": {
+     "nll": 0.4509,
+     "ece": 0.0716,
+     "auc": 0.8024,
+     "n": 63007
+    },
+    "fit_T": {
+     "nll": 0.3754,
+     "ece": 0.014,
+     "auc": 0.826,
+     "n": 63007
+    },
+    "fit_T+age": {
+     "nll": 0.3696,
+     "ece": 0.0162,
+     "auc": 0.8321,
+     "n": 63007
+    },
+    "fit_T+history": {
+     "nll": 0.3673,
+     "ece": 0.0139,
+     "auc": 0.8344,
+     "n": 63007
+    }
+   },
+   "gate_auc_gain": 0.0084,
+   "theta": {
+    "bias": 0.8397,
+    "abc": 0.3464,
+    "forced": 15.0,
+    "content": 2.1011,
+    "agree": 0.0229,
+    "pause": -0.4426,
+    "pos": -0.1424,
+    "start": -0.0594,
+    "age": 1.2801,
+    "flips": 0.9957,
+    "seen": -0.386
+   },
+   "sd": {
+    "bias": 0.0316,
+    "abc": 0.0061,
+    "forced": 3.0,
+    "content": 0.0464,
+    "agree": 0.0366,
+    "pause": 0.0432,
+    "pos": 0.0156,
+    "start": 0.0243,
+    "age": 0.163,
+    "flips": 0.1375,
+    "seen": 0.1538
+   },
+   "history_mean": {
+    "age": 0.343,
+    "flips": 0.32,
+    "seen": 0.615
+   }
+  }
+ }
+}
