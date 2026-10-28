@@ -9,6 +9,7 @@
   - `final_*.json`：RealSI 全部系统
   - `pair_*.json`：每个系统与 LAAL 最近的 v3 点做配对 bootstrap
   - `matched.md`：各系统插值到同 LAAL 的 v3 曲线上对比
+  - `compare_all.md`（`compare_all.py`）：非 Bayesian 基线（LA2）、M2、v3 曲线及其变体、Bayes 风险 v1/v2，全部 RealSI 系统一张表
   - `abrupt/`、`utmos/`：逐系统的连续时间轴突兀停顿分析与 UTMOS
 
 所有配置都只在训练域 dev（UniST 805 句）上选择和拟合。RealSI 按事先固定的 8 个系统只测了一次；ACL 没有使用。基线 v3 与 v1 报告相同：ABC + SDR + 提交卫生 + 清洗 + SQ Talker + 播放 s1b1.2q。
