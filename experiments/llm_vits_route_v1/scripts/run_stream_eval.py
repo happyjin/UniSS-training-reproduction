@@ -67,6 +67,7 @@ def main():
   ap.add_argument("--k-max", type=int, default=3)
   ap.add_argument("--risk", default=None, help="t3 risk head json (from fit_t3.py)")
   ap.add_argument("--policy-head", default=None, help="T1 / T2 / T5 head (from fit_policies.py)")
+  ap.add_argument("--dec-ckpt", default=None, help="replace the frozen HiFi-GAN decoder (e.g. S5's, train_s5_wavlm.py)")
   ap.add_argument("--backbone-config", required=True)
   ap.add_argument("--backbone-ckpt", required=True)
   ap.add_argument("--manifest", default=str(ROOT / "data/manifest_v2.jsonl"))
@@ -90,6 +91,8 @@ def main():
   if args.render:
     (out / "wavs").mkdir(exist_ok=True)
   model = load_stream(args.model, args.backbone_config, args.backbone_ckpt, dev)
+  if args.dec_ckpt:
+    model.frozen["dec"].load_state_dict(torch.load(args.dec_ckpt, map_location="cpu")["dec"])
   pname, _, pval = args.policy.partition(":")
   risk, head = None, None
   if pname == "t3" or (pname == "t5" and ":" in pval):
