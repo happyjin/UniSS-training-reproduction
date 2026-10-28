@@ -231,8 +231,8 @@ def main() -> None:
               [float(x) for x in args.taus.split(",")] if args.policy in ("head", "belief") else
               [float(x) for x in args.wait_biases.split(",")] if args.policy in ("selfwait", "bayesrisk") else [None])
     extra = ("_snap" if args.snap else "") + ("_sp" if args.prompt == "stream" else "") + (f"_mbr{'f' if args.mbr_final_only else ''}{args.mbr}" if args.mbr else "")
-    if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2", "bayesrisk"):
-        raise SystemExit("--hygiene / --clean are implemented for the selfwait, la2 and bayesrisk policies only")
+    if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2", "bayesrisk", "oracle"):
+        raise SystemExit("--hygiene / --clean are implemented for the selfwait, la2, oracle and bayesrisk policies only")
     if args.br_abrupt and not args.br_next:
         raise SystemExit("--br-abrupt needs the hazard posterior --br-next")
     if args.hygiene and args.policy == "bayesrisk":
@@ -678,6 +678,10 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 while L < min(len(gu), len(ou)) and gu[L] == ou[L]:
                     L += 1
                 new = draft[n: n + L]
+                if fluency and fluency["hyg_min"]:   # the ceiling under v3's hygiene (it may only delay the block)
+                    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
+                    hmin = fluency["hyg_first_min"] if fluency.get("hyg_first_min") and not it["committed"] else fluency["hyg_min"]
+                    new = hygiene(it["committed"], new, zh, it["busy"] <= it["t"], hmin)
             else:
                 agreed = 0
                 if it["prev"] is not None:

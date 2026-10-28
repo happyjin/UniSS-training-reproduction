@@ -1,0 +1,60 @@
+{
+ "oracle": {
+  "bleu": 55.04,
+  "laal_s": 1.643,
+  "one_unit_blocks": 0.144,
+  "gaps_ge1s_per_100u": 1.85,
+  "first_speech_s_p50": 1.0,
+  "sentences": 408,
+  "pauses_ge0.5_per_min": 14.87,
+  "abrupt_per_min": 11.84,
+  "abrupt_share": 0.796,
+  "pause_source_speaking": 0.963,
+  "seam_mid_phrase_share": 0.812,
+  "seam_clause_share": 0.148,
+  "seams": {
+   "P": 0.745,
+   "C": 0.148,
+   "W": 0.067,
+   "S": 0.04
+  },
+  "talk_pauses_ge0.5_per_min": 14.53,
+  "talk_abrupt_per_min": 6.72,
+  "talk_where": {
+   "P": 0.443,
+   "S-between": 0.399,
+   "C": 0.09,
+   "W": 0.042,
+   "S": 0.027
+  }
+ },
+ "oracle_hyg3": {
+  "bleu": 55.78,
+  "laal_s": 1.948,
+  "one_unit_blocks": 0.026,
+  "gaps_ge1s_per_100u": 1.28,
+  "first_speech_s_p50": 2.0,
+  "sentences": 408,
+  "pauses_ge0.5_per_min": 9.72,
+  "abrupt_per_min": 6.3,
+  "abrupt_share": 0.648,
+  "pause_source_speaking": 0.958,
+  "seam_mid_phrase_share": 0.68,
+  "seam_clause_share": 0.245,
+  "seams": {
+   "P": 0.663,
+   "C": 0.245,
+   "S": 0.075,
+   "W": 0.017
+  },
+  "talk_pauses_ge0.5_per_min": 12.76,
+  "talk_abrupt_per_min": 3.3,
+  "talk_where": {
+   "S-between": 0.57,
+   "P": 0.267,
+   "C": 0.116,
+   "S": 0.044,
+   "W": 0.003
+  }
+ }
+}
