@@ -212,6 +212,12 @@ def main() -> None:
     ap.add_argument("--br-loss", choices=("event", "unit"), default="event",
                     help="bayesrisk: event -- one revision costs C_err once (the paper's loss); unit -- every wrong unit heard "
                          "costs C_err, every stable unit withheld C_lat D; named u")
+    ap.add_argument("--br-hyg-min", type=int, default=0, help="bayesrisk v2: hard action set, v3's hygiene with this "
+                    "minimum (3 Chinese characters / 4 English words in v3); named h<m>")
+    ap.add_argument("--br-next", default="", help="bayesrisk v2: next-commit hazard posterior json "
+                    "(data_clean/fit_next_commit_hazard.py); named n<stem>")
+    ap.add_argument("--br-abrupt", type=float, default=0.0, help="bayesrisk v2: Lagrange multiplier of the expected abrupt "
+                    "pause (needs --br-next); named a<lam>")
     ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
     ap.add_argument("--seed", type=int, default=20261021)
@@ -223,6 +229,8 @@ def main() -> None:
     extra = ("_snap" if args.snap else "") + ("_sp" if args.prompt == "stream" else "") + (f"_mbr{'f' if args.mbr_final_only else ''}{args.mbr}" if args.mbr else "")
     if (args.hygiene or args.clean) and args.policy not in ("selfwait", "la2", "bayesrisk"):
         raise SystemExit("--hygiene / --clean are implemented for the selfwait, la2 and bayesrisk policies only")
+    if args.br_abrupt and not args.br_next:
+        raise SystemExit("--br-abrupt needs the hazard posterior --br-next")
     if args.hygiene and args.policy == "bayesrisk":
         raise SystemExit("bayesrisk replaces --hygiene with its fragment and seam costs (--br-cost-frag / --br-cost-seam)")
     hyg_min = (args.hyg_min or (3 if args.direction.endswith("zh") else 2)) if args.hygiene else 0
@@ -246,6 +254,8 @@ def main() -> None:
                       + (f"f{args.br_cost_frag:g}" if args.br_cost_frag else "") + (f"e{args.br_cost_seam:g}" if args.br_cost_seam else "")
                       + ("p" if args.br_playback else "") + (f"o{args.br_like_w:g}" if args.br_online else "")
                       + ("u" if args.br_loss == "unit" else "")
+                      + (f"h{args.br_hyg_min}" if args.br_hyg_min else "")
+                      + (f"a{args.br_abrupt:g}n{Path(args.br_next).stem}" if args.br_abrupt else "")
                       + (f"r{args.sw_queue_rate:g}" if args.sw_queue_rate else "")) if args.policy == "bayesrisk"
                 else f"_bel{Path(args.belief).stem}t{g:g}m{args.belief_min}s{args.belief_sigma:g}" if args.policy == "belief"
                 else f"_head{Path(args.head).stem}{'l' if args.decision == 'bayes' else 't'}{g:g}"
@@ -313,12 +323,13 @@ def main() -> None:
                        g, args.belief_min, args.belief_sigma or None, args.look_units)
             continue
         if args.policy == "bayesrisk":
-            from experiments.uniss_qwen3_omni_v1.evaluation.si_bayesrisk import load_model, run_bayesrisk
+            from experiments.uniss_qwen3_omni_v1.evaluation.si_bayesrisk import load_model, load_next, run_bayesrisk
             cfg = {"tau_max": args.br_tau_max, "c_sil": args.br_cost_sil, "g0": args.br_g0, "lam": args.br_lambda,
                    "c_frag": args.br_cost_frag, "frag_min": args.br_frag_min or (3 if zh else 4), "c_seam": args.br_cost_seam,
                    "playback": args.br_playback, "speed_step": 1 / 60, "shift_per_s": 3.0, "shift_max": 6.0,
                    "rate": args.sw_queue_rate or (0.191 if zh else 0.339), "mc": args.br_mc, "like_w": args.br_like_w,
-                   "seed": args.seed, "loss": args.br_loss}
+                   "seed": args.seed, "loss": args.br_loss, "hyg_min": args.br_hyg_min, "abrupt": args.br_abrupt,
+                   "next_model": load_next(args.br_next)}
             dump = None
             if args.br_dump:
                 Path(args.br_dump).mkdir(parents=True, exist_ok=True)

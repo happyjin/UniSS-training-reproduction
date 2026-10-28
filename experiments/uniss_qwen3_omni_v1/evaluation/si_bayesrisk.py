@@ -16,6 +16,18 @@ With C_sil = C_frag = C_seam = 0 and P = 0 it is ABC + SDR (Prop. 1 of the doc).
 whose argmin commits the longest prefix with P(S >= a) > 1 / (1 + C_lat D): under the event loss (one revision
 charged once) the global argmin commits long drafts past a doubtful unit.
 
+v2 (docs/m2_bayesrisk_v2_model.zh-CN.md):
+  --br-hyg-min m   hard action set: a block is admissible only if v3's hygiene (si_fluency_rules.hygiene) would commit
+                   it unchanged (no dangling end, >= m content units while the Talker is idle unless it ends a clause);
+                   this is C_frag -> infinity (Prop. 2 of the v1 model)
+  --br-next json   posterior of the next-commit hazard P(J = j | J >= j, x) = sigmoid(eta . x_j + c_n) (fitted by
+                   data_clean/fit_next_commit_hazard.py), x known at the read (NEXT_BASE) plus the step j
+  --br-abrupt lam  the expected abrupt-pause cost lam * 1[source speaking] * 1[mid-phrase seam] * P(G >= g0), G the
+                   silence after the block, G = J window - playback - block duration, J from the hazard's posterior
+                   predictive (Monte Carlo over eta and the sentence intercept c_n); lam is the Lagrange multiplier of
+                   the abrupt-pause constraint, set by dual ascent on dev
+  --br-dump also writes, for every non-final committing read, the hazard row {x, J} (type "next").
+
 --br-dump writes every non-final read's statistics and, once its sentence ends, its stable length S (the whole-
 sentence continuation from the read's committed prefix, no reference): the data the posterior is fitted on
 (data_clean/fit_bayesrisk_posterior.py). --br-online updates a talk's posterior after each of its sentences
@@ -32,6 +44,72 @@ import numpy as np
 
 FEATS = ("bias", "abc", "forced", "content", "agree", "pause", "pos", "start")
 CAP = 15.0
+NEXT_BASE = ("one", "logit_next", "draft_end", "withheld", "seam_mid", "seam_clause", "speaking", "wbias", "lam", "pos", "play")
+NEXT_J = 6        # steps 1..NEXT_J; the last one absorbs J >= NEXT_J
+MID = ("P", "P-fw", "W")
+
+
+def next_x(base: np.ndarray, j: int) -> np.ndarray:
+    """Hazard covariates at step j: base (known at the read) and one-hot j = 2..NEXT_J (j = 1 is the intercept)."""
+    e = np.zeros(NEXT_J - 1)
+    if j >= 2:
+        e[min(j, NEXT_J) - 2] = 1.0
+    return np.concatenate([base, e])
+
+
+def next_base(ge: np.ndarray, a: int, K: int, seam: str | None, speaking: float, bias: float, lam: float, n: int,
+              play: float) -> np.ndarray:
+    if a < K and ge[a] > 0:
+        r = float(np.clip(ge[a + 1] / ge[a], 1e-6, 1 - 1e-6))
+        logit_next, end = float(np.log(r) - np.log1p(-r)), 0.0
+    else:
+        logit_next, end = 0.0, 1.0
+    return np.array([1.0, logit_next, end, np.log1p(K - a), float(seam in MID), float(seam in ("C", "S")), speaking,
+                     bias, lam, np.log1p(n), play])
+
+
+def load_next(path: str) -> dict | None:
+    if not path:
+        return None
+    j = json.load(open(path, encoding="utf-8"))
+    assert tuple(j["base"]) == NEXT_BASE and j["n_j"] == NEXT_J, (j["base"], j["n_j"])
+    return {"mu": np.asarray(j["mu"], float), "Sigma": np.asarray(j["Sigma"], float), "tau_c": float(j.get("tau_c", 0.0))}
+
+
+def hazard_pmf(base: np.ndarray, nm: dict, rng, M: int) -> np.ndarray:
+    """Posterior predictive P(J = j), j = 1..NEXT_J (the last absorbs J >= NEXT_J), by Monte Carlo over eta and c_n."""
+    X = np.stack([next_x(base, j) for j in range(1, NEXT_J + 1)])
+    L = np.linalg.cholesky(nm["Sigma"] + 1e-9 * np.eye(len(nm["mu"])))
+    eta = nm["mu"][None] + rng.standard_normal((M, len(nm["mu"]))) @ L.T
+    c = nm["tau_c"] * rng.standard_normal((M, 1))
+    h = 1.0 / (1.0 + np.exp(-np.clip(eta @ X.T + c, -30, 30)))       # [M, NEXT_J]
+    h[:, -1] = 1.0
+    surv = np.concatenate([np.ones((M, 1)), np.cumprod(1 - h[:, :-1], axis=1)], axis=1)
+    return (h * surv).mean(0)
+
+
+def draft_seams(committed: list[str], gu: list[str], zh: bool) -> list[str | None]:
+    """Seam type (si_fluency_stats.seam_types) after committing gu[:a], a = 0..K (None at a = 0); after the whole
+    draft the next unit is unknown: S/C from its punctuation, otherwise P."""
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_stats import seam_types
+    K = len(gu)
+    out: list[str | None] = [None] * (K + 1)
+    if K == 0:
+        return out
+    if zh:
+        blocks = ([{"text": "".join(committed)}] if committed else []) + [{"text": u} for u in gu]
+    else:
+        lead = bool(committed)
+        blocks = ([{"text": " ".join(committed)}] if committed else []) + [
+            {"text": (" " if (lead or k) else "") + u} for k, u in enumerate(gu)]
+    text = "".join(b["text"] for b in blocks)
+    types = seam_types(blocks, "cmn" if zh else "eng", text) if len(blocks) > 1 else []
+    off = 1 if committed else 0
+    for a in range(1, K):
+        out[a] = types[a - 1 + off] if a - 1 + off < len(types) else "P"
+    last = gu[-1]
+    out[K] = "S" if last.endswith(tuple(".?!。？！")) else "C" if last.endswith(tuple(",;:，；：、")) else "P"
+    return out
 
 
 def prior_model() -> dict:
@@ -177,7 +255,7 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                   clean=False, dump=None, online=False):
     from vllm import SamplingParams
 
-    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import clean as clean_text, content_units, trim_dangling
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import clean as clean_text, content_units, hygiene, trim_dangling
 
     draft_p = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[eos_id], logit_bias={wait_id: -100.0},
                              logprobs=20)
@@ -193,6 +271,8 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
         c_lat = (1.0 - tau0) / W
         d_min = (1.0 - cfg["tau_max"]) / c_lat
     talk_post = {}
+    nm = cfg.get("next_model")
+    lam = cfg.get("abrupt", 0.0)
     for it in items:
         it.update(committed=[], blocks=[], drafts=[], done=False, busy=0.0, spoken="", prev_abs=None, reads=[], r=0,
                   waiting=False)
@@ -252,14 +332,25 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                     tail = np.concatenate([np.cumsum(ge[:K][::-1])[::-1], [0.0]])
                 best, a = None, 0
                 fi = FEATS.index("forced")
+                speaking = 1.0 - pause
+                v2 = cfg.get("hyg_min", 0) or lam > 0 or rec_out is not None
+                seams = draft_seams(it["committed"], gu, zh) if v2 else [None] * (K + 1)
+                idle = it["busy"] <= it["t"]
                 for cand in range(K + 1):
                     if 0 < cand < K and X[cand, fi] > 0:   # the action set: token boundaries only -- a prompt that ends
                         continue                          # inside the draft's token is out of the Thinker's distribution
                     blk = gu[:cand]
                     if cand and has_loop(it["committed"] + blk) and not has_loop(it["committed"]):
                         continue
+                    if cand and cfg.get("hyg_min") and hygiene(it["committed"], blk, zh, idle, cfg["hyg_min"]) != blk:
+                        continue   # v2 hard action set: v3's hygiene would not commit this block as it is
                     ncu = content_units(blk, zh)
                     risk = err_c[cand] + c_lat * D * tail[cand]
+                    if lam > 0 and cand and ncu and speaking and seams[cand] in MID:
+                        pmf = hazard_pmf(next_base(ge, cand, K, seams[cand], speaking, bias, lam, n, p), nm, rng, cfg["mc"])
+                        dur = len(blk) * cfg["rate"] / speed
+                        gaps = np.arange(1, NEXT_J + 1) * W - p - dur
+                        risk += lam * float(pmf[gaps >= cfg["g0"]].sum())
                     if cfg["c_sil"]:
                         dur = len(blk) * cfg["rate"] / speed
                         if ncu == 0:
@@ -276,9 +367,13 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                 it["reads"].append((join(it["committed"], zh), gu, X))
                 if rec_out is not None or online:
                     it.setdefault("rd", []).append({"t": it["t"], "n": n, "K": K, "a": a, "gu": gu,
-                                                    "X": np.round(X, 4).tolist(), "ge_a": float(ge[a])})
+                                                    "X": np.round(X, 4).tolist(), "ge_a": float(ge[a]),
+                                                    "nx": np.round(next_base(ge, a, K, seams[a], speaking, bias, lam, n, p),
+                                                                   4).tolist() if v2 and a else None})
                 it["prev_abs"] = draft
             new = gu[:a]
+            if final:
+                it["final_new"] = bool(new)
             if new or it["done"]:
                 text = ("" if zh or not n else " ") + join(new, zh)
                 said = len(new)
@@ -309,6 +404,14 @@ def run_bayesrisk(llm, items, head, zh, window, out, tag, bias, cfg, model, unit
                 per.setdefault(it["id"], []).append((X, L))
             for it in fin:
                 labs = per.get(it["id"], [])
+                if rec_out is not None:   # hazard rows: J = reads until the next read that commits (the final read does)
+                    rds = it.get("rd", [])
+                    commit_at = [k for k, rd in enumerate(rds) if rd["a"] > 0] + [len(rds)]
+                    for k, rd in enumerate(rds):
+                        if rd["a"] > 0 and rd.get("nx") is not None:
+                            nxt_k = next(c for c in commit_at if c > k)
+                            rec_out.write(json.dumps({"type": "next", "id": it["id"], "t": rd["t"], "x": rd["nx"],
+                                                      "J": nxt_k - k, "cens": int(nxt_k == len(rds) and not it["final_new"])}) + "\n")
                 if rec_out is not None:
                     for rd, (_, L) in zip(it.get("rd", []), labs):
                         rec_out.write(json.dumps({"id": it["id"], **rd, "S": L}, ensure_ascii=False) + "\n")
@@ -373,6 +476,15 @@ def _selftest() -> None:
     err_c = np.concatenate([[0.0], np.cumsum(1.0 - ge[1:])]); tail = np.concatenate([np.cumsum(ge[1:][::-1])[::-1], [0.0]])
     a_star = int(np.argmin(err_c + cD * tail))
     assert a_star == max([a for a in range(5) if all(ge[u + 1] > 1 / (1 + cD) for u in range(a))])
+    # v2: seam types per candidate, hazard pmf sums to one, the hard action set is v3's hygiene
+    sm = draft_seams(["I", "think"], ["that", "the", "city,", "is", "big."], False)
+    assert sm[0] is None and sm[3] == "C" and sm[5] == "S", sm
+    nm = {"mu": np.zeros(len(NEXT_BASE) + NEXT_J - 1), "Sigma": 0.01 * np.eye(len(NEXT_BASE) + NEXT_J - 1), "tau_c": 0.5}
+    pmf = hazard_pmf(next_base(np.array([1, 0.9, 0.5]), 1, 2, "P", 1.0, 0.0, 1.0, 2, 0.3), nm, np.random.default_rng(0), 64)
+    assert abs(pmf.sum() - 1) < 1e-9 and np.all(pmf >= 0) and len(pmf) == NEXT_J
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
+    assert hygiene([], ["the"], False, True, 4) == []                    # dangling function word: inadmissible
+    assert hygiene(["I", "said"], ["it", "is", "fine,"], False, True, 4) == ["it", "is", "fine,"]   # a clause end
     print("si_bayesrisk selftest ok")
 
 

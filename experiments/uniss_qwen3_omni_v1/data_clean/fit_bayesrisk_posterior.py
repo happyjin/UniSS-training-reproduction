@@ -41,6 +41,8 @@ def load(pattern: str, direction: str, items: str):
             continue
         for line in open(f, encoding="utf-8"):
             r = json.loads(line)
+            if r.get("type") == "next":   # v2 next-commit hazard rows (fit_next_commit_hazard.py)
+                continue
             R, lab = label_rows(np.asarray(r["X"], float).reshape(-1, len(FEATS)), int(r["S"]))
             X.append(R)
             y.append(lab)
