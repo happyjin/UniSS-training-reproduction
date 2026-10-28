@@ -59,7 +59,7 @@ done
 log "stage 5: policy sweeps, val + test"
 for split in val test; do
   mk "$EXP/jobs_sweep_$split.json" --stage sweep --model s6_future --split $split --shards 4 \
-    --entropy 2.5,3.5,5,7 --spread 0.01,0.02,0.04 --t3 0.4,0.5,0.6,0.8,1.0 --risk "$EXP/t3/risk_s6f.pt"
+    --entropy 2.5,3.5,4.25,5,7 --spread 0.01,0.02,0.04 --t3 0.4,0.5,0.6,0.8,1.0 --risk "$EXP/t3/risk_s6f.pt"
   mk "$EXP/jobs_sweep_lite_$split.json" --stage sweep --model s6_future --split $split --shards 4 --tag _lite \
     --t3 0.4,0.5,0.6,0.8,1.0 --risk "$EXP/t3/risk_s6f_lite.pt"
   run_jobs "$EXP/jobs_sweep_$split.json" 6
