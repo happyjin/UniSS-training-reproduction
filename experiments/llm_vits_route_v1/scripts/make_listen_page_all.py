@@ -28,6 +28,14 @@ SYSTEMS = [
     ("参照", "e1", "E1 · k=1", "主 baseline", f"{F}/eval_render_test/e1_fixed1", True),
     ("最佳组合", "best", "S6-future + T5 + S5 解码器", "所有指标不输 E1：等待少 43%，词与停顿误差显著更低，WER、UTMOS 持平",
      f"{A}/render_best/t5_0.05_s5dec", True),
+    ("修复卡顿：解码器右前瞻（同一组计划，只改渲染）", "best16", "最佳组合 + 右前瞻 16 帧（+186 ms）",
+     "UTMOS 4.20，与离线持平；比 E1 高 0.34，WER 高 0.45 个百分点（边缘显著）", f"{A}/render_best/t5_0.05_s5dec_la16", True),
+    ("修复卡顿：解码器右前瞻（同一组计划，只改渲染）", "la8", "S6-future k=1 + 右前瞻 8 帧（+93 ms）",
+     "UTMOS 3.86 → 4.04，边界跳变比 1.30 → 1.11", f"{A}/render_seam/vits_la8", True),
+    ("修复卡顿：解码器右前瞻（同一组计划，只改渲染）", "la16", "S6-future k=1 + 右前瞻 16 帧（+186 ms）",
+     "UTMOS 3.86 → 4.18，边界跳变比 1.30 → 1.11（录音为 1.11）", f"{A}/render_seam/vits_la16", True),
+    ("修复卡顿：解码器右前瞻（同一组计划，只改渲染）", "onepass", "S6-future k=1 整句一次渲染",
+     "渲染方式的上限：UTMOS 4.19，需要整句，不是流式", f"{A}/render_seam/vits_full", True),
     ("提交策略（声学用 E0 解码器）", "s6f", "S6-future · k=1", "时长与停顿显著优于 E1，音频持平", f"{F}/eval_render_test/s6_future_fixed1", True),
     ("提交策略（声学用 E0 解码器）", "t3", "+ T3 ε=1.0", "等待少约 1/3，但 WER 显著高 0.45 个百分点", f"{F}/eval_render_test/t3_s6_future_1.0", True),
     ("提交策略（声学用 E0 解码器）", "t5", "+ T5 λ=0.05", "策略最好：比 E1 词与停顿显著更好、等待少 43%、音频持平；比 T3 等得更少", f"{F}/eval_render_pol_test/t5_s6_future_0.05", True),
@@ -42,6 +50,11 @@ SYSTEMS = [
 ]
 
 
+# seam jump ratio (boundary_jump.py; 1 = seams as smooth as average speech; the recording at its word boundaries 1.11)
+SEAM = {"gt": "1.11", "e0": "1.08", "e1": "1.29", "best": "1.30", "best16": "1.12", "la8": "1.11", "la16": "1.11",
+        "onepass": "1.11", "s6f": "1.30", "s5": "1.33", "s4": "1.28", "s2": "1.33", "t4": "1.12"}
+
+
 def fmt(x, nd=4, pct=False):
     if x is None:
         return "—"
@@ -53,6 +66,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--html", required=True)
     ap.add_argument("--n", type=int, default=6)
+    ap.add_argument("--template", default="listen_page_all_template.html")
     args = ap.parse_args()
     out = Path(args.out)
     if (out / args.html).exists():
@@ -74,14 +88,14 @@ def main():
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(src, dst)
         if g != group:
-            rows_html.append(f'<tr class="grp"><th colspan="7" scope="colgroup">{html.escape(g)}</th></tr>')
+            rows_html.append(f'<tr class="grp"><th colspan="8" scope="colgroup">{html.escape(g)}</th></tr>')
             group = g
         look = "整句" if key == "e0" else "—" if key == "gt" else fmt(m.get("look_mean"), 2)
         rows_html.append(
             f'<tr class="{"hl" if key == "best" else ""}"><th scope="row"><span class="sys">{html.escape(label)}</span>'
             f'<span class="note">{html.escape(verdict)}</span></th><td>{look}</td><td>{fmt(m.get("mae_word")) if m else "—"}</td>'
             f'<td>{fmt(m.get("mae_pause")) if m else "—"}</td><td>{fmt(am.get("wer"), pct=True)}</td>'
-            f'<td>{fmt(am.get("utmos"), 2)}</td><td>{fmt(am.get("f0_logmae"), 3)}</td></tr>')
+            f'<td>{fmt(am.get("utmos"), 2)}</td><td>{fmt(am.get("f0_logmae"), 3)}</td><td>{SEAM.get(key, "—")}</td></tr>')
     cards = []
     for u in utts:
         words = [u["clean"][a:b].strip() for a, b in u["units"]]
@@ -99,7 +113,7 @@ def main():
                            f'<audio controls preload="none" src="audio/{key}/{u["utt_id"]}.wav"></audio></div>')
         cards.append(f'<section class="card"><header><span class="uid">{u["utt_id"]}</span><span class="dur">{u["duration_s"]:.1f} s · '
                      f'{len(words)} 词</span></header><p class="text">{html.escape(u["text"])}</p>{"".join(players)}</section>')
-    page = open(Path(__file__).with_name("listen_page_all_template.html")).read()
+    page = open(Path(__file__).with_name(args.template)).read()
     page = page.replace("%ROWS%", "".join(rows_html)).replace("%CARDS%", "".join(cards))
     (out / args.html).write_text(page)
     files = sorted(str(p.relative_to(out)) for p in (out / "audio").rglob("*.wav"))

@@ -1,0 +1,98 @@
+<title>LLM×VITS 流式试听</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one reading column; the verdict, then the all-scheme table grouped by role, then one card per utterance. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --fg: #1b2228; --muted: #5d6a74; --line: #dde2e6;
+  --accent: #0f6b74; --accent-soft: #e2f0f1; --wait1: #8fc3c8; --wait2: #3f949c; --wait3: #0f4f56; --wait0: #d7dde1;
+  --sans: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171b; --surface: #1a2126; --fg: #e3e8eb; --muted: #95a3ad; --line: #2b353c;
+  --accent: #5fc0c8; --accent-soft: #1c3236; --wait1: #2f6a70; --wait2: #4ea4ac; --wait3: #9fe0e5; --wait0: #2d373e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171b; --surface: #1a2126; --fg: #e3e8eb; --muted: #95a3ad; --line: #2b353c;
+  --accent: #5fc0c8; --accent-soft: #1c3236; --wait1: #2f6a70; --wait2: #4ea4ac; --wait3: #9fe0e5; --wait0: #2d373e; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 980px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: 0; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 1.15rem; margin: 0; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 70ch; }
+.lede { color: var(--muted); }
+.block { display: grid; gap: 12px; }
+.answer { background: var(--accent-soft); border-radius: 8px; padding: 16px 18px; display: grid; gap: 8px; }
+.answer ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+thead th { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: .02em; white-space: nowrap; }
+tbody th { text-align: left; font-weight: 400; }
+td { font-family: var(--mono); font-size: 13.5px; }
+tr.grp th { text-align: left; font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .04em; background: var(--bg); }
+tr.hl { background: var(--accent-soft); }
+.sys { display: block; font-weight: 500; }
+.note { display: block; font-size: 12px; color: var(--muted); max-width: 46ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; }
+.card header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.uid { color: var(--accent); font-weight: 500; }
+.text { font-size: 1.02rem; }
+.ghead { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .04em; padding-top: 10px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 6px 16px; align-items: center; padding-top: 8px; border-top: 1px solid var(--line); }
+.lab { min-width: 0; display: grid; gap: 4px; }
+.lab .sys { font-size: 13.5px; }
+audio { width: 100%; height: 36px; }
+.strip { display: flex; flex-wrap: wrap; gap: 2px; }
+.strip i, .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--wait0); }
+.strip i.w1, .legend i.w1 { background: var(--wait1); }
+.strip i.w2, .legend i.w2 { background: var(--wait2); }
+.strip i.w3, .legend i.w3 { background: var(--wait3); }
+.r-best .sys { color: var(--accent); }
+.fine { font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .row { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<main>
+  <div class="block">
+    <h1>LLM×VITS 流式试听</h1>
+    <p class="lede">手册的全部方案都在 LJSpeech test 集上实现并评测完毕。文字逐词到达，流式系统只能看到已经到达的词，已经说出的内容不能修改。所有流式系统共用同一个冻结的 VITS backbone。</p>
+  </div>
+
+  <div class="answer">
+    <h2>结论</h2>
+    <ul>
+      <li><b>最好的方案：S6-future + T5 + S5 解码器。</b>它是唯一一个所有指标都不输主 baseline E1 k=1 的系统：平均等待少 43%，词时长误差和停顿误差都显著更低，WER、UTMOS、F0 持平，每个单元的计算量更小。</li>
+      <li><b>按角色看各自最好的方案。</b>何时提交：T5 优于 T3、熵门控和 T1/T2。谁来发声：S5 小幅改善音质，其余替换都让音质变差。时长规划：S6-future 仍然最好，S1 的扩散先验反而更差。</li>
+      <li><b>引入大模型的两个方案没有成功。</b>S4（Qwen3-TTS token）的音质略低于 vits。S3（VoxCPM2 AudioVAE）的编解码器本身很好，重建 UTMOS 有 4.31，但只靠文本条件的潜变量先验生成不出可用的潜变量，合成 UTMOS 只有约 1.5。</li>
+      <li><b>“卡顿”的原因已经查清：来自渲染时的拼接边界，与等待无关。</b>backbone 的解码器是按整句离线训练的，流式时却逐词渲染，而且在词边界处看不到后面的帧。所以每个词边界的频谱跳变比自然语音大约高 20%（边界跳变比 1.30，录音为 1.11），听起来就是每 0.3 秒左右卡一下。</li>
+      <li><b>修复方法：给解码器加右前瞻。</b>每次只播放到已提交帧之前 R 帧，剩下的 R 帧留作右上下文，等下一个词提交后再播。时长和潜变量都不变，只改渲染：R=8（+93 ms）时 UTMOS 从 3.86 升到 4.04，R=16（+186 ms）时升到 4.18，基本追平离线的 4.21，边界跳变比回到 1.11。最佳组合加上 R=16 后 UTMOS 为 4.20。</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h2>test 500 句，全部方案</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col" style="text-align:left">系统</th><th scope="col">平均等待（词）</th><th scope="col">词时长 MAE ↓</th><th scope="col">停顿 MAE ↓</th><th scope="col">WER ↓</th><th scope="col">UTMOS ↑</th><th scope="col">词级 log-F0 误差 ↓</th><th scope="col">边界跳变比（录音 1.11）</th></tr></thead>
+        <tbody>%ROWS%</tbody>
+      </table>
+    </div>
+    <p class="fine">数值都用随机种子 17 的模型，从各系统自己的输出重新计算。时长误差在 log 域，对照真实录音的 MAS 对齐。策略的阈值在 val 上选择。声学替换都使用同一组 S6-future k=1 提交计划，时长完全相同，只比较声学部分。WER 用 Whisper-large-v3，UTMOS 用 UTMOS22 strong。“显著”指配对 bootstrap 的 95% 置信区间不含 0。</p>
+  </div>
+
+  <div class="block">
+    <h2>试听样本</h2>
+    <p class="fine">句子按固定规则选取：test 集中 4–9 秒、含逗号的句子，按 utt id 的 crc32 排序取前 6 句，没有挑效果好的。每句的系统按上表分组排列。</p>
+    <div class="legend">
+      <span>每格一个词，颜色表示提交前等了几个词：</span>
+      <span><i class="w0"></i>0</span><span><i class="w1"></i>1</span><span><i class="w2"></i>2</span><span><i class="w3"></i>3 及以上</span>
+    </div>
+  </div>
+
+  %CARDS%
+</main>
