@@ -47,15 +47,19 @@ def plan_durations(rec):
 
 
 def metrics(runs, rows, gt_dur, gt_y, ref=None, eps=None, w=(0.5, 0.5), ystd=None):
-  ew, ep, er, rw, rp, look = [], [], [], [], [], []
+  ew, ep, er, rw, rp, look, bw, bp = [], [], [], [], [], [], [], []
   tp = fp = fn = 0
   traj_viol, cert, n_units, compute = 0, 0, 0, []
   for uid, rec in runs.items():
     row = rows[uid]
     pw, pp = word_and_pauses(row, plan_durations(rec))
     tw, tq = word_and_pauses(row, gt_dur[uid])
-    ew.extend(np.abs(np.log(np.maximum(pw, 1)) - np.log(np.maximum(tw, 1))))
-    ep.extend(np.abs(np.log1p(pp) - np.log1p(tq)))
+    dw = np.log(np.maximum(pw, 1)) - np.log(np.maximum(tw, 1))
+    dp = np.log1p(pp) - np.log1p(tq)
+    ew.extend(np.abs(dw))
+    ep.extend(np.abs(dp))
+    bw.extend(dw)
+    bp.extend(dp)
     er.append(abs(np.log(plan_durations(rec).sum()) - np.log(gt_dur[uid].sum())))
     tp += int(((pp >= PAUSE_FR) & (tq >= PAUSE_FR)).sum())
     fp += int(((pp >= PAUSE_FR) & (tq < PAUSE_FR)).sum())
@@ -77,6 +81,7 @@ def metrics(runs, rows, gt_dur, gt_y, ref=None, eps=None, w=(0.5, 0.5), ystd=Non
     if "compute_s" in rec:
       compute.append(rec["compute_s"] / len(rec["units"]))
   out = {"n_utts": len(runs), "n_units": n_units, "mae_word": float(np.mean(ew)), "mae_pause": float(np.mean(ep)),
+         "word_bias": float(np.mean(bw)), "pause_bias": float(np.mean(bp)),
          "pause_f1": 2 * tp / max(1, 2 * tp + fp + fn), "rate_err": float(np.mean(er)),
          "look_mean": float(np.mean(look)), "wait_rate": float(np.mean(np.array(look) > 0))}
   if rw:
