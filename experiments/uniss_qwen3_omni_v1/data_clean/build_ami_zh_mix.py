@@ -157,12 +157,25 @@ def mix_one(job):
             r["flags"].append("excluded:" + args.exclude_map[u["record_id"]])
             rows.append(r)
             continue
-        if not u["shard"] or u["why"] in ("no_text", "silent_or_bad_audio", "no_translation"):
+        if args.clips_map is not None:   # re-spoken clips (build_ami_zh_revoice): the chain's audio and CER do not apply
+            r["cer"] = None
+            if u["record_id"] not in args.clips_map:
+                r["flags"].append("no_zh_speech")
+                rows.append(r)
+                continue
+        elif not u["shard"] or u["why"] in ("no_text", "silent_or_bad_audio", "no_translation"):
             r["flags"].append("no_zh_speech")
             rows.append(r)
             continue
         try:
-            x = clip_of(u)
+            if args.clips_map is not None:
+                x, csr = sf.read(args.clips_map[u["record_id"]], dtype="float32", always_2d=True)
+                x = x.mean(1)
+                if csr != SR:
+                    import scipy.signal as ss
+                    x = ss.resample_poly(x, SR, csr).astype(np.float32)
+            else:
+                x = clip_of(u)
         except Exception as e:   # noqa: BLE001
             r["flags"].append(f"read_error:{type(e).__name__}")
             rows.append(r)
@@ -190,7 +203,7 @@ def mix_one(job):
             import librosa
             rate = float(min(args.tempo_max, len(y) / SR / en_dur))
             y = librosa.effects.time_stretch(y, rate=rate).astype(np.float32)
-        if args.clips_dir and (u["cer"] is None or u["cer"] > GATE["max_cer"]):
+        if args.clips_dir and args.clips_map is None and (u["cer"] is None or u["cer"] > GATE["max_cer"]):
             sf.write(str(Path(args.clips_dir) / f"{u['record_id']}.wav"), y, SR)
         start = u["en_begin"]
         shift = max(0.0, last_end.get(u["speaker_id"], -1.0) + 0.05 - start)
@@ -239,6 +252,8 @@ def mix(args) -> None:
     adir.mkdir(parents=True)
     if args.clips_dir:
         Path(args.clips_dir).mkdir(parents=True)
+    args.clips_map = ({r["id"]: r["speech_path"] for r in map(json.loads, open(args.clips_from, encoding="utf-8"))
+                       if r.get("speech_path")} if args.clips_from else None)
     args.exclude_map = ({r["record_id"]: r["reason"] for r in map(json.loads, open(args.exclude, encoding="utf-8"))}
                         if args.exclude else {})
     by_m = load_meta()
@@ -421,6 +436,7 @@ def main() -> None:
     a.add_argument("--bg-quantile", type=float, default=0.75, help="background frames at or below this energy quantile")
     a.add_argument("--max-gain", type=float, default=4.0, help="loudness gain cap per clip")
     a.add_argument("--tempo-max", type=float, default=1.0, help="speed up clips longer than the English, at most this")
+    a.add_argument("--clips-from", default="", help="si_infer results.jsonl of re-spoken clips (id = record_id)")
     a.add_argument("--exclude", default="", help="jsonl {record_id, reason}: utterances left out (audit --write-exclude)")
     a.add_argument("--clips-dir", default="", help="also write the clips the CER gate rejects, for the ASR recheck")
     a.add_argument("--procs", type=int, default=48)
