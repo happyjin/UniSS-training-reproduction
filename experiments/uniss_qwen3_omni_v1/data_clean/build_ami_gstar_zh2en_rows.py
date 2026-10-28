@@ -3,6 +3,7 @@ format of build_ami_gstar_si_rows.py (en->zh), so one model trains on both direc
 
   utterances  zh_mix_v3/utts (Chinese clock, quality flags) + the Paraformer recheck of the clips Whisper rejected +
               the normalised English references (normalize_ami_en.py)
+  A8          meetings listed as failing in <mix>/audit_diar.json (diarizer DER > English + 10 points) are left out
   gate        an utterance whose clip is missing, unintelligible to both ASRs (CER > 0.3), has an inner pause > 1 s or
               is over three times the English length was left out of the v4 meeting (build_ami_zh_mix --exclude);
               it is skipped here (v5 = v4 with a quieter background and a 4x gain cap). Any remaining utterance failing the gate drops its window
@@ -58,6 +59,10 @@ def main() -> None:
     rng = random.Random(args.seed)
     presets = args.presets.split(",")
     split_of = json.load(open(data / "meetings.json"))
+    audit = data / args.mix / "audit_diar.json"   # A8: meetings the diarizer tracks much worse than English are not used
+    skip = set(json.load(open(audit))["summary"]["failing_meetings"]) if audit.exists() else set()
+    if not audit.exists():
+        print(f"warning: no {audit}; every meeting is used", flush=True)
     asr = {}
     for f in sorted(Path(args.recheck).glob("asr_s*.jsonl")):
         for line in open(f, encoding="utf-8"):
@@ -70,6 +75,9 @@ def main() -> None:
     for f in sorted((data / args.mix / "utts").glob("*.jsonl")):
         m = f.stem
         split = split_of[m]
+        if m in skip:
+            stats[split]["meetings_failing_A8"] += 1
+            continue
         us = [json.loads(l) for l in open(f, encoding="utf-8")]
         talk = []
         for u in us:
