@@ -28,6 +28,7 @@ VARIANTS = {
   "s6_future": {"use_qwen": True, "use_future": True, "use_r": True},
   "s6_rho": {"use_qwen": True, "use_rho": True},
   "s6": {"use_qwen": True, "use_future": True, "use_r": True, "use_rho": True},
+  "s1": {"use_qwen": True, "use_future": True, "use_r": True, "use_diff": True},
 }
 
 
@@ -90,6 +91,9 @@ def main():
   ap.add_argument("--kl-r-warmup", type=int, default=2000)
   ap.add_argument("--val-every", type=int, default=2000)
   ap.add_argument("--seed", type=int, default=17)
+  ap.add_argument("--s1-kl", type=float, default=0.01)
+  ap.add_argument("--s1-diff", type=float, default=0.1)
+  ap.add_argument("--s1-aux", type=float, default=1.0)
   args = ap.parse_args()
   torch.manual_seed(args.seed)
   torch.backends.cuda.matmul.allow_tf32 = True
@@ -127,7 +131,12 @@ def main():
       model.train()
       beta = min(1.0, step / max(1, args.kl_r_warmup))
       L = step_losses(model, batch, dev, dd, "posterior")
-      loss = L["kl_ac"] + L["dur"] + beta * L["kl_r"]
+      if model.use_diff:
+        # S1: weak KL to N(0, I), denoising surrogate for the diffusion prior, auxiliary duration reconstruction
+        L["diff"], L["aux"] = model.last_diff, model.last_aux
+        loss = L["kl_ac"] + L["dur"] + args.s1_kl * beta * L["kl_r"] + args.s1_diff * L["diff"] + args.s1_aux * L["aux"]
+      else:
+        loss = L["kl_ac"] + L["dur"] + beta * L["kl_r"]
       opt.zero_grad(set_to_none=True)
       loss.backward()
       gn = torch.nn.utils.clip_grad_norm_(model.trainable_parameters(), 5.0)
