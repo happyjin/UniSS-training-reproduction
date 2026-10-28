@@ -28,8 +28,9 @@ def main():
   ap = argparse.ArgumentParser()
   ap.add_argument("--exp", required=True)
   ap.add_argument("--targets", default="0.25,0.5")
+  ap.add_argument("--out", default="results.json")
   args = ap.parse_args()
-  exp = Path(args.exp)
+  exp = Path(args.exp).resolve()
   rows = {r["utt_id"]: r for r in map(json.loads, open(ROOT / "data/manifest_v2.jsonl"))}
   gt_dur = dict(np.load(exp / "align/durations.npz"))
   gt_y = {d["utt_id"]: prosody_y(d["units"]) for d in map(json.loads, open(exp / "align/unit_prosody.jsonl"))}
@@ -77,11 +78,14 @@ def main():
                                          "fixed_k_interp_same_look": interp, "path": tp}
 
   E = lambda n: str(exp / f"eval_test/{n}")
-  pairs = [("e1_fixed1", "e2_fixed1"), ("e2_fixed1", "s6_future_fixed1"), ("e2_fixed0", "s6_future_fixed0"),
+  pairs = [("e1_fixed1", "s6_future_fixed1"), ("e1_fixed0", "s6_future_fixed0"), ("e1_fixed1", "e2_fixed1"), ("e2_fixed1", "s6_future_fixed1"), ("e2_fixed0", "s6_future_fixed0"),
            ("e1_fixed1", "s6_future_fixed0"), ("e2_fixed1", "s6_fixed1"), ("e2_fixed1", "s6_rho_fixed1"),
            ("s6_future_fixed1", out["policies"]["t3_lite@0.5"]["path"]),
            ("e1_fixed1", out["policies"]["t3_lite@0.25"]["path"]),
+           ("e1_fixed1", out["policies"]["t3@0.5"]["path"]),
            (out["policies"]["entropy@0.25"]["path"], out["policies"]["t3_lite@0.25"]["path"]),
+           (out["policies"]["entropy@0.5"]["path"], out["policies"]["t3_lite@0.5"]["path"]),
+           (out["policies"]["entropy@0.5"]["path"], out["policies"]["t3@0.5"]["path"]),
            (out["policies"]["spread@0.25"]["path"], out["policies"]["t3@0.25"]["path"])]
   rng = np.random.default_rng(0)
   for a, b in pairs:
@@ -93,9 +97,9 @@ def main():
       p, lo, hi, pge = boot(ua, ub, keys, i, j, 5000, rng)
       res[nm] = {"delta": float(p), "ci95": [float(lo), float(hi)], "boot_p_delta_ge_0": float(pge)}
     out["pairs"][f"{Path(pa).parent.name}/{Path(pa).name} -> {Path(pb).parent.name}/{Path(pb).name}"] = res
-  if (exp / "results.json").exists():
-    raise FileExistsError(exp / "results.json")
-  json.dump(out, open(exp / "results.json", "w"), indent=1)
+  if (exp / args.out).exists():
+    raise FileExistsError(exp / args.out)
+  json.dump(out, open(exp / args.out, "w"), indent=1)
   for k, v in out["fixed"].items():
     if k.startswith("test"):
       print(k, {kk: round(x, 4) for kk, x in v.items() if isinstance(x, float)})
