@@ -153,6 +153,10 @@ def mix_one(job):
             r["flags"].append("hesitation")
             rows.append(r)
             continue
+        if u["record_id"] in args.exclude_map:   # failed the quality gate: left out of the meeting, heard nor translated
+            r["flags"].append("excluded:" + args.exclude_map[u["record_id"]])
+            rows.append(r)
+            continue
         if not u["shard"] or u["why"] in ("no_text", "silent_or_bad_audio", "no_translation"):
             r["flags"].append("no_zh_speech")
             rows.append(r)
@@ -227,6 +231,8 @@ def mix(args) -> None:
     adir.mkdir(parents=True)
     if args.clips_dir:
         Path(args.clips_dir).mkdir(parents=True)
+    args.exclude_map = ({r["record_id"]: r["reason"] for r in map(json.loads, open(args.exclude, encoding="utf-8"))}
+                        if args.exclude else {})
     by_m = load_meta()
     meetings = sorted(m for m in by_m if (DATA / "session_audio/ihm_mix" / f"{m}.Mix-Headset.wav").exists())
     if args.limit:
@@ -279,6 +285,11 @@ def cer_of(hyp: str, ref: str) -> float:
     return prev[-1] / len(r)
 
 
+def removed(u: dict) -> bool:
+    """Left out of the Chinese meeting by the quality gate: not heard, not translated, so not part of any window."""
+    return any(f.startswith("excluded:") for f in u.get("flags", []))
+
+
 def bad_reason(u: dict) -> str | None:
     """§11.5 gate for one non-hesitation utterance of the Chinese meeting. The chain's Whisper CER is unreliable on
     very short Chinese clips, so a clip it rejects passes if a second ASR (Paraformer, u["cer2"]) hears it."""
@@ -310,8 +321,12 @@ def audit(args) -> None:
     ratios = defaultdict(list)
     for m, us in U.items():
         sp = split_of[m]
-        talk = [u for u in us if not u["hes"]]
+        talk = [u for u in us if not u["hes"] and not removed(u)]
         placed = [u for u in talk if u["placed"]]
+        res.setdefault("removed", defaultdict(int))
+        for u in us:
+            if removed(u):
+                res["removed"][[f for f in u["flags"] if f.startswith("excluded:")][0][9:]] += 1
         bad = defaultdict(int)
         for u in talk:
             b = bad_reason(u)
@@ -372,6 +387,12 @@ def audit(args) -> None:
     mix_info = json.load(open(out / "mix.json"))
     res["clipping"] = {"meetings_scaled": sum(1 for r in mix_info["meetings"] if r["scale"] < 1),
                        "min_scale": min(r["scale"] for r in mix_info["meetings"])}
+    if args.write_exclude:   # every non-hesitation utterance that fails the gate, for a re-mix that leaves it out
+        with open(out / args.write_exclude, "x", encoding="utf-8") as fh:
+            for us in U.values():
+                for u in us:
+                    if not u["hes"] and not removed(u) and u.get("_bad"):
+                        fh.write(json.dumps({"record_id": u["record_id"], "reason": u["_bad"]}) + "\n")
     p = out / args.name
     if p.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {p}")
@@ -390,12 +411,14 @@ def main() -> None:
     a.add_argument("--squeeze", type=float, default=0.0, help="cut inner pauses longer than this (s); 0 = off")
     a.add_argument("--background", type=int, default=1)
     a.add_argument("--tempo-max", type=float, default=1.0, help="speed up clips longer than the English, at most this")
+    a.add_argument("--exclude", default="", help="jsonl {record_id, reason}: utterances left out (audit --write-exclude)")
     a.add_argument("--clips-dir", default="", help="also write the clips the CER gate rejects, for the ASR recheck")
     a.add_argument("--procs", type=int, default=48)
     a.add_argument("--limit", type=int, default=0)
     a = sub.add_parser("audit")
     a.add_argument("--out", required=True)
     a.add_argument("--name", default="audit.json")
+    a.add_argument("--write-exclude", default="", help="also write the failing utterances to <out>/<this>")
     a.add_argument("--recheck", default="", help="Paraformer transcripts of the rejected clips (asr_transcribe output)")
     args = ap.parse_args()
     {"mix": mix, "audit": audit}[args.cmd](args)

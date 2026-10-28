@@ -6,6 +6,11 @@ its reply so far as the start of its answer, then:
   --policy wait  (a model trained on streaming rows) generates until <|box_end|>; all of it is committed;
   --policy la2   (any model, e.g. the offline O-G1) generates to the end; the longest common prefix, in tokens,
                  of this continuation and the previous one is committed (LocalAgreement-2).
+  --policy oracle  ABC labels (plan v9 §3): at every read the draft (audio so far, causal speaker stream) and the
+                 oracle (the whole window, full speaker stream) both continue the committed tokens to the end; their
+                 longest common prefix, cut back to a point where decoding and re-tokenising the committed text gives
+                 the same tokens, is committed; every read is written out ("reads": t, prefix, target, draft and
+                 oracle lengths). --window-set picks each window's read period from a list (by its id).
 At the window's end the rest is committed (<|box_end|> barred). Nothing committed is revised.
 
 Committed tokens are parsed as they arrive: a speaker token opens a segment, the first time token is its start, the
@@ -22,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -105,7 +111,8 @@ def main() -> None:
     ap.add_argument("--thinker", required=True)
     ap.add_argument("--windows", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--policy", choices=["wait", "la2"], required=True)
+    ap.add_argument("--policy", choices=["wait", "la2", "oracle"], required=True)
+    ap.add_argument("--window-set", default="", help="oracle: read periods to choose from per window, e.g. 0.5,1,2,4")
     ap.add_argument("--window", type=float, default=1.0, help="read period, s")
     ap.add_argument("--post-key", default="lowlat")
     ap.add_argument("--dir", default="en2zh", choices=["en2zh", "zh2en"], help="the instruction's direction")
@@ -167,7 +174,8 @@ def main() -> None:
             ai = a[pos: pos + n]
             pos += n
             post = s["post"].copy()
-            post[max(0, s["t"] - args.lookahead_ms) // 80:] = 0.0
+            if not s.get("full"):
+                post[max(0, s["t"] - args.lookahead_ms) // 80:] = 0.0
             pt = torch.as_tensor(post_to_tokens(post, n, len(x) / 16000)).to(dev, torch.bfloat16)
             sp = sd_proj(pt[None])[0]
             if args.zero_sd:
@@ -180,7 +188,7 @@ def main() -> None:
         def pick(h, fin_row):
             lg = thinker.lm_head(h).float()
             lg[fin_row, WAIT_ID] = -1e9   # the last read ends the window
-            if args.policy == "la2":
+            if args.policy in ("la2", "oracle"):
                 lg[:, WAIT_ID] = -1e9
             return lg.argmax(-1)
 
@@ -202,6 +210,18 @@ def main() -> None:
             nxt = pick(o.last_hidden_state[:, -1], fin)
         return gen
 
+    periods = [round(float(v) * 1000) for v in args.window_set.split(",")] if args.window_set else [win_ms]
+
+    def stable_cut(committed: list[int], new: list[int], k: int) -> int:
+        """Largest k' <= k whose committed text re-tokenises to the same ids (a prompt that ends inside a merged token
+        derails the model, and training rows store text)."""
+        while k > 0:
+            ids = committed + new[:k]
+            if tok(tok.decode(ids, skip_special_tokens=False), add_special_tokens=False)["input_ids"] == ids:
+                return k
+            k -= 1
+        return 0
+
     t0 = time.time()
     with open(out, "x", encoding="utf-8") as fh:
         for b0 in range(0, len(windows), args.batch):
@@ -211,17 +231,28 @@ def main() -> None:
                 assert sr == 16000
                 states.append({"w": w, "wav": x.mean(1), "post": np.load(w["post"][args.post_key]).astype(np.float32),
                                "committed": [], "prev": None, "parser": Parser(tok), "blocks": [], "done": False,
-                               "dur": int(round(len(x) / 16)), "r": 0})
+                               "dur": int(round(len(x) / 16)), "r": 0, "reads": [],
+                               "period": periods[zlib.crc32(w["id"].encode()) % len(periods)]})
             while any(not s["done"] for s in states):
                 live = [s for s in states if not s["done"]]
                 for s in live:
                     s["r"] += 1
-                    s["t"] = min(s["r"] * win_ms, s["dur"])
+                    s["t"] = min(s["r"] * s["period"], s["dur"])
                 finals = [s["t"] >= s["dur"] for s in live]
                 gens = generate(live, finals)
-                for s, g, fin in zip(live, gens, finals):
+                if args.policy == "oracle":
+                    ogens = generate([{**s, "t": s["dur"], "full": True} for s in live], [True] * len(live))
+                for j, (s, g, fin) in enumerate(zip(live, gens, finals)):
                     body = [i for i in g if i not in (EOS_ID, WAIT_ID)]
-                    if fin or args.policy == "wait":
+                    if args.policy == "oracle":
+                        obody = [i for i in ogens[j] if i not in (EOS_ID, WAIT_ID)]
+                        k = len(body) if fin else stable_cut(s["committed"], body, lcp(body, obody))
+                        new = body[:k]
+                        s["reads"].append({"t": s["t"], "prefix": tok.decode(s["committed"], skip_special_tokens=False),
+                                           "target": tok.decode(new, skip_special_tokens=False), "final": fin,
+                                           "draft_len": len(body), "oracle_len": len(obody), "lcp": lcp(body, obody),
+                                           "k": k})
+                    elif fin or args.policy == "wait":
                         new = body
                     else:   # LA2: what this continuation and the previous one agree on
                         k = lcp(body, s["prev"]) if s["prev"] is not None else 0
@@ -235,7 +266,9 @@ def main() -> None:
                 raw = tok.decode(s["committed"], skip_special_tokens=False)
                 fh.write(json.dumps({"id": s["w"]["id"], "raw": raw,
                                      "translation": "".join(x["text"] for x in s["parser"].segments),
-                                     "segments": s["parser"].segments, "blocks": s["blocks"], "reads": s["r"]},
+                                     "segments": s["parser"].segments, "blocks": s["blocks"], "reads": s["r"],
+                                     **({"read_log": s["reads"], "period_ms": s["period"]}
+                                        if args.policy == "oracle" else {})},
                                     ensure_ascii=False) + "\n")
             fh.flush()
             print(f"{b0 + len(states)}/{len(windows)} windows, {time.time() - t0:.0f}s", flush=True)
