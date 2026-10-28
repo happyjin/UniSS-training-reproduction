@@ -179,8 +179,11 @@ def mix_one(job):
         active = y[: (len(y) // HOP) * HOP].reshape(-1, HOP)[act > act.max() - 30]
         g = 1.0
         if spk_rms.get(u["speaker_id"]) and len(active):
-            g = float(np.clip(spk_rms[u["speaker_id"]] / (np.sqrt(np.mean(active ** 2)) + 1e-9), 0.05, 10.0))
+            g = float(np.clip(spk_rms[u["speaker_id"]] / (np.sqrt(np.mean(active ** 2)) + 1e-9), 0.05, args.max_gain))
         y = y * g
+        pk = float(np.max(np.abs(y))) if len(y) else 0.0
+        if pk > 0.9:   # each clip peaks below 0.9
+            y, g = y * (0.9 / pk), g * 0.9 / pk
         en_dur = max(1e-3, u["en_end"] - u["en_begin"])
         rate = 1.0
         if args.tempo_max > 1.0 and len(y) / SR > en_dur:   # speak faster, pitch kept, at most --tempo-max
@@ -208,6 +211,10 @@ def mix_one(job):
     for u in us:
         busy[max(0, int((u["en_begin"] - 0.2) * SR)): int((u["en_end"] + 0.2) * SR)] = True
     quiet = bg[~busy]
+    if len(quiet) >= HOP:   # only the quieter frames: AMI's speech-free stretches still hold door bangs and clipped bursts
+        fr = quiet[: len(quiet) // HOP * HOP].reshape(-1, HOP)
+        e = np.sqrt(np.mean(fr ** 2, axis=1))
+        quiet = fr[e <= np.quantile(e, args.bg_quantile)].reshape(-1)
     if args.background and len(quiet) > 5 * SR:
         reps = int(np.ceil(n_out / len(quiet)))
         out += np.tile(quiet, reps)[:n_out]
@@ -219,6 +226,7 @@ def mix_one(job):
     with open(Path(args.out) / "utts" / f"{m}.jsonl", "x", encoding="utf-8") as fh:
         fh.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
     return {"meeting": m, "dur_s": round(n_out / SR, 1), "peak_before": round(peak, 3), "scale": round(scale, 3),
+            "bg_rms": round(float(np.sqrt(np.mean(quiet ** 2))) if len(quiet) else 0.0, 5),
             "background_s": round(len(quiet) / SR, 1)}
 
 
@@ -410,6 +418,8 @@ def main() -> None:
     a.add_argument("--audio-dir", default="", help="where the meeting wavs go (default session_audio/<name>)")
     a.add_argument("--squeeze", type=float, default=0.0, help="cut inner pauses longer than this (s); 0 = off")
     a.add_argument("--background", type=int, default=1)
+    a.add_argument("--bg-quantile", type=float, default=0.75, help="background frames at or below this energy quantile")
+    a.add_argument("--max-gain", type=float, default=4.0, help="loudness gain cap per clip")
     a.add_argument("--tempo-max", type=float, default=1.0, help="speed up clips longer than the English, at most this")
     a.add_argument("--exclude", default="", help="jsonl {record_id, reason}: utterances left out (audit --write-exclude)")
     a.add_argument("--clips-dir", default="", help="also write the clips the CER gate rejects, for the ASR recheck")
