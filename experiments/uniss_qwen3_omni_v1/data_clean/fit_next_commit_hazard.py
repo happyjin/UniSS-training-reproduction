@@ -6,7 +6,10 @@ Model, per sentence n:
     P(J = j | J >= j, x, eta, c_n) = sigmoid(eta . next_x(x, j) + c_n),   c_n ~ N(0, tau_c^2),   eta ~ N(n0, V0),
 with steps j < NEXT_J fitted (the last step absorbs J >= NEXT_J and is not fitted) and right censoring. The sentence
 intercept is integrated out by Gauss-Hermite quadrature; tau_c by type-II maximum likelihood (empirical Bayes), eta by
-its MAP with a Laplace (inverse Hessian) covariance. Reported: 2-fold cross-validated (salted sentence hash) held-out
+its MAP with a Laplace (inverse Hessian) covariance. A covariate constant over the data (e.g. lambda before any run with
+lambda > 0) is not identified: it is left out of the model (coefficient pinned at 0 with zero variance, listed in
+"pinned"), so a later policy is evaluated with the hazard of the policy that produced the data (policy iteration),
+not with prior noise. Reported: 2-fold cross-validated (salted sentence hash) held-out
 NLL per step and AUC against the steps-only model.
 
     python -m experiments.uniss_qwen3_omni_v1.data_clean.fit_next_commit_hazard --direction zh2en \
@@ -116,6 +119,10 @@ def main() -> None:
     h1 = y[X[:, len(NEXT_BASE):].sum(1) == 0].mean()
     n0[0] = float(np.log(h1) - np.log1p(-h1))
     v0 = np.full(d, args.prior_sd ** 2)
+    keep = X.std(0) > 1e-9
+    keep[0] = True
+    keep[len(NEXT_BASE):] = True
+    pinned = [n for n, k in zip(list(NEXT_BASE) + [f"j{j}" for j in range(2, NEXT_J + 1)], keep) if not k]
     steps_only = np.zeros(d, bool)
     steps_only[0] = True
     steps_only[len(NEXT_BASE):] = True
@@ -124,16 +131,19 @@ def main() -> None:
     fold = np.array([zlib.crc32(f"hz|{k}".encode()) % 2 for k in ids])[sid]
     for k in (0, 1):
         tr, te = fold != k, fold == k
-        for name, cols in (("full", np.ones(d, bool)), ("steps_only", steps_only)):
+        for name, cols in (("full", keep), ("steps_only", steps_only)):
             remap = {s: i for i, s in enumerate(np.unique(sid[tr]))}
             e, t, _ = fit(np.array([remap[s] for s in sid[tr]]), X[tr][:, cols], y[tr], len(remap), n0[cols], v0[cols])
             p = np.clip(predict(e, t, X[te][:, cols]), 1e-9, 1 - 1e-9)
             cv[name]["nll"].append(float(-np.mean(y[te] * np.log(p) + (1 - y[te]) * np.log1p(-p))))
             cv[name]["auc"].append(auc(p, y[te]))
-    eta, tau, Sigma = fit(sid, X, y, len(ids), n0, v0)
+    e_k, tau, S_k = fit(sid, X[:, keep], y, len(ids), n0[keep], v0[keep])
+    eta, Sigma = np.zeros(d), np.zeros((d, d))
+    eta[keep] = e_k
+    Sigma[np.ix_(keep, keep)] = S_k
     res = {"base": list(NEXT_BASE), "n_j": NEXT_J, "direction": args.direction, "mu": eta.tolist(),
            "Sigma": Sigma.tolist(), "tau_c": tau, "prior": {"n0": n0.tolist(), "sd": args.prior_sd},
-           "rows": len(rows), "periods": int(len(y)), "sentences": len(ids), "event_rate": float(y.mean()),
+           "pinned": pinned, "rows": len(rows), "periods": int(len(y)), "sentences": len(ids), "event_rate": float(y.mean()),
            "cv": {m: {k: float(np.mean(v)) for k, v in c.items()} for m, c in cv.items()},
            "coef": dict(zip(list(NEXT_BASE) + [f"j{j}" for j in range(2, NEXT_J + 1)], np.round(eta, 3).tolist())),
            "sd": dict(zip(list(NEXT_BASE) + [f"j{j}" for j in range(2, NEXT_J + 1)], np.round(np.sqrt(np.diag(Sigma)), 3).tolist()))}
