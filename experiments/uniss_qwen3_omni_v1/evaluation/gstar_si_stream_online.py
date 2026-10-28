@@ -148,8 +148,17 @@ def main() -> None:
     pad_at = head_ids.index(AUDIO_PAD)
     win_ms = round(args.window * 1000)
 
-    def generate(states, finals):
-        """One read for a batch of windows: greedy continuation after the committed tokens."""
+    def looped(g: list[int]) -> bool:
+        """The tail is one short phrase repeated (period <= 8 tokens, >= 4 times): a degenerate loop, stop it."""
+        for per in range(1, 9):
+            n = 4 * per
+            if len(g) >= n and all(g[-1 - i] == g[-1 - i - per] for i in range(n - per)):
+                return True
+        return False
+
+    def generate(states, finals, limits=None):
+        """One read for a batch of windows: greedy continuation after the committed tokens (per-row token limits and
+        loop stops in oracle mode)."""
         wavs = [s["wav"][: s["t"] * 16] if len(s["wav"][: s["t"] * 16]) >= 1600 else
                 np.pad(s["wav"][: s["t"] * 16], (0, 1600 - len(s["wav"][: s["t"] * 16]))) for s in states]
         f = proc.feature_extractor(wavs, sampling_rate=16000, padding=True, truncation=False,
@@ -201,6 +210,10 @@ def main() -> None:
                 if not done[i]:
                     gen[i].append(int(nxt[i]))
             done |= (nxt == EOS_ID) | (nxt == WAIT_ID)
+            if args.policy == "oracle":
+                for i in range(len(states)):
+                    if not done[i] and ((limits and len(gen[i]) >= limits[i]) or looped(gen[i])):
+                        done[i] = True
             if bool(done.all()):
                 break
             mask = torch.cat([mask, torch.ones((len(states), 1), dtype=mask.dtype, device=dev)], 1)
@@ -241,7 +254,8 @@ def main() -> None:
                 finals = [s["t"] >= s["dur"] for s in live]
                 gens = generate(live, finals)
                 if args.policy == "oracle":
-                    ogens = generate([{**s, "t": s["dur"], "full": True} for s in live], [True] * len(live))
+                    lim = [len([i for i in g if i not in (EOS_ID, WAIT_ID)]) + 1 for g in gens]   # lcp <= the draft
+                    ogens = generate([{**s, "t": s["dur"], "full": True} for s in live], [True] * len(live), lim)
                 for j, (s, g, fin) in enumerate(zip(live, gens, finals)):
                     body = [i for i in g if i not in (EOS_ID, WAIT_ID)]
                     if args.policy == "oracle":
