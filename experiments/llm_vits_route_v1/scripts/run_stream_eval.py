@@ -9,6 +9,9 @@ Policies (k_max caps the wait; the end of stream always allows commitment):
                      calibration); a deadline commit is an uncertified override and is flagged. The certified target is
                      the same model's full-context plan y_full of the unit (recorded), so a certified commit is one that
                      waiting for the whole sentence would not have changed by more than EPS
+  gamma:TAU          T1 Gamma head: commit when the predicted squared revision of the plan is <= TAU
+  ot:TAU             T2 finite-class acoustic OT risk of the imagined futures (+ class audit bound) <= TAU
+  t5:LAM[:EPS]       T5 value policy, WAIT cost LAM per word: stop when Q_STOP <= Q_WAIT (EPS: only T3-certified)
   dump               no policy: record the T3 feature vector at every (i, j <= i+k_max) along the k_max trajectory
 Outputs <out>/commits.jsonl (+ wavs/ when --render).
 """
@@ -50,6 +53,7 @@ def features(sim, probe, i, j, plan, qz):
     ys = np.zeros((1, 2))
   dev = np.abs(ys - ys.mean(0)).mean(0)
   word = sim.row["clean"][sim.row["units"][i][0]:sim.row["units"][i][1]].strip()
+  sim.last_probe_ys = ys
   return {"y_hat": plan["y"].tolist(), "probe_mean": ys.mean(0).tolist(), "probe_mad": dev.tolist(),
           "entropy": float(qz["unit_entropy"][j]), "p_punct": float(qz["unit_p_punct"][j]), "look": j - i,
           "end": int(j == sim.U - 1), "n_chars": len(word), "punct_end": int(word[-1] in ",.;:!?")}
@@ -62,6 +66,7 @@ def main():
   ap.add_argument("--policy", required=True)
   ap.add_argument("--k-max", type=int, default=3)
   ap.add_argument("--risk", default=None, help="t3 risk head json (from fit_t3.py)")
+  ap.add_argument("--policy-head", default=None, help="T1 / T2 / T5 head (from fit_policies.py)")
   ap.add_argument("--backbone-config", required=True)
   ap.add_argument("--backbone-ckpt", required=True)
   ap.add_argument("--manifest", default=str(ROOT / "data/manifest_v2.jsonl"))
@@ -86,11 +91,14 @@ def main():
     (out / "wavs").mkdir(exist_ok=True)
   model = load_stream(args.model, args.backbone_config, args.backbone_ckpt, dev)
   pname, _, pval = args.policy.partition(":")
-  risk = None
-  if pname == "t3":
+  risk, head = None, None
+  if pname == "t3" or (pname == "t5" and ":" in pval):
     from fit_t3 import RiskHead
     risk = RiskHead.load(args.risk, dev)
-  need_probe = pname in ("spread", "dump") or (pname == "t3" and not risk.lite)
+  if pname in ("gamma", "ot", "t5"):
+    from fit_policies import PolicyHead
+    head = PolicyHead(args.policy_head, "cpu")
+  need_probe = pname in ("spread", "dump", "gamma", "ot", "t5") or (pname == "t3" and not risk.lite)
   probe_model = load_stream(args.probe, args.backbone_config, args.backbone_ckpt, dev) if need_probe else None
   cands = load_cands(sorted(glob.glob(args.cands))) if (model.use_future or need_probe) else None
   rows = [json.loads(l) for l in open(args.manifest)]
@@ -108,7 +116,7 @@ def main():
       rec = {"utt_id": r["utt_id"], "units": [], "dump": []}
       for i in range(sim.U):
         t_ref = time.time()   # the full-context reference plan is evaluation-only: excluded from compute_s
-        y_full = sim.plan(i, sim.U - 1)["y"].tolist() if pname in ("t3", "dump") else None
+        y_full = sim.plan(i, sim.U - 1)["y"].tolist() if pname in ("t3", "dump", "gamma", "ot", "t5") else None
         excluded += time.time() - t_ref
         j = i
         while True:
@@ -119,7 +127,7 @@ def main():
             go = j >= min(i + int(pval), sim.U - 1)
           elif pname == "entropy":
             go = deadline or qz["unit_entropy"][j] <= float(pval)
-          elif pname in ("spread", "t3", "dump"):
+          elif pname in ("spread", "t3", "dump", "gamma", "ot", "t5"):
             if probe is not None:
               probe.committed_y = list(sim.committed_y)
             feat = features(sim, probe, i, j, plan, qz)
@@ -131,6 +139,22 @@ def main():
               info["B"] = b
               go = deadline or b <= float(pval)
               info["certified"] = bool(b <= float(pval))
+            elif pname == "gamma":
+              info["gamma"] = head.gamma(feat)
+              go = deadline or info["gamma"] <= float(pval)
+            elif pname == "ot":
+              info["ot"] = head.ot_risk(feat, sim.last_probe_ys)
+              go = deadline or info["ot"] <= float(pval)
+            elif pname == "t5":
+              lam, _, eps = pval.partition(":")
+              q_stop, q_wait = head.t5_q(feat, float(lam))
+              info["q"] = [float(q_stop), float(q_wait)]
+              ok = True
+              if eps:
+                info["B"] = risk.bound(feat)
+                ok = info["B"] <= float(eps)
+                info["certified"] = bool(ok)
+              go = deadline or (q_stop <= q_wait and ok)
             else:
               rec["dump"].append({"i": i, "j": j, "y_full": y_full, **feat})
               go = deadline
