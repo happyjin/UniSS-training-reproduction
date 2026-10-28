@@ -42,8 +42,9 @@ def expand(t, dur):
 
 
 class Backend:
-  def __init__(self, kind, sim_model, ck, dev, nfe, temp):
+  def __init__(self, kind, sim_model, ck, dev, nfe, temp, lookahead=0, full=False):
     self.kind, self.dev, self.nfe, self.temp = kind, dev, nfe, temp
+    self.lookahead, self.full = lookahead, full
     self.flow, self.dec = sim_model.frozen["flow"], sim_model.frozen["dec"]
     if kind == "s5":
       self.dec.load_state_dict(torch.load(ck["s5"], map_location="cpu")["dec"])
@@ -87,24 +88,41 @@ class Backend:
     return o[(z_done.size(1) - n_new - s) * HOP:]
 
   def _flow_dec(self, sim, stats, plans):
-    """Prior sample per unit (eps fixed per unit as in Simulator.commit) -> flow inverse over committed frames."""
+    """Prior sample per unit (eps fixed per unit as in Simulator.commit) -> flow inverse over committed frames.
+    lookahead R > 0: after each commit only the frames up to (committed - R) are played; the decoder sees the last R
+    committed frames as right context and the tail is played after the next commit (latency + R frames); the z of
+    played frames never changes. full: the whole plan rendered in one pass after the last commit (not streaming:
+    the rendering upper bound for the same committed plan)."""
     causal = self.kind == "t4"
     flow = self.cflow if causal else self.flow
     dec = self.cdec if causal else self.dec
+    R = self.lookahead
     zp_all = torch.zeros(192, 0, device=self.dev)
-    z_done = torch.zeros(192, 0, device=self.dev)
+    z_emit = torch.zeros(192, 0, device=self.dev)
     pieces = []
     for i, (p, st) in enumerate(zip(plans, stats)):
       m, ls = st if st is not None else (expand(p["m_p"], p["dur"]), expand(p["logs_p"], p["dur"]))
-      if m.size(1) == 0:
+      last = i == len(plans) - 1
+      if m.size(1):
+        eps = torch.randn(m.shape, generator=unit_rng(sim.seed, sim.uid, i, 2)).to(self.dev)
+        zp_all = torch.cat([zp_all, m + eps * torch.exp(ls) * sim.noise_z], 1)
+      if self.full:
+        if last:
+          mask = torch.ones(1, 1, zp_all.size(1), device=self.dev)
+          return dec(flow(zp_all[None], mask, reverse=True))[0, 0].float().cpu().numpy()
         continue
-      eps = torch.randn(m.shape, generator=unit_rng(sim.seed, sim.uid, i, 2)).to(self.dev)
-      zp_all = torch.cat([zp_all, m + eps * torch.exp(ls) * sim.noise_z], 1)
+      if m.size(1) == 0 and not last:
+        continue
       mask = torch.ones(1, 1, zp_all.size(1), device=self.dev)
       z = flow(zp_all[None], mask, reverse=True)[0]
-      z_new = z[:, z_done.size(1):]
-      z_done = torch.cat([z_done, z_new], 1)
-      pieces.append(self._decode_new(dec, z_done, z_new.size(1)))
+      emitted = z_emit.size(1)
+      z = torch.cat([z_emit, z[:, emitted:]], 1)
+      end = z.size(1) if last else max(emitted, z.size(1) - R)
+      if end > emitted:
+        s = max(0, emitted - LEFT)
+        o = dec(z[None, :, s:])[0, 0]
+        pieces.append(o[(emitted - s) * HOP:(end - s) * HOP])
+        z_emit = z[:, :end]
     return torch.cat(pieces).float().cpu().numpy()
 
   def _s2(self, sim, plans):
@@ -196,6 +214,8 @@ def main():
   ap.add_argument("--noise-w", type=float, default=0.8)
   ap.add_argument("--nfe", type=int, default=16)
   ap.add_argument("--temp", type=float, default=0.667)
+  ap.add_argument("--lookahead", type=int, default=0, help="vits/s5/t4: decoder right context in frames (played later)")
+  ap.add_argument("--full", action="store_true", help="vits/s5/t4: render the committed plan in one pass (upper bound)")
   ap.add_argument("--out", required=True)
   args = ap.parse_args()
   dev = torch.device("cuda")
@@ -205,7 +225,7 @@ def main():
   if res.exists():
     raise FileExistsError(res)
   model = load_stream(args.model, args.backbone_config, args.backbone_ckpt, dev)
-  be = Backend(args.backend, model, json.loads(args.ckpt), dev, args.nfe, args.temp)
+  be = Backend(args.backend, model, json.loads(args.ckpt), dev, args.nfe, args.temp, args.lookahead, args.full)
   cands = load_cands(sorted(Path(ROOT / "data/future_cands").glob("shard*.jsonl")))
   rows = [r for r in map(json.loads, open(ROOT / "data/manifest_v2.jsonl")) if r["split"] == args.split]
   rows = (rows[:args.limit] if args.limit else rows)[args.shard::args.num_shards]
