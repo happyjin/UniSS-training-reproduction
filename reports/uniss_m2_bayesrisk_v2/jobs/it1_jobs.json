@@ -1,0 +1,30 @@
+[
+ {
+  "id": "it1_zh_P_a0.5",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag op1 --policy bayesrisk --clean --br-loss unit --br-playback --br-model eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v1/posterior_dev_v3.json --br-next eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/next_it0p_zh2en.json --br-abrupt 0.5 --direction zh2en --windows 1 --wait-biases=-0.5,0,0.5,1 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --br-dump eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1/dump --out eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1"
+ },
+ {
+  "id": "it1_zh_P_a1",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag op1 --policy bayesrisk --clean --br-loss unit --br-playback --br-model eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v1/posterior_dev_v3.json --br-next eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/next_it0p_zh2en.json --br-abrupt 1 --direction zh2en --windows 1 --wait-biases=-0.5,0,0.5,1 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --br-dump eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1/dump --out eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1"
+ },
+ {
+  "id": "it1_zh_P_a2",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag op1 --policy bayesrisk --clean --br-loss unit --br-playback --br-model eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v1/posterior_dev_v3.json --br-next eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/next_it0p_zh2en.json --br-abrupt 2 --direction zh2en --windows 1 --wait-biases=-0.5,0,0.5,1 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --br-dump eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1/dump --out eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1"
+ },
+ {
+  "id": "it1_zh_P_a4",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag op1 --policy bayesrisk --clean --br-loss unit --br-playback --br-model eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v1/posterior_dev_v3.json --br-next eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/next_it0p_zh2en.json --br-abrupt 4 --direction zh2en --windows 1 --wait-biases=-0.5,0,0.5,1 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --br-dump eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1/dump --out eval_outputs/uniss_qwen3_omni_v1/bayesrisk_v2/dev_it1"
+ }
+]
