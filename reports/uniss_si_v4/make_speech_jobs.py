@@ -27,7 +27,7 @@ ITEMS = "data/cvss_t/si_items_v1/items_{d}.jsonl"
 def asr(folder):
     return (f"{PYE} reports/uniss_si_v4/speech_only.py {folder} > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. {PYE} "
             f"-m evaluation.asr_transcribe --input {folder}/results_speechonly.jsonl --output {folder}/asr_speech.jsonl "
-            f"--device cuda:0 --batch-size 16 && [ -f {folder}/asr_speech.jsonl ]")
+            f"--device cuda:0 --batch-size 4 && [ -f {folder}/asr_speech.jsonl ]")
 
 
 jobs = []
