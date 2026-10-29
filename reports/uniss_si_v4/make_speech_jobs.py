@@ -4,7 +4,8 @@
           talker seed default / 1 / 2 (named <name>, <name>-seed1, <name>-seed2); then speech-only ASR
   cvss    CVSS-T test, whole sentences: si_infer on the items file, two shards on the job's two cards; then ASR
 Talker engines at --gpu-mem 0.15 (RealSI; 3 GB of weights, about 16 GB of KV cache) or 0.25 (CVSS-T), so two
-RealSI jobs share a card beside other work. Runs go to eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_<name>[-seed<k>]_m<window>/realsi_<dir>
+RealSI jobs share a card beside other work. Runs go to eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_<name>[-seed<k>]_m<window>/_<dir>/realsi_<dir> (left where
+run_si_probe writes them: results.jsonl holds absolute wav paths)
 and .../si_v4/speech/cvss_<name>/cvss_<dir>.
 
     python3 reports/uniss_si_v4/make_speech_jobs.py <out_jobs.json> <spec.json>
@@ -36,14 +37,13 @@ for s in json.load(open(sys.argv[2])):
         for seed in s["seeds"]:
             name = s["name"] + (f"-seed{seed}" if seed else "")
             out = f"{SP}/system_{name}_m{s['window']:g}"
-            assert not os.path.exists(f"{out}/realsi_{d}"), out
+            assert not os.path.exists(f"{out}/_{d}"), out
             assert os.path.exists(f"{s['blocks_dir']}/blocks_{d}_w{s['window']:g}{s['suffix']}.jsonl"), (s, d)
             jobs.append({"id": f"sp_{name}_m{s['window']:g}_{d}", "gpus": 2, "vllm": True, "mem": 25000, "deps": [],
                          "cmd": f"env EXPORT_DIR={EXPORT} TALKER_GPU_MEM=0.15 LIMIT=0 SPEED_POLICY=block HISTORY_BAN=8 EXTRA=0 REPORT=0 "
                                 f"TEXT_POLICY=file BLOCKS_DIR={s['blocks_dir']} GPUS=\"$GPUS\" OUT={out}/_{d} WINDOW={s['window']:g} "
                                 f"BLOCKS_SUFFIX={s['suffix']} DIRS={d} " + (f"SEED={seed} " if seed else "") +
-                                f"bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && mkdir -p {out} && "
-                                f"command mv {out}/_{d}/realsi_{d} {out}/realsi_{d} && " + asr(f"{out}/realsi_{d}")})
+                                f"bash experiments/uniss_qwen3_omni_v1/scripts/run_si_probe.sh && " + asr(f"{out}/_{d}/realsi_{d}")})
     else:
         out = f"{SP}/cvss_{s['name']}/cvss_{d}"
         assert not os.path.exists(out), out

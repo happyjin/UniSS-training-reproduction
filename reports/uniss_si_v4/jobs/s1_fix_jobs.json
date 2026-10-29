@@ -1,0 +1,162 @@
+[
+ {
+  "id": "fix_system_offline-base-seed1_m60_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_offline-base-seed1_m60_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed1_m60/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_offline-base-seed2_m60_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_offline-base-seed2_m60_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base-seed2_m60/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_offline-base_m60_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_offline-base_m60_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_offline-base_m60/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-seed1_m4_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m4/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-seed1_m5_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed1_m5/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-seed2_m4_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m4/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-seed2_m5_en2zh",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/realsi_en2zh eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/_en2zh/realsi_en2zh && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/_en2zh/realsi_en2zh > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/_en2zh/realsi_en2zh/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/_en2zh/realsi_en2zh/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-seed2_m5/_en2zh/realsi_en2zh/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed1_m2_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m2/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed1_m3_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m3/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed1_m4_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m4/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed1_m5_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m5/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed1_m6_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed1_m6/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed2_m2_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m2/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed2_m3_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m3/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed2_m4_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m4/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed2_m5_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m5/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ },
+ {
+  "id": "fix_system_op4b-b1-zh-seed2_m6_zh2en",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 12000,
+  "deps": [],
+  "cmd": "command mv eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/realsi_zh2en eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/_zh2en/realsi_zh2en && /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python reports/uniss_si_v4/speech_only.py eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/_zh2en/realsi_zh2en > /dev/null && CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/_zh2en/realsi_zh2en/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/_zh2en/realsi_zh2en/asr_speech.jsonl --device cuda:0 --batch-size 16 && [ -f eval_outputs/uniss_qwen3_omni_v1/si_v4/speech/system_op4b-b1-zh-seed2_m6/_zh2en/realsi_zh2en/asr_speech.jsonl ]"
+ }
+]
