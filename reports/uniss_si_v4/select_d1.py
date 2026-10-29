@@ -40,9 +40,10 @@ def main():
                         continue
                     r = endpoints({"LA2": la2, "x": ours}, "x", "LA2", B=200)
                     res.setdefault(f"{m}_b{b}", {})[dev] = {k: r[k] for k in ("E1", "E1_ci", "E2", "E2_ci")}
-                    print(d, dev, m, b, round(r["E1"], 2), round(r["E2"], 2), flush=True)
+                    print(d, dev, m, b, r["E1"], r["E2"], flush=True)   # None: the curves share no latency range
         for k, v in res.items():
-            v["score"] = sum(x["E1"] for x in v.values()) / len(v) if len(v) == 2 else None
+            e1 = [x["E1"] for x in v.values()]
+            v["score"] = sum(e1) / 2 if len(e1) == 2 and None not in e1 else None
         best = max((k for k in res if res[k]["score"] is not None), key=lambda k: res[k]["score"])
         default = res["s0_b1"]["score"]
         chosen = best if res[best]["score"] >= default + MARGIN else "s0_b1"
