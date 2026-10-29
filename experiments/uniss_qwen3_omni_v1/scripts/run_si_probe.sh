@@ -11,6 +11,7 @@
 #   BEST_OF=<n> samples n continuations a block and keeps the talker's likeliest;
 #   SPEED_SHIFT=<k> asks every block k speed steps faster (block speed policy);
 #   DUMP_CODES=1 keeps each block's semantic codes in results.jsonl;
+#   TALKER_GPU_MEM=<f> sizes each talker engine (si_infer --gpu-mem; 0.15 leaves room for two engines a card);
 #   SELECT_K=<k> SCORER_URL=<url> keeps, of k samples a block, the one si_asr_scorer.py finds likeliest (Plan 2).
 #   EXPORT_DIR=<an export with uniss/> instead of CKPT uses that model as is (R2 for step zero).
 set -uo pipefail
@@ -50,7 +51,7 @@ for dir in ${DIRS:-zh2en en2zh}; do
       --window "${WINDOW}" --limit "${LIMIT}" --output "${OUT}/realsi_${dir}" --shard "${s}" --num-shards 2 \
       --text-policy "${TEXT_POLICY:-clause}" --min-words "${MIN_WORDS:-2}" \
       ${BLOCKS_DIR:+--blocks-file "${BLOCKS_DIR}/blocks_${dir}_w${WINDOW}${BLOCKS_SUFFIX:-}.jsonl"} \
-      --speed-policy "${SPEED_POLICY:-fixed}" --history-ban "${HISTORY_BAN:-0}" ${SEED:+--seed "${SEED}"} ${MAX_MODEL_LEN:+--max-model-len "${MAX_MODEL_LEN}"} ${TALKER_T:+--temperature "${TALKER_T}"} ${BEST_OF:+--best-of "${BEST_OF}"} ${SPEED_SHIFT:+--speed-shift "${SPEED_SHIFT}"} ${DUMP_CODES:+--dump-codes} ${SELECT_K:+--select-k "${SELECT_K}"} ${SCORER_URL:+--scorer-url "${SCORER_URL}"} ${LOOKAHEAD:+--lookahead} ${VOICE_CTX:+--voice-context-ms "${VOICE_CTX}"} ${VOICE_EMA:+--voice-ema "${VOICE_EMA}"} ${VOICE_BAYES:+--voice-bayes} ${VOICE_LOCK:+--voice-lock "${VOICE_LOCK}"} ${VOICE_FREEZE:+--voice-freeze-sec "${VOICE_FREEZE}"} ${SELECT_VOICE:+--select-voice "${SELECT_VOICE}"} \
+      --speed-policy "${SPEED_POLICY:-fixed}" --history-ban "${HISTORY_BAN:-0}" ${SEED:+--seed "${SEED}"} ${MAX_MODEL_LEN:+--max-model-len "${MAX_MODEL_LEN}"} ${TALKER_T:+--temperature "${TALKER_T}"} ${BEST_OF:+--best-of "${BEST_OF}"} ${SPEED_SHIFT:+--speed-shift "${SPEED_SHIFT}"} ${DUMP_CODES:+--dump-codes} ${SELECT_K:+--select-k "${SELECT_K}"} ${SCORER_URL:+--scorer-url "${SCORER_URL}"} ${LOOKAHEAD:+--lookahead} ${VOICE_CTX:+--voice-context-ms "${VOICE_CTX}"} ${VOICE_EMA:+--voice-ema "${VOICE_EMA}"} ${VOICE_BAYES:+--voice-bayes} ${VOICE_LOCK:+--voice-lock "${VOICE_LOCK}"} ${VOICE_FREEZE:+--voice-freeze-sec "${VOICE_FREEZE}"} ${SELECT_VOICE:+--select-voice "${SELECT_VOICE}"} ${TALKER_GPU_MEM:+--gpu-mem "${TALKER_GPU_MEM}"} \
       > "${OUT}/logs/si_${dir}_${s}.log" 2>&1 &
     k=$((k + 1))
     # vLLM sizes its KV cache from the memory free when it profiles: two engines profiling on one card

@@ -11,6 +11,8 @@ Each job declares the memory it takes per card ("mem", MiB). A job starts on car
     queue that needs whole cards; touch <logdir>/allow_empty to lift this.
 Otherwise as gpuq6: jobs json [{"id", "gpus", "vllm", "deps", "cmd", "mem"}], cmd run by bash with GPUS="a b", GPU0, GPU1;
 dependencies; a failed dependency skips the job. Never touches GPU holders.
+Several gpuq7 queues may run at once: each writes its per-card reservations to $GPUQ7_LEDGER (default
+logs/gpuq7_ledger/<pid>.json) and counts those of the other live queues as its own for OUR_MAX.
 
     GPUQ_CARDS=0,1,2,3,4,5,6,7 python gpuq7.py jobs.json logdir
 """
@@ -26,6 +28,24 @@ PIGGY_MIN = int(os.environ.get("PIGGY_MIN", 20000))
 state = {k: "wait" for k in jobs}
 running, last_start, hist = {}, {}, {g: [] for g in CARDS}
 T0 = time.time()   # memory watched since
+LEDGER = os.environ.get("GPUQ7_LEDGER", "/opt/dlami/nvme/jasonleeeli/projects/UniSS/logs/gpuq7_ledger")
+os.makedirs(LEDGER, exist_ok=True)
+ME = os.path.join(LEDGER, f"{os.getpid()}.json")
+
+
+def others():
+    tot = {g: 0 for g in CARDS}
+    for f in os.listdir(LEDGER):
+        pid = f.split(".")[0]
+        if f == os.path.basename(ME) or not pid.isdigit() or not os.path.exists(f"/proc/{pid}"):
+            continue
+        try:
+            for g, m in json.load(open(os.path.join(LEDGER, f))).items():
+                if int(g) in tot:
+                    tot[int(g)] += m
+        except (OSError, ValueError):
+            pass
+    return tot
 
 
 def stamp():
@@ -52,7 +72,9 @@ while any(s in ("wait", "run") for s in state.values()):
     mem = used_mib()
     for g, v in mem.items():
         hist[g] = [(t, m) for t, m in hist[g] if now - t <= 120] + [(now, v)]
-    ours = {g: sum(jobs[k]["mem"] for k in running if g in jobs[k]["_cards"]) for g in CARDS}
+    mine = {g: sum(jobs[k]["mem"] for k in running if g in jobs[k]["_cards"]) for g in CARDS}
+    oth = others()
+    ours = {g: mine[g] + oth[g] for g in CARDS}
     pending = {g: sum(jobs[k]["mem"] for k in running if g in jobs[k]["_cards"] and now - jobs[k]["_t"] < 300)
                for g in CARDS}
     allow_empty = os.path.exists(os.path.join(logdir, "allow_empty"))
@@ -78,6 +100,9 @@ while any(s in ("wait", "run") for s in state.values()):
             ours[g] += j["mem"]
             pending[g] += j["mem"]
         print(f"{stamp()} start {k} on {cards}", flush=True)
+        mine = {g: mine[g] + (j["mem"] if g in cards else 0) for g in CARDS}
+    json.dump({str(g): v for g, v in mine.items()}, open(ME + ".tmp", "w"))
+    os.replace(ME + ".tmp", ME)
     time.sleep(15)
 print(f"{stamp()} QUEUE_DONE done={sum(s == 'done' for s in state.values())} fail={sum(s == 'fail' for s in state.values())}",
       flush=True)
