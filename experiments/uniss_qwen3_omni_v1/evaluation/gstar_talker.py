@@ -98,9 +98,18 @@ def prep(args):
         for h in load(args.hyp):
             w = W[h["id"]]
             by = defaultdict(list)
-            for s in h["segments"]:
-                if s["text"].strip():
-                    by[s["spk"]].append(s)
+            if args.blocks and h.get("blocks"):   # streaming: every read's commitment is spoken when it is committed
+                seg_end = {(s["spk"], s["start_s"]): s["end_s"] for s in h["segments"]}
+                for b in h["blocks"]:
+                    if b["text"].strip():
+                        by[b["spk"]].append({"text": b["text"], "write_ms": b["write_ms"], "start_s": b["start_s"] or 0.0,
+                                             "end_s": seg_end.get((b["spk"], b["start_s"]), w["dur_ms"] / 1000)})
+                for k in by:
+                    by[k].sort(key=lambda b: (b["write_ms"], b["start_s"]))
+            else:
+                for s in h["segments"]:
+                    if s["text"].strip():
+                        by[s["spk"]].append(s)
             for k, segs in sorted(by.items()):
                 iid = f"{w['id']}__S{k}"
                 v = vdir / f"{w['meeting']}_S{k}.wav" if vdir else Path("/nonexistent")
@@ -233,6 +242,8 @@ def main() -> None:
     a.add_argument("--preset", default="lowlat")
     a.add_argument("--diar", default="")
     a.add_argument("--session", default="ihm_mix")
+    a.add_argument("--blocks", action="store_true",
+                   help="streaming: speak each read's committed block at its commit time (not whole segments)")
     a.add_argument("--sep", default="", help="joins a slot's segments (\" \" for English)")
     a.add_argument("--out", required=True)
     a = sub.add_parser("stitch")
