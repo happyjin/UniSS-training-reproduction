@@ -145,6 +145,9 @@ def main() -> None:
                     help="selfwait policy (Route 3 on the amortised posterior): the wait-marker bias b is the commit "
                          "threshold's log-odds, tau = sigmoid(b); with this many seconds of speech a committed unit, "
                          "tau_t = 1 - (1 - tau) max(0, window - queue) / window (capped by --queue-tau-max); named q<rate>")
+    ap.add_argument("--sw-queue-binary", action="store_true",
+                    help="with --sw-queue-rate, a control for SDR: the same tracked queue, but the threshold is the base one "
+                         "unless the queue covers a whole window, when nothing uncertain is committed; named qb<rate>")
     ap.add_argument("--sw-adapt", choices=("none", "aci", "beta"), default="none",
                     help="selfwait policy: each talk's sentences in turn; when one ends its reads are labelled by the "
                          "Thinker continuing each committed prefix with the whole sentence heard (no reference), a read "
@@ -246,7 +249,7 @@ def main() -> None:
     if args.sw_urgency and not (args.policy == "selfwait" and args.sw_queue_rate):
         raise SystemExit("--sw-urgency needs the selfwait policy with --sw-queue-rate (the talker's queue)")
     sw_extra = ("" if args.policy != "selfwait" else
-                (f"q{args.sw_queue_rate:g}" + (f"c{args.queue_tau_max:g}" if args.queue_tau_max < 1 else "") if args.sw_queue_rate else "")
+                (f"q{'b' if args.sw_queue_binary else ''}{args.sw_queue_rate:g}" + (f"c{args.queue_tau_max:g}" if args.queue_tau_max < 1 else "") if args.sw_queue_rate else "")
                 + (f"ad{args.sw_adapt}e{args.sw_eps:g}" + (f"g{args.sw_gamma:g}" if args.sw_adapt == "aci" else
                    f"k{args.sw_kappa:g}n{args.sw_n0:g}") if args.sw_adapt != "none" else ""))
 
@@ -368,7 +371,8 @@ def main() -> None:
                    selfwait=g if args.policy == "selfwait" else None, oracle=args.oracle and scorer is not None,
                    oracle_commit=args.policy == "oracle", queue_rate=args.queue_rate, queue_tau_max=args.queue_tau_max, mbr=args.mbr, mbr_final_only=args.mbr_final_only,
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
-                           "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min}
+                           "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min,
+                           "binary": args.sw_queue_binary}
                    if args.policy == "selfwait" else None, look_units=args.look_units, virtual_ms=0 if lr is not None else args.virtual_ms,
                    fluency={"hyg_min": hyg_min, "hyg_first_min": args.hyg_first_min, "clean": args.clean, "hold_ms": args.hyg_hold_ms, "start_vote": args.start_vote,
                             "start_vote_gamma": args.start_vote_gamma} if (hyg_min or args.clean or args.start_vote) else None,
@@ -502,7 +506,10 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                 b = selfwait + sw_talk.get(it["id"].rsplit("_", 1)[0], {}).get("b", 0.0)
                 if sw_cfg["rate"]:
                     tau = 1.0 / (1.0 + np.exp(-b))
-                    tau = max(tau, min(queue_tau_max, 1 - (1 - tau) * max(0.0, window - max(0, it["busy"] - it["t"])) / window))
+                    if sw_cfg.get("binary"):   # control: the same queue, no derived threshold -- hold while it covers a window
+                        tau = 0.9975 if it["busy"] - it["t"] >= window else tau
+                    tau = max(tau, min(queue_tau_max, 1 - (1 - tau) * max(0.0, window - max(0, it["busy"] - it["t"])) / window)) \
+                        if not sw_cfg.get("binary") else tau
                     tau = min(tau, 0.9975)
                     b = float(np.log(tau / (1 - tau)))
                 if sw_cfg.get("urgency"):   # the longer the talker has sat idle, the cheaper committing (fluency plan v2)
