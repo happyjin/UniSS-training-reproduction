@@ -33,7 +33,7 @@ def main():
         for dev, (items, folder, la2dir) in DEVS.items():
             refs = items_refs(str(ROOT / items.format(d=d)))
             la2 = family(V4 / la2dir, d, "", refs, lang)
-            for m in ("s0", "bma3"):
+            for m in ("s0", "bma3", "a2"):
                 for b in (0, 1, 2, 3):
                     ours = family(V4 / folder.format(m=m), d, f"_sw{m}b{b}q{RATE[d]}", refs, lang)
                     if len(ours) < 8:
