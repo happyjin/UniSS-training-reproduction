@@ -25,6 +25,7 @@ CAP = int(os.environ.get("CAP", 138000))
 PIGGY_MIN = int(os.environ.get("PIGGY_MIN", 20000))
 state = {k: "wait" for k in jobs}
 running, last_start, hist = {}, {}, {g: [] for g in CARDS}
+T0 = time.time()   # memory watched since
 
 
 def stamp():
@@ -61,7 +62,7 @@ while any(s in ("wait", "run") for s in state.values()):
         span = lambda g: max(m for _, m in hist[g]) - min(m for _, m in hist[g])   # noqa: E731
         ok = [g for g in sorted(CARDS, key=lambda g: mem[g] + pending[g])
               if ours[g] + j["mem"] <= OUR_MAX and mem[g] + pending[g] + j["mem"] <= CAP
-              and now - hist[g][0][0] >= 110 and span(g) < 3000 and now - last_start.get(g, 0.0) >= 90
+              and now - T0 >= 120 and span(g) < 3000 and now - last_start.get(g, 0.0) >= 90
               and (allow_empty or mem[g] - ours[g] >= PIGGY_MIN)]
         if len(ok) < j["gpus"]:
             continue
