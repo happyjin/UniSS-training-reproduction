@@ -1,0 +1,10 @@
+[
+ {
+  "id": "test_off_a2_en2zh_r1",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 56000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v7sp_20261029/thinker_merged_i200 --thinker-tag a2 --wait-biases=0 --direction en2zh --windows 60 --out eval_outputs/uniss_qwen3_omni_v1/si_v4/realsi_off_a2"
+ }
+]
