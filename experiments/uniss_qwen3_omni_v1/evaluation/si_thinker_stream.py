@@ -224,6 +224,7 @@ def main() -> None:
                     "pause (needs --br-next); named a<lam>")
     ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
+    ap.add_argument("--tp", type=int, default=1, help="tensor-parallel cards (2 at --gpu-mem 0.3 fits beside a training job)")
     ap.add_argument("--seed", type=int, default=20261021)
     args = ap.parse_args()
     windows = [float(w) for w in args.windows.split(",")]
@@ -318,7 +319,7 @@ def main() -> None:
                                          {"type": "text", "text": instruction}]}]
     head = processor.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     llm = LLM(model=args.thinker, gpu_memory_utilization=args.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
-              seed=args.seed)
+              seed=args.seed, tensor_parallel_size=args.tp)
     params = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS])
     for w, g, out in runs:
         if args.policy == "belief":
