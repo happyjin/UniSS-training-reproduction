@@ -76,15 +76,22 @@ def write_giga(keep, out, tag):
     by_file = defaultdict(list)
     for f, i, r in keep:
         by_file[f].append((i, r))
-    for f, lst in by_file.items():
-        tab = pq.ParquetFile(f).read(columns=["audio"])
+    for f, lst in by_file.items():   # row group by row group: a whole file's audio column is too large for one array
+        pf = pq.ParquetFile(f)
+        starts = np.cumsum([0] + [pf.metadata.row_group(g).num_rows for g in range(pf.num_row_groups)])
+        groups = defaultdict(list)
         for i, r in lst:
-            x, sr = sf.read(io.BytesIO(tab.column("audio")[i].as_py()["bytes"]), dtype="float32", always_2d=True)
-            assert sr == 16000, sr
-            path = out / "audio" / tag / f"{r['segment_id']}.wav"
-            sf.write(path, x.mean(1), 16000)
-            rows.append({"id": f"giga_{r['segment_id']}", "audio": str(path.resolve()), "dur_ms": int(len(x) / 16),
-                         "transcript": giga_text(r["text"])})
+            g = int(np.searchsorted(starts, i, side="right") - 1)
+            groups[g].append((i - int(starts[g]), r))
+        for g, members in groups.items():
+            col = pf.read_row_group(g, columns=["audio"]).column("audio")
+            for i, r in members:
+                x, sr = sf.read(io.BytesIO(col[i].as_py()["bytes"]), dtype="float32", always_2d=True)
+                assert sr == 16000, sr
+                path = out / "audio" / tag / f"{r['segment_id']}.wav"
+                sf.write(path, x.mean(1), 16000)
+                rows.append({"id": f"giga_{r['segment_id']}", "audio": str(path.resolve()), "dur_ms": int(len(x) / 16),
+                             "transcript": giga_text(r["text"])})
     return rows
 
 
