@@ -227,6 +227,12 @@ def main() -> None:
                     "pause (needs --br-next); named a<lam>")
     ap.add_argument("--br-dump", default="", help="bayesrisk: write each read's statistics and stable length (dir)")
     ap.add_argument("--gpu-mem", type=float, default=0.85)
+    ap.add_argument("--ban-wait", action="store_true",
+                    help="la2 on an adapted Thinker: the wait marker's logit gets -100, so LocalAgreement runs on the adapter's "
+                         "own drafts (it differs from the adapted policy only in the commitment rule); named _bw")
+    ap.add_argument("--la2-queue-gate", action="store_true",
+                    help="la2 with --queue-rate: a non-Bayesian queue heuristic -- nothing is committed while the tracked "
+                         "speech queue covers a whole read window (the last read always commits); named _qg<rate>")
     ap.add_argument("--tp", type=int, default=1, help="tensor-parallel cards (2 at --gpu-mem 0.3 fits beside a training job)")
     ap.add_argument("--seed", type=int, default=20261021)
     args = ap.parse_args()
@@ -246,6 +252,8 @@ def main() -> None:
         + (f"hold{args.hyg_hold_ms}" if hyg_min and args.hyg_hold_ms else "") \
         + ("_cln" if args.clean else "") + (f"_urg{args.sw_urgency:g}m{args.sw_urgency_min:g}" if args.sw_urgency else "") \
         + (f"_sv{args.start_vote}g{args.start_vote_gamma:g}" if args.start_vote else "")
+    if args.la2_queue_gate and not (args.policy == "la2" and args.queue_rate):
+        raise SystemExit("--la2-queue-gate needs the la2 policy with --queue-rate (the tracked speech queue)")
     if args.sw_urgency and not (args.policy == "selfwait" and args.sw_queue_rate):
         raise SystemExit("--sw-urgency needs the selfwait policy with --sw-queue-rate (the talker's queue)")
     sw_extra = ("" if args.policy != "selfwait" else
@@ -281,6 +289,7 @@ def main() -> None:
                    if args.lr_table and args.adapt != "none" else ""))
         return base + sw_extra + (f"q{args.queue_rate:g}" + (f"c{args.queue_tau_max:g}" if args.queue_tau_max < 1 else "")
                        if args.queue_rate and args.policy == "head" else "") + extra + (
+            ("_bw" if args.ban_wait else "") + (f"_qg{args.queue_rate:g}" if args.la2_queue_gate else "")) + (
             f"_look{args.look_units}" if args.look_units else "")
     runs = [(w, g, Path(args.out) / f"blocks_{args.direction}_w{w:g}{tag_of(g)}.jsonl") for w in windows for g in gammas]
     outs = [o for _, _, o in runs]
@@ -323,7 +332,8 @@ def main() -> None:
     head = processor.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     llm = LLM(model=args.thinker, gpu_memory_utilization=args.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
               seed=args.seed, tensor_parallel_size=args.tp)
-    params = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS])
+    params = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS],
+                            **({"logit_bias": {WAIT_MARK: -100.0}} if args.ban_wait else {}))
     for w, g, out in runs:
         if args.policy == "belief":
             from experiments.uniss_qwen3_omni_v1.evaluation.si_belief import load_belief, run_belief
@@ -369,7 +379,7 @@ def main() -> None:
                    vote=vote, snap=args.snap, seed=args.seed, dump=dump, scorer=scorer, temperature=args.temperature,
                    relabel=(args.relabel_n, args.relabel_gamma) if args.relabel_n and scorer else None,
                    selfwait=g if args.policy == "selfwait" else None, oracle=args.oracle and scorer is not None,
-                   oracle_commit=args.policy == "oracle", queue_rate=args.queue_rate, queue_tau_max=args.queue_tau_max, mbr=args.mbr, mbr_final_only=args.mbr_final_only,
+                   oracle_commit=args.policy == "oracle", queue_rate=args.queue_rate, la2_gate=args.la2_queue_gate, queue_tau_max=args.queue_tau_max, mbr=args.mbr, mbr_final_only=args.mbr_final_only,
                    sw_cfg={"rate": args.sw_queue_rate, "adapt": args.sw_adapt, "gamma": args.sw_gamma, "eps": args.sw_eps,
                            "kappa": args.sw_kappa, "n0": args.sw_n0, "urgency": args.sw_urgency, "urgency_min": args.sw_urgency_min,
                            "binary": args.sw_queue_binary}
@@ -462,7 +472,7 @@ def draft_tokens(out, cont: str, zh: bool) -> dict:
 
 def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=None, snap=False, seed=0,
                dump=None, scorer=None, temperature=0.7, relabel=None, selfwait=None, oracle=False, look_units=0,
-               virtual_ms=0, virtual_list=(), lr=None, adapt=None, oracle_commit=False, queue_rate=0.0, queue_tau_max=1.0, mbr=0, mbr_final_only=False, sw_cfg=None,
+               virtual_ms=0, virtual_list=(), lr=None, adapt=None, oracle_commit=False, queue_rate=0.0, la2_gate=False, queue_tau_max=1.0, mbr=0, mbr_final_only=False, sw_cfg=None,
                fluency=None):
     from vllm import SamplingParams
     # Plan 4A: one greedy pass that stops at the wait marker; at the last read the marker is barred
@@ -696,6 +706,8 @@ def run_window(llm, params, items, head, zh, window, out, tag, hold=None, vote=N
                     while agreed < min(len(draft), len(it["prev"])) and draft[agreed] == it["prev"][agreed]:
                         agreed += 1
                 new = draft[n: agreed] if agreed > n else []
+                if la2_gate and queue_rate and it["busy"] - it["t"] >= window:   # the queue heuristic: hold while speech covers a read
+                    new = []
                 if fluency and fluency["hyg_min"] and it["t"] < it["dur_ms"]:   # the same hygiene on LocalAgreement
                     from experiments.uniss_qwen3_omni_v1.evaluation.si_fluency_rules import hygiene
                     hmin = fluency["hyg_first_min"] if fluency.get("hyg_first_min") and not it["committed"] else fluency["hyg_min"]
