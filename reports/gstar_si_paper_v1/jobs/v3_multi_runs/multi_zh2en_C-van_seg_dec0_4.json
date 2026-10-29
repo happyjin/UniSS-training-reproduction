@@ -1,0 +1,82 @@
+[
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "pretrained_models/Qwen3-Omni-30B-A3B-Instruct",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/segments_zh2en/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/hyp_s0.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "8",
+   "--inst",
+   "sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/infer_s0.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "pretrained_models/Qwen3-Omni-30B-A3B-Instruct",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/segments_zh2en/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/hyp_s1.jsonl",
+   "--shard",
+   "1",
+   "--num-shards",
+   "8",
+   "--inst",
+   "sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/infer_s1.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "pretrained_models/Qwen3-Omni-30B-A3B-Instruct",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/segments_zh2en/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/hyp_s2.jsonl",
+   "--shard",
+   "2",
+   "--num-shards",
+   "8",
+   "--inst",
+   "sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/infer_s2.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "pretrained_models/Qwen3-Omni-30B-A3B-Instruct",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/segments_zh2en/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/hyp_s3.jsonl",
+   "--shard",
+   "3",
+   "--num-shards",
+   "8",
+   "--inst",
+   "sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_C-van_seg/infer_s3.log"
+ }
+]

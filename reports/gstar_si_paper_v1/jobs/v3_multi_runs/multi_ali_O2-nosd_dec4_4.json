@@ -1,0 +1,94 @@
+[
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "data/alimeeting_si_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/hyp_s4.jsonl",
+   "--shard",
+   "4",
+   "--num-shards",
+   "8",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--zero-sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/infer_s4.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "data/alimeeting_si_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/hyp_s5.jsonl",
+   "--shard",
+   "5",
+   "--num-shards",
+   "8",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--zero-sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/infer_s5.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "data/alimeeting_si_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/hyp_s6.jsonl",
+   "--shard",
+   "6",
+   "--num-shards",
+   "8",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--zero-sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/infer_s6.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "data/alimeeting_si_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/hyp_s7.jsonl",
+   "--shard",
+   "7",
+   "--num-shards",
+   "8",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--zero-sd",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/ali_O2-nosd/infer_s7.log"
+ }
+]

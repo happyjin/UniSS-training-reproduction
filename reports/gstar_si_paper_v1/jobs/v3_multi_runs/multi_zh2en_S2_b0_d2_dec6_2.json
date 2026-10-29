@@ -1,0 +1,54 @@
+[
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2abc_20261029b/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_S2_b0_d2/hyp_s6.jsonl",
+   "--shard",
+   "6",
+   "--num-shards",
+   "8",
+   "--policy",
+   "abc",
+   "--bias",
+   "0",
+   "--window",
+   "2",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_S2_b0_d2/infer_s6.log"
+ },
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2abc_20261029b/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_S2_b0_d2/hyp_s7.jsonl",
+   "--shard",
+   "7",
+   "--num-shards",
+   "8",
+   "--policy",
+   "abc",
+   "--bias",
+   "0",
+   "--window",
+   "2",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v3_20261029/zh2en_S2_b0_d2/infer_s7.log"
+ }
+]
