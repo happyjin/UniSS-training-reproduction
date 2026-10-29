@@ -5,6 +5,9 @@
   simul     prompted Thinker + LA2 (zh->en: si_thinker_stream, as en->zh's existing B-LA2), O2 + LA2 (1, 2 s),
             S2 (ABC) with bias b0 in {-1, 0, 1} at 1 s, S2 at 0.5 / 2 s (b0 0), S2 + SDR + FR (b0 -1, 0, 1), S2 + FR (b0 0)
   ablation  en->zh: O2 continued on v2's deadline labels (S2-dl), the same base as S2
+  real      AliMeeting test (20 real Mandarin meetings, headsets summed; build_alimeeting_test.py), Zh->En: Nemotron
+            posteriors (both presets), Hy-MT2 references, audit, windows, then prompted, same-data cascade, O2 without
+            speaker stream, O2, O2 + LA2, S2 and S2 + SDR + FR. Queued first, so a failure shows early
 Each system: 8 decode shards, then hyp.jsonl and score.json (+ analysis.json). en->zh systems that exist already
 (prompted, LA2 on the prompted Thinker, original-Thinker cascade) are not rerun.
 
@@ -28,6 +31,10 @@ WIN = {"en2zh": {"off": f"{D}/e2e_gstar_v1/windows_test_ref.jsonl", "str": f"{D}
        "zh2en": {"off": f"{D}/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
                  "str": f"{D}/e2e_gstar_zh2en_v1/windows_test_ref.jsonl"}}
 M = "experiments.uniss_qwen3_omni_v1.evaluation"
+DC = "experiments.uniss_qwen3_omni_v1.data_clean"
+PYN = "/opt/dlami/nvme/jasonleeeli/venvs/nemo_diar/bin/python"
+ALI = "data/alimeeting_si_v1"
+WIN["ali"] = {"off": f"{ALI}/windows_test_ref.jsonl", "str": f"{ALI}/windows_test_ref.jsonl"}
 N = 8
 jobs = []
 
@@ -48,13 +55,14 @@ def decode(name, mod, thinker, win, extra, post_key, deps=(), analyze=True):
                  "deps": [f"{name}_dec{k}" for k in range(N)], "cmd": cmd})
 
 
-def cascade(dr, name, thinker, extra):
+def cascade(dr, name, thinker, extra, deps=()):
     win = WIN[dr]["off"]
     seg = f"{OUT}/segments_{dr}"
     if not any(j["id"] == f"seg_{dr}" for j in jobs):
-        jobs.append({"id": f"seg_{dr}", "gpus": 1, "vllm": False, "share": True, "need_mib": 0, "deps": [],
+        jobs.append({"id": f"seg_{dr}", "gpus": 1, "vllm": False, "share": True, "need_mib": 0, "deps": list(deps),
                      "cmd": f"PYTHONPATH=. {PYE} -m {M}.gstar_cascade segment --windows {win} --out {seg}"})
-    decode(f"{name}_seg", "gstar_si_stream", thinker, f"{seg}/segments.jsonl", f"{extra} --dir {dr}", "offline",
+    sd = "zh2en" if dr == "ali" else dr
+    decode(f"{name}_seg", "gstar_si_stream", thinker, f"{seg}/segments.jsonl", f"{extra} --dir {sd}", "offline",
            deps=[f"seg_{dr}"], analyze=False)
     d = f"{OUT}/{name}"
     jobs[-1]["cmd"] = jobs[-1]["cmd"].split("; PYTHONPATH")[0]   # the segment run only concatenates
@@ -66,6 +74,28 @@ def cascade(dr, name, thinker, extra):
                         f"> {d}/score.log 2>&1"})
 
 
+# real Mandarin meetings (AliMeeting test), Zh->En
+for p in ("offline", "lowlat"):
+    jobs.append({"id": f"ali_nemo_{p}", "gpus": 1, "vllm": False, "deps": [],
+                 "cmd": f"CUDA_VISIBLE_DEVICES=$GPU0 {PYN} experiments/uniss_qwen3_omni_v1/data_clean/dump_nemotron_posteriors.py "
+                        f"--preset {p} --data {ALI} --audio near_mix --out-name nemotron_{p} > {ALI}/nemo_{p}.log 2>&1"})
+jobs.append({"id": "ali_mt", "gpus": 1, "vllm": True, "deps": [],
+             "cmd": f"CUDA_VISIBLE_DEVICES=$GPU0 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 "
+                    f"PYTHONPATH=. {PYV} -m {DC}.translate_zh2en_refs --items {ALI}/mt_items.jsonl --out {ALI}/refs.jsonl "
+                    f"> {ALI}/mt.log 2>&1"})
+jobs.append({"id": "ali_windows", "gpus": 1, "vllm": False, "share": True, "need_mib": 0,
+             "deps": ["ali_nemo_offline", "ali_nemo_lowlat", "ali_mt"],
+             "cmd": f"set -e; PYTHONPATH=. {PYE} -m {DC}.build_alimeeting_test audit --out {ALI} > {ALI}/audit.log 2>&1; "
+                    f"PYTHONPATH=. {PYE} -m {DC}.build_alimeeting_test windows --out {ALI} > {ALI}/windows.log 2>&1"})
+AW = ["ali_windows"]
+decode("ali_B-off", "gstar_si_stream", REL, WIN["ali"]["off"], "--inst sd --dir zh2en", "offline", deps=AW, analyze=False)
+cascade("ali", "ali_C-ft2", O2N, "--inst gstar --post-key offline --zero-sd", deps=AW)
+decode("ali_O2-nosd", "gstar_si_stream", O2N, WIN["ali"]["off"], "--inst gstar --post-key offline --zero-sd --dir zh2en", "offline", deps=AW)
+decode("ali_O2", "gstar_si_stream", O2, WIN["ali"]["off"], "--inst gstar --post-key offline --dir zh2en", "offline", deps=AW)
+decode("ali_O2_LA2_d1", "gstar_si_stream_online", O2, WIN["ali"]["str"], "--policy la2 --window 1 --post-key lowlat --dir zh2en", "lowlat", deps=AW)
+decode("ali_S2_b0_d1", "gstar_si_stream_online", S2, WIN["ali"]["str"], "--policy abc --bias 0 --window 1 --post-key lowlat --dir zh2en", "lowlat", deps=AW)
+decode("ali_S2_sdrfr_b0_d1", "gstar_si_stream_online", S2, WIN["ali"]["str"],
+       "--policy abc --bias 0 --sdr --fr --window 1 --post-key lowlat --dir zh2en", "lowlat", deps=AW)
 for dr in ("en2zh", "zh2en"):
     off, st = WIN[dr]["off"], WIN[dr]["str"]
     decode(f"{dr}_O2", "gstar_si_stream", O2, off, f"--inst gstar --post-key offline --dir {dr}", "offline")
