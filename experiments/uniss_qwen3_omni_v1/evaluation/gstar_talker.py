@@ -33,29 +33,45 @@ def load(p):
     return [json.loads(l) for l in open(p, encoding="utf-8")]
 
 
+def session_of(args, m: str):
+    """The meeting's posteriors (args.diar, default nemotron_<preset>) and audio (args.session: ihm_mix or a Chinese mix)."""
+    post = torch.load(DATA / "diar" / (args.diar or f"nemotron_{args.preset}") / f"{m}.post.pt",
+                      weights_only=False)["post80"].float().numpy()
+    name = f"{m}.Mix-Headset.wav" if args.session == "ihm_mix" else f"{m}.wav"
+    x, sr = sf.read(str(DATA / "session_audio" / args.session / name), dtype="float32", always_2d=True)
+    return post, x.mean(1), sr
+
+
+def solo_runs(post: np.ndarray, k: int, until_frame: int | None = None) -> list[tuple[int, int]]:
+    """Runs (>= 0.4 s) of frames where slot k alone is active, optionally only before until_frame."""
+    alone = (post[:, k] > 0.5) & (np.delete(post, k, axis=1).max(1) < 0.5)
+    if until_frame is not None:
+        alone = alone[: max(0, until_frame)]
+    runs, i = [], 0
+    while i < len(alone):
+        if alone[i]:
+            j = i
+            while j < len(alone) and alone[j]:
+                j += 1
+            if (j - i) * 0.08 >= 0.4:
+                runs.append((i, j))
+            i = j
+        else:
+            i += 1
+    return runs
+
+
 def voices(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     meetings = sorted({w["meeting"] for w in load(args.windows)})
     n = 0
     for m in meetings:
-        post = torch.load(DATA / f"diar/nemotron_{args.preset}/{m}.post.pt", weights_only=False)["post80"].float().numpy()
-        x, sr = sf.read(str(DATA / f"session_audio/ihm_mix/{m}.Mix-Headset.wav"), dtype="float32")
+        post, x, sr = session_of(args, m)
         for k in range(post.shape[1]):
             if (out / f"{m}_S{k + 1}.wav").exists():
                 continue
-            alone = (post[:, k] > 0.5) & (np.delete(post, k, axis=1).max(1) < 0.5)
-            runs, i = [], 0
-            while i < len(alone):
-                if alone[i]:
-                    j = i
-                    while j < len(alone) and alone[j]:
-                        j += 1
-                    if (j - i) * 0.08 >= 0.4:
-                        runs.append((i, j))
-                    i = j
-                else:
-                    i += 1
+            runs = solo_runs(post, k)
             pieces, tot = [], 0.0
             for a, b in runs:
                 seg = x[int(a * 0.08 * sr): int(b * 0.08 * sr)]
@@ -75,7 +91,8 @@ def prep(args):
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     (out / "voice_fallback").mkdir(parents=True)
     W = {w["id"]: w for w in load(args.windows)}
-    vdir = Path(args.voices)
+    vdir = Path(args.voices) if args.voices else None
+    sess = {}
     n = 0
     with open(out / "items.jsonl", "x", encoding="utf-8") as fi, open(out / "blocks.jsonl", "x", encoding="utf-8") as fb:
         for h in load(args.hyp):
@@ -86,8 +103,27 @@ def prep(args):
                     by[s["spk"]].append(s)
             for k, segs in sorted(by.items()):
                 iid = f"{w['id']}__S{k}"
-                v = vdir / f"{w['meeting']}_S{k}.wav"
-                if not v.exists():   # no clean stretch of this slot in the session: its own segments in the window
+                v = vdir / f"{w['meeting']}_S{k}.wav" if vdir else Path("/nonexistent")
+                if args.causal:   # only what has been heard when the slot's first block is committed
+                    if w["meeting"] not in sess:
+                        sess.clear()
+                        sess[w["meeting"]] = session_of(args, w["meeting"])
+                    post, x, sr = sess[w["meeting"]]
+                    cut = w["start_s"] + int(segs[0].get("write_ms", w["dur_ms"])) / 1000
+                    pieces, tot = [], 0.0
+                    for a, b in reversed(solo_runs(post, k - 1, int(cut / 0.08))):   # the most recent first
+                        pieces.insert(0, x[int(a * 0.08 * sr): int(b * 0.08 * sr)])
+                        tot += (b - a) * 0.08
+                        if tot >= 8.0:
+                            break
+                    v = out / "voice_causal" / f"{iid}.wav"
+                    v.parent.mkdir(exist_ok=True)
+                    if tot >= 1.0:
+                        sf.write(str(v), np.concatenate(pieces)[-int(8.0 * sr):], sr)
+                    else:   # too little heard alone: the window's audio up to the first commit
+                        xw, srw = sf.read(w["audio"], dtype="float32")
+                        sf.write(str(v), xw[: max(srw, int((cut - w["start_s"]) * srw))], srw)
+                elif not v.exists():   # no clean stretch of this slot in the session: its own segments in the window
                     x, sr = sf.read(w["audio"], dtype="float32")
                     v = out / "voice_fallback" / f"{iid}.wav"
                     sf.write(str(v), np.concatenate([x[int(s["start_s"] * sr): int(s["end_s"] * sr)] for s in segs] +
@@ -96,7 +132,7 @@ def prep(args):
                            "start_s": s["start_s"], "end_s": s["end_s"]} for s in segs]
                 blocks[-1]["final"] = True
                 fi.write(json.dumps({"id": iid, "audio": w["audio"], "dur_ms": w["dur_ms"],
-                                     "translation": "".join(s["text"] for s in segs), "voice_audio": str(v)},
+                                     "translation": args.sep.join(s["text"] for s in segs), "voice_audio": str(v)},
                                     ensure_ascii=False) + "\n")
                 fb.write(json.dumps({"id": iid, "blocks": blocks}, ensure_ascii=False) + "\n")
                 n += 1
@@ -186,11 +222,18 @@ def main() -> None:
     a.add_argument("--windows", required=True)
     a.add_argument("--out", required=True)
     a.add_argument("--preset", default="offline")
+    a.add_argument("--diar", default="", help="diar/<this> (default nemotron_<preset>)")
+    a.add_argument("--session", default="ihm_mix", help="session_audio/<this>: ihm_mix or a Chinese mix")
     a.add_argument("--max-s", type=float, default=8.0)
     a = sub.add_parser("prep")
     a.add_argument("--hyp", required=True)
     a.add_argument("--windows", required=True)
-    a.add_argument("--voices", required=True)
+    a.add_argument("--voices", default="")
+    a.add_argument("--causal", action="store_true", help="voice prompts from solo frames before the slot's first commit")
+    a.add_argument("--preset", default="lowlat")
+    a.add_argument("--diar", default="")
+    a.add_argument("--session", default="ihm_mix")
+    a.add_argument("--sep", default="", help="joins a slot's segments (\" \" for English)")
     a.add_argument("--out", required=True)
     a = sub.add_parser("stitch")
     a.add_argument("--results", required=True)
