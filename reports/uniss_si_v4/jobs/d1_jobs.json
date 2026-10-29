@@ -1,0 +1,66 @@
+[
+ {
+  "id": "d1_s0_un_zh2en",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag s0 --wait-biases=0,2,3 --sw-queue-rate 0.339 --direction zh2en --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/dev_s0"
+ },
+ {
+  "id": "d1_s0_sp_zh2en",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag s0 --wait-biases=0,2,3 --sw-queue-rate 0.339 --direction zh2en --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_spont_v1/dev_zh2en_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/devsp_s0"
+ },
+ {
+  "id": "d1_bma3_un_zh2en",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_bma3/thinker_merged --thinker-tag bma3 --wait-biases=0,2,3 --sw-queue-rate 0.339 --direction zh2en --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_thinker_oracle_prefix_v1/dev_items_zh2en.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/dev_bma3"
+ },
+ {
+  "id": "d1_bma3_sp_zh2en",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_bma3/thinker_merged --thinker-tag bma3 --wait-biases=0,1,2,3 --sw-queue-rate 0.339 --direction zh2en --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_spont_v1/dev_zh2en_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/devsp_bma3"
+ },
+ {
+  "id": "d1_s0_un_en2zh",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag s0 --wait-biases=0,2,3 --sw-queue-rate 0.191 --direction en2zh --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_thinker_oracle_prefix_v1/dev_items_en2zh.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/dev_s0"
+ },
+ {
+  "id": "d1_s0_sp_en2zh",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_20261023T213631Z/thinker_merged_i200 --thinker-tag s0 --wait-biases=0,2,3 --sw-queue-rate 0.191 --direction en2zh --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_spont_v1/dev_en2zh_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/devsp_s0"
+ },
+ {
+  "id": "d1_bma3_un_en2zh",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_bma3/thinker_merged --thinker-tag bma3 --wait-biases=0,2,3 --sw-queue-rate 0.191 --direction en2zh --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_thinker_oracle_prefix_v1/dev_items_en2zh.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/dev_bma3"
+ },
+ {
+  "id": "d1_bma3_sp_en2zh",
+  "gpus": 2,
+  "vllm": true,
+  "mem": 46000,
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=${GPUS// /,} PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream --tp 2 --gpu-mem 0.3 --policy selfwait --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_op_v3_bma3/thinker_merged --thinker-tag bma3 --wait-biases=0,1,2,3 --sw-queue-rate 0.191 --direction en2zh --windows 0.5,0.75,1,1.25,1.5,2,2.5,3 --items-file data/si_spont_v1/dev_en2zh_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/si_v4/devsp_bma3"
+ }
+]
