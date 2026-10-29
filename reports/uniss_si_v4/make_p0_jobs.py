@@ -21,7 +21,7 @@ V3_DONE = [0.5, 1, 2, 3, 4, 5, 6]
 DEVW = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3]
 DEV = "data/si_thinker_oracle_prefix_v1/dev_items_{d}.jsonl"
 CVSS = "data/cvss_t/si_items_v1/items_{d}.jsonl"
-PY = ("CUDA_VISIBLE_DEVICES=${GPUS// /,} OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 "
+PY = ("PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH CUDA_VISIBLE_DEVICES=${GPUS// /,} OMP_NUM_THREADS=16 VLLM_USE_FLASHINFER_SAMPLER=0 "
       "VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=.:.tmp/pylib_jieba "
       "/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream "
       "--tp 2 --gpu-mem 0.3")
