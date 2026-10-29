@@ -4,6 +4,7 @@
             O2 with the oracle speaker stream
   simul     prompted Thinker + LA2 (zh->en: si_thinker_stream, as en->zh's existing B-LA2), O2 + LA2 (1, 2 s),
             S2 (ABC) with bias b0 in {-1, 0, 1} at 1 s, S2 at 0.5 / 2 s (b0 0), S2 + SDR + FR (b0 -1, 0, 1), S2 + FR (b0 0)
+  ablation  en->zh: O2 continued on v2's deadline labels (S2-dl), the same base as S2
 Each system: 8 decode shards, then hyp.jsonl and score.json (+ analysis.json). en->zh systems that exist already
 (prompted, LA2 on the prompted Thinker, original-Thinker cascade) are not rerun.
 
@@ -21,6 +22,7 @@ TS = "20261029b"
 O2 = f"{EV}/thinker_gstar_o2_{TS}/thinker_merged"
 S2 = f"{EV}/thinker_gstar_s2abc_{TS}/thinker_merged"
 O2N = f"{EV}/thinker_gstar_o2nosd_{TS}/thinker_merged"
+S2DL = f"{EV}/thinker_gstar_s2dl_{TS}/thinker_merged"   # label ablation: deadline labels on the same O2 base (en->zh)
 REL = "pretrained_models/Qwen3-Omni-30B-A3B-Instruct"
 WIN = {"en2zh": {"off": f"{D}/e2e_gstar_v1/windows_test_ref.jsonl", "str": f"{D}/e2e_gstar_stream_v1/windows_test_ref.jsonl"},
        "zh2en": {"off": f"{D}/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
@@ -89,6 +91,8 @@ for dr in ("en2zh", "zh2en"):
         decode(f"{dr}_S2_b0_d{w}", "gstar_si_stream_online", S2, st, f"--policy abc --bias 0 --window {w} --post-key lowlat --dir {dr}", "lowlat")
     decode(f"{dr}_O2_LA2_d2", "gstar_si_stream_online", O2, st, f"--policy la2 --window 2 --post-key lowlat --dir {dr}", "lowlat")
     decode(f"{dr}_O2-oracle", "gstar_si_stream", O2, off, f"--inst gstar --post-key oracle_offline --dir {dr}", "offline")
+# label ablation on the same base: deadline labels (v2's MIST-Simul recipe) vs stable-prefix labels, en->zh
+decode("en2zh_S2dl_d1", "gstar_si_stream_online", S2DL, WIN["en2zh"]["str"], "--policy wait --window 1 --post-key lowlat --dir en2zh", "lowlat")
 # zh->en baselines that en->zh already has
 decode("zh2en_B-off", "gstar_si_stream", REL, WIN["zh2en"]["off"], "--inst sd --dir zh2en", "offline", analyze=False)
 cascade("zh2en", "zh2en_C-van", REL, "--inst sd")
