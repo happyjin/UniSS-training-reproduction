@@ -458,7 +458,67 @@ s5cmd --numworkers 64 cp --include '*.json' --include '*.jsonl' \
 
 ---
 
-## 6. 关机前的最后状态（2026-10-30）
+## 6. 换机器后要继续的实验
+
+以下实验因为旧服务器 2026-10-30 关机没有做完。v4 和 v7 两篇论文里都已标为"未完成"。
+
+**规则：**
+- 补完之后写**新版本**的论文文件夹（`paper/gstar_si_v5`、`paper/bayes_simul_s2st_v8`），不要改 v4 和 v7。
+- 新实验的输出写到新目录，不要覆盖旧结果。
+
+### 6.1 多说话人论文（优先级从高到低）
+
+1. **中译英 MIST-Simul 补训到 3000 步。这是最重要的一项。**
+   - **为什么必须补训：** 英译中训了 3000 步；中译英只训了 1000 步（`thinker_gstar_s2dl_zh2en_1k_20261030`）。所以中译英同传现在只和 LA2 持平（24.78 对 24.81），可能是训练不足，不一定是方法本身的问题。
+   - **为什么不能接着第 1000 步续训：** 训练时用了 `--no-save-optim`，没有保存优化器状态；另外学习率调度是按 1000 步设定的。所以要**从 O2 重新训 3000 步**，并换一个新的 RUN_ID。`run_thinker_gstar.sh` 发现目标目录已有 checkpoint 时会拒绝写入，所以旧目录不会被覆盖。
+   - 已停掉的 `thinker_gstar_s2dl_zh2en_20261030` 只训到第 40 步，没有用。
+   - 命令（8 张卡；4 张卡时用 NPROC=4，MBS 16 显存不够就用 8，GBS 保持 64）：
+     ```
+     cd $R
+     CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 NPROC=8 MBS=8 GBS=64 RUN_ID=thinker_gstar_s2dl_zh2en_3k_<日期> \
+       BASE=eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged INIT_MERGED=1 \
+       ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_zh2en_v1/rows_train.jsonl TRAIN_ITERS=3000 MASTER_PORT=29855 \
+       bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar.sh > logs/multispk/thinker_gstar_s2dl_zh2en_3k_<日期>.log 2>&1
+     ```
+     旧服务器上 4 卡跑 1000 步约 50 分钟，8 卡跑 3000 步预计约 1.5 小时。
+   - 训完后解码：参照 `reports/gstar_si_paper_v1/make_v4c_runs.py` 和 `run_v4c.sh`，复制一份。把 `S2DLZ` 改成新模型，`OUT` 改成新目录，并去掉 `run_v4c.sh` 里的截止时间判断（`DEADLINE`）。
+     - 在 Δ=1 s 下解码 AMI 中译英（3,317 个窗口）和 AliMeeting（4,243 个窗口）；
+     - 再在 Δ=0.5 s 和 2 s 下解码 AMI 中译英，参照 `make_v4_runs.py` 里英译中的做法。
+2. **AliMeeting 同传解码。** 现在只跑了 608/4243 个窗口，用第 1 项的新模型完整重跑。
+3. **中译英语音端。**
+   - O2、C-ft2、O2+LA2 三个系统的 Whisper 识别停在约 40%。补跑命令（会接着已有的 `asr_speech.jsonl` 续跑）：
+     `bash reports/gstar_si_paper_v1/run_v4_speechfix.sh zh2en_O2 zh2en_C-ft2 zh2en_O2_LA2_d1`
+     脚本里的卡号和线程数要按新机器调整。旧机器上识别这一步主要被 CPU 卡住。
+   - 中译英 MIST-Simul（3k 新模型）的语音合成加识别：参照 `make_v4_speech_jobs.py`。
+4. **多读入间隔训练（S2-dl-m，审稿第二轮第 3 条）。**
+   - 数据已经构造好：`data/ami_multispk_si_v1/e2e_gstar_stream_multid_v1`。
+   - 训练和解码在 `reports/gstar_si_paper_v1/run_v4b.sh` 里：3000 步，在 0.5/1/2 s 下解码。
+   - 这个脚本会等 `run_v4.sh` 的日志，新机器上要去掉这段等待；RUN_ID 也要换成新的。
+5. **v4 模型在说话人分离自切窗口上的评测。** 命令：`python3 reports/gstar_si_paper_v1/make_v4_diar_jobs.py > reports/gstar_si_paper_v1/jobs/<新文件名>.json`，然后用 gpuq6 运行。目前附录沿用的是 v2 模型的结果。
+6. **算完后更新论文。** 在 `paper/gstar_si_v5`（从 v4 复制）里改 `scripts/systems.py`，指向新的输出目录，然后运行 `analyze.py`、`bootstrap.py`、`make_tables.py`，再编译。
+7. **（做不了，或者需要人工的）**
+   - 人工核对测试子集；
+   - AMI-SDM 远场评测；
+   - MOS 主观听测。
+
+### 6.2 单人论文
+
+1. **s1 的 10 个语音点没跑**（只影响分档表，那张表本来就是补充结果）：
+   - 英译中：b0=1 @6 s，b0=2 @5 s；
+   - 中译英：b0=1 @0.6/0.9/1.1/1.75/5 s，b0=2 @4/5 s。
+
+   用 `reports/uniss_si_v4/make_speech_jobs.py` 加上 `tier2_speech_jobs_spec` 里对应的条目生成作业，用 gpuq7 运行。然后在 v8 里重跑 `tiers.py`。
+2. **SIM-O（音色相似度）。** 本机就有 WavLM-Large（`J/cache/huggingface/hub/models--microsoft--wavlm-large`）。`experiments/uniss_omni_s2st_v1/evaluation/sim_o.py` 默认用 base-plus，要改成 WavLM-Large，并限制 CPU 线程数（`OMP_NUM_THREADS`）。旧机器上没限线程时占了约 70 个核。
+3. **ACL60/60 上的 LA2 补到预注册的 15 个窗口。** 现在只有 8 个。这是协议缺口，补上后预注册的 ACL 检验才完整。
+4. **（需要另外决策的）**
+   - 在同一底座上加一个学习型读写策略作对照；
+   - 人工听测；
+   - 换一个 Thinker 验证；
+   - 长篇 RealSI（Doc）。
+
+---
+
+## 7. 关机前的最后状态（2026-10-30）
 
 - **代码仓库：** 已推送到 GitHub `private` 的 main 分支；UniSS 目录每 60 秒实时同步到 S3（`scripts/backup/uniss_s3_live_sync.sh`）。
 - **论文仓库：** `paper/bayes_simul_s2st_v7`、`paper/gstar_si_v4` 各有独立的 git 仓库，没有远端，靠 S3 同步（包括 `.git`）。
