@@ -1,0 +1,98 @@
+[
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_1k_20261030/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/hyp_s4.jsonl",
+   "--shard",
+   "4",
+   "--num-shards",
+   "8",
+   "--policy",
+   "wait",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/infer_s4.log"
+ },
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_1k_20261030/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/hyp_s5.jsonl",
+   "--shard",
+   "5",
+   "--num-shards",
+   "8",
+   "--policy",
+   "wait",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/infer_s5.log"
+ },
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_1k_20261030/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/hyp_s6.jsonl",
+   "--shard",
+   "6",
+   "--num-shards",
+   "8",
+   "--policy",
+   "wait",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/infer_s6.log"
+ },
+ {
+  "module": "gstar_si_stream_online",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_1k_20261030/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/hyp_s7.jsonl",
+   "--shard",
+   "7",
+   "--num-shards",
+   "8",
+   "--policy",
+   "wait",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v4_20261030/zh2en_S2dl_d1/infer_s7.log"
+ }
+]
