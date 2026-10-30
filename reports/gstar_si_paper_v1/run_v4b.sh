@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Paper v4, second chain on cards 4-7 (after run_v4.sh, whose PID is $1): the reviewer's multi-interval training.
 # S2-dl-m: O2 continued on deadline-label reads at intervals drawn from {0.5, 1, 2} s per window
-# (build_ami_gstar_stream_rows_multid), 3,000 steps as S2-dl, 4 cards; decoded at 0.5 / 1 / 2 s; holder back on 4-7.
+# (build_ami_gstar_stream_rows_multid), 3,000 steps as S2-dl, 4 cards; decoded at 0.5 / 1 / 2 s; then the
+# diarizer-defined En->Zh windows for the v4 models (make_v4_diar_jobs.py); holder back on 4-7.
 # Launch detached (setsid nohup); check with bash -n.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
@@ -38,6 +39,8 @@ if [ -d ${S2DLM} ]; then
 else
   log "train FAILED"
 fi
+log "diarizer-defined En->Zh windows for the v4 models (make_v4_diar_jobs.py)"
+GPUQ_CARDS=4,5,6,7 ${PYE} -u scripts/gpu_queue/gpuq6.py ${J}/v4_diar_jobs.json logs/multispk/v4/diar
 sleep 15
 bash scripts/gpu_queue/holder_on.sh 4,5,6,7
 log "V4B_DONE"
