@@ -39,4 +39,12 @@ else:
     sp = path.replace(".json", "_spec.json")
     with open(sp, "x") as fh:
         json.dump(spec, fh, indent=1)
-    subprocess.run([sys.executable, "reports/uniss_si_v4/make_speech_jobs.py", path, sp], check=True)
+    tmp = path.replace(".json", "_raw.json")
+    subprocess.run([sys.executable, "reports/uniss_si_v4/make_speech_jobs.py", tmp, sp], check=True)
+    # the host was at load 440 on 192 cores when these were made: cap the BLAS/OpenMP threads of the Talker and ASR
+    jobs = json.load(open(tmp))
+    for j in jobs:
+        j["cmd"] = "export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4; " + j["cmd"]
+    with open(path, "x") as fh:
+        json.dump(jobs, fh, indent=1)
+    print(len(jobs), "jobs")
