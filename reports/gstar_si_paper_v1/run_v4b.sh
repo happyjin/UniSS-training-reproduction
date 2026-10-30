@@ -17,9 +17,15 @@ log "run_v4.sh finished; holder off 4-7"
 bash scripts/gpu_queue/holder_off.sh 4,5,6,7
 sleep 30
 log "train ${RUN}"
-CUDA_VISIBLE_DEVICES=4,5,6,7 NPROC=4 MBS=${MBS:-16} GBS=64 RUN_ID=${RUN} BASE=${EV}/thinker_gstar_o2_20261029b/thinker_merged \
+CUDA_VISIBLE_DEVICES=4,5,6,7 NPROC=4 MBS=16 GBS=64 RUN_ID=${RUN} BASE=${EV}/thinker_gstar_o2_20261029b/thinker_merged \
   INIT_MERGED=1 ROWS=${D}/e2e_gstar_stream_multid_v1/rows_train.jsonl TRAIN_ITERS=3000 MASTER_PORT=29853 \
   bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar.sh > logs/multispk/${RUN}.log 2>&1
+if ! grep -q THINKER_GSTAR_DONE logs/multispk/${RUN}.log; then
+  log "train: MBS 16 failed ($(grep -m1 -E 'OutOfMemory|out of memory|FAILED' logs/multispk/${RUN}.log | cut -c1-120)); MBS 8"
+  CUDA_VISIBLE_DEVICES=4,5,6,7 NPROC=4 MBS=8 GBS=64 RUN_ID=${RUN} BASE=${EV}/thinker_gstar_o2_20261029b/thinker_merged \
+    INIT_MERGED=1 ROWS=${D}/e2e_gstar_stream_multid_v1/rows_train.jsonl TRAIN_ITERS=3000 MASTER_PORT=29854 \
+    bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar.sh > logs/multispk/${RUN}.mbs8.log 2>&1
+fi
 if [ -d ${S2DLM} ]; then
   for w in 0.5 1 2; do mkdir -p ${OUT}/en2zh_S2dlm_d$w; done
   pids=()
