@@ -11,6 +11,7 @@ Writes reports/gstar_si_paper_v1/jobs/v5_runs/<phase>_card<c>.json (mode "x") an
     python3 reports/gstar_si_paper_v1/make_v5_runs.py p2 0,1,2,3,4,5
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -26,12 +27,33 @@ WIN = {"en2zh": f"{D}/e2e_gstar_stream_v1/windows_test_ref.jsonl", "zh2en": f"{D
        "ali": "data/alimeeting_si_v1/windows_test_ref.jsonl", "diar": f"{D}/e2e_gstar_v1/windows_test_diar_offline.jsonl"}
 J = Path("reports/gstar_si_paper_v1/jobs/v5_runs")
 CAP, THINKER, WORKER, MAXW = 134000, 70000, 6000, 8
+OTHERS_MARGIN = 10000   # a card with another user's process keeps 10 GB more free for that process to grow
+
+
+def foreign(card):
+    """True if a process whose working directory is outside /opt/dlami/nvme/jasonleeeli runs on the card (a colleague's
+    job); the working directory, not the command line, since vLLM renames its engine process to VLLM::EngineCore."""
+    bus = subprocess.check_output(["nvidia-smi", "--query-gpu=pci.bus_id", "--format=csv,noheader", "-i", str(card)]
+                                  ).decode().strip().lower()
+    apps = subprocess.check_output(["nvidia-smi", "--query-compute-apps=pid,gpu_bus_id", "--format=csv,noheader"]
+                                   ).decode().splitlines()
+    for line in apps:
+        pid, b = [x.strip() for x in line.split(",")]
+        if b.lower() == bus:
+            try:
+                cwd = os.readlink(f"/proc/{pid}/cwd")
+            except OSError:
+                return True   # cannot tell: treat it as someone else's
+            if not cwd.startswith("/opt/dlami/nvme/jasonleeeli/"):
+                return True
+    return False
 
 
 def capacity(card):
     used = int(subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits",
                                         "-i", str(card)]).decode().strip())
-    return max(0, min(MAXW, (CAP - used - THINKER) // WORKER))
+    cap = CAP - (OTHERS_MARGIN if foreign(card) else 0)
+    return max(0, min(MAXW, (cap - used - THINKER) // WORKER))
 
 
 def online(name, thinker, win, d, w, n):
@@ -76,27 +98,30 @@ def write(phase, per):
         print(c, f)
 
 
-phase, cards = sys.argv[1], [int(x) for x in sys.argv[2].split(",")]
-caps = {c: capacity(c) for c in cards}
-print("capacity", caps, file=sys.stderr)
-total = sum(caps.values())
-if phase == "p2":
-    n_ali = max(1, round(total * 2 / 5)); n_z = max(1, (total - n_ali) // 3)
-    runs = (online("zh2en_S2dl3k_d1", S2DLZ, WIN["zh2en"], "zh2en", "1", n_z)
-            + online("zh2en_S2dl3k_d0.5", S2DLZ, WIN["zh2en"], "zh2en", "0.5", n_z)
-            + online("zh2en_S2dl3k_d2", S2DLZ, WIN["zh2en"], "zh2en", "2", n_z)
-            + online("ali_S2dl3k_d1", S2DLZ, WIN["ali"], "zh2en", "1", n_ali))
-    write(phase, spread(runs, cards, caps))
-elif phase == "p4":
-    n = max(1, total // 3)
-    runs = [r for w in ("0.5", "1", "2") for r in online(f"en2zh_S2dlm_d{w}", S2DLM, WIN["en2zh"], "en2zh", w, n)]
-    write(phase, spread(runs, cards, caps))
-elif phase == "p5":
-    c_o2, c_o2n = cards[0], cards[1]
-    n1, n2 = max(1, caps[c_o2]), max(1, caps[c_o2n] // 2)
-    seg = f"{OUT}/en2zh_D-segments/segments.jsonl"
-    write(phase, {c_o2: offline("en2zh_D-O2", O2, WIN["diar"], [], n1),
-                  c_o2n: offline("en2zh_D-O2-nosd", O2N, WIN["diar"], ["--zero-sd"], n2)
-                  + offline("en2zh_D-C-ft2_seg", O2N, seg, ["--zero-sd"], n2)})
-else:
-    sys.exit(f"unknown phase {phase}")
+if __name__ == "__main__":
+    phase, cards = sys.argv[1], [int(x) for x in sys.argv[2].split(",")]
+    caps = {c: capacity(c) for c in cards}
+    print("capacity", caps, file=sys.stderr)
+    total = sum(caps.values())
+    if phase == "p2":
+        n_ali = max(1, round(total * 2 / 5)); n_z = max(1, (total - n_ali) // 3)
+        runs = (online("zh2en_S2dl3k_d1", S2DLZ, WIN["zh2en"], "zh2en", "1", n_z)
+                + online("zh2en_S2dl3k_d0.5", S2DLZ, WIN["zh2en"], "zh2en", "0.5", n_z)
+                + online("zh2en_S2dl3k_d2", S2DLZ, WIN["zh2en"], "zh2en", "2", n_z)
+                + online("ali_S2dl3k_d1", S2DLZ, WIN["ali"], "zh2en", "1", n_ali))
+        write(phase, spread(runs, cards, caps))
+    elif phase == "p4":
+        n = max(1, total // 3)
+        runs = [r for w in ("0.5", "1", "2") for r in online(f"en2zh_S2dlm_d{w}", S2DLM, WIN["en2zh"], "en2zh", w, n)]
+        write(phase, spread(runs, cards, caps))
+    elif phase == "p5":
+        c_o2, c_o2n = cards[0], cards[1]
+        n1, n2 = caps[c_o2], caps[c_o2n] // 2
+        if n1 < 1 or n2 < 1:
+            sys.exit(f"p5 does not fit: capacities {caps}")
+        seg = f"{OUT}/en2zh_D-segments/segments.jsonl"
+        write(phase, {c_o2: offline("en2zh_D-O2", O2, WIN["diar"], [], n1),
+                      c_o2n: offline("en2zh_D-O2-nosd", O2N, WIN["diar"], ["--zero-sd"], n2)
+                      + offline("en2zh_D-C-ft2_seg", O2N, seg, ["--zero-sd"], n2)})
+    else:
+        sys.exit(f"unknown phase {phase}")

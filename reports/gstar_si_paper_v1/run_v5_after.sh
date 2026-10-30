@@ -8,6 +8,7 @@
 #   D  speech of zh2en_S2dl3k_d1 (gstar_talker prep -> si_infer, 8 shards on cards with >= 60 GB free, 60 s apart)
 #   E  train the mixed-interval En->Zh model (S2-dl-m, 3k, 8 GPUs) while the speech is transcribed (capped Whisper)
 #   F  decode S2-dl-m at 0.5 / 1 / 2 s (p4) and score; touch logs/gpu_coord/M_GPU_DONE
+# Cards with a colleague's process are kept under 126 GB (136 GB otherwise); never touch other users' jobs.
 # Every output is new (gstar_v5_20261030, gstar_v5_speech_20261030); nothing existing is overwritten.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
@@ -25,6 +26,9 @@ WZ=${D}/e2e_gstar_zh2en_v1/windows_test_ref.jsonl; WE=${D}/e2e_gstar_stream_v1/w
 WA=data/alimeeting_si_v1/windows_test_ref.jsonl; WD=${D}/e2e_gstar_v1/windows_test_diar_offline.jsonl
 mkdir -p $C logs/multispk/v5
 used() { nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -i $1; }
+limit() {   # $1 card: 136 GB, or 126 GB when another user's process runs on it (room for it to grow)
+  python3 -c "import sys; sys.path.insert(0, 'reports/gstar_si_paper_v1'); from make_v5_runs import foreign; print(126000 if foreign($1) else 136000)"
+}
 by_free() { for c in 0 1 2 3 4 5 6 7; do echo "$(used $c) $c"; done | sort -n | awk '{print $2}'; }   # emptiest first
 
 multi() {   # $1 phase, $2 thinker: one gstar_multi per card file of the phase, pids appended to the global MPIDS
@@ -60,9 +64,12 @@ mkdir -p ${OUT}
 PYTHONPATH=. ${PYE} -m ${M}.gstar_cascade segment --windows ${WD} --out ${OUT}/en2zh_D-segments
 cards=($(by_free))
 log "B: cards by free memory: ${cards[*]} ($(for c in ${cards[@]}; do echo -n "$c:$(used $c) "; done))"
-python3 reports/gstar_si_paper_v1/make_v5_runs.py p5 ${cards[0]},${cards[1]}
-pids5=()
+pids5=(); p2cards=("${cards[@]:2}")
+if ! python3 reports/gstar_si_paper_v1/make_v5_runs.py p5 ${cards[0]},${cards[1]}; then
+  log "B: p5 does not fit now; its cards join p2, p5 runs after p2"; p2cards=("${cards[@]}")
+fi
 for f in ${JR}/p5_card*.json; do
+  [ -e "$f" ] || continue
   c=${f##*_card}; c=${c%.json}
   th=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))[0]['argv'][1])" $f)
   CUDA_VISIBLE_DEVICES=$c PYTHONPATH=.:third_party/Megatron-LM ${PYM} -m ${M}.gstar_multi --thinker $th $f \
@@ -70,11 +77,25 @@ for f in ${JR}/p5_card*.json; do
   pids5+=($!); sleep 10
 done
 sleep 120   # let the p5 Thinkers load before reading the remaining cards' free memory
-rest=$(IFS=,; echo "${cards[*]:2}")
+rest=$(IFS=,; echo "${p2cards[*]}")
 python3 reports/gstar_si_paper_v1/make_v5_runs.py p2 ${rest}
 MPIDS=(); multi p2 ${S2DLZ}; pids2=("${MPIDS[@]}")
 log "B: p5 pids ${pids5[*]}, p2 pids ${pids2[*]}"
 for p in ${pids5[@]} ${pids2[@]}; do wait $p || log "a gstar_multi run failed (pid $p)"; done
+if ! ls ${JR}/p5_card*.json > /dev/null 2>&1; then   # p5 did not fit beside p2: run it now
+  cards=($(by_free))
+  if python3 reports/gstar_si_paper_v1/make_v5_runs.py p5 ${cards[0]},${cards[1]}; then
+    pids5=()
+    for f in ${JR}/p5_card*.json; do
+      c=${f##*_card}; c=${c%.json}
+      th=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))[0]['argv'][1])" $f)
+      CUDA_VISIBLE_DEVICES=$c PYTHONPATH=.:third_party/Megatron-LM ${PYM} -m ${M}.gstar_multi --thinker $th $f \
+        > logs/multispk/v5/p5_card$c.log 2>&1 &
+      pids5+=($!); sleep 10
+    done
+    for p in ${pids5[@]}; do wait $p || log "a p5 run failed (pid $p)"; done
+  else log "B: p5 still does not fit; diarizer windows not decoded"; fi
+fi
 
 # C
 for w in 1 0.5 2; do score zh2en_S2dl3k_d$w ${WZ} lowlat; done
@@ -100,7 +121,7 @@ if [ -e ${h}/hyp.jsonl ] && [ ! -e ${o} ]; then
   tp=(); k=0
   for c in $(by_free); do
     [ $k -ge 8 ] && break
-    [ $(used $c) -le 76000 ] || continue
+    [ $(used $c) -le $(( $(limit $c) - 60000 )) ] || continue   # talker at gpu-mem 0.3 holds up to ~55 GB
     CUDA_VISIBLE_DEVICES=$c PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 \
       VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 ${PYV} -m ${M}.si_infer \
       --model ${T1C} --direction zh2en --window 1 --output ${o}/talker --text-policy file \
