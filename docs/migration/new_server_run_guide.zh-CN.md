@@ -116,7 +116,7 @@ GPUQ_CARDS=0,1,2,3,4,5,6,7   # gpuq7 还读 OUR_MAX、CAP、PIGGY_MIN、GPUQ7_LE
 | Paraformer-zh | `J/cache/modelscope` | 中文 ASR |
 | WavLM-SV（base-plus） | `J/evaluation_models/wavlm-base-plus-sv` | 说话人相似度 |
 | AutoPCP-multilingual-v2、wav2vec2-large-xlsr-53 | `J/evaluation_models/`（共 1.7G） | A.PCP |
-| WavLM-Large | `J/cache/huggingface/hub/models--microsoft--wavlm-large`（1.2G） | **v7 论文写的是"本机没有"，其实有**；可以用它补算 SIM-O |
+| WavLM-Large | `J/cache/huggingface/hub/models--microsoft--wavlm-large`（1.2G） | 只是自监督预训练模型，**没有说话人验证（x-vector）头，不能用来算 SIM-O**（2026-10-30 更正）；TTS 的 S5 判别器用它 |
 | UTMOS | `J/cache/torch/hub/tarepan_SpeechMOS_v1.2.0` + `hub/checkpoints`（393M） | 语音质量 |
 
 ---
@@ -261,7 +261,7 @@ s5cmd --numworkers 64 cp --include '*.json' --include '*.jsonl' \
 
   要重跑的话，参数可以从文件名后缀还原，例如 `_swop1b1q0.191` 对应 `--policy selfwait --wait-biases=1 --sw-queue-rate 0.191`。
 - **RealSI 和 ACL60/60 只能用作测试**，不能用于训练、调参或选择。
-- **SIM-O 可以补算。** v7 里 SIM-O 一列是"—"，但本机其实有 WavLM-Large。补算时限制 CPU 线程数，上次用小模型时占了约 70 个核。
+- **SIM-O：** v8 已用 `wavlm-base-plus-sv` 补算（另一个尺度，不可与论文那一列比较）。论文定义的 WavLM-Large 说话人验证 checkpoint 本机和 S3 上都没有。
 
 ---
 
@@ -508,7 +508,7 @@ s5cmd --numworkers 64 cp --include '*.json' --include '*.jsonl' \
    - 中译英：b0=1 @0.6/0.9/1.1/1.75/5 s，b0=2 @4/5 s。
 
    用 `reports/uniss_si_v4/make_speech_jobs.py` 加上 `tier2_speech_jobs_spec` 里对应的条目生成作业，用 gpuq7 运行。然后在 v8 里重跑 `tiers.py`。
-2. **SIM-O（音色相似度）。** 本机就有 WavLM-Large（`J/cache/huggingface/hub/models--microsoft--wavlm-large`）。`experiments/uniss_omni_s2st_v1/evaluation/sim_o.py` 默认用 base-plus，要改成 WavLM-Large，并限制 CPU 线程数（`OMP_NUM_THREADS`）。旧机器上没限线程时占了约 70 个核。
+2. **SIM-O（音色相似度）。** v8 已用 `wavlm-base-plus-sv` 补算（2026-10-30，见 `paper/bayes_simul_s2st_v8/docs/response_to_review_v7.zh-CN.md`）。缓存里的 `microsoft/wavlm-large` 没有说话人验证头，不能用；论文定义的 SIM-O 需要 UniSpeech 的 WavLM-Large SV checkpoint，目前没有。
 3. **ACL60/60 上的 LA2 补到预注册的 15 个窗口。** 现在只有 8 个。这是协议缺口，补上后预注册的 ACL 检验才完整。
 4. **（需要另外决策的）**
    - 在同一底座上加一个学习型读写策略作对照；
