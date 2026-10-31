@@ -16,17 +16,31 @@ mkdir -p $SC
 export PYTHONPATH=.
 log() { echo "[$(date -u +%F' '%T) UTC] $*"; }
 
-complete() {   # $1 dir, $2 windows file: every shard done and the windows all there
-  local d=$1 n
-  ls $d/hyp_s*.jsonl > /dev/null 2>&1 || return 1
-  for f in $d/infer_s*.log; do grep -qE "GSTAR_(ONLINE_)?DONE|DONE " "$f" || return 1; done
-  n=$(cat $d/hyp_s*.jsonl | wc -l)
-  [ "$n" -eq "$(wc -l < $2)" ]
-}
-merge() {   # $1 dir, $2 windows
+merge() {   # $1 dir, $2 windows: when every window has a valid record in some hyp_s*.jsonl (shards and rest runs),
+            # write hyp.jsonl in window order (a line cut by a stopped worker is ignored); else report the count
   [ -e $1/hyp.jsonl ] && return 0
-  complete $1 $2 || { log "$1: not complete ($(cat $1/hyp_s*.jsonl 2>/dev/null | wc -l) / $(wc -l < $2))"; return 1; }
-  cat $1/hyp_s*.jsonl > $1/hyp.jsonl.part && command mv -f $1/hyp.jsonl.part $1/hyp.jsonl && log "$1 merged"
+  ls $1/hyp_s*.jsonl > /dev/null 2>&1 || { log "$1: no output yet"; return 1; }
+  python3 - "$1" "$2" <<'PY' || return 1
+import json, sys, os
+d, wf = sys.argv[1:3]
+rec = {}
+for f in sorted(os.listdir(d)):
+    if f.startswith("hyp_s") and f.endswith(".jsonl"):
+        for line in open(os.path.join(d, f), encoding="utf-8"):
+            try:
+                h = json.loads(line)
+            except ValueError:
+                continue
+            rec.setdefault(h["id"], line if line.endswith("\n") else line + "\n")
+ids = [json.loads(l)["id"] for l in open(wf, encoding="utf-8")]
+if not all(i in rec for i in ids):
+    print(f"[merge] {d}: {sum(i in rec for i in ids)} / {len(ids)}", flush=True)
+    sys.exit(1)
+with open(os.path.join(d, "hyp.jsonl.part"), "x", encoding="utf-8") as fh:
+    fh.writelines(rec[i] for i in ids)
+os.replace(os.path.join(d, "hyp.jsonl.part"), os.path.join(d, "hyp.jsonl"))
+print(f"[merge] {d}: merged {len(ids)}", flush=True)
+PY
 }
 score() {   # $1 dir, $2 windows, $3 post key
   [ -e $1/score.json ] && return 0
