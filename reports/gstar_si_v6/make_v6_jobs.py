@@ -224,7 +224,7 @@ def dec2(what):
                      + online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 4)
                      + online("ali_S2dlchar_d1", "ZCHAR", ALI, "zh2en", "wait", 6), 6, *M6)
     elif what == "seeds":
-        for k in ("SEED1", "SEED2"):
+        for k in ("SEED1",):   # prereg_v6 amendment 2: one extra seed
             j += jobs_of(f"dec2_{what}", k, online(f"en2zh_S2dl_{k.lower()}_d1", k, WIN["en2zh"], "en2zh", "wait", 6), 6, *M6)
     elif what == "dlabc":
         j += jobs_of(f"dec2_{what}", "DLABC", online("en2zh_S2dlabc_d1", "DLABC", WIN["en2zh"], "en2zh", "wait", 5)
