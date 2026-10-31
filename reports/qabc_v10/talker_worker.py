@@ -125,8 +125,10 @@ def asr(tasks):
                     break
                 if complete(o) or not ((o / "part_0.jsonl").exists() and (o / "part_1.jsonl").exists()):
                     continue
+                if (o.parent / "logs").exists():   # a run_si_probe.sh run: its own job does the ASR
+                    continue
                 pending += 1
-                if not claim("asr_" + str(o.relative_to(REPO)).replace("/", "__")):
+                if not claim("asr_" + str(o).replace("/", "__")):
                     continue
                 log(f"asr {o}")
                 ok = subprocess.run(f"{PYE} reports/uniss_si_v4/speech_only.py {o} > /dev/null && PYTHONPATH=. {PYE} -m "
