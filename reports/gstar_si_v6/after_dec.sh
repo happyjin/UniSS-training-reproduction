@@ -56,12 +56,10 @@ REF_EN=$D/e2e_gstar_v1/windows_test_ref.jsonl; REF_ENS=$D/e2e_gstar_stream_v1/wi
 REF_ZH=$D/e2e_gstar_zh2en_v1/windows_test_ref.jsonl; REF_ALI=$A/windows_test_ref.jsonl
 
 # reference-window systems
-for s in en2zh_S2dl_LA2_d1 en2zh_S2dl_lag1 en2zh_S2dl_lag2; do merge $V6/$s $REF_ENS && score $V6/$s $REF_ENS lowlat; done
-for s in zh2en_S2dl_LA2_d1 zh2en_S2dl_lag2; do merge $V6/$s $REF_ZH && score $V6/$s $REF_ZH lowlat; done
 # cascades
 for dr in en2zh zh2en; do
   REF=$([ $dr = en2zh ] && echo $REF_EN || echo $REF_ZH)
-  for c in OC CC SC; do
+  for c in OC CC; do
     seg=$V6/${dr}_${c}-segments/segments.jsonl
     merge $V6/${dr}_${c}_seg $seg || continue
     out=$V6/${dr}_${c}
@@ -77,7 +75,7 @@ done
 # online whole-meeting systems
 for x in en2zh:S2dl en2zh:O2_LA2 en2zh:S2dlm zh2en:S2dl zh2en:O2_LA2 ali:S2dl ali:O2_LA2; do
   set_=${x%%:*}; s=${x##*:}
-  W=$ON/windows_test_online_${set_}.jsonl
+  W=$ON/windows_test_online_${set_}_sub.jsonl   # prereg_v6 amendment 2: meeting subset
   REF=$([ $set_ = en2zh ] && echo $REF_EN || ([ $set_ = zh2en ] && echo $REF_ZH || echo $REF_ALI))
   merge $V6/on_${set_}_$s $W && mscore $set_ $W $V6/on_${set_}_$s/hyp.jsonl $REF $SC/on_${set_}_$s.json --online
 done
@@ -95,4 +93,16 @@ mscore ali $REF_ALI $EV/gstar_v5_20261030/ali_S2dl3k_d1/hyp.jsonl $REF_ALI $SC/w
 mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_O2_LA2_d1/hyp.jsonl $REF_ALI $SC/win_ali_O2_LA2.json ""
 mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_O2/hyp.jsonl $REF_ALI $SC/win_ali_O2.json ""
 mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_C-ft2/hyp.jsonl $REF_ALI $SC/win_ali_C-ft2.json ""
+# window evaluation on the same meeting subset (the comparison online vs reference windows of prereg_v6 §1)
+SUBE=$ON/windows_test_ref_en2zh_offline_sub.jsonl; SUBES=$ON/windows_test_ref_en2zh_stream_sub.jsonl
+SUBZ=$ON/windows_test_ref_zh2en_sub.jsonl; SUBA=$ON/windows_test_ref_ali_sub.jsonl
+mscore en2zh $SUBES $EV/gstar_v3_20261029/en2zh_S2dl_d1/hyp.jsonl $SUBE $SC/winsub_en2zh_S2dl.json ""
+mscore en2zh $SUBES $EV/gstar_v3_20261029/en2zh_O2_LA2_d1/hyp.jsonl $SUBE $SC/winsub_en2zh_O2_LA2.json ""
+mscore zh2en $SUBZ $EV/gstar_v5_20261030/zh2en_S2dl3k_d1/hyp.jsonl $SUBZ $SC/winsub_zh2en_S2dl.json ""
+mscore zh2en $SUBZ $EV/gstar_v3_20261029/zh2en_O2_LA2_d1/hyp.jsonl $SUBZ $SC/winsub_zh2en_O2_LA2.json ""
+mscore ali $SUBA $EV/gstar_v5_20261030/ali_S2dl3k_d1/hyp.jsonl $SUBA $SC/winsub_ali_S2dl.json ""
+mscore ali $SUBA $EV/gstar_v3_20261029/ali_O2_LA2_d1/hyp.jsonl $SUBA $SC/winsub_ali_O2_LA2.json ""
+# LA2 on the prefix-trained model: the 8-meeting subset (prereg_v6 amendment 3)
+merge $V6/en2zh_S2dl_LA2_d1 $SUBES && { [ -e $V6/en2zh_S2dl_LA2_d1/score.json ] || $PY -m $M.gstar_score --windows $SUBES \
+  --hyp $V6/en2zh_S2dl_LA2_d1/hyp.jsonl --post-key lowlat --out $V6/en2zh_S2dl_LA2_d1/score.json > $V6/en2zh_S2dl_LA2_d1/score.log 2>&1; }
 log "after_dec pass done"
