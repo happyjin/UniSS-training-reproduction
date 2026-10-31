@@ -105,4 +105,7 @@ mscore ali $SUBA $EV/gstar_v3_20261029/ali_O2_LA2_d1/hyp.jsonl $SUBA $SC/winsub_
 # LA2 on the prefix-trained model: the 8-meeting subset (prereg_v6 amendment 3)
 merge $V6/en2zh_S2dl_LA2_d1 $SUBES && { [ -e $V6/en2zh_S2dl_LA2_d1/score.json ] || $PY -m $M.gstar_score --windows $SUBES \
   --hyp $V6/en2zh_S2dl_LA2_d1/hyp.jsonl --post-key lowlat --out $V6/en2zh_S2dl_LA2_d1/score.json > $V6/en2zh_S2dl_LA2_d1/score.log 2>&1; }
+mkdir -p $V6/subset
+[ -e $V6/subset/en2zh_S2dl_d1_score.json ] || $PY -m $M.gstar_score --windows $SUBES --hyp $EV/gstar_v3_20261029/en2zh_S2dl_d1/hyp.jsonl \
+  --post-key lowlat --out $V6/subset/en2zh_S2dl_d1_score.json > $V6/subset/en2zh_S2dl_d1_score.log 2>&1
 log "after_dec pass done"
