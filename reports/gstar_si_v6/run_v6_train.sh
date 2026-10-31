@@ -13,8 +13,10 @@ ev() { echo "[$(date -u +%F' '%T) UTC] MIST(v6): $*" >> logs/gpu_coord/events.lo
 EV=eval_outputs/uniss_qwen3_omni_v1; D=data/ami_multispk_si_v1
 O2=${EV}/thinker_gstar_o2_20261029b/thinker_merged
 
-free_cards() {   # cards with < 30,000 MiB used
-  nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits | awk -F', ' '$2 < 30000 {print $1}' | tr '\n' ',' | sed 's/,$//'
+TRAIN_CARDS=${TRAIN_CARDS:-2,3,4,5,6,7}   # cards 0-1 are the single-speaker branch's (announced split)
+free_cards() {   # cards of TRAIN_CARDS with < 30,000 MiB used
+  nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits \
+    | awk -F', ' -v ok=",$TRAIN_CARDS," '$2 < 30000 && index(ok, "," $1 ",") {print $1}' | tr '\n' ',' | sed 's/,$//'
 }
 
 LEDGER=logs/gpuq7_ledger/$$.json   # gpuq7 queues count our reservation here as their own (OUR_MAX)
