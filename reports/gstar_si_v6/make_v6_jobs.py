@@ -6,6 +6,8 @@ batch 8); declared memory 72,000 + 7,000 W MiB. Every output goes to eval_output
 
   dec1   whole-meeting online runs (M01), LA2 / fixed-lag on the prefix-trained models (M04 1-2), streaming, oracle-turn
          and context cascades (M04 4, M05 2-3), single-stream read timing (M03)
+  dec2:<what>  decodes of the v6-trained models (each phase once its model is merged): zhchar (dev gate + test, prereg
+         §4), seeds (E-seed), dlabc (target control), cturn (turn-trained cascade), o2seeds, t13 (batch invariance)
   dec1c  dec1b without LocalAgreement on MIST-Simul-M (compute; prereg_v6 amendment 1); dec1b never started a job
   dec1b  the dec1 jobs that had not started when the dec1 queue was stopped (its first six jobs ran with 4 workers per
          Thinker and kept running), re-made with 6 workers per Thinker (a worker takes ~5 GB at batch 8)
@@ -142,5 +144,50 @@ def dec1c():
     return jobs
 
 
+T.update({"ZCHAR": f"{EV}/thinker_gstar_s2dlchar_zh2en_3k_20261031/thinker_merged",
+          "SEED1": f"{EV}/thinker_gstar_s2dl_seed20261101/thinker_merged",
+          "SEED2": f"{EV}/thinker_gstar_s2dl_seed20261102/thinker_merged",
+          "DLABC": f"{EV}/thinker_gstar_s2dlabc_20261031/thinker_merged",
+          "CTURN": f"{EV}/thinker_gstar_cturn_20261031/thinker_merged",
+          "O2S1": f"{EV}/thinker_gstar_o2_seed20261101/thinker_merged",
+          "O2S2": f"{EV}/thinker_gstar_o2_seed20261102/thinker_merged"})
+DEV800 = "data/v6_sets/zh2en_dev800.jsonl"
+V3SEG = f"{EV}/gstar_v3_20261029"
+ALI = "data/alimeeting_si_v1/windows_test_ref.jsonl"
+
+
+def dec2(what):
+    j = []
+    if what == "zhchar":
+        j += jobs_of(f"dec2_{what}", "S2DLZ", online("dev_zh2en_S2dl3k", "S2DLZ", DEV800, "zh2en", "wait", 4), 6, *M6)
+        j += jobs_of(f"dec2_{what}", "ZCHAR", online("dev_zh2en_S2dlchar", "ZCHAR", DEV800, "zh2en", "wait", 2)
+                     + online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 4)
+                     + online("ali_S2dlchar_d1", "ZCHAR", ALI, "zh2en", "wait", 6), 6, *M6)
+    elif what == "seeds":
+        for k in ("SEED1", "SEED2"):
+            j += jobs_of(f"dec2_{what}", k, online(f"en2zh_S2dl_{k.lower()}_d1", k, WIN["en2zh"], "en2zh", "wait", 6), 6, *M6)
+    elif what == "dlabc":
+        j += jobs_of(f"dec2_{what}", "DLABC", online("en2zh_S2dlabc_d1", "DLABC", WIN["en2zh"], "en2zh", "wait", 5)
+                     + online("zh2en_S2dlabc_d1", "DLABC", WIN["zh2en"], "zh2en", "wait", 7), 6, *M6)
+    elif what == "cturn":
+        j += jobs_of(f"dec2_{what}", "CTURN", offline("en2zh_C-turn_seg", "CTURN", f"{V3SEG}/segments_en2zh/segments.jsonl", "en2zh", 3,
+                                              ["--zero-sd"])
+                     + offline("zh2en_C-turn_seg", "CTURN", f"{V3SEG}/segments_zh2en/segments.jsonl", "zh2en", 3, ["--zero-sd"])
+                     + offline("ali_C-turn_seg", "CTURN", f"{V3SEG}/segments_ali/segments.jsonl", "zh2en", 6, ["--zero-sd"]), 6, *M6)
+    elif what == "o2seeds":
+        for k in ("O2S1", "O2S2"):
+            j += jobs_of(f"dec2_{what}", k, offline(f"en2zh_O2_{k.lower()}", k, f"{D}/e2e_gstar_v1/windows_test_ref.jsonl", "en2zh", 3)
+                         + offline(f"zh2en_O2_{k.lower()}", k, WIN["zh2en"], "zh2en", 3), 6, *M6)
+    elif what == "t13":   # the same 96 Zh->En windows at batch 16 and at batch 4 (one worker each)
+        j += jobs_of(f"dec2_{what}", "S2DLZ", online("t13_zh2en_b16", "S2DLZ", WIN["zh2en"], "zh2en", "wait", 1, ["--limit", "96"], batch=16)
+                     + online("t13_zh2en_b4", "S2DLZ", WIN["zh2en"], "zh2en", "wait", 1, ["--limit", "96"], batch=4), 2)
+    for x in j:
+        x["id"] = f"{x['id']}_{what}"
+    return j
+
+
 if __name__ == "__main__":
-    print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c}[sys.argv[1]](), indent=1))
+    if sys.argv[1].startswith("dec2:"):
+        print(json.dumps(dec2(sys.argv[1].split(":", 1)[1]), indent=1))
+    else:
+        print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c}[sys.argv[1]](), indent=1))
