@@ -263,6 +263,11 @@ def dec2(what):
         j += jobs_of(f"dec2_{what}", "ZCHAR", online("dev_zh2en_S2dlchar", "ZCHAR", DEV800, "zh2en", "wait", 2)
                      + online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 4)
                      + online("ali_S2dlchar_d1", "ZCHAR", ALI, "zh2en", "wait", 6), 6, *M6)
+    elif what == "zhchar2":   # E-zh without the exploratory AliMeeting run (compute)
+        j += jobs_of(f"dec2_{what}", "S2DLZ", online("dev_zh2en_S2dl3k", "S2DLZ", DEV800, "zh2en", "wait", 4), 4)
+        j += jobs_of(f"dec2_{what}", "ZCHAR", online("dev_zh2en_S2dlchar", "ZCHAR", DEV800, "zh2en", "wait", 4), 4)
+        j[-1]["id"] += "dev"
+        j += jobs_of(f"dec2_{what}b", "ZCHAR", online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 8), 4)
     elif what == "seeds":
         for k in ("SEED1",):   # prereg_v6 amendment 2: one extra seed
             j += jobs_of(f"dec2_{what}", k, online(f"en2zh_S2dl_{k.lower()}_d1", k, WIN["en2zh"], "en2zh", "wait", 6), 6, *M6)
