@@ -7,6 +7,8 @@ exactly as the dump script pools (pool = round(frames / duration * 0.08)), then 
 see (<= t - 1.04 s) with
   dump      the whole-session low-latency dump the streaming runs read
   prefix    every longer prefix run of the same meeting (self-consistency: does later audio change earlier frames?)
+Per comparison also the decision differences on overlapped frames (>= 2 active slots in the stream) and single-speaker
+frames, and the share of active frames whose whole set of active slots agrees.
 Writes <dir>/cuts_v2.jsonl and prints a summary.
 
     python reports/gstar_si_v6/causality_compare.py --dir eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/causality
@@ -35,9 +37,15 @@ def cmp(a, b, n):
     b = b[:n]
     d = np.abs(a16 - b)
     live = (b.max(1) > 0.5) | (a16.max(1) > 0.5)
+    dec = ((a16 > 0.5) != (b > 0.5)).any(1)
+    ovl = (b > 0.5).sum(1) >= 2
+    one = (b > 0.5).sum(1) == 1
     return {"frames": int(n), "max_abs": float(d.max()) if n else 0.0, "mean_abs": float(d.mean()) if n else 0.0,
-            "frac_decision_diff": float(((a16 > 0.5) != (b > 0.5)).any(1).mean()) if n else 0.0,
-            "argmax_agree_active": float((a16.argmax(1) == b.argmax(1))[live].mean()) if live.any() else 1.0}
+            "frac_decision_diff": float(dec.mean()) if n else 0.0,
+            "argmax_agree_active": float((a16.argmax(1) == b.argmax(1))[live].mean()) if live.any() else 1.0,
+            "frames_overlap": int(ovl.sum()), "dec_diff_overlap": int(dec[ovl].sum()),
+            "frames_single": int(one.sum()), "dec_diff_single": int(dec[one].sum()),
+            "slot_set_agree": float(((a16 > 0.5) == (b > 0.5)).all(1)[live].mean()) if live.any() else 1.0}
 
 
 def main():
@@ -73,7 +81,9 @@ def main():
         xs = [r[key] for r in rows if key in r]
         print(key, len(xs), "max_abs", max(x["max_abs"] for x in xs), "mean dec diff",
               round(float(np.mean([x["frac_decision_diff"] for x in xs])), 6),
-              "min argmax", round(min(x["argmax_agree_active"] for x in xs), 4), "frames", sum(x["frames"] for x in xs))
+              "min argmax", round(min(x["argmax_agree_active"] for x in xs), 4), "frames", sum(x["frames"] for x in xs),
+              "overlap frames", sum(x["frames_overlap"] for x in xs), "diff", sum(x["dec_diff_overlap"] for x in xs),
+              "single frames", sum(x["frames_single"] for x in xs), "diff", sum(x["dec_diff_single"] for x in xs))
 
 
 if __name__ == "__main__":
