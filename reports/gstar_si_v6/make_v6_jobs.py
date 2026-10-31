@@ -6,6 +6,7 @@ batch 8); declared memory 72,000 + 7,000 W MiB. Every output goes to eval_output
 
   dec1   whole-meeting online runs (M01), LA2 / fixed-lag on the prefix-trained models (M04 1-2), streaming, oracle-turn
          and context cascades (M04 4, M05 2-3), single-stream read timing (M03)
+  dec1c  dec1b without LocalAgreement on MIST-Simul-M (compute; prereg_v6 amendment 1); dec1b never started a job
   dec1b  the dec1 jobs that had not started when the dec1 queue was stopped (its first six jobs ran with 4 workers per
          Thinker and kept running), re-made with 6 workers per Thinker (a worker takes ~5 GB at batch 8)
 
@@ -120,5 +121,26 @@ def dec1b():
     return jobs
 
 
+def dec1c():
+    jobs = []
+    jobs += jobs_of("dec1c", "S2DLZ", online("on_zh2en_S2dl", "S2DLZ", WIN["on_zh2en"], "zh2en", "wait", 3)
+                    + online("on_ali_S2dl", "S2DLZ", WIN["on_ali"], "zh2en", "wait", 3)
+                    + online("zh2en_S2dl_LA2_d1", "S2DLZ", WIN["zh2en"], "zh2en", "la2", 3)
+                    + online("zh2en_S2dl_lag2", "S2DLZ", WIN["zh2en"], "zh2en", "lag", 3, ["--lag-ms", "2000"]), 6, *M6)
+    jobs += jobs_of("dec1c", "S2DLM", online("on_en2zh_S2dlm", "S2DLM", WIN["on_en2zh"], "en2zh", "wait", 5), 6, *M6)
+    jobs += jobs_of("dec1c", "O2N", online("en2zh_SC_seg", "O2N", f"{OUT}/en2zh_SC-segments/segments.jsonl", "en2zh", "la2", 2,
+                                           ["--zero-sd"])
+                    + online("zh2en_SC_seg", "O2N", f"{OUT}/zh2en_SC-segments/segments.jsonl", "zh2en", "la2", 2, ["--zero-sd"])
+                    + offline("en2zh_OC_seg", "O2N", f"{OUT}/en2zh_OC-segments/segments.jsonl", "en2zh", 2, ["--zero-sd"])
+                    + offline("zh2en_OC_seg", "O2N", f"{OUT}/zh2en_OC-segments/segments.jsonl", "zh2en", 2, ["--zero-sd"])
+                    + offline("en2zh_CC_seg", "O2N", f"{OUT}/en2zh_CC-segments/segments.jsonl", "en2zh", 2, ["--zero-sd"])
+                    + offline("zh2en_CC_seg", "O2N", f"{OUT}/zh2en_CC-segments/segments.jsonl", "zh2en", 2, ["--zero-sd"]), 6, *M6)
+    for th, name, win, d, pol in (("S2DL", "time_en2zh_S2dl", WIN["en2zh"], "en2zh", "wait"),
+                                  ("O2", "time_en2zh_O2_LA2", WIN["en2zh"], "en2zh", "la2"),
+                                  ("S2DLZ", "time_zh2en_S2dl", WIN["zh2en"], "zh2en", "wait")):
+        jobs += jobs_of("dec1ct", th, online(name, th, win, d, pol, 1, ["--time-reads", "--limit", "40"], batch=1), 1)
+    return jobs
+
+
 if __name__ == "__main__":
-    print(json.dumps({"dec1": dec1, "dec1b": dec1b}[sys.argv[1]](), indent=1))
+    print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c}[sys.argv[1]](), indent=1))
