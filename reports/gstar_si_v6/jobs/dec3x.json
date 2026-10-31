@@ -1,0 +1,90 @@
+[
+ {
+  "id": "dec3x1_S2DL_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x1/S2DL_0.json"
+ },
+ {
+  "id": "dec3x2_S2DLZ_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged reports/gstar_si_v6/jobs/dec3x2/S2DLZ_0.json"
+ },
+ {
+  "id": "dec3x3_O2_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x3/O2_0.json"
+ },
+ {
+  "id": "dec3x4_O2_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x4/O2_0.json"
+ },
+ {
+  "id": "dec3x5_S2DLZ_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged reports/gstar_si_v6/jobs/dec3x5/S2DLZ_0.json"
+ },
+ {
+  "id": "dec3x6_S2DL_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x6/S2DL_0.json"
+ },
+ {
+  "id": "dec3x7_O2N_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x7/O2N_0.json"
+ },
+ {
+  "id": "dec3x8_O2N_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 100000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3x8/O2N_0.json"
+ },
+ {
+  "id": "dec3xtS2DL_S2DL_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 79000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3xtS2DL/S2DL_0.json"
+ },
+ {
+  "id": "dec3xtO2_O2_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 79000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec3xtO2/O2_0.json"
+ },
+ {
+  "id": "dec3xtS2DLZ_S2DLZ_0",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 79000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged reports/gstar_si_v6/jobs/dec3xtS2DLZ/S2DLZ_0.json"
+ }
+]

@@ -6,6 +6,9 @@ batch 8); declared memory 72,000 + 7,000 W MiB. Every output goes to eval_output
 
   dec1   whole-meeting online runs (M01), LA2 / fixed-lag on the prefix-trained models (M04 1-2), streaming, oracle-turn
          and context cascades (M04 4, M05 2-3), single-stream read timing (M03)
+  dec3   after prereg_v6 amendment 2: the remaining windows of the kept systems (online runs on the meeting subset,
+         windows_test_online_<set>_sub.jsonl), each system's not-yet-decoded windows in <dir>/todo_dec3.windows.jsonl,
+         outputs hyp_s<k>c.jsonl beside the stopped runs' hyp_s<k>.jsonl (merged by window id afterwards)
   dec2:<what>  decodes of the v6-trained models (each phase once its model is merged): zhchar (dev gate + test, prereg
          §4), seeds (E-seed), dlabc (target control), cturn (turn-trained cascade), o2seeds, t13 (batch invariance)
   dec1c  dec1b without LocalAgreement on MIST-Simul-M (compute; prereg_v6 amendment 1); dec1b never started a job
@@ -156,6 +159,63 @@ V3SEG = f"{EV}/gstar_v3_20261029"
 ALI = "data/alimeeting_si_v1/windows_test_ref.jsonl"
 
 
+def todo(name, win):
+    """<OUT>/<name>/todo_dec3.windows.jsonl: the windows of `win` not in any hyp_s*.jsonl of the system yet."""
+    d = Path(OUT) / name
+    done = set()
+    for f in d.glob("hyp_s*.jsonl"):
+        for line in open(f, encoding="utf-8"):
+            try:
+                done.add(json.loads(line)["id"])
+            except ValueError:
+                pass
+    t = d / "todo_dec3.windows.jsonl"
+    if t.exists():   # written by an earlier call of this generator (no decode of this system has run since)
+        return str(t)
+    with open(t, "x", encoding="utf-8") as fh:
+        n = 0
+        for line in open(win, encoding="utf-8"):
+            if json.loads(line)["id"] not in done:
+                fh.write(line)
+                n += 1
+    print(name, "todo", n, file=sys.stderr)
+    return str(t)
+
+
+def c_runs(runs):
+    """dec3 outputs: hyp_s<k>c.jsonl / infer_s<k>c.log, so the stopped runs' files stay as they are."""
+    for r in runs:
+        i = r["argv"].index("--out")
+        r["argv"][i + 1] = r["argv"][i + 1].replace(".jsonl", "c.jsonl")
+        r["log"] = r["log"].replace(".log", "c.log")
+    return runs
+
+
+def dec3():
+    W = {k: f"{ON}/windows_test_online_{k}_sub.jsonl" for k in ("en2zh", "zh2en", "ali")}
+    on = lambda name, th, st, pol, n: c_runs(online(name, th, todo(name, W[st]), "en2zh" if st == "en2zh" else "zh2en", pol, n))  # noqa: E731
+    rw = lambda name, th, win, d, pol, n, extra=(): c_runs(online(name, th, todo(name, win), d, pol, n, extra))  # noqa: E731
+    seg = lambda dr, c: f"{OUT}/{dr}_{c}-segments/segments.jsonl"  # noqa: E731
+    j = []
+    j += jobs_of("dec3x1", "S2DL", on("on_en2zh_S2dl", "S2DL", "en2zh", "wait", 2)
+                 + rw("en2zh_S2dl_LA2_d1", "S2DL", WIN["en2zh"], "en2zh", "la2", 2), 4)
+    j += jobs_of("dec3x2", "S2DLZ", on("on_zh2en_S2dl", "S2DLZ", "zh2en", "wait", 2) + on("on_ali_S2dl", "S2DLZ", "ali", "wait", 2), 4)
+    j += jobs_of("dec3x3", "O2", on("on_en2zh_O2_LA2", "O2", "en2zh", "la2", 4), 4)
+    j += jobs_of("dec3x4", "O2", on("on_zh2en_O2_LA2", "O2", "zh2en", "la2", 2) + on("on_ali_O2_LA2", "O2", "ali", "la2", 2), 4)
+    j += jobs_of("dec3x5", "S2DLZ", rw("zh2en_S2dl_LA2_d1", "S2DLZ", WIN["zh2en"], "zh2en", "la2", 4), 4)
+    j += jobs_of("dec3x6", "S2DL", rw("en2zh_S2dl_lag2", "S2DL", WIN["en2zh"], "en2zh", "lag", 4, ["--lag-ms", "2000"]), 4)
+    j += jobs_of("dec3x7", "O2N", c_runs(offline("en2zh_OC_seg", "O2N", seg("en2zh", "OC"), "en2zh", 1, ["--zero-sd"])
+                                       + offline("zh2en_OC_seg", "O2N", seg("zh2en", "OC"), "zh2en", 1, ["--zero-sd"])
+                                       + offline("en2zh_CC_seg", "O2N", seg("en2zh", "CC"), "en2zh", 1, ["--zero-sd"])
+                                       + offline("zh2en_CC_seg", "O2N", seg("zh2en", "CC"), "zh2en", 1, ["--zero-sd"])), 4)
+    j += jobs_of("dec3x8", "O2N", c_runs(online("en2zh_SC_seg", "O2N", seg("en2zh", "SC"), "en2zh", "la2", 4, ["--zero-sd"])), 4)
+    for th, name, win, d, pol in (("S2DL", "time_en2zh_S2dl", WIN["en2zh"], "en2zh", "wait"),
+                                  ("O2", "time_en2zh_O2_LA2", WIN["en2zh"], "en2zh", "la2"),
+                                  ("S2DLZ", "time_zh2en_S2dl", WIN["zh2en"], "zh2en", "wait")):
+        j += jobs_of(f"dec3xt{th}", th, c_runs(online(name, th, win, d, pol, 1, ["--time-reads", "--limit", "40"], batch=1)), 1)
+    return j
+
+
 def dec2(what):
     j = []
     if what == "zhchar":
@@ -190,4 +250,4 @@ if __name__ == "__main__":
     if sys.argv[1].startswith("dec2:"):
         print(json.dumps(dec2(sys.argv[1].split(":", 1)[1]), indent=1))
     else:
-        print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c}[sys.argv[1]](), indent=1))
+        print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c, "dec3x": dec3}[sys.argv[1]](), indent=1))

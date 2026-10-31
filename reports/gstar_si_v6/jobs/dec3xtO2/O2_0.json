@@ -1,0 +1,31 @@
+[
+ {
+  "module": "gstar_si_stream_online_v6",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged",
+   "--windows",
+   "data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_O2_LA2/hyp_s0c.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "1",
+   "--policy",
+   "la2",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "en2zh",
+   "--batch",
+   "1",
+   "--time-reads",
+   "--limit",
+   "40"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_O2_LA2/infer_s0c.log"
+ }
+]
