@@ -1,0 +1,10 @@
+[
+ {
+  "id": "dec2_t13_S2DLZ_0_t13",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 86000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged reports/gstar_si_v6/jobs/dec2_t13/S2DLZ_0.json"
+ }
+]

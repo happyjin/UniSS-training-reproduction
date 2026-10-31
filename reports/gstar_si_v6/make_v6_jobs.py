@@ -159,8 +159,8 @@ V3SEG = f"{EV}/gstar_v3_20261029"
 ALI = "data/alimeeting_si_v1/windows_test_ref.jsonl"
 
 
-def todo(name, win):
-    """<OUT>/<name>/todo_dec3.windows.jsonl: the windows of `win` not in any hyp_s*.jsonl of the system yet."""
+def todo(name, win, tag="dec3"):
+    """<OUT>/<name>/todo_<tag>.windows.jsonl: the windows of `win` not in any hyp_s*.jsonl of the system yet."""
     d = Path(OUT) / name
     done = set()
     for f in d.glob("hyp_s*.jsonl"):
@@ -169,7 +169,7 @@ def todo(name, win):
                 done.add(json.loads(line)["id"])
             except ValueError:
                 pass
-    t = d / "todo_dec3.windows.jsonl"
+    t = d / f"todo_{tag}.windows.jsonl"
     if t.exists():   # written by an earlier call of this generator (no decode of this system has run since)
         return str(t)
     with open(t, "x", encoding="utf-8") as fh:
@@ -216,6 +216,46 @@ def dec3():
     return j
 
 
+def subset_windows(win, out):
+    """The windows of `win` from the 8 AMI meetings of prereg_v6 amendment 2 (data/online_v6_20261031/subset_meetings.json)."""
+    keep = set(json.load(open(f"{ON}/subset_meetings.json"))["ami"])
+    if not Path(out).exists():
+        with open(out, "x", encoding="utf-8") as fh:
+            fh.writelines(l for l in open(win, encoding="utf-8") if json.loads(l)["meeting"] in keep)
+    return out
+
+
+def d_runs(runs, suf):
+    for r in runs:
+        i = r["argv"].index("--out")
+        r["argv"][i + 1] = r["argv"][i + 1].replace(".jsonl", f"{suf}.jsonl")
+        r["log"] = r["log"].replace(".log", f"{suf}.log")
+    return runs
+
+
+def dec4():
+    """prereg_v6 amendment 3: online LA2 (registered), LA2 on the prefix-trained En->Zh model on the 8-meeting subset,
+    offline reference-turn / context cascades, read timing. Outputs hyp_s<k>d.jsonl."""
+    W = {k: f"{ON}/windows_test_online_{k}_sub.jsonl" for k in ("en2zh", "zh2en", "ali")}
+    on = lambda name, st, n: d_runs(online(name, "O2", todo(name, W[st]), "en2zh" if st == "en2zh" else "zh2en", "la2", n), "d")  # noqa: E731
+    seg = lambda dr, c: f"{OUT}/{dr}_{c}-segments/segments.jsonl"  # noqa: E731
+    sub = subset_windows(WIN["en2zh"], f"{ON}/windows_test_ref_en2zh_stream_sub.jsonl")
+    j = []
+    j += jobs_of("dec4a", "O2", on("on_en2zh_O2_LA2", "en2zh", 4), 4)
+    j += jobs_of("dec4b", "O2", on("on_zh2en_O2_LA2", "zh2en", 2) + on("on_ali_O2_LA2", "ali", 2), 4)
+    j += jobs_of("dec4c", "S2DL", d_runs(online("en2zh_S2dl_LA2_d1", "S2DL", todo("en2zh_S2dl_LA2_d1", sub, "dec4"), "en2zh",
+                                                "la2", 4), "d"), 4)
+    j += jobs_of("dec4d", "O2N", d_runs(offline("en2zh_OC_seg", "O2N", seg("en2zh", "OC"), "en2zh", 1, ["--zero-sd"])
+                                        + offline("zh2en_OC_seg", "O2N", seg("zh2en", "OC"), "zh2en", 1, ["--zero-sd"])
+                                        + offline("en2zh_CC_seg", "O2N", seg("en2zh", "CC"), "en2zh", 1, ["--zero-sd"])
+                                        + offline("zh2en_CC_seg", "O2N", seg("zh2en", "CC"), "zh2en", 1, ["--zero-sd"]), "d"), 4)
+    for th, name, win, d, pol in (("S2DL", "time_en2zh_S2dl", WIN["en2zh"], "en2zh", "wait"),
+                                  ("O2", "time_en2zh_O2_LA2", WIN["en2zh"], "en2zh", "la2"),
+                                  ("S2DLZ", "time_zh2en_S2dl", WIN["zh2en"], "zh2en", "wait")):
+        j += jobs_of(f"dec4t{th}", th, d_runs(online(name, th, win, d, pol, 1, ["--time-reads", "--limit", "40"], batch=1), "d"), 1)
+    return j
+
+
 def dec2(what):
     j = []
     if what == "zhchar":
@@ -250,4 +290,4 @@ if __name__ == "__main__":
     if sys.argv[1].startswith("dec2:"):
         print(json.dumps(dec2(sys.argv[1].split(":", 1)[1]), indent=1))
     else:
-        print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c, "dec3x": dec3}[sys.argv[1]](), indent=1))
+        print(json.dumps({"dec1": dec1, "dec1b": dec1b, "dec1c": dec1c, "dec3x": dec3, "dec4": dec4}[sys.argv[1]](), indent=1))
