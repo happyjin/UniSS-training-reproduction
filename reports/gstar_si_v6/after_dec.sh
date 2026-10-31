@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Paper v6: merge and score every v6 decode whose shards are all complete (idempotent: a merged hyp.jsonl or an existing
+# score is never rewritten; incomplete systems are reported and left alone). CPU only.
+#   ref-window systems   -> <sys>/hyp.jsonl, <sys>/score.json (gstar_score)
+#   cascades             -> <dir>_<OC|CC|SC>/hyp.jsonl via gstar_cascade_v6 assemble-v6, then gstar_score
+#   online systems       -> on_<set>_<sys>/hyp.jsonl, scores/on_<set>_<sys>.json (meeting_score --online)
+#   window references    -> scores/win_<set>_<sys>.json (meeting_score on the reference-window output of the same system)
+#     bash reports/gstar_si_v6/after_dec.sh >> logs/multispk/v6/after.log 2>&1
+set -uo pipefail
+cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
+PY=/opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python
+M=experiments.uniss_qwen3_omni_v1.evaluation
+EV=eval_outputs/uniss_qwen3_omni_v1; V6=$EV/gstar_v6_20261031; SC=$V6/scores
+D=data/ami_multispk_si_v1; A=data/alimeeting_si_v1; ON=data/online_v6_20261031
+mkdir -p $SC
+export PYTHONPATH=.
+log() { echo "[$(date -u +%F' '%T) UTC] $*"; }
+
+complete() {   # $1 dir, $2 windows file: every shard done and the windows all there
+  local d=$1 n
+  ls $d/hyp_s*.jsonl > /dev/null 2>&1 || return 1
+  for f in $d/infer_s*.log; do grep -qE "GSTAR_(ONLINE_)?DONE|DONE " "$f" || return 1; done
+  n=$(cat $d/hyp_s*.jsonl | wc -l)
+  [ "$n" -eq "$(wc -l < $2)" ]
+}
+merge() {   # $1 dir, $2 windows
+  [ -e $1/hyp.jsonl ] && return 0
+  complete $1 $2 || { log "$1: not complete ($(cat $1/hyp_s*.jsonl 2>/dev/null | wc -l) / $(wc -l < $2))"; return 1; }
+  cat $1/hyp_s*.jsonl > $1/hyp.jsonl.part && command mv -f $1/hyp.jsonl.part $1/hyp.jsonl && log "$1 merged"
+}
+score() {   # $1 dir, $2 windows, $3 post key
+  [ -e $1/score.json ] && return 0
+  $PY -m $M.gstar_score --windows $2 --hyp $1/hyp.jsonl --post-key $3 --out $1/score.json > $1/score.log 2>&1 \
+    && log "$1: $(grep -m1 cpBLEU_session $1/score.json) $(grep -m1 LAAL_s $1/score.json)"
+}
+mscore() {   # $1 set, $2 windows, $3 hyp, $4 ref windows, $5 out, $6 extra
+  [ -e $5 ] && return 0
+  $PY reports/gstar_si_v6/meeting_score.py --dir $1 --windows $2 --hyp $3 --ref-windows $4 $6 --out $5 > $5.log 2>&1 \
+    && log "$5: $(tail -n 1 $5.log | cut -c1-200)"
+}
+REF_EN=$D/e2e_gstar_v1/windows_test_ref.jsonl; REF_ENS=$D/e2e_gstar_stream_v1/windows_test_ref.jsonl
+REF_ZH=$D/e2e_gstar_zh2en_v1/windows_test_ref.jsonl; REF_ALI=$A/windows_test_ref.jsonl
+
+# reference-window systems
+for s in en2zh_S2dl_LA2_d1 en2zh_S2dl_lag1 en2zh_S2dl_lag2; do merge $V6/$s $REF_ENS && score $V6/$s $REF_ENS lowlat; done
+for s in zh2en_S2dl_LA2_d1 zh2en_S2dl_lag2; do merge $V6/$s $REF_ZH && score $V6/$s $REF_ZH lowlat; done
+# cascades
+for dr in en2zh zh2en; do
+  REF=$([ $dr = en2zh ] && echo $REF_EN || echo $REF_ZH)
+  for c in OC CC SC; do
+    seg=$V6/${dr}_${c}-segments/segments.jsonl
+    merge $V6/${dr}_${c}_seg $seg || continue
+    out=$V6/${dr}_${c}
+    if [ ! -e $out/hyp.jsonl ]; then
+      mkdir -p $out
+      extra=""; [ $c = CC ] && extra="--core"; [ $c = SC ] && extra="--stream"
+      $PY -m $M.gstar_cascade_v6 assemble-v6 --seg $seg --hyp $V6/${dr}_${c}_seg/hyp.jsonl --windows $REF --dir $dr $extra \
+        --out $out/hyp.jsonl > $out/assemble.log 2>&1 && log "$out assembled: $(cat $out/assemble.log)"
+    fi
+    [ -e $out/hyp.jsonl ] && score $out $REF $([ $c = SC ] && echo lowlat || echo offline)
+  done
+done
+# online whole-meeting systems
+for x in en2zh:S2dl en2zh:O2_LA2 en2zh:S2dlm zh2en:S2dl zh2en:O2_LA2 ali:S2dl ali:O2_LA2; do
+  set_=${x%%:*}; s=${x##*:}
+  W=$ON/windows_test_online_${set_}.jsonl
+  REF=$([ $set_ = en2zh ] && echo $REF_EN || ([ $set_ = zh2en ] && echo $REF_ZH || echo $REF_ALI))
+  merge $V6/on_${set_}_$s $W && mscore $set_ $W $V6/on_${set_}_$s/hyp.jsonl $REF $SC/on_${set_}_$s.json --online
+done
+# the same scorer on the reference-window outputs (window evaluation vs whole meeting, same scored utterances)
+mscore en2zh $REF_ENS $EV/gstar_v3_20261029/en2zh_S2dl_d1/hyp.jsonl $REF_EN $SC/win_en2zh_S2dl.json ""
+mscore en2zh $REF_ENS $EV/gstar_v3_20261029/en2zh_O2_LA2_d1/hyp.jsonl $REF_EN $SC/win_en2zh_O2_LA2.json ""
+mscore en2zh $REF_ENS $EV/gstar_v5_20261030/en2zh_S2dlm_d1/hyp.jsonl $REF_EN $SC/win_en2zh_S2dlm.json ""
+mscore en2zh $REF_EN $EV/gstar_v3_20261029/en2zh_O2/hyp.jsonl $REF_EN $SC/win_en2zh_O2.json ""
+mscore en2zh $REF_EN $EV/gstar_v3_20261029/en2zh_C-ft2/hyp.jsonl $REF_EN $SC/win_en2zh_C-ft2.json ""
+mscore zh2en $REF_ZH $EV/gstar_v5_20261030/zh2en_S2dl3k_d1/hyp.jsonl $REF_ZH $SC/win_zh2en_S2dl.json ""
+mscore zh2en $REF_ZH $EV/gstar_v3_20261029/zh2en_O2_LA2_d1/hyp.jsonl $REF_ZH $SC/win_zh2en_O2_LA2.json ""
+mscore zh2en $REF_ZH $EV/gstar_v3_20261029/zh2en_O2/hyp.jsonl $REF_ZH $SC/win_zh2en_O2.json ""
+mscore zh2en $REF_ZH $EV/gstar_v3_20261029/zh2en_C-ft2/hyp.jsonl $REF_ZH $SC/win_zh2en_C-ft2.json ""
+mscore ali $REF_ALI $EV/gstar_v5_20261030/ali_S2dl3k_d1/hyp.jsonl $REF_ALI $SC/win_ali_S2dl.json ""
+mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_O2_LA2_d1/hyp.jsonl $REF_ALI $SC/win_ali_O2_LA2.json ""
+mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_O2/hyp.jsonl $REF_ALI $SC/win_ali_O2.json ""
+mscore ali $REF_ALI $EV/gstar_v3_20261029/ali_C-ft2/hyp.jsonl $REF_ALI $SC/win_ali_C-ft2.json ""
+log "after_dec pass done"
