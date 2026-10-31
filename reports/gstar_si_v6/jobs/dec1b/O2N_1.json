@@ -1,0 +1,140 @@
+[
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC_seg/hyp_s0.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "zh2en",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC_seg/infer_s0.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC_seg/hyp_s1.jsonl",
+   "--shard",
+   "1",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "zh2en",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_OC_seg/infer_s1.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC_seg/hyp_s0.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "en2zh",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC_seg/infer_s0.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC_seg/hyp_s1.jsonl",
+   "--shard",
+   "1",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "en2zh",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_CC_seg/infer_s1.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC_seg/hyp_s0.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "zh2en",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC_seg/infer_s0.log"
+ },
+ {
+  "module": "gstar_si_stream",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC-segments/segments.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC_seg/hyp_s1.jsonl",
+   "--shard",
+   "1",
+   "--num-shards",
+   "2",
+   "--inst",
+   "gstar",
+   "--post-key",
+   "offline",
+   "--dir",
+   "zh2en",
+   "--zero-sd"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_CC_seg/infer_s1.log"
+ }
+]
