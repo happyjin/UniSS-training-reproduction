@@ -17,8 +17,8 @@ REF_ZH=$D/e2e_gstar_zh2en_v1/windows_test_ref.jsonl; REF_ALI=$A/windows_test_ref
 ok=1
 chk() { "$@" || ok=0; }
 # E-zh: dev gate and tests
-for x in dev_zh2en_S2dl3k:$DEV dev_zh2en_S2dlchar:$DEV zh2en_S2dlchar_d1:$REF_ZH ali_S2dlchar_d1:$REF_ALI \
-         en2zh_S2dl_seed1_d1:$REF_ENS en2zh_S2dlabc_d1:$REF_ENS zh2en_S2dlabc_d1:$REF_ZH \
+for x in dev_zh2en_S2dl3k:$DEV dev_zh2en_S2dlchar:$DEV zh2en_S2dlchar_d1:$ON/windows_test_ref_zh2en_sub.jsonl \
+         en2zh_S2dl_seed1_d1:$ON/windows_test_ref_en2zh_stream_sub.jsonl en2zh_S2dlabc_d1:$REF_ENS zh2en_S2dlabc_d1:$REF_ZH \
          t13_zh2en_b16:$REF_ZH t13_zh2en_b4:$REF_ZH; do
   s=${x%%:*}; w=${x##*:}
   if [[ $s == t13_* ]]; then   # 96 windows only

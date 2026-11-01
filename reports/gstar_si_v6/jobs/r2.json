@@ -1,0 +1,20 @@
+[
+ {
+  "id": "r2_on_ali_S2dl_talk",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [],
+  "mem": 56000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker_r2 --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker_in_r2/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker_in_r2/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 0 --num-shards 1 && test ! -e eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/part_2.jsonl && cp eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker_r2/part_0.jsonl eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/part_2.jsonl"
+ },
+ {
+  "id": "r2_on_ali_S2dl_asr",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 22000,
+  "deps": [
+   "r2_on_ali_S2dl_talk"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v6_speech_20261031/on_ali_S2dl/asr.log 2>&1"
+ }
+]
