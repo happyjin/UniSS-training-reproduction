@@ -108,4 +108,6 @@ merge $V6/en2zh_S2dl_LA2_d1 $SUBES && { [ -e $V6/en2zh_S2dl_LA2_d1/score.json ] 
 mkdir -p $V6/subset
 [ -e $V6/subset/en2zh_S2dl_d1_score.json ] || $PY -m $M.gstar_score --windows $SUBES --hyp $EV/gstar_v3_20261029/en2zh_S2dl_d1/hyp.jsonl \
   --post-key lowlat --out $V6/subset/en2zh_S2dl_d1_score.json > $V6/subset/en2zh_S2dl_d1_score.log 2>&1
+[ -e $V6/subset/en2zh_O2_LA2_d1_score.json ] || $PY -m $M.gstar_score --windows $SUBES --hyp $EV/gstar_v3_20261029/en2zh_O2_LA2_d1/hyp.jsonl \
+  --post-key lowlat --out $V6/subset/en2zh_O2_LA2_d1_score.json > $V6/subset/en2zh_O2_LA2_d1_score.log 2>&1
 log "after_dec pass done"
