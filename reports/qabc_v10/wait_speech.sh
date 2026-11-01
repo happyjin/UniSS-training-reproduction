@@ -28,7 +28,7 @@ while true; do
   n=$(left "$@")
   if [ "$n" -eq 0 ]; then echo "ALL_DONE"; break; fi
   if [ "$(ps -eo args | grep -c '[t]alker_worker.py talker')" -eq 0 ]; then echo "WORKERS_GONE ($n left)"; break; fi
-  if grep -E "HOT card [014567]:" logs/qabc_v10/mem_hot.log | awk -v s="[$start" '$0 >= s' | grep -q .; then echo "HOT ($n left)"; break; fi
+  if grep -E "HOT card [01457]:" logs/qabc_v10/mem_hot.log | awk -v s="[$start" '$0 >= s' | grep -q .; then echo "HOT ($n left)"; break; fi
   if awk -v s="[$start" '$0 >= s' logs/gpu_coord/events.log | grep -q "MIST(v6) -> Q"; then echo "MIST_MSG ($n left)"; break; fi
   f1=$(cat logs/qabc_v10/talker_worker_c*.log logs/qabc_v10/asr_worker_c*.log 2>/dev/null | grep -c FAILED)
   if [ "$f1" -gt "$f0" ]; then echo "FAILED ($n left)"; break; fi
