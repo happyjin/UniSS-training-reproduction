@@ -38,6 +38,7 @@
 
 ### 2.1 恢复 v6 为算力削掉的关键对照（M04、M11、Q5、Q6）
 
+0. [训] **（v7 第 1 项）在级联自身 turn 上重训的翻译器**（v5 审稿 M05①，级联翻译器训练/测试分布不一致）：v6 已预注册、行数据已建好（`data/ami_multispk_si_v1/e2e_gstar_turns_v6`，`reports/gstar_si_v6/build_v6_rows.py turns`），因算力在训练开始前取消（prereg_v6 修正 5）。按 O2-nosd 配方训练 2,000 步（约 3 小时 × 4 卡），在 AMI 两个方向和 AliMeeting 的级联切分上解码，与同数据级联、带上下文级联、参考 turn 级联同表比较。
 1. [解] **固定滞后**（MIST-Simul，L ∈ {1, 2} s）：先在 2,375 个参考窗口上跑（比整会议便宜），再在整会议子集上跑。
 2. [解] **前缀模型上的 LA2** 扩到 Zh→En 和 AliMeeting（v6 只做了 En→Zh 子集）。
 3. [解] **流式级联**：在线 turn 切分 + 每个 turn 用 LA2 同传，同一窗口规则、同一 Talker，整会议子集上跑。
