@@ -1,0 +1,18 @@
+[
+ {
+  "id": "timing_time_en2zh_S2dl",
+  "gpus": 2,
+  "vllm": false,
+  "deps": [],
+  "mem": 45000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0,$GPU1 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_S2dl/hyp_s0t.jsonl --policy wait --window 1 --post-key lowlat --dir en2zh --batch 1 --limit 40 --time-reads --max-gib 40 > eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_S2dl/infer_s0t.log 2>&1"
+ },
+ {
+  "id": "timing_time_en2zh_O2_LA2",
+  "gpus": 2,
+  "vllm": false,
+  "deps": [],
+  "mem": 45000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0,$GPU1 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_O2_LA2/hyp_s0t.jsonl --policy la2 --window 1 --post-key lowlat --dir en2zh --batch 1 --limit 40 --time-reads --max-gib 40 > eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/time_en2zh_O2_LA2/infer_s0t.log 2>&1"
+ }
+]
