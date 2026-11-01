@@ -1,0 +1,1275 @@
+ACL/ARR 极严格模拟审稿报告：MIST v6
+REPORT CONTENTS / 阅读导航
+1. 执行摘要与模拟评分
+2. v5→v6 实质改动审计（逐项核验）
+3. 主要问题（Major Weaknesses，按录用影响排序）
+4. 逐公式、接口和评测逻辑核验
+5. 逐节、逐图与逐表复核（针对 v6 的 page-accurate 评论）
+6. 次要与工程可复现问题（25 项可执行意见）
+7. TeX 源文件专项审计：这次实际能验证什么？
+8. 必要补充实验与重写优先级：按投入产出排序
+9. 我希望在 rebuttal 中得到的 18 个明确答复
+10. 作者应保留的优点（不能因为严苛审稿而忽视）
+11. 给 Area Chair 的精简判断与条件式结论
+Appendix A — Ready-to-adapt English ACL/ARR-style
+review
+Appendix B — 文件和证据完整性清单
+论文：Who Said What, in Their Own Voice: Diarizer-Conditioned Speaker-Attributed Simultaneous Meeting
+Translation with Voice-Prompted Speech
+版本材料：gstar_v6.pdf （17 页，含附录）与 gs_v6.tex （60 行、主入口）
+审稿日期：2026-10-31
+参考旧稿：gs_v5.pdf  / gs_v5.tex （仅用于核对本版修改是否实质完成）
+立场：扮演苛刻的 ACL/ARR 方法与实验审稿人；不是 ACL 官方结论，不代表模型复现实验结果。
+核心结论：当前 v6 文稿属于“新增了正确的评测方案，却尚未展示相应结果”的未闭环版本。 新版显著改善了标题定
+位、对因果性的描述、测试覆盖度披露，并增加了完整会议运行、强基线和严谨统计的设计。但这些新内容仍停留在方
+法和实验设置叙述，现有主要结果表与附录没有对应更新。相反，Limitations 仍明确称完整会议尚未被端到端评分。
+若这一 PDF 就是最终投稿文件，我倾向 Weak Reject（2/5；信心 4/5）；这并不意味着方案不值得发表，而是证据链
+在最关键处尚未闭合。这份评价以提交文件的实际内容为准，而不是推测作者在本地是否已经有新的实验结果。
+定位格式：[v6 p.5, L406–434, §3.9]  表示 v6 PDF 页码和印刷于页边的论文行号；Eq.(n)  / Table n  分别是论文自己的公
+式和表。TeX 使用 [gs_v6.tex:Lxx] 。严重度：P0 = 影响核心结论/投稿完整性；P1 = 决定说服力的重要实证缺口；P2 =
+修订和复现问题。论证状态：[已确认]  仅表示附件中可直接核实；[证据缺失]  表示论文没有展示足以验证的资料；[潜在
+风险]  表示需要额外实验判定，不能认定系统必然存在该缺陷。
+1. 执行摘要与模拟评分
+1.1 评审判断
+模拟 overall：Weak Reject（2/5）；confidence：4/5。 如果作者把 v6 所承诺的完整会议实验、真实听众端延迟、增
+强基线、跨种子结果以及新统计分析真实补齐，并修复所有跨章节矛盾，这篇工作可上升为 borderline 乃至可接受的系
+统研究。但仅改写正文而没有填入相应结果，不能提高证据强度。
+维度
+模拟分数
+简要判据
+任务重要性 / Impact
+4/5
+会议重叠、稳定身份与可辨认目标语音
+是有价值的实际问题。
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+1 / 22
+
+维度
+模拟分数
+简要判据
+系统创新 / Novelty
+3/5
+speaker interleaving 源自 G-STAR；真
+正新增是译文结构化、deadline
+commit、voice-prompted TTS 与会议
+场景的集成。
+技术合理性 / Soundness
+2.5/5
+关键算法有形式化；在线输入、真实延
+迟与端点机制的证据未落实。
+实验质量 / Evidence
+2/5
+旧窗口实验可靠性较强，但新增强基线
+和完整会议测量未见报告；真实
+Mandarin 无明显优势。
+写作与完整性 / Presentation
+2/5
+新 title 更准确，新增局限披露值得肯
+定；多处 §??  和章节自相矛盾属于提交
+级错误。
+可复核性 / Reproducibility
+2/5
+一部分超参数足够细；仅给出主 .tex ，
+不含所引用的 sections/ 、generated/
+和生成脚本，不能重编或审计表格。
+最重要的审稿决定条件：
+完整会议是否真的跑了？ 新 §3.9 给出了 online-window 推理规则，但没有完整会议的 tcpBLEU、遗漏/插入/重
+复、语音实际延迟、队列积压、显存与计算耗时；Limitations 仍说没有完整会议端到端评分。[v6 pp.5–7, L406–
+434、L579–598；p.10, L760–773]
+最强比较是否公平？ v6 终于列出了 turn-trained/oracle/contextual cascades、post-hoc relabelling、prefix-
+trained LA2、fixed lag、streaming cascade，但 Table 1 和 7–15 仍没有这些新对照分数。[v6 p.7, L525–566；
+pp.8、15–17]
+统计声称与表格是否一致？ 正文说 two-sided permutation/Holm/leave-one-meeting-out/extra seeds；
+Appendix F 和 Table 9 仍是旧的单侧 bootstrap 计数，且个别 p 值与 95% 双侧 CI 不吻合。[v6 p.7, L608–617；
+p.13, L1067–1074；p.15, Table 9]
+1.2 可接受的贡献边界
+作者确实建立了一个将 冻结的 Streaming Sortformer 说话人活动流、冻结的 Qwen3-Omni 声学表示和可微 speaker
+projector + Thinker LoRA结合的系统。解码器一口气预测 speaker / source start / target translation / source end /
+wait ，再由独立 UniSS Talker 使用因果获得的 speaker prompt 生成声音。它在 AMI 的参考切分窗口上取得重要的归属
+翻译增益。这是有价值的 diarizer-conditioned speaker-attributed translation with learned commit and external
+TTS；不是一个从输入声波到输出声波端到端联合训练的单一模型。[v6 pp.3–5, Fig.1、Eqs.(2)–(18)]
+1.3 四个已经由 v6 数字确认的结论
+AMI En→Zh、Zh→En 的离线文本 cpBLEU_sess 分别是 42.81 vs 36.29（+6.52）、25.86 vs 22.36（+3.50），
+比较对象是论文的 same-data cascade；这是窗口级优势，不是完整会议在线结果。[v6 p.8, Table 1]
+AMI En→Zh 的 simultaneous text 是 42.63 @ 2.32s LAAL，相比 offline MIST + LA2 的 31.64 @ 2.37s，约 
++10.99；由于 LA2 基线未进行对应的 prefix training，该差额不等于 deadline policy 的独立因果效应。[v6 pp.8–9,
+Table 1, L650–675]
+AMI Zh→En 同步文本是 24.30 @ 2.93s，而 offline MIST + LA2 是 24.81 @ 2.50s：没有质量优势，且延迟更大。
+[v6 p.8, Table 1]
+在真实 Mandarin AliMeeting 上，离线 MIST 14.90，same-data cascade 15.25；同步 MIST 12.97 @ 3.09s，LA2 
+12.10 @ 2.84s。这些结果不支持“在真实 Mandarin 上显著优于级联或 LA2”。[v6 p.9, Table 2、L685–700]
+1. 
+2. 
+3. 
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+2 / 22
+
+2. v5→v6 实质改动审计（逐项核验）
+与上一版比较，本版并非原样提交：对多项最重要的审稿意见采取了方向正确的措施。问题是“新计划/新陈述”是否
+被“新数据/新定义”验证。
+改动
+v6 证据
+审稿判断
+标题从“End-to-End S2ST”改为“Diarizer-
+Conditioned … with Voice-Prompted
+Speech”
+p.1 标题
+已修复一部分措辞过强问题，比 v5 诚实。
+Fig.1 说明冻结 diarizer、encoder、Talker，
+梯度只到 projector / new rows / LoRA
+p.3, Fig.1 caption L161–166
+已改善模型边界；仍需避免结论里“一模
+型”过度概括。
+§3.3 明确 streaming Sortformer 的 0.72s
+chunk、0.32s right context、缓存
+p.3 L200–218
+描述增加；“数值验证”仍指向 §??,
+Appendix ?? ，附件里没有结果。
+§3.5 新增 α=β  的测量，报告 En→Zh 2.6%
+零时长 segment
+p.4 L272–276
+发现问题但未修复：时间标注指标与 Eq.(1)
+仍有冲突。
+§3.7 明确每次 read 真正使用 x≤t  重新编
+码，不输入整窗遮蔽向量
+p.5 L339–349
+因果性叙述更清楚；需实验核验 cache/
+token 稳定性、实时算量。
+新增 §3.9：diarizer 驱动窗口、20s 截断、
+跨窗口单通道积压、计算时间
+pp.5–6 L406–434
+关键方法补强，但结果缺席；旧 Limitations
+仍说未评测。
+披露 AMI 英中参考窗口仅覆盖 45.6%
+speech、35.6% overlap，AliMeeting 仅
+63.0% speech
+p.6 L449–459、L481–497
+重要且诚实的补充；反而凸显旧结果的选样
+偏差。
+披露 En→Zh 和 Zh→En 共享 AMI 原始 16 个
+测试会议
+p.6 L478–480
+积极修正：不能误以为双向是相互独立语
+料。
+新增 turn-trained、oracle-turn、
+contextual cascades
+p.7 L525–541
+仅列名称/构造，未找到分数；公平性尚未被
+实验证实。
+新增 speaker stream 的 post-hoc
+relabelling 对照
+p.7 L541–547
+关键消融思路正确；缺结果，不能证明
+interleaving 优于后处理。
+新增 LA2-on-Simul、fixed-lag、streaming
+cascade
+p.7 L548–559
+关键在线基线方向正确；Table 1/6/9 均无相
+应分数。
+规定整会议 tcpBLEU、带计算的 listener-
+side lag、segment-level 归属指标
+p.7 L567–608
+只有定义性文字；新度量未给公式、对照
+表、可复现实现。
+说增加两颗 En→Zh seed，采用
+permutation / Holm / leave-one-meeting-
+out
+p.7 L520–523、L608–617
+文本承诺未兑现；旧 Table 9 和 Limitations
+与之冲突。
+增加 TitaNet 和 WavLM 两种 speaker
+verification
+p.7 L603–607
+方法文字新增，Table 3 仍只明确列
+WavLM，没有 TitaNet 分项。
+文末仍保留旧 Limitations：“未测整会
+议”“未比 prefix-trained LA2”“单
+seed”“计算无关”
+p.10 L760–789
+实质性内部矛盾，不是可忽略的引用错误。
+PDF 出现 §?? 、Appendix ??  等未决定位
+p.3 L218；p.6 L459；p.7 L589
+已确认的成稿质量问题。
+结论：v6 在研究设计层面朝正确方向前进；在本次上传的 PDF 层面，所需要的验证还没有落地。 以下主要问题按 v6 文
+件实际状态重新评级，而非把 v5 批评无差别复制过来。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+3 / 22
+
+3. 主要问题（Major Weaknesses，按录用影响排序）
+M01 [P0 / 已确认] 新增主张、基线、指标和结论之间出现系统性的“结果缺席”
+证据链：§3.9 定义整会议在线运行 [p.5–6, L406–434]；§4 增加 turn-trained/oracle/contextual/post-hoc 和多个在线
+基线 [p.7, L525–566]；Metrics 定义 tcpBLEU、整会议听众端 lag、双 speaker-verification [p.7, L567–608]；Statistics
+说两侧检验、Holm 和 extra seeds [p.7, L608–617]。但实际 Table 1–15 仍只覆盖原有的参考窗口评测、旧语音客观分数
+及旧的 bootstrap；并无“新完整会议汇总表/图”、新基线分数、额外 seed 平均/方差、TitaNet 结果、tcpBLEU 数值
+或尾部实际延迟直方图。尤其 Conclusion 完全未讨论任何新增整会议测量。[pp.8–9, L736–743]
+为何关键：读者不应通过作者“计划测量/写了指标定义”的文字来推定其已完成了实验。新增这些内容还改变了论文的
+论证结构：如果整会议实验表现不佳，系统最强应用结论会进一步缩小；如果表现好，当前稿却没有给出可以复核的数
+字。
+必须补：至少一张完整会议文本+语音主表；一张公平基线对照表；一张统计与跨种子表；一段关于真实 Mandarin 结果
+的限制性讨论。每个新 baseline 必须在一张明确的表中有实际指标，或者删去“已运行”暗示、标记为拟议未来工作。
+不要把所有新增实验藏在仅口头引用的附录。
+建议作者回答：这些数值是尚未跑完、跑完但 make_tables_v6.py  未写入 PDF，还是意图另附 supplement？当前附件不
+允许审稿人区分。
+M02 [P0 / 已确认 + 证据缺失] §3.9 是完整会议的算法草图，不是完整会议评估；Limitations 直接否定
+新主张
+证据：§3.9 规定 diarizer>0.5 启动窗口，连续 1s 无活动关闭，最多 20s，前后 padding，decoder 在窗口边界重置，而
+speaker slots 延续；音频播放队列跨窗口累计，计算时间计入 commit。[v6 pp.5–6, L412–434]。但是 §4 的 
+the whole-meeting evaluation (§??)  没有真实定位 [p.6, L458–459]；Metrics 的 tcpBLEU、listener-side lag 无结果
+[p.7]；Limitations 原文仍陈述 we have not scored whole meetings end to end ，以及 listener-side lag is measured within
+windows  [p.10, L760–773]。
+评价：这是可直接证实的文本与证据矛盾，不能被视为“作者没有实现整会议系统”的直接证明。算法写出来不等于做
+了测试。与原来的 reference-utterance windows 不同，整会议覆盖全部听到的语音，并涉及未标注/未过滤的
+backchannel、连续超过 20s 的流和长时间 TTS backlog。没有这部分对照就无法评价核心应用是否成立。
+最小可接受实验：选定 AMI 官方完整 16 个测试 meeting + AliMeeting 完整 20 个 meeting，按时间推进一次，不使用参
+考分割决定窗口或 <eos> 。明确音频重放条件、silence threshold、speaker cache、每次 read 的 x≤t 、每次 TTS 能否
+及时播完；报告 full-meeting tcpBLEU 、归属错率、coverage、遗漏/重译、输出时长比、speaker identity stability、文
+本首字及音频首包/播放完成 lag、p50/p90/p95 backlog。务必与相同 online windowing 和同一个 Talker 的强基线比
+较。
+附加安全检查：对 20s 硬切时正在说话的 utterance 是否被截断、最终末读 flush 的构造、0.2s 前置填充需要多少历史缓
+存、0.3s 尾部填充如何延迟关闭，都需可执行伪代码。仅“窗口已被某规则切出”并不能让这些时间戳在线可用。
+M03 [P0 / 证据缺失] “严格因果”论证比 v5 进步，但新增的数值校验是空引用
+证据：在 §3.3，作者说 Sortformer 以 0.72s chunk、0.32s 右上下文加 speaker cache 的流模式运行，已定稿帧不回
+改、无 session-global statistic，并说数值验证 prefix run 与 streaming run 的帧一致；然而引用显示 this numerically
+(§??, Appendix ??)  [v6 p.3, L200–218]。§3.7 又明确 encoder 接收前缀 x≤t_r ，而不是将完整音频 embedding 后遮
+蔽，并说明 Eq.(9) 只用于训练目标与评测。[p.5 L339–349]
+肯定之处：作者明确澄清 Eq.(9) 是离线监督标签对齐，并不意味着把参考说话人标签喂给测试模型；前缀 encoder 的文
+字说明也排除了 v5 的一种可能错误实现。不能仅凭早期 Eq.(3) 写成 P=Diar(x)  就断言已经泄漏。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+4 / 22
+
+仍需验证：给 max|P_offline_streaming_prefix(t)-P_true_online_prefix(t)| 、mean absolute deviation、speaker slot ID
+drift / reorder count、有效帧一致比（各说话人、长会议和 overlap 分层）；另给 Enc(x≤t)  与不断追加音频时既有
+token 是否变化及 padding/receptive field；附公开的 read→finalize→project→decode  trace。无数值验证却声称“we
+verify numerically”是不完整的事实主张。
+M04 [P0 / 已确认] 新加强的 cascades 和同步基线被列举，却没有被真正用于结论比较
+证据：新列举三种翻译端级联增强：turn-trained、reference-turn/oracle、±2s context；以及后处理同 posterior 的
+post-hoc labelling [v6 p.7, L525–547]。同步端列举 LA2 on MIST-Simul、MIST-Simul fixed lag（1或2s）、low-
+latency streaming cascade [L548–559]。但 Table 1 只保留 Qwen prompted / original cascade / same-data cascade /
+MIST stream ablation / MIST offline / MIST LA2 / MIST-Simul / oracle activity，Table 6、9 也未纳入新基线。[v6
+pp.8、14–15]
+为什么不能用“新增了基线描述”解决公平性疑问：原级联按 diarizer threshold 切 turn，只给短音频；MIST 看完整多
+说话人窗口。把 multi-speaker 窗口上训练的 translator 拿去切碎的 turn 上推理也引入输入长度/上下文分布失配。LA2
+对照没见过任何不完整输入，作者自己说它产生过度生成（1.18×参考长度）[p.8, L650–675]。新设计中的 turn-
+trained/prefix-trained 恰好可以判断旧收益是否来自对照过弱，但没有分数就没有答案。
+最小主表：对于 En→Zh、Zh→En、AliMeeting，在同一覆盖范围/相同在线切窗/相同 Talker/相同推理预算下，报告
+MIST vs. standard cascade、turn-trained、contextual、oracle-turn、post-hoc relabel、LA2-offline、LA2-on-
+prefix-trained、fixed-lag、streaming cascade，并标注哪个 baseline 具备 oracle 信息（oracle 不应被当作现实可部署
+系统）。结论按“相对最强非 oracle baseline”重写。
+M05 [P0 / 已确认] 双侧统计/多重校正的陈述与 Table 9、Appendix F 的算法定义互相冲突
+原文：§4 宣称使用 meeting paired bootstrap、permutation test、leave-one-meeting-out，p values are two-
+sided 、pre-registered tests ... Holm-corrected  [v6 p.7, L608–617]。Appendix F 却仍说 session speaker matching 在
+全测试集上固定，按 window/meeting 做 bootstrap [p.13, L1067–1074]；Table 9 caption 则把 p 定义成 the share of
+resamples in which the first system is not better  [p.15, Table 9]。这个定义是单侧尾部比例，不是普通的 two-sided
+p，更不是已展示的 Holm-adjusted permutation p。
+可核查数值实例：Table 9 中 En→Zh MIST-Simul-M, Δ=2  相比 MIST-Simul, Δ=2 ，window 95% CI 为 [-0.10, 7.60] 却列
+p=0.043，meeting CI [-0.06, 6.90] 却列 p=0.034。Zh→En 语音 MIST-Simul vs MIST+LA2 ，window CI [-0.09, 4.09] 却
+列 p=0.030，meeting CI [-0.35, 4.74] 却列 p=0.050。这可能是单侧 tail p 与双侧 95% CI 混排造成的，并非一定是算错
+数据；但它不能支持论文统一宣称的“双侧、校正后”检验逻辑。此外 1,000 次 resamples 的 p=0.000  应表达为 p<0.001
+（或显式说明估计方式）。
+必须纠正：明确四类输出：effect size 、meeting-cluster 95% CI、two-sided meeting permutation p、Holm-
+adjusted p；所有主张使用同一侧性约定并区分探索性比较。列出预注册材料（日期、对比家族、终点，若确有）或取
+消“pre-registered”一词；报告 leave-one-meeting-out 的最小/最大差值及最敏感的 meeting；不要把 window
+bootstrap 当作对会议独立性的主显著性证据。若采用重复抽样后重新匹配 slot，给伪代码；若每 meeting 匹配固定等
+价，说明条件。
+M06 [P0 / 已确认] “多 seed 已训练”缺结果，同时 Limitations 仍声称只有一个 seed
+证据：§4 for En→Zh MIST-Simul we also trained two more seeds (§5.2)  [v6 p.7, L520–523]，但 §5.2 只有旧的 single-
+run En→Zh 与 Zh→En 曲线和 text LAAL 论述，没有均值、方差、置信区间或独立 seed 表。[p.8–9, §5.2、Fig.2/Table
+6]。Limitations 继续称 Each model was trained once, with a single seed  [p.10, L784–787]。
+分析：文本两处并不能同时按字面成立。因为作者明确指明“额外两颗 seed”，最合理的修订是给出至少三个 seed 的
+个体分数、均值±标准差、延迟与失败率，并把 Limitations 改为“仅 En→Zh 主 Simul 有三个 seeds，其余一个”。抽
+样窗口 CI 不能替代训练随机性。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+5 / 22
+
+M07 [P0 / 证据缺失] tcpBLEU、segment-level attribution 和完整听众端语音延迟被提出，却缺乏可
+复核定义与结果
+证据：§4 声称 cpBLEU 对时间不敏感，新增 tcpBLEU ：输出段被分配给“同 speaker、相差小于1s合并的参考
+utterance unit”，与 ±2s collar 重叠才匹配；还提及 segment-level precision/recall/omission/onset/offset in 
+Appendix ??  [v6 p.7, L567–599]。但真实的 Appendix C 仍只有 cpBLEU 、DER、LAAL 的旧公式，完全没有 tcpBLEU 算法
+定义/评分结果 [p.12–13, L1031–1064]。正文各表和附录均未列出 tcpBLEU 或整会议 listener-lag。
+严重性：tcpBLEU  如何将 翻译语义、speaker permutation、时间一致性 合在同一个 corpus BLEU，决定该新指标是否
+可信。歧义包括：一个输出跨多个 reference units；两个输出同属一个 unit；reference unit 在 overlap 时属于不同
+speaker；没有有效时间锚的插入；2s collar 过宽对短 backchannel 会否过度宽容；匹配顺序是否在整个 meeting 固
+定；语音 ASR errors 怎么落到 speaker/time 单元。
+必须提供：完整算法/伪代码、一个带 2 个说话人与三处重叠的 toy example、单元集统计、对 0s/0.5s/1s/2s collar 的敏
+感性、cpBLEU 与 tcpBLEU 的差异、该指标与人工错误标注的相关性。音频延迟至少分别报告 text commit 、TTS first-
+sample ready 、playback onset 、playback completion ，并给 p50/p90/p95 与重叠率分层。
+M08 [P1 / 已确认] 参考窗口的选样偏差比 v5 暴露得更清楚，对核心结果的外推影响巨大
+新增事实：En→Zh 的 2,375 个测试参考窗口只有 3.9h；v6 现承认这些窗口只包含测试 meetings 45.6% 的讲话时长、
+51.2% 的 ≤1s utterances、更只有 35.6% 的重叠讲话时长；窗口组会因跨界、超过 20s 或译文/合成自动审核未通过
+而整体丢弃 [v6 p.6, L436–459]。Zh→En revoiced 测试窗覆盖 88.0% 对应 speech，AliMeeting 只覆盖 63.0% [p.6
+L462–497]。
+不应误读：35.0% 测试窗口包含多人，不等于“覆盖 35.0% 的原始 overlap 时长”。v6 的覆盖披露恰恰说明，原来靠窗
+口内 multi-speaker 比例无法证明最难的 overlap 样本被保留。AliMeeting 的 10.8h 总时长与 7.5h 窗口音频时长也不完
+全等同 speech 时长，因此应使用作者明确给出的 speech coverage 而不是自行以两者相除代替。
+建议：完整会议实验必须评估保留/被过滤两组各自的多说话人召回、重叠秒数、≤0.5/1s backchannels、无单独说话片
+段、≥20s 连续对话；列一个 “raw meetings→reference windows→kept speech→kept overlap→kept short
+utterances” 漏斗表。仅在保留样本上 +6.52/3.50 不能证明未保留区域也同等受益。
+M09 [P1 / 已确认] 在真实 Mandarin 的重要外推实验上，离线质量与 speaker 指标没有优于 cascade
+证据：AliMeeting，offline MIST vs same-data cascade：cpBLEU 14.90 vs 15.25，speaker-count 91.9% vs
+92.5%，DER 14.7% vs 13.1% [v6 p.9, Table 2]。同数据 domain 外 test 上无显著赢面；Simul 为 12.97 vs 12.10，却
+要 3.09s vs 2.84s text LAAL，差值不显著 [p.9, L685–700]。此外还只用机器 MT 将 AliMeeting 的人工普通话转写生成
+English reference，未做人类译文质量审查。[p.6, L481–503；p.10, L744–759]
+重要区分：作者已对这一弱点比较坦诚；问题是论文主题与任务设定仍需要真实多说话人会议上的正面实证。合成中文
+源来自同一 AMI meeting 的重配音/语速修正，原语言内容和说话人结构并非新真实采样。[v6 p.6 L462–480、Appendix
+I]
+补救优先级：至少补真实 Mandarin 连续会议全流程，并分 single/multi/overlap/short-turn 和会议时长给误差；可增若
+干人工翻译质量审查集，避免仅用 MT reference 容易影响句子级排序。不要把对 AMI 的双向提升描述成跨语料、跨语言
+条件独立复制。
+M10 [P1 / 证据缺失] interleaving 的独立贡献仍不能仅由“去掉 speaker stream”证明
+现有消融：v6 Table 1 去掉 speaker stream 后 En→Zh cpBLEU_win=42.32 ，MIST 42.97 ，然而 cpBLEU_sess  从 42.81 降到
+21.17：主要损失是跨窗口 slot-label 对应关系，不必然表明神经网络在单窗口说话人分离上更好。[v6 p.15, Table 7；
+p.9 L717–728]。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+6 / 22
+
+新设计是对的：v6 添加 post-hoc relabelling，使用与 MIST 一样的 diarizer posterior，在译后给无 stream 模型分配固
+定 slot [p.7, L541–547]。这是区分“需要持久身份源”与“必须在解码期间 interleave”最有价值的对照之一。但没有
+任何 post-hoc 对照分数，所以引言“speaker stream 是维持 identity 的关键”仍只能归因到提供了外部 identity，不够
+解释具体融合结构的优势。
+补实验：在相同长期 identity 信息和数据上比较 interleave K=5 、speaker posterior 后标注、speaker-tag at prefix、
+additive fusion、binary activity、time-varying speaker embedding；报告 cpBLEU_sess 、cpBLEU_win 、DER、overlap
+errors、时序偏差、推理 FLOPs 和 slot 重新进入后正确率。
+M11 [P1 / 证据缺失] learned deadline policy 的改进归因尚未被新的同等训练对照检验
+证据：当前强 En→Zh +10.99  仍是 trained Simul 对比 offline+LA2 [v6 p.8 Table 1]。作者新声称会在 prefix-trained
+MIST-Simul 上再跑 LA2/fixed-lag [p.7 L548–558]，还说 stable-prefix 与 deadline 实验在“exactly the same windows
+and reads”上各训练 3,000 steps [p.7 L561–566]；实际 Appendix J 仍说 stable-prefix 在 8,000 training windows、
+混合间隔 {0.5,1,1,2}  上继续训练，而 Table 15 仍把 full-data MIST-Simul 的 42.63  与 stable-prefix 的 32.73  对比。
+[p.14 L1126–1144；p.17 Table 15]。这段文字与附录难以同时理解为严格匹配的数据实验。
+为什么重要：+9.90 的 deadline-vs-stable-prefix 差值可能混有训练数据量、read interval 配置、prefix exposure 或训
+练 row 分布差异。即便作者真的做了新的 matched-data 实验，现有 Table 15 也没有写出其 checkpoint、读间隔和原
+始差值。
+最低补强：清楚区分 full-data deadline 、8k-window deadline 、8k-window stable-prefix ；匹配所有 read interval、训练
+步数、batch tokens、checkpoint 初始化、数据构造与 seed；将完整 latency–quality Pareto 曲线及推理成本画在同一
+图。Zh→En 当前 24.30 @2.93s 对比 stable-prefix 24.07 @2.35s，0.23 质量差异很小但更慢，需要如实说明。
+M12 [P1 / 已确认] 关键的多说话人 speaker-count 结果不一定比 cascade 好；正文只强调总体指标
+具体发现：En→Zh 总窗口 speaker-count accuracy，MIST offline 89.5%，same-data cascade 88.2%；正文强调前者
+更好。[v6 p.8, Table 1；L640–646]。然而在真正关注的 multi-speaker windows 中，Table 10 显示 MIST offline 只有 
+72.8%，而 same-data cascade 78.7%，低 5.9 个百分点。[v6 p.16, Table 10]。与此同时 multi-speaker cpBLEU 则 
+39.39 vs 31.97，翻译更好。两种结果完全可以同时成立，但它们表达的是不同机制：MIST 在重叠语音“辨认有几人”
+方面不一定领先，即使它在生成的归属文本质量上更有优势。
+严苛 reviewer 会问：将总体 speaker-count 的微弱领先用于支撑 “finds the right number of speakers more often”
+会不会掩盖最困难子集的下降？在 En→Zh 的高重叠区是 under-count 、over-count 、短 backchannel 丢失还是
+threshold/time-stamp 的 DER 惩罚造成？
+建议：主文同时列 single/multi 各自 speaker-count；报告以 utterance duration/overlap duration 分层的 missing-
+second-speaker recall；把 “better on overall windows” 改成精确措辞；把 Table 10 由附录提至主文或至少主动讨
+论。
+M13 [P1 / 已确认 + 证据缺失] 首次 speaker voice prompt 的因果可得性与人类可辨认性没有闭环
+证据：Eq.(17) 使用 solo frames 且至少 0.4s、最多 8s；若 slot 从未 solo，则改用自身 segments [v6 p.5, L383–405]。
+v6 增加 WavLM 与 TitaNet 双验证器的文本描述，但 Table 3 仍只有一列 SIM/WavLM 与 V-conf  [p.7 L602–607；p.9
+Table 3]。没有人类辨认或 MOS。Zh→En MIST offline 的 WavLM SIM 0.69 低于 cascade 0.73，V-conf 60.2% 高于 
+47.2%；作者自己仅为 En→Zh 声音归属做正面主张。[p.9 L701–716]
+重要的时间问题：如果第一段输入只有一个极短的 overlapping backchannel，first commit  时可能没有足够 solo 语音
+做 prompt；用“自身 segments”又可能含有其他人的声音。某个 speaker 首次出现后是否必须推迟翻译语音，直到有
+一定长度的注册声纹？如果无需等待，默认/跨语种提示音色如何定义？这些不只是 TTS 细节，而是 who said what in
+their own voice  的核心。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+7 / 22
+
+需要：报告每个 speaker 首次承诺前可获得 prompt 的比例、长度分布、混音污染、回退和失败率；WavLM/TitaNet 分
+开的 speaker ID accuracy 与 CI；5–10 秒片段的盲测 ABX/identification、自然度、听懂率以及真实会议完整时间线。限
+制性表达应是“speaker-conditioned synthesis on selected AMI experiments”，而非全方向全场景的声音保真证明。
+M14 [P1 / 潜在风险] 单声道翻译播放队列可能积压、改变谁先说话以及“实时”体验
+证据：Eq.(18) 定义输出片段的开始时间 π_n=max(ζ_n, π_(n−1)+D_(n−1)+g·1[k_n≠k_(n−1)])  [v6 p.5, L400–405]；§3.9 特
+别强调 backlog 跨窗口延续 [p.6, L429–434]。这是新版本值得肯定的意识，但没有任一条实际长会议队列曲线。
+问题：两位参会者同时讲话，目标译声不能在一个声道同时播放；即使所有文本在 2s 左右 commit，只要目标语音总长
+度持续大于源流可用时间，播放积压就会增长。Eq.(18) 可能为了不重叠而把原本重叠的“同意/否定”播成先后发言，改
+变语用含义；短 backchannel 的时间位置与声纹是最脆弱处。
+建议：输出 arrival rate (translated speech seconds / source wall-clock seconds) 、queue utilization、queue length、
+peak backlog、p95 completion lag、会话末尾清空队列所需的额外时间。给实际不少于 15–30 分钟的在线完整会议录
+屏/对齐时间轴；对比允许压缩语速、chunk merging、略微变速、跳过重复与双声道提示等策略。严禁把 text-LAAL≈2s
+直接替代真实听到的话的延迟。
+M15 [P1 / 已确认] 时间戳量化导致零时长输出（2.6%）并被 DER 排除，违反任务的正时长要求
+证据：Eq.(1) 定义 a_n < b_n  [v6 p.2 L160–174]；Eq.(8) 以 80ms bin 分别向下取整并裁切到 [0,250] ，v6 新增声明
+En→Zh MIST 的 2.6% 输出段满足 α_n=β_n ，保留译文但在 DER 中计为零时长 [p.4, L260–276]。
+技术含义：对短 “yes/no/嗯”、重叠与句尾片段，输出并没有真正有效的源时间跨度，却能进入 cpBLEU 的翻译文本。
+DER 计算忽略这类段的 activity，可能通过 miss/false-alarm 等其他项体现，却不会把“译文时间定位正确”当作成
+功。2.6% 不应该仅作为补注而不修复；该比例是 En→Zh 特定模型输出段，不能自行外推到全部方向或系统。
+可行修复：输出后约束 β≥α+1 （需检查是否引入越界/假增量），或以四舍五入/软边界建模，使每段最短一个 80ms
+bin；报告修复前后 DER、time-F1、onset/offset MAE、短重叠段得分。对于 20s 边界处被裁切产生的零长度也应另列
+比例。
+M16 [P1 / 潜在风险] 在线窗口的起止推断与训练目标的语义切分分布并不一致
+证据：reference windows 由人工 utterance “overlap/touch”形成，超过 20s 的 group 被丢弃且必须通过 MT/TTS 过
+滤 [v6 p.6 L436–459]；在线 §3.9 则用 diarizer >0.5、1s silence 与硬上限 20s 自动分割，不过滤任何语音 [p.5–6,
+L412–420]。训练虽包含 6,988 个 diarizer-defined windows，但数量/质量构造不同 [p.6 L459–461；Appendix A p.12,
+L1012–1020]。
+风险：20s 可将源句在动词/否定/人名处截断；自动窗口在声学静默段结束但句法语义未结束；已有翻译 chunk 仍可能处
+于“还没听到关键源词”的状态。在线系统若每窗重启 Thinker，语言理解上下文随窗口切断，虽然 speaker cache 继续
+运行；这对跨窗指代、笑声/重叠否定和长句有系统性影响。
+必测：按 window ended by 1s silence  与 window forced at 20s  分组的错误，窗口边界前后 2s 的词漏/重复、跨窗指代与
+speaker-change consistency。给在线窗口长度和截断比例，训练、测试同规则的 sensitivity；解释如何处理 T  末读前
+尚未到 deadline 的 chunk，以及延迟检测 close 对“最后一次 read”时间的作用。
+M17 [P1 / 证据缺失] 实时计算负担未知，重算完整声学前缀可能使“low latency”失去意义
+证据：在 Eq.(13) 每次 read 解码直到 <wait> ，§3.7 明确 “encoder is run on the audio prefix itself” [v6 p.5, L334–
+349]；完整会议 speaker cache 贯穿，decoder 则每窗口重启 [p.6 L425–434]。文中只给训练设备（8×H200）、部分
+batch size，文本 LAAL 明确“不含 computation” [p.7 L504–523、p.8 caption]。
+需要区分：理论上避免 LA2 的重复解码与真实运行速度是两回事。每秒对增长的最长 20s 前缀重复做 audio encoding +
+Thinker prefill + greedy decode，计算可能较高；模型是否对既有 acoustic tokens 实施 cache 复用，是否因音频前缀
+编码变化而不得不重新 prefill，论文未明确。声纹提取、Talker 生成首包和输出播放也有显著计算成本。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+8 / 22
+
+补充指标：在明确 GPU 型号和并发量（batch1）下测 time per read 、RTF、first token latency、longest read/p95、
+decoder KV-cache reuse policy、峰值显存和吞吐；真实播放 lag 中计入这些成本并与 streaming cascade/LA2 在同一
+条件比较。单纯“只生成承诺的 token”不足以证明计算更便宜。
+M18 [P1 / 证据缺失] 复杂语音场景的泛化边界和长期身份追踪仍不清楚
+证据：Sortformer 最多 8 slots、约 80ms diarizer frames、K=5 个声学 token 插入一次 speaker token [v6 p.3, L191–
+246]；实验主要来自 AMI IHM-mix 和 AliMeeting 近讲式混音，未测远场；Limitations 亦承认这一点 [p.10 L754–759]。
+问题：工业会议的说话人往往会离席又回来、音色随麦克风切换而变化、多轮连续无独说区域、存在 5–8 个甚至更多
+人；跨会议场景的 diarizer slot 身份漂移未用长时段曲线说明。已有 Table 1 的“meeting-level matching”可检测跨窗
+标签变化，但不能揭示 30/60 分钟内的身份错误时间分布。
+建议：以 5 分钟为 bins 画 speaker slot drift、repeat-appearance accuracy、speaker count/overlap 负载；至少做近
+讲与远场/真实多设备模拟对照、≥5 speakers 的压力测试。明确超过 8 speakers 的预期行为：拒绝、合并还是动态扩
+容。
+M19 [P1 / 证据缺失] 目标译文与声学 source 的对齐近似可能系统性污染同步训练
+公式依据：Eq.(14) 用目标 chunk 的长度比例 φ_j  推断其覆盖源词的位置；En→Zh 使用 source word timing，Zh→En
+则把同样比例线性映射到 utterance 时长；之后再加 ε=1s 得 deadline [v6 p.5, L350–368]。两语言的语序/信息密度不相
+同，短叹词、数字、否定常尤其不均匀。末读 ∪{R}  强制 flush 使一部分 chunk 无法按单独 deadline 判断在线完成性。
+新版本状态：新稿没有提供对齐时间误差或 target coverage 的独立实验；只继续用 AMI En→Zh 的 +9.90（相对 stable-
+prefix）归因于更准确的 deadline。[v6 p.9, L669–675；p.17 Table 15]
+要求：报告 chunk deadline 与人工/可靠词级 alignment 的 MAE/p95，提前承诺需依赖未来词的占比，强制末读 flush
+的 token/语句比例，ε 敏感性，标点和语言对重排的分层分析；给不同 source-to-target reorder 复杂度下的错误。尤其
+需要真实 Mandarin 或强制对齐改善后的 Zh→En 对照，不能用英语源有 alignment 的成功推出通用 read-target 优势。
+M20 [P2 / 概念边界] 新标题更诚实，但“one model / one decoder”的强主张仍须限于文本联合生成
+证据：Fig.1 的修订 caption 已明确 diarizer、encoder、Talker 不受联合翻译损失训练 [v6 p.3 L161–166]。方法真正联
+合生成的是带 speaker/time 的目标文本与 wait，另有冻结 diarizer、声纹片段截取、UniSS 外置语音生成和串行调度。
+新标题避免了 v5 的直接 End-to-End S2ST  定语，这是正面改进。与此同时 Abstract 仍有 “turns one omni-modal
+speech LLM into … interpreter”，Conclusion 仍写 “MIST makes one speech LLM a meeting interpreter”。[p.1
+L009–019；p.9 L736–743]
+建议：方法应明确 end-to-end 指的是“audio+speaker features→speaker-attributed target text/commit 的统一解
+码”，而非单一可联合训练 waveform-to-waveform model；将 speech synthesis/control 单独列为系统模块。对于 G-
+STAR 已提出的 interleaving，创新贡献应聚焦于 translation+timestamps+deadline+speech serving，而不是把
+speaker token fusion 本身表述为首次提出。
+M21 [P2 / 已确认] 表格与摘要关于文本/语音增益容易混淆
+证据：Abstract 说离线在 AMI 优于 cascade by 6.52 and 3.50 ... in text and in speech  [v6 p.1 L020–025]。实际上
+6.52/3.50 是 text cpBLEU（Table 1）；Table 3 里语音 ASR-cpBLEU 对应 offline 增益是 En→Zh 32.69–31.06 =
++1.63，Zh→En 14.44–12.47 = +1.97。[v6 pp.8–9, Tables 1, 3]
+修订方式：抽象层面拆成两个句子，各自给 metric、source dataset、同数据 baseline 和差值；同时指出 “in whose
+voice” 并无普适跨语言验证。简单语言改动能显著避免审稿人怀疑夸大。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+9 / 22
+
+4. 逐公式、接口和评测逻辑核验
+这部分不是宣称已经读取实现代码。它依据 PDF 公式找出必须核验的可执行细节，区别已确认的不一致与潜在实现风
+险。
+位置
+数学/实现含义
+严格 reviewer 的核验点
+状态
+Eq.(1), p.2
+Y={(k_n,a_n,b_n,y_n)} ，a_n<b_n
+是否容许空转写、极短回应、跨
+窗片段、重复 speakers？
+定义清晰；与 Eq.(8) 零时长冲突
+Eq.(2), p.3
+A=Enc(x) ，约 12.5 tokens/s
+80ms 是 token 间隔还是严格因
+果 receptive field？prefix 重编
+码是否产生 token 漂移？
+需实测
+Eq.(3), p.3
+P=Diar(x) ，8 speaker slots
+stream chunk 0.72/0.32/right
+context 与实际 1.04s frame
+finalization 怎么对应？session
+cache 是否仅过去？
+新文字，验证缺席
+Eq.(4), p.3
+后验线性插值到音频 token 中心
+边界处插值是否请求到尚未
+finalized 的下一帧？padding 时
+是否归零？
+需写测试
+Eqs.(5)–(6), p.3
+5-frame conv→MLP，约 6.3M
+projector
+K=5 与 zero-init 效果是否消融？
+overlap posterior 与极短回应是
+否被平滑消去？
+消融缺席
+Eq.(7), pp.3–4
+声学块与 speaker tokens 交错
+Speaker stream 的位置编码是否
+与原模型预训练的 audio
+positions 冲突？增加 20%
+token 的真实推理成本？
+需解释
+Eq.(8), p.4
+<spk><t_start>译文<t_end> ，251
+time tokens
+bin truncation、α=β(2.6%)、合
+法 token 约束和跨窗回填
+存在确定问题
+Eq.(9), p.4
+以整会议参考标签 Hungarian 对
+齐 diarizer slots
+仅用于训练/指标是合理的；测试
+推理不得依赖它；多人>8 的映射
+何如？
+v6 已澄清输入边界
+Eq.(10)–(11), p.4
+加权 CE、LoRA rank32/α64
+speaker/time 权重 2/1.5、
+perturb 0.2 的 ablations 与偏置
+实验未报告
+Eq.(12), p.4
+P^(r)  将尚未结束 lookahead 的
+帧置零
+只做 post-hoc mask 不能替代真
+正 prefix diarizer，需数值一致证
+明
+声称验证却无表
+Eq.(13), p.5
+每次 greedy 继续直到 <wait>/
+<eos> ，不可撤销
+第一次读时 decoder 长度限制？
+空读、格式不合法、后续矛盾
+speaker label 如何纠错？
+需边界策略
+Eqs.(14)–(16), p.5
+源词或时长按目标 chunk 长度比
+例给 deadline
+语序重排误差、ε=1s、末读强制
+flush、未对齐短句
+核心训练偏差风险
+Eq.(17), p.5
+solo>0.5，other slots<0.5，
+≥0.4s 组成 voice prompt
+首次 commitment 之前的
+prompt coverage 和纯净度
+缺实测
+Eq.(18), p.5
+单声道语音播放 max  递推
+同时讲话队列增长、跨窗积压、
+输出时间顺序是否可靠
+缺完整会议音频延迟
+§3.9, pp.5–6
+1s silence/20s 上限的在线窗口
+实时关闭时刻、历史音频环形缓
+存、段落溢出、窗口连续边界
+只有算法草图
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+10 / 22
+
+位置
+数学/实现含义
+严格 reviewer 的核验点
+状态
+Eq.(19), p.13
+meeting-level chrF speaker
+permutation
+对长度悬殊 speakers、未匹配
+slot、跨窗误标偏差的敏感性
+合理主指标之一，但不含时间
+Eq.(20), p.13
+text LAAL 对序列长度作均匀时间
+线近似
+并行 speaker 源与串行目标是否
+满足同一均匀参考时钟？需要
+source-aligned lag
+不能代替听众延迟
+新 tcpBLEU , p.7
+±2s collar 的时间约束译文匹配
+单元匹配歧义、插入/遗漏计分、
+完整会议公式与实现
+指标定义和分数均未提供
+专门提醒：本文的 Eq.(9) 使用参考 speaker labels 来建立训练目标并不是违规；问题在于原论文需要明确区分 training
+oracle label construction、evaluation permutation matching 与 online inference feature. v6 正朝这个方向修订，审
+稿应承认改进，而非错误地指控它把 ground truth 作为测试模型输入。
+5. 逐节、逐图与逐表复核（针对 v6 的 page-accurate 评论）
+5.1 Abstract / Introduction / Related Work（pp.1–2）
+摘要亮点：确实把“说话人身份必须跨时间保持”“与传统级联不同”“commit 时必须先知道 speaker”说清楚
+了；在摘要中承认 AliMeeting 只持平尤其值得赞赏。[p.1 L001–036]
+摘要仍应补边界：把 +6.52/+3.50 text cpBLEU  与 +1.63/+1.97 speech ASR-cpBLEU  分别陈述；不要用 in text and in
+speech  模糊量级。明确 AMI Zh→En 的中文 source 是重配音，不是独立原生 Mandarin meeting。[p.1 L020–033]
+Introduction 的贡献定位：新标题把外部 diarizer/Talker 暴露出来是改进，但正文仍应解释“同一个 decoder 输出
+who/when/what/commit”和“整个 speech system 不是全栈联合训练”的边界。[pp.1–2 L065–108]
+Related Work：作者正确引用 G-STAR 的 interleaving 来源，须在贡献表中用一行明确 G-STAR 已解决 global
+speaker tracking for ASR，本工作检验了 translation+timestamps+commit+voice；最好给直接从 G-STAR 初始
+化/adapter 的可控比较，避免仅列概念。[p.2 L133–152]
+5.2 Figure 1、§3.2–§3.4（p.3, Eqs.(2)–(7)）
+Figure 1：总体链条现在明确显示 encoder、diarizer 为 frozen，speaker projector 与 Thinker LoRA 为
+trainable，UniSS Talker 为单独外置模块；caption 新增梯度范围，是本版最有实质价值的写作改进。[p.3 Fig.1]
+潜在逻辑落差：Figure 1 对“read every Δ / write until wait”的算法看上去端到端，但真实逐 read 音频前缀重
+算、chunk 缓存、speaker projector 插值的可用时间没有 runtime 时序图。
+需要的修订：新增一张 0–5 秒的单窗 timeline，显示 audio frame arrives→diarizer finalized→encoder prefix
+recomputed→Thinker emits speaker/time/text→Talker prompt ready→audio starts 。同时注明 TTS 可以在下一次 read
+前后并发还是串行执行。
+严重文内缺陷：§3.3 的数值因果验证指向 §??, Appendix ?? ，属于提交前必须修的占位引用。[p.3 L215–218]
+5.3 §3.5–§3.6（p.4, Eqs.(8)–(11)）
+改进：主动披露 floor time quantization 产生 2.6% zero-length segments，比原来完全不提更好。[p.4 L260–
+276]
+但未解决：Eq.(1) 明确 a_n<b_n  而输出 token 时间能 α=β ，这不应在“正时长源片段”指标中静默通过。
+参考对齐：Eq.(9) 使用 full meeting reference Hungarian 计算监督 targets 可以接受；需要讲清测试对照的 oracle
+是不可部署上界，与 online features 不应混同。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+11 / 22
+
+未做敏感度：加权损失 speaker2/time1.5、LoRA rank32 和 P-noise p0.2 的效果无法在现有 Table 1 中被单独解
+释。[p.4 L298–316]
+5.4 §3.7（p.4–5, Eqs.(12)–(16)）
+η_R=<eos>  + deadline ∪{R}  显示末读被用来保证所有剩余译文提交；对参考窗口来说 R  是由已知 T  决定。新的
+§3.9 尝试解决 T 来源，但 仍未测量新闭窗机制与旧结果差异。[p.4 L325–333；p.5 L334–382]
+改成 x≤t  音频前缀实时进入 encoder 是正确的因果实现意图；需要运行日志与至少一组数值等价检验，不能只给
+文字。
+学习 deadline 的真实创新应以同训练预算的 prefix-LA2 / stable-prefix/fixed lag 证明；此类分数目前没有完整展
+示。
+Segment serialization 按源 start 排序，deadline 却按 end+ε；重叠 speaker 可能先开始但后结束，是否强制一个
+长 speaker 在 decoder 输出排序中阻塞另一个已准备好的短 backchannel？给出可用的 chunk due ordering 与口
+头短回复实例。
+5.5 §3.8 Voice-prompted speech（p.5, Eqs.(17)–(18)）
+外置 TTS 不等于错误设计：系统工程中单独训练 Talker 是合理做法；需要准确命名贡献。
+最大困难：没有干净声纹 prompt 的新 speaker、0.4s 以内的 backchannel、首段恰逢 overlap 的情形。必须知道
+prompt 何时建立，fallback 的 speaker mismatch 如何量化。
+语音播放：不同说话人串行导致的 backlog 不应只作为一句 scheduling 公式；这可能是整套系统用户体验的瓶颈。
+5.6 新 §3.9 Running on a whole meeting（pp.5–6）
+这节是与 v5 最大的方法差别之一。它使系统具备了无需 reference utterance boundary 的推理规范雏形：diarizer 激
+活开窗、1s silence 或 20s 结束、声音提示因果构造、跨窗保持 speaker slots 与播放 queue。[L406–434]
+但不能把“方法新定义”写成“实验已证明”。请提供 end-of-window 的真实检测时间线、源音频 ring buffer 与
+speaker cache 细节、TTS queue 跨窗的更新算法，尤其是硬切 20s 与最后补 0.3s 的处理；并给真实整会议量化结果。
+若 §3.9 只是 proposed deployment mode，请明确说其未验证；若已经测过，请在 §5 新增整节而非仅在 §4 预告。
+5.7 Experimental Setup（pp.6–7）
+数据披露进步明显：新覆盖率 45.6%/35.6%（英中）与 63.0%（真实 Mandarin）应从文字提升为独立 coverage
+table，并明确“总会议时间、speech 秒数、overlap 秒数、保留 speech 秒数”的分母。[p.6 L436–503]
+基线列举丰富，但无 score：将 training-turn、oracle-turn、contextual turns、post-hoc stream、LA2-on-
+Simul、fixed lag 和 streaming cascade 全部在表格列出效果，至少让主评审能定位最佳非 oracle baseline。[p.7
+L525–566]
+附录与新统计不一致：Bootstrap 1000 次、two-sided、permutation、Holm、pre-registration、LOMO 全部必须
+以同一显著性分析表支持；目前 Appendix F 没跟上。[p.7 L608–617；p.13 Appendix F]
+不应将两个方向当作独立外部验证：它们共享 AMI 原始会议，v6 已正确指出这一点，仍需要在 Discussion 中解释二
+者相互关联。[p.6 L478–480]
+5.8 Table 1（p.8）：最强窗口级文本证据与不充分的比较
+同数据 cascade vs MIST offline：En→Zh 36.29→42.81；Zh→En 22.36→25.86，明确显著，有价值。
+LA2 vs learned wait：En→Zh 31.64→42.63，差距大，但 LA2 没进行 prefix 训练、输出长 1.18×；无法隔离
+policy 贡献。
+Zh→En learned wait 24.30 低于 LA2 24.81，且 2.93>2.50s，应在摘要里单列消极结果而不是把双向混为一谈。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+12 / 22
+
+表中没有 v6 新增的 3 类 cascade、post-hoc、prefix-trained LA2 等任何一行。既然文字已定义，缺表是核心实
+验完整性问题。
+5.9 Table 2（p.9）：最接近真实场景的结果未证明架构改进
+AliMeeting 是 真实中文会话声学，虽 close-mic 混音但比合成中文 AMI 更有外部效度。
+offline cascade 在 cpBLEU 15.25、spk 92.5%、DER 13.1% 都略高/低误差于 offline MIST 14.90、91.9%、
+14.7%。
+simultaneous 的 +0.87 差异不显著、text LAAL 反而晚 0.25s；本表应被主叙述放在“零样本边界”而非应用成功的
+辅助证明。
+新版宣称整会议/不筛选后，真实 Mandarin 的新结果最关键，但完全没给。
+5.10 Table 3（p.9）：只能证明 ASR 转录的译声质量，不足以证明“each in their own voice”
+En→Zh offline cpASR 32.69 vs cascade 31.06，Zh→En 14.44 vs 12.47，语音路径有一定质量增益，但大小不同
+于 text BLEU。
+En→Zh MIST SIM 0.82 与 cascade 0.82 一样；Zh→En MIST SIM 0.69 低于 cascade 0.73；对应 V-conf 更差 
+60.2% vs 47.2%。
+v6 声称增加 TitaNet 第二 verification 模型，但 Table 3 仍只有单一 SIM 列，caption 指向 WavLM；必须报告第二
+模型的分数与计算负例的范围。
+UTMOS 和 ASR 错读率不能代替真实参会者“这是谁的声音/是否可懂”的人评。
+5.11 Table 4 / Table 5（pp.12–13）：数据与训练超参数
+Table 4 的 2,375/3,317/4,243 窗口数据没有显示新披露的 原始 speech coverage、overlap coverage、短
+backchannel coverage。建议在同一张表加列，避免读者把 multi%  误解为持续时间覆盖率。
+同一 16 个 AMI 测试会议承载两语言方向，v6 已写明；不要汇总当作 32 independent meetings 做推断。
+Table 5 提供学习率、LoRA、噪声、train rows 和 8H200，适合复现训练；对推理硬件、峰值显存/latency、
+batch1 仍没有数据。
+5.12 Figure 2 / Table 6（p.14）：延迟质量曲线与 0.5s 自适应
+原始 MIST-Simul 测试在 Δ=0.5s  时 En→Zh cpBLEU=23.31 ，Zh→En 5.89 ，这是严重退化；混合-Δ 训练在 En→Zh 
+42.79 @2.18s  能恢复质量，但不是“实现 0.5s 听众端延迟”。
+En→Zh 在 Δ=2s  的 MIST-Simul 40.66  vs offline+LA2 37.29 ，仅 +3.37，Table 9 meeting p=0.076（旧单侧定
+义），不能声称稳健显著领先。
+Figure 2 横轴画到 20s，绝大多数关键点拥挤在 0–4s；请提供 0–4s 局部放大和 meeting CI，并把 text-LAAL 与
+listener-side completion-lag 分开画。
+Table 6 对 Zh→En Δ=0.5s  说明部分窗口因显存问题降低 batch size，建议描述完整 realtime 实测限制，不能直接
+把离线 batch 解码速度当线上推断性能。
+5.13 Tables 7–8（p.15）：归属与翻译的非平凡解耦
+En→Zh 去 stream 模型 cpBLEU_win=42.32  接近 MIST 42.97 ，但 session-level 分数 21.17 vs 42.81：是跨窗
+identity 的强证据，却不是 interleaving 结构独有贡献的证明。
+Zh→En oracle speaker posterior 使 cpBLEU_sess  从 25.86 到 27.32，证实该方向 diarizer 仍是瓶颈的一部分；
+En→Zh oracle 42.81→42.32 反而略降，需解释 oracle stream 与训练 posterior 分布差异。
+cpchrF_sess 与 cpBLEU_sess 反映不同聚合/惩罚，在论文中应解释为什么 BLEU 的大差值在 chrF 上可能很小，而
+不是只选最有利指标。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+13 / 22
+
+5.14 Table 9（p.15）：显著性表不符合本版新增的统计方法声明
+原 caption 定义的是 1000 bootstrap 的 “first system is not better” 概率，并列 windows/meetings CI/p；没有
+两侧 permutation、Holm-adjusted p、LOMO 或 seed variance。
+部分 p<0.05  对应 95% CI 穿过 0（详见 M05）。这可以来自单侧 p 与双侧 CI 混用，但与 v6 的统一“two-sided”声
+明相冲突。
+若 v6 的 Holm family 包含多项新增比较，不能在不明确比较家族与原始 p 的条件下推断以前星号仍全部成立。请重
+算并更新 Table 1 † 与正文所有 “significant” 文案。
+5.15 Table 10 / Table 12（p.16）：多人场景的困难没有被总分充分呈现
+必须讨论：En→Zh multi-speaker speaker-count accuracy MIST offline 72.8% vs cascade 78.7%，虽然 multi
+cpBLEU 更高；这是一个真正有信息量、同时包含优点与局限的结果。[Table 10]
+MIST-Simul 相比 offline MIST 在多人的 under-count  改善（En→Zh 21.1% vs 25.9%），但 Wrong  10.9%→14.3%，
+Insert  4.2%→5.9%；不能说所有维度都改善。[Table 12]
+Table 12 没纳入 same-data cascade，无法与最强非 oracle baseline 在相同实例级归属误差 taxonomy 下直接比
+较。
+Start error 为预测时间戳对 reference 的误差，不等于目标音频实际开始/听到的延迟；必须改清楚字段名称。
+5.16 Table 11（p.16）、Tables 13–15（p.17）
+Table 11：重新用 diarizer cut 的 871 个窗口验证 offline MIST 43.36 vs cascade 37.53，很有帮助，但 
+871/2,375≈36.7%，且仅 En→Zh、只保留完整 utterances；这仍不同于 unfiltered whole-meeting
+simultaneous。
+Table 13：一个有说服力的 yes  overlap 错分案例，但应扩充为有可复核抽样规则的定量错误标注集，而不是由单
+例主导机制解释。
+Table 14：合成中文源审核删除 19,081/123,353 utterances（约 15.5%），与最困难的短 backchannels 有关；应
+报告原时长与具体 speaker/overlap 分布，不可简单认为过滤不影响难度。
+Table 15：deadline vs stable-prefix 的 En→Zh 42.63 vs 32.73  是重要观察，但本版新增“同窗同读”声称没有体
+现在 Appendix J 的实验定义中；要求清楚区分 full-data 与 matched-data 结果及计算预算。
+6. 次要与工程可复现问题（25 项可执行意见）
+ID
+问题（证据）
+要求的最小改进
+T01
+§??  / Appendix ??  未解析 [p.3 L218; p.6
+L459; p.7 L589]
+重新编译后全文搜索 ?? 、缺失引用和表格占
+位。
+T02
+§3.9 使用 20s 硬切，时间词表也只到 20s
+[p.4 Eq.(8); p.5 §3.9]
+报告跨窗绝对时间 offset、边界强行切句数。
+T03
+参考 speaker→slot 采用全会议 Hungarian
+[p.4 Eq.(9)]
+加注“target construction / evaluation
+only”，并公开 inference trace 验证。
+T04
+一条 decoder 输出按源起点排序，due-time
+可不同 [p.4 Eq.(8); p.5 Eq.(16)]
+分析 overlap 导致的 head-of-line blocking
+与短 backchannel 延误。
+T05
+Speaker posterior 使用阈值 0.5、±frame
+shift/noise [p.3 Eq.(3); p.4 L313–315]
+报告 0.3/0.5/0.7 threshold 灵敏度，尤其低
+音量会议。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+14 / 22
+
+ID
+问题（证据）
+要求的最小改进
+T06
+K=5 acoustic tokens/one speaker token
+[p.3 Eq.(7)]
+做 K=1/2/5/10 与 additive / prefix-only
+fusion 对照。
+T07
+Speaker token loss2、time1.5 [p.4 Eq.(11)]
+加 weighted-loss ablation：归属/翻译/时间
+三指标。
+T08
+LoRA 更新 Q/K/V/O 全 48 层 [p.4 L305–312]
+给 trainable parameter count、每个方向训
+练 token 数和推理消耗。
+T09
+α=β  2.6% 被保留 [p.4 L272–276]
+加最小时长约束并分别评测短段。
+T10
+末读 η_R=eos  的特殊规则 [p.5 Eq.(13)]
+统计末读一次性 flush 的 chunk 和延迟比
+例。
+T11
+1s silence  的闭窗依赖 low-latency diarizer
+[p.5–6 §3.9]
+报告真实 close detection latency，不要用源
+内 silence 开始时刻冒充可知时刻。
+T12
+0.2s pre-pad/0.3s post-pad  可能跨窗重复
+[§3.9]
+说明 overlap chunk dedup 和时间戳绝对定
+位。
+T13
+未明确 decoder KV-cache 是否每 read 可用
+[§3.7]
+给缓存失效/重算策略和 batch1 实际运行时
+间。
+T14
+单通道 TTS 一次仅能播一段 [Eq.(18)]
+给 queue backlog 曲线、spillover 和会议结
+束额外播放时间。
+T15
+首次 voice prompt 可能尚无 0.4s solo [Eq.
+(17)]
+报告 prompt-ready rate 与 fallback 语音混
+叠率。
+T16
+V-conf 与 SIM 是否只统计 multi-speaker
+window？[Table 3]
+明确 negative speaker sampling 单位
+（window/meeting）。
+T17
+新提 TitaNet 但未列独立分数 [p.7 L605–607]
+WavLM/TitaNet per-language 结果和 CI。
+T18
+UTMOS/ASR quality 不能替代人评 [Table 3]
+给听众盲测，尤其 Zh→En voice identity。
+T19
+AliMeeting 的英文参考为 MT，未人工核验
+[p.6 L488–503]
+对随机和困难样本双语审查，给质量/术语统
+计。
+T20
+Overlap 论文任务重心，却只给窗口比例与少
+数错误例 [Table 4/12]
+按实际 overlap ratio 与 duration 报告检测/
+归属/翻译，区分同时讲话对数。
+T21
+Session BLEU 映射使用 chrF，时间信息独立
+[Eq.(19)]
+公开 speaker permutation、partial-map 和
+空句计分代码。
+T22
+新 tcpBLEU  collar=2s [p.7 L579–589]
+证明对 ≤1s backchannel 不过宽；做 collar
+0/0.5/1/2s ablation。
+T23
+单一随机种子与 extra seeds 描述矛盾 [p.7;
+p.10]
+修正 Limitations 并列出所有
+model×seed。
+T24
+Figure 2 x轴画到20s，但数据集中在0–4s
+[p.14]
+提供缩放图、配 meeting CI 和真实音频
+lag。
+T25
+Related Work 涉及其他 multi-talker ASR/
+S2ST，但系统对比只在自建任务内 [p.2]
+给任务差异表；如不可同评，说明为不可比
+而非遗漏。
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+15 / 22
+
+7. TeX 源文件专项审计：这次实际能验证什么？
+7.1 文件范围与是否可重编译
+提供的 gs_v6.tex  是 60 行主入口文件，而不是包含公式/实验正文的自足源码。它使用如下外部依赖：[gs_v6.tex:L33–
+34、L47–58]
+\input{generated/macros}
+\input{generated/macros_v6}
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/method}
+\input{sections/setup}
+\input{sections/results}
+\input{sections/conclusion}
+\bibliography{references}
+\input{sections/appendix}
+本次上传未包含上述 generated/ 、sections/  以及 references.bib  和表格生成脚本。因此，不能基于目前附件验证正文
+.tex  的 \label/\ref  是否写对、对公式逐行审代码、追踪 macro 展开后的表格来源、重复运行 tectonic  或确认作者本
+地源码能否正确编译。应评价为“提供的附件不足以执行源码审计”，而不是无证据地断言“作者的完整项目缺失或代
+码不可复现”。PDF 本身能对实际编译结果进行严格文本核查。
+7.2 v5→v6 主文件的真实 diff
+Title：[L39–40] 从 “End-to-End … Speech-to-Speech Translation of Meetings” 改为 “Diarizer-Conditioned
+… Voice-Prompted Speech”。这是正确且应保留的定位修订。
+新宏文件依赖：[L34] 新增 \input{generated/macros_v6} ；但它的内容没有上传，因此无法核验新数字或 §??  是否从
+生成宏输出。
+字体移植性：[L31] v5 使用固定文件路径加载 DroidSansFallbackFull.ttf ，v6 改为 fontconfig family Droid Sans
+Fallback ，比机器绝对路径更便携；但目标编译环境需安装匹配 family/提供可用替代，建议同时给 font fallback 与
+构建依赖清单。
+构建脚本说明：[L2] 改为 tectonic main.tex  并先后运行 scripts/make_tables.py  与 scripts/make_tables_v6.py ；上传
+文件实际名是 gs_v6.tex 。这不必然表示构建错误（主仓库可能将它命名为 main.tex ），但作者需要给可以复现实验
+表和 PDF 的完整项目结构、命令、依赖版本以及输出核对哈希。
+字号/版式：[L3–23] 使用 \documentclass[11pt]{article} 、\usepackage[review]{acl} 、XeLaTeX 生态的 fontspec；版
+式视觉正常。fontspec  与传统 fontenc/inputenc/times  混用可能影响可移植性，但本次 PDF 已生成，不能直接当作
+已发生的构建故障。
+匿名化：[L42] \author{Anonymous ACL submission} ，符合匿名审稿稿件的形式目标；没有查看其编译环境及隐藏
+metadata 的完整源文件，无法对所有匿名性风险做保证。
+7.3 提交前应自动运行的 TeX / PDF 审计
+对整个项目全文搜索 ?? 、TODO 、TBD 、Appendix ?? 、§?? 、未填充结果宏与重复 \label ；重点处理 PDF p.3
+L218、p.6 L459、p.7 L589。
+编译干净目录两次，检查 undefined references 、missing bibliography entries、overfull boxes 和 PDF 文本抽取后
+的表格数据；生成 PDF 与本次“v6 tables”中的指标保持一致。
+检查新 macros_v6  的所有宏确实在 sections/results  与 Appendix 新结果表里被调用，防止生成了数据却正文仍然包
+含旧版表格。
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+16 / 22
+
+将正文“已训练额外 seeds、已跑整会议”与 results  实际呈现严格一一对应；在 Limitations  中同步修改，不要留
+下显式否定句。
+可能存在的版面合规问题：新稿第 9 页才结束 Conclusion，第 10 页开始 Limitations/References。不同目标 ACL
+会议/track 的主文页数规定不同；应按实际投稿 venue 当年规则核验，不应在未核实规则时认定已超页。
+8. 必要补充实验与重写优先级：按投入产出排序
+P0-A｜交付完整会议总表（最重要，决定是否有真实部署证据）
+数据：AMI 官方 test 16 meetings、AliMeeting 20 meetings 的原始完整音频；可再报告 revoiced Zh→En，但必须与真
+实中文声学分开。系统：MIST offline→online、streaming cascade、turn-trained cascade、LA2 on prefix-trained
+MIST，使用严格一致的 diarizer/lookahead/voice prompt/Talker/硬件条件。主表列：coverage（原始语音）、
+speaker-attributed tcpBLEU 、cpBLEU_sess 、DER、speaker-count、omission/duplicate、text commit lag、audio
+onset/complete lag p50/p90/p95、peak backlog、RTF。全部不使用人工参考边界决策。
+P0-B｜提交 baseline 公平性矩阵（新稿已经提出，必须完成）
+对照
+为何重要
+需要对齐的条件
+Turn-trained cascade
+消除 train-on-window/test-on-turn 失配
+同训练原始会议、同语音总量、相同转写/MT
+目标
+±2s contextual cascade
+隔离“完整上下文可见”收益
+overlap 注入机制及相同 commit/延迟计量
+Oracle-turn cascade
+估计切分/身份误差的上界
+只作 oracle 上界，不与在线模型宣称公平
+Post-hoc relabelling
+证明 interleaving 不只是携带 slot ID
+相同 P、相同 speaker permutation 规则
+LA2 on MIST-Simul checkpoint
+区分 prefix-training 与 wait policy 收益
+同 checkpoint、前缀可见信息、read
+interval
+Fixed lag on MIST-Simul
+检查 learned wait 是否必要
+匹配质量/延迟 Pareto 前沿
+Streaming cascade
+对齐可部署场景
+相同窗口起止、同低延迟 diarizer 和 Talker
+P0-C｜彻底重做统计结果与 seed 报告
+主结果按 meeting 作为 cluster：展示各 meeting 的 per-system 差值点图、cluster bootstrap CI、two-sided paired
+permutation p、Holm-adjusted p、预设 comparison family；重要模型至少 3 seeds 的 mean±SD；对 AliMeeting 持
+平与 En→Zh 主胜利都做 LOMO，提供原始 / 调整后的 p。若新“预注册”其实只是提交前选定检验而没有可核验时间记
+录，保守称 pre-specified comparisons in this version  而不是 pre-registered 。
+P0-D｜严格在线因果与时钟校验
+输出一段单会议真实时间 trace：每次 t_r 、音频前缀采样数、diarizer finalized frames、slot ID、projector token
+count、decoder text chunks、wait/eos 、Talker prompt可用时间、TTS开始/完成时间和播放 queue 变化。验证 per-
+prefix audio/diarizer 的输出独立于后续数据，并报告任何差异。把这一 trace 的聚合数值写进正文或 Appendix，替换 
+§?? 。
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+17 / 22
+
+P1-A｜补声音身份与感知的人评/双 speaker verifier
+至少随机抽样覆盖 2–4 人、短 backchannel、早期第一个 utterance、严重 overlap、无 solo prompt、En→Zh 与
+Zh→En。报告 voice ID（forced choice/ABX）、原声 speaker↔合成 voice 对应、MOS、可懂度、英中跨语种 speaker
+embeddings 的校准；TitaNet 与 WavLM 分开给表。
+P1-B｜补 domain / filter bias / short-overlap 压力测试
+在保留与未保留的原始 speech 上测试是否被识别/归属，按短句、interruption、长段、纯 overlap 的比例和性能报告；
+AliMeeting 至少 63% speech 覆盖与全量结果并列，不要把异质分母下的得分当作可比改进。
+P1-C｜完成 matched-read-target 与 timestamp 修复
+8k-window deadline vs 同 8k stable-prefix、全训练集 deadline 与单独增强对比，匹配 read interval / token
+budgets；将零时长时间片修复后重新评测 DER，做 cpBLEU/tcpBLEU/collar/endpoint 共同分析。
+P2｜无需重新训练的文字/制作修改
+清理 PDF 未解析引用；同步 Limitations、§5 与新增 §3.9；在 Abstract 拆分文本/语音增益，重画 Figure 2 的 0–4s
+轴；让 Table 4 含 speech/overlap coverage；明确单方向与双向共用 AMI meetings；将过度概括“speaker-count
+more often”改为分 single/multi 条件的结果。
+9. 我希望在 rebuttal 中得到的 18 个明确答复
+新 §3.9 在 16 个完整 AMI 与 20 个完整 AliMeeting 上是否真的运行过？若运行了，请给实际完整会议数值；否则
+请解释 §4 新措辞与 Limitations 的冲突。
+当前 PDF 中 §??  与 Appendix ??  所指的确切表/段落是什么？为何没有出现在编译结果？
+新列的 turn-trained/contextual/oracle cascades 的 cpBLEU、tcpBLEU、DER、在线完成 lag 各是多少？尤其最强
+非 oracle baseline 是哪一个？
+Post-hoc relabelling 的 cpBLEU_sess / cpBLEU_win / DER  是多少？与 interleaving 的差异在 multi-speaker windows
+上显著吗？
+MIST-Simul+LA2  和同 checkpoint 的 fixed-lag 模型实际结果是什么？它们是否推翻或显著缩小 +10.99 的解释？
+同 8k windows/read 配置下 deadline vs stable-prefix 的 matched-data 结果是多少？它是否确实对应 Table 15？
+完整会议语音 p50/p90/p95 completion lag 、最坏积压时长、RTF 和 speaker switch 各是多少？目标语音是否在源会
+议结束后还播很久？
+Prefix-only diarizer 与整段 streaming diarizer 对有效帧 posterior 的数值最大差异、slot 分配不一致率和同一
+speaker 再次出现后的缓存漂移率是多少？
+音频 encoder 在不断加长前缀时，已生成 audio embeddings 是否变化？每次 read 是否完整重算、是否有 KV-
+cache，batch1 GPU 上真实耗时多少？
+En→Zh 的 multi-speaker speaker-count 72.8% 为什么低于 cascade 的 78.7%，而总体指标更好？主要错在哪
+个 speaker/overlap 时长区间？
+45.6% En→Zh retained speech / 35.6% retained overlap 的样本是否能代表完整会议？丢弃窗口对 MIST 和级联的
+相对排名会怎样改变？
+2.6% 的 α=β  零时长 segment 中，有多少是短 backchannel，若修正为最短 1 bin，DER 和 tcpBLEU 是否改变？
+首次 commit 前没有 ≥0.4s solo voice prompt 的 speakers 占多少？fallback 是否包含多说话人混音？
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
+10. 
+11. 
+12. 
+13. 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+18 / 22
+
+新提到的 TitaNet 结果在哪张表？与 WavLM 是否一致？Zh→En 的 voice confusion >50% 要怎样理解“in their
+own voice”？
+新的 tcpBLEU 对多段-多 unit 的冲突怎么解决？是否能给算法和 2s collar 敏感性？
+何为 two-sided p？Table 9 的 p caption 明确写 one-sided bootstrap tail，并存在 95% CI 过零而 p<0.05 的行。
+哪套数值是提交版的有效结论？
+声称 En→Zh 又训练两颗 seeds：三个具体 checkpoint 的质量/延迟/失败率、平均和方差分别是多少？Limitations
+为何仍称 single seed？
+下一版的核心贡献应该定义为“更高的完整会议在线可听归属质量”，还是“在有参考窗口时的归属译文质量”？
+请基于实际数据选择一致的主张。
+10. 作者应保留的优点（不能因为严苛审稿而忽视）
+真实任务重要：以“谁说什么，何时说、用谁的声纹输出”定义同步会议翻译，明显超出了传统单说话人 S2ST，尤
+其重叠和 backchannels 的语用意义很强。[§1]
+融合思路合理：让冻结的长期 speaker cache 负责 identity 记忆，而 Thinker 负责短时多说话人翻译，避免 diarizer
+turn 的 hard split 误差；可解释性比简单串联更好。[§3, Fig.1]
+AMI 的对照数字确有意义：在同数据 translator 级联基线上，离线 cpBLEU_sess 的 +6.52/+3.50 有明确得分差，且
+语音 ASR-cpBLEU 同方向上升。[Tables 1,3]
+技术细节相对丰富：token/fusion/weighted loss/soft speaker stream/label mapping/commit supervision 写得
+具体，附录补充错误示例与超参数。[Eqs.(2)–(20)]
+新版标题和限制披露更审慎：承认 speaker interleaving 来自 G-STAR，说明 Talker 独立训练，说明 real Mandarin
+没有优于 cascade；新增覆盖率 45.6%/35.6% 是诚实且有帮助的科学披露。
+新 baseline 设计方向正确：turn-trained、post-hoc、prefix-trained LA2 与 full-meeting lag 正是社区会要求的实
+验；从研究计划看已找到应对上一轮 review 的正确问题，只差实际证据与一致性。
+11. 给 Area Chair 的精简判断与条件式结论
+目前不足以因为 v6 增写了整会议评测段落而提高打分。 原有的窗口级 AMI 数字在方法层面确实有价值，论文无须被批
+为“完全缺乏创新”。但新增的最关键实验（完整会议、可信 realtime listener latency、公平在线基线、跨 seed 统
+计）没有任何可引用的结果表，且 §4/§3.9 和旧 Limitations 直接冲突，§??  明显未定稿。这种结果与声明脱节比单纯
+“还应多测一个数据集”更严重：当前提交的科学主张无法由当前提交的科学证据独立检验。真实 Mandarin 上没有显著
+更好、短重叠样本被严重过滤、En→Zh multi-speaker speaker count 低于 cascade，也都应限制泛化措辞。
+建议模拟结论：Weak Reject（2/5，confidence 4/5）；如果版面限制使整会议结果无法出现，我更倾向于将文章重新
+定位为“speaker-attributed translation in reference-segmented AMI windows”，缩小线上声学结论，而不是继续宣
+称完整会议部署。反过来，若作者补入已完成的新对照表且结果支持当前主张，这些缺口是可以转化为强贡献的。
+14. 
+15. 
+16. 
+17. 
+18. 
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+19 / 22
+
+Appendix A — Ready-to-adapt English ACL/ARR-style review
+Summary
+This submission studies speaker-attributed simultaneous speech-to-speech meeting interpretation. It combines
+frozen Qwen3-Omni acoustic representations with the activity posteriors of a frozen streaming Sortformer, inserts
+learned speaker-activity tokens among acoustic tokens, and trains a unified Thinker decoder to emit speaker-
+attributed, timestamped translations and a wait  token. A separately trained UniSS Talker converts translated
+segments into voice-prompted speech. The paper reports substantial speaker-attributed text translation gains
+over a same-data diarization-then-translation cascade on reference-segmented AMI windows (+6.52 cpBLEU for
+En→Zh and +3.50 for revoiced Zh→En). Its learned commit policy substantially outperforms LA2 applied to the
+offline model on En→Zh, but not Zh→En. On real Mandarin AliMeeting, the offline model does not outperform the
+same-data cascade.
+Strengths
+The problem is timely and practically relevant: an interpreter needs to convey speaker identity, translation
+content, and approximate timing under overlapping speech.
+The division of labor between an external long-term speaker tracker and a speech LLM capable of short-
+window translation is a plausible and interesting system design.
+The format that jointly emits speaker, timestamps, target-language text, and wait  is technically specific and
+potentially useful beyond the present application.
+The same-data cascade comparison, session-level speaker-aware evaluation, and extensive AMI analysis
+provide informative evidence that the approach is effective under the reported reference-window conditions.
+This revision improves the framing by changing the title to “Diarizer-Conditioned” and explicitly describing
+the separate frozen diarizer/encoder and externally trained Talker. It also discloses strong data-selection
+limitations and correctly notes that both AMI directions use the same underlying meetings.
+Major weaknesses
+W1. The new evaluation protocol and the reported results are inconsistent. The revision introduces a whole-
+meeting online-window algorithm (§3.9), complete-meeting tcpBLEU  and listener-side playback lag, stronger
+cascade/online baselines, extra En→Zh seeds, and two-sided permutation/Holm-corrected tests (§4). However,
+none of the new whole-meeting results, new baseline scores, seed summaries, or time-constrained metric scores
+appears in the presented tables. The Limitations section still explicitly states that whole meetings have not been
+evaluated end to end and that listener-side lag is measured within windows. Consequently, the strongest new
+claims cannot be evaluated from the submitted PDF.
+W2. The key comparisons remain confounded. The +10.99 En→Zh simultaneous gain is relative to LA2 on a
+model trained on complete windows, which the paper itself reports as degenerate under partial input. The
+revision now defines LA2 on the prefix-trained model, fixed-lag controls, and a streaming cascade, but provides no
+results. Similarly, a same-data translator that is trained on multi-speaker windows and applied to diarization turns
+is not equivalent to a turn-trained cascade; the newly described turn-trained, contextual, and oracle-turn
+baselines are not scored. The newly described post-hoc relabelling baseline is essential for determining whether
+interleaving is better than supplying the same persistent diarizer identities after decoding, but it is also missing.
+W3. The new statistical claims do not match the appendix. The experimental setup states that p values are two-
+sided and selected tests are Holm-corrected. Appendix F and Table 9 still describe a bootstrap tail probability
+defined as the fraction of resamples in which the first system is not better. Some reported p values below 0.05 are
+accompanied by 95% confidence intervals that include zero, which is consistent with mixing one-sided tail
+1. 
+2. 
+3. 
+4. 
+5. 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+20 / 22
+
+probabilities and two-sided intervals, not with the current uniform two-sided claim. There is no revised
+permutation-test table, adjusted p-value table, leave-one-meeting-out result, or summary of the additional
+training seeds. The paper must specify one coherent inferential procedure and update the numerical results.
+W4. End-to-end streaming validity and audio latency remain unverified in the document. The new causal-
+streaming description is more precise than before, but its claim of a numerical prefix-equivalence check points to
+unresolved placeholders (“§??, Appendix ??”). The whole-meeting algorithm is described without results. Text
+LAAL does not include decoding, TTS, or serial single-channel speech playback. Equation (18) implies that
+overlapping target speech can accumulate as a queue across the meeting. Without complete-session listener-side
+onset/completion-lag distributions, backlog growth, and real-time-factor measurements, the paper cannot
+establish usable low-latency speech-to-speech behavior.
+W5. The evidence is sensitive to filtering and domain shift. The revision discloses that the principal En→Zh
+reference-window test retains only 45.6% of the original speech and 35.6% of overlapped speech, while the
+AliMeeting windows retain 63.0% of speech. This is particularly consequential because short, overlapping back-
+channels are a major error mode. On real Mandarin meetings, MIST does not outperform the same-data cascade
+offline. The revoiced AMI Mandarin input is synthetic and is not independent of the English AMI meetings. These
+limitations substantially constrain the generality of the claims.
+W6. Speaker and voice attribution require more nuanced treatment. In the most relevant En→Zh multi-
+speaker subset, the offline MIST speaker-count accuracy is 72.8%, below the same-data cascade’s 78.7%, despite
+higher cpBLEU. This distinction is not adequately discussed. The revision also reports 2.6% zero-duration
+segments after timestamp quantization, despite the task requiring positive-duration spans. Speech evaluation
+relies on ASR and speaker embeddings, without a listening study; Zh→En voice similarity/confusion are worse
+than the cascade’s. The newly mentioned TitaNet results are absent from the speech table.
+Questions for the authors
+Have the proposed whole-meeting online experiments been run? If yes, where are the text, speech, latency,
+backlog, and error-rate results, and why does the Limitations section still say that they have not been
+evaluated?
+What are the actual scores of the new turn-trained/contextual/oracle cascades, post-hoc relabelling, LA2-on-
+Simul, fixed-lag, and streaming-cascade controls?
+Can the authors provide the claimed numerical causality check, specifying the maximum posterior
+discrepancy and any speaker-slot changes between true-prefix and streaming inference?
+How are the two-sided tests and Holm adjustment computed? Which Table 9 values correspond to
+permutation p values, adjusted p values, and the published confidence intervals?
+What are the three En→Zh seeds’ individual scores, and why does the Limitations section continue to
+describe single-seed training?
+What are the complete-meeting audio completion lag, p95 queue backlog, model/TTS real-time factor, and
+speaker prompt availability at first commitment?
+Why is multi-speaker speaker-count accuracy lower than the cascade on En→Zh, despite a higher speaker-
+attributed BLEU score?
+How are zero-duration timestamp segments, 20-second forced splits, and the new tcpBLEU  reference-unit
+collisions handled?
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+21 / 22
+
+Recommendation
+Weak Reject; confidence 4/5 (simulated). The technical direction and the reported reference-window AMI gains
+are promising, and the revision identifies several important evaluation deficiencies. Nevertheless, the submitted
+PDF contains new proposed evaluation machinery without the corresponding empirical results, several explicit
+contradictions between setup and limitations, and unresolved cross-references. The current evidence does not yet
+support the strongest whole-meeting, causal-real-time, and voice-preservation claims. My assessment would be
+substantially more favorable if the authors supplied the new matched baselines, continuous-meeting results and
+listener-side speech latency, verified the causal implementation, and reconciled the statistical tests.
+Appendix B — 文件和证据完整性清单
+阅读材料：17 页 gstar_v6.pdf （逐页渲染检查正文、Fig.1、Fig.2 与 Tables 1–15）；gs_v6.tex  主入口 60 行；旧
+v5 PDF/TeX 仅用于确认哪些改动属于本次修订。
+非本次完成的任务：未取得 sections/ 、generated/ 、bib、模型 checkpoints、推理代码、音频数据、实验日志或逐
+字翻译参考，故没有重跑系统，也没有复算训练 checkpoint 或 significance p-value。所有差值来自论文可见数
+字的算术核对。
+可信性分级：“已确认” 只指原文有明确的相互矛盾/缺表/数值；“需要验证” 包括是否真正未来泄漏、是否真实
+时间跟不上、是否全部声纹 prompt 被污染等，不能当作作者代码已被证明错误。
+阅读/生成提示：PDF 中的页边 L 号是论文印刷行号，可能与提取文本的字节行号不同；建议在准备 rebuttal 时统一
+按 p. / L. / Table / Eq.  逐条定位。
+最后的原则：严苛审稿应该奖励实质补强、准确识别证据不足，而不是把“没有看到证明”偷换成“已证明系统作
+假”。本报告的最高优先级是让作者把 v6 已新增的实验计划变成可被其他研究者独立阅读、对比和复核的真实实验结
+果。
+• 
+• 
+• 
+• 
+MIST v6 / ACL STRICT REVIEW
+INDEPENDENT TECHNICAL REFEREE REPORT
+Source: gstar_v6.pdf + gs_v6.tex • 2026-10-31
+22 / 22
