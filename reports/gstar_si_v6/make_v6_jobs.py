@@ -279,6 +279,8 @@ def dec2(what):
                                                    + offline("en2zh_CC_seg", "O2N", seg("en2zh", "CC"), "en2zh", 1, ["--zero-sd"])
                                                    + offline("zh2en_CC_seg", "O2N", seg("zh2en", "CC"), "zh2en", 1, ["--zero-sd"]), "e"),
                      2, *M6)
+    elif what == "seeds3":   # small footprint (2 workers per Thinker)
+        j += jobs_of(f"dec2_{what}", "SEED1", online("en2zh_S2dl_seed1_d1", "SEED1", WIN["en2zh"], "en2zh", "wait", 6), 2, *M6)
     elif what == "seeds":
         for k in ("SEED1",):   # prereg_v6 amendment 2: one extra seed
             j += jobs_of(f"dec2_{what}", k, online(f"en2zh_S2dl_{k.lower()}_d1", k, WIN["en2zh"], "en2zh", "wait", 6), 6, *M6)
