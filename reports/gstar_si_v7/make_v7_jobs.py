@@ -59,12 +59,12 @@ def rest_windows(s, sysname, name):
     return str(p), len(rest)
 
 
-def online(jid, name, thinker, win, d, policy, k=0, n=1, extra=""):
+def online(jid, name, thinker, win, d, policy, k=0, n=1, extra="", batch=BATCH, tag=""):
     Path(OUT, name).mkdir(parents=True, exist_ok=True)
     return {"id": jid, "gpus": 2, "mem": SPLIT_MIB, "kind": "decode", "deps": [], "cards": DECODE_LANE,
-            "cmd": f"{PRE}.gstar_si_stream_online_v6s --thinker {T[thinker]} --windows {win} --out {OUT}/{name}/hyp_s{k}.jsonl "
-                   f"--shard {k} --num-shards {n} --policy {policy} --window 1 --post-key lowlat --dir {d} --batch {BATCH} "
-                   f"--max-gib {GIB} {extra}> {OUT}/{name}/infer_s{k}.log 2>&1"}
+            "cmd": f"{PRE}.gstar_si_stream_online_v6s --thinker {T[thinker]} --windows {win} --out {OUT}/{name}/hyp_s{k}{tag}.jsonl "
+                   f"--shard {k} --num-shards {n} --policy {policy} --window 1 --post-key lowlat --dir {d} --batch {batch} "
+                   f"--max-gib {GIB} {extra}> {OUT}/{name}/infer_s{k}{tag}.log 2>&1"}
 
 
 def offline(jid, name, thinker, win, d, k=0, n=1, extra="--zero-sd", deps=()):
@@ -166,6 +166,30 @@ def p6():
              "cmd": f"{py} --limit 96 --out {OUT}/qe/ali_ref_gemba_smoke.jsonl > {OUT}/qe/smoke.log 2>&1"},
             {"id": "qe_all", "gpus": 2, "mem": SPLIT_MIB, "kind": "decode", "deps": ["qe_smoke"], "cards": DECODE_LANE,
              "cmd": f"{py} --out {OUT}/qe/ali_ref_gemba.jsonl > {OUT}/qe/all.log 2>&1"}], {}
+
+
+def p7():
+    """AliMeeting decodes at batch 12 (16:09 UTC: the batch-32 AliMeeting decode reached 71 GB on one card and the
+    watchdog stopped it): the rest of on_ali_S2dl_rest (windows not in hyp_s0.jsonl), and the not-yet-started AliMeeting
+    jobs of p1 / p4 / p5 (cancelled in the queue) re-made with batch 12. Outputs: hyp_s<k>b.jsonl beside the others."""
+    jobs = []
+    d = Path(OUT) / "on_ali_S2dl_rest"
+    done = {json.loads(l)["id"] for l in open(d / "hyp_s0.jsonl") if l.strip().endswith("}")}
+    rest = [l for l in open(d / "todo.windows.jsonl") if json.loads(l)["id"] not in done]
+    with open(d / "todo_b.windows.jsonl", "x") as fh:
+        fh.writelines(rest)
+    jobs.append(online("on_ali_S2dl_rest_b", "on_ali_S2dl_rest", "S2DLZ", str(d / "todo_b.windows.jsonl"), "zh2en", "wait",
+                       batch=12, tag="b"))
+    w = str(Path(OUT) / "on_ali_O2_LA2_rest" / "todo.windows.jsonl")
+    for k in range(2):
+        jobs.append(online(f"on_ali_O2_LA2_rest_{k}b", "on_ali_O2_LA2_rest", "O2", w, "zh2en", "la2", k, 2, batch=12, tag="b"))
+    for k in range(2):
+        j = online(f"ali_S2dlZ_seed2_d1_{k}b", "ali_S2dlZ_seed2_d1", "S2DLZ2", REF["ali"], "zh2en", "wait", k, 2, batch=12, tag="b")
+        j["needs"] = [f"{T['S2DLZ2']}/sd_proj.pt"]
+        jobs.append(j)
+    for k in range(3):
+        jobs.append(online(f"ali_S2dlZ_LA2_d1_{k}b", "ali_S2dlZ_LA2_d1", "S2DLZ", REF["ali"], "zh2en", "la2", k, 3, batch=12, tag="b"))
+    return jobs, {"rest_left": len(rest)}
 
 
 def train(jid, rid, port, env, deps=()):
