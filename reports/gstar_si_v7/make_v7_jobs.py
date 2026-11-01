@@ -158,6 +158,16 @@ def p5():
     return jobs, {}
 
 
+def p6():
+    """AliMeeting reference QE (GEMBA-DA with the original Qwen3-Omni Thinker): a 96-utterance smoke run, then all."""
+    Path(OUT, "qe").mkdir(parents=True, exist_ok=True)
+    py = f"CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. {PYM} reports/gstar_si_v7/qe_gemba.py"
+    return [{"id": "qe_smoke", "gpus": 2, "mem": SPLIT_MIB, "kind": "decode", "deps": [], "cards": DECODE_LANE,
+             "cmd": f"{py} --limit 96 --out {OUT}/qe/ali_ref_gemba_smoke.jsonl > {OUT}/qe/smoke.log 2>&1"},
+            {"id": "qe_all", "gpus": 2, "mem": SPLIT_MIB, "kind": "decode", "deps": ["qe_smoke"], "cards": DECODE_LANE,
+             "cmd": f"{py} --out {OUT}/qe/ali_ref_gemba.jsonl > {OUT}/qe/all.log 2>&1"}], {}
+
+
 def train(jid, rid, port, env, deps=()):
     log = f"logs/multispk/v7/{rid}.log"
     return {"id": jid, "gpus": 4, "mem": 64000, "kind": "train", "deps": list(deps), "cards": TRAIN_LANE,

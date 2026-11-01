@@ -1,0 +1,32 @@
+[
+ {
+  "id": "qe_smoke",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cards": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python reports/gstar_si_v7/qe_gemba.py --limit 96 --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/ali_ref_gemba_smoke.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/smoke.log 2>&1"
+ },
+ {
+  "id": "qe_all",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [
+   "qe_smoke"
+  ],
+  "cards": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python reports/gstar_si_v7/qe_gemba.py --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/ali_ref_gemba.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/all.log 2>&1"
+ }
+]
