@@ -140,6 +140,24 @@ def p4():
     return jobs, {}
 
 
+def p5():
+    """prereg_v7 amendment 2: fixed lag on the 8-meeting En->Zh subset (950 reference windows), then LA2 on the
+    prefix-trained Zh->En model for AliMeeting re-added last (its p4 jobs were cancelled before starting)."""
+    jobs, lst = [], []
+    sub = "data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl"
+    for L in (1, 2):
+        name = f"en2zh_S2dl_lag{L}_sub"
+        for k in range(2):
+            jobs.append(online(f"{name}_{k}", name, "S2DL", sub, "en2zh", "lag", k, 2, f"--lag-ms {1000 * L} "))
+        lst.append(f"{name}:{sub}:lowlat")
+    for k in range(3):
+        jobs.append(online(f"ali_S2dlZ_LA2_d1_late_{k}", "ali_S2dlZ_LA2_d1", "S2DLZ", REF["ali"], "zh2en", "la2", k, 3))
+    keep = [l for l in open("reports/gstar_si_v7/refwin_systems.txt").read().split() if "_lag" not in l]
+    with open("reports/gstar_si_v7/refwin_systems.txt.new", "x") as fh:
+        fh.write("\n".join(keep + lst) + "\n")
+    return jobs, {}
+
+
 def train(jid, rid, port, env, deps=()):
     log = f"logs/multispk/v7/{rid}.log"
     return {"id": jid, "gpus": 4, "mem": 64000, "kind": "train", "deps": list(deps), "cards": TRAIN_LANE,
