@@ -51,6 +51,8 @@ def main() -> None:
     ap.add_argument("--lang", choices=["cmn", "eng"], required=True)
     ap.add_argument("--gap", type=float, default=0.2)
     ap.add_argument("--layout", choices=["single", "per-speaker"], default="single")
+    ap.add_argument("--exclude", default="", help="comma-separated stream ids left out (e.g. a stream another system could not "
+                                                  "synthesise, so that both systems are timed on the same streams)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     out = Path(a.out)
@@ -62,6 +64,8 @@ def main() -> None:
     by_m = defaultdict(list)
     n_res = 0
     for r in map(json.loads, open(Path(a.talker) / "talker/results.jsonl", encoding="utf-8")):
+        if r["id"] in set(filter(None, a.exclude.split(","))):
+            continue
         wid, k = r["id"].rsplit("__S", 1)
         w = W.get(wid)
         if w is None or r.get("error"):
@@ -103,7 +107,7 @@ def main() -> None:
         lags = [b["play_b"] - b["src_b"] for b in bs]
         per_meeting[m] = {"blocks": len(bs), "completion_p50": round(float(np.median(lags)), 3),
                           "backlog_max": round(float(q.max()) if len(q) else 0.0, 2)}
-    res = {"layout": a.layout, "streams": n_res, "blocks": len(comp), "read_ms": a.read_ms, "tok_rate": a.tok_rate,
+    res = {"excluded": a.exclude, "layout": a.layout, "streams": n_res, "blocks": len(comp), "read_ms": a.read_ms, "tok_rate": a.tok_rate,
            "comp_p50": round(wq(comp, wts, 0.5), 3), "comp_p90": round(wq(comp, wts, 0.9), 3),
            "comp_p95": round(wq(comp, wts, 0.95), 3), "comp_mean": round(float(np.average(comp, weights=wts)), 3),
            "onset_p50": round(wq(onset, wts, 0.5), 3), "onset_p90": round(wq(onset, wts, 0.9), 3),
