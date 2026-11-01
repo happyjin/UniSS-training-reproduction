@@ -268,6 +268,17 @@ def dec2(what):
         j += jobs_of(f"dec2_{what}", "ZCHAR", online("dev_zh2en_S2dlchar", "ZCHAR", DEV800, "zh2en", "wait", 4), 4)
         j[-1]["id"] += "dev"
         j += jobs_of(f"dec2_{what}b", "ZCHAR", online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 8), 4)
+    elif what == "zhchar3":   # after the colleague's job grew to 14-45 GB per card: 2 workers per Thinker (~80 GB)
+        j += jobs_of(f"dec2_{what}", "S2DLZ", online("dev_zh2en_S2dl3k", "S2DLZ", DEV800, "zh2en", "wait", 2), 2, *M6)
+        j += jobs_of(f"dec2_{what}d", "ZCHAR", online("dev_zh2en_S2dlchar", "ZCHAR", DEV800, "zh2en", "wait", 2), 2, *M6)
+        j += jobs_of(f"dec2_{what}t", "ZCHAR", online("zh2en_S2dlchar_d1", "ZCHAR", WIN["zh2en"], "zh2en", "wait", 6), 2, *M6)
+    elif what == "casc3":   # dec4d's offline cascades, 2 workers per Thinker
+        seg = lambda dr, c: f"{OUT}/{dr}_{c}-segments/segments.jsonl"  # noqa: E731
+        j += jobs_of(f"dec2_{what}", "O2N", d_runs(offline("en2zh_OC_seg", "O2N", seg("en2zh", "OC"), "en2zh", 1, ["--zero-sd"])
+                                                   + offline("zh2en_OC_seg", "O2N", seg("zh2en", "OC"), "zh2en", 1, ["--zero-sd"])
+                                                   + offline("en2zh_CC_seg", "O2N", seg("en2zh", "CC"), "en2zh", 1, ["--zero-sd"])
+                                                   + offline("zh2en_CC_seg", "O2N", seg("zh2en", "CC"), "zh2en", 1, ["--zero-sd"]), "e"),
+                     2, *M6)
     elif what == "seeds":
         for k in ("SEED1",):   # prereg_v6 amendment 2: one extra seed
             j += jobs_of(f"dec2_{what}", k, online(f"en2zh_S2dl_{k.lower()}_d1", k, WIN["en2zh"], "en2zh", "wait", 6), 6, *M6)

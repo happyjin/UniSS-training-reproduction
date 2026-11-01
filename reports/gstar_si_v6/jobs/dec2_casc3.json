@@ -1,0 +1,18 @@
+[
+ {
+  "id": "dec2_casc3_O2N_0_casc3",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 77000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec2_casc3/O2N_0.json"
+ },
+ {
+  "id": "dec2_casc3_O2N_1_casc3",
+  "gpus": 1,
+  "vllm": false,
+  "deps": [],
+  "mem": 77000,
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged reports/gstar_si_v6/jobs/dec2_casc3/O2N_1.json"
+ }
+]
