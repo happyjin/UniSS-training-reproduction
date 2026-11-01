@@ -14,6 +14,11 @@ with batch 32): a colleague's job holds ~50-55 GB of every card, so a whole copy
        once the model is merged) and the seed trainings (Zh->En 3k recipe seed 20261101, then En->Zh seed 20261102),
        training on the training lane (4 cards, MBS 4, GBS 64)
 
+  p4   reference-window decodes (prereg_v7 §3-§4): the seeds (En->Zh seed 20261101 on the 8 meetings v6 did not decode,
+       seed 20261102, Zh->En and AliMeeting seed 20261101; each starts once its model is merged), LA2 on the prefix-trained
+       models (En->Zh remaining 8 meetings, Zh->En, AliMeeting), the streaming cascade (AMI both directions) and fixed lag
+       (En->Zh L = 1, 2 s; Zh->En L = 2 s). Writes reports/gstar_si_v7/refwin_systems.txt for after_v7.sh
+
     python3 reports/gstar_si_v7/make_v7_jobs.py p1
 """
 import json
@@ -91,6 +96,48 @@ def p1():
             jobs.append(offline(f"{d}_{c}_seg", f"{d}_{c}_seg", "O2N", f"{V6}/{d}_{c}-segments/segments.jsonl", d,
                                 deps=["smoke_v7s"]))
     return jobs, info
+
+
+REF = {"en2zh": f"{D}/e2e_gstar_stream_v1/windows_test_ref.jsonl", "zh2en": f"{D}/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
+       "ali": "data/alimeeting_si_v1/windows_test_ref.jsonl"}
+
+
+def minus(win, done_hyp, name):
+    done = {json.loads(l)["id"] for l in open(done_hyp)}
+    rest = [l for l in open(win) if json.loads(l)["id"] not in done]
+    p = Path(OUT) / name / "todo.windows.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "x") as fh:
+        fh.writelines(rest)
+    return str(p)
+
+
+def p4():
+    jobs, lst = [], []
+    def add(name, th, win, d, policy, n, extra="", needs=None, pk="lowlat"):
+        for k in range(n):
+            j = online(f"{name}_{k}", name, th, win, d, policy, k, n, extra)
+            if needs:
+                j["needs"] = [needs]
+            jobs.append(j)
+        lst.append(f"{OUT}/{name}:{win}:{pk}".replace(f"{OUT}/", "", 1))
+    w = minus(REF["en2zh"], f"{V6}/en2zh_S2dl_seed1_d1/hyp.jsonl", "en2zh_S2dl_seed2_rest")
+    add("en2zh_S2dl_seed2_rest", "S2DL2", w, "en2zh", "wait", 1)
+    add("en2zh_S2dl_seed3_d1", "S2DL3", REF["en2zh"], "en2zh", "wait", 2, needs=f"{T['S2DL3']}/sd_proj.pt")
+    add("zh2en_S2dlZ_seed2_d1", "S2DLZ2", REF["zh2en"], "zh2en", "wait", 2, needs=f"{T['S2DLZ2']}/sd_proj.pt")
+    add("ali_S2dlZ_seed2_d1", "S2DLZ2", REF["ali"], "zh2en", "wait", 2, needs=f"{T['S2DLZ2']}/sd_proj.pt")
+    w = minus(REF["en2zh"], f"{V6}/en2zh_S2dl_LA2_d1/hyp.jsonl", "en2zh_S2dl_LA2_rest")
+    add("en2zh_S2dl_LA2_rest", "S2DL", w, "en2zh", "la2", 2)
+    add("zh2en_S2dlZ_LA2_d1", "S2DLZ", REF["zh2en"], "zh2en", "la2", 3)
+    add("ali_S2dlZ_LA2_d1", "S2DLZ", REF["ali"], "zh2en", "la2", 3)
+    for d in ("en2zh", "zh2en"):
+        add(f"{d}_SC_seg", "O2N", f"{V6}/{d}_SC-segments/segments.jsonl", d, "la2", 2, "--zero-sd ")
+    add("en2zh_S2dl_lag1", "S2DL", REF["en2zh"], "en2zh", "lag", 2, "--lag-ms 1000 ")
+    add("en2zh_S2dl_lag2", "S2DL", REF["en2zh"], "en2zh", "lag", 2, "--lag-ms 2000 ")
+    add("zh2en_S2dlZ_lag2", "S2DLZ", REF["zh2en"], "zh2en", "lag", 3, "--lag-ms 2000 ")
+    with open("reports/gstar_si_v7/refwin_systems.txt", "x") as fh:
+        fh.write("\n".join(x for x in lst if "_SC_seg" not in x) + "\n")
+    return jobs, {}
 
 
 def train(jid, rid, port, env, deps=()):

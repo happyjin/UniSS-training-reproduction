@@ -156,4 +156,36 @@ for x in $(cat reports/gstar_si_v7/refwin_systems.txt 2>/dev/null); do
   n=${x%%:*}; w=${x#*:}; w=${w%%:*}; pk=${x##*:}
   if merge $V7/$n $w; then score $V7/$n $w $pk; else ok=0; fi
 done
+# full test sets for the two systems whose 8-meeting subset v6 decoded
+for x in en2zh_S2dl_seed2:en2zh_S2dl_seed1_d1 en2zh_S2dl_LA2:en2zh_S2dl_LA2_d1; do
+  n=${x%%:*}; o=${x##*:}; FULL=$V7/${n}_full
+  [ -e $V7/${n}_rest/hyp.jsonl ] || { ok=0; continue; }
+  if [ ! -e $FULL/hyp.jsonl ]; then
+    mkdir -p $FULL
+    python3 - $V6/$o/hyp.jsonl $V7/${n}_rest/hyp.jsonl $REF_ENS $FULL/hyp.jsonl <<'PY'
+import json, sys
+a, b, wf, out = sys.argv[1:5]
+rec = {}
+for f in (a, b):
+    for l in open(f, encoding="utf-8"):
+        rec[json.loads(l)["id"]] = l if l.endswith("\n") else l + "\n"
+ids = [json.loads(l)["id"] for l in open(wf, encoding="utf-8")]
+assert all(i in rec for i in ids), sum(i in rec for i in ids)
+with open(out, "x", encoding="utf-8") as fh:
+    fh.writelines(rec[i] for i in ids)
+PY
+  fi
+  score $FULL $REF_ENS lowlat
+done
+# streaming cascade: assemble the turn decodes (--stream keeps commit times), then score
+for dr in en2zh zh2en; do
+  seg=$V6/${dr}_SC-segments/segments.jsonl; out=$V7/${dr}_SC
+  merge $V7/${dr}_SC_seg $seg || { ok=0; continue; }
+  if [ ! -e $out/hyp.jsonl ]; then
+    mkdir -p $out
+    $PY -m $M.gstar_cascade_v6 assemble-v6 --seg $seg --hyp $V7/${dr}_SC_seg/hyp.jsonl --windows $([ $dr = en2zh ] && echo $REF_ENS || echo $REF_ZH) \
+      --dir $dr --stream --out $out/hyp.jsonl > $out/assemble.log 2>&1 && log "$out assembled"
+  fi
+  [ -e $out/hyp.jsonl ] && score $out $([ $dr = en2zh ] && echo $REF_ENS || echo $REF_ZH) lowlat
+done
 [ $ok = 1 ] && touch $F/ALL && log "after_v7: everything present"
