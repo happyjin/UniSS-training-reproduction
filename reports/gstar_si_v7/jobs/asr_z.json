@@ -1,0 +1,38 @@
+[
+ {
+  "id": "on_en2zh_O2_LA2_rest_asr_z",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 24000,
+  "kind": "speech",
+  "deps": [
+   "on_en2zh_O2_LA2_rest_talk0_y",
+   "on_en2zh_O2_LA2_rest_talk1_y",
+   "on_en2zh_O2_LA2_rest_talk2_y",
+   "on_en2zh_O2_LA2_rest_talk3_y",
+   "on_en2zh_O2_LA2_rest_talk4_y",
+   "on_en2zh_O2_LA2_rest_talk5_y",
+   "on_en2zh_O2_LA2_rest_talk6_y",
+   "on_en2zh_O2_LA2_rest_talk7_y"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/asr.log 2>&1"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_asr_z",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 24000,
+  "kind": "speech",
+  "deps": [
+   "on_zh2en_O2_LA2_rest_talk0_y",
+   "on_zh2en_O2_LA2_rest_talk1_y",
+   "on_zh2en_O2_LA2_rest_talk2_y",
+   "on_zh2en_O2_LA2_rest_talk3_y",
+   "on_zh2en_O2_LA2_rest_talk4_y",
+   "on_zh2en_O2_LA2_rest_talk5_y",
+   "on_zh2en_O2_LA2_rest_talk6_y",
+   "on_zh2en_O2_LA2_rest_talk7_y"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/asr.log 2>&1"
+ }
+]
