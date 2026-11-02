@@ -7,11 +7,17 @@ import glob
 import json
 import subprocess
 
-Q = "logs/multispk/v7/queue2"
+Q = "logs/multispk/v7/queue3"   # writes here; reads the job lists of queue2 and queue3
+QS = ["logs/multispk/v7/queue2", "logs/multispk/v7/queue3"]
 F = "logs/multispk/v7/fu/requeued.txt"
-state = json.load(open(f"{Q}/state.json"))
+state = {}
+for q in QS:
+    try:
+        state.update(json.load(open(f"{q}/state.json")))
+    except FileNotFoundError:
+        pass
 jobs = {}
-for f in sorted(glob.glob(f"{Q}/add/*.json")):
+for f in sorted(g for q in QS for g in glob.glob(f"{q}/add/*.json")):
     for j in json.load(open(f)):
         jobs.setdefault(j["id"], j)
 try:

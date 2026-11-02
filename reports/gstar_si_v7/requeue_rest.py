@@ -10,7 +10,8 @@ import json
 import re
 import sys
 
-Q = "logs/multispk/v7/queue2"
+Q = "logs/multispk/v7/queue3"   # writes here; reads the job lists of queue2 and queue3
+QS = ["logs/multispk/v7/queue2", "logs/multispk/v7/queue3"]
 args = sys.argv[1:]
 name = args.pop(0)
 batch = None
@@ -18,7 +19,7 @@ if args and args[0] == "--batch":
     batch = args[1]
     args = args[2:]
 jobs = {}
-for f in sorted(glob.glob(f"{Q}/add/*.json")):
+for f in sorted(g for q in QS for g in glob.glob(f"{q}/add/*.json")):
     for j in json.load(open(f)):
         jobs.setdefault(j["id"], j)
 new = []

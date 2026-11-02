@@ -17,7 +17,7 @@ M=experiments.uniss_qwen3_omni_v1.evaluation
 EV=eval_outputs/uniss_qwen3_omni_v1; V6=$EV/gstar_v6_20261031; SP6=$EV/gstar_v6_speech_20261031
 V7=$EV/gstar_v7_20261101; SP7=$EV/gstar_v7_speech_20261101; SC=$V7/scores; LAT=$V7/latency
 D=data/ami_multispk_si_v1; A=data/alimeeting_si_v1; ON=data/online_v6_20261031
-Q=logs/multispk/v7/queue2/add; F=logs/multispk/v7/fu
+Q=logs/multispk/v7/queue3/add; F=logs/multispk/v7/fu
 mkdir -p $SC $LAT $SP7 $F
 export PYTHONPATH=.
 log() { echo "[$(date -u +%F' '%T) UTC] $*"; }
