@@ -21,8 +21,8 @@ Q=logs/multispk/v7/queue3/add; F=logs/multispk/v7/fu
 mkdir -p $SC $LAT $SP7 $F
 export PYTHONPATH=.
 log() { echo "[$(date -u +%F' '%T) UTC] $*"; }
-# merge(): as after_dec.sh, but over every hyp_*.jsonl (v7's single-card jobs write hyp_p9*m<k>.jsonl), except hyp_asr.jsonl
-eval "$(sed -n '/^merge() {/,/^}/p' reports/gstar_si_v6/after_dec.sh | sed 's/f.startswith("hyp_s")/(f.startswith("hyp_") and f != "hyp_asr.jsonl")/')"
+# merge(): as after_dec.sh, but over every hyp_*.jsonl (v7's single-card jobs write hyp_p9*m<k>.jsonl), except hyp_asr*.jsonl
+eval "$(sed -n '/^merge() {/,/^}/p' reports/gstar_si_v6/after_dec.sh | sed 's/f.startswith("hyp_s")/(f.startswith("hyp_") and not f.startswith("hyp_asr"))/')"
 score() { [ -e $1/score.json ] && return 0; $PY -m $M.gstar_score --windows $2 --hyp $1/hyp.jsonl --post-key $3 ${4:-} --out $1/score.json > $1/score.log 2>&1 && log "$1: $(grep -m1 cpBLEU_session $1/score.json)"; }
 mscore() { [ -e $5 ] && return 0; $PY reports/gstar_si_v6/meeting_score.py --dir $1 --windows $2 --hyp $3 --ref-windows $4 $6 --out $5 > $5.log 2>&1 && log "$5: $(tail -n 1 $5.log | cut -c1-200)"; }
 REF_EN=$D/e2e_gstar_v1/windows_test_ref.jsonl; REF_ENS=$D/e2e_gstar_stream_v1/windows_test_ref.jsonl
@@ -58,8 +58,11 @@ PY
       && command mv -f $F/sp_${st}_${s}.json.part $F/sp_${st}_${s}.json && cp -n $F/sp_${st}_${s}.json reports/gstar_si_v7/jobs/sp_${st}_${s}.json \
       && cp -n $F/sp_${st}_${s}.json $Q/sp_${st}_${s}.json && log "queued speech of on_${st}_${s}_rest"
   fi
-  SR=$SP7/on_${st}_${s}_rest; SF=$SP7/on_${st}_${s}_full
-  [ -e $SR/talker/asr_speech.jsonl ] || { ok=0; continue; }
+  # speech: only once the rest's ASR is complete (its summary exists and every speech-only stream has a transcript);
+  # *_full / hyp_asr.jsonl / sp_on_*_full.json of 2026-11-02 20:09 were built from ASR still running and are superseded by
+  # *_full2 / hyp_asr2.jsonl / sp_on_*_full2.json (kept, not overwritten)
+  SR=$SP7/on_${st}_${s}_rest; SF=$SP7/on_${st}_${s}_full2
+  [ -e $SR/talker/asr_speech.summary.json ] && [ "$(wc -l < $SR/talker/asr_speech.jsonl)" -ge "$(wc -l < $SR/talker/results_speechonly.jsonl)" ] || { ok=0; continue; }
   if [ ! -e $SF/talker/asr_speech.jsonl ]; then
     mkdir -p $SF/talker $SF/talker_in
     python3 - $SP6/on_${st}_$s $SR $SF <<'PY'
@@ -88,8 +91,8 @@ open(f"{out}/DROPPED_ids.txt", "w").write(",".join(sorted(set(drop))))
 print("speech full", out, len(res), len(blk), len(asr), "dropped", drop)
 PY
   fi
-  if [ ! -e $FULL/hyp_asr.jsonl ]; then
-    python3 - $FULL/hyp.jsonl $SF/talker/asr_speech.jsonl $FULL/hyp_asr.jsonl <<'PY'
+  if [ ! -e $FULL/hyp_asr2.jsonl ]; then
+    python3 - $FULL/hyp.jsonl $SF/talker/asr_speech.jsonl $FULL/hyp_asr2.jsonl <<'PY'
 import json, sys
 from collections import defaultdict
 hyp, asr, out = sys.argv[1:4]
@@ -108,14 +111,14 @@ with open(out, "x", encoding="utf-8") as fh:
         fh.write(json.dumps({"id": h["id"], "segments": segs}, ensure_ascii=False) + "\n")
 PY
   fi
-  mscore $st $ON/windows_test_online_${st}.jsonl $FULL/hyp_asr.jsonl $(ref_of $st) $SC/sp_on_${st}_${s}_full.json --online
+  mscore $st $ON/windows_test_online_${st}.jsonl $FULL/hyp_asr2.jsonl $(ref_of $st) $SC/sp_on_${st}_${s}_full2.json --online
   lang=$([ $st = en2zh ] && echo cmn || echo eng)
   v6l=$V6/latency/${st}_${s}.json
   rms=$(python3 -c "import json;print(json.load(open('$v6l'))['read_ms'])"); tok=$(python3 -c "import json;print(json.load(open('$v6l'))['tok_rate'])")
   for lay in single per-speaker; do
     for ex in none dropped; do
       out=$LAT/${st}_${s}_full$([ $lay = per-speaker ] && echo _ps)$([ $ex = dropped ] && echo _ex).json
-      exl=$( [ $ex = dropped ] && cat $SP7/on_${st}_S2dl_full/DROPPED_ids.txt $SP7/on_${st}_O2_LA2_full/DROPPED_ids.txt 2>/dev/null | tr '\n' ',' )
+      exl=$( [ $ex = dropped ] && cat $SP7/on_${st}_S2dl_full*/DROPPED_ids.txt $SP7/on_${st}_O2_LA2_full*/DROPPED_ids.txt 2>/dev/null | tr '\n' ',' )
       [ $ex = dropped ] && [ ! -e $SP7/on_${st}_S2dl_full/DROPPED_ids.txt -o ! -e $SP7/on_${st}_O2_LA2_full/DROPPED_ids.txt ] && continue
       [ -e $out ] || $PY reports/gstar_si_v6/listener_latency.py --windows $ON/windows_test_online_${st}.jsonl \
         --hyp $FULL/hyp.jsonl --talker $SF --read-ms $rms --tok-rate $tok --lang $lang --layout $lay ${exl:+--exclude $exl} \
