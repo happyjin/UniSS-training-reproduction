@@ -42,15 +42,19 @@ if [ ! -e "$STATE/full_done" ]; then
     touch "$STATE/full_done"
 fi
 
-# 2. zip of the tree (same content as the S3 copy), streamed; 512 MiB parts keep 1.9 TB under the 10000-part limit
+# 2. zip of the tree (same content as the S3 copy), streamed and cut into 50 GiB volumes $ZIP.001, .002, ...
+#    (no local copy); restore: cat jasonleeeli_backup.zip.* > jasonleeeli_backup.zip, or open .zip.001 in 7-Zip
 if [ "${SKIP_ZIP:-0}" != 1 ] && [ ! -e "$STATE/zip_done" ]; then
     t0=$(date +%s)
-    log "zip: $SRC -> $ZIP"
+    log "zip: $SRC -> $ZIP.NNN (50 GiB volumes)"
+    export S5 ZIP
     ( cd "$SRC" && nice -n 10 zip -0 -r -q -y - . -x 's3_backup_sync/*' ) \
-        | "$S5" --log error pipe -c 16 -p 512 "$ZIP" > "$STATE/zip_out.txt" 2>&1
+        | split -b 50G -d -a 3 --numeric-suffixes=1 \
+            --filter='"$S5" --log error pipe -c 16 -p 256 "$ZIP.$(echo "$FILE" | sed s/^x//)"' - x \
+        > "$STATE/zip_out.txt" 2>&1
     rc=("${PIPESTATUS[@]}")
-    log "zip: zip rc ${rc[0]}, upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
-    [ "${rc[1]}" -eq 0 ] && touch "$STATE/zip_done"
+    log "zip: zip rc ${rc[0]}, split/upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
+    [ "${rc[0]}" -eq 0 ] && [ "${rc[1]}" -eq 0 ] && touch "$STATE/zip_done"
 fi
 
 # 3. incremental rounds
