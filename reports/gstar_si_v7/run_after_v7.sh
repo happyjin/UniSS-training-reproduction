@@ -7,6 +7,7 @@ F=logs/multispk/v7/fu; mkdir -p $F
 exec 8> $F/after.lock
 flock -n 8 || exit 1
 while [ ! -e $F/ALL ] && [ ! -e $F/STOP ]; do
+  python3 reports/gstar_si_v7/auto_requeue.py >> logs/multispk/v7/after.log 2>&1
   bash reports/gstar_si_v7/after_v7.sh >> logs/multispk/v7/after.log 2>&1
   sleep 300
 done

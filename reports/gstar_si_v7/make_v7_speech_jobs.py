@@ -54,14 +54,14 @@ for s in systems:
                         f"{M}.gstar_talker_v6 prep --hyp {hyp}/hyp.jsonl --windows {win} {prep} {sep} --out {out}/talker_in_all && "
                         f"python3 reports/gstar_si_v7/drop_long_streams.py {out}/talker_in_all {out}/talker_in 400"})
     for k in range(N):
-        jobs.append({"id": f"{name}_talk{k}", "gpus": 1, "vllm": True, "deps": [f"{name}_prep"], "mem": 56000, "kind": "speech",
+        jobs.append({"id": f"{name}_talk{k}", "gpus": 1, "vllm": True, "deps": [f"{name}_prep"], "mem": 24000, "kind": "speech",
                      "cmd": f"CUDA_VISIBLE_DEVICES=$GPU0 {VENV} VLLM_USE_FLASHINFER_SAMPLER=0 "
                             f"VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. "
                             f"OMP_NUM_THREADS=16 {PYV} -m {M}.si_infer --model {T1C} --direction {DIRN[st]} --window 1 "
                             f"--output {out}/talker --text-policy file --blocks-file {out}/talker_in/blocks.jsonl "
                             f"--items-file {out}/talker_in/items.jsonl --speed-policy fixed --history-ban 8 "
-                            f"--max-model-len 32768 --gpu-mem 0.3 --shard {k} --num-shards {N}"})
-    jobs.append({"id": f"{name}_asr", "gpus": 1, "vllm": False, "mem": 22000, "kind": "speech",
+                            f"--max-model-len 32768 --gpu-mem 0.1 --shard {k} --num-shards {N}"})
+    jobs.append({"id": f"{name}_asr", "gpus": 1, "vllm": False, "mem": 12000, "kind": "speech",
                  "deps": [f"{name}_talk{k}" for k in range(N)],
                  "cmd": f"set -e; cat {out}/talker/part_*.jsonl > {out}/talker/results.jsonl; "
                         f"{PYE} scripts/gpu_queue/p80_speechonly.py {out}/talker; "

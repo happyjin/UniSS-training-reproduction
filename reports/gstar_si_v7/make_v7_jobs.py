@@ -192,6 +192,51 @@ def p7():
     return jobs, {"rest_left": len(rest)}
 
 
+def p8():
+    """prereg_v7 amendment 4 (2026-11-02 07:00 UTC): a third user's job holds ~52 GB of every card, leaving ~13-18 GB under
+    the 120 GB rule, so every remaining Thinker decode runs on all eight cards (Thinker split ~9 GiB per card, batch 12),
+    one job at a time, on the windows its system does not have yet (todo_p8.windows.jsonl, output hyp_s8.jsonl).
+    Order: the confirmatory remainders, then the exploratory decodes in prereg order, then the reference QE."""
+    import glob as _g
+    jobs = []
+    def rest(name, win):
+        d = Path(OUT) / name
+        done = set()
+        for f in _g.glob(str(d / "hyp_s*.jsonl")):
+            for l in open(f, encoding="utf-8"):
+                try:
+                    done.add(json.loads(l)["id"])
+                except ValueError:
+                    pass
+        left = [l for l in open(win, encoding="utf-8") if json.loads(l)["id"] not in done]
+        with open(d / "todo_p8.windows.jsonl", "x") as fh:
+            fh.writelines(left)
+        return str(d / "todo_p8.windows.jsonl"), len(left)
+    def j8(name, th, win, d, policy, extra=""):
+        w, n = rest(name, win)
+        return {"id": f"p8_{name}", "gpus": 8, "mem": 11000, "kind": "decode", "deps": [], "left": n,
+                "cmd": f"{PRE}.gstar_si_stream_online_v6s --thinker {T[th]} --windows {w} --out {OUT}/{name}/hyp_s8.jsonl "
+                       f"--shard 0 --num-shards 1 --policy {policy} --window 1 --post-key lowlat --dir {d} --batch 12 "
+                       f"--max-gib 9 {extra}> {OUT}/{name}/infer_s8.log 2>&1"}
+    sub = "data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl"
+    jobs.append(j8("on_ali_S2dl_rest", "S2DLZ", f"{OUT}/on_ali_S2dl_rest/todo.windows.jsonl", "zh2en", "wait"))
+    jobs.append(j8("zh2en_S2dlZ_seed2_d1", "S2DLZ2", REF["zh2en"], "zh2en", "wait"))
+    jobs.append(j8("on_ali_O2_LA2_rest", "O2", f"{OUT}/on_ali_O2_LA2_rest/todo.windows.jsonl", "zh2en", "la2"))
+    jobs.append(j8("en2zh_S2dl_LA2_rest", "S2DL", f"{OUT}/en2zh_S2dl_LA2_rest/todo.windows.jsonl", "en2zh", "la2"))
+    jobs.append(j8("zh2en_S2dlZ_LA2_d1", "S2DLZ", REF["zh2en"], "zh2en", "la2"))
+    for d in ("en2zh", "zh2en"):
+        jobs.append(j8(f"{d}_SC_seg", "O2N", f"{V6}/{d}_SC-segments/segments.jsonl", d, "la2", "--zero-sd "))
+    for L in (1, 2):
+        jobs.append(j8(f"en2zh_S2dl_lag{L}_sub", "S2DL", sub, "en2zh", "lag", f"--lag-ms {1000 * L} "))
+    py = f"CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. {PYM} reports/gstar_si_v7/qe_gemba.py"
+    jobs.append({"id": "p8_qe_all", "gpus": 8, "mem": 11000, "kind": "decode", "deps": [],
+                 "cmd": f"{py} --max-gib 9 --batch 32 --out {OUT}/qe/ali_ref_gemba_p8.jsonl > {OUT}/qe/p8.log 2>&1"})
+    jobs.append(j8("ali_S2dlZ_seed2_d1", "S2DLZ2", REF["ali"], "zh2en", "wait"))
+    jobs.append(j8("ali_S2dlZ_LA2_d1", "S2DLZ", REF["ali"], "zh2en", "la2"))
+    info = {j["id"]: j.pop("left", None) for j in jobs}
+    return jobs, info
+
+
 def train(jid, rid, port, env, deps=()):
     log = f"logs/multispk/v7/{rid}.log"
     return {"id": jid, "gpus": 4, "mem": 64000, "kind": "train", "deps": list(deps), "cards": TRAIN_LANE,
