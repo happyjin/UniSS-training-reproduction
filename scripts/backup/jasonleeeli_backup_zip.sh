@@ -40,12 +40,16 @@ log "volumes: $(cat "$STATE/lists_summary.txt"), $JOBS parallel streams -> $DST/
 one() {
     p=$(basename "$1" .txt)
     [ -e "$STATE/done/$p" ] && return 0
-    t0=$(date +%s)
-    ( cd "$SRC" && nice -n 10 zip -0 -q -y -@ - < "$1" ) \
-        | "$S5" --log error pipe -c 16 -p 256 "$DST/jasonleeeli_backup.$p.zip" > "$STATE/lists/$p.out" 2>&1
-    rc=("${PIPESTATUS[@]}")
-    echo "[$(date -u '+%F %T')] $p: zip rc ${rc[0]}, upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
-    { [ "${rc[0]}" -eq 0 ] || [ "${rc[0]}" -eq 18 ]; } && [ "${rc[1]}" -eq 0 ] && touch "$STATE/done/$p"
+    # store mode (-0) first; zip refuses -0 on a pipe for some inputs (rc 16), then that volume is redone with -1
+    for lvl in 0 1; do
+        [ "$lvl" = 1 ] && [ "${rc[0]}" -ne 16 ] && break
+        t0=$(date +%s)
+        ( cd "$SRC" && nice -n 10 zip -$lvl -q -y -@ - < "$1" ) \
+            | "$S5" --log error pipe -c 16 -p 256 "$DST/jasonleeeli_backup.$p.zip" > "$STATE/lists/$p.out" 2>&1
+        rc=("${PIPESTATUS[@]}")
+        echo "[$(date -u '+%F %T')] $p: zip -$lvl rc ${rc[0]}, upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
+        if { [ "${rc[0]}" -eq 0 ] || [ "${rc[0]}" -eq 18 ]; } && [ "${rc[1]}" -eq 0 ]; then touch "$STATE/done/$p"; break; fi
+    done
 }
 export -f one
 ls "$STATE"/lists/part*.txt | xargs -P "$JOBS" -I{} bash -c 'one "$1"' _ {}
