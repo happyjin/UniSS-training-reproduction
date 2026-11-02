@@ -1,0 +1,32 @@
+[
+ {
+  "id": "train_seed_en3_fresh",
+  "gpus": 4,
+  "mem": 68000,
+  "kind": "train",
+  "deps": [],
+  "cmd": "env CUDA_VISIBLE_DEVICES=$CVD NPROC=4 MBS=4 GBS=64 RUN_ID=thinker_gstar_s2dl_seed20261102r BASE=eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged INIT_MERGED=1 ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_v1/rows_train.jsonl TRAIN_ITERS=3000 TRAIN_SEED=20261102 GSTAR_SEED=20261102 MASTER_PORT=29886 bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar_v7.sh > logs/multispk/v7/thinker_gstar_s2dl_seed20261102r.log 2>&1 && grep -q THINKER_GSTAR_DONE logs/multispk/v7/thinker_gstar_s2dl_seed20261102r.log"
+ },
+ {
+  "id": "en2zh_S2dl_seed3_d1_f0",
+  "gpus": 2,
+  "mem": 50000,
+  "kind": "decode",
+  "deps": [],
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102r/thinker_merged/sd_proj.pt"
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102r/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/hyp_sf0.jsonl --shard 0 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/infer_sf0.log 2>&1"
+ },
+ {
+  "id": "en2zh_S2dl_seed3_d1_f1",
+  "gpus": 2,
+  "mem": 50000,
+  "kind": "decode",
+  "deps": [],
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102r/thinker_merged/sd_proj.pt"
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102r/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/hyp_sf1.jsonl --shard 1 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/infer_sf1.log 2>&1"
+ }
+]
