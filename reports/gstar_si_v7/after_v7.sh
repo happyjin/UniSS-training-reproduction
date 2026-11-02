@@ -21,7 +21,8 @@ Q=logs/multispk/v7/queue3/add; F=logs/multispk/v7/fu
 mkdir -p $SC $LAT $SP7 $F
 export PYTHONPATH=.
 log() { echo "[$(date -u +%F' '%T) UTC] $*"; }
-eval "$(sed -n '/^merge() {/,/^}/p' reports/gstar_si_v6/after_dec.sh)"
+# merge(): as after_dec.sh, but over every hyp_*.jsonl (v7's single-card jobs write hyp_p9*m<k>.jsonl), except hyp_asr.jsonl
+eval "$(sed -n '/^merge() {/,/^}/p' reports/gstar_si_v6/after_dec.sh | sed 's/f.startswith("hyp_s")/(f.startswith("hyp_") and f != "hyp_asr.jsonl")/')"
 score() { [ -e $1/score.json ] && return 0; $PY -m $M.gstar_score --windows $2 --hyp $1/hyp.jsonl --post-key $3 ${4:-} --out $1/score.json > $1/score.log 2>&1 && log "$1: $(grep -m1 cpBLEU_session $1/score.json)"; }
 mscore() { [ -e $5 ] && return 0; $PY reports/gstar_si_v6/meeting_score.py --dir $1 --windows $2 --hyp $3 --ref-windows $4 $6 --out $5 > $5.log 2>&1 && log "$5: $(tail -n 1 $5.log | cut -c1-200)"; }
 REF_EN=$D/e2e_gstar_v1/windows_test_ref.jsonl; REF_ENS=$D/e2e_gstar_stream_v1/windows_test_ref.jsonl
