@@ -25,12 +25,12 @@ exec >> "$STATE/sync.log" 2>&1
 log() { echo "[$(date -u '+%F %T')] $*"; }
 
 # 1. full pass (repeated until it finishes without errors, so a restart resumes it)
-if [ ! -e "$STATE/full_done" ]; then
+if [ ! -e "$STATE/full_ok" ]; then
     touch "$STATE/stamp.full"                       # files written during the full pass go to the first incremental round
     for attempt in 1 2 3; do
         t0=$(date +%s)
         log "full pass attempt $attempt: $SRC -> $DST ($WORKERS workers)"
-        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync --exclude 's3_backup_sync/*' \
+        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync --no-follow-symlinks --exclude 's3_backup_sync/*' \
             "$SRC/" "$DST/" > "$STATE/full_out.txt" 2>&1
         rc=$?
         fails=$(grep -c '^ERROR' "$STATE/full_out.txt")
@@ -39,12 +39,12 @@ if [ ! -e "$STATE/full_done" ]; then
         [ "$rc" -eq 0 ] && [ "$fails" -eq 0 ] && break
     done
     command mv -f "$STATE/stamp.full" "$STATE/stamp"
-    touch "$STATE/full_done"
+    touch "$STATE/full_ok"
 fi
 
 # 2. zip of the tree (same content as the S3 copy), streamed and cut into 50 GiB volumes $ZIP.001, .002, ...
 #    (no local copy); restore: cat jasonleeeli_backup.zip.* > jasonleeeli_backup.zip, or open .zip.001 in 7-Zip
-if [ "${SKIP_ZIP:-0}" != 1 ] && [ ! -e "$STATE/zip_done" ]; then
+if [ "${SKIP_ZIP:-0}" != 1 ] && [ ! -e "$STATE/zip_ok" ]; then
     t0=$(date +%s)
     log "zip: $SRC -> $ZIP.NNN (50 GiB volumes)"
     export S5 ZIP
@@ -54,7 +54,7 @@ if [ "${SKIP_ZIP:-0}" != 1 ] && [ ! -e "$STATE/zip_done" ]; then
         > "$STATE/zip_out.txt" 2>&1
     rc=("${PIPESTATUS[@]}")
     log "zip: zip rc ${rc[0]}, split/upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
-    [ "${rc[0]}" -eq 0 ] && [ "${rc[1]}" -eq 0 ] && touch "$STATE/zip_done"
+    { [ "${rc[0]}" -eq 0 ] || [ "${rc[0]}" -eq 18 ]; } && [ "${rc[1]}" -eq 0 ] && touch "$STATE/zip_ok"
 fi
 
 # 3. incremental rounds
