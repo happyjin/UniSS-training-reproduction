@@ -1,0 +1,44 @@
+[
+ {
+  "id": "p9b_on_ali_O2_LA2_rest",
+  "gpus": 1,
+  "mem": 107000,
+  "kind": "decode",
+  "deps": [],
+  "cards": [
+   0,
+   1,
+   2,
+   6
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged reports/gstar_si_v7/jobs/p9b/on_ali_O2_LA2_rest.json"
+ },
+ {
+  "id": "p9b_zh2en_S2dlZ_LA2_d1",
+  "gpus": 1,
+  "mem": 107000,
+  "kind": "decode",
+  "deps": [],
+  "cards": [
+   0,
+   1,
+   2,
+   6
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged reports/gstar_si_v7/jobs/p9b/zh2en_S2dlZ_LA2_d1.json"
+ },
+ {
+  "id": "p9b_zh2en_SC_seg",
+  "gpus": 1,
+  "mem": 107000,
+  "kind": "decode",
+  "deps": [],
+  "cards": [
+   0,
+   1,
+   2,
+   6
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged reports/gstar_si_v7/jobs/p9b/zh2en_SC_seg.json"
+ }
+]

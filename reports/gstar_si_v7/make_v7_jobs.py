@@ -144,6 +144,11 @@ def p5():
     """prereg_v7 amendment 2: fixed lag on the 8-meeting En->Zh subset (950 reference windows), then LA2 on the
     prefix-trained Zh->En model for AliMeeting re-added last (its p4 jobs were cancelled before starting)."""
     jobs, lst = [], []
+    if which == "p9b":   # the remainders of the five slow two-card decodes stopped at < 10 % (14:10 UTC)
+        jobs = [multi("on_ali_O2_LA2_rest", "O2", f"{OUT}/on_ali_O2_LA2_rest/todo.windows.jsonl", "zh2en", "la2"),
+                multi("zh2en_S2dlZ_LA2_d1", "S2DLZ", REF["zh2en"], "zh2en", "la2"),
+                multi("zh2en_SC_seg", "O2N", f"{V6}/zh2en_SC-segments/segments.jsonl", "zh2en", "la2", ["--zero-sd"])]
+        return jobs, {j["id"]: j.pop("left", None) for j in jobs}
     sub = "data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl"
     for L in (1, 2):
         name = f"en2zh_S2dl_lag{L}_sub"
@@ -243,7 +248,7 @@ def p8b():
     return p8("b", 17000)
 
 
-def p9():
+def p9(which="p9"):
     """prereg_v7 amendment 7 (2026-11-02 14:00 UTC, other users gone): the remaining decodes on ONE card each with one
     Thinker copy shared by W = 5 decode workers (gstar_multi_v6, as v6: ~72 GB + ~7 GB per worker at batch 8), on cards
     0, 1, 2, 6 only, so that cards 3, 4, 5, 7 drain for the seed-3 training. Output hyp_sm<k>.jsonl, windows not yet
@@ -261,27 +266,32 @@ def p9():
                 except ValueError:
                     pass
         left = [l for l in open(win, encoding="utf-8") if json.loads(l)["id"] not in done]
-        with open(d / "todo_p9.windows.jsonl", "x") as fh:
+        with open(d / f"todo_{which}.windows.jsonl", "x") as fh:
             fh.writelines(left)
-        return str(d / "todo_p9.windows.jsonl"), len(left)
+        return str(d / f"todo_{which}.windows.jsonl"), len(left)
     def multi(name, th, win, d, policy, extra=(), needs=None, tpath=None):
         w, n = rest(name, win)
         tp = tpath or T[th]
         runs = [{"module": "gstar_si_stream_online_v6",
-                 "argv": ["--thinker", tp, "--windows", w, "--out", f"{OUT}/{name}/hyp_sm{k}.jsonl", "--shard", str(k),
+                 "argv": ["--thinker", tp, "--windows", w, "--out", f"{OUT}/{name}/hyp_{which}m{k}.jsonl", "--shard", str(k),
                           "--num-shards", str(W), "--policy", policy, "--window", "1", "--post-key", "lowlat", "--dir", d,
                           "--batch", "8"] + list(extra),
-                 "log": f"{OUT}/{name}/infer_sm{k}.log"} for k in range(W)]
-        f = JDIR / "p9" / f"{name}.json"
+                 "log": f"{OUT}/{name}/infer_{which}m{k}.log"} for k in range(W)]
+        f = JDIR / which / f"{name}.json"
         f.parent.mkdir(parents=True, exist_ok=True)
         with open(f, "x") as fh:
             json.dump(runs, fh, indent=1)
-        j = {"id": f"p9_{name}", "gpus": 1, "mem": 72000 + 7000 * W, "kind": "decode", "deps": [], "cards": [0, 1, 2, 6],
+        j = {"id": f"{which}_{name}", "gpus": 1, "mem": 72000 + 7000 * W, "kind": "decode", "deps": [], "cards": [0, 1, 2, 6],
              "left": n, "cmd": f"CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM {PYM} -m "
                                f"experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker {tp} {f}"}
         if needs:
             j["needs"] = [needs]
         return j
+    if which == "p9b":   # the remainders of the five slow two-card decodes stopped at < 10 % (14:10 UTC)
+        jobs = [multi("on_ali_O2_LA2_rest", "O2", f"{OUT}/on_ali_O2_LA2_rest/todo.windows.jsonl", "zh2en", "la2"),
+                multi("zh2en_S2dlZ_LA2_d1", "S2DLZ", REF["zh2en"], "zh2en", "la2"),
+                multi("zh2en_SC_seg", "O2N", f"{V6}/zh2en_SC-segments/segments.jsonl", "zh2en", "la2", ["--zero-sd"])]
+        return jobs, {j["id"]: j.pop("left", None) for j in jobs}
     sub = "data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl"
     for L in (1, 2):
         jobs.append(multi(f"en2zh_S2dl_lag{L}_sub", "S2DL", sub, "en2zh", "lag", ["--lag-ms", str(1000 * L)]))
@@ -296,6 +306,10 @@ def p9():
                  "cmd": f"{py} --max-gib 100 --batch 64 --out {OUT}/qe/ali_ref_gemba_p9.jsonl > {OUT}/qe/p9.log 2>&1"})
     info = {j["id"]: j.pop("left", None) for j in jobs}
     return jobs, info
+
+
+def p9b():
+    return p9("p9b")
 
 
 def train(jid, rid, port, env, deps=()):
