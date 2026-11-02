@@ -91,7 +91,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--until-file", required=True)
     ap.add_argument("--limit-foreign", type=int, default=126000)
-    ap.add_argument("--limit", type=int, default=136000)
+    ap.add_argument("--limit", type=int, default=132000)
     ap.add_argument("--soft", type=int, default=122000)
     ap.add_argument("--hold", type=int, default=2)
     a = ap.parse_args()
