@@ -46,6 +46,7 @@ def main():
     proc = AutoProcessor.from_pretrained(a.model)
     tok = proc.tokenizer
     tok.padding_side = "left"
+    tmpl = json.load(open(Path(a.model) / "chat_template.json"))["chat_template"]   # the tokenizer itself carries none
     mem = {i: f"{a.max_gib}GiB" for i in range(torch.cuda.device_count())}
     mem["cpu"] = "400GiB"
     omni = Qwen3OmniMoeForConditionalGeneration.from_pretrained(a.model, torch_dtype=torch.bfloat16, device_map="auto",
@@ -59,7 +60,7 @@ def main():
         for b0 in range(0, len(items), a.batch):
             bt = items[b0: b0 + a.batch]
             texts = [tok.apply_chat_template([{"role": "user", "content": PROMPT.format(src=s, tgt=t)}], tokenize=False,
-                                             add_generation_prompt=True) for _, s, t in bt]
+                                             add_generation_prompt=True, chat_template=tmpl) for _, s, t in bt]
             enc = tok(texts, return_tensors="pt", padding=True).to(dev)
             gen = thinker.generate(**enc, max_new_tokens=8, do_sample=False)
             for (rid, _, _), g in zip(bt, gen[:, enc["input_ids"].shape[1]:]):

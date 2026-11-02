@@ -1,0 +1,10 @@
+[
+ {
+  "id": "p9e_qe_all",
+  "gpus": 1,
+  "mem": 90000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python reports/gstar_si_v7/qe_gemba.py --max-gib 100 --batch 64 --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/ali_ref_gemba_p9e.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/p9e.log 2>&1"
+ }
+]
