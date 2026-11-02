@@ -1,4 +1,5 @@
-"""Paper v7: every failed decode job of queue2 (stopped by the memory watchdog, or any other failure) whose windows are
+"""Paper v7 (MIST jobs only: ids starting with qabc_ belong to the QABC v11 agent sharing queue3 and are never touched):
+every failed decode job of queue2 (stopped by the memory watchdog, or any other failure) whose windows are
 not all decoded is queued again once, through requeue_rest.py (remaining windows only, batch 16, new output files).
 Run by run_after_v7.sh every round; requeued ids are listed in logs/multispk/v7/fu/requeued.txt. A job is requeued at
 most 3 times along its chain (<id>_r1_r1_r1); after that it is left for a human look.
@@ -24,9 +25,9 @@ try:
     done = set(open(F).read().split())
 except FileNotFoundError:
     done = set()
-todo = [k for k, v in state.items() if v == "fail" and k not in done and jobs.get(k, {}).get("kind") == "decode"
+todo = [k for k, v in state.items() if v == "fail" and k not in done and not k.startswith("qabc_") and jobs.get(k, {}).get("kind") == "decode"
         and "--windows" in jobs[k]["cmd"] and k.count("_r") < 3]
-multi = [k for k, v in state.items() if v == "fail" and k not in done and jobs.get(k, {}).get("kind") == "decode"
+multi = [k for k, v in state.items() if v == "fail" and k not in done and not k.startswith("qabc_") and jobs.get(k, {}).get("kind") == "decode"
          and "gstar_multi_v6" in jobs[k]["cmd"] and k.count("_r") < 3]
 if multi:
     n = len(glob.glob("reports/gstar_si_v7/jobs/auto_rqm*.json"))

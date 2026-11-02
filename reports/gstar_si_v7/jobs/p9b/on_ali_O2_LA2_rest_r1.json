@@ -1,0 +1,80 @@
+[
+ {
+  "module": "gstar_si_stream_online_v6",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/todo_p9b_on_ali_O2_LA2_rest_n_r1.windows.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/hyp_p9b_on_ali_O2_LA2_rest_nr1m0.jsonl",
+   "--shard",
+   "0",
+   "--num-shards",
+   "3",
+   "--policy",
+   "la2",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en",
+   "--batch",
+   "8"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/infer_p9b_on_ali_O2_LA2_rest_nr1m0.log"
+ },
+ {
+  "module": "gstar_si_stream_online_v6",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/todo_p9b_on_ali_O2_LA2_rest_n_r1.windows.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/hyp_p9b_on_ali_O2_LA2_rest_nr1m1.jsonl",
+   "--shard",
+   "1",
+   "--num-shards",
+   "3",
+   "--policy",
+   "la2",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en",
+   "--batch",
+   "8"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/infer_p9b_on_ali_O2_LA2_rest_nr1m1.log"
+ },
+ {
+  "module": "gstar_si_stream_online_v6",
+  "argv": [
+   "--thinker",
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged",
+   "--windows",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/todo_p9b_on_ali_O2_LA2_rest_n_r1.windows.jsonl",
+   "--out",
+   "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/hyp_p9b_on_ali_O2_LA2_rest_nr1m2.jsonl",
+   "--shard",
+   "2",
+   "--num-shards",
+   "3",
+   "--policy",
+   "la2",
+   "--window",
+   "1",
+   "--post-key",
+   "lowlat",
+   "--dir",
+   "zh2en",
+   "--batch",
+   "8"
+  ],
+  "log": "eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/infer_p9b_on_ali_O2_LA2_rest_nr1m2.log"
+ }
+]

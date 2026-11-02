@@ -11,14 +11,14 @@ import os
 import sys
 import time
 
-Q = "logs/multispk/v7/queue2"
+Q = "logs/multispk/v7/queue3"
 name = sys.argv[1]
 state = json.load(open(f"{Q}/state.json"))
 jobs = {}
 for f in sorted(glob.glob(f"{Q}/add/*.json")):
     for j in json.load(open(f)):
         jobs.setdefault(j["id"], j)
-wait = [k for k, v in state.items() if v == "wait" and not k.startswith("train_")]
+wait = [k for k, v in state.items() if v == "wait" and not k.startswith("train_") and not k.startswith("qabc_")]   # QABC v11 jobs are never touched
 with open(f"{Q}/cancel", "a") as fh:
     fh.write("\n".join(wait) + "\n")
 time.sleep(20)   # the queue reads the cancel file every 15 s
