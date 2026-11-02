@@ -43,7 +43,7 @@ DECODE_LANE, TRAIN_LANE = [1, 2, 3, 4], [0, 5, 6, 7]
 PYM = "/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python"
 PRE = f"CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM {PYM} -m experiments.uniss_qwen3_omni_v1.evaluation"
 SPLIT_MIB, BATCH, GIB = 46000, 32, 34
-QADD = Path("logs/multispk/v7/queue2/add")   # queue2 (gpuq7v7b) from 14:26 UTC
+QADD = Path("logs/multispk/v7/queue3/add")   # queue3 from 2026-11-02 13:24 UTC (queue2 from 11-01 14:26)
 JDIR = Path("reports/gstar_si_v7/jobs")
 
 
@@ -241,6 +241,61 @@ def p8b():
     """As p8, declared at 17,000 MiB per card (the measured footprint; at 11,000 the queue placed the first job where it
     took cards to 122-124 GB and the watchdog stopped it, 2026-11-02 07:01 UTC), so a job starts only where it fits."""
     return p8("b", 17000)
+
+
+def p9():
+    """prereg_v7 amendment 7 (2026-11-02 14:00 UTC, other users gone): the remaining decodes on ONE card each with one
+    Thinker copy shared by W = 5 decode workers (gstar_multi_v6, as v6: ~72 GB + ~7 GB per worker at batch 8), on cards
+    0, 1, 2, 6 only, so that cards 3, 4, 5, 7 drain for the seed-3 training. Output hyp_sm<k>.jsonl, windows not yet
+    decoded by the system (todo_p9.windows.jsonl)."""
+    import glob as _g
+    W, jobs = 5, []
+    def rest(name, win):
+        d = Path(OUT) / name
+        d.mkdir(parents=True, exist_ok=True)
+        done = set()
+        for f in _g.glob(str(d / "hyp_s*.jsonl")):
+            for l in open(f, encoding="utf-8"):
+                try:
+                    done.add(json.loads(l)["id"])
+                except ValueError:
+                    pass
+        left = [l for l in open(win, encoding="utf-8") if json.loads(l)["id"] not in done]
+        with open(d / "todo_p9.windows.jsonl", "x") as fh:
+            fh.writelines(left)
+        return str(d / "todo_p9.windows.jsonl"), len(left)
+    def multi(name, th, win, d, policy, extra=(), needs=None, tpath=None):
+        w, n = rest(name, win)
+        tp = tpath or T[th]
+        runs = [{"module": "gstar_si_stream_online_v6",
+                 "argv": ["--thinker", tp, "--windows", w, "--out", f"{OUT}/{name}/hyp_sm{k}.jsonl", "--shard", str(k),
+                          "--num-shards", str(W), "--policy", policy, "--window", "1", "--post-key", "lowlat", "--dir", d,
+                          "--batch", "8"] + list(extra),
+                 "log": f"{OUT}/{name}/infer_sm{k}.log"} for k in range(W)]
+        f = JDIR / "p9" / f"{name}.json"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with open(f, "x") as fh:
+            json.dump(runs, fh, indent=1)
+        j = {"id": f"p9_{name}", "gpus": 1, "mem": 72000 + 7000 * W, "kind": "decode", "deps": [], "cards": [0, 1, 2, 6],
+             "left": n, "cmd": f"CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=.:third_party/Megatron-LM {PYM} -m "
+                               f"experiments.uniss_qwen3_omni_v1.evaluation.gstar_multi_v6 --thinker {tp} {f}"}
+        if needs:
+            j["needs"] = [needs]
+        return j
+    sub = "data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl"
+    for L in (1, 2):
+        jobs.append(multi(f"en2zh_S2dl_lag{L}_sub", "S2DL", sub, "en2zh", "lag", ["--lag-ms", str(1000 * L)]))
+    jobs.append(multi("ali_S2dlZ_seed2_d1", "S2DLZ2", REF["ali"], "zh2en", "wait"))
+    jobs.append(multi("ali_S2dlZ_LA2_d1", "S2DLZ", REF["ali"], "zh2en", "la2"))
+    t3 = f"{EV}/thinker_gstar_s2dl_seed20261102r/thinker_merged"
+    j = multi("en2zh_S2dl_seed3_d1", None, REF["en2zh"], "en2zh", "wait", needs=f"{t3}/sd_proj.pt", tpath=t3)
+    j["cards"] = list(range(8))
+    jobs.append(j)
+    py = f"CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. {PYM} reports/gstar_si_v7/qe_gemba.py"
+    jobs.append({"id": "p9_qe_all", "gpus": 1, "mem": 90000, "kind": "decode", "deps": [], "cards": [0, 1, 2, 6],
+                 "cmd": f"{py} --max-gib 100 --batch 64 --out {OUT}/qe/ali_ref_gemba_p9.jsonl > {OUT}/qe/p9.log 2>&1"})
+    info = {j["id"]: j.pop("left", None) for j in jobs}
+    return jobs, info
 
 
 def train(jid, rid, port, env, deps=()):

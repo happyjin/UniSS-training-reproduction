@@ -51,7 +51,7 @@ PY
   fi
   mscore $st $ON/windows_test_online_${st}.jsonl $FULL/hyp.jsonl $(ref_of $st) $SC/on_${st}_${s}_full.json --online
   # speech of the rest windows: queued once
-  if [ ! -e $Q/sp_${st}_${s}.json ]; then
+  if [ ! -e $Q/sp_${st}_${s}.json ] && [ ! -e logs/multispk/v7/queue2/add/sp_${st}_${s}.json ]; then
     echo "[{\"name\": \"on_${st}_${s}_rest\", \"set\": \"$st\", \"hyp\": \"$R\", \"windows\": \"$R/todo.windows.jsonl\", \"mode\": \"stream\"}]" > $F/sp_${st}_${s}_systems.json
     $PY reports/gstar_si_v7/make_v7_speech_jobs.py $F/sp_${st}_${s}_systems.json > $F/sp_${st}_${s}.json.part \
       && command mv -f $F/sp_${st}_${s}.json.part $F/sp_${st}_${s}.json && cp -n $F/sp_${st}_${s}.json reports/gstar_si_v7/jobs/sp_${st}_${s}.json \
