@@ -30,7 +30,7 @@ if [ ! -e "$STATE/full_ok" ]; then
     for attempt in 1 2 3; do
         t0=$(date +%s)
         log "full pass attempt $attempt: $SRC -> $DST ($WORKERS workers)"
-        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync --no-follow-symlinks --exclude 's3_backup_sync/*' \
+        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync --no-follow-symlinks --exclude 's3_backup_sync/*' --exclude 's3_backup_zip/*' \
             "$SRC/" "$DST/" > "$STATE/full_out.txt" 2>&1
         rc=$?
         fails=$(grep -c '^ERROR' "$STATE/full_out.txt")
@@ -69,7 +69,7 @@ while true; do
     while IFS= read -r -d '' f; do
         case "$f" in *'"'*|*$'\n'*) skipped=$((skipped + 1)); echo "$f" >> "$STATE/unsupported_names.txt"; continue ;; esac
         echo "cp --raw \"$f\" \"$DST/${f#"$SRC"/}\"" >> "$cmds"; n=$((n + 1))
-    done < <(nice -n 10 find "$SRC" -xdev -path "$STATE" -prune -o -type f -newer "$STATE/stamp" -print0 2>/dev/null)
+    done < <(nice -n 10 find "$SRC" -xdev \( -path "$STATE" -o -path "$SRC/s3_backup_zip" \) -prune -o -type f -newer "$STATE/stamp" -print0 2>/dev/null)
     r=0
     while IFS= read -r f; do
         [ -f "$f" ] || continue
