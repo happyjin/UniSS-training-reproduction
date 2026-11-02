@@ -22,7 +22,7 @@ todo = [k for k, v in state.items() if v == "fail" and k not in done and jobs.ge
         and "--windows" in jobs[k]["cmd"] and k.count("_r") < 3]
 if todo:
     n = len(glob.glob("reports/gstar_si_v7/jobs/auto_rq*.json"))
-    r = subprocess.run(["python3", "reports/gstar_si_v7/requeue_rest.py", f"auto_rq{n:03d}", "--batch", "16"] + todo,
+    r = subprocess.run(["python3", "reports/gstar_si_v7/requeue_rest.py", f"auto_rq{n:03d}", "--batch", "8"] + todo,
                        capture_output=True, text=True)
     print(r.stdout, r.stderr)
     if r.returncode == 0:
