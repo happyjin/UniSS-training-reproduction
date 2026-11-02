@@ -1,0 +1,10 @@
+[
+ {
+  "id": "train_seed_en3_resume",
+  "gpus": 4,
+  "mem": 66000,
+  "kind": "train",
+  "deps": [],
+  "cmd": "env CUDA_VISIBLE_DEVICES=$CVD NPROC=4 MBS=4 GBS=64 RUN_ID=thinker_gstar_s2dl_seed20261102 RESUME=1 BASE=eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged INIT_MERGED=1 ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_v1/rows_train.jsonl TRAIN_ITERS=3000 TRAIN_SEED=20261102 GSTAR_SEED=20261102 MASTER_PORT=29884 bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar_v7.sh > logs/multispk/v7/thinker_gstar_s2dl_seed20261102_resume.log 2>&1 && grep -q THINKER_GSTAR_DONE logs/multispk/v7/thinker_gstar_s2dl_seed20261102_resume.log"
+ }
+]

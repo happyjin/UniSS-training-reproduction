@@ -1,0 +1,643 @@
+[
+ {
+  "id": "en2zh_S2dl_seed3_d1_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/hyp_s0.jsonl --shard 0 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/infer_s0.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102/thinker_merged/sd_proj.pt"
+  ]
+ },
+ {
+  "id": "en2zh_S2dl_seed3_d1_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_stream_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/hyp_s1.jsonl --shard 1 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_seed3_d1/infer_s1.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_seed20261102/thinker_merged/sd_proj.pt"
+  ]
+ },
+ {
+  "id": "zh2en_S2dlZ_seed2_d1_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_seed2_d1/hyp_s1.jsonl --shard 1 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_seed2_d1/infer_s1.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged/sd_proj.pt"
+  ]
+ },
+ {
+  "id": "en2zh_S2dl_LA2_rest_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_LA2_rest/todo.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_LA2_rest/hyp_s1.jsonl --shard 1 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_LA2_rest/infer_s1.log 2>&1"
+ },
+ {
+  "id": "zh2en_S2dlZ_LA2_d1_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/hyp_s0.jsonl --shard 0 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/infer_s0.log 2>&1"
+ },
+ {
+  "id": "zh2en_S2dlZ_LA2_d1_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/hyp_s1.jsonl --shard 1 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/infer_s1.log 2>&1"
+ },
+ {
+  "id": "zh2en_S2dlZ_LA2_d1_2_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/hyp_s2.jsonl --shard 2 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_S2dlZ_LA2_d1/infer_s2.log 2>&1"
+ },
+ {
+  "id": "en2zh_SC_seg_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_SC-segments/segments.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_SC_seg/hyp_s0.jsonl --shard 0 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --zero-sd > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_SC_seg/infer_s0.log 2>&1"
+ },
+ {
+  "id": "en2zh_SC_seg_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/en2zh_SC-segments/segments.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_SC_seg/hyp_s1.jsonl --shard 1 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --zero-sd > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_SC_seg/infer_s1.log 2>&1"
+ },
+ {
+  "id": "zh2en_SC_seg_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_SC-segments/segments.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_SC_seg/hyp_s0.jsonl --shard 0 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 --zero-sd > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_SC_seg/infer_s0.log 2>&1"
+ },
+ {
+  "id": "zh2en_SC_seg_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v6_20261031/zh2en_SC-segments/segments.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_SC_seg/hyp_s1.jsonl --shard 1 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 32 --max-gib 34 --zero-sd > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/zh2en_SC_seg/infer_s1.log 2>&1"
+ },
+ {
+  "id": "en2zh_S2dl_lag1_sub_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag1_sub/hyp_s0.jsonl --shard 0 --num-shards 2 --policy lag --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --lag-ms 1000 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag1_sub/infer_s0.log 2>&1"
+ },
+ {
+  "id": "en2zh_S2dl_lag1_sub_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag1_sub/hyp_s1.jsonl --shard 1 --num-shards 2 --policy lag --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --lag-ms 1000 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag1_sub/infer_s1.log 2>&1"
+ },
+ {
+  "id": "en2zh_S2dl_lag2_sub_0_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag2_sub/hyp_s0.jsonl --shard 0 --num-shards 2 --policy lag --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --lag-ms 2000 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag2_sub/infer_s0.log 2>&1"
+ },
+ {
+  "id": "en2zh_S2dl_lag2_sub_1_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows data/online_v6_20261031/windows_test_ref_en2zh_stream_sub.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag2_sub/hyp_s1.jsonl --shard 1 --num-shards 2 --policy lag --window 1 --post-key lowlat --dir en2zh --batch 32 --max-gib 34 --lag-ms 2000 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/en2zh_S2dl_lag2_sub/infer_s1.log 2>&1"
+ },
+ {
+  "id": "qe_smoke_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python reports/gstar_si_v7/qe_gemba.py --limit 96 --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/ali_ref_gemba_smoke.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/smoke.log 2>&1"
+ },
+ {
+  "id": "qe_all_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [
+   "qe_smoke_x"
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python reports/gstar_si_v7/qe_gemba.py --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/ali_ref_gemba.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/qe/all.log 2>&1"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk0_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 0 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk1_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 1 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk2_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 2 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk3_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 3 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk4_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 4 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk5_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 5 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk6_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 6 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_talk7_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 7 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_S2dl_rest_asr_x",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 22000,
+  "kind": "speech",
+  "deps": [
+   "on_en2zh_S2dl_rest_talk0_x",
+   "on_en2zh_S2dl_rest_talk1_x",
+   "on_en2zh_S2dl_rest_talk2_x",
+   "on_en2zh_S2dl_rest_talk3_x",
+   "on_en2zh_S2dl_rest_talk4_x",
+   "on_en2zh_S2dl_rest_talk5_x",
+   "on_en2zh_S2dl_rest_talk6_x",
+   "on_en2zh_S2dl_rest_talk7_x"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/asr.log 2>&1"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk0_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 0 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk1_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 1 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk2_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 2 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk3_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 3 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk4_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 4 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk5_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 5 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk6_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 6 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_talk7_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_S2dl_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 7 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_S2dl_rest_asr_x",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 22000,
+  "kind": "speech",
+  "deps": [
+   "on_zh2en_S2dl_rest_talk0_x",
+   "on_zh2en_S2dl_rest_talk1_x",
+   "on_zh2en_S2dl_rest_talk2_x",
+   "on_zh2en_S2dl_rest_talk3_x",
+   "on_zh2en_S2dl_rest_talk4_x",
+   "on_zh2en_S2dl_rest_talk5_x",
+   "on_zh2en_S2dl_rest_talk6_x",
+   "on_zh2en_S2dl_rest_talk7_x"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/asr.log 2>&1"
+ },
+ {
+  "id": "on_ali_S2dl_rest_b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_S2dl_rest/todo_b.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_S2dl_rest/hyp_s0b.jsonl --shard 0 --num-shards 1 --policy wait --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_S2dl_rest/infer_s0b.log 2>&1"
+ },
+ {
+  "id": "on_ali_O2_LA2_rest_0b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/todo.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/hyp_s0b.jsonl --shard 0 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/infer_s0b.log 2>&1"
+ },
+ {
+  "id": "on_ali_O2_LA2_rest_1b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/todo.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/hyp_s1b.jsonl --shard 1 --num-shards 2 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_ali_O2_LA2_rest/infer_s1b.log 2>&1"
+ },
+ {
+  "id": "ali_S2dlZ_seed2_d1_0b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged --windows data/alimeeting_si_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_seed2_d1/hyp_s0b.jsonl --shard 0 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_seed2_d1/infer_s0b.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged/sd_proj.pt"
+  ]
+ },
+ {
+  "id": "ali_S2dlZ_seed2_d1_1b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged --windows data/alimeeting_si_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_seed2_d1/hyp_s1b.jsonl --shard 1 --num-shards 2 --policy wait --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_seed2_d1/infer_s1b.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_seed20261101/thinker_merged/sd_proj.pt"
+  ]
+ },
+ {
+  "id": "ali_S2dlZ_LA2_d1_0b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/alimeeting_si_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/hyp_s0b.jsonl --shard 0 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/infer_s0b.log 2>&1"
+ },
+ {
+  "id": "ali_S2dlZ_LA2_d1_1b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/alimeeting_si_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/hyp_s1b.jsonl --shard 1 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/infer_s1b.log 2>&1"
+ },
+ {
+  "id": "ali_S2dlZ_LA2_d1_2b_x",
+  "gpus": 2,
+  "mem": 46000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows data/alimeeting_si_v1/windows_test_ref.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/hyp_s2b.jsonl --shard 2 --num-shards 3 --policy la2 --window 1 --post-key lowlat --dir zh2en --batch 12 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/ali_S2dlZ_LA2_d1/infer_s2b.log 2>&1"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk0_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 0 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk1_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 1 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk2_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 2 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk3_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 3 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk4_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 4 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk5_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 5 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk6_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 6 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_talk7_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_en2zh_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction en2zh --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 7 --num-shards 8"
+ },
+ {
+  "id": "on_en2zh_O2_LA2_rest_asr_x",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 22000,
+  "kind": "speech",
+  "deps": [
+   "on_en2zh_O2_LA2_rest_talk0_x",
+   "on_en2zh_O2_LA2_rest_talk1_x",
+   "on_en2zh_O2_LA2_rest_talk2_x",
+   "on_en2zh_O2_LA2_rest_talk3_x",
+   "on_en2zh_O2_LA2_rest_talk4_x",
+   "on_en2zh_O2_LA2_rest_talk5_x",
+   "on_en2zh_O2_LA2_rest_talk6_x",
+   "on_en2zh_O2_LA2_rest_talk7_x"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_O2_LA2_rest/asr.log 2>&1"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk0_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 0 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk1_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 1 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk2_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 2 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk3_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 3 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk4_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 4 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk5_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 5 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk6_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 6 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_talk7_x",
+  "gpus": 1,
+  "vllm": true,
+  "deps": [
+   "on_zh2en_O2_LA2_rest_prep"
+  ],
+  "mem": 56000,
+  "kind": "speech",
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. OMP_NUM_THREADS=16 /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.si_infer --model eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss --direction zh2en --window 1 --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker --text-policy file --blocks-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/blocks.jsonl --items-file eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker_in/items.jsonl --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.3 --shard 7 --num-shards 8"
+ },
+ {
+  "id": "on_zh2en_O2_LA2_rest_asr_x",
+  "gpus": 1,
+  "vllm": false,
+  "mem": 22000,
+  "kind": "speech",
+  "deps": [
+   "on_zh2en_O2_LA2_rest_talk0_x",
+   "on_zh2en_O2_LA2_rest_talk1_x",
+   "on_zh2en_O2_LA2_rest_talk2_x",
+   "on_zh2en_O2_LA2_rest_talk3_x",
+   "on_zh2en_O2_LA2_rest_talk4_x",
+   "on_zh2en_O2_LA2_rest_talk5_x",
+   "on_zh2en_O2_LA2_rest_talk6_x",
+   "on_zh2en_O2_LA2_rest_talk7_x"
+  ],
+  "cmd": "set -e; cat eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/part_*.jsonl > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/results.jsonl; /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python scripts/gpu_queue/p80_speechonly.py eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker; CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_O2_LA2_rest/asr.log 2>&1"
+ }
+]

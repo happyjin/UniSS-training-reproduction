@@ -52,7 +52,7 @@ CMD=("${ENV_ROOT}/bin/python" -m torch.distributed.run
   --dataloader-type single --no-data-sharding --num-workers "${NUM_WORKERS:-8}"
   --weight-decay 0.0 --adam-beta1 0.9 --adam-beta2 0.95 --clip-grad 1.0
   --bf16 --no-create-attention-mask-in-dataloader --no-gradient-accumulation-fusion
-  ${RESUME:+--load "${SAVE_DIR}"}
+  ${RESUME:+--load "${SAVE_DIR}" --no-load-optim --no-load-rng}
   --save "${SAVE_DIR}" --save-interval "${SAVE_INTERVAL:-250}" --no-save-optim --no-save-rng
   --eval-iters 0 --eval-interval "${TRAIN_ITERS}"
   --log-interval "${LOG_INTERVAL:-10}"
