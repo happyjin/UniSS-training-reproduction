@@ -2,7 +2,7 @@
 # Parallel zip of /opt/dlami/nvme/jasonleeeli into standalone ~50 GiB volumes on S3 (store mode, zip64, streamed,
 # no local copy). Files are listed in path order and packed greedily into volumes; a single file larger than the
 # limit gets a volume of its own. Each volume is a complete zip: unzip all of them into one folder to restore the
-# tree. Symlinks are stored as links (-y). Never deletes anything on S3; a finished volume is not redone on restart.
+# tree; symlinks are listed in each volume's .symlinks.tsv (path<TAB>target), restore with ln -s. Never deletes anything on S3; a finished volume is not redone on restart.
 #
 #   setsid nohup bash scripts/backup/jasonleeeli_backup_zip.sh > /dev/null 2>&1 &
 #   state in /opt/dlami/nvme/jasonleeeli/s3_backup_zip; JOBS parallel streams (default 12)
@@ -40,16 +40,19 @@ log "volumes: $(cat "$STATE/lists_summary.txt"), $JOBS parallel streams -> $DST/
 one() {
     p=$(basename "$1" .txt)
     [ -e "$STATE/done/$p" ] && return 0
-    # store mode (-0) first; zip refuses -0 on a pipe for some inputs (rc 16), then that volume is redone with -1
-    for lvl in 0 1; do
-        [ "$lvl" = 1 ] && [ "${rc[0]}" -ne 16 ] && break
-        t0=$(date +%s)
-        ( cd "$SRC" && nice -n 10 zip -$lvl -q -y -@ - < "$1" ) \
-            | "$S5" --log error pipe -c 16 -p 256 "$DST/jasonleeeli_backup.$p.zip" > "$STATE/lists/$p.out" 2>&1
-        rc=("${PIPESTATUS[@]}")
-        echo "[$(date -u '+%F %T')] $p: zip -$lvl rc ${rc[0]}, upload rc ${rc[1]}, $(( $(date +%s) - t0 ))s"
-        if { [ "${rc[0]}" -eq 0 ] || [ "${rc[0]}" -eq 18 ]; } && [ "${rc[1]}" -eq 0 ]; then touch "$STATE/done/$p"; break; fi
-    done
+    # zip 3.0 cannot write a symlink (-y) to a pipe, so links go to $p.symlinks.tsv (path<TAB>target) next to the zip
+    ( cd "$SRC" && while IFS= read -r f; do
+          if [ -L "$f" ]; then printf '%s\t%s\n' "$f" "$(readlink "$f")" >&3; else printf '%s\n' "$f"; fi
+      done < "$1" > "$STATE/lists/$p.files" 3> "$STATE/lists/$p.symlinks.tsv" )
+    t0=$(date +%s)
+    ( cd "$SRC" && nice -n 10 zip -0 -q -@ - < "$STATE/lists/$p.files" ) \
+        | "$S5" --log error pipe -c 16 -p 256 "$DST/jasonleeeli_backup.$p.zip" > "$STATE/lists/$p.out" 2>&1
+    rc=("${PIPESTATUS[@]}")
+    lrc=0
+    [ -s "$STATE/lists/$p.symlinks.tsv" ] && { "$S5" --log error cp "$STATE/lists/$p.symlinks.tsv" \
+        "$DST/jasonleeeli_backup.$p.symlinks.tsv" >> "$STATE/lists/$p.out" 2>&1; lrc=$?; }
+    echo "[$(date -u '+%F %T')] $p: zip rc ${rc[0]}, upload rc ${rc[1]}, symlinks $(wc -l < "$STATE/lists/$p.symlinks.tsv") rc $lrc, $(( $(date +%s) - t0 ))s"
+    { [ "${rc[0]}" -eq 0 ] || [ "${rc[0]}" -eq 18 ]; } && [ "${rc[1]}" -eq 0 ] && [ "$lrc" -eq 0 ] && touch "$STATE/done/$p"
 }
 export -f one
 ls "$STATE"/lists/part*.txt | xargs -P "$JOBS" -I{} bash -c 'one "$1"' _ {}
