@@ -26,6 +26,15 @@ except FileNotFoundError:
     done = set()
 todo = [k for k, v in state.items() if v == "fail" and k not in done and jobs.get(k, {}).get("kind") == "decode"
         and "--windows" in jobs[k]["cmd"] and k.count("_r") < 3]
+multi = [k for k, v in state.items() if v == "fail" and k not in done and jobs.get(k, {}).get("kind") == "decode"
+         and "gstar_multi_v6" in jobs[k]["cmd"] and k.count("_r") < 3]
+if multi:
+    n = len(glob.glob("reports/gstar_si_v7/jobs/auto_rqm*.json"))
+    r = subprocess.run(["python3", "reports/gstar_si_v7/requeue_multi.py", f"auto_rqm{n:03d}"] + multi, capture_output=True, text=True)
+    print(r.stdout, r.stderr)
+    if r.returncode == 0:
+        with open(F, "a") as fh:
+            fh.write("\n".join(multi) + "\n")
 if todo:
     n = len(glob.glob("reports/gstar_si_v7/jobs/auto_rq*.json"))
     r = subprocess.run(["python3", "reports/gstar_si_v7/requeue_rest.py", f"auto_rq{n:03d}", "--batch", "8"] + todo,
