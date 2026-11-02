@@ -1,0 +1,10 @@
+[
+ {
+  "id": "on_zh2en_S2dl_rest_asr_resume",
+  "gpus": 1,
+  "mem": 24000,
+  "kind": "speech",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m evaluation.asr_transcribe --input eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/results_speechonly.jsonl --output eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/talker/asr_speech.jsonl --device cuda:0 --batch-size 8 --resume > eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_zh2en_S2dl_rest/asr_resume.log 2>&1"
+ }
+]

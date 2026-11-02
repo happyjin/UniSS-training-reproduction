@@ -61,7 +61,7 @@ for s in systems:
                             f"--output {out}/talker --text-policy file --blocks-file {out}/talker_in/blocks.jsonl "
                             f"--items-file {out}/talker_in/items.jsonl --speed-policy fixed --history-ban 8 "
                             f"--max-model-len 32768 --gpu-mem 0.1 --shard {k} --num-shards {N}"})
-    jobs.append({"id": f"{name}_asr", "gpus": 1, "vllm": False, "mem": 12000, "kind": "speech",
+    jobs.append({"id": f"{name}_asr", "gpus": 1, "vllm": False, "mem": 24000, "kind": "speech",
                  "deps": [f"{name}_talk{k}" for k in range(N)],
                  "cmd": f"set -e; cat {out}/talker/part_*.jsonl > {out}/talker/results.jsonl; "
                         f"{PYE} scripts/gpu_queue/p80_speechonly.py {out}/talker; "
