@@ -118,8 +118,8 @@ PY
   for lay in single per-speaker; do
     for ex in none dropped; do
       out=$LAT/${st}_${s}_full$([ $lay = per-speaker ] && echo _ps)$([ $ex = dropped ] && echo _ex).json
-      exl=$( [ $ex = dropped ] && cat $SP7/on_${st}_S2dl_full*/DROPPED_ids.txt $SP7/on_${st}_O2_LA2_full*/DROPPED_ids.txt 2>/dev/null | tr '\n' ',' )
-      [ $ex = dropped ] && [ ! -e $SP7/on_${st}_S2dl_full/DROPPED_ids.txt -o ! -e $SP7/on_${st}_O2_LA2_full/DROPPED_ids.txt ] && continue
+      exl=$( [ $ex = dropped ] && cat $SP7/on_${st}_S2dl_full2/DROPPED_ids.txt $SP7/on_${st}_O2_LA2_full2/DROPPED_ids.txt 2>/dev/null | tr '\n' ',' )
+      [ $ex = dropped ] && [ ! -e $SP7/on_${st}_S2dl_full2/DROPPED_ids.txt -o ! -e $SP7/on_${st}_O2_LA2_full2/DROPPED_ids.txt ] && continue
       [ -e $out ] || $PY reports/gstar_si_v6/listener_latency.py --windows $ON/windows_test_online_${st}.jsonl \
         --hyp $FULL/hyp.jsonl --talker $SF --read-ms $rms --tok-rate $tok --lang $lang --layout $lay ${exl:+--exclude $exl} \
         --out $out > $out.log 2>&1 && log "latency $out"
