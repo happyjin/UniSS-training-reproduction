@@ -49,7 +49,7 @@ def tasks():
                 from systems_v7 import windows as wv
                 out.append((dr, f"C2_{k}", str(h), str(wv(dr, "S2dl_d1" if k == "S" else "O2")), False))
         # v8 whole-meeting online runs (B3, B4, C1), once merged into hyp.jsonl
-        for d in sorted((EV / "gstar_v8_20261103").glob(f"on_{dr}_*")):
+        for d in sorted((EV / "gstar_v8_20261103/runs").glob(f"on_{dr}_*")):
             if (d / "hyp.jsonl").exists():
                 out.append((dr, d.name, str(d / "hyp.jsonl"), str(ON / f"windows_test_online_{dr}.jsonl"), True))
     return out
