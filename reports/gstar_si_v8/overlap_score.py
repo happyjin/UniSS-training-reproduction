@@ -87,9 +87,10 @@ def pieces(text, eng):
 
 def relabel_causal(s, post, win_start, commit):
     """slot (1-based) of a speaker-blind segment from the causal posterior of its window (prereg_v8 §3)."""
-    if post is None or commit is None:
+    if post is None:
         return 0
-    lim = int((commit - LOOKAHEAD - win_start) / FRAME)   # rows available at the commit
+    # offline output (no commit time): the whole window's posterior is available
+    lim = len(post) if commit is None else int((commit - LOOKAHEAD - win_start) / FRAME)
     lim = min(lim, len(post))
     if lim <= 0:
         return 0
@@ -112,7 +113,7 @@ def chrf2(x, y):
     return CHRF().sentence_score(x, [y]).score
 
 
-def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, collar=2.0, merge=1.0):
+def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, collar=2.0, merge=1.0, post_key="lowlat"):
     from sacrebleu.metrics import BLEU
     eng = dr != "en2zh"
     sep = " " if eng else ""
@@ -131,7 +132,7 @@ def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, coll
         h = H[w["id"]]
         post = None
         if relabel:
-            pp = (w.get("post") or {}).get("lowlat")
+            pp = (w.get("post") or {}).get(post_key)
             post = np.load(pp) if pp and Path(pp).exists() else None
         for s in h["segments"]:
             c = None
@@ -340,6 +341,7 @@ def main() -> None:
     ap.add_argument("--online", action="store_true")
     ap.add_argument("--relabel", action="store_true")
     ap.add_argument("--no-split", action="store_true")
+    ap.add_argument("--post-key", default="lowlat", help="posterior of the windows used by --relabel (offline windows: offline)")
     ap.add_argument("--collar", type=float, default=2.0)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -351,7 +353,7 @@ def main() -> None:
     RW = list(map(json.loads, open(args.ref_windows, encoding="utf-8")))
     U = universe(args.dir, {w["meeting"] for w in W})
     res = score(args.dir, W, H, RW, U, online=args.online, relabel=args.relabel, split=not args.no_split,
-                collar=args.collar)
+                collar=args.collar, post_key=args.post_key)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "x", encoding="utf-8") as fh:
         json.dump(res, fh, indent=1, ensure_ascii=False)
