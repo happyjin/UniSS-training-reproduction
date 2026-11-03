@@ -39,6 +39,7 @@ from experiments.uniss_qwen3_omni_v1.evaluation.gstar_score import match  # noqa
 from meeting_score import universe  # noqa: E402
 
 OV_SHARE = 0.2
+BINS = [("0", 0.0), ("0-10", 1e-6), ("10-30", 0.1), ("30-100", 0.3)]   # share of a unit overlapped by others (%)
 PAIR_MIN = 0.5
 PAIR_COLLAR = 1.0
 LOOKAHEAD = 1.04
@@ -176,7 +177,9 @@ def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, coll
                 unit_of[rid] = cur
         for rid, v in units_.items():
             d = max(v["b"] - v["a"], 1e-6)
-            v["reg"] = "ov" if others_overlap(v["a"], v["b"], v["spk"], us) / d >= OV_SHARE else "1spk"
+            v["share"] = others_overlap(v["a"], v["b"], v["spk"], us) / d
+            v["reg"] = "ov" if v["share"] >= OV_SHARE else "1spk"
+            v["bin"] = next(b for b, lo in BINS[::-1] if v["share"] >= lo)
         got = defaultdict(list)   # unit -> [(segment, text piece)]
         ins = []
         for s in sorted(segs[m], key=lambda s: s["a"]):
@@ -223,17 +226,21 @@ def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, coll
                     cnt["split_segments"] += 1
                     continue
             got[target].append((s, s["text"]))
-        pm = {"ov": [], "1spk": [], "all": []}
+        pm = {"ov": [], "1spk": [], "all": [], **{f"bin{b}": [] for b, _ in BINS}}
+        mlag = {"ov": [], "1spk": [], "all": []}
         for rid, v in sorted(units_.items(), key=lambda kv: kv[1]["a"]):
             ss = sorted(got.get(rid, []), key=lambda x: x[0]["a"])
             hyp = sep.join(t for _, t in ss).strip()
             pm[v["reg"]].append((hyp, v["ref"]))
             pm["all"].append((hyp, v["ref"]))
+            pm[f"bin{v['bin']}"].append((hyp, v["ref"]))
             cnt[f"units_{v['reg']}"] += 1
             cnt[f"omitted_{v['reg']}"] += not ss
             cs = [x[0]["commit"] for x in ss if x[0]["commit"] is not None]
             if cs:
                 lag[v["reg"]].append(max(cs) - v["b"])
+                mlag[v["reg"]].append(max(cs) - v["b"])
+                mlag["all"].append(max(cs) - v["b"])
             for x, t in ss:
                 n = len(pieces(t, eng))
                 pre_end[1] += n
@@ -290,16 +297,18 @@ def score(dr, W, H, ref_windows, U, online=True, relabel=False, split=True, coll
             short[f"{band}_{o}"][0] += rec[rid]
             short[f"{band}_{o}"][1] += 1
         rec_m = {}
-        for reg in ("ov", "1spk", "all"):
+        for reg in pm:
+            R.setdefault(reg, [])
             R[reg] += pm[reg]
             st = bleu._extract_corpus_statistics([x for x, _ in pm[reg]], [[y for _, y in pm[reg]]]) if pm[reg] else None
             rec_m[f"{reg}_stats"] = np.sum(np.array(st, dtype=np.float64), 0).tolist() if st else None
         rec_m["pairs"], rec_m["pairs_recalled"] = pairs, rec_pairs
-        mlag = {r: [x for x in lag[r]] for r in lag}
         PM[m] = rec_m
-        PM[m]["lag_units"] = {r: len(mlag[r]) for r in mlag}
+        PM[m]["lag"] = {r: [round(x, 3) for x in mlag[r]] for r in mlag}
+        PM[m]["short"] = {"le1_ov": [sum(rec[r] for r in sc if sc[r]["b"] - sc[r]["a"] <= 1.0 and others_overlap(sc[r]["a"], sc[r]["b"], sc[r]["spk"], us) / max(sc[r]["b"] - sc[r]["a"], 1e-6) >= OV_SHARE),
+                                      sum(1 for r in sc if sc[r]["b"] - sc[r]["a"] <= 1.0 and others_overlap(sc[r]["a"], sc[r]["b"], sc[r]["spk"], us) / max(sc[r]["b"] - sc[r]["a"], 1e-6) >= OV_SHARE)]}
     res = {"dir": dr, "relabel": relabel, "split": split, "collar_s": collar, "meetings": len(meetings)}
-    for reg in ("ov", "1spk", "all"):
+    for reg in R:
         res[f"tcpBLEU_{reg}"] = round(bleu.corpus_score([x for x, _ in R[reg]], [[y for _, y in R[reg]]]).score, 2) if R[reg] else None
     for reg in ("ov", "1spk"):
         res[f"units_{reg}"] = cnt[f"units_{reg}"]

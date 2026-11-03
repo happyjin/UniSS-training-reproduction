@@ -17,11 +17,12 @@ sys.path.insert(0, str(REPO / "paper/gstar_si_v8/scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 EV = REPO / "eval_outputs/uniss_qwen3_omni_v1"
-OUT = EV / "gstar_v8_20261103/scores_ov"
+OUT = EV / "gstar_v8_20261103/scores_ov2"   # v2: overlap bins and per-meeting lags (scores_ov: first pass)
 ON = REPO / "data/online_v6_20261031"
 REF = {"en2zh": REPO / "data/ami_multispk_si_v1/e2e_gstar_v1/windows_test_ref.jsonl",
        "zh2en": REPO / "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_test_ref.jsonl",
        "ali": REPO / "data/alimeeting_si_v1/windows_test_ref.jsonl"}
+FULLREF = REPO / "data/ami_multispk_si_v1/e2e_gstar_v1/windows_test_fullref_v8.jsonl"
 REFWIN = ["C-ft2", "C-turn", "OC", "CC", "SC", "O2-nosd", "O2-nosd-relabel", "O2", "O2_LA2_d1", "S2dl_d1",
           "S2dl_LA2_full", "S2dlZ_LA2_d1", "S2dl_seed2_full", "S2dl_seed3_d1", "S2dlZ_seed2_d1"]
 
@@ -42,6 +43,15 @@ def tasks():
             h = EV / f"gstar_v7_20261101/on_{dr}_{k}_full/hyp.jsonl"
             if h.exists():
                 out.append((dr, f"on_{k}", str(h), str(ON / f"windows_test_online_{dr}.jsonl"), True))
+        for k in ("S", "O"):   # C2 cascade fallback (prereg_v8 amendment 1)
+            h = EV / f"gstar_v8_20261103/c2/{dr}_{k}/hyp.jsonl"
+            if h.exists():
+                from systems_v7 import windows as wv
+                out.append((dr, f"C2_{k}", str(h), str(wv(dr, "S2dl_d1" if k == "S" else "O2")), False))
+        # v8 whole-meeting online runs (B3, B4, C1), once merged into hyp.jsonl
+        for d in sorted((EV / "gstar_v8_20261103").glob(f"on_{dr}_*")):
+            if (d / "hyp.jsonl").exists():
+                out.append((dr, d.name, str(d / "hyp.jsonl"), str(ON / f"windows_test_online_{dr}.jsonl"), True))
     return out
 
 
@@ -50,16 +60,17 @@ def one(t):
     from meeting_score import universe
     dr, k, hyp, win, online = t
     for split in (True, False):
-        o = OUT / f"{dr}_{k}{'' if split else '_nosplit'}.json"
+      for refset in (("std", REF[dr]),) + ((("full", FULLREF),) if dr == "en2zh" else ()):
+        o = OUT / f"{dr}_{k}{'' if split else '_nosplit'}{'' if refset[0] == 'std' else '_fullref'}.json"
         if o.exists():
             continue
         H = {h["id"]: h for h in map(json.loads, open(hyp, encoding="utf-8"))}
         W = [w for w in map(json.loads, open(win, encoding="utf-8")) if w["id"] in H]
         if not W:
             return f"{dr} {k}: no windows"
-        RW = list(map(json.loads, open(REF[dr], encoding="utf-8")))
+        RW = list(map(json.loads, open(refset[1], encoding="utf-8")))
         U = universe(dr, {w["meeting"] for w in W})
-        r = O.score(dr, W, H, RW, U, online=online, split=split)
+        r = O.score(dr, W, H, RW, U, online=online, split=split, relabel=k.endswith("nosd"))
         r["system"], r["hyp"], r["windows"] = k, hyp, win
         with open(o, "x", encoding="utf-8") as fh:
             json.dump(r, fh, indent=1, ensure_ascii=False)
