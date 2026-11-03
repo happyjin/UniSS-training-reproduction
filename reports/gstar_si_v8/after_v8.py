@@ -22,7 +22,9 @@ def main():
         st = d.name.split("_")[1]
         want = {json.loads(ln)["id"] for ln in open(ON / f"windows_test_online_{st}.jsonl")}
         got = {}
-        for f in sorted(d.glob("hyp_s*.jsonl")):
+        for f in sorted(d.glob("hyp_*.jsonl")):   # shards (hyp_s*), resumes (hyp_r*, hyp_s1r), helpers (hyp_h*)
+            if f.name == "hyp.jsonl":
+                continue
             for ln in open(f, encoding="utf-8"):
                 try:
                     h = json.loads(ln)
