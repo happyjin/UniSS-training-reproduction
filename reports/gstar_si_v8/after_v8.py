@@ -20,7 +20,11 @@ def main():
         if (d / "hyp.jsonl").exists():
             continue
         st = d.name.split("_")[1]
-        want = {json.loads(ln)["id"] for ln in open(ON / f"windows_test_online_{st}.jsonl")}
+        Wst = [json.loads(ln) for ln in open(ON / f"windows_test_online_{st}.jsonl")]
+        if "lag2" in d.name:   # prereg_v8 amendment 2: fixed lag on the v7 meeting subset only
+            sub = set(json.load(open(ON / "subset_meetings.json"))["ali" if st == "ali" else "ami"])
+            Wst = [w for w in Wst if w["meeting"] in sub]
+        want = {w["id"] for w in Wst}
         got = {}
         for f in sorted(d.glob("hyp_*.jsonl")):   # shards (hyp_s*), resumes (hyp_r*, hyp_s1r), helpers (hyp_h*)
             if f.name == "hyp.jsonl":
