@@ -1,0 +1,35 @@
+{
+  "armed_at": 1793652763.482825,
+  "devices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "python": "/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python",
+  "queues": [
+    "logs/multispk/v7/queue3"
+  ],
+  "papers": [
+    {
+      "directory": "paper/gstar_si_v7",
+      "report": "docs/response_to_review_v6.zh-CN.md"
+    },
+    {
+      "directory": "paper/bayes_simul_s2st_v11",
+      "report": "docs/response_to_review_v10.zh-CN.md"
+    }
+  ],
+  "qabc_metrics": "paper/bayes_simul_s2st_v11/generated/v11_cont.json",
+  "qabc_output": "eval_outputs/uniss_qwen3_omni_v1/qabc_v11",
+  "completion_stable_seconds": 600,
+  "idle_seconds": 120,
+  "poll_seconds": 30,
+  "stall_seconds": 1800,
+  "max_restarts": 6,
+  "replace_repo_holder": true
+}
