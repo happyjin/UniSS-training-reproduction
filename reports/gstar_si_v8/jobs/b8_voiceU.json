@@ -1,0 +1,20 @@
+[
+ {
+  "id": "mist8r_b8_voiceU_1s",
+  "gpus": 1,
+  "mem": 8000,
+  "kind": "speech",
+  "deps": [
+   "mist8r_b8_asr"
+  ],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_voice_v6 --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/windows_with_utts.jsonl --hyp eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_en2zh_S2dl_rest/hyp.jsonl --results eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/talker/results.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/voiceU_1s_wavlm.json > eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/voiceU_1s.log 2>&1"
+ },
+ {
+  "id": "mist8r_b8_voiceU_8s",
+  "gpus": 1,
+  "mem": 8000,
+  "kind": "speech",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$GPU0 PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/conda_envs/uniss-eval/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_voice_v6 --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/windows_with_utts.jsonl --hyp eval_outputs/uniss_qwen3_omni_v1/gstar_v7_20261101/on_en2zh_S2dl_rest/hyp.jsonl --results eval_outputs/uniss_qwen3_omni_v1/gstar_v7_speech_20261101/on_en2zh_S2dl_rest/talker/results.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/voiceU_8s_wavlm.json > eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/b8/voiceU_8s.log 2>&1"
+ }
+]
