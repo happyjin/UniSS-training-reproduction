@@ -1,0 +1,30 @@
+[
+ {
+  "id": "mist8_train_c1_en2zh",
+  "gpus": 4,
+  "mem": 68000,
+  "kind": "train",
+  "deps": [],
+  "cards": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "cmd": "env CUDA_VISIBLE_DEVICES=$CVD NPROC=4 MBS=4 GBS=64 RUN_ID=thinker_gstar_s2dlnosd_en2zh_v8 BASE=eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged INIT_MERGED=1 NOSD=1 ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_v1/rows_train.jsonl TRAIN_ITERS=3000 TRAIN_SEED=20261026 GSTAR_SEED=20261026 MASTER_PORT=29891 bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar_v7.sh > logs/multispk/v8/thinker_gstar_s2dlnosd_en2zh_v8.log 2>&1 && grep -q THINKER_GSTAR_DONE logs/multispk/v8/thinker_gstar_s2dlnosd_en2zh_v8.log"
+ },
+ {
+  "id": "mist8_train_c1_zh2en",
+  "gpus": 4,
+  "mem": 68000,
+  "kind": "train",
+  "deps": [],
+  "cards": [
+   4,
+   5,
+   6,
+   7
+  ],
+  "cmd": "env CUDA_VISIBLE_DEVICES=$CVD NPROC=4 MBS=4 GBS=64 RUN_ID=thinker_gstar_s2dlnosd_zh2en_v8 BASE=eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2nosd_20261029b/thinker_merged INIT_MERGED=1 NOSD=1 ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_zh2en_v1/rows_train.jsonl TRAIN_ITERS=3000 TRAIN_SEED=20261026 GSTAR_SEED=20261026 MASTER_PORT=29892 bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar_v7.sh > logs/multispk/v8/thinker_gstar_s2dlnosd_zh2en_v8.log 2>&1 && grep -q THINKER_GSTAR_DONE logs/multispk/v8/thinker_gstar_s2dlnosd_zh2en_v8.log"
+ }
+]
