@@ -1,0 +1,13 @@
+[
+ {
+  "id": "mist8r_on_ali_S2dlnosd_s0_b16",
+  "gpus": 2,
+  "mem": 52000,
+  "kind": "decode",
+  "deps": [],
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows data/online_v6_20261031/windows_test_online_ali.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/runs/on_ali_S2dlnosd/hyp_s0.jsonl --shard 0 --num-shards 2 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 34 > eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/runs/on_ali_S2dlnosd/infer_s0.log 2>&1",
+  "needs": [
+   "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged/sd_proj.pt"
+  ]
+ }
+]
