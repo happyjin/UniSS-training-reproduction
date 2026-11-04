@@ -84,6 +84,7 @@ def main():
     st = a.set
     S = absolute(ON / f"windows_test_online_{st}.jsonl", EV / f"gstar_v7_20261101/on_{st}_S2dl_full/hyp.jsonl")
     D2 = absolute(TURNS / f"windows_test_turns_{st}.jsonl", EV / f"gstar_v9_20261104/labels/{st}_D2.jsonl")
+    S = {m: v for m, v in S.items() if m in D2}   # D2 exists on the subset meetings only (prereg_v9 amendment 2)
     wf = out / f"{st}_windows.jsonl"
     if not wf.exists():
         with open(wf, "x") as fh:
