@@ -116,7 +116,7 @@ def main():
         for tag in ("S2dl", "O2_LA2"):
             hf = b6 / f"{st}_{m}_{tag}_hyp.jsonl"
             if not hf.exists():
-                res["runs"][f"{st}_{tag}"] = {"meeting": m, "status": "not run"}
+                res["runs"][f"{st}_{tag}"] = {"meeting": W[0]["meeting"] if W else m, "status": "not run"}
                 continue
             H = {}
             for ln in open(hf):
@@ -126,8 +126,8 @@ def main():
                 except json.JSONDecodeError:
                     pass
             r = analyse(W, H)
-            r["meeting"] = m
-            r["status"] = "complete" if r["windows_missing"] == 0 else "incomplete"
+            r["meeting"] = W[0]["meeting"] if W else m
+            r["status"] = "complete" if r["windows_missing"] == 0 else "partial (stopped, prereg_v8 amendment 4)"
             res["runs"][f"{st}_{tag}"] = r
     if a.cotenancy and Path(a.cotenancy).exists():
         res["cotenancy"] = cotenancy(a.cotenancy)
