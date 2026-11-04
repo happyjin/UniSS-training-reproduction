@@ -142,7 +142,7 @@ def main():
     (V9 / "scores").mkdir(parents=True, exist_ok=True)
     S = systems()
     todo = [(st, n, str(h), w, onl, rel, rs) for st, n, h, w, onl, rel in S for rs in REF[st]]
-    todo += [(st, n, str(h), w, onl, rel, rs) for st, n, h, w, onl, rel in offline_ali() for rs in ("hum",)]   # reference-window outputs cover only the windows: not scored on full coverage
+    todo += [(st, n, str(h), w, onl, rel, rs) for st, n, h, w, onl, rel in offline_ali() for rs in ("hum", "std")]   # reference-window outputs cover only the windows: not scored on full coverage
     print(len(todo), "scorings", flush=True)
     with ProcessPoolExecutor(a.jobs) as ex:
         for msg in ex.map(one, todo):
