@@ -86,12 +86,19 @@ def systems():
             h = V8 / f"runs/on_{st}_S2dl_{tag}/hyp.jsonl"
             if h.exists():
                 T.append((st, f"S_{tag}", h, online(st), True, False))
-        for L in ("lag1", "lag2", "lag3", "blk2"):
-            dirs = [V9 / f"runs/on_{st}_S2dl{L}"] + ([V8 / f"runs/on_{st}_S2dllag2"] if L == "lag2" else [])
-            m = merge(st, L, dirs, online(st))
+        m = merge(st, "lag2", [V9 / f"runs/on_{st}_S2dllag2", V8 / f"runs/on_{st}_S2dllag2"], online(st))
+        if m:
+            T.append((st, "Lag2", m, online(st), True, False))
+        # prereg_v9 amendment 2: Lag1 / Lag3 / Blk2 / D2 on the subset meetings; S and Rel also scored there
+        sw = str(V9 / f"runs/on_{st}_S2dllag1/sub.windows.jsonl")
+        T.append((st, "S_sub", V7 / f"on_{st}_S2dl_full/hyp.jsonl", sw, True, False))
+        T.append((st, "Rel_sub", V8 / f"runs/on_{st}_S2dlnosd/hyp.jsonl", sw, True, True))
+        for L in ("lag1", "lag3", "blk2"):
+            d = V9 / f"runs/on_{st}_S2dl{L}"
+            m = merge(st, L, [d], str(d / "sub.windows.jsonl"))
             if m:
-                T.append((st, L.capitalize(), m, online(st), True, False))
-        tw = str(TURNS / f"windows_test_turns_{st}.jsonl")
+                T.append((st, L.capitalize(), m, str(d / "sub.windows.jsonl"), True, False))
+        tw = str(V9 / f"runs/turn_{st}_D2/sub.windows.jsonl")
         m = merge(st, "D2raw", [V9 / f"runs/turn_{st}_D2"], tw)
         if m:
             lab = V9 / f"labels/{st}_D2.jsonl"
