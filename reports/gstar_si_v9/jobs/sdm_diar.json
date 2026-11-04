@@ -1,0 +1,30 @@
+[
+ {
+  "id": "m9_sdm_diar_s0",
+  "gpus": 1,
+  "need": 12000,
+  "prio": 0,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/venvs/nemo_diar/bin/python reports/gstar_si_v9/dump_sdm_posteriors.py --preset lowlat --audio sdm --out-name nemotron_lowlat_sdm --shard 0 --num-shards 4 > logs/multispk/v9/sdm_diar_s0.log 2>&1"
+ },
+ {
+  "id": "m9_sdm_diar_s1",
+  "gpus": 1,
+  "need": 12000,
+  "prio": 0,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/venvs/nemo_diar/bin/python reports/gstar_si_v9/dump_sdm_posteriors.py --preset lowlat --audio sdm --out-name nemotron_lowlat_sdm --shard 1 --num-shards 4 > logs/multispk/v9/sdm_diar_s1.log 2>&1"
+ },
+ {
+  "id": "m9_sdm_diar_s2",
+  "gpus": 1,
+  "need": 12000,
+  "prio": 0,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/venvs/nemo_diar/bin/python reports/gstar_si_v9/dump_sdm_posteriors.py --preset lowlat --audio sdm --out-name nemotron_lowlat_sdm --shard 2 --num-shards 4 > logs/multispk/v9/sdm_diar_s2.log 2>&1"
+ },
+ {
+  "id": "m9_sdm_diar_s3",
+  "gpus": 1,
+  "need": 12000,
+  "prio": 0,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PYTHONPATH=. /opt/dlami/nvme/jasonleeeli/venvs/nemo_diar/bin/python reports/gstar_si_v9/dump_sdm_posteriors.py --preset lowlat --audio sdm --out-name nemotron_lowlat_sdm --shard 3 --num-shards 4 > logs/multispk/v9/sdm_diar_s3.log 2>&1"
+ }
+]
