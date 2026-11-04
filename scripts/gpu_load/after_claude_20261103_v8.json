@@ -1,0 +1,78 @@
+{
+  "armed_at": 1793734222.5132997,
+  "launch_enabled": true,
+  "devices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "python": "/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python",
+  "queues": [
+    "logs/multispk/v7/queue3",
+    "logs/multispk/v8/queue"
+  ],
+  "papers": [
+    {
+      "directory": "paper/gstar_si_v8",
+      "report": "docs/response_to_review_v7.zh-CN.md"
+    }
+  ],
+  "completion_stable_seconds": 600,
+  "idle_seconds": 120,
+  "poll_seconds": 30,
+  "stall_seconds": 1800,
+  "max_restarts": 6,
+  "replace_repo_holder": false,
+  "mist_v8": {
+    "statistics": "paper/gstar_si_v8/generated/v8_tests.json",
+    "runs": "eval_outputs/uniss_qwen3_omni_v1/gstar_v8_20261103/runs",
+    "expected_runs": [
+      "on_ali_S2dlLA2",
+      "on_ali_S2dl_seed2",
+      "on_ali_S2dllag2",
+      "on_ali_S2dlnosd",
+      "on_en2zh_S2dlLA2",
+      "on_en2zh_S2dl_seed2",
+      "on_en2zh_S2dl_seed3",
+      "on_en2zh_S2dllag2",
+      "on_en2zh_S2dlnosd",
+      "on_zh2en_S2dlLA2",
+      "on_zh2en_S2dl_seed2",
+      "on_zh2en_S2dllag2",
+      "on_zh2en_S2dlnosd"
+    ],
+    "windows": {
+      "en2zh": "data/online_v6_20261031/windows_test_online_en2zh.jsonl",
+      "zh2en": "data/online_v6_20261031/windows_test_online_zh2en.jsonl",
+      "ali": "data/online_v6_20261031/windows_test_online_ali.jsonl"
+    },
+    "subset_manifest": "data/online_v6_20261031/subset_meetings.json",
+    "b6_manifest": "reports/gstar_si_v8/jobs/b6.json",
+    "session_files": [
+      "/root/.claude/projects/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50.jsonl",
+      "/root/.claude/projects/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/subagents/agent-a888b5f017c96eac3.jsonl"
+    ],
+    "session_globs": [
+      "/root/.claude/projects/-opt-dlami-nvme-jasonleeeli-projects-UniSS/*.jsonl",
+      "/root/.claude/projects/-opt-dlami-nvme-jasonleeeli-projects-UniSS/88583ca0-585a-4fad-ada7-4b193b743b50/subagents/*.jsonl"
+    ],
+    "quiet_seconds": 600,
+    "git_delivery": [
+      {
+        "directory": ".",
+        "remote_ref": "refs/remotes/private/main",
+        "ignore_dirty_prefixes": [
+          "scripts/gpu_load/"
+        ]
+      },
+      {
+        "directory": "paper/gstar_si_v8"
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wait for MIST v7 and QABC v11 final artifacts, then supervise a training workload.
+"""Wait for configured Claude experiment artifacts, then supervise a training workload.
 
 Experiment queues, papers and Claude sessions are read only. State and logs belong
 to this supervisor. Completion requires artifacts AND drained queues AND idle GPUs.
@@ -81,10 +81,10 @@ def experiment_gate(config, root=REPO):
             reasons.append(f"PDF predates this request or latest sources: {paper['directory']}")
         else:
             evidence.append((str(pdf), pdf.stat().st_mtime_ns, hashlib.sha256(text.encode()).hexdigest()))
-    metric = root / config["qabc_metrics"]
-    if not metric.is_file():
+    metric = root / config["qabc_metrics"] if config.get("qabc_metrics") else None
+    if metric is not None and not metric.is_file():
         reasons.append("QABC continuous-clock final metrics missing")
-    else:
+    elif metric is not None:
         data = read_json(metric)
         for direction in ("en2zh", "zh2en"):
             result = data.get("dirs", {}).get(direction, {})
@@ -92,7 +92,7 @@ def experiment_gate(config, root=REPO):
                 reasons.append(f"QABC final metrics incomplete: {direction}")
         evidence.append((str(metric), metric.stat().st_mtime_ns))
     # Avoid reading the speech result files while experiments are still active.
-    if not reasons:
+    if not reasons and config.get("qabc_output"):
         task_files = sorted((root / config["qabc_output"]).glob("cont_tasks*.jsonl"))
         if not task_files:
             reasons.append("QABC speech task manifests missing")
@@ -115,6 +115,11 @@ def experiment_gate(config, root=REPO):
                 if not complete:
                     reasons.append(f"QABC speech/ASR incomplete: {task['key']}")
             evidence.append((str(manifest), manifest.stat().st_mtime_ns))
+    if config.get("mist_v8"):
+        from mist_v8_completion import extra_checks
+        extra_checks(config["mist_v8"], root, reasons, evidence)
+    if not config.get("launch_enabled", True):
+        reasons.append("monitor-only mode: workload launch is disabled")
     digest = hashlib.sha256(json.dumps(evidence, sort_keys=True).encode()).hexdigest()
     return reasons, digest
 
@@ -294,7 +299,7 @@ def supervise(config, directory):
                     if not reasons:
                         stable_since = now if stable_since is None else stable_since
                         if now - stable_since < config["completion_stable_seconds"]:
-                            reasons = ["final artifacts and queues must remain unchanged for 10 minutes"]
+                            reasons = [f"final artifacts and queues must remain unchanged for {config['completion_stable_seconds']} seconds"]
                     if not reasons:
                         cards = workload.gpu_snapshot()
                         if set(config["devices"]) - cards.keys():
@@ -313,7 +318,7 @@ def supervise(config, directory):
                         else:
                             idle_since = now if idle_since is None else idle_since
                             if now - idle_since < config["idle_seconds"]:
-                                reasons = ["waiting for all selected GPUs to remain idle for 120 seconds"]
+                                reasons = [f"waiting for all selected GPUs to remain idle for {config['idle_seconds']} seconds"]
                     if not reasons:
                         attempts += 1
                         run_log = directory / f"training_{time.time_ns()}.log"
@@ -336,7 +341,7 @@ def supervise(config, directory):
                         workload.log("waiting: " + "; ".join(reasons))
                         last_reason = reasons
                     save_status(directory, phase="waiting", reasons=reasons, tuning=tuning, attempts=attempts)
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            except (OSError, ValueError, KeyError, TypeError, IndexError, RuntimeError, subprocess.SubprocessError) as error:
                 # Missing/partial files or NVML errors cannot be treated as completion.
                 stop_training(child)
                 child, stable_since, idle_since = None, None, None
