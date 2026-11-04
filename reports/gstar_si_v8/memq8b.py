@@ -36,8 +36,8 @@ def main():
                 del run[k]
         if todo:
             f = free()
-            cards = sorted(f, key=lambda g: -f[g])[: j.get("gpus", 2)]
             j = todo[0]
+            cards = sorted(f, key=lambda g: -f[g])[: j.get("gpus", 2)]
             if all(f[g] >= j["need"] + HEAD for g in cards):
                 cvd = ",".join(map(str, sorted(cards)))
                 env = dict(os.environ, MIST_V7_JOB=j["id"], MIST_V7_KIND="decode", CVD=cvd)
