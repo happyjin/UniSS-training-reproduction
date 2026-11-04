@@ -2,6 +2,18 @@
 
 写于 2026-11-04 05:05 UTC（布拉格 06:05）。
 
+> **更新（05:45 UTC）：v8 论文已经完成。** 执行代理在 05:41 UTC 做完了 R3–R7：
+> - 论文：`paper/gstar_si_v8` 的 v8 分支 `94473c6`，PDF 另存为 `reports/gstar_si_v8/MIST_v8.pdf`。正文 8 页，没有 `??`、Overfull 或未定义引用。
+> - 12 项预注册检验：11 项成立，E-ov1 在 AliMeeting 上持平。
+> - 回复审稿：`docs/mist_response_to_review_v7.zh-CN.md`，以及论文仓库里的 `docs/response_to_review_v7.zh-CN.md`。
+> - 主仓库：已推送到 `private/main` `54879bd9`。
+>
+> 新服务器上**只剩两项可选的补充实验**，做了可以加强论文：
+> - **R1**：AliMeeting 固定滞后 2 s，还差 692 个窗口。论文现在不报告这一项。
+> - **R2**：B6 墙钟回放。论文现在不写"约 2 s 实时延迟"，Limitations 里注明 RTF 是由单次读取耗时推算的。
+>
+> 做完 R1/R2 后，按 R3 的方法重新生成表格，再写进正文：R2 的结果改 Limitations 和延迟主张，R1 的结果补 AliMeeting 固定滞后。下面第 1 节和第 3 节的 R3–R7 是 05:05 时的状态，留作参考。
+
 本文只讲 MIST v8 剩下的工作。环境、软链接和写死路径的问题，见同目录的 `new_server_run_guide.zh-CN.md` 第 0 节；那一节的原则这里同样适用。
 
 记号：
