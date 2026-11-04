@@ -1,0 +1,345 @@
+[
+ {
+  "id": "m9s_D2_en2zh_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_en2zh_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy wait --zero-sd --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_en2zh_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_en2zh_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy wait --zero-sd --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_en2zh_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_en2zh_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy wait --zero-sd --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_en2zh_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_en2zh_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy wait --zero-sd --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_en2zh_D2/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_zh2en_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/hyp_sub_s0.jsonl --shard 0 --num-shards 3 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_zh2en_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/hyp_sub_s1.jsonl --shard 1 --num-shards 3 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_zh2en_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/hyp_sub_s2.jsonl --shard 2 --num-shards 3 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_zh2en_D2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s0.jsonl --shard 0 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s1.jsonl --shard 1 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s2.jsonl --shard 2 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s3.jsonl --shard 3 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s4",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s4.jsonl --shard 4 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s4.log 2>&1"
+ },
+ {
+  "id": "m9s_D2_ali_s5",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 2,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dlnosd_zh2en_v8/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/hyp_sub_s5.jsonl --shard 5 --num-shards 6 --policy wait --zero-sd --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/turn_ali_D2/infer_sub_s5.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_en2zh_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_en2zh_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_en2zh_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_en2zh_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag1/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_zh2en_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_zh2en_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_zh2en_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_zh2en_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag1/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_ali_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_ali_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_ali_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag1_ali_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 1000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag1/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_en2zh_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_en2zh_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_en2zh_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_en2zh_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dllag3/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_zh2en_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_zh2en_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_zh2en_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_zh2en_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dllag3/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_ali_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_ali_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_ali_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_lag3_ali_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 3,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 3000 --window 1 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dllag3/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_en2zh_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_en2zh_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_en2zh_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_en2zh_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_20261029b/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir en2zh --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_en2zh_S2dlblk2/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_zh2en_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_zh2en_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_zh2en_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_zh2en_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_zh2en_S2dlblk2/infer_sub_s3.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_ali_s0",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/hyp_sub_s0.jsonl --shard 0 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/infer_sub_s0.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_ali_s1",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/hyp_sub_s1.jsonl --shard 1 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/infer_sub_s1.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_ali_s2",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/hyp_sub_s2.jsonl --shard 2 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/infer_sub_s2.log 2>&1"
+ },
+ {
+  "id": "m9s_blk2_ali_s3",
+  "gpus": 3,
+  "need": 27000,
+  "prio": 7,
+  "cmd": "CUDA_VISIBLE_DEVICES=$CVD PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH PYTHONPATH=.:third_party/Megatron-LM /opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python -m experiments.uniss_qwen3_omni_v1.evaluation.gstar_si_stream_online_v6s --thinker eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged --windows eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/sub.windows.jsonl --out eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/hyp_sub_s3.jsonl --shard 3 --num-shards 4 --policy lag --lag-ms 0 --window 2 --post-key lowlat --dir zh2en --batch 16 --max-gib 23 > eval_outputs/uniss_qwen3_omni_v1/gstar_v9_20261104/runs/on_ali_S2dlblk2/infer_sub_s3.log 2>&1"
+ }
+]
