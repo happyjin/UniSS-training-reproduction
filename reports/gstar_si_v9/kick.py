@@ -55,7 +55,8 @@ def alive(pattern):
 def main():
     rem = {}
     for name, d, wf, *_ in EXP:
-        rem[name] = sum(1 for ln in open(wf) if json.loads(ln)["id"] not in got(d))
+        g = got(d)
+        rem[name] = sum(1 for ln in open(wf) if json.loads(ln)["id"] not in g)
     dec = sum(1 for a in subprocess.check_output(["ps", "-eo", "args="], text=True).splitlines()
               if a.startswith("/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python") and "gstar_si_stream_online" in a)
     up = alive("python3 reports/gstar_si_v9/memq9b.py")
@@ -67,7 +68,8 @@ def main():
     cancel = [j["id"] for f in glob.glob(f"{Q}/*_resume_r*.json") for j in json.load(open(f))]
     jobs = []
     for name, d, wf, th, pol, st, prio in EXP:
-        W = [ln for ln in open(wf) if json.loads(ln)["id"] not in got(d)]
+        g = got(d)
+        W = [ln for ln in open(wf) if json.loads(ln)["id"] not in g]
         if not W:
             continue
         rw = f"{d}/resume_r{N}.windows.jsonl"
