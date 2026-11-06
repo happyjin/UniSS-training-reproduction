@@ -78,14 +78,15 @@ def main():
         tk = []
         for k in range(8):
             tk.append(f"{a.name}__talk{k}")
-            jobs.append({"id": tk[-1], "mem_gb": 26, "deps": [f"{a.name}__sprep"], "retries": 2,
+            jobs.append({"id": tk[-1], "mem_gb": 26, "deps": [f"{a.name}__sprep"], "retries": 20,
                          "cmd": ENV + f"VLLM_USE_FLASHINFER_SAMPLER=0 OMP_NUM_THREADS=16 {PYV} -m {M}.si_infer "
                                 f"--model {T1C} --direction zh2en --window 1 --output {SP}/talker --text-policy file "
                                 f"--blocks-file {SP}/talker_in/blocks.jsonl --items-file {SP}/talker_in/items.jsonl "
                                 f"--speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --shard {k} "
                                 f"--num-shards 8 > {SP}/talk{k}.log 2>&1"})
         jobs.append({"id": f"{a.name}__asr", "mem_gb": 14, "deps": tk,
-                     "cmd": ENV + f"cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
+                     "cmd": ENV + f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
+                            f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
                             f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker && {PYE} -m evaluation.asr_transcribe "
                             f"--input {SP}/talker/results_speechonly.jsonl --output {SP}/talker/asr_speech.jsonl "
                             f"--device cuda:0 --batch-size 8 > {SP}/asr.log 2>&1"})
