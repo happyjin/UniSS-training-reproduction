@@ -157,3 +157,13 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
 - 21:25 UTC：AliMeeting 参考解码作业改为可续跑版本重建（`_n` 后缀，旧作业未启动，移入 held_superseded）。
   新增 `scripts/yield_guard.py`（后台常驻）：4,5,6 号卡真实空闲连续两次 < 4 GB 时，SIGTERM 我方在该卡上最新启动的
   GPU 进程（只限 root 且为我方解码/talker/ASR/RL），保证 kenxsong 不因我方叠放而 OOM；被停的作业由队列重试并续跑。
+
+### 2026-11-06 22:00 UTC：闸门规则修订（用户硬规则"永不低于现有系统"；此时尚未看到任何 S0 结果——S0-all SFT 仍在第 ~1300/3000 步，无任何 S0 解码）
+- 原因：dev 上跨窗口上下文反而伤害未经训练的 v8：v8 ctx0 tcpBLEU all/ov = 26.25/21.88（CR 0.822、塌缩 16.9%），
+  ctx2 = 24.96/18.57（CR 0.776、塌缩 21.4%），重复率不变（6.55% vs 6.42%）。以 v8_ctx2 作对照等于和一个被削弱的基线比。
+- 修订：每个闸门指标（文本 all、文本 overlap、语音 ASR all）的对照取 **v8_ctx0 与 v8_ctx2 中该指标更好的那个**
+  （实际上即 v8 原协议）；判定阈值不变（点估计 ≥ 对照 − 0.2 且配对 bootstrap P(差 ≤ 0) < 0.95）。之后每个阶段的
+  闸门、以及 test / AliMeeting 的对比都如此：v8 一律按其最佳协议报告，ctx2 作为次要行保留。
+- 实现：`evaluation/gate.py --refs <v8_ctx0> <v8_ctx2>`（逐指标取点估计更高的对照）。
+- 补齐：dev v8_ctx0 语音分（`run_speech.sh`，ASR 进行中，完成后写 `decode/dev_v8_ctx0/score_asr.json`）；
+  新排队 `test_v8_ctx0`、`ali_v8_ctx0`（--context 0，文本 + 语音，2 卡拆分，只在 4–7 号卡）。

@@ -3,7 +3,8 @@ AMI dev, three items -- text tcpBLEU all, text tcpBLEU overlap, speech ASR-tcpBL
 B - A >= -0.2 (point) and P(B - A <= 0) < 0.95 under the paired meeting bootstrap (10k, compare.py), i.e. B is not
 significantly worse. The stage passes only if all three pass.
 
-    python -m experiments.mist_w3po_v1.evaluation.gate <ref decode dir> <cand decode dir> [--out gate.json]
+    python -m experiments.mist_w3po_v1.evaluation.gate <cand decode dir> --refs <v8 ctx0 dir> <v8 ctx2 dir> [--out gate.json]
+Amendment 2026-11-06 22:00 UTC (before any S0 result): per gated metric the reference is the better of the refs.
 """
 from __future__ import annotations
 
@@ -17,26 +18,36 @@ TOL = 0.2
 P_MAX = 0.95
 
 
-def gate(ref: Path, cand: Path, n: int = 10000) -> dict:
-    t = compare(json.load(open(ref / "score_text.json")), json.load(open(cand / "score_text.json")),
-                regs=("all", "ov", "1spk"), n=n)
-    s = compare(json.load(open(ref / "score_asr.json")), json.load(open(cand / "score_asr.json")),
-                regs=("all", "ov", "1spk"), n=n)
-    items = {"text_all": t["all"], "text_ov": t["ov"], "speech_all": s["all"]}
-    for v in items.values():
-        v["pass"] = bool(v["diff"] >= -TOL and v["p_le0"] < P_MAX)
-    return {"ref": str(ref), "cand": str(cand), "items": items, "info": {"text_1spk": t["1spk"], "speech_ov": s["ov"],
-            "speech_1spk": s["1spk"]}, "pass": all(v["pass"] for v in items.values())}
+def gate(refs: list, cand: Path, n: int = 10000) -> dict:
+    """refs: reference decode dirs (amendment 2026-11-06 22:00 UTC: v8 ctx0 and v8 ctx2); per gated metric the
+    reference is the one with the higher point score."""
+    ct = json.load(open(cand / "score_text.json"))
+    cs = json.load(open(cand / "score_asr.json"))
+    items, info = {}, {}
+    for key, fname, reg, cj in (("text_all", "score_text.json", "all", ct), ("text_ov", "score_text.json", "ov", ct),
+                                ("speech_all", "score_asr.json", "all", cs)):
+        best = None
+        for r in refs:
+            res = compare(json.load(open(Path(r) / fname)), cj, regs=(reg,), n=n)[reg]
+            res["ref"] = str(r)
+            info[f"{key}@{Path(r).name}"] = res
+            if best is None or res["A"] > best["A"]:
+                best = res
+        best = dict(best)
+        best["pass"] = bool(best["diff"] >= -TOL and best["p_le0"] < P_MAX)
+        items[key] = best
+    return {"refs": [str(r) for r in refs], "cand": str(cand), "items": items, "per_ref": info,
+            "pass": all(v["pass"] for v in items.values())}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("ref")
     ap.add_argument("cand")
+    ap.add_argument("--refs", nargs="+", required=True)
     ap.add_argument("--n", type=int, default=10000)
     ap.add_argument("--out", default="")
     a = ap.parse_args()
-    r = gate(Path(a.ref), Path(a.cand), a.n)
+    r = gate([Path(x) for x in a.refs], Path(a.cand), a.n)
     print(json.dumps(r, indent=1))
     if a.out:
         with open(a.out, "x") as fh:
