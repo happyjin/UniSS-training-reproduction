@@ -3,7 +3,7 @@ outputs stay the same, so a resumable command continues). Done jobs are kept as 
 next to the originals with the suffix in the file name; nothing is overwritten.
 
     python requeue.py <qdir> <job id> [<job id> ...] [--suffix r1] [--retries N] [--set key=json ...]
---set applies to the re-queued root jobs only (e.g. --set 'only=[4,5,6]').
+--set / --replace apply to the re-queued root jobs only (e.g. --set 'only=[4,5,6]', --replace 'a.jsonl=>b.jsonl').
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ def main():
     ap.add_argument("--suffix", default="r1")
     ap.add_argument("--retries", type=int, default=-1)
     ap.add_argument("--set", nargs="*", default=[])
+    ap.add_argument("--replace", nargs="*", default=[], help="OLD=>NEW in the root jobs' commands")
     a = ap.parse_args()
     q = Path(a.qdir)
     files = {}
@@ -48,6 +49,10 @@ def main():
         if jid in a.ids:
             if a.retries >= 0:
                 k["retries"] = a.retries
+            for r in a.replace:
+                old, nw = r.split("=>", 1)
+                assert old in k["cmd"], old
+                k["cmd"] = k["cmd"].replace(old, nw)
             for s in a.set:
                 key, val = s.split("=", 1)
                 k[key] = json.loads(val)

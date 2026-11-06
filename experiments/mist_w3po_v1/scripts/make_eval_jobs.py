@@ -58,12 +58,16 @@ def main():
     jobs = []
     extra = f"--lora {a.lora}" if a.lora else ""
     for k in range(0 if a.existing else a.shards):
+        # every attempt writes a new file and resumes from the earlier attempts' windows (retries are safe)
         jobs.append({"id": f"{a.name}__dec{k}", "mem_gb": a.dec_mem, "cards": a.dec_cards, "deps": a.after,
-                     "cmd": ENV + f"mkdir -p {D} && {PY} -m experiments.mist_w3po_v1.evaluation.online_decode "
-                            f"--thinker {a.thinker} --windows {win} --out {D}/hyp_s{k}.jsonl --policy {a.policy} "
+                     "retries": 2,
+                     "cmd": ENV + f"mkdir -p {D} && R=$(date +%s) && PREV=$(ls {D}/hyp_s{k}_a*.jsonl 2>/dev/null); "
+                            f"{PY} -m experiments.mist_w3po_v1.evaluation.online_decode "
+                            f"--thinker {a.thinker} --windows {win} --out {D}/hyp_s{k}_a$R.jsonl "
+                            f"${{PREV:+--resume-from $PREV}} --policy {a.policy} "
                             f"--lag-ms {a.lag_ms} --context {a.context} --dir zh2en --batch 16 --max-gib {a.max_gib} "
-                            f"--shard {k} --num-shards {a.shards} --shard-by meeting {extra} > {D}/infer_s{k}.log 2>&1 "
-                            f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}.log"})
+                            f"--shard {k} --num-shards {a.shards} --shard-by meeting {extra} > {D}/infer_s{k}_a$R.log 2>&1 "
+                            f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}_a$R.log"})
     if a.dec_only:
         for j in jobs:
             j["only"] = [int(c) for c in a.dec_only.split(",")]
