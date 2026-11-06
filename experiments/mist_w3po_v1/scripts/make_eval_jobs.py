@@ -44,6 +44,10 @@ def main():
     ap.add_argument("--speech", action="store_true")
     ap.add_argument("--prio", type=int, default=50)
     ap.add_argument("--after", nargs="*", default=[])
+    ap.add_argument("--dec-cards", type=int, default=1, help="cards per decode shard (model split by --max-gib)")
+    ap.add_argument("--dec-mem", type=float, default=66, help="GB per card of one decode shard")
+    ap.add_argument("--max-gib", type=int, default=120)
+    ap.add_argument("--dec-only", default="", help="comma list: cards the decode shards may use")
     ap.add_argument("--existing", type=int, default=0,
                     help="N: the decode exists (N shards, started elsewhere): wait for its shards, no decode jobs")
     a = ap.parse_args()
@@ -54,12 +58,15 @@ def main():
     jobs = []
     extra = f"--lora {a.lora}" if a.lora else ""
     for k in range(0 if a.existing else a.shards):
-        jobs.append({"id": f"{a.name}__dec{k}", "mem_gb": 66, "deps": a.after,
+        jobs.append({"id": f"{a.name}__dec{k}", "mem_gb": a.dec_mem, "cards": a.dec_cards, "deps": a.after,
                      "cmd": ENV + f"mkdir -p {D} && {PY} -m experiments.mist_w3po_v1.evaluation.online_decode "
                             f"--thinker {a.thinker} --windows {win} --out {D}/hyp_s{k}.jsonl --policy {a.policy} "
-                            f"--lag-ms {a.lag_ms} --context {a.context} --dir zh2en --batch 16 --max-gib 120 "
+                            f"--lag-ms {a.lag_ms} --context {a.context} --dir zh2en --batch 16 --max-gib {a.max_gib} "
                             f"--shard {k} --num-shards {a.shards} --shard-by meeting {extra} > {D}/infer_s{k}.log 2>&1 "
                             f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}.log"})
+    if a.dec_only:
+        for j in jobs:
+            j["only"] = [int(c) for c in a.dec_only.split(",")]
     dec_ids = [j["id"] for j in jobs]
     wait = (f"until [ $(grep -l W3PO_ONLINE_DONE {D}/infer_s*.log | wc -l) -ge {a.existing} ]; do sleep 30; done; "
             if a.existing else "")
