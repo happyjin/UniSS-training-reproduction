@@ -2,7 +2,7 @@
 # W3PO stage-0 SFT (plan §4): run_thinker_gstar.sh with the S0 entry (rows may carry "ctx"); outputs under
 # eval_outputs/mist_w3po_v1/{ckpt,models}/RUN_ID, logs/mist_w3po_v1/tb. v8 recipe: BASE=O2 merged, INIT_MERGED=1, 3000 iters.
 #   RUN_ID=... ROWS=... BASE=... INIT_MERGED=1 TRAIN_ITERS=3000 setsid nohup bash run_s0_sft.sh > log 2>&1 < /dev/null &
-# DRY_RUN=1 prints the command.
+# DRY_RUN=1 prints the command; SKIP_MERGE=1 stops after training (benchmarks).
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni}"
@@ -60,6 +60,7 @@ mkdir -p "${SAVE_DIR}" "${TB_DIR}"
 "${CMD[@]}"
 status=$?
 [ "${status}" -ne 0 ] && { echo "THINKER_GSTAR_FAILED status=${status}"; exit "${status}"; }
+[ -n "${SKIP_MERGE:-}" ] && { echo "THINKER_GSTAR_TRAINED (no merge)"; exit 0; }
 STEP=$(cat "${SAVE_DIR}/latest_checkpointed_iteration.txt")
 CUDA_VISIBLE_DEVICES="" "${ENV_ROOT}/bin/python" experiments/uniss_qwen3_omni_v1/training/merge_thinker_gstar.py \
   --checkpoint-dir "${SAVE_DIR}/iter_$(printf %07d "${STEP}")" --rank "${RANK}" --alpha "${ALPHA}" \

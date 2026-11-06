@@ -167,16 +167,21 @@ class Engine:
     def logits(self, h: torch.Tensor) -> torch.Tensor:
         return self.thinker.lm_head(h).float()
 
-    def audio_embeds(self, items: list[ReadItem], emb_dtype, lookahead_ms: int = LOOKAHEAD_MS):
-        """Per item: (n_audio, interleaved audio + speaker-stream embeddings), one encoder pass per unique akey."""
+    @torch.no_grad()
+    def audio_embeds(self, items: list[ReadItem], emb_dtype, lookahead_ms: int = LOOKAHEAD_MS, cache: dict | None = None):
+        """Per item: (n_audio, interleaved audio + speaker-stream embeddings), one encoder pass per unique akey;
+        with a cache dict, akeys already there are reused and new ones stored (RL: rollout -> training)."""
         from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import _get_feat_extract_output_lengths
 
         keys, uniq = [], {}
         for j, it in enumerate(items):
             k = it.akey or f"__{j}"
             keys.append(k)
-            uniq.setdefault(k, j)
+            if cache is None or k not in cache:
+                uniq.setdefault(k, j)
         order = list(uniq)
+        if not order:
+            return [cache[k] for k in keys]
         wavs = []
         for k in order:
             it = items[uniq[k]]
@@ -198,15 +203,19 @@ class Engine:
             pt = torch.as_tensor(post_to_tokens(post, n, len(x) / 16000)).to(self.dev, torch.bfloat16)
             sp = self.sd_proj(pt[None])[0]
             out[k] = (n, interleave(ai, sp.to(emb_dtype)))
+        if cache is not None:
+            cache.update({k: v for k, v in out.items() if not k.startswith("__")})
+            return [out[k] if k in out else cache[k] for k in keys]
         return [out[k] for k in keys]
 
     @torch.no_grad()
     def read(self, items: list[ReadItem], max_new: int = 300, temp: float = 0.0, temp_when: float | None = None,
-             gen: torch.Generator | None = None, record: bool = False, wait_bias: float = 0.0) -> list[ReadOut]:
+             gen: torch.Generator | None = None, record: bool = False, wait_bias: float = 0.0,
+             cache: dict | None = None) -> list[ReadOut]:
         """Advance every item by one read. temp = 0: greedy (the evaluation decoders); otherwise sampling at temp,
         and at when positions at temp_when (default temp)."""
         emb_dtype = self.emb_layer.weight.dtype
-        ae = self.audio_embeds(items, emb_dtype)
+        ae = self.audio_embeds(items, emb_dtype, cache=cache)
         prompts = [self.pr.ids(n, it.ctx, it.committed) for it, (n, _) in zip(items, ae)]
         B, L = len(items), max(len(p) for p in prompts)
         ids = torch.full((B, L), self.tok.pad_token_id or 0, dtype=torch.long)

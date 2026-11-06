@@ -226,6 +226,7 @@ class Credit:
     who: list         # per segment, RBC
     unit_of: list     # per segment: unit index or -1
     S: list           # per unit
+    SQ: list          # per unit, speaker factor fixed to 1
     miss: dict        # read index -> penalty (<= 0)
     n_units: int
     spurious: int
@@ -262,7 +263,7 @@ def credit(segs: list[dict], units: list[dict], dur: float, wait_reads: list[int
         rs = [r for r in wait_reads if read_t[r] >= u["b"] + EPS_MISS]
         for r in rs:
             miss[r] = miss.get(r, 0.0) - 1.0 / n_u / len(rs)
-    return Credit(full.R, fq.R, latency(segs, units, full, dur), delta, delta_q, who, full.assign, full.S, miss,
+    return Credit(full.R, fq.R, latency(segs, units, full, dur), delta, delta_q, who, full.assign, full.S, fq.S, miss,
                   len(units), full.spurious, full.lang)
 
 
@@ -277,3 +278,50 @@ def flad_reward(Q: float, L: float, anchors: list[tuple[float, float]]) -> float
 def hpo_gate_reward(Q: float, L: float, thr: float = 0.3) -> float:
     """C3 ablation (HPO's absolute gate): latency counts only above a fixed quality threshold."""
     return -min(L, L_MAX) if Q >= thr else -L_MAX
+
+
+def corpus_bleu_pairs(pairs: list[tuple[str, str]]) -> float:
+    """corpus BLEU (13a) over (hyp, ref) pairs, in [0, 1]; an unmatched side is paired with ""."""
+    from sacrebleu.metrics import BLEU
+    if not pairs or not any(h.strip() for h, _ in pairs):
+        return 0.0
+    return BLEU(tokenize="13a").corpus_score([h for h, _ in pairs], [[r for _, r in pairs]]).score / 100.0
+
+
+def seq_cpbleu(segs: list[dict], units: list[dict]) -> float:
+    """C1 ablation / baseline (d), DiaScriber-style: the window's speaker-attributed BLEU -- per-slot and
+    per-speaker concatenations, Hungarian-matched on chrF (cpBLEU), unmatched sides against empty."""
+    pi = speaker_map(segs, units)
+    ht, rt = {}, {}
+    for s in sorted(segs, key=lambda s: s["a"]):
+        ht[s["spk"]] = (ht.get(s["spk"], "") + " " + s["text"]).strip()
+    for u in units:
+        rt[u["spk"]] = (rt.get(u["spk"], "") + " " + u["ref"]).strip()
+    pairs, used = [], set()
+    for k, h in ht.items():
+        r = pi.get(k)
+        pairs.append((h, rt.get(r, "") if r is not None else ""))
+        if r is not None:
+            used.add(r)
+    pairs += [("", t) for r, t in rt.items() if r not in used]
+    return corpus_bleu_pairs(pairs)
+
+
+def window_quality(segs: list[dict], units: list[dict]) -> float:
+    """baseline (a): speaker-agnostic quality of the whole window translation (Q of the time-ordered concatenations)."""
+    hyp = " ".join(s["text"] for s in sorted(segs, key=lambda s: s["a"]))
+    ref = " ".join(u["ref"] for u in sorted(units, key=lambda u: u["a"]))
+    return q_chrf_bleu(hyp, ref)
+
+
+def prefix_bleu(segs: list[dict], units: list[dict], r: int, t: float) -> float:
+    """baseline (b), Hibiki-Zero's process reward at a checkpoint: sentence BLEU of the text committed by read r
+    (speaker-agnostic, by start) against the references ending by t."""
+    from sacrebleu.metrics import BLEU
+    hyp = " ".join(s["text"] for s in sorted((s for s in segs if s["r"] <= r), key=lambda s: s["a"]))
+    ref = " ".join(u["ref"] for u in units if u["b"] <= t)
+    if not ref.strip():
+        return 0.0 if hyp.strip() else 1.0
+    if not hyp.strip():
+        return 0.0
+    return BLEU(effective_order=True, tokenize="13a").sentence_score(hyp, [ref]).score / 100.0

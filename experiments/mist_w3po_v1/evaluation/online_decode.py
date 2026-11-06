@@ -54,6 +54,9 @@ def main() -> None:
     ap.add_argument("--meetings", default="", help="comma list: only these meetings")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--resume-from", nargs="*", default=[])
+    ap.add_argument("--lora", default="", help="an RL adapter (train_w3po ckpt lora.pt), folded into --thinker")
+    ap.add_argument("--lora-rank", type=int, default=32)
+    ap.add_argument("--lora-alpha", type=float, default=64.0)
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -96,6 +99,17 @@ def main() -> None:
     print(f"{n_todo} windows to decode ({len(done_rec)} resumed), {len(todo)} meetings", flush=True)
 
     eng = Engine.from_merged(args.thinker, args.dir, args.max_gib)
+    if args.lora:   # W3PO adapter: inject, load, fold into the weights (lora.merge)
+        import re as _re
+
+        from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN
+        from experiments.uniss_streaming_p2st_traj_v1.training import lora as _lora
+
+        keep = lambda parent: _re.search(r"(?:^|\.)model\.layers\.(\d+)\.", parent + ".") is not None  # noqa: E731
+        ad = _lora.inject(eng.thinker, rank=args.lora_rank, alpha=args.lora_alpha, targets=ATTN, layer_filter=keep)
+        _lora.load_state_dict(ad, torch.load(args.lora, map_location="cpu"))
+        _lora.merge(ad)
+        print(f"lora {args.lora}: {len(ad)} adapters folded", flush=True)
     tok = eng.tok
     period = round(args.window * 1000)
 
