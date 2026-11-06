@@ -23,10 +23,10 @@ while true; do
     t0=$(date +%s); n=0; bad=0
     for d in projects file-history skills plugins; do
         [ -d "$SRC/$d" ] || continue
-        out=$(nice -n 10 s5cmd --log error sync "$SRC/$d/" "$DST/$d/" 2>&1); rc=$?
+        out=$(nice -n 10 /opt/dlami/nvme/jasonleeeli/tools/s5cmd_dl/bin/s5cmd --log error sync "$SRC/$d/" "$DST/$d/" 2>&1); rc=$?
         [ $rc -eq 0 ] || { bad=$((bad + 1)); echo "$out" | tail -3 | cut -c1-400; }
     done
-    out=$(nice -n 10 s5cmd --log error cp "$SRC/settings.json" "$DST/settings.json" 2>&1) || { bad=$((bad + 1)); echo "$out" | tail -2; }
+    out=$(nice -n 10 /opt/dlami/nvme/jasonleeeli/tools/s5cmd_dl/bin/s5cmd --log error cp "$SRC/settings.json" "$DST/settings.json" 2>&1) || { bad=$((bad + 1)); echo "$out" | tail -2; }
     log "round done in $(( $(date +%s) - t0 ))s, $bad failed parts"
     sleep "$INTERVAL"
 done
