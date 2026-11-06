@@ -50,6 +50,7 @@ def main():
         (q / d).mkdir(parents=True, exist_ok=True)
     started = {}      # id -> (time, cards, mem)
     last_gpu_start = 0.0
+    low_warned = {}
     for f in (q / "state").glob("*.started"):
         started[f.stem] = (0.0, [], 0.0)
     log(q, f"queue up, {len(started)} jobs already started before")
@@ -75,6 +76,10 @@ def main():
         n_cpu = sum(1 for j in jobs if status[j["id"]] == "running" and not j.get("mem_gb"))
         mem = free_gb()
         now = time.time()
+        for c, (fr, _) in mem.items():   # a neighbour (or one of ours) grew: flag it for the operator
+            if fr < 4.0 and now - low_warned.get(c, 0) > 600:
+                low_warned[c] = now
+                log(q, f"LOW_MEM card {c}: {fr:.1f} GB free")
         for jid, (t, cards, m) in started.items():
             if status.get(jid) == "running" and now - t < RESERVE_S:
                 for c in cards:
