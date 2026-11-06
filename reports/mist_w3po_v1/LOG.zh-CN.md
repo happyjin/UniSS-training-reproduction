@@ -188,3 +188,11 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
   进程操作）全部通过；`idle_fallback.py --dry-run` 对当前 5 张卡判定均为 keep（SFT/解码在跑）；workload 参数用其
   自带 `--dry-run` 校验通过。
 - 进程：队列 PID 2225627，idle_fallback PID 2225628，yield_guard PID 1356920；guard 不动。
+- 23:31 UTC（用户批准方案 A）：`scripts/gpu_load/train_mist_workload.py` 新增**可选**参数 `--tolerate-keeper`：
+  启动检查和运行中检查都忽略 root 拥有、cmdline 含 `experiments/mist_w3po_v1/scripts/gpu_keeper.py` 的进程，
+  其显存不计入"忙"；其他任何进程照旧阻止启动 / 使负载自停。不带该参数时行为完全不变（`scripts/gpu_load/test_*.py`
+  22 项原测试全部通过）；新增 `experiments/mist_w3po_v1/scripts/test_workload_tolerate_keeper.py`（5 项）通过。
+  空闲回退改为**无空档**顺序：workload（带 `--tolerate-keeper`）在 keeper 仍在时启动，keeper 在空闲 < 12 GiB 时自动
+  让出块，workload 填到只剩 8 GiB；待 worker 显存 ≥ 56000 MiB 且 keeper 已不持有（或卡上空闲 < 30000 MiB）才停
+  keeper；600 s 内没接管成功则停 workload、保留 keeper。决策与交接顺序的模拟测试、workload 自带 `--dry-run`、
+  watcher `--dry-run` 均通过（未运行任何启动脚本）。队列与 watcher 已重启以载入新代码。

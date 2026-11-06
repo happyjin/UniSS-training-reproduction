@@ -26,6 +26,9 @@ BASE = "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_o2_20261029b/thinker_merg
 ROWS = "data/ami_multispk_si_v1/e2e_gstar_stream_v1/rows_train.jsonl"
 
 
+KEEPER_SCRIPT = "experiments/mist_w3po_v1/scripts/gpu_keeper.py"
+
+
 def log(message):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC] {message}", flush=True)
 
@@ -61,6 +64,9 @@ def parse_args(argv=None):
     p.add_argument("--warmup-steps", type=int, default=8, help="measure training peaks before filling memory")
     p.add_argument("--log-interval", type=int, default=10)
     p.add_argument("--wait-idle", action="store_true", help="wait instead of exiting when GPUs are busy")
+    p.add_argument("--tolerate-keeper", action="store_true",
+                   help="opt-in: ignore our own root-owned W3PO reservation keepers (" + KEEPER_SCRIPT + ") on the "
+                        "selected GPUs, at start and while running (their memory does not count as busy)")
     p.add_argument("--idle-seconds", type=float, default=60, help="all selected GPUs must remain idle this long")
     p.add_argument("--idle-memory-mib", type=int, default=1000)
     p.add_argument("--poll-seconds", type=float, default=5)
@@ -108,11 +114,30 @@ def smi(query):
     return [[v.strip() for v in row] for row in csv.reader(result.stdout.splitlines()) if row]
 
 
-def gpu_snapshot():
+def is_keeper(pid):
+    """a root-owned W3PO reservation keeper (only consulted with --tolerate-keeper)."""
+    try:
+        if os.stat(f"/proc/{pid}").st_uid != 0:
+            return False
+        with open(f"/proc/{pid}/cmdline", "rb") as fh:
+            return KEEPER_SCRIPT in fh.read().replace(b"\0", b" ").decode(errors="ignore")
+    except OSError:
+        return False
+
+
+def gpu_snapshot(a=None):
     cards = {}
     for i, uuid, total, used in smi("--query-gpu=index,uuid,memory.total,memory.used"):
         cards[int(i)] = {"uuid": uuid, "total": int(total), "used": int(used), "pids": set()}
     by_uuid = {c["uuid"]: c for c in cards.values()}
+    if a is not None and getattr(a, "tolerate_keeper", False):
+        for uuid, pid, used in smi("--query-compute-apps=gpu_uuid,pid,used_memory"):
+            if uuid in by_uuid:
+                if is_keeper(int(pid)):
+                    by_uuid[uuid]["used"] -= int(used) if used.isdigit() else 0
+                else:
+                    by_uuid[uuid]["pids"].add(int(pid))
+        return cards
     for uuid, pid in smi("--query-compute-apps=gpu_uuid,pid"):
         if uuid in by_uuid:
             by_uuid[uuid]["pids"].add(int(pid))
@@ -135,7 +160,7 @@ def wait_until_ready(a):
             idle_since = None
             message = f"waiting for completion marker: {a.wait_for_file}"
         else:
-            cards = gpu_snapshot()
+            cards = gpu_snapshot(a)
             busy = busy_cards(a, cards)
             if busy:
                 idle_since = None
@@ -343,7 +368,7 @@ def supervise(a):
         log(f"training-load supervisor PID={os.getpid()}; GPUs={a.devices}; no checkpoints")
         cards = wait_until_ready(a)
         # A fresh check immediately before launching; idle samples are not a reservation.
-        if busy_cards(a, gpu_snapshot()):
+        if busy_cards(a, gpu_snapshot(a)):
             raise RuntimeError("GPU became busy before launch; retry later")
         for gpu in a.devices:
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=cards[gpu]["uuid"])
@@ -359,7 +384,7 @@ def supervise(a):
                 raise RuntimeError(f"worker failure: {failed}")
             if all(code == 0 for code in codes.values()):
                 return 0
-            snapshot = gpu_snapshot()
+            snapshot = gpu_snapshot(a)
             for gpu, process in workers.items():
                 if codes[gpu] is not None:
                     continue

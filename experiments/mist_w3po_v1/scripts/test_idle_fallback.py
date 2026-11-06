@@ -27,6 +27,10 @@ def test_decide():
     # no keeper and no workload: keeper back at once
     assert decide(t, t, False, False, False, False, 0) == "start_keeper"
     assert decide(t, t, True, False, False, False, 0) == "start_keeper"
+    # gap-free hand-over: workload next to the keeper; keeper dropped only once the workload holds its memory
+    assert decide(t, t, False, True, True, True, 30, ready=False) == "keep"
+    assert decide(t, t, False, True, True, True, 30, ready=True) == "drop_keeper"
+    assert decide(t, t, False, True, True, False, START_S + 1, ready=False) == "to_keeper"
     # workload running: leave it (gpuq takes it back itself)
     assert decide(t, t, True, False, True, True, 999) == "keep"
     # workload whose worker never started (foreign process on the card): back to the keeper after START_S
@@ -96,7 +100,8 @@ def test_handover_order(monkey_alive=True):
     try:
         cardctl.alive = lambda pid: True
         c = Rec(keeper=11, workload=0)
-        assert c.to_workload() and c.ops == ["start_workload", "stop_keeper"], c.ops   # supervisor waits first
+        assert c.to_workload() and c.ops == ["start_workload"], c.ops   # the keeper stays until the workload is ready
+        assert c.drop_keeper() and c.ops == ["start_workload", "stop_keeper"], c.ops
         c = Rec(keeper=0, workload=22)
         assert c.to_keeper() and c.ops == ["start_keeper", "stop_workload"], c.ops      # keeper up before release
         cardctl.alive = lambda pid: False   # supervisor died at once (e.g. bad args): keeper stays

@@ -1,8 +1,9 @@
 """Idle fallback for OUR cards (user rule 2026-11-06 23:20 UTC): a card in {0,1,2,3,7} that has had no W3PO job for
 IDLE_S (10 min) while gpuq_w3 has nothing running or runnable for it gets the user's no-checkpoint workload instead of
-the keeper (cardctl.Card.to_workload); runs detached, independent of the executor. It also repairs: a card with
-neither keeper nor workload gets its keeper back; a workload supervisor that has not started its worker within
-START_S (e.g. a foreign process holds the card) is replaced by the keeper. The way back (workload -> keeper -> job)
+the keeper, gap-free (cardctl: the workload starts next to the keeper with --tolerate-keeper, the keeper is
+stopped once the workload holds its memory); runs detached, independent of the executor. It also repairs: a card with
+neither keeper nor workload gets its keeper back; a workload that has not taken over within START_S (e.g. a foreign process
+holds the card) is replaced by the keeper. The way back (workload -> keeper -> job)
 is done by gpuq_w3 itself before it starts a job on the card.
 
     setsid nohup python idle_fallback.py <qdir> >> <qdir>/idle_fallback.log 2>&1 < /dev/null &
@@ -20,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cardctl import CARDS, Card, log, smi_apps, smi_cards  # noqa: E402
 
 IDLE_S = 600
-START_S = 240
+START_S = 600
 TICK = 15
 
 
@@ -63,9 +64,14 @@ def queue_view(q: Path) -> tuple[set, set]:
 
 
 def decide(now: float, last_busy: float, busy: bool, keeper: bool, workload: bool, worker_up: bool,
-           wl_age: float) -> str:
-    """pure decision per card: 'keep' | 'start_keeper' | 'to_workload' | 'to_keeper' (tested in test_idle_fallback)."""
+           wl_age: float, ready: bool = False) -> str:
+    """pure decision per card: 'keep' | 'start_keeper' | 'to_workload' | 'drop_keeper' | 'to_keeper'
+    (tested in test_idle_fallback)."""
     if workload:
+        if keeper:      # gap-free hand-over in progress: the keeper goes once the workload holds its memory
+            if ready:
+                return "drop_keeper"
+            return "to_keeper" if wl_age > START_S else "keep"
         if not worker_up and wl_age > START_S:
             return "to_keeper"
         return "keep"
@@ -100,8 +106,10 @@ def main():
                 wl_age = now - json.loads((card.wdir / f"card{c}.json").read_text())["time"] if wl else 0.0
             except Exception:
                 wl_age = 0.0
+            free_mib = smi[c]["total"] - smi[c]["used"]
             act = decide(now, last_busy[c], busy, bool(card.keeper_pid()), bool(wl),
-                         card.workload_started_worker(), wl_age)
+                         card.workload_started_worker(), wl_age,
+                         bool(wl) and card.handover_ready(uuid, free_mib, apps))
             if a.dry_run:
                 print(f"card {c}: ours={sorted(ours)} running={c in running} runnable={c in runnable} "
                       f"idle_for={now - last_busy[c]:.0f}s keeper={card.keeper_pid()} workload={wl} -> {act}")
@@ -118,6 +126,8 @@ def main():
                     card.start_keeper()
                 elif act == "to_workload":
                     card.to_workload()
+                elif act == "drop_keeper":
+                    card.drop_keeper()
                 elif act == "to_keeper":
                     card.to_keeper()
         if a.dry_run:

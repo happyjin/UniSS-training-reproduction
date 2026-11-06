@@ -6,12 +6,13 @@ be handed back alone). State files under <qdir>/keeper/card<k>.state (keeper, wr
 <qdir>/workload/card<k>.json (workload supervisor pid, written here). Every hand-over of card k holds the flock
 <qdir>/keeper/card<k>.lock, so the idle-fallback watcher and the queue never act on a card at the same time.
 
-  keeper -> workload (to_workload): start the workload supervisor first (with --wait-idle --idle-seconds 0
-      --poll-seconds 1 it waits while the keeper is on the card), then SIGTERM the keeper; the supervisor launches its
-      worker within ~1 s of the keeper's exit. Residual free gap = the worker's model load (until ~56 GB are resident).
+  keeper -> workload, gap-free (user approval 2026-11-06 23:30 UTC): start_workload() with the opt-in
+      --tolerate-keeper flag while the keeper stays; the keeper hands its blocks over by itself (it releases whenever
+      free < 12 GiB, and the workload pads up to 8 GiB free); once the worker holds its memory (handover_ready:
+      worker >= READY_MIB and the keeper holds nothing or the card has < 30000 MiB free) drop_keeper() stops it.
   workload -> keeper (to_keeper): start a keeper next to the workload (it allocates nothing while the card is full),
-      then SIGTERM the workload supervisor (it also stops by itself when it sees another process on its card); the
-      keeper refills within ~1 s of the release, so the card never shows >= 80000 MiB free.
+      then SIGTERM the workload supervisor; the keeper refills within ~1 s of the release, so the card never shows
+      >= 80000 MiB free.
 Only processes whose /proc cmdline matches ours are signalled, always by PID.
 """
 from __future__ import annotations
@@ -31,6 +32,7 @@ CARDS = (0, 1, 2, 3, 7)
 KEEPER = "experiments/mist_w3po_v1/scripts/gpu_keeper.py"
 WORKLOAD = "scripts/gpu_load/run_mist_workload.sh"
 WORKLOAD_PY = "train_mist_workload.py"
+READY_MIB = 56000
 
 
 def log(msg: str):
@@ -168,8 +170,8 @@ class Card:
             return old
         logf = REPO / "logs/mist_w3po_v1" / f"workload_card{self.c}.log"
         with open(logf, "a") as fh:
-            p = subprocess.Popen(["bash", WORKLOAD, "--devices", str(self.c), "--wait-idle", "--idle-seconds", "0",
-                                  "--poll-seconds", "1", "--max-used-mib", "0"], stdout=fh, stderr=subprocess.STDOUT,
+            p = subprocess.Popen(["bash", WORKLOAD, "--devices", str(self.c), "--tolerate-keeper", "--wait-idle",
+                                  "--idle-seconds", "0", "--poll-seconds", "1", "--max-used-mib", "0"], stdout=fh, stderr=subprocess.STDOUT,
                                  stdin=subprocess.DEVNULL, start_new_session=True, cwd=REPO)
         self._write_wl({"pid": p.pid, "time": time.time(), "log": str(logf)})
         log(f"card {self.c}: workload supervisor pid {p.pid} (log {logf})")
@@ -192,7 +194,7 @@ class Card:
 
     # hand-overs
     def to_workload(self) -> bool:
-        """keeper -> workload; returns False (and keeps / restores the keeper) if the workload did not start."""
+        """keeper -> workload, step 1: start the workload next to the keeper (step 2: drop_keeper when ready)."""
         if self.workload_pid():
             return True
         sup = self.start_workload()
@@ -200,8 +202,21 @@ class Card:
         if not alive(sup):
             log(f"card {self.c}: workload supervisor exited at once; keeping the keeper")
             return False
-        self.stop_keeper()
         return True
+
+    def keeper_held_mib(self) -> float:
+        try:
+            s = json.loads((self.kdir / f"card{self.c}.state").read_text())
+            return float(s["held_mib"]) if time.time() - float(s["time"]) < 20 else -1.0
+        except Exception:
+            return -1.0
+
+    def handover_ready(self, uuid: str, free_mib: float, apps=None) -> bool:
+        """the workload's worker holds its memory, the keeper has (almost) nothing left to hand over."""
+        return self.workload_mib(uuid, apps) >= READY_MIB and (self.keeper_held_mib() == 0 or free_mib < 30000)
+
+    def drop_keeper(self) -> bool:
+        return self.stop_keeper()
 
     def to_keeper(self) -> bool:
         """workload -> keeper (no free gap: the keeper is up before the workload releases)."""
