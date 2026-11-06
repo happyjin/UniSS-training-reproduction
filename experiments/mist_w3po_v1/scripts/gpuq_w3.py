@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 
 HEADROOM = 8.6      # GB (8 GiB)
+HEADROOM_CARD = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards: his processes fluctuate by ~15 GB
 STAGGER = 60
 RESERVE_S = 300
 MAX_CPU = 12
@@ -171,7 +172,7 @@ def main():
                     continue
                 allowed = j.get("only", list(mem))
                 k = int(j.get("cards", 1))
-                ok = [c for c in allowed if c in mem and c not in blocked and mem[c][0] - need >= HEADROOM
+                ok = [c for c in allowed if c in mem and c not in blocked and mem[c][0] - need >= HEADROOM_CARD.get(c, HEADROOM)
                       and (j.get("exclusive_gb") is None or mem[c][1] <= j["exclusive_gb"])]
                 if len(ok) < k:
                     if k > 1:
