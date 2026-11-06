@@ -4,7 +4,7 @@ touches or kills other users' jobs; never starts a holder.
 
 Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
   {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
-   "only": [cards allowed] (optional), "deps": [ids], "exclusive_gb": float (optional: a multi-card job also needs
+   "only": [cards allowed] (optional), "deps": [ids], "retries": n (optional, restart a failed job), "exclusive_gb": float (optional: a multi-card job also needs
    at most this much already used on each chosen card, e.g. SFT on lightly loaded cards)}
 The command runs as `bash -c` in its own session with CUDA_VISIBLE_DEVICES set, stdout/stderr to <qdir>/logs/<id>.log,
 and its exit code is written to <qdir>/state/<id>.rc by the wrapper itself (so a queue restart sees finished jobs).
@@ -69,6 +69,16 @@ def main():
                 status[jid] = "failed"
             elif rc.exists():
                 status[jid] = "done" if rc.read_text().strip() == "0" else "failed"
+                n_fail = len(list((q / "state").glob(f"{jid}.rc.fail*")))
+                if status[jid] == "failed" and n_fail < int(j.get("retries", 0)):
+                    # e.g. a vLLM memory-profiling assert when a neighbour freed memory: start it again
+                    os.replace(rc, q / "state" / f"{jid}.rc.fail{n_fail + 1}")
+                    st = q / "state" / f"{jid}.started"
+                    if st.exists():
+                        os.replace(st, q / "state" / f"{jid}.started.fail{n_fail + 1}")
+                    started.pop(jid, None)
+                    status[jid] = "pending"
+                    log(q, f"retry {jid} (attempt {n_fail + 2})")
             elif jid in started:
                 status[jid] = "running"
             else:
