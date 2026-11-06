@@ -1,0 +1,138 @@
+"""Memory-aware job queue for W3PO (user speed policy 2026-11-06): starts each job as soon as real free memory
+(nvidia-smi) allows, with >= HEADROOM GiB left on every card it uses, GPU starts STAGGER s apart; never yields to,
+touches or kills other users' jobs; never starts a holder.
+
+Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
+  {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
+   "only": [cards allowed] (optional), "deps": [ids], "exclusive_gb": float (optional: a multi-card job also needs
+   at most this much already used on each chosen card, e.g. SFT on lightly loaded cards)}
+The command runs as `bash -c` in its own session with CUDA_VISIBLE_DEVICES set, stdout/stderr to <qdir>/logs/<id>.log,
+and its exit code is written to <qdir>/state/<id>.rc by the wrapper itself (so a queue restart sees finished jobs).
+A job whose dep failed is marked skipped. A multi-card job that is ready but does not fit reserves its allowed cards:
+GPU jobs after it in the order are not started there, so the cards drain for it. Memory of a job started < RESERVE_S ago is reserved on its cards.
+Stop the queue: touch <qdir>/STOP (running jobs continue).
+
+    setsid nohup python gpuq_w3.py <qdir> > <qdir>/queue.log 2>&1 < /dev/null &
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HEADROOM = 8.6      # GB (8 GiB)
+STAGGER = 60
+RESERVE_S = 300
+MAX_CPU = 12
+TOTAL_GB = 143.7
+
+
+def free_gb() -> dict:
+    out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.used,memory.total", "--format=csv,noheader,nounits"],
+                         capture_output=True, text=True).stdout
+    res = {}
+    for line in out.strip().splitlines():
+        i, u, t = [x.strip() for x in line.split(",")]
+        res[int(i)] = (float(t) - float(u)) / 1024 * 1.048576, float(u) / 1024 * 1.048576
+    return res
+
+
+def log(q: Path, msg: str):
+    print(f"[{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}] {msg}", flush=True)
+
+
+def main():
+    q = Path(sys.argv[1])
+    for d in ("jobs", "state", "logs"):
+        (q / d).mkdir(parents=True, exist_ok=True)
+    started = {}      # id -> (time, cards, mem)
+    last_gpu_start = 0.0
+    for f in (q / "state").glob("*.started"):
+        started[f.stem] = (0.0, [], 0.0)
+    log(q, f"queue up, {len(started)} jobs already started before")
+    while not (q / "STOP").exists():
+        jobs = []
+        for f in sorted((q / "jobs").glob("*.json")):
+            try:
+                jobs.append(json.loads(f.read_text()))
+            except Exception as e:   # a file being written
+                continue
+        status = {}
+        for j in jobs:
+            jid = j["id"]
+            rc = q / "state" / f"{jid}.rc"
+            if (q / "state" / f"{jid}.skipped").exists():
+                status[jid] = "failed"
+            elif rc.exists():
+                status[jid] = "done" if rc.read_text().strip() == "0" else "failed"
+            elif jid in started:
+                status[jid] = "running"
+            else:
+                status[jid] = "pending"
+        n_cpu = sum(1 for j in jobs if status[j["id"]] == "running" and not j.get("mem_gb"))
+        mem = free_gb()
+        now = time.time()
+        for jid, (t, cards, m) in started.items():
+            if status.get(jid) == "running" and now - t < RESERVE_S:
+                for c in cards:
+                    if c in mem:
+                        mem[c] = (mem[c][0] - m, mem[c][1] + m)
+        blocked = set()   # cards a waiting multi-card job (earlier in order) is draining: later GPU jobs keep off them
+        for j in jobs:
+            jid = j["id"]
+            if status[jid] != "pending":
+                continue
+            deps = [status.get(d, "missing") for d in j.get("deps", [])]
+            if any(d == "failed" for d in deps):
+                (q / "state" / f"{jid}.skipped").write_text("dep failed\n")
+                log(q, f"skip {jid} (dependency failed)")
+                status[jid] = "failed"
+                continue
+            if any(d != "done" for d in deps):
+                continue
+            need = float(j.get("mem_gb", 0))
+            env = dict(os.environ)
+            cards = []
+            if need <= 0:
+                if n_cpu >= MAX_CPU:
+                    continue
+                env["CUDA_VISIBLE_DEVICES"] = ""
+                n_cpu += 1
+            else:
+                if now - last_gpu_start < STAGGER:
+                    continue
+                allowed = j.get("only", list(mem))
+                k = int(j.get("cards", 1))
+                ok = [c for c in allowed if c in mem and c not in blocked and mem[c][0] - need >= HEADROOM
+                      and (j.get("exclusive_gb") is None or mem[c][1] <= j["exclusive_gb"])]
+                if len(ok) < k:
+                    if k > 1:
+                        blocked |= set(allowed)
+                    continue
+                ok.sort(key=lambda c: -mem[c][0]) if k == 1 else ok.sort()
+                cards = ok[:k] if k > 1 else ok[:1]
+                env["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, cards))
+                for c in cards:
+                    mem[c] = (mem[c][0] - need, mem[c][1] + need)
+                last_gpu_start = now
+            rc = q / "state" / f"{jid}.rc"
+            wrapped = f"{j['cmd']}\necho $? > {rc}"
+            with open(q / "logs" / f"{jid}.log", "a") as fh:
+                subprocess.Popen(["bash", "-c", wrapped], env=env, stdout=fh, stderr=subprocess.STDOUT,
+                                 stdin=subprocess.DEVNULL, start_new_session=True,
+                                 cwd="/opt/dlami/nvme/jasonleeeli/projects/UniSS")
+            (q / "state" / f"{jid}.started").write_text(json.dumps({"time": now, "cards": cards}))
+            started[jid] = (now, cards, need)
+            status[jid] = "running"
+            log(q, f"start {jid} on cards {cards} (need {need} GB)")
+            if need > 0:
+                break   # one GPU start per stagger period
+        time.sleep(15)
+    log(q, "STOP file seen; queue exits (running jobs continue)")
+
+
+if __name__ == "__main__":
+    main()
