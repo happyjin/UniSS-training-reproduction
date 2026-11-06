@@ -94,3 +94,9 @@
   占读取行 16.7%，低于方案的 30%；为不拖慢关键路径，先按 16.7% 训练，留一消融 no2 检验其作用。
   其中 64% 的 DAgger 行前缀与金标前缀不同（14,042 / 21,867），18 个读取因前缀停在未闭合段内被跳过。
 - 带上下文的行 11.85 万（no4 为 0）。
+
+### 结束时的 GPU 处理（用户新指令，取代"结束后空卡"）
+全部工作（Zh→En 里程碑，及 En→Zh 若进行）完成后才执行：按 PID 停掉自己所有作业；在 kenxsong 未用的卡（届时用
+nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
+`setsid nohup bash scripts/gpu_load/run_mist_workload.sh --devices 0,1,2,3,7 --wait-idle --max-used-mib 0 > logs/mist_w3po_v1/workload_after.log 2>&1 &`；
+约 5 分钟后确认 5 张卡都接近满显存运行，并写入最终报告。绝不提前启动，绝不放到 4–6 号卡。
