@@ -167,3 +167,24 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
 - 实现：`evaluation/gate.py --refs <v8_ctx0> <v8_ctx2>`（逐指标取点估计更高的对照）。
 - 补齐：dev v8_ctx0 语音分（`run_speech.sh`，ASR 进行中，完成后写 `decode/dev_v8_ctx0/score_asr.json`）；
   新排队 `test_v8_ctx0`、`ali_v8_ctx0`（--context 0，文本 + 语音，2 卡拆分，只在 4–7 号卡）。
+
+### 2026-11-06 23:25 UTC：空闲回退（用户新规则：我方 5 张卡空闲时跑无存档 workload）
+- `scripts/cardctl.py`：每张我方卡（0,1,2,3,7）的交接原语，均在 `keeper/card<k>.lock`（flock）下进行，只按 PID、
+  只对 cmdline 匹配的我方进程发信号。workload 改为**每卡一个**监督进程（`--devices k`），以便单卡收回；
+  PID 记在 `logs/mist_w3po_v1/queue/workload/card<k>.json`，日志 `logs/mist_w3po_v1/workload_card<k>.log`。
+  - keeper → workload：先起 workload 监督进程（`--wait-idle --idle-seconds 0 --poll-seconds 1 --max-used-mib 0`，
+    keeper 在卡上时它等待），再 SIGTERM keeper；keeper 退出后约 1 s 内 worker 启动。workload 本身要求卡上无其他进程
+    （启动时检查，运行中发现别的进程会自停），因此二者不能共存，**剩余空档 = worker 加载模型到驻留 ~56 GB 之前**
+    （估计数十秒）；这段时间由用户的 guard（清除非 root 进程）兜底。原 `--wait-idle` 默认要 60 s 连续空闲，已用
+    `--idle-seconds 0` 规避。
+  - workload → keeper：先在卡上起 keeper（卡满时它不分配），再 SIGTERM workload 监督进程（它看到别的进程也会自停），
+    workload 释放后 keeper 1 s 内补满，空闲始终 < 80000 MiB，无死锁（各步有超时，失败保留 keeper）。
+- `scripts/idle_fallback.py`（root、setsid 常驻，独立于执行者）：某卡连续 10 min 没有 W³PO 作业进程（不计 keeper/
+  workload）且 gpuq 中没有在该卡上运行或可运行的 GPU 作业 → keeper → workload；卡上既无 keeper 也无 workload →
+  立即起 keeper；workload 监督进程 240 s 内没起 worker（例如有外人进程）→ 换回 keeper。
+- `gpuq_w3.py`：workload 占用的显存算作我方可用；在跑 workload 的卡上起作业前先 `to_keeper()`，再走原来的
+  keeper 释放流程。
+- 验证（未运行任何启动脚本）：`scripts/test_idle_fallback.py` 模拟决策时间线、合成队列目录、交接顺序（记录器替代
+  进程操作）全部通过；`idle_fallback.py --dry-run` 对当前 5 张卡判定均为 keep（SFT/解码在跑）；workload 参数用其
+  自带 `--dry-run` 校验通过。
+- 进程：队列 PID 2225627，idle_fallback PID 2225628，yield_guard PID 1356920；guard 不动。

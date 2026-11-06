@@ -4,7 +4,8 @@ touches or kills other users' jobs.
 Reservation keepers (user order 2026-11-06 20:35 UTC, scripts/gpu_keeper.py, one per card in KEEPER_CARDS, state in
 <qdir>/keeper/card<k>.state): their held memory counts as available for our jobs; before a start on such a card the
 queue asks the keeper (<qdir>/keeper/card<k>.req) to release down to need + 8 GiB real free, waits up to
-KEEPER_WAIT s for nvidia-smi to show it, starts the job, and for KEEPER_SETTLE s the keeper keeps the job's not yet allocated room free (it tops up the rest).
+KEEPER_WAIT s for nvidia-smi to show it (a card running the user's idle workload, see idle_fallback.py, is first
+handed back to its keeper with cardctl.Card.to_keeper), starts the job, and for KEEPER_SETTLE s the keeper keeps the job's not yet allocated room free (it tops up the rest).
 
 Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
   {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
@@ -26,6 +27,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cardctl  # noqa: E402  (keeper / workload hand-over of our cards)
 
 HEADROOM = 8.6      # GB (8 GiB)
 HEADROOM_CARD = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards: his processes fluctuate by ~15 GB
@@ -141,6 +145,17 @@ def main():
         for c, h in keeper_held(q).items():   # our keepers' blocks are available to our jobs
             if c in mem:
                 mem[c] = (mem[c][0] + h, mem[c][1] - h)
+        wl_cards = {}
+        try:
+            apps, uu = cardctl.smi_apps(), cardctl.smi_cards()
+            for c in cardctl.CARDS:   # the user's workload on an idle card of ours is ours to take back
+                cc = cardctl.Card(q, c)
+                if cc.workload_pid() and c in mem:
+                    h = cc.workload_mib(uu[c]["uuid"], apps) * GB_PER_MIB
+                    wl_cards[c] = cc
+                    mem[c] = (mem[c][0] + h, mem[c][1] - h)
+        except Exception as e:
+            log(q, f"workload view failed: {e}")
         for jid, (t, cards, m) in started.items():
             if status.get(jid) == "running" and now - t < RESERVE_S:
                 for c in cards:
@@ -180,6 +195,11 @@ def main():
                     continue
                 ok.sort(key=lambda c: -mem[c][0]) if k == 1 else ok.sort()
                 cards = ok[:k] if k > 1 else ok[:1]
+                for c in cards:   # workload -> keeper first (the keeper is up before the workload lets go)
+                    if c in wl_cards:
+                        with wl_cards[c].lock():
+                            log(q, f"card {c}: taking it back from the workload for {jid}")
+                            wl_cards[c].to_keeper()
                 if not make_room(q, cards, need):
                     log(q, f"keepers could not make room for {jid} on {cards}; retry later")
                     last_gpu_start = time.time()
