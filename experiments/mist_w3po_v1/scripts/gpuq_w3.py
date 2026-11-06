@@ -1,6 +1,10 @@
 """Memory-aware job queue for W3PO (user speed policy 2026-11-06): starts each job as soon as real free memory
 (nvidia-smi) allows, with >= HEADROOM GiB left on every card it uses, GPU starts STAGGER s apart; never yields to,
-touches or kills other users' jobs; never starts a holder.
+touches or kills other users' jobs.
+Reservation keepers (user order 2026-11-06 20:35 UTC, scripts/gpu_keeper.py, one per card in KEEPER_CARDS, state in
+<qdir>/keeper/card<k>.state): their held memory counts as available for our jobs; before a start on such a card the
+queue asks the keeper (<qdir>/keeper/card<k>.req) to release down to need + 8 GiB real free, waits up to
+KEEPER_WAIT s for nvidia-smi to show it, starts the job, and for KEEPER_SETTLE s the keeper keeps the job's not yet allocated room free (it tops up the rest).
 
 Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
   {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
@@ -28,6 +32,49 @@ STAGGER = 60
 RESERVE_S = 300
 MAX_CPU = 12
 TOTAL_GB = 143.7
+KEEPER_CARDS = (0, 1, 2, 3, 7)
+KEEPER_WAIT = 150
+KEEPER_SETTLE = 180
+GB_PER_MIB = 1.048576 / 1024
+
+
+def keeper_held(q: Path) -> dict:
+    """card -> GB held by its keeper (fresh state files only)."""
+    res = {}
+    for c in KEEPER_CARDS:
+        try:
+            s = json.loads((q / "keeper" / f"card{c}.state").read_text())
+            if time.time() - float(s["time"]) < 20:
+                res[c] = float(s["held_mib"]) * GB_PER_MIB
+        except Exception:
+            pass
+    return res
+
+
+def keeper_req(q: Path, c: int, **kw):
+    """kw: release_to_mib + release_until, or pending_mib + pending_since + pending_until (gpu_keeper.py)."""
+    tmp = q / "keeper" / f".card{c}.req.tmp"
+    tmp.write_text(json.dumps(kw))
+    os.replace(tmp, q / "keeper" / f"card{c}.req")
+
+
+def make_room(q: Path, cards: list, need: float) -> bool:
+    """Ask the keepers on `cards` to release until real free >= need + 8 GiB; wait for nvidia-smi to show it."""
+    kc = [c for c in cards if c in keeper_held(q)]
+    if not kc:
+        return True
+    want = need + HEADROOM
+    for c in kc:
+        keeper_req(q, c, release_to_mib=(want + 1.0) / GB_PER_MIB, release_until=time.time() + KEEPER_WAIT)
+    t0 = time.time()
+    while time.time() - t0 < KEEPER_WAIT:
+        mem = free_gb()
+        if all(mem[c][0] >= want for c in cards):
+            return True
+        time.sleep(3)
+    for c in kc:   # give up: cancel the request, the keeper may top up again
+        keeper_req(q, c)
+    return False
 
 
 def free_gb() -> dict:
@@ -90,6 +137,9 @@ def main():
             if fr < 4.0 and now - low_warned.get(c, 0) > 600:
                 low_warned[c] = now
                 log(q, f"LOW_MEM card {c}: {fr:.1f} GB free")
+        for c, h in keeper_held(q).items():   # our keepers' blocks are available to our jobs
+            if c in mem:
+                mem[c] = (mem[c][0] + h, mem[c][1] - h)
         for jid, (t, cards, m) in started.items():
             if status.get(jid) == "running" and now - t < RESERVE_S:
                 for c in cards:
@@ -129,6 +179,10 @@ def main():
                     continue
                 ok.sort(key=lambda c: -mem[c][0]) if k == 1 else ok.sort()
                 cards = ok[:k] if k > 1 else ok[:1]
+                if not make_room(q, cards, need):
+                    log(q, f"keepers could not make room for {jid} on {cards}; retry later")
+                    last_gpu_start = time.time()
+                    break
                 env["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, cards))
                 for c in cards:
                     mem[c] = (mem[c][0] - need, mem[c][1] + need)
@@ -142,6 +196,10 @@ def main():
             (q / "state" / f"{jid}.started").write_text(json.dumps({"time": now, "cards": cards}))
             started[jid] = (now, cards, need)
             status[jid] = "running"
+            for c in cards:   # the keeper leaves the new job its room until its memory has settled
+                if c in KEEPER_CARDS and (q / "keeper").is_dir():
+                    t = time.time()
+                    keeper_req(q, c, pending_mib=need / GB_PER_MIB, pending_since=t, pending_until=t + KEEPER_SETTLE)
             log(q, f"start {jid} on cards {cards} (need {need} GB)")
             if need > 0:
                 break   # one GPU start per stagger period

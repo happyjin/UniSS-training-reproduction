@@ -100,3 +100,35 @@
 nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
 `setsid nohup bash scripts/gpu_load/run_mist_workload.sh --devices 0,1,2,3,7 --wait-idle --max-used-mib 0 > logs/mist_w3po_v1/workload_after.log 2>&1 &`；
 约 5 分钟后确认 5 张卡都接近满显存运行，并写入最终报告。绝不提前启动，绝不放到 4–6 号卡。
+
+## 2026-11-06（接手执行者）
+
+### 20:16–20:35 UTC：接手后的队列修正
+- dev_v8_ctx2 语音：talk7 失败且无重试、talk5b 三次都因 vLLM 显存 profiling 断言失败（kenxsong 的 vlm_tta 作业在
+  所有 8 张卡上频繁起停，邻居释放显存触发 `init_free_memory >= free_gpu_memory`），下游 asr/sscore 被跳过。
+  补 talk7c、talk5d（重试 20 次）与新的 asrd/sscored；`make_eval_jobs.py` 的 talker 重试改为 20 次，ASR 作业先确认
+  8 个 part 文件都在。
+- **SFT 布局实测**（25 步，GBS 64 不变；基准 warmup 改 5 步，否则 Megatron 断言 warmup<decay）：
+  - 4 卡（0–3）MBS 8：4.8 s/步，单卡峰值 reserved 64.6 GB（含上下文约 68 GB，队列按 72 GB 计）；
+  - 8 卡 MBS 4：7.5 s/步（更慢），且单卡约 66 GB，叠在 kenxsong 卡上把 5 号卡压到只剩 3 GB 空闲 → 立即按 PID 停掉；
+  - 8 卡 MBS 8（约 70 GB/卡）在 4–6 号卡上会使 kenxsong 作业有 OOM 风险（其用量在 60–74 GB 间波动），启动后立即
+    按 PID 停掉，未测速。
+  - **结论：S0 SFT 用 4 卡 MBS 8 布局（只在 0,1,2,3,7 上）**，3000 步约 4 h；kenxsong 卡上不放训练。
+- 偏离：原计划的 8 卡布局在 kenxsong 当前负载下不可行（不是速度问题，是显存安全）。
+
+### 20:35 UTC：用户命令——我方 5 张卡（0,1,2,3,7）预留守护
+- 背景：kenxsong 的调度器（他机 ssh 进来，`coordinator.py`）在某卡空闲显存连续 3 次（间隔 20 s）≥ 90000 MiB 且
+  util ≤ 75% 时放作业（execute_job 还要求 ≥ 88000 MiB）；20:00 左右我方作业交接时 0–3 号卡空了约 1 分钟，被他占上。
+- 实现：`experiments/mist_w3po_v1/scripts/gpu_keeper.py`，每卡一个独立进程（setsid nohup），用 2 GiB 的普通 CUDA
+  块把该卡真实空闲显存压在 80000 MiB 以下（空闲 ≥ 78000 MiB 时才加块）；空闲 < 12 GiB 时立即释放块，不会挤爆任何人；
+  状态写 `logs/mist_w3po_v1/queue/keeper/card<k>.state`（持有量、空闲量），日志 `card<k>.log`。
+- `gpuq_w3.py` 联动：keeper 持有的显存算作我方可用；在某卡起作业前写 `card<k>.req` 让 keeper 释放到
+  need + 8 GiB（再 +1 GB）的真实空闲，nvidia-smi 确认后才启动（最多等 150 s，否则撤销请求、稍后重试）；启动后
+  180 s 内 keeper 给新作业保留"尚未分配的那部分"空间（随作业增长递减），其余照常补满，所以交接和作业启动期间
+  该卡也不会出现 ≥ 88 GB 空闲。（第一版启动后改为"180 s 内不补"，实测 SFT 加载期间 0–3 号卡空闲到 ~100 GB，
+  立即改为上述"只保留未分配空间"的版本并替换进程：先起新 keeper，再按 PID 停旧 keeper。）
+- 不碰 kenxsong 的任何进程；4–6 号卡不放 keeper。他已在 0–3 号卡上的作业自然结束后，那部分显存由 keeper 接管。
+- 结束时：按 PID 逐卡停 keeper 并立即起用户的 workload。**注意**：`run_mist_workload.sh --wait-idle` 要求所选卡
+  无任何进程且已用 ≤ 1000 MiB 并持续 60 s；若届时 kenxsong 的作业仍在 0–3/7 上，workload 会一直等待（不是死锁，
+  但这段时间该卡没有 keeper），需要届时按实际情况处理并报告。
+- 当前进程：keeper PID 1035049(卡0) 1035050(卡1) 1035051(卡2) 1035053(卡3) 1035052(卡7)；队列 PID 1038406。
