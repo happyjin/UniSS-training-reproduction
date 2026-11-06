@@ -154,3 +154,6 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
   刚起新进程 → 按 PID 停掉第 4 片（已完成 50 个窗口），以 `--resume-from` 续跑到新文件（`hyp_s4_r3.jsonl`）；第 3 片
   同样续跑（`hyp_s3_r2.jsonl`）。打分/语音链以 `_c` 后缀重建（`make_eval_jobs.py --existing 8 --id-suffix _c`）。
   `make_eval_jobs.py` 生成的解码作业今后每次尝试都写新文件并从之前的尝试续跑，因此可安全重试（retries 2）。
+- 21:25 UTC：AliMeeting 参考解码作业改为可续跑版本重建（`_n` 后缀，旧作业未启动，移入 held_superseded）。
+  新增 `scripts/yield_guard.py`（后台常驻）：4,5,6 号卡真实空闲连续两次 < 4 GB 时，SIGTERM 我方在该卡上最新启动的
+  GPU 进程（只限 root 且为我方解码/talker/ASR/RL），保证 kenxsong 不因我方叠放而 OOM；被停的作业由队列重试并续跑。
