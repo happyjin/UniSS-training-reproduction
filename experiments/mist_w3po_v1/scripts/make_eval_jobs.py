@@ -48,6 +48,8 @@ def main():
     ap.add_argument("--dec-mem", type=float, default=66, help="GB per card of one decode shard")
     ap.add_argument("--max-gib", type=int, default=120)
     ap.add_argument("--dec-only", default="", help="comma list: cards the decode shards may use")
+    ap.add_argument("--id-suffix", default="", help="suffix for job ids (re-chaining an existing run)")
+    ap.add_argument("--extra-deps", nargs="*", default=[], help="with --existing: job ids the score job waits for")
     ap.add_argument("--existing", type=int, default=0,
                     help="N: the decode exists (N shards, started elsewhere): wait for its shards, no decode jobs")
     a = ap.parse_args()
@@ -74,7 +76,7 @@ def main():
     dec_ids = [j["id"] for j in jobs]
     wait = (f"until [ $(grep -l W3PO_ONLINE_DONE {D}/infer_s*.log | wc -l) -ge {a.existing} ]; do sleep 30; done; "
             if a.existing else "")
-    jobs.append({"id": f"{a.name}__score", "mem_gb": 0, "deps": dec_ids,
+    jobs.append({"id": f"{a.name}__score", "mem_gb": 0, "deps": dec_ids + a.extra_deps,
                  "cmd": ENV + wait + f"[ -e {D}/score_text.json ] || {PY} -m experiments.mist_w3po_v1.evaluation.score_run --run {D} --windows {win} "
                         f"--ref-windows {ref} --set {sset} > {D}/score.log 2>&1"})
     if a.speech:
@@ -106,10 +108,15 @@ def main():
                             f"{SP}/talker/asr_speech.jsonl {D}/hyp_asr.jsonl && {PY} -m "
                             f"experiments.mist_w3po_v1.evaluation.score_run --run {D} --windows {win} --ref-windows {ref} "
                             f"--set {sset} --asr {D}/hyp_asr.jsonl > {D}/score_asr.log 2>&1"})
+    if a.id_suffix:   # a second chain for the same outputs (the first one's ids are spent)
+        ids = {j["id"] for j in jobs}
+        for j in jobs:
+            j["id"] += a.id_suffix
+            j["deps"] = [d + a.id_suffix if d in ids else d for d in j["deps"]]
     qd = Path(a.qdir) / "jobs"
     qd.mkdir(parents=True, exist_ok=True)
     for i, j in enumerate(jobs):
-        f = qd / f"{a.prio:03d}_{a.name}_{i:02d}.json"
+        f = qd / f"{a.prio:03d}_{a.name}{a.id_suffix}_{i:02d}.json"
         with open(f, "x") as fh:
             json.dump(j, fh, indent=1)
     print(f"{len(jobs)} jobs for {a.name}")

@@ -150,3 +150,7 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
   4,5,6 号卡每卡至少留 25 GB（其余卡仍 8 GiB）；新增 `scripts/requeue.py`，把失败 / 停掉的作业及其下游以新 id
   重新排队（输出目录不变、不覆盖）。重启队列时我的模式匹配误杀了自己的工具 shell 与旧队列进程（未伤及任何作业，
   作业的 rc 由各自的包装进程写），之后一律用 `ps -C python -o pid=,args=` 的字段精确取 PID。队列 PID 1237923。
+- 21:20 UTC：旧队列进程在被替换前（21:06:15）又把 test_v8_ctx2r 第 4 片放到 4,6 号卡，4 号卡只剩 16 GB 且 kenxsong
+  刚起新进程 → 按 PID 停掉第 4 片（已完成 50 个窗口），以 `--resume-from` 续跑到新文件（`hyp_s4_r3.jsonl`）；第 3 片
+  同样续跑（`hyp_s3_r2.jsonl`）。打分/语音链以 `_c` 后缀重建（`make_eval_jobs.py --existing 8 --id-suffix _c`）。
+  `make_eval_jobs.py` 生成的解码作业今后每次尝试都写新文件并从之前的尝试续跑，因此可安全重试（retries 2）。
