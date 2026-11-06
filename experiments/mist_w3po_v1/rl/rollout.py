@@ -161,7 +161,7 @@ def anchors(eng: Engine, windows: list[dict], ctxs: dict, lags_ms: list[int], ma
             wav, post = data[s["w"]["id"]]
             items.append(ReadItem(wav=wav, post=post, t_ms=t, final=s["r"] == len(s["times"]) - 1,
                                   committed=s["committed"], ctx=s["tr"].ctx, akey=f"{s['w']['id']}|{t}",
-                                  bar_wait=True))
+                                  bar_wait=True, stop_ms=t - s["lag"]))
         outs = eng.read(items, max_new=max_new, cache=cache)
         for s, it, o in zip(live, items, outs):
             body = [i for i in o.ids if i not in (EOS_ID, WAIT_ID)]

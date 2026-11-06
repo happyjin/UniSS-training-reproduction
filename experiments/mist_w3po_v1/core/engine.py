@@ -136,6 +136,9 @@ class ReadItem:
     akey: str = ""               # items with the same akey share the audio encoding
     full: bool = False           # whole-window posteriors (oracle reads)
     bar_wait: bool = False       # lag / la2: generate to the end
+    stop_ms: int | None = None   # lag: stop at the first time token later than this (t - lag); what follows is never
+                                 # committed by lag_cut, so the commits equal those of the full continuation (unless
+                                 # a segment ends before it starts)
 
 
 @dataclass
@@ -234,7 +237,8 @@ class Engine:
         bar = torch.tensor([it.final or it.bar_wait for it in items], device=self.dev)
         done = torch.zeros(B, dtype=torch.bool, device=self.dev)
         tw = temp if temp_when is None else temp_when
-        spk_idx = torch.arange(SPK0, NEW_END, device=self.dev)
+        stop_tok = torch.tensor([max(NEW0, NEW0 + it.stop_ms // 80 + 1) if it.stop_ms is not None and not it.final
+                                 else NEW_END for it in items], device=self.dev)
         for step in range(max_new):
             lg = self.logits(h).to(self.dev)
             if wait_bias:
@@ -268,7 +272,7 @@ class Engine:
                     r.logp_wait.append(float(lpw[i]) if wl[i] else 0.0)
                     r.logp_who.append(float(lpwho[i]) if is_who_l[i] else 0.0)
                 st[i] = step_state(st[i], nl[i])
-            done |= (nxt == EOS_ID) | (nxt == WAIT_ID)
+            done |= (nxt == EOS_ID) | (nxt == WAIT_ID) | ((nxt >= stop_tok) & (nxt < SPK0))
             if bool(done.all()):
                 break
             mask = torch.cat([mask, torch.ones((B, 1), dtype=mask.dtype, device=self.dev)], 1)

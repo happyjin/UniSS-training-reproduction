@@ -154,7 +154,8 @@ def main() -> None:
                 s["t"] = min(s["r"] * period, s["dur"])
                 items.append(ReadItem(wav=s["wav"], post=s["post"], t_ms=s["t"], final=s["t"] >= s["dur"],
                                       committed=s["committed"], ctx=s["ctx"], akey=f"{s['w']['id']}|{s['t']}",
-                                      bar_wait=args.policy == "lag"))
+                                      bar_wait=args.policy == "lag",
+                                      stop_ms=s["t"] - args.lag_ms if args.policy == "lag" else None))
             outs = eng.read(items, max_new=args.max_new)
             finished = []
             for s, it, o in zip(active, items, outs):
