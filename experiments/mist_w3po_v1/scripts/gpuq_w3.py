@@ -49,7 +49,7 @@ def main():
     for d in ("jobs", "state", "logs"):
         (q / d).mkdir(parents=True, exist_ok=True)
     started = {}      # id -> (time, cards, mem)
-    last_gpu_start = 0.0
+    last_gpu_start = time.time()   # a restart must not start a GPU job right after one started before it
     low_warned = {}
     for f in (q / "state").glob("*.started"):
         started[f.stem] = (0.0, [], 0.0)
