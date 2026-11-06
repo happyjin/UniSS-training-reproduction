@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cardctl import CARDS, Card, log, smi_apps, smi_cards  # noqa: E402
+from cardctl import Card, load_cfg, log, smi_apps, smi_cards  # noqa: E402
 
 IDLE_S = 600
 START_S = 600
@@ -59,7 +59,7 @@ def queue_view(q: Path) -> tuple[set, set]:
         elif status[jid] == "pending" and all(status.get(d) == "done" for d in j.get("deps", [])):
             n_fail = len(list(st.glob(f"{jid}.rc.fail*")))
             if n_fail <= int(j.get("retries", 0)):
-                runnable |= set(j.get("only", CARDS))
+                runnable |= set(j.get("only", range(8)))
     return running, runnable
 
 
@@ -88,11 +88,15 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     q = Path(a.qdir)
-    cards = {c: Card(q, c) for c in CARDS}
-    last_busy = {c: time.time() for c in CARDS}    # a fresh watcher waits a full IDLE_S first
-    log(f"idle fallback up (dry_run={a.dry_run}), cards {CARDS}, idle {IDLE_S}s")
+    cards, last_busy = {}, {}
+    log(f"idle fallback up (dry_run={a.dry_run}), cards from {q / 'cards.json'}, idle {IDLE_S}s")
     while True:
         now = time.time()
+        for c in load_cfg(q)["ours"]:   # cards may be added (takeover_4_6.py)
+            if c not in cards:
+                cards[c] = Card(q, c)
+                last_busy[c] = now          # a new card waits a full IDLE_S first
+                log(f"card {c}: now one of ours")
         smi, apps = smi_cards(), smi_apps()
         running, runnable = queue_view(q)
         for c, card in cards.items():
@@ -110,6 +114,8 @@ def main():
             act = decide(now, last_busy[c], busy, bool(card.keeper_pid()), bool(wl),
                          card.workload_started_worker(), wl_age,
                          bool(wl) and card.handover_ready(uuid, free_mib, apps))
+            if act == "to_workload" and card.foreign_pids(uuid, apps):
+                act = "keep"   # another user's job is still on the card: the workload could not start; keeper stays
             if a.dry_run:
                 print(f"card {c}: ours={sorted(ours)} running={c in running} runnable={c in runnable} "
                       f"idle_for={now - last_busy[c]:.0f}s keeper={card.keeper_pid()} workload={wl} -> {act}")

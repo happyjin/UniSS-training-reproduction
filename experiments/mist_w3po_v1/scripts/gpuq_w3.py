@@ -32,12 +32,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cardctl  # noqa: E402  (keeper / workload hand-over of our cards)
 
 HEADROOM = 8.6      # GB (8 GiB)
-HEADROOM_CARD = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards: his processes fluctuate by ~15 GB
+HEADROOM_CARD = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards: his processes fluctuate by ~15 GB (cards.json)
 STAGGER = 60
 RESERVE_S = 300
 MAX_CPU = 12
 TOTAL_GB = 143.7
-KEEPER_CARDS = (0, 1, 2, 3, 7)
+KEEPER_CARDS = (0, 1, 2, 3, 7)   # refreshed every loop from <qdir>/cards.json (cardctl.load_cfg; takeover_4_6.py)
+
+
+def refresh_cfg(q: Path):
+    global KEEPER_CARDS, HEADROOM_CARD
+    cfg = cardctl.load_cfg(q)
+    KEEPER_CARDS, HEADROOM_CARD = cfg["ours"], cfg["headroom"]
 KEEPER_WAIT = 150
 KEEPER_SETTLE = 180
 GB_PER_MIB = 1.048576 / 1024
@@ -107,6 +113,7 @@ def main():
         started[f.stem] = (0.0, [], 0.0)
     log(q, f"queue up, {len(started)} jobs already started before")
     while not (q / "STOP").exists():
+        refresh_cfg(q)
         jobs = []
         for f in sorted((q / "jobs").glob("*.json")):
             try:
@@ -148,7 +155,7 @@ def main():
         wl_cards = {}
         try:
             apps, uu = cardctl.smi_apps(), cardctl.smi_cards()
-            for c in cardctl.CARDS:   # the user's workload on an idle card of ours is ours to take back
+            for c in KEEPER_CARDS:   # the user's workload on an idle card of ours is ours to take back
                 cc = cardctl.Card(q, c)
                 if cc.workload_pid() and c in mem:
                     h = cc.workload_mib(uu[c]["uuid"], apps) * GB_PER_MIB

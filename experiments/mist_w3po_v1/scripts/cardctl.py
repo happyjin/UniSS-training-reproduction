@@ -35,6 +35,19 @@ WORKLOAD_PY = "train_mist_workload.py"
 READY_MIB = 56000
 
 
+DEFAULT_HEADROOM = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards while his pipeline runs there
+
+
+def load_cfg(qdir) -> dict:
+    """<qdir>/cards.json {"ours": [...], "headroom": {"card": GB}} (written by takeover_4_6.py); default 0,1,2,3,7."""
+    try:
+        d = json.loads((Path(qdir) / "cards.json").read_text())
+        return {"ours": tuple(int(c) for c in d["ours"]),
+                "headroom": {int(k): float(v) for k, v in d.get("headroom", {}).items()}}
+    except Exception:
+        return {"ours": CARDS, "headroom": dict(DEFAULT_HEADROOM)}
+
+
 def log(msg: str):
     print(f"[{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}] {msg}", flush=True)
 
@@ -227,6 +240,18 @@ class Card:
 
     def workload_started_worker(self) -> bool:
         return len(self.workload_pids()) > 1
+
+    def foreign_pids(self, uuid: str, apps=None) -> set:
+        """GPU processes on this card not owned by root (other users' jobs)."""
+        res = set()
+        for u, pid, _ in (apps if apps is not None else smi_apps()):
+            if u == uuid:
+                try:
+                    if os.stat(f"/proc/{pid}").st_uid != 0:
+                        res.add(pid)
+                except OSError:
+                    pass
+        return res
 
     def our_job_pids(self, uuid: str, apps=None) -> set:
         """root GPU processes on this card other than its keeper / workload (= W3PO jobs)."""

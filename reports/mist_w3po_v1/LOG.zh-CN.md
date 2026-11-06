@@ -196,3 +196,16 @@ nvidia-smi 复核，今日为 0,1,2,3,7）上从仓库根目录启动
   让出块，workload 填到只剩 8 GiB；待 worker 显存 ≥ 56000 MiB 且 keeper 已不持有（或卡上空闲 < 30000 MiB）才停
   keeper；600 s 内没接管成功则停 workload、保留 keeper。决策与交接顺序的模拟测试、workload 自带 `--dry-run`、
   watcher `--dry-run` 均通过（未运行任何启动脚本）。队列与 watcher 已重启以载入新代码。
+
+### 2026-11-06 23:38 UTC：4–6 号卡接管准备（用户经 K8s 取得 4–6 号卡）
+- kenxsong 的 zh2en TTS 流水线（`ktrain_hok_to1000`，控制进程 1730109，voxcpm 服务 2243463/65/67）仍在 4–6 上，
+  其 PROGRESS.json 预计 11-07 06:05 UTC 结束；不碰。
+- `scripts/takeover_4_6.py`（root、setsid 常驻，PID 2316702）：4–6 号卡上 cmdline 含 `ktrain_hok_to1000` 的 GPU
+  进程全部消失并保持 2 分钟后，写 `logs/mist_w3po_v1/queue/cards.json`（8 卡皆为我方、无额外余量），立即在 4–6
+  起 keeper，写 `takeover_4_6.done` 后退出。
+- `gpuq_w3.py` 与 `idle_fallback.py` 每轮读 `cards.json`（`cardctl.load_cfg`）：接管后 4–6 与其他卡同等（8 GiB 余量、
+  keeper、空闲 10 分钟无作业 → 无空档切换到 workload、起作业前按 PID 收回）。kenxsong 其他仍在 4–6 上的进程不动：
+  有非 root 进程的卡不切 workload（workload 也起不来），keeper 在空闲 < 12 GiB 时让出，`yield_guard.py` 照旧保护。
+- 验证：`test_takeover_4_6.py`（模拟触发时序、cards.json、keeper 请求、done 标记）、`test_idle_fallback.py` 通过；
+  `takeover_4_6.py --dry-run` 看到流水线 GPU 进程 9 个；`idle_fallback.py --dry-run` 正常。
+- 进程：队列 2316700、idle_fallback 2316701、takeover 2316702、yield_guard 1356920。
