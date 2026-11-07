@@ -35,7 +35,7 @@ import torch.distributed as dist
 from experiments.mist_w3po_v1.core.engine import (
     AUDIO_PAD, NEW_END, SPK0, WAIT_ID, Engine, Prompter, ReadItem, ctx_string)
 from experiments.mist_w3po_v1.rl import stamp as S
-from experiments.mist_w3po_v1.rl.advantage import W3_MODES, categories, group_advantages
+from experiments.mist_w3po_v1.rl.advantage import W3_MODES, admit_anchors, categories, group_advantages
 from experiments.mist_w3po_v1.rl.rollout import anchors as run_anchors
 from experiments.mist_w3po_v1.rl.rollout import load_window, rollout
 from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, N_SLOT, SDProjector
@@ -127,6 +127,8 @@ def main() -> None:
     ap.add_argument("--G", type=int, default=8)
     ap.add_argument("--lags", default="1000,2000,3000")
     ap.add_argument("--anchor-in-group", type=int, default=1)
+    ap.add_argument("--anchor-gate", default="minpol", choices=["none", "minpol"],
+                    help="which anchors join the group (advantage.admit_anchors); none = pilot steps 1-13")
     ap.add_argument("--temp", type=float, default=0.8)
     ap.add_argument("--temp-when", type=float, default=1.0)
     ap.add_argument("--max-new", type=int, default=300)
@@ -285,18 +287,24 @@ def main() -> None:
             _, post = load_window(w)
             members = list(trajs[w["id"]])
             anc_tr = anc.get(w["id"], [])
-            in_group = members + (anc_tr if (args.anchor_in_group and w3 and args.mode != "noC3") else [])
-            creds = []
-            for tr in in_group:
-                creds.append(S.credit(tr.segs, units, dur, tr.wait_reads, [rd.t_ms / 1000 for rd in tr.reads], post=post))
-            aq = [(c.R, c.lat) for c in (S.credit(tr.segs, units, dur, tr.wait_reads,
-                                                   [rd.t_ms / 1000 for rd in tr.reads], post=post) for tr in anc_tr)]
+            cred = lambda tr: S.credit(tr.segs, units, dur, tr.wait_reads, [rd.t_ms / 1000 for rd in tr.reads], post=post)  # noqa: E731
+            creds = [cred(tr) for tr in members]
+            anc_creds = [cred(tr) for tr in anc_tr]
+            aq = [(c.R, c.lat) for c in anc_creds]
+            in_group = list(members)
+            n_admit = 0
+            if args.anchor_in_group and w3 and args.mode != "noC3":
+                ok = admit_anchors([c.R for c in creds], [c.R for c in anc_creds], args.anchor_gate)
+                in_group += [tr for tr, k in zip(anc_tr, ok) if k]
+                creds += [c for c, k in zip(anc_creds, ok) if k]
+                n_admit = sum(ok)
             texts = {"".join(s["text"] for s in tr.segs) for tr in members}
             adv = group_advantages(args.mode, in_group, creds, units, dur, aq)
             st = adv["stats"]
             st["dropped"] = len(texts) == 1
             st["n_units"] = len(units)
             st["anchors"] = aq
+            st["n_admit"] = n_admit
             st["segs"] = [len(tr.segs) for tr in members]
             st["spurious"] = [c.spurious for c in creds[: len(members)]]
             st["dup"] = [sum(1 for d in c.delta[:] if d < 0) for c in creds[: len(members)]]
@@ -386,7 +394,8 @@ def main() -> None:
                float(np.sum([np.mean(st.get("r_lat", [0])[: args.G]) for st in gstats])),
                float(np.sum([np.mean([a[0] for a in st["anchors"]]) if st["anchors"] else 0 for st in gstats])),
                logs["kl"], logs["clip"], logs["ntok"], logs["ratio_dev"], logs["p_wait_when"], logs["n_when"],
-               t_roll, t_anc, t_rew, t_upd]
+               t_roll, t_anc, t_rew, t_upd, float(sum(st["n_admit"] for st in gstats)),
+               float(sum(len(st["anchors"]) for st in gstats))]
         g = agg(loc)
         if rank == 0:
             ng = max(g[0], 1)
@@ -397,7 +406,8 @@ def main() -> None:
                    "clip_frac": g[14] / max(g[15], 1), "ratio_dev": g[16] / max(g[15], 1),
                    "p_wait_at_when": g[17] / max(g[18], 1), "gnorm": logs["gnorm"],
                    "t_rollout": g[19] / world, "t_anchor": g[20] / world, "t_reward": g[21] / world, "t_update": g[22] / world,
-                   "t_step": time.time() - t0, "gpu_h": (time.time() - t0) * world / 3600, "tokens": cnt.tolist()}
+                   "t_step": time.time() - t0, "gpu_h": (time.time() - t0) * world / 3600, "tokens": cnt.tolist(),
+                   "anchor_admit": g[23] / max(g[24], 1)}
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in rec.items()}))

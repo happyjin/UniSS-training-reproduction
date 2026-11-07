@@ -39,6 +39,21 @@ def categories(before: list[int], ids: list[int], final: bool) -> list[tuple[boo
     return out
 
 
+def admit_anchors(policy_R: list[float], anchor_R: list[float], rule: str = "minpol") -> list[bool]:
+    """Which FLAD anchors join the group as LUFFY guidance (2026-11-07 pilot audit: the Lag1 anchor sometimes falls
+    into a fragment loop ("the, | the, | ...") whose spurious penalties give R down to -32; inside the group it
+    inflates every normalising std and shrinks the policy members' advantages, while teaching nothing).
+      none     every anchor joins (the pilot's steps 1-13)
+      minpol   an anchor joins only if its R is at least the lowest policy R of the group
+    Anchors always stay FLAD latency references (a degenerate anchor never dominates, so it is inert there)."""
+    if rule == "none" or not policy_R:
+        return [True] * len(anchor_R)
+    if rule == "minpol":
+        lo = min(policy_R)
+        return [a >= lo for a in anchor_R]
+    raise ValueError(rule)
+
+
 def z(x: np.ndarray) -> np.ndarray:
     x = np.asarray(x, dtype=float)
     if len(x) == 0:
