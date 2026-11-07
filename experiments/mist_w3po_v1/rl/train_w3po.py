@@ -149,7 +149,8 @@ def main() -> None:
     ap.add_argument("--en-norm", default="data/ami_multispk_si_v1/en_norm_v1.jsonl")
     args = ap.parse_args()
 
-    dist.init_process_group("nccl")
+    import datetime as _dt
+    dist.init_process_group("nccl", timeout=_dt.timedelta(hours=2))   # ranks may lag a lot on shared cards (2026-11-07)
     rank, world = dist.get_rank(), dist.get_world_size()
     lr_ = int(os.environ.get("LOCAL_RANK", rank))
     torch.cuda.set_device(lr_)
