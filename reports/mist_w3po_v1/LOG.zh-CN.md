@@ -275,3 +275,7 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
 - 03:29:50 全部 8 张卡上的 GPU 进程（含 keeper）几乎同时收到 SIGTERM（非我方 yield_guard、非 guard_cards 所为），
   已报告。自动恢复：idle_fallback 1 分钟内重起 8 个 keeper；队列从 step_00005 重启小测（03:30:44）；锚点预计算续跑；
   两个被停的 ASR 以 `_r1` 重新排队。
+- 03:34:45 第二次全机 SIGTERM：8 个 keeper、队列（3420256）、idle_fallback（3420255）、重启后的小测、锚点、ASR 全部被停
+  （yield_guard 与 guard_cards 未受影响）。03:36 起 zezhongjin 的 K8s 24 卡作业 `s5-audio-lora-smoke-24gpu-1107-r1`
+  （swift sft，torchrun 3917184，本机为 node_rank 0）占用全部 8 张卡（初始约 25 GB/卡）。已报告并请求把本节点从该作业排除。
+  03:40 重启队列（3955873）与 idle_fallback（3959883），keeper 全部重起；小测在显存允许前排队等待（每卡需约 110 GB）。
