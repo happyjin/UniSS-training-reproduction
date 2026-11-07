@@ -39,13 +39,17 @@ DEFAULT_HEADROOM = {4: 25.0, 5: 25.0, 6: 25.0}   # kenxsong's cards while his pi
 
 
 def load_cfg(qdir) -> dict:
-    """<qdir>/cards.json {"ours": [...], "headroom": {"card": GB}} (written by takeover_4_6.py); default 0,1,2,3,7."""
+    """<qdir>/cards.json {"ours": [...], "headroom": {"card": GB}, "keepers": bool, "idle_s": s} (written by
+    takeover_4_6.py / by hand); default 0,1,2,3,7. keepers false (dedicated server, user order 2026-11-07): no
+    reservation keeper anywhere -- an idle card goes straight to the workload, a job card holds only the job;
+    idle_s: how long a card must be without a job of ours before it gets the workload (default 600 s)."""
     try:
         d = json.loads((Path(qdir) / "cards.json").read_text())
         return {"ours": tuple(int(c) for c in d["ours"]),
-                "headroom": {int(k): float(v) for k, v in d.get("headroom", {}).items()}}
+                "headroom": {int(k): float(v) for k, v in d.get("headroom", {}).items()},
+                "keepers": bool(d.get("keepers", True)), "idle_s": float(d.get("idle_s", 600))}
     except Exception:
-        return {"ours": CARDS, "headroom": dict(DEFAULT_HEADROOM)}
+        return {"ours": CARDS, "headroom": dict(DEFAULT_HEADROOM), "keepers": True, "idle_s": 600.0}
 
 
 def log(msg: str):

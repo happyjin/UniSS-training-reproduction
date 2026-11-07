@@ -64,9 +64,23 @@ def queue_view(q: Path) -> tuple[set, set]:
 
 
 def decide(now: float, last_busy: float, busy: bool, keeper: bool, workload: bool, worker_up: bool,
-           wl_age: float, ready: bool = False) -> str:
-    """pure decision per card: 'keep' | 'start_keeper' | 'to_workload' | 'drop_keeper' | 'to_keeper'
-    (tested in test_idle_fallback)."""
+           wl_age: float, ready: bool = False, keepers: bool = True, idle_s: float | None = None) -> str:
+    """pure decision per card: 'keep' | 'start_keeper' | 'to_workload' | 'drop_keeper' | 'to_keeper' |
+    'restart_workload' (tested in test_idle_fallback). keepers=False: no keeper is ever started; a leftover keeper
+    is dropped on a card with a job (no other process on job cards) or once the workload holds its memory."""
+    idle_s = IDLE_S if idle_s is None else idle_s
+    if not keepers:
+        if workload:
+            if keeper and ready:
+                return "drop_keeper"
+            if not worker_up and wl_age > START_S:
+                return "restart_workload"
+            return "keep"
+        if keeper and busy:
+            return "drop_keeper"
+        if not busy and now - last_busy >= idle_s:
+            return "to_workload"
+        return "keep"
     if workload:
         if keeper:      # gap-free hand-over in progress: the keeper goes once the workload holds its memory
             if ready:
@@ -77,7 +91,7 @@ def decide(now: float, last_busy: float, busy: bool, keeper: bool, workload: boo
         return "keep"
     if not keeper:
         return "start_keeper"
-    if not busy and now - last_busy >= IDLE_S:
+    if not busy and now - last_busy >= idle_s:
         return "to_workload"
     return "keep"
 
@@ -92,7 +106,8 @@ def main():
     log(f"idle fallback up (dry_run={a.dry_run}), cards from {q / 'cards.json'}, idle {IDLE_S}s")
     while True:
         now = time.time()
-        for c in load_cfg(q)["ours"]:   # cards may be added (takeover_4_6.py)
+        cfg = load_cfg(q)
+        for c in cfg["ours"]:   # cards may be added (takeover_4_6.py)
             if c not in cards:
                 cards[c] = Card(q, c)
                 last_busy[c] = now          # a new card waits a full IDLE_S first
@@ -113,7 +128,7 @@ def main():
             free_mib = smi[c]["total"] - smi[c]["used"]
             act = decide(now, last_busy[c], busy, bool(card.keeper_pid()), bool(wl),
                          card.workload_started_worker(), wl_age,
-                         bool(wl) and card.handover_ready(uuid, free_mib, apps))
+                         bool(wl) and card.handover_ready(uuid, free_mib, apps), cfg["keepers"], cfg["idle_s"])
             if act == "to_workload" and card.foreign_pids(uuid, apps):
                 act = "keep"   # another user's job is still on the card: the workload could not start; keeper stays
             if a.dry_run:
@@ -136,6 +151,8 @@ def main():
                     card.drop_keeper()
                 elif act == "to_keeper":
                     card.to_keeper()
+                elif act == "restart_workload":
+                    card.stop_workload()
         if a.dry_run:
             return
         time.sleep(TICK)

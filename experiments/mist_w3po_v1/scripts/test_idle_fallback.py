@@ -16,6 +16,28 @@ import cardctl  # noqa: E402
 from idle_fallback import IDLE_S, START_S, decide, queue_view  # noqa: E402
 
 
+def test_decide_no_keepers():
+    t = 1000.0
+    kw = dict(keepers=False, idle_s=45)
+    assert decide(t + 44, t, False, False, False, False, 0, **kw) == "keep"
+    assert decide(t + 45, t, False, False, False, False, 0, **kw) == "to_workload"
+    assert decide(t + 5000, t + 5000, True, False, False, False, 0, **kw) == "keep"          # job card: nothing
+    assert decide(t + 5000, t + 5000, True, True, False, False, 0, **kw) == "drop_keeper"    # leftover keeper goes
+    assert decide(t + 45, t, False, True, False, False, 0, **kw) == "to_workload"
+    assert decide(t + 50, t, False, True, True, True, 5, True, **kw) == "drop_keeper"
+    assert decide(t + 50, t, False, False, True, True, 5, **kw) == "keep"
+    assert decide(t + 9000, t, False, False, True, False, START_S + 1, **kw) == "restart_workload"
+    assert decide(t, t, False, False, False, False, 0, **kw) == "keep"                      # never start_keeper
+    with tempfile.TemporaryDirectory(dir="/opt/dlami/nvme/jasonleeeli/work") as d:
+        (Path(d) / "cards.json").write_text(json.dumps({"ours": [0, 1], "keepers": False, "idle_s": 45}))
+        cfg = cardctl.load_cfg(d)
+        assert cfg["keepers"] is False and cfg["idle_s"] == 45.0 and cfg["ours"] == (0, 1)
+        (Path(d) / "cards.json").write_text(json.dumps({"ours": [0]}))
+        cfg = cardctl.load_cfg(d)
+        assert cfg["keepers"] is True and cfg["idle_s"] == 600.0
+    print("PASS decide (keepers off) / load_cfg")
+
+
 def test_decide():
     t = 1000.0
     # busy card never switches
@@ -113,6 +135,7 @@ def test_handover_order(monkey_alive=True):
 
 if __name__ == "__main__":
     test_decide()
+    test_decide_no_keepers()
     test_queue_view()
     test_handover_order()
     print("IDLE_FALLBACK_TESTS_OK")

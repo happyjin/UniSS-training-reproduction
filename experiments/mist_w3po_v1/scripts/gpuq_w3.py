@@ -38,12 +38,13 @@ RESERVE_S = 300
 MAX_CPU = 12
 TOTAL_GB = 143.7
 KEEPER_CARDS = (0, 1, 2, 3, 7)   # refreshed every loop from <qdir>/cards.json (cardctl.load_cfg; takeover_4_6.py)
+USE_KEEPERS = True               # cards.json "keepers": false -> the workload is stopped (not handed to a keeper)
 
 
 def refresh_cfg(q: Path):
-    global KEEPER_CARDS, HEADROOM_CARD
+    global KEEPER_CARDS, HEADROOM_CARD, USE_KEEPERS
     cfg = cardctl.load_cfg(q)
-    KEEPER_CARDS, HEADROOM_CARD = cfg["ours"], cfg["headroom"]
+    KEEPER_CARDS, HEADROOM_CARD, USE_KEEPERS = cfg["ours"], cfg["headroom"], cfg["keepers"]
 KEEPER_WAIT = 150
 KEEPER_SETTLE = 180
 GB_PER_MIB = 1.048576 / 1024
@@ -220,7 +221,10 @@ def main():
                     if c in wl_cards:
                         with wl_cards[c].lock():
                             log(q, f"card {c}: taking it back from the workload for {jid}")
-                            wl_cards[c].to_keeper()
+                            if USE_KEEPERS:
+                                wl_cards[c].to_keeper()
+                            else:
+                                wl_cards[c].stop_workload()
                 if not make_room(q, cards, need):
                     log(q, f"keepers could not make room for {jid} on {cards}; retry later")
                     last_gpu_start = time.time()
@@ -240,7 +244,7 @@ def main():
             started[jid] = (now, cards, need)
             status[jid] = "running"
             for c in cards:   # the keeper leaves the new job its room until its memory has settled
-                if c in KEEPER_CARDS and (q / "keeper").is_dir():
+                if USE_KEEPERS and c in KEEPER_CARDS and (q / "keeper").is_dir():
                     t = time.time()
                     keeper_req(q, c, pending_mib=need / GB_PER_MIB, pending_since=t, pending_until=t + KEEPER_SETTLE)
             log(q, f"start {jid} on cards {cards} (need {need} GB)")
