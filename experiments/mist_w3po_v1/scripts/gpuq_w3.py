@@ -9,7 +9,8 @@ handed back to its keeper with cardctl.Card.to_keeper), starts the job, and for 
 
 Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
   {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
-   "only": [cards allowed] (optional), "deps": [ids], "retries": n (optional, restart a failed job), "exclusive_gb": float (optional: a multi-card job also needs
+   "only": [cards allowed] (optional), "deps": [ids], "retries": n (optional, restart a failed job), "stagger": s (optional,
+   min. seconds since the previous GPU start, default STAGGER; vLLM jobs keep 60), "exclusive_gb": float (optional: a multi-card job also needs
    at most this much already used on each chosen card, e.g. SFT on lightly loaded cards)}
 The command runs as `bash -c` in its own session with CUDA_VISIBLE_DEVICES set, stdout/stderr to <qdir>/logs/<id>.log,
 and its exit code is written to <qdir>/state/<id>.rc by the wrapper itself (so a queue restart sees finished jobs).
@@ -205,7 +206,8 @@ def main():
                 env["CUDA_VISIBLE_DEVICES"] = ""
                 n_cpu += 1
             else:
-                if now - last_gpu_start < STAGGER:
+                # per-job "stagger" (s): HF jobs need no 60 s gap (that is for vLLM memory profiling, 2026-11-07)
+                if now - last_gpu_start < float(j.get("stagger", STAGGER)):
                     continue
                 allowed = j.get("only", list(mem))
                 k = int(j.get("cards", 1))
