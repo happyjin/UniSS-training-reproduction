@@ -2,7 +2,7 @@
 card's real free memory stays below MIN_FREE_GB for two checks in a row, SIGTERM OUR most recently started GPU process
 on that card (root-owned, one of ours: online_decode / si_infer / asr_transcribe / train_w3po), so he never OOMs. Our
 queue jobs are retried and decodes resume from their earlier windows. Never touches anyone else's processes.
-Log: <qdir>/yield_guard.log.
+Log: <qdir>/yield_guard.log. Also restarts the queue and idle_fallback if they died (resurrect()).
 
     setsid nohup python yield_guard.py <qdir> >> <qdir>/yield_guard.log 2>&1 < /dev/null &
 """
@@ -31,7 +31,38 @@ def smi(q):
     return [[x.strip() for x in l.split(",")] for l in out.strip().splitlines() if l.strip()]
 
 
+DAEMONS = ("experiments/mist_w3po_v1/scripts/gpuq_w3.py", "experiments/mist_w3po_v1/scripts/idle_fallback.py")
+PY = "/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python"
+REPO = "/opt/dlami/nvme/jasonleeeli/projects/UniSS"
+
+
+def resurrect(qdir: str):
+    """2026-11-07: an external killer SIGTERMs GPU processes and their parents (the queue, idle_fallback). Restart
+    them (re-parented to init with setsid -f) unless <qdir>/NO_RESURRECT exists (end of work)."""
+    if os.path.exists(os.path.join(qdir, "NO_RESURRECT")):
+        return
+    running = set()
+    for d in os.listdir("/proc"):
+        if d.isdigit():
+            try:
+                cl = open(f"/proc/{d}/cmdline", "rb").read().replace(b"\0", b" ").decode(errors="ignore")
+            except OSError:
+                continue
+            for s in DAEMONS:
+                if s in cl and cl.startswith(PY):
+                    running.add(s)
+    for s in DAEMONS:
+        if s not in running:
+            logf = os.path.join(qdir, "queue.log" if "gpuq" in s else "idle_fallback.log")
+            with open(os.path.join(REPO, logf), "a") as fh:
+                subprocess.run(["setsid", "-f", PY, s, qdir], stdout=fh, stderr=subprocess.STDOUT,
+                               stdin=subprocess.DEVNULL, cwd=REPO)
+            log(f"RESURRECT {s}")
+
+
 def main():
+    qdir = sys.argv[1]
+    n = 0
     low = {c: 0 for c in CARDS}
     log(f"yield guard up, pid {os.getpid()}, cards {CARDS}, min free {MIN_FREE_GB} GB")
     while True:
@@ -61,6 +92,9 @@ def main():
             else:
                 log(f"card {c}: {free_mib:.0f} MiB free, none of our processes there")
                 low[c] = -60
+        n += 1
+        if n % 6 == 0:
+            resurrect(qdir)
         time.sleep(TICK)
 
 

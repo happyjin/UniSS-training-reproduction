@@ -279,3 +279,10 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
   （yield_guard 与 guard_cards 未受影响）。03:36 起 zezhongjin 的 K8s 24 卡作业 `s5-audio-lora-smoke-24gpu-1107-r1`
   （swift sft，torchrun 3917184，本机为 node_rank 0）占用全部 8 张卡（初始约 25 GB/卡）。已报告并请求把本节点从该作业排除。
   03:40 重启队列（3955873）与 idle_fallback（3959883），keeper 全部重起；小测在显存允许前排队等待（每卡需约 110 GB）。
+- 03:50:55 第三次：keeper、队列（3955873）、idle_fallback（3959883）、重启后的小测（torchrun 4018220）再次同时被 SIGTERM；
+  zezhongjin 的作业 03:52 重新起在 8 张卡上（PID 4049858…，各约 0.6 GB 起步）。三次中从未被杀的是 yield_guard 和
+  guard_cards ——它们都不是 GPU 进程的父进程；被杀的守护进程都是 GPU 进程的父进程。推断外部清理会连同父进程一起杀。
+- 对策（04:00 生效）：队列作业、keeper、workload 一律用 `setsid -f` 启动（立即过继给 init，守护进程不再是任何 GPU
+  进程的父进程）；`yield_guard.py` 每 30 s 检查队列与 idle_fallback，缺了就用 `setsid -f` 重启（`<qdir>/NO_RESURRECT`
+  可关闭，收尾时用）。实测：重启后的 yield_guard（4107441）30 s 内把队列（4109794）与 idle_fallback（4109796）拉起。
+  小测改用 `rl_pilot_w3po_v8_d_e`（重试 10 次，每 5 步存档，从 step_00005 续跑）。ASR 作业改为 `--resume` 续写。

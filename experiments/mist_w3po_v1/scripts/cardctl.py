@@ -140,17 +140,17 @@ class Card:
             return old
         env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(self.c))
         with open(self.kdir / f"card{self.c}.log", "a") as fh:
-            p = subprocess.Popen([PY, KEEPER, str(self.kdir), str(self.c)], env=env, stdout=fh, stderr=subprocess.STDOUT,
-                                 stdin=subprocess.DEVNULL, start_new_session=True, cwd=REPO)
+            # setsid -f: re-parented to init (the caller must not be the parent of a GPU process, 2026-11-07)
+            subprocess.run(["setsid", "-f", PY, KEEPER, str(self.kdir), str(self.c)], env=env, stdout=fh,
+                           stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, cwd=REPO)
         t0 = time.time()
-        while time.time() - t0 < wait_s:   # up when it has written its own state
-            if self.keeper_pid() == p.pid:
-                log(f"card {self.c}: keeper up, pid {p.pid}")
-                return p.pid
-            if p.poll() is not None:
-                break
+        while time.time() - t0 < wait_s:   # up when it has written its own (fresh) state
+            pid = self.keeper_pid()
+            if pid and self.keeper_held_mib() >= 0:
+                log(f"card {self.c}: keeper up, pid {pid}")
+                return pid
             time.sleep(1)
-        log(f"card {self.c}: keeper pid {p.pid} did not come up (rc {p.poll()})")
+        log(f"card {self.c}: keeper did not come up")
         return 0
 
     def stop_keeper(self, wait_s: float = 30) -> bool:
@@ -202,12 +202,21 @@ class Card:
             return old
         logf = REPO / "logs/mist_w3po_v1" / f"workload_card{self.c}.log"
         with open(logf, "a") as fh:
-            p = subprocess.Popen(["bash", WORKLOAD, "--devices", str(self.c), "--tolerate-keeper", "--wait-idle",
-                                  "--idle-seconds", "0", "--poll-seconds", "1", "--max-used-mib", "0"], stdout=fh, stderr=subprocess.STDOUT,
-                                 stdin=subprocess.DEVNULL, start_new_session=True, cwd=REPO)
-        self._write_wl({"pid": p.pid, "time": time.time(), "log": str(logf)})
-        log(f"card {self.c}: workload supervisor pid {p.pid} (log {logf})")
-        return p.pid
+            pidf = self.wdir / f".card{self.c}.{int(time.time() * 1000)}.pid"   # fresh name: no stale pid
+            # setsid -f + exec: re-parented to init; the pid file holds the supervisor's pid (bash execs python)
+            subprocess.run(["setsid", "-f", "bash", "-c", f"echo $$ > {pidf}; exec bash {WORKLOAD} --devices {self.c} "
+                            "--tolerate-keeper --wait-idle --idle-seconds 0 --poll-seconds 1 --max-used-mib 0"],
+                           stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, cwd=REPO)
+        pid = 0
+        for _ in range(50):
+            try:
+                pid = int(pidf.read_text().strip())
+                break
+            except (OSError, ValueError):
+                time.sleep(0.1)
+        self._write_wl({"pid": pid, "time": time.time(), "log": str(logf)})
+        log(f"card {self.c}: workload supervisor pid {pid} (log {logf})")
+        return pid
 
     def stop_workload(self, wait_s: float = 40) -> bool:
         pids = self.workload_pids()

@@ -71,10 +71,15 @@ def keeper_req(q: Path, c: int, **kw):
 
 def make_room(q: Path, cards: list, need: float) -> bool:
     """Ask the keepers on `cards` to release until real free >= need + 8 GiB; wait for nvidia-smi to show it."""
-    kc = [c for c in cards if c in keeper_held(q)]
+    held = keeper_held(q)
+    kc = [c for c in cards if c in held]
     if not kc:
         return True
     want = need + HEADROOM
+    mem = free_gb()   # only release if every card can actually get there (no futile release windows)
+    short = [c for c in cards if mem[c][0] + held.get(c, 0.0) < want + 3.0]   # margin: block size, rounding
+    if short:
+        return False
     for c in kc:
         keeper_req(q, c, release_to_mib=(want + 1.0) / GB_PER_MIB, release_until=time.time() + KEEPER_WAIT)
     t0 = time.time()
@@ -218,9 +223,10 @@ def main():
             rc = q / "state" / f"{jid}.rc"
             wrapped = f"{j['cmd']}\necho $? > {rc}"
             with open(q / "logs" / f"{jid}.log", "a") as fh:
-                subprocess.Popen(["bash", "-c", wrapped], env=env, stdout=fh, stderr=subprocess.STDOUT,
-                                 stdin=subprocess.DEVNULL, start_new_session=True,
-                                 cwd="/opt/dlami/nvme/jasonleeeli/projects/UniSS")
+                # setsid -f: the job is re-parented to init at once, so the queue is never the parent of a GPU
+                # process (2026-11-07: an external killer SIGTERMs GPU processes together with their parents)
+                subprocess.run(["setsid", "-f", "bash", "-c", wrapped], env=env, stdout=fh, stderr=subprocess.STDOUT,
+                               stdin=subprocess.DEVNULL, cwd="/opt/dlami/nvme/jasonleeeli/projects/UniSS")
             (q / "state" / f"{jid}.started").write_text(json.dumps({"time": now, "cards": cards}))
             started[jid] = (now, cards, need)
             status[jid] = "running"
