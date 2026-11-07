@@ -140,6 +140,7 @@ def main() -> None:
     ap.add_argument("--lora-alpha", type=float, default=64.0)
     ap.add_argument("--save-every", type=int, default=25)
     ap.add_argument("--seed", type=int, default=20261107)
+    ap.add_argument("--anchor-cache", default="", help="dir of precompute_anchors.py part_*.jsonl (read each step)")
     ap.add_argument("--ctx-max", type=int, default=2, help="cross-window context segments (0 = v8 prompts, no context)")
     ap.add_argument("--max-dur-ms", type=int, default=20500)
     ap.add_argument("--resume", action="store_true")
@@ -206,6 +207,29 @@ def main() -> None:
                 anchor_cache[r["id"]] = r
             except json.JSONDecodeError:
                 pass
+    pre_off = {}
+
+    def refresh_precomputed():
+        """new complete lines of the precomputed anchor files (precompute_anchors.py) -> anchor_cache."""
+        if not args.anchor_cache:
+            return 0
+        n = 0
+        for f in sorted(Path(args.anchor_cache).glob("part_*.jsonl")):
+            with open(f, "rb") as fh:
+                fh.seek(pre_off.get(f, 0))
+                data = fh.read()
+            end = data.rfind(b"\n") + 1
+            pre_off[f] = pre_off.get(f, 0) + end
+            for l in data[:end].splitlines():
+                try:
+                    r = json.loads(l)
+                except json.JSONDecodeError:
+                    continue
+                if r["id"] not in anchor_cache:
+                    anchor_cache[r["id"]] = r
+                    n += 1
+        return n
+
     gen = torch.Generator(device=dev)
     w3 = args.mode in W3_MODES
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
@@ -224,6 +248,7 @@ def main() -> None:
         # anchors (adapters off), cached
         anc = {}
         if use_anchors:
+            refresh_precomputed()
             need = [w for w in mine if w["id"] not in anchor_cache]
             if need:
                 with lora.adapters_disabled(adapters):
