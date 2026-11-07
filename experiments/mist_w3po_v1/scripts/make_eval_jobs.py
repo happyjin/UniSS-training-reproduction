@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--dec-cards", type=int, default=1, help="cards per decode shard (model split by --max-gib)")
     ap.add_argument("--dec-mem", type=float, default=66, help="GB per card of one decode shard")
     ap.add_argument("--max-gib", type=int, default=120)
+    ap.add_argument("--asr-shards", type=int, default=1,
+                    help="speech ASR in N parallel shard jobs + asr_merge (default 1: the single ASR job as before)")
     ap.add_argument("--dec-only", default="", help="comma list: cards the decode shards may use")
     ap.add_argument("--id-suffix", default="", help="suffix for job ids (re-chaining an existing run)")
     ap.add_argument("--extra-deps", nargs="*", default=[], help="with --existing: job ids the score job waits for")
@@ -97,15 +99,33 @@ def main():
                                 f"--blocks-file {SP}/talker_in/blocks.jsonl --items-file {SP}/talker_in/items.jsonl "
                                 f"--speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --shard {k} "
                                 f"--num-shards 8 > {SP}/talk{k}.log 2>&1"})
+        if a.asr_shards > 1:   # 2026-11-07: one whisper process took ~3 h per eval
+            prep = (f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
+                    f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
+                    f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker")
+            jobs.append({"id": f"{a.name}__asrprep", "mem_gb": 0, "deps": tk, "cmd": ENV + prep + f" > {SP}/asrprep.log 2>&1"})
+            parts = []
+            for k in range(a.asr_shards):
+                parts.append(f"{a.name}__asrp{k}")
+                jobs.append({"id": parts[-1], "mem_gb": 14, "deps": [f"{a.name}__asrprep"], "retries": 3, "stagger": 15,
+                             "cmd": ENV + f"{PYE} -m evaluation.asr_transcribe --input {SP}/talker/results_speechonly.jsonl "
+                                    f"--output {SP}/talker/asr_speech.p{k}.jsonl --device cuda:0 --batch-size 8 --resume "
+                                    f"--num-shards {a.asr_shards} --shard-index {k} >> {SP}/asr_p{k}.log 2>&1"})
+            jobs.append({"id": f"{a.name}__asr", "mem_gb": 0, "deps": parts,
+                         "cmd": ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_merge {SP}/talker {a.asr_shards} "
+                                f"> {SP}/asr_merge.log 2>&1"})
+            asr_out = f"{SP}/talker/asr_speech_merged.jsonl"
+        else:
+            asr_out = f"{SP}/talker/asr_speech.jsonl"
         jobs.append({"id": f"{a.name}__asr", "mem_gb": 14, "deps": tk, "retries": 3,
                      "cmd": ENV + f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
                             f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
                             f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker && {PYE} -m evaluation.asr_transcribe "
                             f"--input {SP}/talker/results_speechonly.jsonl --output {SP}/talker/asr_speech.jsonl "
-                            f"--device cuda:0 --batch-size 8 --resume >> {SP}/asr.log 2>&1"})
+                            f"--device cuda:0 --batch-size 8 --resume >> {SP}/asr.log 2>&1"}) if a.asr_shards <= 1 else None
         jobs.append({"id": f"{a.name}__sscore", "mem_gb": 0, "deps": [f"{a.name}__asr"],
                      "cmd": ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_hyp {D}/hyp.jsonl "
-                            f"{SP}/talker/asr_speech.jsonl {D}/hyp_asr.jsonl && {PY} -m "
+                            f"{asr_out} {D}/hyp_asr.jsonl && {PY} -m "
                             f"experiments.mist_w3po_v1.evaluation.score_run --run {D} --windows {win} --ref-windows {ref} "
                             f"--set {sset} --asr {D}/hyp_asr.jsonl > {D}/score_asr.log 2>&1"})
     if a.id_suffix:   # a second chain for the same outputs (the first one's ids are spent)
