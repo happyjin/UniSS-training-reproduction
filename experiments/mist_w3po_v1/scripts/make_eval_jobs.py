@@ -97,12 +97,12 @@ def main():
                                 f"--blocks-file {SP}/talker_in/blocks.jsonl --items-file {SP}/talker_in/items.jsonl "
                                 f"--speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --shard {k} "
                                 f"--num-shards 8 > {SP}/talk{k}.log 2>&1"})
-        jobs.append({"id": f"{a.name}__asr", "mem_gb": 14, "deps": tk,
+        jobs.append({"id": f"{a.name}__asr", "mem_gb": 14, "deps": tk, "retries": 3,
                      "cmd": ENV + f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
                             f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
                             f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker && {PYE} -m evaluation.asr_transcribe "
                             f"--input {SP}/talker/results_speechonly.jsonl --output {SP}/talker/asr_speech.jsonl "
-                            f"--device cuda:0 --batch-size 8 > {SP}/asr.log 2>&1"})
+                            f"--device cuda:0 --batch-size 8 --resume >> {SP}/asr.log 2>&1"})
         jobs.append({"id": f"{a.name}__sscore", "mem_gb": 0, "deps": [f"{a.name}__asr"],
                      "cmd": ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_hyp {D}/hyp.jsonl "
                             f"{SP}/talker/asr_speech.jsonl {D}/hyp_asr.jsonl && {PY} -m "
