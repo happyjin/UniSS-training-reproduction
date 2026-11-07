@@ -1,4 +1,4 @@
-"""Yield guard for kenxsong's cards (4, 5, 6): our decodes / talkers may share them, but if his processes grow and a
+"""Yield guard (first for kenxsong's cards 4-6; since 2026-11-07 all 8 cards, other users' jobs appear anywhere): our decodes / talkers may share them, but if his processes grow and a
 card's real free memory stays below MIN_FREE_GB for two checks in a row, SIGTERM OUR most recently started GPU process
 on that card (root-owned, one of ours: online_decode / si_infer / asr_transcribe / train_w3po), so he never OOMs. Our
 queue jobs are retried and decodes resume from their earlier windows. Never touches anyone else's processes.
@@ -14,11 +14,11 @@ import subprocess
 import sys
 import time
 
-CARDS = (4, 5, 6)
+CARDS = (0, 1, 2, 3, 4, 5, 6, 7)   # 2026-11-07: other users' root jobs (zezhongjin) appear on any card
 MIN_FREE_GB = 4.0
 TICK = 5
 OURS = ("experiments.mist_w3po_v1.evaluation.online_decode", "evaluation.si_infer", "evaluation.asr_transcribe",
-        "experiments.mist_w3po_v1.rl.train_w3po")
+        "experiments.mist_w3po_v1.rl.train_w3po", "experiments.mist_w3po_v1.rl.precompute_anchors")
 
 
 def log(msg):
@@ -51,9 +51,10 @@ def main():
                 except OSError:
                     continue
                 if st.st_uid == 0 and any(o in args for o in OURS):
-                    cands.append((st.st_ctime, int(pid), args[:200]))
+                    # an RL trainer (checkpoints every 10 steps) only if nothing cheaper of ours is on the card
+                    cands.append((0 if "rl.train_w3po" in args else 1, st.st_ctime, int(pid), args[:200]))
             if cands:
-                _, pid, args = max(cands)
+                _, _, pid, args = max(cands)
                 log(f"card {c}: {free_mib:.0f} MiB free twice -> SIGTERM our pid {pid}: {args}")
                 os.kill(pid, signal.SIGTERM)
                 low[c] = -6   # give it 30 s to exit before acting again

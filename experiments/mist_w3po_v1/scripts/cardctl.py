@@ -59,6 +59,25 @@ def cmdline(pid: int) -> str:
         return ""
 
 
+def is_ours(pid: int) -> bool:
+    """root-owned and started from this user's tree (other containers also run as root, 2026-11-07)."""
+    try:
+        if os.stat(f"/proc/{pid}").st_uid != 0:
+            return False
+    except OSError:
+        return False
+    for _ in range(4):   # the process or one of its parents (vLLM engine cores are children of our si_infer)
+        if "/opt/dlami/nvme/jasonleeeli/" in cmdline(pid):
+            return True
+        try:
+            pid = int(open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()[1])
+        except (OSError, IndexError, ValueError):
+            return False
+        if pid <= 1:
+            return False
+    return False
+
+
 def alive(pid: int) -> bool:
     if not pid:
         return False
@@ -242,29 +261,14 @@ class Card:
         return len(self.workload_pids()) > 1
 
     def foreign_pids(self, uuid: str, apps=None) -> set:
-        """GPU processes on this card not owned by root (other users' jobs)."""
-        res = set()
-        for u, pid, _ in (apps if apps is not None else smi_apps()):
-            if u == uuid:
-                try:
-                    if os.stat(f"/proc/{pid}").st_uid != 0:
-                        res.add(pid)
-                except OSError:
-                    pass
-        return res
+        """GPU processes on this card that are not ours (other users, also root jobs from other containers)."""
+        return {pid for u, pid, _ in (apps if apps is not None else smi_apps()) if u == uuid and not is_ours(pid)}
 
     def our_job_pids(self, uuid: str, apps=None) -> set:
-        """root GPU processes on this card other than its keeper / workload (= W3PO jobs)."""
+        """our GPU processes on this card other than its keeper / workload (= W3PO jobs)."""
         skip = {self.keeper_pid()} | self.workload_pids()
-        res = set()
-        for u, pid, _ in (apps if apps is not None else smi_apps()):
-            if u == uuid and pid not in skip:
-                try:
-                    if os.stat(f"/proc/{pid}").st_uid == 0:
-                        res.add(pid)
-                except OSError:
-                    pass
-        return res
+        return {pid for u, pid, _ in (apps if apps is not None else smi_apps())
+                if u == uuid and pid not in skip and is_ours(pid)}
 
     def workload_mib(self, uuid: str, apps=None) -> float:
         pids = self.workload_pids()

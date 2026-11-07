@@ -252,3 +252,12 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
 - 锚点预计算（`anchors_main_*`，单卡）实测约 15 窗口/分钟/卡（训练器内约 6.4，因其与 rollout/更新同卡串行）。
 - 计划：小测第 10 步存档后按 PID 停 4 卡小测，以 8 卡从 step_00010 续跑（`rl_pilot_w3po_v8_b`，同一窗口流）实测
   每步用时，与 4 卡第 2–10 步比较后决定 8 卡还是 4+4 并行。
+
+### 2026-11-07 02:30 UTC：其他容器的 root 作业
+- 02:19 起 zezhongjin 的 `streaming_si.inference.infer_s5_streaming`（/opt/venv，root，约 16 GB/个）出现在 0、1、5 号卡；
+  root 运行，guard 不处理，也不受 keeper 的 80 GB 门槛影响。按规则不动，已报告。
+- 应对：`yield_guard.py` 扩到全部 8 张卡（任何卡真实空闲连续两次 < 4 GB → 停我方最新的解码/talker/ASR/锚点进程，
+  RL 训练只在卡上没有别的我方进程时才停），保证不因我方叠放把任何人推到 OOM；`cardctl.is_ours()` 改为"root 且
+  自身或父进程命令行在 /opt/dlami/nvme/jasonleeeli/ 下"，避免把别人的 root 作业当成 W³PO 作业（影响空闲判定）。
+- 拆分解码实测单卡峰值可达 ~40 GB，待启动的拆分解码作业改按 44 GB/卡计；锚点预计算作业限定在 4–7 号卡，不与小测同卡。
+- 小测第 5 步因同卡 ASR/解码争用用了 16 min；第 10 步存档后转 8 卡实测。
