@@ -134,6 +134,8 @@ def main() -> None:
     ap.add_argument("--max-new", type=int, default=300)
     ap.add_argument("--lr", type=float, default=5e-6)
     ap.add_argument("--beta", type=float, default=0.02)
+    ap.add_argument("--w-when", type=float, default=1.0,
+                    help="weight of the when-channel policy loss (1.0 = the pilot's loss, bit-identical; 2026-11-07 drift fix)")
     ap.add_argument("--w-who", type=float, default=1.0)
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
@@ -316,6 +318,7 @@ def main() -> None:
                     if rd.ids:
                         seqs.append((tr, r, adv["tok"][m][r], m >= len(members), w))
         t_rew = time.time() - t0 - t_roll - t_anc
+        adv_mag = adv_magnitudes(seqs) if w3 else [0.0] * 6
 
         # global token counts per category
         cnt = torch.zeros(3, device=dev)
@@ -395,7 +398,7 @@ def main() -> None:
                float(np.sum([np.mean([a[0] for a in st["anchors"]]) if st["anchors"] else 0 for st in gstats])),
                logs["kl"], logs["clip"], logs["ntok"], logs["ratio_dev"], logs["p_wait_when"], logs["n_when"],
                t_roll, t_anc, t_rew, t_upd, float(sum(st["n_admit"] for st in gstats)),
-               float(sum(len(st["anchors"]) for st in gstats))]
+               float(sum(len(st["anchors"]) for st in gstats))] + adv_mag
         g = agg(loc)
         if rank == 0:
             ng = max(g[0], 1)
@@ -407,7 +410,9 @@ def main() -> None:
                    "p_wait_at_when": g[17] / max(g[18], 1), "gnorm": logs["gnorm"],
                    "t_rollout": g[19] / world, "t_anchor": g[20] / world, "t_reward": g[21] / world, "t_update": g[22] / world,
                    "t_step": time.time() - t0, "gpu_h": (time.time() - t0) * world / 3600, "tokens": cnt.tolist(),
-                   "anchor_admit": g[23] / max(g[24], 1)}
+                   "anchor_admit": g[23] / max(g[24], 1),
+                   "adv_abs_when": g[25] / max(g[26], 1), "adv_abs_who": g[27] / max(g[28], 1),
+                   "adv_abs_what": g[29] / max(g[30], 1)}
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in rec.items()}))
@@ -432,6 +437,32 @@ def main() -> None:
         torch.cuda.empty_cache()
     log0("W3PO_TRAIN_DONE")
     dist.destroy_process_group()
+
+
+def w3_total(l_when, l_who, l_what, cnt, w_when: float = 1.0, w_who: float = 1.0, w_what: float = 1.0):
+    """W3 policy loss: per-channel sums over their global token counts, weighted per channel. w_when = 1.0 gives the
+    pilot's l_when / cnt[0] exactly (1.0 * x is exact in IEEE arithmetic; test_w_when.py)."""
+    return w_when * l_when / cnt[0] + w_who * l_who / cnt[1] + w_what * l_what / cnt[2]
+
+
+def adv_magnitudes(seqs) -> list[float]:
+    """sum |a| and token counts per channel over the policy (non-anchor) tokens of a step's training sequences:
+    [sum|a_when|, n_when, sum|a_who|, n_who, sum|a_what|, n_what] (what = every non-who token, as in the loss)."""
+    out = [0.0] * 6
+    for tr, r, toks, is_a, w in seqs:
+        if is_a:
+            continue
+        for (wh, who, aw, ah, at) in toks:
+            if wh:
+                out[0] += abs(aw)
+                out[1] += 1
+            if who:
+                out[2] += abs(ah)
+                out[3] += 1
+            else:
+                out[4] += abs(at)
+                out[5] += 1
+    return out
 
 
 def micro_loss(eng, adapters, items, blocks, seqrows, cache, cnt, args, w3):
@@ -558,7 +589,7 @@ def micro_loss(eng, adapters, items, blocks, seqrows, cache, cnt, args, w3):
         clip += c
         kl_8 = (lspk.exp() * (lspk - ref_spk)).sum(-1)
         kl_who = (kl_8 * (is_h & ~is_anchor)).sum()
-        total = l_when / cnt[0] + args.w_who * l_who / cnt[1] + args.w_what * l_what / cnt[2]
+        total = w3_total(l_when, l_who, l_what, cnt, args.w_when, args.w_who, args.w_what)
         kl_sum = kl_when / cnt[0] + kl_who / cnt[1] + kl_what / cnt[2]
         logs["p_wait_when"] = float(pw[is_w & ~is_anchor].sum())
         logs["n_when"] = float((is_w & ~is_anchor).sum())
