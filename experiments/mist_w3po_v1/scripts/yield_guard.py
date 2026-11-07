@@ -60,6 +60,14 @@ def resurrect(qdir: str):
             log(f"RESURRECT {s}")
 
 
+def _is_ours(pid) -> bool:
+    try:
+        import cardctl
+        return cardctl.is_ours(int(pid))
+    except Exception:
+        return True   # unknown -> treat as ours (never act on a guess)
+
+
 def main():
     qdir = sys.argv[1]
     n = 0
@@ -73,9 +81,14 @@ def main():
             if low[c] < 2:
                 continue
             cands = []
-            for u, pid in smi("compute-apps=gpu_uuid,pid"):
-                if u != uuid:
-                    continue
+            apps = [(u, pid) for u, pid in smi("compute-apps=gpu_uuid,pid") if u == uuid]
+            if not any(not _is_ours(pid) for _, pid in apps):
+                # 2026-11-07 dedicated server: only our own processes on the card -> nobody to protect; low free memory
+                # is our job's own allocator (e.g. a large RL micro-batch), never stop it for that
+                if low[c] == 2:
+                    log(f"card {c}: {free_mib:.0f} MiB free, only our processes there; not acting")
+                continue
+            for u, pid in apps:
                 try:
                     st = os.stat(f"/proc/{pid}")
                     args = open(f"/proc/{pid}/cmdline", "rb").read().replace(b"\0", b" ").decode(errors="ignore")
