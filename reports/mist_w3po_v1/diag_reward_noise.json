@@ -1,0 +1,392 @@
+{
+ "window_units": {
+  "windows": 3050,
+  "with_units": 2901
+ },
+ "per_window": {
+  "dev_v8_ctx0": {
+   "mean_R": 0.43612990323105466,
+   "mean_RQ": 0.3276389991808737,
+   "mean_S": 0.46279089247735933,
+   "mean_lat": 0.6172418673363893,
+   "spurious_per_win": 0.06790761806273699,
+   "dup_per_win": 0.8683212685280938,
+   "mean_cpbleu": 0.25407343896643536,
+   "spearman_R_cpbleu": {
+    "rho": 0.390089691491117,
+    "p": 4.596046150099601e-106,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.30799068890681364
+  },
+  "dev_v8_ctx2": {
+   "mean_R": 0.4219900326383129,
+   "mean_RQ": 0.31707904258605896,
+   "mean_S": 0.4594043379507568,
+   "mean_lat": 0.6130078450084168,
+   "spurious_per_win": 0.07859358841778696,
+   "dup_per_win": 0.9917269906928645,
+   "mean_cpbleu": 0.2547045873210922,
+   "spearman_R_cpbleu": {
+    "rho": 0.3890284288729686,
+    "p": 1.893191308246651e-105,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.2479120603704384
+  },
+  "dev_pilot20_ctx0": {
+   "mean_R": 0.4337230054594103,
+   "mean_RQ": 0.3248425492031373,
+   "mean_S": 0.4631727667938666,
+   "mean_lat": 0.6082589093028109,
+   "spurious_per_win": 0.07307824887969666,
+   "dup_per_win": 0.9169251982075146,
+   "mean_cpbleu": 0.2542666069141509,
+   "spearman_R_cpbleu": {
+    "rho": 0.39359045367658735,
+    "p": 4.151443659471414e-108,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.29807660292720173
+  },
+  "dev_pilot50_ctx0": {
+   "mean_R": 0.40662345704115016,
+   "mean_RQ": 0.30511592417442984,
+   "mean_S": 0.4620434372103548,
+   "mean_lat": 0.5368820482334733,
+   "spurious_per_win": 0.1175456739055498,
+   "dup_per_win": 1.236814891416753,
+   "mean_cpbleu": 0.24636072928228298,
+   "spearman_R_cpbleu": {
+    "rho": 0.388518060055523,
+    "p": 3.7329714961181974e-105,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.1344687522112301
+  },
+  "dev_s0all_ctx0": {
+   "mean_R": 0.4112405518212784,
+   "mean_RQ": 0.3098323161704016,
+   "mean_S": 0.4573286048690005,
+   "mean_lat": 0.45395389696194,
+   "spurious_per_win": 0.10341261633919338,
+   "dup_per_win": 1.4033092037228543,
+   "mean_cpbleu": 0.2560183346443372,
+   "spearman_R_cpbleu": {
+    "rho": 0.39629650376794157,
+    "p": 1.0495497420510453e-109,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.25829967958354605
+  },
+  "dev_s0all_ctx2": {
+   "mean_R": 0.4145273606497072,
+   "mean_RQ": 0.313698374978658,
+   "mean_S": 0.45321489309887364,
+   "mean_lat": 0.4928458523532491,
+   "spurious_per_win": 0.09307135470527404,
+   "dup_per_win": 1.3154084798345398,
+   "mean_cpbleu": 0.2517486774549869,
+   "spearman_R_cpbleu": {
+    "rho": 0.3981845810117732,
+    "p": 7.901813796326614e-111,
+    "n": 2901
+   },
+   "pearson_R_cpbleu": 0.27109979849329885
+  }
+ },
+ "per_window_pooled": {
+  "spearman": {
+   "rho": 0.3926550713533371,
+   "p": 0.0,
+   "n": 17406
+  },
+  "pearson": 0.21450054653209888
+ },
+ "per_window_paired_vs_v8ctx0": {
+  "dev_v8_ctx2": {
+   "spearman_dR_dcp_changed": {
+    "rho": 0.7356121104756156,
+    "p": 0.0,
+    "n": 1918
+   },
+   "n_changed": 1918,
+   "sign_agree": 0.8335189309576837
+  },
+  "dev_pilot20_ctx0": {
+   "spearman_dR_dcp_changed": {
+    "rho": 0.713630685130728,
+    "p": 8.10696006906362e-206,
+    "n": 1319
+   },
+   "n_changed": 1319,
+   "sign_agree": 0.8226072607260726
+  },
+  "dev_pilot50_ctx0": {
+   "spearman_dR_dcp_changed": {
+    "rho": 0.6730320884490737,
+    "p": 1.6168037616139355e-223,
+    "n": 1691
+   },
+   "n_changed": 1691,
+   "sign_agree": 0.7975811584977721
+  },
+  "dev_s0all_ctx0": {
+   "spearman_dR_dcp_changed": {
+    "rho": 0.6875189221685002,
+    "p": 3.461095811043504e-282,
+    "n": 2016
+   },
+   "n_changed": 2016,
+   "sign_agree": 0.8059159314997405
+  },
+  "dev_s0all_ctx2": {
+   "spearman_dR_dcp_changed": {
+    "rho": 0.6871892428192199,
+    "p": 4.6339335943062e-298,
+    "n": 2133
+   },
+   "n_changed": 2133,
+   "sign_agree": 0.820969337289812
+  }
+ },
+ "per_meeting": {
+  "dev_v8_ctx0": {
+   "spearman_R_all": {
+    "rho": 0.09999999999999999,
+    "p": 0.7228973252791182,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": 0.010714285714285713,
+    "p": 0.9697698761545686,
+    "n": 15
+   }
+  },
+  "dev_v8_ctx2": {
+   "spearman_R_all": {
+    "rho": 0.06071428571428571,
+    "p": 0.8298120954425187,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": 0.0,
+    "p": 1.0,
+    "n": 15
+   }
+  },
+  "dev_pilot20_ctx0": {
+   "spearman_R_all": {
+    "rho": 0.049999999999999996,
+    "p": 0.859540943467457,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": -0.017857142857142853,
+    "p": 0.9496353041738619,
+    "n": 15
+   }
+  },
+  "dev_pilot50_ctx0": {
+   "spearman_R_all": {
+    "rho": 0.457142857142857,
+    "p": 0.08667812662416978,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": 0.43214285714285705,
+    "p": 0.1076930375463979,
+    "n": 15
+   }
+  },
+  "dev_s0all_ctx0": {
+   "spearman_R_all": {
+    "rho": 0.37857142857142856,
+    "p": 0.16409082655922078,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": 0.035714285714285705,
+    "p": 0.8994469934720875,
+    "n": 15
+   }
+  },
+  "dev_s0all_ctx2": {
+   "spearman_R_all": {
+    "rho": 0.4035714285714285,
+    "p": 0.13576799650365623,
+    "n": 15
+   },
+   "spearman_R_ov": {
+    "rho": 0.18928571428571428,
+    "p": 0.4992630332385453,
+    "n": 15
+   }
+  }
+ },
+ "per_meeting_paired_vs_v8ctx0": {
+  "dev_v8_ctx2": {
+   "spearman_dR_dall": {
+    "rho": 0.19999999999999998,
+    "p": 0.47481396452216845,
+    "n": 15
+   },
+   "spearman_dR_dov": {
+    "rho": -0.35357142857142854,
+    "p": 0.19607167843419873,
+    "n": 15
+   }
+  },
+  "dev_pilot20_ctx0": {
+   "spearman_dR_dall": {
+    "rho": 0.1857142857142857,
+    "p": 0.5075409629336736,
+    "n": 15
+   },
+   "spearman_dR_dov": {
+    "rho": 0.7107142857142856,
+    "p": 0.002978994886802742,
+    "n": 15
+   }
+  },
+  "dev_pilot50_ctx0": {
+   "spearman_dR_dall": {
+    "rho": 0.35,
+    "p": 0.2009453508162933,
+    "n": 15
+   },
+   "spearman_dR_dov": {
+    "rho": 0.8749999999999999,
+    "p": 1.9522613815941113e-05,
+    "n": 15
+   }
+  },
+  "dev_s0all_ctx0": {
+   "spearman_dR_dall": {
+    "rho": 0.5035714285714286,
+    "p": 0.05565451716115846,
+    "n": 15
+   },
+   "spearman_dR_dov": {
+    "rho": 0.5857142857142856,
+    "p": 0.021776517619042784,
+    "n": 15
+   }
+  },
+  "dev_s0all_ctx2": {
+   "spearman_dR_dall": {
+    "rho": 0.5214285714285714,
+    "p": 0.04621923447857304,
+    "n": 15
+   },
+   "spearman_dR_dov": {
+    "rho": 0.48571428571428565,
+    "p": 0.06642631232518953,
+    "n": 15
+   }
+  }
+ },
+ "system_level": {
+  "rows": [
+   {
+    "system": "dev_v8_ctx0",
+    "mean_R": 0.43612990323105466,
+    "tcpBLEU_all": 26.25,
+    "tcpBLEU_ov": 21.88,
+    "dup_rate": 0.0655
+   },
+   {
+    "system": "dev_v8_ctx2",
+    "mean_R": 0.4219900326383129,
+    "tcpBLEU_all": 24.96,
+    "tcpBLEU_ov": 18.57,
+    "dup_rate": 0.0642
+   },
+   {
+    "system": "dev_pilot20_ctx0",
+    "mean_R": 0.4337230054594103,
+    "tcpBLEU_all": 25.67,
+    "tcpBLEU_ov": 18.65,
+    "dup_rate": 0.0685
+   },
+   {
+    "system": "dev_pilot50_ctx0",
+    "mean_R": 0.40662345704115016,
+    "tcpBLEU_all": 25.61,
+    "tcpBLEU_ov": 21.36,
+    "dup_rate": 0.085
+   },
+   {
+    "system": "dev_s0all_ctx0",
+    "mean_R": 0.4112405518212784,
+    "tcpBLEU_all": 22.71,
+    "tcpBLEU_ov": 16.08,
+    "dup_rate": 0.079
+   },
+   {
+    "system": "dev_s0all_ctx2",
+    "mean_R": 0.4145273606497072,
+    "tcpBLEU_all": 24.87,
+    "tcpBLEU_ov": 17.26,
+    "dup_rate": 0.0945
+   }
+  ],
+  "spearman_R_all": {
+   "rho": 0.6571428571428573,
+   "p": 0.1561749271137024,
+   "n": 6
+  },
+  "spearman_R_ov": {
+   "rho": 0.4285714285714286,
+   "p": 0.3965014577259473,
+   "n": 6
+  }
+ },
+ "noise": {
+  "per_meeting_all_sd": {
+   "dev_v8_ctx0": 4.643731076717004,
+   "dev_v8_ctx2": 4.729064714223963,
+   "dev_pilot20_ctx0": 4.27485742383436,
+   "dev_pilot50_ctx0": 3.795986438854308,
+   "dev_s0all_ctx0": 5.463707133741027,
+   "dev_s0all_ctx2": 4.454518417870922
+  },
+  "pairs": {
+   "dev_pilot20_ctx0-dev_v8_ctx0:all": {
+    "diff": -0.5775432551854216,
+    "boot_sd": 1.5049153361860366
+   },
+   "dev_pilot20_ctx0-dev_v8_ctx0:ov": {
+    "diff": -3.235884945971357,
+    "boot_sd": 2.9127781435130213
+   },
+   "dev_v8_ctx2-dev_v8_ctx0:all": {
+    "diff": -1.2845083865733677,
+    "boot_sd": 1.547697204176319
+   },
+   "dev_v8_ctx2-dev_v8_ctx0:ov": {
+    "diff": -3.312115725268338,
+    "boot_sd": 2.520050983595779
+   },
+   "dev_pilot50_ctx0-dev_v8_ctx0:all": {
+    "diff": -0.640344477341003,
+    "boot_sd": 0.951918107346206
+   },
+   "dev_pilot50_ctx0-dev_v8_ctx0:ov": {
+    "diff": -0.5250390233139157,
+    "boot_sd": 0.659602964888984
+   },
+   "speech dev_v8_ctx2-dev_v8_ctx0:all": {
+    "diff": -0.5035056906435464,
+    "boot_sd": 0.9425988361806622
+   }
+  },
+  "mc_equal_model_pass": {
+   "all": 0.54425,
+   "ov": 0.28175,
+   "speech": 0.5655,
+   "joint": 0.13775
+  },
+  "mc_note": "estimate: per-meeting noise taken from pilot20 vs v8 ctx0 (text) and v8 ctx2 vs v8 ctx0 (speech); point criterion only (P(diff<=0)<0.95 is almost always met at zero true difference); refs = better of v8 ctx0/ctx2 per item; to be replaced by the measured decode noise of dev_v8_ctx0_rep8"
+ }
+}
