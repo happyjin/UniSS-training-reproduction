@@ -145,6 +145,15 @@ def main():
                     log(q, f"retry {jid} (attempt {n_fail + 2})")
             elif jid in started:
                 status[jid] = "running"
+                pidf = q / "state" / f"{jid}.pid"
+                try:   # the wrapper was killed from outside (2026-11-07): no rc will ever come -> count it as failed
+                    wp = int(pidf.read_text().strip())
+                    gone = not os.path.exists(f"/proc/{wp}") or open(f"/proc/{wp}/stat").read().rsplit(")", 1)[1].split()[0] == "Z"
+                except (OSError, ValueError):
+                    gone = False
+                if gone and not rc.exists():
+                    rc.write_text("137\n")
+                    log(q, f"lost {jid}: wrapper {wp} gone without an exit code; marked 137")
             else:
                 status[jid] = "pending"
         n_cpu = sum(1 for j in jobs if status[j["id"]] == "running" and not j.get("mem_gb"))
@@ -221,7 +230,7 @@ def main():
                     mem[c] = (mem[c][0] - need, mem[c][1] + need)
                 last_gpu_start = now
             rc = q / "state" / f"{jid}.rc"
-            wrapped = f"{j['cmd']}\necho $? > {rc}"
+            wrapped = f"echo $$ > {q / 'state' / (jid + '.pid')}\n{j['cmd']}\necho $? > {rc}"
             with open(q / "logs" / f"{jid}.log", "a") as fh:
                 # setsid -f: the job is re-parented to init at once, so the queue is never the parent of a GPU
                 # process (2026-11-07: an external killer SIGTERMs GPU processes together with their parents)
