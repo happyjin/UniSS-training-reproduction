@@ -96,10 +96,10 @@ class Sampler:
         return out
 
 
-def gold_ctx(w: dict, meet_utts: dict, sess: dict, seed: int) -> str:
+def gold_ctx(w: dict, meet_utts: dict, sess: dict, seed: int, ctx_max: int = 2) -> str:
     rng = random.Random(f"{seed}|{w['id']}")
     x = rng.random()
-    k = 0 if x < 0.1 else (1 if x < 0.55 else 2)
+    k = min(ctx_max, 0 if x < 0.1 else (1 if x < 0.55 else 2))
     prev = [u for u in meet_utts.get(w["meeting"], []) if u[0] <= w["start_s"]][-k:] if k else []
     return ctx_string([{"spk": sess[w["meeting"]][s], "text": t} for _, s, t in prev], k)
 
@@ -140,6 +140,7 @@ def main() -> None:
     ap.add_argument("--lora-alpha", type=float, default=64.0)
     ap.add_argument("--save-every", type=int, default=25)
     ap.add_argument("--seed", type=int, default=20261107)
+    ap.add_argument("--ctx-max", type=int, default=2, help="cross-window context segments (0 = v8 prompts, no context)")
     ap.add_argument("--max-dur-ms", type=int, default=20500)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--ref-src", default="data/ami_multispk_si_v1/e2e_gstar_zh2en_v1")
@@ -214,7 +215,7 @@ def main() -> None:
         gen.manual_seed(args.seed * 1000 + step * 97 + rank)
         allw = sampler.take(step, n_local * world)
         mine = allw[rank::world]
-        ctxs = {w["id"]: gold_ctx(w, meet_utts, sess, args.seed) for w in mine}
+        ctxs = {w["id"]: gold_ctx(w, meet_utts, sess, args.seed, args.ctx_max) for w in mine}
         cache = {}
         eng.thinker.eval()
         trajs = rollout(eng, mine, ctxs, args.G, temp=args.temp, temp_when=args.temp_when, gen=gen,
