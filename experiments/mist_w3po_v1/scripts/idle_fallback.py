@@ -117,7 +117,9 @@ def main():
         for c, card in cards.items():
             uuid = smi[c]["uuid"]
             ours = card.our_job_pids(uuid, apps)
-            busy = bool(ours) or c in running or c in runnable
+            # keepers off: a card merely *eligible* for a pending job is not busy (the queue stops the workload by PID
+            # when it actually starts a job there), so cards waiting for the start stagger run the workload meanwhile
+            busy = bool(ours) or c in running or (c in runnable and cfg["keepers"])
             if busy:
                 last_busy[c] = now
             wl = card.workload_pid()
@@ -139,7 +141,7 @@ def main():
                 continue
             with card.lock():     # re-check under the lock (gpuq may be handing the card back right now)
                 running, runnable = queue_view(q)
-                if act == "to_workload" and (c in running or c in runnable or card.our_job_pids(uuid)):
+                if act == "to_workload" and (c in running or (c in runnable and cfg["keepers"]) or card.our_job_pids(uuid)):
                     last_busy[c] = time.time()
                     continue
                 log(f"card {c}: {act} (idle {now - last_busy[c]:.0f}s, keeper {card.keeper_pid()}, workload {wl})")
