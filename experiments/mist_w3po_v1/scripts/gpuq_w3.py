@@ -9,7 +9,7 @@ handed back to its keeper with cardctl.Card.to_keeper), starts the job, and for 
 
 Jobs are JSON files in <qdir>/jobs/ (added at any time; started in file-name order once their deps are done):
   {"id": str, "cmd": str, "mem_gb": float (per card; 0 = CPU job), "cards": int (default 1),
-   "only": [cards allowed] (optional), "deps": [ids], "retries": n (optional, restart a failed job), "stagger": s (optional,
+   "only": [cards allowed] (optional), "deps": [ids], "retries": n (optional, restart a failed job), "exclusive": true (optional: no other job is placed on its cards while it runs; combine with "exclusive_gb"), "stagger": s (optional,
    min. seconds since the previous GPU start, default STAGGER; vLLM jobs keep 60), "exclusive_gb": float (optional: a multi-card job also needs
    at most this much already used on each chosen card, e.g. SFT on lightly loaded cards)}
 The command runs as `bash -c` in its own session with CUDA_VISIBLE_DEVICES set, stdout/stderr to <qdir>/logs/<id>.log,
@@ -185,6 +185,13 @@ def main():
                     if c in mem:
                         mem[c] = (mem[c][0] - m, mem[c][1] + m)
         blocked = set()   # cards a waiting multi-card job (earlier in order) is draining: later GPU jobs keep off them
+        # cards of running "exclusive" jobs (training, user rule 2026-11-07: nothing else on a training card)
+        for j in jobs:
+            if j.get("exclusive") and status.get(j["id"]) == "running":
+                try:
+                    blocked |= set(json.loads((q / "state" / f"{j['id']}.started").read_text()).get("cards", []))
+                except Exception:
+                    pass
         for j in jobs:
             jid = j["id"]
             if status[jid] != "pending":
