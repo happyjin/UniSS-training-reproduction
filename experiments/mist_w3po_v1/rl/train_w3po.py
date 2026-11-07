@@ -140,7 +140,7 @@ def main() -> None:
     ap.add_argument("--lora-alpha", type=float, default=64.0)
     ap.add_argument("--save-every", type=int, default=25)
     ap.add_argument("--seed", type=int, default=20261107)
-    ap.add_argument("--anchor-cache", default="", help="dir of precompute_anchors.py part_*.jsonl (read each step)")
+    ap.add_argument("--anchor-cache", default="", help="comma list of dirs with anchor records (precompute_anchors.py part_*.jsonl or an earlier run's anchors/rank*.jsonl, same base and ctx), read each step")
     ap.add_argument("--ctx-max", type=int, default=2, help="cross-window context segments (0 = v8 prompts, no context)")
     ap.add_argument("--max-dur-ms", type=int, default=20500)
     ap.add_argument("--resume", action="store_true")
@@ -214,7 +214,7 @@ def main() -> None:
         if not args.anchor_cache:
             return 0
         n = 0
-        for f in sorted(Path(args.anchor_cache).glob("part_*.jsonl")):
+        for f in sorted(f for d in args.anchor_cache.split(",") for f in Path(d).glob("*.jsonl")):
             with open(f, "rb") as fh:
                 fh.seek(pre_off.get(f, 0))
                 data = fh.read()
