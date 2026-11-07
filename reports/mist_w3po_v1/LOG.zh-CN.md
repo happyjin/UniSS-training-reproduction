@@ -343,3 +343,14 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
   队列起作业前直接按 PID 停 workload，空闲 45 s 起 workload，残留 keeper 在作业卡上立即停）。测试通过，提交 c3622897。
 - 08:57 按 PID 停掉 newserver workload（监督进程 2125558 及 8 个 worker），起 queue_v2 的 gpuq / idle_fallback / yield_guard
   （setsid -f）。GPU 功耗/利用率采样：`work/mist_w3po_v1/power/smi_20261107.csv`（2 s）。
+
+### 2026-11-07 09:10 UTC：预计算锚点 vs 训练器内锚点（第 13 步，逐 token）
+- 比较对象：小测 rank 文件中训练器算的第 13 步锚点（8 卡，每 rank 8 窗口一批，音频嵌入取自同步 rollout 的缓存）与
+  `precompute_anchors`（`Engine.from_merged`，同样每批 8 窗口）新算的同一批窗口，约 40 个窗口。
+- 结果：39 个窗口至少一个 lag 的 token 序列不同；按 lag 统计 R 完全相同的窗口数 Lag1/2/3 = 3/18/21（共 39）。
+  均值：Lag2 0.393 vs 0.406，Lag3 0.400 vs 0.403（无系统偏差）；Lag1 −0.26 vs −0.54（中位数 −0.055 vs −0.083），
+  差别来自少数窗口的碎片循环（如 ES2007c_on_0014：−2.6 vs −12.8）。
+- 解释：贪心解码对 bf16 数值（不同批次形状下的音频编码/注意力 kernel）敏感，长流式解码中一处 argmax 翻转后序列分叉；
+  Lag1 读次最多、截断最频繁，最不稳定。没有发现逻辑差异（窗口、ctx、read 时刻、akey 全部一致，Lag2/3 分布一致）。
+  所以两条路径是"同分布、非逐位一致"，不是 bug。退化的 Lag1 锚点由新的锚点入组门（minpol）挡在组外，对训练没有影响。
+- 小测第 14–50 步与主训练都使用预计算锚点，口径一致。
