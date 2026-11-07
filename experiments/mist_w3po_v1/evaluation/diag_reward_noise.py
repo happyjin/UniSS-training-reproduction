@@ -105,6 +105,9 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--n", type=int, default=10000)
+    ap.add_argument("--noise-cand", default="dev_pilot20_ctx0",
+                    help="decode whose per-meeting difference to v8 ctx0 is the text noise of the Monte Carlo "
+                         "(dev_v8_ctx0_rep8 = the same v8 model re-decoded: measured decode noise)")
     a = ap.parse_args()
     by = ref_utts()
     W = [json.loads(l) for l in open(WIN, encoding="utf-8")]
@@ -209,7 +212,12 @@ def main():
     # pair (pilot20 - v8 ctx0 for text; v8 ctx2 - v8 ctx0 for speech, the only speech pair without RL), meetings
     # resampled; reference per item = better of v8 ctx0 / ctx2 point scores (as the gate)
     A_all, A_ov = stats(scores["dev_v8_ctx0"], "all"), stats(scores["dev_v8_ctx0"], "ov")
-    N_all, N_ov = stats(scores["dev_pilot20_ctx0"], "all"), stats(scores["dev_pilot20_ctx0"], "ov")
+    nc = scores[a.noise_cand] if a.noise_cand in scores else json.load(open(f"{D}/{a.noise_cand}/score_text.json"))
+    N_all, N_ov = stats(nc, "all"), stats(nc, "ov")
+    if a.noise_cand not in scores:
+        for reg in ("all", "ov"):
+            sd, d = boot_sd(stats(scores["dev_v8_ctx0"], reg), stats(nc, reg))
+            pairs[f"{a.noise_cand}-dev_v8_ctx0:{reg}"] = {"diff": d, "boot_sd": sd}
     ms = sorted(set(A_all) & set(N_all))
     refs = {"all": max(scores["dev_v8_ctx0"]["tcpBLEU_all"], scores["dev_v8_ctx2"]["tcpBLEU_all"]),
             "ov": max(scores["dev_v8_ctx0"]["tcpBLEU_ov"], scores["dev_v8_ctx2"]["tcpBLEU_ov"])}
@@ -244,7 +252,8 @@ def main():
             passes[k] += v
         passes["joint"] += all(ok.values())
     noise["mc_equal_model_pass"] = {k: v / T for k, v in passes.items()}
-    noise["mc_note"] = ("estimate: per-meeting noise taken from pilot20 vs v8 ctx0 (text) and v8 ctx2 vs v8 ctx0 (speech); "
+    noise["mc_noise_cand"] = a.noise_cand
+    noise["mc_note"] = ("per-meeting text noise from --noise-cand vs v8 ctx0 (default pilot20), speech from v8 ctx2 vs v8 ctx0; "
                         "point criterion only (P(diff<=0)<0.95 is almost always met at zero true difference); refs = better "
                         "of v8 ctx0/ctx2 per item; to be replaced by the measured decode noise of dev_v8_ctx0_rep8")
     res["noise"] = noise
