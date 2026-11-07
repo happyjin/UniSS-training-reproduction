@@ -532,3 +532,12 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
    配置同 dia（v8 起步、50 步、128 窗口、tok-budget 40000、β 0.1、`--anchor-in-group 0`），评测第 20、50 步，与 dia 同步数对比。
    代码：`advantage.py` 新模式 `w3dia`（其他模式逐位不变，`test_w3dia.py` 在 20 个真实组上验证；`test_pipeline_cpu` 通过）。
 3. 正式闸门仍按选项 1；方向判断看 dev R 逐窗口差、训练 R 趋势、以及目标指标（ov、≤0.5 s 召回、错标、collapse、重复率）。
+
+### 2026-11-07 22:35 UTC（布拉格 23:35）：语音 ASR 并行化；第二轮训练启动
+- 每个评测的语音 ASR（whisper-large-v3，单进程，约 5200 条）实测约 27 条/分钟（约 3 h/评测），是闸门的瓶颈。
+  对 4 个评测（dia/noC2 第 20/50 步）按 PID 停掉单进程 ASR（各已完成 1.4–1.9 千条，输出保留），快照其有效行，
+  每个评测改为 4 个分片进程（`asr_transcribe --num-shards 4 --completed-input <快照>`，各 14 GB，叠放在评测卡上），
+  完成后 `evaluation/asr_merge.py` 写新文件 `asr_speech_merged.jsonl`（不改原文件），再以 `__sscore2 / gate2_ / signals2_`
+  新作业评分与闸门；原 `__asr/__sscore/gate_/signals_` 作业移入 held。
+- 第二轮：X `rl_pilot_dia_v8_b01_w128_c150` 22:21:47 在卡 3/5/6/7 启动（训练作业改为可用任意 4 张空卡）；
+  Y `w3dia` 22:29 一度在卡 0/1/2/4 启动，为先跑 ASR 分片按 PID 停掉（尚无步数），ASR 分片放完后自动重启。
