@@ -308,3 +308,38 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
   回 HEAD。S3 两路同步重启（项目 stamp 设为恢复时刻，full_ok 已置，SKIP_ZIP=1）。GitHub `private` 远端可达，HEAD 与 private/main 一致。
 - 小测第 1–13 步：训练奖励 R 0.34–0.44 无趋势；KL 0.0025–0.006（第 6 步 0.047，续跑后）；组内 R 标准差约 0.10；
   ACR who 0.23–0.48。锚点 R 在第 6、12、13 步异常低（0.07/0.17/0.19，其余 0.26–0.42），需在续跑前核对锚点缓存与在线锚点是否一致。
+
+### 2026-11-07 09:05 UTC（布拉格 10:05）：锚点奖励异常核查 —— 不是缓存/对齐错误，是 Lag1 锚点退化；加锚点入组门
+- 工具 `rl/check_anchor_rewards.py`（CPU）：按训练器窗口流重建第 1–13 步的窗口，读取全部锚点记录（小测 `anchors/rank*.jsonl`
+  与 `anchor_cache/v8_ctx0_s20261107_w64/part_*.jsonl`），重算锚点 R。结果：
+  - 13 步重算的 anchor_R 与 metrics.jsonl **完全一致**（到 1e-15），第 6/12/13 步 0.071/0.173/0.193 均复现；
+  - 同一窗口多份记录内容不一致：**0**；read 时刻、akey、ctx（ctx-max 0）、before 前缀与窗口不匹配：**0**；
+  - 事实更正：第 1–13 步用到的锚点**全部**来自小测自己的 rank 文件（训练器内计算；第 6、11 步的"已缓存"是此前崩溃的
+    尝试写下的同一批记录），`anchor_cache` 目录只覆盖第 51–300 步，从未被小测用到。4→8 卡、tok-budget 变化只改变
+    窗口在 rank 间的分配（按 id 查缓存），不影响对齐。
+- 根因：Lag1（1000 ms）锚点在部分窗口陷入碎片循环（"the, | the, | the, ..."、"I'm. | I'm. | ..."），每个碎片段都算
+  spurious（−0.5），单个窗口锚点 R 低至 −27.5（第 6 步 ES2015a_on_0014）、−32.2（第 12 步 ES2003b_on_0008）；Lag2/3 同窗口
+  正常（0.3–0.7）。一个这样的窗口就能把该步 64 组平均的 anchor_R 拉低 0.1–0.17。各步锚点平均 R < 0 的窗口 3–13 个。
+  即"难窗口 + 短 lag 锚点退化"，不是缓存或对齐 bug。
+- 但它确实伤害了更新：锚点在组内（LUFFY），退化锚点把组内各归一化标准差（what 的段级 / 轨迹级、who、when）撑大。
+  在 ES2015a_on_0014 上实测（`rl/test_anchor_gate.py`）：策略成员 what 优势的平均绝对值 0.27（含退化锚点）vs 0.91
+  （剔除后），即受影响组的策略信号被压缩约 3.4 倍；方向没有变（不是符号错误），退化锚点自身得到很大的负优势，
+  LUFFY 形式 π/(π+0.1) 下这些低概率 token 的梯度很小。
+- **修复**：`advantage.admit_anchors` + `train_w3po.py --anchor-gate {none,minpol}`（默认 minpol）：锚点只有在 R ≥ 组内
+  策略最低 R 时才入组做 LUFFY 引导；所有锚点仍作 FLAD 延迟参照（退化锚点不可能"更好"，在 FLAD 中本就无作用）。
+  `--anchor-gate none` 与此前逐位相同。新增指标 `anchor_admit`（入组锚点比例）。另：锚点 credit 此前算两遍，现只算一遍（结果相同）。
+  单测 `test_anchor_gate.py` 全部通过（手工用例 + 真实退化锚点）。提交 6cf45eae。
+- **决定**：第 1–13 步保留（更新方向未被破坏，只是约 5–20% 的组信号被稀释）；从 step_00013 续跑时启用 minpol
+  （小测第 14–50 步 = 主训练将使用的目标；LOG 记录此处分界）。
+- 另核对预计算锚点与训练器内锚点是否等价：新预计算 `anchor_cache/v8_ctx0_s20261107_w64_p12`（第 13–50 步，8 卡各一分片，
+  与训练器同为每批 8 窗口），其中第 13 步的 64 个窗口与小测 rank 文件里训练器算的记录逐 token 比较（结果见下一条）。
+
+### 2026-11-07 09:00 UTC：新服务器调度
+- 旧队列目录 `logs/mist_w3po_v1/queue` 中有大量旧服务器遗留的待运行作业（旧 4 卡小测 `045_rl_pilot`、bench、probe、
+  旧 ctx2r 解码等），直接重启会把它们一起放出。改用**新队列目录 `logs/mist_w3po_v1/queue_v2`**（只放本轮作业）；
+  旧目录保持 `NO_RESURRECT`，不再运行。
+- 用户新令：训练卡上不叠任何其他 GPU 进程（含 keeper/workload）；任何卡没有我方作业 → 立即 workload。本机独占，
+  keeper 不再需要：`cards.json` 新增 `"keepers": false, "idle_s": 45`（cardctl/idle_fallback/gpuq_w3 读取；keepers 关闭时
+  队列起作业前直接按 PID 停 workload，空闲 45 s 起 workload，残留 keeper 在作业卡上立即停）。测试通过，提交 c3622897。
+- 08:57 按 PID 停掉 newserver workload（监督进程 2125558 及 8 个 worker），起 queue_v2 的 gpuq / idle_fallback / yield_guard
+  （setsid -f）。GPU 功耗/利用率采样：`work/mist_w3po_v1/power/smi_20261107.csv`（2 s）。
