@@ -72,7 +72,10 @@ def one(args):
     wait_reads = [i for i, rd in enumerate(h.get("read_log", [])[:-1]) if not rd["new"]]
     post = np.load(w["post"]["lowlat"]).astype(np.float32)
     c = S.credit(segs, units, dur, wait_reads, reads, post=post)
-    return {"id": w["id"], "meeting": w["meeting"], "n_units": len(units), "n_segs": len(segs), "R": c.R, "RQ": c.RQ,
+    pi = S.speaker_map(segs, units)
+    asg = [(j, u) for j, u in enumerate(c.unit_of) if u >= 0]
+    mis = sum(1 for j, u in asg if pi.get(segs[j]["spk"]) != units[u]["spk"])
+    return {"asg_n": len(asg), "mis_n": mis, "id": w["id"], "meeting": w["meeting"], "n_units": len(units), "n_segs": len(segs), "R": c.R, "RQ": c.RQ,
             "S_mean": float(np.mean(c.S)) if len(units) else None, "lat": c.lat, "spurious": c.spurious,
             "dup": sum(1 for d in c.delta if d < 0), "cpbleu": S.seq_cpbleu(segs, units) if units else None}
 

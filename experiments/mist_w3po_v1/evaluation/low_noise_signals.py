@@ -25,12 +25,18 @@ from experiments.mist_w3po_v1.evaluation.diag_reward_noise import WIN, one, ref_
 def window_R(decode_dir: Path, W, U, workers: int) -> dict:
     cache = decode_dir / "window_R.json"
     if cache.exists():
-        return json.loads(cache.read_text())
+        got = json.loads(cache.read_text())
+        if all("asg_n" in v for v in got.values()):
+            return got
+        cache = decode_dir / "window_R_v2.json"   # older cache without the mislabel counts: recompute, keep the old file
+        if cache.exists():
+            return json.loads(cache.read_text())
     H = {h["id"]: h for h in map(json.loads, open(decode_dir / "hyp.jsonl", encoding="utf-8"))}
     jobs = [(w, U[w["id"]], H.get(w["id"], {})) for w in W if U[w["id"]]]
     with ProcessPoolExecutor(workers) as ex:
         rows = list(ex.map(one, jobs, chunksize=16))
-    out = {r["id"]: {"R": r["R"], "meeting": r["meeting"]} for r in rows}
+    out = {r["id"]: {"R": r["R"], "meeting": r["meeting"], "asg_n": r["asg_n"], "mis_n": r["mis_n"],
+                     "dup": r["dup"], "spurious": r["spurious"], "lat": r["lat"]} for r in rows}
     cache.write_text(json.dumps(out))
     return out
 
@@ -85,6 +91,11 @@ def main():
                      "window_boot_p_le0": float(np.mean(bw <= 0)),
                      "meeting_boot_ci95": [float(np.percentile(bm, 2.5)), float(np.percentile(bm, 97.5))],
                      "meeting_boot_p_le0": float(np.mean(bm <= 0))}}
+    for k, (A_, name) in {"ref": (A, "ref"), "cand": (B, "cand")}.items():
+        asg = sum(A_[i]["asg_n"] for i in ids)
+        out.setdefault("window_speaker_mislabel", {})[name] = sum(A_[i]["mis_n"] for i in ids) / max(asg, 1)
+        out.setdefault("window_dup_segs_per_window", {})[name] = float(np.mean([A_[i]["dup"] for i in ids]))
+        out.setdefault("window_spurious_per_window", {})[name] = float(np.mean([A_[i]["spurious"] for i in ids]))
     if a.run:
         out["train_R_trend"] = train_trend(Path(a.run))
     cand = Path(a.cand)
