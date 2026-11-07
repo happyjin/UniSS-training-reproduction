@@ -14,6 +14,8 @@ modes
   hibiki    (b) Hibiki-Zero: per read r_r = (1 - a) prefixBLEU_r + a BLEU_final, z per read, reward-to-go
   hpo       (c) HPO: 0.5 z(mean unit quality) + 0.5 z(-gated lag) on every token
   dia       (d) DiaScriber: z(cpBLEU) on every token
+  w3dia     (2026-11-07) W3 routing / projected ratios with DiaScriber's quality reward and C4: what and when <- z(cpBLEU)
+            of the trajectory (no latency term, no FLAD), who <- RBC (STAMP speaker counterfactual, as w3po)
 Returns per trajectory, per read: list of (when?, who?, a_when, a_who, a_what, seg index) per token, plus group stats.
 """
 from __future__ import annotations
@@ -27,7 +29,7 @@ FLOOR = 0.02
 LAT_W = 0.3
 HIBIKI_ALPHA = 0.4
 SEQPO_M = 1.0
-W3_MODES = ("w3po", "noC1", "noC3", "noC4")
+W3_MODES = ("w3po", "noC1", "noC3", "noC4", "w3dia")
 
 
 def categories(before: list[int], ids: list[int], final: bool) -> list[tuple[bool, bool]]:
@@ -78,12 +80,14 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
                  for r in range(len(tr.reads))] for m, tr in enumerate(trajs)]
 
     if mode in W3_MODES:
-        if mode == "noC1":
+        if mode in ("noC1", "w3dia"):
             Q = np.array([S.seq_cpbleu(tr.segs, units) for tr in trajs])
         else:
             Q = R
         if mode == "noC3":
             rlat = np.array([S.hpo_gate_reward(q, l) for q, l in zip(Q, Lat)])
+        elif mode == "w3dia":
+            rlat = np.zeros(n)     # no latency reward: when tokens carry the quality advantage only (below)
         else:
             rlat = np.array([S.flad_reward(q, l, anchor_ql) for q, l in zip(Q, Lat)])
         stats["r_lat"] = rlat.tolist()
@@ -95,14 +99,19 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
                 ret[m, r] = rlat[m] / S.L_MAX + sum(v for rr, v in c.miss.items() if rr >= r)
         aw = np.zeros_like(ret)
         acr_when = True
-        for r in range(n_reads):
+        if mode == "w3dia":     # terminal quality reward, same at every read (reward-to-go of a terminal reward)
+            zq = z(Q)
+            for m, tr in enumerate(trajs):
+                aw[m, : len(tr.reads)] = zq[m]
+            acr_when = bool(np.all(zq == 0))
+        for r in (range(n_reads) if mode != "w3dia" else []):
             col = ret[:, r]
             ok = ~np.isnan(col)
             if ok.sum() >= 2 and col[ok].std() > 1e-9:
                 acr_when = False
                 aw[ok, r] = (col[ok] - col[ok].mean()) / max(col[ok].std(), FLOOR)
         # what
-        if mode == "noC1":
+        if mode in ("noC1", "w3dia"):
             at_traj = z(Q)
             seg_what = [[at_traj[m]] * len(tr.segs) for m, tr in enumerate(trajs)]
             acr_what = bool(np.all(at_traj == 0))
