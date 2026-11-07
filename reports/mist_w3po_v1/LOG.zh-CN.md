@@ -286,3 +286,7 @@ S0-all SFT（4 卡，3000 步，3.4–3.7 s/步，23:40 完成合并）。AMI de
   进程的父进程）；`yield_guard.py` 每 30 s 检查队列与 idle_fallback，缺了就用 `setsid -f` 重启（`<qdir>/NO_RESURRECT`
   可关闭，收尾时用）。实测：重启后的 yield_guard（4107441）30 s 内把队列（4109794）与 idle_fallback（4109796）拉起。
   小测改用 `rl_pilot_w3po_v8_d_e`（重试 10 次，每 5 步存档，从 step_00005 续跑）。ASR 作业改为 `--resume` 续写。
+- 04:16:48 与 04:18:01 第四/五次：小测（04:01 起的 torchrun 及 04:16 重启的 38553）与 8 个 keeper 被 SIGTERM；zezhongjin 的
+  swift sft（父进程 56491）04:17 又起在 8 张卡上。这次队列、idle_fallback、yield_guard 都活着（`setsid -f` 起效），keeper
+  1 分钟内重起。外部作业约每 15–20 min 重启一次并清理 GPU 进程，长于这个间隔的 RL 进度会全部丢失 →
+  小测改为**每步存档**（`rl_pilot_w3po_v8_f`，重试 50 次，从最新存档续跑）。
