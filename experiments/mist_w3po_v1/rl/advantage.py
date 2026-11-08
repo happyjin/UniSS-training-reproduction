@@ -16,6 +16,9 @@ modes
   dia       (d) DiaScriber: z(cpBLEU) on every token
   w3dia     (2026-11-07) W3 routing / projected ratios with DiaScriber's quality reward and C4: what and when <- z(cpBLEU)
             of the trajectory (no latency term, no FLAD), who <- RBC (STAMP speaker counterfactual, as w3po)
+  w3dia2    (2026-11-08) w3dia with the who channel rebuilt: who <- z(cpBLEU) of the trajectory (what dia gives speaker
+            tokens) + who_sc x group-normalised per-segment speaker correctness (noC4's 1[pi*(spk) = speaker of the
+            matched unit], reference labels) + who_rbc x group-normalised RBC; what / when as w3dia
 Returns per trajectory, per read: list of (when?, who?, a_when, a_who, a_what, seg index) per token, plus group stats.
 """
 from __future__ import annotations
@@ -29,7 +32,7 @@ FLOOR = 0.02
 LAT_W = 0.3
 HIBIKI_ALPHA = 0.4
 SEQPO_M = 1.0
-W3_MODES = ("w3po", "noC1", "noC3", "noC4", "w3dia")
+W3_MODES = ("w3po", "noC1", "noC3", "noC4", "w3dia", "w3dia2")
 
 
 def categories(before: list[int], ids: list[int], final: bool) -> list[tuple[bool, bool]]:
@@ -80,10 +83,10 @@ def z(x: np.ndarray) -> np.ndarray:
 
 
 def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: float, anchor_ql: list,
-                     q_penalty: list | None = None) -> dict:
+                     q_penalty: list | None = None, who_sc: float = 0.5, who_rbc: float = 0.0) -> dict:
     """trajs/credits: the group members (policy rollouts, then anchors when they are in the group).
     anchor_ql: [(Q_a, L_a)] of the anchors for FLAD. Returns {"tok": per member per read [(when, who, aw, ah, at)],
-    "stats": {...}}."""
+    "stats": {...}}. who_sc / who_rbc: weights of the w3dia2 who channel (ignored by every other mode)."""
     n = len(trajs)
     R = np.array([c.R for c in credits])
     Lat = np.array([c.lat for c in credits])
@@ -96,7 +99,7 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
                  for r in range(len(tr.reads))] for m, tr in enumerate(trajs)]
 
     if mode in W3_MODES:
-        if mode in ("noC1", "w3dia"):
+        if mode in ("noC1", "w3dia", "w3dia2"):
             Q = np.array([S.seq_cpbleu(tr.segs, units) for tr in trajs])
             if q_penalty is not None:     # --rep-penalty (default None: unchanged)
                 Q = Q - np.asarray(q_penalty, dtype=float)
@@ -104,7 +107,7 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
             Q = R
         if mode == "noC3":
             rlat = np.array([S.hpo_gate_reward(q, l) for q, l in zip(Q, Lat)])
-        elif mode == "w3dia":
+        elif mode in ("w3dia", "w3dia2"):
             rlat = np.zeros(n)     # no latency reward: when tokens carry the quality advantage only (below)
         else:
             rlat = np.array([S.flad_reward(q, l, anchor_ql) for q, l in zip(Q, Lat)])
@@ -117,19 +120,19 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
                 ret[m, r] = rlat[m] / S.L_MAX + sum(v for rr, v in c.miss.items() if rr >= r)
         aw = np.zeros_like(ret)
         acr_when = True
-        if mode == "w3dia":     # terminal quality reward, same at every read (reward-to-go of a terminal reward)
+        if mode in ("w3dia", "w3dia2"):     # terminal quality reward, same at every read (reward-to-go of a terminal reward)
             zq = z(Q)
             for m, tr in enumerate(trajs):
                 aw[m, : len(tr.reads)] = zq[m]
             acr_when = bool(np.all(zq == 0))
-        for r in (range(n_reads) if mode != "w3dia" else []):
+        for r in (range(n_reads) if mode not in ("w3dia", "w3dia2") else []):
             col = ret[:, r]
             ok = ~np.isnan(col)
             if ok.sum() >= 2 and col[ok].std() > 1e-9:
                 acr_when = False
                 aw[ok, r] = (col[ok] - col[ok].mean()) / max(col[ok].std(), FLOOR)
         # what
-        if mode in ("noC1", "w3dia"):
+        if mode in ("noC1", "w3dia", "w3dia2"):
             at_traj = z(Q)
             seg_what = [[at_traj[m]] * len(tr.segs) for m, tr in enumerate(trajs)]
             acr_what = bool(np.all(at_traj == 0))
@@ -155,7 +158,7 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
             acr_what = bool(len(flat) == 0 or np.all(np.abs(flat) < 1e-9))
             at_traj = z(np.array([c.RQ for c in credits]))
         # who
-        if mode == "noC4":
+        if mode in ("noC4", "w3dia2"):
             xs = []
             for tr, c in zip(trajs, credits):
                 pi = S.speaker_map(tr.segs, units)
@@ -173,11 +176,23 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
         else:
             seg_who = [[0.0] * len(x) for x in xs]
             acr_who = True
+        if mode == "w3dia2":     # seg_who is now the normalised speaker correctness (noC4)
+            rbc = [[0.0] * len(tr.segs) for tr in trajs]
+            if who_rbc:
+                xr = [list(c.who) for c in credits]
+                fr = np.array([v for x in xr for v in x])
+                if len(fr) > 1 and fr.std() > 1e-9:
+                    rbc = [[(v - fr.mean()) / max(fr.std(), FLOOR) for v in x] for x in xr]
+            seg_who = [[float(at_traj[m]) + who_sc * seg_who[m][j] + who_rbc * rbc[m][j] for j in range(len(tr.segs))]
+                       for m, tr in enumerate(trajs)]
+            acr_who = bool(all(abs(v) < 1e-12 for x in seg_who for v in x))
         stats.update(acr_when=acr_when, acr_who=acr_who, acr_what=acr_what)
 
         def fn(m, r, p, w, h, sj):
             a_w = float(aw[m, r]) if w else 0.0
             a_h = float(seg_who[m][sj]) if (h and sj >= 0) else 0.0
+            if mode == "w3dia2" and h and sj < 0:     # speaker token outside a segment: the trajectory's z(cpBLEU)
+                a_h = float(at_traj[m])
             a_t = 0.0
             if not h:
                 a_t = float(seg_what[m][sj]) if sj >= 0 else float(at_traj[m])

@@ -152,6 +152,10 @@ def main() -> None:
                          "the 50/50 hard/normal stream")
     ap.add_argument("--rep-penalty", type=float, default=0.0,
                     help="dia / w3dia / noC1: quality minus this x advantage.rep_score (repeated word 4-gram share); 0 = off")
+    ap.add_argument("--who-sc", type=float, default=0.5,
+                    help="--mode w3dia2 only: weight of the group-normalised speaker correctness on who tokens")
+    ap.add_argument("--who-rbc", type=float, default=0.0,
+                    help="--mode w3dia2 only: weight of the group-normalised RBC on who tokens (0 = off)")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -252,6 +256,7 @@ def main() -> None:
 
     gen = torch.Generator(device=dev)
     w3 = args.mode in W3_MODES
+    who_kw = {"who_sc": args.who_sc, "who_rbc": args.who_rbc} if args.mode == "w3dia2" else {}   # --mode w3dia2 only
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
 
     for step in range(start, args.steps):
@@ -318,10 +323,10 @@ def main() -> None:
             texts = {"".join(s["text"] for s in tr.segs) for tr in members}
             if args.rep_penalty > 0:
                 qp = [args.rep_penalty * rep_score(tr.segs) for tr in in_group]
-                adv = group_advantages(args.mode, in_group, creds, units, dur, aq, q_penalty=qp)
+                adv = group_advantages(args.mode, in_group, creds, units, dur, aq, q_penalty=qp, **who_kw)
             else:
                 qp = None
-                adv = group_advantages(args.mode, in_group, creds, units, dur, aq)
+                adv = group_advantages(args.mode, in_group, creds, units, dur, aq, **who_kw)
             st = adv["stats"]
             st["dropped"] = len(texts) == 1
             st["n_units"] = len(units)
