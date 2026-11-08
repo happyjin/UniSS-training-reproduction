@@ -50,6 +50,9 @@ def main():
     ap.add_argument("--decode-extra", default="", help="extra online_decode arguments (e.g. the loop guard); default none")
     ap.add_argument("--asr-shards", type=int, default=1,
                     help="speech ASR in N parallel shard jobs + asr_merge (default 1: the single ASR job as before)")
+    ap.add_argument("--asr-per-talk", type=int, default=0,
+                    help="N > 0: per-talker-shard pipelining - ASR of talker shard k starts when that shard is done, in N "
+                         "sub-shard jobs (8 N ASR jobs in all; --asr-shards is ignored); default 0: as before")
     ap.add_argument("--dec-only", default="", help="comma list: cards the decode shards may use")
     ap.add_argument("--id-suffix", default="", help="suffix for job ids (re-chaining an existing run)")
     ap.add_argument("--extra-deps", nargs="*", default=[], help="with --existing: job ids the score job waits for")
@@ -102,7 +105,27 @@ def main():
                                 f"--blocks-file {SP}/talker_in/blocks.jsonl --items-file {SP}/talker_in/items.jsonl "
                                 f"--speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --shard {k} "
                                 f"--num-shards 8 > {SP}/talk{k}.log 2>&1"})
-        if a.asr_shards > 1:   # 2026-11-07: one whisper process took ~3 h per eval
+        if a.asr_per_talk > 0:   # 2026-11-08: no all-shards barrier between TTS and ASR
+            prep = (f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
+                    f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
+                    f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker")
+            jobs.append({"id": f"{a.name}__asrprep", "mem_gb": 0, "deps": tk, "cmd": ENV + prep + f" > {SP}/asrprep.log 2>&1"})
+            parts = []
+            for k in range(8):
+                jobs.append({"id": f"{a.name}__asrprep{k}", "mem_gb": 0, "deps": [tk[k]],
+                             "cmd": ENV + f"[ -s {SP}/talker/part_{k}.jsonl ] && {PYE} experiments/mist_w3po_v1/evaluation/"
+                                    f"speechonly_part.py {SP}/talker {k} > {SP}/asrprep{k}.log 2>&1"})
+                for s in range(a.asr_per_talk):
+                    parts.append(f"{a.name}__asrp{k}_{s}")
+                    jobs.append({"id": parts[-1], "mem_gb": 14, "deps": [f"{a.name}__asrprep{k}"], "retries": 3, "stagger": 15,
+                                 "cmd": ENV + f"{PYE} -m evaluation.asr_transcribe --input {SP}/talker/results_speechonly.t{k}.jsonl "
+                                        f"--output {SP}/talker/asr_speech.t{k}s{s}.jsonl --device cuda:0 --batch-size 8 --resume "
+                                        f"--num-shards {a.asr_per_talk} --shard-index {s} >> {SP}/asr_t{k}s{s}.log 2>&1"})
+            jobs.append({"id": f"{a.name}__asr", "mem_gb": 0, "deps": parts + [f"{a.name}__asrprep"],
+                         "cmd": ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_merge {SP}/talker {8 * a.asr_per_talk} "
+                                f"'asr_speech.t*s*.jsonl' > {SP}/asr_merge.log 2>&1"})
+            asr_out = f"{SP}/talker/asr_speech_merged.jsonl"
+        elif a.asr_shards > 1:   # 2026-11-07: one whisper process took ~3 h per eval
             prep = (f"for k in 0 1 2 3 4 5 6 7; do [ -s {SP}/talker/part_$k.jsonl ] || MISSING=1; done; "
                     f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
                     f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker")
@@ -125,7 +148,7 @@ def main():
                             f"[ -z \"$MISSING\" ] && cat {SP}/talker/part_*.jsonl > {SP}/talker/results.jsonl && "
                             f"{PYE} scripts/gpu_queue/p80_speechonly.py {SP}/talker && {PYE} -m evaluation.asr_transcribe "
                             f"--input {SP}/talker/results_speechonly.jsonl --output {SP}/talker/asr_speech.jsonl "
-                            f"--device cuda:0 --batch-size 8 --resume >> {SP}/asr.log 2>&1"}) if a.asr_shards <= 1 else None
+                            f"--device cuda:0 --batch-size 8 --resume >> {SP}/asr.log 2>&1"}) if (a.asr_shards <= 1 and a.asr_per_talk <= 0) else None
         jobs.append({"id": f"{a.name}__sscore", "mem_gb": 0, "deps": [f"{a.name}__asr"],
                      "cmd": ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_hyp {D}/hyp.jsonl "
                             f"{asr_out} {D}/hyp_asr.jsonl && {PY} -m "

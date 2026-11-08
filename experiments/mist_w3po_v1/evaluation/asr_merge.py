@@ -5,7 +5,10 @@ asr_speech_merged.jsonl (new file, never overwritten) = the valid rows of asr_sp
 the stopped process is skipped) + the part rows, one per (id, mode); exit 1 unless every row of
 results_speechonly.jsonl is covered.
 
-    python -m experiments.mist_w3po_v1.evaluation.asr_merge <talker dir> <n parts>
+    python -m experiments.mist_w3po_v1.evaluation.asr_merge <talker dir> <n parts> [<parts glob>]
+
+<parts glob> (2026-11-08, per-talker-shard ASR): merge the files matching this glob in <talker dir> (sorted by name,
+e.g. 'asr_speech.t*s*.jsonl') instead of asr_speech.p0..p<n-1>.jsonl; without it the behaviour is unchanged.
 """
 from __future__ import annotations
 
@@ -26,10 +29,14 @@ def rows(p: Path):
 
 def main():
     d, n = Path(sys.argv[1]), int(sys.argv[2])
+    parts = sorted(d.glob(sys.argv[3])) if len(sys.argv) > 3 else [d / f"asr_speech.p{k}.jsonl" for k in range(n)]
+    if len(sys.argv) > 3 and len(parts) != n:
+        print(f"note: expected {n} part files matching {sys.argv[3]}, found {len(parts)} (coverage is checked below)",
+              flush=True)
     have = set()
     added = 0
     with open(d / "asr_speech_merged.jsonl", "x", encoding="utf-8") as fh:
-        for src in [d / "asr_speech.jsonl"] + [d / f"asr_speech.p{k}.jsonl" for k in range(n)]:
+        for src in [d / "asr_speech.jsonl"] + parts:
             for r in rows(src):
                 key = (str(r["id"]), str(r["mode"]))
                 if key not in have:
