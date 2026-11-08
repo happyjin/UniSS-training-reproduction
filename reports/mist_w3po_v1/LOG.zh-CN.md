@@ -738,3 +738,21 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   作业文件均以"写新文件 + rename"修改，未删任何文件。
 - Z2 第 76 步 KL 0.259、gnorm 15.5（裁剪到 1.0），单步，下一步 R / KL 恢复——与 X 第 60 步同类（单个尾部 token 的 k3），
   不采取行动（Z2 为保持与 Y 配置一致未加 `--kl-cap`）。
+
+### 2026-11-08 17:25 UTC（布拉格 18:25）：评测提速（用户 16:50 要求）——逐 talker 分片流水 ASR；TTS 分片不变性；队列放置
+1. **逐分片流水**（`make_eval_jobs --asr-per-talk N`，默认 0 = 原作业逐字节相同，3 种配置生成的作业文件 diff 一致）：
+   talker 分片 k 完成即跑 `speechonly_part.py`（与 p80_speechonly 逐行相同的变换，写 `results_speechonly.t<k>.jsonl`）
+   和 N 个 ASR 子分片（共 8N 个），不再等全部 8 个 talker；`asr_merge <dir> 8N 'asr_speech.t*s*.jsonl'`（新的可选 glob 参数，
+   不给时行为不变）按 (id, mode) 合并，覆盖检查照旧对完整的 `results_speechonly.jsonl`。
+   验证（CPU，dev_pilot100_dia 已完成评测，写在 scratch）：8 个分片的 speech-only 行之并 = 原 `results_speechonly.jsonl`（5187 行逐字节相同）；
+   用 glob 模式、打乱分片顺序重新合并 = 原 `asr_speech_merged.jsonl`（按 (id, mode) 5187 行全同）。
+   ASR 与分片方式无关的实测（GPU，卡 4，评测卡）：talker 第 0 片的行按 2 片重分后重新转写，244 行（25 min 超时前完成的部分）
+   `asr_text` 与原 4 片结果 **244/244 逐字相同**（whisper 短音频统一补到 30 s 并带 attention mask，批内伙伴不影响结果）。
+   应用：w3dia2 第 20/50 步评测整体重生成为 `--asr-per-talk 2`（原作业移入 `held/pipelined_asr_20261108/`）；Z2 第 100 步解码已开始，
+   只替换其尚未开始的 ASR 段（asrprep / asrp* / asr，18 个旧作业移入同一 held 目录，26 个新作业），`__sscore` 及闸门依赖不变。
+2. **TTS 分片不变性：不成立，talker 保持 8 片**。`si_infer.py` 每个 block 的采样种子 = `seed + 1000 × n_it + r`，其中 `n_it` 是
+   条目在**本分片**内的序号（`items[shard::num_shards]` 之后 enumerate），温度 0.7 采样；分片数从 8 改为 16 会改变几乎所有条目的种子，
+   输出必然不同（代码层面即可确定，未另跑 GPU 重合成）。若要 16 片，需要新增"按全局序号取种子"的开关并重跑参考（v8 保护版）的语音，
+   与 v8 参考不可比，故不做。
+3. **队列放置**：`gpuq_w3.py` 已按 nvidia-smi 实际空闲显存放置（每轮 `free_gb()`；刚启动作业在 RESERVE_S 内按声明量预留，
+   其后按实测；要求放置后 ≥ 8.6 GB 余量；训练卡封锁）——已满足，无需改动。
