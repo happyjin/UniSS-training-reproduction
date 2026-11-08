@@ -724,3 +724,6 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 （保护版，ASR 16 片）；对照 dia 50、w3dia 50（同步数）。排队顺序：Z1/Z2 的评测先于 w3dia2 训练（训练独占 4 卡，评测结束空出后启动）。
 **目标 / 判定**：窗口错标 ≤ dia 50（2.45%），保持 w3dia 的召回 / collapse 收益，语音 ASR-BLEU 与文本不低于 dia 50 / 闸门。
 错标仍高于 dia 或 dev R 低于 dia 50 且 CI 不含 0 → w3dia2 不进入主训练候选。
+- 排队实现（13:30 UTC）：`055_rl_w3dia2`（`rl/pilot_w3dia2_sc05_v8_b01_w128`，端口 30035）依赖第三轮 4 个评测的 `__score`
+  （即全部解码完成后才启动，避免 stagger 0 的训练抢在 Z1/Z2 解码前占卡）；评测 `dev_pilot{20,50}_w3dia2_ctx0_guard_s8`
+  （ASR 16 片）+ `gate_` / `signals_`（057/058）。
