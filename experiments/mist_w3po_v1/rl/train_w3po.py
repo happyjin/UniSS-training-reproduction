@@ -81,11 +81,19 @@ def hard(w: dict) -> bool:
 class Sampler:
     """Deterministic stratified stream of windows: alternating hard / normal, each pool reshuffled per pass."""
 
-    def __init__(self, windows: list[dict], seed: int):
+    def __init__(self, windows: list[dict], seed: int, hard_only: bool = False):
         self.pools = [[w for w in windows if hard(w)], [w for w in windows if not hard(w)]]
         self.seed = seed
+        self.hard_only = hard_only   # --hard-only (2026-11-08): event-centred sampling, every window "hard"
 
     def take(self, step: int, n: int) -> list[dict]:
+        if self.hard_only:
+            pool, out = self.pools[0], []
+            for k in range(n):
+                p, i = divmod(step * n + k, len(pool))
+                perm = np.random.default_rng(self.seed + 1000 * p + 13).permutation(len(pool))
+                out.append(pool[perm[i]])
+            return out
         out = []
         for k in range(n):
             pool = self.pools[k % 2]
@@ -137,6 +145,9 @@ def main() -> None:
     ap.add_argument("--w-when", type=float, default=1.0,
                     help="weight of the when-channel policy loss (1.0 = the pilot's loss, bit-identical; 2026-11-07 drift fix)")
     ap.add_argument("--w-who", type=float, default=1.0)
+    ap.add_argument("--hard-only", action="store_true",
+                    help="sample only 'hard' windows (overlap, an utterance <= 1 s, or >= 3 speaker changes); default: "
+                         "the 50/50 hard/normal stream")
     ap.add_argument("--rep-penalty", type=float, default=0.0,
                     help="dia / w3dia / noC1: quality minus this x advantage.rep_score (repeated word 4-gram share); 0 = off")
     ap.add_argument("--w-what", type=float, default=1.0)
@@ -175,7 +186,7 @@ def main() -> None:
     # data
     W = [json.loads(l) for l in open(args.windows, encoding="utf-8")]
     W = [w for w in W if w.get("utts") and w["dur_ms"] <= args.max_dur_ms]
-    sampler = Sampler(W, args.seed)
+    sampler = Sampler(W, args.seed, hard_only=args.hard_only)
     sess = json.loads((Path(args.ref_src) / "slot_map.json").read_text())["lowlat"]
     en = {r["record_id"]: r["en"] for r in map(json.loads, open(args.en_norm, encoding="utf-8"))}
     meet_utts = {}
