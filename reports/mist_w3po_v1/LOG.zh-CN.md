@@ -830,3 +830,33 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   再按 PID 停 sc10（torchrun 769024 与 4 个 rank 769513–769516；无孤儿进程）。sc10 目录保留（ckpt 到 step_00017）。
   EA-GRPO 随即在空出的 4 张卡上启动。
 - 时间更正：上面 EA-GRPO 方案条标为"20:40 UTC"，实际约 20:00 UTC 写入；交换实际在 20:04 UTC（布拉格 21:04），EA-GRPO 在卡 1/3/4/6 启动。
+
+### 2026-11-08 20:35 UTC（布拉格 21:35）：EA-GRPO 规格修订（协调者 / 用户，防止重蹈 W³PO）、第一版停止、预检通过、重新启动
+- **第一版停止**：协调者的修订规格在 20:04 启动之后才到。第一版用 `event_norm` 的 std 除法（FLOOR 0.02），会把事件内的微小差异
+  放大到最多 50 倍，正是 W³PO 的失败模式。20:06 UTC 按 PID 停止（torchrun 1568420 与 4 个 rank；第 1 步前停止，无 metrics），
+  目录 `rl/pilot_eagrpo_v8_b01_w128` 保留，95 个作业文件移入 `queue_v2/held/eagrpo_std_stopped/`。停止期间卡 1/3/4/6 由 idle_fallback 填充。
+- **修订**（新增选项，旧路径可选且有测试）：
+  1. `--ev-norm center`（新运行默认）：e = x − mean_g(x)，x ∈ [0, 1]（SQ_u、说话人正确、覆盖），不除以组内 std；
+     spurious / 重复项 = −(数量/|U| − 均值)。每个事件的等权来自 x ∈ [0, 1]，而不是 std 归一化。`--ev-norm std` 为第一版，逐位相同。
+  2. 损失归一化与 dia 相同（本来就是：eagrpo 走 dia 的单一损失路径，所有 token 等权平均，不分通道、不用 W³ 投影比率）。
+     通道只决定哪个 token 拿哪个事件的信用。
+  3. E(t) 截断到 [−1, 1]（`--ev-clip 1.0`）。每步记录 `ev_E_over_z` = mean|E| / mean|z(cpBLEU)|，目标 ≤ 1。
+  4. CPU 预检（`rl/precheck_eagrpo.py`，报告 `reports/mist_w3po_v1/precheck_eagrpo.json`）：组 = 8 个已有保护版 dev 解码
+     （v8 ×3、dia 50/100、w3dia 50/75、diahard 125）在同一窗口上的输出，全部 2901 个有参考单元的 dev 窗口；只做诊断。
+     | 指标 | center（启动设置） | std（第一版） | 要求 |
+     |---|---|---|---|
+     | corr(E_when, 提交提前量)，组内中心化后合并 | **+0.010** | +0.026 | ≈ 0 或负 |
+     | corr(E_when, 每轨迹段数) | **−0.264** | −0.198 | ≈ 0 或负 |
+     | E 的符号与单元质量变化一致（unit, rollout 对） | **95.5%**（n 25501） | 97.8% | 一致 |
+     | mean\|E\| / mean\|z(cpBLEU)\| | **0.053** | 0.737 | ≤ 1 |
+     → **通过**：漏覆盖的信用不奖励提前提交（≈ 0），多发段反而被罚（负相关）。注意 center 版事件项的量级约为 z(cpBLEU) 的 5%：
+     是一个温和的修正项（λ_ev 固定 1.0，不扫）。
+  5. β 0.1 + `--kl-cap 10`。
+  6. **早期漂移停止**（从第 10 步起，任一条件连续 5 步成立即停）：segs_per_traj > 1.10 × dia 同一步（同一窗口流，
+     `rl/pilot_dia_v8_b01_w128`）；训练重复 / spurious 高于 dia（dia 第 1–50 步未记 rep_mean：以 spurious_per_traj 对 dia 同一步，
+     rep_mean 对 X 第 89–150 步的最大值 0.0037）；KL > 0.05。第 20 步评测若 pre_end_share 或重复率相对 dia 20 的升幅超出解码噪声，停止并报告。
+  7. 单测 `rl/test_eagrpo.py` 扩充：λ_ev = 0 与 dia 逐位相同（center 与 std 两种）；`--ev-norm std` 与第一版逐位相同；
+     center 下 |E| ≤ 1；手工组在 std 与 center 下都与手算一致（center：漏插话者 <wait> 得 −2/3，标错者起始 token 得 e_q − 0.5），
+     clip 0.3 时有 token 恰被截断。
+- **重新启动**：`rl/pilot_eagrpo_ctr_v8_b01_w128`，卡 1/3/4/6，配置同 dia / Y（128 窗口/步、tok-budget 40000、β 0.1、lr 5e-6）
+  + `--mode eagrpo --lam-ev 1.0 --ev-norm center --ev-clip 1.0 --kl-cap 10`，50 步；评测第 20 / 50 步（保护版、流水 ASR、闸门 + 信号）。

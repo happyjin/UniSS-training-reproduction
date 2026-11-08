@@ -3,9 +3,11 @@
      duplicated / speaker-flipped / half-flipped members, with and without --rep-penalty);
   2. lam_ev = 0 gives exactly dia's advantages;
   3. a hand-made group (a long unit and a 0.4 s interjection; rollout 1 misses the interjection, rollout 2 gives it
-     the wrong speaker) against hand-computed event credits.
+     the wrong speaker) against hand-computed event credits, for --ev-norm std (first version) and center (default);
+  4. (amendment) --ev-norm std is bit-identical to the first eagrpo version (argv[2]); the center clip bounds E.
 
-    python -m experiments.mist_w3po_v1.rl.test_eagrpo <old advantage.py> <hyp.jsonl> <windows_train_diar.jsonl> [n]
+    python -m experiments.mist_w3po_v1.rl.test_eagrpo <advantage.py before eagrpo> <first eagrpo advantage.py> \
+        <hyp.jsonl> <windows_train_diar.jsonl> [n]
 """
 from __future__ import annotations
 
@@ -31,7 +33,7 @@ def check(name, cond):
     assert cond, name
 
 
-def real_groups(OLD, tok, hyp, wins, n):
+def real_groups(OLD, EA1, tok, hyp, wins, n):
     spk_tok = {tok.convert_tokens_to_ids(f"<|spk{k}|>"): k for k in range(1, 9)}
     inv = {k: t for t, k in spk_tok.items()}
     W = {w["id"]: w for w in map(json.loads, open(wins, encoding="utf-8"))}
@@ -65,12 +67,18 @@ def real_groups(OLD, tok, hyp, wins, n):
             d = NEW.group_advantages("dia", members, creds, units, dur, aq, **kw)
             e0 = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=0.0, **kw)
             assert e0["tok"] == d["tok"], (w["id"], "lam_ev 0 != dia", kw)
+        for kw in ({}, {"q_penalty": qp}):
+            for lam in (0.0, 1.0):
+                a = EA1.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=lam, **kw)
+                b = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=lam, ev_norm="std", **kw)
+                assert a["tok"] == b["tok"], (w["id"], "std path != first eagrpo", lam, kw)
         e1 = NEW.group_advantages("eagrpo", members, creds, units, dur, aq)
-        assert e1 == NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=1.0), "default lam_ev is 1"
+        assert e1 == NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=1.0, ev_norm="center",
+                                          ev_clip=1.0), "defaults: lam_ev 1, center, clip 1"
         d = NEW.group_advantages("dia", members, creds, units, dur, aq)
         diff = [abs(x[4] - y[4]) for m in range(len(members)) for r in range(len(members[m].reads))
                 for x, y in zip(e1["tok"][m][r], d["tok"][m][r])]
-        assert all(math.isfinite(v) for v in diff)
+        assert all(math.isfinite(v) for v in diff) and max(diff) <= 1.0 + 1e-12, max(diff)
         nz += any(v > 1e-9 for v in diff)
         done += 1
         if done >= n:
@@ -78,7 +86,7 @@ def real_groups(OLD, tok, hyp, wins, n):
     return done, nz
 
 
-def hand_group(tok):
+def hand_group(tok, ev_norm):
     utts = [{"begin_s": 0.0, "end_s": 2.5, "speaker_id": "A", "ref": "the meeting starts now with the budget review",
              "zh": "x"},
             {"begin_s": 2.6, "end_s": 3.0, "speaker_id": "B", "ref": "okay", "zh": "y"}]
@@ -96,14 +104,14 @@ def hand_group(tok):
     SQ = [[0.8, 0.6], [0.6, 0.0], [0.7, 0.5]]
     uo = [[0, 1], [0], [0, 1]]
     creds = [SimpleNamespace(R=0.5, lat=1.0, SQ=SQ[g], unit_of=uo[g]) for g in range(3)]
-    out = NEW.group_advantages("eagrpo", trajs, creds, units, 6.0, [])
+    out = NEW.group_advantages("eagrpo", trajs, creds, units, 6.0, [], ev_norm=ev_norm, ev_clip=0.0 if ev_norm == "std" else 1.0)
     zq = NEW.z(np.array([S.seq_cpbleu(t.segs, units) for t in trajs]))
 
     def nrm(x):
         x = np.array(x, dtype=float)
-        return (x - x.mean()) / max(x.std(), NEW.FLOOR)
+        return (x - x.mean()) / (1.0 if ev_norm == "center" else max(x.std(), NEW.FLOOR))
     eq0, eq1, em1 = nrm([0.8, 0.6, 0.7]), nrm([0.6, 0.0, 0.5]), nrm([1, 0, 1])
-    ec1 = {0: 1.0, 2: -1.0}
+    ec1 = {0: 1.0, 2: -1.0} if ev_norm == "std" else {0: 0.5, 2: -0.5}
 
     def E(g, r):   # event part of each token of read r of rollout g
         return [(wh, who, x[4] - zq[g]) for (wh, who, _, _, x4), x in zip(out["tok"][g][r], out["tok"][g][r])
@@ -120,7 +128,7 @@ def hand_group(tok):
     # averaged with the commit of u0 in that read (e_q(u0))
     ok &= abs(E(1, 3)[-1][2] - em1[1]) < 1e-9 and abs(E(1, 4)[-1][2] - em1[1]) < 1e-9
     ok &= abs(E(1, 2)[-1][2] - (eq0[1] + em1[1]) / 2) < 1e-9
-    ok &= abs(em1[1] + math.sqrt(2)) < 1e-9
+    ok &= abs(em1[1] - (-math.sqrt(2) if ev_norm == "std" else -2 / 3)) < 1e-9
     # u0 tokens: e_q(u0) on text; its speaker is right everywhere -> e_c(u0) = 0 (the opening token gets e_q(u0) only)
     r2 = E(0, 2)
     ok &= abs(r2[0][2] - eq0[0]) < 1e-9 and all(abs(v - eq0[0]) < 1e-9 for _, _, v in r2[1:])
@@ -130,19 +138,28 @@ def hand_group(tok):
     ok &= all(abs(v) < 1e-12 for g in range(3) for _, _, v in E(g, 5))
     ev = out["stats"]["ev"]
     ok &= ev["units"] == 2 and ev["units_nz"] == 2 and ev["short"] == 3 and ev["short_cov"] == 2
+    if ev_norm == "center":   # the clip: with ev_clip 0.3 every |E(t)| <= 0.3 and some token is clipped
+        o3 = NEW.group_advantages("eagrpo", trajs, creds, units, 6.0, [], ev_clip=0.3)
+        v3 = [abs(x[4] - zq[g]) for g in range(3) for row in o3["tok"][g] for x in row]
+        ok &= max(v3) <= 0.3 + 1e-12 and any(abs(v - 0.3) < 1e-12 for v in v3)
     return ok
 
 
 def main():
-    spec = importlib.util.spec_from_file_location("old_adv", sys.argv[1])
-    OLD = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(OLD)
+    mods = []
+    for k, name in ((1, "old_adv"), (2, "ea1_adv")):
+        spec = importlib.util.spec_from_file_location(name, sys.argv[k])
+        mods.append(importlib.util.module_from_spec(spec))
+        spec.loader.exec_module(mods[-1])
     tok = Prompter("zh2en").tok
-    n = int(sys.argv[4]) if len(sys.argv) > 4 else 20
-    done, nz = real_groups(OLD, tok, sys.argv[2], sys.argv[3], n)
+    n = int(sys.argv[5]) if len(sys.argv) > 5 else 20
+    done, nz = real_groups(mods[0], mods[1], tok, sys.argv[3], sys.argv[4], n)
     check(f"existing modes (w3dia/w3dia2 included, with and without --rep-penalty) bit-identical on {done} groups", done > 0)
-    check(f"eagrpo lam_ev 0 == dia on {done} groups; event term non-zero in {nz}", done > 0 and nz > 0)
-    check("hand-made group: missed interjection, wrong-speaker interjection, commits, empty / final reads", hand_group(tok))
+    check(f"eagrpo lam_ev 0 == dia on {done} groups; --ev-norm std == first eagrpo; |E| <= 1 (center); event term "
+          f"non-zero in {nz}", done > 0 and nz > 0)
+    for ev_norm in ("std", "center"):
+        check(f"hand-made group ({ev_norm}): missed interjection, wrong-speaker interjection, commits, empty / final reads"
+              + (", clip" if ev_norm == "center" else ""), hand_group(tok, ev_norm))
     print("ALL PASS")
 
 

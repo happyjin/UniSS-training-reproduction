@@ -27,6 +27,9 @@ modes
             opening token; the <wait> of a read committing a segment of u) and, for a missed u, the <wait> of reads in
             [u.end, u.end + 2 s] <- e(m); unmatched / duplicate segments' what and when tokens <- -z(count). No latency
             term. Same token-level loss as dia (not a W3 mode), so lam_ev = 0 is dia exactly.
+            ev_norm (2026-11-08 amendment): "center" (default) e = x - mean_g(x), x in [0, 1] (no division by the
+            group std, which blew tiny differences up to unit scale in W3PO), bad-segment term = -(count/|U| - mean),
+            and E(t) clipped to [-ev_clip, ev_clip] (default 1); "std" = the first version (std division, no clip).
 Returns per trajectory, per read: list of (when?, who?, a_when, a_who, a_what, seg index) per token, plus group stats.
 """
 from __future__ import annotations
@@ -99,14 +102,14 @@ def dup_segments(segs: list, n: int = 4) -> set:
     return out
 
 
-def event_norm(x: list, ok: list | None = None) -> list:
+def event_norm(x: list, ok: list | None = None, center: bool = False) -> list:
     """eagrpo: (x - mean) / max(std, FLOOR) over the rollouts with ok (all by default); 0 elsewhere, and everywhere
-    when fewer than two such rollouts or the values are constant."""
+    when fewer than two such rollouts or the values are constant. center: x - mean only (no std division)."""
     ok = [True] * len(x) if ok is None else ok
     v = np.array([a for a, k in zip(x, ok) if k], dtype=float)
     if len(v) < 2 or v.std() <= 1e-9:
         return [0.0] * len(x)
-    mu, sd = v.mean(), max(v.std(), FLOOR)
+    mu, sd = v.mean(), (1.0 if center else max(v.std(), FLOOR))
     return [float((a - mu) / sd) if k else 0.0 for a, k in zip(x, ok)]
 
 
@@ -114,7 +117,7 @@ EV_MISS_S = 2.0
 
 
 def eagrpo_advantages(trajs: list, credits: list, units: list, dur: float, q_penalty: list | None = None,
-                      lam_ev: float = 1.0) -> dict:
+                      lam_ev: float = 1.0, ev_norm: str = "center", ev_clip: float = 1.0) -> dict:
     """--mode eagrpo (see the module docstring). Returns {"tok", "stats"} like group_advantages; the advantage of every
     token is in the "what" slot (as dia), the when / who flags are kept for the record."""
     n, U = len(trajs), len(units)
@@ -128,18 +131,24 @@ def eagrpo_advantages(trajs: list, credits: list, units: list, dur: float, q_pen
     segs_of = [[[j for j, uu in enumerate(c.unit_of) if uu == u] for u in range(U)] for c in credits]
     bad = [dup_segments(tr.segs) | {j for j, uu in enumerate(c.unit_of) if uu < 0} for tr, c in zip(trajs, credits)]
     cov = [[1.0 if any(j not in bad[g] for j in segs_of[g][u]) else 0.0 for u in range(U)] for g in range(n)]
+    assert ev_norm in ("center", "std"), ev_norm
+    ctr = ev_norm == "center"
     pis = [S.speaker_map(tr.segs, units) for tr in trajs]
     e_q, e_c, e_m = [], [], []
     for u in range(U):
-        e_q.append(event_norm([float(credits[g].SQ[u]) for g in range(n)]))
-        e_m.append(event_norm([cov[g][u] for g in range(n)]))
+        e_q.append(event_norm([float(credits[g].SQ[u]) for g in range(n)], center=ctr))
+        e_m.append(event_norm([cov[g][u] for g in range(n)], center=ctr))
         corr = []
         for g, tr in enumerate(trajs):
             js = [j for j in segs_of[g][u] if j not in bad[g]]
             corr.append(float(np.mean([pis[g].get(tr.segs[j]["spk"]) == units[u]["spk"] for j in js])) if js else 0.0)
-        e_c.append(event_norm(corr, [cov[g][u] > 0 for g in range(n)]))
-    e_bad = [-v for v in event_norm([float(len(b)) for b in bad])]
+        e_c.append(event_norm(corr, [cov[g][u] > 0 for g in range(n)], center=ctr))
+    if ctr:
+        e_bad = [-v for v in event_norm([len(b) / max(U, 1) for b in bad], center=True)]
+    else:
+        e_bad = [-v for v in event_norm([float(len(b)) for b in bad])]
     tok, mag = [], {"when": [0.0, 0], "who": [0.0, 0], "what": [0.0, 0]}
+    tot = [0.0, 0.0, 0]   # sum |E(t)| (after the clip), sum |z(cpBLEU)|, tokens
     for g, tr in enumerate(trajs):
         c = credits[g]
         wait_ev = {}   # read -> event values routed to its <wait> / end-of-read when token
@@ -175,7 +184,13 @@ def eagrpo_advantages(trajs: list, credits: list, units: list, dur: float, q_pen
                     if on:
                         mag[k][0] += abs(v)
                         mag[k][1] += 1
-                row.append((wh, who, 0.0, 0.0, float(zq[g]) + lam_ev * (E_w + E_h + E_t)))
+                E = E_w + E_h + E_t
+                if ctr and ev_clip > 0:
+                    E = min(max(E, -ev_clip), ev_clip)
+                tot[0] += abs(E)
+                tot[1] += abs(float(zq[g]))
+                tot[2] += 1
+                row.append((wh, who, 0.0, 0.0, float(zq[g]) + lam_ev * E))
             per_read.append(row)
         tok.append(per_read)
     short = [u for u in range(U) if units[u]["b"] - units[u]["a"] <= 1.0]
@@ -184,7 +199,8 @@ def eagrpo_advantages(trajs: list, credits: list, units: list, dur: float, q_pen
         ev={"units": U, "units_nz": sum(1 for u in range(U) if any(e_q[u]) or any(e_c[u]) or any(e_m[u])),
             "abs_when": mag["when"][0], "n_when": mag["when"][1], "abs_who": mag["who"][0], "n_who": mag["who"][1],
             "abs_what": mag["what"][0], "n_what": mag["what"][1], "short": len(short) * n,
-            "short_cov": sum(cov[g][u] for g in range(n) for u in short)})
+            "short_cov": sum(cov[g][u] for g in range(n) for u in short),
+            "abs_E": tot[0], "abs_z": tot[1], "n_tok": tot[2]})
     return {"tok": tok, "stats": stats}
 
 
@@ -197,13 +213,15 @@ def z(x: np.ndarray) -> np.ndarray:
 
 
 def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: float, anchor_ql: list,
-                     q_penalty: list | None = None, who_sc: float = 0.5, who_rbc: float = 0.0, lam_ev: float = 1.0) -> dict:
+                     q_penalty: list | None = None, who_sc: float = 0.5, who_rbc: float = 0.0, lam_ev: float = 1.0,
+                     ev_norm: str = "center", ev_clip: float = 1.0) -> dict:
     """trajs/credits: the group members (policy rollouts, then anchors when they are in the group).
     anchor_ql: [(Q_a, L_a)] of the anchors for FLAD. Returns {"tok": per member per read [(when, who, aw, ah, at)],
     "stats": {...}}. who_sc / who_rbc: weights of the w3dia2 who channel (ignored by every other mode); lam_ev: weight
     of the eagrpo event term (ignored by every other mode)."""
     if mode == "eagrpo":
-        return eagrpo_advantages(trajs, credits, units, dur, q_penalty=q_penalty, lam_ev=lam_ev)
+        return eagrpo_advantages(trajs, credits, units, dur, q_penalty=q_penalty, lam_ev=lam_ev, ev_norm=ev_norm,
+                                 ev_clip=ev_clip)
     n = len(trajs)
     R = np.array([c.R for c in credits])
     Lat = np.array([c.lat for c in credits])
