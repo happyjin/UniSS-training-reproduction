@@ -874,3 +874,16 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   以 `--lam-ev 6.31` 在新目录 `rl/pilot_eagrpo_ctr_l631_v8_b01_w128`（卡 1/3/4/6）重启，其余设置与评测计划不变；
   早期漂移停止规则同样适用（kl / segs / spurious / rep 监视切到新目录）。
 - 时间更正与执行记录：上条实际写于 20:12 UTC；λ_ev = 1 的 center 运行于 20:12:59 UTC 按 PID 停止（torchrun 1629868 与 4 个 rank，第 1 步前，目录保留，95 个作业文件移入 `held/eagrpo_ctr_lam1_stopped/`）；λ_ev = 6.31 运行（作业 071–074，端口 30075）于 20:13 UTC（布拉格 21:13）在卡 1/3/4/6 启动。
+
+### 2026-11-08 20:20 UTC（布拉格 21:20）：EA-GRPO 尾部上界（协调者）——缩放后截断，重启
+- 问题：clip 1 作用在 E 上、λ_ev 之前，单个 token 的 λ·E 最大可到 ±6.31，约为骨干最大可能值（|z| ≤ √(G−1) = 2.65，G = 8）
+  的 2.4 倍，重新引入"单一通道主导"的风险。
+- 修正（新增 `--ev-clip-scaled`，默认关，旧路径逐位不变）：事件项 = clip(λ_ev·E, −√(G−1), +√(G−1))。λ_ev 仍为预登记规则给出的 6.31。
+  单测 `test_eagrpo.py` 扩充：不加该开关时与加开关前的版本逐位相同（center / std / λ 6.31，含/不含 --rep-penalty）；
+  加开关时每个 token 的事件项正好等于 clip(λE, ±√(G−1))。
+- 同一批 CPU 数据（2901 组，λ 6.31，clip 1 + 缩放后截断）：被新截断命中的 token 占全部 **1.17%**（E ≠ 0 的 1.74%）；
+  截断后 E ≠ 0 token 上 mean|λE| / mean|z| = **0.43**（when 0.42、who 0.58、what 0.42；≤1 s 单元 0.81），接近目标 0.5。
+- 执行：λ 6.31（无缩放截断）运行于 20:13:45 UTC 按 PID 停止（第 1 步前，目录 `rl/pilot_eagrpo_ctr_l631_v8_b01_w128` 保留，
+  95 个作业文件移入 `held/eagrpo_ctr_l631_noscaleclip_stopped/`）；以 `--ev-clip-scaled` 在新目录
+  `rl/pilot_eagrpo_ctr_l631_sc_v8_b01_w128`（卡 1/3/4/6）重启，评测名 `dev_pilot{20,50}_eagrpoctrl631sc_ctx0_guard_s8`。
+  此后除非早期漂移停止触发，不再重启。

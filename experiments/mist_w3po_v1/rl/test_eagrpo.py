@@ -4,10 +4,12 @@
   2. lam_ev = 0 gives exactly dia's advantages;
   3. a hand-made group (a long unit and a 0.4 s interjection; rollout 1 misses the interjection, rollout 2 gives it
      the wrong speaker) against hand-computed event credits, for --ev-norm std (first version) and center (default);
-  4. (amendment) --ev-norm std is bit-identical to the first eagrpo version (argv[2]); the center clip bounds E.
+  4. (amendment) --ev-norm std is bit-identical to the first eagrpo version (argv[2]); the center clip bounds E;
+  5. (tail bound) without --ev-clip-scaled everything is bit-identical to the version before it (argv[3]); with it the
+     event term is exactly clip(lam_ev x E, +-sqrt(G - 1)).
 
     python -m experiments.mist_w3po_v1.rl.test_eagrpo <advantage.py before eagrpo> <first eagrpo advantage.py> \
-        <hyp.jsonl> <windows_train_diar.jsonl> [n]
+        <eagrpo advantage.py before --ev-clip-scaled> <hyp.jsonl> <windows_train_diar.jsonl> [n]
 """
 from __future__ import annotations
 
@@ -33,7 +35,7 @@ def check(name, cond):
     assert cond, name
 
 
-def real_groups(OLD, EA1, tok, hyp, wins, n):
+def real_groups(OLD, EA1, EA2, tok, hyp, wins, n):
     spk_tok = {tok.convert_tokens_to_ids(f"<|spk{k}|>"): k for k in range(1, 9)}
     inv = {k: t for t, k in spk_tok.items()}
     W = {w["id"]: w for w in map(json.loads, open(wins, encoding="utf-8"))}
@@ -72,6 +74,21 @@ def real_groups(OLD, EA1, tok, hyp, wins, n):
                 a = EA1.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=lam, **kw)
                 b = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=lam, ev_norm="std", **kw)
                 assert a["tok"] == b["tok"], (w["id"], "std path != first eagrpo", lam, kw)
+        for kw in ({}, {"q_penalty": qp}):
+            for extra in ({}, {"ev_norm": "std"}, {"lam_ev": 6.31}):
+                a = EA2.group_advantages("eagrpo", members, creds, units, dur, aq, **kw, **extra)
+                b = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, **kw, **extra)
+                assert a["tok"] == b["tok"], (w["id"], "default != before --ev-clip-scaled", kw, extra)
+        bound = math.sqrt(len(members) - 1)
+        nc = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=6.31)
+        sc = NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=6.31, ev_clip_scaled=True)
+        zq0 = NEW.z(np.array([S.seq_cpbleu(t.segs, units) for t in members]))
+        for m in range(len(members)):
+            for r in range(len(members[m].reads)):
+                for x, y in zip(nc["tok"][m][r], sc["tok"][m][r]):
+                    t = x[4] - zq0[m]
+                    want = zq0[m] + min(max(t, -bound), bound)
+                    assert abs(y[4] - want) < 1e-9 and abs(y[4] - zq0[m]) <= bound + 1e-9, (t, y[4], want)
         e1 = NEW.group_advantages("eagrpo", members, creds, units, dur, aq)
         assert e1 == NEW.group_advantages("eagrpo", members, creds, units, dur, aq, lam_ev=1.0, ev_norm="center",
                                           ev_clip=1.0), "defaults: lam_ev 1, center, clip 1"
@@ -147,16 +164,16 @@ def hand_group(tok, ev_norm):
 
 def main():
     mods = []
-    for k, name in ((1, "old_adv"), (2, "ea1_adv")):
+    for k, name in ((1, "old_adv"), (2, "ea1_adv"), (3, "ea2_adv")):
         spec = importlib.util.spec_from_file_location(name, sys.argv[k])
         mods.append(importlib.util.module_from_spec(spec))
         spec.loader.exec_module(mods[-1])
     tok = Prompter("zh2en").tok
-    n = int(sys.argv[5]) if len(sys.argv) > 5 else 20
-    done, nz = real_groups(mods[0], mods[1], tok, sys.argv[3], sys.argv[4], n)
+    n = int(sys.argv[6]) if len(sys.argv) > 6 else 20
+    done, nz = real_groups(mods[0], mods[1], mods[2], tok, sys.argv[4], sys.argv[5], n)
     check(f"existing modes (w3dia/w3dia2 included, with and without --rep-penalty) bit-identical on {done} groups", done > 0)
     check(f"eagrpo lam_ev 0 == dia on {done} groups; --ev-norm std == first eagrpo; |E| <= 1 (center); event term "
-          f"non-zero in {nz}", done > 0 and nz > 0)
+          f"non-zero in {nz}; default == before --ev-clip-scaled; scaled clip = clip(lam E, +-sqrt(G-1))", done > 0 and nz > 0)
     for ev_norm in ("std", "center"):
         check(f"hand-made group ({ev_norm}): missed interjection, wrong-speaker interjection, commits, empty / final reads"
               + (", clip" if ev_norm == "center" else ""), hand_group(tok, ev_norm))

@@ -162,6 +162,8 @@ def main() -> None:
                     help="--mode eagrpo only: per-event x - mean (center, default) or the first version's std division")
     ap.add_argument("--ev-clip", type=float, default=1.0,
                     help="--mode eagrpo only (center): clip of the event term E(t) per token")
+    ap.add_argument("--ev-clip-scaled", action="store_true",
+                    help="--mode eagrpo only: also clip lam_ev x E(t) to +-sqrt(G - 1) (the backbone's range); default off")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -264,7 +266,7 @@ def main() -> None:
     w3 = args.mode in W3_MODES
     who_kw = {"who_sc": args.who_sc, "who_rbc": args.who_rbc} if args.mode == "w3dia2" else {}   # --mode w3dia2 only
     if args.mode == "eagrpo":
-        who_kw = {"lam_ev": args.lam_ev, "ev_norm": args.ev_norm, "ev_clip": args.ev_clip}
+        who_kw = {"lam_ev": args.lam_ev, "ev_norm": args.ev_norm, "ev_clip": args.ev_clip, "ev_clip_scaled": args.ev_clip_scaled}
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
 
     for step in range(start, args.steps):
@@ -435,7 +437,7 @@ def main() -> None:
                float(sum(len(st["anchors"]) for st in gstats))] + adv_mag + [
                float(sum(sum(st["rep"]) for st in gstats)), float(sum(sum(r > 0.5 for r in st["rep"]) for st in gstats))]
         EVK = ("units", "units_nz", "abs_when", "n_when", "abs_who", "n_who", "abs_what", "n_what", "short", "short_cov",
-               "abs_E", "abs_z", "n_tok")
+               "abs_E", "abs_z", "n_tok", "n_scaled_clip")
         if args.mode == "eagrpo":   # event-term diagnostics (other modes: loc unchanged)
             loc += [float(sum(st["ev"][k] for st in gstats if "ev" in st)) for k in EVK]
         g = agg(loc)
@@ -458,7 +460,8 @@ def main() -> None:
                 rec.update(ev_units_nz_frac=e["units_nz"] / max(e["units"], 1), ev_abs_when=e["abs_when"] / max(e["n_when"], 1),
                            ev_abs_who=e["abs_who"] / max(e["n_who"], 1), ev_abs_what=e["abs_what"] / max(e["n_what"], 1),
                            ev_short_cov=e["short_cov"] / max(e["short"], 1),
-                           ev_E_over_z=e["abs_E"] / max(e["abs_z"], 1e-9))
+                           ev_E_over_z=e["abs_E"] / max(e["abs_z"], 1e-9),
+                           ev_scaled_clip_frac=e["n_scaled_clip"] / max(e["n_tok"], 1))
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in rec.items()}))
