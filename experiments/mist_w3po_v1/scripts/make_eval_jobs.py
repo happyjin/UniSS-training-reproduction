@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--dec-cards", type=int, default=1, help="cards per decode shard (model split by --max-gib)")
     ap.add_argument("--dec-mem", type=float, default=66, help="GB per card of one decode shard")
     ap.add_argument("--max-gib", type=int, default=120)
+    ap.add_argument("--decode-extra", default="", help="extra online_decode arguments (e.g. the loop guard); default none")
     ap.add_argument("--asr-shards", type=int, default=1,
                     help="speech ASR in N parallel shard jobs + asr_merge (default 1: the single ASR job as before)")
     ap.add_argument("--dec-only", default="", help="comma list: cards the decode shards may use")
@@ -61,6 +62,8 @@ def main():
         raise SystemExit(f"拒绝覆盖已有输出: {D}")
     jobs = []
     extra = f"--lora {a.lora}" if a.lora else ""
+    if a.decode_extra:
+        extra = (extra + " " + a.decode_extra).strip()
     for k in range(0 if a.existing else a.shards):
         # every attempt writes a new file and resumes from the earlier attempts' windows (retries are safe)
         jobs.append({"id": f"{a.name}__dec{k}", "mem_gb": a.dec_mem, "cards": a.dec_cards, "deps": a.after,
