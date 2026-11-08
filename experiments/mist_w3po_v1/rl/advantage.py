@@ -56,6 +56,21 @@ def admit_anchors(policy_R: list[float], anchor_R: list[float], rule: str = "min
     raise ValueError(rule)
 
 
+def rep_score(segs: list, n: int = 4) -> float:
+    """Repetition score of a trajectory (2026-11-08, MMDuet2-style r_rep / r_pfx): the share of the word n-grams of its
+    committed text (segments in commit order) that repeat an earlier n-gram of the same trajectory. Catches loops
+    ("with the with the ...") and re-translation of already committed content; 0 for a clean output."""
+    words = " ".join(s["text"] for s in segs).lower().split()
+    grams = [tuple(words[i:i + n]) for i in range(len(words) - n + 1)]
+    if not grams:
+        return 0.0
+    seen, rep = set(), 0
+    for g in grams:
+        rep += g in seen
+        seen.add(g)
+    return rep / len(grams)
+
+
 def z(x: np.ndarray) -> np.ndarray:
     x = np.asarray(x, dtype=float)
     if len(x) == 0:
@@ -64,7 +79,8 @@ def z(x: np.ndarray) -> np.ndarray:
     return (x - x.mean()) / max(sd, FLOOR) if sd > 1e-9 else np.zeros_like(x)
 
 
-def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: float, anchor_ql: list) -> dict:
+def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: float, anchor_ql: list,
+                     q_penalty: list | None = None) -> dict:
     """trajs/credits: the group members (policy rollouts, then anchors when they are in the group).
     anchor_ql: [(Q_a, L_a)] of the anchors for FLAD. Returns {"tok": per member per read [(when, who, aw, ah, at)],
     "stats": {...}}."""
@@ -82,6 +98,8 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
     if mode in W3_MODES:
         if mode in ("noC1", "w3dia"):
             Q = np.array([S.seq_cpbleu(tr.segs, units) for tr in trajs])
+            if q_penalty is not None:     # --rep-penalty (default None: unchanged)
+                Q = Q - np.asarray(q_penalty, dtype=float)
         else:
             Q = R
         if mode == "noC3":
@@ -176,7 +194,10 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
         A = z(q) - z(np.maximum(SEQPO_M, Lat))
         per_read = [[A[m]] * len(tr.reads) for m, tr in enumerate(trajs)]
     elif mode == "dia":
-        A = z(np.array([S.seq_cpbleu(tr.segs, units) for tr in trajs]))
+        q = np.array([S.seq_cpbleu(tr.segs, units) for tr in trajs])
+        if q_penalty is not None:     # --rep-penalty (default None: unchanged)
+            q = q - np.asarray(q_penalty, dtype=float)
+        A = z(q)
         per_read = [[A[m]] * len(tr.reads) for m, tr in enumerate(trajs)]
     elif mode == "hpo":
         qs, ls = [], []

@@ -35,7 +35,7 @@ import torch.distributed as dist
 from experiments.mist_w3po_v1.core.engine import (
     AUDIO_PAD, NEW_END, SPK0, WAIT_ID, Engine, Prompter, ReadItem, ctx_string)
 from experiments.mist_w3po_v1.rl import stamp as S
-from experiments.mist_w3po_v1.rl.advantage import W3_MODES, admit_anchors, categories, group_advantages
+from experiments.mist_w3po_v1.rl.advantage import W3_MODES, admit_anchors, categories, group_advantages, rep_score
 from experiments.mist_w3po_v1.rl.rollout import anchors as run_anchors
 from experiments.mist_w3po_v1.rl.rollout import load_window, rollout
 from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, N_SLOT, SDProjector
@@ -137,6 +137,8 @@ def main() -> None:
     ap.add_argument("--w-when", type=float, default=1.0,
                     help="weight of the when-channel policy loss (1.0 = the pilot's loss, bit-identical; 2026-11-07 drift fix)")
     ap.add_argument("--w-who", type=float, default=1.0)
+    ap.add_argument("--rep-penalty", type=float, default=0.0,
+                    help="dia / w3dia / noC1: quality minus this x advantage.rep_score (repeated word 4-gram share); 0 = off")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -301,12 +303,18 @@ def main() -> None:
                 creds += [c for c, k in zip(anc_creds, ok) if k]
                 n_admit = sum(ok)
             texts = {"".join(s["text"] for s in tr.segs) for tr in members}
-            adv = group_advantages(args.mode, in_group, creds, units, dur, aq)
+            if args.rep_penalty > 0:
+                qp = [args.rep_penalty * rep_score(tr.segs) for tr in in_group]
+                adv = group_advantages(args.mode, in_group, creds, units, dur, aq, q_penalty=qp)
+            else:
+                qp = None
+                adv = group_advantages(args.mode, in_group, creds, units, dur, aq)
             st = adv["stats"]
             st["dropped"] = len(texts) == 1
             st["n_units"] = len(units)
             st["anchors"] = aq
             st["n_admit"] = n_admit
+            st["rep"] = [rep_score(tr.segs) for tr in members]     # logged in every mode (loops: rep_score > 0.5)
             st["segs"] = [len(tr.segs) for tr in members]
             st["spurious"] = [c.spurious for c in creds[: len(members)]]
             st["dup"] = [sum(1 for d in c.delta[:] if d < 0) for c in creds[: len(members)]]
@@ -398,7 +406,8 @@ def main() -> None:
                float(np.sum([np.mean([a[0] for a in st["anchors"]]) if st["anchors"] else 0 for st in gstats])),
                logs["kl"], logs["clip"], logs["ntok"], logs["ratio_dev"], logs["p_wait_when"], logs["n_when"],
                t_roll, t_anc, t_rew, t_upd, float(sum(st["n_admit"] for st in gstats)),
-               float(sum(len(st["anchors"]) for st in gstats))] + adv_mag
+               float(sum(len(st["anchors"]) for st in gstats))] + adv_mag + [
+               float(sum(sum(st["rep"]) for st in gstats)), float(sum(sum(r > 0.5 for r in st["rep"]) for st in gstats))]
         g = agg(loc)
         if rank == 0:
             ng = max(g[0], 1)
@@ -412,7 +421,8 @@ def main() -> None:
                    "t_step": time.time() - t0, "gpu_h": (time.time() - t0) * world / 3600, "tokens": cnt.tolist(),
                    "anchor_admit": g[23] / max(g[24], 1),
                    "adv_abs_when": g[25] / max(g[26], 1), "adv_abs_who": g[27] / max(g[28], 1),
-                   "adv_abs_what": g[29] / max(g[30], 1)}
+                   "adv_abs_what": g[29] / max(g[30], 1),
+                   "rep_mean": g[31] / max(g[3], 1), "loop_frac": g[32] / max(g[3], 1)}
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in rec.items()}))
