@@ -901,3 +901,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   新增 CPU 等待作业 `wait_eagrpo_step20_ckpt`（等 `ckpt/step_00020/DONE`，最多 8 h，超时 rc 1），把 076 第 20 步 8 个解码作业的
   deps 改为该等待作业（写新文件再 rename）；第 50 步评测仍依赖训练完成。预计第 20 步约 22:15 UTC，与 dia 20 同协议对比
   pre_end_share 与重复率（升幅超出解码噪声 → 停止并报告）。
+- 22:05 UTC 更正（我的错误）：等待作业的命令里写了 `exit 0`，使队列 wrapper 的 shell 直接退出、没写 rc，22:02 第 20 步 ckpt 落盘时
+  被队列记为 lost（137），EA 第 20 步评测链全部 skipped（未开始任何解码，无输出目录）。修复：旧 076/077/078 第 20 步作业文件与等待作业
+  移入 `queue_v2/held/ea20_waitjob_bug/`（不删），用 `make_eval_jobs --id-suffix _r2` 重新生成同名评测（命令与原 45 个作业逐字相同，
+  无依赖，ckpt 已有 DONE），闸门 / 信号作业 id 加 `_r2`。教训：队列作业命令里不能用 `exit`（用 `test` 结尾或子 shell）。
