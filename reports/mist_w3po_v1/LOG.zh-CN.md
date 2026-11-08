@@ -887,3 +887,4 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   95 个作业文件移入 `held/eagrpo_ctr_l631_noscaleclip_stopped/`）；以 `--ev-clip-scaled` 在新目录
   `rl/pilot_eagrpo_ctr_l631_sc_v8_b01_w128`（卡 1/3/4/6）重启，评测名 `dev_pilot{20,50}_eagrpoctrl631sc_ctx0_guard_s8`。
   此后除非早期漂移停止触发，不再重启。
+- 执行记录：缩放后截断版 EA-GRPO（作业 075–078，端口 30085）于 20:16:14 UTC（布拉格 21:16）在卡 1/3/4/6 启动（上条标题时间实际约 20:15）。
