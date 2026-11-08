@@ -873,3 +873,4 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 执行：λ_ev = 1 的 center 运行（`rl/pilot_eagrpo_ctr_v8_b01_w128`，20:11 起）作业移入 held 后按 PID 停止，目录保留；
   以 `--lam-ev 6.31` 在新目录 `rl/pilot_eagrpo_ctr_l631_v8_b01_w128`（卡 1/3/4/6）重启，其余设置与评测计划不变；
   早期漂移停止规则同样适用（kl / segs / spurious / rep 监视切到新目录）。
+- 时间更正与执行记录：上条实际写于 20:12 UTC；λ_ev = 1 的 center 运行于 20:12:59 UTC 按 PID 停止（torchrun 1629868 与 4 个 rank，第 1 步前，目录保留，95 个作业文件移入 `held/eagrpo_ctr_lam1_stopped/`）；λ_ev = 6.31 运行（作业 071–074，端口 30075）于 20:13 UTC（布拉格 21:13）在卡 1/3/4/6 启动。
