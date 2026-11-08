@@ -825,3 +825,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   （Savani et al., CVPR 2026）、步级验证器门控（VeriGate, arXiv 2605.30451），以及更早的 COMA / difference rewards。
   它们都没有把组基线锚定在 rollout 之间共享的**源时间轴事件**上，也没有在流式多说话人翻译中把事件信用路由到
   控制 / 说话人 / 内容三类 token。
+- 交换执行（约 20:50 UTC）：EA-GRPO 作业（`063_rl_eagrpo`，`rl/pilot_eagrpo_v8_b01_w128`，端口 30055；评测 064–066，流水 ASR）入队后，
+  先把 sc10 的训练作业与评测/闸门作业（95 个文件）移入 `queue_v2/held/w3dia2_sc10_replaced_by_eagrpo/`（防止队列重试重启），
+  再按 PID 停 sc10（torchrun 769024 与 4 个 rank 769513–769516；无孤儿进程）。sc10 目录保留（ckpt 到 step_00017）。
+  EA-GRPO 随即在空出的 4 张卡上启动。
