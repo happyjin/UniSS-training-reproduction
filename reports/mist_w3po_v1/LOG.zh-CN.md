@@ -860,3 +860,4 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
      clip 0.3 时有 token 恰被截断。
 - **重新启动**：`rl/pilot_eagrpo_ctr_v8_b01_w128`，卡 1/3/4/6，配置同 dia / Y（128 窗口/步、tok-budget 40000、β 0.1、lr 5e-6）
   + `--mode eagrpo --lam-ev 1.0 --ev-norm center --ev-clip 1.0 --kl-cap 10`，50 步；评测第 20 / 50 步（保护版、流水 ASR、闸门 + 信号）。
+- 时间更正：上面"20:35 UTC"一条实际写于 20:10 UTC；EA-GRPO center 版于 20:10:53 UTC（布拉格 21:10）在卡 1/3/4/6 启动。
