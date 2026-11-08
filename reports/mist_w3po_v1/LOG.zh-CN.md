@@ -861,3 +861,15 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **重新启动**：`rl/pilot_eagrpo_ctr_v8_b01_w128`，卡 1/3/4/6，配置同 dia / Y（128 窗口/步、tok-budget 40000、β 0.1、lr 5e-6）
   + `--mode eagrpo --lam-ev 1.0 --ev-norm center --ev-clip 1.0 --kl-cap 10`，50 步；评测第 20 / 50 步（保护版、流水 ASR、闸门 + 信号）。
 - 时间更正：上面"20:35 UTC"一条实际写于 20:10 UTC；EA-GRPO center 版于 20:10:53 UTC（布拉格 21:10）在卡 1/3/4/6 启动。
+
+### 2026-11-08 20:40 UTC（布拉格 21:40）：事件项量级核查 → 按预先登记的规则标定 λ_ev，重启 EA-GRPO
+- 协调者核查要求：0.053 是对全部 token 平均，可能掩盖"事件项太弱、与 dia 不可分"。同一批 CPU 预检数据（2901 组，center，clip 1）：
+  (a) E ≠ 0 的 token 比例：全部 67.2%，when 25.6%，who 52.1%，what 76.4%；
+  (b) E ≠ 0 的 token 上 mean|E| / mean|z(cpBLEU)| = **0.079**（mean|z| = 0.596）；
+  (c) 同 (b)，限于 ≤ 1 s 单元的 token：0.134。
+- 判定：(b) < 0.3 → λ_ev = 1 时事件项无法让结果区别于 dia，运行不具信息量。按协调者预先登记的**唯一标定规则**（不是扫描）：
+  E ≠ 0 的 token 上 mean|λ_ev · E| = 0.5 × mean|z| ⇒ **λ_ev = 0.5 × 0.596 / (0.079 × 0.596) = 6.31**；
+  clip 仍为 1，作用在 E 上（λ_ev 之前，代码语义不变）。
+- 执行：λ_ev = 1 的 center 运行（`rl/pilot_eagrpo_ctr_v8_b01_w128`，20:11 起）作业移入 held 后按 PID 停止，目录保留；
+  以 `--lam-ev 6.31` 在新目录 `rl/pilot_eagrpo_ctr_l631_v8_b01_w128`（卡 1/3/4/6）重启，其余设置与评测计划不变；
+  早期漂移停止规则同样适用（kl / segs / spurious / rep 监视切到新目录）。
