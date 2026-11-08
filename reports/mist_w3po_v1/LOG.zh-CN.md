@@ -829,3 +829,4 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   先把 sc10 的训练作业与评测/闸门作业（95 个文件）移入 `queue_v2/held/w3dia2_sc10_replaced_by_eagrpo/`（防止队列重试重启），
   再按 PID 停 sc10（torchrun 769024 与 4 个 rank 769513–769516；无孤儿进程）。sc10 目录保留（ckpt 到 step_00017）。
   EA-GRPO 随即在空出的 4 张卡上启动。
+- 时间更正：上面 EA-GRPO 方案条标为"20:40 UTC"，实际约 20:00 UTC 写入；交换实际在 20:04 UTC（布拉格 21:04），EA-GRPO 在卡 1/3/4/6 启动。
