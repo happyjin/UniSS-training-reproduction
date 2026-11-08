@@ -57,6 +57,13 @@ def main() -> None:
     ap.add_argument("--lora", default="", help="an RL adapter (train_w3po ckpt lora.pt), folded into --thinker")
     ap.add_argument("--lora-rank", type=int, default=32)
     ap.add_argument("--lora-alpha", type=float, default=64.0)
+    ap.add_argument("--loop-guard-k", type=int, default=0,
+                    help="decode-time loop guard (evaluation/loop_guard.py): cut a read's block after the first copy of a "
+                         "pattern repeated >= k times in a row; 0 = off (default, output unchanged)")
+    ap.add_argument("--loop-guard-maxp", type=int, default=12, help="longest repeated pattern (tokens) the guard checks")
+    ap.add_argument("--budget-tps", type=float, default=0.0,
+                    help="with > 0: a window's committed ids are capped at budget-tps * audio s + --budget-slack; 0 = off")
+    ap.add_argument("--budget-slack", type=int, default=50)
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -164,8 +171,15 @@ def main() -> None:
                     new = body
                 else:
                     new = body[: lag_cut(body, s["t"], args.lag_ms)]
+                why = ""
+                if args.loop_guard_k > 0 or args.budget_tps > 0:
+                    from experiments.mist_w3po_v1.evaluation.loop_guard import guard
+                    budget = int(args.budget_tps * s["dur"] / 1000) + args.budget_slack if args.budget_tps > 0 else None
+                    new, why = guard(new, s["committed"], args.loop_guard_k, args.loop_guard_maxp, budget)
                 s["committed"] = s["committed"] + new
                 s["log"].append({"t": s["t"], "new": tok.decode(new, skip_special_tokens=False)})
+                if why:
+                    s["log"][-1]["guard"] = why
                 s["blocks"] += s["parser"].feed(new, s["t"])
                 if it.final:
                     s["parser"].close(s["dur"] / 1000, s["t"])
