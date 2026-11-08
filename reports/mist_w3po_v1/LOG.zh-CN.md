@@ -791,3 +791,37 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   判定不变：w3dia 不作主训练候选（dev R 不显著、错标持续上升，正是 w3dia2 要修的问题）。
 - 第一次实跑 `--asr-per-talk 2`（Z2 第 100 步的 ASR 段）：16 个子分片、合并 5241/5241 行全覆盖，sscore / 闸门正常。
 - 18:35 时 w3dia2 λ_sc 0.5 在第 9 步（KL 0.005，ACR_who 0.06–0.09），λ_sc 1.0 已在 Z2 空出的 4 张卡上启动。
+
+### 2026-11-08 20:40 UTC（布拉格 21:40）：用户决定（约 19:50）——验证方法阶段不扫超参；λ_sc 1.0 换成新方法 EA-GRPO
+- 用户：验证方法期间不做超参扫描。w3dia2 λ_sc 0.5 照常运行；λ_sc 1.0 剂量检验（`rl/pilot_w3dia2_sc10_v8_b01_w128`）
+  在新方法实现、单测、推送后按 PID 停止（目录与 ckpt 全部保留），其评测作业移入 held，新方法在其 4 张卡上启动。
+
+**新方法：Event-Anchored GRPO（EA-GRPO，`--mode eagrpo`，新增，其他模式逐位不变）**
+- 动机：dia 的唯一奖励是窗口级 z(cpBLEU)。一个 0.4 s 插话在窗口 BLEU 里约占 1%，漏掉或标错说话人几乎不改变优势，
+  这正是 ov / 短插话召回 / 错标三项"训练后几乎不动"的原因。同一窗口的 G 条 rollout 共享同一段音频，STAMP 已把每条 rollout
+  的段对齐到参考单元（unit_of、π*），所以可以**以每个参考话语（事件）为锚，在 G 条 rollout 之间做组相对基线**，
+  不需要额外采样，再把每个事件的优势路由到造成它的 token。
+- 优势：A(g, t) = z_g(cpBLEU)（与 dia 完全相同，作为骨干，保留 dia 的收益）+ λ_ev · E(t)，λ_ev = 1.0（单值，不扫）。
+  每个单元 u、每条 rollout g：q = SQ_u（说话人因子取 1，漏掉为 0）；c = u 的段的说话人正确率 1[π*(spk) = u.spk]（只在覆盖 u 的
+  rollout 上定义）；m = 1[覆盖]。每个事件在组内单独归一化 e = (x − mean_g) / max(std_g, FLOOR)，组内为常数时跳过——
+  于是每个事件权重相同、与长度无关。
+  路由：u 的段的 what token ← e(q)；who token ← e(c)；when token ← e(q)（段的起始 token；提交 u 的段的那次读的 <wait>）；
+  u 被漏掉时，读时刻在 [u 结束, u 结束 + 2 s]（没有则到窗口末）的 <wait> ← e(m)（漏掉者为负）；同一 <wait> 上多个事件取平均。
+  无匹配段（spurious）与重复段（≥ 一半 4-gram 已出现过，或短段文本重复）的 what / when token ← −z(该 rollout 的这类段数)，
+  防止靠多生成来骗覆盖。**没有任何延迟奖励**（W³PO 的漂移来自延迟通道）。
+- 实现选择：损失与 dia 相同（token 级 PPO，段内 GSPO 比率，不用 W³ 的投影比率），事件信用按 token 的 when / who / what 类别路由，
+  所以 λ_ev = 0 与 dia 逐位相同，对 dia 50 的比较只隔离出事件项。不用锚点（同 dia，免去在线锚点开销）。
+  训练日志新增：有非零事件优势的单元比例 `ev_units_nz_frac`、各通道平均 |E|（`ev_abs_when/who/what`）、
+  ≤1 s 单元在 rollout 中的覆盖率 `ev_short_cov`。
+- 单测 `rl/test_eagrpo.py`：20 个真实训练窗口组上所有已有模式（含 w3dia / w3dia2，含/不含 --rep-penalty）逐位不变；
+  λ_ev = 0 与 dia 逐位相同（含 --rep-penalty）；20 组中事件项全部非零；手工构造组（长句 + 0.4 s 插话，rollout 1 漏插话、
+  rollout 2 插话说话人标错）上逐 token 与手算一致（漏掉者在 3/4/5 s 的 <wait> 得 −√2，3 s 处与 u0 的提交事件平均；
+  标错者起始 token 得 e_q − 1；空读与最终读无事件）。
+- 运行：v8 起步，配置同 dia / Y（128 窗口/步、tok-budget 40000、β 0.1、lr 5e-6），50 步；评测第 20、50 步（保护版、
+  逐 talker 流水 ASR、闸门 + 低噪声信号）。主对照 dia 第 50 步（同步数，只差事件项）；次对照 w3dia 50、w3dia2 50。
+  目标：≤0.5 s / 0.5–1 s 召回与 ov tcpBLEU 高于 dia 50；错标 ≤ dia；dev R ≥ dia 50；文本 / 语音闸门通过（ASR-BLEU 不降）。
+  停止准则同前（KL > 0.05 持续 5 步、训练 R 斜率显著为负）。
+- 相关工作（新颖性边界，摘要级，写论文前仍需完整调研）：其他领域已有 GRPO 的步级 credit，如 flow-matching GRPO 的逐步增益
+  （Savani et al., CVPR 2026）、步级验证器门控（VeriGate, arXiv 2605.30451），以及更早的 COMA / difference rewards。
+  它们都没有把组基线锚定在 rollout 之间共享的**源时间轴事件**上，也没有在流式多说话人翻译中把事件信用路由到
+  控制 / 说话人 / 内容三类 token。

@@ -127,7 +127,7 @@ def main() -> None:
     ap.add_argument("--base", required=True, help="stage-0 merged Thinker")
     ap.add_argument("--windows", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--mode", default="w3po", choices=list(W3_MODES) + ["noC2", "seqpo", "hibiki", "hpo", "dia"])
+    ap.add_argument("--mode", default="w3po", choices=list(W3_MODES) + ["noC2", "seqpo", "hibiki", "hpo", "dia", "eagrpo"])
     ap.add_argument("--dir", default="zh2en")
     ap.add_argument("--steps", type=int, default=50)
     ap.add_argument("--windows-per-step", type=int, default=64)
@@ -156,6 +156,8 @@ def main() -> None:
                     help="--mode w3dia2 only: weight of the group-normalised speaker correctness on who tokens")
     ap.add_argument("--who-rbc", type=float, default=0.0,
                     help="--mode w3dia2 only: weight of the group-normalised RBC on who tokens (0 = off)")
+    ap.add_argument("--lam-ev", type=float, default=1.0,
+                    help="--mode eagrpo only: weight of the event-anchored term (0 = dia exactly)")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -221,7 +223,7 @@ def main() -> None:
             start = int(ck.name.split("_")[1])
             log0(f"resumed from {ck}")
     lags = [int(x) for x in args.lags.split(",")] if args.lags else []
-    use_anchors = args.mode not in ("noC3", "seqpo", "hibiki", "hpo", "dia") and lags
+    use_anchors = args.mode not in ("noC3", "seqpo", "hibiki", "hpo", "dia", "eagrpo") and lags
     anchor_cache = {}
     acf = out / "anchors" / f"rank{rank}.jsonl"
     if acf.exists():
@@ -257,6 +259,8 @@ def main() -> None:
     gen = torch.Generator(device=dev)
     w3 = args.mode in W3_MODES
     who_kw = {"who_sc": args.who_sc, "who_rbc": args.who_rbc} if args.mode == "w3dia2" else {}   # --mode w3dia2 only
+    if args.mode == "eagrpo":
+        who_kw = {"lam_ev": args.lam_ev}
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
 
     for step in range(start, args.steps):
@@ -426,6 +430,9 @@ def main() -> None:
                t_roll, t_anc, t_rew, t_upd, float(sum(st["n_admit"] for st in gstats)),
                float(sum(len(st["anchors"]) for st in gstats))] + adv_mag + [
                float(sum(sum(st["rep"]) for st in gstats)), float(sum(sum(r > 0.5 for r in st["rep"]) for st in gstats))]
+        EVK = ("units", "units_nz", "abs_when", "n_when", "abs_who", "n_who", "abs_what", "n_what", "short", "short_cov")
+        if args.mode == "eagrpo":   # event-term diagnostics (other modes: loc unchanged)
+            loc += [float(sum(st["ev"][k] for st in gstats if "ev" in st)) for k in EVK]
         g = agg(loc)
         if rank == 0:
             ng = max(g[0], 1)
@@ -441,6 +448,11 @@ def main() -> None:
                    "adv_abs_when": g[25] / max(g[26], 1), "adv_abs_who": g[27] / max(g[28], 1),
                    "adv_abs_what": g[29] / max(g[30], 1),
                    "rep_mean": g[31] / max(g[3], 1), "loop_frac": g[32] / max(g[3], 1)}
+            if args.mode == "eagrpo":
+                e = dict(zip(EVK, g[33:]))
+                rec.update(ev_units_nz_frac=e["units_nz"] / max(e["units"], 1), ev_abs_when=e["abs_when"] / max(e["n_when"], 1),
+                           ev_abs_who=e["abs_who"] / max(e["n_who"], 1), ev_abs_what=e["abs_what"] / max(e["n_what"], 1),
+                           ev_short_cov=e["short_cov"] / max(e["short"], 1))
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in rec.items()}))
