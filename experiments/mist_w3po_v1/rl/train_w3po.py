@@ -145,6 +145,8 @@ def main() -> None:
     ap.add_argument("--w-when", type=float, default=1.0,
                     help="weight of the when-channel policy loss (1.0 = the pilot's loss, bit-identical; 2026-11-07 drift fix)")
     ap.add_argument("--w-who", type=float, default=1.0)
+    ap.add_argument("--kl-cap", type=float, default=0.0,
+                    help="cap of the per-token k3 KL term in the loss (logged KL stays uncapped); 0 = off (default)")
     ap.add_argument("--hard-only", action="store_true",
                     help="sample only 'hard' windows (overlap, an utterance <= 1 s, or >= 3 speaker changes); default: "
                          "the 50/50 hard/normal stream")
@@ -592,7 +594,9 @@ def micro_loss(eng, adapters, items, blocks, seqrows, cache, cnt, args, w3):
     l_what, c = ppo(seq_ratio, at, what)
     clip += c
     k3 = torch.exp(ref_lp - lp) - (ref_lp - lp) - 1
-    kl_what = (k3 * (what & ~is_anchor)).sum()
+    # --kl-cap (2026-11-08): one sampled tail token with ref - lp ~ 12 nat gave k3 ~ 2.6e5 and a 15x step; cap per token
+    k3_loss = k3.clamp(max=args.kl_cap) if getattr(args, "kl_cap", 0.0) > 0 else k3
+    kl_what = (k3_loss * (what & ~is_anchor)).sum()
     if w3:
         # when: projected binary policy
         p_choice = torch.where(chose_wait, pw, 1 - pw)
