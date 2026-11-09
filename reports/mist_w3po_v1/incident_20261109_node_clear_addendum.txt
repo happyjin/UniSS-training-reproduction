@@ -1,0 +1,68 @@
+# 节点清除事件补充（执行者 #6，2026-11-09T04:55:49Z）。主证据见 incident_20261109_node_clear.txt（协调者保存，提交 cad74837），本文件不重复其内容。
+
+## A. 时间线（UTC）
+04:07:18  aws-hyperpod-default/zzj-kenxsong-probe2-04d9-1109 运行（日志：EXISTS False）
+04:47:17  default/dbg-04d9-jason 创建（04:47:59 删除）
+04:48:17  default/kill-04d9-jason 创建；04:48:19 ECF torchrun 246809 与 HiCA torchrun 1366939 同时收到 SIGTERM（dmesg 同秒 NVRM knvlinkSendInbandData）
+04:48:23  gpuq_w3 自动重试：04:48:44 ECF → torchrun 2129895（卡 1/3/4/6），04:49:01 HiCA → torchrun 2132293（卡 0/2/5/7）
+04:49:26  default/verify-04d9；04:50:25 default/kill-04d9b；04:51:41 default/kill-04d9c
+约 04:51   续跑的两个训练、gpuq_w3 2146682、idle_fallback 2550863、yield_guard 2638132 及执行者等待进程全部终止，8 卡显存 0
+04:52:34  default/final-04d9 创建（04:53:11 删除）
+04:53:11  aws-hyperpod-default/jason-h200-04d9-reserve-8gpu-w276k（用户的 8 卡预留 Pod）被 DELETE，04:53:43 REMOVE
+04:53:23  default/chk-ssm（04:53:49 删除）
+04:53:42  aws-hyperpod-default/grpo-v61423-v4f3-s420-master-0 被调度到本节点（他人的训练作业；04:55 时 GPU 仍为 0 MiB）
+
+## B. 本补充采集的 kubelet 行（04:52:30 之后，SyncLoop ADD/DELETE/REMOVE，去掉 mount-s3）
+Nov 09 04:52:33 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:52:33.589289   67917 kubelet.go:2432] "SyncLoop DELETE" source="api" pods=["default/kill-04d9c"]
+Nov 09 04:52:33 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:52:33.607823   67917 kubelet.go:2426] "SyncLoop REMOVE" source="api" pods=["default/kill-04d9c"]
+Nov 09 04:52:34 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:52:34.781759   67917 kubelet.go:2416] "SyncLoop ADD" source="api" pods=["default/final-04d9"]
+Nov 09 04:53:11 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:11.207512   67917 kubelet.go:2432] "SyncLoop DELETE" source="api" pods=["default/final-04d9"]
+Nov 09 04:53:11 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:11.217675   67917 kubelet.go:2426] "SyncLoop REMOVE" source="api" pods=["default/final-04d9"]
+Nov 09 04:53:11 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:11.985374   67917 kubelet.go:2432] "SyncLoop DELETE" source="api" pods=["aws-hyperpod-default/jason-h200-04d9-reserve-8gpu-w276k"]
+Nov 09 04:53:23 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:23.338039   67917 kubelet.go:2416] "SyncLoop ADD" source="api" pods=["default/chk-ssm"]
+Nov 09 04:53:42 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:42.204480   67917 kubelet.go:2416] "SyncLoop ADD" source="api" pods=["aws-hyperpod-default/grpo-v61423-v4f3-s420-master-0"]
+Nov 09 04:53:43 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:43.197437   67917 kubelet.go:2432] "SyncLoop DELETE" source="api" pods=["aws-hyperpod-default/jason-h200-04d9-reserve-8gpu-w276k"]
+Nov 09 04:53:43 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:43.204363   67917 kubelet.go:2426] "SyncLoop REMOVE" source="api" pods=["aws-hyperpod-default/jason-h200-04d9-reserve-8gpu-w276k"]
+Nov 09 04:53:49 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:49.629659   67917 kubelet.go:2432] "SyncLoop DELETE" source="api" pods=["default/chk-ssm"]
+Nov 09 04:53:49 ip-172-16-197-160.ap-southeast-3.compute.internal kubelet[67917]: I1109 04:53:49.633948   67917 kubelet.go:2426] "SyncLoop REMOVE" source="api" pods=["default/chk-ssm"]
+
+## C. 被终止的进程
+ECF：torchrun 246809（rank 246836–246839）→ 续跑 torchrun 2129895；HiCA：torchrun 1366939 → 续跑 torchrun 2132293；
+守护进程：gpuq_w3 2146682、idle_fallback 2550863、yield_guard 2638132；CPU 等待作业 wait_hica_step20_ckpt（无 rc）。
+
+## D. 可续跑 ckpt（lora.pt + optim.pt + DONE）
+eval_outputs/mist_w3po_v1/rl/pilot_ecf_v8_b01_w128/ckpt/step_00031   （50 步中第 31 步）
+eval_outputs/mist_w3po_v1/rl/pilot_hica_v8_b01_w128/ckpt/step_00014  （50 步中第 14 步）
+队列状态：两个训练作业 state/*.rc = 1，retries 20（已用 2）→ gpuq_w3 重启后自动以 RESUME=1 重试（DRY_RUN 核对：命令含 --resume，--out 为原目录）。
+已做的唯一修改（CPU，gpuq 停止期间）：jobs/086_aa_wait_hica_step20_ckpt.json 加 "retries": 3（原无此键）——否则重启后它会被记为 lost 137，HiCA 第 20 步评测链全部 skipped。
+
+## E. 用户批准后一步重启
+bash reports/mist_w3po_v1/restart_after_incident_20261109.sh
+（已 bash -n；三个守护脚本 py_compile 通过；脚本在任一守护进程已运行时拒绝执行。内容：
+    #!/usr/bin/env bash
+    # One-step restart after the 2026-11-09 04:48-04:53 UTC node clear -- ONLY after the user approves
+    # (reports/mist_w3po_v1/incident_20261109_node_clear*.txt). Starts the three W3PO daemons detached (setsid nohup);
+    # gpuq_w3 then retries rl_pilot_ecf_v8_b01_w128 / rl_pilot_hica_v8_b01_w128 (rc 1, retries 20) with RESUME=1
+    # (run_rl.sh: the out dir exists -> --resume from ckpt step_00031 / step_00014), and the queued evals follow.
+    # Refuses if any daemon is already running.
+    set -u
+    cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
+    PY=/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni/bin/python
+    Q=logs/mist_w3po_v1/queue_v2
+    SD=experiments/mist_w3po_v1/scripts
+    for s in gpuq_w3 idle_fallback yield_guard; do
+      if ps -eo args | awk -v s="$SD/$s.py" '$1 ~ /python$/ && $2 == s {f=1} END {exit !f}'; then
+        echo "refuse: $s already running" >&2; exit 1
+      fi
+    done
+    [ -e "$Q/NO_RESURRECT" ] && echo "note: $Q/NO_RESURRECT exists (yield_guard will not resurrect)" >&2
+    setsid nohup "$PY" $SD/gpuq_w3.py $Q >> $Q/queue.log 2>&1 < /dev/null &
+    echo "gpuq_w3 pid $!"
+    sleep 5
+    setsid nohup "$PY" $SD/idle_fallback.py $Q >> $Q/idle_fallback.log 2>&1 < /dev/null &
+    echo "idle_fallback pid $!"
+    sleep 5
+    setsid nohup "$PY" $SD/yield_guard.py $Q >> $Q/yield_guard.log 2>&1 < /dev/null &
+    echo "yield_guard pid $!"
+）
+注意：用户的预留 Pod jason-h200-04d9-reserve-8gpu 已被删除、他人作业 grpo-v61423 已调度到本节点——重启前需先确认节点归属，否则会与新租户冲突。

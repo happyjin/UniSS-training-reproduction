@@ -1082,3 +1082,13 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   以及我的等待进程全部被终止，8 张卡显存都是 0。更早还有 `aws-hyperpod-default/zzj-kenxsong-probe2-04d9-1109`（04:07:18）。
   这是有人在集群层面清空本节点（04d9 = 实例 i-04d9882aa87944859），而且是先 kill、再 verify、再补 kill 的过程。**我不重启任何东西**（与有意的清除对抗可能违背操作者意图），已报告协调者，等决定。
   最后的 ckpt：ECF `step_00031`（lora.pt + optim.pt + DONE），HiCA `step_00014`。两个都可以在决定后用 `--resume` 续跑（队列作业 retries 还够）。
+
+### 2026-11-09 04:58 UTC（布拉格 05:58）：节点清除事件——协调者决定**不重启**，等用户；证据与一步重启命令已存档
+- 协调者决定：不重启守护进程和训练，GPU 保持不动，由用户决定（有 K8s 权限的人做了 kill → verify → 再 kill，自主对抗可能引发人际冲突或违背管理员）。
+- **新增事实**：04:53:11 用户的 8 卡预留 Pod `aws-hyperpod-default/jason-h200-04d9-reserve-8gpu-w276k` 被删除；04:53:42 他人的 `aws-hyperpod-default/grpo-v61423-v4f3-s420-master-0` 被调度到本节点
+  （04:55 时 GPU 仍为 0 MiB）。另有 `final-04d9`（04:52:34）、`chk-ssm`（04:53:23）。**节点可能已被重新分配**，重启前必须先确认归属。
+- 证据：`reports/mist_w3po_v1/incident_20261109_node_clear.txt`（协调者，kubelet 行 + 探针日志）与 `..._addendum.txt`（时间线、之后的 Pod、被终止的 PID、可续跑 ckpt）。
+- 可续跑：ECF `step_00031`、HiCA `step_00014`；两作业 rc = 1、retries 20 → 重启 gpuq_w3 即自动 `--resume`（DRY_RUN 核对过）。
+  唯一改动：`086_aa_wait_hica_step20_ckpt.json` 加 `"retries": 3`（否则重启后被记 lost 137，HiCA 第 20 步评测链全被 skip）。
+- 一步重启（用户批准后）：`bash reports/mist_w3po_v1/restart_after_incident_20261109.sh`（bash -n 通过；任一守护进程已在跑则拒绝）。
+- 执行者 #6 停止所有等待循环并交回。
