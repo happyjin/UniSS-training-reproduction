@@ -129,6 +129,29 @@ def test_read_metrics():
     assert S.read_metrics({**row, "orders": row["orders"][:1]}) is None
 
 
+def test_posthoc_struct():
+    # label [0, 1]: chunk 0 = a short ov50 unit (slot 1, 2 tokens), chunk 1 = slot 2 (3 tokens); f = 1 (p(y_1) higher)
+    lo = lambda p: math.log(p)
+    row = {"id": "x", "r": 1, "final": False, "label": [0, 1], "capped": False, "n_pi": 2,
+           "items": [{"chunk": 0, "slot": 1, "n_tok": 2, "dur_s": 0.5, "ov50": True},
+                     {"chunk": 1, "slot": 2, "n_tok": 3, "dur_s": 3.0, "ov50": True}],
+           "orders": [{"pi": [0, 1], "tok_lp": [lo(0.5), lo(0.4), lo(0.7), lo(0.9), lo(0.9)],
+                       "end_at_bounds": [lo(0.01), lo(0.2), lo(0.8)]},
+                      {"pi": [1, 0], "tok_lp": [lo(0.6), lo(0.9), lo(0.9), lo(0.3), lo(0.5)],
+                       "end_at_bounds": [lo(0.01), lo(0.6), lo(0.7)]}]}
+    for o in row["orders"]:
+        n0 = {0: 2, 1: 3}[o["pi"][0]]
+        o["first_lp"] = sum(o["tok_lp"][:n0])
+        o["psi"] = sum(o["tok_lp"]) + o["end_at_bounds"][-1]
+    x = S.posthoc_struct(row)
+    assert not x["f_is_label"] and x["label_first_is_short_ov"] and not x["f_is_short_ov"]
+    assert abs(x["p_open_rest_f"] - 0.3) < 1e-12 and abs(x["p_end_f"] - 0.6) < 1e-12 and abs(x["p_other_f"] - 0.1) < 1e-12
+    assert abs(x["p_open_rest_label"] - 0.7) < 1e-12 and abs(x["p_end_label"] - 0.2) < 1e-12
+    assert abs(x["p_struct_complete_f"] - 0.3 * 0.7) < 1e-12 and abs(x["p_struct_complete_label"] - 0.7 * 0.8) < 1e-12
+    rep, ph = S.posthoc_split([row, {**row, "capped": True}])
+    assert len(ph) == 1 and rep["all"]["f_ne_label"] == 1 and rep["all"]["f_ne__label_first_short_ov_and_f_not"] == 1
+
+
 def test_slice_scores():
     import torch
 

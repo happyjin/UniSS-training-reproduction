@@ -51,6 +51,9 @@ Metrics (§13.6; pre-registered stop rules unchanged)
     python -m experiments.mist_w3po_v1.crf.precheck_serial --analyse --root <root>
     # plan + analysis on random scores, nothing written
     python -m experiments.mist_w3po_v1.crf.precheck_serial --dry-run
+    # POST-HOC (added after the pre-registered results; not a stop rule): the content-free decision right after the
+    # first item (open a remaining due item / end / other), from the stored scores -> <root>/analysis_posthoc
+    python -m experiments.mist_w3po_v1.crf.precheck_serial --posthoc --root <root>
 """
 from __future__ import annotations
 
@@ -703,6 +706,98 @@ def run_analyse(args) -> None:
     print(f"SERIAL_PRECHECK_ANALYSED {out} GO={rep['decision']['GO']}", flush=True)
 
 
+# ------------------------------------------------------------------------------------------------ post-hoc (CPU)
+# Added AFTER the pre-registered results were seen (not part of the stop rules): P_complete as pre-registered contains
+# the probability of the remaining items' exact reference token sequences, which is ~0 for every first item (even the
+# label one), so the 0.8 threshold cannot be reached. This content-free view uses only the decision right after the
+# first item, from the same stored scores (no new forward):
+#   p_open_rest(x) = sum over the distinct speaker tokens of the items that may come next of p(<spk> | h, y_x)
+#   p_end(x)       = p(e_r | h, y_x)  (<wait>; <eos> at the last read, <wait> barred there)
+#   p_other(x)     = 1 - p_open_rest - p_end (another speaker, a time / text token, ...)
+#   p_struct_complete(x), 2-item reads only = p(<spk> of the other item | h, y_x) * p(e_r | h, y_x, y_other): the
+#                    content-free analogue of P_complete (the other item's text and times are left out)
+def posthoc_struct(row: dict) -> dict | None:
+    od = row["orders"]
+    if row["capped"] or len(od) < 2:
+        return None
+    m = read_metrics(row)
+    info = {it["chunk"]: it for it in row["items"]}
+
+    def after(x):
+        nx = info[x]["n_tok"]
+        spk, end = {}, []
+        for o in od:
+            if o["pi"][0] != x:
+                continue
+            g = o["pi"][1]
+            spk.setdefault(info[g]["slot"], []).append(o["tok_lp"][nx])
+            end.append(o["end_at_bounds"][1])
+        p_open = sum(math.exp(float(np.mean(v))) for v in spk.values())
+        p_end = math.exp(float(np.mean(end)))
+        res = {"p_open_rest": p_open, "p_end": p_end, "p_other": max(0.0, 1.0 - p_open - p_end)}
+        if len(row["label"]) == 2:                    # content-free completion: open the other item, end after it
+            o = next(o for o in od if o["pi"][0] == x)
+            res["p_struct_complete"] = math.exp(o["tok_lp"][nx] + o["end_at_bounds"][-1])
+        return res
+
+    f, lab = m["f_star"], m["label_first"]
+    short = {c for c, it in info.items() if it["dur_s"] <= SHORT_S and it["ov50"]}
+    a_f, a_l = after(f), after(lab)
+    return {"id": row["id"], "r": row["r"], "final": row["final"], "n_items": len(row["label"]),
+            "f_is_label": m["f_is_label"], "short_ov": m["short_ov"],
+            "label_first_is_short_ov": lab in short, "f_is_short_ov": f in short,
+            **{k + "_f": v for k, v in a_f.items()}, **{k + "_label": v for k, v in a_l.items()}}
+
+
+def posthoc_split(rows: list[dict]) -> tuple[dict, list[dict]]:
+    ph = [x for x in (posthoc_struct(r) for r in rows) if x is not None]
+
+    def grp(sel):
+        g = [x for x in ph if sel(x)]
+        ne = [x for x in g if not x["f_is_label"]]
+        eq = [x for x in g if x["f_is_label"]]
+        out = {"reads": len(g), "f_ne_label": len(ne), "f_eq_label": len(eq)}
+        for k in ("p_open_rest", "p_end", "p_other"):
+            out[f"{k}_f__f_ne_label"] = qstats([x[k + "_f"] for x in ne])
+            out[f"{k}_f__f_eq_label"] = qstats([x[k + "_f"] for x in eq])
+            out[f"{k}_label__same_f_ne_reads"] = qstats([x[k + "_label"] for x in ne])
+        two_ne = [x for x in ne if "p_struct_complete_f" in x]
+        two_eq = [x for x in eq if "p_struct_complete_f" in x]
+        out["two_item__p_struct_complete_f__f_ne_label"] = qstats([x["p_struct_complete_f"] for x in two_ne])
+        out["two_item__p_struct_complete_f__f_eq_label"] = qstats([x["p_struct_complete_f"] for x in two_eq])
+        out["two_item__p_struct_complete_label__same_f_ne_reads"] = qstats([x["p_struct_complete_label"] for x in two_ne])
+        out["paired_open_f_minus_label__f_ne"] = qstats([x["p_open_rest_f"] - x["p_open_rest_label"] for x in ne])
+        out["share_open_rest_f_lt_0.5__f_ne"] = float(np.mean([x["p_open_rest_f"] < 0.5 for x in ne])) if ne else None
+        out["share_open_rest_f_lt_0.5__f_eq"] = float(np.mean([x["p_open_rest_f"] < 0.5 for x in eq])) if eq else None
+        out["f_ne__label_first_short_ov_and_f_not"] = sum(1 for x in ne if x["label_first_is_short_ov"] and not x["f_is_short_ov"])
+        return out
+    rep = {"all": grp(lambda x: True), "short_ov_reads": grp(lambda x: x["short_ov"]),
+           "nonfinal": grp(lambda x: not x["final"]), "final": grp(lambda x: x["final"]),
+           "short_ov_nonfinal": grp(lambda x: x["short_ov"] and not x["final"]),
+           "short_ov_final": grp(lambda x: x["short_ov"] and x["final"])}
+    return rep, ph
+
+
+def run_posthoc(args) -> None:
+    root = Path(args.root)
+    out = root / args.posthoc_name
+    if out.exists():
+        raise SystemExit(f"拒绝覆盖已有输出: {out}")
+    rep, per = {"note": "post-hoc (after the pre-registered results), not a stop rule"}, {}
+    for split in ("dev", "train"):
+        rows = [json.loads(l) for d in sorted(root.glob(f"{split}_shard_*of*"))
+                for l in open(d / "reads.jsonl", encoding="utf-8")]
+        if rows:
+            rep[split], per[split] = posthoc_split(rows)
+    out.mkdir(parents=True)
+    (out / "posthoc.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False), encoding="utf-8")
+    for split, ph in per.items():
+        with open(out / f"per_read_{split}.jsonl", "x", encoding="utf-8") as fh:
+            fh.writelines(json.dumps(x) + "\n" for x in ph)
+    print(json.dumps(rep, indent=1, ensure_ascii=False))
+    print(f"SERIAL_PRECHECK_POSTHOC {out}", flush=True)
+
+
 # ------------------------------------------------------------------------------------------------ CPU stage
 def run_cpu_stage(args) -> None:
     from experiments.mist_w3po_v1.crf.build_sched_windows import tokenizer
@@ -785,7 +880,9 @@ def main() -> None:
     g.add_argument("--score", action="store_true")
     g.add_argument("--analyse", action="store_true")
     g.add_argument("--dry-run", action="store_true")
+    g.add_argument("--posthoc", action="store_true", help="the post-hoc content-free diagnostic (not pre-registered)")
     ap.add_argument("--root", default="")
+    ap.add_argument("--posthoc-name", default="analysis_posthoc", help="--posthoc: output subdir of the root")
     ap.add_argument("--thinker", default=P.V8)
     ap.add_argument("--splits", default="dev,train")
     ap.add_argument("--shard", default="")
@@ -803,6 +900,8 @@ def main() -> None:
         run_score(args)
     elif args.analyse:
         run_analyse(args)
+    elif args.posthoc:
+        run_posthoc(args)
     else:
         run_dry(args)
 
