@@ -352,3 +352,22 @@ $$J(\theta)=\frac{1}{|\mathcal G|}\Big[\sum_{i\in\mathcal G_{\text{on}}}\sum_t \
 - Yan et al. Learning to Reason under Off-Policy Guidance (LUFFY). NeurIPS 2025. https://arxiv.org/abs/2504.14945
 - Levine. Reinforcement Learning and Control as Probabilistic Inference. arXiv 1805.00909, 2018.
 - Ganchev et al. Posterior Regularization for Structured Latent Variable Models. JMLR 2010.
+
+---
+
+## 9. 补充：是否端到端、是否基于 v8 续训
+
+v8 由三部分组成：Qwen3-Omni-30B-A3B Thinker（冻结）、48 层 q/k/v/o 上的 LoRA（r = 32）、说话人投影器（输入是冻结 diarizer 的 8 槽后验）。音频编码器和 diarizer 都不训练。
+
+四个方案都**从 v8 checkpoint 起步续训**，不从头训练，训练数据仍是 AMI 训练集窗口。
+
+| 方案 | CRF 在哪里 | 梯度是否穿过 CRF | 推理时有没有 CRF | 是否端到端 | 对 v8 架构的改动 |
+|---|---|---|---|---|---|
+| 一 ScheduleCRF | 训练时离线计算的**教师**；势函数来自 v8 的冻结副本 | 否：用 EM 交替，CRF 生成目标，LLM 用 SFT 学 | 无 | **不是**端到端 CRF，是"结构化教师 + v8 续训" | **无改动**，只换 SFT 目标 |
+| 二 TurnCRF | 模型**内部**的一层，位于 diarizer 后验与说话人投影器之间 | **是**：翻译损失经前向-后向回传到 CRF 参数 φ 和 LoRA | 有（流式前缀推断） | **是**：CRF 层与 LoRA 联合训练；但 diarizer 和音频编码器仍冻结，不是从波形开始的全端到端 | 增加一个小层，接口形状 T×8 不变；残差初始化，起点接近 v8 |
+| 三 全局归一化策略头 | 模型内部的控制头，接在 Thinker 隐状态上 | 是 | 有：由它决定 wait 或 write，需要延迟承诺 | 是 | 改动解码器：控制决策不再由 `<wait>` token 产生 |
+| 四 CRF 引导探索 | 用来采样引导轨迹 | 否 | 无 | 不是 | 无，在 v8 或方案一的 checkpoint 上做 RL |
+
+**取舍**
+- 方案一风险最低：推理不变，可以直接和 v8 对照。但它的 CRF 只在训练时出现，审稿人可能不认为它是"端到端 CRF"。它的卖点应该放在精确的最优调度后验和"采样学不到"问题的消除上。
+- 如果需要"端到端 CRF"作为卖点，就要靠方案二（改动小）或方案三（改动大）。推荐**一加二的组合**：一提供结构化的训练目标，二提供模型内部端到端的结构层。
