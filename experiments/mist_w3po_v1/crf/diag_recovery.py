@@ -40,6 +40,11 @@ PRE-REGISTERED READING (written and committed before any GPU run of this script;
       SUPPORTED  iff D1 (primary: ORDER_OMISSION ov50 <= 1 s, online window) >= 50 % AND, on dev final reads with
                  |Pi| >= 2 and f = f*, median p_e > median p_open (D2); NOT SUPPORTED otherwise. (f = l reported too.)
   Note: the D1 inputs were already tabulated in sched_precheck_v8.zh-CN.md §8.1 (due_is_final_read) before this rule.
+  SECONDARY reading, ADDED after the CPU stage (D1/D2) and BEFORE any GPU run of D3 (committed separately): D2 showed
+  that the 80 ms start-time token often splits its mass (dev p(t_start | spk) median 0.36-0.55, q25 0.05-0.14), so
+  products spk x t_start rarely reach 0.6 even for an item the model will open. The same H_rec rule (same thresholds)
+  is therefore also evaluated with the speaker token alone (R_first_spk vs the speaker-only control); the primary
+  verdict stays the speaker + start-time one above.
 
     python -m experiments.mist_w3po_v1.crf.diag_recovery --cpu-stage --root <new root>          # D1, D2, plan
     python -m experiments.mist_w3po_v1.crf.diag_recovery --score --root <root> --shard K/N --splits dev,train
@@ -232,8 +237,9 @@ def stored_rows(split: str, root: str = SERIAL) -> list[dict]:
             for l in open(d / "reads.jsonl", encoding="utf-8")]
 
 
-def stored_control(rows: list[dict]) -> dict:
-    """(id, r, f, m) -> on-path log p_open(m | h_r, y_f) from the stored precheck scores."""
+def stored_control(rows: list[dict], spk_only: bool = False) -> dict:
+    """(id, r, f, m) -> on-path log p_open(m | h_r, y_f) from the stored precheck scores (spk_only: the speaker token
+    alone)."""
     out = {}
     for row in rows:
         info = {it["chunk"]: it for it in row["items"]}
@@ -243,7 +249,7 @@ def stored_control(rows: list[dict]) -> dict:
                 continue
             f, m = o["pi"][0], o["pi"][1]
             nf = info[f]["n_tok"]
-            acc[(row["id"], row["r"], f, m)].append(o["tok_lp"][nf] + o["tok_lp"][nf + 1])
+            acc[(row["id"], row["r"], f, m)].append(o["tok_lp"][nf] + (0.0 if spk_only else o["tok_lp"][nf + 1]))
         out.update({k: float(np.mean(v)) for k, v in acc.items()})
     return out
 
@@ -263,15 +269,17 @@ def pair_result(rec: dict, p: dict, res: list[tuple]) -> dict:
     nf = len(S.ids_of(rec, [p["f"]]))
     (tl0, ec0), (tl1, ec1) = res[0], res[1]
     out = {k: v for k, v in p.items() if k not in ("hist_on", "hist_off")}
-    out["control_fresh_lp"] = float(tl0[nf] + tl0[nf + 1])
+    out["control_fresh_lp"], out["control_fresh_spk_lp"] = float(tl0[nf] + tl0[nf + 1]), float(tl0[nf])
     out["R_first_lp"], out["R_first_spk_lp"] = float(tl1[0] + tl1[1]), float(tl1[0])
     out["e_first_lp"] = float(ec1[0])
     if p["B1"]:
         tl2, ec2 = res[2]
         nb = len(S.ids_of(rec, p["B1"]))
         out["R_end_lp"], out["e_end_lp"] = float(tl2[nb] + tl2[nb + 1]), float(ec2[nb])
+        out["R_end_spk_lp"] = float(tl2[nb])
     else:
         out["R_end_lp"], out["e_end_lp"] = out["R_first_lp"], out["e_first_lp"]
+        out["R_end_spk_lp"] = out["R_first_spk_lp"]
     return out
 
 
@@ -328,10 +336,11 @@ def run_score(args) -> None:
 
 
 # ------------------------------------------------------------------------------------------------ analysis (CPU)
-def d3_summary(pairs: list[dict], ctrl: dict) -> dict:
+def d3_summary(pairs: list[dict], ctrl: dict, ctrl_spk: dict | None = None) -> dict:
     for p in pairs:
         k = (p["id"], p["r"], p["f"], p["m"])
         p["control_lp"] = ctrl.get(k)
+        p["control_spk_lp"] = (ctrl_spk or {}).get(k)
     P = [p for p in pairs if p["control_lp"] is not None]
 
     def stats(g):
@@ -345,7 +354,12 @@ def d3_summary(pairs: list[dict], ctrl: dict) -> dict:
                                                           for p in g]),
                 "B1_empty": sum(1 for p in g if not p["B1"]), "B1_dropped_pairs": sum(1 for p in g if p["B1_dropped"]),
                 "r1_final": sum(1 for p in g if p["r1_final"]),
-                "H_rec": h_rec([math.exp(p["R_first_lp"]) for p in g], [math.exp(p["control_lp"]) for p in g])}
+                "H_rec": h_rec([math.exp(p["R_first_lp"]) for p in g], [math.exp(p["control_lp"]) for p in g]),
+                "R_end_spk_only": S.qstats(e("R_end_spk_lp")),
+                "control_spk_only": S.qstats([math.exp(p["control_spk_lp"]) for p in g if p["control_spk_lp"] is not None]),
+                "H_rec_spk_only(secondary)": h_rec([math.exp(p["R_first_spk_lp"]) for p in g],
+                                                   [math.exp(p["control_spk_lp"]) for p in g
+                                                    if p["control_spk_lp"] is not None])}
     groups = {"all": P, "m_short_ov": [p for p in P if p["m_short_ov"]],
               "f_is_label_first": [p for p in P if p["f"] == p["label_first"]],
               "f_is_fstar": [p for p in P if p.get("f_is_fstar")],
@@ -377,12 +391,14 @@ def run_analyse(args) -> None:
         fst = {(x["id"], x["r"]): x["f_star"] for x in (d2_read(r) for r in rows)}
         for p in pairs:
             p["f_is_fstar"] = fst.get((p["id"], p["r"])) == p["f"]
-        rep[f"D3_{split}"] = d3_summary(pairs, stored_control(rows))
+        rep[f"D3_{split}"] = d3_summary(pairs, stored_control(rows), stored_control(rows, spk_only=True))
         rep[f"D3_{split}"]["windows"] = len(ids)
         rep[f"D3_{split}"]["complete_sample"] = sorted(ids) == sorted(r["id"] for r in S.sample(split))
     rep["decision"] = {
         "H_rec_primary(dev, all pairs)": rep["D3_dev"]["all"]["H_rec"]["verdict"],
         "H_rec_secondary(dev, m <= 1 s ov50)": rep["D3_dev"]["m_short_ov"]["H_rec"]["verdict"],
+        "H_rec_spk_only(dev, all pairs)": rep["D3_dev"]["all"]["H_rec_spk_only(secondary)"]["verdict"],
+        "H_rec_spk_only(dev, m <= 1 s ov50)": rep["D3_dev"]["m_short_ov"]["H_rec_spk_only(secondary)"]["verdict"],
         "H_final": h_final(rep["D1"]["D1_primary"], cpu["D2_final_fstar_values"]["p_e"],
                            cpu["D2_final_fstar_values"]["p_open"])}
     out.mkdir(parents=True)

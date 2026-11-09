@@ -79,6 +79,8 @@ def test_d2_read():
     assert not x["after_label"]["e_gt_open"] and not x["after_label"]["rem_short_ov"]
     ctrl = D.stored_control([synthetic_row()])
     assert abs(math.exp(ctrl[("x", 1, 0, 1)]) - 0.3) < 1e-12 and abs(math.exp(ctrl[("x", 1, 1, 0)]) - 0.15) < 1e-12
+    cs = D.stored_control([synthetic_row()], spk_only=True)
+    assert abs(math.exp(cs[("x", 1, 0, 1)]) - 0.6) < 1e-12 and abs(math.exp(cs[("x", 1, 1, 0)]) - 0.3) < 1e-12
     s = D.d2_summary([x])
     assert s["pi2|nonfinal|f=f*|all"]["n"] == 1 and s["pi2|nonfinal|f=f*|all"]["share_p_e_gt_p_open"] == 1.0
 
@@ -94,8 +96,14 @@ def test_pair_result():
     out = D.pair_result(rec, p, res)
     assert abs(out["control_fresh_lp"] + 0.5) < 1e-12 and abs(out["R_first_lp"] + 0.6) < 1e-12
     assert out["e_first_lp"] == -3.0 and abs(out["R_end_lp"] + 2.4) < 1e-12 and out["e_end_lp"] == -0.7
+    assert out["control_fresh_spk_lp"] == -0.2 and out["R_first_spk_lp"] == -0.5 and out["R_end_spk_lp"] == -2.0
     out2 = D.pair_result(rec, {**p, "B1": []}, res[:2])
     assert out2["R_end_lp"] == out2["R_first_lp"] and out2["e_end_lp"] == out2["e_first_lp"]
+    pairs = [{**out, "f_is_fstar": True}, {**out2, "r": 1, "f_is_fstar": False}]
+    ctrl = {("fake", 0, 0, 1): -0.5, ("fake", 1, 0, 1): -0.5}
+    sm = D.d3_summary(pairs, ctrl, {k: -0.2 for k in ctrl})
+    assert sm["all"]["pairs"] == 2 and sm["f_is_fstar"]["pairs"] == 1
+    assert sm["all"]["H_rec"]["n"] == 2 and sm["all"]["H_rec_spk_only(secondary)"]["n"] == 2
 
 
 def test_d1_counts():
