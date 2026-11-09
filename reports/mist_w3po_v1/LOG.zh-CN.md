@@ -1074,3 +1074,6 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   种子 2 的 sprep 依赖原评测的 `__score`，闸门依赖两次抽签与 v8 两个参考的 `_tts2`）。结果写 `decode/<名>/gate_2seed.json`。
 - 03:43 UTC：HiCA 小测前 3 步正常——`hica_absd` 0.48–0.50（信号存在，远高于 0.01 的停止线）、权重均值 1.09–1.10（等效步长约 +9%，记录在案、不调）、截断比例约 10%；
   KL 0.002–0.006、每步 5–7 min，与 dia 同量级。漂移计数全 0（ECF 到第 21 步也全 0）。
+- 04:48:19 UTC：**两个训练同时收到 SIGTERM**（ECF torchrun 246809 在第 31 步后、HiCA torchrun 1366939 在第 14 步后；dmesg 同一秒有 `NVRM: knvlinkSendInbandData_IMPL: Failed to send inband data`），
+  来源不明（不是 OOM；三个守护进程存活）。队列按 retries 在 20–40 s 内以 `--resume` 重启：ECF 新 torchrun 2129895（卡 1/3/4/6，从 step_00031 续），
+  HiCA 新 torchrun 2132293（卡 0/2/5/7，从 step_00014 续）；save-every 1，最多丢一步内的计算。等下一个 ckpt 确认续跑正常。
