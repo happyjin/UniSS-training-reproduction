@@ -32,6 +32,12 @@ lattice run on every window with random log-probs (feasibility, CPU time per win
 
     python -m experiments.mist_w3po_v1.crf.build_sched_windows --out eval_outputs/mist_w3po_v1/crf/sched_v1 \
         --workers 32
+
+--split validation (additive, default train = unchanged): the same recipe on windows_validation_ref.jsonl (AMI dev
+meetings), checked against v8's own validation rows:
+    python -m experiments.mist_w3po_v1.crf.build_sched_windows --split validation \
+        --v8-rows data/ami_multispk_si_v1/e2e_gstar_stream_zh2en_v1/rows_validation.jsonl \
+        --out eval_outputs/mist_w3po_v1/crf/sched_dev_v1
 """
 from __future__ import annotations
 
@@ -305,6 +311,8 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=32)
     ap.add_argument("--shard-size", type=int, default=500)
     ap.add_argument("--limit", type=int, default=0, help="first n windows only (smoke test)")
+    ap.add_argument("--split", choices=["train", "validation"], default="train",
+                    help="windows_<split>_ref.jsonl of --src (validation: pass v8's rows_validation.jsonl as --v8-rows)")
     args = ap.parse_args()
     if args.workers > 64:
         raise SystemExit("at most 64 workers")
@@ -314,8 +322,8 @@ def main() -> None:
     t0 = time.time()
     src = Path(args.src)
     smap = json.loads((src / "slot_map.json").read_text(encoding="utf-8"))["lowlat"]
-    wins = [json.loads(l) for l in open(src / "windows_train_ref.jsonl", encoding="utf-8")]
-    assert all(w["split"] == "train" for w in wins)
+    wins = [json.loads(l) for l in open(src / f"windows_{args.split}_ref.jsonl", encoding="utf-8")]
+    assert all(w["split"] == args.split for w in wins)
     if args.limit:
         wins = wins[: args.limit]
     ids = {w["id"] for w in wins}
@@ -365,7 +373,8 @@ def main() -> None:
         "lat_heur": q_stats(lat[feas]),
         "dummy_fb_s": q_stats(dist["fb_s"]), "dummy_viterbi_s": q_stats(dist["vit_s"]),
         "dummy_fb_s_wcap": q_stats(dist.get("fb_s_wcap", [])),
-        "args": vars(args), "elapsed_s": time.time() - t0,
+        "args": {k: v for k, v in vars(args).items() if not (k == "split" and v == "train")},   # as before at default
+        "elapsed_s": time.time() - t0,
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(summary, indent=1, ensure_ascii=False))
