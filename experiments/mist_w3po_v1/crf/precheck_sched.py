@@ -37,6 +37,11 @@ sees exactly the windows, in the order, of an unsharded run).
     python -m experiments.mist_w3po_v1.crf.precheck_sched --shard 3/8 --score-only --out <root>/shard_3of8
     python -m experiments.mist_w3po_v1.crf.precheck_sched --analysis-only <root>/shard_0of8,...,<root>/shard_7of8 \
         --out <root>/merged
+
+--uniform-end (additive, default off): the §2 variant without the model's <wait> prior (crf_novel_ideas.zh-CN.md
+§2.2, §10.3 "不含模型 <wait> 先验的版本"): end_lp = 0 everywhere before the analysis (chunk mode still bars ends off
+chunk boundaries), so the posterior is driven by the token log-probs and the latency only; lam* is bisected to the
+same L_ref and C1/C2/C3 are applied unchanged. This is a precheck of the §2 variant, NOT of 1'.
 """
 from __future__ import annotations
 
@@ -347,6 +352,8 @@ def main() -> None:
     ap.add_argument("--shard", default="", help="K/N: score only the windows of the sample with index %% N == K "
                                                 "(default: all)")
     ap.add_argument("--score-only", action="store_true", help="stop after scoring (no analysis; for shards)")
+    ap.add_argument("--uniform-end", action="store_true", help="analysis with end_lp = 0 (the §2 variant without "
+                                                               "the model's <wait> prior; not 1')")
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -393,7 +400,7 @@ def main() -> None:
         return
     out.mkdir(parents=True)
     # the new options are left out of the record at their defaults, so an unsharded windows.json is as before
-    rec_args = {k: v for k, v in vars(args).items() if not (k in ("shard", "score_only") and not v)}
+    rec_args = {k: v for k, v in vars(args).items() if not (k in ("shard", "score_only", "uniform_end") and not v)}
     (out / "windows.json").write_text(json.dumps({"sched": args.sched, "ids": [r["id"] for r in recs],
                                                   "plan": plan, "args": rec_args}, indent=1))
     if not args.analysis_only:
@@ -413,10 +420,14 @@ def main() -> None:
     for r in recs:
         z = np.load((lp_of[r["id"]] if lp_of is not None else lp_dir) / f"{r['id']}.npz")
         lps[r["id"]] = (z["tok_lp"], z["end_lp"])
+    if args.uniform_end:                                       # the §2 variant: no <wait> / <eos> prior
+        lps = {k: (t, np.zeros_like(e)) for k, (t, e) in lps.items()}
     dev = "cuda" if not args.analysis_only else "cpu"
     reports = {}
     for mode in ("any", "chunk"):
         rep = analyse(recs, lps, args, mode, dev)
+        if args.uniform_end:
+            rep["end_prior"] = "uniform: end_lp = 0 (the §2 variant, not 1')"
         with open(out / f"per_window_{mode}.jsonl", "x", encoding="utf-8") as fh:
             fh.writelines(json.dumps(p) + "\n" for p in rep.pop("per_window"))
         reports[mode] = rep

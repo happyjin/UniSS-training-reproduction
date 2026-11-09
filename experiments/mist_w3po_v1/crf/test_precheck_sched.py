@@ -127,6 +127,33 @@ def test_main_merged_equals_unsharded():
     assert r.returncode != 0 and "拒绝覆盖" in (r.stdout + r.stderr)
 
 
+def test_uniform_end():
+    """--uniform-end = the analysis on log-probs with end_lp zeroed (written to disk by hand), and is recorded."""
+    root, ids, full, shards = _fake_scored(16, 13, 2, "uniform")
+    zero = root / "full_end_zero"
+    (zero / "logprobs").mkdir(parents=True)
+    w = json.loads((full / "windows.json").read_text())
+    (zero / "windows.json").write_text(json.dumps(w))
+    for i in ids:
+        z = np.load(full / "logprobs" / f"{i}.npz")
+        np.savez(zero / "logprobs" / f"{i}.npz", tok_lp=z["tok_lp"], end_lp=np.zeros_like(z["end_lp"]))
+    outs = {}
+    for name, src, extra in (("flag", ",".join(map(str, shards)), ["--uniform-end"]), ("byhand", str(zero), [])):
+        o = root / f"analysis_{name}"
+        r = subprocess.run([sys.executable, "-m", "experiments.mist_w3po_v1.crf.precheck_sched", "--analysis-only",
+                            src, "--out", str(o), "--samples", "4", "--lattice-batch", "16", *extra],
+                           capture_output=True, text=True, env=dict(os.environ))
+        assert r.returncode == 0 and "SCHED_PRECHECK_DONE" in r.stdout, r.stderr[-3000:]
+        outs[name] = o
+    a = json.loads((outs["flag"] / "report.json").read_text())
+    b = json.loads((outs["byhand"] / "report.json").read_text())
+    for mode in ("any", "chunk"):
+        assert a[mode].pop("end_prior").startswith("uniform") and "end_prior" not in b[mode]
+    assert a == b
+    assert json.loads((outs["flag"] / "windows.json").read_text())["args"]["uniform_end"] is True
+    assert "uniform_end" not in json.loads((outs["byhand"] / "windows.json").read_text())["args"]
+
+
 if __name__ == "__main__":
     import time
 
