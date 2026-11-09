@@ -1077,3 +1077,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 04:48:19 UTC：**两个训练同时收到 SIGTERM**（ECF torchrun 246809 在第 31 步后、HiCA torchrun 1366939 在第 14 步后；dmesg 同一秒有 `NVRM: knvlinkSendInbandData_IMPL: Failed to send inband data`），
   来源不明（不是 OOM；三个守护进程存活）。队列按 retries 在 20–40 s 内以 `--resume` 重启：ECF 新 torchrun 2129895（卡 1/3/4/6，从 step_00031 续），
   HiCA 新 torchrun 2132293（卡 0/2/5/7，从 step_00014 续）；save-every 1，最多丢一步内的计算。等下一个 ckpt 确认续跑正常。
+- **04:48–04:51 UTC：节点上的进程被 K8s 层面有意清除，不是故障**。kubelet 日志里依次出现 default 命名空间的 Pod：`dbg-04d9-jason`（04:47:17）、`kill-04d9-jason`（04:48:17，对应第一次 SIGTERM）、
+  `verify-04d9`（04:49:26）、`kill-04d9b`（04:50:25）、`kill-04d9c`（04:51:41）。第二轮之后，续跑的 ECF（2129895）和 HiCA（2132293）训练、gpuq_w3 2146682、idle_fallback 2550863、yield_guard 2638132
+  以及我的等待进程全部被终止，8 张卡显存都是 0。更早还有 `aws-hyperpod-default/zzj-kenxsong-probe2-04d9-1109`（04:07:18）。
+  这是有人在集群层面清空本节点（04d9 = 实例 i-04d9882aa87944859），而且是先 kill、再 verify、再补 kill 的过程。**我不重启任何东西**（与有意的清除对抗可能违背操作者意图），已报告协调者，等决定。
+  最后的 ckpt：ECF `step_00031`（lora.pt + optim.pt + DONE），HiCA `step_00014`。两个都可以在决定后用 `--resume` 续跑（队列作业 retries 还够）。
