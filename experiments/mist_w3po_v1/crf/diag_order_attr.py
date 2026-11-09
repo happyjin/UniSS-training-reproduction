@@ -8,7 +8,8 @@ CHECK A  does ORDER cause actual omissions in v8's own online decoding?
   matching  NOT re-implemented: reports/gstar_si_v8/overlap_score.score (online=True, the scorer of score_run.py) is run
             as is, and its per-meeting state (scored utterances sc, unit_of, the segment -> unit assignment got, the
             meeting speaker map mp, its own recalled() closure) is read from its frame with a call tracer when it first
-            calls recalled(). A short utterance is MISSED iff the scorer's recalled(rid) is False. The short-recall
+            calls recalled() (the closure is evaluated there for every utterance of the meeting). A short utterance
+            is MISSED iff the scorer's recalled(rid) is False. The short-recall
             counts are asserted equal to the decode's score_text.json.
   units     scored utterances with b - a <= 1 s (and <= 0.5 s), as the scorer's short recall. Isolated / overlapped as
             in the md: ov50 = the other speakers' scored utterances (union) cover >= 50 % of it
@@ -61,8 +62,13 @@ CHECK B  what causes ATTRIBUTION for isolated short units?
     IGNORES_EVIDENCE  evidence GOLD_COL: the prompt P points to the gold column and the model still prefers k'
     OTHER_EVIDENCE    evidence OTHER_COL
 
+POST-HOC (added after Check B; --posthoc, check_a_posthoc): on the same online decode, the visibility of the short
+utterance's diarizer frames in the prompt at the read where its slot was decided (recalled vs MISLABEL), and the miss
+rate by when the other speakers' concurrent part was first written relative to the due read.
+
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.crf.diag_order_attr \
         --out eval_outputs/mist_w3po_v1/crf/diag_order_attr_v1
+    ... --posthoc --out eval_outputs/mist_w3po_v1/crf/diag_order_attr_v1_posthoc
 """
 from __future__ import annotations
 
@@ -152,7 +158,9 @@ def run_scorer(W: list[dict], H: dict, RW: list[dict]) -> tuple[dict, dict, dict
                 f = f.f_back
             L = f.f_locals
             if L["m"] not in cap:
-                cap[L["m"]] = {k: L[k] for k in ("sc", "got", "unit_of", "units_", "mp", "us", "recalled")}
+                # the closure's cells are rebound per meeting: evaluate it now (tracing is off inside the tracer)
+                cap[L["m"]] = {k: L[k] for k in ("sc", "got", "unit_of", "units_", "mp", "us")}
+                cap[L["m"]]["rec"] = {rid: bool(L["recalled"](rid)) for rid in L["sc"]}
                 segs.update(L["segs"])
         return None
 
@@ -182,6 +190,21 @@ def seg_meta(W: list[dict], H: dict, segs: dict) -> dict:
     return meta
 
 
+def due_of(u: dict, windows: list[dict], H: dict) -> dict:
+    """the online window with the largest overlap with u and u's due read in it (module docstring)."""
+    best, bw = 0.0, None
+    for w in windows:
+        o = ov(u["a"], u["b"], w["start_s"], w["start_s"] + w["dur_ms"] / 1000.0)
+        if o > best:
+            best, bw = o, w
+    if bw is None:
+        return {"window": None, "T_due": u["b"] + LAG_S, "due_final": None}
+    reads = [x["t"] for x in H[bw["id"]]["read_log"]]
+    i = due_read(reads, bw["start_s"], u["b"])
+    return {"window": bw["id"], "T_due": bw["start_s"] + reads[i] / 1000.0, "due_final": i == len(reads) - 1,
+            "n_reads": len(reads), "window_has_output": bool(H[bw["id"]]["segments"])}
+
+
 def classify_missed(u: dict, rid: str, st: dict, seglist: list[dict], meta: list[dict], windows: list[dict],
                     H: dict) -> dict:
     """the pre-stated Check A classes for a missed short utterance u (scorer dict, meeting clock)."""
@@ -189,19 +212,7 @@ def classify_missed(u: dict, rid: str, st: dict, seglist: list[dict], meta: list
     r = norm(u["ref"])
     assert r, rid
     out = {"rid": rid, "spk": u["spk"], "a": u["a"], "b": u["b"], "dur": u["b"] - u["a"], "ref": u["ref"]}
-    # window and due read
-    best, bw = 0.0, None
-    for w in windows:
-        o = ov(u["a"], u["b"], w["start_s"], w["start_s"] + w["dur_ms"] / 1000.0)
-        if o > best:
-            best, bw = o, w
-    if bw is None:
-        out.update({"window": None, "T_due": u["b"] + LAG_S, "due_final": None})
-    else:
-        reads = [x["t"] for x in H[bw["id"]]["read_log"]]
-        i = due_read(reads, bw["start_s"], u["b"])
-        out.update({"window": bw["id"], "T_due": bw["start_s"] + reads[i] / 1000.0, "due_final": i == len(reads) - 1,
-                    "n_reads": len(reads), "window_has_output": bool(H[bw["id"]]["segments"])})
+    out.update(due_of(u, windows, H))
     T = out["T_due"]
     idx = {id(s): k for k, s in enumerate(seglist)}
 
@@ -263,6 +274,7 @@ def classify_missed(u: dict, rid: str, st: dict, seglist: list[dict], meta: list
         out["order_text"] = seglist[k0]["text"]
     if mis:
         out["mislabel_text"] = seglist[mis[0]]["text"]
+        out["mislabel_k"] = mis[0]
         out["mislabel_slot"] = seglist[mis[0]]["spk"]
     if cls == "OTHER":
         conc_before = any(
@@ -321,14 +333,14 @@ def check_a(args) -> dict:
     short_chk = defaultdict(lambda: [0, 0])
     for m in sorted(cap):
         st = cap[m]
-        sc, rec_fn = st["sc"], st["recalled"]
+        sc = st["sc"]
         from overlap_score import OV_SHARE, others_overlap
 
         for rid, u in sc.items():
             d = u["b"] - u["a"]
             if d > 1.0:
                 continue
-            got_it = bool(rec_fn(rid))
+            got_it = st["rec"][rid]
             ov20 = others_overlap(u["a"], u["b"], u["spk"], st["us"]) / max(d, 1e-6) >= OV_SHARE
             band = "le0.5" if d <= 0.5 else "0.5-1"
             short_chk[f"{band}_{'ov' if ov20 else '1spk'}"][0] += got_it
@@ -493,6 +505,135 @@ def check_b(args) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------------------------ post-hoc (after B)
+def other_relation(u: dict, rid: str, st: dict, seglist: list[dict], meta: list[dict], T: float) -> str:
+    """when the other speakers' concurrent part (segments credited to the units of other-speaker utterances
+    overlapping u, within 1 s of u) was first committed, relative to u's due read."""
+    sc, got, unit_of = st["sc"], st["got"], st["unit_of"]
+    idx = {id(s): k for k, s in enumerate(seglist)}
+    cs = []
+    for rid2, v in sc.items():
+        if v["spk"] == u["spk"] or ov(u["a"], u["b"], v["a"], v["b"]) <= 0:
+            continue
+        cs += [meta[idx[id(x)]]["commit"] for x, t in got.get(unit_of[rid2], [])
+               if t.strip() and ov(x["a"] - RECALL_COLLAR, x["b"] + RECALL_COLLAR, u["a"], u["b"]) > 0]
+    if not cs:
+        return "NONE"
+    c = min(cs)
+    return "BEFORE_DUE" if c < T - 1e-6 else "AT_DUE_READ" if c <= T + 1e-6 else "AFTER_DUE"
+
+
+def aligned_other_slot(u: dict, st: dict, seglist: list[dict]) -> bool:
+    """(post-hoc, descriptive) a short segment (<= 4 words) under a slot not mapped to u's speaker, whose source span
+    lies >= 50 % within [a - 0.2 s, b + 0.2 s] of u and is not >= 50 % covered by a scored utterance of its own mapped
+    speaker: something written at u's position under another speaker that the strict text match does not see."""
+    sc, mp = st["sc"], st["mp"]
+    for x in seglist:
+        xw = norm(x["text"])
+        if not xw or len(xw) > 4 or mp.get(x["spk"]) == u["spk"]:
+            continue
+        L = max(x["b"] - x["a"], 0.08)
+        if ov(x["a"], x["b"], u["a"] - 0.2, u["b"] + 0.2) < 0.5 * L:
+            continue
+        own = mp.get(x["spk"])
+        if own is not None and any(v["spk"] == own and ov(x["a"], x["b"], v["a"], v["b"]) >= 0.5 * L
+                                   for v in sc.values()):
+            continue
+        return True
+    return False
+
+
+def check_a_posthoc(args) -> dict:
+    """POST-HOC (added after Check B showed the unit frames masked at the final read): on the online decode,
+    (1) the visibility of u's diarizer frames in the prompt at the read where u's slot was decided: the commit read of
+        the first recall-evidence segment (recalled u) or of the first MISLABEL segment (missed u); prompt P = the
+        online window's lowlat P with frames >= (t - 1.04 s) / 80 ms zeroed (Engine.audio_embeds); expected slot =
+        the hyp slot the scorer maps to u's speaker, written slot = the segment's slot; evidence() as in Check B;
+    (2) the miss rate of short utterances by when the other speakers' concurrent part was first written relative to
+        u's due read (other_relation)."""
+    W = [json.loads(l) for l in open(args.windows, encoding="utf-8")]
+    H = {h["id"]: h for h in map(json.loads, open(Path(args.decode) / "hyp.jsonl", encoding="utf-8"))}
+    RW = [json.loads(l) for l in open(args.ref_dev, encoding="utf-8")]
+    W = [w for w in W if w["id"] in H]
+    Wid = {w["id"]: w for w in W}
+    res, cap, segs = run_scorer(W, H, RW)
+    ref = json.load(open(Path(args.decode) / "score_text.json", encoding="utf-8"))
+    assert res["short_recall"] == ref["short_recall"]
+    meta = seg_meta(W, H, segs)
+    wins_of = defaultdict(list)
+    for w in W:
+        wins_of[w["meeting"]].append(w)
+    rows = []
+    for m in sorted(cap):
+        st = cap[m]
+        sc, got, unit_of = st["sc"], st["got"], st["unit_of"]
+        inv = {v: k for k, v in st["mp"].items()}
+        idx = {id(s): k for k, s in enumerate(segs[m])}
+        for rid, u in sc.items():
+            d = u["b"] - u["a"]
+            if d > 1.0:
+                continue
+            o50 = ov50_of(u, [v for r2, v in sc.items() if r2 != rid and v["spk"] != u["spk"]])
+            due = due_of(u, wins_of[m], H)
+            row = {"meeting": m, "rid": rid, "dur": round(d, 3), "le05": d <= 0.5, "ov50": o50,
+                   "missed": not st["rec"][rid], "due_final": due["due_final"],
+                   "other_rel": other_relation(u, rid, st, segs[m], meta[m], due["T_due"])}
+            k = None
+            if st["rec"][rid]:
+                eu = [idx[id(x)] for x, t in got.get(unit_of[rid], [])
+                      if t.strip() and ov(x["a"] - RECALL_COLLAR, x["b"] + RECALL_COLLAR, u["a"], u["b"]) > 0]
+                k = first_key(eu, meta[m])[3]
+                row["cls"] = "RECALLED"
+            else:
+                c = classify_missed(u, rid, st, segs[m], meta[m], wins_of[m], H)
+                row["cls"] = c["cls"]
+                row["mislabel_bc"] = c["mislabel_bc"]
+                row["aligned_other_slot"] = aligned_other_slot(u, st, segs[m])
+                k = c.get("mislabel_k")
+            exp = inv.get(u["spk"])
+            if k is not None and exp is not None and isinstance(segs[m][k]["spk"], int):
+                x, mt = segs[m][k], meta[m][k]
+                w = Wid[mt["wid"]]
+                P = np.load(w["post"]["lowlat"]).astype(np.float32)
+                a_ms = max(0, round((u["a"] - w["start_s"]) * 1000))
+                b_ms = max(a_ms + 1, round((u["b"] - w["start_s"]) * 1000))
+                if a_ms < len(P) * FRAME_MS:
+                    e = evidence(P, a_ms, b_ms, mt["write_ms"], exp, x["spk"] if x["spk"] != exp else 0)
+                    row.update({"written_slot": x["spk"], "expected_slot": exp, "decision_final": mt["final"],
+                                "win_dur_s": w["dur_ms"] / 1000.0, **e})
+            rows.append(row)
+    groups = {"le1_iso": lambda x: not x["ov50"], "le05_iso": lambda x: x["le05"] and not x["ov50"],
+              "le1_ov50": lambda x: x["ov50"], "le05_ov50": lambda x: x["le05"] and x["ov50"]}
+    summ = {"note": "post-hoc, after Check B", "visibility": {}, "miss_by_other_rel": {}, "hidden_mislabel": {}}
+    for g, f in groups.items():
+        for c in ("RECALLED", "MISLABEL"):
+            sub = [x for x in rows if f(x) and x["cls"] == c and "ev_sub" in x]
+            if not sub:
+                continue
+            n = len(sub)
+            summ["visibility"][f"{g}|{c}"] = {
+                "n": n, "ev_sub": {kk: [v, round(v / n, 4)] for kk, v in Counter(x["ev_sub"] for x in sub).most_common()},
+                "ev_full": {kk: [v, round(v / n, 4)] for kk, v in Counter(x["ev_full"] for x in sub).most_common()},
+                "vis_frac_median": round(float(np.median([x["vis_frac"] for x in sub])), 4),
+                "fully_unseen": sum(x["vis_frac"] == 0 for x in sub),
+                "decision_at_final_read": sum(bool(x["decision_final"]) for x in sub),
+                "win_dur_median": round(float(np.median([x["win_dur_s"] for x in sub])), 3)}
+        sub = [x for x in rows if f(x)]
+        summ["hidden_mislabel"][g] = {
+            c: {"n": sum(1 for x in sub if x["cls"] == c),
+                "aligned_other_slot": sum(1 for x in sub if x["cls"] == c and x["aligned_other_slot"]),
+                "mislabel_bc": sum(1 for x in sub if x["cls"] == c and x["mislabel_bc"])}
+            for c in A_CLASSES}
+        summ["miss_by_other_rel"][g] = {
+            rel: {"n": len(s2), "missed": sum(x["missed"] for x in s2),
+                  "miss_rate": round(sum(x["missed"] for x in s2) / max(len(s2), 1), 4),
+                  "order_omission": sum(x["cls"] == "ORDER_OMISSION" for x in s2),
+                  "mislabel": sum(x["cls"] == "MISLABEL" for x in s2)}
+            for rel in ("BEFORE_DUE", "AT_DUE_READ", "AFTER_DUE", "NONE")
+            for s2 in [[x for x in sub if x["other_rel"] == rel]]}
+    return {"summary": summ, "rows": rows}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--decode", default=DECODE)
@@ -503,11 +644,21 @@ def main() -> None:
     ap.add_argument("--rescore-train", default=RESCORE["train"])
     ap.add_argument("--out", required=True)
     ap.add_argument("--only", default="", choices=["", "A", "B"])
+    ap.add_argument("--posthoc", action="store_true", help="only the post-hoc online-decode analysis (after B)")
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     res = {}
+    if args.posthoc:
+        ph = check_a_posthoc(args)
+        print(json.dumps(ph["summary"], indent=1), flush=True)
+        out.mkdir(parents=True)
+        (out / "posthoc_summary.json").write_text(json.dumps(ph["summary"], indent=1), encoding="utf-8")
+        with open(out / "posthoc_rows.jsonl", "x", encoding="utf-8") as fh:
+            fh.writelines(json.dumps(x, ensure_ascii=False) + "\n" for x in ph["rows"])
+        print(f"DIAG_ORDER_ATTR_POSTHOC_DONE {out}", flush=True)
+        return
     if args.only in ("", "B"):
         res["B"] = check_b(args)
         print(json.dumps(res["B"]["summary"], indent=1), flush=True)
