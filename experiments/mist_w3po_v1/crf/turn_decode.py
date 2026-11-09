@@ -11,7 +11,12 @@ and the speaker projector. Default-off and additive: no existing file is changed
   main()              python -m experiments.mist_w3po_v1.crf.turn_decode [online_decode args] [--turn-crf PATH]
                       [--turn-device cuda|cpu]: without --turn-crf it IS evaluation/online_decode.main with the same
                       argv; with it, online_decode runs with its Engine swapped for a TurnEngine holding the layer
-                      loaded from PATH (a turn_layer.pt file, TurnLayer.export, or a checkpoint dir holding one).
+                      loaded from PATH (a turn_layer.pt file, TurnLayer.export, or a dir holding one, or a
+                      train_turncrf_sft.py checkpoint dir: extra.pt's extra_params).
+                      --turn-ckpt CKPT: a whole train_turncrf_sft.py / train_crf_sft.py checkpoint applied in memory on
+                      top of --thinker (the LoRA of lora.pt folded into the weights as online_decode --lora does, the
+                      speaker projector and the 259 new token rows of extra.pt) plus its TurnCRF layer (when extra.pt
+                      holds one; --turn-crf overrides). Without either option nothing changes.
 
 With the layer's gate g = 0 the projector input is bit-identical to v8's (test_turn_layer.py, smoke (i)).
 """
@@ -108,6 +113,31 @@ class TurnEngine(E.Engine):
         return [out[k] for k in keys]
 
 
+def apply_ckpt(eng: E.Engine, ckpt: str) -> None:
+    """A train_crf_sft.py checkpoint on top of the merged base, in memory: LoRA folded (lora.inject / load / merge, as
+    online_decode --lora), the speaker projector and the new token rows (input and output; the Thinker's text
+    embeddings are untied) of extra.pt."""
+    import re
+
+    from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, NEW0, NEW_END
+    from experiments.uniss_streaming_p2st_traj_v1.training import lora
+
+    ex = torch.load(f"{ckpt}/extra.pt", map_location="cpu")
+    keep = lambda parent: re.search(r"(?:^|\.)model\.layers\.(\d+)\.", parent + ".") is not None  # noqa: E731
+    ad = lora.inject(eng.thinker, rank=int(ex["lora_rank"]), alpha=float(ex["lora_alpha"]), targets=ATTN,
+                     layer_filter=keep)
+    lora.load_state_dict(ad, torch.load(f"{ckpt}/lora.pt", map_location="cpu"))
+    lora.merge(ad)
+    eng.sd_proj.load_state_dict(ex["sd_proj"])
+    with torch.no_grad():
+        w = eng.thinker.get_input_embeddings().weight
+        w[NEW0:NEW_END] = ex["new_emb"].to(w.device, w.dtype)
+        h = eng.thinker.lm_head.weight
+        h[NEW0:NEW_END] = ex["new_head"].to(h.device, h.dtype)
+    print(f"turn-ckpt {ckpt}: step {ex.get('step')} objective {ex.get('objective')}, {len(ad)} adapters folded, "
+          f"projector + {NEW_END - NEW0} token rows loaded", flush=True)
+
+
 def _pop_opt(argv: list[str], name: str, default: str = "") -> tuple[list[str], str]:
     out, val, i = [], default, 0
     while i < len(argv):
@@ -130,18 +160,27 @@ def main(argv: list[str] | None = None) -> None:
 
     argv = list(sys.argv[1:] if argv is None else argv)
     argv, path = _pop_opt(argv, "--turn-crf")
+    argv, ckpt = _pop_opt(argv, "--turn-ckpt")
     argv, tdev = _pop_opt(argv, "--turn-device", "")
-    if not path:                                     # default: exactly online_decode
+    if not path and not ckpt:                        # default: exactly online_decode
         sys.argv = [sys.argv[0]] + argv
         od.main()
         return
-    layer = load_layer(path)
-    print(f"turn-crf {path}: g={float(layer.g):.6g} init={layer.init_src} e_mlp={layer.e_mlp is not None}", flush=True)
+    layer = None
+    if path:
+        layer = load_layer(path)
+    elif ckpt and any("cfg_vec" in sd for sd in torch.load(f"{ckpt}/extra.pt", map_location="cpu")["extra_params"]):
+        layer = load_layer(ckpt)
+    if layer is not None:
+        print(f"turn-crf {path or ckpt}: g={float(layer.g):.6g} init={layer.init_src} e_mlp={layer.e_mlp is not None}",
+              flush=True)
 
     class _Bound(TurnEngine):
         @classmethod
         def from_merged(cls, *a, **kw):
             eng = super().from_merged(*a, **kw)
+            if ckpt:
+                apply_ckpt(eng, ckpt)
             eng.set_turn(layer, torch.device(tdev) if tdev else None)
             return eng
 

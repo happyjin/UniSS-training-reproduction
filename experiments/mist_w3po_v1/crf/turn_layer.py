@@ -24,8 +24,9 @@ Auxiliary loss (weight 1, pre-registered): (log Z~_tau - log Z~_tau,y) / tau, th
 likelihood of the reference frame labels y at the row's read prefix; with maximal segments log Z~_tau,y is the score
 of y's unique segmentation (turn_crf.semi_path_score, re-implemented here device-agnostically).
 
-Init: init_from(params.pt of the CPU stage, train_turn_crf.py) loads the trained semi-CRF parameters; otherwise the CPU
-module's neutral init (a = 1, everything else 0 = independent P). The choice is stored in the layer ("init_src").
+Init: the CPU module's neutral init by default (a = 1, everything else 0 = independent P); init_from(params.pt of the
+CPU stage, train_turn_crf.py) loads trained semi-CRF parameters (opt-in: the CPU stage failed its pre-registered stop
+rule, reports/mist_w3po_v1/turn_crf_cpu_stage.zh-CN.md). The choice is stored in the layer ("init_src").
 
 Note: at g = 0 the translation loss gives no gradient to the CRF parameters (d P'/d phi = g d pi/d phi); they move by
 the auxiliary loss first and receive translation-loss gradient as soon as g != 0 (one optimiser step).
@@ -139,6 +140,8 @@ class TurnLayer(nn.Module):
     def __init__(self, K: int = 8, L: int = 257, Q: int = 50, e_dim: int = 0, e_hidden: int = 256):
         super().__init__()
         self.cfg = {"K": K, "L": L, "Q": Q, "e_dim": e_dim, "e_hidden": e_hidden}
+        # persistent, so a bare state dict (the shared trainer's extra.pt) rebuilds the layer (from_state_dict)
+        self.register_buffer("cfg_vec", torch.tensor([K, L, Q, e_dim, e_hidden], dtype=torch.float64))
         self.crf = SemiTurnCRF(K=K, max_active=2, L=L, Q=Q)
         sp = self.crf.space
         self.register_buffer("M", sp.M.clone(), persistent=False)          # (C, K) float64
@@ -252,6 +255,13 @@ class TurnLayer(nn.Module):
         m.init_src = ck.get("init_src", "")
         return m
 
+    @classmethod
+    def from_state_dict(cls, sd: dict) -> "TurnLayer":
+        K, L, Q, e_dim, e_hidden = (int(round(float(v))) for v in sd["cfg_vec"])
+        m = cls(K=K, L=L, Q=Q, e_dim=e_dim, e_hidden=e_hidden)
+        m.load_state_dict(sd)          # parameters are cast to the layer's dtypes (float64 CRF, float32 g / MLP)
+        return m
+
     def summary(self) -> dict:
         c = self.crf
         return {"g": float(self.g), "a": [round(float(v), 4) for v in c.a], "b": [round(float(v), 4) for v in c.b],
@@ -259,24 +269,49 @@ class TurnLayer(nn.Module):
 
 
 def load_layer(path: str) -> TurnLayer:
-    """A TurnLayer from a turn_layer.pt file (TurnLayer.export) or a directory holding one."""
+    """A TurnLayer from: a turn_layer.pt file (TurnLayer.export) or a dir holding one; a train_turncrf_sft.py
+    checkpoint (train_crf_sft.py format: <ckpt>/extra.pt, extra_params[0] = the layer's state dict) or its extra.pt."""
     p = Path(path)
     if p.is_dir():
-        p = p / LAYER_FILE
-    return TurnLayer.from_export(torch.load(p, map_location="cpu"))
+        p = p / LAYER_FILE if (p / LAYER_FILE).exists() else p / "extra.pt"
+    ck = torch.load(p, map_location="cpu")
+    if "extra_params" in ck:
+        sds = [sd for sd in ck["extra_params"] if "cfg_vec" in sd]
+        if len(sds) != 1:
+            raise SystemExit(f"{p}: expected exactly one TurnLayer state dict in extra_params, found {len(sds)}")
+        m = TurnLayer.from_state_dict(sds[0])
+        m.init_src = f"{p} (step {ck.get('step')})"
+        return m
+    return TurnLayer.from_export(ck)
 
 
 # ----------------------------------------------------------------------------------------------------------------
 # helpers shared by training and inference
 # ----------------------------------------------------------------------------------------------------------------
 
+def _interp_rows(x: torch.Tensor, xp: torch.Tensor, fp: torch.Tensor) -> torch.Tensor:
+    """np.interp(x, xp, fp[:, c]) for every column c in float64 (train_crf_sft.interp_rows, same formula)."""
+    fp64 = fp.to(torch.float64)
+    if xp.numel() == 1:
+        return fp64[:1].expand(x.numel(), fp.shape[1])
+    j = (torch.searchsorted(xp, x, right=True) - 1).clamp(0, xp.numel() - 2)
+    slope = (fp64[j + 1] - fp64[j]) / (xp[j + 1] - xp[j])[:, None]
+    y = slope * (x - xp[j])[:, None] + fp64[j]
+    y = torch.where((x < xp[0])[:, None], fp64[:1].expand_as(y), y)
+    return torch.where((x >= xp[-1])[:, None], fp64[-1:].expand_as(y), y)
+
+
 def e_to_frames(e_tok: torch.Tensor, n_frames: int, dur_s: float) -> torch.Tensor:
-    """Audio-encoder states at the audio-token centres (n, D), tokens spread over dur_s -> (n_frames, D) at the 80 ms
-    frame centres (nearest token, as causal as the heard audio allows)."""
+    """Audio-encoder states [n, D] at the audio-token centres (i + 0.5) dur / n -> [n_frames, D] float32 at the 80 ms
+    frame centres (k + 0.5) 0.08 s, linear (np.interp semantics): exactly what the shared trainer hands the hook
+    (train_crf_sft.enc_to_frames; equality tested in test_turn_layer.py)."""
     n = e_tok.shape[0]
-    fc = (torch.arange(n_frames, dtype=torch.float64) + 0.5) * 0.08
-    j = torch.floor(fc * n / max(dur_s, 1e-6)).long().clamp(0, max(n - 1, 0))
-    return e_tok[j.to(e_tok.device)]
+    if n_frames <= 0 or n == 0:
+        return e_tok.new_zeros((0, e_tok.shape[1]), dtype=torch.float32)
+    dev = e_tok.device
+    tc = (torch.arange(n, device=dev, dtype=torch.float64) + 0.5) * dur_s / n
+    fc = (torch.arange(n_frames, device=dev, dtype=torch.float64) + 0.5) * 0.08
+    return _interp_rows(fc, tc, e_tok.detach()).to(torch.float32)
 
 
 def apply_prefix_np(layer: TurnLayer, post: np.ndarray, tau: int, e_frames: torch.Tensor | None = None,

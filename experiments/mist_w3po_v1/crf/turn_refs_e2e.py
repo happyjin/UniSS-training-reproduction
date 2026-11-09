@@ -140,6 +140,42 @@ class RefIndex:
         return out
 
 
+class RecRefs:
+    """The same labels for the shared trainer's rows (train_crf_sft.py): meta["rec"] is the window's sched_v1 record,
+    whose "S" is the window's complete v8 target in row format (all chunks, commit order) and "post" its lowlat
+    posteriors (unperturbed, whole window). Cached per window id."""
+
+    def __init__(self, mode: str = "window"):
+        assert mode in ("window", "session")
+        self.mode = mode
+        self.space = LabelSpace(K)
+        self.cache: dict[str, np.ndarray] = {}
+        self.stats = {"windows": 0, "remapped_speakers": 0, "speakers": 0, "frames_truncated": 0}
+
+    def window_labels(self, rec: dict) -> np.ndarray:
+        y = self.cache.get(rec["id"])
+        if y is None:
+            post = np.load(rec["post"]).astype(np.float32)
+            segs = parse_segments(rec["S"])
+            if self.mode == "window":
+                wm = window_map(segs, post)
+                self.stats["speakers"] += len(wm)
+                self.stats["remapped_speakers"] += sum(int(a != b) for a, b in wm.items())
+                segs = [(wm[k], a, b) for k, a, b in segs]
+            y, n_tr = joint_labels(session_matrix(segs, len(post)), self.space)
+            self.stats["windows"] += 1
+            self.stats["frames_truncated"] += n_tr
+            self.cache[rec["id"]] = y
+        return y
+
+    def labels(self, rec: dict, tau: int) -> np.ndarray:
+        y = self.window_labels(rec)
+        out = np.zeros(tau, dtype=np.int64)
+        n = min(tau, len(y))
+        out[:n] = y[:n]
+        return out
+
+
 def main() -> None:
     """Slot-convention statistics on v8's train rows (CPU): how often the window-level map differs from the session
     slot, per speaker-window and per labelled speech frame."""

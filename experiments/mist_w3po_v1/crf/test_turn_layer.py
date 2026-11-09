@@ -211,6 +211,12 @@ class _StubModel(nn.Module):
         super().__init__()
         self.W = nn.Linear(d, d)
         self.seen = []
+        attn = nn.Module()                     # model.layers.0.self_attn.{q,k,v,o}_proj: LoRA targets (apply_ckpt)
+        for n in ("q_proj", "k_proj", "v_proj", "o_proj"):
+            setattr(attn, n, nn.Linear(d, d))
+        blk = nn.Module()
+        blk.self_attn = attn
+        self.layers = nn.ModuleList([blk])
 
     def forward(self, inputs_embeds, attention_mask, past_key_values=None, use_cache=True, return_dict=True):
         self.seen.append(inputs_embeds.detach().clone())
@@ -335,6 +341,44 @@ def test_engine_default_unchanged():
     print(f"(d) engine: default and g = 0 identical (embeddings, {len(seen_ref)} model inputs, tokens), g != 0 differs ok")
 
 
+def test_apply_ckpt():
+    """turn_decode.apply_ckpt folds a train_crf_sft-format checkpoint into the engine: LoRA delta, projector, rows;
+    load_layer reads the layer from the same checkpoint."""
+    import copy
+
+    from experiments.mist_w3po_v1.crf import turn_decode as td
+    from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, NEW0, NEW_END
+    from experiments.uniss_streaming_p2st_traj_v1.training import lora
+
+    E, eng, _, th = _engines()
+    q0 = th.model.layers[0].self_attn.q_proj.weight.detach().clone()
+    tr = copy.deepcopy(th)
+    ad = lora.inject(tr, rank=4, alpha=8.0, targets=ATTN, layer_filter=lambda p: "model.layers." in p + ".")
+    with torch.no_grad():
+        for a in ad:
+            a.b.normal_(0, 0.1)
+    qa = [a for a in ad if a.lora_name.endswith("q_proj")][0]
+    delta = (qa.b @ qa.a).detach() * qa.scaling
+    d = tempfile.mkdtemp(prefix="test_turn_ckpt_")                 # under $TMPDIR; never deleted (no rm)
+    torch.save(lora.state_dict(ad), f"{d}/lora.pt")
+    sdp = {k: torch.randn_like(v.float()) for k, v in eng.sd_proj.state_dict().items()}
+    ne, nh = torch.randn(NEW_END - NEW0, 16), torch.randn(NEW_END - NEW0, 16)
+    layer = _layer(e_dim=16, seed=5).float()
+    with torch.no_grad():
+        layer.g.fill_(0.2)
+    torch.save({"sd_proj": sdp, "new_emb": ne, "new_head": nh, "extra_params": [layer.state_dict()], "step": 3,
+                "objective": "heuristic", "lora_rank": 4, "lora_alpha": 8.0}, f"{d}/extra.pt")
+    td.apply_ckpt(eng, d)
+    q1 = th.model.layers[0].self_attn.q_proj.base.weight.detach()
+    assert torch.allclose(q1, q0 + delta, atol=1e-6)
+    assert torch.equal(th.get_input_embeddings().weight[NEW0:NEW_END], ne)
+    assert torch.equal(th.lm_head.weight[NEW0:NEW_END], nh)
+    assert all(torch.equal(v, sdp[k].to(v.dtype)) for k, v in eng.sd_proj.state_dict().items())
+    m2 = tl.load_layer(d)
+    assert abs(float(m2.g) - 0.2) < 1e-7 and m2.e_mlp is not None
+    print("(d) apply_ckpt: LoRA folded, projector and token rows loaded, layer read from extra.pt ok")
+
+
 def test_decode_wrapper_default():
     from experiments.mist_w3po_v1.core import engine as E
     from experiments.mist_w3po_v1.crf import turn_decode as td
@@ -390,10 +434,74 @@ def test_refs():
     print("(e) reference labels: parsing, window-level re-map, top-2 rule ok")
 
 
+# ---------------------------------------------------------------------------------------------------------------- (f)
+def test_training_hook():
+    """train_turncrf_sft.TurnHook on CPU with the shared trainer's own glue (post_to_tokens_torch, enc_to_frames):
+    g = 0 identity, the aux loss = mean over the global rows, cached == recomputed, gradient to g through the projector
+    path, the layer round-trips through a train_crf_sft-format extra.pt, e alignment == the trainer's."""
+    from experiments.mist_w3po_v1.crf import train_crf_sft as T
+    from experiments.mist_w3po_v1.crf.train_turncrf_sft import TurnHook, build_layer
+    from experiments.mist_w3po_v1.crf.turn_refs_e2e import RecRefs
+    from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import SDProjector
+
+    d = tempfile.mkdtemp(prefix="test_turn_hook_")                 # under $TMPDIR; never deleted (no rm)
+    rng = np.random.default_rng(0)
+    post = rng.random((60, 8)).astype(np.float32)
+    post[post < 0.6] = 0.0
+    post[5:30, 2] = 0.95
+    np.save(f"{d}/w.npy", post)
+    rec = {"id": "w", "post": f"{d}/w.npy", "S": "<|spk3|><|t5|>Hi there.<|t30|><|spk1|><|t28|>Yes.<|t40|>"}
+    layer = build_layer("neutral", True, e_hidden=8, e_dim=12)
+    with torch.no_grad():
+        for prm in layer.crf.parameters():
+            prm.add_(0.3 * torch.randn_like(prm))
+        layer.e_mlp[-1].weight.normal_(0, 0.2)
+    assert all(p_.dtype == torch.float32 for p_ in layer.parameters())
+    hook = TurnHook(layer, RecRefs("window"), True)
+    sd = SDProjector(8, 16)
+    with torch.no_grad():
+        sd.mlp[-1].weight.normal_(0, 0.5)
+    metas, P_in, P_out, encs, sds = [], [], [], [], []
+    for t_ms in (1000, 2500, 4200):
+        Tn = max(0, t_ms - 1040) // 80
+        P = torch.from_numpy(post[:Tn].copy())
+        n = int(np.ceil(13 * t_ms / 1000))
+        enc = T.enc_to_frames(torch.randn(n, 12), Tn, t_ms / 1000)
+        meta = {"rec": rec, "phase": "train", "T": Tn}
+        out = hook(P, enc, meta)
+        assert torch.equal(out, P), "g = 0: the hook returns P bit for bit"
+        full = torch.cat([out, out.new_zeros(60 - Tn, 8)], 0)
+        sds.append(sd(T.post_to_tokens_torch(full, n, t_ms / 1000)[None])[0].sum())
+        metas.append(meta), P_in.append(P), P_out.append(out), encs.append(enc)
+    info = {"metas": metas, "P_in": P_in, "P_out": P_out, "enc": encs, "rows_global": 10, "step": 0, "device": "cpu"}
+    ex = hook.extra_loss(info)
+    ref = sum(float(layer.aux_loss(Pi, torch.as_tensor(hook.refs.labels(rec, Pi.shape[0])), e)[0])
+              for Pi, e in zip(P_in, encs) if Pi.shape[0]) / 10
+    assert abs(float(ex) - ref) < 1e-5 and not hook.cache, (float(ex), ref)
+    (torch.stack(sds).sum() + ex).backward()
+    assert float(layer.g.grad.abs()) > 0 and float(layer.crf.a.grad.abs().max()) > 0
+    # e alignment: the decode wrapper's == the trainer's
+    for n, Tn, dur in ((13, 5, 1.0), (40, 25, 3.1), (1, 0, 0.1), (260, 237, 20.0)):
+        e = torch.randn(n, 6).to(torch.bfloat16)
+        assert torch.equal(tl.e_to_frames(e, Tn, dur), T.enc_to_frames(e, Tn, dur))
+    # a train_crf_sft-format extra.pt round trip (save_ckpt writes [m.state_dict() for m in extra_params])
+    with torch.no_grad():
+        layer.g.fill_(0.25)
+    torch.save({"extra_params": [{k: v.detach().cpu() for k, v in layer.state_dict().items()}], "step": 3},
+               f"{d}/extra.pt")
+    m2 = tl.load_layer(d)
+    x = torch.from_numpy(post[:30].copy())
+    e = torch.randn(30, 12)
+    assert float(m2.g) == 0.25 and torch.allclose(m2(x, e), layer(x, e), atol=1e-6)
+    print("(f) training hook: g = 0 identity, aux loss normalisation, gradient to g / CRF, e alignment == trainer, "
+          "extra.pt round trip ok")
+
+
 def main():
     tests = [test_gate_identity_and_grads, test_potentials_equal_cpu_module, test_marginals_brute,
              test_marginals_realistic, test_gradcheck, test_aux_loss_brute, test_refs, test_decode_wrapper_default,
-             test_engine_default_unchanged]
+             test_engine_default_unchanged, test_training_hook,
+             test_apply_ckpt]
     for t in tests:
         t()
     print(f"ALL {len(tests)} TESTS PASSED")
