@@ -39,6 +39,15 @@ last read. Rows are cut after their last needed position and end with e_r as inp
   is an EM step whose E-step is the exact model posterior and whose M-step is v8's weighted log-likelihood.
   The loss at the final <eos> is v8's plain cross-entropy in both objectives (C0 = v8 SFT exactly).
 
+  --final-read-full-post 1  (default 0 = the above, bit-identical; C0-fp, LOG 2026-11-10): at each window's FINAL read
+        (r = R - 1, t = t_R = the window duration) the posteriors are zeroed only from t // 80 instead of
+        max(0, t - 1040) // 80, i.e. every whole in-window frame is visible (the last, partial 80 ms frame stays 0).
+        This is evaluation/online_decode_finalpost.py's --final-read-post close_detect cut
+        max(t - 1040, min(t, close_detect - 1040)) with close_detect >= t + 1040 (93.6 % of dev windows): training
+        windows have no close-detect time, so the final read uses the full window. Non-final reads, the audio, the
+        perturbation (same draw, applied before the mask) and the token rows are unchanged; both passes (score /
+        train) and the hook path (T = t // 80 at the final read) use the same cut (test_final_read_full_post.py).
+
 Recipe match with v8 (thinker_gstar_s2dl_zh2en_3k_20261030: run_thinker_gstar.sh via run_v5_train.sh): AdamW
 betas (0.9, 0.95), eps 1e-8, weight decay 0, global grad-norm clip 1.0, lr 1e-4 with 50 linear warm-up iterations
 (lr_k = 1e-4 k / 50) then cosine to 1e-5 at the last step (Megatron's schedule), 3000 steps, base bf16 + fp32
@@ -322,9 +331,11 @@ class AudioCache:
         return self.d[w.idx]
 
 
-def row_inputs(w: Window, r: int, audio: AudioCache, perturb_p: float, seed: int, step: int):
+def row_inputs(w: Window, r: int, audio: AudioCache, perturb_p: float, seed: int, step: int,
+               final_full: bool = False):
     """v8's GStarRows.__getitem__ for read r: wav[:t*16] (padded to 0.1 s), perturbed posteriors zeroed from
-    max(0, t - 1040) // 80. Returns (wav, post, T)."""
+    max(0, t - 1040) // 80 (final_full, --final-read-full-post: from t // 80 at the final read r = R - 1).
+    Returns (wav, post, T)."""
     from experiments.uniss_qwen3_omni_v1.training.pretrain_thinker_gstar import perturb
 
     wav, post = audio.get(w)
@@ -334,16 +345,18 @@ def row_inputs(w: Window, r: int, audio: AudioCache, perturb_p: float, seed: int
         x = np.pad(x, (0, 1600 - len(x)))
     p = perturb(post, np.random.default_rng([seed, step, w.idx, r]), perturb_p).copy()
     T = max(0, t - LOOKAHEAD_MS) // 80
+    if final_full and r == w.R - 1:
+        T = t // 80
     p[T:] = 0.0
     return x, p, min(T, len(p))
 
 
 def collate(rows: list[Row], audio: AudioCache, proc, prompter, hook: bool, perturb_p: float, seed: int, step: int,
-            phase: str) -> Batch:
+            phase: str, final_full: bool = False) -> Batch:
     from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import _get_feat_extract_output_lengths
 
     tok = proc.tokenizer
-    ins = [row_inputs(rw.win, rw.r, audio, perturb_p, seed, step) for rw in rows]
+    ins = [row_inputs(rw.win, rw.r, audio, perturb_p, seed, step, final_full) for rw in rows]
     f = proc.feature_extractor([x for x, _, _ in ins], sampling_rate=16000, padding=True, truncation=False,
                                return_attention_mask=True, return_tensors="pt")
     n_audio = _get_feat_extract_output_lengths(f["attention_mask"].sum(1))
@@ -603,7 +616,7 @@ def score_pass(model: CrfThinker, wins: list[Window], ctx: dict, step: int, grad
     parts = {w.idx: [] for w in wins}
     for mb in micro_batches(scoring_rows(wins), ctx["tok_budget"], ctx["n_prompt0"]):
         b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], model._post_transform is not None,
-                    ctx["perturb"], ctx["seed"], step, "score")
+                    ctx["perturb"], ctx["seed"], step, "score", final_full=ctx.get("final_full_post", False))
         with torch.set_grad_enabled(grad):
             lt, le, lm = model.pos_logprobs(b, ctx["lp_chunk"], masked_final=ctx["final_bar_wait"])
         k = 0
@@ -677,7 +690,8 @@ def grad_pass(model: CrfThinker, rows: list[Row], ctx: dict, step: int, extra_lo
     logs = {"loss_main": 0.0, "loss_state": 0.0, "loss_extra": 0.0, "pos": 0, "tokens": 0, "mbs": 0}
     hook = model._post_transform is not None
     for mb in micro_batches(rows, ctx["tok_budget"], ctx["n_prompt0"]):
-        b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], hook, ctx["perturb"], ctx["seed"], step, "train")
+        b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], hook, ctx["perturb"], ctx["seed"], step, "train",
+                    final_full=ctx.get("final_full_post", False))
         lt, le, _ = model.pos_logprobs(b, ctx["lp_chunk"])
         dev = lt.device
         ct = torch.as_tensor(np.concatenate([rw.c_tok for rw in mb]), dtype=torch.float32, device=dev)
@@ -787,6 +801,9 @@ def build_args(argv=None):
     ap.add_argument("--W", type=int, default=128, help="block-length cap of the lattice (tokens)")
     ap.add_argument("--final-bar-wait", type=int, default=1,
                     help="lattice scores of the last read with <wait> barred (the decoding distribution); 0: plain")
+    ap.add_argument("--final-read-full-post", type=int, default=0, choices=[0, 1],
+                    help="1: at each window's final read the posteriors are visible up to t // 80 (the whole window) "
+                    "instead of (t - 1040) // 80 (C0-fp; 0 = off, bit-identical)")
     ap.add_argument("--tok-budget", type=int, default=12000, help="padded tokens per micro-batch")
     ap.add_argument("--lp-chunk", type=int, default=1024, help="positions per logits chunk")
     ap.add_argument("--seed", type=int, default=20261109)
@@ -861,6 +878,9 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
     ctx = {"audio": None, "proc": proc, "prompter": prompter, "perturb": args.perturb, "seed": args.seed,
            "tok_budget": args.tok_budget, "lp_chunk": args.lp_chunk, "final_bar_wait": bool(args.final_bar_wait),
            "n_prompt0": len(prompter.a_ids) + len(prompter.b_ids) - 1}
+    if args.final_read_full_post:
+        ctx["final_full_post"] = True
+        log0("--final-read-full-post 1: final reads see the posteriors up to t // 80 (the whole window)")
 
     for step in range(start, args.steps):
         t0 = time.time()
