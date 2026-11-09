@@ -5,8 +5,8 @@ tokenizer / feature extractor / prompts, real sched_v1 AMI-train windows with th
       loss (thinker_gstar_model.ThinkerGStarModel.forward) on the same reads as v8 rows built by v8's build_batch
       (pretrain_thinker_gstar.build_batch: prefix S[:beta_{r-1}], target block, end)
   (b) Fisher identity: the --objective sched gradient (h = 1, D = 1, no L_state) equals autograd of -log Z_lam through
-      the lattice DP on differentiable log-probs; the trainer's weights come from the lattice with <wait> barred at the
-      last read, the reference uses plain end scores (the bar must not change the posterior)
+      the lattice DP on differentiable log-probs (--final-bar-wait 0); with the bar the lattice's last-read scores are
+      the decoding distribution (<wait> barred before the softmax at every position), the loss's stay plain
   (c) post_transform None: the batch tensors are v8's build_batch tensors bit for bit and the forward (embeddings,
       hidden states) is bit-identical to ThinkerGStarModel.embed + thinker.model; the hook path with the identity is
       equal to it, a parametrised hook gets gradients, P_prefix / enc shapes and extra_loss info are as documented
@@ -217,13 +217,13 @@ def test_c0_equals_v8_sft():
 # ---------------------------------------------------------------- (b)
 def test_fisher_identity():
     wins = pick_windows(2, hier=False, offset=3)
-    ctx = ctx_of(bar=True)
     m = tiny_model(seed=3)
     bias = torch.zeros(151936)
-    bias[T.WAIT_ID] = 12.0          # p(<wait>) ~ 0.5, so barring it at the last read matters for log Z
+    bias[T.WAIT_ID] = 12.0          # p(<wait>) ~ 0.5, so barring it at the last read matters
     m.logits_at = lambda h: ThinkerGStarModel.logits_at(m, h) + bias
     lam = 0.7
-    # reference: autograd of -log Z through the DP on differentiable log-probs (plain end scores)
+    # reference: autograd of -log Z through the DP on differentiable (plain) log-probs
+    ctx = ctx_of(bar=False)
     zero(m)
     sc = T.score_pass(m, wins, ctx, 0, grad=True)
     lat = sl.pack([{"tok_lp": sc[w.idx][0], "end_lp": sc[w.idx][1], "lo": w.lo, "hi": w.hi, "lag": w.lag}
@@ -231,26 +231,46 @@ def test_fisher_identity():
     _, logZ = sl.forward(lat, lam)
     (-logZ.sum()).backward()
     g_ref = grads(m)
-    # the trainer: weights from the barred lattice (no grad), weighted CE, h = 1, D = 1, no L_state
+    # the trainer: weights from the lattice (no grad), weighted CE, h = 1, D = 1, no L_state
     zero(m)
     sc2 = T.score_pass(m, wins, ctx, 0)
-    lat2 = T.lattice_of(wins, sc2, 128, "cpu")
-    mg = sl.marginals(lat2, lam)
-    mg_plain = sl.marginals(sl.pack([{"tok_lp": sc[w.idx][0].detach(), "end_lp": sc[w.idx][1].detach(), "lo": w.lo,
-                                      "hi": w.hi, "lag": w.lag} for w in wins], W=128), lam)
-    assert torch.allclose(mg["w_tok"], mg_plain["w_tok"], atol=1e-12) and torch.allclose(mg["w_end"], mg_plain["w_end"],
-                                                                                          atol=1e-12)
-    shift = float((mg["logZ"] - mg_plain["logZ"]).abs().min())
-    assert shift > 0.1, shift                                  # the bar shifts log Z (only)
+    mg = sl.marginals(T.lattice_of(wins, sc2, 128, "cpu"), lam)
     weights = {w.idx: (mg["w_tok"][i, : w.R, : w.N].numpy(), mg["w_end"][i, : w.R, : w.N + 1].numpy())
                for i, w in enumerate(wins)}
     rows = T.train_rows(wins, weights, 1.0, 1.0, 0.0)
-    lg = T.grad_pass(m, rows, ctx, 0)
-    g_tr = grads(m)
-    err = cmp_grads(g_tr, g_ref, 2e-4, "Fisher")
-    # the loss value is E_q[log p] (not log Z): check E_q[score] + H(q) = log Z at lam = 0 parts
-    print(f"  (b) Fisher identity: grads max rel err {err:.1e} (lam {lam}); bar leaves q unchanged; "
-          f"log Z shift by the bar >= {shift:.2f}")
+    T.grad_pass(m, rows, ctx, 0)
+    err = cmp_grads(grads(m), g_ref, 2e-4, "Fisher")
+    # --final-bar-wait 1: the lattice gets the decoding distribution of the last read (<wait> barred before the
+    # softmax at every position, engine.read), all other reads and the loss's pair stay plain
+    sc3 = T.score_pass(m, wins, ctx_of(bar=True), 0)
+    for w in wins:
+        tok, endp, tokl, endl = (x.detach() for x in sc3[w.idx])
+        assert torch.equal(tok, sc2[w.idx][0]) and torch.equal(endp, sc2[w.idx][1])
+        assert torch.equal(tokl[: w.R - 1], tok[: w.R - 1]) and torch.equal(endl[: w.R - 1], endp[: w.R - 1])
+        r = w.R - 1
+        rw = T.Row(w, r, w.N, np.arange(w.N + 1))
+        b = T.collate([rw], ctx["audio"], ctx["proc"], ctx["prompter"], False, 0.0, 7, 0, "score")
+        with torch.no_grad():
+            h = m.hidden(b)
+            lg = m.logits_at(h[b.sel_row, b.sel_col]).double()
+            lp = torch.log_softmax(lg, -1)
+            lg[:, T.WAIT_ID] = float("-inf")
+            ls = torch.log_softmax(lg, -1)
+        S_ = torch.as_tensor(w.S)
+        # this row alone vs inside score_pass's micro-batch: float32 batching noise (same for plain and barred), so
+        # compare the bar's shift (barred - plain), which must be -log(1 - p(<wait>)) at every position
+        assert float((tok[r] - lp[torch.arange(w.N), S_]).abs().max()) < 2e-3
+        sh_t = (tokl[r] - tok[r]) - (ls[torch.arange(w.N), S_] - lp[torch.arange(w.N), S_])
+        sh_e = (endl[r] - endp[r]) - (ls[:, T.EOS_ID] - lp[:, T.EOS_ID])
+        assert float(sh_t.abs().max()) < 1e-4 and float(sh_e.abs().max()) < 1e-4, (float(sh_t.abs().max()),
+                                                                                  float(sh_e.abs().max()))
+        d_ = tokl[r] - tok[r]                               # barring <wait> raised every last-read score
+        assert float(d_.min()) > 0 and float(d_.mean()) > 0.1, (float(d_.min()), float(d_.mean()))
+    mg3 = sl.marginals(T.lattice_of(wins, sc3, 128, "cpu"), lam)
+    d_w = float((mg3["w_tok"] - mg["w_tok"]).abs().max())
+    assert d_w > 1e-3, d_w                                    # ... and moved the posterior (it is not a constant)
+    print(f"  (b) Fisher identity (bar off): grads max rel err {err:.1e} (lam {lam}); bar on: last-read lattice "
+          f"scores = barred log-softmax, other reads plain, posterior moves by up to {d_w:.2f}")
 
 
 # ---------------------------------------------------------------- (c)
@@ -349,8 +369,10 @@ def test_weight_sums():
     T.set_reach(wins, 128)
     assert all(w.feasible for w in wins)
     rng = np.random.default_rng(0)
-    sc = {w.idx: (torch.as_tensor(-rng.exponential(1.0, (w.R, w.N))), None,
-                  torch.as_tensor(np.log(rng.uniform(0.01, 1, (w.R, w.N + 1))))) for w in wins}
+    sc = {}
+    for w in wins:   # (tok, end) for the loss, (tok, end) for the lattice
+        t_, e_ = torch.as_tensor(-rng.exponential(1.0, (w.R, w.N))), torch.as_tensor(np.log(rng.uniform(0.01, 1, (w.R, w.N + 1))))
+        sc[w.idx] = (t_, e_, t_, e_)
     worst = 0.0
     for i in range(0, len(wins), 64):
         part = wins[i: i + 64]
@@ -446,10 +468,70 @@ def test_checkpoint_roundtrip():
     print("  checkpoint round trip ok (lora.pt / extra.pt / optim.pt, extra_params, lam)")
 
 
+def test_export_equals_in_memory_apply():
+    """crf/export_merged.py (safetensors) and crf/decode_crf_ckpt.apply_ckpt's fold (in memory) give the same bf16
+    weights, rows and projector, on a fake two-shard base."""
+    import copy
+
+    from safetensors.torch import load_file, save_file
+
+    from experiments.mist_w3po_v1.crf import decode_crf_ckpt as DC
+    from experiments.mist_w3po_v1.crf import export_merged as EM
+
+    d = Path(tempfile.mkdtemp(prefix="test_crf_export_"))   # under $TMPDIR, ~40 MB, left in place (no deletion)
+    tiny = TinyThinker(seed=4).to(torch.bfloat16)
+    names = [n for n, mod in tiny.named_modules() if n.rsplit(".", 1)[-1] in ATTN]
+    state = {f"thinker.{n}.weight": dict(tiny.named_modules())[n].weight.detach().clone() for n in names}
+    state["thinker.model.embed_tokens.weight"] = tiny.embed.weight.detach().clone()
+    state["thinker.lm_head.weight"] = tiny.lm_head.weight.detach().clone()
+    state["thinker.other.weight"] = torch.ones(3, dtype=torch.bfloat16)
+    base = d / "base"
+    base.mkdir()
+    keys = sorted(state)
+    sh = {k: ("model-00001-of-00002.safetensors" if i % 2 else "model-00002-of-00002.safetensors")
+          for i, k in enumerate(keys)}
+    for f in set(sh.values()):
+        save_file({k: state[k] for k in keys if sh[k] == f}, str(base / f))
+    (base / "model.safetensors.index.json").write_text(json.dumps({"weight_map": sh}))
+    (base / "config.json").write_text("{}")
+    m = tiny_model(seed=6)
+    with torch.no_grad():
+        for ad in m.adapters:
+            ad.a.copy_(torch.randn_like(ad.a))
+        m.new_emb.add_(torch.randn_like(m.new_emb))
+        m.new_head.add_(torch.randn_like(m.new_head))
+    torch.save(m.sd_proj.state_dict(), base / "sd_proj.pt")
+    args = SimpleNamespace(objective="sched", base=str(base), lora_rank=4, lora_alpha=8.0)
+    ck = d / "ckpt" / "step_00001"
+    opt = torch.optim.AdamW(m.trainable(), lr=1e-3)
+    T.save_ckpt(ck, m, opt, [], 0.1, 1, args)
+    EM.main(["--ckpt", str(ck), "--base", str(base), "--out", str(d / "merged")])
+    got = {}
+    for f in set(sh.values()):
+        got.update(load_file(str(d / "merged" / f)))
+    ref = copy.deepcopy(tiny)
+    n = DC.fold_into(ref, torch.load(ck / "lora.pt"), 4, 8.0)
+    assert n == len(names)
+    with torch.no_grad():
+        ref.embed.weight[T.NEW0:T.NEW_END] = m.new_emb.to(torch.bfloat16)
+        ref.lm_head.weight[T.NEW0:T.NEW_END] = m.new_head.to(torch.bfloat16)
+    mods = dict(ref.named_modules())
+    for nm in names:
+        assert torch.equal(got[f"thinker.{nm}.weight"], mods[nm].weight), nm
+        assert not torch.equal(got[f"thinker.{nm}.weight"], state[f"thinker.{nm}.weight"]), nm
+    assert torch.equal(got["thinker.model.embed_tokens.weight"], ref.embed.weight)
+    assert torch.equal(got["thinker.lm_head.weight"], ref.lm_head.weight)
+    assert torch.equal(got["thinker.other.weight"], state["thinker.other.weight"])
+    sp = torch.load(d / "merged" / "sd_proj.pt")
+    assert all(torch.equal(sp[k], v.float()) for k, v in m.sd_proj.state_dict().items())
+    print(f"  export_merged = in-memory fold (decode_crf_ckpt) on a fake 2-shard base: {n} adapters, rows, projector")
+
+
 def main():
     t0 = time.time()
     tests = [test_lr_schedule_and_plan, test_post_to_tokens_torch, test_weight_sums, test_checkpoint_roundtrip,
-             test_c0_equals_v8_sft, test_fisher_identity, test_forward_bit_identical_and_hook]
+             test_c0_equals_v8_sft, test_fisher_identity, test_forward_bit_identical_and_hook,
+             test_export_equals_in_memory_apply]
     for t in tests:
         t1 = time.time()
         t()

@@ -20,7 +20,8 @@ last read. Rows are cut after their last needed position and end with e_r as inp
   --objective sched      (scheme 1')
         1. pass 1 (no grad): tok_lp / end_lp of every row of every window of the step (rows cut at
            b_max(r) = first token with lo > r; later states are unreachable); at the last read <wait> is barred
-           before the softmax (engine.py:246; this only shifts log Z by a constant, the posterior is unchanged)
+           before the softmax at every position, as engine.read does when decoding (engine.py:246) and as
+           precheck_sched.py scores, so q below is the exact posterior of v8's own decoding (--final-bar-wait 1)
         2. lam* by bisection (schedule_lattice.solve_lambda) on the step's whole global batch so that the mean over
            its windows of E_q[Lat] = --lat-target (L_ref = 0.826 s, sched_v1/summary.json); q_lam ~ p(S,z|x) e^{-lam Lat}
         3. w_tok[r, j] = P_q(beta_{r-1} <= j < beta_r), w_end[r, b] = P_q(beta_r = b) (schedule_lattice.marginals)
@@ -28,7 +29,10 @@ last read. Rows are cut after their last needed position and end with e_r as inp
            L_state = mean over A of -tok_lp[r, j], A = the (r, j) that some feasible schedule commits (lo <= r <= hi
            and reachable; 5.9 % of the lo/hi pairs are unreachable: their prefix would hold unheard text), pooled
            over the global batch; state_w = 1 (pre-registered)
-        Fisher identity: with h = 1 the first term's gradient is exactly -grad log Z_lam (test (b)).
+        Fisher identity: with h = 1 and --final-bar-wait 0 the first term's gradient is exactly -grad log Z_lam
+        (test (b)). The loss keeps v8's plain cross-entropy at the last read in BOTH objectives (so the two arms
+        differ only in their weights); with the bar (default) the update therefore adds, to grad J of the decode
+        model, v8-SFT's push-down of p(<wait>) at last-read positions, weighted by q.
   Normalisation (both objectives): D = sum over the global batch of (sum_j h_j + R) = the total weight, the same for
   both because every token is committed once and every read ends once (sum_r w_tok[r, j] = 1, sum_b w_end[r, b] = 1;
   test (d)). h_j = v8's hierarchical weights (time x1.5, speaker x2; --hier-weights 0: h = 1). With h != 1 the update
@@ -537,20 +541,22 @@ class CrfThinker(nn.Module):
         ls = torch.log_softmax(lg, -1)
         return ls.gather(1, tt[:, None])[:, 0], ls.gather(1, et[:, None])[:, 0]
 
-    def _lp_chunk_masked(self, x, et):
-        """log p(e) with <wait> barred (engine.py:246); no grad."""
+    def _lp_chunk_masked(self, x, tt, et):
+        """(log p(tok), log p(e)) with <wait> barred before the softmax (engine.py:246); no grad."""
         lg = self.logits_at(x)
         lg[:, WAIT_ID] = float("-inf")
-        return lg.gather(1, et[:, None])[:, 0] - torch.logsumexp(lg, -1)
+        lse = torch.logsumexp(lg, -1)
+        return lg.gather(1, tt[:, None])[:, 0] - lse, lg.gather(1, et[:, None])[:, 0] - lse
 
     def pos_logprobs(self, b: Batch, chunk: int = 1024, masked_final: bool = False):
-        """(tok_lp, end_lp, end_lp_masked or None) at the batch's read-out positions, [P] float32 each. With grad, every
-        chunk of logits is recomputed in backward (torch checkpoint), so only [P, d] hidden states are kept."""
+        """(tok_lp, end_lp, (tok_lp, end_lp) with <wait> barred or None) at the batch's read-out positions, [P] float32
+        each. With grad, every chunk of logits is recomputed in backward (torch checkpoint), so only [P, d] hidden
+        states are kept. The barred pair is computed without grad (pass 1 only)."""
         h = self.hidden(b)
         dev = h.device
         hs = h[b.sel_row.to(dev), b.sel_col.to(dev)]
         tt, et = b.tok_tgt.to(dev), b.end_tgt.to(dev)
-        lt, le, lm = [], [], []
+        lt, le, mt, me = [], [], [], []
         grad = torch.is_grad_enabled() and hs.requires_grad
         for s in range(0, hs.shape[0], chunk):
             x, t_, e_ = hs[s: s + chunk], tt[s: s + chunk], et[s: s + chunk]
@@ -562,9 +568,11 @@ class CrfThinker(nn.Module):
             le.append(b_)
             if masked_final:
                 with torch.no_grad():
-                    lm.append(self._lp_chunk_masked(x.detach(), e_))
+                    a2, b2 = self._lp_chunk_masked(x.detach(), t_, e_)
+                mt.append(a2)
+                me.append(b2)
         cat = lambda v: torch.cat(v) if v else hs.new_zeros(0)   # noqa: E731
-        return cat(lt), cat(le), (cat(lm) if masked_final else None)
+        return cat(lt), cat(le), ((cat(mt), cat(me)) if masked_final else None)
 
 
 def load_thinker(path: str, dev: torch.device):
@@ -588,9 +596,10 @@ def scoring_rows(wins: list[Window]) -> list[Row]:
 
 
 def score_pass(model: CrfThinker, wins: list[Window], ctx: dict, step: int, grad: bool = False) -> dict:
-    """{window idx: (tok_lp [R, N], end_lp [R, N+1] (plain softmax), end_lp for the lattice [R, N+1] (<wait> barred
-    at the last read when ctx["final_bar_wait"]))}, float64 on CPU. grad=True keeps tok_lp / end_lp differentiable
-    (tests). Entries that no feasible schedule reads (beyond bmax(r)) stay 0."""
+    """{window idx: (tok_lp [R, N], end_lp [R, N+1] (plain softmax, as the loss), tok_lp, end_lp for the lattice (the
+    last read with <wait> barred when ctx["final_bar_wait"], i.e. the decoding distribution))}, float64 on CPU.
+    grad=True keeps the plain pair differentiable (tests). Entries beyond bmax(r) (no feasible schedule reads them)
+    stay 0."""
     parts = {w.idx: [] for w in wins}
     for mb in micro_batches(scoring_rows(wins), ctx["tok_budget"], ctx["n_prompt0"]):
         b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], model._post_transform is not None,
@@ -600,12 +609,14 @@ def score_pass(model: CrfThinker, wins: list[Window], ctx: dict, step: int, grad
         k = 0
         for rw in mb:
             n = len(rw.pos)
-            parts[rw.win.idx].append((rw, lt[k: k + n], le[k: k + n], None if lm is None else lm[k: k + n]))
+            parts[rw.win.idx].append((rw, lt[k: k + n], le[k: k + n],
+                                      None if lm is None else (lm[0][k: k + n], lm[1][k: k + n])))
             k += n
     out = {}
     for w in wins:
         tok = torch.zeros((w.R, w.N), dtype=torch.float64)
         endp = torch.zeros((w.R, w.N + 1), dtype=torch.float64)
+        tokl = torch.zeros((w.R, w.N), dtype=torch.float64)
         endl = torch.zeros((w.R, w.N + 1), dtype=torch.float64)
         for rw, a, e, m in parts[w.idx]:
             pos = torch.as_tensor(rw.pos)
@@ -613,14 +624,15 @@ def score_pass(model: CrfThinker, wins: list[Window], ctx: dict, step: int, grad
             ri = torch.full_like(pos, rw.r)
             tok = tok.index_put((ri[ok], pos[ok]), a[ok].double().cpu())     # out of place: differentiable
             endp = endp.index_put((ri, pos), e.double().cpu())
-            lat_e = m if (m is not None and rw.r == w.R - 1) else e
-            endl[rw.r, pos] = lat_e.detach().double().cpu()
-        out[w.idx] = (tok, endp, endl)
+            la, le_ = m if (m is not None and rw.r == w.R - 1) else (a, e)
+            tokl[rw.r, pos[ok]] = la[ok].detach().double().cpu()
+            endl[rw.r, pos] = le_.detach().double().cpu()
+        out[w.idx] = (tok, endp, tokl, endl)
     return out
 
 
 def lattice_of(wins: list[Window], scores: dict, W: int, device) -> sl.Lattice:
-    return sl.pack([{"tok_lp": scores[w.idx][0].detach(), "end_lp": scores[w.idx][2].detach(), "lo": w.lo,
+    return sl.pack([{"tok_lp": scores[w.idx][2].detach(), "end_lp": scores[w.idx][3].detach(), "lo": w.lo,
                      "hi": w.hi, "lag": w.lag} for w in wins], W=W, device=device)
 
 
@@ -773,7 +785,8 @@ def build_args(argv=None):
     ap.add_argument("--lat-target-batch", action="store_true",
                     help="sched: target = the step's own mean heuristic Lat instead of the global L_ref (off)")
     ap.add_argument("--W", type=int, default=128, help="block-length cap of the lattice (tokens)")
-    ap.add_argument("--final-bar-wait", type=int, default=1, help="lattice end score at the last read with <wait> barred")
+    ap.add_argument("--final-bar-wait", type=int, default=1,
+                    help="lattice scores of the last read with <wait> barred (the decoding distribution); 0: plain")
     ap.add_argument("--tok-budget", type=int, default=12000, help="padded tokens per micro-batch")
     ap.add_argument("--lp-chunk", type=int, default=1024, help="positions per logits chunk")
     ap.add_argument("--seed", type=int, default=20261109)
@@ -867,14 +880,13 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                 m.eval()
             scores = score_pass(model, mine, ctx, step)
             t_p1 = time.time() - t1
-            pay = [(w.idx, scores[w.idx][0].float(), scores[w.idx][1].float(), scores[w.idx][2].float())
-                   for w in mine]
+            pay = [(w.idx,) + tuple(x.float() for x in scores[w.idx]) for w in mine]
             gat = [None] * world()
             if is_dist():
                 torch.distributed.all_gather_object(gat, pay)
             else:
                 gat = [pay]
-            allsc = {i: (a.double(), b.double(), c.double()) for part in gat for (i, a, b, c) in part}
+            allsc = {x[0]: tuple(y.double() for y in x[1:]) for part in gat for x in part}
             t2 = time.time()
             res = [None]
             if rank() == 0:
@@ -948,9 +960,16 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                    "t_lambda": round(t_lam, 2), "t_pass2": round(v[9], 2), "t_step": round(time.time() - t0, 2)}
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
-            log0(json.dumps({a: (round(b, 4) if isinstance(b, float) else b) for a, b in rec.items()}))
+            log0(json.dumps({a: (float(f"{b:.5g}") if isinstance(b, float) else b) for a, b in rec.items()}))
         stop = args.stop_after > 0 and k >= start + args.stop_after
         if k % args.save_every == 0 or k == args.steps or stop:
+            if is_dist():   # every rank must hold the same parameters (identical start + all-reduced gradients)
+                cs = torch.stack([p.detach().double().sum() for p in params]).sum().reshape(1)
+                lo_, hi_ = cs.clone(), cs.clone()
+                torch.distributed.all_reduce(lo_, op=torch.distributed.ReduceOp.MIN)
+                torch.distributed.all_reduce(hi_, op=torch.distributed.ReduceOp.MAX)
+                log0(f"param checksum step {k}: min {float(lo_):.17g} max {float(hi_):.17g} "
+                     + ("RANKS_IN_SYNC" if float(lo_) == float(hi_) else "RANK_DIVERGENCE"))
             if rank() == 0:
                 save_ckpt(out / "ckpt" / f"step_{k:05d}", model, opt, extra_params, lam_prev, k, args)
             if is_dist():
