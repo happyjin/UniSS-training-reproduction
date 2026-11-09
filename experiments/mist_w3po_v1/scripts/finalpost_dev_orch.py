@@ -60,11 +60,13 @@ REF2 = REF + "_tts2b"
 SEED2 = 20261109
 GUARD = "--loop-guard-k 6 --loop-guard-maxp 12 --budget-tps 25 --budget-slack 50"
 SHARDS_BIG_FIRST = [6, 5, 4, 1, 3, 2, 0, 7]   # reference windows per shard: 588 579 443 374 352 341 285 88
-NEED = {"dec": 68.0, "talk": 26.0, "asr": 14.0}      # GiB per job (decode ~66, make_eval_jobs: talker 26, ASR 14)
-VISIBLE = {"dec": 45.0, "talk": 10.0, "asr": 2.5}    # GiB of the job in nvidia-smi = "its memory is visible"
+# GiB per job. 2026-11-09 22:11 UTC (headroom alert on card 2, 5 ASR at 16.7 each): measured decode 61-67, talker
+# 19.5-21, ASR 16.7 (declared 14 in make_eval_jobs) -> ASR 17.5, talker 24; visible = most of the real footprint
+NEED = {"dec": 68.0, "talk": 24.0, "asr": 17.5}
+VISIBLE = {"dec": 45.0, "talk": 17.0, "asr": 12.0}   # GiB of the job in nvidia-smi = "its memory is visible"
 CAP_TOTAL = 135.0
 HEADROOM = 8.0
-PLAN_MARGIN = 10.0
+PLAN_MARGIN = 12.0
 OTHER_WINDOW_S = 180
 VISIBLE_WAIT_S = 300
 TALK_PAIR_GAP_S = 60
