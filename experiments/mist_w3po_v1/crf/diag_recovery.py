@@ -289,12 +289,12 @@ def run_score(args) -> None:
     from experiments.mist_w3po_v1.core.engine import Engine
 
     root = Path(args.root)
-    sh = S.parse_shard(args.shard)
+    sh = S.P.parse_shard(args.shard)
     jobs = []
     for split in [s for s in args.splits.split(",") if s]:
         recs = S.sample(split)
         if sh:
-            recs = S.shard_select(recs, *sh)
+            recs = S.P.shard_select(recs, *sh)
         if args.limit:
             recs = [r for r in recs if d3_pairs(r)][: args.limit]
         name = f"{split}_shard_{sh[0]}of{sh[1]}" if sh else (f"{split}_limit{args.limit}" if args.limit else split)

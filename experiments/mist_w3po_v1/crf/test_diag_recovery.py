@@ -15,6 +15,17 @@ from experiments.mist_w3po_v1.crf import precheck_serial as S
 from experiments.mist_w3po_v1.crf.test_precheck_serial import fake_rec
 
 
+def test_module_references_resolve():
+    import re
+    from pathlib import Path
+
+    src = Path(D.__file__).read_text()
+    for name in set(re.findall(r"\bS\.([A-Za-z_]\w*)", src)):
+        assert hasattr(S, name), name
+    for name in set(re.findall(r"\bS\.P\.([A-Za-z_]\w*)", src)):
+        assert hasattr(S.P, name), name
+
+
 def test_openable():
     rec = fake_rec([0, 1, 1, 2])
     assert D.openable(rec, [0, 1, 2, 3]) == [0, 1, 3]
