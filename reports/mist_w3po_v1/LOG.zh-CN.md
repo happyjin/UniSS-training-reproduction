@@ -963,7 +963,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   新日志：`ecf_n`（分支数/窗口）、`ecf_better`（分支更好的比例）、`ecf_dq`（q 分支 − q 父 均值）、`ecf_abs_extra`。
 - **启动时机**：实现 + 单测（K = 0 与 dia 逐位相同；手工组上 <wait> token 的附加量与手算一致）+ 推送后，在 EA-GRPO 第 50 步结论出来之前即可占用空出的 4 张卡
   （训练作业独占，队列按 PID 管理）。若 EA-GRPO 判有效而需开主训练，按"所有探索结束后再主训练"的规则，ECF 小测跑完后再决定。
-- 执行（01:30 UTC 左右）：代码提交 9fa89ef1（`rollout.branch_rollout`、`advantage.ecf_specs / ecf_apply`、`train_w3po --ecf-branches / --lam-ecf`，
+- 执行（01:12 UTC 入队）：代码提交 9fa89ef1（`rollout.branch_rollout`、`advantage.ecf_specs / ecf_apply`、`train_w3po --ecf-branches / --lam-ecf`，
   只在 `--mode dia` 下允许）；单测 `rl/test_ecf.py` 全部通过：所有已有模式（含 eagrpo，±rep-penalty）在 20 个真实组上与改动前逐位相同；
   三个文件对改动前都是纯插入，训练脚本里每个插入的语句都在 `args.ecf_branches > 0`（或此时为空的 ecf 字典）之后；手工组的分支点
   （漏插话、上限、最终读、长单元）与 <wait> 附加量（含截断）与手算一致；branch_rollout（桩引擎、真实窗口）保留前缀、读 r 禁 <wait>、其后照常。
