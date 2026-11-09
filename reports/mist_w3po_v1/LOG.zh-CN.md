@@ -1092,3 +1092,21 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   唯一改动：`086_aa_wait_hica_step20_ckpt.json` 加 `"retries": 3`（否则重启后被记 lost 137，HiCA 第 20 步评测链全被 skip）。
 - 一步重启（用户批准后）：`bash reports/mist_w3po_v1/restart_after_incident_20261109.sh`（bash -n 通过；任一守护进程已在跑则拒绝）。
 - 执行者 #6 停止所有等待循环并交回。
+
+### 2026-11-09 15:40 UTC：CRF 方案的 CPU 阶段（用户指示："GPU 有人在用，先做 CPU 阶段，CPU 尽量多用、并行"）
+- **GPU 现状。** 8 张卡都在跑 ec2-user 的 swift SFT（PID 3639140–3639147，每卡占用 104–126 GB，利用率 39–100%）。**不碰 GPU**。
+- **CPU。** 2×AMD EPYC 7R13，192 线程，无 AMX/bf16 加速。v8（30B-A3B）放在 CPU 上做前向不可行，所以方案一′的 v8 打分预检等 GPU。
+- **方案出处。** `crf_novel_ideas.zh-CN.md` §10–§11。两条线并行，各自由一个执行代理负责：
+  1. **一′ CPU 部分**
+     - 调度格的动态规划，包括前向-后向、Viterbi、FFBS、λ\* 二分、逐 token 权重。
+     - 单元测试：暴力枚举对拍；HMT 论文式 (16)–(18) 退化情形对拍。
+     - 从 v8 的 SFT 行构建每个窗口的目标流 S、读取时间、可行界和启发式调度，并核对"历史等于 S 的前缀"这一精确分解前提。
+     - 预检脚本：只写好并做 DRY_RUN，不运行。
+     - 最多 64 个进程。
+  2. **方案二 CPU 阶段**
+     - TurnCRF（joint-label semi-CRF，含前缀右截尾）的模块和单元测试。
+     - 只用 diarizer 后验 P，在 AMI 训练窗口上训练小参数（单一预登记设置）；同时做线性链 CRF 消融。
+     - 在 dev 上对比原始 P 阈值和固定中值滤波，指标是轮次 IoU-F1、≤1 s 轮次召回，离线和流式前缀两种都看。
+     - 停止条件：流式版两项都不优于两个基线，就判端到端版的前提不成立。
+     - 最多 96 个进程。
+- 规则照旧：只做增量代码、配测试、不覆盖已有输出、不 rm；长作业用 setsid nohup；只用 AMI 训练集和 dev（不碰 RealSI/ACL/AliMeeting）。
