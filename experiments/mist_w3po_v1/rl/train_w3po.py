@@ -39,6 +39,7 @@ from experiments.mist_w3po_v1.rl.advantage import W3_MODES, admit_anchors, categ
 from experiments.mist_w3po_v1.rl.rollout import anchors as run_anchors
 from experiments.mist_w3po_v1.rl.rollout import load_window, rollout
 from experiments.mist_w3po_v1.rl.advantage import ecf_apply, ecf_specs
+from experiments.mist_w3po_v1.rl.advantage import hica_weights
 from experiments.mist_w3po_v1.rl.rollout import branch_rollout
 from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, N_SLOT, SDProjector
 from experiments.uniss_streaming_p2st_traj_v1.training import lora
@@ -170,6 +171,9 @@ def main() -> None:
                     help="--mode dia only (ECF-GRPO, 2026-11-09): per window at most K counterfactual flush branches at "
                          "missed short reference units; 0 (default) = off, dia unchanged")
     ap.add_argument("--lam-ecf", type=float, default=1.0, help="--ecf-branches only: weight of the branch credit")
+    ap.add_argument("--hica-ms", type=int, default=0,
+                    help="--mode dia only (HiCA-GRPO, 2026-11-09): hindsight credit allocation with the frozen reference hearing D ms more source audio as the privileged teacher; 0 (default) = off, dia unchanged")
+    ap.add_argument("--hica-clip", type=float, default=1.0, help="--hica-ms only: clip of sign(A) x delta (log weight)")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -275,6 +279,8 @@ def main() -> None:
         who_kw = {"lam_ev": args.lam_ev, "ev_norm": args.ev_norm, "ev_clip": args.ev_clip, "ev_clip_scaled": args.ev_clip_scaled}
     if args.ecf_branches > 0 and args.mode != "dia":
         raise SystemExit("--ecf-branches needs --mode dia")
+    if args.hica_ms > 0 and (args.mode != "dia" or args.ecf_branches > 0):
+        raise SystemExit("--hica-ms needs --mode dia (and no --ecf-branches)")
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
 
     for step in range(start, args.steps):
@@ -433,7 +439,7 @@ def main() -> None:
                 loss, lg = micro_loss(eng, adapters, items, blocks, [seqs[i] for i in mi], cache, cnt, args, w3)
                 loss.backward()
                 for k in lg:
-                    logs[k] += lg[k]
+                    logs[k] = logs.get(k, 0.0) + lg[k]
             for p in params:   # every rank all-reduces the same tensors, even with no tokens of its own
                 if p.grad is None:
                     p.grad = torch.zeros_like(p)
@@ -472,6 +478,9 @@ def main() -> None:
         ECFK = ("n", "better", "dq", "abs_extra")
         if args.ecf_branches > 0:   # branch diagnostics (default: loc unchanged)
             loc += [float(sum(st["ecf"][k] for st in gstats if "ecf" in st)) for k in ECFK]
+        HK = ("hica_n", "hica_absd", "hica_w", "hica_wclip")
+        if args.hica_ms > 0:   # HiCA diagnostics (default: loc unchanged)
+            loc += [float(logs.get(k, 0.0)) for k in HK]
         if args.mode == "eagrpo":   # event-term diagnostics (other modes: loc unchanged)
             loc += [float(sum(st["ev"][k] for st in gstats if "ev" in st)) for k in EVK]
         g = agg(loc)
@@ -493,6 +502,10 @@ def main() -> None:
                 e = dict(zip(ECFK, g[33:]))
                 rec.update(ecf_n=e["n"] / ng, ecf_better=e["better"] / max(e["n"], 1), ecf_dq=e["dq"] / max(e["n"], 1),
                            ecf_abs_extra=e["abs_extra"] / max(e["n"], 1))
+            if args.hica_ms > 0:
+                e = dict(zip(HK, g[33:]))
+                rec.update(hica_n=e["hica_n"], hica_absd=e["hica_absd"] / max(e["hica_n"], 1),
+                           hica_w=e["hica_w"] / max(e["hica_n"], 1), hica_wclip=e["hica_wclip"] / max(e["hica_n"], 1))
             if args.mode == "eagrpo":
                 e = dict(zip(EVK, g[33:]))
                 rec.update(ev_units_nz_frac=e["units_nz"] / max(e["units"], 1), ev_abs_when=e["abs_when"] / max(e["n_when"], 1),
@@ -622,6 +635,10 @@ def micro_loss(eng, adapters, items, blocks, seqrows, cache, cnt, args, w3):
     aw, ah, at = T(aw), T(ah), T(at)
     old_lp, old_lw, old_lh = T(old_lp), T(old_lw), T(old_lh)
     spk_k = T(spk_k, torch.long)
+    hica_logs = {}
+    if getattr(args, "hica_ms", 0) > 0:   # HiCA-GRPO (default 0: this block never runs, dia unchanged)
+        at, hica_logs = hica_reweight(eng, adapters, items, blocks, seqrows, cache, args, at, tg_t, ref_lp, ref_spk,
+                                      spk_k, is_w, is_h, is_anchor)
 
     def ppo(ratio, adv, mask_):
         if not bool(mask_.any()):
@@ -692,7 +709,71 @@ def micro_loss(eng, adapters, items, blocks, seqrows, cache, cnt, args, w3):
     logs["ntok"] = float(pol.sum())
     logs["ratio_dev"] = float((lp - old_lp)[pol].abs().sum())
     logs["loss"] = float(loss)
+    logs.update(hica_logs)
     return loss, logs
+
+
+def hica_items(items, seqrows, d_ms):
+    """Lookahead copies of the read items: audio up to min(t + d_ms, window end), same committed prefix and ctx; the
+    akey is the rollout's key of that read time (read times are 1 s multiples capped at the window end), so the
+    encoding comes from the rollout cache when it is there."""
+    out = []
+    for it, (tr, r, toks, is_a, w) in zip(items, seqrows):
+        t2 = min(it.t_ms + d_ms, int(w["dur_ms"]))
+        out.append(ReadItem(wav=it.wav, post=it.post, t_ms=t2, final=it.final, committed=it.committed, ctx=it.ctx,
+                            akey=f"{w['id']}|{t2}"))
+    return out
+
+
+@torch.no_grad()
+def hica_reweight(eng, adapters, items, blocks, seqrows, cache, args, at, tg_t, ref_lp, ref_spk, spk_k, is_w, is_h,
+                  is_anchor):
+    """HiCA-GRPO: teacher = the frozen reference hearing args.hica_ms more audio, teacher-forced on the same blocks.
+    delta = teacher - reference log-probability of the sampled token (who tokens: of the 8-way speaker projection,
+    so a speaker token at a when position compares only which speaker); pure when tokens and anchors keep weight 1."""
+    th, emb_layer = eng.thinker, eng.emb_layer
+    items2 = hica_items(items, seqrows, args.hica_ms)
+    for j, (it, row) in enumerate(zip(items2, seqrows)):
+        if it.wav is None and (cache is None or it.akey not in cache):
+            wav, post = load_window(row[4])
+            items2[j] = ReadItem(wav=wav, post=post, t_ms=it.t_ms, final=it.final, committed=it.committed, ctx=it.ctx,
+                                 akey=it.akey)
+    ae = eng.audio_embeds(items2, emb_layer.weight.dtype, cache=cache)
+    seqs, tgt_pos = [], []
+    for it, (n, _), blk in zip(items2, ae, blocks):
+        p = eng.pr.ids(n, it.ctx, it.committed)
+        seqs.append(p + blk[:-1])
+        tgt_pos.append((len(p) - 1, blk))
+    B, L = len(seqs), max(len(s) for s in seqs)
+    ids = torch.full((B, L), eng.tok.pad_token_id or 0, dtype=torch.long)
+    mask = torch.zeros((B, L), dtype=torch.long)
+    for i, s in enumerate(seqs):
+        ids[i, : len(s)] = torch.as_tensor(s)
+        mask[i, : len(s)] = 1
+    ids, mask = ids.to(eng.dev), mask.to(eng.dev)
+    rows, cols = [], []
+    for i, (p0, blk) in enumerate(tgt_pos):
+        for k in range(len(blk)):
+            rows.append(i)
+            cols.append(p0 + k)
+    rows_t, cols_t = torch.as_tensor(rows, device=eng.dev), torch.as_tensor(cols, device=eng.dev)
+    with lora.adapters_disabled(adapters):
+        emb = emb_layer(ids)
+        emb = emb.masked_scatter((ids == AUDIO_PAD).unsqueeze(-1), torch.cat([e for _, e in ae], 0))
+        h = th.model(inputs_embeds=emb, attention_mask=mask, use_cache=False, return_dict=True).last_hidden_state
+        lg = th.lm_head(h[rows_t, cols_t]).float()
+    del h, emb
+    t_lp = torch.log_softmax(lg, -1).gather(1, tg_t[:, None])[:, 0]
+    t_spk = torch.log_softmax(lg[:, SPK0:NEW_END], -1)
+    del lg
+    d_what = t_lp - ref_lp
+    d_who = t_spk.gather(1, spk_k[:, None])[:, 0] - ref_spk.gather(1, spk_k[:, None])[:, 0]
+    delta = torch.where(is_h, d_who, d_what)
+    apply = ~is_anchor & ~(is_w & ~is_h)
+    w, clipped = hica_weights(at, delta, apply, args.hica_clip)
+    logs = {"hica_n": float(apply.sum()), "hica_absd": float(delta.abs()[apply].sum()),
+            "hica_w": float(w[apply].sum()), "hica_wclip": float(clipped.sum())}
+    return at * w, logs
 
 
 if __name__ == "__main__":

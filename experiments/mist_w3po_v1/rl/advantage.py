@@ -437,3 +437,17 @@ def ecf_apply(tok: list, q, specs: list, q_branch: list, lam: float = 1.0) -> di
         st["dq"] += float(qb - q[m])
         st["abs_extra"] += abs(ex)
     return st
+
+
+# --- HiCA-GRPO (2026-11-09, --hica-ms D with --mode dia; D = 0: never called, dia unchanged) -------------------
+def hica_weights(adv, delta, apply, clip: float = 1.0):
+    """Hindsight credit allocation (RLSD-style, arXiv 2604.03128, with a hindsight-privileged self-teacher).
+    adv: per-token advantage (torch tensor), delta: log pi_ref(y | audio <= t + D) - log pi_ref(y | audio <= t) per
+    token, apply: bool mask of the re-weighted tokens (content and who; never pure when / anchors).
+    Returns (weights, clipped mask): w = exp(clip(sign(adv) * delta, +-clip)) where apply, else 1. The sign of the
+    update stays the sign of adv; only its per-token magnitude moves."""
+    x = adv.sign() * delta
+    clipped = apply & (x.abs() > clip)
+    w = x.clamp(-clip, clip).exp()
+    w = w.where(apply, w.new_ones(()))
+    return w, clipped
