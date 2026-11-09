@@ -389,3 +389,51 @@ def group_advantages(mode: str, trajs: list, credits: list, units: list, dur: fl
         raise ValueError(mode)
     stats.update(acr_when=None, acr_who=None, acr_what=bool(np.all(np.abs(np.array([v for x in per_read for v in x])) < 1e-9)))
     return {"tok": fill(lambda m, r, p, w, h, sj: (0.0, 0.0, float(per_read[m][r]))), "stats": stats}
+
+
+# --- ECF-GRPO (2026-11-09, --ecf-branches K with --mode dia; K = 0: never called, dia unchanged) -----------------
+ECF_SHORT_S = 1.0
+
+
+def ecf_specs(trajs: list, credits: list, units: list, rng, cap: int, short_s: float = ECF_SHORT_S) -> list:
+    """Counterfactual branch points of one group: for every member, the short reference units (<= short_s) it never
+    covers (STAMP unit_of) whose first read at or after the unit's end is non-final and ends with <wait> (the member
+    heard the whole unit and kept waiting). One (read, unit) per member, at most cap members; rng: random.Random.
+    Returns [(member, read, unit)]."""
+    from experiments.mist_w3po_v1.core.engine import WAIT_ID
+    per = []
+    for m, (tr, c) in enumerate(zip(trajs, credits)):
+        cand = []
+        for i, u in enumerate(units):
+            if u["b"] - u["a"] > short_s or any(x == i for x in c.unit_of):
+                continue
+            r = next((r for r, rd in enumerate(tr.reads) if rd.t_ms / 1000 >= u["b"]), None)
+            if r is not None and not tr.reads[r].final and tr.reads[r].ids and tr.reads[r].ids[-1] == WAIT_ID:
+                cand.append((r, i))
+        if cand:
+            r, i = cand[rng.randrange(len(cand))]
+            per.append((m, r, i))
+    if len(per) > cap:
+        per = [per[k] for k in sorted(rng.sample(range(len(per)), cap))]
+    return per
+
+
+def ecf_apply(tok: list, q, specs: list, q_branch: list, lam: float = 1.0) -> dict:
+    """Adds lam * clip((q_parent - q_branch) / sigma_q, +-sqrt(G - 1)) to the advantage (the "what" slot, as dia) of
+    the parent's terminal <wait> token at the branch read; sigma_q = max(std_g q, FLOOR) (the backbone's z scale).
+    tok: group_advantages(...)["tok"] (rows are replaced, not mutated). Returns stats."""
+    q = np.asarray(q, dtype=float)
+    sig = max(float(q.std()), FLOOR)
+    lim = float(np.sqrt(max(len(q) - 1, 1)))
+    st = {"n": 0, "better": 0, "dq": 0.0, "abs_extra": 0.0}
+    for (m, r, _), qb in zip(specs, q_branch):
+        ex = lam * float(np.clip((q[m] - qb) / sig, -lim, lim))
+        row = list(tok[m][r])
+        wh, who, aw, ah, at = row[-1]
+        row[-1] = (wh, who, aw, ah, at + ex)
+        tok[m][r] = row
+        st["n"] += 1
+        st["better"] += int(qb > q[m])
+        st["dq"] += float(qb - q[m])
+        st["abs_extra"] += abs(ex)
+    return st

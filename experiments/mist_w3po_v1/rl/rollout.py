@@ -176,3 +176,40 @@ def anchors(eng: Engine, windows: list[dict], ctxs: dict, lags_ms: list[int], ma
         for tr in out[w["id"]]:
             parse(tr, eng.tok, w["dur_ms"] / 1000)
     return out
+
+
+def branch_rollout(eng: Engine, windows: dict, specs: list, *, temp: float, temp_when: float,
+                   gen: torch.Generator, max_new: int = 300, cache: dict | None = None) -> list:
+    """--ecf-branches (2026-11-09): counterfactual "flush now" branches. specs: [(wid, parent Traj, r)]; each branch
+    copies the parent's reads before r (and so its committed ids and ctx), takes read r with <wait> barred (the
+    engine's bar_wait: say everything heard so far) and then samples the remaining reads as usual. Returns the branch
+    Trajs (kind "branch"), parsed, in the order of specs. Not called unless --ecf-branches > 0."""
+    data = {wid: load_window(windows[wid]) for wid in {s[0] for s in specs}}
+    out, states = [], []
+    for wid, par, r in specs:
+        tr = Traj(wid, "branch", par.ctx)
+        tr.reads = list(par.reads[:r])
+        committed = list(par.reads[r].before)
+        out.append(tr)
+        states.append({"w": windows[wid], "tr": tr, "committed": committed,
+                       "times": [rd.t_ms for rd in par.reads], "r": r, "r0": r})
+    while True:
+        live = [s for s in states if s["r"] < len(s["times"])]
+        if not live:
+            break
+        items = []
+        for s in live:
+            t = s["times"][s["r"]]
+            wav, post = data[s["w"]["id"]]
+            items.append(ReadItem(wav=wav, post=post, t_ms=t, final=s["r"] == len(s["times"]) - 1,
+                                  committed=s["committed"], ctx=s["tr"].ctx, akey=f"{s['w']['id']}|{t}",
+                                  bar_wait=s["r"] == s["r0"]))
+        outs = eng.read(items, max_new=max_new, temp=temp, temp_when=temp_when, gen=gen, record=True, cache=cache)
+        for s, it, o in zip(live, items, outs):
+            s["tr"].reads.append(Read(it.t_ms, it.final, list(s["committed"]), o.ids, o.when, o.who, o.logp,
+                                      o.logp_wait, o.logp_who, it.akey))
+            s["committed"] = s["committed"] + [i for i in o.ids if i not in (EOS_ID, WAIT_ID)]
+            s["r"] += 1
+    for tr, s in zip(out, states):
+        parse(tr, eng.tok, s["w"]["dur_ms"] / 1000)
+    return out

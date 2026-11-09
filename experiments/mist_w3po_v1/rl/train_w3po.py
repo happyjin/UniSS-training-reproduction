@@ -38,6 +38,8 @@ from experiments.mist_w3po_v1.rl import stamp as S
 from experiments.mist_w3po_v1.rl.advantage import W3_MODES, admit_anchors, categories, group_advantages, rep_score
 from experiments.mist_w3po_v1.rl.rollout import anchors as run_anchors
 from experiments.mist_w3po_v1.rl.rollout import load_window, rollout
+from experiments.mist_w3po_v1.rl.advantage import ecf_apply, ecf_specs
+from experiments.mist_w3po_v1.rl.rollout import branch_rollout
 from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import ATTN, N_SLOT, SDProjector
 from experiments.uniss_streaming_p2st_traj_v1.training import lora
 
@@ -164,6 +166,10 @@ def main() -> None:
                     help="--mode eagrpo only (center): clip of the event term E(t) per token")
     ap.add_argument("--ev-clip-scaled", action="store_true",
                     help="--mode eagrpo only: also clip lam_ev x E(t) to +-sqrt(G - 1) (the backbone's range); default off")
+    ap.add_argument("--ecf-branches", type=int, default=0,
+                    help="--mode dia only (ECF-GRPO, 2026-11-09): per window at most K counterfactual flush branches at "
+                         "missed short reference units; 0 (default) = off, dia unchanged")
+    ap.add_argument("--lam-ecf", type=float, default=1.0, help="--ecf-branches only: weight of the branch credit")
     ap.add_argument("--w-what", type=float, default=1.0)
     ap.add_argument("--minibatches", type=int, default=2)
     ap.add_argument("--tok-budget", type=int, default=12000, help="prompt+block tokens per micro-batch")
@@ -267,6 +273,8 @@ def main() -> None:
     who_kw = {"who_sc": args.who_sc, "who_rbc": args.who_rbc} if args.mode == "w3dia2" else {}   # --mode w3dia2 only
     if args.mode == "eagrpo":
         who_kw = {"lam_ev": args.lam_ev, "ev_norm": args.ev_norm, "ev_clip": args.ev_clip, "ev_clip_scaled": args.ev_clip_scaled}
+    if args.ecf_branches > 0 and args.mode != "dia":
+        raise SystemExit("--ecf-branches needs --mode dia")
     n_local = math.ceil(args.windows_per_step * args.oversample / world)
 
     for step in range(start, args.steps):
@@ -279,6 +287,23 @@ def main() -> None:
         eng.thinker.eval()
         trajs = rollout(eng, mine, ctxs, args.G, temp=args.temp, temp_when=args.temp_when, gen=gen,
                         max_new=args.max_new, cache=cache)
+        ecf = {}   # --ecf-branches: wid -> (specs, branch trajs); empty (default): nothing below changes
+        if args.ecf_branches > 0:
+            sp_all = []
+            for w in mine:
+                units_w = S.units_of(w["utts"])
+                _, post_w = load_window(w)
+                cr_w = [S.credit(tr.segs, units_w, w["dur_ms"] / 1000, tr.wait_reads, [rd.t_ms / 1000 for rd in tr.reads],
+                                 post=post_w) for tr in trajs[w["id"]]]
+                sp = ecf_specs(trajs[w["id"]], cr_w, units_w, random.Random(f"ecf|{args.seed}|{step}|{w['id']}"),
+                               args.ecf_branches)
+                ecf[w["id"]] = (sp, [])
+                sp_all += [(w["id"], trajs[w["id"]][m], r) for m, r, _ in sp]
+            if sp_all:
+                br = branch_rollout(eng, {w["id"]: w for w in mine}, sp_all, temp=args.temp, temp_when=args.temp_when,
+                                    gen=gen, max_new=args.max_new, cache=cache)
+                for (wid, _, _), b in zip(sp_all, br):
+                    ecf[wid][1].append(b)
         t_roll = time.time() - t0
         # anchors (adapters off), cached
         anc = {}
@@ -339,6 +364,12 @@ def main() -> None:
                 adv = group_advantages(args.mode, in_group, creds, units, dur, aq, **who_kw)
             st = adv["stats"]
             st["dropped"] = len(texts) == 1
+            if ecf.get(w["id"], ([], []))[0] and not st["dropped"]:
+                sp, br = ecf[w["id"]]
+                pen = (lambda segs: args.rep_penalty * rep_score(segs)) if args.rep_penalty > 0 else (lambda segs: 0.0)
+                q_m = [S.seq_cpbleu(tr.segs, units) - pen(tr.segs) for tr in members]
+                q_b = [S.seq_cpbleu(b.segs, units) - pen(b.segs) for b in br]
+                st["ecf"] = ecf_apply(adv["tok"], q_m, sp, q_b, args.lam_ecf)
             st["n_units"] = len(units)
             st["anchors"] = aq
             st["n_admit"] = n_admit
@@ -438,6 +469,9 @@ def main() -> None:
                float(sum(sum(st["rep"]) for st in gstats)), float(sum(sum(r > 0.5 for r in st["rep"]) for st in gstats))]
         EVK = ("units", "units_nz", "abs_when", "n_when", "abs_who", "n_who", "abs_what", "n_what", "short", "short_cov",
                "abs_E", "abs_z", "n_tok", "n_scaled_clip")
+        ECFK = ("n", "better", "dq", "abs_extra")
+        if args.ecf_branches > 0:   # branch diagnostics (default: loc unchanged)
+            loc += [float(sum(st["ecf"][k] for st in gstats if "ecf" in st)) for k in ECFK]
         if args.mode == "eagrpo":   # event-term diagnostics (other modes: loc unchanged)
             loc += [float(sum(st["ev"][k] for st in gstats if "ev" in st)) for k in EVK]
         g = agg(loc)
@@ -455,6 +489,10 @@ def main() -> None:
                    "adv_abs_when": g[25] / max(g[26], 1), "adv_abs_who": g[27] / max(g[28], 1),
                    "adv_abs_what": g[29] / max(g[30], 1),
                    "rep_mean": g[31] / max(g[3], 1), "loop_frac": g[32] / max(g[3], 1)}
+            if args.ecf_branches > 0:
+                e = dict(zip(ECFK, g[33:]))
+                rec.update(ecf_n=e["n"] / ng, ecf_better=e["better"] / max(e["n"], 1), ecf_dq=e["dq"] / max(e["n"], 1),
+                           ecf_abs_extra=e["abs_extra"] / max(e["n"], 1))
             if args.mode == "eagrpo":
                 e = dict(zip(EVK, g[33:]))
                 rec.update(ev_units_nz_frac=e["units_nz"] / max(e["units"], 1), ev_abs_when=e["abs_when"] / max(e["n_when"], 1),
