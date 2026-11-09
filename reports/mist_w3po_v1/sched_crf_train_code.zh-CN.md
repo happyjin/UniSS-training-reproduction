@@ -253,3 +253,78 @@ NAME=<RUN_ID>_s1000 THINKER=eval_outputs/mist_w3po_v1/crf/models/<RUN_ID>_s1000/
    - 4 卡 3000 步：C0 约 3.5–5 h，一′ 约 5–7.5 h；两个同时跑需要 8 张卡。
 8. **最后一次读：格屏蔽，损失不屏蔽（两臂一致）。** 这是为了让 C0 严格等于 v8 SFT。如果希望一′ 训练的就是解码模型的精确似然，需要给损失也加屏蔽，而且两臂都得加。目前没有实现这个开关。
 9. 方案二的 `extra_params` 不会被解码包装和导出应用，推理开关由方案二负责。加载时出现的 "Some parameters are on the meta device" 来自 talker 被放到 CPU，Thinker 完整在 GPU 上，不影响结果。
+
+## 8. C0-fp：最后一次读看到完整后验（2026-11-09 补充）
+
+推理测试（`evaluation/online_decode_finalpost.py --final-read-post close_detect`）显示：最后一次读改为看到因果可得的 P（截到 min(t, 关闭检测 − 1.04 s)，dev 上 93.6% 的窗口即整个窗口）后，短插话的召回明显提高。C0-fp 在训练中做同样的事。
+
+### 8.1 选项
+
+- `train_crf_sft.py --final-read-full-post 1`（默认 0）。
+- 开启时，每个窗口的**最后一次读**（r = R − 1，t = t_R = 窗口时长）的后验从 t // 80 起置零，而不是从 max(0, t − 1040) // 80 起。窗口内所有完整的 80 ms 帧都可见，最后那个不完整的帧仍为 0。
+- 这就是推理选项的切点 max(t − 1040, min(t, close_detect − 1040)) 在 close_detect ≥ t + 1040 时的值。训练窗口没有关闭检测时间，所以最后一次读用整个窗口。
+- 不变的部分：非最后读、音频、扰动（同一次随机抽取，在置零之前施加）、token 行。两遍（score / train）和钩子路径都用同一个切点；钩子路径在最后一次读时 meta 的 T = t // 80。
+- 改动：`row_inputs` / `collate` 各加一个默认关闭的关键字参数，`score_pass` / `grad_pass` 从 ctx 读取开关；只有开启时 ctx 里才有 `final_full_post` 这个键。
+
+### 8.2 测试
+
+`crf/test_final_read_full_post.py`（CPU，真实的 sched_v1 AMI 训练窗口，扰动 0.2），4 项全部通过：
+
+| 测试 | 结果 |
+|---|---|
+| 关闭 | 72 行（score / train × 钩子关 / 开）的 Batch 全部字段（含 metas）与改动前的训练器逐位相同（从 git 读取 `8d289426` 版本）。默认值为 0 |
+| 行级（开启） | 非最后读：wav、P、T 都不变。最后一次读只有 [max(0, t − 1040) // 80, t // 80) 这些帧改变，改变后是真实（扰动后）后验；t // 80 及以后仍为 0。6 个最后读共扩展 77 帧，每个窗口的扩展区都非零 |
+| 批级（开启） | 除后验外所有张量相同。sd_post 只有最后读行不同，且等于完整窗口 P 的 post_to_tokens。钩子路径的 P_prefix 和 T 同理。嵌入（小模型）只在最后读行的音频位置不同 |
+| 传参 | ctx 的开关（缺省 / False / True）能传到 score_pass 和 grad_pass 里的 collate |
+
+原有的 8 项测试（`test_train_crf_sft`）也全部通过。
+
+### 8.3 GPU 冒烟（卡 7，单进程，输出在 `/opt/dlami/nvme/jasonleeeli/work/mist_w3po_v1/crf_smoke_fp/c0fp_3step_20261109T214743Z/`）
+
+- 运行方式：`--objective heuristic --final-read-full-post 1 --steps 3000 --stop-after 3 --mem-cap-gib 74`，即正式调度的前 3 步。
+- 在 gpu_launch.lock 内启动：先确认卡 7 已用 + 70 GiB ≤ 135 GiB，等它的显存可见（59 GiB，24 s）后再释放锁。
+- 看门狗规则：剩余显存低于 6 GiB 就结束自己的进程树，全程没有触发。卡 7 峰值合计 129 GiB。
+- 结束后自己的 PID 已全部退出，卡上没有残留。
+
+| 步 | C0-fp 损失 | 同批 C0 冒烟（§5 (ii)） | gnorm | 行 |
+|---|---|---|---|---|
+| 1 | 1.096 | 1.101 | 3.00 | 69 |
+| 2 | 1.018 | 1.021 | 4.07 | 63 |
+| 3 | 0.924 | 0.868 | 3.44 | 64 |
+
+- 损失都是有限值。日志里有选项生效的那一行，并以 `CRF_SFT_TRAIN_DONE` 结束。`ckpt/step_00003` 已写出（lora.pt、optim.pt、extra.pt、DONE）。
+- 每卡最大分配 66.92 GiB，每步 12–15 s，与 C0 相同。
+- 第 3 步比 C0 高 0.056，超出 bf16 噪声（约 0.005）。v8 训练时从没见过最后一次读的完整 P，所以开头几步对这种输入不一定更熟。只有 3 步，不能下结论。
+
+### 8.4 启动脚本（都只做了 `bash -n`，没有运行）
+
+- `scripts/run_crf_c0_fp.sh`：与 `run_crf_c0.sh` 相同，另加 `--final-read-full-post 1`。
+  - RUN_ID 默认 `crf_c0fp_<UTC>`，输出 `eval_outputs/mist_w3po_v1/crf/train/<RUN_ID>`。
+  - 默认端口 29951（C0 用 29941），两者可以同时运行。
+- `scripts/start_c0_pair_at.sh`（环境变量 AT、FP=1|0）：
+  1. 睡到 AT。
+  2. 对每组卡（C0 用 0,1,2,3；FP=1 时 C0-fp 用 4,5,6,7）分别在 gpu_launch.lock 内：
+     - 检查每张卡已用 + 70 GiB ≤ 135 GiB；
+     - 卡上有非 root 或身份不明的进程（同事）时，加 `EXTRA="--mem-cap-gib 88"`；
+     - 启动；
+     - 等该运行的进程树在每张卡上都占到 ≥ 50 GiB（最多 900 s），再释放锁。
+     - 注意 torchrun 的 worker 在自己的 session 里，所以按父子关系追踪进程，不按 session。
+  3. 没有空间时每 60 s 重试，AT 之后 30 分钟仍没有空间就放弃并记录。两组相互独立。
+  4. 记录写在新目录 `logs/mist_w3po_v1/c0_pair_at_<UTC>/`（`scheduler.log`、`<name>.run_id`、`<name>.pid`、`<name>.pids`），已存在则拒绝运行。
+- 布防命令：
+
+```bash
+cd /opt/dlami/nvme/jasonleeeli/projects/UniSS && AT=2026-11-10T02:25:00Z FP=1 setsid nohup bash \
+  experiments/mist_w3po_v1/scripts/start_c0_pair_at.sh > logs/mist_w3po_v1/start_c0_pair_at_$(date -u +%Y%m%dT%H%M%SZ).out 2>&1 < /dev/null &
+```
+
+- 02:30 起的 workload 监督进程（`--wait-idle`）只接管完全没有进程的卡，所以训练运行期间它们会等待。这是预期行为。
+
+### 8.5 02:25 启动可能失败的原因
+
+1. **空间不够。** 8 张卡在 02:25 都要 ≤ 65 GiB。21:58 时 dev 评测还有 51 个作业在等、28 个在跑，各卡 105–130 GiB；之后还有 v2 预检。如果到 02:55 仍没有空间，该组就放弃（`GAVE_UP`）。
+2. **workload 抢卡。** 重试拖过 02:30 时，任何一张卡一旦完全空闲，workload 就会接管它并占到只剩 8 GiB，该组就再也启动不了。
+3. **同事占用变大。** 同事若涨到每卡 > 65 GiB，检查不会通过。`--mem-cap-gib 88` 只限制我们自己的分配器。
+4. **启动后很快退出。** 例如端口 29941 / 29951 被占用。这种情况记为 `EXITED_EARLY`，不重试。
+5. **两组可能只起一组。** 两组独立启动，可能出现一组已起、另一组放弃的情况。
+6. **锁占用时间较长。** 8 个进程同时从磁盘加载模型时，等待显存可见期间最多占锁 900 s。
