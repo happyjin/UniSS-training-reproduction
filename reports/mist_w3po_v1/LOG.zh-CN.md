@@ -963,3 +963,11 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   新日志：`ecf_n`（分支数/窗口）、`ecf_better`（分支更好的比例）、`ecf_dq`（q 分支 − q 父 均值）、`ecf_abs_extra`。
 - **启动时机**：实现 + 单测（K = 0 与 dia 逐位相同；手工组上 <wait> token 的附加量与手算一致）+ 推送后，在 EA-GRPO 第 50 步结论出来之前即可占用空出的 4 张卡
   （训练作业独占，队列按 PID 管理）。若 EA-GRPO 判有效而需开主训练，按"所有探索结束后再主训练"的规则，ECF 小测跑完后再决定。
+- 执行（01:30 UTC 左右）：代码提交 9fa89ef1（`rollout.branch_rollout`、`advantage.ecf_specs / ecf_apply`、`train_w3po --ecf-branches / --lam-ecf`，
+  只在 `--mode dia` 下允许）；单测 `rl/test_ecf.py` 全部通过：所有已有模式（含 eagrpo，±rep-penalty）在 20 个真实组上与改动前逐位相同；
+  三个文件对改动前都是纯插入，训练脚本里每个插入的语句都在 `args.ecf_branches > 0`（或此时为空的 ecf 字典）之后；手工组的分支点
+  （漏插话、上限、最终读、长单元）与 <wait> 附加量（含截断）与手算一致；branch_rollout（桩引擎、真实窗口）保留前缀、读 r 禁 <wait>、其后照常。
+- 作业：`075z_rl_ecf.json`（id `rl_pilot_ecf_v8_b01_w128`，目录 `rl/pilot_ecf_v8_b01_w128`，`only` [1,3,4,6]，端口 30095，
+  dia 的命令 + `--ecf-branches 4 --lam-ecf 1.0 --kl-cap 10`；run_rl.sh DRY_RUN 核对过）。文件名排在 076 之前，队列会为它腾空卡 1/3/4/6
+  （其后的评测作业改用 0/2/5/7）。评测 082（第 20 步经 CPU 等待作业 `wait_ecf_step20_ckpt`，命令不用 `exit`；第 50 步依赖训练）、
+  闸门 / 信号 083（同 077/078 格式）。
