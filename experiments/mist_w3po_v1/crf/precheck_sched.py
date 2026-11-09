@@ -27,6 +27,16 @@ windows, compared with the heuristic (v8 label) schedule. GPU for the scoring pa
     python -m experiments.mist_w3po_v1.crf.precheck_sched --out eval_outputs/mist_w3po_v1/crf/precheck_v8_500
     # analysis again from saved log-probs (CPU), into a new dir
     python -m experiments.mist_w3po_v1.crf.precheck_sched --analysis-only <scored dir> --out <new dir>
+
+Sharding (additive, default off: without --shard / --score-only everything is as before). --shard K/N scores the
+windows of the SAME sample (same --n, --seed) with index % N == K; --score-only stops after the scoring pass (no
+per-shard analysis). --analysis-only also takes several comma-separated scored dirs: their windows are merged and,
+when they are the shards K = 0..N-1 of one sample, put back into the unsharded sample order (so the merged analysis
+sees exactly the windows, in the order, of an unsharded run).
+
+    python -m experiments.mist_w3po_v1.crf.precheck_sched --shard 3/8 --score-only --out <root>/shard_3of8
+    python -m experiments.mist_w3po_v1.crf.precheck_sched --analysis-only <root>/shard_0of8,...,<root>/shard_7of8 \
+        --out <root>/merged
 """
 from __future__ import annotations
 
@@ -50,6 +60,59 @@ def load_records(sched: str, n: int, seed: int) -> list[dict]:
     recs = [r for r in recs if r["n_tok"] > 0]
     recs.sort(key=lambda r: r["id"])
     return random.Random(seed).sample(recs, min(n, len(recs)))
+
+
+# ------------------------------------------------------------------------------------------------ sharding (additive)
+def parse_shard(s: str) -> tuple[int, int] | None:
+    """"K/N" -> (K, N) with 0 <= K < N; "" -> None (no sharding)."""
+    if not s:
+        return None
+    try:
+        k, n = (int(x) for x in s.split("/"))
+    except ValueError:
+        raise SystemExit(f"--shard wants K/N, got {s!r}")
+    if not (n >= 1 and 0 <= k < n):
+        raise SystemExit(f"--shard wants 0 <= K < N, got {s!r}")
+    return k, n
+
+
+def shard_select(recs: list, k: int, n: int) -> list:
+    """The windows of shard K/N of a sample: sample index % N == K (sample order kept)."""
+    return [r for i, r in enumerate(recs) if i % n == k]
+
+
+def load_scored(dirs: list[str]) -> tuple[str, list[str], dict]:
+    """Scored dirs -> (sched, window ids, {id: its logprobs dir}).
+    One dir: its windows.json order, exactly as before. Several: they must share sched and be disjoint; when they are
+    the shards K = 0..N-1 of one sample (same N, n, seed) the ids are put back into the unsharded sample order and
+    checked to be exactly that sample; otherwise they are concatenated in the given order (printed as PARTIAL)."""
+    metas = [(Path(d), json.loads((Path(d) / "windows.json").read_text())) for d in dirs]
+    if len(metas) == 1:
+        d, m = metas[0]
+        return m["sched"], list(m["ids"]), {i: d / "logprobs" for i in m["ids"]}
+    scheds = {m["sched"] for _, m in metas}
+    if len(scheds) != 1:
+        raise SystemExit(f"scored dirs from different sched sources: {sorted(scheds)}")
+    sched = scheds.pop()
+    lp_of, ids = {}, []
+    for d, m in metas:
+        for i in m["ids"]:
+            if i in lp_of:
+                raise SystemExit(f"window {i} is in more than one scored dir ({lp_of[i].parent}, {d})")
+            lp_of[i] = d / "logprobs"
+            ids.append(i)
+    sh = [parse_shard(m["args"].get("shard", "")) for _, m in metas]
+    keys = {(m["args"]["n"], m["args"]["seed"]) for _, m in metas}
+    if all(s is not None for s in sh) and len({s[1] for s in sh}) == 1 and len(keys) == 1 \
+            and sorted(s[0] for s in sh) == list(range(sh[0][1])):
+        n, seed = keys.pop()
+        full = [r["id"] for r in load_records(sched, n, seed)]
+        if set(full) != set(ids) or len(full) != len(ids):
+            raise SystemExit("the shards do not add up to the unsharded sample")
+        return sched, full, lp_of
+    print(f"PARTIAL merge: {len(dirs)} dirs, {len(ids)} windows, not the complete shards of one sample; "
+          f"concatenated order", flush=True)
+    return sched, ids, lp_of
 
 
 def lag_matrix(rec: dict) -> np.ndarray:
@@ -277,17 +340,23 @@ def main() -> None:
     ap.add_argument("--samples", type=int, default=16)
     ap.add_argument("--lattice-batch", type=int, default=64)
     ap.add_argument("--lref", choices=["sample", "train"], default="sample")
-    ap.add_argument("--analysis-only", default="", help="a scored dir (logprobs/ + windows.json): analysis only, CPU")
+    ap.add_argument("--analysis-only", default="", help="a scored dir (logprobs/ + windows.json), or several "
+                    "comma-separated (shards: merged): analysis only, CPU")
     ap.add_argument("--dry-run", action="store_true", help="print the plan, run the analysis on random log-probs "
                                                            "for 20 windows; no model, nothing written")
+    ap.add_argument("--shard", default="", help="K/N: score only the windows of the sample with index %% N == K "
+                                                "(default: all)")
+    ap.add_argument("--score-only", action="store_true", help="stop after scoring (no analysis; for shards)")
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
+    shard = parse_shard(args.shard)
+    if args.analysis_only and (shard or args.score_only):
+        raise SystemExit("--shard / --score-only are for scoring runs, not --analysis-only")
+    lp_of = None
     if args.analysis_only:
-        src = Path(args.analysis_only)
-        ids = json.loads((src / "windows.json").read_text())["ids"]
-        args.sched = json.loads((src / "windows.json").read_text())["sched"]
+        args.sched, ids, lp_of = load_scored([d for d in args.analysis_only.split(",") if d])
         allr, want = {}, set(ids)
         for f in sorted(Path(args.sched).glob("shard_*.jsonl")):
             for l in open(f, encoding="utf-8"):
@@ -297,6 +366,8 @@ def main() -> None:
         recs = [allr[i] for i in ids]
     else:
         recs = load_records(args.sched, args.n, args.seed)
+        if shard:
+            recs = shard_select(recs, *shard)
     n_reads = sum(r["n_read"] for r in recs)
     n_tok = sum(r["n_tok"] for r in recs)
     plan = {"windows": len(recs), "forwards (reads)": n_reads, "forward batches": sum(-(-r["n_read"] // args.batch)
@@ -321,16 +392,26 @@ def main() -> None:
         print("DRY_RUN_OK (random log-probs; nothing written)")
         return
     out.mkdir(parents=True)
+    # the new options are left out of the record at their defaults, so an unsharded windows.json is as before
+    rec_args = {k: v for k, v in vars(args).items() if not (k in ("shard", "score_only") and not v)}
     (out / "windows.json").write_text(json.dumps({"sched": args.sched, "ids": [r["id"] for r in recs],
-                                                  "plan": plan, "args": vars(args)}, indent=1))
+                                                  "plan": plan, "args": rec_args}, indent=1))
     if not args.analysis_only:
+        t0 = time.time()
         run_scoring(args, recs, out)
         lp_dir = out / "logprobs"
+        if args.score_only:
+            import torch
+
+            peak = max(torch.cuda.max_memory_allocated(i) for i in range(torch.cuda.device_count())) / 2**30
+            print(f"SCHED_PRECHECK_SCORED {out} windows {len(recs)} scoring_s {time.time() - t0:.0f} "
+                  f"peak_alloc_gib {peak:.1f}", flush=True)
+            return
     else:
         lp_dir = Path(args.analysis_only) / "logprobs"
     lps = {}
     for r in recs:
-        z = np.load(lp_dir / f"{r['id']}.npz")
+        z = np.load((lp_of[r["id"]] if lp_of is not None else lp_dir) / f"{r['id']}.npz")
         lps[r["id"]] = (z["tok_lp"], z["end_lp"])
     dev = "cuda" if not args.analysis_only else "cpu"
     reports = {}
