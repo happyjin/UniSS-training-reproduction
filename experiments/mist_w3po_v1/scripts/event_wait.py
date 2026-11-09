@@ -5,6 +5,7 @@ Events (first one wins):
   pid_gone     : a --pid (e.g. a torchrun) is gone
   drift        : a --drift run hits the RL drift-stop rule (see below)
   file         : a --file path exists
+  file_all     : every --file-all path exists
   timeout      : --timeout-min elapsed (hard cap 50)
 
 Drift rule (handoff 2026-11-09 §1.2), from step --drift-from (10) on, any of
@@ -81,6 +82,7 @@ def main(argv=None):
     ap.add_argument("--pid", action="append", default=[])
     ap.add_argument("--drift", action="append", default=[])
     ap.add_argument("--file", action="append", default=[])
+    ap.add_argument("--file-all", action="append", default=[], help="event when ALL of these exist")
     ap.add_argument("--drift-from", type=int, default=10)
     ap.add_argument("--drift-k", type=int, default=5)
     ap.add_argument("--timeout-min", type=float, default=50.0)
@@ -110,6 +112,8 @@ def main(argv=None):
                 if os.path.exists(p):
                     ev = {"event": "file", "path": p}
                     break
+        if ev is None and a.file_all and all(os.path.exists(p) for p in a.file_all):
+            ev = {"event": "file_all", "paths": a.file_all}
         if ev is None and time.time() >= t_end:
             ev = {"event": "timeout"}
         if ev is not None:

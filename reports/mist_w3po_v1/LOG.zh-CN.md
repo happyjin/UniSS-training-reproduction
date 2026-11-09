@@ -1053,3 +1053,9 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 判定同 ECF：有效 = 闸门通过 + 短召回高于 dia 同步 + dev R ≥ dia 同步 + 错标不高于 dia。漂移停止规则同 ECF（event_wait）。
 - 新日志：`hica_n`（重分配 token 数）、`hica_absd`（|Δ| 均值）、`hica_w`（权重均值）、`hica_wclip`（截断比例）。若前 3 步 `hica_absd` < 0.01（信号缺失）就停下记录，不改设置。
 - 代价：每个微批多一次无梯度前向（教师），预计每步 +15–25%。
+- 执行（03:08 UTC 入队）：代码提交 c5a5490a（`advantage.hica_weights`、`train_w3po --hica-ms / --hica-clip`、`hica_items / hica_reweight`，只允许 `--mode dia` 且不与 ECF 同用）；
+  单测 `rl/test_hica.py` 通过：advantage.py 对改动前是纯追加；train_w3po.py 是 8 处受 `hica_ms > 0` 保护的插入 + 1 处等价改写（`logs[k] += lg[k]` → `logs.get`）；
+  权重与手算一致；前瞻读时刻 / akey 与 rollout 缓存一致；桩引擎上批量教师 log 概率 = 逐条重算，末读（前瞻截到自身）与纯 when token 权重为 1。
+  作业 `075zh_rl_hica.json`（id `rl_pilot_hica_v8_b01_w128`，目录 `rl/pilot_hica_v8_b01_w128`，`only` [0,2,5,7]，端口 30096，ECF 的命令把
+  `--ecf-branches 4 --lam-ecf 1.0` 换成 `--hica-ms 2000 --hica-clip 1.0`；run_rl.sh DRY_RUN 核对过）。文件名排在 082/084 之前：队列会等 0/2/5/7 上正在跑的 TTS 重抽作业结束后独占这 4 张卡，
+  其余评测（ECF 第 20 步、TTS 重抽剩余部分）要等 ECF 训完（约 06:40）后在 1/3/4/6 上跑。HiCA 第 20 / 50 步评测作业在训练开始后再生成。
