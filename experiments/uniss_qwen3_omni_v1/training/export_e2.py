@@ -29,7 +29,10 @@ def main() -> None:
     ap.add_argument("--checkpoint-dir", required=True, help="an iter_NNNNNNN directory")
     ap.add_argument("--base", default="pretrained_models/UniSS_full", help="the UniSS E2 started from")
     ap.add_argument("--output", required=True)
+    ap.add_argument("--added-prefixes", default=",".join(ADDED),
+                    help="comma list of top-level tensor prefixes kept in added.pt (default: E2's four, unchanged)")
     args = ap.parse_args()
+    added_pfx = tuple(x for x in args.added_prefixes.split(",") if x)
 
     source, out = Path(args.checkpoint_dir), Path(args.output)
     if out.exists() and any(out.iterdir()):
@@ -38,7 +41,7 @@ def main() -> None:
     meta = reader.read_metadata()
     wanted = {k: torch.empty(v.size, dtype=v.properties.dtype if hasattr(v, "properties") else torch.bfloat16)
               for k, v in meta.state_dict_metadata.items()
-              if k.startswith("talker.") or k.startswith(ADDED)}
+              if k.startswith("talker.") or k.startswith(added_pfx)}
     if not any(k.startswith("talker.") for k in wanted):
         raise SystemExit(f"no talker tensors in {source}; keys look like {list(meta.state_dict_metadata)[:5]}")
     dcp.load(state_dict=wanted, storage_reader=reader)
@@ -63,15 +66,15 @@ def main() -> None:
         if f.is_file() and f.name != "model.safetensors":
             shutil.copy2(f, out / "uniss" / f.name)
     save_file(state, str(out / "uniss" / "model.safetensors"), metadata={"format": "pt"})
-    added = {k: v for k, v in wanted.items() if k.startswith(ADDED)}
+    added = {k: v for k, v in wanted.items() if k.startswith(added_pfx)}
     torch.save({"added": added, "step": int(source.name.split("_")[-1]), "source": str(source)}, out / "added.pt")
     gate = added.get("hid_gate")
     print(json.dumps({"output": str(out), "uniss_tensors_replaced": replaced, "uniss_tensors": len(state),
                       "added": {k: list(v.shape) for k, v in added.items()},
                       "gate_abs_mean": None if gate is None else float(gate.float().abs().mean()),
                       # a run with --e2-no-added has none of them: added.pt is then empty
-                      "pros_abs_mean": float(added["pros_proj.weight"].float().abs().mean()) if added else None,
-                      "dur_abs_mean": float(added["dur_proj.weight"].float().abs().mean()) if added else None},
+                      "pros_abs_mean": float(added["pros_proj.weight"].float().abs().mean()) if "pros_proj.weight" in added else None,
+                      "dur_abs_mean": float(added["dur_proj.weight"].float().abs().mean()) if "dur_proj.weight" in added else None},
                      indent=2))
 
 

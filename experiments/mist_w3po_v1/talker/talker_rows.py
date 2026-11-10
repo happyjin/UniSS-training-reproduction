@@ -177,7 +177,8 @@ def cover_pick(b: dict) -> int | None:
     return min(js, key=lambda j: (-cov(j), nll(j)))
 
 
-def align_rows(items: list[dict]) -> tuple[list[dict], dict]:
+def align_rows(items: list[dict], tok=None) -> tuple[list[dict], dict]:
+    """tok: the text tokenizer, for the units' character lengths (duration prior); None -> all 1."""
     blocks, n_pos, n_neg = [], 0, 0
     for it in items:
         for r, b in enumerate(it["blocks"]):
@@ -196,8 +197,10 @@ def align_rows(items: list[dict]) -> tuple[list[dict], dict]:
                 if j != pick and lab < 0:
                     continue
                 t0 = len(head) + 2   # START_CONTENT of block r is head + [v] -> index len(head)+1; text from +2
+                lens = ([max(1, len(tok.decode([t]).strip())) for t in b["ids"]] if tok is not None
+                        else [1] * len(b["ids"]))
                 rows.append({"seq": seq, "y": y, "ce": int(j == pick), "lab": lab, "text_start": t0,
-                             "M": len(b["ids"]), "text_ids": b["ids"]})
+                             "M": len(b["ids"]), "text_ids": b["ids"], "lens": lens})
                 n_pos += lab == 1
                 n_neg += lab == 0
             blocks.append({"id": it["id"], "r": r, "rows": rows})
@@ -219,7 +222,10 @@ def main():
     if a.mode == "plem":
         rows, stats = plem_rows(items, windows(a.win))
     elif a.mode == "align":
-        rows, stats = align_rows(items)
+        from transformers import AutoTokenizer
+
+        tok = AutoTokenizer.from_pretrained("pretrained_models/Qwen3-Omni-30B-A3B-Instruct")
+        rows, stats = align_rows(items, tok)
     else:
         raise SystemExit("--mode lattice: use precheck_plcrf.py")
     import torch
