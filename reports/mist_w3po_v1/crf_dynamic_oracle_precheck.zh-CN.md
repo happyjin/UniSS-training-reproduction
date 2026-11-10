@@ -269,3 +269,27 @@ recalled = 1 却在本窗口无规则成立的 3 个，是靠后面窗口的段�
 - (iii)：在 263 个漏译单元上断言：b_raw 从不成立；c′ 从不适用；应写窗口和应写读等于 S1 的。v1 中"逐字段复现 S1 / S1′"一项只报告一致计数，不再断言，因为 a′ 按设计就和 S1 的文本规则不同。
 - (iv)：人工抽查的标准不变，换新种子 SEED + 2，重新抽 50 个状态。**一致率 < 0.95 → 停止。**
 - O2 的状态由 v2 覆盖重新生成，打分与分析用原模块。GPU 在 8 张卡上分片，可以与其他任务叠加，单卡合计不超过 135 GiB。
+
+## 6. 覆盖 v2 的结果（2026-11-10 21:05 UTC）：STOP
+
+| 项 | 结果 |
+|---|---|
+| O1 (i)、(ii)、(iii) 自动断言 | **全部通过**：轨迹重建；b_raw = recalled()；263 个漏译单元的应写窗口和应写读一致；与 S1 的 u_written_at_due 一致 212 / 263 |
+| O1 (iv) 人工抽查（种子 SEED + 2） | **按预登记规则：STOP**。共 193 个判定，判到第 49 个时已有 10 个错。之后无论其余对错，一致率 ≤ (193 − 10) / 193 = 0.948 < 0.95，所以提前结束判定，结论不会变 |
+| O2 | 不跑。8 卡分片启动脚本已备好，冒烟（4 个状态）已启动；看到 O1 结果后写入 `abort`，分片不会启动 |
+
+**错在哪里（方向和 v1 相反）**
+- 10 个错都是"判为未覆盖，其实模型已经写了这句的译文"，而且都是**意译**：
+  - "The guy who was controlling" ↔ "The one who controls everything."
+  - "Digital pen is horrible." ↔ "The digitizer is terrible."
+  - "I dunno if you use it." ↔ "I don't know if you used it."
+  - "Is that reachable, maybe?" ↔ "Could that be possible?"
+  - 另有 1 例是同说话人、同区间的误译。
+- v2 的 b′、c′ 要求词面内容匹配（实义词共享 ≥ 一半），挡住了垃圾记分，但把意译也当成了未覆盖。
+- 窗口末的规则统计里，"被打分器记分、v2 判未覆盖"的有 1,002 句（`o1/o1.json`），说明这个问题普遍存在。
+- **可行的下一版（v3，需要重新预登记，未执行）**：内容匹配改用英文句向量相似度（all-MiniLM-L12-v2，本地已有，tcpSemER 用的就是它），阈值在看到任何 v3 结果之前固定。只用它把"零相似"的垃圾记分剔除，其余沿用 v1 的记分规则和 a′ 的改进。
+
+输出：`eval_outputs/mist_w3po_v1/crf/dynamic_oracle_precheck_cov2/o1/`
+- `o1.json`、`states.jsonl`；
+- `review_states.{md,jsonl}`；
+- `review_judgments_partial.jsonl`、`review_agreement_partial.json`。
