@@ -292,6 +292,12 @@ class Row:
     c_tok: np.ndarray | None = None    # pass 2: coefficient of -tok_lp at pos (main part, h * w / D)
     c_state: np.ndarray | None = None  # pass 2: coefficient of -tok_lp at pos (state part)
     c_end: np.ndarray | None = None    # pass 2: coefficient of -end_lp at pos
+    # --objective serial_v2p (crf/serial_v2p_train.py; None for heuristic / sched, whose rows are unchanged):
+    seq: list | None = None            # the token sequence after the prompt (history ⊕ write set) instead of S
+    end: int | None = None             # e_r of this row (None: win.end_ids[r])
+    key: tuple | None = None           # (window idx, request index) of the v2' plan
+    c_lab_tok: np.ndarray | None = None   # logging only: the C0 (label path) loss's coefficients at pos
+    c_lab_end: np.ndarray | None = None
 
 
 @dataclass
@@ -351,26 +357,53 @@ def row_inputs(w: Window, r: int, audio: AudioCache, perturb_p: float, seed: int
     return x, p, min(T, len(p))
 
 
+def row_features(rows: list[Row], ins: list, proc, cache: dict) -> dict:
+    """--feat-per-row: each row's log-mel computed on its own audio (a batch of one, so it does not depend on the other
+    rows of the micro-batch; the batched call pads every waveform to the longest, which changes the last frame of the
+    shorter ones), cached per (window, read); stacked and zero-padded to the longest (frames beyond a row's
+    attention mask are not used by the audio encoder)."""
+    fs = []
+    for rw, (x, _, _) in zip(rows, ins):
+        k = (rw.win.idx, rw.r)
+        if k not in cache:
+            g = proc.feature_extractor([x], sampling_rate=16000, padding=True, truncation=False,
+                                       return_attention_mask=True, return_tensors="pt")
+            cache[k] = (g["input_features"][0], int(g["attention_mask"][0].sum()))
+        fs.append(cache[k])
+    Fm = max(int(a.shape[-1]) for a, _ in fs)
+    feats = torch.zeros((len(fs), fs[0][0].shape[0], Fm), dtype=fs[0][0].dtype)
+    mask = torch.zeros((len(fs), Fm), dtype=torch.long)
+    for i, (a, n) in enumerate(fs):
+        feats[i, :, : a.shape[-1]] = a
+        mask[i, :n] = 1
+    return {"input_features": feats, "attention_mask": mask}
+
+
 def collate(rows: list[Row], audio: AudioCache, proc, prompter, hook: bool, perturb_p: float, seed: int, step: int,
-            phase: str, final_full: bool = False) -> Batch:
+            phase: str, final_full: bool = False, feat_cache: dict | None = None) -> Batch:
     from transformers.models.qwen3_omni_moe.modeling_qwen3_omni_moe import _get_feat_extract_output_lengths
 
     tok = proc.tokenizer
     ins = [row_inputs(rw.win, rw.r, audio, perturb_p, seed, step, final_full) for rw in rows]
-    f = proc.feature_extractor([x for x, _, _ in ins], sampling_rate=16000, padding=True, truncation=False,
-                               return_attention_mask=True, return_tensors="pt")
+    if feat_cache is None:
+        f = proc.feature_extractor([x for x, _, _ in ins], sampling_rate=16000, padding=True, truncation=False,
+                                   return_attention_mask=True, return_tensors="pt")
+    else:
+        f = row_features(rows, ins, proc, feat_cache)
     n_audio = _get_feat_extract_output_lengths(f["attention_mask"].sum(1))
     seqs, sel_r, sel_c, tt, et, fin = [], [], [], [], [], []
     for i, (rw, n) in enumerate(zip(rows, n_audio.tolist())):
-        S = rw.win.S
-        ids = prompter.ids(n, "", S[: rw.K]) + [rw.win.end_ids[rw.r]]   # v8's row layout: ... + block + end token
+        S = rw.win.S if rw.seq is None else rw.seq
+        n_s = rw.win.N if rw.seq is None else len(rw.seq)
+        e_id = rw.win.end_ids[rw.r] if rw.end is None else rw.end
+        ids = prompter.ids(n, "", S[: rw.K]) + [e_id]   # v8's row layout: ... + block + end token
         Lp = len(ids) - rw.K - 1
         seqs.append(ids)
         for b in rw.pos.tolist():
             sel_r.append(i)
             sel_c.append(Lp - 1 + b)
-            tt.append(S[b] if b < rw.win.N else 0)
-            et.append(rw.win.end_ids[rw.r])
+            tt.append(S[b] if b < n_s else 0)
+            et.append(e_id)
             fin.append(rw.r == rw.win.R - 1)
     L = max(len(s) for s in seqs)
     ids = torch.full((len(seqs), L), tok.pad_token_id or 0, dtype=torch.long)
@@ -687,11 +720,18 @@ def train_rows(wins: list[Window], weights: dict, D: float, A: float, state_w: f
 def grad_pass(model: CrfThinker, rows: list[Row], ctx: dict, step: int, extra_loss=None, n_rows_global: int = 0,
               n_windows_global: int = 0) -> dict:
     """Forward + backward of every micro-batch (gradients accumulate in .grad); returns the summed loss parts."""
-    logs = {"loss_main": 0.0, "loss_state": 0.0, "loss_extra": 0.0, "pos": 0, "tokens": 0, "mbs": 0}
+    logs = {"loss_main": 0.0, "loss_state": 0.0, "loss_extra": 0.0, "pos": 0, "tokens": 0, "mbs": 0,
+            "loss_label": 0.0, "t_collate": 0.0}
     hook = model._post_transform is not None
-    for mb in micro_batches(rows, ctx["tok_budget"], ctx["n_prompt0"]):
-        b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], hook, ctx["perturb"], ctx["seed"], step, "train",
-                    final_full=ctx.get("final_full_post", False))
+    batches = ctx.get("prefetched_batches")   # serial_v2p: [(micro-batch rows, collated Batch)] built ahead (same packing)
+    if batches is None:
+        batches = ((mb, None) for mb in micro_batches(rows, ctx["tok_budget"], ctx["n_prompt0"]))
+    for mb, b in batches:
+        tc = time.time()
+        if b is None:
+            b = collate(mb, ctx["audio"], ctx["proc"], ctx["prompter"], hook, ctx["perturb"], ctx["seed"], step,
+                        "train", final_full=ctx.get("final_full_post", False), feat_cache=ctx.get("feat_cache"))
+        logs["t_collate"] += time.time() - tc
         lt, le, _ = model.pos_logprobs(b, ctx["lp_chunk"])
         dev = lt.device
         ct = torch.as_tensor(np.concatenate([rw.c_tok for rw in mb]), dtype=torch.float32, device=dev)
@@ -700,6 +740,10 @@ def grad_pass(model: CrfThinker, rows: list[Row], ctx: dict, step: int, extra_lo
         main = -(ct * lt).sum() - (ce * le).sum()
         state = -(cs * lt).sum()
         loss = main + state
+        if mb[0].c_lab_tok is not None:   # serial_v2p logging: the C0 loss of the same windows at the same parameters
+            clt = torch.as_tensor(np.concatenate([rw.c_lab_tok for rw in mb]), dtype=torch.float32, device=dev)
+            cle = torch.as_tensor(np.concatenate([rw.c_lab_end for rw in mb]), dtype=torch.float32, device=dev)
+            logs["loss_label"] += float((-(clt * lt.detach()).sum() - (cle * le.detach()).sum()))
         if extra_loss is not None:
             rec = model.hook_record if hook else {"P_in": [], "P_out": [], "enc": []}
             ex = extra_loss({"metas": b.metas, "P_in": rec["P_in"], "P_out": rec["P_out"], "enc": rec["enc"],
@@ -773,7 +817,7 @@ def latest_ckpt(out: Path) -> Path | None:
 # ------------------------------------------------------------------------------------------------ main
 def build_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--objective", required=True, choices=["heuristic", "sched"])
+    ap.add_argument("--objective", required=True, choices=["heuristic", "sched", "serial_v2p"])
     ap.add_argument("--out", required=True)
     ap.add_argument("--base", default=V8, help="v8 merged Thinker (with sd_proj.pt)")
     ap.add_argument("--sched", default=SCHED)
@@ -811,6 +855,18 @@ def build_args(argv=None):
     ap.add_argument("--stop-after", type=int, default=0,
                     help="smoke tests: stop (and save a checkpoint) after this many steps of the --steps schedule")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--tau", type=float, default=0.5,
+                    help="serial_v2p: the joint tempering of the v2' posterior (pre-registered 0.5; precheck TAU)")
+    ap.add_argument("--empty-cache", type=int, default=1, choices=[0, 1],
+                    help="torch.cuda.empty_cache() after every step (1 = as before; 0 keeps the allocator's cache)")
+    ap.add_argument("--fast-moe-bwd", type=int, default=0, choices=[0, 1],
+                    help="1: transformers' grouped_mm fallback without the frozen expert-weight gradient "
+                    "(serial_v2p_train.FastGroupedMM: forward and input gradients bit-identical; 0: unchanged)")
+    ap.add_argument("--feat-per-row", type=int, default=0, choices=[0, 1],
+                    help="1: each row's log-mel on its own audio, cached per (window, read) within a step "
+                    "(row_features: packing-invariant inputs; 0: one padded call per micro-batch, as before)")
+    ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
+                    help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
     return ap.parse_args(argv)
 
 
@@ -821,6 +877,10 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         import datetime as _dt
 
         torch.distributed.init_process_group("nccl", timeout=_dt.timedelta(hours=2))
+    if args.fast_moe_bwd:
+        from experiments.mist_w3po_v1.crf import serial_v2p_train as V2T_
+
+        V2T_.patch_fast_moe_bwd(True)
     lr_ = int(os.environ.get("LOCAL_RANK", 0))
     torch.cuda.set_device(lr_)
     dev = torch.device("cuda", lr_)
@@ -892,6 +952,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         D, A = step_totals(sw)
         mine = assign(sw, world())[rank()]
         ctx["audio"] = AudioCache()
+        if args.feat_per_row:
+            ctx["feat_cache"] = {}
         st = {"lam": None, "lam_bracketed": None, "Eq_lat": None, "H_q": None, "q_heur": None, "sft_loss": None}
         t1 = time.time()
         if args.objective == "sched":
@@ -932,13 +994,27 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                       lat_heur=float(np.mean([w.lat_heur for w in sw])))
             t_lam = time.time() - t2
             state_w = args.state_weight
+        elif args.objective == "serial_v2p":   # crf/serial_v2p_train.py (module docstring)
+            from experiments.mist_w3po_v1.crf import serial_v2p_train as V2T
+
+            model.eval()
+            for m in extra_params:
+                m.eval()
+            v2p = V2T.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
+            st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
+            state_w = 0.0
         else:
             weights = {w.idx: heur_weights(w) for w in mine}
             t_p1 = t_lam = 0.0
             state_w = 0.0
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
         t3 = time.time()
-        rows = train_rows(mine, weights, D, A, state_w)
+        if args.objective == "serial_v2p":
+            rows = v2p["rows"]
+            ctx["prefetched_batches"] = v2p.get("batches")
+        else:
+            rows = train_rows(mine, weights, D, A, state_w)
         model.train()
         for m in extra_params:
             m.train()
@@ -947,6 +1023,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             g["lr"] = lr
         opt.zero_grad(set_to_none=True)
         lg = grad_pass(model, rows, ctx, step, extra_loss, sum(w.R for w in sw), len(sw))
+        ctx.pop("prefetched_batches", None)
         for p in params:
             if p.grad is None:
                 p.grad = torch.zeros_like(p)
@@ -968,6 +1045,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             torch.distributed.all_reduce(mx, op=torch.distributed.ReduceOp.MAX)
             vec[7:] = mx
         v = vec.tolist()
+        if args.objective == "serial_v2p":
+            V2T.reduce_logs(v2p, lg, dev)
         if rank() == 0:
             rec = {"step": k, "lr": lr, "objective": args.objective, "windows": len(sw), "infeasible": len(bad),
                    "rows": int(sum(w.R for w in sw)), "rows_trained": int(v[6]), "D": D, "A": A,
@@ -978,6 +1057,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                    "q_heur": st["q_heur"], "gnorm": gn, "pos_pass2": int(v[3]), "tok_pass2": int(v[4]),
                    "micro_batches": int(v[5]), "mem_gib_max": round(v[7], 2), "t_pass1": round(v[8], 2),
                    "t_lambda": round(t_lam, 2), "t_pass2": round(v[9], 2), "t_step": round(time.time() - t0, 2)}
+            if args.objective == "serial_v2p":
+                rec.update(V2T.metrics_fields(v2p, lg, rec))
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({a: (float(f"{b:.5g}") if isinstance(b, float) else b) for a, b in rec.items()}))
@@ -994,7 +1075,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                 save_ckpt(out / "ckpt" / f"step_{k:05d}", model, opt, extra_params, lam_prev, k, args)
             if is_dist():
                 torch.distributed.barrier()
-        torch.cuda.empty_cache()
+        if args.empty_cache:
+            torch.cuda.empty_cache()
         if stop:
             log0(f"--stop-after {args.stop_after}: stopping after step {k}")
             break
