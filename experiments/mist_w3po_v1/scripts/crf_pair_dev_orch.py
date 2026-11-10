@@ -22,6 +22,9 @@ stacks next to C0-fp's decode. Events: <run>/events/{text_done_<key>,text_done,a
     python crf_pair_dev_orch.py --run <dir> --resume --spread       # adopt a run; worst-fit once no decode is left
     python crf_pair_dev_orch.py --run <dir> --smoke [--dry]       # 2 decode jobs (one per candidate, --limit 2) into
                                                                   # crf/c0pair_smoke_<run name>/<key>
+    python crf_pair_dev_orch.py --run <dir> --cands v2p [--smoke] [--spread]
+        # 2026-11-10: the SerialCRF v2' checkpoint alone (CAND_SETS["v2p"]; its own diag A dir and smoke prefix);
+        # default --cands c0pair = the job list above, bit-identical
 """
 from __future__ import annotations
 
@@ -45,6 +48,13 @@ CANDS = {   # key -> (decode dir name, checkpoint)
     "c0fp": ("dev_crf_c0fp_s3000_finalpost_s8", f"{TRAIN}/crf_c0fp_20261110T022551Z/ckpt/{STEP}"),
 }
 DIAG = "eval_outputs/mist_w3po_v1/crf/c0pair_dev_diagA"
+SMOKE_PREFIX = "c0pair_smoke_"
+# --cands <set> -> (CANDS, DIAG, SMOKE_PREFIX); "c0pair" (default) = the values above, unchanged
+CAND_SETS = {
+    "c0pair": (CANDS, DIAG, SMOKE_PREFIX),
+    "v2p": ({"v2p": ("dev_crf_v2p_s3000_finalpost_s8", f"{TRAIN}/crf_v2p_20261110T075131Z/ckpt/{STEP}")},
+            "eval_outputs/mist_w3po_v1/crf/v2p_dev_diagA", "v2p_smoke_"),
+}
 MOD = "experiments.mist_w3po_v1.crf.decode_crf_ckpt_finalpost"
 
 
@@ -131,7 +141,7 @@ def build_jobs() -> list[Job]:
 
 def build_smoke(run: Path) -> tuple[list[Job], list[str]]:
     jobs: list[Job] = []
-    out = f"eval_outputs/mist_w3po_v1/crf/c0pair_smoke_{run.name}"
+    out = f"eval_outputs/mist_w3po_v1/crf/{SMOKE_PREFIX}{run.name}"
     for key, (name, ck) in CANDS.items():
         D = f"{out}/{key}"
         jobs.append(Job(f"smoke_{key}", "dec", 1, [],
@@ -139,6 +149,13 @@ def build_smoke(run: Path) -> tuple[list[Job], list[str]]:
                         + f"{GUARD} > {D}/infer.log 2>&1 && grep -q W3PO_ONLINE_DONE {D}/infer.log"))
         jobs[-1].order = len(jobs)
     return jobs, [out]
+
+
+def select(name: str):
+    """--cands: point the module-level CANDS / DIAG / SMOKE_PREFIX (read by build_jobs, build_smoke, new_dirs, loop,
+    main) at CAND_SETS[name]."""
+    global CANDS, DIAG, SMOKE_PREFIX
+    CANDS, DIAG, SMOKE_PREFIX = CAND_SETS[name]
 
 
 def new_dirs() -> list[str]:
@@ -230,7 +247,10 @@ def main():
     ap.add_argument("--resume", action="store_true", help="continue a crashed orchestrator's run dir (adopt its jobs)")
     ap.add_argument("--spread", action="store_true", help="no decode running/waiting/ready -> worst-fit placement "
                     "(default off: finalpost_dev_orch best-fit, unchanged)")
+    ap.add_argument("--cands", default="c0pair", choices=sorted(CAND_SETS),
+                    help="candidate set (default c0pair = C0 + C0-fp, unchanged; v2p = SerialCRF v2' alone)")
     a = ap.parse_args()
+    select(a.cands)
     os.chdir(REPO)
     run = Path(a.run)
     jobs, dirs = build_smoke(run) if a.smoke else (build_jobs(), new_dirs())

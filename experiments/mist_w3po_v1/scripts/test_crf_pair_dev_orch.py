@@ -7,6 +7,8 @@
   spread     spread True, no decode: worst-fit, the empty cards 6 / 7 take the jobs in turn
   pair gap   spread True: at most one talker per GPU pair per round and none on a pair started < 60 s ago
   cap        spread True: a card whose plan room (min(135, total - 12) GiB - ours) is below the need is never used
+  cands      --cands: default c0pair = the old module values (job ids / commands / dirs unchanged after a round trip
+             through v2p); v2p = C0-fp's 82 jobs with only the decode name, checkpoint, diag A dir and key swapped
 The orchestrator's run dir (state / logs / events) goes to a new tempfile.mkdtemp dir; nothing is deleted.
 """
 from __future__ import annotations
@@ -107,6 +109,44 @@ def main():
     p = o.plan(snap, ready)
     check("cap: no talker (24 > 21.4 GiB room), one ASR per card at most", not [1 for j, _ in p if j.kind == "talk"]
           and len({c for _, c in p}) == len(p) == 2)
+    # --- cands
+    def dump():
+        return [(j.id, j.kind, j.prio, tuple(j.deps), j.retries, j.cmd(1), j.cmd(2)) for j in po.build_jobs()]
+    base = dump()
+    base_dirs = po.new_dirs()
+    base_smoke = [(j.id, j.cmd(1)) for j in po.build_smoke(Path("x/run1"))[0]]
+    check("cands: default set is the module's original CANDS / DIAG / smoke prefix",
+          po.CAND_SETS["c0pair"] == (po.CANDS, po.DIAG, po.SMOKE_PREFIX) and len(base) == 164
+          and po.DIAG == "eval_outputs/mist_w3po_v1/crf/c0pair_dev_diagA"
+          and base_smoke[0][1].count("crf/c0pair_smoke_run1/c0/hyp.jsonl") == 1)
+    po.select("v2p")
+    v2p = dump()
+    v2p_dirs = po.new_dirs()
+    v2p_smoke = [(j.id, j.cmd(1)) for j in po.build_smoke(Path("x/run1"))[0]]
+    po.select("c0pair")
+    check("cands: c0pair after a v2p round trip == before (ids, kinds, deps, commands, dirs, smoke)",
+          dump() == base and po.new_dirs() == base_dirs
+          and [(j.id, j.cmd(1)) for j in po.build_smoke(Path("x/run1"))[0]] == base_smoke)
+    name, ck = po.CAND_SETS["v2p"][0]["v2p"]
+    fpn, fpck = po.CANDS["c0fp"]
+
+    def sub(x):
+        if isinstance(x, tuple):
+            return tuple(sub(y) for y in x)
+        if not isinstance(x, str):
+            return x
+        return (x.replace(fpn, name).replace(fpck, ck).replace("crf/c0pair_dev_diagA/c0fp", "crf/v2p_dev_diagA/v2p")
+                .replace("crf/c0pair_dev_diagA_c0fp.log", "crf/v2p_dev_diagA_v2p.log"))
+    want = [sub(t) for t in base if t[0].startswith(fpn + "_")]
+    check("cands: v2p jobs == C0-fp's jobs with name / ckpt / diag A swapped (82 jobs, same order)",
+          len(v2p) == 82 and v2p == want)
+    check("cands: v2p checkpoint is crf_v2p_20261110T075131Z step_03000; nothing points at C0 / C0-fp",
+          ck == "eval_outputs/mist_w3po_v1/crf/train/crf_v2p_20261110T075131Z/ckpt/step_03000"
+          and not any("crf_c0" in str(t) or "c0pair" in str(t) for t in v2p))
+    check("cands: v2p new dirs / smoke dir are its own",
+          v2p_dirs == [f"{fo.DEC}/{name}", f"{fo.DEC}/{name}_tts2", f"{fo.SPD}/{name}", f"{fo.SPD}/{name}_tts2",
+                       "eval_outputs/mist_w3po_v1/crf/v2p_dev_diagA", "eval_outputs/mist_w3po_v1/crf/v2p_dev_diagA_v2p.log"]
+          and len(v2p_smoke) == 1 and "crf/v2p_smoke_run1/v2p/hyp.jsonl" in v2p_smoke[0][1])
     print("ALL PASS", flush=True)
 
 
