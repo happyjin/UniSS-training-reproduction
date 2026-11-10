@@ -409,6 +409,14 @@ def main() -> None:
     ap.add_argument("--voice-reset", type=float, default=0.5,
                     help="with --voice-ema: a sentence whose latent is below this cosine to the memory starts a new speaker")
     ap.add_argument("--gpu-mem", type=float, default=0.35)
+    ap.add_argument("--rerun-forced", type=int, default=0,
+                    help="speech-gap plan B2 (si_talker_fix.py): a block cut off at the guard's hard limit is sampled "
+                         "again with another seed, at most this many times; the first that closes on its own replaces "
+                         "it (0 = off, unchanged)")
+    ap.add_argument("--src-mask-own-ms", type=int, default=-1,
+                    help="speech-gap plan B3 (si_talker_fix.py): a block reads the source heard so far with every sample "
+                         "outside this stream's own segments (its blocks written by then, start_s..end_s, widened by "
+                         "this many ms) set to zero; needs blocks with start_s/end_s (-1 = off, unchanged)")
     args = ap.parse_args()
 
     from vllm import LLM, SamplingParams
@@ -497,6 +505,9 @@ def main() -> None:
         g_prev = 0
         for b in it["blocks"]:
             heard = wav[: b["write_ms"] * 16]
+            if args.src_mask_own_ms >= 0:   # speech-gap plan B3: this stream's own segments only
+                from experiments.uniss_qwen3_omni_v1.evaluation.si_talker_fix import own_spans_ms, own_speaker_heard
+                heard = own_speaker_heard(heard, own_spans_ms(it["blocks"], b["write_ms"], args.src_mask_own_ms))
             glm = flat(front.glm4.tokenize(speech=torch.from_numpy(heard).unsqueeze(0), sr=16000))
             b["glm"] = glm      # this prefix's tokenisation: the blocks up to here read it
             n = len(glm) if b["write_ms"] >= dur else max(0, min(len(glm), round(b["write_ms"] / GLM_MS)) - args.holdback)
@@ -585,6 +596,29 @@ def main() -> None:
             exp = expected_codes(b["text"], tgt)
             b["forced"] = len(b["codes"]) >= max(int(2.2 * exp), exp + 100)
             b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
+        for a in range(1, args.rerun_forced + 1):   # speech-gap plan B2: resample guard-forced blocks
+            redo = [k for k, it in enumerate(owners) if it["blocks"][r]["forced"]]
+            if not redo:
+                break
+            ps = []
+            for k in redo:
+                p = params[k].clone()
+                p.n, p.seed, p.logprobs = 1, params[k].seed + 7919 * a, None
+                ps.append(p)
+            print(f"round {r}: rerun {a}: {len(redo)} forced blocks", flush=True)
+            res2 = talker.generate([reqs[k] for k in redo], ps, use_tqdm=False)
+            for k, rr in zip(redo, res2):
+                b = owners[k]["blocks"][r]
+                ids = list(rr.outputs[0].token_ids)
+                codes = [t - SEMANTIC_0 for t in ids if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+                exp = expected_codes(b["text"], tgt)
+                b["rerun_tries"] = a
+                if len(codes) >= max(int(2.2 * exp), exp + 100):
+                    continue
+                b["codes"], b["rerun"] = codes, a
+                b["closing"] = ids[-1] if ids and ids[-1] in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if b["final"] else WAIT_READ)
+                b["forced"] = False
+                b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC)
     timing["talker"] = time.time() - t0
 
     # 3. One decode per sentence, then the timeline.
@@ -635,13 +669,16 @@ def main() -> None:
             "source_duration_ms": it["dur_ms"], "window_s": args.window, "text_policy": args.text_policy,
             "speed_policy": args.speed_policy, "talker_temperature": args.temperature, "best_of": args.best_of,
             "speed_shift": args.speed_shift, "select_k": args.select_k,
+            **({"rerun_forced": args.rerun_forced} if args.rerun_forced else {}),
+            **({"src_mask_own_ms": args.src_mask_own_ms} if args.src_mask_own_ms >= 0 else {}),
             "codes": len(codes), "error": None if codes else "no audio",
             "start_offset_ms": int(pieces[0][0] + lead * 20) if codes else None,
             "end_offset_ms": int(end_prev - it["dur_ms"]),
             "silence_ratio": round(gaps / max(speech + gaps, 1e-6), 4),
             "blocks": [{**{k: b[k] for k in ("write_ms", "glm_end", "text", "final", "start_ms", "dur_ms", "closed", "forced", "speed", "speech_at_ms")},
                         **({"code_ids": [int(c) for c in b["codes"]]} if args.dump_codes else {}),
-                        **{k: b[k] for k in ("select_nll", "cand_nll", "select_voice_cos", "cand_voice_cos") if k in b},
+                        **{k: b[k] for k in ("select_nll", "cand_nll", "select_voice_cos", "cand_voice_cos",
+                                             "rerun", "rerun_tries") if k in b},
                         **({"train_ids": b["prompt"] + [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]],
                             "label_from": len(b["prompt"])} if args.dump_seq else {})}
                        | {"codes": len(b["codes"]), "closing": "wait_read" if b["closing"] == WAIT_READ else "end"}
