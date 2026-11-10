@@ -1465,3 +1465,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 按门槛规则，它可替换 A 作为主系统，等用户确认。
 - **gap 0.5 + s2**（`speech_var_c2s2`）：语音 23.67，最高；EndOffset 3.79 s，最低。文本与 gap 0.5 相同，ov −0.21，未过门槛。
 - 18:23 UTC 占卡任务已在 8 卡上恢复。
+
+## 2026-11-10 18:45 UTC — 主系统切换为 A′
+
+- 用户同意。新主系统 A′ = v2′（step_03000，finalpost）+ C2 gap 0.6 窗口 + talker c1+b1+s2：文本 28.17 / 23.67，语音 23.26，EndOffset 3.91 s。之后的方案都对 A′ 过门槛。
+- speech_gap_decomp 增加 `--win`。18:52 UTC 起在 CPU 上对 A 和 A′ 各两种子重跑分解和分层（`logs/mist_w3po_v1/gap_decomp_v2p`），用来确定剩余缺口中真实保真损失和评测口径各占多少。
