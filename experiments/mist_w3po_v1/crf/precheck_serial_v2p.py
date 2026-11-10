@@ -755,6 +755,12 @@ def run_analyse(args) -> None:
         dirs = sorted(root.glob(f"{split}_shard_*of*"))
         if not dirs:
             continue
+        pick = {}                     # a shard killed by the watchdog is re-run under a retry root (new dir)
+        for d in dirs + [d for x in args.retry_roots.split(",") if x for d in sorted(Path(x).glob(f"{split}_shard_*of*"))]:
+            if (d / "done.json").exists() or d.name not in pick:
+                pick[d.name] = d
+        dirs = [pick[n] for n in sorted(pick)]
+        rep.setdefault("shard_dirs", {})[split] = [str(d) for d in dirs]
         rows, ids = [], []
         for d in dirs:
             if not (d / "done.json").exists():
@@ -1000,6 +1006,7 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--max-gib", type=int, default=80)
     ap.add_argument("--procs", type=int, default=48)
+    ap.add_argument("--retry-roots", default="", help="analyse: extra roots holding re-run shards (done.json wins)")
     args = ap.parse_args()
     if not (args.dry_run or args.align) and not args.root:
         raise SystemExit("--root is required")
