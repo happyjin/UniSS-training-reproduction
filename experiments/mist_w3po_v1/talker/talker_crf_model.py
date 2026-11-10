@@ -116,7 +116,8 @@ class TalkerCRFModel(HuggingFaceModule):
         hu = h[t["a_b"][:, None], upos].float()                                          # R x Mm x H
         wq, wk = self.align_q.weight, self.align_k.weight   # Megatron's bf16 wrapper may have cast the head
         e = torch.einsum("rtd,rmd->rtm", F.linear(hf.to(wq.dtype), wq).float(), F.linear(hu.to(wk.dtype), wk).float()) / 16.0
-        al, prl, p = align_crf.losses(e, t["a_T"], t["a_M"], t["a_lens"], t["a_y"], pr=self.w_dur > 0)
+        kappa = float(t["a_kappa"]) if "a_kappa" in t and float(t["a_kappa"]) > 0 else None
+        al, prl, p = align_crf.losses(e, t["a_T"], t["a_M"], t["a_lens"], t["a_y"], pr=self.w_dur > 0, kappa=kappa)
         lab = t["a_y"]
         n_lab = (lab >= 0).sum().clamp(min=1)
         align = al.sum() / n_lab

@@ -75,8 +75,8 @@ class Groups(torch.utils.data.Dataset):
     """pretrain_selfmon.RowGroups over (own) sequence lengths: groups of <= budget padded tokens, a fresh permutation
     per pass, sorted by length only inside windows."""
 
-    def __init__(self, rows, mode: str, budget: int, window: int, n_samples: int, seed: int):
-        self.rows, self.mode = rows, mode
+    def __init__(self, rows, mode: str, budget: int, window: int, n_samples: int, seed: int, kappa: float | None = None):
+        self.rows, self.mode, self.kappa = rows, mode, kappa
         key = "own" if mode == "plem" else "seq"
         lens = np.asarray([len(r[key]) + len(r["y"]) for r in rows])
         rng = np.random.default_rng(seed)
@@ -166,7 +166,8 @@ class Groups(torch.utils.data.Dataset):
                 "labels": torch.tensor(lab, dtype=torch.long), "is_close": torch.tensor(close, dtype=torch.bool),
                 "a_b": torch.tensor(ab), "a_t0": torch.tensor(at0), "a_M": torch.tensor(aM), "a_c0": torch.tensor(ac0),
                 "a_T": torch.tensor(aT), "a_y": torch.tensor(ay), "a_lens": torch.from_numpy(alens),
-                "a_Tm": torch.tensor(Tm), "a_Mm": torch.tensor(Mm)}
+                "a_Tm": torch.tensor(Tm), "a_Mm": torch.tensor(Mm),
+                "a_kappa": torch.tensor(-1.0 if self.kappa is None else float(self.kappa))}
 
 
 def model_provider(pre_process=True, post_process=True, vp_stage=None, config=None, pg_collection=None):
@@ -202,7 +203,8 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
         raise SystemExit(f"{args.crf_rows} holds {data['mode']} rows, not {args.crf_mode}")
     rows = flat_rows(data, args.crf_max_len)
     n = int(args.train_iters) * int(args.global_batch_size)
-    train = Groups(rows, args.crf_mode, args.crf_token_budget, args.crf_window, n, args.crf_seed)
+    train = Groups(rows, args.crf_mode, args.crf_token_budget, args.crf_window, n, args.crf_seed,
+                   kappa=data["stats"].get("kappa"))
     runtime.print_rank_0(f"talker crf {args.crf_mode}: {len(rows):,} rows, {len(train.groups):,} groups over "
                          f"{train.passes} passes for {n:,} samples")
     return train, None, None

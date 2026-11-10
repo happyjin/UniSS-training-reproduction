@@ -17,8 +17,8 @@ def compositions(T, k, D):
     return out
 
 
-def brute(e, T, M, lens, D):
-    om, mu = A.duration_prior(torch.tensor([T]), lens[None], torch.ones(1, M, dtype=torch.bool), D)
+def brute(e, T, M, lens, D, kappa=None):
+    om, mu = A.duration_prior(torch.tensor([T]), lens[None], torch.ones(1, M, dtype=torch.bool), D, kappa)
     om = om[0]
     def score(ds):
         t, s = 0, 0.0
@@ -48,6 +48,9 @@ def test_vs_brute():
         zc2, _ = A.forward(e[None], torch.tensor([T]), torch.tensor([M]), lens[None], D, s)
         ed = torch.autograd.grad(zc2.sum(), s)[0][0]
         assert all(abs(float(a) - b) < 1e-9 for a, b in zip(ed, bed))
+        zk, zak = A.forward(e[None], torch.tensor([T]), torch.tensor([M]), lens[None], D, kappa=1.7)
+        bk, bak, _ = brute(e, T, M, lens, D, 1.7)
+        assert abs(float(zk) - bk) < 1e-9 and abs(float(zak) - bak) < 1e-9
 
 
 def test_batch_padding_and_losses():

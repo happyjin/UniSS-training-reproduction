@@ -3,7 +3,8 @@ alignment of a block's M text units (its text tokens) to its T speech-code frame
 
 Every frame belongs to one unit, the units in order, each unit >= 1 and <= D frames. Segment score of unit m over
 frames (t-d, t]:  sum of e[t', m] + omega_m(d) + s_m * d,  omega_m(d) = -(d - mu_m)^2 / (2 sigma_m^2),
-mu_m = T * len_m / sum(len), sigma_m = max(2, mu_m / 2). alpha[t, m] = log-sum over alignments of frames [0, t) whose
+mu_m = T * len_m / sum(len) (or kappa * len_m, the amended prior), sigma_m = max(2, mu_m / 2); the duration PR
+target is always T * len_m / sum(len). alpha[t, m] = log-sum over alignments of frames [0, t) whose
 last segment is unit m. Z_cover = alpha[T, M-1] (every unit covered); Z_all = logsumexp_m alpha[T, m] (the speech
 says units 0..m only, any m). P_cover = Z_cover / Z_all. E_q[d_m] under the cover posterior = d log Z_cover / d s_m.
 Batched over rows (padded T / M), exact, differentiable (autograd through the recursion).
@@ -15,10 +16,16 @@ import torch
 NEG = -1e30
 
 
-def duration_prior(T: torch.Tensor, lens: torch.Tensor, mask_m: torch.Tensor, D: int) -> tuple[torch.Tensor, torch.Tensor]:
-    """omega [B, D, M] for d = 1..D, and mu [B, M]. T [B] frames, lens [B, M] unit lengths (chars, >= 1)."""
+def duration_prior(T: torch.Tensor, lens: torch.Tensor, mask_m: torch.Tensor, D: int,
+                   kappa: float | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+    """omega [B, D, M] for d = 1..D, and mu [B, M]. T [B] frames, lens [B, M] unit lengths (chars, >= 1).
+    kappa None: mu_m = T * len_m / sum(len) (the share of this row's own duration); kappa: mu_m = kappa * len_m (an
+    absolute speaking rate, frames per character -- the amended prior, prereg §5)."""
     lens = torch.where(mask_m, lens.clamp(min=1).float(), torch.zeros_like(lens, dtype=torch.float))
-    mu = T.float()[:, None] * lens / lens.sum(1, keepdim=True).clamp(min=1)
+    if kappa is not None:
+        mu = kappa * lens
+    else:
+        mu = T.float()[:, None] * lens / lens.sum(1, keepdim=True).clamp(min=1)
     sig = torch.clamp(mu / 2, min=2.0)
     d = torch.arange(1, D + 1, device=T.device, dtype=torch.float)[None, :, None]
     om = -(d - mu[:, None, :]) ** 2 / (2 * sig[:, None, :] ** 2)
@@ -26,7 +33,7 @@ def duration_prior(T: torch.Tensor, lens: torch.Tensor, mask_m: torch.Tensor, D:
 
 
 def forward(e: torch.Tensor, T: torch.Tensor, M: torch.Tensor, lens: torch.Tensor, D: int = 250,
-            s: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+            s: torch.Tensor | None = None, kappa: float | None = None) -> tuple[torch.Tensor, torch.Tensor]:
     """e [B, Tmax, Mmax] frame-unit scores; T [B], M [B] true sizes; lens [B, Mmax]; s [B, Mmax] duration tilt (or None).
     Returns (log Z_cover [B], log Z_all [B]); -inf (NEG) where infeasible."""
     B, Tm, Mm = e.shape
@@ -37,7 +44,7 @@ def forward(e: torch.Tensor, T: torch.Tensor, M: torch.Tensor, lens: torch.Tenso
     e = torch.where((ar_t[None, :, None] < T[:, None, None]) & mask_m[:, None, :], e, torch.zeros_like(e))
     C = torch.cat([torch.zeros(B, 1, Mm, device=dev, dtype=e.dtype), torch.cumsum(e, dim=1)], dim=1)   # [B, Tm+1, Mm]
     D = max(1, min(D, Tm))
-    om, _ = duration_prior(T, lens, mask_m, D)
+    om, _ = duration_prior(T, lens, mask_m, D, kappa)
     if s is not None:
         om = om + s[:, None, :] * torch.arange(1, D + 1, device=dev, dtype=e.dtype)[None, :, None]
     om = torch.where(mask_m[:, None, :], om, torch.full_like(om, NEG))
@@ -62,11 +69,11 @@ def forward(e: torch.Tensor, T: torch.Tensor, M: torch.Tensor, lens: torch.Tenso
     return z_cover, z_all
 
 
-def losses(e, T, M, lens, label, pr: bool = True, D: int = 250):
+def losses(e, T, M, lens, label, pr: bool = True, D: int = 250, kappa: float | None = None):
     """-> (alignment loss per row: -log P_cover (label 1) / -log(1 - P_cover) (label 0) / 0 (label < 0 or
     infeasible), duration posterior-regularisation per row (label 1 rows; 0 elsewhere), P_cover per row (detached))."""
     s = torch.zeros(e.shape[0], e.shape[2], device=e.device, dtype=e.dtype, requires_grad=pr)
-    zc, za = forward(e, T, M, lens, D, s if pr else None)
+    zc, za = forward(e, T, M, lens, D, s if pr else None, kappa)
     ok = (zc > NEG / 2) & (za > NEG / 2)
     logp = torch.where(ok, zc - za, torch.zeros_like(zc)).clamp(max=0.0)
     p = logp.exp()

@@ -204,8 +204,10 @@ def align_rows(items: list[dict], tok=None) -> tuple[list[dict], dict]:
                 n_pos += lab == 1
                 n_neg += lab == 0
             blocks.append({"id": it["id"], "r": r, "rows": rows})
+    fr = sum(len(x["y"]) - 1 for bk in blocks for x in bk["rows"] if x["lab"] == 1)
+    ch = sum(sum(x["lens"]) for bk in blocks for x in bk["rows"] if x["lab"] == 1)
     return blocks, {"blocks": len(blocks), "rows": sum(len(x["rows"]) for x in blocks), "align_pos": n_pos,
-                    "align_neg": n_neg}
+                    "align_neg": n_neg, "kappa": round(fr / ch, 4) if ch else None}
 
 
 def main():
