@@ -19,7 +19,7 @@
 | **1** | **播放格 EM（Playback-Lattice EM，PL-EM）**：在"候选 × 语速 × 播放队列状态"的格上精确求后验，作为 talker 的训练目标。可以看作结构化的 best-of-N 蒸馏 | talker | 是：把多次采样里读得准的那条学进单次采样 | 是：一块说太长会拖后面所有块，这种耦合代价被精确地分摊到每一块 | **高** | **主线** |
 | 2 | 对齐 CRF talker：文本到语音码的单调对齐作为半马尔可夫隐变量，并加时长预算 | talker | 是：针对漏读和重复 | 部分：按预算分配时长 | 中（对齐损失已有工作，新意在流式、多说话人、预算） | 作为 1 的组件或消融 |
 | 3 | 跨接口联合格：在 v2′ 的格里加入 talker 侧的"可说性"势函数 | Thinker | 间接：让 Thinker 写出 talker 更容易读准的文本 | 部分 | 高 | 高风险，放在 1 之后 |
-| 4 | 可说性切块 CRF：决定把哪些文本、在什么时候交给 talker | 接口（小模型） | 小：碎片在 A′ 上的上界只有约 +0.1 | 是 | 中（已有边界感知的流式 TTS） | 不建议单做 |
+| ~~4~~ | ~~可说性切块 CRF~~ | 外挂的接口小模型 | 小（上界约 +0.1） | 是 | 中 | **放弃**（2026-11-10 22:10 UTC，用户指出：不是端到端，降低和系统的融合；还会改变 talker 输入的分布）|
 
 **统一的方法论**（对应用户担心的"偏工程"）：只有一个方法，即"在隐结构格上精确求后验，并用后验加权的交叉熵训练"。
 - v2′ 是它在 Thinker 上的第一个实例：隐结构是串行化的读格；
@@ -98,9 +98,11 @@ $$q(c_{1:N})=\frac{\exp\sum_n\psi_n(b_n,c_n)}{Z},\qquad \alpha_{n+1}(b')=\log\su
 1. **E 步**：在训练集流上采候选，按上式精确求 $q$；$q$ 不回传梯度。
 2. **M 步**：用后验加权的交叉熵训练 talker：
    $$\mathcal L(\theta)=-\sum_n\sum_c q(n,c)\,\log p_\theta(y_{n,c}\mid x_n,\text{voice},\text{src},v_{n,c})$$
-   语速策略头 $\pi_\phi(v\mid\text{queue features})$ 用 $q(n,v)$ 作软标签训练，取代现在规则式的 queue 语速策略。
+   **语速决策并入 talker**（2026-11-10 修订，不另加外挂头）：输入里加一个积压条件 token（当前积压 $b_n$ 按 0.5 s 分档），talker 先生成语速 token $v$，再生成语音码。每块的语速边际 $q(n,v)$ 直接作为这个语速 token 的软标签：
+   $$\mathcal L_v=-\sum_n\sum_v q(n,v)\log p_\theta(v\mid b_n,x_n,\text{voice},\text{src})$$
+   这样取代现在规则式的 queue 语速策略，语速和语音在同一个模型里一起学。
 3. **λ 用对偶二分**：使 $\mathbb E_q[\text{LAAL}]$ 等于预登记的预算（例如 A′ 的语音 LAAL − 0.3 s），这是后验正则化（Ganchev et al. 2010），**不调权重**。β、γ 预登记；τ = 0.5（退火 EM，与 v2′ 相同）。
-4. **推理**：talker 只采一次（计算量是 b1 的一半），语速由 $\pi_\phi$ 决定。
+4. **推理**：talker 只采一次（计算量是 b1 的一半），语速 token 由 talker 自己生成，不需要外部规则或外挂模块。
 
 ### 2.3 新颖性（相对已检索文献）
 
@@ -149,6 +151,32 @@ $$q(c_{1:N})=\frac{\exp\sum_n\psi_n(b_n,c_n)}{Z},\qquad \alpha_{n+1}(b')=\log\su
   - 候选多样性不足：先用 P3 检查；
   - 时长与积压的离散误差：可以缩小 Δ。
 
+
+### 2.7 训练哪些参数：全参数还是 LoRA（2026-11-10 修订）
+
+**历史做法**：
+- **talker 一直是全参数训练**。
+  - T1c（`si_t1c_20261021T181440Z`，第 1500 步，`full_iter0001500`）：从 R2（Plan 1 之后的 UniSS）出发，全参数继续训练。Megatron 入口 `pretrain_si.py`，模型 `si_model.py` 里是 `talker.requires_grad_(True)`。训练时用两个冻结副本做 KL 约束：
+    - 离线 teacher（读完整个源和译文，权重 w_future）；
+    - 原始 UniSS anchor（权重 w_anchor）。
+  - 单说话人同传的阶段 2（`reports/uniss_omni_s2st_v1/stage2/`）：Thinker 用 LoRA，talker 全量 SFT。当时因为共用一个学习率而回退，修正结论是**分 param group**：LoRA 1e-4，talker 3e-5。
+- **Thinker 一直是 LoRA**：v8、C0、v2′ 都是注意力层 rank 32、alpha 64，另加 `sd_proj` 和新增的嵌入、输出行。
+
+**选择：talker 全参数，并对冻结的 T1c 加 KL 锚定。** 理由：
+1. 与 T1c 的训练方式和代码完全一致：`si_model.py` 已有 teacher / anchor KL，Megatron 入口现成。LoRA 要为 talker 新写注入和导出代码，没有先例。
+2. talker 只有约 1.9B 参数（Qwen2 结构，28 层，hidden 1536），4 张 H200 全参数训练没有显存压力。
+3. PL-EM 要改变的是时长、语速和读准这类全局行为：
+   - 新增的积压条件 token 和语速 token 的嵌入行必须训练；
+   - 时长和韵律分布在所有层里。
+   全参数容量更合适；用 KL 锚定控制漂移，比靠 LoRA 的低秩限制更直接、可控。
+4. 吸取阶段 2 的教训，学习率单独设为 3e-5，并退火；步数和 T1c 同量级（≤ 1500）。
+
+**训练的参数**：talker 全部权重，包括新增的积压条件 token、语速 token 的嵌入和输出行。
+
+**冻结的参数**：Thinker；作为 KL 锚的 T1c 副本；CTC 打分器、WavLM、语音解码器。
+
+**备选**：如果预检或早期训练显示全参数漂移过大（UTMOS 或说话人相似度下降），改用 talker LoRA 作消融。需要先写 LoRA 注入代码，单独登记。
+
 ---
 
 ## 3. 方案二：对齐 CRF talker（作为方案一的组件或消融）
@@ -193,7 +221,9 @@ $$q(c_{1:N})=\frac{\exp\sum_n\psi_n(b_n,c_n)}{Z},\qquad \alpha_{n+1}(b')=\log\su
 
 ---
 
-## 5. 方案四：可说性切块 CRF（不建议单做）
+## 5. 方案四：可说性切块 CRF（已放弃）
+
+**放弃原因**（用户 2026-11-10 指出）：它是夹在 Thinker 和 talker 之间的外挂模块，不参与两者的训练，不是端到端，降低和系统的融合；它改变交给 talker 的块边界，使 talker 的输入偏离训练分布；而且在 A′ 上上界只有约 +0.1。以下保留原记录。
 
 - **做法**：在每个说话人的已写文本流上做半马尔可夫切分，决定交给 talker 的块边界。势函数是可读性加播放延迟，在 talker 日志上按 CRF 最大似然拟合。
 - **相关工作**：Prosodic Boundary-Aware Streaming（arXiv 2603.06444，每 k 个词插一个边界标记）、SpeakStream（arXiv 2505.19206）、incremental TTS（Ma et al. 2020）。
