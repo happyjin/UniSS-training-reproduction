@@ -39,27 +39,43 @@ VARS = {
 
 
 def talker_cmd(cmd: str, v: str, shard: int, scorers: int) -> str:
-    """The C0-fp talker command with variant v's flags (inserted before the shard flags)."""
+    """The C0-fp talker command with variant v's flags (inserted before the shard flags). v may combine variants with
+    '+' (batch 2, e.g. c1+b1): each one's change applied in turn, a single variant exactly as in batch 1."""
     assert cmd.count("--speed-policy fixed") == 1 and cmd.count(" --shard ") == 1, cmd
-    if v == "c1":
-        return cmd.replace("--speed-policy fixed", "--speed-policy queue")
-    extra = VARS[v]
-    if v == "b1":
-        extra += f" --scorer-url http://127.0.0.1:{SCORER_PORT0 + shard % scorers}/score"
-    return cmd.replace(" --shard ", f" {extra} --shard ", 1)
+    for u in v.split("+"):
+        if u == "c1":
+            cmd = cmd.replace("--speed-policy fixed", "--speed-policy queue")
+            continue
+        extra = VARS[u]
+        if u == "b1":
+            extra += f" --scorer-url http://127.0.0.1:{SCORER_PORT0 + shard % scorers}/score"
+        cmd = cmd.replace(" --shard ", f" {extra} --shard ", 1)
+    return cmd
 
 
-def build_jobs(vs: list[str], scorers: int) -> list[fo.Job]:
+def tag(v: str) -> str:
+    """dir / job-id suffix of variant v ('c1+b1' -> 'c1_b1')."""
+    return v.replace("+", "_")
+
+
+def split_var(item: str, base: str) -> tuple[str, str]:
+    """'c1+b1' -> ('c1+b1', base); 'c1@<decode dir name>' -> ('c1', that dir name)."""
+    v, _, b = item.partition("@")
+    return v, (b or base)
+
+
+def build_jobs(vs: list[str], scorers: int, base: str = BASE) -> list[fo.Job]:
     jobs: list[fo.Job] = []
 
     def add(*a, **k):
         jobs.append(fo.Job(*a, **k))
         jobs[-1].order = len(jobs)
 
-    for v in vs:
-        for name, seed in ((f"{BASE}__{v}", None), (f"{BASE}__{v}_tts2", SEED2)):
+    for item in vs:
+        v, b = split_var(item, base)
+        for name, seed in ((f"{b}__{tag(v)}", None), (f"{b}__{tag(v)}_tts2", SEED2)):
             n0 = len(jobs)
-            cp.speech(add, name, BASE, seed, 2, [])
+            cp.speech(add, name, b, seed, 2, [])
             for j in jobs[n0:]:
                 if j.kind == "talk":
                     k = int(j.id.rsplit("__talk", 1)[1])
@@ -70,24 +86,27 @@ def build_jobs(vs: list[str], scorers: int) -> list[fo.Job]:
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
-    ap.add_argument("--vars", default="b1,b3,b2,c1")
+    ap.add_argument("--vars", default="b1,b3,b2,c1",
+                    help="comma list; an item is v or v@<base decode dir>, v = one variant or several joined by +")
     ap.add_argument("--scorers", type=int, default=4, help="b1: CTC scorer servers (ports SCORER_PORT0 + i)")
+    ap.add_argument("--base", default=BASE, help="decode dir whose text the variants speak (default C0-fp)")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--spread", action="store_true")
     a = ap.parse_args()
     vs = a.vars.split(",")
-    assert vs and all(v in VARS for v in vs), vs
+    assert vs and all(u in VARS for v in vs for u in split_var(v, a.base)[0].split("+")), vs
     os.chdir(REPO)
     cp.CANDS = {}   # PairOrch.loop: no text-score flags in this job list
     run = Path(a.run)
-    jobs = build_jobs(vs, a.scorers)
+    jobs = build_jobs(vs, a.scorers, a.base)
     assert len({j.id for j in jobs}) == len(jobs)
     ids = {j.id for j in jobs}
     for j in jobs:
         for d in j.deps:
             assert d in ids, (j.id, d)
-    dirs = [f"{R}/{BASE}__{v}{s}" for v in vs for s in ("", "_tts2") for R in (DEC, SPD)]
+    pairs = [split_var(v, a.base) for v in vs]
+    dirs = [f"{R}/{b}__{tag(v)}{s}" for v, b in pairs for s in ("", "_tts2") for R in (DEC, SPD)]
     if a.dry:
         for j in jobs:
             print(j.prio, j.kind, j.id, "deps", len(j.deps), "|", j.cmd(1)[len(ENV):][:700])
@@ -104,13 +123,14 @@ def main():
         ex = [d for d in dirs if Path(d).exists()]
         if ex:
             raise SystemExit(f"拒绝覆盖已有输出: {ex}")
-        for f in ("hyp.jsonl", "score_text.json"):
-            if not Path(f"{DEC}/{BASE}/{f}").exists():
-                raise SystemExit(f"C0-fp {f} missing")
+        for b in sorted({b for _, b in pairs}):
+            for f in ("hyp.jsonl", "score_text.json"):
+                if not Path(f"{DEC}/{b}/{f}").exists():
+                    raise SystemExit(f"base {b} {f} missing")
         run.mkdir(parents=True)
         o = cp.PairOrch(run, jobs)
     o.spread = a.spread
-    o.log(f"spread {a.spread}; vars {vs}; scorers {a.scorers}")
+    o.log(f"spread {a.spread}; base {a.base}; vars {vs}; scorers {a.scorers}")
     try:
         o.loop()
     except Exception as e:  # noqa: BLE001

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Speech-gap plan batch 1 (b1 b3 b2 c1 on C0-fp's dev text, 2 TTS seeds each; user go 2026-11-10 ~11:50 UTC: stop the
+# Speech-gap plan batch 1 / 2 (batch 1: b1 b3 b2 c1 on C0-fp's dev text, 2 TTS seeds each; user go 2026-11-10 ~11:50 UTC: stop the
 # no-checkpoint workload, stack on all 8 cards, as fast as possible).
 #  1. stop the v2' eval scheduler (SCHED_PID, its only remaining step = restart the workload on all cards) by PID with a
 #     cmdline guard; stop every alive workload supervisor / idle-fill loop (card<k>.pid of logs/mist_w3po_v1/workload_at_*)
@@ -53,7 +53,7 @@ log "cards: $(nvidia-smi --query-gpu=index,memory.used --format=csv,noheader | t
 
 # 2. CTC scorers for b1
 NS=0; SPIDS=""
-if echo ",$VARS," | grep -q ",b1,"; then
+if echo "$VARS" | grep -qE "(^|[,+])b1([,+@]|$)"; then   # b1 alone or in a combo (c1+b1, b1@<base>)
   for c in $SCORER_CARDS; do
     port=$((18765 + NS))
     flock -o "$LOCK" -c "$ENVS; CUDA_VISIBLE_DEVICES=$c setsid nohup $PY -m experiments.mist_w3po_v1.evaluation.si_ctc_scorer --port $port > $D/scorer$NS.log 2>&1 < /dev/null & echo \$! > $D/scorer$NS.pid" 9>&-

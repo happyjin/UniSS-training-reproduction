@@ -96,3 +96,22 @@ def test_speech_var_jobs_only_talker_changes():
             assert a == b
     assert sum(j.kind == "talk" for j in jobs) == 16
     assert any("--seed 20261109" in j.cmd(1) for j in jobs if j.kind == "talk")
+
+
+def test_speech_var_combos_and_base():
+    import speech_var_orch as sv
+    base = ("X -m m.si_infer --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 "
+            "--shard 3 --num-shards 8 --seed 20261109 > log 2>&1")
+    c = sv.talker_cmd(base, "c1+b1", 3, 4)
+    assert c == sv.talker_cmd(base, "b1", 3, 4).replace("--speed-policy fixed", "--speed-policy queue")
+    assert sv.tag("c1+b1") == "c1_b1" and sv.tag("b3") == "b3"
+    assert sv.split_var("c1+b1", "B0") == ("c1+b1", "B0") and sv.split_var("c1@V2", "B0") == ("c1", "V2")
+    jobs = sv.build_jobs(["c1+b1", "c1@dev_crf_v2p_s3000_finalpost_s8"], 4)
+    ids = [j.id for j in jobs]
+    assert f"{sv.BASE}__c1_b1__talk0" in ids and "dev_crf_v2p_s3000_finalpost_s8__c1_tts2__talk7" in ids
+    prep = [j.cmd(1) for j in jobs if j.id == "dev_crf_v2p_s3000_finalpost_s8__c1__sprep"][0]
+    assert "decode/dev_crf_v2p_s3000_finalpost_s8/hyp.jsonl" in prep
+    assert sum(j.kind == "talk" for j in jobs) == 32
+    # batch-1 job list unchanged by the new arguments
+    assert [j.id for j in sv.build_jobs(["b1", "b3", "b2", "c1"], 4)] == \
+        [j.id for j in sv.build_jobs(["b1", "b3", "b2", "c1"], 4, sv.BASE)]
