@@ -75,3 +75,31 @@ def test_precheck_jobs():
 if __name__ == "__main__":
     test_precheck_jobs()
     print("ok precheck")
+
+
+def test_eval_jobs():
+    for scheme, tags in (("plem", ("k1", "c1b1s2")), ("align", ("k1gate", "c1b1s2"))):
+        jobs = t.build_eval("RUN", scheme, "EXP", 3.5, ref_quality=True)
+        by = {j.id: j for j in jobs}
+        assert all(f"scorer{i}" in by for i in range(4))
+        for tag in tags:
+            n1 = f"{t.A_PRIME}__{scheme}_{tag}"
+            c = by[f"{n1}__talk0"].cmd(1)
+            c2 = by[f"{n1}_tts2__talk0"].cmd(1)
+            assert "--model EXP/uniss" in c and t.EVAL_COMMON in c and "--seed" not in c and "--seed 20261109" in c2
+            assert f"{t.SPD}/{t.A_PRIME}/talker_in/items.jsonl" in c
+            if tag == "k1":
+                assert "--backlog-token --self-speed" in c and "--select-k" not in c and "scorer-url" not in c
+            if tag == "k1gate":
+                assert "--cover-gate EXP/added.pt --cover-kappa 3.5" in c and "--select-k" not in c
+            if tag == "c1b1s2":
+                assert "--select-k 2" in c and "scorer-url" in c
+                assert ("--backlog-token" in c) == (scheme == "plem")
+            g = by[f"gate_{scheme}_{tag}"].cmd(1)
+            assert f"--ref {t.DEC}/{t.A_PRIME} {t.DEC}/{t.A_PRIME}_tts2" in g
+        assert "aprime__qual" in by and "aprime_tts2__qual" in by
+
+
+if __name__ == "__main__":
+    test_eval_jobs()
+    print("ok eval")

@@ -192,12 +192,14 @@ def wait_port(port: int) -> str:
 
 
 def talk_cmd(model: str, sp: str, out: str, k: int, flags: str, port: int | None, seed=None, tin: str = "talker_in") -> str:
-    """crf_pair_dev_orch.speech's talker command (same model-independent flags) with this scheme's flags."""
+    """crf_pair_dev_orch.speech's talker command (same model-independent flags) with this scheme's flags. tin: the
+    talker input dir, relative to sp, or a path starting with eval_outputs/."""
     sd = f" --seed {seed}" if seed else ""
     url = f" --scorer-url http://127.0.0.1:{port}/score" if port else ""
+    ti = tin if tin.startswith("eval_outputs/") else f"{sp}/{tin}"
     return (ENV + (wait_port(port) if port else "") + f"VLLM_USE_FLASHINFER_SAMPLER=0 OMP_NUM_THREADS=16 {fo.PYV} -m "
             f"{M}.si_infer --model {model} --direction zh2en --window 1 --output {sp}/{out} --text-policy file "
-            f"--blocks-file {sp}/{tin}/blocks.jsonl --items-file {sp}/{tin}/items.jsonl {flags}{url} "
+            f"--blocks-file {ti}/blocks.jsonl --items-file {ti}/items.jsonl {flags}{url} "
             f"--shard {k} --num-shards 8{sd} > {sp}/{out}_talk{k}.log 2>&1")
 
 
@@ -325,6 +327,79 @@ def build_precheck(run: str = "") -> list[fo.Job]:
     return jobs
 
 
+EVAL_COMMON = "--speed-policy queue --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --speed-shift 2"
+QUAL = "eval_outputs/mist_w3po_v1/talker_crf/quality"
+EVAL_OUT = "eval_outputs/mist_w3po_v1/talker_crf/eval"
+
+
+def eval_settings(scheme: str, export: str, kappa: float) -> dict:
+    """setting tag -> (extra talker flags, needs the CTC scorers): prereg §1.4 / §2.4."""
+    if scheme == "plem":
+        return {"k1": ("--backlog-token --self-speed", False), "c1b1s2": ("--backlog-token --select-k 2", True)}
+    return {"k1gate": (f"--cover-gate {export}/added.pt --cover-kappa {kappa}", False), "c1b1s2": ("--select-k 2", True)}
+
+
+def eval_names(scheme: str) -> list[str]:
+    return [f"{A_PRIME}__{scheme}_{t}{s}" for t in eval_settings(scheme, "", 0.0) for s in ("", "_tts2")]
+
+
+def build_eval(run: str = "", scheme: str = "plem", export: str = "", kappa: float = 0.0, ref_quality: bool = False) -> list[fo.Job]:
+    """dev (A''s text, both TTS seeds) for one trained talker: the speech chain per setting and seed, then latency,
+    gap decomposition, UTMOS / WavLM-SV, and the 2-seed gate vs A'."""
+    jobs: list[fo.Job] = []
+
+    def add(*a, **k):
+        jobs.append(fo.Job(*a, **k))
+        jobs[-1].order = len(jobs)
+
+    sets = eval_settings(scheme, export, kappa)
+    if any(sc for _, sc in sets.values()):
+        scorer_jobs(add, run)
+    tin = f"{SPD}/{A_PRIME}/talker_in"
+    O = f"{EVAL_OUT}/{scheme}"
+    model = f"{export}/uniss"
+    for tag, (flags, scorer) in sets.items():
+        for sfx, seed in (("", None), ("_tts2", fo.SEED2)):
+            name = f"{A_PRIME}__{scheme}_{tag}{sfx}"
+            D, SP = f"{DEC}/{name}", f"{SPD}/{name}"
+            add(f"{name}__prep", "cpu", 1, [],
+                lambda att, D=D, SP=SP, sfx=sfx: ENV + f"mkdir -p {D} {SP} && cp -n {DEC}/{A_PRIME}{sfx}/hyp.jsonl "
+                                                       f"{DEC}/{A_PRIME}{sfx}/score_text.json {D}/")
+            talks = []
+            for k in range(8):
+                talks.append(f"{name}__talk{k}")
+                add(talks[-1], "talk", 1, [f"{name}__prep"],
+                    lambda att, k=k, SP=SP, flags=flags, scorer=scorer, seed=seed: talk_cmd(
+                        model, SP, "talker", k, f"{EVAL_COMMON} {flags}",
+                        SCORER_PORT0 + k % N_SCORERS if scorer else None, seed, tin), retries=5)
+            asr_chain(add, name, D, SP, "talker", 1, talks, WIN_DEV)
+            add(f"{name}__lat", "cpu", 2, [f"{name}__sscore"],
+                lambda att, D=D, SP=SP, name=name: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation."
+                                                         f"speech_latency_lit --run {D} --talker {SP}/talker --win {WIN_DEV} "
+                                                         f"--out {O}/lat_{name}.json > {O}/lat_{name}.log 2>&1")
+            add(f"{name}__gap", "cpu", 2, [f"{name}__sscore"],
+                lambda att, D=D, SP=SP, name=name: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation."
+                                                         f"speech_gap_decomp --run {D} --speech {SP} --win {WIN_DEV} "
+                                                         f"--out {O}/gap_{name} > {O}/gap_{name}.log 2>&1")
+            add(f"{name}__qual", "asr", 2, [f"{name}__asrprep"],
+                lambda att, SP=SP, name=name: ENV + f"{PY} -m experiments.mist_w3po_v1.talker.talker_quality --talker "
+                                                    f"{SP}/talker --items {tin}/items.jsonl --out {QUAL}/{name}/quality.json "
+                                                    f"> {SP}/quality.log 2>&1")
+        n1, n2 = f"{A_PRIME}__{scheme}_{tag}", f"{A_PRIME}__{scheme}_{tag}_tts2"
+        add(f"gate_{scheme}_{tag}", "cpu", 2, [f"{n1}__sscore", f"{n2}__sscore"],
+            lambda att, n1=n1, n2=n2, tag=tag: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation.gate_2seed "
+                                                     f"--cand {DEC}/{n1} {DEC}/{n2} --ref {DEC}/{A_PRIME} {DEC}/{A_PRIME}_tts2 "
+                                                     f"--out {O}/gate_{tag}.json > {O}/gate_{tag}.log 2>&1")
+    if ref_quality:   # A' itself, both seeds (the reference's UTMOS / SIM)
+        for sfx in ("", "_tts2"):
+            add(f"aprime{sfx}__qual", "asr", 2, [],
+                lambda att, sfx=sfx: ENV + f"[ -e {QUAL}/{A_PRIME}{sfx}/quality.json ] || {PY} -m "
+                                           f"experiments.mist_w3po_v1.talker.talker_quality --talker {SPD}/{A_PRIME}{sfx}/talker "
+                                           f"--items {tin}/items.jsonl --out {QUAL}/{A_PRIME}{sfx}/quality.json "
+                                           f"> {QUAL}_{A_PRIME}{sfx}.log 2>&1")
+    return jobs
+
+
 T1C_PATH = fo.T1C
 TRAINDEC_RUN = "logs/mist_w3po_v1/talker_crf_v1/traindec"
 STAGES = {"traindec": (lambda run="": build_traindec(), lambda: [f"{DEC}/{TRAIN_NAME}", f"{SPD}/{TRAIN_NAME}"]),
@@ -337,13 +412,25 @@ SCORER_IDS = {f"scorer{i}" for i in range(N_SCORERS)}
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--stage", required=True, choices=sorted(STAGES))
+    ap.add_argument("--stage", required=True, choices=sorted(STAGES) + ["eval"])
     ap.add_argument("--run", required=True)
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--scheme", choices=("plem", "align"), default="plem", help="eval stage: which talker")
+    ap.add_argument("--export", default="", help="eval stage: the trained talker's export dir (uniss/, added.pt)")
+    ap.add_argument("--kappa", type=float, default=0.0, help="eval stage, align: the rows' kappa")
+    ap.add_argument("--ref-quality", action="store_true", help="eval stage: also UTMOS / SIM of A' (both seeds)")
     a = ap.parse_args()
     os.chdir(REPO)
     cp.CANDS = {}   # PairOrch.loop: no text-score events in these job lists
+    if a.stage == "eval":
+        if not Path(a.export, "uniss", "model.safetensors").exists():
+            raise SystemExit(f"no export at {a.export}")
+        if a.scheme == "align" and not a.kappa > 0:
+            raise SystemExit("--kappa needed for the align scheme's cover gate")
+        STAGES["eval"] = (lambda run: build_eval(run, a.scheme, a.export, a.kappa, a.ref_quality),
+                          lambda: [f"{DEC}/{n}" for n in eval_names(a.scheme)] + [f"{SPD}/{n}" for n in eval_names(a.scheme)]
+                          + [f"{EVAL_OUT}/{a.scheme}"])
     build, dirs_of = STAGES[a.stage]
     jobs = build(str(Path(a.run)))
     ids = [j.id for j in jobs]
