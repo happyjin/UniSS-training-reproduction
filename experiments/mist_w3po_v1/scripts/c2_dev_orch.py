@@ -11,6 +11,8 @@ C2 windows, and each talker command gets c1+b1's flags. The diagnostic diagA job
 crf_pair_dev_orch.PairOrch (--spread). Ref windows (scoring) unchanged. Dev only.
 
     python c2_dev_orch.py --run logs/mist_w3po_v1/c2_dev --scorers 4 --spread [--dry]
+    python c2_dev_orch.py --run <run> --win <windows jsonl> --name dev_crf_v2p_s3000_finalpost_s8_c2g06 \
+        --talker-var c1+b1+s2 --scorers 4 --spread      (a second C2 point)
 """
 from __future__ import annotations
 
@@ -31,19 +33,20 @@ CKPT = f"{cp.TRAIN}/crf_v2p_20261110T075131Z/ckpt/{cp.STEP}"
 TALKER_VAR = "c1+b1"
 
 
-def setup() -> None:
-    cp.WIN = WIN_C2
-    cp.CANDS = {"v2p_c2g05": (NAME, CKPT)}
-    cp.DIAG = "eval_outputs/mist_w3po_v1/crf/v2p_c2g05_dev_diagA"   # not run (diagA dropped); keeps names distinct
+def setup(win: str = WIN_C2, name: str = NAME) -> None:
+    cp.WIN = win
+    tagc = name.rsplit("_", 1)[1] if name != NAME else "c2g05"
+    cp.CANDS = {f"v2p_{tagc}": (name, CKPT)}
+    cp.DIAG = f"eval_outputs/mist_w3po_v1/crf/v2p_{tagc}_dev_diagA"   # not run (diagA dropped); keeps names distinct
 
 
-def build_jobs(scorers: int) -> list[fo.Job]:
-    setup()
+def build_jobs(scorers: int, win: str = WIN_C2, name: str = NAME, talker_var: str = TALKER_VAR) -> list[fo.Job]:
+    setup(win, name)
     jobs = [j for j in cp.build_jobs() if not j.id.endswith("__diagA")]
     for j in jobs:
         if j.kind == "talk":
             k = int(j.id.rsplit("__talk", 1)[1])
-            j.cmd = (lambda att, f=j.cmd, k=k: sv.talker_cmd(f(att), TALKER_VAR, k, scorers))
+            j.cmd = (lambda att, f=j.cmd, k=k: sv.talker_cmd(f(att), talker_var, k, scorers))
     ids = {j.id for j in jobs}
     for j in jobs:
         assert all(d in ids for d in j.deps), (j.id, j.deps)
@@ -57,9 +60,15 @@ def main():
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--spread", action="store_true")
+    # second C2 points (defaults = the gap-0.5 run, unchanged): other windows / output name / talker variant
+    ap.add_argument("--win", default=WIN_C2)
+    ap.add_argument("--name", default=NAME, help="decode dir name; must end in _c2g<gap tag>")
+    ap.add_argument("--talker-var", default=TALKER_VAR)
     a = ap.parse_args()
+    assert a.name.startswith("dev_crf_v2p_s3000_finalpost_s8_c2g"), a.name
+    assert all(u in sv.VARS for u in a.talker_var.split("+")), a.talker_var
     os.chdir(REPO)
-    jobs = build_jobs(a.scorers)
+    jobs = build_jobs(a.scorers, a.win, a.name, a.talker_var)
     assert len({j.id for j in jobs}) == len(jobs)
     dirs = [d for d in cp.new_dirs() if not d.startswith(cp.DIAG)]
     run = Path(a.run)
@@ -79,15 +88,15 @@ def main():
         ex = [d for d in dirs if Path(d).exists()]
         if ex:
             raise SystemExit(f"拒绝覆盖已有输出: {ex}")
-        if not Path(WIN_C2).exists():
-            raise SystemExit(f"C2 windows missing: {WIN_C2}")
+        if not Path(a.win).exists():
+            raise SystemExit(f"C2 windows missing: {a.win}")
         missing = [f"{CKPT}/{f}" for f in ("DONE", "lora.pt", "extra.pt") if not Path(f"{CKPT}/{f}").exists()]
         if missing:
             raise SystemExit(f"checkpoint files missing: {missing}")
         run.mkdir(parents=True)
         o = cp.PairOrch(run, jobs)
     o.spread = a.spread
-    o.log(f"spread {a.spread}; C2 windows {WIN_C2}; talker {TALKER_VAR}; scorers {a.scorers}")
+    o.log(f"spread {a.spread}; C2 windows {a.win}; name {a.name}; talker {a.talker_var}; scorers {a.scorers}")
     Path(fo.LOCK).parent.mkdir(parents=True, exist_ok=True)
     try:
         o.loop()

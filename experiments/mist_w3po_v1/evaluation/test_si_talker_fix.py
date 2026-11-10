@@ -167,3 +167,43 @@ def test_speech_var_second_points():
     finally:
         sv.SCORER_PORT0 = p0
     assert sv.SCORER_PORT0 == 18765 and "18766" in sv.talker_cmd(base, "b1", 5, 4)
+
+
+def test_speech_latency_win_default_unchanged():
+    from experiments.mist_w3po_v1.evaluation import metric_headroom as M
+    from experiments.mist_w3po_v1.evaluation import speech_latency_lit as sl
+    a = sl.build_parser().parse_args(["--run", "r", "--talker", "t", "--out", "o"])
+    assert a.win == M.WIN == "eval_outputs/mist_w3po_v1/data/windows_zh2en_v1/windows_dev_online.jsonl"
+    w = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g05_v1/windows_dev_online.jsonl"
+    assert sl.build_parser().parse_args(["--run", "r", "--talker", "t", "--out", "o", "--win", w]).win == w
+
+
+def test_c2_second_point_and_speech_var_win():
+    import crf_pair_dev_orch as cp
+    import c2_dev_orch as c2
+    import speech_var_orch as sv
+    saved = (cp.WIN, cp.CANDS, cp.DIAG)
+    w6 = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl"
+    n6 = "dev_crf_v2p_s3000_finalpost_s8_c2g06"
+    try:
+        jobs = c2.build_jobs(4, w6, n6, "c1+b1+s2")
+        cmds = [j.cmd(1) for j in jobs]
+        assert sum(w6 in c for c in cmds) == 13 and not any(c2.WIN_C2 in c for c in cmds)
+        assert list(cp.CANDS) == ["v2p_c2g06"] and cp.CANDS["v2p_c2g06"][0] == n6 and "c2g05" not in cp.DIAG
+        assert all(f"/{n6}" in c or f"/{n6}_tts2" in c for j, c in zip(jobs, cmds) if j.kind in ("talk", "dec"))
+        talk = [c for j, c in zip(jobs, cmds) if j.kind == "talk"]
+        assert len(talk) == 16 and all("--speed-policy queue" in c and "--select-k 2" in c and "--speed-shift 2" in c
+                                       for c in talk)
+        # defaults unchanged: the gap-0.5 run's names / windows / talker
+        jobs = c2.build_jobs(4)
+        cmds = [j.cmd(1) for j in jobs]
+        assert list(cp.CANDS) == ["v2p_c2g05"] and cp.DIAG.endswith("v2p_c2g05_dev_diagA")
+        assert sum(c2.WIN_C2 in c for c in cmds) == 13 and not any("--speed-shift" in c for c in cmds)
+        # speech_var_orch on a C2 base: its speech chain reads cp.WIN at call time (main sets it from --win)
+        cp.WIN = c2.WIN_C2
+        jobs = sv.build_jobs(["c1+b1+s2@dev_crf_v2p_s3000_finalpost_s8_c2g05"], 4)
+        cmds = [j.cmd(1) for j in jobs]
+        assert sum(c2.WIN_C2 in c for c in cmds) == 4 and not any("windows_zh2en_v1/" in c for c in cmds)
+    finally:
+        cp.WIN, cp.CANDS, cp.DIAG = saved
+    assert cp.WIN == "eval_outputs/mist_w3po_v1/data/windows_zh2en_v1/windows_dev_online.jsonl"

@@ -95,6 +95,9 @@ def main():
     ap.add_argument("--scorers", type=int, default=4, help="b1: CTC scorer servers (ports SCORER_PORT0 + i)")
     ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0, help="first scorer port (default 18765)")
     ap.add_argument("--base", default=BASE, help="decode dir whose text the variants speak (default C0-fp)")
+    ap.add_argument("--win", default=cp.WIN,
+                    help="online windows the base was decoded on (default crf_pair_dev_orch.WIN, unchanged; a C2 base "
+                         "passes its own, e.g. windows_zh2en_c2g05_v1); read by talker prep / speech score")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--spread", action="store_true")
@@ -103,6 +106,7 @@ def main():
     SCORER_PORT0 = a.scorer_port0   # read by talker_cmd when the talk commands are built
     assert vs and all(u in VARS for v in vs for u in split_var(v, a.base)[0].split("+")), vs
     os.chdir(REPO)
+    cp.WIN = a.win   # crf_pair_dev_orch.speech's commands read it at call time
     cp.CANDS = {}   # PairOrch.loop: no text-score flags in this job list
     run = Path(a.run)
     jobs = build_jobs(vs, a.scorers, a.base)
@@ -136,7 +140,7 @@ def main():
         run.mkdir(parents=True)
         o = cp.PairOrch(run, jobs)
     o.spread = a.spread
-    o.log(f"spread {a.spread}; base {a.base}; vars {vs}; scorers {a.scorers}")
+    o.log(f"spread {a.spread}; base {a.base}; vars {vs}; scorers {a.scorers}; windows {a.win}")
     try:
         o.loop()
     except Exception as e:  # noqa: BLE001

@@ -34,8 +34,9 @@ done
 log "scorers ready $r/$NS ports $SCORER_PORT0.. pids [$SPIDS]"
 [ "$r" = "$NS" ] || { log "SCORER_FAILED; stop scorers, not launching"; kill -TERM $SPIDS 2>/dev/null; exit 1; }
 
+# ORCH_EXTRA (default empty = unchanged): extra speech_var_orch args, e.g. "--win <C2 windows>" for a C2 base
 setsid "$PY" experiments/mist_w3po_v1/scripts/speech_var_orch.py --run "$RUN" --vars "$VARS" --scorers "$NS" \
-  --scorer-port0 "$SCORER_PORT0" --spread > "$D/orch.out" 2>&1 < /dev/null 9>&- &
+  --scorer-port0 "$SCORER_PORT0" --spread ${ORCH_EXTRA:-} > "$D/orch.out" 2>&1 < /dev/null 9>&- &
 OP=$!; echo $OP > "$D/orch.pid"; log "orchestrator pid $OP run $RUN vars $VARS"
 while [ -d /proc/$OP ]; do sleep 60; done
 log "orchestrator exited; DONE=$([ -e "$RUN/events/DONE" ] && cat "$RUN/events/DONE" || echo no)"

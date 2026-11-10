@@ -20,7 +20,7 @@ queue wait (start - online commit), and the last block's duration. Means (the li
 mean()) and p50 / p90. No computation-aware number: the decode is batched (see the plan).
 Writes <out> (json; refuses to overwrite). Dev only.
 
-    python -m experiments.mist_w3po_v1.evaluation.speech_latency_lit --run <decode dir> --talker <talker dir> --out <json>
+    python -m experiments.mist_w3po_v1.evaluation.speech_latency_lit --run <decode dir> --talker <talker dir> --out <json> [--win <windows jsonl>]
 """
 from __future__ import annotations
 
@@ -42,17 +42,24 @@ def q(a):
             "n": int(len(a))}
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
     ap.add_argument("--talker", required=True)
     ap.add_argument("--out", required=True)
-    args = ap.parse_args()
+    # the online windows the run was decoded on (default = metric_headroom.WIN, unchanged; C2 runs pass their own,
+    # e.g. windows_zh2en_c2g05_v1). The reference windows (scoring) stay metric_headroom.REF_WIN.
+    ap.add_argument("--win", default=M.WIN)
+    return ap
+
+
+def main() -> None:
+    args = build_parser().parse_args()
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     from meeting_score import universe
-    W = [json.loads(l) for l in open(M.REPO / M.WIN, encoding="utf-8")]
+    W = [json.loads(l) for l in open(M.REPO / args.win, encoding="utf-8")]
     wins = {w["id"]: w for w in W}
     H = {h["id"]: h for h in map(json.loads, open(Path(args.run) / "hyp.jsonl", encoding="utf-8"))}
     RW = [json.loads(l) for l in open(M.REPO / M.REF_WIN, encoding="utf-8")]
