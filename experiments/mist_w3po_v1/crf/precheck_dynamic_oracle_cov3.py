@@ -28,26 +28,38 @@ from experiments.mist_w3po_v1.crf import precheck_dynamic_oracle_cov2 as C2
 SIM_T = 0.3
 SAME_SPAN_IOU = 0.5
 MINILM = "/opt/dlami/nvme/jasonleeeli/evaluation_models/all-MiniLM-L12-v2"
-_EMB: dict = {"tok": None, "mod": None, "cache": {}}
+_EMB: dict = {"pool": None, "cache": {}}
 
 
-def embed(texts: list[str]) -> dict:
-    """text -> L2-normalised MiniLM mean-pooled embedding (speech_gap_decomp.sem_err's recipe), cached."""
+def _embed_worker(texts: list[str]) -> list:
+    """runs in a spawned process (the O1 parent must not touch CUDA before its fork pool): the MiniLM recipe of
+    speech_gap_decomp.sem_err, on CPU."""
     import torch
     from transformers import AutoModel, AutoTokenizer
-    if _EMB["tok"] is None:
-        _EMB["tok"] = AutoTokenizer.from_pretrained(MINILM)
-        _EMB["mod"] = AutoModel.from_pretrained(MINILM).eval()
-    tok, mod, cache = _EMB["tok"], _EMB["mod"], _EMB["cache"]
-    need = [t for t in dict.fromkeys(texts) if t not in cache]
-    for i in range(0, len(need), 256):
-        b = need[i:i + 256]
+    g = globals()
+    if "_TOKM" not in g:
+        g["_TOKM"] = (AutoTokenizer.from_pretrained(MINILM), AutoModel.from_pretrained(MINILM).eval())
+    tok, mod = g["_TOKM"]
+    out = []
+    for i in range(0, len(texts), 256):
+        b = texts[i:i + 256]
         x = tok(b, padding=True, truncation=True, max_length=256, return_tensors="pt")
         with torch.no_grad():
             o = mod(**x).last_hidden_state
         m = x["attention_mask"].unsqueeze(-1).float()
-        e = torch.nn.functional.normalize((o * m).sum(1) / m.sum(1).clamp(min=1e-9), dim=-1)
-        for t, v in zip(b, e.numpy()):
+        out += list(torch.nn.functional.normalize((o * m).sum(1) / m.sum(1).clamp(min=1e-9), dim=-1).numpy())
+    return out
+
+
+def embed(texts: list[str]) -> dict:
+    """text -> L2-normalised MiniLM mean-pooled embedding, cached; computed in one spawned worker process."""
+    from multiprocessing import get_context
+    cache = _EMB["cache"]
+    need = [t for t in dict.fromkeys(texts) if t not in cache]
+    if need:
+        if _EMB["pool"] is None:
+            _EMB["pool"] = get_context("spawn").Pool(1)
+        for t, v in zip(need, _EMB["pool"].apply(_embed_worker, (need,))):
             cache[t] = v
     return cache
 
