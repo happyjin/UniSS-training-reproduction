@@ -52,6 +52,8 @@ def build_parser() -> argparse.ArgumentParser:
     # the online windows the run was decoded on (default = metric_headroom.WIN, unchanged; C2 runs pass their own,
     # e.g. windows_zh2en_c2g05_v1). The reference windows (scoring) stay metric_headroom.REF_WIN.
     ap.add_argument("--win", default=M.WIN)
+    ap.add_argument("--ch-policy", choices=["fifo", "spt"], default="fifo",
+                    help="the one-channel (online_1ch) schedule: fifo (default, unchanged) or spt (PASP replay precheck)")
     return ap
 
 
@@ -65,7 +67,7 @@ def laal(d: list, u: dict) -> float:
     return float(np.mean([d[i] - i * X / Y for i in range(tau + 1)]))
 
 
-def speech_word_delays(pw: list, a: float) -> list:
+def speech_word_delays(pw: list, a: float, k0_: str = "on_start", k1_: str = "on_end") -> list:
     """per output word of the unit's assigned pieces: when it has been SPOKEN (online queue timeline, no compute
     time) - unit start. A block's words are spread evenly over its playback [on_start, on_end] (no word timestamps);
     a piece (the part of a segment the assignment gave this unit) takes its words' positions inside the block."""
@@ -80,8 +82,31 @@ def speech_word_delays(pw: list, a: float) -> list:
         k0 = len(x["text"][: max(x["text"].find(t.strip()), 0)].split())
         for j in range(len(tw)):
             k = min(k0 + j, len(bw) - 1)
-            out.append(b["on_start"] + (k + 1) / len(bw) * (b["on_end"] - b["on_start"]) - a)
+            out.append(b[k0_] + (k + 1) / len(bw) * (b[k1_] - b[k0_]) - a)
     return out
+
+
+def schedule_spt(L: list, blk: dict) -> None:
+    """--ch-policy spt (PASP replay precheck): one output channel; whenever it is free, play the SHORTEST block among
+    those available (avail <= now) whose own stream's previous block has been played; if none is, wait for the
+    earliest such block. Sets ch_start / ch_end. (fifo, the default, plays in availability order.)"""
+    by_s = defaultdict(list)
+    for av, kk in sorted(L, key=lambda x: (x[1][0], x[1][1])):
+        by_s[kk[0]].append(kk)
+    nxt = {s_: 0 for s_ in by_s}
+    now, left = -1e9, len(L)
+    while left:
+        heads = [by_s[s_][i] for s_, i in nxt.items() if i < len(by_s[s_])]
+        ready = [kk for kk in heads if blk[kk]["avail"] <= now]
+        if not ready:
+            now = min(blk[kk]["avail"] for kk in heads)
+            continue
+        kk = min(ready, key=lambda k_: (blk[k_]["dur"], blk[k_]["avail"], k_))
+        b = blk[kk]
+        b["ch_start"] = max(now, b["avail"])
+        b["ch_end"] = now = b["ch_start"] + b["dur"]
+        nxt[kk[0]] += 1
+        left -= 1
 
 
 def main() -> None:
@@ -142,6 +167,9 @@ def main() -> None:
     for kk, b in blk.items():
         bym[b["meeting"]].append((b["avail"], kk))
     for m, L in bym.items():
+        if args.ch_policy == "spt":
+            schedule_spt(L, blk)
+            continue
         prev = -1e9
         # a stream's own blocks stay in order: sort by availability, ties by stream order
         for av, kk in sorted(L, key=lambda x: (x[0], x[1][0], x[1][1])):
@@ -206,6 +234,9 @@ def main() -> None:
             sd = speech_word_delays(pw, u["a"])
             if sd:
                 U_[reg]["speech_laal_online"].append(laal(sd, u))
+            sd1 = speech_word_delays(pw, u["a"], "ch_start", "ch_end")
+            if sd1:
+                U_[reg]["speech_laal_online_1ch"].append(laal(sd1, u))
             last = max(bs, key=lambda b: b["on_end"])
             parts["model_lag"].append(last["write"] - u["b"])
             parts["detector_wait"].append(last["avail"] - last["write"])

@@ -291,3 +291,28 @@ def test_speech_laal():
     d = speech_word_delays([(seg, "my friend")], 10.0)    # words 3 and 4 of 4 end at 13.5 and 14.0
     assert [round(x, 6) for x in d] == [3.5, 4.0]
     assert speech_word_delays([({"text": "x", "blk": None}, "x")], 0.0) == []
+
+
+def test_oracle_no_cut_merge():
+    from experiments.mist_w3po_v1.data.build_windows_zh2en import oracle_no_cut
+    wins = [(10, 40, 45), (46, 80, 85), (100, 120, 125)]          # frames (80 ms)
+    # an utterance from 3.0 s to 4.0 s spans the 40 -> 46 boundary (3.2 s .. 3.68 s); none spans 80 -> 100
+    assert oracle_no_cut(wins, [(3.0, 4.0)]) == [(10, 80, 85), (100, 120, 125)]
+    assert oracle_no_cut(wins, []) == wins
+    assert oracle_no_cut(wins, [(3.0, 4.0)], cap_s=3.0) == wins   # merged 5.6 s > cap: kept apart
+
+
+def test_schedule_spt():
+    from experiments.mist_w3po_v1.evaluation.speech_latency_lit import schedule_spt
+    blk = {("A", 0): {"avail": 0.0, "dur": 5.0}, ("A", 1): {"avail": 0.5, "dur": 1.0},
+           ("B", 0): {"avail": 1.0, "dur": 1.0}, ("C", 0): {"avail": 2.0, "dur": 3.0}}
+    L = [(b["avail"], k) for k, b in blk.items()]
+    schedule_spt(L, blk)
+    # t=0 only A0 -> 0..5; at 5: A1 (1.0), B0 (1.0), C0 (3.0) ready -> A1 (tie on dur, earlier avail), then B0, then C0
+    assert (blk[("A", 0)]["ch_start"], blk[("A", 0)]["ch_end"]) == (0.0, 5.0)
+    assert (blk[("A", 1)]["ch_start"], blk[("B", 0)]["ch_start"], blk[("C", 0)]["ch_start"]) == (5.0, 6.0, 7.0)
+    blk2 = {("A", 0): {"avail": 0.0, "dur": 1.0}, ("A", 1): {"avail": 0.1, "dur": 0.5}, ("B", 0): {"avail": 0.2, "dur": 0.2}}
+    schedule_spt([(b["avail"], k) for k, b in blk2.items()], blk2)
+    assert blk2[("B", 0)]["ch_start"] == 1.0 and blk2[("A", 1)]["ch_start"] == 1.2   # A's order kept, B shorter first
+    from experiments.mist_w3po_v1.evaluation import speech_latency_lit as sl
+    assert sl.build_parser().parse_args(["--run", "r", "--talker", "t", "--out", "o"]).ch_policy == "fifo"

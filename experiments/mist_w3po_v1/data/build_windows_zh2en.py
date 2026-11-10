@@ -55,6 +55,23 @@ def online_windows(post: np.ndarray, gap_s: float = GAP) -> list[tuple[int, int,
     return out
 
 
+def oracle_no_cut(wins: list, spans: list, cap_s: float = CAP) -> list:
+    """LW-CRF oracle-window precheck (dev only; uses REFERENCE utterance times, so an upper bound): merge window k with
+    k + 1 whenever a reference utterance [b, e] (s) spans the boundary (starts before window k's last active frame ends
+    and ends after window k + 1 starts), unless the merged window would exceed the cap. The merged window keeps the
+    later window's close frame j. Off by default (--oracle-no-cut)."""
+    out = []
+    for st, en, j in wins:
+        if out:
+            pst, pen, pj = out[-1]
+            cut = any(b < pen * FRAME and e > st * FRAME for b, e in spans)
+            if cut and (en - pst) * FRAME <= cap_s:
+                out[-1] = (pst, en, j)
+                continue
+        out.append((st, en, j))
+    return out
+
+
 def window_slot_map(members: list[dict], post_w: np.ndarray, sess: dict) -> dict:
     """S0-5: reference speaker -> slot by Hungarian matching of frame overlap inside the window only; a speaker the
     window's posteriors do not cover keeps its session slot unless that slot is taken, then its best free slot."""
@@ -90,6 +107,8 @@ def main() -> None:
     ap.add_argument("--inside", type=float, default=0.9)
     ap.add_argument("--limit-meetings", type=int, default=0)
     ap.add_argument("--gap", type=float, default=GAP, help="window-closing silence (s); C2 shortens it (dev only)")
+    ap.add_argument("--oracle-no-cut", action="store_true",
+                    help="LW-CRF oracle precheck (dev only): merge windows across boundaries that cut a reference utterance")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     data, out = Path(args.data), Path(args.out)
@@ -144,7 +163,13 @@ def main() -> None:
         sess = sess_map.get(m)
         if sess is None and sp == "train":   # train meetings all carry a session map in the v8 builder
             raise SystemExit(f"{m}: no session slot map")
-        for k, (st, en, j) in enumerate(online_windows(post, args.gap)):
+        wl = online_windows(post, args.gap)
+        if args.oracle_no_cut:
+            assert sp == "validation", "the oracle windows use reference times: dev only"
+            n0 = len(wl)
+            wl = oracle_no_cut(wl, [(u["zh_begin"], u["zh_end"]) for u in talk])
+            stats[sp]["oracle_merges"] += n0 - len(wl)
+        for k, (st, en, j) in enumerate(wl):
             ws, we = max(0.0, st * FRAME - 0.2), min(sess_s, en * FRAME + 0.3)
             close = min(sess_s, j * FRAME + LOOKAHEAD) if j < len(post) else sess_s
             wid = f"{m}_on_{k:04d}"
