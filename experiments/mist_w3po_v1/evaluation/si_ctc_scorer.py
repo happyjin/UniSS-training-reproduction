@@ -7,6 +7,8 @@ not tune the speech to the scorer. English only (zh2en).
 
 POST /score  {"items": [{"pcm16": <base64 int16 mono 16 kHz>, "prefix": "...", "text": "...", "lang": "English"}]}
           -> {"nll": [CTC -log p(prefix + text | speech) per target character, or null when no letters]}
+     an item with "cover": true (talker scheme 2) adds "cover": [share of the block's words in the CTC best-path
+     transcript, LCS against prefix + text] to the response; without it the response is unchanged
 
 The speech is the stream so far (blocks already chosen + this candidate); the prefix (their text) is the same for
 every candidate of a block, so the argmin over candidates is the argmin of -log p(text | speech, prefix) under CTC.
@@ -36,6 +38,36 @@ def ctc_text(prefix: str, text: str) -> str:
     return re.sub(r" +", " ", s).strip()
 
 
+def lcs_matched(ref: list[str], hyp: list[str]) -> list[bool]:
+    """Per ref word: matched in one longest common subsequence of ref and hyp (exact word equality)."""
+    n, m = len(ref), len(hyp)
+    L = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n - 1, -1, -1):
+        for j in range(m - 1, -1, -1):
+            L[i][j] = L[i + 1][j + 1] + 1 if ref[i] == hyp[j] else max(L[i + 1][j], L[i][j + 1])
+    out, i, j = [False] * n, 0, 0
+    while i < n and j < m:
+        if ref[i] == hyp[j]:
+            out[i] = True
+            i, j = i + 1, j + 1
+        elif L[i + 1][j] >= L[i][j + 1]:
+            i += 1
+        else:
+            j += 1
+    return out
+
+
+def block_cover(prefix: str, text: str, transcript: str) -> float | None:
+    """Share of the block's words (ctc_text of text) matched, in order, by the CTC transcript of the stream so far
+    (LCS against prefix + text); None when the block has no letters."""
+    blk = ctc_text("", text).split()
+    if not blk:
+        return None
+    pre = ctc_text("", prefix).split() if prefix.strip() else []
+    m = lcs_matched(pre + blk, ctc_text("", transcript).split())
+    return round(sum(m[len(pre):]) / len(blk), 4)
+
+
 class Scorer:
     def __init__(self, path: str):
         import torch
@@ -47,7 +79,7 @@ class Scorer:
         self.blank = self.model.config.pad_token_id
         self.lock = threading.Lock()
 
-    def score(self, items: list[dict]) -> list[float | None]:
+    def score(self, items: list[dict], covers: list | None = None) -> list[float | None]:
         torch = self.torch
         out = []
         with self.lock, torch.no_grad():
@@ -56,6 +88,8 @@ class Scorer:
                 ids = self.proc.tokenizer(tgt).input_ids if tgt else []
                 if not ids:
                     out.append(None)
+                    if covers is not None:
+                        covers.append(None)
                     continue
                 w = np.frombuffer(base64.b64decode(it["pcm16"]), dtype=np.int16).astype(np.float32) / 32768.0
                 w = w if len(w) >= 1600 else np.pad(w, (0, 1600 - len(w)))
@@ -66,7 +100,22 @@ class Scorer:
                     torch.tensor([len(ids)]), blank=self.blank, reduction="sum", zero_infinity=False)
                 v = float(loss)   # infinite: the speech is too short for the text -- the worst candidate
                 out.append(v / len(ids) if np.isfinite(v) else 1e9)
+                if covers is not None:
+                    covers.append(block_cover(it.get("prefix", ""), it["text"], self.greedy(lp)))
         return out
+
+    def greedy(self, lp) -> str:
+        """CTC best-path transcript of a T x V log-posterior: argmax, repeats merged, blanks dropped."""
+        best = lp.argmax(-1).tolist()
+        keep = [t for i, t in enumerate(best) if t != self.blank and (i == 0 or t != best[i - 1])]
+        return self.proc.tokenizer.decode(keep) if keep else ""
+
+    def score_cover(self, items: list[dict]) -> tuple[list, list]:
+        """Talker scheme 2 (reports/mist_w3po_v1/talker_crf_prereg_v1.zh-CN.md §2.1): score() plus, per item, the
+        block's word coverage (block_cover) on the same CTC output. score() alone is unchanged."""
+        covers: list = []
+        nll = self.score(items, covers)
+        return nll, covers
 
 
 def main() -> None:
@@ -79,7 +128,11 @@ def main() -> None:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):  # noqa: N802
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            data = json.dumps({"nll": scorer.score(body["items"])}).encode()
+            if any(it.get("cover") for it in body["items"]):   # talker scheme 2: coverage too (opt-in per request)
+                nll, cov = scorer.score_cover(body["items"])
+                data = json.dumps({"nll": nll, "cover": cov}).encode()
+            else:
+                data = json.dumps({"nll": scorer.score(body["items"])}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
