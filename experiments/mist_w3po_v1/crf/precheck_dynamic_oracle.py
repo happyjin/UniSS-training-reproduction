@@ -606,10 +606,12 @@ def s1_check(g: dict, by_w: dict) -> dict:
             mine_c = any(meta_m[k]["wid"] == w and meta_m[k]["write_ms"] <= t[i] for k in A)
             earlier = any(meta_m[k]["w_start"] < g["Wid"][w]["start_s"] - 1e-9 for k in A)
             assert c == (mine_c or earlier), rid
-        if row.get("chain"):
-            assert not any(cs[row["due_read"]:]) or any(
-                meta_m[k]["w_start"] < g["Wid"][w]["start_s"] - 1e-9 for k in A), rid
-            extra["chain_covered_by_earlier_window"] += any(cs)
+        if row.get("chain"):   # S1' constrains the due / next / later reads only: no text match in w at or after t_due
+            assert not any(meta_m[k]["wid"] == w and meta_m[k]["write_ms"] >= row["t_due_ms"] for k in A), rid
+            extra["chain_covered_by_earlier_window"] += any(meta_m[k]["w_start"] < g["Wid"][w]["start_s"] - 1e-9
+                                                            for k in A)
+            extra["chain_covered_before_due_in_w"] += any(meta_m[k]["wid"] == w and meta_m[k]["write_ms"] < row["t_due_ms"]
+                                                          for k in A)
             extra["chain_uncovered_all_reads_from_due"] += not any(cs[row["due_read"]:])
         extra[f"covered_before_due_{row['why']}"] += any(cs[: row["due_read"]])
         st["checked"] += 1
