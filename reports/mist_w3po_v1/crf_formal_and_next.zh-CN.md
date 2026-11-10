@@ -242,3 +242,19 @@ $$S(\pi,v,g)=\sum_k\Big[\underbrace{\varphi_{\rm fid}(k,v_k,g_k)}_{\text{该块�
 - Ganchev et al. Posterior Regularization for Structured Latent Variable Models. JMLR 2010.
 - Ross et al. A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning (DAgger). AISTATS 2011.
 - Papi et al. Length-Adaptive Average Lagging (LAAL). 2022. https://arxiv.org/abs/2206.05807
+
+## 7. 预检结果（2026-11-10 21:35 UTC；dev；主延迟指标为语音 LAAL）
+
+| 预检 | 质量（对 A′，两种子） | 语音 LAAL（每条流） | 单通道 LAAL | EndOffset | 预登记规则 | 判定 |
+|---|---|---|---|---|---|---|
+| **LW-CRF oracle 窗口**（参考话语边界，不切断话语，停顿 0.32 s 收尾；4359 窗口） | 文本 28.17 → **28.41（+0.24，P=0.038）**，ov −0.06（不显著），语音 23.26 → **24.12（+0.86，P=0.000）**，三项全过 | 4.15 → 3.98（**−0.17**） | 7.07 → 6.60（−0.47） | 3.91 → 3.68（−0.23） | 文本过门槛且每条流 LAAL 降 ≥ 0.25 s（20:40 UTC 登记） | **NOT GO**（−0.17 < 0.25） |
+| LW-CRF 完美收尾上界（CPU，窗口不变） | 不变 | −0.15 | −0.14 | −0.18 | （参考项） | — |
+| **PASP 单通道最短块优先重放**（CPU） | 不变 | 不变 | 7.07 → 5.84（**−1.23**） | 单通道 −0.73 | 单通道 EndOffset 降 ≥ 1.0（事先登记） | **未过**（按 LAAL 是事后判断） |
+| PASP 时长可预测性 | — | — | — | — | R² ≥ 0.8 | **通过**（0.87） |
+| **CRF 动态 oracle，覆盖 v3** | — | — | — | — | 人工一致率 ≥ 0.95 | **STOP**（≤ 0.949，`crf_dynamic_oracle_precheck.zh-CN.md` §8） |
+
+- **LW-CRF 的 oracle 质量上升，延迟只降一点。**
+  - oracle 窗口比 gap 0.6 更细（4359 对 3618），而且从不切断话语。文本显著上升（+0.24），语音上升（+0.86）。
+  - 但语音里有多少是"短流"的口径效应，需要看段级分。缺口分解已在 CPU 上运行，输出前缀 `speech_gap_v1/v2p_orcl032_s*`。
+  - 每条流的 LAAL 只降 0.17 s，没有达到登记的 0.25 s。学出来的收尾策略不会超过 oracle，所以按规则，LW-CRF 不作为降延迟方法继续。
+- **PASP**：只在单通道下有效，而且用的是最简单的规则。是否把"单通道"定为论文主设定、以 PASP 为核心，需要用户决定。
