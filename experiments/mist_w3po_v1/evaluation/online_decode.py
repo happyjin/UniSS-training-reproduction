@@ -34,6 +34,19 @@ from experiments.mist_w3po_v1.core.engine import (
     EOS_ID, WAIT_ID, Engine, Parser, ReadItem, ctx_string, lag_cut)
 
 
+def read_schedule(dur: int, period: int, flush_ms: list) -> list[tuple[int, bool]]:
+    """--flush-reads: the default reads (every period ms, the last at dur = the final read) plus one read per flush
+    time inside the window (0 < f < dur), in time order; (t, is_flush). A flush time on a default read's time makes that
+    read a flush read. With no flush times this is exactly the default schedule."""
+    grid = [min(r * period, dur) for r in range(1, -(-dur // period) + 1)]
+    fl = {int(f) for f in flush_ms if 0 < f < dur}
+    return [(t, t in fl) for t in sorted(set(grid) | fl)]
+
+
+def flush_of(s: dict, on: bool) -> bool:
+    return bool(on and s["sched"][s["r"] - 1][1])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--thinker", required=True)
@@ -64,6 +77,10 @@ def main() -> None:
     ap.add_argument("--budget-tps", type=float, default=0.0,
                     help="with > 0: a window's committed ids are capped at budget-tps * audio s + --budget-slack; 0 = off")
     ap.add_argument("--budget-slack", type=int, default=50)
+    ap.add_argument("--flush-reads", action="store_true",
+                    help="pause flush (speech-gap plan, 2026-11-10): each window row's flush_ms times (build_flush_windows.py: "
+                         "a >= hold pause is known) become extra reads with <wait> barred (the model writes all it can, its "
+                         "<eos> is dropped, the window goes on); off (default) = the read schedule and output unchanged")
     args = ap.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -124,9 +141,12 @@ def main() -> None:
         x, sr = sf.read(w["audio"], dtype="float32", always_2d=True)
         assert sr == 16000
         ctx = ctx_string(last_segs.get(w["meeting"], []), args.context)
-        return {"w": w, "wav": x.mean(1), "post": np.load(w["post"][args.post_key]).astype(np.float32),
-                "committed": [], "parser": Parser(tok), "blocks": [], "dur": int(round(len(x) / 16)), "r": 0,
-                "ctx": ctx, "log": []}
+        s = {"w": w, "wav": x.mean(1), "post": np.load(w["post"][args.post_key]).astype(np.float32),
+             "committed": [], "parser": Parser(tok), "blocks": [], "dur": int(round(len(x) / 16)), "r": 0,
+             "ctx": ctx, "log": []}
+        if args.flush_reads:
+            s["sched"] = read_schedule(s["dur"], period, w.get("flush_ms", []))
+        return s
 
     # lanes: per meeting with context (sequential windows), else one shared queue
     if args.context > 0:
@@ -158,11 +178,15 @@ def main() -> None:
             items = []
             for s in active:
                 s["r"] += 1
-                s["t"] = min(s["r"] * period, s["dur"])
+                flush = False
+                if args.flush_reads:
+                    s["t"], flush = s["sched"][s["r"] - 1]
+                else:
+                    s["t"] = min(s["r"] * period, s["dur"])
                 items.append(ReadItem(wav=s["wav"], post=s["post"], t_ms=s["t"], final=s["t"] >= s["dur"],
                                       committed=s["committed"], ctx=s["ctx"], akey=f"{s['w']['id']}|{s['t']}",
-                                      bar_wait=args.policy == "lag",
-                                      stop_ms=s["t"] - args.lag_ms if args.policy == "lag" else None))
+                                      bar_wait=args.policy == "lag" or flush,
+                                      stop_ms=s["t"] - args.lag_ms if args.policy == "lag" and not flush else None))
             outs = eng.read(items, max_new=args.max_new)
             finished = []
             for s, it, o in zip(active, items, outs):
@@ -178,6 +202,8 @@ def main() -> None:
                     new, why = guard(new, s["committed"], args.loop_guard_k, args.loop_guard_maxp, budget)
                 s["committed"] = s["committed"] + new
                 s["log"].append({"t": s["t"], "new": tok.decode(new, skip_special_tokens=False)})
+                if flush_of(s, args.flush_reads):
+                    s["log"][-1]["flush"] = True
                 if why:
                     s["log"][-1]["guard"] = why
                 s["blocks"] += s["parser"].feed(new, s["t"])

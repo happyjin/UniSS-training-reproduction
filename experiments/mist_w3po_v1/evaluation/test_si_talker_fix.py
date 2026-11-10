@@ -225,3 +225,56 @@ def test_speech_var_s3():
     c = sv.talker_cmd(base, "c1+b1+s3", 2, 4)
     assert "--speed-policy queue" in c and "--select-k 2 --scorer-url http://127.0.0.1:18767/score --speed-shift 3 --shard 2" in c
     assert sv.VARS["s2"] == "--speed-shift 2" and sv.VARS["b1"] == "--select-k 2" and sv.VARS["c1"] == ""
+
+
+def test_flush_read_schedule():
+    from experiments.mist_w3po_v1.evaluation.online_decode import read_schedule
+    assert read_schedule(3140, 1000, []) == [(1000, False), (2000, False), (3000, False), (3140, False)]
+    assert read_schedule(3000, 1000, []) == [(1000, False), (2000, False), (3000, False)]
+    assert read_schedule(940, 1000, []) == [(940, False)]
+    s = read_schedule(3140, 1000, [1500, 2000, 3140, 0, 5000])
+    assert s == [(1000, False), (1500, True), (2000, True), (3000, False), (3140, False)]
+    assert s[-1] == (3140, False)   # the final read is never a flush read
+
+
+def test_build_flush_windows():
+    import numpy as np
+    from experiments.mist_w3po_v1.data.build_flush_windows import flush_rows
+    post = np.zeros((300, 8), dtype=np.float32)
+    post[10:40, 0] = 0.9            # speech, a 5-frame pause (40..44), speech, then a long pause
+    post[45:80, 1] = 0.9
+    post[200:290, 2] = 0.9          # second window runs into the session end
+    # window 0 (gap 0.6 = 8 frames): st 10, last 79, en 80, j = 79 + 9 = 88; ws = 600, we = 6700
+    rows = [{"id": "M_on_0000", "start_s": 0.6, "dur_ms": 6100, "close_detect_ms": 88 * 80 + 1040 - 600},
+            {"id": "M_on_0001", "start_s": 15.8, "dur_ms": 7700, "close_detect_ms": 24000 - 15800}]
+    out, st = flush_rows(rows, post, 24000, 0.6, 4)
+    a, b = out
+    assert a["flush_ms"] == [(40 + 4) * 80 + 1040 - 600]                 # the inside pause
+    assert a["close_detect_ms"] == (80 + 4) * 80 + 1040 - 600 < rows[0]["close_detect_ms"]
+    assert a["close_detect_orig_ms"] == 88 * 80 + 1040 - 600 and a["flush_hold_ms"] == 320
+    assert b["flush_ms"] == [] and b["close_detect_ms"] == 24000 - 15800   # the session end comes before the flush
+    assert st["final_flush"] == 2 and st["flush_reads"] == 1 and a["close_detect_ms"] >= a["dur_ms"]
+    assert rows[0]["close_detect_ms"] == 88 * 80 + 1040 - 600 and "flush_ms" not in rows[0]   # input rows untouched
+
+
+def test_c2_decode_extra_and_scorer_port():
+    import crf_pair_dev_orch as cp
+    import c2_dev_orch as c2
+    import speech_var_orch as sv
+    saved, p0 = (cp.WIN, cp.CANDS, cp.DIAG), sv.SCORER_PORT0
+    w = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06fl4_v1/windows_dev_online.jsonl"
+    try:
+        sv.SCORER_PORT0 = 18769
+        jobs = c2.build_jobs(4, w, "dev_crf_v2p_s3000_finalpost_s8_c2g06fl4", "c1+b1+s2", "--flush-reads")
+        dec = [j.cmd(1) for j in jobs if j.kind == "dec"]
+        assert len(dec) == 8 and all(" --flush-reads --policy wait " in c and w in c for c in dec)
+        talk = [j.cmd(1) for j in jobs if j.kind == "talk"]
+        assert all("127.0.0.1:1877" in c or "127.0.0.1:1876" in c for c in talk)
+        assert not any("127.0.0.1:18765/" in c for c in talk)
+        assert all("--flush-reads" not in j.cmd(1) for j in jobs if j.kind != "dec")
+        sv.SCORER_PORT0 = p0
+        jobs = c2.build_jobs(4)   # defaults unchanged
+        assert not any("--flush-reads" in j.cmd(1) for j in jobs)
+    finally:
+        cp.WIN, cp.CANDS, cp.DIAG = saved
+        sv.SCORER_PORT0 = p0

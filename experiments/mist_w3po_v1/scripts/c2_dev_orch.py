@@ -40,10 +40,13 @@ def setup(win: str = WIN_C2, name: str = NAME) -> None:
     cp.DIAG = f"eval_outputs/mist_w3po_v1/crf/v2p_{tagc}_dev_diagA"   # not run (diagA dropped); keeps names distinct
 
 
-def build_jobs(scorers: int, win: str = WIN_C2, name: str = NAME, talker_var: str = TALKER_VAR) -> list[fo.Job]:
+def build_jobs(scorers: int, win: str = WIN_C2, name: str = NAME, talker_var: str = TALKER_VAR,
+               decode_extra: str = "") -> list[fo.Job]:
     setup(win, name)
     jobs = [j for j in cp.build_jobs() if not j.id.endswith("__diagA")]
     for j in jobs:
+        if j.kind == "dec" and decode_extra:   # e.g. --flush-reads (online_decode): before the policy flag
+            j.cmd = (lambda att, f=j.cmd: decode_with(f(att), decode_extra))
         if j.kind == "talk":
             k = int(j.id.rsplit("__talk", 1)[1])
             j.cmd = (lambda att, f=j.cmd, k=k: sv.talker_cmd(f(att), talker_var, k, scorers))
@@ -51,6 +54,11 @@ def build_jobs(scorers: int, win: str = WIN_C2, name: str = NAME, talker_var: st
     for j in jobs:
         assert all(d in ids for d in j.deps), (j.id, j.deps)
     return jobs
+
+
+def decode_with(cmd: str, extra: str) -> str:
+    assert cmd.count(" --policy wait ") == 1, cmd
+    return cmd.replace(" --policy wait ", f" {extra} --policy wait ", 1)
 
 
 def main():
@@ -64,11 +72,14 @@ def main():
     ap.add_argument("--win", default=WIN_C2)
     ap.add_argument("--name", default=NAME, help="decode dir name; must end in _c2g<gap tag>")
     ap.add_argument("--talker-var", default=TALKER_VAR)
+    ap.add_argument("--decode-extra", default="", help="extra online_decode args for the 8 decodes (e.g. --flush-reads)")
+    ap.add_argument("--scorer-port0", type=int, default=sv.SCORER_PORT0, help="first b1 scorer port (default 18765)")
     a = ap.parse_args()
+    sv.SCORER_PORT0 = a.scorer_port0   # read by speech_var_orch.talker_cmd when a talk command is built
     assert a.name.startswith("dev_crf_v2p_s3000_finalpost_s8_c2g"), a.name
     assert all(u in sv.VARS for u in a.talker_var.split("+")), a.talker_var
     os.chdir(REPO)
-    jobs = build_jobs(a.scorers, a.win, a.name, a.talker_var)
+    jobs = build_jobs(a.scorers, a.win, a.name, a.talker_var, a.decode_extra)
     assert len({j.id for j in jobs}) == len(jobs)
     dirs = [d for d in cp.new_dirs() if not d.startswith(cp.DIAG)]
     run = Path(a.run)
@@ -96,7 +107,8 @@ def main():
         run.mkdir(parents=True)
         o = cp.PairOrch(run, jobs)
     o.spread = a.spread
-    o.log(f"spread {a.spread}; C2 windows {a.win}; name {a.name}; talker {a.talker_var}; scorers {a.scorers}")
+    o.log(f"spread {a.spread}; C2 windows {a.win}; name {a.name}; talker {a.talker_var}; scorers {a.scorers} "
+          f"from port {a.scorer_port0}; decode extra [{a.decode_extra}]")
     Path(fo.LOCK).parent.mkdir(parents=True, exist_ok=True)
     try:
         o.loop()
