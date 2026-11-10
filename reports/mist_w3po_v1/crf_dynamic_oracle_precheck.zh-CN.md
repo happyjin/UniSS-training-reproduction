@@ -293,3 +293,18 @@ recalled = 1 却在本窗口无规则成立的 3 个，是靠后面窗口的段�
 - `o1.json`、`states.jsonl`；
 - `review_states.{md,jsonl}`；
 - `review_judgments_partial.jsonl`、`review_agreement_partial.json`。
+
+## 7. 重新预登记：覆盖判定 v3（2026-11-10 约 21:20 UTC，用户同意，在任何 v3 结果之前提交）
+
+只改规则 b、c 的内容判定。a′、O1 (ii) / (iii)、O2 人群、预算、v8 打分、门限（0.95 / D ≥ 0.05）、τ 全部沿用 §5 / §1。代码：`crf/precheck_dynamic_oracle_cov3.py`，测试在 `crf/test_precheck_dynamic_oracle_cov2.py`。
+
+**内容匹配 M3(x, u)**，满足任一即可：
+- v2 的词面匹配；
+- 英文句向量余弦 ≥ **0.3**。向量用 all-MiniLM-L12-v2（tcpSemER 用的模型），均值池化后做 L2 归一化。阈值在这里固定，不扫。
+
+**三条规则**：
+- **a″**：同 v2 的 a′。
+- **b″**：打分器把 x 记给 u 的单元（v1 的规则 b），并且满足 M3(x, u)，**或者** x 映射到 u 的说话人、且 x 自身源区间与 u 的 IoU ≥ 0.5。同说话人、同区间的误译也算 u 的译文；既不相似、也不是 u 自己区间的记分段（垃圾、别句的重复）不算。
+- **c″**：只用于 > 1 s 的句子，要求自身区间 IoU ≥ 0.3，并且满足 M3。
+
+**抽查**：新种子 SEED + 3，重新抽 50 个状态；一致率 < 0.95 → 停止。O1 通过后，O2 用原模块在 8 卡上分片，可以叠在其他任务上，单卡合计不超过 135 GiB。

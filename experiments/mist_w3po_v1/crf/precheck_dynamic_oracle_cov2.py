@@ -43,6 +43,7 @@ from experiments.mist_w3po_v1.crf import precheck_dynamic_oracle as DO
 
 IOU_C = 0.3
 REVIEW_SEED = DO.SEED + 2
+COVERAGE_TAG = "v2"          # cov3 (precheck_dynamic_oracle_cov3.py) sets "v3" together with its tables / seed
 SHORT_CLASSES = {
     "BACKCHANNEL": {"yeah", "yes", "yep", "yup", "ya", "yea", "okay", "ok", "right", "sure", "mm", "mhm", "mmhmm",
                     "hmm", "uh", "huh", "alright", "all", "uhhuh", "true", "exactly", "indeed"},
@@ -133,6 +134,9 @@ def meeting_tables_v2(st: dict, seglist: list[dict]) -> dict:
     return out
 
 
+TABLES = meeting_tables_v2   # the coverage-table function run_o1_v2 uses (cov3 swaps it)
+
+
 def s1_check_v2(g: dict, by_w: dict) -> dict:
     """O1 (iii) v2: on the 263 missed units, assert b_raw never fires, c' never applies, the due window and the due read
     of the unit's last chunk equal S1's; report how often the v2 coverage agrees with S1's u_written_at_due."""
@@ -177,7 +181,7 @@ def run_o1_v2(args) -> None:
     DO.tok()
     cov, rec_eq = {}, Counter()
     for m, st in g["cap"].items():
-        cov[m] = meeting_tables_v2(st, g["segs"][m])
+        cov[m] = TABLES(st, g["segs"][m])
         for rid in st["sc"]:                                  # O1 (ii) v2: v1's raw credit == recalled()
             ok = bool(cov[m][rid]["b_raw"]) == st["rec"][rid]
             rec_eq["utts"] += 1
@@ -248,7 +252,7 @@ def run_o1_v2(args) -> None:
                                  "pend": st["pend"], "n_fw": st["n_fw"], "rec": st["rec"], "block": st["block"],
                                  "audio": w["audio"], "post": w["post"]["lowlat"],
                                  "close_detect_ms": w["close_detect_ms"]}) + "\n")
-    rep = {"coverage": "v2", "decode": DO.DECODE, "recalled_eq_b_raw": dict(rec_eq), "s1_check_v2": s1,
+    rep = {"coverage": COVERAGE_TAG, "decode": DO.DECODE, "recalled_eq_b_raw": dict(rec_eq), "s1_check_v2": s1,
            "counts": dict(agg), "coverage_rules_at_window_end": dict(rule_end),
            "population": {"states": len(pop), "excluded_over_cap": excluded,
                           "planned_forwards": {"sum": int(sum(n_fw)), "mean": float(np.mean(n_fw)) if n_fw else 0,
