@@ -108,7 +108,7 @@ class Scorer:
         """CTC best-path transcript of a T x V log-posterior: argmax, repeats merged, blanks dropped."""
         best = lp.argmax(-1).tolist()
         keep = [t for i, t in enumerate(best) if t != self.blank and (i == 0 or t != best[i - 1])]
-        return self.proc.tokenizer.decode(keep) if keep else ""
+        return self.proc.tokenizer.decode(keep, group_tokens=False) if keep else ""   # repeats already merged
 
     def score_cover(self, items: list[dict]) -> tuple[list, list]:
         """Talker scheme 2 (reports/mist_w3po_v1/talker_crf_prereg_v1.zh-CN.md §2.1): score() plus, per item, the
