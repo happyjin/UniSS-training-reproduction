@@ -334,6 +334,192 @@ def select_by_voice(results, owners, r, front, device, memory, tgt, tail_s: floa
     return out
 
 
+BACKLOG_IDS = (180381, 180382, 180383, 180384, 180385, 180397, 180398, 180405)   # unused in the talker format
+SPEED_IDS = tuple(range(180337, 180337 + 35))
+
+
+def backlog_bin(blocks: list[dict], r: int) -> int:
+    """Queued speech when block r is written (the queue policy's own timeline: write_ms and 20 ms codes), 0.5 s bins,
+    capped at 7."""
+    end_prev = 0
+    for x in blocks[:r]:
+        end_prev = max(x["write_ms"], end_prev) + len(x["codes"]) * 20
+    return min(7, int(max(0, end_prev - blocks[r]["write_ms"]) / 500))
+
+
+def build_seq(it: dict, r: int, lang: int, backlog: bool, cur_speed: int | None = None, upto_speed: bool = False):
+    """The talker input at round r (as the original loop builds it when backlog is False and cur_speed is None).
+    backlog: S2T header speed = speed_base, then BACKLOG_IDS[backlog_bin]. cur_speed: block r's TTS speed.
+    upto_speed: stop after block r's <write> <task_tts> <lang> (the talker then picks the speed token)."""
+    from experiments.uniss_qwen3_omni_v1.training.e2_batch import (
+        BALANCE, END_CONTENT, END_GLOBAL, GLM_0, GLOBAL_0, START_CONTENT, START_GLOBAL, START_SEMANTIC, TASK_S2S,
+        TASK_S2T, TASK_TTS, WRITE)
+    from experiments.uniss_qwen3_omni_v1.training.si_batch import LOOK_CLOSE, LOOK_OPEN
+
+    glm = it["blocks"][r]["glm"]
+    seq = [TASK_S2S, BALANCE, lang, START_GLOBAL] + [GLOBAL_0 + g for g in it["voice"]] + [END_GLOBAL]
+    g_prev = 0
+    for k, b in enumerate(it["blocks"][: r + 1]):
+        sp = cur_speed if (k == r and cur_speed is not None) else b["speed"]
+        seq += [GLM_0 + t for t in glm[g_prev: b["glm_end"]]]
+        if backlog:
+            seq += [WRITE, TASK_S2T, lang, b["speed_base"], BACKLOG_IDS[b["backlog_bin"]], START_CONTENT] + b["ids"] + [END_CONTENT]
+        else:
+            seq += [WRITE, TASK_S2T, lang, sp, START_CONTENT] + b["ids"] + [END_CONTENT]
+        if b["look_ids"]:
+            seq += [LOOK_OPEN] + b["look_ids"] + [LOOK_CLOSE]
+        if k == r and upto_speed:
+            return seq + [WRITE, TASK_TTS, lang]
+        seq += [WRITE, TASK_TTS, lang, sp]
+        seq += ([] if b["final"] else [STREAMING_MODE]) + [START_SEMANTIC]
+        if k < r:
+            seq += [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]]
+        g_prev = b["glm_end"]
+    return seq
+
+
+def score_candidates(cands, owners, r, front, device, tgt, url, cover: bool, per_request=16):
+    """select_by_asr's scoring for every candidate: cands[k] = token-id lists of owner k's candidates. Returns per
+    owner a list of (CTC NLL per character or None, block word cover or None)."""
+    import base64
+    import urllib.request
+
+    lang = "Chinese" if tgt == "cmn" else "English"
+    items, where = [], []
+    for k, (it, cl) in enumerate(zip(owners, cands)):
+        prev = [c for b in it["blocks"][:r] for c in b["codes"]]
+        prefix = "".join(b["text"] for b in it["blocks"][:r])
+        for j, ids in enumerate(cl):
+            codes = prev + [t - SEMANTIC_0 for t in ids if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+            wav = np.zeros(1600, dtype=np.float32)
+            if codes:
+                wav = np.asarray(front.decode(torch.tensor([*it["voice"], *codes], dtype=torch.long, device=device)),
+                                 dtype=np.float32).reshape(-1)
+            pcm = (np.clip(wav, -1, 1) * 32767).astype(np.int16).tobytes()
+            item = {"pcm16": base64.b64encode(pcm).decode(), "prefix": prefix, "text": it["blocks"][r]["text"], "lang": lang}
+            if cover:
+                item["cover"] = True
+            items.append(item)
+            where.append((k, j))
+    nll, cov = [], []
+    for s in range(0, len(items), per_request):
+        req = urllib.request.Request(url, data=json.dumps({"items": items[s: s + per_request]}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            got = json.loads(resp.read())
+        nll += got["nll"]
+        cov += got.get("cover", [None] * len(got["nll"]))
+    out = [[] for _ in owners]
+    for (k, j), x, c in zip(where, nll, cov):
+        out[k].append((None if x is None else round(float(x), 4), c))
+    return out
+
+
+def plcrf_round(r, items, talker, front, device, tok, args, lang, tgt, cand_offsets, SamplingParams, out):
+    """One round of blocks in the talker-scheme modes: the queue policy as in the original loop, the backlog bin, the
+    talker's own speed (--self-speed), then either the candidate sampling (--cand-speeds: offsets x --cand-k, all
+    CTC-scored, the A' rule continues) or the plain/b1 generation in the backlog format."""
+    from experiments.uniss_qwen3_omni_v1.training.e2_batch import SPEED_0
+
+    owners, idx = [], []
+    for n_it, it in enumerate(items):
+        if r >= len(it["blocks"]):
+            continue
+        bq = it["blocks"][r]
+        if args.speed_policy == "queue":
+            end_prev = 0
+            for x in it["blocks"][:r]:
+                end_prev = max(x["write_ms"], end_prev) + len(x["codes"]) * 20
+            q = max(0, end_prev - bq["write_ms"]) / 1000
+            shift = min(args.queue_shift_max, int(round(args.queue_shift_per_s * q))) if q >= 0.5 else 0
+            if bq["final"]:
+                shift = max(shift, args.final_shift)
+            bq["speed"] = min(max(bq["speed_base"] + shift, SPEED_0), SPEED_0 + 34)
+        bq["backlog_bin"] = backlog_bin(it["blocks"], r)
+        owners.append(it)
+        idx.append(n_it)
+    print(f"round {r}: {len(owners)} blocks", flush=True)
+    if args.self_speed:
+        sp_params = [SamplingParams(n=1, temperature=0.0, max_tokens=1, allowed_token_ids=list(SPEED_IDS),
+                                    seed=args.seed + 1000 * n_it + r, skip_special_tokens=False) for n_it in idx]
+        res = talker.generate([{"prompt_token_ids": build_seq(it, r, lang, True, upto_speed=True)} for it in owners],
+                              sp_params, use_tqdm=False)
+        for it, rr in zip(owners, res):
+            it["blocks"][r]["speed_policy_tok"] = it["blocks"][r]["speed"]
+            it["blocks"][r]["speed"] = int(rr.outputs[0].token_ids[0])
+    offs = cand_offsets or [0]
+    n_each = args.cand_k if cand_offsets else max(args.select_k, 1)
+    reqs, params = [], []
+    for it, n_it in zip(owners, idx):
+        b = it["blocks"][r]
+        for j, o in enumerate(offs):
+            spd = min(max(b["speed"] + o, SPEED_0), SPEED_0 + 34)
+            reqs.append({"prompt_token_ids": build_seq(it, r, lang, args.backlog_token, cur_speed=spd)})
+            params.append(SamplingParams(
+                n=n_each, temperature=args.temperature, top_p=0.8, max_tokens=1500,
+                seed=args.seed + 1000 * n_it + r + 7000003 * j, logprobs=0 if cand_offsets else None,
+                stop_token_ids=[WAIT_READ, END_SEMANTIC], skip_special_tokens=False,
+                extra_args={"si_guard": {"expected": expected_codes(b["text"], tgt),
+                                         **({"history": [c for x in it["blocks"][:r] for c in x["codes"]],
+                                             "hist_n": args.history_ban} if args.history_ban else {}),
+                                         "final": b["final"], "ngram": 8, "min_frac": 0.3}}))
+    results = talker.generate(reqs, params, use_tqdm=False)
+    per = [[] for _ in owners]   # per owner: (offset, speed, output)
+    q = 0
+    for k, it in enumerate(owners):
+        for j, o in enumerate(offs):
+            spd = min(max(it["blocks"][r]["speed"] + o, SPEED_0), SPEED_0 + 34)
+            per[k] += [(o, spd, x) for x in results[q].outputs]
+            q += 1
+    scores = None
+    if cand_offsets or args.select_k > 1:
+        scores = score_candidates([[list(x.token_ids) for _, _, x in pl] for pl in per], owners, r, front, device, tgt,
+                                  args.scorer_url, args.cand_cover)
+    for k, it in enumerate(owners):
+        b = it["blocks"][r]
+        pl = per[k]
+        if scores is not None:
+            first = [j for j, (o, _, _) in enumerate(pl) if o == 0][: max(args.select_k, 1)]
+            nl = [scores[k][j][0] for j in first]
+            pick = first[int(np.argmin([float("inf") if v is None else v for v in nl]))]
+            b["select_nll"] = scores[k][pick][0]
+            b["cand_nll"] = [scores[k][j][0] for j in first]
+        else:
+            pick = 0
+        o, spd, best = pl[pick]
+        ids = list(best.token_ids)
+        exp = expected_codes(b["text"], tgt)
+        if cand_offsets:
+            cl = []
+            for j, (oj, sj, x) in enumerate(pl):
+                tid = list(x.token_ids)
+                cc = [t - SEMANTIC_0 for t in tid if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+                cl.append({"o": oj, "v": sj, "codes": cc,
+                           "closing": tid[-1] if tid and tid[-1] in (WAIT_READ, END_SEMANTIC) else None,
+                           "lp": None if x.cumulative_logprob is None else round(float(x.cumulative_logprob), 4),
+                           "ntok": len(tid), "nll": scores[k][j][0], "cover": scores[k][j][1],
+                           "forced": len(cc) >= max(int(2.2 * exp), exp + 100)})
+            b["cands"], b["chosen"] = cl, pick
+        b["speed"] = spd
+        b["codes"] = [t - SEMANTIC_0 for t in ids if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+        b["closing"] = ids[-1] if ids and ids[-1] in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if b["final"] else WAIT_READ)
+        b["forced"] = len(b["codes"]) >= max(int(2.2 * exp), exp + 100)
+        b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
+
+
+def dump_cands(items: list[dict], path: Path) -> None:
+    """--dump-cands: one row per item (voice, duration, per block GLM / text ids / speeds / backlog bin / candidates)."""
+    with open(path, "w", encoding="utf-8") as fh:
+        for it in items:
+            fh.write(json.dumps({"id": it["id"], "voice": [int(v) for v in it["voice"]], "dur_ms": it["dur_ms"],
+                                 "blocks": [{"write_ms": b["write_ms"], "text": b["text"], "final": b["final"],
+                                             "glm": [int(t) for t in b["glm"]], "glm_end": b["glm_end"],
+                                             "ids": b["ids"], "speed_base": b["speed_base"], "speed": b["speed"],
+                                             "backlog_bin": b.get("backlog_bin"), "chosen": b.get("chosen"),
+                                             "cands": b.get("cands", [])} for b in it["blocks"]]},
+                                ensure_ascii=False) + "\n")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", required=True, help="a UniSS directory (an export's uniss/)")
@@ -417,7 +603,29 @@ def main() -> None:
                     help="speech-gap plan B3 (si_talker_fix.py): a block reads the source heard so far with every sample "
                          "outside this stream's own segments (its blocks written by then, start_s..end_s, widened by "
                          "this many ms) set to zero; needs blocks with start_s/end_s (-1 = off, unchanged)")
+    # talker schemes PL-EM / alignment-CRF (reports/mist_w3po_v1/talker_crf_prereg_v1.zh-CN.md); all off by default
+    ap.add_argument("--cand-speeds", default="",
+                    help="candidate sampling: comma list of speed offsets added to each block's policy speed (first 0); "
+                         "--cand-k samples at each; every candidate is CTC-scored (--scorer-url) and the block continues "
+                         "with the A' rule (lowest CTC NLL among the first --select-k at offset 0). Off: unchanged")
+    ap.add_argument("--cand-k", type=int, default=4)
+    ap.add_argument("--dump-cands", action="store_true",
+                    help="with --cand-speeds: write cands_<shard>.jsonl (per block: GLM, text ids, speeds, every "
+                         "candidate's codes / closing / logprob / CTC NLL / cover / forced, the chosen index)")
+    ap.add_argument("--cand-cover", action="store_true", help="with --cand-speeds: ask the scorer for block word coverage")
+    ap.add_argument("--backlog-token", action="store_true",
+                    help="PL-EM prompt format: S2T header speed = the block pace (speed_base), then a backlog token "
+                         "(queued speech when written, 0.5 s bins, 8 reserved ids); TTS header speed = the block's speed")
+    ap.add_argument("--self-speed", action="store_true",
+                    help="with --backlog-token: the talker picks each block's TTS speed token itself (argmax over the "
+                         "35 speed tokens) before speaking it")
     args = ap.parse_args()
+    if args.self_speed and not args.backlog_token:
+        raise SystemExit("--self-speed needs --backlog-token")
+    cand_offsets = [int(x) for x in args.cand_speeds.split(",")] if args.cand_speeds else []
+    if cand_offsets and (cand_offsets[0] != 0 or args.rerun_forced or args.select_voice > 1 or args.best_of > 1):
+        raise SystemExit("--cand-speeds: first offset 0; not with --rerun-forced / --select-voice / --best-of")
+    new_mode = bool(cand_offsets or args.backlog_token)
 
     from vllm import LLM, SamplingParams
     from uniss import UniSSTokenizer
@@ -533,6 +741,9 @@ def main() -> None:
                  logits_processors=[SIGuard])
     t0 = time.time()
     for r in range(max(len(it["blocks"]) for it in items)):
+        if new_mode:   # talker schemes (cand sampling / backlog format); the original loop below is untouched
+            plcrf_round(r, items, talker, front, device, tok, args, lang, tgt, cand_offsets, SamplingParams, out)
+            continue
         reqs, params, owners = [], [], []
         for n_it, it in enumerate(items):
             if r >= len(it["blocks"]):
@@ -671,6 +882,8 @@ def main() -> None:
             "speed_shift": args.speed_shift, "select_k": args.select_k,
             **({"rerun_forced": args.rerun_forced} if args.rerun_forced else {}),
             **({"src_mask_own_ms": args.src_mask_own_ms} if args.src_mask_own_ms >= 0 else {}),
+            **({"cand_speeds": args.cand_speeds, "cand_k": args.cand_k} if cand_offsets else {}),
+            **({"backlog_token": True, "self_speed": args.self_speed} if args.backlog_token else {}),
             "codes": len(codes), "error": None if codes else "no audio",
             "start_offset_ms": int(pieces[0][0] + lead * 20) if codes else None,
             "end_offset_ms": int(end_prev - it["dur_ms"]),
@@ -678,12 +891,14 @@ def main() -> None:
             "blocks": [{**{k: b[k] for k in ("write_ms", "glm_end", "text", "final", "start_ms", "dur_ms", "closed", "forced", "speed", "speech_at_ms")},
                         **({"code_ids": [int(c) for c in b["codes"]]} if args.dump_codes else {}),
                         **{k: b[k] for k in ("select_nll", "cand_nll", "select_voice_cos", "cand_voice_cos",
-                                             "rerun", "rerun_tries") if k in b},
+                                             "rerun", "rerun_tries", "backlog_bin", "speed_policy_tok") if k in b},
                         **({"train_ids": b["prompt"] + [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]],
                             "label_from": len(b["prompt"])} if args.dump_seq else {})}
                        | {"codes": len(b["codes"]), "closing": "wait_read" if b["closing"] == WAIT_READ else "end"}
                        for b in it["blocks"]]})
     timing["decode"] = time.time() - t0
+    if args.dump_cands:
+        dump_cands(items, out / f"cands_{args.shard}.jsonl")
     with open(out / f"part_{args.shard}.jsonl", "w", encoding="utf-8") as fh:
         fh.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in records)
     print("timing " + "  ".join(f"{k} {v:.1f}s" for k, v in timing.items()) + f"  sentences {len(records)}", flush=True)
