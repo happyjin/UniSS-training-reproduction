@@ -16,6 +16,9 @@
       edge-order mass sums to 1
   (6) --fast-moe-bwd: the patched grouped_mm fallback (no frozen expert-weight gradient) gives bit-identical forward
       outputs and input gradients
+  (7) the trainer's step path (run_step -> grad_pass -> reduce_logs / metrics_fields, world 1, --final-read-full-post 1):
+      --prefetch 1 (pass-2 batches collated in a thread during pass 1) gives the same rows, coefficients and
+      bit-identical loss / gradients as --prefetch 0; the logged sft_loss equals C0's loss of the same windows
 
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.crf.test_serial_v2p_train
 """
@@ -486,9 +489,44 @@ def test_fast_moe_bwd():
           "the frozen expert weights get no gradient computed; a trainable weight still gets the same gradient")
 
 
+# ---------------------------------------------------------------- (7) step path, prefetch
+def test_run_step_prefetch():
+    wins = small_choice_windows(3, max_paths=60)
+    m = TT.tiny_model(seed=23)
+    D = T.step_totals(wins)[0]
+    out = []
+    for pf in (False, True):
+        ctx = {**vctx(perturb=0.2, budget=1500), "final_full_post": True}
+        TT.zero(m)
+        v = V2T.run_step(m, wins, D, ctx, 3, V2T.TAU, 0, 1, prefetch=pf)
+        assert (v["batches"] is not None) == pf
+        ctx["prefetched_batches"] = v["batches"]
+        lg = T.grad_pass(m, v["rows"], ctx, 3)
+        V2T.reduce_logs(v, lg, "cpu")
+        rec = V2T.metrics_fields(v, lg, {})
+        out.append((v, lg, TT.grads(m), rec))
+    (v0, l0, g0, r0), (v1, l1, g1, r1) = out
+    assert l0["loss_main"] == l1["loss_main"] and l0["mbs"] == l1["mbs"] and l0["mbs"] >= 2
+    for k in g0:
+        assert torch.equal(g0[k], g1[k]), k
+    for a, b in zip(v0["rows"], v1["rows"]):
+        assert a.key == b.key and np.array_equal(a.c_tok, b.c_tok) and np.array_equal(a.c_end, b.c_end)
+    # C0's loss of these windows (heuristic rows, same final-read rule and features) = the logged sft_loss
+    c0 = T.train_rows(wins, {w.idx: T.heur_weights(w) for w in wins}, D, 1.0, 0.0)
+    TT.zero(m)
+    lc = T.grad_pass(m, c0, {**vctx(perturb=0.2, budget=1500), "final_full_post": True}, 3)
+    assert abs(r0["sft_loss"] - lc["loss_main"]) < 1e-5 * abs(lc["loss_main"]), (r0["sft_loss"], lc["loss_main"])
+    need = {"sft_loss", "q_label", "exp_nf", "exp_defer", "n_real", "rows_pass1", "rows_pass2", "tok_pass1",
+            "t_collate1", "t_score1", "t_gather", "t_join2", "t_collate2"}
+    assert need <= set(r0), need - set(r0)
+    print(f"  (7) step path (run_step, grad_pass, logs): --prefetch 1 = --prefetch 0 bit for bit ({l0['mbs']} pass-2 "
+          f"micro-batches); logged sft_loss {r0['sft_loss']:.6f} = C0's loss {lc['loss_main']:.6f}; q_label "
+          f"{r0['q_label']:.3f}, E[newfirst] {r0['exp_nf']:.3f}, E[deferred] {r0['exp_defer']:.3f}")
+
+
 def main():
     t0 = time.time()
-    tests = [test_fast_moe_bwd, test_weight_sums, test_posterior_dummy_exact, test_collapse_equals_heuristic,
+    tests = [test_run_step_prefetch, test_fast_moe_bwd, test_weight_sums, test_posterior_dummy_exact, test_collapse_equals_heuristic,
              test_posterior_tiny_model, test_grad_equals_em_surrogate, test_packing_invariance]
     for t in tests:
         t1 = time.time()
