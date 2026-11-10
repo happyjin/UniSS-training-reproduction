@@ -15,7 +15,9 @@ Reference points:
                segments the official assignment gives it; StartOffset = first block start - unit start, EndOffset =
                last block end - unit end (Hibiki's End Offset is per utterance: end of the last output word - end of
                the last source word)
-EndOffset (unit, online) is split into: model lag (raw commit - unit end), detector wait (online commit - raw commit),
+Per unit also LAAL (Papi et al. 2022; metric_headroom's text form): text_laal_online (word delay = online commit -
+unit start) and speech_laal_online (word delay = when the word has been spoken on the online queue - unit start, a
+block's words spread evenly over its playback). EndOffset (unit, online) is split into: model lag (raw commit - unit end), detector wait (online commit - raw commit),
 queue wait (start - online commit), and the last block's duration. Means (the literature's aggregate, SimulEval
 mean()) and p50 / p90. No computation-aware number: the decode is batched (see the plan).
 Writes <out> (json; refuses to overwrite). Dev only.
@@ -51,6 +53,35 @@ def build_parser() -> argparse.ArgumentParser:
     # e.g. windows_zh2en_c2g05_v1). The reference windows (scoring) stay metric_headroom.REF_WIN.
     ap.add_argument("--win", default=M.WIN)
     return ap
+
+
+def laal(d: list, u: dict) -> float:
+    """LAAL (Papi et al. 2022) of one scored reference unit: d = per output word delay from the unit start (s, any
+    order), |X| = unit length, |Y| = max(output words, reference words), tau = first word at or after the unit end."""
+    d = sorted(d)
+    X = max(u["b"] - u["a"], 1e-3)
+    Y = max(len(d), len(u["ref"].split()))
+    tau = next((i for i, di in enumerate(d) if di >= X), len(d) - 1)
+    return float(np.mean([d[i] - i * X / Y for i in range(tau + 1)]))
+
+
+def speech_word_delays(pw: list, a: float) -> list:
+    """per output word of the unit's assigned pieces: when it has been SPOKEN (online queue timeline, no compute
+    time) - unit start. A block's words are spread evenly over its playback [on_start, on_end] (no word timestamps);
+    a piece (the part of a segment the assignment gave this unit) takes its words' positions inside the block."""
+    out = []
+    for x, t in pw:
+        b = x.get("blk")
+        if b is None:
+            continue
+        bw, tw = b["text"].split(), t.split()
+        if not bw or not tw:
+            continue
+        k0 = len(x["text"][: max(x["text"].find(t.strip()), 0)].split())
+        for j in range(len(tw)):
+            k = min(k0 + j, len(bw) - 1)
+            out.append(b["on_start"] + (k + 1) / len(bw) * (b["on_end"] - b["on_start"]) - a)
+    return out
 
 
 def main() -> None:
@@ -168,6 +199,13 @@ def main() -> None:
             for var, s0, s1 in (("recorded", "rec_start", "rec_end"), ("online", "on_start", "on_end"), ("online_1ch", "ch_start", "ch_end")):
                 U_[reg][f"speech_start_{var}"].append(min(b[s0] for b in bs) - u["a"])
                 U_[reg][f"speech_end_{var}"].append(max(b[s1] for b in bs) - u["b"])
+            pw = [(x, t) for x, t in sorted(A["got"].get(uid, []), key=lambda xt: xt[0]["a"])]
+            td = [x["commit"] - u["a"] for x, t in pw for _ in t.split()]
+            if td:
+                U_[reg]["text_laal_online"].append(laal(td, u))
+            sd = speech_word_delays(pw, u["a"])
+            if sd:
+                U_[reg]["speech_laal_online"].append(laal(sd, u))
             last = max(bs, key=lambda b: b["on_end"])
             parts["model_lag"].append(last["write"] - u["b"])
             parts["detector_wait"].append(last["avail"] - last["write"])

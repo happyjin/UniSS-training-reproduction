@@ -278,3 +278,16 @@ def test_c2_decode_extra_and_scorer_port():
     finally:
         cp.WIN, cp.CANDS, cp.DIAG = saved
         sv.SCORER_PORT0 = p0
+
+
+def test_speech_laal():
+    from experiments.mist_w3po_v1.evaluation.speech_latency_lit import laal, speech_word_delays
+    u = {"a": 10.0, "b": 14.0, "ref": "a b c d"}          # |X| = 4 s, 4 reference words
+    # words at 1, 2, 3, 5 s: tau = 3 (first >= 4 s); LAAL = mean(1-0, 2-1, 3-2, 5-3) = 1.25
+    assert abs(laal([5.0, 1.0, 3.0, 2.0], u) - 1.25) < 1e-9
+    assert abs(laal([1.0, 2.0], u) - 1.0) < 1e-9          # never reaches |X|: all words count, |Y| = 4
+    blk = {"text": "hello there my friend", "on_start": 12.0, "on_end": 14.0}
+    seg = {"text": "hello there my friend", "blk": blk}
+    d = speech_word_delays([(seg, "my friend")], 10.0)    # words 3 and 4 of 4 end at 13.5 and 14.0
+    assert [round(x, 6) for x in d] == [3.5, 4.0]
+    assert speech_word_delays([({"text": "x", "blk": None}, "x")], 0.0) == []
