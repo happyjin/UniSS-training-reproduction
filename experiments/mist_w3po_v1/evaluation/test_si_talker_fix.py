@@ -207,3 +207,12 @@ def test_c2_second_point_and_speech_var_win():
     finally:
         cp.WIN, cp.CANDS, cp.DIAG = saved
     assert cp.WIN == "eval_outputs/mist_w3po_v1/data/windows_zh2en_v1/windows_dev_online.jsonl"
+
+
+def test_speech_gap_decomp_win_default_unchanged():
+    from experiments.mist_w3po_v1.evaluation import metric_headroom as M
+    from experiments.mist_w3po_v1.evaluation import speech_gap_decomp as sg
+    a = sg.build_parser().parse_args(["--run", "r", "--speech", "s", "--out", "o"])
+    assert a.win == M.WIN and a.sem == "" and a.asr_override == "" and a.asr_override_field == "asr_text"
+    w = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl"
+    assert sg.build_parser().parse_args(["--run", "r", "--speech", "s", "--out", "o", "--win", w]).win == w

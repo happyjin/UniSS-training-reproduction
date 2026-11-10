@@ -268,10 +268,7 @@ def binned(rows, keyf, bins):
     return out
 
 
-def main() -> None:
-    global NORMS
-    import faulthandler
-    faulthandler.enable()
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
     ap.add_argument("--speech", required=True, help="speech dir holding talker/ (one TTS seed)")
@@ -281,7 +278,16 @@ def main() -> None:
                     "transcripts, e.g. whisper_b1 output; every stream must be present")
     ap.add_argument("--asr-override-field", default="asr_text",
                     help="field of --asr-override to use; a row without it keeps that file's asr_text")
-    args = ap.parse_args()
+    # the online windows the run was decoded on (default metric_headroom.WIN, unchanged; C2 runs pass their own)
+    ap.add_argument("--win", default=M.WIN)
+    return ap
+
+
+def main() -> None:
+    global NORMS
+    import faulthandler
+    faulthandler.enable()
+    args = build_parser().parse_args()
     out_j, out_s = Path(args.out + ".json"), Path(args.out + ".streams.jsonl")
     for p in (out_j, out_s, Path(args.out + ".pairs.json"), Path(args.out + ".sem.json")):
         if p.exists():
@@ -289,7 +295,7 @@ def main() -> None:
     NORMS = norms()
     from meeting_score import universe
     import soundfile as sf
-    W = [json.loads(l) for l in open(M.REPO / M.WIN, encoding="utf-8")]
+    W = [json.loads(l) for l in open(M.REPO / args.win, encoding="utf-8")]
     wins = {w["id"]: w for w in W}
     H = {h["id"]: h for h in map(json.loads, open(Path(args.run) / "hyp.jsonl", encoding="utf-8"))}
     RW = [json.loads(l) for l in open(M.REPO / M.REF_WIN, encoding="utf-8")]
