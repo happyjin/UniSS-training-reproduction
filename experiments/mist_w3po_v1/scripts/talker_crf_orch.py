@@ -13,6 +13,13 @@ Stages (--stage):
             (windows_zh2en_c2g06_train16_v1, 8 shards by meeting) -> merged hyp.jsonl (score_run.merge; no scoring on
             train) -> talker prep exactly as crf_pair_dev_orch.speech's sprep (+ drop_long_streams 400)
 
+  sample    candidate sampling (si_infer --cand-speeds 0,2 --cand-k 4 --dump-cands --cand-cover on A''s talker
+            settings c1+b1+s2, T1c, default seed): dev5 (A''s talker input on the 5 precheck meetings) and the train
+            subset, 8 shards each; 4 CTC scorer servers as jobs (ports SCORER_PORT0..+3; each talker shard waits for
+            its port), stopped (stop file) once every other job is over; dev5's own output (= the A' rule path) goes
+            through the speech chain (speechonly_part -> 2 ASR sub-shards -> asr_merge -> asr_hyp -> score_run --asr)
+            in decode/plcrf_dev5_aprule (A''s dev5 hyp lines)
+
     python talker_crf_orch.py --stage traindec --run logs/mist_w3po_v1/talker_crf_v1/traindec [--dry]
 """
 from __future__ import annotations
@@ -105,8 +112,15 @@ class YieldOrch(cp.PairOrch):
             return set()
         return {int(x) for x in f.read_text().split() if x.strip().isdigit()}
 
-    def headroom(self, snap: dict) -> bool:
-        return super().headroom(snap)
+    def status(self, snap):
+        """every tick: once every job but the scorer servers is over, the stop file ends the scorers."""
+        sc = [j for j in self.jobs if j.id in SCORER_IDS]
+        if sc and all(j.state in ("ok", "fail", "skip") for j in self.jobs if j.id not in SCORER_IDS):
+            f = self.run / "scorers_stop"
+            if not f.exists():
+                f.write_text("1\n")
+                self.log("all non-scorer jobs over: scorers_stop")
+        return super().status(snap)
 
     def start(self, j, card):
         if card is not None:
@@ -162,7 +176,106 @@ def build_traindec() -> list[fo.Job]:
     return jobs
 
 
-STAGES = {"traindec": (build_traindec, lambda: [f"{DEC}/{TRAIN_NAME}", f"{SPD}/{TRAIN_NAME}"])}
+A_PRIME = "dev_crf_v2p_s3000_finalpost_s8_c2g06"
+WIN_DEV = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl"
+WIN_DEV5 = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1_dev5/windows_dev_online.jsonl"
+DEV5 = "plcrf_dev5_cands"            # speech dir: talker_in (A''s, 5 meetings), talker (the sampling run)
+DEV5_DEC = "plcrf_dev5_aprule"       # decode dir: A''s hyp lines of the 5 meetings + the A' rule path's speech score
+SCORER_PORT0 = 18771
+N_SCORERS = 4
+SAMPLE_FLAGS = ("--speed-policy queue --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 --speed-shift 2 "
+                "--select-k 2 --cand-speeds 0,2 --cand-k 4 --dump-cands --cand-cover")
+
+
+def wait_port(port: int) -> str:
+    return f"for i in $(seq 1 180); do (echo > /dev/tcp/127.0.0.1/{port}) 2>/dev/null && break; sleep 5; done; "
+
+
+def talk_cmd(model: str, sp: str, out: str, k: int, flags: str, port: int | None, seed=None, tin: str = "talker_in") -> str:
+    """crf_pair_dev_orch.speech's talker command (same model-independent flags) with this scheme's flags."""
+    sd = f" --seed {seed}" if seed else ""
+    url = f" --scorer-url http://127.0.0.1:{port}/score" if port else ""
+    return (ENV + (wait_port(port) if port else "") + f"VLLM_USE_FLASHINFER_SAMPLER=0 OMP_NUM_THREADS=16 {fo.PYV} -m "
+            f"{M}.si_infer --model {model} --direction zh2en --window 1 --output {sp}/{out} --text-policy file "
+            f"--blocks-file {sp}/{tin}/blocks.jsonl --items-file {sp}/{tin}/items.jsonl {flags}{url} "
+            f"--shard {k} --num-shards 8{sd} > {sp}/{out}_talk{k}.log 2>&1")
+
+
+def asr_chain(add, name: str, D: str, SP: str, out: str, prio: int, talk_ids: list[str], win: str) -> None:
+    """crf_pair_dev_orch.speech after the talkers, verbatim commands, for talker dir SP/out and decode dir D."""
+    T = f"{SP}/{out}"
+    parts = []
+    for k in range(8):
+        add(f"{name}__asrprep{k}", "cpu", prio, [talk_ids[k]],
+            lambda att, k=k: ENV + f"[ -s {T}/part_{k}.jsonl ] && {PYE} experiments/mist_w3po_v1/evaluation/"
+                                   f"speechonly_part.py {T} {k} > {T}_asrprep{k}.log 2>&1")
+        for s_ in range(2):
+            parts.append(f"{name}__asrp{k}_{s_}")
+            add(parts[-1], "asr", prio, [f"{name}__asrprep{k}"],
+                lambda att, k=k, s_=s_: ENV + f"{PYE} -m evaluation.asr_transcribe --input {T}/results_speechonly.t{k}.jsonl "
+                                              f"--output {T}/asr_speech.t{k}s{s_}.jsonl --device cuda:0 --batch-size 8 "
+                                              f"--resume --num-shards 2 --shard-index {s_} >> {T}_asr_t{k}s{s_}.log 2>&1",
+                retries=3)
+    add(f"{name}__asrprep", "cpu", prio, talk_ids,
+        lambda att: ENV + f"for k in 0 1 2 3 4 5 6 7; do [ -s {T}/part_$k.jsonl ] || MISSING=1; done; "
+                          f"[ -z \"$MISSING\" ] && cat {T}/part_*.jsonl > {T}/results.jsonl && "
+                          f"{PYE} scripts/gpu_queue/p80_speechonly.py {T} > {T}_asrprep.log 2>&1")
+    add(f"{name}__asr", "cpu", prio, parts + [f"{name}__asrprep"],
+        lambda att: ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_merge {T} 16 "
+                          f"'asr_speech.t*s*.jsonl' > {T}_asr_merge.log 2>&1")
+    add(f"{name}__sscore", "cpu", prio, [f"{name}__asr"],
+        lambda att: ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.asr_hyp {D}/hyp.jsonl "
+                          f"{T}/asr_speech_merged.jsonl {D}/hyp_asr.jsonl && {PY} -m "
+                          f"experiments.mist_w3po_v1.evaluation.score_run --run {D} --windows {win} --ref-windows "
+                          f"{fo.REF_WIN} --set zh2en --asr {D}/hyp_asr.jsonl > {D}/score_asr.log 2>&1")
+
+
+def scorer_jobs(add, run: str) -> list[str]:
+    ids = []
+    for i in range(N_SCORERS):
+        port = SCORER_PORT0 + i
+        ids.append(f"scorer{i}")
+        add(ids[-1], "asr", 0, [],
+            lambda att, port=port: ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.si_ctc_scorer --port {port} "
+                                         f"> {run}/scorer_{port}.a{att}.log 2>&1 & SP=$!; "
+                                         f"while [ ! -e {run}/scorers_stop ] && kill -0 $SP 2>/dev/null; do sleep 15; done; "
+                                         f"kill $SP 2>/dev/null; wait $SP; [ -e {run}/scorers_stop ]", retries=3)
+    return ids
+
+
+def build_sample(run: str = "") -> list[fo.Job]:
+    jobs: list[fo.Job] = []
+
+    def add(*a, **k):
+        jobs.append(fo.Job(*a, **k))
+        jobs[-1].order = len(jobs)
+
+    scorer_jobs(add, run)
+    D5, S5 = f"{DEC}/{DEV5_DEC}", f"{SPD}/{DEV5}"
+    add("dev5_hyp", "cpu", 1, [],
+        lambda att: ENV + f"mkdir -p {D5} && {PY} -c \"import json; W={{json.loads(l)['id'] for l in open('{WIN_DEV5}')}}; "
+                          f"rows=[l for l in open('{DEC}/{A_PRIME}/hyp.jsonl') if json.loads(l)['id'] in W]; "
+                          f"assert len(rows)==len(W); open('{D5}/hyp.jsonl','x').writelines(rows)\" > {D5}/hyp.log 2>&1")
+    talks = []
+    for k in range(8):
+        talks.append(f"dev5__talk{k}")
+        add(talks[-1], "talk", 1, [],
+            lambda att, k=k: talk_cmd(T1C_PATH, S5, "talker", k, SAMPLE_FLAGS, SCORER_PORT0 + k % N_SCORERS), retries=5)
+    asr_chain(add, "dev5", D5, S5, "talker", 1, talks, WIN_DEV5)
+    jobs[[j.id for j in jobs].index("dev5__sscore")].deps.append("dev5_hyp")
+    ST = f"{SPD}/{TRAIN_NAME}"
+    for k in range(8):
+        add(f"train__talk{k}", "talk", 2, [],
+            lambda att, k=k: talk_cmd(T1C_PATH, ST, "talker_cands", k, SAMPLE_FLAGS, SCORER_PORT0 + k % N_SCORERS),
+            retries=5)
+    return jobs
+
+
+T1C_PATH = fo.T1C
+STAGES = {"traindec": (lambda run="": build_traindec(), lambda: [f"{DEC}/{TRAIN_NAME}", f"{SPD}/{TRAIN_NAME}"]),
+          "sample": (build_sample, lambda: [f"{DEC}/{DEV5_DEC}", f"{SPD}/{DEV5}/talker",
+                                            f"{SPD}/{TRAIN_NAME}/talker_cands"])}
+SCORER_IDS = {f"scorer{i}" for i in range(N_SCORERS)}
 
 
 def main():
@@ -175,7 +288,7 @@ def main():
     os.chdir(REPO)
     cp.CANDS = {}   # PairOrch.loop: no text-score events in these job lists
     build, dirs_of = STAGES[a.stage]
-    jobs = build()
+    jobs = build(str(Path(a.run)))
     ids = [j.id for j in jobs]
     assert len(set(ids)) == len(ids)
     for j in jobs:

@@ -36,3 +36,23 @@ if __name__ == "__main__":
     test_traindec_jobs()
     test_excluded_and_tree()
     print("ok")
+
+
+def test_sample_jobs():
+    jobs = t.build_sample("RUN")
+    by = {j.id: j for j in jobs}
+    assert {f"scorer{i}" for i in range(4)} <= set(by)
+    assert all(by[f"scorer{i}"].kind == "asr" and "RUN/scorers_stop" in by[f"scorer{i}"].cmd(1) for i in range(4))
+    for pre in ("dev5", "train"):
+        for k in range(8):
+            c = by[f"{pre}__talk{k}"].cmd(1)
+            assert "--cand-speeds 0,2 --cand-k 4 --dump-cands --cand-cover" in c and "--speed-policy queue" in c
+            assert "--select-k 2" in c and "--speed-shift 2" in c and f"127.0.0.1:{t.SCORER_PORT0 + k % 4}/score" in c
+            assert f"--shard {k} --num-shards 8" in c and "--seed" not in c
+    assert "dev5_hyp" in by["dev5__sscore"].deps and t.WIN_DEV5 in by["dev5__sscore"].cmd(1)
+    assert not any(j.id.startswith("train__asr") for j in jobs)
+
+
+if __name__ == "__main__":
+    test_sample_jobs()
+    print("ok sample")
