@@ -266,12 +266,14 @@ def build_sample(run: str = "") -> list[fo.Job]:
     ST = f"{SPD}/{TRAIN_NAME}"
     for k in range(8):
         add(f"train__talk{k}", "talk", 2, [],
-            lambda att, k=k: talk_cmd(T1C_PATH, ST, "talker_cands", k, SAMPLE_FLAGS, SCORER_PORT0 + k % N_SCORERS),
-            retries=5)
+            lambda att, k=k: (f"until grep -qx 0 {TRAINDEC_RUN}/state/{TRAIN_NAME}__sprep.a*.rc 2>/dev/null; "
+                              f"do sleep 20; done; ")   # the traindec stage's talker prep (its own orchestrator)
+            + talk_cmd(T1C_PATH, ST, "talker_cands", k, SAMPLE_FLAGS, SCORER_PORT0 + k % N_SCORERS), retries=5)
     return jobs
 
 
 T1C_PATH = fo.T1C
+TRAINDEC_RUN = "logs/mist_w3po_v1/talker_crf_v1/traindec"
 STAGES = {"traindec": (lambda run="": build_traindec(), lambda: [f"{DEC}/{TRAIN_NAME}", f"{SPD}/{TRAIN_NAME}"]),
           "sample": (build_sample, lambda: [f"{DEC}/{DEV5_DEC}", f"{SPD}/{DEV5}/talker",
                                             f"{SPD}/{TRAIN_NAME}/talker_cands"])}
