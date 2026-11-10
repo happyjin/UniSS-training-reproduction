@@ -41,6 +41,7 @@ WIN_TRAIN = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_train16_v1/windo
 TRAIN_NAME = "train16_crf_v2p_s3000_finalpost_c2g06"
 CKPT = f"{cp.TRAIN}/crf_v2p_20261110T075131Z/ckpt/{cp.STEP}"
 WORKLOAD = "train_mist_workload.py"
+GLOBAL_EXCLUDE = "logs/mist_w3po_v1/talker_crf_v1/exclude_cards"
 
 
 def workload_pids() -> dict[int, list[int]]:
@@ -107,10 +108,12 @@ class YieldOrch(cp.PairOrch):
         return snap
 
     def excluded(self) -> set[int]:
-        f = self.run / "exclude_cards"
-        if not f.exists():
-            return set()
-        return {int(x) for x in f.read_text().split() if x.strip().isdigit()}
+        """cards in <run>/exclude_cards or in the shared GLOBAL_EXCLUDE (start_talker_crf_scheme.sh: training cards)."""
+        out = set()
+        for f in (self.run / "exclude_cards", Path(GLOBAL_EXCLUDE)):
+            if f.exists():
+                out |= {int(x) for x in f.read_text().split() if x.strip().isdigit()}
+        return out
 
     def status(self, snap):
         """every tick: once every job but the scorer servers is over, the stop file ends the scorers."""

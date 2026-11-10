@@ -28,7 +28,12 @@ def test_excluded_and_tree():
         o.run = Path(d)
         assert o.excluded() == set()
         (Path(d) / "exclude_cards").write_text("0 1\n3\n")
+        g0 = t.GLOBAL_EXCLUDE
+        t.GLOBAL_EXCLUDE = f"{d}/global_ex"
         assert o.excluded() == {0, 1, 3}
+        (Path(d) / "global_ex").write_text(" 5 6")
+        assert o.excluded() == {0, 1, 3, 5, 6}
+        t.GLOBAL_EXCLUDE = g0
     assert os.getpid() in t.tree(os.getpid())
 
 
