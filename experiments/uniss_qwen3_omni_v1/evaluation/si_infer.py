@@ -507,6 +507,57 @@ def plcrf_round(r, items, talker, front, device, tok, args, lang, tgt, cand_offs
         b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
 
 
+def cover_gate_round(gate, talker, tok, reqs, params, owners, r, tgt, args) -> None:
+    """--cover-gate: P_cover of each owner's block r; blocks below the threshold sampled again (n=1, new seeds) up to
+    --cover-gate-tries times; the first passing sample, else the one with the highest P_cover, is kept."""
+    def lens(b):
+        return [max(1, len(tok.decode([t]).strip())) for t in b["ids"]]
+
+    def out_ids(b):
+        return [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]]
+
+    bl = [it["blocks"][r] for it in owners]
+    pc = gate.p_cover([reqs[k]["prompt_token_ids"] for k in range(len(owners))], [out_ids(b) for b in bl],
+                      [lens(b) for b in bl])
+    best = {k: (pc[k], None) for k in range(len(owners))}
+    for k, b in enumerate(bl):
+        b["p_cover"], b["cover_tries"] = round(pc[k], 4), 0
+    for a in range(1, args.cover_gate_tries + 1):
+        redo = [k for k in range(len(owners)) if best[k][0] < args.cover_threshold]
+        if not redo:
+            break
+        ps = []
+        for k in redo:
+            p = params[k].clone()
+            p.n, p.seed, p.logprobs = 1, params[k].seed + 104729 * a, None
+            ps.append(p)
+        print(f"round {r}: cover gate try {a}: {len(redo)} blocks", flush=True)
+        res = talker.generate([reqs[k] for k in redo], ps, use_tqdm=False)
+        cand = []
+        for k, rr in zip(redo, res):
+            b = bl[k]
+            ids = list(rr.outputs[0].token_ids)
+            codes = [t - SEMANTIC_0 for t in ids if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+            closing = ids[-1] if ids and ids[-1] in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if b["final"] else WAIT_READ)
+            cand.append((k, codes, closing, ids))
+        pn = gate.p_cover([reqs[k]["prompt_token_ids"] for k, *_ in cand],
+                          [[SEMANTIC_0 + c for c in codes] + [closing] for _, codes, closing, _ in cand],
+                          [lens(bl[k]) for k, *_ in cand])
+        for (k, codes, closing, ids), pv in zip(cand, pn):
+            bl[k]["cover_tries"] = a
+            if pv > best[k][0]:
+                best[k] = (pv, (codes, closing, ids))
+    for k, (pv, alt) in best.items():
+        if alt is None:
+            continue
+        b = bl[k]
+        codes, closing, ids = alt
+        exp = expected_codes(b["text"], tgt)
+        b["codes"], b["closing"], b["p_cover"] = codes, closing, round(pv, 4)
+        b["forced"] = len(codes) >= max(int(2.2 * exp), exp + 100)
+        b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
+
+
 def dump_cands(items: list[dict], path: Path) -> None:
     """--dump-cands: one row per item (voice, duration, per block GLM / text ids / speeds / backlog bin / candidates)."""
     with open(path, "w", encoding="utf-8") as fh:
@@ -619,6 +670,14 @@ def main() -> None:
     ap.add_argument("--self-speed", action="store_true",
                     help="with --backlog-token: the talker picks each block's TTS speed token itself (argmax over the "
                          "35 speed tokens) before speaking it")
+    ap.add_argument("--cover-gate", default="",
+                    help="scheme 2 (talker_crf_prereg_v1 §2.4): added.pt of an alignment-CRF talker export; a block whose "
+                         "alignment posterior P_cover (talker hidden states + head) is below --cover-threshold is "
+                         "sampled again (new seed) up to --cover-gate-tries times; the first that passes, else the "
+                         "highest P_cover, is kept. Off: unchanged")
+    ap.add_argument("--cover-kappa", type=float, default=0.0, help="the head's speaking-rate prior (rows stats kappa)")
+    ap.add_argument("--cover-gate-tries", type=int, default=2)
+    ap.add_argument("--cover-threshold", type=float, default=0.5)
     args = ap.parse_args()
     if args.self_speed and not args.backlog_token:
         raise SystemExit("--self-speed needs --backlog-token")
@@ -739,6 +798,10 @@ def main() -> None:
     # 2. The talker, a round of blocks at a time.
     talker = LLM(model=args.model, gpu_memory_utilization=args.gpu_mem, max_model_len=args.max_model_len, seed=args.seed,
                  logits_processors=[SIGuard])
+    gate = None
+    if args.cover_gate:   # scheme 2's inference rule (experiments/mist_w3po_v1/talker/cover_gate.py)
+        from experiments.mist_w3po_v1.talker.cover_gate import CoverGate
+        gate = CoverGate.from_paths(args.model, args.cover_gate, args.cover_kappa or None, device)
     t0 = time.time()
     for r in range(max(len(it["blocks"]) for it in items)):
         if new_mode:   # talker schemes (cand sampling / backlog format); the original loop below is untouched
@@ -830,6 +893,8 @@ def main() -> None:
                 b["closing"] = ids[-1] if ids and ids[-1] in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if b["final"] else WAIT_READ)
                 b["forced"] = False
                 b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC)
+        if gate is not None:
+            cover_gate_round(gate, talker, tok, reqs, params, owners, r, tgt, args)
     timing["talker"] = time.time() - t0
 
     # 3. One decode per sentence, then the timeline.
@@ -884,6 +949,7 @@ def main() -> None:
             **({"src_mask_own_ms": args.src_mask_own_ms} if args.src_mask_own_ms >= 0 else {}),
             **({"cand_speeds": args.cand_speeds, "cand_k": args.cand_k} if cand_offsets else {}),
             **({"backlog_token": True, "self_speed": args.self_speed} if args.backlog_token else {}),
+            **({"cover_gate": args.cover_gate, "cover_gate_tries": args.cover_gate_tries} if args.cover_gate else {}),
             "codes": len(codes), "error": None if codes else "no audio",
             "start_offset_ms": int(pieces[0][0] + lead * 20) if codes else None,
             "end_offset_ms": int(end_prev - it["dur_ms"]),
@@ -891,7 +957,8 @@ def main() -> None:
             "blocks": [{**{k: b[k] for k in ("write_ms", "glm_end", "text", "final", "start_ms", "dur_ms", "closed", "forced", "speed", "speech_at_ms")},
                         **({"code_ids": [int(c) for c in b["codes"]]} if args.dump_codes else {}),
                         **{k: b[k] for k in ("select_nll", "cand_nll", "select_voice_cos", "cand_voice_cos",
-                                             "rerun", "rerun_tries", "backlog_bin", "speed_policy_tok") if k in b},
+                                             "rerun", "rerun_tries", "backlog_bin", "speed_policy_tok", "p_cover",
+                                             "cover_tries") if k in b},
                         **({"train_ids": b["prompt"] + [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]],
                             "label_from": len(b["prompt"])} if args.dump_seq else {})}
                        | {"codes": len(b["codes"]), "closing": "wait_read" if b["closing"] == WAIT_READ else "end"}
