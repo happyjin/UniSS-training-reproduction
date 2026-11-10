@@ -56,3 +56,22 @@ def test_sample_jobs():
 if __name__ == "__main__":
     test_sample_jobs()
     print("ok sample")
+
+
+def test_precheck_jobs():
+    jobs = t.build_precheck("RUN")
+    by = {j.id: j for j in jobs}
+    assert {"pre_select", "render_lattice", "render_cover", "pre_summary"} <= set(by)
+    for sel in ("lattice", "cover"):
+        assert by[f"render_{sel}"].kind == "asr" and f"sel_{sel}.json" in by[f"render_{sel}"].cmd(1)
+        assert all(by[f"{sel}__asrprep{k}"].deps == [f"render_{sel}"] for k in range(8))
+        assert f"{sel}_hyp" in by[f"{sel}__sscore"].deps
+    s = by["pre_summary"].cmd(1)
+    for k in ("aprule", "lattice", "cover"):
+        assert f"--lat-{k}" in s and f"--gap-{k}" in s and f"--dec-{k}" in s
+    assert len(by["pre_summary"].deps) == 8
+
+
+if __name__ == "__main__":
+    test_precheck_jobs()
+    print("ok precheck")

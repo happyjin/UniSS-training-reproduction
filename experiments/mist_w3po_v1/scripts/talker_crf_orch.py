@@ -272,11 +272,66 @@ def build_sample(run: str = "") -> list[fo.Job]:
     return jobs
 
 
+PRE = "eval_outputs/mist_w3po_v1/talker_crf/precheck_dev5"
+SAMPLE_RUN = "logs/mist_w3po_v1/talker_crf_v1/sample"
+
+
+def build_precheck(run: str = "") -> list[fo.Job]:
+    """after the sample stage's dev5 chain (its sscore rc 0): select (lattice / cover) -> render -> speech chain ->
+    latency, gap decomposition, gate (one seed) for the three paths -> summary (GO / NOT GO, registered lines)."""
+    jobs: list[fo.Job] = []
+
+    def add(*a, **k):
+        jobs.append(fo.Job(*a, **k))
+        jobs[-1].order = len(jobs)
+
+    S5 = f"{SPD}/{DEV5}"
+    wait = f"until grep -qx 0 {SAMPLE_RUN}/state/dev5__sscore.a*.rc 2>/dev/null; do sleep 20; done; "
+    add("pre_select", "cpu", 1, [],
+        lambda att: wait + ENV + f"mkdir -p {PRE} && {PY} -m experiments.mist_w3po_v1.talker.precheck_plcrf select "
+                                 f"--cands '{S5}/talker/cands_*.jsonl' --win {WIN_DEV} --out {PRE} > {PRE}/select.log 2>&1")
+    paths = {"aprule": (f"{DEC}/{DEV5_DEC}", S5)}
+    for sel in ("lattice", "cover"):
+        D, SP = f"{DEC}/plcrf_dev5_{sel}", f"{SPD}/plcrf_dev5_{sel}"
+        paths[sel] = (D, SP)
+        add(f"render_{sel}", "asr", 1, ["pre_select"],
+            lambda att, sel=sel, SP=SP: ENV + f"mkdir -p {SP} && {fo.PYV} -m experiments.mist_w3po_v1.talker.render_selection "
+                                              f"--run {S5}/talker --sel {PRE}/sel_{sel}.json --out {SP}/talker "
+                                              f"> {SP}/render.log 2>&1", retries=1)
+        add(f"{sel}_hyp", "cpu", 1, ["pre_select"],
+            lambda att, D=D: ENV + f"mkdir -p {D} && cp -n {DEC}/{DEV5_DEC}/hyp.jsonl {DEC}/{DEV5_DEC}/score_text.json {D}/")
+        asr_chain(add, sel, D, SP, "talker", 1, [f"render_{sel}"] * 8, WIN_DEV5)
+        jobs[[j.id for j in jobs].index(f"{sel}__sscore")].deps.append(f"{sel}_hyp")
+    for key, (D, SP) in paths.items():
+        dep = [] if key == "aprule" else [f"{key}__sscore"]
+        add(f"lat_{key}", "cpu", 1, dep,
+            lambda att, D=D, SP=SP, key=key: (wait if key == "aprule" else "") + ENV + f"{PY} -m "
+            f"experiments.mist_w3po_v1.evaluation.speech_latency_lit --run {D} --talker {SP}/talker --win {WIN_DEV5} "
+            f"--out {PRE}/lat_{key}.json > {PRE}/lat_{key}.log 2>&1")
+        add(f"gap_{key}", "cpu", 1, dep,
+            lambda att, D=D, SP=SP, key=key: (wait if key == "aprule" else "") + ENV + f"{PY} -m "
+            f"experiments.mist_w3po_v1.evaluation.speech_gap_decomp --run {D} --speech {SP} --win {WIN_DEV5} "
+            f"--out {PRE}/gap_{key} > {PRE}/gap_{key}.log 2>&1")
+    for sel in ("lattice", "cover"):
+        add(f"gate_{sel}", "cpu", 1, [f"{sel}__sscore"],
+            lambda att, sel=sel: wait + ENV + f"{PY} -m experiments.mist_w3po_v1.evaluation.gate_2seed --cand "
+                                              f"{DEC}/plcrf_dev5_{sel} --ref {DEC}/{DEV5_DEC} --out {PRE}/gate_{sel}.json "
+                                              f"> {PRE}/gate_{sel}.log 2>&1")
+    add("pre_summary", "cpu", 1, [j.id for j in jobs if j.id.startswith(("lat_", "gap_", "gate_"))],
+        lambda att: ENV + f"{PY} -m experiments.mist_w3po_v1.talker.precheck_plcrf summary --out {PRE} "
+                          + " ".join(f"--dec-{k} {paths[k][0]} --lat-{k} {PRE}/lat_{k}.json --gap-{k} {PRE}/gap_{k}.json"
+                                     for k in paths)
+                          + f" --gate-lattice {PRE}/gate_lattice.json --gate-cover {PRE}/gate_cover.json > {PRE}/summary.log 2>&1")
+    return jobs
+
+
 T1C_PATH = fo.T1C
 TRAINDEC_RUN = "logs/mist_w3po_v1/talker_crf_v1/traindec"
 STAGES = {"traindec": (lambda run="": build_traindec(), lambda: [f"{DEC}/{TRAIN_NAME}", f"{SPD}/{TRAIN_NAME}"]),
           "sample": (build_sample, lambda: [f"{DEC}/{DEV5_DEC}", f"{SPD}/{DEV5}/talker",
-                                            f"{SPD}/{TRAIN_NAME}/talker_cands"])}
+                                            f"{SPD}/{TRAIN_NAME}/talker_cands"]),
+          "precheck": (build_precheck, lambda: [PRE, f"{DEC}/plcrf_dev5_lattice", f"{DEC}/plcrf_dev5_cover",
+                                                f"{SPD}/plcrf_dev5_lattice", f"{SPD}/plcrf_dev5_cover"])}
 SCORER_IDS = {f"scorer{i}" for i in range(N_SCORERS)}
 
 
