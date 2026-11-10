@@ -270,3 +270,22 @@ $$q(c_{1:N})=\frac{\exp\sum_n\psi_n(b_n,c_n)}{Z},\qquad \alpha_{n+1}(b')=\log\su
 - Zhang & Feng. Hidden Markov Transformer for Simultaneous Machine Translation. ICLR 2023.
 - Zhang & Feng. Unified Segment-to-Segment Framework for Simultaneous Sequence Generation. NeurIPS 2023. https://arxiv.org/abs/2310.17940
 - Papi et al. Length-Adaptive Average Lagging (LAAL). 2022. https://arxiv.org/abs/2206.05807
+
+---
+
+## 8. 三个保留方案：严格形式、是否 CRF、是否端到端、新颖性（2026-11-10 22:20 UTC）
+
+"端到端"分两层含义：**目标端到端**（训练目标直接是系统最终的指标，即语音 ASR-BLEU 和语音 LAAL）和**梯度端到端**（梯度穿过结构层，直接进入模型参数）。
+
+| 方案 | 严格模型 | 是 CRF 吗 | 目标端到端 | 梯度端到端 | 新颖性 |
+|---|---|---|---|---|---|
+| **1. PL-EM** | 以积压为状态的线性链 CRF：$q(c_{1:N})\propto\exp\sum_n\psi_n(b_n,c_n)$，(max,+) 转移，配分函数精确；后验正则的延迟预算 λ 用对偶二分确定 | **是**：采样候选格上的全局归一化后验，与 v2′ 是同一类 | 是：读对加语音 LAAL | **talker 内部是**：用后验加权的交叉熵训练 talker（含语速 token）。E 步的后验不回传梯度（EM），与 v2′ 相同。Thinker 冻结 | **高**：结构化的 best-of-N 蒸馏，耦合代价不可逐项相加但能精确算；以播放队列为状态训练同传 talker；多说话人单通道 |
+| 2. 对齐 CRF talker | 文本单元与语音码帧的单调半马尔可夫对齐：$p(z)\propto\exp\phi(z)$，覆盖约束加时长预算的后验正则 | **是**：条件半马尔可夫 CRF | 部分：直接针对漏读，时长服从预算 | **是**：辅助损失 $-\log Z_{\rm cover}$ 经可微的前向算法直接传到 talker 的隐状态，是三个里梯度最端到端的 | 中：单调对齐损失、HSMM 注意力已有；新意在只有解码器的流式多说话人 talker 和时长预算。作组件 |
+| 3. 跨接口联合格 | v2′ 的集合状态格加积压状态，边势再加 talker 侧的读对期望和播放延迟 | **是**：v2′ CRF 的增广 | 是：Thinker 直接以语音侧的读对和延迟为目标 | 不完全：Thinker 侧用 EM；talker 只作为势函数，梯度不穿过离散文本接口 | 高：用精确格 EM 代替强化学习，跨离散接口联合优化级联系统；风险和代价高 |
+
+**三者合起来的系统级端到端**：交替执行方案 1（固定 Thinker，训练 talker）和方案 3（固定 talker，训练 Thinker），就是对整个级联系统的坐标上升：
+- 每一步都是精确的格 EM；
+- 目标都是系统最终的语音 ASR-BLEU 和 LAAL；
+- 不需要梯度穿过离散接口，也不需要强化学习。
+
+这可以作为论文的完整叙事，前提是方案 1 单独先成立。
