@@ -216,3 +216,12 @@ def test_speech_gap_decomp_win_default_unchanged():
     assert a.win == M.WIN and a.sem == "" and a.asr_override == "" and a.asr_override_field == "asr_text"
     w = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl"
     assert sg.build_parser().parse_args(["--run", "r", "--speech", "s", "--out", "o", "--win", w]).win == w
+
+
+def test_speech_var_s3():
+    import speech_var_orch as sv
+    base = ("X -m m.si_infer --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 "
+            "--shard 2 --num-shards 8 --seed 20261109 > log 2>&1")
+    c = sv.talker_cmd(base, "c1+b1+s3", 2, 4)
+    assert "--speed-policy queue" in c and "--select-k 2 --scorer-url http://127.0.0.1:18767/score --speed-shift 3 --shard 2" in c
+    assert sv.VARS["s2"] == "--speed-shift 2" and sv.VARS["b1"] == "--select-k 2" and sv.VARS["c1"] == ""

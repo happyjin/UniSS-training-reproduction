@@ -38,6 +38,8 @@ VARS = {
     # after b1 / c1 passed (batch 1-2), their second points (2026-11-10 ~15:55 UTC, stacked next to C2):
     "b1k4": "--select-k 4",     # b1 with 4 candidates per block
     "s2": "--speed-shift 2",    # with c1: every block asks 2 speed steps (0.2 source/target ratio) faster
+    # A' (v2' + C2 gap 0.6 + c1+b1+s2) is the main system (2026-11-10 18:45 UTC); its next speed point:
+    "s3": "--speed-shift 3",
 }
 
 
