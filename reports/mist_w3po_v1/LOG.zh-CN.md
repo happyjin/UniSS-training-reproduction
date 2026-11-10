@@ -1519,3 +1519,11 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   5. 训练数据：按字母序前 16 个 train 会议（15 个可用、5613 个 gap-0.6 窗口），全量使用。
 - **代码**（只做加法，默认不变，均有单元测试并已推送）：`si_infer` 候选采样 / 积压 token / 自选语速 / 覆盖门；`si_ctc_scorer` 覆盖率；`experiments/mist_w3po_v1/talker/`（播放格、行构建、对齐 CRF、Megatron 入口、预检、渲染、质量）；`talker_crf_orch.py`（traindec / sample / precheck / eval 四个阶段，占卡任务视为可抢占）；`start_talker_crf_scheme.sh`（每个方案：等采样 → 建行 → 独占 4 卡训练 → 评测）。
 - **进度**：train 子集解码 22:43 起（8 卡），dev5 预检采样 22:51 起，train 采样排在解码之后；PL-EM 用 0–3 号卡、对齐 CRF 用 4–7 号卡。
+
+## 2026-11-10 23:30 UTC — talker 两方案预检结果（dev 5 会议）：P1 NOT GO、P2 GO、P3 GO、方案二 NOT GO
+
+- 报告：`talker_crf_results_v1.zh-CN.md` §1。参考 = 同一次采样的 A′ 规则路径（严格配对）。
+- **PL-EM 格 Viterbi**：官方语音 +0.39（P=0.028），归一化按段 +0.11，每条流语音 LAAL −0.099 s（登记要求 −0.25）、EndOffset −0.38 s → **P1 NOT GO**。P2（与暴力枚举一致）GO；P3（KL 0.737 ≥ 0.1）GO。
+- **方案二覆盖挑选**：归一化按段 +0.23（登记要求 +0.3），LAAL 不变 → **NOT GO**；官方 +0.26（P=0.083）。
+- 补充（未登记）：格路径的**单通道**语音 LAAL 7.80 → 5.48（−2.31 s）。
+- **按用户指令（预检不影响训练），两个方案照常训练。**
