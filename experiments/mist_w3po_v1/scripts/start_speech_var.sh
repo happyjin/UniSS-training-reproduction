@@ -30,8 +30,10 @@ desc() { ps -eo pid=,ppid= | awk -v r="$1" '{par[$1]=$2} END{keep[r]=1; ch=1; wh
 
 # 1. the v2' scheduler and the workload
 if [ -d /proc/$SCHED_PID ] && tr '\0' ' ' < /proc/$SCHED_PID/cmdline | grep -q start_v2p_eval_after_train; then
-  log "stop v2p scheduler $SCHED_PID tree [$(desc $SCHED_PID | tr '\n' ' ')] (its last step would restart the workload)"
-  kill -TERM $(desc $SCHED_PID) 2>/dev/null
+  # the scheduler's own PID only: its tree holds the v2p eval orchestrator (2026-11-10 11:50 UTC the tree kill stopped
+  # it; its jobs, in their own sessions, survived and were adopted by crf_pair_dev_orch.py --resume)
+  log "stop v2p scheduler $SCHED_PID only (its last step would restart the workload)"
+  kill -TERM $SCHED_PID 2>/dev/null
 fi
 for f in logs/mist_w3po_v1/workload_at_*/card*.pid; do
   p=$(cat "$f" 2>/dev/null); [ -n "$p" ] && [ -d /proc/$p ] || continue
