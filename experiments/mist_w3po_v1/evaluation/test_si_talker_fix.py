@@ -151,3 +151,19 @@ def test_c2_orch_windows_and_talker():
             [c for j, c in zip(jobs, cmds) if j.id.endswith("__score")][0]
     finally:
         cp.WIN, cp.CANDS, cp.DIAG = saved
+
+
+def test_speech_var_second_points():
+    import speech_var_orch as sv
+    base = ("X -m m.si_infer --speed-policy fixed --history-ban 8 --max-model-len 32768 --gpu-mem 0.1 "
+            "--shard 5 --num-shards 8 --seed 20261109 > log 2>&1")
+    p0 = sv.SCORER_PORT0
+    try:
+        sv.SCORER_PORT0 = 18769
+        c = sv.talker_cmd(base, "c1+b1k4", 5, 4)
+        assert "--speed-policy queue" in c and "--select-k 4 --scorer-url http://127.0.0.1:18770/score --shard 5" in c
+        c = sv.talker_cmd(base, "c1+b1+s2", 5, 4)
+        assert "--select-k 2 --scorer-url http://127.0.0.1:18770/score --speed-shift 2 --shard 5" in c
+    finally:
+        sv.SCORER_PORT0 = p0
+    assert sv.SCORER_PORT0 == 18765 and "18766" in sv.talker_cmd(base, "b1", 5, 4)

@@ -35,6 +35,9 @@ VARS = {
     "b3": "--src-mask-own-ms 250",
     "b2": "--rerun-forced 3",
     "c1": "",   # speed policy swap below
+    # after b1 / c1 passed (batch 1-2), their second points (2026-11-10 ~15:55 UTC, stacked next to C2):
+    "b1k4": "--select-k 4",     # b1 with 4 candidates per block
+    "s2": "--speed-shift 2",    # with c1: every block asks 2 speed steps (0.2 source/target ratio) faster
 }
 
 
@@ -47,7 +50,7 @@ def talker_cmd(cmd: str, v: str, shard: int, scorers: int) -> str:
             cmd = cmd.replace("--speed-policy fixed", "--speed-policy queue")
             continue
         extra = VARS[u]
-        if u == "b1":
+        if u.startswith("b1"):
             extra += f" --scorer-url http://127.0.0.1:{SCORER_PORT0 + shard % scorers}/score"
         cmd = cmd.replace(" --shard ", f" {extra} --shard ", 1)
     return cmd
@@ -84,17 +87,20 @@ def build_jobs(vs: list[str], scorers: int, base: str = BASE) -> list[fo.Job]:
 
 
 def main():
+    global SCORER_PORT0
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
     ap.add_argument("--vars", default="b1,b3,b2,c1",
                     help="comma list; an item is v or v@<base decode dir>, v = one variant or several joined by +")
     ap.add_argument("--scorers", type=int, default=4, help="b1: CTC scorer servers (ports SCORER_PORT0 + i)")
+    ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0, help="first scorer port (default 18765)")
     ap.add_argument("--base", default=BASE, help="decode dir whose text the variants speak (default C0-fp)")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--spread", action="store_true")
     a = ap.parse_args()
     vs = a.vars.split(",")
+    SCORER_PORT0 = a.scorer_port0   # read by talker_cmd when the talk commands are built
     assert vs and all(u in VARS for v in vs for u in split_var(v, a.base)[0].split("+")), vs
     os.chdir(REPO)
     cp.CANDS = {}   # PairOrch.loop: no text-score flags in this job list
