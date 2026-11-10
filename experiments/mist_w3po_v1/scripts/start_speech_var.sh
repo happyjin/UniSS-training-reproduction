@@ -19,6 +19,10 @@ SCHED_PID=${SCHED_PID:-1873854}
 RUN=${RUN:-logs/mist_w3po_v1/speech_var_b1}
 VARS=${VARS:-b1,b3,b2,c1}
 SCORER_CARDS=${SCORER_CARDS:-"0 2 4 6"}
+# ORCH / ORCH_ARGS: the orchestrator and its own arguments (default = speech_var_orch.py --vars $VARS, unchanged);
+# C2: ORCH=experiments/mist_w3po_v1/scripts/c2_dev_orch.py ORCH_ARGS="" VARS=c1+b1 (VARS then only starts the scorers)
+ORCH=${ORCH:-experiments/mist_w3po_v1/scripts/speech_var_orch.py}
+ORCH_ARGS=${ORCH_ARGS-"--vars $VARS"}
 PY=$J/conda_envs/qwen3omni/bin/python
 LOCK=$J/work/mist_w3po_v1/gpu_launch.lock
 ENVS="export TMPDIR=$J/work/mist_w3po_v1/tmp HF_HOME=$J/cache/huggingface TORCH_HOME=$J/cache/torch XDG_CACHE_HOME=$J/cache PYTHONPATH=.:third_party/Megatron-LM OMP_NUM_THREADS=8 TOKENIZERS_PARALLELISM=false"
@@ -68,9 +72,9 @@ if echo "$VARS" | grep -qE "(^|[,+])b1([,+@]|$)"; then   # b1 alone or in a comb
 fi
 
 # 3. the orchestrator
-setsid "$PY" experiments/mist_w3po_v1/scripts/speech_var_orch.py --run "$RUN" --vars "$VARS" --scorers "$NS" --spread \
+setsid "$PY" "$ORCH" --run "$RUN" $ORCH_ARGS --scorers "$NS" --spread \
   > "$D/orch.out" 2>&1 < /dev/null 9>&- &
-OP=$!; echo $OP > "$D/orch.pid"; log "orchestrator pid $OP run $RUN vars $VARS"
+OP=$!; echo $OP > "$D/orch.pid"; log "orchestrator pid $OP run $RUN orch $ORCH args [$ORCH_ARGS] vars $VARS"
 
 # 4. idle fill until DONE
 sleep 300

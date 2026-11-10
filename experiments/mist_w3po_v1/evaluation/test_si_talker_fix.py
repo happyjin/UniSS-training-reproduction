@@ -115,3 +115,39 @@ def test_speech_var_combos_and_base():
     # batch-1 job list unchanged by the new arguments
     assert [j.id for j in sv.build_jobs(["b1", "b3", "b2", "c1"], 4)] == \
         [j.id for j in sv.build_jobs(["b1", "b3", "b2", "c1"], 4, sv.BASE)]
+
+
+def test_online_windows_gap_default_unchanged():
+    import importlib.util
+    from experiments.mist_w3po_v1.data.build_windows_zh2en import online_windows
+    spec = importlib.util.spec_from_file_location("bow6", REPO / "reports/gstar_si_v6/build_online_windows.py")
+    rng = np.random.default_rng(0)
+    post = (rng.random((3000, 4)) < 0.04).astype(np.float32) * 0.9   # sparse activity, gaps of all lengths
+    w = online_windows(post)
+    assert w == online_windows(post, 1.0)
+    try:
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        assert w == m.online_windows(post)
+    except ImportError:   # the v6 script's own imports may be absent; the default-equality above still holds
+        pass
+    w5 = online_windows(post, 0.5)   # a shorter gap only splits: each window's active span lies inside one at 1.0 s
+    assert len(w5) > len(w) and all(any(s0 <= s and e <= e0 for s0, e0, _ in w) for s, e, _ in w5)
+
+
+def test_c2_orch_windows_and_talker():
+    import crf_pair_dev_orch as cp
+    import c2_dev_orch as c2
+    saved = (cp.WIN, cp.CANDS, cp.DIAG)
+    try:
+        jobs = c2.build_jobs(4)
+        cmds = [j.cmd(1) for j in jobs]
+        assert not any(j.id.endswith("__diagA") for j in jobs)
+        assert not any("windows_zh2en_v1/windows_dev_online" in c for c in cmds)
+        assert sum(c2.WIN_C2 in c for c in cmds) == 13          # 8 decodes, text score, 2 preps, 2 speech scores
+        talk = [c for j, c in zip(jobs, cmds) if j.kind == "talk"]
+        assert len(talk) == 16 and all("--speed-policy queue" in c and "--select-k 2" in c for c in talk)
+        assert "data/ami_multispk_si_v1/e2e_gstar_zh2en_v1/windows_validation_ref.jsonl" in \
+            [c for j, c in zip(jobs, cmds) if j.id.endswith("__score")][0]
+    finally:
+        cp.WIN, cp.CANDS, cp.DIAG = saved
