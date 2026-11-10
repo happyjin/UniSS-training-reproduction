@@ -19,6 +19,7 @@ stacks next to C0-fp's decode. Events: <run>/events/{text_done_<key>,text_done,a
 
     setsid nohup python crf_pair_dev_orch.py --run logs/mist_w3po_v1/c0pair_dev > /dev/null 2>&1 < /dev/null &
     python crf_pair_dev_orch.py --run <dir> --dry                 # print the jobs, launch nothing
+    python crf_pair_dev_orch.py --run <dir> --resume --spread       # adopt a run; worst-fit once no decode is left
     python crf_pair_dev_orch.py --run <dir> --smoke [--dry]       # 2 decode jobs (one per candidate, --limit 2) into
                                                                   # crf/c0pair_smoke_<run name>/<key>
 """
@@ -147,6 +148,41 @@ def new_dirs() -> list[str]:
 
 
 class PairOrch(fo.Orch):
+    spread = False   # --spread (2026-11-10 07:04 UTC: best-fit piled the speech jobs onto busy cards, card 7 idle)
+
+    def dec_active(self, ready: list[Job]) -> bool:
+        return any(j.kind == "dec" and j.state in ("run", "wait") for j in self.jobs) or \
+            any(j.kind == "dec" for j in ready)
+
+    def plan(self, snap: dict, ready: list[Job]) -> list[tuple[Job, int]]:
+        """spread off: finalpost_dev_orch.Orch.plan unchanged. spread on and no decode running / waiting / ready:
+        the same loop, but every job takes the card with the most free plan GiB (worst-fit) instead of best-fit;
+        the caps (free_plan: <= 135 GiB, total - 12 GiB margin), the talker pair gap and the reservation are unchanged."""
+        if not self.spread or self.dec_active(ready):
+            return super().plan(snap, ready)
+        free = self.free_plan(snap)
+        reserved, plan, pair_used = set(), [], set()
+        t = now()
+        for j in sorted(ready, key=lambda x: (x.prio, x.order)):
+            need = fo.NEED[j.kind]
+            cands = [c for c in free if c not in reserved and free[c] >= need]
+            if j.kind == "talk":
+                ok = [c for c in cands if c // 2 not in pair_used and t - self.pair_last[c // 2] >= fo.TALK_PAIR_GAP_S]
+                if cands and not ok:
+                    reserved.add(max(cands, key=lambda c: free[c]))
+                    continue
+                cands = ok
+            if not cands:
+                continue
+            c = max(cands, key=lambda c: free[c])
+            plan.append((j, c))
+            free[c] -= need
+            if j.kind == "talk":
+                pair_used.add(c // 2)
+            if len(plan) >= 8:
+                break
+        return plan
+
     def loop(self):
         """finalpost_dev_orch.Orch.loop with the text flags of this job list (text_done_<key>, text_done)."""
         self.log(f"orchestrator pid {os.getpid()} start, {len(self.jobs)} jobs")
@@ -192,6 +228,8 @@ def main():
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--smoke", action="store_true", help="2 decode jobs with --limit 2 (one per candidate)")
     ap.add_argument("--resume", action="store_true", help="continue a crashed orchestrator's run dir (adopt its jobs)")
+    ap.add_argument("--spread", action="store_true", help="no decode running/waiting/ready -> worst-fit placement "
+                    "(default off: finalpost_dev_orch best-fit, unchanged)")
     a = ap.parse_args()
     os.chdir(REPO)
     run = Path(a.run)
@@ -222,6 +260,8 @@ def main():
             raise SystemExit(f"checkpoint files missing: {missing}")
         run.mkdir(parents=True)
         o = PairOrch(run, jobs)
+    o.spread = a.spread
+    o.log(f"spread {a.spread}")
     Path(fo.LOCK).parent.mkdir(parents=True, exist_ok=True)
     try:
         o.loop()
