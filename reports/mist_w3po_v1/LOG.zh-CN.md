@@ -1945,3 +1945,20 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 基线决策规则：只有一个 GO 用它；两个都 GO 选 dev5 CPU 语音代理更低的；都不 GO 选 dev5 文本 all 更高的（平局用 T5）。
 - 预检 PC1–PC4、速查 GO 线（T4/T5 的三条 + 语音代理低于 A′）、门槛（对 A′）加语音 LAAL 目标 ≤ 3.85 s，都已写死。
 - 跨流排队不进块势：(a) 显示每条流指标里没有跨流排队。这是与协调者原始描述的有意偏离，已在预登记中写明。
+
+## 2026-11-11 22:10 布拉格 — 方法设计执行者：读级块 talker 输入，以及 T2 的只跑语音链评测命令（协调者第 1 项）
+
+- **新文件 `crf/merge_read_segments.py`**：每条流里，同一读写出的连续段合成一段。hyp 的 segments 和 blocks 按同一规则合并，块内按 start_s 排序，与 talker prep 的顺序一致。
+  - 只做加法：在一个新的解码目录里写合并后的 hyp，score_text.json 原样复制。
+  - 测试 `test_merge_read_segments.py` 2/2 通过：
+    - 在 T2 和 A′ 的 dev 解码上，每个窗口每个说话人的词序列和各写出时刻的词数都不变；
+    - 源里能配对的块和段，合并后仍能配对；
+    - 合并是幂等的。
+- **已生成** `decode/dev_t2_latent_t0_s3000_w05_rl`：21,838 段合成 9,548 段（12,290 段被并入），与 (a) 的重放一致。
+  - 第一版命令行的配对检查太严：源里有 345 个窗口本来就不能配对。它在写完全部文件之后才退出。
+  - 已改成"源里能配对的窗口合并后不能丢配对"，丢失数为 0。另写了 `merge_read_segments.check.json` 核对这一点：重跑合并得到的结果与已写出的逐窗口相同。
+- **评测启动脚本 `scripts/start_t2rl_eval.sh`**：只用 `bash -n` 和 DRY_RUN 检查过，dry 显示 81 个作业。
+  - 先等 T5 训练退出（日志里出现 CRF_RUN_EXIT），再用 `thinker_t_eval_orch --speech-from dev_t2_latent_t0_s3000_w05_rl --talker c1b1s2` 跑语音链，两个种子；
+  - gate_0 对 A′，gate_1 对未合并的 T2；
+  - `--exclude 4 5 6 7`，`--cap135`，scorer 端口 18941–18944。
+  - 命令已交给协调者，由协调者启动。
