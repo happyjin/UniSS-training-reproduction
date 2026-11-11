@@ -158,7 +158,7 @@ def load_mix(meetings) -> tuple[dict, dict]:
     return mix, fa
 
 
-def utterances(split: str) -> list[dict]:
+def utterances(split: str, targets: str = "") -> list[dict]:
     """[{record_id, meeting, ref}] (unique record ids) of the train windows or of B-2's dev5 targets."""
     seen, out = set(), []
     if split == "train":
@@ -170,7 +170,7 @@ def utterances(split: str) -> list[dict]:
                     seen.add(u["record_id"])
                     out.append({"record_id": u["record_id"], "meeting": w["meeting"], "ref": u["ref"]})
     else:
-        for l in open(DEV5_TARGETS, encoding="utf-8"):
+        for l in open(targets or DEV5_TARGETS, encoding="utf-8"):
             rec = json.loads(l)
             for u in rec["members"]:
                 if u["record_id"] not in seen and not u["hesitation"] and u["ref"].strip():
@@ -186,7 +186,7 @@ def run_align(a) -> None:
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     t0 = time.time()
-    U = utterances(a.split)
+    U = utterances(a.split, a.targets)
     if a.limit:
         U = U[: a.limit]
     mix, fa = load_mix(sorted({u["meeting"] for u in U}))
@@ -387,8 +387,8 @@ def run_audit(a) -> None:
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     align = load_align(a.align_dir)
-    recs = [json.loads(l) for l in open(DEV5_TARGETS, encoding="utf-8")]
-    W, smap = B.load_dev(str(DEV5_WIN))
+    recs = [json.loads(l) for l in open(a.targets or DEV5_TARGETS, encoding="utf-8")]
+    W, smap = B.load_dev(a.win or str(DEV5_WIN))
     ev = {}
     st = Counter()
     early, early_omni, no_ev, rows = 0, 0, 0, []
@@ -443,7 +443,8 @@ def run_audit(a) -> None:
                 "1spk": float(np.mean(np.asarray(x)[reg == "1spk"])), "n": len(x)} for nm, x in lat.items()}
     # forced-alignment spot check: 50 random dev (validation) placed utterances with char times
     dev_meetings = sorted({w["meeting"] for w in W})
-    allval = sorted({json.loads(l)["meeting"] for l in open("eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl", encoding="utf-8")})
+    allval = sorted({json.loads(l)["meeting"] for l in open(
+        a.win or "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl", encoding="utf-8")})
     mix, fa = load_mix(allval)
     cand = sorted(r for r in mix if r in fa and fa[r] and "validation" in r)
     rng = random.Random(SEED)
@@ -454,7 +455,8 @@ def run_audit(a) -> None:
     nirs = np.asarray([align[r]["nir"] for r in align if align[r]["status"] == "ok"])
     res = {
         "laal": tab,
-        "go1_laal_le_sprop": tab["T5"]["all"] <= 2.179 and abs(tab["S_prop"]["all"] - 2.179) < 5e-4,
+        "go1_laal_le_sprop": tab["T5"]["all"] <= tab["S_prop"]["all"] if a.win else
+        tab["T5"]["all"] <= 2.179 and abs(tab["S_prop"]["all"] - 2.179) < 5e-4,
         "final_word_share": st["final_words"] / st["words"],
         "go2_final_share_le_0.30": st["final_words"] / st["words"] <= 0.30,
         "early_vs_mbert_share": early / max(1, st["chunks"] - no_ev), "chunks_without_mbert_link": no_ev,
@@ -592,6 +594,9 @@ def main() -> None:
     ap.add_argument("--audit", action="store_true")
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--split", choices=["train", "dev5"], default="train")
+    ap.add_argument("--targets", default="", help="dev: B-2-style targets.jsonl (default: B-2's dev5 targets)")
+    ap.add_argument("--win", default="", help="audit: the dev windows of --targets (default dev5; given: GO line 1 "
+                    "against S_prop recomputed on them, spot check drawn from their meetings)")
     ap.add_argument("--align-dir", default="")
     ap.add_argument("--out", required=True)
     ap.add_argument("--grid", type=int, default=500)
