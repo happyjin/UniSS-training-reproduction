@@ -21,7 +21,8 @@ DEC = Path("eval_outputs/mist_w3po_v1/decode")
 SPD = Path("eval_outputs/mist_w3po_v1/speech")
 EV = Path("eval_outputs/mist_w3po_v1/talker_crf/eval")
 QUAL = Path("eval_outputs/mist_w3po_v1/talker_crf/quality")
-A_LAT = {"": "eval_outputs/mist_w3po_v1/speech_laal_v1/Ap.json", "_tts2": "eval_outputs/mist_w3po_v1/speech_laal_v1/Ap_tts2.json"}
+A_LAT = {"": "eval_outputs/mist_w3po_v1/talker_crf/eval/aprime/lat_aprime.json",   # current speech_latency_lit (+1ch LAAL)
+         "_tts2": "eval_outputs/mist_w3po_v1/talker_crf/eval/aprime/lat_aprime_tts2.json"}
 A_GAP = {"": "eval_outputs/mist_w3po_v1/speech_gap_v1/v2p_c2g06_s1.json", "_tts2": "eval_outputs/mist_w3po_v1/speech_gap_v1/v2p_c2g06_s2.json"}
 SYSTEMS = [("A'", None, None), ("PL-EM k=1 自选语速", "plem", "k1"), ("PL-EM c1+b1+s2", "plem", "c1b1s2"),
            ("对齐CRF k=1 覆盖门", "align", "k1gate"), ("对齐CRF c1+b1+s2", "align", "c1b1s2")]
@@ -65,6 +66,9 @@ def one(scheme, tag, sfx):
     if lat:
         r.update(speech_laal=lat["unit"]["speech_laal_online"]["all"]["mean"],
                  end_offset=lat["unit"]["speech_end_online"]["all"]["mean"])
+        if "speech_laal_online_1ch" in lat["unit"]:   # one output channel per meeting (supplementary, not registered)
+            r.update(speech_laal_1ch=lat["unit"]["speech_laal_online_1ch"]["all"]["mean"],
+                     end_offset_1ch=lat["unit"]["speech_end_online_1ch"]["all"]["mean"])
     r["forced_blocks"] = forced(SPD / name / "talker")
     if q:
         r.update(utmos=q["utmos_mean"], sim=q["sim_mean"])
@@ -93,7 +97,7 @@ def main():
                       "gate": {k: {"diff": v["diff"], "p_le0": v["p_le0"], "pass": v["pass"]} for k, v in g["items"].items()}
                       if g else None}
     cols = [("speech_official", "语音官方"), ("speech_norm_seg", "语音归一按段"), ("gap_official", "差距官方"),
-            ("gap_norm_seg", "差距归一按段"), ("speech_laal", "语音LAAL"), ("end_offset", "EndOffset"),
+            ("gap_norm_seg", "差距归一按段"), ("speech_laal", "语音LAAL"), ("end_offset", "EndOffset"), ("speech_laal_1ch", "单通道LAAL"),
             ("talker_wer", "talker WER"), ("forced_blocks", "强制截断块"), ("utmos", "UTMOS"), ("sim", "SIM")]
     md = ["| 系统 | " + " | ".join(c for _, c in cols) + " | 门槛 |", "|---" * (len(cols) + 2) + "|"]
     for label, v in res.items():

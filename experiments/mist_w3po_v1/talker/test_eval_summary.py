@@ -6,7 +6,7 @@ def test_aprime():
     m = E.mean2(E.one(None, None, ""), E.one(None, None, "_tts2"))
     assert abs(m["speech_official"] - 23.26) < 0.03, m
     assert abs(m["speech_laal"] - 4.15) < 0.05 and abs(m["text_official"] - 28.17) < 0.01
-    assert m["gap_norm_seg"] > 0 and m["forced_blocks"] is not None
+    assert m["gap_norm_seg"] > 0 and m["forced_blocks"] is not None and abs(m["speech_laal_1ch"] - 7.07) < 0.02
     assert E.one("plem", "k1", "")["speech_official"] is None or True
 
 
