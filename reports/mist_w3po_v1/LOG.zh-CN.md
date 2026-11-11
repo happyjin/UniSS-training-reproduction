@@ -1540,7 +1540,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **事故**：启动脚本的排除文件通配符 bug 使 PL-EM 评测在 00:42 UTC 约 1 分钟排不上任务，`fix_exclude_loop.sh` 纠正；两个评测的 CTC 打分服务端口相同，重叠的 12 分钟里对齐评测的打分服务重试了 2 次（talker 连到 PL-EM 评测的同款打分服务，结果不受影响）。
 - 03:10 UTC 评测结束，0、5、6 号卡立即补上占卡任务，8 张卡全部占用。
 
-## 2026-11-11 07:00 UTC — Thinker 侧降延迟 CPU 预检（A-2 GO，B-1 GO）
+## 2026-11-11 06:20 UTC — Thinker 侧降延迟 CPU 预检（A-2 GO，B-1 GO）
 - 预登记 0ebb4774。结果写在 `thinker_latency_precheck_results_v1.zh-CN.md`。
 - A-2：内部静音 ≥ 0.3 s 的话语占比，train 8.7%、dev 3.3%（线 ≤ 10%），GO。统计时顺带数到 AMI test 划分，该数字不使用。
 - B-1：译文不变、句内增量（≤ 4 词，比例时刻 + 1.0 s，0.5 s 读）的上界，每条流语音 LAAL 4.151 → 2.915（线 ≤ 3.0），GO，余量 0.085。

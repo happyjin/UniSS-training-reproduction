@@ -1,4 +1,4 @@
-# Thinker 侧降延迟：A / B 的 CPU 预检结果（2026-11-11 07:00 UTC）
+# Thinker 侧降延迟：A / B 的 CPU 预检结果（2026-11-11 06:20 UTC）
 
 预登记见 `thinker_latency_precheck_prereg_v1.zh-CN.md`（0ebb4774，在结果之前提交）。只用 dev 和 train，只用 CPU。
 脚本在 `eval_outputs/mist_w3po_v1/speech_laal_v1/analysis_20261111/`（`b1_incremental.py`，以及 A-2 的一次性统计）。
