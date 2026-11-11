@@ -1610,3 +1610,24 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **GPU**：卡 4+5、6+7 各跑一个 shard，叠在另一执行者的打分服务上，每卡峰值 32.9 GiB，共 0.31 卡·时（其中两次失败启动约 0.05 卡·时）。
   - 失败原因：设备映射把音频塔、说话人投影分到了不同的卡上。已修复，提交 842785b6。
 - **报告**：`thinker_latency_b2_results_v1.zh-CN.md`。
+
+## 2026-11-11 07:30–07:42 UTC — talker 执行者接手：E2′ 预登记与开训、S1 完成（NOT GO）
+
+- **接手时状态**：E2 训练 07:20 已结束（导出 `talker_plemm_20261111T065607Z/export`），0–3 号卡由守护脚本补回占卡任务；v2 编排器在 4–7 号卡跑 E1 / E2 的 dev 评测。
+- **A 槽**：07:29 用 noclobber 建 `logs/mist_w3po_v1/slots/slotA.owner`（talker 执行者，E2′ 训练）。
+- **E2′ 预登记**（`talker_crf_prereg_v3.zh-CN.md`，c96c2ee1，07:34 UTC，在任何 E2′ 数字之前）：
+  - 同一方法的第二个登记设置，只改预算：每条流 PL-EM 格 Viterbi 路径在会议格代理上的值 − 0.5 s；
+  - GO 线与 E2 相同；无论预检如何都训练。
+  - 代码：`talker_rows --budget-ref stream_viterbi --drop-1ch`、`precheck_plcrf select-meeting` 同名选项；默认逐位不变（改动前哈希测试）。
+- **E2′ 训练行**（train，07:36）：
+  - 每条流格 λ 0.497 → Viterbi 路径的会议格代理 2.7715 s → 预算 2.2715 s；
+  - **λ 撞到上界 50**：E_q 2.328 s，预算达不到。按登记取 λ = 50，没有改预算。
+  - 后验熵 0.177（E2 1.516），行 27601（E2 117465）：后验几乎是确定性的，偏向最短候选。
+  - dev5 预检的选择同样 λ = 50（预算 2.1064，Viterbi 代理 2.190）。
+- **E2′ 训练**：`talker_plemm2_20261111T074025Z`，0–3 号卡，07:40:25 UTC 起（`start_talker_crf_v3_plemm2.sh`：先拿锁，按 PID 停占卡任务，训练显存消失即释放 A 槽）。
+- **评测编排器 v3**：`talker_crf_v3_orch.py`（PID 4983，run `logs/mist_w3po_v1/talker_crf_v3/orch`），排除 0–3 号卡，打分端口 18801–18804；负责预检 3 和 E2′ 的 dev 评测。
+- **S1**：
+  - 预登记 b6fd8cec，代码 684ddcf5；
+  - A′ dev talker 的块内静音（≥ 150 ms，低于块峰值 40 dB）只占语音时间的 0.82% / 0.89%（两个种子），主要在块开头（3.7% 的块有），可压部分 0.39% / 0.44%；
+  - 压到 ≤ 150 ms 后，每条流语音 LAAL 只降 0.005 / 0.006 s（线 0.15 s）→ **NOT GO**；单通道 LAAL 降 0.09–0.11 s（补充）。
+  - 不提推理时压缩的实验。报告 `talker_silence_s1_results.zh-CN.md`。
