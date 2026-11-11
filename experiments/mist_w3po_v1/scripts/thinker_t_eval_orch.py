@@ -50,7 +50,7 @@ def decode_with(cmd: str, extra: str) -> str:
 
 
 def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_refs: list[list[str]],
-               speech_from: str = "") -> list[fo.Job]:
+               speech_from: str = "", shards: int = 8, shard_by: str = "meeting") -> list[fo.Job]:
     """speech_from: an existing decode dir name whose hyp.jsonl / score_text.json are copied (cp -n) into <name> and
     <name>_tts2; no decode / score jobs (another talker on the same text, e.g. T2's text with the PL-EM talker)."""
     cp.WIN = WIN   # read by dec_cmd / speech at call time
@@ -67,18 +67,23 @@ def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_
                               f"{D}/ && [ -s {D}/hyp.jsonl ] && [ -s {D}/score_text.json ]")
         return speech_jobs(jobs, add, run, name, talker, gate_refs)
     wx = f"--window {window:g}"
-    for k in cp.SHARDS_BIG_FIRST:
+    order = cp.SHARDS_BIG_FIRST if (shards, shard_by) == (8, "meeting") else list(range(shards))
+    for k in order:
         def cmd(att, k=k):
             c = (cp.dec_cmd(ckpt, f"{D}/hyp_s{k}_a{att}.jsonl", "${PREV:+--resume-from $PREV} ",
                             f"mkdir -p {D} && PREV=$(ls {D}/hyp_s{k}_a*.jsonl 2>/dev/null); ")
-                 + f"--shard {k} --num-shards 8 --shard-by meeting {GUARD} > {D}/infer_s{k}_a{att}.log 2>&1 "
+                 + f"--shard {k} --num-shards {shards} --shard-by {shard_by} {GUARD} > {D}/infer_s{k}_a{att}.log 2>&1 "
                    f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}_a{att}.log")
             return decode_with(c, wx) if window != 1.0 else c
         add(f"{name}__dec{k}", "dec", 1, [], cmd, retries=2)
-    add(f"{name}__score", "cpu", 1, [f"{name}__dec{k}" for k in range(8)],
+    add(f"{name}__score", "cpu", 1, [f"{name}__dec{k}" for k in range(shards)],
         lambda att: ENV + f"[ -e {D}/score_text.json ] || {PY} -m experiments.mist_w3po_v1.evaluation.score_run "
                           f"--run {D} --windows {WIN} --ref-windows {fo.REF_WIN} --set zh2en > {D}/score.log 2>&1")
-    if talker == "none":
+    if talker == "none":   # text only: + the unit-level text latency (speech_latency_lit --text-only)
+        O = f"eval_outputs/mist_w3po_v1/crf/t_eval/{name}"
+        add(f"{name}__textlat", "cpu", 1, [f"{name}__score"],
+            lambda att: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation.speech_latency_lit --run {D} "
+                              f"--text-only --win {WIN} --out {O}/textlat_{name}.json > {O}/textlat_{name}.log 2>&1")
         return jobs
     return speech_jobs(jobs, add, run, name, talker, gate_refs)
 
@@ -132,7 +137,7 @@ def new_dirs(name: str, talker: str) -> list[str]:
 
 
 def main():
-    global SCORER_PORT0
+    global SCORER_PORT0, WIN
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", required=True)
     ap.add_argument("--name", required=True)
@@ -141,6 +146,9 @@ def main():
     ap.add_argument("--talker", choices=["none", "c1b1s2", "plem"], default="c1b1s2")
     ap.add_argument("--gate-ref", nargs=2, action="append", default=[])
     ap.add_argument("--exclude", nargs="*", default=[])
+    ap.add_argument("--win", default=WIN, help="online windows (default: the c2g06 dev windows)")
+    ap.add_argument("--shards", type=int, default=8)
+    ap.add_argument("--shard-by", choices=["meeting", "window"], default="meeting")
     ap.add_argument("--speech-from", default="", help="existing decode dir name: speech only on its text")
     ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0)
     ap.add_argument("--dry", action="store_true")
@@ -148,8 +156,8 @@ def main():
     a = ap.parse_args()
     os.chdir(REPO)
     run = Path(a.run)
-    SCORER_PORT0 = a.scorer_port0
-    jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref, a.speech_from)
+    SCORER_PORT0, WIN = a.scorer_port0, a.win
+    jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref, a.speech_from, a.shards, a.shard_by)
     assert len({j.id for j in jobs}) == len(jobs)
     if a.dry:
         for j in jobs:

@@ -47,7 +47,10 @@ def q(a):
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
-    ap.add_argument("--talker", required=True)
+    ap.add_argument("--talker", default="", help="talker dir (results.jsonl); required unless --text-only")
+    ap.add_argument("--text-only", action="store_true",
+                    help="no talker: only the unit-level text latency (text_laal_online, text start / end) of every "
+                         "unit that holds text (default off = the speech run, output unchanged)")
     ap.add_argument("--out", required=True)
     # the online windows the run was decoded on (default = metric_headroom.WIN, unchanged; C2 runs pass their own,
     # e.g. windows_zh2en_c2g05_v1). The reference windows (scoring) stay metric_headroom.REF_WIN.
@@ -121,8 +124,10 @@ def main() -> None:
     RW = [json.loads(l) for l in open(M.REPO / M.REF_WIN, encoding="utf-8")]
     U = universe(M.DR, {w["meeting"] for w in W})
     sc = M.scored_utts(W, RW)
+    if not args.text_only and not args.talker:
+        raise SystemExit("--talker is required (or --text-only)")
     rows = {}
-    for l in open(Path(args.talker) / "results.jsonl", encoding="utf-8"):
+    for l in ([] if args.text_only else open(Path(args.talker) / "results.jsonl", encoding="utf-8")):
         r = json.loads(l)
         if not r.get("error"):
             rows[r["id"]] = r
@@ -223,6 +228,11 @@ def main() -> None:
             U_[reg]["text_start_online"].append(min(x["commit"] for x in ss) - u["a"])
             bs = [x["blk"] for x in ss if x["blk"] is not None]
             if not bs:
+                if args.text_only:   # the text LAAL of the block loop below, without the talker
+                    td = [x["commit"] - u["a"] for x, t in sorted(A["got"].get(uid, []), key=lambda xt: xt[0]["a"])
+                          for _ in t.split()]
+                    if td:
+                        U_[reg]["text_laal_online"].append(laal(td, u))
                 continue
             for var, s0, s1 in (("recorded", "rec_start", "rec_end"), ("online", "on_start", "on_end"), ("online_1ch", "ch_start", "ch_end")):
                 U_[reg][f"speech_start_{var}"].append(min(b[s0] for b in bs) - u["a"])
