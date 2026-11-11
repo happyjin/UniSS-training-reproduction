@@ -237,6 +237,22 @@ def merge_chunks(ref: str) -> list[str]:
     return out
 
 
+def pieces4_chunks(ref: str) -> list[str]:
+    """--granularity pieces4 (NOT the registered setting; only if the pre-registration is amended): B-2's pieces, the
+    punctuation chunks cut greedily into <= 4-word groups (precheck_b2_earliest_write.utt_pieces' texts)."""
+    from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import chunks_of
+
+    out = []
+    for c in chunks_of(ref):
+        w = c.strip().split()
+        out += [" ".join(w[i: i + 4]) for i in range(0, len(w), 4)]
+    return [x for x in out if x]
+
+
+def split_chunks(ref: str, gran: str) -> list[str]:
+    return merge_chunks(ref) if gran == "merge3" else pieces4_chunks(ref)
+
+
 def word_support(al: dict | None, end_ms_abs: float) -> tuple[list[float], list[float | None]]:
     """(filled support per EN_WORD token, raw OmniAlign evidence per token or None) in absolute seconds; no alignment ->
     every token = the utterance end (zh_end)."""
@@ -265,7 +281,7 @@ def mbert_evidence(al: dict | None) -> list[float | None]:
 
 
 def window_chunks(members: list[dict], start_s: float, dur_ms: int, t_ms: list[int], slot_of: dict, align: dict,
-                  ) -> list[dict]:
+                  gran: str = "merge3") -> list[dict]:
     """T5 chunks of one window (members: record_id, speaker_id, begin_s, end_s (window-relative), ref, hesitation):
     per chunk text / n_words / utt (member index) / k / slot / src_start_ms / src_end_ms (aligned, contiguous) /
     tau_ms / e (label read) / prop_end_ms / u (S_prop read, before the per-speaker running max) / evidence_ms (OmniAlign,
@@ -284,7 +300,7 @@ def window_chunks(members: list[dict], start_s: float, dur_ms: int, t_ms: list[i
         toks = EN_WORD.findall(u["ref"])
         if al is not None:
             assert al["en_words"] == toks, u["record_id"]
-        cs = merge_chunks(u["ref"])
+        cs = split_chunks(u["ref"], gran)
         spans, k = [], 0
         for c in cs:
             n = sum(len(EN_WORD.findall(w)) for w in c.split())
@@ -377,7 +393,8 @@ def run_audit(a) -> None:
     st = Counter()
     early, early_omni, no_ev, rows = 0, 0, 0, []
     for rec in recs:
-        ch = window_chunks(rec["members"], rec["start_s"], rec["dur_ms"], rec["t_ms"], smap[rec["meeting"]], align)
+        ch = window_chunks(rec["members"], rec["start_s"], rec["dur_ms"], rec["t_ms"], smap[rec["meeting"]], align,
+                           a.granularity)
         R = len(rec["t_ms"])
         T = rec["t_ms"]
         evs = []
@@ -464,7 +481,7 @@ def run_audit(a) -> None:
 
 # ------------------------------------------------------------------------------------------------ train sched build
 def _build_job(args):
-    k, ws, align, smap, out, grid = args
+    k, ws, align, smap, out, grid, gran = args
     from experiments.mist_w3po_v1.crf import build_piece_sched as BPS
     from experiments.mist_w3po_v1.crf import precheck_b2_earliest_write as B
     from experiments.mist_w3po_v1.crf.build_sched_windows import tokenizer
@@ -475,7 +492,7 @@ def _build_job(args):
     with open(Path(out) / f"shard_{k:03d}.jsonl", "x", encoding="utf-8") as fh:
         for w in ws:
             t_ms = B.read_times(w["dur_ms"], grid)
-            ch = window_chunks(w["utts"], w["start_s"], w["dur_ms"], t_ms, smap[w["meeting"]], align)
+            ch = window_chunks(w["utts"], w["start_s"], w["dur_ms"], t_ms, smap[w["meeting"]], align, gran)
             if any(c["nir"] > NIR_MAX for c in ch):
                 st["dropped_nir"] += 1
                 continue
@@ -543,7 +560,7 @@ def run_build(a) -> None:
     for k, sh in enumerate(shards):
         rids = {u["record_id"] for w in sh for u in w["utts"]}
         jobs.append((k, sh, {r: align[r] for r in rids if r in align}, {m: smap[m] for m in {w["meeting"] for w in sh}},
-                     str(out), a.grid))
+                     str(out), a.grid, a.granularity))
     st, bad = Counter(), []
     with mp.get_context("spawn").Pool(min(a.workers, len(jobs))) as pool:
         for i, (s, b) in enumerate(pool.imap_unordered(_build_job, jobs)):
@@ -581,6 +598,8 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=40)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--granularity", choices=["merge3", "pieces4"], default="merge3",
+                    help="merge3 = the registered T5 chunks; pieces4 = B-2's <= 4-word pieces (only after an amendment)")
     a = ap.parse_args()
     if a.align:
         return run_align(a)
