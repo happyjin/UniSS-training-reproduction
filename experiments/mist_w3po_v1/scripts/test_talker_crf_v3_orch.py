@@ -25,6 +25,9 @@ def test_jobs():
     assert "--ref eval_outputs/mist_w3po_v1/decode/dev_crf_v2p_s3000_finalpost_s8_c2g06__plem_c1b1s2 " in by["gate_vs_plem_plemm2"].cmd(1)
     assert v3.V2_DONE in by["summary_v4"].cmd(1) and "eval_summary_v3" in by["summary_v4"].cmd(1)
     assert set(by["summary_v4"].deps) >= {"gate_plemm2", "gate_vs_plem_plemm2", "pre3_summary"}
+    small = {j.id for j in jobs if j.small}
+    assert small == {f"scorer{i}" for i in range(4)} | {"render_meeting3"} | {f"{n}__qual" for n in v3.names()}
+    assert v3.SMALL_WAIT_S == 25 and v3.fo.Orch.small_wait_s is None and not v3.fo.Job("x", "asr", 0, [], None).small
 
 
 if __name__ == "__main__":

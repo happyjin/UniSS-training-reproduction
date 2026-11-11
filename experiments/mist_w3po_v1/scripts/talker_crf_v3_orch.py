@@ -47,6 +47,7 @@ SCHEME = "plemm2"
 FLAGS = V2.FLAGS["plemm"]   # E2''s inference = E2's (prereg v3 §1)
 PLEM = V2.PLEM
 PLEMM = [f"{DEC}/{A}__plemm_c1b1s2", f"{DEC}/{A}__plemm_c1b1s2_tts2"]   # E2 (descriptive pairing)
+SMALL_WAIT_S = 25   # 2026-11-11 08:45 (user: launches serialise on gpu_launch.lock): small jobs release it after 25 s
 
 
 def names() -> list[str]:
@@ -143,6 +144,8 @@ def build_v3(run: str = "") -> list[fo.Job]:
                             f"{PY} -m experiments.mist_w3po_v1.evaluation.gate_2seed --cand {DEC}/{n1} {DEC}/{n2} "
                             f"--ref {PLEMM[0]} {PLEMM[1]} --out {O}/gate_vs_plemm_c1b1s2.json > {O}/gate_vs_plemm_c1b1s2.log 2>&1; "
                             f"else echo 'E2 score files missing: no pairing vs E2' > {O}/gate_vs_plemm_c1b1s2.log; fi")
+    for j in jobs:   # 2026-11-11 08:45: far below the 12 GiB visibility threshold (scorer 2.4, UTMOS ~3 GiB, render)
+        j.small = j.id.startswith(("scorer", "render_")) or j.id.endswith("__qual")
     fin = [j.id for j in jobs if j.id.startswith(("gate_", "pre3_summary")) or j.id.endswith(("__lat", "__gap", "__qual"))]
     add("summary_v4", "cpu", 3, fin,
         lambda att: f"until [ -e {V2_DONE} ]; do sleep 60; done; "
@@ -190,8 +193,9 @@ def main():
         (run / "exclude_cards").write_text(" ".join(a.exclude) + "\n")
         o = TC.YieldOrch(run, jobs)
     o.spread = True
+    o.small_wait_s = SMALL_WAIT_S
     o.log(f"talker_crf v3 (E2'); {len(jobs)} jobs; excluded cards {sorted(o.excluded())}; scorer ports "
-          f"{TC.SCORER_PORT0}-{TC.SCORER_PORT0 + TC.N_SCORERS - 1}")
+          f"{TC.SCORER_PORT0}-{TC.SCORER_PORT0 + TC.N_SCORERS - 1}; small jobs hold gpu_launch.lock <= {SMALL_WAIT_S} s")
     try:
         o.loop()
     except Exception as e:  # noqa: BLE001

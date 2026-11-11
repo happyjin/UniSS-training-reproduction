@@ -84,6 +84,7 @@ class Job:
         self.id, self.kind, self.prio, self.deps, self.cmd, self.retries = jid, kind, prio, list(deps), cmd, retries
         self.state, self.attempt, self.card, self.sid, self.t_start, self.t_end = "wait", 0, None, None, None, None
         self.not_before, self.rc, self.order = 0.0, None, 0
+        self.small = False   # 2026-11-11: a job far below VISIBLE[kind] (CTC scorer, render, UTMOS); see Orch.small_wait_s
 
     @property
     def gpu(self):
@@ -170,6 +171,11 @@ NEW_DIRS = [f"{DEC}/{n}" for n in (CAND, CAND + "_tts2", OFF, OFF + "_tts2", REF
 
 
 class Orch:
+    # 2026-11-11 (user 08:40 UTC: launches serialise on gpu_launch.lock): None (default, unchanged) = every launched job
+    # holds the lock until its memory reaches VISIBLE[kind] or VISIBLE_WAIT_S; a number = a job with .small set (memory far
+    # below the visibility threshold, placed only where the plan already reserved NEED[kind]) holds it that many seconds
+    small_wait_s = None
+
     def __init__(self, run: Path, jobs: list[Job]):
         self.run, self.jobs = run, jobs
         self.by_id = {j.id: j for j in jobs}
@@ -419,7 +425,7 @@ class Orch:
                     gone = j.state != "run" or self.f(j, j.attempt, "rc").exists() or not self.alive(j.sid, sid_of)
                     if vis >= VISIBLE[j.kind] or gone:
                         self.log(f"visible {j.id}: {vis:.1f} GiB{' (exited)' if gone else ''} after {now() - j.t_start:.0f}s")
-                    elif now() - j.t_start > VISIBLE_WAIT_S:
+                    elif now() - j.t_start > (self.small_wait_s if self.small_wait_s and j.small else VISIBLE_WAIT_S):
                         self.log(f"visible-wait timeout {j.id}: {vis:.1f} GiB after {now() - j.t_start:.0f}s")
                     else:
                         rest.append(j)
