@@ -49,7 +49,10 @@ def decode_with(cmd: str, extra: str) -> str:
     return cmd.replace(" --policy wait ", f" {extra} --policy wait ", 1)
 
 
-def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_refs: list[list[str]]) -> list[fo.Job]:
+def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_refs: list[list[str]],
+               speech_from: str = "") -> list[fo.Job]:
+    """speech_from: an existing decode dir name whose hyp.jsonl / score_text.json are copied (cp -n) into <name> and
+    <name>_tts2; no decode / score jobs (another talker on the same text, e.g. T2's text with the PL-EM talker)."""
     cp.WIN = WIN   # read by dec_cmd / speech at call time
     jobs: list[fo.Job] = []
 
@@ -58,6 +61,11 @@ def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_
         jobs[-1].order = len(jobs)
 
     D = f"{DEC}/{name}"
+    if speech_from:
+        add(f"{name}__score", "cpu", 1, [],
+            lambda att: ENV + f"mkdir -p {D} && cp -n {DEC}/{speech_from}/hyp.jsonl {DEC}/{speech_from}/score_text.json "
+                              f"{D}/ && [ -s {D}/hyp.jsonl ] && [ -s {D}/score_text.json ]")
+        return speech_jobs(jobs, add, run, name, talker, gate_refs)
     wx = f"--window {window:g}"
     for k in cp.SHARDS_BIG_FIRST:
         def cmd(att, k=k):
@@ -72,6 +80,11 @@ def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_
                           f"--run {D} --windows {WIN} --ref-windows {fo.REF_WIN} --set zh2en > {D}/score.log 2>&1")
     if talker == "none":
         return jobs
+    return speech_jobs(jobs, add, run, name, talker, gate_refs)
+
+
+def speech_jobs(jobs: list, add, run: str, name: str, talker: str, gate_refs: list[list[str]]) -> list[fo.Job]:
+    """scorers, both seeds' speech chains (after <name>__score), latency and gates."""
     tc.SCORER_PORT0, tc.N_SCORERS = SCORER_PORT0, N_SCORERS
     tc.scorer_jobs(add, run)
     names = [name, name + "_tts2"]
@@ -119,6 +132,7 @@ def new_dirs(name: str, talker: str) -> list[str]:
 
 
 def main():
+    global SCORER_PORT0
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", required=True)
     ap.add_argument("--name", required=True)
@@ -127,19 +141,22 @@ def main():
     ap.add_argument("--talker", choices=["none", "c1b1s2", "plem"], default="c1b1s2")
     ap.add_argument("--gate-ref", nargs=2, action="append", default=[])
     ap.add_argument("--exclude", nargs="*", default=[])
+    ap.add_argument("--speech-from", default="", help="existing decode dir name: speech only on its text")
+    ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0)
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     a = ap.parse_args()
     os.chdir(REPO)
     run = Path(a.run)
-    jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref)
+    SCORER_PORT0 = a.scorer_port0
+    jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref, a.speech_from)
     assert len({j.id for j in jobs}) == len(jobs)
     if a.dry:
         for j in jobs:
             print(j.prio, j.kind, j.id, "deps", len(j.deps), "|", j.cmd(1)[len(ENV):][:700])
         print(len(jobs), "jobs")
         return
-    for f in ("DONE", "lora.pt", "extra.pt"):
+    for f in (("DONE", "lora.pt", "extra.pt") if not a.speech_from else ()):
         if not Path(a.ckpt, f).exists():
             raise SystemExit(f"checkpoint file missing: {a.ckpt}/{f}")
     if a.resume:
@@ -148,6 +165,8 @@ def main():
     else:
         if run.exists():
             raise SystemExit(f"拒绝覆盖已有输出: {run}")
+        if a.speech_from and not Path(DEC, a.speech_from, "score_text.json").exists():
+            raise SystemExit(f"--speech-from {a.speech_from}: no score_text.json yet")
         ex = [d for d in new_dirs(a.name, a.talker) if Path(d).exists()]
         if ex:
             raise SystemExit(f"拒绝覆盖已有输出: {ex}")
