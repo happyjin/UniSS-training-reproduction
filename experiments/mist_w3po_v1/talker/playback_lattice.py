@@ -10,6 +10,10 @@ f = -min(CTC NLL per character, 10)). State = backlog b_n (ms) on an 80 ms grid 
 (l: the block's words spread evenly over its playback; the sum of their spoken times after a_n, seconds x words).
 Exact sum-product forward-backward in log space (marginals per block / state / candidate, log Z, E_q[sum l]), Viterbi,
 the conditional q(c | b_n = s), and the dual bisection of lam to a corpus budget of E_q[sum l] / sum W.
+
+rounding (2026-11-11, talker_crf_prereg_v2 experiment 2; default "ceil" = the rule above, unchanged): "nearest"
+rounds the next backlog to the nearest grid point instead -- on a meeting-long shared-channel chain (~1300 blocks)
+ceil's +40 ms a busy step accumulates (A' path, train: mean drift +0.28 s, nearest +0.09 s).
 """
 from __future__ import annotations
 
@@ -33,11 +37,19 @@ def quant(x_ms: float, delta: int = DELTA_MS, cap: int = B_MS) -> int:
     return int(min(cap // delta, math.ceil(max(0.0, x_ms) / delta - 1e-9)))
 
 
+def quant_nearest(x_ms: float, delta: int = DELTA_MS, cap: int = B_MS) -> int:
+    """state index of a backlog: the nearest grid point, capped (rounding="nearest")."""
+    return int(min(cap // delta, math.floor(max(0.0, x_ms) / delta + 0.5)))
+
+
 class Stream:
     """a: availability (ms) per block; dur[n]: candidate durations (ms); feat[n]: tau*lpbar + beta*f per candidate;
     words[n]: W_n."""
 
-    def __init__(self, a, dur, feat, words, delta: int = DELTA_MS, cap: int = B_MS):
+    def __init__(self, a, dur, feat, words, delta: int = DELTA_MS, cap: int = B_MS, rounding: str = "ceil"):
+        if rounding not in ("ceil", "nearest"):
+            raise ValueError(rounding)
+        self.rounding = rounding
         self.a = [float(x) for x in a]
         self.dur = [np.asarray(d, dtype=np.float64) for d in dur]
         self.feat = [np.asarray(f, dtype=np.float64) for f in feat]
@@ -51,7 +63,9 @@ class Stream:
             self.lat.append(W * sv[:, None] / 1000.0 + self.dur[n][None, :] / 1000.0 * (W + 1) / 2.0)   # S x C
             if n + 1 < len(self.a):
                 x = self.a[n] + sv[:, None] + self.dur[n][None, :] - self.a[n + 1]
-                self.nxt.append(np.minimum(cap // delta, np.ceil(np.maximum(0.0, x) / delta - 1e-9)).astype(np.int64))
+                g = (np.ceil(np.maximum(0.0, x) / delta - 1e-9) if rounding == "ceil"
+                     else np.floor(np.maximum(0.0, x) / delta + 0.5))
+                self.nxt.append(np.minimum(cap // delta, g).astype(np.int64))
             else:
                 self.nxt.append(None)
 

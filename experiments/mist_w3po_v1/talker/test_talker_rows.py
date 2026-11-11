@@ -69,8 +69,98 @@ def test_cover_pick_and_align():
     assert x["seq"][x["text_start"] - 1] == T.START_CONTENT and x["seq"][x["text_start"]: x["text_start"] + x["M"]] == [10, 11, 12]
 
 
+W1 = {"M_on_0000": {"open_detect_ms": 900, "close_detect_ms": 1600, "dur_ms": 1500}}
+PLEM_GOLDEN = "b7c999d52cdd32ae17b6ffe8396140dec1646affca2410f8b1243e252a74cad1"   # plem_rows before the v2 additions
+
+
+def test_plem_default_bit_identical():
+    """talker_crf_prereg_v2's additions leave the default mode's rows bit-identical (hash taken before the change)."""
+    import hashlib
+    import json
+
+    blocks, stats = T.plem_rows([dump_item()], W1)
+    s = json.dumps({"blocks": blocks, "stats": stats}, sort_keys=True)
+    assert hashlib.sha256(s.encode()).hexdigest() == PLEM_GOLDEN
+
+
+def test_block_rows_reproduces_plem():
+    it = dump_item()
+    blocks, stats = T.plem_rows([it], W1)
+    st = T.stream_of(it, W1["M_on_0000"])
+    beta = st.forward_backward(stats["lambda"])[3]
+    states = st.path_states([b["chosen"] for b in it["blocks"]])
+    for bk in blocks:
+        q = st.conditional(bk["r"], states[bk["r"]], stats["lambda"], beta)
+        assert T.block_rows(it, bk["r"], q) == bk
+
+
+def test_bon_rows():
+    it = dump_item()
+    blocks, st = T.bon_rows([it])
+    assert st["blocks"] == 2 and st["weights"] == "bon"
+    for bk in blocks:
+        b = it["blocks"][bk["r"]]
+        x = np.asarray([T.feat(c) for c in b["cands"]])
+        q = np.exp(x - x.max()) / np.exp(x - x.max()).sum()
+        keep = q >= T.Q_MIN
+        assert len(bk["cands"]) == keep.sum()
+        assert np.allclose([c["w"] for c in bk["cands"]], q[keep] / q[keep].sum(), atol=1e-12)
+        qv = np.zeros(T.N_SPEED)
+        for c, w in zip(b["cands"], q):
+            qv[c["v"] - T.SPEED_0] += w
+        assert np.allclose(bk["qv"], qv, atol=1e-12)
+        # same sequences as PL-EM's rows (the dump's per-stream backlog token)
+        assert bk["cands"][0]["own"][: bk["spd_pos"]] == T.block_rows(it, bk["r"], np.ones(4) / 4)["cands"][0]["own"][: bk["spd_pos"]]
+
+
+def meeting_items():
+    """two speakers of one window and one of a later window, one meeting; A' path durations make a shared backlog."""
+    sp = T.SPEED_0
+    a = dump_item()
+    b = dump_item()
+    b["id"] = "M_on_0000__S2"
+    b["blocks"][0]["write_ms"] = 1100
+    b["blocks"][1]["write_ms"] = 1300
+    c = dump_item()
+    c["id"] = "M_on_0001__S1"
+    c["blocks"] = c["blocks"][:1]
+    c["blocks"][0]["final"] = True
+    c["blocks"][0]["write_ms"] = 400
+    for it in (a, b, c):
+        for x in it["blocks"]:
+            x["speed_base"] = sp + 5
+    W = {"M_on_0000": {"meeting": "M", "start_s": 10.0, "open_detect_ms": 900, "close_detect_ms": 1600, "dur_ms": 1500},
+         "M_on_0001": {"meeting": "M", "start_s": 12.0, "open_detect_ms": 300, "close_detect_ms": 900, "dur_ms": 800}}
+    return [a, b, c], W
+
+
+def test_meeting_rows():
+    from experiments.mist_w3po_v1.talker import shared_channel as SC
+
+    items, W = meeting_items()
+    blocks, st = T.plem_meeting_rows(items, W)
+    assert st["meetings"] == 1 and st["chain_len_max"] == 5 and abs(st["budget_s"] - (st["aprule_latency_1ch_s"] - 1.0)) < 1e-9
+    assert st["blocks"] == 5
+    bl = SC.shared_backlogs(items, W, T.chosen_durs(items))
+    # FIFO: S1 block 0 at 10.9 s (window 0: max(1000, 900) = 1000 -> 11.0 s), ...; the backlog token is the shared one
+    for bk in blocks:
+        n = [it["id"] for it in items].index(bk["id"])
+        r = bk["r"]
+        for c in bk["cands"]:
+            assert c["own"][bk["spd_pos"] - 1] == T.TASK_TTS
+            own_bins = [c["own"][i + 1] for i in range(len(c["own"]) - 1) if c["own"][i] == items[n]["blocks"][0]["speed_base"]
+                        and c["own"][i + 1] in T.BACKLOG_IDS]
+            assert own_bins == [T.BACKLOG_IDS[SC.backlog_bin(bl[(n, k)])] for k in range(r + 1)]
+        assert abs(sum(c["w"] for c in bk["cands"]) - 1) < 1e-9 and abs(sum(bk["qv"]) - 1) < 1e-9
+    assert max(bl.values()) > 0   # the shared channel queues (per stream it would not for the second speaker)
+
+
 if __name__ == "__main__":
     test_seq_equals_infer()
     test_plem_rows()
     test_cover_pick_and_align()
+    test_plem_default_bit_identical()
+    test_block_rows_reproduces_plem()
+    test_bon_rows()
+    test_meeting_rows()
     print("ok")

@@ -507,6 +507,127 @@ def plcrf_round(r, items, talker, front, device, tok, args, lang, tgt, cand_offs
         b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
 
 
+def plcrf_round_pairs(rnd, pairs, bins, items, talker, front, device, tok, args, lang, tgt, cand_offsets,
+                      SamplingParams, out):
+    """--backlog-scope meeting (talker_crf_prereg_v2 experiment 2): plcrf_round for one block per owner, owner k at
+    its own block index (pairs: [(item index, block index)]), with the backlog bin given (bins: the shared channel's,
+    one per pair) instead of the stream's own. Everything else as plcrf_round (queue speed policy on the stream's own
+    timeline, --self-speed, candidate sampling / b1 with the CTC scorer per owner, the same per-block seeds)."""
+    from experiments.uniss_qwen3_omni_v1.training.e2_batch import SPEED_0
+
+    owners, idx, rs = [], [], []
+    for (n_it, r), bn in zip(pairs, bins):
+        it = items[n_it]
+        bq = it["blocks"][r]
+        if args.speed_policy == "queue":
+            end_prev = 0
+            for x in it["blocks"][:r]:
+                end_prev = max(x["write_ms"], end_prev) + len(x["codes"]) * 20
+            q = max(0, end_prev - bq["write_ms"]) / 1000
+            shift = min(args.queue_shift_max, int(round(args.queue_shift_per_s * q))) if q >= 0.5 else 0
+            if bq["final"]:
+                shift = max(shift, args.final_shift)
+            bq["speed"] = min(max(bq["speed_base"] + shift, SPEED_0), SPEED_0 + 34)
+        bq["backlog_bin"] = int(bn)
+        owners.append(it)
+        idx.append(n_it)
+        rs.append(r)
+    print(f"meeting round {rnd}: {len(owners)} blocks", flush=True)
+    if args.self_speed:
+        sp_params = [SamplingParams(n=1, temperature=0.0, max_tokens=1, allowed_token_ids=list(SPEED_IDS),
+                                    seed=args.seed + 1000 * n_it + r, skip_special_tokens=False) for n_it, r in zip(idx, rs)]
+        res = talker.generate([{"prompt_token_ids": build_seq(it, r, lang, True, upto_speed=True)} for it, r in zip(owners, rs)],
+                              sp_params, use_tqdm=False)
+        for it, r, rr in zip(owners, rs, res):
+            it["blocks"][r]["speed_policy_tok"] = it["blocks"][r]["speed"]
+            it["blocks"][r]["speed"] = int(rr.outputs[0].token_ids[0])
+    offs = cand_offsets or [0]
+    n_each = args.cand_k if cand_offsets else max(args.select_k, 1)
+    reqs, params = [], []
+    for it, n_it, r in zip(owners, idx, rs):
+        b = it["blocks"][r]
+        for j, o in enumerate(offs):
+            spd = min(max(b["speed"] + o, SPEED_0), SPEED_0 + 34)
+            reqs.append({"prompt_token_ids": build_seq(it, r, lang, args.backlog_token, cur_speed=spd)})
+            params.append(SamplingParams(
+                n=n_each, temperature=args.temperature, top_p=0.8, max_tokens=1500,
+                seed=args.seed + 1000 * n_it + r + 7000003 * j, logprobs=0 if cand_offsets else None,
+                stop_token_ids=[WAIT_READ, END_SEMANTIC], skip_special_tokens=False,
+                extra_args={"si_guard": {"expected": expected_codes(b["text"], tgt),
+                                         **({"history": [c for x in it["blocks"][:r] for c in x["codes"]],
+                                             "hist_n": args.history_ban} if args.history_ban else {}),
+                                         "final": b["final"], "ngram": 8, "min_frac": 0.3}}))
+    results = talker.generate(reqs, params, use_tqdm=False)
+    per = [[] for _ in owners]   # per owner: (offset, speed, output)
+    q = 0
+    for k, (it, r) in enumerate(zip(owners, rs)):
+        for j, o in enumerate(offs):
+            spd = min(max(it["blocks"][r]["speed"] + o, SPEED_0), SPEED_0 + 34)
+            per[k] += [(o, spd, x) for x in results[q].outputs]
+            q += 1
+    scores = None
+    if cand_offsets or args.select_k > 1:   # score_candidates takes one block index: one call per owner
+        scores = [score_candidates([[list(x.token_ids) for _, _, x in pl]], [it], r, front, device, tgt,
+                                   args.scorer_url, args.cand_cover)[0] for pl, it, r in zip(per, owners, rs)]
+    for k, (it, r) in enumerate(zip(owners, rs)):
+        b = it["blocks"][r]
+        pl = per[k]
+        if scores is not None:
+            first = [j for j, (o, _, _) in enumerate(pl) if o == 0][: max(args.select_k, 1)]
+            nl = [scores[k][j][0] for j in first]
+            pick = first[int(np.argmin([float("inf") if v is None else v for v in nl]))]
+            b["select_nll"] = scores[k][pick][0]
+            b["cand_nll"] = [scores[k][j][0] for j in first]
+        else:
+            pick = 0
+        o, spd, best = pl[pick]
+        ids = list(best.token_ids)
+        exp = expected_codes(b["text"], tgt)
+        if cand_offsets:
+            cl = []
+            for j, (oj, sj, x) in enumerate(pl):
+                tid = list(x.token_ids)
+                cc = [t - SEMANTIC_0 for t in tid if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+                cl.append({"o": oj, "v": sj, "codes": cc,
+                           "closing": tid[-1] if tid and tid[-1] in (WAIT_READ, END_SEMANTIC) else None,
+                           "lp": None if x.cumulative_logprob is None else round(float(x.cumulative_logprob), 4),
+                           "ntok": len(tid), "nll": scores[k][j][0], "cover": scores[k][j][1],
+                           "forced": len(cc) >= max(int(2.2 * exp), exp + 100)})
+            b["cands"], b["chosen"] = cl, pick
+        b["speed"] = spd
+        b["codes"] = [t - SEMANTIC_0 for t in ids if SEMANTIC_0 <= t <= SEMANTIC_LAST]
+        b["closing"] = ids[-1] if ids and ids[-1] in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if b["final"] else WAIT_READ)
+        b["forced"] = len(b["codes"]) >= max(int(2.2 * exp), exp + 100)
+        b["closed"] = bool(ids) and ids[-1] in (WAIT_READ, END_SEMANTIC) and not b["forced"]
+
+
+def plcrf_meeting_loop(items, wins, talker, front, device, tok, args, lang, tgt, cand_offsets, SamplingParams, out):
+    """--backlog-scope meeting: per meeting, its blocks one at a time in FIFO order of meeting-absolute availability
+    (experiments/mist_w3po_v1/talker/shared_channel.py: the order and timeline of speech_latency_lit's online_1ch);
+    each block's backlog token = the shared channel's backlog from the durations already synthesised (20 ms codes);
+    the meetings of the shard advance together, one block each a round."""
+    from experiments.mist_w3po_v1.talker import shared_channel as SC
+
+    queues = SC.meeting_queues(items, wins)
+    chans = {m: SC.SharedChannel() for m in queues}
+    pos = {m: 0 for m in queues}
+    rnd = 0
+    while any(pos[m] < len(L) for m, L in queues.items()):
+        cur = [(m, *L[pos[m]]) for m, L in queues.items() if pos[m] < len(L)]
+        bins, pairs = [], []
+        for m, a, n_it, r in cur:
+            bl = chans[m].backlog(a)
+            items[n_it]["blocks"][r]["backlog_ms_shared"] = round(bl, 1)
+            bins.append(SC.backlog_bin(bl))
+            pairs.append((n_it, r))
+        plcrf_round_pairs(rnd, pairs, bins, items, talker, front, device, tok, args, lang, tgt, cand_offsets,
+                          SamplingParams, out)
+        for m, a, n_it, r in cur:
+            chans[m].play(a, len(items[n_it]["blocks"][r]["codes"]) * 20)
+            pos[m] += 1
+        rnd += 1
+
+
 def cover_gate_round(gate, talker, tok, reqs, params, owners, r, tgt, args) -> None:
     """--cover-gate: P_cover of each owner's block r; blocks below the threshold sampled again (n=1, new seeds) up to
     --cover-gate-tries times; the first passing sample, else the one with the highest P_cover, is kept."""
@@ -678,7 +799,19 @@ def main() -> None:
     ap.add_argument("--cover-kappa", type=float, default=0.0, help="the head's speaking-rate prior (rows stats kappa)")
     ap.add_argument("--cover-gate-tries", type=int, default=2)
     ap.add_argument("--cover-threshold", type=float, default=0.5)
+    # talker_crf_prereg_v2 experiment 2 (one shared output channel per meeting); off by default
+    ap.add_argument("--backlog-scope", choices=("stream", "meeting"), default="stream",
+                    help="with --backlog-token: stream (default, unchanged) = the stream's own queued speech; meeting = "
+                         "ONE output channel per meeting: the shard holds whole meetings (shared_channel.meeting_shard_of), "
+                         "each meeting's blocks are generated one at a time in FIFO order of availability, and the backlog "
+                         "token is the shared channel's backlog from the durations already synthesised (needs --backlog-win)")
+    ap.add_argument("--backlog-win", default="", help="--backlog-scope meeting: the online windows (meeting, start_s, "
+                                                      "open/close_detect_ms, dur_ms) the run's text was decoded on")
     args = ap.parse_args()
+    if args.backlog_scope == "meeting" and not (args.backlog_token and args.backlog_win and args.text_policy == "file"
+                                                and args.items_file and not args.cover_gate):
+        raise SystemExit("--backlog-scope meeting needs --backlog-token --backlog-win, --text-policy file with "
+                         "--items-file, and no --cover-gate")
     if args.self_speed and not args.backlog_token:
         raise SystemExit("--self-speed needs --backlog-token")
     cand_offsets = [int(x) for x in args.cand_speeds.split(",")] if args.cand_speeds else []
@@ -712,7 +845,14 @@ def main() -> None:
         items = [it for it in items if given.get(it["id"])]
     if args.limit and args.limit < len(items):
         items = [items[round(i * (len(items) - 1) / (args.limit - 1))] for i in range(args.limit)]
-    items = items[args.shard:: args.num_shards]
+    wins_m = None
+    if args.backlog_scope == "meeting":   # whole meetings per shard (the shared channel is sequential in a meeting)
+        from experiments.mist_w3po_v1.talker import shared_channel as SC
+        wins_m = {w["id"]: w for w in map(json.loads, open(args.backlog_win, encoding="utf-8"))}
+        sh = SC.meeting_shard_of([{"id": it["id"], "blocks": given[it["id"]]} for it in items], wins_m, args.num_shards)
+        items = [it for it in items if sh[wins_m[SC.window_of(it["id"])]["meeting"]] == args.shard]
+    else:
+        items = items[args.shard:: args.num_shards]
     out = Path(args.output).resolve()
     for d in ("wav", "src", "tmp"):
         (out / d).mkdir(parents=True, exist_ok=True)
@@ -803,7 +943,9 @@ def main() -> None:
         from experiments.mist_w3po_v1.talker.cover_gate import CoverGate
         gate = CoverGate.from_paths(args.model, args.cover_gate, args.cover_kappa or None, device)
     t0 = time.time()
-    for r in range(max(len(it["blocks"]) for it in items)):
+    if args.backlog_scope == "meeting":
+        plcrf_meeting_loop(items, wins_m, talker, front, device, tok, args, lang, tgt, cand_offsets, SamplingParams, out)
+    for r in range(0 if args.backlog_scope == "meeting" else max(len(it["blocks"]) for it in items)):
         if new_mode:   # talker schemes (cand sampling / backlog format); the original loop below is untouched
             plcrf_round(r, items, talker, front, device, tok, args, lang, tgt, cand_offsets, SamplingParams, out)
             continue
@@ -949,6 +1091,7 @@ def main() -> None:
             **({"src_mask_own_ms": args.src_mask_own_ms} if args.src_mask_own_ms >= 0 else {}),
             **({"cand_speeds": args.cand_speeds, "cand_k": args.cand_k} if cand_offsets else {}),
             **({"backlog_token": True, "self_speed": args.self_speed} if args.backlog_token else {}),
+            **({"backlog_scope": "meeting"} if args.backlog_scope == "meeting" else {}),
             **({"cover_gate": args.cover_gate, "cover_gate_tries": args.cover_gate_tries} if args.cover_gate else {}),
             "codes": len(codes), "error": None if codes else "no audio",
             "start_offset_ms": int(pieces[0][0] + lead * 20) if codes else None,
@@ -958,7 +1101,7 @@ def main() -> None:
                         **({"code_ids": [int(c) for c in b["codes"]]} if args.dump_codes else {}),
                         **{k: b[k] for k in ("select_nll", "cand_nll", "select_voice_cos", "cand_voice_cos",
                                              "rerun", "rerun_tries", "backlog_bin", "speed_policy_tok", "p_cover",
-                                             "cover_tries") if k in b},
+                                             "cover_tries", "backlog_ms_shared") if k in b},
                         **({"train_ids": b["prompt"] + [SEMANTIC_0 + c for c in b["codes"]] + [b["closing"]],
                             "label_from": len(b["prompt"])} if args.dump_seq else {})}
                        | {"codes": len(b["codes"]), "closing": "wait_read" if b["closing"] == WAIT_READ else "end"}

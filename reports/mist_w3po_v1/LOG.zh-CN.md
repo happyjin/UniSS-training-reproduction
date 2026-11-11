@@ -1544,3 +1544,23 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 预登记 0ebb4774。结果写在 `thinker_latency_precheck_results_v1.zh-CN.md`。
 - A-2：内部静音 ≥ 0.3 s 的话语占比，train 8.7%、dev 3.3%（线 ≤ 10%），GO。统计时顺带数到 AMI test 划分，该数字不使用。
 - B-1：译文不变、句内增量（≤ 4 词，比例时刻 + 1.0 s，0.5 s 读）的上界，每条流语音 LAAL 4.151 → 2.915（线 ≤ 3.0），GO，余量 0.085。
+
+## 2026-11-11 07:00 UTC — talker 两个新实验开工（预登记 v2）：实验一"无格"消融 BoN-SFT、实验二 单通道 PL-EM
+
+- **用户批准**（约 05:50 UTC）：两个实验都做，立即开始；训练只用 0–3 号卡，评测只用 4–7 号卡；预检不影响训练。
+- **预登记**：`talker_crf_prereg_v2.zh-CN.md`，在任何训练行、预检、训练、评测结果之前提交并推送。
+- **执行者的决定**（登记前，按目标择优）：
+  1. 会议格的积压上限从 8 s 提到 32 s。A′ 路径的共享积压在 train 上 9.8% 的块超过 8 s，最大 31.4 s；8 s 上限会把大积压状态合并。
+  2. 会议格的取整改为最近点。约 1272 块的长链上，向上取整的漂移会累积（A′ 路径平均 +0.28 s，最近点 +0.09 s）。条件后验的"实际状态"取 A′ 路径精确积压的最近格点。
+  3. 实验二推理时 c1 语速规则保持每条流，只把积压 token 换成共享通道的积压。训练候选是在每条流 c1 语速下采的，改 c1 会把规则本身也一起改掉。
+  4. 实验二推理按整个会议分片（按块数做最长处理时间优先分配），每个会议逐块按 FIFO 生成。
+  5. 预检和两个评测放在一个编排器里，vLLM 错开启动的规则对两个实验同时有效；CTC 打分端口 18791–18794。
+- **代码**（只做加法，默认值逐位不变，均有单元测试）：
+  - `talker/shared_channel.py`；
+  - `playback_lattice.Stream(rounding=)`；
+  - `talker_rows --mode bon / --scope meeting`。默认 plem 行在真实 train 候选上重建后与 `rows/plem.pt` 逐项相等。
+  - `precheck_plcrf select-meeting / summary2`；
+  - `si_infer --backlog-scope meeting --backlog-win`；
+  - `eval_summary_v2.py`；
+  - `scripts/talker_crf_v2_orch.py`、`scripts/start_talker_crf_v2.sh`（只用 bash -n 和 DRY_RUN 检查）。
+- **小失误**：写测试时用 `cat >> … <<EOF` 误建了一个空文件 `talker/test_playback_lattice.py.new`。已用 `command mv -f` 移到 scratchpad，没有用 rm，也没有其他文件受影响。

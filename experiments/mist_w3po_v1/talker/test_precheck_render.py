@@ -34,7 +34,44 @@ def test_select():
         assert "p3_go" in st
 
 
+def test_select_meeting_and_summary2():
+    """talker_crf_prereg_v2 experiment 2: the meeting-lattice Viterbi selection and the GO line."""
+    from experiments.mist_w3po_v1.talker.test_talker_rows import meeting_items
+
+    with tempfile.TemporaryDirectory() as d:
+        items, W = meeting_items()
+        (Path(d) / "cands_0.jsonl").write_text("".join(json.dumps(x) + "\n" for x in items))
+        (Path(d) / "win.jsonl").write_text("".join(json.dumps({"id": k, **v}) + "\n" for k, v in W.items()))
+        ss = {it["id"]: [b["chosen"] for b in it["blocks"]] for it in items}
+        (Path(d) / "ss.json").write_text(json.dumps(ss))
+        P.select_meeting(argparse.Namespace(cands=f"{d}/cands_*.jsonl", win=f"{d}/win.jsonl", out=f"{d}/o",
+                                            sel_stream=f"{d}/ss.json"))
+        sel = json.load(open(f"{d}/o/sel_meeting.json"))
+        st = json.load(open(f"{d}/o/select_meeting_stats.json"))
+        assert {k: len(v) for k, v in sel.items()} == {it["id"]: len(it["blocks"]) for it in items}
+        assert abs(st["stream_lattice_latency_1ch_s"] - st["aprule_latency_1ch_s"]) < 1e-9   # ss = the A' path here
+        assert st["viterbi_latency_1ch_s"] <= st["aprule_latency_1ch_s"] + 1e-9 or st["lambda"] == 0
+        # summary2's GO line on made-up numbers
+        rows = {"aprule": (23.4, 7.8), "lattice": (23.8, 5.5), "meeting": (23.3, 4.9)}
+        args = {"out": d, "gate_meeting": ""}
+        for k, (sp, l1) in rows.items():
+            D = Path(d) / k
+            D.mkdir()
+            (D / "score_asr.json").write_text(json.dumps({"tcpBLEU_all": sp}))
+            lat = {"unit": {"speech_laal_online_1ch": {"all": {"mean": l1}}, "speech_end_online_1ch": {"all": {"mean": l1}},
+                            "speech_laal_online": {"all": {"mean": 4.0}}, "speech_end_online": {"all": {"mean": 3.0}}}}
+            gap = {"scores": {"asr_seg": {"repo": {"all": 28.0}}, "text_seg": {"raw": {"all": 28.4}, "repo": {"all": 29.7}}},
+                   "fidelity": {"wer": 0.05}}
+            (D / "lat.json").write_text(json.dumps(lat))
+            (D / "gap.json").write_text(json.dumps(gap))
+            args.update({f"dec_{k}": str(D), f"lat_{k}": str(D / "lat.json"), f"gap_{k}": str(D / "gap.json")})
+        P.summary2(argparse.Namespace(**args))
+        res = json.load(open(f"{d}/summary2.json"))
+        assert res["exp2_go"] is True and abs(res["meeting_minus"]["lattice"]["speech_laal_1ch"] + 0.6) < 1e-9
+
+
 if __name__ == "__main__":
     test_timeline()
     test_select()
+    test_select_meeting_and_summary2()
     print("ok")
