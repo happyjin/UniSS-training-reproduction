@@ -174,9 +174,9 @@ def main():
         (run / "exclude_cards").write_text(" ".join(a.exclude) + "\n")
         o = tc.YieldOrch(run, jobs)
     o.spread = True
-    o.ledger, o.ledger_owner = LEDGER, OWNER
+    o.ledger, o.ledger_owner = LEDGER, f"{OWNER}_{run.name}"   # one owner per orchestrator: they see each other's pending starts
     o.log(f"thinker T eval {a.name}: ckpt {a.ckpt}; window {a.window}; talker {a.talker}; gate refs {a.gate_ref}; "
-          f"excluded {sorted(o.excluded())}; ledger {LEDGER} owner {OWNER}")
+          f"excluded {sorted(o.excluded())}; ledger {LEDGER} owner {o.ledger_owner}")
     try:
         o.loop()
     except Exception as e:  # noqa: BLE001
