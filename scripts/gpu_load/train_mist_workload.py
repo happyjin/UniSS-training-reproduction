@@ -67,6 +67,13 @@ def parse_args(argv=None):
     p.add_argument("--tolerate-keeper", action="store_true",
                    help="opt-in: ignore our own root-owned W3PO reservation keepers (" + KEEPER_SCRIPT + ") on the "
                         "selected GPUs, at start and while running (their memory does not count as busy)")
+    p.add_argument("--smi-retries", type=int, default=0,
+                   help="opt-in (user 2026-11-11): retry a timed-out or failed nvidia-smi query this many times "
+                        "(5, 10, ... s apart, at most 30 s) instead of stopping the load; default 0 = unchanged")
+    p.add_argument("--ignore-k8s-pods", action="store_true",
+                   help="opt-in (user 2026-11-11): processes in Kubernetes pod cgroups (/proc/<pid>/cgroup contains "
+                        "'kubepods') neither block the start nor stop a running load, and their memory does not count "
+                        "as busy; the load still adapts its padding to the memory they use")
     p.add_argument("--idle-seconds", type=float, default=60, help="all selected GPUs must remain idle this long")
     p.add_argument("--idle-memory-mib", type=int, default=1000)
     p.add_argument("--poll-seconds", type=float, default=5)
@@ -106,12 +113,31 @@ def validate_assets(a):
         raise RuntimeError(f"no local model weights in {a.base}")
 
 
+SMI_RETRIES = 0   # --smi-retries (opt-in, user 2026-11-11): default 0 = one attempt, unchanged
+
+
 def smi(query):
-    result = subprocess.run(
-        ["nvidia-smi", query, "--format=csv,noheader,nounits"],
-        check=True, capture_output=True, text=True, timeout=15,
-    )
+    for attempt in range(SMI_RETRIES + 1):
+        try:
+            result = subprocess.run(
+                ["nvidia-smi", query, "--format=csv,noheader,nounits"],
+                check=True, capture_output=True, text=True, timeout=15,
+            )
+            break
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            if attempt >= SMI_RETRIES:
+                raise
+            time.sleep(min(30, 5 * (attempt + 1)))
     return [[v.strip() for v in row] for row in csv.reader(result.stdout.splitlines()) if row]
+
+
+def is_k8s_pod(pid):
+    """a process inside a Kubernetes pod cgroup (only consulted with --ignore-k8s-pods)."""
+    try:
+        with open(f"/proc/{pid}/cgroup", encoding="utf-8", errors="ignore") as fh:
+            return "kubepods" in fh.read()
+    except OSError:
+        return False
 
 
 def is_keeper(pid):
@@ -130,10 +156,12 @@ def gpu_snapshot(a=None):
     for i, uuid, total, used in smi("--query-gpu=index,uuid,memory.total,memory.used"):
         cards[int(i)] = {"uuid": uuid, "total": int(total), "used": int(used), "pids": set()}
     by_uuid = {c["uuid"]: c for c in cards.values()}
-    if a is not None and getattr(a, "tolerate_keeper", False):
+    tk = a is not None and getattr(a, "tolerate_keeper", False)
+    ik = a is not None and getattr(a, "ignore_k8s_pods", False)
+    if tk or ik:
         for uuid, pid, used in smi("--query-compute-apps=gpu_uuid,pid,used_memory"):
             if uuid in by_uuid:
-                if is_keeper(int(pid)):
+                if (tk and is_keeper(int(pid))) or (ik and is_k8s_pod(int(pid))):
                     by_uuid[uuid]["used"] -= int(used) if used.isdigit() else 0
                 else:
                     by_uuid[uuid]["pids"].add(int(pid))
@@ -401,6 +429,8 @@ def supervise(a):
 def main():
     sys.dont_write_bytecode = True
     a = parse_args()
+    global SMI_RETRIES
+    SMI_RETRIES = max(0, a.smi_retries)
     validate_assets(a)
     if a.dry_run:
         log("DRY RUN: no CUDA initialization, model loading, subprocesses, or output files")
