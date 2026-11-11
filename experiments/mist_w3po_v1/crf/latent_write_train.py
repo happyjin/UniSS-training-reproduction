@@ -32,18 +32,27 @@ def plan(w: T.Window, mode: str = "t2") -> dict:
 
 
 def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step: int, tau: float, rk: int, nw: int,
-             prefetch: bool = False, mode: str = "t2") -> dict:
-    """Pass 1 + lam* + posterior + pass-2 rows of this rank (the grad pass is the trainer's grad_pass)."""
+             prefetch: bool = False, mode: str = "t2", dart: dict | None = None) -> dict:
+    """Pass 1 + lam* + posterior + pass-2 rows of this rank (the grad pass is the trainer's grad_pass).
+    dart (T4, crf/dart_aug.py): {w.idx: delay} of this step; its augmentation rows (coefficients fixed) are split over
+    the ranks on their own and appended to this rank's pass-2 rows (None: T2 exactly)."""
     t0 = time.time()
     hook = model._post_transform is not None
     plans = {w.idx: plan(w, mode) for w in sw}
     t_plan = time.time() - t0
     p1 = V2T.split(V2T.pass1_rows(sw, plans), nw, ctx["n_prompt0"])[rk]
     p2 = V2T.split(V2T.pass2_rows(sw, plans, None, D), nw, ctx["n_prompt0"])[rk]
+    p2all, n_aug = p2, 0
+    if dart is not None:
+        from experiments.mist_w3po_v1.crf import dart_aug as DA
+
+        aug = DA.aug_rows(sw, dart, D)
+        n_aug = len(aug)
+        p2all = p2 + V2T.split(aug, nw, ctx["n_prompt0"])[rk]
     b1 = V2T.collate_all(p1, ctx, step, "score", hook)
     th, box = None, {}
     if prefetch:
-        th = threading.Thread(target=lambda: box.__setitem__("b2", V2T.collate_all(p2, ctx, step, "train", hook)),
+        th = threading.Thread(target=lambda: box.__setitem__("b2", V2T.collate_all(p2all, ctx, step, "train", hook)),
                               daemon=True)
         th.start()
     t1 = time.time()
@@ -84,7 +93,10 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
           "lat_label": float(sum(p["lat_label"] for p in posts.values()) / max(sum_w, 1e-9)),
           "sum_words": sum_w, "t_lambda_solve": round(t_lam, 3),
           "edges": int(sum(int(x.sum()) for w in sw for x in plans[w.idx]["edge"]))}
-    return {"rows": p2, "batches": batches, "t_pass1": t3 - t0, "t_post": t_post, "stats": st,
+    if dart is not None:
+        st["dart_rows"] = n_aug
+        st["dart_windows"] = int(sum(1 for w in sw if dart.get(w.idx) is not None))
+    return {"rows": p2all, "batches": batches, "t_pass1": t3 - t0, "t_post": t_post, "stats": st,
             "local": {"tok_pass1": s1["tok"], "mbs_pass1": s1["mbs"], "t_plan": t_plan,
                       "t_collate1": sum(getattr(b, "t_collate", 0.0) for _, b in b1),
                       "t_score1": t_score, "t_gather": t_gather, "t_join": t_join}}

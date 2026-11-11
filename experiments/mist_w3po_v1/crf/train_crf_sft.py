@@ -298,6 +298,7 @@ class Row:
     key: tuple | None = None           # (window idx, request index) of the v2' plan
     c_lab_tok: np.ndarray | None = None   # logging only: the C0 (label path) loss's coefficients at pos
     c_lab_end: np.ndarray | None = None
+    aug: bool = False                  # --dart (T4, crf/dart_aug.py): an off-schedule augmentation row (logged apart)
 
 
 @dataclass
@@ -721,7 +722,7 @@ def grad_pass(model: CrfThinker, rows: list[Row], ctx: dict, step: int, extra_lo
               n_windows_global: int = 0) -> dict:
     """Forward + backward of every micro-batch (gradients accumulate in .grad); returns the summed loss parts."""
     logs = {"loss_main": 0.0, "loss_state": 0.0, "loss_extra": 0.0, "pos": 0, "tokens": 0, "mbs": 0,
-            "loss_label": 0.0, "t_collate": 0.0}
+            "loss_label": 0.0, "t_collate": 0.0, "loss_aug": 0.0}
     hook = model._post_transform is not None
     batches = ctx.get("prefetched_batches")   # serial_v2p: [(micro-batch rows, collated Batch)] built ahead (same packing)
     if batches is None:
@@ -744,6 +745,9 @@ def grad_pass(model: CrfThinker, rows: list[Row], ctx: dict, step: int, extra_lo
             clt = torch.as_tensor(np.concatenate([rw.c_lab_tok for rw in mb]), dtype=torch.float32, device=dev)
             cle = torch.as_tensor(np.concatenate([rw.c_lab_end for rw in mb]), dtype=torch.float32, device=dev)
             logs["loss_label"] += float((-(clt * lt.detach()).sum() - (cle * le.detach()).sum()))
+        if any(rw.aug for rw in mb):      # --dart logging: the augmentation rows' part of main
+            am = torch.as_tensor(np.concatenate([np.full(len(rw.pos), rw.aug) for rw in mb]), device=dev)
+            logs["loss_aug"] += float(-(ct * lt.detach())[am].sum() - (ce * le.detach())[am].sum())
         if extra_loss is not None:
             rec = model.hook_record if hook else {"P_in": [], "P_out": [], "enc": []}
             ex = extra_loss({"metas": b.metas, "P_in": rec["P_in"], "P_out": rec["P_out"], "enc": rec["enc"],
@@ -868,6 +872,11 @@ def build_args(argv=None):
                     "(row_features: packing-invariant inputs; 0: one padded call per micro-batch, as before)")
     ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
                     help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
+    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5"],
+                    help="--objective latent_write: the lattice bounds (latent_write_crf.bounds; t5 = T5's [e, max(u, e)])")
+    ap.add_argument("--dart", default="",
+                    help="--objective latent_write only (T4): directory of a crf/dart_aug.py --manifest made for this "
+                    "--sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 exactly)")
     ap.add_argument("--talker-model", default="",
                     help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
                     "(unused by the other objectives)")
@@ -954,6 +963,17 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         log0(f"--talker-model {args.talker_model}: feature {ctx['talker_model'].feature}, classes "
              f"{ctx['talker_model'].offs}")
 
+    dart = None
+    if args.dart:   # T4: crf/dart_aug.py (manifest checked against this plan)
+        from experiments.mist_w3po_v1.crf import dart_aug as DA_
+
+        if args.objective != "latent_write":
+            raise SystemExit("--dart needs --objective latent_write")
+        dart = DA_.load_manifest(args.dart, wins, plan, args.sched, args.seed, args.steps, args.rows_per_step)
+        if DA_.manifest_mode(args.dart) != args.lw_mode:
+            raise SystemExit(f"--dart manifest made for lattice mode {DA_.manifest_mode(args.dart)}, not {args.lw_mode}")
+        log0(f"--dart {args.dart}: {sum(len(v) for v in dart.values())} perturbed (step, window) entries")
+
     for step in range(start, args.steps):
         t0 = time.time()
         k = step + 1
@@ -1023,7 +1043,11 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             model.eval()
             for m in extra_params:
                 m.eval()
-            v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            if dart is None and args.lw_mode == "t2":
+                v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            else:
+                v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
+                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}))
             t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
             state_w = 0.0
@@ -1081,6 +1105,11 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         v = vec.tolist()
         if args.objective in ("serial_v2p", "latent_write", "joint_speech"):
             V2T.reduce_logs(v2p, lg, dev)
+            if dart is not None:
+                la = torch.tensor([lg["loss_aug"]], dtype=torch.float64, device=dev)
+                if is_dist():
+                    torch.distributed.all_reduce(la)
+                v2p["stats"]["loss_aug"] = float(la.item())
         if rank() == 0:
             rec = {"step": k, "lr": lr, "objective": args.objective, "windows": len(sw), "infeasible": len(bad),
                    "rows": int(sum(w.R for w in sw)), "rows_trained": int(v[6]), "D": D, "A": A,

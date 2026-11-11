@@ -61,7 +61,7 @@ from experiments.mist_w3po_v1.crf import precheck_serial_v2 as V
 
 TAU = 0.5
 LAM_START, LAM_MAX, BISECT_ITERS = 1.0, 1e3, 50
-MODES = ("t2", "v2p", "label")
+MODES = ("t2", "v2p", "label", "t5")
 
 
 # ------------------------------------------------------------------------------------------------ lattice
@@ -81,6 +81,8 @@ def bounds(rec: dict, mode: str = "t2") -> tuple[list[int], list[int]]:
         h = [min(R - 1, x + 1) for x in e]
     elif mode == "label":
         h = list(e)
+    elif mode == "t5":   # T5 (prereg §T5 item 10): [e, max(u, e)] (the user's window; T2 has max(u + 1, e + 1))
+        h = [min(R - 1, max(c["u_read"], x)) for c, x in zip(rec["chunks"], e)]
     else:
         raise ValueError(mode)
     return e, h
