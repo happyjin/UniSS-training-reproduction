@@ -817,7 +817,8 @@ def latest_ckpt(out: Path) -> Path | None:
 # ------------------------------------------------------------------------------------------------ main
 def build_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--objective", required=True, choices=["heuristic", "sched", "serial_v2p", "latent_write"])
+    ap.add_argument("--objective", required=True, choices=["heuristic", "sched", "serial_v2p", "latent_write",
+                                                           "joint_speech"])
     ap.add_argument("--out", required=True)
     ap.add_argument("--base", default=V8, help="v8 merged Thinker (with sd_proj.pt)")
     ap.add_argument("--sched", default=SCHED)
@@ -867,6 +868,9 @@ def build_args(argv=None):
                     "(row_features: packing-invariant inputs; 0: one padded call per micro-batch, as before)")
     ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
                     help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
+    ap.add_argument("--talker-model", default="",
+                    help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
+                    "(unused by the other objectives)")
     return ap.parse_args(argv)
 
 
@@ -941,6 +945,14 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
     if args.final_read_full_post:
         ctx["final_full_post"] = True
         log0("--final-read-full-post 1: final reads see the posteriors up to t // 80 (the whole window)")
+    if args.objective == "joint_speech":   # T3: crf/joint_speech_crf.py (A1 / A2 talker model)
+        from experiments.mist_w3po_v1.crf import joint_speech_crf as JS_
+
+        if not args.talker_model:
+            raise SystemExit("--objective joint_speech needs --talker-model")
+        ctx["talker_model"] = JS_.TalkerModel.load(args.talker_model)
+        log0(f"--talker-model {args.talker_model}: feature {ctx['talker_model'].feature}, classes "
+             f"{ctx['talker_model'].offs}")
 
     for step in range(start, args.steps):
         t0 = time.time()
@@ -1015,13 +1027,24 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
             state_w = 0.0
+        elif args.objective == "joint_speech":   # T3: crf/joint_speech_crf.py, crf/joint_speech_train.py
+            from experiments.mist_w3po_v1.crf import joint_speech_train as JST
+            from experiments.mist_w3po_v1.crf import serial_v2p_train as V2T
+
+            model.eval()
+            for m in extra_params:
+                m.eval()
+            v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
+            st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
+            state_w = 0.0
         else:
             weights = {w.idx: heur_weights(w) for w in mine}
             t_p1 = t_lam = 0.0
             state_w = 0.0
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
         t3 = time.time()
-        if args.objective in ("serial_v2p", "latent_write"):
+        if args.objective in ("serial_v2p", "latent_write", "joint_speech"):
             rows = v2p["rows"]
             ctx["prefetched_batches"] = v2p.get("batches")
         else:
@@ -1056,7 +1079,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             torch.distributed.all_reduce(mx, op=torch.distributed.ReduceOp.MAX)
             vec[7:] = mx
         v = vec.tolist()
-        if args.objective in ("serial_v2p", "latent_write"):
+        if args.objective in ("serial_v2p", "latent_write", "joint_speech"):
             V2T.reduce_logs(v2p, lg, dev)
         if rank() == 0:
             rec = {"step": k, "lr": lr, "objective": args.objective, "windows": len(sw), "infeasible": len(bad),
@@ -1068,7 +1091,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                    "q_heur": st["q_heur"], "gnorm": gn, "pos_pass2": int(v[3]), "tok_pass2": int(v[4]),
                    "micro_batches": int(v[5]), "mem_gib_max": round(v[7], 2), "t_pass1": round(v[8], 2),
                    "t_lambda": round(t_lam, 2), "t_pass2": round(v[9], 2), "t_step": round(time.time() - t0, 2)}
-            if args.objective in ("serial_v2p", "latent_write"):
+            if args.objective in ("serial_v2p", "latent_write", "joint_speech"):
                 rec.update(V2T.metrics_fields(v2p, lg, rec))
             with open(out / "metrics.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec) + "\n")
