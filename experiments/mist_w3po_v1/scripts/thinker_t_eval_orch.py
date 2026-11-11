@@ -57,6 +57,7 @@ def apply_cap135(o, dec_after: list[str]) -> None:
       OOM      a decode that fails with a CUDA OOM is retried without using up a retry; logged to oom_events.jsonl; a card
                with >= 2 OOMs goes to one_decode_cards (no second decode there while one runs)
       order    --dec-after <run> <name>: our decodes wait until every <name>__dec<k> of that run has started
+      per card at most 2 of our own decodes on one card (Orch.plan allowed 1)
     The ledger accounting is unchanged."""
     import time as _t
 
@@ -78,8 +79,41 @@ def apply_cap135(o, dec_after: list[str]) -> None:
         st = Path(run) / "state"
         return all(any(st.glob(f"{name}__dec{k}.a*.pid")) for k in range(8))
 
+    def plan_core(snap, ready):
+        """finalpost_dev_orch.Orch.plan with at most 2 of our decodes per card (was 1: dec_on); otherwise the same."""
+        free = o.free_plan(snap)
+        dec_n = {c: sum(1 for j in o.jobs if j.state == "run" and j.kind == "dec" and j.card == c) for c in free}
+        reserved, out, pair_used, blocked = set(), [], set(), False
+        t = _t.time()
+        for j in sorted(ready, key=lambda x: (x.prio, x.order)):
+            need = fo.NEED[j.kind]
+            cands = [c for c in free if c not in reserved and free[c] >= need and not (j.kind == "dec" and dec_n[c] >= 2)]
+            if j.kind == "dec" and blocked:
+                continue
+            if j.kind == "talk":
+                ok = [c for c in cands if c // 2 not in pair_used and t - o.pair_last[c // 2] >= fo.TALK_PAIR_GAP_S]
+                if cands and not ok:
+                    reserved.add(min(cands, key=lambda c: free[c] - need))
+                    blocked = True
+                    continue
+                cands = ok
+            if not cands:
+                blocked = True
+                continue
+            c = max(cands, key=lambda c: free[c]) if j.kind == "dec" else min(cands, key=lambda c: free[c] - need)
+            out.append((j, c))
+            free[c] -= need
+            if j.kind == "dec":
+                dec_n[c] += 1
+            if j.kind == "talk":
+                pair_used.add(c // 2)
+            if len(out) >= 8:
+                break
+        return out
+
     def plan(snap, ready):
-        out = orig_plan(snap, ready)
+        dec = o.dec_active(ready) if hasattr(o, "dec_active") else True
+        out = plan_core(snap, ready) if (dec or not getattr(o, "spread", False)) else orig_plan(snap, ready)
         if not any(j.kind == "dec" for j, _ in out):
             return out
         t = _t.time()
