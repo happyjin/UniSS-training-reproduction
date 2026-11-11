@@ -70,8 +70,37 @@ def test_select_meeting_and_summary2():
         assert res["exp2_go"] is True and abs(res["meeting_minus"]["lattice"]["speech_laal_1ch"] + 0.6) < 1e-9
 
 
+def test_select_meeting_budget_ref():
+    """talker_crf_prereg_v3 (E2'): --budget-ref stream_viterbi takes the --sel-stream path's proxy - --drop-1ch."""
+    from experiments.mist_w3po_v1.talker import talker_rows as TR
+    from experiments.mist_w3po_v1.talker.test_talker_rows import meeting_items
+
+    with tempfile.TemporaryDirectory() as d:
+        items, W = meeting_items()
+        (Path(d) / "cands_0.jsonl").write_text("".join(json.dumps(x) + "\n" for x in items))
+        (Path(d) / "win.jsonl").write_text("".join(json.dumps({"id": k, **v}) + "\n" for k, v in W.items()))
+        ss = {it["id"]: [0 for _ in it["blocks"]] for it in items}
+        (Path(d) / "ss.json").write_text(json.dumps(ss))
+        P.select_meeting(argparse.Namespace(cands=f"{d}/cands_*.jsonl", win=f"{d}/win.jsonl", out=f"{d}/o",
+                                            sel_stream=f"{d}/ss.json", budget_ref="stream_viterbi", drop_1ch=0.5))
+        st = json.load(open(f"{d}/o/select_meeting_stats.json"))
+        assert st["budget_ref"] == "stream_viterbi" and st["ref_latency_1ch_s"] == st["stream_lattice_latency_1ch_s"]
+        assert abs(st["budget_s"] - round(st["ref_latency_1ch_s"] - 0.5, 4)) < 1e-9
+        _, _, lam, st2 = TR.meeting_lattice(items, W, drop=0.5, ref_paths=ss)
+        assert lam == st["lambda"]
+        # defaults (no budget_ref / drop_1ch attributes, as v2's orchestrator calls it) are unchanged
+        P.select_meeting(argparse.Namespace(cands=f"{d}/cands_*.jsonl", win=f"{d}/win.jsonl", out=f"{d}/o2",
+                                            sel_stream=f"{d}/ss.json"))
+        P.select_meeting(argparse.Namespace(cands=f"{d}/cands_*.jsonl", win=f"{d}/win.jsonl", out=f"{d}/o3",
+                                            sel_stream=f"{d}/ss.json", budget_ref="aprule", drop_1ch=TR.BUDGET_DROP_1CH_S))
+        for f in ("sel_meeting.json", "select_meeting_stats.json"):
+            assert (Path(d) / "o2" / f).read_text() == (Path(d) / "o3" / f).read_text()
+        assert "budget_ref" not in json.load(open(f"{d}/o2/select_meeting_stats.json"))
+
+
 if __name__ == "__main__":
     test_timeline()
     test_select()
     test_select_meeting_and_summary2()
+    test_select_meeting_budget_ref()
     print("ok")

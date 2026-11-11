@@ -155,6 +155,50 @@ def test_meeting_rows():
     assert max(bl.values()) > 0   # the shared channel queues (per stream it would not for the second speaker)
 
 
+MEETING_GOLDEN = "5af25abb55dd5d22b8fd9b838392ea6c917b185ee27c1f3bb4e8afdb02d6de16"   # plem_meeting_rows before v3
+
+
+def test_meeting_default_bit_identical():
+    """talker_crf_prereg_v3's additions leave the --scope meeting default rows bit-identical (hash taken before)."""
+    import hashlib
+    import json
+
+    items, W = meeting_items()
+    blocks, stats = T.plem_meeting_rows(items, W)
+    s = json.dumps({"blocks": blocks, "stats": stats}, sort_keys=True)
+    assert hashlib.sha256(s.encode()).hexdigest() == MEETING_GOLDEN
+
+
+def test_meeting_budget_ref():
+    """E2' (talker_crf_prereg_v3): budget = the reference path's proxy on the meeting lattice - drop."""
+    items, W = meeting_items()
+    ap = {it["id"]: [b["chosen"] for b in it["blocks"]] for it in items}
+    # the A' path as the reference with the default drop reproduces the default lattice exactly
+    c0, s0, l0, st0 = T.meeting_lattice(items, W)
+    c1, s1, l1, st1 = T.meeting_lattice(items, W, ref_paths=ap)
+    assert l0 == l1 and st1["ref_latency_1ch_s"] == st0["aprule_latency_1ch_s"] and st1["budget_s"] == st0["budget_s"]
+    assert {k: v for k, v in st1.items() if k in st0} == st0
+    # another reference path and drop: budget = its proxy - drop, lambda meets it (or hits a bound)
+    ref = {it["id"]: [0 for _ in it["blocks"]] for it in items}
+    ch, ss, lam, st = T.meeting_lattice(items, W, drop=0.5, ref_paths=ref)
+    words = sum(sum(x.words) for x in ss)
+    lat = sum(x.path_latency([ref[items[n]["id"]][r] for n, r in c]) for c, x in zip(ch.values(), ss)) / words
+    assert abs(st["ref_latency_1ch_s"] - round(lat, 4)) < 1e-12 and abs(st["budget_s"] - round(lat - 0.5, 4)) < 1e-12
+    assert st["budget_ref"] == "stream_viterbi" and st["drop_1ch_s"] == 0.5
+    e = T.PL.corpus_latency(ss, lam)
+    assert lam in (0.0, 50.0) or abs(e - (lat - 0.5)) < 1e-3
+    # stream_viterbi_paths = each stream's own Viterbi under the per-stream lattice
+    paths, rst = T.stream_viterbi_paths(items, W)
+    streams, lam_s, _ = T.lattice(items, W)
+    assert rst["stream_lambda"] == lam_s
+    assert paths == {it["id"]: x.viterbi(lam_s) for it, x in zip(items, streams)}
+    # rows with the reference: same construction, weights from the new lambda
+    blocks, stb = T.plem_meeting_rows(items, W, ref_paths=paths, drop=0.5)
+    assert stb["budget_ref"] == "stream_viterbi" and stb["blocks"] == 5
+    for bk in blocks:
+        assert abs(sum(c["w"] for c in bk["cands"]) - 1) < 1e-9
+
+
 if __name__ == "__main__":
     test_seq_equals_infer()
     test_plem_rows()
@@ -163,4 +207,6 @@ if __name__ == "__main__":
     test_block_rows_reproduces_plem()
     test_bon_rows()
     test_meeting_rows()
+    test_meeting_default_bit_identical()
+    test_meeting_budget_ref()
     print("ok")

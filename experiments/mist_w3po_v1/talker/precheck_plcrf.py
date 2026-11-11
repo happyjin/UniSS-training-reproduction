@@ -20,6 +20,11 @@ summary2        A' rule path vs per-stream lattice path vs meeting-lattice path:
                 per-stream speech LAAL, EndOffset (both), speech official / normalised segment-level, WER -> GO iff
                 1ch LAAL(meeting) <= 1ch LAAL(per-stream lattice) - 0.5 s and speech official(meeting) >= A' - 0.2
                 -> summary2.json
+
+talker_crf_prereg_v3 (E2'), additive: select-meeting --budget-ref stream_viterbi --drop-1ch 0.5 --sel-stream <per-stream
+                lattice sel_lattice.json>: the meeting lattice's budget = the per-stream lattice path's proxy latency on
+                the meeting lattice - 0.5 s (talker_rows.meeting_lattice ref_paths); defaults (aprule, 1.0) unchanged.
+                summary2 is reused unchanged (same GO line).
 """
 from __future__ import annotations
 
@@ -102,7 +107,16 @@ def select_meeting(a) -> None:
     out.mkdir(parents=True, exist_ok=True)
     items = TR.load_items(a.cands)
     W = TR.windows(a.win)
-    chains, streams, lam, st = TR.meeting_lattice(items, W)
+    bref, drop = getattr(a, "budget_ref", "aprule"), getattr(a, "drop_1ch", TR.BUDGET_DROP_1CH_S)
+    if bref == "stream_viterbi":   # talker_crf_prereg_v3 (E2')
+        if not a.sel_stream:
+            raise SystemExit("--budget-ref stream_viterbi needs --sel-stream")
+        ref = json.load(open(a.sel_stream))
+        chains, streams, lam, st = TR.meeting_lattice(items, W, drop=drop, ref_paths=ref)
+    elif drop != TR.BUDGET_DROP_1CH_S:
+        chains, streams, lam, st = TR.meeting_lattice(items, W, drop=drop)
+    else:
+        chains, streams, lam, st = TR.meeting_lattice(items, W)
     sel = {it["id"]: [None] * len(it["blocks"]) for it in items}
     vit_lat, changed = 0.0, 0
     for ch, s in zip(chains.values(), streams):
@@ -191,6 +205,9 @@ def main():
     s2.add_argument("--win", required=True)
     s2.add_argument("--out", required=True)
     s2.add_argument("--sel-stream", default="", help="sel_lattice.json of the per-stream lattice (descriptive)")
+    s2.add_argument("--budget-ref", choices=TR.BUDGET_REFS, default="aprule",
+                    help="budget reference path (default aprule, unchanged; stream_viterbi = the --sel-stream path, E2')")
+    s2.add_argument("--drop-1ch", type=float, default=TR.BUDGET_DROP_1CH_S)
     m2 = sub.add_parser("summary2")
     m2.add_argument("--out", required=True)
     for k in ("aprule", "lattice", "meeting"):

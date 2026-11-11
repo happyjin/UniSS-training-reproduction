@@ -24,6 +24,10 @@ bon     (2026-11-11, talker_crf_prereg_v2 experiment 1, the "no lattice" ablatio
         dual bisection to budget = (the A' rule path's own shared-channel corpus latency) - 1.0 s; q(c | b_n = the A'
         path's exact shared backlog, nearest grid state); every block's backlog token (history included) = the A'
         path's shared-backlog bin. Saved with mode "plem", variant "meeting". Default --scope stream: unchanged.
+--budget-ref stream_viterbi --drop-1ch 0.5  (--scope meeting only; talker_crf_prereg_v3, E2') the meeting lattice's
+        budget = the per-stream PL-EM lattice's Viterbi path (lattice(): budget A' - 0.3 s, its own lambda on the same
+        items) measured on the meeting lattice's proxy, minus --drop-1ch; everything else as --scope meeting. Saved
+        with variant "meeting_v3". Defaults (--budget-ref aprule, --drop-1ch 1.0): unchanged.
 
 Writes <out> (torch.save of a dict; refuses to overwrite) and <out>.json (stats).
 
@@ -54,6 +58,7 @@ BUDGET_DROP_S = 0.3
 BUDGET_DROP_1CH_S = 1.0      # --scope meeting (talker_crf_prereg_v2 experiment 2)
 MEETING_CAP_MS = 32000       # A' path's shared backlog on the train rows: max 31.4 s (10% of blocks > 8 s)
 MEETING_ROUNDING = "nearest"
+BUDGET_REFS = ("aprule", "stream_viterbi")   # --budget-ref (talker_crf_prereg_v3 E2': stream_viterbi, drop 0.5)
 
 
 def closing(c: dict, final: bool) -> int:
@@ -242,10 +247,20 @@ def chosen_durs(items: list[dict]) -> dict:
             for r, b in enumerate(it["blocks"])}
 
 
+def stream_viterbi_paths(items: list[dict], W: dict) -> tuple[dict, dict]:
+    """talker_crf_prereg_v3 (E2'): the per-stream PL-EM lattice on these items (lattice(): budget = the A' rule path's
+    corpus latency - 0.3 s, its own lambda) -> its Viterbi path per item (id -> candidate per block), stats."""
+    streams, lam, st = lattice(items, W)
+    return ({it["id"]: [int(c) for c in s.viterbi(lam)] for it, s in zip(items, streams)},
+            {"stream_lambda": lam, "stream_budget_s": st["budget_s"], "stream_aprule_latency_s": st["aprule_latency_s"]})
+
+
 def meeting_lattice(items: list[dict], W: dict, drop: float = BUDGET_DROP_1CH_S, cap: int = MEETING_CAP_MS,
-                    rounding: str = MEETING_ROUNDING):
+                    rounding: str = MEETING_ROUNDING, ref_paths: dict | None = None):
     """--scope meeting: one PL.Stream per meeting over its blocks in FIFO order (shared_channel.meeting_queues).
-    -> chains (meeting -> [(item index, block index)]), streams (same order), lambda, stats."""
+    -> chains (meeting -> [(item index, block index)]), streams (same order), lambda, stats.
+    ref_paths (talker_crf_prereg_v3; default None = the A' rule path, unchanged): id -> candidate per block, the path
+    whose proxy latency on this lattice minus drop is the budget."""
     Q = SC.meeting_queues(items, W)
     chains, streams = {}, []
     for m, L in Q.items():
@@ -257,16 +272,22 @@ def meeting_lattice(items: list[dict], W: dict, drop: float = BUDGET_DROP_1CH_S,
     words = sum(sum(st.words) for st in streams)
     a_lat = sum(st.path_latency([items[n]["blocks"][r]["chosen"] for n, r in ch])
                 for ch, st in zip(chains.values(), streams)) / words
-    lam, e = PL.solve_lambda(streams, a_lat - drop)
-    return chains, streams, lam, {
+    base = a_lat if ref_paths is None else sum(
+        st.path_latency([ref_paths[items[n]["id"]][r] for n, r in ch]) for ch, st in zip(chains.values(), streams)) / words
+    lam, e = PL.solve_lambda(streams, base - drop)
+    stats = {
         "scope": "meeting", "cap_ms": cap, "rounding": rounding, "aprule_latency_1ch_s": round(a_lat, 4),
-        "budget_s": round(a_lat - drop, 4), "lambda": lam, "eq_latency_s": round(e, 4),
+        "budget_s": round(base - drop, 4), "lambda": lam, "eq_latency_s": round(e, 4),
         "eq_latency_lam0_s": round(PL.corpus_latency(streams, 0.0), 4), "meetings": len(streams),
         "chain_len_max": max(len(c) for c in chains.values()), "words": words}
+    if ref_paths is not None:
+        stats.update({"budget_ref": "stream_viterbi", "ref_latency_1ch_s": round(base, 4), "drop_1ch_s": drop})
+    return chains, streams, lam, stats
 
 
-def plem_meeting_rows(items: list[dict], W: dict) -> tuple[list[dict], dict]:
-    chains, streams, lam, stats = meeting_lattice(items, W)
+def plem_meeting_rows(items: list[dict], W: dict, ref_paths: dict | None = None,
+                      drop: float = BUDGET_DROP_1CH_S) -> tuple[list[dict], dict]:
+    chains, streams, lam, stats = meeting_lattice(items, W, drop=drop, ref_paths=ref_paths)
     bl_ms = SC.shared_backlogs(items, W, chosen_durs(items))
     items2 = [{**it, "blocks": [{**b, "backlog_bin": SC.backlog_bin(bl_ms[(n, r)])} for r, b in enumerate(it["blocks"])]}
               for n, it in enumerate(items)]
@@ -346,6 +367,11 @@ def main():
     ap.add_argument("--mode", choices=("plem", "align", "lattice", "bon"), required=True)
     ap.add_argument("--scope", choices=("stream", "meeting"), default="stream",
                     help="plem: the lattice per stream (default, unchanged) or one shared-channel chain per meeting")
+    ap.add_argument("--budget-ref", choices=BUDGET_REFS, default="aprule",
+                    help="--scope meeting: the budget's reference path (default aprule, unchanged; stream_viterbi = "
+                         "talker_crf_prereg_v3 E2')")
+    ap.add_argument("--drop-1ch", type=float, default=BUDGET_DROP_1CH_S,
+                    help=f"--scope meeting: budget = reference path's proxy - this (default {BUDGET_DROP_1CH_S}, unchanged)")
     ap.add_argument("--cands", required=True, help="glob of cands_*.jsonl")
     ap.add_argument("--win", required=True, help="the online windows the run's text was decoded on")
     ap.add_argument("--out", required=True)
@@ -355,10 +381,21 @@ def main():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     if a.scope == "meeting" and a.mode != "plem":
         raise SystemExit("--scope meeting: plem only")
+    v3 = a.budget_ref != "aprule" or a.drop_1ch != BUDGET_DROP_1CH_S
+    if v3 and a.scope != "meeting":
+        raise SystemExit("--budget-ref / --drop-1ch: --scope meeting only")
     items = load_items(a.cands)
     if a.mode in ("bon", "plem") and (a.mode == "bon" or a.scope == "meeting"):   # talker_crf_prereg_v2
-        rows, stats = bon_rows(items) if a.mode == "bon" else plem_meeting_rows(items, windows(a.win))
-        variant = "bon" if a.mode == "bon" else "meeting"
+        if a.mode == "bon":
+            rows, stats = bon_rows(items)
+        elif not v3:
+            rows, stats = plem_meeting_rows(items, windows(a.win))
+        else:   # talker_crf_prereg_v3 (E2')
+            W = windows(a.win)
+            ref, rst = stream_viterbi_paths(items, W) if a.budget_ref == "stream_viterbi" else (None, {})
+            rows, stats = plem_meeting_rows(items, W, ref_paths=ref, drop=a.drop_1ch)
+            stats.update(rst)
+        variant = "bon" if a.mode == "bon" else ("meeting_v3" if v3 else "meeting")
         import torch
 
         out.parent.mkdir(parents=True, exist_ok=True)
