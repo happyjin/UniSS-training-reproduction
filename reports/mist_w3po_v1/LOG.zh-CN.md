@@ -2043,3 +2043,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - `scripts/start_ve1.sh`。
 - 所有启动脚本都只用 bash -n 和 DRY_RUN 检查过。
 - **GPU**：没有用。
+- 补充（22:45 布拉格）：新脚本 `scripts/t_after_train_rl.sh`，用于 D1 / VE1 训完之后的流程。原来的 `t_after_train.sh` 没有改。
+  - 先做速查，判 GO 线 1–3，再加第 4 条（CPU 语音代理低于 A′），结果写进 `go4.json`；
+  - GO 后依次做：dev 解码；读级块合并；读级块的语音链（主评测，门槛对 A′）；逐段输入的语音链（消融）。
+  - 只用 bash -n 和 DRY_RUN 检查过。
