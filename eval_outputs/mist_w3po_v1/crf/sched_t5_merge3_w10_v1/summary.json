@@ -1,0 +1,38 @@
+{
+ "windows": 22671,
+ "stats": {
+  "dropped_nir": 5282,
+  "windows": 22671,
+  "chunks": 60872,
+  "words": 363887,
+  "final_words": 100516,
+  "e_gt_u": 691,
+  "unaligned_chunks": 340,
+  "reads": 140607
+ },
+ "plan_windows": 22671,
+ "n_infeasible": 0,
+ "plan_windows_infeasible": [],
+ "label_path_check_bad": [],
+ "n_bad": 0,
+ "final_word_share": 0.27622860943094973,
+ "L_ref_mean_lat_heur_windows": 0.5313128586495833,
+ "lat_heur_plan_windows": 0.5313128586495833,
+ "grid_ms": 1000,
+ "args": {
+  "align": false,
+  "audit": false,
+  "build": true,
+  "split": "train",
+  "targets": "",
+  "win": "",
+  "align_dir": "eval_outputs/mist_w3po_v1/crf/t5_align_v1/train",
+  "out": "eval_outputs/mist_w3po_v1/crf/sched_t5_merge3_w10_v1",
+  "grid": 1000,
+  "workers": 40,
+  "threads": 4,
+  "limit": 0,
+  "granularity": "merge3"
+ },
+ "elapsed_s": 278.9
+}

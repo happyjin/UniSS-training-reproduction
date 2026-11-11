@@ -1,0 +1,44 @@
+{
+ "sched": "eval_outputs/mist_w3po_v1/crf/sched_t5_merge3_w10_v1",
+ "plan": {
+  "seed": 20261109,
+  "steps": 3000,
+  "rows_per_step": 64
+ },
+ "dart": {
+  "seed": 20261111,
+  "frac": 0.5,
+  "p_item": 0.3,
+  "kmax": 3
+ },
+ "lw_mode": "v2p",
+ "windows_in_plan": 22671,
+ "stats": {
+  "perturbed": 15585,
+  "delayed_items": 12748,
+  "items": 42134,
+  "rows": 13964,
+  "off_t2": 5811,
+  "windows": 31050
+ },
+ "aug_rows_per_step": {
+  "mean": 4.6546666666666665,
+  "p50": 4.0,
+  "p95": 11.0,
+  "max": 23
+ },
+ "aug_tokens_per_step": {
+  "mean": 173.72333333333333,
+  "p95": 528.0999999999995,
+  "max": 1502
+ },
+ "read_rows_per_step_mean": 64.20166666666667,
+ "aug_rows_over_read_rows": 0.0725007138963163,
+ "off_t2_share": 0.41614150673159556,
+ "max_overdue_lag_reads": {
+  "1": 8153,
+  "2": 4058,
+  "3": 1753
+ },
+ "elapsed_s": 3.5
+}

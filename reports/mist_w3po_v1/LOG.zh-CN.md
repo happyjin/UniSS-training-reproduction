@@ -2028,3 +2028,18 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 理由：T1 就是 v2′ 目标 + 小块，比 T2 停得更厉害；小块会碎（T2 每段 2.8 词，语音-文本差距 +1.2）。
   - merge3 证据标签在 dev5 的标签路径 LAAL 是 2.33 s，比 A′ 自己的标签（3.31 s）早约 1 s。
 - **运行条件**：取代已取消的 J1，按 D1 的排程占另一个 4 卡槽（D1 要跑时）。速查 GO 线和门槛与 D1 相同。
+
+## 2026-11-11 22:40 布拉格 — 方法设计执行者：D1 和 VE1 的代码、测试、CPU 预检与启动脚本
+
+- **D1**：
+  - 代码：`crf/d1_rollin.py`、`dart_aug.aug_requests_rho / aug_rows_rho`、`latent_write_train.run_step(d1=)`、`train_crf_sft --d1`、`scripts/start_d1_rollin.sh`、`scripts/start_d1.sh`。
+  - 测试 `test_d1` 4/4；回归 5 个测试文件全过。
+  - 清单在 T5 数据上用假的 roll-in 端到端跑通。
+  - GPU 运行时，每个分片开头用逐边界前缀前向复核 20 个窗口。
+- **VE1**：
+  - 数据 `sched_t5_merge3_w10_v1` 和 `ve1_dart_merge3_w10_v1`（CPU）；
+  - `--lw-mode v2p`（trainer、dart_aug）；
+  - 预检 V1–V3 全过：每块 5.98 词；v2p 等价于 v2′（2052 个窗口逐位相同，λ ≡ 0）；参数和清单都对上；
+  - `scripts/start_ve1.sh`。
+- 所有启动脚本都只用 bash -n 和 DRY_RUN 检查过。
+- **GPU**：没有用。

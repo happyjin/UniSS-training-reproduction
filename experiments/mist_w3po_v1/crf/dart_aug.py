@@ -131,6 +131,73 @@ def aug_rows(wins: list, step_draws: dict, D: float) -> list:
     return rows
 
 
+# ------------------------------------------------------------------------------------------------ D1 (learner roll-in)
+def check_rho(rec: dict, rho: list[int]) -> None:
+    """a learner's write reads (crf/d1_rollin.py): 0 <= rho <= R - 1, the final read writes what is left, monotone
+    along every speaker's kappa order (rho may be below e: written ahead of the label)."""
+    e = S.chunk_reads(rec)
+    R = rec["n_read"]
+    assert len(rho) == len(e) and all(0 <= x <= R - 1 for x in rho), rec["id"]
+    for it in speaker_orders(rec, e).values():
+        assert all(rho[a] <= rho[b] for a, b in zip(it, it[1:])), rec["id"]
+
+
+def aug_requests_rho(rec: dict, rho: list[int], mode: str = "t2", keep: list[int] | None = None) -> list[dict]:
+    """D1 (reports/mist_w3po_v1/thinker_dagger_d1_prereg_v1.zh-CN.md §1.3): aug_requests with the learner's own write
+    reads rho in place of the perturbed reads (rho < e allowed). Per read r with an overdue item (e_i <= r - 1, not in
+    H_r = {i : rho_i <= r - 1}): history kappa(H_r), target W*_r = {i not in H_r : e_i <= r} in kappa order. keep: only
+    these reads (the manifest's 25 % cap); None = all."""
+    from experiments.mist_w3po_v1.crf import latent_write_crf as LW
+
+    check_rho(rec, rho)
+    e = S.chunk_reads(rec)
+    R, n = rec["n_read"], len(rec["chunks"])
+    _, h = LW.bounds(rec, mode)
+    ks = None if keep is None else set(keep)
+    out = []
+    for r in range(R):
+        if ks is not None and r not in ks:
+            continue
+        H = [i for i in range(n) if rho[i] <= r - 1]
+        Hs = set(H)
+        O = [i for i in range(n) if i not in Hs and e[i] <= r - 1]
+        if not O:
+            continue
+        Wst = [i for i in range(n) if i not in Hs and e[i] <= r]
+        hist, items = V.kap(rec, e, H), V.kap(rec, e, Wst)
+        out.append({"r": r, "hist": hist, "items": items, "hist_ids": S.ids_of(rec, hist),
+                    "forced_ids": S.ids_of(rec, items), "lags": [r - e[i] for i in O],
+                    "ahead": sum(1 for i in H if e[i] > r - 1),
+                    "in_t2": all(i in Hs for i in range(n) if h[i] <= r - 1)})
+    return out
+
+
+def aug_rows_rho(wins: list, step_d1: dict, D: float) -> list:
+    """T.Row objects of the D1 rows of one step; step_d1 {w.idx: (rho, keep)} (crf/d1_rollin.load_manifest). The rows
+    are built and weighted exactly as aug_rows' (key ("d1", idx, r), aug=True)."""
+    from experiments.mist_w3po_v1.crf import serial_v2p_train as V2T
+    from experiments.mist_w3po_v1.crf import train_crf_sft as T
+
+    rows = []
+    for w in wins:
+        x = step_d1.get(w.idx)
+        if x is None:
+            continue
+        rho, keep = x
+        for q in aug_requests_rho(w.rec, rho, keep=keep):
+            seq = list(q["hist_ids"]) + list(q["forced_ids"])
+            h0, m = len(q["hist_ids"]), len(q["forced_ids"])
+            rw = T.Row(w, q["r"], len(seq), np.arange(h0, h0 + m + 1), seq=seq, end=w.end_ids[q["r"]],
+                       key=("d1", w.idx, q["r"]), aug=True)
+            ct, ce = np.zeros(m + 1), np.zeros(m + 1)
+            ct[:m] = V2T.token_weights(w, q["forced_ids"]) / D
+            ce[m] = 1.0 / D
+            rw.c_tok, rw.c_end, rw.c_state = ct, ce, np.zeros(m + 1)
+            rw.c_lab_tok, rw.c_lab_end = np.zeros(m + 1), np.zeros(m + 1)
+            rows.append(rw)
+    return rows
+
+
 # ------------------------------------------------------------------------------------------------ manifest
 def _manifest_job(args):
     steps, mode = args          # steps: [(s, [(idx, rec), ...])], lattice mode (only for the in-lattice statistic)
@@ -320,7 +387,8 @@ def main() -> None:
     ap.add_argument("--plan-seed", type=int, default=PLAN_SEED)
     ap.add_argument("--steps", type=int, default=PLAN_STEPS)
     ap.add_argument("--rows-per-step", type=int, default=PLAN_ROWS)
-    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5"], help="lattice mode of the in-lattice statistic")
+    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p"],
+                    help="lattice mode of the in-lattice statistic (v2p: VE1, thinker_v2p_evidence_ve1_prereg_v1)")
     a = ap.parse_args()
     if a.build_g1000:
         return build_g1000(a)

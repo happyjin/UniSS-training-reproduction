@@ -81,3 +81,21 @@
 ## 结果
 
 （登记之后补。）
+
+### 数据、代码与 CPU 预检：通过（2026-11-11 布拉格约 22:35）
+
+**数据**（只用 CPU）：`sched_t5_merge3_w10_v1` 和 `ve1_dart_merge3_w10_v1`，构建脚本是 `logs/mist_w3po_v1/ve1/build_ve1_w10.sh`。
+
+**代码**（只做加法）：
+- `train_crf_sft --lw-mode` 和 `dart_aug --manifest --lw-mode` 加了 `v2p` 选择；
+- 新增 `crf/ve1_precheck.py` 和 `scripts/start_ve1.sh`（只用 `bash -n` 和 DRY_RUN 检查过）。
+
+**预检**（`eval_outputs/mist_w3po_v1/crf/ve1_precheck_v1.json`）：
+
+| 项 | 结果 | GO |
+|---|---|---|
+| V1 数据 | 22,671 个窗口，不可行 0，bad 0；每块平均 **5.98 词**（≥ 4.5）；最终读的标签词占比 27.6%（pieces4 是 14.6%） | 过 |
+| V2 目标等价 | 前 200 步的 2052 个窗口：v2p 模式的计划与 `serial_v2p_train` 逐字段相同；λ = 0 的后验逐位相同；200 步的 λ* 全部为 0 | 过 |
+| V3 训练器 | 参数解析为 latent_write / v2p；DART 清单 15,585 条，与计划一致，模式为 v2p | 过 |
+
+**回归**：`test_train_crf_sft` 8/8、`test_dart_aug` 6/6、`test_latent_write_crf` 5/5。

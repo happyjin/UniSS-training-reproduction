@@ -153,3 +153,26 @@ D1 与 J1 的基线可以不同：J1 按它自己的预登记第 3 节选。
 ## 结果
 
 （登记之后补。）
+
+### 代码与 CPU 预检（登记之后，2026-11-11 布拉格约 22:40）
+
+**新文件**（只做加法）：
+- `crf/d1_rollin.py`：roll-in 的驱动、GPU 打分器，`--selfcheck` 自检，清单（含 25% 上限和 R4），`load_manifest`。
+- `dart_aug.aug_requests_rho` / `aug_rows_rho`。
+- `latent_write_train.run_step(d1=)`。
+- `train_crf_sft --d1`。
+- 启动脚本：`scripts/start_d1_rollin.sh`、`scripts/start_d1.sh`。
+
+**测试** `test_d1` 4/4：
+- **R1**：批量驱动与"每个边界做一次前缀查询"的字面循环逐窗口一致，共 1200 个（窗口，打分器）组合，用 T4、T5 的真实训练窗口和因果的假打分器；ρ̃ 在每个说话人内单调；从不等待时全部在第 0 读写出，总是等待时全部在最终读写出。
+- **R2**：ρ = 扰动读时，与 `aug_requests` 逐字段相同（1262 行）。学习者轨迹上，行只出现在有逾期条目的读，历史和目标符合定义，`keep` 能过滤读。
+  - 一个推论：学习者的历史是 κ 顺序的前缀，而 κ 先按 e 排序，所以"超前"和"逾期"不会同时出现。D1 行里永远没有超前条目，超前状态只作报告。
+- **R3**：d1 为 None、不传、传 {} 三者逐位相同；加 D1 行后，基线行不变，loss = 基线 + loss_aug；prefetch 1 与 0 一致；DART 和 D1 可以同时用。
+
+**回归**：`test_dart_aug` 6/6、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_j1` 7/7、`test_joint_speech_crf` 5/5。
+
+**清单的端到端 CPU 检查**：在 T5 数据上用假的 roll-in（不是结果），清单生成和 `load_manifest` 都能跑通。
+
+**GPU 上的保护**：真正的 roll-in 在每个分片开头，对 20 个窗口用逐边界前缀前向复核一次性前向的决策，不一致就退出。
+
+**启动脚本**：只用 `bash -n` 和 DRY_RUN（假的决策文件）检查过。

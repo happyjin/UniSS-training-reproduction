@@ -872,13 +872,16 @@ def build_args(argv=None):
                     "(row_features: packing-invariant inputs; 0: one padded call per micro-batch, as before)")
     ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
                     help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
-    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5"],
+    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p"],
                     help="--objective latent_write / joint_speech (J1): the lattice bounds (latent_write_crf.bounds; t5 = "
-                    "T5's [e, max(u, e)])")
+                    "T5's [e, max(u, e)]; v2p = v2''s {e, e + 1}, where lam* is 0 and the posterior is v2''s: VE1)")
     ap.add_argument("--dart", default="",
                     help="--objective latent_write (T4) or joint_speech (J1): directory of a crf/dart_aug.py --manifest "
                     "made for this --sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 / T3 "
                     "exactly)")
+    ap.add_argument("--d1", default="",
+                    help="--objective latent_write only (D1, thinker_dagger_d1_prereg_v1): directory of a crf/d1_rollin.py "
+                    "--manifest made for this --sched and plan; adds the learner roll-in's rows to pass 2 (empty: off)")
     ap.add_argument("--talker-model", default="",
                     help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
                     "(unused by the other objectives)")
@@ -975,6 +978,14 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         if DA_.manifest_mode(args.dart) != args.lw_mode:
             raise SystemExit(f"--dart manifest made for lattice mode {DA_.manifest_mode(args.dart)}, not {args.lw_mode}")
         log0(f"--dart {args.dart}: {sum(len(v) for v in dart.values())} perturbed (step, window) entries")
+    d1 = None
+    if args.d1:   # D1: crf/d1_rollin.py (manifest checked against this plan)
+        from experiments.mist_w3po_v1.crf import d1_rollin as D1_
+
+        if args.objective != "latent_write":
+            raise SystemExit("--d1 needs --objective latent_write")
+        d1 = D1_.load_manifest(args.d1, wins, plan, args.sched)
+        log0(f"--d1 {args.d1}: {sum(len(v) for v in d1.values())} (step, window) entries")
 
     for step in range(start, args.steps):
         t0 = time.time()
@@ -1045,11 +1056,15 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             model.eval()
             for m in extra_params:
                 m.eval()
-            if dart is None and args.lw_mode == "t2":
+            if dart is None and args.lw_mode == "t2" and d1 is None:
                 v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
-            else:
+            elif d1 is None:
                 v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
                                    mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}))
+            else:   # D1: + the learner roll-in's rows
+                v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
+                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}),
+                                   d1=d1.get(step, {}))
             t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
             state_w = 0.0
@@ -1111,7 +1126,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         v = vec.tolist()
         if args.objective in ("serial_v2p", "latent_write", "joint_speech"):
             V2T.reduce_logs(v2p, lg, dev)
-            if dart is not None:
+            if dart is not None or d1 is not None:   # loss_aug = the DART and D1 rows' part of main
                 la = torch.tensor([lg["loss_aug"]], dtype=torch.float64, device=dev)
                 if is_dist():
                     torch.distributed.all_reduce(la)

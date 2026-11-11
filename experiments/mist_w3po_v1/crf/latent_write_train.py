@@ -32,7 +32,7 @@ def plan(w: T.Window, mode: str = "t2") -> dict:
 
 
 def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step: int, tau: float, rk: int, nw: int,
-             prefetch: bool = False, mode: str = "t2", dart: dict | None = None) -> dict:
+             prefetch: bool = False, mode: str = "t2", dart: dict | None = None, d1: dict | None = None) -> dict:
     """Pass 1 + lam* + posterior + pass-2 rows of this rank (the grad pass is the trainer's grad_pass).
     dart (T4, crf/dart_aug.py): {w.idx: delay} of this step; its augmentation rows (coefficients fixed) are split over
     the ranks on their own and appended to this rank's pass-2 rows (None: T2 exactly)."""
@@ -49,6 +49,13 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
         aug = DA.aug_rows(sw, dart, D)
         n_aug = len(aug)
         p2all = p2 + V2T.split(aug, nw, ctx["n_prompt0"])[rk]
+    n_d1 = 0
+    if d1 is not None:   # D1 (thinker_dagger_d1_prereg_v1): the learner roll-in's rows {w.idx: (rho, keep)}, after DART's
+        from experiments.mist_w3po_v1.crf import dart_aug as DA
+
+        rows_d1 = DA.aug_rows_rho(sw, d1, D)
+        n_d1 = len(rows_d1)
+        p2all = p2all + V2T.split(rows_d1, nw, ctx["n_prompt0"])[rk]
     b1 = V2T.collate_all(p1, ctx, step, "score", hook)
     th, box = None, {}
     if prefetch:
@@ -96,6 +103,9 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
     if dart is not None:
         st["dart_rows"] = n_aug
         st["dart_windows"] = int(sum(1 for w in sw if dart.get(w.idx) is not None))
+    if d1 is not None:
+        st["d1_rows"] = n_d1
+        st["d1_windows"] = int(sum(1 for w in sw if d1.get(w.idx) is not None))
     return {"rows": p2all, "batches": batches, "t_pass1": t3 - t0, "t_post": t_post, "stats": st,
             "local": {"tok_pass1": s1["tok"], "mbs_pass1": s1["mbs"], "t_plan": t_plan,
                       "t_collate1": sum(getattr(b, "t_collate", 0.0) for _, b in b1),
