@@ -1,6 +1,6 @@
 # talker 两个新实验的预登记：实验一"无格"消融（BoN-SFT）、实验二 单通道 PL-EM v2（2026-11-11）
 
-**登记时间**：2026-11-11 07:00 UTC 前后，在任何训练行、预检、训练或评测结果出来之前提交并推送（`git push private HEAD:main`）。
+**登记时间**：2026-11-11 06:25 UTC，在任何训练行、预检、训练或评测结果出来之前提交并推送（`git push private HEAD:main`）。
 **用户批准**：约 05:50 UTC，两个实验都批准，要求立即开始。下面每个数值都是**唯一设置**，不扫超参。
 
 前置文件：`talker_crf_prereg_v1.zh-CN.md`（含 §5 修订）、`talker_crf_results_v1.zh-CN.md`。下文"PL-EM"指 v1 的方案一（导出 `eval_outputs/mist_w3po_v1/talker_crf/talker_plem_20261111T001759Z/export`），"PL-EM c1+b1+s2"指它在 A′ 推理设置下的 dev 结果（语音 23.62，每条流语音 LAAL 4.071，单通道 LAAL 5.64）。
