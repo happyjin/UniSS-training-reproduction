@@ -593,9 +593,8 @@ def analyse_windows(recs: list, scores: dict) -> dict:
 
 
 def run_analyse(args) -> None:
+    from experiments.mist_w3po_v1.evaluation import metric_headroom as M   # puts reports/gstar_si_v8 on sys.path
     from meeting_score import universe
-
-    from experiments.mist_w3po_v1.evaluation import metric_headroom as M
 
     root = Path(args.root)
     out = root / "analysis"
@@ -706,11 +705,57 @@ def run_analyse(args) -> None:
     print(json.dumps(res, indent=1), flush=True)
 
 
+def run_diagnose(args) -> None:
+    """POST-HOC diagnostics of the registered e_j (added after the results; no decision, no other setting):
+    log-probs by token kind at the final read, how much of a piece's first-to-final gain is reached at e_j, and the
+    split of the jump at e_j into header tokens (speaker, start time, end time) and text tokens (each summed and
+    divided by the piece's token count, so the two parts add up to the jump of the mean)."""
+    root = Path(args.root)
+    out = root / "analysis" / "diagnostics.json"
+    if out.exists():
+        raise SystemExit(f"拒绝覆盖已有输出: {out}")
+    recs = {r["id"]: r for r in map(json.loads, open(root / "cpu" / "targets.jsonl", encoding="utf-8"))}
+    kinds = {"speaker": [], "time": [], "text": []}
+    gap, frac, jh, jx, mid_end = [], [], [], [], []
+    for d in sorted(root.glob("score_*of*")):
+        if "_limit" in d.name or not (d / "done.json").exists():
+            continue
+        for l in open(d / "scores.jsonl", encoding="utf-8"):
+            r = json.loads(l)
+            rec = recs[r["id"]]
+            tl, s = np.asarray(r["tok_lp"]), np.asarray(r["s"])
+            e = earliest(s)
+            for j, p in enumerate(rec["pieces"]):
+                a, b = p["tok0"], p["tok1"]
+                kinds["speaker"].append(tl[-1, a])
+                kinds["time"] += [tl[-1, a + 1], tl[-1, b - 1]]
+                kinds["text"] += tl[-1, a + 2: b - 1].tolist()
+                if not p["last"]:
+                    mid_end.append(tl[-1, b - 1])
+                gap.append(s[-1, j] - s[e[j], j])
+                if s[-1, j] - s[0, j] > 0.5:
+                    frac.append((s[e[j], j] - s[0, j]) / (s[-1, j] - s[0, j]))
+                if e[j] > 0:
+                    dj = tl[e[j], a: b] - tl[e[j] - 1, a: b]
+                    jh.append(dj[[0, 1, -1]].sum() / (b - a))
+                    jx.append(dj[2:-1].sum() / (b - a))
+    res = {"final_read_token_logprob": {k: q(v) for k, v in kinds.items()},
+           "final_read_end_time_token_of_nonlast_pieces": q(mid_end),
+           "s_final_minus_s_at_e": q(gap),
+           "share_of_first_to_final_gain_reached_at_e (pieces with gain > 0.5)": q(frac),
+           "jump_at_e_header_tokens": q(jh), "jump_at_e_text_tokens": q(jx),
+           "note": "post-hoc, not pre-registered; no decision"}
+    with open(out, "x", encoding="utf-8") as fh:
+        json.dump(res, fh, indent=1)
+    print(json.dumps(res, indent=1), flush=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cpu-stage", action="store_true")
     ap.add_argument("--score", action="store_true")
     ap.add_argument("--analyse", action="store_true")
+    ap.add_argument("--diagnose", action="store_true", help="post-hoc diagnostics -> <root>/analysis/diagnostics.json")
     ap.add_argument("--root", required=True)
     ap.add_argument("--win", default=WIN)
     ap.add_argument("--shard", default="0/1")
@@ -727,6 +772,8 @@ def main() -> None:
         run_score(args)
     if args.analyse:
         run_analyse(args)
+    if args.diagnose:
+        run_diagnose(args)
 
 
 if __name__ == "__main__":

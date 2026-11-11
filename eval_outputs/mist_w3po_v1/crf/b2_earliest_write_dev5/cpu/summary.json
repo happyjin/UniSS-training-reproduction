@@ -1,0 +1,36 @@
+{
+ "windows": 1092,
+ "kept": 944,
+ "skipped": {
+  "no_speech": 36,
+  "straddle": 112
+ },
+ "skipped_total": 148,
+ "recheck_asr": 0,
+ "members": 2335,
+ "chunks": 3330,
+ "pieces": 6177,
+ "words": 18111,
+ "reads_0p5": 11645,
+ "reads_1p0": 6068,
+ "S_tokens": 41387,
+ "joint_tok_mismatch": 0,
+ "kept_audio_s": 5589.6,
+ "all_audio_s": 6725.6,
+ "args": {
+  "cpu_stage": true,
+  "score": false,
+  "analyse": false,
+  "root": "eval_outputs/mist_w3po_v1/crf/b2_earliest_write_dev5",
+  "win": "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1_dev5/windows_dev_online.jsonl",
+  "shard": "0/1",
+  "thinker": "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged",
+  "ckpt": "eval_outputs/mist_w3po_v1/crf/train/crf_v2p_20261110T075131Z/ckpt/step_03000",
+  "max_gib": 36,
+  "mem_cap_gib": 56.0,
+  "batch": 16,
+  "tok_budget": 12000,
+  "limit": 0
+ },
+ "cpu_s": 4.5
+}

@@ -1,0 +1,237 @@
+{
+ "laal": {
+  "S_cur": {
+   "all": {
+    "n": 1564,
+    "mean": 3.307,
+    "p10": 1.88,
+    "p50": 2.85,
+    "p90": 5.36
+   },
+   "ov": {
+    "n": 680,
+    "mean": 2.888,
+    "p10": 1.779,
+    "p50": 2.584,
+    "p90": 4.38
+   },
+   "1spk": {
+    "n": 884,
+    "mean": 3.628,
+    "p10": 2.007,
+    "p50": 3.179,
+    "p90": 5.87
+   }
+  },
+  "S_prop": {
+   "all": {
+    "n": 1564,
+    "mean": 2.179,
+    "p10": 1.59,
+    "p50": 2.062,
+    "p90": 2.957
+   },
+   "ov": {
+    "n": 680,
+    "mean": 2.09,
+    "p10": 1.528,
+    "p50": 1.983,
+    "p90": 2.82
+   },
+   "1spk": {
+    "n": 884,
+    "mean": 2.247,
+    "p10": 1.669,
+    "p50": 2.13,
+    "p90": 3.015
+   }
+  },
+  "S_lik": {
+   "all": {
+    "n": 1564,
+    "mean": 0.814,
+    "p10": 0.21,
+    "p50": 0.68,
+    "p90": 1.587
+   },
+   "ov": {
+    "n": 680,
+    "mean": 0.719,
+    "p10": 0.18,
+    "p50": 0.604,
+    "p90": 1.372
+   },
+   "1spk": {
+    "n": 884,
+    "mean": 0.886,
+    "p10": 0.256,
+    "p50": 0.734,
+    "p90": 1.98
+   }
+  }
+ },
+ "units": {
+  "total": 1772,
+  "complete": 1564,
+  "incomplete": 208
+ },
+ "go": {
+  "line1_lik_le_prop": true,
+  "line2_share": 0.9341,
+  "line2_ok": true,
+  "line2_n_nonlast": 3842,
+  "line2_utts": 1507,
+  "GO": true
+ },
+ "line2_supplement": {
+  "raw_argmax_read_before_end": 0.9448,
+  "S_prop_before_end": 0.6072
+ },
+ "implied_lag_s": {
+  "all": {
+   "S_lik_label": {
+    "n": 6177,
+    "mean": 0.121,
+    "p10": -0.677,
+    "p50": 0.045,
+    "p90": 1.04
+   },
+   "S_lik_raw_argmax_read": {
+    "n": 6177,
+    "mean": -0.032,
+    "p10": -0.792,
+    "p50": 0.013,
+    "p90": 0.686
+   },
+   "S_prop_label": {
+    "n": 6177,
+    "mean": 1.422,
+    "p10": 1.063,
+    "p50": 1.34,
+    "p90": 1.896
+   }
+  },
+  "last": {
+   "S_lik_label": {
+    "n": 2335,
+    "mean": 0.198,
+    "p10": -0.563,
+    "p50": 0.058,
+    "p90": 1.623
+   },
+   "S_lik_raw_argmax_read": {
+    "n": 2335,
+    "mean": -0.036,
+    "p10": -0.693,
+    "p50": 0.03,
+    "p90": 0.42
+   },
+   "S_prop_label": {
+    "n": 2335,
+    "mean": 1.477,
+    "p10": 1.09,
+    "p50": 1.47,
+    "p90": 1.695
+   }
+  },
+  "nonlast": {
+   "S_lik_label": {
+    "n": 3842,
+    "mean": 0.074,
+    "p10": -0.741,
+    "p50": 0.036,
+    "p90": 0.943
+   },
+   "S_lik_raw_argmax_read": {
+    "n": 3842,
+    "mean": -0.03,
+    "p10": -0.854,
+    "p50": 0.0,
+    "p90": 0.816
+   },
+   "S_prop_label": {
+    "n": 3842,
+    "mean": 1.388,
+    "p10": 1.051,
+    "p50": 1.289,
+    "p90": 2.053
+   }
+  }
+ },
+ "final_read_word_share": {
+  "S_cur": {
+   "all_words": 0.4957,
+   "unit_words": 0.5007,
+   "words": 18111,
+   "unit_words_n": 17019
+  },
+  "S_prop": {
+   "all_words": 0.2464,
+   "unit_words": 0.2497,
+   "words": 18111,
+   "unit_words_n": 17019
+  },
+  "S_lik": {
+   "all_words": 0.0324,
+   "unit_words": 0.0331,
+   "words": 18111,
+   "unit_words_n": 17019
+  }
+ },
+ "S_lik_final_read_pieces": 0.0476,
+ "S_lik_first_read_pieces": 0.0,
+ "windows": {
+  "total": 1092,
+  "kept": 944,
+  "skipped": {
+   "no_speech": 36,
+   "straddle": 112
+  }
+ },
+ "pieces": 6177,
+ "gpu": {
+  "shards": 2,
+  "wall_s": [
+   230.4,
+   225.6
+  ],
+  "scoring_s": [
+   207.8,
+   203.6
+  ],
+  "load_s": [
+   22.6,
+   22.0
+  ],
+  "cards_per_shard": [
+   2,
+   2
+  ],
+  "gpu_card_hours": 0.253,
+  "peak_alloc_gib": [
+   [
+    32.85,
+    29.82
+   ],
+   [
+    32.84,
+    29.71
+   ]
+  ]
+ },
+ "first_jump": "the first read's jump := -inf (FIRST_JUMP)",
+ "args": {
+  "cpu_stage": false,
+  "score": false,
+  "analyse": true,
+  "root": "eval_outputs/mist_w3po_v1/crf/b2_earliest_write_dev5",
+  "win": "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1_dev5/windows_dev_online.jsonl",
+  "shard": "0/1",
+  "thinker": "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged",
+  "ckpt": "eval_outputs/mist_w3po_v1/crf/train/crf_v2p_20261110T075131Z/ckpt/step_03000",
+  "mem_cap_gib": 56.0,
+  "batch": 16,
+  "tok_budget": 12000,
+  "limit": 0
+ }
+}

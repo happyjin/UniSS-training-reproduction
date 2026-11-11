@@ -1,0 +1,35 @@
+{
+ "windows": 472,
+ "reads": 5819,
+ "batches": 364,
+ "load_s": 22.0,
+ "scoring_s": 203.6,
+ "wall_s": 225.6,
+ "cards": 2,
+ "peak_alloc_gib": [
+  32.84,
+  29.71
+ ],
+ "ckpt": {
+  "ckpt": "eval_outputs/mist_w3po_v1/crf/train/crf_v2p_20261110T075131Z/ckpt/step_03000",
+  "step": 3000,
+  "objective": "serial_v2p",
+  "adapters_folded": 192,
+  "new_rows": 259,
+  "base_at_train": "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged"
+ },
+ "args": {
+  "cpu_stage": false,
+  "score": true,
+  "analyse": false,
+  "root": "eval_outputs/mist_w3po_v1/crf/b2_earliest_write_dev5",
+  "win": "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1_dev5/windows_dev_online.jsonl",
+  "shard": "1/2",
+  "thinker": "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/thinker_merged",
+  "ckpt": "eval_outputs/mist_w3po_v1/crf/train/crf_v2p_20261110T075131Z/ckpt/step_03000",
+  "mem_cap_gib": 56.0,
+  "batch": 16,
+  "tok_budget": 12000,
+  "limit": 0
+ }
+}
