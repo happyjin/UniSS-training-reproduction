@@ -1856,3 +1856,27 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 参数已在 args.json 核对：objective latent_write、`sched_piece_t0_g1000_v1`、`t4_dart_w10_v1`、t2 格、3000 步、学习率 1e-4、tok 32000。
   - 守护脚本 v2 在 T4 加载的十几秒里给 3 张卡补了待命 supervisor（--wait-idle）。卡上有我们的进程时它们只等待，不启动 worker。
 - **T5**：`start_t5.sh` 已挂上，读周期 1.0 s，等 0–3 号卡上 T2 时期的评测全部结束后接手。
+
+## 2026-11-11 19:35 布拉格（18:35 UTC）— 协调者调整：T5 不再等 T1 的评测；T1 暂停，T4 训完后在 4–7 号卡续跑
+
+- **接手**：18:50 布拉格（17:50 UTC）起由新的 Thinker 执行者接手。T4 健康：4 个 rank 都在 4–7 号卡上，卡上没有别的进程；没有 NaN；每步多约 7.6 行增广；显存峰值 83.7 GiB。
+- **T4 的实际速度**：约 8.2 s/步，不是交接里写的 5.9–6.4 s/步。所以训练约在**布拉格 01:25**（00:25 UTC）结束，比原先估计的晚约 2 小时。之后 `t_after_train.sh` 做 dev5 速查（4 个分片，1.0 s 读）和 GO 判定，判定约在布拉格 02:00–02:15 出来。
+- **协调者 19:30 布拉格的决定**：T1 已经在 dev5 上确认失败，它的 dev 全集评测只作存档，按用户定的优先级（T1-ctrl > T2 > T1）排最后，不应挡住 T5。
+  1. **新脚本 `start_t5_v2.sh`**：只等 t1ctrl、t2、t2plem 三个评测（events/DONE，并且编排器已退出；用 python 的 argv 精确判断编排器是否还在，不用 pgrep 模式，避免误匹配别的 shell）。三个都结束后，先暂停 T1，然后与 `start_t5.sh` 完全相同：用 noclobber 占 slotA → `takeover_train.sh` → T5 开训 → 核对 rank 数。
+     - **暂停 T1**：先按 PID 停 T1 编排器；再找出 T1 所有还在跑的作业（state 里有 .pid、没有 .rc，会话首进程的命令行里有 T1 的目录名），按会话里的 PID 逐个发 SIGTERM，60 s 后还在的发 SIGKILL。停之前和停之后的状态写入新文件 `logs/mist_w3po_v1/t_eval/t1/paused_<UTC>.txt`。
+     - 现在会停的是 dec2、dec3（1、2 号卡）和 4 个 CTC scorer（0 号卡）。如果那时它们已经跑完，就只停 scorer。
+  2. **旧的 `start_t5.sh`**（PID 999273，当时还在等待循环里）：核对命令行后，18:33:26 UTC 按 PID 停掉。同一秒用 setsid 挂上 `start_t5_v2.sh`（PID 2867714，RUN_ID 不变，日志 `logs/mist_w3po_v1/t5/start_t5_v2.log`），中间没有空档。旧脚本文件没有改动。
+  3. **新脚本 `t1_resume_after_t4.sh`**（PID 2867893，日志 `logs/mist_w3po_v1/t_eval/t1_resume_after_t4.log`）：
+     - 等到有 T1 的暂停记录，并且 T4 写了 CRF_RUN_EXIT。T4 的 rc ≠ 0 时不续跑，留给协调者决定。
+     - 再等 T4 速查的 4 个解码都已开始（或速查已 DONE），确保不推迟 T4 的速查。
+     - 然后把 `t1/exclude_cards` 改成当时仍被占着的槽位的卡（slotA 仍是 T5 的，就是 0 1 2 3）：先写新文件，再 `command mv -f` 替换。
+     - 最后用 T1 编排器的原始 argv 原样重启（argv 里原本就有 `--resume --cap135 --dec-after <t2>`）。被停的作业按重试重新开始，解码从已写出的部分 hyp 接着跑。
+     - 速查和 T1 叠在 4–7 号卡上，`--cap135` 限制每卡 ≤ 135 GiB。
+  4. **另外**（我的决定，为了让 T5 早点开训）：18:34 UTC 把 `t1/exclude_cards` 改成 `0 1 2 3 4 5 6 7`（新文件 + mv）。T1 正在跑的 dec2、dec3 照常跑；还没开始的 dec0、dec7 不再占 0–3 号卡的显存和算力，留给 t2plem 的 16 个 talker。恢复时 `t1_resume_after_t4.sh` 会把这个文件改回去。
+  - 两个新脚本都只用 `bash -n` 和 `DRY_RUN=1` 检查过。DRY_RUN 正确列出了三个编排器的 PID 和会停的 6 个 T1 作业，重启命令与原始 argv 逐字相同。
+- **估计**（布拉格时间）：
+  - t1ctrl：只剩第二个种子的 asr、sscore、lat，约 19:45 完成；
+  - t2：16 个 talker 都已开始，最后一个 19:32 开始，约 20:00 跑完；之后是 ASR、打分、延迟和门槛，约 20:25 完成；
+  - t2plem：16 个 talker 只跑完 1 个，要等 t2 的 talker 让出显存（约 20:00 起）。按两轮、每轮约 30 分钟算，约 21:20 完成；
+  - **T5 预计约 21:20–21:45 开训**。按 T4 的速度（约 8 s/步），约在明天 04:30–05:00 训完。
+- **GPU**：0–3 号卡跑 t1ctrl、t2、t2plem 和 T1 的 dec2、dec3；4–7 号卡是 T4 训练。守护脚本 v2（PID 1546666）没有动。
