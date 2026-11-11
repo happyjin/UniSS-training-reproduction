@@ -24,6 +24,7 @@ Candidate = (name, checkpoint). Jobs, A''s dev chain (c2_dev_orch / crf_pair_dev
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -41,6 +42,90 @@ LEDGER = "logs/mist_w3po_v1/locks/pending.jsonl"
 OWNER = "thinker_t"
 SCORER_PORT0 = 18801
 N_SCORERS = 4
+
+
+ONE_DEC = Path("logs/mist_w3po_v1/t_eval/one_decode_cards")   # --cap135: cards back to one decode after repeated OOMs
+OOM_LOG = Path("logs/mist_w3po_v1/t_eval/oom_events.jsonl")
+
+
+def apply_cap135(o, dec_after: list[str]) -> None:
+    """--cap135 (user 2026-11-11 ~15:50 UTC: "up to 135 GiB per card is fine"): two decodes per card.
+      cap      min(135, total - 5.4) = 135 GiB on the 140.4 GiB cards (was total - 12 = 128.4); headroom stop at 3 GiB
+               free (was 8); a decode is planned at 64 GiB (measured 61-67; was 68)
+      scorers  our own idle CTC scorer servers count at their real use + 0.5 GiB instead of the ASR footprint (17.5)
+      stagger  no decode on a card where any decode (ledger, any owner) started in the last 60 s; 60 s between our own
+      OOM      a decode that fails with a CUDA OOM is retried without using up a retry; logged to oom_events.jsonl; a card
+               with >= 2 OOMs goes to one_decode_cards (no second decode there while one runs)
+      order    --dec-after <run> <name>: our decodes wait until every <name>__dec<k> of that run has started
+    The ledger accounting is unchanged."""
+    import time as _t
+
+    fo.PLAN_MARGIN, fo.HEADROOM = 5.4, 3.0
+    fo.NEED["dec"] = 64.0
+    fo.LAUNCH_GAP_S["dec"] = 60
+    orig_free, orig_plan, orig_finish = o.free_plan, o.plan, o.finish
+
+    def free_plan(snap):
+        res = orig_free(snap)
+        for j in o.jobs:
+            if j.state == "run" and j.gpu and j.id.startswith("scorer") and j.card in res:
+                act = snap["per_job"].get(j.id, 0.0)
+                if act < fo.NEED["asr"]:
+                    res[j.card] += fo.NEED["asr"] - act - 0.5
+        return res
+
+    def dec_started(run: str, name: str) -> bool:
+        st = Path(run) / "state"
+        return all(any(st.glob(f"{name}__dec{k}.a*.pid")) for k in range(8))
+
+    def plan(snap, ready):
+        out = orig_plan(snap, ready)
+        if not any(j.kind == "dec" for j, _ in out):
+            return out
+        t = _t.time()
+        recent = {r.get("card") for r in fo.ledger_pending(LEDGER) if "__dec" in str(r.get("id"))
+                  and t - float(r.get("t", 0)) < 60}
+        one = {int(x) for x in ONE_DEC.read_text().split()} if ONE_DEC.exists() else set()
+        wait_other = bool(dec_after) and not dec_started(*dec_after)
+        keep = []
+        for j, c in out:
+            if j.kind == "dec":
+                if wait_other or c in recent or (c in one and snap["cards"][c]["used"] >= 40.0):
+                    continue
+                recent.add(c)
+            keep.append((j, c))
+        return keep
+
+    def finish(j, rc):
+        oom = False
+        if rc != 0 and j.kind == "dec":
+            nm, k = j.id.rsplit("__dec", 1)
+            for lf in (o.run / "logs" / f"{j.id}.a{j.attempt}.log", Path(DEC) / nm / f"infer_s{k}_a{j.attempt}.log"):
+                try:
+                    if lf.exists() and "out of memory" in lf.read_text(errors="ignore")[-20000:].lower() \
+                            and lf.stat().st_mtime >= (j.t_start or 0) - 5:
+                        oom = True
+                        break
+                except OSError:
+                    pass
+        if oom:
+            rec = {"utc": _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()), "run": str(o.run), "job": j.id, "card": j.card,
+                   "attempt": j.attempt}
+            with open(OOM_LOG, "a") as fh:
+                fh.write(json.dumps(rec) + "\n")
+            n = sum(1 for l in open(OOM_LOG) if json.loads(l).get("card") == j.card)
+            o.alert(f"OOM {j.id} a{j.attempt} card {j.card} (card total {n}); retried without using up a retry")
+            j.retries += 1
+            if n >= 2:
+                one = set(ONE_DEC.read_text().split()) if ONE_DEC.exists() else set()
+                one.add(str(j.card))
+                ONE_DEC.write_text(" ".join(sorted(one)) + "\n")
+                o.alert(f"card {j.card}: {n} OOMs -> one decode at a time there (one_decode_cards)")
+        orig_finish(j, rc)
+
+    o.free_plan, o.plan, o.finish = free_plan, plan, finish
+    o.log(f"--cap135: cap min(135, total - 5.4), headroom 3, decode 64 GiB, scorers at real use, 60 s decode stagger, "
+          f"OOM retry; dec-after {dec_after or None} (user ~15:50 UTC: up to 135 GiB per card is fine)")
 
 
 def decode_with(cmd: str, extra: str) -> str:
@@ -153,6 +238,9 @@ def main():
     ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0)
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--cap135", action="store_true", help="apply_cap135 (two decodes per card; default off = unchanged)")
+    ap.add_argument("--dec-after", nargs=2, default=[], metavar=("RUN", "NAME"),
+                    help="--cap135: our decodes wait until every NAME__dec<k> of RUN has started")
     a = ap.parse_args()
     os.chdir(REPO)
     run = Path(a.run)
@@ -182,7 +270,9 @@ def main():
         (run / "exclude_cards").write_text(" ".join(a.exclude) + "\n")
         o = tc.YieldOrch(run, jobs)
     o.spread = True
-    o.ledger, o.ledger_owner = LEDGER, f"{OWNER}_{run.name}"   # one owner per orchestrator: they see each other's pending starts
+    o.ledger, o.ledger_owner = LEDGER, f"{OWNER}_{run.name}"
+    if a.cap135:
+        apply_cap135(o, list(a.dec_after))   # one owner per orchestrator: they see each other's pending starts
     o.log(f"thinker T eval {a.name}: ckpt {a.ckpt}; window {a.window}; talker {a.talker}; gate refs {a.gate_ref}; "
           f"excluded {sorted(o.excluded())}; ledger {LEDGER} owner {o.ledger_owner}")
     try:
