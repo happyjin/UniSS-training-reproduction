@@ -33,7 +33,9 @@ Schedules (window-relative write times, then the online clamp of overlap_score /
   Reads: read_times(dur, period) = min(k * period, dur), k = 1.. (online_decode's schedule; the last = the final read).
 
 Scoring (GPU) uses the A' Thinker exactly as its dev decode built it:
-  - Engine.from_merged(v8 merged, max_gib) + decode_crf_ckpt.apply_ckpt(v2' crf_v2p_20261110T075131Z step_03000).
+  - v8 merged loaded as Engine.from_merged does (load_engine: the same weights, but an explicit 2-card layer map,
+    so the audio tower sits on cuda:0 with the speaker projector) + decode_crf_ckpt.apply_ckpt(v2'
+    crf_v2p_20261110T075131Z step_03000).
   - Reads every 0.5 s, plus the final read. Each read is ONE teacher-forced forward of
       prompt(audio <= t_r, ctx "") + S (all pieces in kappa order)
     with the speaker posteriors zeroed after t_r - 1.04 s.
@@ -66,7 +68,7 @@ GO (retrain with likelihood labels) iff both hold:
 Stages (the root is eval_outputs/mist_w3po_v1/crf/b2_earliest_write_dev5; every output refuses to overwrite):
     python -m experiments.mist_w3po_v1.crf.precheck_b2_earliest_write --cpu-stage --root <new root>
     python -m experiments.mist_w3po_v1.crf.precheck_b2_earliest_write --score --root <root> --shard k/n \\
-        [--max-gib 36 --batch 16 --tok-budget 12000 --mem-cap-gib 56 --limit n]     (CUDA_VISIBLE_DEVICES = 2 cards)
+        [--batch 16 --tok-budget 12000 --mem-cap-gib 56 --limit n]     (CUDA_VISIBLE_DEVICES = 2 cards)
     python -m experiments.mist_w3po_v1.crf.precheck_b2_earliest_write --analyse --root <root>
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.crf.test_precheck_b2_earliest_write
 """
@@ -378,6 +380,48 @@ def shard_of(recs: list, k: int, n: int) -> list:
     return [recs[i] for i in sorted(part[k])]
 
 
+def layer_map(n_cards: int, n_layers: int = 48) -> dict:
+    """Explicit device map over the visible cards: cuda:0 holds the audio tower, the vision tower, the embeddings, the
+    rotary embedding and the first 1/n of the text layers; the last card the final norm and lm_head; talker and
+    code2wav on CPU (dropped after loading, as train_crf_sft.load_thinker)."""
+    dm = {"thinker.audio_tower": 0, "thinker.visual": 0, "thinker.model.embed_tokens": 0, "thinker.model.rotary_emb": 0,
+          "thinker.model.norm": n_cards - 1, "thinker.lm_head": n_cards - 1, "talker": "cpu", "code2wav": "cpu"}
+    for i in range(n_layers):
+        dm[f"thinker.model.layers.{i}"] = min(n_cards - 1, i * n_cards // n_layers)
+    return dm
+
+
+def load_engine(path: str, direction: str = "zh2en"):
+    """Engine.from_merged's body with layer_map instead of device_map "auto". With "auto" over 2 cards the audio tower
+    landed on cuda:1 while Engine.audio_embeds builds the speaker stream on cuda:0 (torch.cat device error, first
+    launch 2026-11-11 06:44 UTC); the weights, dtypes, sd_proj and Prompter are those of Engine.from_merged.
+    Engine.dev is cuda:0 explicitly (Engine.from_merged: torch.device("cuda"), the current device)."""
+    import gc
+    import os
+
+    import torch
+    from transformers import Qwen3OmniMoeForConditionalGeneration
+
+    from experiments.mist_w3po_v1.core.engine import Engine, Prompter
+    from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import N_SLOT, SDProjector
+
+    torch.set_num_threads(int(os.environ.get("GSTAR_THREADS", max(4, (os.cpu_count() or 32) // 8))))
+    omni = Qwen3OmniMoeForConditionalGeneration.from_pretrained(path, torch_dtype=torch.bfloat16,
+                                                                device_map=layer_map(torch.cuda.device_count()))
+    thinker = omni.thinker.eval()
+    del omni
+    gc.collect()
+    torch.cuda.empty_cache()
+    # loading leaves the CURRENT device at the last card, so Engine's torch.device("cuda") (speaker projector, inputs)
+    # would resolve to it while the audio tower sits on cuda:0 (second launch, 06:48 UTC): pin both to cuda:0
+    torch.cuda.set_device(0)
+    dev = torch.device("cuda", 0)
+    sd = SDProjector(N_SLOT, thinker.config.text_config.hidden_size)
+    sd.load_state_dict(torch.load(Path(path) / "sd_proj.pt"))
+    sd = sd.to(dev, torch.bfloat16).eval()
+    return Engine(thinker, sd, Prompter(direction), dev)
+
+
 def make_item(rec: dict, r: int, wav, post):
     """ReadItem of read r with the whole S as the committed sequence; the final read's posteriors are cut at
     online_decode_finalpost.final_cut_ms(t, close_detect) (full=True: audio_embeds adds no second mask)."""
@@ -456,7 +500,6 @@ def batches(reqs: list, batch: int, budget: int) -> list[list]:
 def run_score(args) -> None:
     import torch
 
-    from experiments.mist_w3po_v1.core.engine import Engine
     from experiments.mist_w3po_v1.crf.decode_crf_ckpt import apply_ckpt
 
     root = Path(args.root)
@@ -474,8 +517,12 @@ def run_score(args) -> None:
         for i in range(torch.cuda.device_count()):
             tot = torch.cuda.get_device_properties(i).total_memory
             torch.cuda.set_per_process_memory_fraction(min(1.0, args.mem_cap_gib * 2**30 / tot), i)
-    eng = Engine.from_merged(args.thinker, "zh2en", args.max_gib)
+    eng = load_engine(args.thinker, "zh2en")
     info = apply_ckpt(eng, args.ckpt)
+    print("device map: " + json.dumps(sorted(Counter(str(p.device) for p in eng.thinker.parameters()).items()))
+          + f" audio_tower {next(eng.thinker.audio_tower.parameters()).device} sd_proj "
+          f"{next(eng.sd_proj.parameters()).device} engine {eng.dev} current cuda:{torch.cuda.current_device()}",
+          flush=True)
     print("crf ckpt applied " + json.dumps(info), flush=True)
     load_s = time.time() - t_start
     bad = [r["id"] for r in recs if eng.tok(r["S"], add_special_tokens=False)["input_ids"] != r["S_ids"]
@@ -669,7 +716,6 @@ def main() -> None:
     ap.add_argument("--shard", default="0/1")
     ap.add_argument("--thinker", default=THINKER)
     ap.add_argument("--ckpt", default=CKPT)
-    ap.add_argument("--max-gib", type=int, default=36, help="weights per visible card (Engine.from_merged)")
     ap.add_argument("--mem-cap-gib", type=float, default=56.0, help="CUDA allocator cap per visible card (0: none)")
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--tok-budget", type=int, default=12000, help="rows x longest estimated row, per batch")
