@@ -188,3 +188,10 @@ T2 把延迟算在**文本时间线**上。真正的主指标是**语音时间�
 - **作用**：把 T1 的结果拆成两部分——"读周期 0.5 s"本身的影响，和"新标签 + 新条目 + 重训"的影响。
 - **没有 GO 线**，只作对照。先只打文本分（tcpBLEU all / ov，`--win` 下的文本 LAAL）；语音评测（talker c1+b1+s2 + ASR，两个种子）等卡空出来再做，不能耽误 T1、T2 的槽位。
 - GPU：只叠加在非训练卡的空闲显存上（每卡 ≤ 135 GiB）。
+
+## T1-quick：T1 的 dev5 文本速查（2026-11-11 12:25 UTC 登记，在它的任何结果之前；用户 12:15 UTC 要求）
+
+- **做法**：T1 训练一结束（step_03000），在 4–7 号卡上用它解码 dev5 的 5 个会议（`windows_zh2en_c2g06_v1_dev5`，1092 个窗口），读周期 0.5 s（`--window 0.5`），其余解码参数与 A′ 完全相同（`decode_crf_ckpt_finalpost --final-read-post close_detect`，policy wait，context 0，batch 16，loop guard）。4 个分片按窗口分。
+- **只打文本分**：tcpBLEU all / ov（`score_run`，dev5 窗口）；文本 LAAL（`speech_latency_lit --text-only --win <dev5 窗口>`，本次新加的只做加法的开关，有测试）。
+- **对照**：A′ 在同样 5 个会议上的文本（`decode/plcrf_dev5_aprule`，即 A′ 的 dev 解码按这 5 个会议截取），用同样的工具打分。
+- **诊断用，没有 GO 线**，不改变 T1 的正式评测（全 dev、两个种子、门槛）。跑完立刻在 4–7 号卡开始 T3 训练。
