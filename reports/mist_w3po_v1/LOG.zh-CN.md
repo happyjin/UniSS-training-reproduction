@@ -1905,3 +1905,20 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **T2 对 T1 的配对比较**：等 T1 的 dev 全集结果（T4 训完后在 4–7 号卡续跑）。
 - 协调者提醒：旧执行者退出前停掉了 `t_dev5_cut.sh dev_t1_piece_t0_s3000_w05` 的等待进程（PID 734786）。T1 在 4–7 号卡跑完后，我用同一个脚本、同样的参数补跑一次（先 `bash -n`，再 setsid）。
 - 数字已写入 `thinker_crf_t_results_v1.zh-CN.md` 的两节新内容。
+
+## 2026-11-11 20:45 布拉格（19:45 UTC）— T5 在 0–3 号卡开训；T1 已暂停
+
+- **t2plem** 20:38 布拉格跑完（DONE）。比估计早约 45 分钟：t2 的 talker 让出卡之后，t2plem 的 talker 一次排得下。
+- **`start_t5_v2.sh` 的执行过程**（日志 `logs/mist_w3po_v1/t5/start_t5_v2.log`）：
+  - 20:39:06：三个评测都已结束，按 PID 停 T1 编排器（1272714）。
+  - T1 的 dec2、dec3 在这之前已经正常跑完；还在跑的只有 0 号卡上的 4 个 CTC scorer，按会话 PID 停掉，60 s 内全部退出，不需要 SIGKILL。
+  - 暂停记录 `t_eval/t1/paused_20261111T193906Z.txt`。T1 状态：dec1–6 完成；dec0、dec7 和语音链未开始。
+  - 20:39:08：占 slotA。`takeover_train.sh` 按 PID 停掉 0–3 号卡上守护脚本刚补的 3 个 supervisor 和 1 个 worker。
+  - 20:39:19：T5 启动，`t5_evid_p4_20261111T154210Z`，torchrun 3647395，rank 3647443–3647446。
+- **核对**：
+  - args.json：objective latent_write、`--lw-mode t5`、`sched_t5_pieces4_w10_v1`、`t5_dart_pieces4_w10_v1`、3000 步、学习率 1e-4、tok 32000、τ 0.5、final-read-full-post 1；
+  - 0–3 号卡上只有 T5 的 4 个 rank；
+  - 前 17 步：不可行窗口 0，没有 NaN，每步约 12.6 行增广（清单里的均值是读行的 15%，约 9.7 行），显存峰值 74 GiB，约 4.9 s/步。
+  - 守护脚本在 T5 加载时又给 0、1 号卡补了待命 supervisor；卡上有我们的进程，它们只等待，不启动 worker。
+- **空档**：1、2 号卡最后一个评测作业 20:37:59 结束，T5 20:39:19 开始，空档约 1.5 分钟，在守护脚本的轮询周期之内。
+- **T5 预计**：按头几步的速度约 5 小时，按 T4 的速度（8 s/步）约 6.7 小时，所以在明天布拉格 01:40–03:30 之间训完。训完后由 `t_after_train.sh`（TAG t5）做速查和 GO 判定。
