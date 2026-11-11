@@ -1,6 +1,6 @@
 # talker 实验 E2′ 的预登记：单通道 PL-EM，修正预算（2026-11-11）
 
-**登记时间**：2026-11-11 约 07:45 UTC。在 E2′ 的任何数字（训练行的预算和 λ、预检、训练、评测）出来之前提交并推送（`git push private HEAD:main`）。
+**登记时间**：2026-11-11 07:34 UTC（提交 c96c2ee1；初稿误写为"约 07:45"，此处只更正时间）。在 E2′ 的任何数字（训练行的预算和 λ、预检、训练、评测）出来之前提交并推送（`git push private HEAD:main`）。
 **用户批准**：约 07:30 UTC，作为推荐的修正方案批准。下面每个数值都是**唯一设置**，不扫超参。
 
 前置文件：`talker_crf_prereg_v2.zh-CN.md`（下称 v2；实验二 = E2）、`talker_crf_results_v2.zh-CN.md` §1–§2、`talker_crf_results_v1.zh-CN.md`（PL-EM）。
