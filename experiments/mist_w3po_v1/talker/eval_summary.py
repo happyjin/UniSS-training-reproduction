@@ -83,6 +83,17 @@ def mean2(a, b):
     return out
 
 
+def gate_label(g: dict) -> str:
+    """talker-only systems speak A''s text: the text items are identical by construction (diff 0, P(diff <= 0) = 1,
+    which gate_2seed marks as not passing), so the verdict is the speech item's; a text item with diff != 0 still
+    counts (it would mean the text was not A''s)."""
+    text_same = all(abs(x["diff"]) < 1e-9 for k, x in g.items() if k.startswith("text"))
+    ok = all(x["pass"] for k, x in g.items() if not (text_same and k.startswith("text")))
+    sp = g.get("speech_all")
+    return (("通过" if ok else "未通过") + (" (文本相同" if text_same else " (") +
+            (f"；语音 {sp['diff']:+.2f}，P={sp['p_le0']:.3f})" if sp else ")"))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", required=True)
@@ -102,8 +113,7 @@ def main():
     md = ["| 系统 | " + " | ".join(c for _, c in cols) + " | 门槛 |", "|---" * (len(cols) + 2) + "|"]
     for label, v in res.items():
         m = v["mean"]
-        gate = "—" if not v["gate"] else ("通过" if all(x["pass"] for x in v["gate"].values()) else "未通过") + \
-            " (" + ", ".join(f"{k} {x['diff']:+.2f}/P{x['p_le0']:.2f}" for k, x in v["gate"].items()) + ")"
+        gate = "—" if not v["gate"] else gate_label(v["gate"])
         md.append(f"| {label} | " + " | ".join("—" if m.get(k) is None else str(m[k]) for k, _ in cols) + f" | {gate} |")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out + ".json").write_text(json.dumps(res, indent=1, ensure_ascii=False) + "\n")
