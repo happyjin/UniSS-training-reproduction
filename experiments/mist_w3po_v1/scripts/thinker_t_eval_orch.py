@@ -1,0 +1,171 @@
+#!/usr/bin/env python
+"""Dev evaluation of the Thinker T experiments (reports/mist_w3po_v1/thinker_crf_t_prereg_v1.zh-CN.md: T1/T2 评测,
+T3 评测, T1-ctrl): one detached orchestrator per candidate on talker_crf_orch.YieldOrch (crf_pair_dev_orch placement,
+<= 135 GiB per card, talker pair gap, headroom stop; the no-checkpoint workload counts as free memory and is stopped by
+PID right before one of our jobs takes its card; <run>/exclude_cards = cards a training holds, read every tick) with the
+shared pending ledger (logs/mist_w3po_v1/locks/pending.jsonl, owner "thinker_t").
+
+Candidate = (name, checkpoint). Jobs, A''s dev chain (c2_dev_orch / crf_pair_dev_orch) with only the listed changes:
+  dec0..7   crf_pair_dev_orch.dec_cmd (decode_crf_ckpt_finalpost --final-read-post close_detect, v8 merged, policy wait,
+            lag 2000, context 0, batch 16, 8 shards by meeting, A''s loop guard) on the c2g06 dev windows, with
+            "--window <s>" inserted before --policy wait (default 0.5: reads every 0.5 s)
+  score     score_run (text tcpBLEU all / ov)
+  speech    (unless --talker none) both TTS seeds, crf_pair_dev_orch.speech's chain (prep -> 8 talkers -> ASR -> score)
+            --talker c1b1s2: A''s talker (T1c) with speech_var_orch.talker_cmd's c1+b1+s2 flags
+            --talker plem:   the PL-EM export with talker_crf_orch.eval_settings("plem")["c1b1s2"] flags
+                             (EVAL_COMMON + --backlog-token --select-k 2) = talker_crf_results_v1's A' + PL-EM setting
+            4 CTC scorer servers (b1) as jobs (ports --scorer-port0 ..+3), stopped once every other job is over
+  lat       speech_latency_lit --win <c2g06 windows> per seed (per-stream speech LAAL, text LAAL, EndOffset, 1-channel)
+  gate      gate_2seed vs each --gate-ref pair (seed 1 dir, seed 2 dir)
+
+    python thinker_t_eval_orch.py --run <new run dir> --name <decode dir name> --ckpt <ckpt dir> \\
+        [--window 0.5] [--talker none|c1b1s2|plem] [--gate-ref <d1> <d2>]... [--exclude 4 5 6 7] [--dry]
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import crf_pair_dev_orch as cp  # noqa: E402
+import finalpost_dev_orch as fo  # noqa: E402
+import speech_var_orch as sv  # noqa: E402
+import talker_crf_orch as tc  # noqa: E402
+from finalpost_dev_orch import DEC, ENV, GUARD, PY, REPO, SPD  # noqa: E402
+
+WIN = "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl"
+PLEM = "eval_outputs/mist_w3po_v1/talker_crf/talker_plem_20261111T001759Z/export"
+LEDGER = "logs/mist_w3po_v1/locks/pending.jsonl"
+OWNER = "thinker_t"
+SCORER_PORT0 = 18801
+N_SCORERS = 4
+
+
+def decode_with(cmd: str, extra: str) -> str:
+    """c2_dev_orch.decode_with: extra online_decode args right before --policy wait."""
+    assert cmd.count(" --policy wait ") == 1, cmd
+    return cmd.replace(" --policy wait ", f" {extra} --policy wait ", 1)
+
+
+def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_refs: list[list[str]]) -> list[fo.Job]:
+    cp.WIN = WIN   # read by dec_cmd / speech at call time
+    jobs: list[fo.Job] = []
+
+    def add(*a, **k):
+        jobs.append(fo.Job(*a, **k))
+        jobs[-1].order = len(jobs)
+
+    D = f"{DEC}/{name}"
+    wx = f"--window {window:g}"
+    for k in cp.SHARDS_BIG_FIRST:
+        def cmd(att, k=k):
+            c = (cp.dec_cmd(ckpt, f"{D}/hyp_s{k}_a{att}.jsonl", "${PREV:+--resume-from $PREV} ",
+                            f"mkdir -p {D} && PREV=$(ls {D}/hyp_s{k}_a*.jsonl 2>/dev/null); ")
+                 + f"--shard {k} --num-shards 8 --shard-by meeting {GUARD} > {D}/infer_s{k}_a{att}.log 2>&1 "
+                   f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}_a{att}.log")
+            return decode_with(c, wx) if window != 1.0 else c
+        add(f"{name}__dec{k}", "dec", 1, [], cmd, retries=2)
+    add(f"{name}__score", "cpu", 1, [f"{name}__dec{k}" for k in range(8)],
+        lambda att: ENV + f"[ -e {D}/score_text.json ] || {PY} -m experiments.mist_w3po_v1.evaluation.score_run "
+                          f"--run {D} --windows {WIN} --ref-windows {fo.REF_WIN} --set zh2en > {D}/score.log 2>&1")
+    if talker == "none":
+        return jobs
+    tc.SCORER_PORT0, tc.N_SCORERS = SCORER_PORT0, N_SCORERS
+    tc.scorer_jobs(add, run)
+    names = [name, name + "_tts2"]
+    n0 = len(jobs)
+    cp.speech(add, names[0], name, None, 2, [f"{name}__score"])
+    cp.speech(add, names[1], name, fo.SEED2, 2, [f"{name}__score"])
+    for j in jobs[n0:]:
+        if j.kind != "talk":
+            continue
+        nm, k = j.id.rsplit("__talk", 1)
+        k = int(k)
+        seed = fo.SEED2 if nm.endswith("_tts2") else None
+        port = SCORER_PORT0 + k % N_SCORERS
+        if talker == "c1b1s2":
+            sv.SCORER_PORT0 = SCORER_PORT0
+            j.cmd = (lambda att, f=j.cmd, k=k, port=port: ENV + tc.wait_port(port)
+                     + sv.talker_cmd(f(att), "c1+b1+s2", k, N_SCORERS)[len(ENV):])
+        elif talker == "plem":
+            flags, _ = tc.eval_settings("plem", PLEM, 0.0)["c1b1s2"]
+            SP = f"{SPD}/{nm}"
+            j.cmd = (lambda att, SP=SP, k=k, port=port, seed=seed, flags=flags: tc.talk_cmd(
+                f"{PLEM}/uniss", SP, "talker", k, f"{tc.EVAL_COMMON} {flags}", port, seed, f"{SP}/talker_in"))
+        else:
+            raise ValueError(talker)
+    O = f"eval_outputs/mist_w3po_v1/crf/t_eval/{name}"
+    for nm in names:
+        Dn, SPn = f"{DEC}/{nm}", f"{SPD}/{nm}"
+        add(f"{nm}__lat", "cpu", 2, [f"{nm}__sscore"],
+            lambda att, Dn=Dn, SPn=SPn, nm=nm: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation."
+                                                     f"speech_latency_lit --run {Dn} --talker {SPn}/talker --win {WIN} "
+                                                     f"--out {O}/lat_{nm}.json > {O}/lat_{nm}.log 2>&1")
+    for i, (r1, r2) in enumerate(gate_refs):
+        add(f"{name}__gate{i}", "cpu", 2, [f"{nm}__sscore" for nm in names],
+            lambda att, r1=r1, r2=r2, i=i: ENV + f"mkdir -p {O} && {PY} -m experiments.mist_w3po_v1.evaluation.gate_2seed "
+                                                 f"--cand {DEC}/{names[0]} {DEC}/{names[1]} --ref {DEC}/{r1} {DEC}/{r2} "
+                                                 f"--out {O}/gate_{i}_{r1}.json > {O}/gate_{i}.log 2>&1")
+    return jobs
+
+
+def new_dirs(name: str, talker: str) -> list[str]:
+    out = [f"{DEC}/{name}"]
+    if talker != "none":
+        out += [f"{DEC}/{name}_tts2", f"{SPD}/{name}", f"{SPD}/{name}_tts2"]
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--run", required=True)
+    ap.add_argument("--name", required=True)
+    ap.add_argument("--ckpt", required=True)
+    ap.add_argument("--window", type=float, default=0.5)
+    ap.add_argument("--talker", choices=["none", "c1b1s2", "plem"], default="c1b1s2")
+    ap.add_argument("--gate-ref", nargs=2, action="append", default=[])
+    ap.add_argument("--exclude", nargs="*", default=[])
+    ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--resume", action="store_true")
+    a = ap.parse_args()
+    os.chdir(REPO)
+    run = Path(a.run)
+    jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref)
+    assert len({j.id for j in jobs}) == len(jobs)
+    if a.dry:
+        for j in jobs:
+            print(j.prio, j.kind, j.id, "deps", len(j.deps), "|", j.cmd(1)[len(ENV):][:700])
+        print(len(jobs), "jobs")
+        return
+    for f in ("DONE", "lora.pt", "extra.pt"):
+        if not Path(a.ckpt, f).exists():
+            raise SystemExit(f"checkpoint file missing: {a.ckpt}/{f}")
+    if a.resume:
+        o = tc.YieldOrch(run, jobs)
+        o.adopt()
+    else:
+        if run.exists():
+            raise SystemExit(f"拒绝覆盖已有输出: {run}")
+        ex = [d for d in new_dirs(a.name, a.talker) if Path(d).exists()]
+        if ex:
+            raise SystemExit(f"拒绝覆盖已有输出: {ex}")
+        run.mkdir(parents=True)
+        (run / "exclude_cards").write_text(" ".join(a.exclude) + "\n")
+        o = tc.YieldOrch(run, jobs)
+    o.spread = True
+    o.ledger, o.ledger_owner = LEDGER, OWNER
+    o.log(f"thinker T eval {a.name}: ckpt {a.ckpt}; window {a.window}; talker {a.talker}; gate refs {a.gate_ref}; "
+          f"excluded {sorted(o.excluded())}; ledger {LEDGER} owner {OWNER}")
+    try:
+        o.loop()
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        o.log("CRASH " + traceback.format_exc().replace("\n", " | "))
+        o.alert(f"ORCHESTRATOR CRASH {e!r}; running jobs continue")
+        raise
+
+
+if __name__ == "__main__":
+    main()

@@ -43,7 +43,7 @@ LAG_MS = 1000
 DMAX_MS = 4000
 
 
-def sched_record(w: dict, tg: dict, e: list[int], u: list[int], extra: dict, tok) -> dict:
+def sched_record(w: dict, tg: dict, e: list[int], u: list[int], extra: dict, tok, bounds: str = "sched") -> dict:
     """The sched-format record of window w from its T0 target tg (B-2 pieces in kappa order) and labels e (per piece)."""
     from experiments.mist_w3po_v1.crf.build_sched_windows import first_read_at
     from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_gstar_si_rows import q
@@ -101,6 +101,8 @@ def sched_record(w: dict, tg: dict, e: list[int], u: list[int], extra: dict, tok
         lo.append(first_read_at(t_ms, rq))
         hi.append(first_read_at(t_ms, un["b_ms"] + DMAX_MS))
         tau.append(c["src_end_ms"])
+    if bounds == "free":   # every read admissible: the trainer's set_reach filter then never drops a window
+        lo, hi = [0] * N, [R - 1] * N
     r_of = np.zeros(N, np.int64)
     prev = 0
     for r, b in enumerate(beta):
@@ -135,7 +137,7 @@ def check_record(rec: dict) -> dict:
 
 
 def _job(args):
-    k, ws, tgs, labs, smap, mode, out = args
+    k, ws, tgs, labs, smap, mode, out, bounds = args
     from experiments.mist_w3po_v1.crf.build_sched_windows import tokenizer
 
     tok = tokenizer()
@@ -154,7 +156,7 @@ def _job(args):
                 e, src = u, ("prop" if mode == "prop" else "prop_unused")
                 extra = {"t0_e_raw": [None] * J, "t0_zero": [None] * J}
             extra["label_src"] = [src] * J
-            rec = sched_record(w, tg, e, u, extra, tok)
+            rec = sched_record(w, tg, e, u, extra, tok, bounds)
             st[src] += 1
             st["pieces"] += J
             st["tokens"] += rec["n_tok"]
@@ -166,6 +168,70 @@ def _job(args):
     return dict(st), chk
 
 
+def _feas_check(rec: dict) -> tuple:
+    """(id, feasible under the trainer's set_reach (W 128), check_record) of one window (a worker, 1 thread)."""
+    import torch
+
+    from experiments.mist_w3po_v1.crf import train_crf_sft as T
+
+    torch.set_num_threads(1)
+    w = T.make_window(0, rec, True)
+    T.set_reach([w], 128)
+    return rec["id"], bool(w.feasible), check_record(rec)
+
+
+def finalize(args) -> None:
+    """--finalize: the summary of an already written directory (the shards complete), with the per-window checks run
+    in parallel worker processes (the single-process set_reach over all plan windows padded to the largest was too
+    slow: 2026-11-11 09:43 UTC). Same fields and the same pass / fail rule as main()."""
+    import multiprocessing as mp
+
+    from experiments.mist_w3po_v1.crf import train_crf_sft as T
+
+    out = Path(args.out)
+    if (out / "summary.json").exists():
+        raise SystemExit(f"拒绝覆盖已有输出: {out / 'summary.json'}")
+    t0 = time.time()
+    root = Path(args.t0_root)
+    tgs = {json.loads(l)["id"] for l in open(root / "cpu" / "targets.jsonl", encoding="utf-8")}
+    wins = T.load_windows(str(out), True)
+    plan = T.plan_steps([w.R for w in wins], T0.PLAN_SEED, T0.PLAN_STEPS, T0.PLAN_ROWS)
+    used = sorted({i for s in plan for i in s})
+    used_ids = {wins[i].rec["id"] for i in used}
+    plan_ok = used_ids == tgs and all(wins[i].rec["label_src"] == args.labels or args.labels == "prop" for i in used)
+    with mp.get_context("spawn").Pool(args.workers) as pool:
+        res = pool.map(_feas_check, [wins[i].rec for i in used], chunksize=32)
+    feas = {i: f for i, f, _ in res}
+    chk = {i: c for i, _, c in res}
+    infeasible = sorted(i for i, f in feas.items() if not f)
+    bad = sorted(i for i, c in chk.items() if not c["ok"])
+    st = Counter()
+    for w in wins:
+        st[w.rec["label_src"]] += 1
+        st["pieces"] += len(w.rec["chunks"])
+        st["tokens"] += w.N
+        st["reads"] += w.R
+        st["final_pieces"] += sum(c["e_read"] == w.R - 1 for c in w.rec["chunks"])
+    per_step = {}
+    for key in ("p1", "p2", "tok1", "tok2"):
+        v = [sum(chk[wins[i].rec["id"]][key] for i in s) for s in plan]
+        per_step[key] = {"mean": float(np.mean(v)), "p50": float(np.median(v)), "p95": float(np.percentile(v, 95)),
+                         "max": int(np.max(v))}
+    uw = [wins[i] for i in used]
+    summ = {"windows": len(wins), "stats": dict(st), "plan_windows": len(used), "plan_equals_t0_windows": plan_ok,
+            "plan_windows_infeasible": infeasible[:20], "n_infeasible": len(infeasible),
+            "label_path_check_windows": len(chk), "label_path_check_bad": bad[:20], "n_bad": len(bad),
+            "v2p_plan_per_step": per_step, "L_ref_mean_lat_heur_windows": float(np.mean([w.lat_heur for w in wins])),
+            "lat_heur_plan_windows": float(np.mean([w.lat_heur for w in uw])), "args": vars(args),
+            "finalize": True, "elapsed_s": round(time.time() - t0, 1)}
+    with open(out / "summary.json", "x", encoding="utf-8") as fh:
+        fh.write(json.dumps(summ, indent=1))
+    print(json.dumps(summ, indent=1), flush=True)
+    if not plan_ok or infeasible or bad:
+        raise SystemExit("PIECE_SCHED_CHECK_FAILED")
+    print(f"PIECE_SCHED_DONE {out}", flush=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--t0-root", required=True)
@@ -174,7 +240,15 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=32)
     ap.add_argument("--shard-size", type=int, default=500)
     ap.add_argument("--limit", type=int, default=0, help="smoke: the first n windows (the plan check is skipped)")
+    ap.add_argument("--bounds", choices=["sched", "free"], default="sched",
+                    help="lo / hi: build_sched_windows' rules (default) or every read (free). They only feed the "
+                    "trainer's set_reach feasibility filter for serial_v2p / latent_write / joint_speech; with S in label "
+                    "order the sched rules leave 7.7 %% of the plan windows infeasible (dropped), hence free for T1-T3")
+    ap.add_argument("--shards-only", action="store_true", help="write the shards only (then run --finalize)")
+    ap.add_argument("--finalize", action="store_true", help="only the checks + summary.json of a written directory")
     args = ap.parse_args()
+    if args.finalize:
+        return finalize(args)
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
@@ -194,7 +268,7 @@ def main() -> None:
     out.mkdir(parents=True)
     shards = [W[i: i + args.shard_size] for i in range(0, len(W), args.shard_size)]
     jobs = [(k, sh, {w["id"]: tgs[w["id"]] for w in sh if w["id"] in tgs}, {w["id"]: labs[w["id"]] for w in sh
-            if w["id"] in labs}, {m: smap[m] for m in {w["meeting"] for w in sh}}, args.labels, str(out))
+            if w["id"] in labs}, {m: smap[m] for m in {w["meeting"] for w in sh}}, args.labels, str(out), args.bounds)
             for k, sh in enumerate(shards)]
     import multiprocessing as mp
 
@@ -204,6 +278,9 @@ def main() -> None:
             st.update(s)
             chk.update(c)
             print(f"shard {i + 1}/{len(jobs)} {time.time() - t0:.0f}s", flush=True)
+    if args.shards_only:
+        print(f"PIECE_SCHED_SHARDS_DONE {out} {json.dumps(dict(st))}", flush=True)
+        return
     # the trainer's own view: load_windows + plan_steps + set_reach on this directory
     from experiments.mist_w3po_v1.crf import train_crf_sft as T
 
