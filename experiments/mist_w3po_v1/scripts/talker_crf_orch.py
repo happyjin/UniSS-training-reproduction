@@ -123,6 +123,8 @@ class YieldOrch(cp.PairOrch):
             if not f.exists():
                 f.write_text("1\n")
                 self.log("all non-scorer jobs over: scorers_stop")
+        if snap is not None:
+            self.ledger_mark_visible(snap)   # no-op unless the shared pending ledger is on (finalpost_dev_orch.Orch.ledger)
         return super().status(snap)
 
     def start(self, j, card):

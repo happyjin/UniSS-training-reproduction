@@ -48,6 +48,7 @@ FLAGS = V2.FLAGS["plemm"]   # E2''s inference = E2's (prereg v3 §1)
 PLEM = V2.PLEM
 PLEMM = [f"{DEC}/{A}__plemm_c1b1s2", f"{DEC}/{A}__plemm_c1b1s2_tts2"]   # E2 (descriptive pairing)
 SMALL_WAIT_S = 25   # 2026-11-11 08:45 (user: launches serialise on gpu_launch.lock): small jobs release it after 25 s
+LEDGER = "logs/mist_w3po_v1/locks/pending.jsonl"   # 2026-11-11 09:00: release the lock right after spawning (shared ledger)
 
 
 def names() -> list[str]:
@@ -194,8 +195,10 @@ def main():
         o = TC.YieldOrch(run, jobs)
     o.spread = True
     o.small_wait_s = SMALL_WAIT_S
+    o.ledger, o.ledger_owner = LEDGER, "talker_v3"
     o.log(f"talker_crf v3 (E2'); {len(jobs)} jobs; excluded cards {sorted(o.excluded())}; scorer ports "
-          f"{TC.SCORER_PORT0}-{TC.SCORER_PORT0 + TC.N_SCORERS - 1}; small jobs hold gpu_launch.lock <= {SMALL_WAIT_S} s")
+          f"{TC.SCORER_PORT0}-{TC.SCORER_PORT0 + TC.N_SCORERS - 1}; small jobs hold gpu_launch.lock <= {SMALL_WAIT_S} s; "
+          f"pending ledger {LEDGER} (lock released right after spawning)")
     try:
         o.loop()
     except Exception as e:  # noqa: BLE001

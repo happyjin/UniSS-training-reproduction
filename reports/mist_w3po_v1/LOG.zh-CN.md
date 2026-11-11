@@ -1673,3 +1673,22 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 对 PL-EM 语音 −0.01（P = 0.57），没有质量代价。
 - **积压 token 一致性**（`check_shared_bins.py`，e8b6e512）：两个种子各 12208 / 12208 块与独立重算一致，最大差 0.0 ms。
 - **报告**：`talker_crf_results_v2.zh-CN.md` §3–§4 已补完。
+
+## 2026-11-11 09:03 UTC — 启动协议改为"生成即放锁 + 共享待定账本"（用户 08:56，方案二）
+
+- **问题**：每次启动都持有全局 `gpu_launch.lock`，直到任务显存可见（vLLM 100–190 s）。8 张卡上大约每 2–3 分钟才启动一个任务。
+- **改动**（只做加法，默认 `Orch.ledger = None` 行为不变；单元测试 `scripts/test_launch_ledger.py`）：
+  - `finalpost_dev_orch` 新增 `ledger_append` / `ledger_pending`，以及 `Orch.ledger` / `ledger_owner`、`ledger_vllm_busy`、`ledger_mark_visible`；
+  - 账本模式下：
+    - 生成任务后立即放锁，每次启动写一行 pending（卡、MiB = NEED、是否 vLLM、pid）；
+    - 显存可见或任务结束时写 visible 行；
+    - 其他 owner 未过期（< 300 s、无 visible 行）的 pending 计入该卡已用；
+    - 一张卡上有 60 s 内的 pending vLLM 启动时，不再在该卡启动 vLLM（我自己按卡对 60 s 的间隔照旧）；
+    - 每卡 ≤ 135 GiB 不变。
+  - `talker_crf_orch.YieldOrch.status` 每个 tick 调 `ledger_mark_visible`；`talker_crf_v3_orch` 打开账本（owner `talker_v3`，文件 `logs/mist_w3po_v1/locks/pending.jsonl`）。
+- **切换**：
+  - 新文件用 `command mv -f` 换入；
+  - 09:00:20 建 STOP，09:00:32 按 PID 停 v3 编排器（811594），STOP 改名为 `STOP.used_*`；
+  - `--resume` 接管全部任务（ok 72、run 15、wait 36、fail 0）。之后每个 tick（约 10 s）都能启动任务。
+- **协调**：已把账本格式发给 Thinker 执行者（ad5c970f84d12d32f），请它在自己的启动脚本里同样读写。它不用也不冲突，它仍按 nvidia-smi 检查，只是看不到我未显现的显存。
+- **等锁的任务**：重启后，所有依赖已满足的 GPU 任务都在接下来的几个 tick 里启动，没有只因锁而等待的任务。

@@ -79,6 +79,45 @@ def now() -> float:
     return time.time()
 
 
+LEDGER_TTL_S = 300          # a pending entry counts until its "visible" line or this age
+LEDGER_VLLM_GAP_S = 60      # no new vLLM start on a card with a pending vLLM start younger than this
+
+
+def ledger_append(path: str, rec: dict) -> None:
+    """one JSON line, O_APPEND (2026-11-11 08:56, user: launches in parallel across cards; the shared pending ledger
+    logs/mist_w3po_v1/locks/pending.jsonl, agreed with the Thinker executor): {"t", "utc", "owner", "id", "card",
+    "mib", "vllm", "state": "pending"} at spawn, {"t", "utc", "owner", "id", "card", "state": "visible"} once the memory
+    shows (or the job exits)."""
+    rec = {"t": round(now(), 1), "utc": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), **rec}
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, (json.dumps(rec) + "\n").encode())
+    finally:
+        os.close(fd)
+
+
+def ledger_pending(path: str, t: float | None = None) -> list[dict]:
+    """entries still pending: state pending, younger than LEDGER_TTL_S, no later visible line for (owner, id)."""
+    t = now() if t is None else t
+    try:
+        lines = open(path, encoding="utf-8").read().splitlines()
+    except OSError:
+        return []
+    pend: dict = {}
+    for l in lines:
+        try:
+            r = json.loads(l)
+        except ValueError:
+            continue
+        k = (r.get("owner"), r.get("id"))
+        if r.get("state") == "pending":
+            pend[k] = r
+        elif r.get("state") == "visible":
+            pend.pop(k, None)
+    return [r for r in pend.values() if t - float(r.get("t", 0)) < LEDGER_TTL_S]
+
+
 class Job:
     def __init__(self, jid, kind, prio, deps, cmd, retries=0):
         self.id, self.kind, self.prio, self.deps, self.cmd, self.retries = jid, kind, prio, list(deps), cmd, retries
@@ -175,6 +214,12 @@ class Orch:
     # holds the lock until its memory reaches VISIBLE[kind] or VISIBLE_WAIT_S; a number = a job with .small set (memory far
     # below the visibility threshold, placed only where the plan already reserved NEED[kind]) holds it that many seconds
     small_wait_s = None
+    # 2026-11-11 08:56 (user: per-card parallel starts): None (default, unchanged) = hold gpu_launch.lock until each
+    # launched job's memory shows; a path = the shared pending ledger: release the lock right after spawning, write
+    # each start there, count OTHER owners' pending entries as used memory, no talk start on a card with any pending
+    # vLLM start younger than LEDGER_VLLM_GAP_S; our own not-yet-visible memory is counted by free_plan's pend as before
+    ledger = None
+    ledger_owner = ""
 
     def __init__(self, run: Path, jobs: list[Job]):
         self.run, self.jobs = run, jobs
@@ -252,7 +297,30 @@ class Orch:
             pend = sum(max(0.0, NEED[j.kind] - snap["per_job"].get(j.id, 0.0)) for j in self.jobs
                        if j.state == "run" and j.gpu and j.card == c)
             res[c] = min(res[c], CAP_TOTAL - v["used"] - pend, v["total"] - HEADROOM - 2.0 - v["used"] - pend)
+        if self.ledger:
+            for r in ledger_pending(self.ledger):
+                if r.get("owner") != self.ledger_owner and r.get("card") in res:
+                    res[r["card"]] -= float(r.get("mib", 0)) / 1024
         return res
+
+    def ledger_vllm_busy(self, c: int) -> bool:
+        """a pending vLLM start (any owner) on card c younger than LEDGER_VLLM_GAP_S."""
+        return bool(self.ledger) and any(r.get("card") == c and r.get("vllm") and now() - float(r["t"]) < LEDGER_VLLM_GAP_S
+                                         for r in ledger_pending(self.ledger))
+
+    def ledger_mark_visible(self, snap: dict) -> None:
+        """our ledger entries whose memory now shows (or whose job is over) get their visible line."""
+        if not self.ledger:
+            return
+        mine = {r["id"]: r for r in ledger_pending(self.ledger) if r.get("owner") == self.ledger_owner}
+        for jid, r in mine.items():
+            j = self.by_id.get(jid)
+            if j is None:
+                continue
+            vis = snap["per_job"].get(jid, 0.0)
+            if j.state != "run" or vis >= VISIBLE[j.kind] or (j.small and vis > 0.5):
+                ledger_append(self.ledger, {"owner": self.ledger_owner, "id": jid, "card": r.get("card"),
+                                            "state": "visible", "gib": round(vis, 1)})
 
     # ---------------------------------------------------------------- processes
     def alive(self, sid: int, sid_of: dict | None = None) -> list[int]:
@@ -411,9 +479,18 @@ class Orch:
                 if launched:
                     time.sleep(LAUNCH_GAP_S[j.kind])
                 if j.kind == "talk":
+                    if self.ledger_vllm_busy(c):
+                        self.log(f"skip {j.id} on card {c}: a pending vLLM start there (ledger)")
+                        continue
                     self.pair_last[c // 2] = now()
                 self.start(j, c)
                 launched.append(j)
+                if self.ledger:
+                    ledger_append(self.ledger, {"owner": self.ledger_owner, "id": j.id, "card": c,
+                                                "mib": int(NEED[j.kind] * 1024), "vllm": j.kind == "talk",
+                                                "state": "pending", "pid": j.sid})
+            if self.ledger:   # release right after spawning; the next ticks account the pending memory
+                launched = []
             # wait until each launched job's memory shows (or it exits); 300 s cap per job
             while launched:
                 snap = self.snapshot()
