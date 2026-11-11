@@ -384,12 +384,25 @@ def solve_lambda(parts: list[dict]) -> tuple[float, dict]:
     return hi, info
 
 
+def edge_blocks(rec: dict, pl: dict, r: int, nprev: int, ncur: int) -> np.ndarray:
+    """[nprev, ncur] number of non-empty (read, speaker) blocks the Thinker edge i -> j of read r writes (0 off the
+    edges): the speakers of W = pl["W"][(r, i)][j]. J1's block statistic (= the talker blocks under read-level input)."""
+    ch = rec["chunks"]
+    out = np.zeros((nprev, ncur))
+    edge = pl["edge"][r]
+    for i in range(nprev):
+        for j in np.nonzero(edge[i])[0]:
+            out[i, j] = len({ch[c]["slot"] for c in pl["W"][(r, i)][j]})
+    return out
+
+
 def posterior_from_parts(w, pl: dict, parts: dict, tau: float, lam: float) -> dict:
     """Thinker edge marginals from the joint chain, then LW.posterior_from_parts' cend construction."""
     reads, Eo, edge, aug = parts["reads"], parts["Eo"], parts["edge"], parts["aug"]
     fb = forward_backward(aug, lam)
     cend = [np.zeros(len(q["forced_ids"]) + 1) for q in pl["reqs"]]
     exp_nf, n_real, worst, exp_defer = 0.0, 0, 0.0, 0.0
+    exp_blocks = 0.0           # J1 log field: E_q[number of non-empty (read, speaker) blocks] (no effect on the posterior)
     lat, e = pl["lat"], pl["lat"]["rho"]
     by_e = [[x for x in range(len(e)) if e[x] == r] for r in range(lat["R"])]
     for r, (rd, pr, ar) in enumerate(zip(reads, pl["reads"], aug["reads"])):
@@ -407,6 +420,7 @@ def posterior_from_parts(w, pl: dict, parts: dict, tau: float, lam: float) -> di
         else:
             qN = np.zeros_like(qC)
         worst = max(worst, abs(float(qC.sum() + qN.sum()) - 1.0))
+        exp_blocks += float((qe * edge_blocks(w.rec, pl, r, ar["nprev"], ar["ncur"])).sum())
         ms = np.exp(fb["alpha"][r] + fb["beta"][r] - fb["logZ"])
         mj = np.bincount(ar["j"], weights=ms, minlength=ar["ncur"])
         for j, A in enumerate(lat["sets"][r]):
@@ -420,7 +434,7 @@ def posterior_from_parts(w, pl: dict, parts: dict, tau: float, lam: float) -> di
     if worst > 1e-6:
         raise RuntimeError(f"T3 posterior of {w.rec['id']}: per-read mass off by {worst:.2e}")
     return {"cend": cend, "logZ": fb["logZ"], "exp_nf": exp_nf, "n_real": n_real, "exp_defer": exp_defer,
-            "Eq_l": fb["Eq_l"], "target": parts["target"], "sum_words": parts["sum_words"], "lam": lam,
+            "exp_blocks": exp_blocks, "Eq_l": fb["Eq_l"], "target": parts["target"], "sum_words": parts["sum_words"], "lam": lam,
             "aug_states_max": int(max(aug["states"])), "aug_edges": aug["edges"], "coarsened": aug["coarsened"]}
 
 

@@ -873,10 +873,12 @@ def build_args(argv=None):
     ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
                     help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
     ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5"],
-                    help="--objective latent_write: the lattice bounds (latent_write_crf.bounds; t5 = T5's [e, max(u, e)])")
+                    help="--objective latent_write / joint_speech (J1): the lattice bounds (latent_write_crf.bounds; t5 = "
+                    "T5's [e, max(u, e)])")
     ap.add_argument("--dart", default="",
-                    help="--objective latent_write only (T4): directory of a crf/dart_aug.py --manifest made for this "
-                    "--sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 exactly)")
+                    help="--objective latent_write (T4) or joint_speech (J1): directory of a crf/dart_aug.py --manifest "
+                    "made for this --sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 / T3 "
+                    "exactly)")
     ap.add_argument("--talker-model", default="",
                     help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
                     "(unused by the other objectives)")
@@ -967,8 +969,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
     if args.dart:   # T4: crf/dart_aug.py (manifest checked against this plan)
         from experiments.mist_w3po_v1.crf import dart_aug as DA_
 
-        if args.objective != "latent_write":
-            raise SystemExit("--dart needs --objective latent_write")
+        if args.objective not in ("latent_write", "joint_speech"):   # joint_speech: J1 (thinker_joint_crf_prereg_v1)
+            raise SystemExit("--dart needs --objective latent_write or joint_speech")
         dart = DA_.load_manifest(args.dart, wins, plan, args.sched, args.seed, args.steps, args.rows_per_step)
         if DA_.manifest_mode(args.dart) != args.lw_mode:
             raise SystemExit(f"--dart manifest made for lattice mode {DA_.manifest_mode(args.dart)}, not {args.lw_mode}")
@@ -1058,7 +1060,11 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             model.eval()
             for m in extra_params:
                 m.eval()
-            v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            if dart is None and args.lw_mode == "t2":   # T3 exactly
+                v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
+            else:   # J1: the base's lattice mode and DART rows
+                v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
+                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}))
             t_p1, t_lam = v2p["t_pass1"], v2p["t_post"]
             st["lat_heur"] = float(np.mean([w.lat_heur for w in sw]))
             state_w = 0.0
