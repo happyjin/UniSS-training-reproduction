@@ -97,7 +97,7 @@ flock -o "$LOCK" -c "RUN_ID=$RUN_ID MODE=$SCHEME ROWS=$ROWS CARDS=$CARDS MASTER_
 TP=$(cat $L/train_pid_$SCHEME)
 log "training $RUN_ID pid $TP log $TLOG"
 while [ -d /proc/$TP ]; do sleep 60; done
-release_cards() { command mv -f $L/train_active_$SCHEME $L/train_active_$SCHEME.ended_$(date -u +%H%M%S); set_exclude; }
+release_cards() { command mv -f $L/train_active_$SCHEME $L/ended_train_active_$SCHEME.$(date -u +%H%M%S); set_exclude; }   # out of the train_active_* glob (2026-11-11 fix)
 if ! grep -q TALKER_CRF_DONE "$TLOG"; then
   log "TRAIN_FAILED $RUN_ID (tail: $(tail -3 $TLOG | tr '\n' ' ' | cut -c1-300))"
   release_cards; exit 1
