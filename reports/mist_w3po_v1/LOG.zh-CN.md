@@ -2053,3 +2053,19 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 交接写入 `HANDOFF_20261111.zh-CN.md` §0f：D1、VE1、J1 的状态、命令、判据、文件。
 - `j1_decide --wait`（PID 974393，已脱离会话）继续运行。它会写 D1 的基线和 `schedule.json`，其中有 S1–S3 停住标志。
 - GPU：本执行者一张卡都没用。
+
+## 2026-11-11 22:50 布拉格（21:50 UTC）— 今晚的卡位规则：挂上 VE1、D1、t2rl v3 和训练卡排除同步
+
+- **协调者代用户的决定**（约 23:00 布拉格消息；设计代理的代码 aa852a68、fe11f55d，交接 §0f）：
+  - **VE1**：调度规则由协调者改为无条件运行（`FORCE=1`，不看 run_D1），**科学判定线不变**（预登记 2c23dc64 的速查 GO 线和门槛照旧）。VE1 在 0–3 号卡，等 T5 速查结束、t2rl 评测跑完再接手；T5 判 GO 时，先让 T5 的 dev 全集评测跑完。
+  - **D1**：按 run_D1 决定。要跑时，roll-in 叠在 4–7 号卡，训练在 4–7 号卡；T4 判 GO 时，T4 的 dev 全集评测先跑。T1 的存档评测如果还占着 4–7，就按 PID 暂停，让 D1 接手。
+- **挂上的进程**（都用 setsid 脱离；都只做了 `bash -n` 和 `DRY_RUN=1` 检查）：
+  - **`sync_train_exclude.sh`**（新，PID 1255324，日志 `logs/mist_w3po_v1/slots/sync_train_exclude.log`）：每 10 s 把共享排除文件 `logs/mist_w3po_v1/talker_crf_v1/exclude_cards`（`talker_crf_orch.GLOBAL_EXCLUDE`，所有 YieldOrch 编排器每个 tick 都会读）同步为被占槽位的卡。这样，无论哪个评测编排器启动时带的是什么 `--exclude`，都不会在训练卡上开新作业；正在跑的作业不动。现在是 `0 1 2 3 4 5 6 7`（T5 和 T4 都在训）。
+  - **`start_t2rl_eval_v3.sh`**（新，PID 1255325）：在 v2 的规则上加一条——D1 准备接手 4–7 号卡时（标记 `logs/mist_w3po_v1/d1/claiming_4567`），t2rl 不再在 4–7 号卡开新作业，正在跑的跑完。v2（PID 782570）还在等待、没有启动编排器，核对命令行后按 PID 停掉。
+  - **`start_ve1_after.sh`**（新，PID 1255330，RUN_ID `ve1_20261111T214454Z`，日志 `logs/mist_w3po_v1/ve1/start_ve1.log`）：依次等 T5 训完并写出速查的 go.json、每个 GO 候选的 dev 全集评测 DONE、t2rl DONE，然后用 `FORCE=1 CARDS=0,1,2,3` 调用原样的 `start_ve1.sh`（它会等槽位空、卡上只剩占卡进程，然后占槽、接手）。
+  - **`start_d1_rollin.sh`**（原样，PID 1255329，`PAIRS="4,5 6,7"`，日志 `logs/mist_w3po_v1/d1/start_d1_rollin.log`）：等 `base_decision.json` 和 `schedule.json`；run_D1 为假时自己退出。
+  - **`start_d1_after.sh`**（新，PID 1255331，日志 `logs/mist_w3po_v1/d1/start_d1.log`）：等 schedule.json（run_D1 为假就退出），等 roll-in 清单并检查 R4（不过就退出），再等每个 GO 候选的 dev 全集评测 DONE。然后写标记，按 PID 暂停 T1（与 `start_t5_v2.sh` 相同），再调用原样的 `start_d1.sh`（RUN_ID `d1_<base>_<UTC>`，4–7 号卡）。
+- **我的解释**（请协调者确认，目前按此执行）：
+  - "GO 候选的评测优先"对两个训练都适用：T5 判 GO 时，它的全集评测可能也在 4–7 号卡上跑，所以 D1 也等它跑完；
+  - t2rl 在 D1 接手前从 4–7 号卡上撤出，不再开新作业。
+- 训完后的流程：VE1、D1 开训后，各挂一个 `t_after_train_rl.sh`（TAG ve1 / d1，按 §0f 的命令）。
