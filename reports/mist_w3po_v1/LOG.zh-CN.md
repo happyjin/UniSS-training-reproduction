@@ -2202,3 +2202,17 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 退路（预检不过时）：LM3，即 latent-write + DART + merge3，明确标为消融。
 - **推理期修复**（任务 4）：增益都 ≤ 0.15，不登记、不占 GPU。
 - **GPU**：没有用。
+
+## 2026-11-12 03:10 布拉格 — 方法设计执行者 v2：RC5 数据、代码与预检（只有 R2 的 lat_heur 一句没过），待协调者决定是否豁免
+
+- **数据**：`sched_t5_rc_w10_v1`（93,363 块，每块 3.90 词；T5 是 2.89）和 `t5rc_dart_w10_v1` 已建好。退路 LM3 的清单 `t5_dart_merge3_w10_v1` 也已备好。
+- **预检** `rc5_precheck_v2.json`：
+  - R1、R3、R4 过；
+  - R2 中逐词标签读 99.9984% 相同，但 lat_heur −6.9%。lat_heur 用的是块的源端终点，合并后因构造必然变小，这一句是登记时设错了。
+  - 详见预登记的结果节。v1 的预检因测试环境问题（无 GPU 时 transformers import 失败）作废，v2 只修了测试子进程的补丁。
+- **启动脚本**：
+  - `start_rc5_v2.sh`：豁免需要 `WAIVE_R2_LATHEUR=1` 加记录文件；`FALLBACK=1` 跑 LM3。
+  - 训完后：`t_after_train_rl.sh`（TAG rc5，PORT0 19201），附带报告由 `rc5_quick_extra.sh` 生成。
+  - 都只用 `bash -n` 和 DRY_RUN 检查过。
+- **诊断**：`early_commit_diag.py` 在 T4、T5 上的完整输出是 `crf/t45_quality_diag_v1.json`，与发给协调者的数字一致。
+- **GPU**：没有用。

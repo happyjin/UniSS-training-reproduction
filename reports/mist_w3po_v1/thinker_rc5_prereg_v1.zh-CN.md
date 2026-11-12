@@ -141,3 +141,48 @@ T5 原样，即预登记 `thinker_crf_t_prereg_v1` 的 T5 节、修订 1 与第 
 - **DART 清单**：在同一数据上按 t5 模式重新生成（`crf/t5_dart_merge3_w10_v1`），规则与种子相同。
 - 其余与 VE1 相同：配方、1.0 s 读、只评 step_03000、GO 线和门槛（第 4 节）。
 - **与 VE1 只差目标**：VE1 是 v2′ 格 {e, e+1}、λ ≡ 0；LM3 是 t5 格加 λ 对偶。两者合起来回答：在 A′ 的粒度上，隐写时目标有没有用。
+
+## 结果
+
+（登记之后补。）
+
+### 数据、代码与 CPU 预检（2026-11-12 布拉格 02:58–03:08）：只有 R2 的 lat_heur 一句没过
+
+**数据**（只用 CPU，构建脚本 `logs/mist_w3po_v1/rc5/build_rc5_w10.sh`）：
+- `sched_t5_rc_w10_v1`：22,671 个窗口，93,363 块，用时 300 s；
+- `t5rc_dart_w10_v1`：DART 清单 15,585 条，t5 模式。
+- 退路 LM3 的清单 `t5_dart_merge3_w10_v1`（t5 模式）也已备好，以防需要。
+
+**代码**（只做加法）：
+- `crf/t5_evidence_labels.py`：新增 `coalesce_same_read`，以及 `--granularity pieces4rc`。merge3 和 pieces4 的路径不变：`test_t5_rc` 在 300 个真实窗口上逐块复现了已有 T5 和 VE1 数据的文本与标签读。
+- 新文件：
+  - `crf/test_t5_rc.py`（2/2）、`crf/rc5_precheck.py`；
+  - `evaluation/early_commit_diag.py`（诊断）；
+  - `scripts/start_rc5.sh`、`scripts/start_rc5_v2.sh`、`scripts/rc5_quick_extra.sh`。这几个脚本都只用 `bash -n` 和 DRY_RUN 检查过。
+
+**预检**（`crf/rc5_precheck_v2.json`）：
+
+| 项 | 结果 | 判定 |
+|---|---|---|
+| R1 构建 | 22,671 个窗口，与 T5 相同；不可行 0，bad 0 | 过 |
+| R2 标签路径 | 逐词标签读相同：363,881 / 363,887（**99.9984%**，6 个窗口各差 1 个词）；**lat_heur 0.527 vs T5 0.566（−6.9%）** | **没过**（只差 lat_heur 一句） |
+| R3 粒度 | 每块 **3.90 词**（T5 2.89）；1 词块 22.0%（T5 26.6%）；p90 8 词；标签落在最终读的词 14.64%（T5 14.64%） | 过 |
+| R4 训练器 | latent_write / t5；清单 t5 模式，15,585 条，与训练计划一致；`test_t5_rc`、`test_dart_aug`、`test_latent_write_crf`、`test_train_crf_sft`（8/8）全过 | 过 |
+
+**v1 → v2 的说明**：
+- 第一次预检（`rc5_precheck_v1.json`）里，`test_train_crf_sft` 在无 GPU 环境下 import transformers 失败。原因是 `torch.accelerator.current_accelerator()` 没有设备时报错，`test_dart_aug` 自己打了补丁，这个测试没打。
+- v2 只在跑测试的子进程里加了同样的补丁，阈值和其他检查都没有改。补丁后单独运行，8/8 通过。
+
+**R2 中 lat_heur 那一句为什么没过**（登记时的设定错误，照实写明）：
+- `lat_heur` 是逐 token 的"读时刻 − 所在块的源端终点"。合并后，前面几块的词用的是合并块（即最后一块）的终点，所以它会因构造而变小，与写出时机无关。
+- 登记这一句的本意是"标签路径不变"，这由同一行里逐词标签读的检查直接检验，结果是 99.9984%。
+- 训练中隐写时 CRF 的延迟势用同一种块终点定义，λ 对偶的目标（同一步 T1 子格的期望）也在同一定义下算，所以前后一致。
+
+**按预登记**：
+- 任何一项不过，就不训练 RC5，改跑第 6 节的 LM3。
+- 本执行者建议由协调者（代用户）明确豁免 R2 中 lat_heur 这一句，作为有记录的偏离（先例：T5 第 4 条豁免），照常训练 RC5。
+- 启动脚本 `start_rc5_v2.sh` 只在以下三个条件同时成立时才接受豁免：
+  - 设置 `WAIVE_R2_LATHEUR=1`；
+  - 预检里除 lat_heur 这一句外全部通过；
+  - 存在豁免记录 `logs/mist_w3po_v1/rc5/waiver_r2_latheur.txt`，写明谁决定、为什么。
+- 不豁免时，用 `FALLBACK=1` 跑 LM3。

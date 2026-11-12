@@ -253,6 +253,37 @@ def split_chunks(ref: str, gran: str) -> list[str]:
     return merge_chunks(ref) if gran == "merge3" else pieces4_chunks(ref)
 
 
+def coalesce_same_read(x: tuple, tau_tok: dict, t_ms: list[int]) -> tuple:
+    """--granularity pieces4rc (reports/mist_w3po_v1/thinker_rc5_prereg_v1.zh-CN.md §1): one utterance's pieces4 pieces
+    with the same label read e (the first read at or after the tau of the piece's last word) that are adjacent become
+    one piece (texts joined by a space, spans concatenated); a piece without an EN_WORD token joins the next piece (at
+    the utterance's end: the previous one). The label read of every word is unchanged by construction (the merged
+    piece's last word is a merged piece's last word with the same e). An utterance without any EN_WORD token is kept."""
+    from experiments.mist_w3po_v1.crf import precheck_b2_earliest_write as B
+
+    mi, u, cs, spans, sup, raw, mb = x
+    keys = [B.first_read(t_ms, tau_tok[(mi, sp[-1])]) if sp else None for sp in spans]
+    if all(k is None for k in keys):
+        return x
+    units, pend = [], []
+    for i, k in enumerate(keys):
+        pend.append(i)
+        if k is not None:
+            units.append([pend, k])
+            pend = []
+    if pend:
+        units[-1][0] += pend
+    merged = []
+    for idx, k in units:
+        if merged and merged[-1][1] == k:
+            merged[-1][0] += idx
+        else:
+            merged.append([list(idx), k])
+    cs2 = [" ".join(cs[i] for i in idx) for idx, _ in merged]
+    sp2 = [[j for i in idx for j in spans[i]] for idx, _ in merged]
+    return mi, u, cs2, sp2, sup, raw, mb
+
+
 def word_support(al: dict | None, end_ms_abs: float) -> tuple[list[float], list[float | None]]:
     """(filled support per EN_WORD token, raw OmniAlign evidence per token or None) in absolute seconds; no alignment ->
     every token = the utterance end (zh_end)."""
@@ -319,6 +350,8 @@ def window_chunks(members: list[dict], start_s: float, dur_ms: int, t_ms: list[i
             for j, s in enumerate(sup):
                 run = max(run, (s - start_s) * 1000 + DELTA_MS)
                 tau_tok[(mi, j)] = run
+    if gran == "pieces4rc":
+        per_utt = [coalesce_same_read(x, tau_tok, t_ms) for x in per_utt]
     out = []
     for mi, u, cs, spans, sup, raw, mb in per_utt:
         slot = int(slot_of[u["speaker_id"]])
@@ -603,8 +636,9 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=40)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--granularity", choices=["merge3", "pieces4"], default="merge3",
-                    help="merge3 = the registered T5 chunks; pieces4 = B-2's <= 4-word pieces (only after an amendment)")
+    ap.add_argument("--granularity", choices=["merge3", "pieces4", "pieces4rc"], default="merge3",
+                    help="merge3 = the registered T5 chunks; pieces4 = B-2's <= 4-word pieces (only after an amendment); "
+                         "pieces4rc = pieces4 with adjacent same-label-read pieces of an utterance coalesced (RC5)")
     a = ap.parse_args()
     if a.align:
         return run_align(a)
