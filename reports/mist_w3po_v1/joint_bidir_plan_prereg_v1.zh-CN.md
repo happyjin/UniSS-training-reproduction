@@ -159,3 +159,50 @@ zh→en 共 53 个全 dev 解码，按会议切成 dev5（5 场 1092 窗）和�
 - `scripts/joint_select.py` 加测试：实现第 5 节的 stop / select。
 - launcher：`joint_stage1.sh`（等启动条件 → 占 slotB → takeover → Megatron；每 500 步转换并排代理；早停后按 PID 停止 → 合并 → `JOINT_S1_SELECTED`）、`joint_stage2.sh`（`JOINT_TRAINING_STARTED` → 代理 → STOP 文件 → `JOINT_SELECTED` / `JOINT_EARLY_STOP`）、`joint_dev.sh`（`JOINT_DEV_DONE`）、`joint_test.sh`（`JOINT_TEST_DONE`）。遇到 `EN2ZH_STOP` / `EN2ZH_PROXY_FAILED` 时记 `JOINT_STOP` 并退出。
 - 都写完、提交、只用 `bash -n` 和 DRY_RUN 检查过之后，用 setsid nohup 启动等待进程。
+
+## 修正 1（2026-11-12 23:10 布拉格，执行者；在 (b) 的任何 GPU 作业或结果之前）
+
+第 9 节的清单已实现（`scripts/joint_orch.py`、`joint_select.py`、`joint_lib.sh`、`joint_proxy.sh`、`joint_stage1.sh`、`joint_stage2.sh`、`joint_dev.sh`、`joint_test.sh`），只用单元测试、`bash -n` 和 DRY_RUN 检查。下面是与正文不同或正文没写明的地方。
+
+1. **修了一个会出错的地方**：带优化器的 Megatron 检查点里，优化器张量的键是 `optimizer.state.<exp_avg|exp_avg_sq|fp32_param>.<模型键>`，同样以 `.a/.b`、`sd_proj.*`、`new_*` 结尾。原来的 `merge_thinker_gstar.py` 和 `joint/megatron_to_crf_ckpt.py` 会把它们也读进来，并覆盖真正的权重（不报错）。现在两者都跳过 `optimizer.` 开头的键；不带优化器的检查点结果不变。测试已扩展：带优化器的检查点合并、转换的结果与不带的逐位相同。
+2. **第 1 段的优化器状态**（用户要求每个检查点都有）：
+   - 代码核对：`--bf16` 时 Float16Module 把所有可训练参数（LoRA、投影器、新行）都转成 bf16，所以都在 `float16_groups` 里；模型的 sharded_state_dict 用 `keep_vars=True`，优化器能按 id 对上每个参数。这个模式（冻结主干、只存可训练部分、存优化器）在 si_model / phase_f 上用过，e2 也从带优化器的检查点续训过。
+   - 本 run 不用 `--decoupled-lr`，所以记忆里那个续训时学习率互换的问题不适用；如果以后续训，仍要核对每组学习率。
+   - 新工具 `joint/check_megatron_optim.py`（有测试）：第 500 步检查每个可训练张量都有 exp_avg、exp_avg_sq 且形状对，二阶矩不全为 0。不通过：按 PID 停训练，释放 slotB，记 `JOINT_STOP`，不退回到不存优化器（要用户决定）。
+   - 第 2 段同样在第 500 步检查 `optim.pt`。
+3. **不存完整模型**：`run_thinker_gstar.sh` 新增 `NO_MERGE=1`（默认不变），第 1 段结束时不再自动合并最后一步。只在选中后合并一次（与 2.3 一致）。
+4. **规则中正文没写明的细节**（`joint_select.py`，有 11 个测试）：
+   - 评估点按步数顺序，只看从 500 开始连续完成的前缀；
+   - best = 最近一次改进时的 J（通常的 min-delta 早停：没达到 ε 的升高不移动 best）；
+   - 没有任何改进时，最近一次改进按第 0 步计；
+   - 选择的候选 = 决定停止时所有代理已完成、可行的检查点，包括前缀之后但在 STOP 之前存的；
+   - 平局比较时，O 的均值按 2 位小数，L − L^ref 的均值按 3 位小数；第 2 段缺 held-out 的点按 +∞。
+5. **代理重试**：同配置重试是用新的编排器、名字加 `_r2` 重跑。`--resume` 不会重跑已用完重试次数的作业，所以不用它。
+6. **到上限**：记 `JOINT_CEILING` 之后也记 `JOINT_STOP` 并退出，不做选择，问协调者。
+7. **停止**：
+   - 第 1 段在没有存盘进行中时按 PID 停 torchrun（没有比计数器更新的 iter 目录时）；决定停止之后才存的 iteration 不再启动代理。
+   - 第 2 段用 STOP 文件；STOP 之后存的那个检查点只记录。
+8. **参照的 dev5 解码**（同一条流水线，第 1 段启动时就排上）：
+   - 分开的 v8，两个方向，各配恒等检查点（第 1 段的延迟参照）；
+   - A′ step_03000（第 2 段的 zh→en 参照）；
+   - 第 2 段的 en→zh 参照是 (a) 的 `thinker_selection.json` 里的 `chosen_name`。
+9. **卡**（用户 / 协调者 2026-11-12）：
+   - (b) 的所有评测作业（参照、代理、dev）在 (a) 的 Thinker 训练退出之前都不上 0–3。
+   - 训练期间 4–7 上只允许占卡程序，或单说话人论文基线评测：按进程或祖先进程的命令行认，与训练峰值合计 ≤ 135 GiB。第 1 段峰值按 75 GiB 计（8 卡 MBS 8 实测 63.6 GiB），第 2 段按 120 GiB 计（`--mem-cap-gib`）。
+   - 先占 slotB，再等 4–7 清空：全局 exclude 生效后不会再有新作业进来，不会被饿死。第 2 段直接接手第 1 段的 slotB（改名释放后立即重新占）。
+10. **读级合并**：pair_lost > 2 时，只在协调者 11-12 22:20 预授权的条件下继续，记 `JOINT_MERGE_DEVIATION`：
+    - 丢的窗口全是已知机制（`merge_pairlost_check`）；
+    - pair_lost ≤ 1%；
+    - 副本完整。
+    否则记 `JOINT_STOP`。
+11. **dev 和 test 的范围**：
+    - dev 上，联合基线对分开 v8 只比文本；联合基线的语音只记录。
+    - test 跑两行（基线、方法），三个集合，每行都含语音，只跑一次。
+    - 门槛（`gate_2seed`）比较方法对联合基线、方法对分开的 A′rl + PL-EM；文本差在 summary json 里。
+12. **zh→en dev5 的 chunk 协议窗口**：从 `detector_v1/windows_chunk_v1` 切出 dev5 的 1092 个窗口，放在 `joint/windows_zh2en_chunk_dev5`，只用于记录。
+13. **标记行**：
+    - `JOINT_TRAINING_STARTED s1|s2 <run>`
+    - `JOINT_EARLY_STOP s1|s2 <决定步>`
+    - `JOINT_SELECTED s1|s2 <步>`（同时写标记文件 `logs/mist_w3po_v1/joint/JOINT_S1_SELECTED` / `JOINT_S2_SELECTED`）
+    - `JOINT_DEV_DONE`、`JOINT_TEST_DONE`
+    - `JOINT_STOP <段> <原因>`、`JOINT_CEILING`、`JOINT_MERGE_DEVIATION`
