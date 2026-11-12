@@ -16,7 +16,7 @@ pipeline --asr-cards ...: waits for each seed's 8 synthesis shards, assembles th
   the 135 GiB cap (and >= 30 s apart); then the secondary block-level ASR of seed 0 (each block's own wav
   against its text, <OUT>/block_asr/). Prints PIPELINE_DONE.
 
-    PYTHONPATH=. uniss-eval/bin/python experiments/s2st_baselines_v1/qabc_omnitalker/assemble.py pipeline --asr-cards 4 5
+    PYTHONPATH=. uniss-eval/bin/python experiments/s2st_baselines_v1/qabc_omnitalker/assemble.py finish   # (pipeline: superseded)
 """
 from __future__ import annotations
 
@@ -232,6 +232,145 @@ def pipeline(cards: list[int], per_card: int) -> None:
         time.sleep(20)
 
 
+# ---------------------------------------------------------------- finish (replaces `pipeline` from 2026-11-12 21:25 Prague)
+# `pipeline` placed ASR by "135 - used >= 20 GiB" only; at 21:02 / 21:16 Prague that squeezed the final test-set
+# evaluation (a pending decode not yet visible on card 1 OOMed; card 7 reached 138 GiB). It was stopped by PID. `finish`
+# places one ASR at a time under the coordinator's rule: used + ASR peak + others' pending ledger entries <= 130 GiB
+# (135 cap, >= 5 GiB margin), nothing while a final-test orchestrator has skipped a job for lack of room in the last
+# 180 s, >= 60 s between my placements, a pending ledger entry of mine before each start.
+LEDGER = REPO / "logs/mist_w3po_v1/locks/pending.jsonl"
+FINAL_LOGS = REPO / "logs/mist_w3po_v1/final_test"
+ASR_PEAK_GIB = 18.0
+LIMIT_GIB = 130.0
+
+
+def ledger_append(rec: dict) -> None:
+    rec = {"t": round(time.time(), 1), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "owner": "r5_qabc_omnitalker", **rec}
+    fd = os.open(LEDGER, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, (json.dumps(rec) + "\n").encode())
+    finally:
+        os.close(fd)
+
+
+def others_pending() -> dict:
+    pend = {}
+    for l in open(LEDGER, encoding="utf-8").read().splitlines():
+        try:
+            r = json.loads(l)
+        except ValueError:
+            continue
+        k = (r.get("owner"), r.get("id"))
+        if r.get("state") == "pending":
+            pend[k] = r
+        elif r.get("state") == "visible":
+            pend.pop(k, None)
+    out = Counter()
+    for r in pend.values():
+        if r.get("owner") != "r5_qabc_omnitalker" and time.time() - float(r.get("t", 0)) < 300 and r.get("card") is not None:
+            out[int(r["card"])] += float(r.get("mib", 0)) / 1024
+    return out
+
+
+def final_test_waiting() -> bool:
+    """a final-test orchestrator skipped a job for lack of room in the last 180 s"""
+    now = time.time()
+    for f in FINAL_LOGS.glob("*/orch.log"):
+        try:
+            tail = f.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]
+        except OSError:
+            continue
+        for l in tail:
+            if " skip " in l and l.startswith("[20"):
+                t = time.mktime(time.strptime(l[1:21], "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
+                if now - t < 180:
+                    return True
+    return False
+
+
+def pick_asr_card(recent: dict) -> tuple[int, float] | None:
+    out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
+                         capture_output=True, text=True, timeout=60).stdout
+    used = {int(i): float(u) / 1024 for i, u in (l.split(",") for l in out.strip().splitlines())}
+    pend = others_pending()
+    room = {c: LIMIT_GIB - used[c] - pend[c] for c in used if time.time() - recent.get(c, 0) > 120}
+    ok = [c for c, r in room.items() if r >= ASR_PEAK_GIB]
+    if not ok or final_test_waiting():
+        return None
+    c = max(ok, key=lambda c: room[c])
+    return c, room[c]
+
+
+def asr_complete(o: Path, inp: str = "results_speechonly.jsonl", outp: str = "asr_speech.jsonl") -> bool:
+    if not (o / outp).exists() or not (o / inp).exists():
+        return False
+    want = {json.loads(l)["id"] for l in open(o / inp, encoding="utf-8") if not json.loads(l).get("error")}
+    got = {json.loads(l)["id"] for l in open(o / outp, encoding="utf-8")}
+    return want <= got
+
+
+def finish(max_live: int) -> None:
+    from concurrent.futures import ProcessPoolExecutor
+    env0 = {**os.environ, "PYTHONPATH": ".", "TOKENIZERS_PARALLELISM": "false", "OMP_NUM_THREADS": "8",
+            "HF_HOME": "/opt/dlami/nvme/jasonleeeli/cache/huggingface",
+            "MODELSCOPE_CACHE": "/opt/dlami/nvme/jasonleeeli/cache/modelscope"}
+    runs = [(n, s) for s in SEEDS for n in PT]
+    while not all((OUT / "synth" / f"done_{k:03d}").exists() for k in range(SHARDS_PER_SEED * len(SEEDS))):
+        time.sleep(20)
+    synth = synth_rows()
+    todo_asm = [(n, s) for n, s in runs if not omni_run(PT[n], s).exists()]
+    with ProcessPoolExecutor(8) as pool:
+        for key, res in zip(todo_asm, pool.map(assemble, [n for n, _ in todo_asm], [s for _, s in todo_asm],
+                                                [synth] * len(todo_asm))):
+            log(f"assembled {key}: {res}")
+    if not (OUT / "fidelity").exists():
+        (OUT / "fidelity").mkdir()
+        for n in PT:
+            with open(OUT / "fidelity" / f"{n}.json", "x", encoding="utf-8") as fh:
+                json.dump(fidelity(n, synth), fh, ensure_ascii=False, indent=1)
+        log("fidelity written")
+    live, recent = [], {}
+    while True:
+        for x in list(live):
+            if x[0].poll() is not None:
+                log(f"asr {'done' if x[0].returncode == 0 else 'FAILED'} {x[2]} (card {x[1]}, rc {x[0].returncode})")
+                ledger_append({"id": f"asr_{x[2]}", "card": x[1], "state": "visible"})
+                live.remove(x)
+        busy = {x[2] for x in live}
+        todo = [(f"{n}_s{s}", omni_run(PT[n], s)) for n, s in runs
+                if f"{n}_s{s}" not in busy and not asr_complete(omni_run(PT[n], s))]
+        block_live = any("block_asr" in (open(f"/proc/{p}/cmdline", "rb").read().decode(errors="replace"))
+                         for p in os.listdir("/proc") if p.isdigit() and _is_asr(p))
+        if not todo and not live:
+            if not block_live:
+                log("FINISH_DONE")
+                return
+        elif todo and len(live) < max_live:
+            pick = pick_asr_card(recent)
+            if pick is not None:
+                c, room = pick
+                label, o = todo[0]
+                ledger_append({"id": f"asr_{label}", "card": c, "mib": int(ASR_PEAK_GIB * 1024), "vllm": False,
+                               "state": "pending"})
+                resume = "--resume " if (o / "asr_speech.jsonl").exists() else ""
+                cmd = (f"{PYE} reports/uniss_si_v4/speech_only.py {o} > /dev/null && {PYE} -m evaluation.asr_transcribe "
+                       f"--input {o}/results_speechonly.jsonl --output {o}/asr_speech.jsonl --device cuda:0 --batch-size 4 "
+                       f"{resume}>> {o}/asr.log 2>&1")
+                live.append((subprocess.Popen(cmd, shell=True, cwd=REPO, env={**env0, "CUDA_VISIBLE_DEVICES": str(c)}),
+                             c, label))
+                recent[c] = time.time()
+                log(f"asr started {label} on card {c} ({room:.0f} GiB under 130 incl. others' pending)")
+        time.sleep(60)
+
+
+def _is_asr(pid: str) -> bool:
+    try:
+        return b"evaluation.asr_transcribe" in open(f"/proc/{pid}/cmdline", "rb").read()
+    except OSError:
+        return False
+
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -243,11 +382,15 @@ def main() -> None:
     p = sub.add_parser("pipeline")
     p.add_argument("--asr-cards", type=int, nargs="+", required=True)
     p.add_argument("--per-card", type=int, default=2)
+    fi = sub.add_parser("finish")
+    fi.add_argument("--max-live", type=int, default=2)
     a = ap.parse_args()
     if a.cmd == "assemble":
         print(json.dumps(assemble(a.point, a.seed, synth_rows())))
     elif a.cmd == "fidelity":
         print(json.dumps(fidelity(a.point, synth_rows()), ensure_ascii=False, indent=1))
+    elif a.cmd == "finish":
+        finish(a.max_live)
     else:
         pipeline(a.asr_cards, a.per_card)
 
