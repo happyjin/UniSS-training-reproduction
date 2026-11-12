@@ -12,7 +12,8 @@ fidelity <point>: per block, the Omni Thinker's text against the text sent (norm
   <OUT>/fidelity/<point>.json (exact-match share, token WER with S / D / I, seeds agreeing, worst examples).
 pipeline --asr-cards ...: waits for each seed's 8 synthesis shards, assembles that seed's 8 runs, writes fidelity once
   all seeds are in, and runs reports/uniss_si_v4/speech_only.py + evaluation.asr_transcribe --batch-size 4 (uniss-eval)
-  per run, at most --per-card ASR processes a card; then the secondary block-level ASR of seed 0 (each block's own wav
+  per run, at most --per-card ASR processes a card, each started only where nvidia-smi shows >= MIN_FREE_GIB under
+  the 135 GiB cap (and >= 30 s apart); then the secondary block-level ASR of seed 0 (each block's own wav
   against its text, <OUT>/block_asr/). Prints PIPELINE_DONE.
 
     PYTHONPATH=. uniss-eval/bin/python experiments/s2st_baselines_v1/qabc_omnitalker/assemble.py pipeline --asr-cards 4 5
@@ -131,6 +132,16 @@ def fidelity(name: str, synth: dict) -> dict:
             "thinker_text_same_across_seeds": round(sum(len(v) == 1 for v in texts.values()) / max(len(texts), 1), 4)}
 
 
+MIN_FREE_GIB = 20.0   # an ASR process (Whisper-large-v3 / Paraformer, batch 4) starts only on a card with this much real room
+
+
+def smi_free() -> dict:
+    """GiB under the 135 GiB per-card cap, by real nvidia-smi use."""
+    out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
+                         capture_output=True, text=True, timeout=60).stdout
+    return {int(i): 135.0 - float(u) / 1024 for i, u in (l.split(",") for l in out.strip().splitlines())}
+
+
 def asr_cmd(inp: Path, outp: Path, logf: Path) -> str:
     return (f"{PYE} -m evaluation.asr_transcribe --input {inp} --output {outp} --device cuda:0 --batch-size 4 "
             f"> {logf} 2>&1")
@@ -194,10 +205,11 @@ def pipeline(cards: list[int], per_card: int) -> None:
             if block_asr_started and not (ba / f"asr_{d}_s0.jsonl").exists() and not (ba / f"asr_{d}_s0.log").exists():
                 todo.append((f"block_asr_{d}", ba / d))
         for label, o in todo:
-            free = [c for c in cards if load[c] < per_card]
+            room = smi_free()
+            free = [c for c in cards if load[c] < per_card and room.get(c, 0) >= MIN_FREE_GIB]
             if not free:
                 break
-            c = min(free, key=lambda c: load[c])
+            c = max(free, key=lambda c: room[c])
             env = {**env0, "CUDA_VISIBLE_DEVICES": str(c)}
             if label.startswith("block_asr_"):
                 d = label.rsplit("_", 1)[1]
@@ -210,7 +222,8 @@ def pipeline(cards: list[int], per_card: int) -> None:
                        + asr_cmd(o / "results_speechonly.jsonl", o / "asr_speech.jsonl", o / "asr.log"))
             asr.append((subprocess.Popen(cmd, shell=True, cwd=REPO, env=env), c, label))
             load[c] += 1
-            log(f"asr started {label} on card {c}")
+            log(f"asr started {label} on card {c} ({room[c]:.0f} GiB room)")
+            time.sleep(30)   # let its memory show before the next placement
         all_runs = all((omni_run(PT[n], s) / "asr_speech.jsonl").exists() for n, s in runs)
         blocks_done = all((OUT / "block_asr" / f"asr_{d}_s0.jsonl").exists() for d in ("en2zh", "zh2en"))
         if all_runs and blocks_done and fid_done and not asr and not assembling:
