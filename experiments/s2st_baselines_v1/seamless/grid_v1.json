@@ -1,0 +1,66 @@
+{
+ "system": "SeamlessStreaming (SeamlessStreamingS2STAgent, facebook/seamless-streaming @82746da7, seamless_communication @9a081e93)",
+ "registration": "paper/baselines_run_plan_seamless_v1.md",
+ "directions": [
+  "en2zh",
+  "zh2en"
+ ],
+ "points": [
+  {
+   "tag": "t0.1_w192_c50",
+   "decision_threshold": 0.1,
+   "min_starting_wait_w2vbert": 192,
+   "min_unit_chunk_size": 50,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.3_w192_c50",
+   "decision_threshold": 0.3,
+   "min_starting_wait_w2vbert": 192,
+   "min_unit_chunk_size": 50,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.5_w192_c50",
+   "decision_threshold": 0.5,
+   "min_starting_wait_w2vbert": 192,
+   "min_unit_chunk_size": 50,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.7_w192_c50",
+   "decision_threshold": 0.7,
+   "min_starting_wait_w2vbert": 192,
+   "min_unit_chunk_size": 50,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.9_w192_c50",
+   "decision_threshold": 0.9,
+   "min_starting_wait_w2vbert": 192,
+   "min_unit_chunk_size": 50,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.1_w32_c25",
+   "decision_threshold": 0.1,
+   "min_starting_wait_w2vbert": 32,
+   "min_unit_chunk_size": 25,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.3_w32_c25",
+   "decision_threshold": 0.3,
+   "min_starting_wait_w2vbert": 32,
+   "min_unit_chunk_size": 25,
+   "dtype": "fp32"
+  },
+  {
+   "tag": "t0.5_w32_c25",
+   "decision_threshold": 0.5,
+   "min_starting_wait_w2vbert": 32,
+   "min_unit_chunk_size": 25,
+   "dtype": "fp32"
+  }
+ ]
+}
