@@ -1,0 +1,126 @@
+{
+ "system": "X-Translator (Qwen3-ASR-1.7B + LMT-60-8B + X-Voice 0.4B Stage2, its own default stack)",
+ "point": "xt-c1280",
+ "direction": "en2zh",
+ "n": 346,
+ "run": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/baselines_xtranslator_v1/xt-c1280/realsi_en2zh",
+ "n_sentences": 346,
+ "tgt_lang": "cmn",
+ "config": {
+  "system": "X-Translator (Qwen3-ASR-1.7B + LMT-60-8B + X-Voice 0.4B Stage2)",
+  "point": "xt-c1280",
+  "direction": "en2zh",
+  "code": "X-Translator dc6a59a, X-Voice 817bcdd, qwen-asr 0.0.6, vllm 0.14.0",
+  "config_json": {
+   "server": {
+    "host": "0.0.0.0",
+    "port": 7654
+   },
+   "audio": {
+    "sample_rate": 16000,
+    "tts_sample_rate": 48000,
+    "pre_buffer_frames": 20
+   },
+   "asr": {
+    "provider": "qwen3",
+    "qwen3_asr_url": "http://127.0.0.1:18001/v1/recognize",
+    "zipformer_server_uri": "ws://127.0.0.1:8765",
+    "zipformer_chunk_size": 7680,
+    "zipformer_window_seconds": 3.2,
+    "zipformer_init_turn_seconds": 1.6,
+    "zipformer_use_ctpunc": false,
+    "paraformer_model": "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+    "paraformer_hub": "ms",
+    "sensevoice_language": "zh",
+    "sensevoice_device": "cuda",
+    "chunk_seconds": 1.6,
+    "paraformer_chunk_size": 1280,
+    "paraformer_window_seconds": 3.2,
+    "paraformer_init_turn_seconds": 1.6,
+    "paraformer_device": "cuda"
+   },
+   "translation": {
+    "provider": "lmt",
+    "hunyuan_url": "http://localhost:8000/v1/chat/completions",
+    "lmt_url": "http://127.0.0.1:18100/v1/chat/completions",
+    "model": "",
+    "max_tokens": 256,
+    "source_lang": "en",
+    "target_lang": "zh",
+    "emit_min_chars": 6,
+    "emit_interval_seconds": 0.8
+   },
+   "tts": {
+    "index_tts_url": "http://localhost:11996/tts_url",
+    "omni_tts_url": "http://localhost:11997/synthesize",
+    "xvoice_tts_url": "http://127.0.0.1:18201/synthesize",
+    "provider": "xvoice",
+    "clone_window_seconds": 6.0,
+    "speaker_prompt_enabled": true,
+    "speaker_embedding_provider": "modelscope_campplus",
+    "speaker_embedding_model": "/opt/dlami/nvme/jasonleeeli/models/xtranslator/campplus",
+    "speaker_embedding_window_seconds": 1.0,
+    "speaker_embedding_hop_seconds": 0.5,
+    "speaker_prompt_min_seconds": 1.0,
+    "speaker_prompt_max_seconds": 6.0,
+    "speaker_vad_frame_ms": 40,
+    "speaker_silence_dbfs": -42.0,
+    "speaker_vad_margin_db": 10.0,
+    "speaker_change_threshold": 0.45
+   },
+   "storage": {
+    "session_audio_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/baselines_xtranslator_v1/xt-c1280/realsi_en2zh/sessions",
+    "log_dir": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/baselines_xtranslator_v1/xt-c1280/realsi_en2zh/logs"
+   },
+   "frontend": {
+    "show_speaker": false
+   }
+  },
+  "asr_request_chunk_samples": 1280,
+  "asr_server_chunk_size_sec": 0.6,
+  "registration": "paper/baselines_run_plan_xtranslator_v1.md"
+ },
+ "errors": 0,
+ "no_speech": 0,
+ "restarts": 0,
+ "text_bleu": 24.96,
+ "asr_coverage": 1.0,
+ "asr_bleu": 23.76,
+ "asr_bleu_detail": {
+  "precisions": [
+   51.99123127511874,
+   30.107526881720432,
+   17.81396255850234,
+   11.43289606458123
+  ],
+  "bp": 1.0,
+  "sys_len": 10948,
+  "ref_len": 10509,
+  "tokenizer": "zh"
+ },
+ "laal_d1": 2.526,
+ "n_laal": 346,
+ "laal_d0_defs": 4.61,
+ "laal_d2_defs": 3.602,
+ "laal_d1_defs": 2.526,
+ "laal_d0w": 2.212,
+ "start_offset_s_p50": 2.18,
+ "end_offset_s_p50": 4.21,
+ "segments_per_sentence": 3.86,
+ "source_s_mean": 7.39,
+ "compute_s_per_sentence": 13.08,
+ "n_no_output": 0,
+ "n_error_rows": 0,
+ "n_segments": 1339,
+ "n_tts_fail_segments": 2,
+ "n_mt_fail_segments": 0,
+ "n_unspoken_sentences": 2,
+ "blocks_per_sentence": 3.86,
+ "n_last_commit_before_end": 16,
+ "share_units_written_at_end": 0.3532,
+ "speaker_boundary_flushes": 50,
+ "embedding_backends": {
+  "modelscope_campplus": 346
+ },
+ "registration": "paper/baselines_run_plan_xtranslator_v1.md (+ amendment 1)"
+}

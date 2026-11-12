@@ -117,3 +117,10 @@
   - fasttext 0.9.3 在 numpy 2 下调用 `np.array(copy=False)` 会报错，X-Voice 的 fastlid 语种检测会静默回退到请求的语种：把 fasttext 模块里的这一调用映射回 `np.asarray`，即 numpy<2 时的行为。冒烟测试时还没有加这一层，所以冒烟结果只用于检查流水线。
 - **资源**：按协调者要求，所有 vLLM 服务固定 KV 上限。LMT 为 `--kv-cache-memory-bytes 3G`（实测 20.7 GiB）；Qwen3-ASR 每个实例 1.5 GiB KV（实测 13.0 GiB）。3 号卡上共 2 组 ASR + X-Voice（2 个 shard）和 1 个 LMT。这些都只影响资源。
 - **Qwen3-ASR 启动器**：adapter 把端口写死为 8001。`serve_qwen3asr.py` import 它的模块，照抄 `main()`，只换端口和资源参数。
+
+## 7. 修订 2（2026-11-12 23:20 布拉格时间，只涉及调度，网格与协议不变）
+
+- 为了缩短总时间，次要点 `xt-a1.6` 放到 6 号卡上和其他点并行跑：用 chunk 1.6 的 ASR 服务（KV 同样固定为 1.5 GiB），1 组 X-Voice，1 个 shard；LMT 共用 3 号卡上那个。当时 6 号卡是余量最大的卡。
+- 原计划 `xt-a1.6` 跑完后，在 6 号卡上把 ASR 换回 chunk 0.6，再跑 `xt-c5120` Zh→En。但重启时空出的显存已被别的作业占用（剩 16 GiB），vLLM 起不来。于是把 6 号卡上我的服务全部停掉，`xt-c5120` Zh→En 改回 3 号卡用 2 个 shard 跑。
+- shard 数和卡位只影响速度：每句是独立会话，服务之间不共享会话状态。
+- 3 号卡上的控制循环 `run_queue.sh` 换成了 `queue_c.sh` / `queue_e.sh`（已在跑的驱动进程没有中断），打分监视器也相应换了。
