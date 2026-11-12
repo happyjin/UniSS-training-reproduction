@@ -195,7 +195,40 @@ def main() -> None:
             "tiers_d0w": {"paper": tiers(paper, "laal_d0w"), "omni": tiers(omni, "laal_d0w")}}
     with open(out / "summary.json", "x", encoding="utf-8") as fh:
         json.dump(summ, fh, ensure_ascii=False, indent=1)
+    with open(out / "summary_tables.md", "x", encoding="utf-8") as fh:
+        fh.write(tables_md(paper, omni, summ))
     print(json.dumps(summ, ensure_ascii=False, indent=1))
+
+
+def tables_md(paper: dict, omni: dict, summ: dict) -> str:
+    f2 = lambda x: "--" if x is None else f"{x:.2f}"   # noqa: E731
+    L = ["| 方向 | 档 | ASR-BLEU 论文 talker | ASR-BLEU Omni talker | Δ (Omni − 论文) | D1 论文 | D1 Omni | D0w（两边） "
+         "| talker WER 论文 | talker WER Omni | 语音时长/句 论文 | 语音时长/句 Omni |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for p in POINTS:
+        n = point_name(p[0], p[1])
+        a, b = paper[n], omni[n]
+        u = "CER" if p[0] == "en2zh" else "WER"
+        L.append(f"| {'En→Zh' if p[0] == 'en2zh' else 'Zh→En'} | {p[1]} | {a['asr_bleu']:.2f} ± {a['asr_bleu_sd']:.2f} "
+                 f"| {b['asr_bleu']:.2f} ± {b['asr_bleu_sd']:.2f} | {b['asr_bleu'] - a['asr_bleu']:+.2f} | {a['laal_d1']:.2f} "
+                 f"| {b['laal_d1']:.2f} | {a['laal_d0w']:.2f} / {b['laal_d0w']:.2f} | {a['talker_wer']:.2f} ({u}) "
+                 f"| {b['talker_wer']:.2f} ({u}) | {a['speech_s_per_sentence']:.2f} s | {b['speech_s_per_sentence']:.2f} s |")
+    L += ["", "| 方向 | 档 | Omni talker WER 替换/删除/插入 | 论文 talker 替换/删除/插入 | Omni Thinker 与送入文本完全一致（种子 0） "
+          "| Omni Thinker WER（种子 0） | Omni 块级 talker WER（种子 0） |", "|---|---|---|---|---|---|---|"]
+    for p in POINTS:
+        n = point_name(p[0], p[1])
+        a, b = paper[n], omni[n]
+        fs = b["thinker_fidelity"]["per_seed"]["0"]
+        bw = b["block_talker_wer_s0"]
+        L.append(f"| {'En→Zh' if p[0] == 'en2zh' else 'Zh→En'} | {p[1]} | {b['talker_wer_sub']:.2f} / {b['talker_wer_del']:.2f} / "
+                 f"{b['talker_wer_ins']:.2f} | {a['talker_wer_sub']:.2f} / {a['talker_wer_del']:.2f} / {a['talker_wer_ins']:.2f} "
+                 f"| {100 * fs['exact_share']:.1f}% | {fs['thinker_wer']:.2f} | {f2(bw and bw['wer'])} |")
+    L += ["", "| 方向 | 档（预算 s） | 论文 talker：点 / ASR-BLEU / D1 | Omni talker：点 / ASR-BLEU / D1 |", "|---|---|---|---|"]
+    for k, t in summ["tiers_d1"]["paper"].items():
+        o = summ["tiers_d1"]["omni"][k]
+        L.append(f"| {k.split('|')[0]} | {k.split('|')[1]} ({t['budget']}) | {t['point'] or '--'} / {f2(t['asr_bleu'])} / "
+                 f"{f2(t['laal_d1'])} | {o['point'] or '--'} / {f2(o['asr_bleu'])} / {f2(o['laal_d1'])} |")
+    return "\n".join(L) + "\n"
 
 
 if __name__ == "__main__":

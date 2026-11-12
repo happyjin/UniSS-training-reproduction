@@ -22,6 +22,8 @@ CAP_MIB=${CAP_MIB:-138240}      # 135 GiB a card
 NEED_T=${NEED_T:-88000}         # thinker 0.52 + overhead (native CVSS-T run)
 NEED_K=${NEED_K:-34000}         # talker 0.10 + code2wav 0.05 + overhead
 DRY_RUN=${DRY_RUN:-0}
+THEN_ROOT=${THEN_ROOT:-}        # optional second work folder, gated by <THEN_ROOT>/GO (synth.py --then-root)
+MAX_TRIES=${MAX_TRIES:-20}  # room checks before giving up on an engine (auto_launch.sh passes 1)
 ts() { TZ=Europe/Prague date +%H:%M:%S; }
 used_mib() { nvidia-smi -i "$1" --query-gpu=memory.used --format=csv,noheader,nounits | tr -d ' '; }
 
@@ -60,7 +62,7 @@ for e in $ENGINES; do
     elif room "$T" "$NEED_T" && room "$K" "$NEED_K"; then break; fi
     tries=$((tries + 1))
     echo "[$(ts)] engine $T:$K: no room yet (card $T $(used_mib "$T") MiB, card $K $(used_mib "$K") MiB); waiting"
-    [ $tries -ge 20 ] && { echo "[$(ts)] engine $T:$K: gave up after $tries checks"; continue 2; }
+    [ $tries -ge "$MAX_TRIES" ] && { echo "[$(ts)] engine $T:$K: gave up after $tries checks"; continue 2; }
     sleep 45
   done
   log="$LOGD/engine_e${T}${K}_$(basename "$ROOT")_$(date -u +%Y%m%dT%H%M%SZ).log"
@@ -69,7 +71,7 @@ for e in $ENGINES; do
       VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. PYTHONUNBUFFERED=1 \
       TOKENIZERS_PARALLELISM=false HF_HOME=/opt/dlami/nvme/jasonleeeli/cache/huggingface \
       "$VENV/bin/python" -m experiments.s2st_baselines_v1.qabc_omnitalker.synth --root "$ROOT" \
-      --deploy-config "$dep" --tag "e$T$K" > "$log" 2>&1 < /dev/null &
+      --deploy-config "$dep" --tag "e$T$K" ${THEN_ROOT:+--then-root "$THEN_ROOT"} > "$log" 2>&1 < /dev/null &
   echo "[$(ts)] engine $T:$K pid $! log $log"
 done
 echo "[$(ts)] START_ENGINES_DONE"

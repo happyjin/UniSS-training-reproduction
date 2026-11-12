@@ -13,7 +13,8 @@ over) and writes <root>/synth/part_<k>.jsonl (appended; keys already there are s
 qwen3omni_native_cvss.py), and <root>/synth/done_<k> when the shard is complete. Exits when no shard is left.
 Runs in venvs/vllm_omni_030 (its bin on PATH).
 
-    python -m experiments.s2st_baselines_v1.qabc_omnitalker.synth --root <dir> --deploy-config <yaml> --tag <engine>
+    python -m experiments.s2st_baselines_v1.qabc_omnitalker.synth --root <dir> --deploy-config <yaml> --tag <engine> \
+        [--then-root <dir>]
 """
 from __future__ import annotations
 
@@ -66,12 +67,32 @@ def main() -> None:
     ap.add_argument("--deploy-config", required=True)
     ap.add_argument("--tag", default="e")
     ap.add_argument("--max-new-tokens", type=int, default=256)
+    ap.add_argument("--then-root", default=None,
+                    help="after --root, keep the engine loaded and wait (up to --then-wait s) for <then-root>/GO, then "
+                         "work on that root's shards too (the smoke check gates the RealSI run without a reload)")
+    ap.add_argument("--then-wait", type=int, default=2400)
     args = ap.parse_args()
-    root = Path(args.root)
+    state = {"omni": None, "processor": None}
+    run_root(Path(args.root), args, state)
+    if args.then_root:
+        go = Path(args.then_root) / "GO"
+        t = time.time()
+        print(f"[{time.strftime('%H:%M:%S')}] waiting for {go}", flush=True)
+        while not go.exists() and time.time() - t < args.then_wait:
+            time.sleep(10)
+        if go.exists():
+            run_root(Path(args.then_root), args, state)
+        else:
+            print(f"no GO after {args.then_wait}s; not starting {args.then_root}", flush=True)
+    if state["omni"] is not None:
+        state["omni"].close()
+    print(f"QABC_OMNITALKER_ENGINE_DONE {args.tag}", flush=True)
+
+
+def run_root(root: Path, args, state: dict) -> None:
     for sub in ("claims", "synth/wav24", "synth/wav16"):
         (root / sub).mkdir(parents=True, exist_ok=True)
     shards = sorted(p.stem for p in (root / "jobs").glob("shard_*.jsonl"))
-    omni = processor = None
     for shard in shards:
         if not claim(root, shard, args.tag):
             continue
@@ -92,13 +113,14 @@ def main() -> None:
         print(f"[{time.strftime('%H:%M:%S')}] {args.tag} {shard}: {len(jobs)} requests, {len(work)} to do, seed {seed}",
               flush=True)
         if work:
-            if omni is None:
+            if state["omni"] is None:
                 from transformers import Qwen3OmniMoeProcessor
                 from vllm_omni.entrypoints.omni import Omni
-                processor = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
+                state["processor"] = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
                 t = time.time()
-                omni = Omni(model=QWEN3, async_chunk=False, deploy_config=args.deploy_config)
+                state["omni"] = Omni(model=QWEN3, async_chunk=False, deploy_config=args.deploy_config)
                 print(f"load {time.time() - t:.0f}s", flush=True)
+            omni, processor = state["omni"], state["processor"]
             from vllm import SamplingParams
             prompts = []
             for j in work:
@@ -161,9 +183,6 @@ def main() -> None:
         if n >= len(jobs):
             (root / "synth" / f"done_{k}").write_text(f"{n}\n")
         print(f"[{time.strftime('%H:%M:%S')}] {args.tag} {shard} finished ({n}/{len(jobs)} rows)", flush=True)
-    if omni is not None:
-        omni.close()
-    print(f"QABC_OMNITALKER_ENGINE_DONE {args.tag}", flush=True)
 
 
 if __name__ == "__main__":
