@@ -2916,3 +2916,31 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 已建好 `e2e_gstar_stream_bidir_v2`：960k 行，逐条复现两个分开 run 的样本顺序。
 - **(a) 的代理改卡**（用户的并行方案：(b) 用 4–7）：`en2zh_ckpt_proxy.sh` 改为等 (a) 训练退出后在 0–3 上跑（rc 0 时释放 slotA）。选择规则和输出不变。等待进程按原环境重启：旧 PID 3192300 已按 PID 停掉，新 PID 3951662。
 - **未完成**：joint_orch、joint_select 和各 launcher 还没写，(b) 没有启动。清单见预登记第 9 节。
+
+## 2026-11-12 23:07 布拉格 — 实验 (b) 联合双向：剩余工具写完，四个等待进程已启动（还没有 GPU 作业）
+
+- **新代码**（提交 3253a3300、fc0043a64、41aebe6be）：
+  - `joint_orch.py`：只换 Thinker base，并给 zh→en 加 held-out 作业；7 个 dry 测试。
+  - `joint_select.py`：预登记第 5 节的早停和选择规则；11 个测试。
+  - launcher：`joint_lib.sh`、`joint_proxy.sh`、`joint_stage1.sh`、`joint_stage2.sh`、`joint_dev.sh`、`joint_test.sh`，只用 `bash -n` 和 DRY_RUN 检查过。
+- **发现并修复**：带优化器状态的 Megatron 检查点里，`optimizer.state.*.<模型键>` 也以 `.a/.b/sd_proj` 结尾。`merge_thinker_gstar` 和 `megatron_to_crf_ckpt` 原来会把 exp_avg 之类当成权重读进来，而且不报错。现在都跳过 `optimizer.` 开头的键：不带优化器的检查点结果不变；带优化器的检查点，合并和转换的结果与不带时逐位相同（测试已扩展）。
+- **第 1 段的优化器状态**：
+  - 代码核对：bf16 下所有可训练参数都在 `float16_groups` 里，`keep_vars` 能按 id 对上；本 run 不用 `--decoupled-lr`。
+  - 新工具 `joint/check_megatron_optim.py` 在第 500 步检查，不通过就记 `JOINT_STOP`，不退回到不存优化器。
+  - `run_thinker_gstar.sh` 新增 `NO_MERGE=1`：不存完整模型，只在选中后合并一次。
+- **卡**：
+  - (b) 的所有评测作业在 (a) 的 Thinker 训练退出之前都不上 0–3；
+  - 训练期间 4–7 只允许占卡程序，或论文基线评测（与训练峰值合计 ≤ 135 GiB：第 1 段峰值按 75 GiB 计，第 2 段按 120 GiB 计）；
+  - 先占 slotB，再等卡清空。
+- 与预登记的差异都写进了**修正 1**（预登记末尾）。
+- **等待进程**（setsid nohup，日志在 `logs/mist_w3po_v1/joint/`）：
+  - stage1 PID 564746（`joint_v8_20261112T220626Z`），等 FT_ALL_DONE ali + ami；
+  - stage2 PID 564750（`joint_v2p_20261112T220626Z`）；
+  - dev PID 564748；
+  - test PID 564751。
+- **标记行**：
+  - `JOINT_TRAINING_STARTED s1|s2`
+  - `JOINT_EARLY_STOP s1|s2 <步>`
+  - `JOINT_SELECTED s1|s2 <步>`
+  - `JOINT_DEV_DONE`、`JOINT_TEST_DONE`
+  - `JOINT_STOP <段> <原因>`（另有 `JOINT_CEILING`、`JOINT_MERGE_DEVIATION`）
