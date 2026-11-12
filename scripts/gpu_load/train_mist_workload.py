@@ -74,6 +74,11 @@ def parse_args(argv=None):
                    help="opt-in (user 2026-11-11): processes in Kubernetes pod cgroups (/proc/<pid>/cgroup contains "
                         "'kubepods') neither block the start nor stop a running load, and their memory does not count "
                         "as busy; the load still adapts its padding to the memory they use")
+    p.add_argument("--tolerate-small-mib", type=int, default=0,
+                   help="opt-in (user 2026-11-12): compute processes already on a selected GPU that use at most this "
+                        "many MiB (e.g. an idle CTC scorer) neither block the start nor count as busy memory; any process "
+                        "that appears after the load starts, or a tolerated one that grows above the limit, still stops "
+                        "the load; default 0 = unchanged")
     p.add_argument("--idle-seconds", type=float, default=60, help="all selected GPUs must remain idle this long")
     p.add_argument("--idle-memory-mib", type=int, default=1000)
     p.add_argument("--poll-seconds", type=float, default=5)
@@ -84,7 +89,7 @@ def parse_args(argv=None):
     for key in ("micro_batch_size", "grad_accum", "lora_rank", "memory_chunk_mib", "memory_window_steps", "warmup_steps", "log_interval"):
         if getattr(a, key) <= 0:
             p.error(f"--{key.replace('_', '-')} must be positive")
-    for key in ("num_workers", "steps", "max_used_mib", "idle_memory_mib", "seed"):
+    for key in ("num_workers", "steps", "max_used_mib", "idle_memory_mib", "seed", "tolerate_small_mib"):
         if getattr(a, key) < 0:
             p.error(f"--{key.replace('_', '-')} must be nonnegative")
     for key in ("lr", "lora_alpha", "poll_seconds"):
@@ -158,11 +163,19 @@ def gpu_snapshot(a=None):
     by_uuid = {c["uuid"]: c for c in cards.values()}
     tk = a is not None and getattr(a, "tolerate_keeper", False)
     ik = a is not None and getattr(a, "ignore_k8s_pods", False)
-    if tk or ik:
+    ts = a.tolerate_small_mib if a is not None and getattr(a, "tolerate_small_mib", 0) > 0 else 0
+    if ts:
+        for c in cards.values():
+            c["small"] = {}
+    if tk or ik or ts:
         for uuid, pid, used in smi("--query-compute-apps=gpu_uuid,pid,used_memory"):
             if uuid in by_uuid:
                 if (tk and is_keeper(int(pid))) or (ik and is_k8s_pod(int(pid))):
                     by_uuid[uuid]["used"] -= int(used) if used.isdigit() else 0
+                elif ts and used.isdigit() and int(used) <= ts:
+                    # small process (--tolerate-small-mib): not busy, memory not counted; see small_others()
+                    by_uuid[uuid]["small"][int(pid)] = int(used)
+                    by_uuid[uuid]["used"] -= int(used)
                 else:
                     by_uuid[uuid]["pids"].add(int(pid))
         return cards
@@ -177,6 +190,16 @@ def busy_cards(a, cards):
     if missing:
         raise RuntimeError(f"GPU indices not found: {sorted(missing)}")
     return [g for g in a.devices if cards[g]["pids"] or cards[g]["used"] > a.idle_memory_mib]
+
+
+def small_others(card, tolerated, own_pid):
+    """--tolerate-small-mib while running: small processes that were not on the GPU when the load started."""
+    return set(card.get("small", {})) - set(tolerated) - {own_pid}
+
+
+def raw_used(card):
+    """memory.used including tolerated small processes (for the 1 GiB free-memory safety check)."""
+    return card["used"] + sum(card.get("small", {}).values())
 
 
 def wait_until_ready(a):
@@ -396,8 +419,13 @@ def supervise(a):
         log(f"training-load supervisor PID={os.getpid()}; GPUs={a.devices}; no checkpoints")
         cards = wait_until_ready(a)
         # A fresh check immediately before launching; idle samples are not a reservation.
-        if busy_cards(a, gpu_snapshot(a)):
+        launch = gpu_snapshot(a)
+        if busy_cards(a, launch):
             raise RuntimeError("GPU became busy before launch; retry later")
+        tolerated = {gpu: set(launch[gpu].get("small", {})) for gpu in a.devices}
+        if any(tolerated.values()):
+            log(f"tolerating small processes present at start (--tolerate-small-mib {a.tolerate_small_mib}): "
+                f"{ {g: sorted(p) for g, p in tolerated.items() if p} }")
         for gpu in a.devices:
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=cards[gpu]["uuid"])
             workers[gpu] = subprocess.Popen(
@@ -417,9 +445,10 @@ def supervise(a):
                 if codes[gpu] is not None:
                     continue
                 others = snapshot[gpu]["pids"] - {process.pid}
+                others |= small_others(snapshot[gpu], tolerated[gpu], process.pid)
                 if others:
                     raise RuntimeError(f"GPU {gpu}: another GPU process appeared: {sorted(others)}; stopping this load")
-                if snapshot[gpu]["total"] - snapshot[gpu]["used"] < 1024:
+                if snapshot[gpu]["total"] - raw_used(snapshot[gpu]) < 1024:
                     raise RuntimeError(f"GPU {gpu}: less than 1 GiB free; stopping this load")
             time.sleep(a.poll_seconds)
     finally:

@@ -2301,3 +2301,18 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 训后流程 `ve1s2_after_train.sh`（PID 1946268，日志 `logs/mist_w3po_v1/ve1s2/after_train.log`）已挂上。
   - 预计约布拉格 09:40 训完，dev 全集评测约 10:50 出结果。
 - **卡**：0–3 号卡 VE1-s2 训练，4–7 号卡 RC5 训练（约 07:30 训完，之后速查在 4–7）。8 张卡都是训练。
+
+## 2026-11-12 07:40 布拉格 — 守护脚本 v3：补上"卡上只剩小进程"的空卡缺口（用户 07:30 批准）
+
+- **缺口**（01:22 和 02:31 两次）：评测收尾时，卡上只剩 CTC scorer（约 1.7–2.7 GB，利用率 0%）。v2 只要看到卡上有我们的进程就不补；占卡程序只要卡上有别的 pid 就不启动；待命的旧占卡 supervisor 也一直等着。结果卡实际空了 5–15 分钟。
+- **占卡程序**：`scripts/gpu_load/train_mist_workload.py` 新增可选参数 `--tolerate-small-mib N`，默认 0，即不改变原有行为。
+  - 启动时卡上已有的、显存 ≤ N 的进程，不再挡住启动，也不计入忙碌显存。
+  - 启动之后新出现的任何进程，或者被容忍的进程涨到超过 N，占卡程序仍然让出。
+  - 剩余显存不足 1 GiB 的安全检查仍按真实占用算。
+  - 测试：新增 `test_workload_tolerate_small.py` 8/8；原有 `tolerate_keeper` 5/5、`ignore_k8s` 7/7 通过。新文件写好后用 `command mv -f` 原子替换。
+- **守护脚本 v3**：`experiments/mist_w3po_v1/scripts/keep_cards_busy_v3.sh`，保留 v2 的全部行为。
+  - 新增：一张卡上若只有我们的小进程（每个 ≤ 8192 MiB），且这些进程都已运行 ≥ 300 s、都不是训练进程，卡也不在训练槽位里（`talker_crf_v1/exclude_cards`），连续 3 次巡检（约 90 s）都如此，就启动带 `--tolerate-small-mib 8192` 的占卡程序。
+  - 如果卡上只有待命、没有 worker 的旧 supervisor，先核对 cmdline，再按 PID 停掉，换成新的占卡程序。
+  - 新增 DRY_RUN=1：只读巡检一轮，不启动任何东西。
+  - 检查：bash -n 通过；DRY_RUN 一轮的判断与 nvidia-smi 一致：0–3 是待命 supervisor 加训练卡，4–6 有占卡程序在跑，7 是 RC5 速查。
+- **交接**：06:39:19 UTC 先启动 v3（PID 2726951，`OLD_GUARD_PID=1546666`，等 v2 退出后才开始第一轮巡检），随即核对 cmdline，按 PID 停掉 v2（1546666），06:39:23 退出。两个守护脚本没有同时巡检过。v2 启动的 supervisor 保留不动。
