@@ -34,7 +34,8 @@ def convert(ckdir: str, base: str, rank: int, alpha: float, out: str) -> dict:
     reader = dcp.FileSystemReader(ckdir)
     meta = reader.read_metadata()
     keys = [k for k in meta.state_dict_metadata
-            if k.endswith((".a", ".b")) or "sd_proj." in k or k.endswith(("new_emb", "new_head"))]
+            if not k.startswith("optimizer.")   # SAVE_OPTIM checkpoints: optimizer.state.<exp_avg|...>.<model key>
+            and (k.endswith((".a", ".b")) or "sd_proj." in k or k.endswith(("new_emb", "new_head")))]
     w = {k: torch.empty(meta.state_dict_metadata[k].size, dtype=meta.state_dict_metadata[k].properties.dtype)
          for k in keys}
     dcp.load(state_dict=w, storage_reader=reader)

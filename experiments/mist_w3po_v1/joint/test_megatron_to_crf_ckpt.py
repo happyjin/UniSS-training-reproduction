@@ -1,7 +1,8 @@
 """Test of joint/megatron_to_crf_ckpt.py, CPU only: a synthetic Megatron dist checkpoint (2 layers x q/k/v/o LoRA,
 sd_proj, new rows) and a synthetic release base; merge_thinker_gstar.py's merged weights == the base folded in memory
 with the converted checkpoint by crf/decode_crf_ckpt.apply_ckpt (adapted weights, both row blocks, projector) bit for
-bit; refuses to overwrite.
+bit; refuses to overwrite; a checkpoint that also holds the optimizer state (optimizer.state.* tensors) gives the
+same merged model and converted checkpoint.
 
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.joint.test_megatron_to_crf_ckpt
 """
@@ -96,7 +97,32 @@ def main():
             raise AssertionError("overwrote")
         except SystemExit:
             pass
-    print("ALL PASSED (base + converted checkpoint folded in memory == merge_thinker_gstar output, bit for bit)")
+        # SAVE_OPTIM checkpoint (joint (b) stage 1): the same model tensors plus Megatron's optimizer tensors
+        # optimizer.state.<name>.<model key> (same suffixes .a / .b / sd_proj.* / new_*): both tools must ignore them
+        ck2 = dict(ck)
+        for k, v in ck.items():
+            for s in ("exp_avg", "exp_avg_sq", "fp32_param"):
+                ck2[f"optimizer.state.{s}.{k}"] = torch.randn_like(v) * 7
+        dcp.save(ck2, checkpoint_id=str(d / "iter_0000500"))
+        sys.argv = ["m", "--checkpoint-dir", str(d / "iter_0000500"), "--base", str(d / "base"), "--rank", str(r),
+                    "--alpha", "8", "--out", str(d / "merged2")]
+        try:
+            MG.main()
+        finally:
+            sys.argv = old
+        merged2 = load_file(str(d / "merged2" / "model-00001-of-00001.safetensors"))
+        assert merged2.keys() == merged.keys() and all(torch.equal(merged2[k], merged[k]) for k in merged)
+        sdm2 = torch.load(d / "merged2" / "sd_proj.pt")
+        assert sdm2.keys() == sdm.keys() and all(torch.equal(sdm2[k], sdm[k]) for k in sdm)
+        M.convert(str(d / "iter_0000500"), str(d / "base"), r, 8.0, str(d / "conv2"))
+        l1, l2 = torch.load(d / "conv" / "lora.pt"), torch.load(d / "conv2" / "lora.pt")
+        assert l1.keys() == l2.keys() and all(torch.equal(l1[k], l2[k]) for k in l1)
+        e1, e2 = torch.load(d / "conv" / "extra.pt"), torch.load(d / "conv2" / "extra.pt")
+        assert torch.equal(e1["new_emb"], e2["new_emb"]) and torch.equal(e1["new_head"], e2["new_head"])
+        assert e1["sd_proj"].keys() == e2["sd_proj"].keys()
+        assert all(torch.equal(e1["sd_proj"][k], e2["sd_proj"][k]) for k in e1["sd_proj"])
+    print("ALL PASSED (base + converted checkpoint folded in memory == merge_thinker_gstar output, bit for bit; "
+          "optimizer tensors of a SAVE_OPTIM checkpoint ignored by both)")
 
 
 if __name__ == "__main__":

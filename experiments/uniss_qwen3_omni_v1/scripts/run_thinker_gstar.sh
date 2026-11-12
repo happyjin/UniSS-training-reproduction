@@ -12,7 +12,8 @@
 #   GSTAR_SEQUENTIAL=1: rows are consumed in file order (--gstar-sequential; joint bidirectional v8 of mist_w3po_v1 (b),
 #   rows from build_joint_v8_rows.py); unset = unchanged. LR_DECAY_ITERS=<n>: cosine horizon (default TRAIN_ITERS =
 #   unchanged; open-ended runs: horizon < TRAIN_ITERS = a safety ceiling). SAVE_OPTIM=" " (a space): checkpoints keep the
-#   optimizer and RNG state (default: --no-save-optim --no-save-rng, unchanged).
+#   optimizer and RNG state (default: --no-save-optim --no-save-rng, unchanged). NO_MERGE=1: no merged model after the
+#   training (a later merge of the selected iteration; joint (b) stage 1); unset = unchanged.
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni}"
@@ -70,6 +71,7 @@ mkdir -p "${SAVE_DIR}" "${TB_DIR}"
 "${CMD[@]}"
 status=$?
 [ "${status}" -ne 0 ] && { echo "THINKER_GSTAR_FAILED status=${status}"; exit "${status}"; }
+[ -n "${NO_MERGE:-}" ] && { echo "THINKER_GSTAR_DONE_NO_MERGE $(cat "${SAVE_DIR}/latest_checkpointed_iteration.txt")"; exit 0; }
 STEP=$(cat "${SAVE_DIR}/latest_checkpointed_iteration.txt")
 CUDA_VISIBLE_DEVICES="" "${ENV_ROOT}/bin/python" experiments/uniss_qwen3_omni_v1/training/merge_thinker_gstar.py \
   --checkpoint-dir "${SAVE_DIR}/iter_$(printf %07d "${STEP}")" --rank "${RANK}" --alpha "${ALPHA}" \
