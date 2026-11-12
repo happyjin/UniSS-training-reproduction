@@ -63,6 +63,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("jobs")
     ap.add_argument("--reserve-gib", type=float, default=10.0)
+    ap.add_argument("--max-gib", type=float, default=0.0,
+                    help="cap of the CUDA caching allocator (torch.cuda.set_per_process_memory_fraction); 0 = none")
     ap.add_argument("--only", default="", help="comma-separated job-name prefixes to take (default: all)")
     a = ap.parse_args()
     global CLAIMS, STOP
@@ -82,6 +84,9 @@ def main() -> None:
                                           local_files_only=True)
     spk_sr = int(model.model.speaker_encoder_sample_rate)
     log(f"loaded {MODEL}; speaker encoder {spk_sr} Hz; generate kwargs {model._merge_generate_kwargs()}")
+    if a.max_gib > 0:
+        torch.cuda.set_per_process_memory_fraction(a.max_gib * 2**30 / torch.cuda.get_device_properties(0).total_memory)
+        log(f"allocator capped at {a.max_gib:g} GiB")
     if a.reserve_gib > 0:
         x = torch.empty(int(a.reserve_gib * 2**30), dtype=torch.uint8, device="cuda:0")
         del x

@@ -34,7 +34,7 @@ launch() {   # $1 card, $2 worker index
   if [ "$DRY_RUN" = 1 ]; then log "card $k worker $w: would start (mem $(mem_used "$k") MiB)"; return 0; fi
   CUDA_VISIBLE_DEVICES=$k OMP_NUM_THREADS=4 PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false HF_HUB_OFFLINE=1 \
     HF_HOME=/opt/dlami/nvme/jasonleeeli/cache/huggingface \
-    setsid nohup "$PY" experiments/baselines_hysimulmt_qwen3tts_v1/tts_worker.py "$JOBS" --reserve-gib "$RESERVE" \
+    setsid nohup "$PY" experiments/baselines_hysimulmt_qwen3tts_v1/tts_worker.py "$JOBS" --reserve-gib "$RESERVE" --max-gib "${MAX_GIB:-0}" \
     > "$out" 2>&1 < /dev/null &
   log "card $k worker $w: started pid $! (mem before $(mem_used "$k") MiB)"
 }
