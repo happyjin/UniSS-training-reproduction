@@ -1,0 +1,48 @@
+{
+ "run": "/opt/dlami/nvme/jasonleeeli/projects/UniSS/eval_outputs/s2st_baselines_v1/seamless/realsi/t0.3_w192_c50/realsi_en2zh",
+ "n_sentences": 346,
+ "tgt_lang": "cmn",
+ "config": {
+  "system": "SeamlessStreaming (SeamlessStreamingS2STAgent)",
+  "direction": "en2zh",
+  "code": "seamless_communication 9a081e93, simuleval 1.1.4, fairseq2 0.2.1",
+  "source_segment_size": 320,
+  "device": "cuda:0",
+  "dtype": "fp32",
+  "min_starting_wait_w2vbert": 192,
+  "decision_threshold": 0.3,
+  "no_early_stop": true,
+  "max_len_a": 0,
+  "max_len_b": 100,
+  "min_unit_chunk_size": 50
+ },
+ "errors": 0,
+ "no_speech": 0,
+ "restarts": 0,
+ "text_bleu": 16.75,
+ "asr_coverage": 1.0,
+ "asr_bleu": 15.08,
+ "asr_bleu_detail": {
+  "precisions": [
+   39.65996403465751,
+   20.415545087483178,
+   10.587419857910241,
+   6.037870668095748
+  ],
+  "bp": 1.0,
+  "sys_len": 12234,
+  "ref_len": 10509,
+  "tokenizer": "zh"
+ },
+ "laal_d1": 2.263,
+ "n_laal": 346,
+ "laal_d0_defs": 4.368,
+ "laal_d2_defs": 3.118,
+ "laal_d1_defs": 2.263,
+ "laal_d0w": 1.78,
+ "start_offset_s_p50": 2.24,
+ "end_offset_s_p50": 3.52,
+ "segments_per_sentence": 5.01,
+ "source_s_mean": 7.39,
+ "compute_s_per_sentence": 10.03
+}
