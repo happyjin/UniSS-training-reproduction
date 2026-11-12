@@ -42,7 +42,11 @@ SEEDS = (0, 1, 2)
 
 def seed_run(point: str, d: str, seed: int, items: list[dict]) -> dict:
     w = GRID[point][0] / 1000
-    run = E / "talker" / f"system_{point}{f'-seed{seed}' if seed else ''}_m{w:g}" / f"realsi_{d}"
+    base = E / "talker" / f"system_{point}{f'-seed{seed}' if seed else ''}_m{w:g}" / f"realsi_{d}"
+    # talker_worker_hy.variants: a failed attempt keeps its folder, the next one writes <folder>-r<n>; use the complete one
+    done = [o for o in [base] + [Path(f"{base}-r{n}") for n in range(1, 10)] if (o / "asr_speech.jsonl").exists()]
+    assert len(done) == 1, (base, done)
+    run = done[0]
     recs = [json.loads(l) for l in open(run / "results.jsonl", encoding="utf-8")]
     heard = {r["id"]: r.get("asr_text", "") for r in map(json.loads, open(run / "asr_speech.jsonl", encoding="utf-8"))}
     lang = LANG[d]
