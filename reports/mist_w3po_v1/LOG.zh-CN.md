@@ -2835,3 +2835,28 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 单词块 20.6%，句中停顿 0.30 次 / 分钟（VE1rl 0.21）；
   - UTMOS 配对差：对 VE1rl −0.019、对 A′rl + PL-EM −0.025、对 A′ + PL-EM −0.045，都显著。
 - 训后评测进程都已退出（`v4a_after_train.sh` 1835630 结束）。0–3 号卡由守护脚本接管。
+
+## 2026-11-12 20:25 布拉格 — 最终测试集评测：预登记已提交（8e8332d95），两个测试集的 A′ 解码 20:13 开始；按协调者指示，VE1 / D1v 的解码 20:19 起在 4–7 号卡并行
+
+- **预登记** `final_test_prereg_v1.zh-CN.md`：在任何测试解码之前提交。
+  - 系统：第一组 (a) A′、(b) A′ + PL-EM、(c) A′rl + PL-EM（主系统）；第二组取舍点 (d) VE1rl + PL-EM、(e) D1vrl + PL-EM。
+  - 测试集：AMI zh→en 16 场，AliMeeting 20 场（DiariST 人工英文参考）。
+  - 每个测试集只跑一次，不在测试集上做任何选择。
+- **测试窗口**：用与 dev 相同的 C2 gap 0.6 规则，在硬盘上已有的 lowlat 后验上重建（`data/build_test_windows_c2.py`，输出 `data/windows_test_c2g06_v1`）。
+  - AMI 3973 个窗口，5.90 h；Ali 4065 个，10.31 h。
+  - 复现检查：用 gap 1.0 重建，与原测试窗口逐条相同（3365 / 2837 条，差异 0）；与原窗口区间相同的窗口，抽查的音频和后验逐位相同。
+- **chunk 窗口**：`data/chunk_windows_set.py`，输出 `data/windows_test_c2g06_chunk_v1/{zh2en,ali}`。
+  - 在 dev 上重建出的结果与 `windows_chunk_v1` 逐字节相同。
+  - 测试集上开窗平均早 316 ms，关窗平均早 399 ms（AMI）/ 402 ms（Ali）。
+- **编排**：
+  - `scripts/final_test_orch.py`：就是 `thinker_t_eval_orch` 加测试集的窗口、参考、talker 数据。talker 命令换掉测试集路径之后与 dev 完全相同。
+  - `scripts/final_test_chain.sh`（每个测试集一个驱动）和 `scripts/final_test_post.sh`（事后指标）。
+  - `evaluation/on_refset.py`：用它在 dev 上重算 D1v 的文本 LAAL，与已存 json 逐字段相同。
+  - `evaluation/listen_paired_meeting.py`：会议键改为 `_on_` 之前的部分，在 dev 上与 `pmc_listen_compare` 完全相同。
+- **协调者指示（20:18）**：4–7 号卡空着，现在就在上面启动 VE1 和 D1v 的测试解码，与 A′ 并行。做法：
+  - 新驱动 `final_test_chain_v2.sh`（PID 1702852 / 1703220）接管正在跑的 A′ 解码编排器；
+  - 旧驱动（1632276 / 1632277）此时只在等待循环里，核对 cmdline 后按 PID 停掉；
+  - VE1 / D1v 编排器带 `--exclude 0 1 2 3`，Ali 先放；AMI 用 `--dec-after`，等 Ali 同一 Thinker 的分片都上卡后再放；
+  - A′ 两个 run 的 exclude_cards 改成 "4 5 6 7"（新文件 + `mv -f`），之前已落在 4、6、7 号卡的 3 个 AMI 分片照常跑完。
+- **卡**：4–7 号卡上 R3 的 tts_worker 每卡约 55–70 GiB；R4 的 vLLM 在 3 号卡约 43 GiB。所以 4–7 号卡现在每卡只放得下 1 个解码。
+  - 3 号卡 OOM 1 次：R4 的 EngineCore 在我们的分片上卡之后变大。编排器已重试，不占重试次数。
