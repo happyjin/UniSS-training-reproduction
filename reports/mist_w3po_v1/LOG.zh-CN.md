@@ -2422,3 +2422,13 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 合并后能配对的窗口是 3599 / 3618，与 VE1rl（3599）相同，比 A′rl（3589）多。下游（talker 准备、`speech_latency_lit`）本来就容忍不配对的窗口：VE1rl 有 19 个，计入 segment_block_mismatch。
 - **已备好续跑脚本** `scripts/ve1s2_after_merge.sh`（`bash -n` 和 DRY_RUN 检查过）。工具、合并输出和命令都不改，只是跳过这一步的停止：dev5 截取（CPU）+ PL-EM 语音链（`t_eval/ve1s2rlplem`，0–3 号卡）。`ve1s2_listen_after.sh` 已在等它。等协调者决定后再启动。
 - **卡**：0–3 号卡现在是守护脚本 v3 的占卡程序，4–7 号卡是 PMC 训练，没有空卡。
+
+## 2026-11-12 10:08 布拉格（09:08 UTC）— VE1-s2 续跑（协调者决定）：照用现有的合并输出
+
+- **决定**（协调者，10:07）：照用 `decode/dev_ve1s2_s3000_rl`。工具、输出和命令都不改，只跳过 pair_lost = 2 那一步的停止。
+- **理由**：
+  - 2 个窗口（IB4010_on_0067、TS3004c_on_0052）里，最终读那一段的写出时刻比对应的块晚一次读，所以段和块配不上对。
+  - 合并后能配对的窗口是 3599 / 3618，与 VE1rl 相同。
+  - 下游本来就容忍不配对的窗口。
+  - 报告时把这 2 个窗口列为**已知偏差**。
+- **启动**：`ve1s2_after_merge.sh`（PID 44713，日志 `logs/mist_w3po_v1/ve1s2/after_merge.log`），09:07:54 UTC 启动了 dev5 截取（CPU）和 PL-EM 语音链编排器（PID 44740，`t_eval/ve1s2rlplem`，0–3 号卡，按 PID 停掉占卡程序）。`ve1s2_listen_after.sh`（2891833）在等它。
