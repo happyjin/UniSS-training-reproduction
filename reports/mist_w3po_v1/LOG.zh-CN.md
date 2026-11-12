@@ -2316,3 +2316,16 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 新增 DRY_RUN=1：只读巡检一轮，不启动任何东西。
   - 检查：bash -n 通过；DRY_RUN 一轮的判断与 nvidia-smi 一致：0–3 是待命 supervisor 加训练卡，4–6 有占卡程序在跑，7 是 RC5 速查。
 - **交接**：06:39:19 UTC 先启动 v3（PID 2726951，`OLD_GUARD_PID=1546666`，等 v2 退出后才开始第一轮巡检），随即核对 cmdline，按 PID 停掉 v2（1546666），06:39:23 退出。两个守护脚本没有同时巡检过。v2 启动的 supervisor 保留不动。
+
+## 2026-11-12 07:45 布拉格（06:45 UTC）— RC5 训完，dev5 速查 NOT GO；守护脚本换成 v3（用户批准，别的会话执行）；读级块听感对比在跑
+
+- **RC5**：07:25 训完（rc=0，3000 步，4.5 s/步，RANKS_IN_SYNC ×6）。
+  - dev5 速查（07:25–07:41）：文本 26.56 / 21.93 / 28.43；文本 LAAL 1.96；最终读 15.8%；语音代理 2.609。
+  - GO 线 3（文本）没过 → **NOT GO**。`t_after_train_rl.sh` 自己退出；`rc5_quick_extra.sh` 跑完（rc=0）。
+  - 按预登记的解读规则：RC5 − T5 = all −0.90 / ov −0.18（< 0.3），所以同读切口不是 T5 掉分的主因。诊断的预测"长窗口、多说话人窗口差距变小"不成立（+1.24 / +1.39，T5 +0.70 / +0.82）。
+  - 详见结果文件 RC5 节和 RC5 预登记的结果节。
+- **守护脚本**：用户 07:30 批准 v3（`keep_cards_busy_v3.sh`，PID 2726951，提交 a3150856）。卡上只剩我们的小进程时，v3 也会补占卡程序。v2（1546666）已按 PID 交接停掉，不是本执行者做的。我的监视脚本已改为看 v3 的 PID。
+- **读级块听感对比**（协调者要求，07:45 左右；不重新合成）：A′ + PL-EM、A′rl + PL-EM、VE1rl + PL-EM，各两个种子。
+  - UTMOS / SIM：`talker_quality`，GPU 小作业，每个约 3 GB。RC5 速查结束后，4 个作业各放一张 4–7 号卡。占卡程序见到新进程就让开了，守护脚本 v3 会在这些小进程跑满 5 分钟后补上容忍小进程的占卡程序。A′ + PL-EM 的 UTMOS / SIM 用已有的结果。
+  - talker WER：`speech_gap_decomp`，只用 CPU，输出在 `crf/t_eval/listen_rl_v1/`。
+  - 块与停顿统计：新加 `evaluation/talker_block_pauses.py`，只读 talker 的 results.jsonl，用合成数据检查过。
