@@ -42,6 +42,7 @@ LEDGER = "logs/mist_w3po_v1/locks/pending.jsonl"
 OWNER = "thinker_t"
 SCORER_PORT0 = 18801
 N_SCORERS = 4
+PLAIN = False   # --plain-thinker: decode the official v8 merged Thinker without a CRF checkpoint (default off = unchanged)
 
 
 ONE_DEC = Path("logs/mist_w3po_v1/t_eval/one_decode_cards")   # --cap135: cards back to one decode after repeated OOMs
@@ -193,6 +194,11 @@ def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_
                             f"mkdir -p {D} && PREV=$(ls {D}/hyp_s{k}_a*.jsonl 2>/dev/null); ")
                  + f"--shard {k} --num-shards {shards} --shard-by {shard_by} {GUARD} > {D}/infer_s{k}_a{att}.log 2>&1 "
                    f"&& grep -q W3PO_ONLINE_DONE {D}/infer_s{k}_a{att}.log")
+            if PLAIN:   # finalpost_dev_orch.decode's command: online_decode_finalpost, no --crf-ckpt
+                old = f"{PY} -m {cp.MOD} --crf-ckpt {ckpt} --final-read-post close_detect "
+                assert old in c, c
+                c = c.replace(old, f"{PY} -m experiments.mist_w3po_v1.evaluation.online_decode_finalpost "
+                                   f"--final-read-post close_detect ", 1)
             return decode_with(c, wx) if window != 1.0 else c
         add(f"{name}__dec{k}", "dec", 1, [], cmd, retries=2)
     add(f"{name}__score", "cpu", 1, [f"{name}__dec{k}" for k in range(shards)],
@@ -256,7 +262,7 @@ def new_dirs(name: str, talker: str) -> list[str]:
 
 
 def main():
-    global SCORER_PORT0, WIN
+    global SCORER_PORT0, WIN, PLAIN
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", required=True)
     ap.add_argument("--name", required=True)
@@ -270,6 +276,8 @@ def main():
     ap.add_argument("--shard-by", choices=["meeting", "window"], default="meeting")
     ap.add_argument("--speech-from", default="", help="existing decode dir name: speech only on its text")
     ap.add_argument("--scorer-port0", type=int, default=SCORER_PORT0)
+    ap.add_argument("--plain-thinker", action="store_true",
+                    help="official v8 merged Thinker, no CRF checkpoint (--ckpt -); default off = unchanged")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--cap135", action="store_true", help="apply_cap135 (two decodes per card; default off = unchanged)")
@@ -279,6 +287,8 @@ def main():
     os.chdir(REPO)
     run = Path(a.run)
     SCORER_PORT0, WIN = a.scorer_port0, a.win
+    PLAIN = a.plain_thinker
+    assert not PLAIN or a.ckpt == "-", "--plain-thinker needs --ckpt -"
     jobs = build_jobs(str(run), a.name, a.ckpt, a.window, a.talker, a.gate_ref, a.speech_from, a.shards, a.shard_by)
     assert len({j.id for j in jobs}) == len(jobs)
     if a.dry:
@@ -286,7 +296,7 @@ def main():
             print(j.prio, j.kind, j.id, "deps", len(j.deps), "|", j.cmd(1)[len(ENV):][:700])
         print(len(jobs), "jobs")
         return
-    for f in (("DONE", "lora.pt", "extra.pt") if not a.speech_from else ()):
+    for f in (("DONE", "lora.pt", "extra.pt") if not (a.speech_from or PLAIN) else ()):
         if not Path(a.ckpt, f).exists():
             raise SystemExit(f"checkpoint file missing: {a.ckpt}/{f}")
     if a.resume:

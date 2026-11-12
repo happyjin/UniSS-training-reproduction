@@ -119,3 +119,13 @@
   - 解码和语音：`eval_outputs/mist_w3po_v1/decode/ft_<集>_*`、`speech/ft_<集>_*`；
   - 延迟、门槛、听感：`crf/t_eval/ft_<集>_*`（现行协议的 lat_*）、`crf/t_eval/final_test_v1/<集>/`（chunk 协议、gate、听感）、`talker_crf/quality/ft_<集>_*`；
   - 编排日志：`logs/mist_w3po_v1/final_test/`。
+
+## 修正 1（2026-11-12 布拉格约 22:35，在 v8 测试集解码启动之前）：追加描述性基线 MIST-Simul（官方 v8）
+
+- **原因**：用户批准把论文基线 MIST-Simul（官方 v8 merged Thinker，不带任何 CRF 检查点）加入最终测试评测。只作描述性对照，不用于选择任何东西。
+- **配置**（对应 dev 的 `v8+finalpost`，即 `dev_v8_ctx0_guard_finalpost_s8`，命令见 `finalpost_dev_orch.py` 的 `decode`）：`online_decode_finalpost --final-read-post close_detect`，v8 merged Thinker，`--policy wait --lag-ms 2000 --context 0 --batch 16`，8 分片按会议分，A′ 同一个循环保护，无 talker，纯文本。
+- **窗口、参考、打分器与 A′ 测试解码逐项相同**：C2 gap 0.6 测试窗口、AMI 与 AliMeeting 的测试参考窗口、`score_run`、1.0 s 读步长。
+  - 说明：dev 上 v8+finalpost 与 v2′ 的对比用的是同一套（非 C2）dev 窗口；测试集这里用 C2 测试窗口，因为 A′ 的测试解码就用它，保证两者在同一窗口上比较。
+- **指标**：文本 tcpBLEU all / ov / 1spk，与 A′ 对比；会议级配对 bootstrap（dev 对比用了）一并报告。
+- **GPU**：En→Zh (a) 的 Thinker 训练退出（日志里出现 CRF_RUN_EXIT）之后，只在 0–3 号卡与其他评测叠放（`--cap135`，实测显存 ≤ 135 GiB），4–7 号卡（联合模型训练）不碰。
+- **代码**（只增加，默认行为逐位不变，有测试）：`thinker_t_eval_orch.py --plain-thinker`（要求 `--ckpt -`）；`test_plain_thinker_orch.py`；启动器 `final_test_v8_launch.sh`。
