@@ -99,3 +99,9 @@
 | V3 训练器 | 参数解析为 latent_write / v2p；DART 清单 15,585 条，与计划一致，模式为 v2p | 过 |
 
 **回归**：`test_train_crf_sft` 8/8、`test_dart_aug` 6/6、`test_latent_write_crf` 5/5。
+
+### 训练与 dev5 速查（2026-11-12 04:56 布拉格）：**NOT GO**（文本线的 ov 没过）
+
+- 数字和对照见 `thinker_crf_t_results_v1.zh-CN.md` 的 VE1 一节。
+- 文本 all 28.16（线 ≥ 28.16，过）、ov 23.28（线 ≥ 23.92，**不过**）；最终读占比 41.3% ≤ 49.7%，过；文本 LAAL 3.26 < 3.64，过；第 4 条 dev5 语音代理 3.929 < A′ 4.301，过。
+- 按登记，NOT GO，不做 dev 全集评测。训后流程 `t_after_train_rl.sh` 已自己退出（"NOT GO: no dev evaluation"）。
