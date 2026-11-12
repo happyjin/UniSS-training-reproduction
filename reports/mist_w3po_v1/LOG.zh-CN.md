@@ -2770,7 +2770,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - PL-EM 语音链：16 个 talker 分片（两种子各 8 个）本来就同时跑。分片数不改：vLLM 带种子的采样受批组成影响，改分片数会让 D1v 和参考系统（都是 8 分片）不可比；
   - 听感：两个 UTMOS / SIM 作业串行，每个约 4 分钟（SpecClose 实测）。改成并行只省约 4 分钟，为此要停掉并重启 `v4a_after_train.sh`，不值得，不改。
 
-## 2026-11-12 15:50 布拉格 — SpecClose 探索性 dev 评测全部完成（15:32:58 `SPECCLOSE_ALL_DONE`）：质量守住，dev5 NOT GO，G3 只过第一条；在 chunk 协议之上只多省 0.096 s；听感与 A′rl + PL-EM 分不开
+## 2026-11-12 15:38 布拉格 — SpecClose 探索性 dev 评测全部完成（15:32:58 `SPECCLOSE_ALL_DONE`）：质量守住，dev5 NOT GO，G3 只过第一条；在 chunk 协议之上只多省 0.096 s；听感与 A′rl + PL-EM 分不开
 
 - 完整数字写在 SpecClose 预登记 9.4。预检 NOT GO，只作描述，不能写"SpecClose 成功"。已知偏差：合并 pair_lost 3（IB4004_on_0109、IB4010_on_0026、IS1008d_on_0122）。
 - **登记的线**：
