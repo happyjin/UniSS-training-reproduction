@@ -2543,3 +2543,22 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **J1-v2**（`thinker_joint_crf_v2_prereg_v1.zh-CN.md`）：照实写明是在原 J1 的 PC4 失败之后的重新登记。VE1 配方 + 联合链，唯一改动是 λ 的目标：每步 T = max(Σ E₀[语音 l] − 0.134 s × 词数, 标签路径的语音期望)。δ = 0.134 取自 VE1 与 VE1-s2 的语音 LAAL 种子差。PC1–PC4 全过才训练；PC4 在新预算下重做。附"端到端到底有多端到端"的评估。
 - 两者的速查与门槛相同：dev5 文本 all / ov ≥ A′ − 0.2、文本 LAAL < 3.26；dev 全集语音（读级块 + PL-EM）对 A′rl + PL-EM、文本对 A′ 在门槛线内，每条流语音 LAAL < 3.756；报告听感。速查 NOT GO 时也跑完全链（PMC 的先例），正式判定要速查 GO。
 - **GPU**：没有用。
+
+## 2026-11-12 12:55 布拉格 — 窗口检测器延迟：CPU 上界 + SpecClose 预登记（方法设计者 v4b；判别器训练与任何 dev 判别之前）
+
+- **上界**（`evaluation/detector_latency_bounds.py`，新文件；同一份译文和 talker 块，只改检测时刻；base 与 `speech_latency_lit` 逐位相同）：
+  - A′rl + PL-EM 每条流语音 LAAL 4.050：
+    - 去掉关窗等待 3.404（−0.65）；去掉开窗等待 4.050（0）；两者 3.390；
+    - gap 0.3（同一批窗口）3.898（−0.15），但会切开 27% 的窗口；
+    - **chunk 协议 3.857（−0.19，零风险）**；
+    - Thinker 判句末 3.404（2.2% 的最终读段失去 P）；
+    - **推测关窗 + 理想判别器 3.617（−0.43，归属输入不变）**。
+  - VE1rl + PL-EM 3.756 → chunk 3.586，h1 3.374。
+- **chunk 协议**：lowlat 预设实际按 9 帧一块输出，T(f) = (9⌊f/9⌋ + 13) × 80 ms ≤ f × 80 ms + 1.04 s；窗口 jsonl 记的是它的最坏情况。
+  - 判别器关闭时建出的 dev 窗口（`detector_v1/windows_chunk_v1`）与 C2 窗口逐条相同；`speech_latency_lit` 在其上复现 3.859 / 3.854。
+- **预登记**：`thinker_detector_specclose_prereg_v1.zh-CN.md`。
+  - A′ 不训练；chunk 协议 + 在 gap 音频到齐、且最后有声帧的块已输出时（τ = max(T(f), (f + 8) × 80 ms)），由 log-mel MLP 判别器确认关窗。判别器从 train 会议的 lowlat P 蒸馏，θ 取留出集错关率 ≤ 1%。
+  - 预检 P1–P4；dev5 GO：文本 ≥ 28.16 / 23.92，文本 LAAL ≤ 3.335。
+  - 门槛：语音对 A′rl + PL-EM，文本对 A′；LAAL 同时 < 4.050 且 ≤ 3.757（chunk 基线 − 0.10）。
+  - 另报：归属错误率、窗口切断率、听感。
+- **代码**：`data/specclose.py` + `test_specclose`（7/7）。没有用 GPU。
