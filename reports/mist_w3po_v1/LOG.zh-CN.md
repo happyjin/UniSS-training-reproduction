@@ -2216,3 +2216,15 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 都只用 `bash -n` 和 DRY_RUN 检查过。
 - **诊断**：`early_commit_diag.py` 在 T4、T5 上的完整输出是 `crf/t45_quality_diag_v1.json`，与发给协调者的数字一致。
 - **GPU**：没有用。
+
+## 2026-11-12 03:12 布拉格（02:12 UTC）— 决定：豁免 RC5 预检 R2 的 lat_heur 一句（协调者代用户）；RC5 启动器已挂上，等 T1 收尾后在 4–7 号卡接手
+
+- **决定**（协调者代用户，有记录的偏离；先例是 T5 第 4 条的豁免）：豁免 `thinker_rc5_prereg_v1` §2 R2 中 lat_heur 那一句。
+  - 理由：lat_heur 对每个 token 都用块的源端终点来算，合块之后按构造必然变小（−6.9%），与写出时机无关。R2 的本意是"每个词的标签读不变"，逐词检查 363881 / 363887 个词（99.9984%）相同，过；R1、R3、R4 也都过（`crf/rc5_precheck_v2.json`）。
+  - 记录文件：`logs/mist_w3po_v1/rc5/waiver_r2_latheur.txt`（noclobber 新建，按协调者给的原文）。
+- **执行**（协调者给的方案 A，原样；三个脚本都先做了 `bash -n` 和 `DRY_RUN=1`）：
+  - `start_rc5_v2.sh`：RUN_ID `rc5_20261112T021132Z`，CARDS 4,5,6,7，`WAIVE_R2_LATHEUR=1`；PID 4015849，日志 `logs/mist_w3po_v1/rc5/start_rc5.log`。它已核对"只有 R2 的 lat_heur 一句没过、豁免记录存在"，现在等 4–7 号卡上只剩占卡进程。
+    - DRY_RUN 里的启动参数：`--sched crf/sched_t5_rc_w10_v1 --objective latent_write --lw-mode t5 --dart crf/t5rc_dart_w10_v1`，3000 步，端口 29991。数据由 `--granularity pieces4rc` 生成（`build_rc5_w10.sh`），22,671 个窗口，不可行 0。
+  - 训后流程 `t_after_train_rl.sh`（RUN 同上，TAG rc5，SLOT slotB，PORT0 19201）：PID 4015851，日志 `logs/mist_w3po_v1/rc5/after_train.log`。
+  - `rc5_quick_extra.sh`（TAG rc5，只用 CPU，等 go4.json）：PID 4015850，日志 `logs/mist_w3po_v1/rc5/quick_extra.log`。
+- **T1 不暂停**：02:11 UTC 时 T1 的语音链已到最后。种子 1 的 talk0/1/2/4 已完成，其余 12 个 talker 分片 01:51–01:58 UTC 开始（每个 13–17 分钟），约 02:16 UTC 都结束；之后是 ASR 和打分。预计约 02:25 UTC 跑完。现在暂停会丢掉 12 个 talker 分片的大部分进度，只换来 RC5 早开训约 15 分钟，所以让它跑完。T1 结束后 scorer 随即退出，启动器（每 15 s 检查一次）接手。
