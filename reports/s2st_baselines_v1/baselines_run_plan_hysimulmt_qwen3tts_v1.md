@@ -78,3 +78,10 @@
 - 第一次尝试（无上限）已全部停止，输出留在 `eval_outputs/baselines_hysimulmt_qwen3tts_v1/{jobs.jsonl,claims,tts}`，不用于任何结果。
   修订后全部重新合成，放在 `eval_outputs/baselines_hysimulmt_qwen3tts_v1/a1/`。参考片段 `refs/` 沿用，重新生成并逐字节核对一致。
 - 其余设置都不变（批 32、种子、x-vector 音色、`non_streaming_mode=True`、时间轴、打分）。
+- **实现补充（20:23 布拉格，仍在任何打分之前）**：qwen-tts 在 `max_new_tokens = cap` 处停止时只返回 cap − 1 帧（最后一个采样 token
+  没有残差码本）。为了与“每块单独请求”完全等价，每块截到 cap − 1 帧；“到上限”= 这 cap − 1 帧里没有 codec EOS。修正前完成的作业里，
+  有 3 批中的个别块多保留了 1 帧（80 ms）。这 3 批的 done 文件移到 `done_superseded/`，用修正后的 worker 重新合成。
+  已经拼好的 1 个运行（std En→Zh 种子 0）里到上限的标记算错了（音频本身没错），整个运行移到 `runs_superseded/` 后重新拼接、重新 ASR。
+  什么都没有删除。
+- **显存**：按协调者的要求，每卡只放 1 个 TTS worker（每个最多约 35 GiB），另加轮流叠放的 ASR，每卡合计不超过 50 GiB。
+  被停掉的 worker 手上的批次已标为失败，由后面的 worker 重跑（`repair_a1.py`）。

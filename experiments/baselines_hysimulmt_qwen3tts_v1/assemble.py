@@ -99,7 +99,7 @@ def assemble(point: str, d: str, seed: int) -> dict:
             blocks.append({"write_ms": b["write_ms"], "text": b["text"], "final": b["final"], "start_ms": int(start),
                            "dur_ms": int(len(piece) / 16), "tts": s is not None,
                            "tts_frames": s["frames"] if s else 0, "tts_cap": s["cap"] if s else None,
-                           "tts_hit_cap": bool(s and s["hit_cap"]), "tts_wav": s["wav"] if s else None})
+                           "tts_hit_cap": bool(s and s["frames"] >= s["cap"] - 1), "tts_wav": s["wav"] if s else None})
         total = int(max(dur, end_prev)) + 300
         right = np.zeros(total * 16, dtype=np.float32)
         for start, piece in pieces:

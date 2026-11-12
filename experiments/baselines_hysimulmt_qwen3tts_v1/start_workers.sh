@@ -29,7 +29,7 @@ has_training() {   # a train_crf_sft compute process on card $1
 }
 
 launch() {   # $1 card, $2 worker index
-  local k=$1 w=$2 out="$L/a1_worker_c$1_w$2.log"
+  local k=$1 w=$2 out="$L/a1${TAG:-}_worker_c$1_w$2.log"
   if [ -e "$out" ]; then log "card $k worker $w: $out exists; not started"; return 1; fi
   if [ "$DRY_RUN" = 1 ]; then log "card $k worker $w: would start (mem $(mem_used "$k") MiB)"; return 0; fi
   CUDA_VISIBLE_DEVICES=$k OMP_NUM_THREADS=4 PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false HF_HUB_OFFLINE=1 \

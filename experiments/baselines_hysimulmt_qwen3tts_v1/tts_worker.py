@@ -11,8 +11,10 @@ one batched call that is generate_voice_clone's own code path (tokenise, model.g
            torch_seed) per batch
   length   amendment 1: each block may have at most cap = min(1800, max(180, 18 * len(text))) codec frames, the
            per-request limit of SimulInfer's own qwen-tts backend (tts_backends/qwen.py); the batch generates up to the
-           largest cap of its blocks and each block's codes are cut at its own cap BEFORE decoding (rows of a batch do
-           not interact, so this equals one request per block with its own max_new_tokens); hit_cap is recorded
+           largest cap of its blocks and each block's codes are cut BEFORE decoding to what one request with
+           max_new_tokens = cap returns: qwen-tts hands back max_new_tokens - 1 codec frames when it stops at the limit
+           (the last sampled token gets no residual codebooks), so a block keeps at most cap - 1 frames (rows of a batch
+           do not interact, so this equals one request per block); hit_cap = no codec EOS within those cap - 1 frames
 Outputs (never overwritten): <out>/wav24/<job>_a<n>/<id>__b<k>.wav (24 kHz PCM16) and <out>/done/<job>.json.
 --reserve-gib: the worker takes that much from the CUDA caching allocator once and frees it into the cache, so the
 card's guard sees one process above its small-process limit while the worker runs (no placeholder stacks on top).
@@ -115,7 +117,7 @@ def main() -> None:
                                                 **model._merge_generate_kwargs(max_new_tokens=max(caps)))
                 assert len(codes) == len(texts)
                 lens = [int(c.shape[0]) for c in codes]
-                codes = [c[:cap] for c, cap in zip(codes, caps)]
+                codes = [c[: cap - 1] for c, cap in zip(codes, caps)]
                 wavs, sr = model.model.speech_tokenizer.decode([{"audio_codes": c} for c in codes])
             wdir = out / "wav24" / f"{j['job']}_a{n}"
             wdir.mkdir(parents=True, exist_ok=False)
@@ -127,7 +129,7 @@ def main() -> None:
                     sf.write(fh, w, sr, format="WAV", subtype="PCM_16")
                 rows.append({"id": b["id"], "k": b["k"], "text": b["text"], "wav": str(p.relative_to(REPO)),
                              "sr": int(sr), "samples": int(w.size), "frames": int(c.shape[0]), "cap": cap,
-                             "hit_cap": ln >= cap})
+                             "hit_cap": ln >= cap - 1})
             (out / "done").mkdir(parents=True, exist_ok=True)
             rec = {"job": j["job"], "attempt": n, "torch_seed": j["torch_seed"], "seconds": round(time.time() - t0, 2),
                    "audio_seconds": round(sum(r["samples"] for r in rows) / sr, 2), "batch_max_new_tokens": max(caps),
