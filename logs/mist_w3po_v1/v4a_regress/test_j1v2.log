@@ -1,0 +1,59 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+usage: test_j1v2.py [-h] --objective
+                    {heuristic,sched,serial_v2p,latent_write,joint_speech}
+                    --out OUT [--base BASE] [--sched SCHED] [--dir DIR]
+                    [--steps STEPS] [--save-every SAVE_EVERY]
+                    [--rows-per-step ROWS_PER_STEP] [--lr LR]
+                    [--min-lr MIN_LR] [--warmup WARMUP] [--beta1 BETA1]
+                    [--beta2 BETA2] [--eps EPS] [--weight-decay WEIGHT_DECAY]
+                    [--clip CLIP] [--lora-rank LORA_RANK]
+                    [--lora-alpha LORA_ALPHA] [--perturb PERTURB]
+                    [--hier-weights HIER_WEIGHTS]
+                    [--state-weight STATE_WEIGHT] [--lat-target LAT_TARGET]
+                    [--lat-target-batch] [--W W]
+                    [--final-bar-wait FINAL_BAR_WAIT]
+                    [--final-read-full-post {0,1}] [--tok-budget TOK_BUDGET]
+                    [--lp-chunk LP_CHUNK] [--seed SEED]
+                    [--mem-cap-gib MEM_CAP_GIB] [--stop-after STOP_AFTER]
+                    [--resume] [--tau TAU] [--empty-cache {0,1}]
+                    [--fast-moe-bwd {0,1}] [--feat-per-row {0,1}]
+                    [--prefetch {0,1}] [--lw-mode {t2,t5,v2p,pmc}]
+                    [--pmc-content-weight PMC_CONTENT_WEIGHT] [--dart DART]
+                    [--d1 D1] [--talker-model TALKER_MODEL]
+                    [--js-budget {t1,shift}] [--js-delta JS_DELTA]
+test_j1v2.py: error: --js-budget shift needs --objective joint_speech
+usage: test_j1v2.py [-h] --objective
+                    {heuristic,sched,serial_v2p,latent_write,joint_speech}
+                    --out OUT [--base BASE] [--sched SCHED] [--dir DIR]
+                    [--steps STEPS] [--save-every SAVE_EVERY]
+                    [--rows-per-step ROWS_PER_STEP] [--lr LR]
+                    [--min-lr MIN_LR] [--warmup WARMUP] [--beta1 BETA1]
+                    [--beta2 BETA2] [--eps EPS] [--weight-decay WEIGHT_DECAY]
+                    [--clip CLIP] [--lora-rank LORA_RANK]
+                    [--lora-alpha LORA_ALPHA] [--perturb PERTURB]
+                    [--hier-weights HIER_WEIGHTS]
+                    [--state-weight STATE_WEIGHT] [--lat-target LAT_TARGET]
+                    [--lat-target-batch] [--W W]
+                    [--final-bar-wait FINAL_BAR_WAIT]
+                    [--final-read-full-post {0,1}] [--tok-budget TOK_BUDGET]
+                    [--lp-chunk LP_CHUNK] [--seed SEED]
+                    [--mem-cap-gib MEM_CAP_GIB] [--stop-after STOP_AFTER]
+                    [--resume] [--tau TAU] [--empty-cache {0,1}]
+                    [--fast-moe-bwd {0,1}] [--feat-per-row {0,1}]
+                    [--prefetch {0,1}] [--lw-mode {t2,t5,v2p,pmc}]
+                    [--pmc-content-weight PMC_CONTENT_WEIGHT] [--dart DART]
+                    [--d1 D1] [--talker-model TALKER_MODEL]
+                    [--js-budget {t1,shift}] [--js-delta JS_DELTA]
+test_j1v2.py: error: --js-delta needs --js-budget shift
+  (4) args: --js-budget shift / --js-delta 0.134 parsed; refused off joint_speech or without shift
+PASS test_args (0.0s)
+  (2) budget: E0 and l_e = brute force (lam 0; label path only) and the label mask's E[blocks] = the label groups, max |d| 5.3e-14; T = max(E0 - delta W, l_e); solve_lambda_to hits T (rel <= 1e-6) / lam 0 when not binding / == solve_lambda at the T1 target; floor active at large delta
+PASS test_budget (1.0s)
+  (1) v2p brute force (rho x order x rate): log Z, weights, E_q[l], E_q[blocks] max |d| 9.2e-14 on 30 windows (up to 148 paths, 19 multi-speaker)
+PASS test_brute_v2p (0.7s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'interleaved', 'mrope_section'}
+  (3) run_step: default / budget t1 == the module before J1-v2 bit for bit (T3 default and J1 t5 + DART: rows, stats, loss, grads); shift (v2p + DART): loss 33.6227, lam 0.0745 (binding True), E_q[l] / word 1.9848 vs T 1.9848, floor False; prefetch 1 == 0
+PASS test_defaults_and_shift (18.1s)
+ALL PASSED (19.8s)

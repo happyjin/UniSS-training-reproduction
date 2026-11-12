@@ -1,0 +1,23 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  lr schedule = v8's logged values; plan: mean 64.2 rows/step, deterministic, passes are permutations
+PASS test_lr_schedule_and_plan (0.0s)
+  post_to_tokens torch vs numpy: max |diff| 0.0e+00 (bit-equal: True)
+PASS test_post_to_tokens_torch (0.0s)
+  (d) weight sums N + R per window (300 real windows, both objectives): max err 7.4e-13; H(q), q(heuristic) = brute force on 60 instances
+PASS test_weight_sums (13.8s)
+  checkpoint round trip ok (lora.pt / extra.pt / optim.pt, extra_params, lam)
+PASS test_checkpoint_roundtrip (0.6s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  (a) C0 loss vs v8 loss 13.534808: 1 micro-batch(es): loss 13.534808 rel 0.0e+00, grads max rel 5.1e-07; 2 micro-batch(es): loss 13.534807 rel 7.0e-08, grads max rel 1.3e-04
+PASS test_c0_equals_v8_sft (1.0s)
+  (b) Fisher identity (bar off): grads max rel err 3.4e-07 (lam 0.7); bar on: last-read lattice scores = barred log-softmax, other reads plain, posterior moves by up to 0.50
+PASS test_fisher_identity (0.7s)
+  (c) None path: batch = v8 build_batch bit for bit, embeddings and hidden states torch.equal; identity hook max |diff| emb 0.0e+00 hidden 0.0e+00; hook params get grads; extra_loss info ok
+PASS test_forward_bit_identical_and_hook (0.4s)
+{"ckpt": "/tmp/test_crf_export_zurznwpk/ckpt/step_00001", "step": 1, "objective": "sched", "base": "/tmp/test_crf_export_zurznwpk/base", "out": "/tmp/test_crf_export_zurznwpk/merged", "adapted": 8, "new_rows": 259, "shards_rewritten": 2, "files_copied": 2, "bytes": 19767963}
+CRF_EXPORT_DONE /tmp/test_crf_export_zurznwpk/merged
+  export_merged = in-memory fold (decode_crf_ckpt) on a fake 2-shard base: 8 adapters, rows, projector
+PASS test_export_equals_in_memory_apply (0.2s)
+ALL 8 PASSED (16.8s)

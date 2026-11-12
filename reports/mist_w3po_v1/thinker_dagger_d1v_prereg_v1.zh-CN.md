@@ -140,3 +140,43 @@
 ## 结果
 
 （登记之后补。）
+
+### 代码与 CPU 预检：全部通过（2026-11-12 布拉格约 13:00）
+
+**代码**（只做加法；默认行为不变）：
+- `crf/d1_rollin.py`：
+  - 新打分器 `gpu_batch_scorer_v2`（`--scorer v2`）：右侧补齐、每行 position_ids 从 0 起、显式的 4 维因果 + 有效键掩码、同一读的音频嵌入按 akey 缓存并在一次性前向与逐边界前向之间共享；
+  - `run_score_v2`：自检用 `--selfcheck-min-reads 3` 选窗口，记录每个边界上两条路径的 `<wait>` 余量，写 `selfcheck.json`；GPU 上关闭 bf16 split-K 的低精度归约；
+  - `--selfcheck-tol`（默认 0，即登记的 20/20；大于 0 只有协调者决定才能用）、`--manifest --lw-mode v2p`；
+  - 不给 `--scorer` 时走原来的 v1 路径，原命令行行为不变。
+- 新增 `crf/test_d1v.py`、`scripts/v4a_dev5_go.py`、`scripts/start_d1v_rollin.sh`、`scripts/start_d1v.sh`、`scripts/v4a_after_train.sh`（D1v 和 J1-v2 共用，`TAG=d1v|j1v2`）。
+
+**R0：自检失败的原因（CPU 核实）**，`eval_outputs/mist_w3po_v1/crf/d1v_scorer_precheck_v1.json`：
+- 做法：真实的 transformers `Qwen3OmniMoeThinkerTextModel` 代码路径（交错 M-RoPE θ = 1e6、GQA、top-k MoE、SDPA），缩小的随机配置，bf16；真实的 Prompter 和 80 个 VE1 训练窗口（至少 3 读、2 个条目）；判决头让 `<wait>` 与一个内容 token 接近打平（余量中位数 0.07 / 0.07 / 0.02），三个随机模型，共 240 个（窗口，模型）。每种打分器都跑一遍 D1 的自检（逐边界前缀前向 vs 一次性批量前向）。
+- 结果（ρ̃ 不一致的窗口数，共 240）：
+
+| 打分器 | 改了什么 | 不一致 |
+|---|---|---|
+| v1（D1 的） | 左侧补齐，不给 position_ids | **18** |
+| v1 + 位置 | 只把 position_ids 改成每行从 0 起 | 14 |
+| v1 + 4 维掩码 | 只让每次前向都走显式掩码这条注意力路径 | 10 |
+| v1 + 位置 + 4 维掩码 | 两处都改 | **0** |
+| 右侧补齐 + 位置 + transformers 自己的掩码 | 位置对了，注意力路径仍不同 | 14 |
+| **v2** | 右侧补齐 + 位置 + 4 维掩码 + 共享音频 | **0（240/240）** |
+
+- **结论**：执行者的猜测（左侧补齐但没给 position_ids）**只是原因之一**。另一半是：有补齐的批量前向和没补齐的逐边界前向在 transformers 里走**两条不同的注意力路径**（显式掩码 + repeat_kv，对 is_causal + SDPA 内部 GQA）。两处的 bf16 差别都很小（判决余量差最大约 0.01–0.02），但 top-k 路由会把小差别放大成专家选择的跳变，在接近打平的判决上翻转。两处都改，不一致消失。
+- **R0 GO**（登记）：v2 在 240/240 上 100% 相同；v1 有不一致，改位置后减少（18 → 14），另一半由掩码路径解释（18 → 10，两者一起 → 0）。按登记"若原因另有所在，照实写，按新原因修"：v2 两处都修了。**通过**。
+- **R0b**：v2 的布局下，前缀前向 = 完整前向的前 k 个位置，批量 = 单条，**逐位相同**（CPU）；作为对照，同一行"不给掩码"与"给 4 维掩码"的隐状态差到 0.047（路由跳变）。
+- **照实说明**：CPU 的矩阵核与 GPU 不同。CPU 上 100% 相同说明 v2 去掉了两个系统性原因，但不能保证 GPU 上每个 cuBLAS 核在不同批形状下逐位相同。所以每个分片开头的 **GPU 自检（20/20）仍是硬门槛**；不一致时 `selfcheck.json` 会记下每个不一致处两条路径的余量，由协调者判断。
+
+**R1–R3、M**（VE1 数据，v2p 格；`test_d1v` 的 ve1 / r3 两项和 `test_d1` 原样）：
+- R1：批量驱动 = 逐边界字面循环（VE1 的 150 个真实窗口 × 4 个因果假打分器 = 600 例）；
+- R2：扰动轨迹上与 `aug_requests` 逐字段相同（377 行）；学习者轨迹上 64 行，都在有逾期条目的读上；
+- R3（v2p）：不给 `--d1` 与给 None 逐位相同；加 D1 行后基线行不变，loss = 基线 + D1 行；prefetch 1 = 0；DART + D1 同时用（9 + 9 行）；
+- M：`load_plan` 与训练器的窗口和计划一致（VE1 数据）。
+- 回归：`test_d1` 4/4、`test_dart_aug` 6/6、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8（先补丁 accelerator）、`test_pmc` 3/3、`test_pmc_noc` 3/3、`test_merge_read_segments` 2/2、`test_d1v` 全过。
+
+**启动脚本**（只用 `bash -n` 和 DRY_RUN 检查过）：
+- `start_d1v_rollin.sh`：R0 预检 pass、VE1 的 step_03000 有 DONE、输出目录都是新的；`PAIRS` 里只要有卡属于"训练"槽位就拒绝启动；每卡已用 + 40 GiB ≤ 135 GiB 才放；
+- `start_d1v.sh`：DART 清单核对（种子 20261109、v2p、VE1 的 sched）；等 D1 清单和 R4；等槽位；
+- `v4a_after_train.sh TAG=d1v`：端口 19601 / 19611，参考文件齐全，合并一步的预先授权续跑写在脚本里。

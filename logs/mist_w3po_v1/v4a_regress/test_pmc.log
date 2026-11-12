@@ -1,0 +1,11 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  P1 brute force over (z in [e-1, e+1] x order): 60 synthetic records (up to 4362 paths; tau 0.5/1, lam 0/0.3/2) + 30 real VE1 windows (up to 156 paths; tau 0.5, lam 0/0.7): q_lam log Z, cend, E[Lat], E[#early] and q^pol cend, E[Lat], E[#early] max |d| 2.1e-13; budget == e-path Lat
+PASS test_p1_brute_force (7.9s)
+  P2 default modes: {'t2': 200, 't5': 200, 'v2p': 200, 'label': 200} real VE1 windows: plan, lattice, target / lat_label, posterior (log Z, q_label, E[Lat], exp_nf, cend; lam 0 / 0.37) == the module before PMC (46cc50e4) bit for bit
+PASS test_p2_default_bit_identical (1.7s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  P5 step path (tiny model, widened real windows, world 1, mode pmc): loss 24.088181 finite, prefetch 1 = 0 bit for bit; sum c_tok x D = 2 sum h (248), sum c_end x D = sum R (13); coefficients == set_coefs + h suf(cend_pol) / D (max |d| 1.7e-18); lam 0.0000 (binding False), E[Lat]/word q 0.029, q^pol -0.080, budget e path 0.084; E[#early] q 2.79, q^pol 3.16 of 11 chunks; --lw-mode pmc parses
+PASS test_p5_run_step (7.9s)
+ALL 3 PASSED (17.5s)

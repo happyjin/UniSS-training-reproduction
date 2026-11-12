@@ -1,0 +1,20 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  R0b right_padded: layout, positions from 0, causal & key-valid 4-D mask without empty rows; with the 4-D mask: prefix == full[:k] and batch == single bit for bit (CPU); for contrast, no mask vs 4-D mask on the same row: max |dh| 0.047 (router jumps)
+PASS r0b (1.5s)
+  CLI: --scorer {v1, v2} (default v1), --selfcheck-min-reads, --selfcheck-tol, --manifest --lw-mode v2p
+PASS cli (0.1s)
+  R3 (v2p) step: d1 None == absent bit for bit; 9 D1 rows appended, base rows unchanged, loss = base + aug; prefetch 1 == 0; DART + D1: 9 + 9 rows
+PASS r3 (6.2s)
+  M manifest: cap_rows deterministic per step, uniform subset of floor(0.25 x read rows); load_plan = the trainer's windows and plan (T4, T5 data)
+  R1 roll-in: batch driver == per-boundary prefix loop on 600 (window, scorer) cases (T4 + T5 data); monotone, final read writes the rest, never / always wait limits
+  R2 rows: rho = perturbed reads -> aug_requests field for field (377 rows); learner trajectories: 64 rows exactly at the overdue reads (none with an item ahead: kappa-prefix histories), H u W*, kappa order, keep
+PASS ve1 (4.5s)
+  R0 {"seed": 0, "scale": 0.01, "margin_abs_median": 0.07458952441811562, "probe_margin_absdiff_vs_unpadded": {"v1_left": {"max": 0.008367888629436493, "mean": 0.0020174037608494226}, "v1_left_pos": {"max": 0.007779824547469616, "mean": 0.0011539776995148812}}, "v1": "77/80", "v1+pos": "77/80", "v1+4d": "78/80", "v1+pos+4d": "80/80", "right+pos+2d": "77/80", "v2": "80/80"}
+  R0 {"seed": 1, "scale": 0.01, "margin_abs_median": 0.06520545482635498, "probe_margin_absdiff_vs_unpadded": {"v1_left": {"max": 0.017642063088715076, "mean": 0.0016916028343493472}, "v1_left_pos": {"max": 0.018234973307698965, "mean": 0.0013407168601564056}}, "v1": "71/80", "v1+pos": "75/80", "v1+4d": "76/80", "v1+pos+4d": "80/80", "right+pos+2d": "75/80", "v2": "80/80"}
+  R0 {"seed": 2, "scale": 0.003, "margin_abs_median": 0.01824532449245453, "probe_margin_absdiff_vs_unpadded": {"v1_left": {"max": 0.013578178361058235, "mean": 0.0008188287003478665}, "v1_left_pos": {"max": 0.012495021801441908, "mean": 0.0007579568374313641}}, "v1": "74/80", "v1+pos": "74/80", "v1+4d": "76/80", "v1+pos+4d": "80/80", "right+pos+2d": "74/80", "v2": "80/80"}
+  R0 GO {"v2_100pct": true, "v1_differ_windows": 18, "v1pos_differ_windows": 14, "position_offset_reduces": true, "mask_path_reduces": true, "pass": true}
+PASS r0 (434.0s)
+ALL PASSED (446.3s)

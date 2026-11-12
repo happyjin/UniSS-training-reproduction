@@ -1,0 +1,15 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  (d) lam: E_q[Lat] non-increasing on a grid (761.46 -> 220.84); T1 target from T2's sub-lattice == the v2' lattice's own E[Lat] (max |d| 4.7e-13); dummy-score solve lam 0.1999 (binding True); a mid target is hit (lam 0.1896, rel err < 1e-6); non-binding -> 0; impossible -> capped 1000, flagged
+PASS test_lambda (1.4s)
+  (b) collapsed (h = min(R - 1, e + 1)): 500 sched_v1 + 250 piece windows (165 with real order choices): plan == VP.plan_window_p field for field; lam = 0 posterior == serial_v2p_train.posterior bit for bit (log Z, cend, q_label, exp_nf)
+PASS test_collapsed_equals_v2p (3.0s)
+  (a) brute force over (rho x order): 40 synthetic records (t2 and v2p bounds, tau 0.5/1, lam 0/0.3/2; up to 4554 paths), 25 widened real windows, 15 piece-data windows: log Z, per-sequence weights, E_q[Lat] max |d| 1.7e-11
+PASS test_brute_force (7.5s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  (c) label path (h = e): rows = C0's rows, loss (13.149950, 13.149961, widened 13.199400) and gradients bit-identical to --objective heuristic (batched and per-row features)
+PASS test_label_equals_c0 (2.0s)
+  (e) step path (tiny model, widened real windows, world 1): loss 12.090532 finite, prefetch 1 = 0 bit for bit; sum coef x D = sum h + R (137); lam 0.1059 (binding True), E[Lat]/word T2 0.495 vs T1 target 0.495 (label 0.084, lam 0 0.732); pass-1 rows 74, pass-2 75
+PASS test_run_step (5.9s)
+ALL 5 PASSED (19.9s)

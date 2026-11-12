@@ -1,0 +1,17 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  (a) draws deterministic; perturbed 0.502, item hit 0.300, k {1: 6129, 2: 6083, 3: 5859}
+PASS test_draws (0.6s)
+  (b)(c) 300 real piece windows: 633 rows from random draws (201 windows with rows, 156 states off T2's lattice); invariants, kap order, ids, in_t2 vs the lattice, coefficients hold
+PASS test_rows_real (0.4s)
+  (e) manifest: 44 draws of a 20-step plan accepted; changed draw / foreign plan rejected
+PASS test_manifest (0.0s)
+  (f) sub-grid labels on 300 T0 train windows: literal definition, subset grid; 0 pieces earlier than the 0.5 s time rounded up to the 1.0 s grid
+PASS test_subgrid (0.6s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  (d) step: dart None == {} bit for bit; with draws 9 extra rows, T2 rows unchanged, loss 39.821652 = 12.302009 + aug 27.519642; gradients add (max rel 7.5e-07); prefetch 1 == 0 bit for bit
+PASS test_step (14.7s)
+  (g) t5 bounds = min(R - 1, max(u, e)); brute force on 60 synthetic windows (max |d| 1.1e-13); t5 + dart trainer step finite (loss 35.7514, 9 aug rows)
+PASS test_t5_mode (4.7s)
+ALL 6 PASSED (21.0s)

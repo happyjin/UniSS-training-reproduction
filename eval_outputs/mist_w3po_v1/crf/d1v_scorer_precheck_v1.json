@@ -1,0 +1,261 @@
+{
+ "windows": 80,
+ "sched": "eval_outputs/mist_w3po_v1/crf/sched_t5_merge3_w10_v1",
+ "runs": [
+  {
+   "seed": 0,
+   "scale": 0.01,
+   "margin_abs_median": 0.07458952441811562,
+   "probe_margin_absdiff_vs_unpadded": {
+    "v1_left": {
+     "max": 0.008367888629436493,
+     "mean": 0.0020174037608494226
+    },
+    "v1_left_pos": {
+     "max": 0.007779824547469616,
+     "mean": 0.0011539776995148812
+    }
+   },
+   "v1": {
+    "windows": 80,
+    "equal": 77,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0095",
+     "EN2001a_zh_0116",
+     "EN2001a_zh_0141"
+    ],
+    "s": 36.8
+   },
+   "v1+pos": {
+    "windows": 80,
+    "equal": 77,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0033",
+     "EN2001a_zh_0095",
+     "EN2001a_zh_0141"
+    ],
+    "s": 37.2
+   },
+   "v1+4d": {
+    "windows": 80,
+    "equal": 78,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0033",
+     "EN2001a_zh_0116"
+    ],
+    "s": 36.0
+   },
+   "v1+pos+4d": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 34.5
+   },
+   "right+pos+2d": {
+    "windows": 80,
+    "equal": 77,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0033",
+     "EN2001a_zh_0095",
+     "EN2001a_zh_0141"
+    ],
+    "s": 36.8
+   },
+   "v2": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 33.9
+   }
+  },
+  {
+   "seed": 1,
+   "scale": 0.01,
+   "margin_abs_median": 0.06520545482635498,
+   "probe_margin_absdiff_vs_unpadded": {
+    "v1_left": {
+     "max": 0.017642063088715076,
+     "mean": 0.0016916028343493472
+    },
+    "v1_left_pos": {
+     "max": 0.018234973307698965,
+     "mean": 0.0013407168601564056
+    }
+   },
+   "v1": {
+    "windows": 80,
+    "equal": 71,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0007",
+     "EN2001a_zh_0027",
+     "EN2001a_zh_0046",
+     "EN2001a_zh_0096",
+     "EN2001a_zh_0110",
+     "EN2001a_zh_0159",
+     "EN2001a_zh_0163",
+     "EN2001a_zh_0169",
+     "EN2001a_zh_0170"
+    ],
+    "s": 23.8
+   },
+   "v1+pos": {
+    "windows": 80,
+    "equal": 75,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0007",
+     "EN2001a_zh_0046",
+     "EN2001a_zh_0159",
+     "EN2001a_zh_0163",
+     "EN2001a_zh_0169"
+    ],
+    "s": 23.3
+   },
+   "v1+4d": {
+    "windows": 80,
+    "equal": 76,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0027",
+     "EN2001a_zh_0096",
+     "EN2001a_zh_0110",
+     "EN2001a_zh_0170"
+    ],
+    "s": 23.0
+   },
+   "v1+pos+4d": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 22.1
+   },
+   "right+pos+2d": {
+    "windows": 80,
+    "equal": 75,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0007",
+     "EN2001a_zh_0046",
+     "EN2001a_zh_0159",
+     "EN2001a_zh_0163",
+     "EN2001a_zh_0169"
+    ],
+    "s": 20.7
+   },
+   "v2": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 22.2
+   }
+  },
+  {
+   "seed": 2,
+   "scale": 0.003,
+   "margin_abs_median": 0.01824532449245453,
+   "probe_margin_absdiff_vs_unpadded": {
+    "v1_left": {
+     "max": 0.013578178361058235,
+     "mean": 0.0008188287003478665
+    },
+    "v1_left_pos": {
+     "max": 0.012495021801441908,
+     "mean": 0.0007579568374313641
+    }
+   },
+   "v1": {
+    "windows": 80,
+    "equal": 74,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0007",
+     "EN2001a_zh_0013",
+     "EN2001a_zh_0076",
+     "EN2001a_zh_0081",
+     "EN2001a_zh_0143",
+     "EN2001a_zh_0163"
+    ],
+    "s": 14.7
+   },
+   "v1+pos": {
+    "windows": 80,
+    "equal": 74,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0010",
+     "EN2001a_zh_0013",
+     "EN2001a_zh_0076",
+     "EN2001a_zh_0081",
+     "EN2001a_zh_0083",
+     "EN2001a_zh_0163"
+    ],
+    "s": 14.7
+   },
+   "v1+4d": {
+    "windows": 80,
+    "equal": 76,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0007",
+     "EN2001a_zh_0010",
+     "EN2001a_zh_0083",
+     "EN2001a_zh_0143"
+    ],
+    "s": 13.1
+   },
+   "v1+pos+4d": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 12.4
+   },
+   "right+pos+2d": {
+    "windows": 80,
+    "equal": 74,
+    "reads": 803,
+    "differ": [
+     "EN2001a_zh_0010",
+     "EN2001a_zh_0013",
+     "EN2001a_zh_0076",
+     "EN2001a_zh_0081",
+     "EN2001a_zh_0083",
+     "EN2001a_zh_0163"
+    ],
+    "s": 13.7
+   },
+   "v2": {
+    "windows": 80,
+    "equal": 80,
+    "reads": 803,
+    "differ": [],
+    "s": 12.6
+   }
+  }
+ ],
+ "differ_windows": {
+  "v1": 18,
+  "v1+pos": 14,
+  "v1+4d": 10,
+  "v1+pos+4d": 0,
+  "right+pos+2d": 14,
+  "v2": 0
+ },
+ "GO": {
+  "v2_100pct": true,
+  "v1_differ_windows": 18,
+  "v1pos_differ_windows": 14,
+  "position_offset_reduces": true,
+  "mask_path_reduces": true,
+  "pass": true
+ }
+}

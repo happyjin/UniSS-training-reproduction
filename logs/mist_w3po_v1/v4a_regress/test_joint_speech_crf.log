@@ -1,0 +1,15 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  (b) null talker + zero playback == T2 (log Z, cend, E[Lat], exp_nf / defer, T1 target) on 50 windows: max |d| 2.3e-14
+PASS test_null_equals_t2 (0.5s)
+  (a) brute force over (rho x order x rate): 30 synthetic (13 multi-speaker) + 10 widened real windows, up to 1144 paths; log Z, per-sequence weights, E_q[l], T1 target max |d| 5.5e-13
+PASS test_brute_force (1.1s)
+  (c) A5 cap: 8 windows forced onto a coarser grid; still exact vs brute force on it (1.3e-14)
+PASS test_cap_coarsens (0.1s)
+  (d) lam: E_q[l] non-increasing on 12 windows; T1-target solve lam 0.8259 (binding True); a 10%-tighter target: lam 0.2433, E_q[l] = target to 2.8e-14
+PASS test_lambda (0.4s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'mrope_section', 'interleaved'}
+  (e) step path (tiny model, widened real windows, world 1): loss 12.094758 finite, prefetch 1 = 0 bit for bit; sum coef x D = sum h + R (137); lam 0.0686 (binding True), E[l]/word T3 2.287 vs T1 target 2.287 (lam 0 2.659); aug states max 300, edges 1528
+PASS test_run_step (7.0s)
+ALL 5 PASSED (9.0s)

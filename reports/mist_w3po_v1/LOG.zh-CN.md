@@ -2582,3 +2582,11 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - A′rl + PL-EM 3.859 / 3.854；VE1rl + PL-EM 3.584 / 3.588；
   - A′ 文本 LAAL 3.268；A′ dev5 文本 LAAL 3.435（现行协议 3.635）。
 - 没有用 GPU。等协调者决定（见预登记 9.2）。
+
+## 2026-11-12 13:00 布拉格（12:00 UTC）— D1v：代码、测试、CPU 预检全部通过；roll-in / 训练 / 训后脚本已备好（只做了 bash -n 和 DRY_RUN）
+
+- **自检失败的原因**（`crf/d1v_scorer_precheck_v1.json`，CPU，真实 transformers 代码路径的小模型 + 真实 VE1 窗口 + 接近打平的判决头，240 例）：v1 有 18 例不一致；只改 position_ids → 14；只让每次前向走同一条显式掩码的注意力路径 → 10；两处都改 → 0；**v2 → 0（240/240）**。执行者的猜测（左侧补齐没给 position_ids）只是一半原因，另一半是批量前向和逐边界前向在 transformers 里走不同的注意力路径；两者的 bf16 小差别被 top-k 路由放大成判决翻转。
+- **修复**：`d1_rollin --scorer v2`（右侧补齐、position_ids 从 0、显式 4 维掩码、共享音频嵌入），默认仍是 v1。CPU 上 v2 的前缀前向与批量前向逐位相同。GPU 的核与 CPU 不同，所以每个分片开头的 GPU 自检 20/20 仍是硬门槛，不一致时记下两条路径的余量。
+- **测试**：`test_d1v` 全过（R0、R0b、R1–R3 与 M 在 VE1 数据和 v2p 格上）；回归 `test_d1` 4/4、`test_dart_aug` 6/6、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_pmc` 3/3、`test_pmc_noc` 3/3、`test_merge_read_segments` 2/2。
+- **脚本**：`start_d1v_rollin.sh`（评测类，`PAIRS`，拒绝训练槽位的卡）、`start_d1v.sh`（4 卡，端口 29975）、`v4a_after_train.sh`（`TAG=d1v`，端口 19601 / 19611，合并一步的预先授权续跑）。
+- **GPU**：没有用。

@@ -1,0 +1,19 @@
+No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda-13.2'
+/opt/dlami/nvme/jasonleeeli/projects/UniSS/third_party/Megatron-LM/megatron/core/optimizer/clip_grads.py:32: UserWarning: Transformer Engine and Apex are not installed. Falling back to local implementations of multi_tensor_applier, multi_tensor_l2norm, and multi_tensor_scale
+  warnings.warn(
+  (f) decision rules: J1 base (one GO / both GO by proxy, tie by text / neither GO by text, tie T5 / failed trainings), D1 base, schedule, S1-S3, fragment flag, stall parsing
+PASS test_decide (0.0s)
+  (c) one-path lattice: E_q[blocks] = the label path's (read, speaker) groups on 20 windows
+PASS test_label_blocks (0.0s)
+  (b) t5: null talker + zero playback == latent_write (log Z, cend, E[Lat], T1 target) on 25 windows: max |d| 3.6e-15
+PASS test_null_t5 (0.2s)
+  (a) brute force (rho x order x rate) incl. E_q[blocks] and the T1 target: t5 max |d| 1.1e-13 (up to 1692 paths, 17 multi-speaker), t2 8.0e-14
+PASS test_brute_modes (3.2s)
+[transformers] Unrecognized keys in `rope_parameters` for 'rope_type'='default': {'interleaved', 'mrope_section'}
+  (d) step: default == (t2, None) == (t2, {}) bit for bit; DART rows = latent_write_train's (9 rows), T3 rows unchanged, loss 40.852304 = 12.401975 + aug 28.450328; prefetch 1 == 0; t5 + DART loss 40.9032, E[blocks] 10.53
+PASS test_run_step (19.3s)
+  (e) proxy blocks = the actual talker's blocks (text, write_ms, order) in 5822/5822 A' dev streams
+PASS test_proxy_order (0.5s)
+  (g) j1_precheck.load_plan == the trainer's windows and plan (T4 and T5 data, 100 steps)
+PASS test_plan (7.8s)
+ALL 7 PASSED (31.0s)
