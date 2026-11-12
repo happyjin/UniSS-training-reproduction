@@ -2877,3 +2877,23 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - Thinker 训练窗口 `crf/sched_en2zh_v1`：21,581 个，v8 行全部匹配；serial_v2p 的标签路径与 C0 行相同。
 - 协调者批准下载中文 CTC 模型 `jonatasgrosman/wav2vec2-large-xlsr-53-chinese-zh-cn`（rev 99ccb27），用于 b1 选择和 PL-EM 的 f；CPU 自检通过（24 条：正确读法的 NLL/字 2.97，明显读错的 7.7–14.9，正确读法更低的比例 0.96–1.00）。
 - 新代码都只做加法，默认值不变，配单元测试；启动脚本只用 `bash -n` 和 DRY_RUN 检查。启动命令见预登记第 8 节。
+
+## 2026-11-12 22:20 布拉格 — 测试集 A′ 解码完成；Ali 的 A′ 合并 pair_lost 12（> 2），协调者决定照用（对预登记阈值的偏离）
+
+- **AMI 的 A′**：解码 20:57 完成，文本 tcpBLEU all / ov / 1spk 25.37 / 20.26 / 27.47。
+  - 合并 pair_lost 1（EN2002a_on_0038），按登记规则照用，列为已知偏差。
+  - 第一组三条链 20:57–21:00 启动。
+- **Ali 的 A′**：解码 22:17 完成，文本 18.14 / 15.29 / 19.38。
+  - 合并 pair_lost **12**，配对 3849 / 4065（源解码 3400），超过登记的 2，驱动没有启动 (c)；(b)、(a) 照常启动。
+  - 新工具 `evaluation/merge_pairlost_check.py` 逐窗口核对：12 个窗口**全是已知机制**（同一条目的段与块 write_ms 取的读不同），占 0.30%。
+  - 输出：`crf/t_eval/final_test_v1/ali/merge_pairlost_ft_ali_aprime_s3000.json`。
+- **协调者决定（22:20）**：
+  - 选 (a)，照用合并输出，启动 Ali 的 (c)。12 个窗口列为已知偏差，并写明这是**对预登记阈值 2 的偏离**。
+  - 附加 CPU 敏感性检查：把这些窗口从所有系统中剔除，在同一子集上重算 (a)、(b)、(c) 的文本和语音，与全集并列报告；门槛结论在剔除前后不一致时要写明。
+  - 启动：新脚本 `scripts/final_test_after_merge.sh`（核对 pair_lost 和合并输出完整，只用 `bash -n` 和 DRY_RUN 检查过），22:18 启动 ali_aprlplem。
+- **VE1 / D1v 合并的预先授权**：三条同时满足才续跑，列为已知偏差，并做同样的敏感性检查；任何一条不满足就停下来报告。
+  1. 停在 pairing lost，并且逐窗口核对过都是已知机制；
+  2. pair_lost ≤ 该集合窗口数的 1%；
+  3. 合并输出完整。
+  - 由新脚本 `scripts/final_test_auto_merge.sh` 执行（只用 `bash -n` 和 DRY_RUN 检查过）。
+- **卡**：R5 的 ASR 和 vLLM 引起 1 号卡 OOM 1 次、7 号卡余量保护停了 3 个作业，都已自动重试，已报协调者。
