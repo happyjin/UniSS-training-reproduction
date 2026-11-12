@@ -236,8 +236,8 @@ def pipeline(cards: list[int], per_card: int) -> None:
 # `pipeline` placed ASR by "135 - used >= 20 GiB" only; at 21:02 / 21:16 Prague that squeezed the final test-set
 # evaluation (a pending decode not yet visible on card 1 OOMed; card 7 reached 138 GiB). It was stopped by PID. `finish`
 # places one ASR at a time under the coordinator's rule: used + ASR peak + others' pending ledger entries <= 130 GiB
-# (135 cap, >= 5 GiB margin), nothing while a final-test orchestrator has skipped a job for lack of room in the last
-# 180 s, >= 60 s between my placements, a pending ledger entry of mine before each start.
+# (135 cap, >= 5 GiB margin); while a final-test orchestrator has skipped a job for lack of room in the last 180 s, only
+# where that job still fits after mine; >= 60 s between my placements, a pending ledger entry of mine before each start.
 LEDGER = REPO / "logs/mist_w3po_v1/locks/pending.jsonl"
 FINAL_LOGS = REPO / "logs/mist_w3po_v1/final_test"
 ASR_PEAK_GIB = 18.0
@@ -272,30 +272,36 @@ def others_pending() -> dict:
     return out
 
 
-def final_test_waiting() -> bool:
-    """a final-test orchestrator skipped a job for lack of room in the last 180 s"""
-    now = time.time()
+def final_test_need() -> float:
+    """GiB of the largest job a final-test orchestrator skipped for lack of room in the last 180 s (0: none waiting;
+    a skip without a size counts as 24, their talker job)"""
+    import re
+    now, need = time.time(), 0.0
     for f in FINAL_LOGS.glob("*/orch.log"):
         try:
-            tail = f.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]
+            tail = f.read_text(encoding="utf-8", errors="replace").splitlines()[-300:]
         except OSError:
             continue
         for l in tail:
             if " skip " in l and l.startswith("[20"):
                 t = time.mktime(time.strptime(l[1:21], "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
                 if now - t < 180:
-                    return True
-    return False
+                    m = re.search(r"< ([0-9.]+) at re-check", l)
+                    need = max(need, float(m.group(1)) if m else 24.0)
+    return need
 
 
 def pick_asr_card(recent: dict) -> tuple[int, float] | None:
+    """a card where my ASR peak fits under 130 GiB (others' pending entries counted) AND, while the final test-set
+    evaluation is waiting for room, its largest waiting job still fits there after mine (it keeps priority)"""
     out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
                          capture_output=True, text=True, timeout=60).stdout
     used = {int(i): float(u) / 1024 for i, u in (l.split(",") for l in out.strip().splitlines())}
     pend = others_pending()
     room = {c: LIMIT_GIB - used[c] - pend[c] for c in used if time.time() - recent.get(c, 0) > 120}
-    ok = [c for c, r in room.items() if r >= ASR_PEAK_GIB]
-    if not ok or final_test_waiting():
+    need = ASR_PEAK_GIB + final_test_need()
+    ok = [c for c, r in room.items() if r >= need]
+    if not ok:
         return None
     c = max(ok, key=lambda c: room[c])
     return c, room[c]
@@ -339,12 +345,12 @@ def finish(max_live: int) -> None:
         busy = {x[2] for x in live}
         todo = [(f"{n}_s{s}", omni_run(PT[n], s)) for n, s in runs
                 if f"{n}_s{s}" not in busy and not asr_complete(omni_run(PT[n], s))]
-        block_live = any("block_asr" in (open(f"/proc/{p}/cmdline", "rb").read().decode(errors="replace"))
-                         for p in os.listdir("/proc") if p.isdigit() and _is_asr(p))
+        ba = OUT / "block_asr"
+        todo += [(f"block_{d}", ba) for d in ("en2zh", "zh2en") if f"block_{d}" not in busy
+                 and not asr_complete(ba, f"blocks_{d}_s0.jsonl", f"asr_{d}_s0.jsonl")]   # secondary, after the runs
         if not todo and not live:
-            if not block_live:
-                log("FINISH_DONE")
-                return
+            log("FINISH_DONE")
+            return
         elif todo and len(live) < max_live:
             pick = pick_asr_card(recent)
             if pick is not None:
@@ -352,10 +358,16 @@ def finish(max_live: int) -> None:
                 label, o = todo[0]
                 ledger_append({"id": f"asr_{label}", "card": c, "mib": int(ASR_PEAK_GIB * 1024), "vllm": False,
                                "state": "pending"})
-                resume = "--resume " if (o / "asr_speech.jsonl").exists() else ""
-                cmd = (f"{PYE} reports/uniss_si_v4/speech_only.py {o} > /dev/null && {PYE} -m evaluation.asr_transcribe "
-                       f"--input {o}/results_speechonly.jsonl --output {o}/asr_speech.jsonl --device cuda:0 --batch-size 4 "
-                       f"{resume}>> {o}/asr.log 2>&1")
+                if label.startswith("block_"):
+                    d = label.split("_", 1)[1]
+                    resume = "--resume " if (o / f"asr_{d}_s0.jsonl").exists() else ""
+                    cmd = (f"{PYE} -m evaluation.asr_transcribe --input {o}/blocks_{d}_s0.jsonl --output {o}/asr_{d}_s0.jsonl "
+                           f"--device cuda:0 --batch-size 4 {resume}>> {o}/asr_{d}_s0.log 2>&1")
+                else:
+                    resume = "--resume " if (o / "asr_speech.jsonl").exists() else ""
+                    cmd = (f"{PYE} reports/uniss_si_v4/speech_only.py {o} > /dev/null && {PYE} -m evaluation.asr_transcribe "
+                           f"--input {o}/results_speechonly.jsonl --output {o}/asr_speech.jsonl --device cuda:0 --batch-size 4 "
+                           f"{resume}>> {o}/asr.log 2>&1")
                 live.append((subprocess.Popen(cmd, shell=True, cwd=REPO, env={**env0, "CUDA_VISIBLE_DEVICES": str(c)}),
                              c, label))
                 recent[c] = time.time()
