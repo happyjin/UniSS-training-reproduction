@@ -2158,3 +2158,18 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 0–3 号卡：VE1 在训。
   - 没有卡空着。
 - 已报告协调者，等决定（修复后重跑 roll-in，还是放弃 D1、4–7 号卡另作他用）。
+
+## 2026-11-12 02:20 布拉格（01:20 UTC）— 决定：今晚放弃 D1（协调者代用户）；T1 已续跑；Thinker 执行者交接（HANDOFF 0g）
+
+- **决定**：选 (b)，今晚放弃 D1。协调者的理由：
+  1. 基线 T5 已经不停住（≥ 6 s 窗口中 A 类 0%，B 类平均空读 0.29 次），D1 专治的"写得晚"在 T5 上已经不是问题；
+  2. T4、T5 现在的问题是写得早但碎、质量掉（重复率 0.11 vs A′ 0.064，ov 漏译更多），D1 只修时机，不针对这个；
+  3. roll-in 自检不过还要先修 bug，期望收益低。
+- **现象**（记录在案）：roll-in 自检比较一次前向批量算出的写出决定和逐边界单独前向的写出决定，分片 0 是 16/20 一致，分片 1 是 15/20 一致。
+- **推测**（未验证）：`d1_rollin.gpu_batch_scorer` 用左填充、只传 attention_mask，调用 `thinker.model(inputs_embeds=...)` 时没有传 position_ids。如果这时位置按 arange 生成，填充长度不同，RoPE 的位置就不同，argmax 在接近平局的地方会翻转。
+- **执行**：
+  - `start_d1_after_v2.sh`（PID 2953518，当时在等 roll-in 清单）01:14 UTC 核对命令行后按 PID 停掉；
+  - 空的 roll-in 目录 `crf/d1_rollin_t5_v1/rollin_{0,1}of2` 保留不动。
+- **T1**：`t1_resume_after_t4_v2.sh` 在 A′rl 的 32 个 talker 分片都开始后，01:12 UTC 续跑 T1（编排器 PID 3359951，exclude_cards `0 1 2 3`），在 4–7 号卡。T1 的 dev5 截取 `t_dev5_cut.sh dev_t1_piece_t0_s3000_w05` 已按协调者的要求补挂（PID 3386209，只用 CPU，等 T1 的 score_text.json）。先做了 `bash -n` 和 `DRY_RUN=1` 检查。
+- **4–7 号卡**：先跑完 A′rl，再跑完 T1，之后交给占卡程序。协调者另开设计代理准备新方法，约 05:00 接手。
+- **交接**：在跑的进程、卡位规则、待报的结果（A′rl 两份门槛、VE1 速查、T1 与 T2 对 T1 的配对比较）都写在 `HANDOFF_20261111.zh-CN.md` 第 0g 节。
