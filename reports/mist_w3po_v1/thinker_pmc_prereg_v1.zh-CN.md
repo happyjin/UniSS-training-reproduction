@@ -117,3 +117,32 @@
 ## 结果
 
 （登记之后补。）
+
+### 代码与 CPU 预检：全部通过（2026-11-12 布拉格 08:27）
+
+**代码**（只做加法；被改的模块都是写新文件后 `command mv -f` 替换）：
+- `crf/latent_write_crf.py`：模式 `pmc`（`lower()`、`e_path_lat()`、预算、`assemble_pol` / `pol_parts`（策略边势 φ）、`exp_early`）；
+- `crf/latent_write_train.py`：`set_coefs_pmc`；pmc 时算 q^pol，并记录 `Eq_lat_pol`、`lat_e`、`exp_early_q`、`exp_early_pol`、`n_chunks`；
+- `crf/train_crf_sft.py`、`crf/dart_aug.py`：`--lw-mode` 加 `pmc`；
+- 新增：`crf/test_pmc.py`、`crf/pmc_precheck.py`、`scripts/start_pmc.sh`、`scripts/pmc_after_train.sh`、`scripts/pmc_dev5_go.py`、`scripts/pmc_listen_compare.py`。
+- **注意**：pmc 模式下 metrics 里的 `q_label` / `lat_label` 指格的 0 号状态路径，也就是**最早路径**（每块都在 l = e − 1 写出），不是证据标签路径；证据标签路径的延迟是 `lat_e`（= 预算 = `Eq_lat_T1_target`）。
+
+**数据**：DART 清单 `crf/pmc_dart_merge3_w10_v1`（`logs/mist_w3po_v1/pmc/build_pmc_manifest.sh`，CPU 约 5 s）：15,585 条，抽样和行与 VE1 的清单逐条相同，模式 pmc。
+
+**预检** `eval_outputs/mist_w3po_v1/crf/pmc_precheck_v1.json`（CPU 151 s）：
+
+| 项 | 结果 | GO |
+|---|---|---|
+| P1 精确性 | 60 个合成记录（最多 4362 条路径）+ 30 个真实 VE1 窗口：q_λ 的 log Z、cend、E[Lat]、E[提前块数]，q^pol 的 cend、E[Lat]、E[提前块数]，与穷举的最大差 2.1e-13；预算 = e 路径的 Lat | 过 |
+| P2 默认路径 | t2 / t5 / v2p / label 各 200 个真实 VE1 窗口：计划、格、target / lat_label、后验（log Z、q_label、E[Lat]、exp_nf、cend；λ 0 / 0.37）与改动前的模块（46cc50e4）逐位相同；回归 `test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_dart_aug` 6/6 | 过 |
+| P3 (a) | VE1 后 500 步：后验 0.8375 vs e 路径预算 0.6019 s·词 / 词，差 0.236 ≥ 0.1（登记时已知） | 过 |
+| P3 (b) | VE1 计划前 200 步的 2052 个窗口（每词）：pmc 最早路径 −0.284 < e 路径 0.603（= v2p 最早路径）；v2p 最晚路径 1.194 | 过 |
+| P4 规模 | 每步第 2 遍 token（hist + 写出部分）均值 2.02 倍、p95 2.34 倍（≤ 2.5）；第 1 / 2 遍行数 62.3 → 131.9、96.6 → 149.6；每窗口最大状态数 p95 8、最大 54；dummy 打分下每步 CPU p95 0.145 s（≤ 2 s） | 过 |
+| P5 训练器 | `--lw-mode pmc` 解析为 latent_write / pmc / seed 20261109 / 3000 步 / 64 行；清单通过 `load_manifest` 核对；小模型一步：损失有限，prefetch 1 = 0 逐位相同，Σ c_tok × D = 2 Σ h，Σ c_end × D = Σ R，系数 = set_coefs + h·suf(cend_pol)/D（差 1.7e-18） | 过 |
+
+- **P3 (b) 的一个提示**：最早路径的每词延迟是负的（−0.28 s），说明 e − 1 常常在块的源端说完之前，也就是"提前预测"的区域。预算把期望拉回 e 路径，但这正是质量风险所在，速查的文本线会检验它。
+- **训练时长估计**：每行的音频和提示 token 远多于 hist + 写出部分，所以按行数比例估计（第 1 遍 ×2.12、第 2 遍 ×1.55，VE1 后 500 步 0.713 / 3.038 s）约 6.2 s/步，3000 步约 **5.2 小时**；只按 token 比例估计是 7.8 s/步、6.5 小时。登记时写的"4–6 小时"按实测改为 **5–6.5 小时**（4 卡，20–26 卡·时）。
+- **两次未出结果的预检尝试**（预检脚本自身的 bug，不是数据问题；两次都在写出 json 之前就退出了，日志保留）：
+  1. 用 runpy 跑时多进程无法 pickle `_sizes`（`logs/mist_w3po_v1/pmc/precheck_v1_attempt1_pickle_error.log`）；改为直接 `python -m`，并在模块里打 CPU 补丁；
+  2. `T.step_totals` 需要 `set_reach`，这里只用 D，改成直接算（`precheck_v1_attempt2_step_totals_error.log`）。
+  - 两次中 P1 / P2 / P5 的测试都已通过，判据没有改。

@@ -2379,3 +2379,19 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **新意评估**（文献核查约 40 次检索）：在所有状态上训内容（HMT）和后验加权（EM 恒等式）都不新；没找到先例的是"按策略自身不看内容的分布、在格上精确求期望、带对偶延迟乘子"去加权内容。只有一种设置，不跑均匀权重和只有 EM 的消融，收益不能单独归给权重。
 - **预检**（CPU）P1–P5、dev5 速查 GO 线（文本 ≥ A′ − 0.2、文本 LAAL < 3.26、最终读 ≤ 49.7%）、dev 全集门槛（语音对 A′rl + PL-EM、文本对 A′、每条流语音 LAAL < 3.756）都已登记。
 - **GPU**：没有用。
+
+## 2026-11-12 08:30 布拉格（07:30 UTC）— 方法设计执行者 v3：PMC 代码、测试、CPU 预检全部通过；启动脚本已备好（只做了 bash -n 和 DRY_RUN）
+
+- **代码**（只做加法；被改的模块都是写新文件后 `command mv -f` 替换）：`latent_write_crf` 加模式 `pmc`（下界 e − 1、e 路径预算、策略边势 φ、q^pol），`latent_write_train.set_coefs_pmc`，`train_crf_sft` / `dart_aug` 的 `--lw-mode pmc`；新增 `test_pmc.py`、`pmc_precheck.py`、`start_pmc.sh`、`pmc_after_train.sh`、`pmc_dev5_go.py`、`pmc_listen_compare.py`。
+- **DART 清单** `crf/pmc_dart_merge3_w10_v1`：与 VE1 的清单逐条相同（15,585 条），模式 pmc。
+- **预检** `crf/pmc_precheck_v1.json`：P1–P5 全过。
+  - P1：穷举最大差 2.1e-13；
+  - P2：四个默认模式与改动前逐位相同，回归 5/5、8/8、6/6；
+  - P3：预算 0.602 < VE1 后验 0.838 s·词 / 词，pmc 最早路径 −0.284；
+  - P4：第 2 遍 token p95 2.34 倍（≤ 2.5），行数 ×2.12 / ×1.55；
+  - P5：训练器参数和清单核对通过。
+  - 详见预登记的结果节。预检脚本自身有两次 bug（pickle、step_totals），都在写出 json 之前退出，判据没有改，日志保留。
+- **训练时长估计**：约 6.2 s/步，3000 步约 5.2 小时（只按 token 比例估是 6.5 小时）；4 卡，4–7 号卡。
+- **UTMOS 配对差工具** `pmc_listen_compare.py`：在 VE1rl + PL-EM 对 A′ + PL-EM 上复现了听感节的 −0.030（10,433 对）。
+- **启动命令**已发给协调者，由执行者启动。`start_pmc.sh` 会等 slotB 上只剩占卡进程（此刻 4 号卡上是 VE1 不合块的 SIM 作业，几分钟内结束）。
+- **GPU**：没有用。

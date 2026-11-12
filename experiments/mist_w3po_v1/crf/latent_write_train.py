@@ -6,6 +6,11 @@ rows / coefficients / prefetch (serial_v2p_train's functions, imported, unchange
 computes every window's lam-free parts, solves the step-level posterior-regularisation dual lam* (sum_w E_{q_lam}[Lat] =
 sum_w E_{q_T1}[Lat], T1 = v2' on the same labels, same model), and the lam* posterior's sequence weights (identical inputs,
 deterministic, so every rank gets the same lam* and the same coefficients).
+
+PMC (mode "pmc", reports/mist_w3po_v1/thinker_pmc_prereg_v1.zh-CN.md §1.4; additive, every other mode unchanged): after
+the lam* posterior, the content-free policy distribution q^pol (LW.pol_parts, same lattice / tau / lam*) gives a second
+set of per-sequence weights; set_coefs_pmc = serial_v2p_train.set_coefs plus h sum_{b>t} cend_pol[b] / D on every
+content token (end tokens: q_lam only).
 """
 from __future__ import annotations
 
@@ -29,6 +34,21 @@ def plan(w: T.Window, mode: str = "t2") -> dict:
     for q in pl["reqs"]:
         q["scored"] = q["r"] not in forced
     return pl
+
+
+def set_coefs_pmc(rows: list[T.Row], plans: dict, posts: dict, pols: dict, D: float) -> None:
+    """V2T.set_coefs (q_lam: content and end tokens), then the PMC content term: c_tok[t] += h_t sum_{b > t} cend_pol[b] / D."""
+    V2T.set_coefs(rows, plans, posts, D)
+    for rw in rows:
+        widx, k = rw.key
+        q = plans[widx]["reqs"][k]
+        cp = pols[widx]["cend"][k]
+        m = len(q["forced_ids"])
+        h = V2T.token_weights(rw.win, q["forced_ids"])
+        sp = np.cumsum(cp[::-1])[::-1]
+        ct = rw.c_tok.copy()
+        ct[:m] += h * sp[1:] / D
+        rw.c_tok = ct
 
 
 def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step: int, tau: float, rk: int, nw: int,
@@ -76,7 +96,13 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
     lam, info = LW.solve_lambda([parts[w.idx] for w in sw])
     t_lam = time.time() - t3
     posts = {w.idx: LW.posterior_from_parts(w, plans[w.idx], parts[w.idx], tau, lam) for w in sw}
-    V2T.set_coefs(p2, plans, posts, D)
+    pols = None
+    if mode == "pmc":   # PMC: q^pol on the same lattice with the same lam*; content tokens get both weights
+        pols = {w.idx: LW.posterior_from_parts(w, plans[w.idx], LW.pol_parts(w, plans[w.idx], res, parts[w.idx], tau),
+                                               tau, lam) for w in sw}
+        set_coefs_pmc(p2, plans, posts, pols, D)
+    else:
+        V2T.set_coefs(p2, plans, posts, D)
     t_post = time.time() - t3
     t4 = time.time()
     batches = None
@@ -100,6 +126,12 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
           "lat_label": float(sum(p["lat_label"] for p in posts.values()) / max(sum_w, 1e-9)),
           "sum_words": sum_w, "t_lambda_solve": round(t_lam, 3),
           "edges": int(sum(int(x.sum()) for w in sw for x in plans[w.idx]["edge"]))}
+    if pols is not None:
+        st["Eq_lat_pol"] = float(sum(p["Eq_lat"] for p in pols.values()) / max(sum_w, 1e-9))
+        st["lat_e"] = float(sum(LW.e_path_lat(w.rec, plans[w.idx]["lat"]["rho"]) for w in sw) / max(sum_w, 1e-9))
+        st["exp_early_q"] = float(sum(LW.exp_early(plans[w.idx], posts[w.idx]["fb"]) for w in sw))
+        st["exp_early_pol"] = float(sum(LW.exp_early(plans[w.idx], pols[w.idx]["fb"]) for w in sw))
+        st["n_chunks"] = int(sum(len(w.rec["chunks"]) for w in sw))
     if dart is not None:
         st["dart_rows"] = n_aug
         st["dart_windows"] = int(sum(1 for w in sw if dart.get(w.idx) is not None))

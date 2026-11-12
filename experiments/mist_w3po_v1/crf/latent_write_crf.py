@@ -43,6 +43,19 @@ the lam = 0 posterior is serial_v2p_train.posterior's bit for bit; with h = e th
 edge-order marginals, the per-sequence weights and E_q[Lat] equal a brute-force enumeration over (rho assignment x
 per-read order) built without the lattice (crf/test_latent_write_crf.py).
 
+PMC (reports/mist_w3po_v1/thinker_pmc_prereg_v1.zh-CN.md; mode "pmc", additive: every other mode is unchanged bit for bit)
+  bounds    l_i = max(0, e_i - 1) <= z_i <= h_i = min(R - 1, e_i + 1): v2''s window opened one read earlier. Only the
+            lattice's availability uses l (c_k <= #{l_i <= r}); the canonical order, the history, carried / new of the
+            order choice and DART stay on the labels e. State 0 = {l_i <= r} (the earliest path).
+  budget    window_parts' target = Lat of the e path (every chunk at its evidence label e_i), not T1's expectation:
+            lam* holds sum_w E_{q_lam,w}[Lat] at the evidence-label path's latency (0 if not binding).
+  q^pol     the same chain (lattice, tau, lam*, order latent) with the content log-likelihood removed from the edge
+            potential: an edge writing k chunks (item boundaries b_0 = 0 < ... < b_k) at read r has
+            phi = sum_{j<k} log(1 - p_end(b_j)) + log p_end(b_k) from the scored ec (the end token <wait> / <eos> of
+            the same forward; no extra forward); forced reads phi := 0. pol_parts + posterior_from_parts give its
+            per-sequence weights cend_pol; the trainer adds h sum_{b>t} cend_pol[b] / D to every content token
+            (latent_write_train.set_coefs_pmc), weight 1.
+
     python -m experiments.mist_w3po_v1.crf.latent_write_crf --sizes --sched <dir> --out <new json> [--procs 48]
 """
 from __future__ import annotations
@@ -61,7 +74,7 @@ from experiments.mist_w3po_v1.crf import precheck_serial_v2 as V
 
 TAU = 0.5
 LAM_START, LAM_MAX, BISECT_ITERS = 1.0, 1e3, 50
-MODES = ("t2", "v2p", "label", "t5")
+MODES = ("t2", "v2p", "label", "t5", "pmc")
 
 
 # ------------------------------------------------------------------------------------------------ lattice
@@ -83,29 +96,44 @@ def bounds(rec: dict, mode: str = "t2") -> tuple[list[int], list[int]]:
         h = list(e)
     elif mode == "t5":   # T5 (prereg §T5 item 10): [e, max(u, e)] (the user's window; T2 has max(u + 1, e + 1))
         h = [min(R - 1, max(c["u_read"], x)) for c, x in zip(rec["chunks"], e)]
+    elif mode == "pmc":  # PMC (thinker_pmc_prereg_v1 §1.2): v2''s upper bound; the lower bound is lower()'s e - 1
+        h = [min(R - 1, x + 1) for x in e]
     else:
         raise ValueError(mode)
     return e, h
+
+
+def lower(e: list[int], mode: str) -> list[int]:
+    """The earliest write read per chunk: l = max(0, e - 1) in mode pmc, else the label read e itself."""
+    return [max(0, x - 1) for x in e] if mode == "pmc" else list(e)
+
+
+def e_path_lat(rec: dict, e: list[int]) -> float:
+    """Lat of the path writing every chunk at its label read e_i (the edges' L summed along it)."""
+    ch, t_ms = rec["chunks"], rec["t_ms"]
+    return float(sum(n_words(c) * (t_ms[x] - c["src_end_ms"]) / 1000.0 for c, x in zip(ch, e)))
 
 
 def lattice(rec: dict, mode: str = "t2", h: list[int] | None = None) -> dict:
     """States per read as count vectors over the window's speakers (sorted slots), with their item sets."""
     e, h_ = bounds(rec, mode)
     h = h_ if h is None else list(h)
+    lo_ = lower(e, mode)
     R = rec["n_read"]
     n = len(rec["chunks"])
     assert all(x <= y <= R - 1 for x, y in zip(e, h)), rec["id"]
+    assert all(0 <= a <= x for a, x in zip(lo_, e)), rec["id"]
     order = V.kap(rec, e, range(n))
     pos = {c: p for p, c in enumerate(order)}
     spk = sorted({rec["chunks"][c]["slot"] for c in range(n)})
     items = {k: [c for c in order if rec["chunks"][c]["slot"] == k] for k in spk}
     for k in spk:
         it = items[k]
-        assert all(e[a] <= e[b] and h[a] <= h[b] for a, b in zip(it, it[1:])), (rec["id"], k)
+        assert all(e[a] <= e[b] and h[a] <= h[b] and lo_[a] <= lo_[b] for a, b in zip(it, it[1:])), (rec["id"], k)
     states, sets = [], []
     for r in range(R):
         lo = {k: sum(1 for c in items[k] if h[c] <= r) for k in spk}
-        hi = {k: sum(1 for c in items[k] if e[c] <= r) for k in spk}
+        hi = {k: sum(1 for c in items[k] if lo_[c] <= r) for k in spk}
         assert all(lo[k] <= hi[k] for k in spk)
         free = sorted([k for k in spk if hi[k] > lo[k]], key=lambda k: pos[items[k][lo[k]]])
         cs, ss = [], []
@@ -118,7 +146,8 @@ def lattice(rec: dict, mode: str = "t2", h: list[int] | None = None) -> dict:
         states.append(cs)
         sets.append(ss)
     assert len(states[R - 1]) == 1 and len(sets[R - 1][0]) == n
-    return {"rho": e, "h": h, "R": R, "spk": spk, "items": items, "states": states, "sets": sets, "mode": mode}
+    return {"rho": e, "h": h, "R": R, "spk": spk, "items": items, "states": states, "sets": sets, "mode": mode,
+            "lo": lo_}
 
 
 def prev_of(lat: dict, r: int) -> tuple[list, list]:
@@ -292,8 +321,11 @@ def window_parts(w, pl: dict, res: dict, tau: float = TAU) -> dict:
     the label path's Lat and sum of words."""
     reads = assemble(pl, full_res(w, pl, res))
     Eo = edge_terms(reads, tau)
-    E1 = [np.where(pm[:, None] & cm[None, :], x, -np.inf) for x, (pm, cm) in zip(Eo, pl["t1"])]
-    tgt, _ = exp_lat(E1, pl["L"])
+    if pl["lat"]["mode"] == "pmc":   # PMC §1.3: the budget is the evidence-label (e) path's latency
+        tgt = e_path_lat(w.rec, pl["lat"]["rho"])
+    else:
+        E1 = [np.where(pm[:, None] & cm[None, :], x, -np.inf) for x, (pm, cm) in zip(Eo, pl["t1"])]
+        tgt, _ = exp_lat(E1, pl["L"])
     lab = sum(float(Lr[0, 0]) for Lr in pl["L"])
     sw = float(sum(n_words(c) for c in w.rec["chunks"]))
     return {"reads": reads, "Eo": Eo, "L": pl["L"], "edge": pl["edge"], "target": tgt, "lat_label": lab,
@@ -382,6 +414,62 @@ def posterior_from_parts(w, pl: dict, parts: dict, tau: float, lam: float) -> di
 
 def posterior(w, pl: dict, res: dict, tau: float = TAU, lam: float = 0.0) -> dict:
     return posterior_from_parts(w, pl, window_parts(w, pl, res, tau), tau, lam)
+
+
+# ------------------------------------------------------------------------------------------------ PMC: q^pol
+def log1mexp(x) -> np.ndarray:
+    """log(1 - exp(x)) for x <= 0, stable; x is capped at -1e-15 (an end probability of exactly 1 is never scored)."""
+    x = np.minimum(np.asarray(x, np.float64), -1e-15)
+    return np.where(x > -math.log(2.0), np.log(-np.expm1(x)), np.log1p(-np.exp(x)))
+
+
+def pol_potential(ec: np.ndarray, offs: list[int], k: int) -> float:
+    """phi of writing the request's first k chunks then the end token: sum_{j<k} log(1 - p_end(offs[j])) + ec[offs[k]]."""
+    a = log1mexp(np.asarray([ec[b] for b in offs[:k]], np.float64)) if k else np.zeros(0)
+    return float(np.sum(a) + ec[offs[k]])
+
+
+def assemble_pol(plan: dict, res: list) -> list[dict]:
+    """assemble()'s layout with phi (the write / end decisions only) in place of psi; forced reads phi := 0."""
+    reqs = plan["reqs"]
+    out = []
+    for rd in plan["reads"]:
+        C = np.full((rd["n_prev"], rd["n_cur"]), -np.inf)
+        Nf = None
+        for cx in rd["ctx"]:
+            for j, (q, b) in cx["cells"]["new"].items():
+                offs = reqs[q]["offsets"]
+                C[cx["i"], j] = 0.0 if rd["forced"] else pol_potential(res[q][1], offs, offs.index(b))
+        if any(cx.get("nf") for cx in rd["ctx"]):
+            assert not rd["forced"]
+            Nf = np.full((rd["n_prev"], rd["n_cur"]), np.nan)
+            for cx in rd["ctx"]:
+                for j, (q, b, _bn, s2, _nl) in cx["nf"].items():
+                    offs = reqs[q]["offsets"]
+                    assert offs[len(s2)] == b
+                    Nf[cx["i"], j] = pol_potential(res[q][1], offs, len(s2))
+        out.append({"r": rd["r"], "final": rd["final"], "forced": rd["forced"], "C": C, "Nf": Nf})
+    return out
+
+
+def pol_parts(w, pl: dict, res: dict, parts: dict, tau: float = TAU) -> dict:
+    """window_parts of q^pol: the same lattice, L and budget, with phi's reads and edge terms."""
+    reads = assemble_pol(pl, full_res(w, pl, res))
+    return dict(parts, reads=reads, Eo=edge_terms(reads, tau))
+
+
+def exp_early(pl: dict, fb: dict) -> float:
+    """E_q[#chunks written before their label read] = sum_r sum_A q(A_r = A) #{i in A : e_i = r + 1} (l = e - 1)."""
+    lat = pl["lat"]
+    e = lat["rho"]
+    s = 0.0
+    for r in range(lat["R"]):
+        mg = fb["marg"][r]
+        for j, A in enumerate(lat["sets"][r]):
+            k = sum(1 for x in A if e[x] > r)
+            if k:
+                s += float(mg[j]) * k
+    return s
 
 
 # ------------------------------------------------------------------------------------------------ CPU size check

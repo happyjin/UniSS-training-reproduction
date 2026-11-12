@@ -1,0 +1,170 @@
+{
+ "prereg": "reports/mist_w3po_v1/thinker_pmc_prereg_v1.zh-CN.md",
+ "sched": "eval_outputs/mist_w3po_v1/crf/sched_t5_merge3_w10_v1",
+ "P1_P2_P5_tests": {
+  "rc": 0,
+  "lines": [
+   "  P1 brute force over (z in [e-1, e+1] x order): 60 synthetic records (up to 4362 paths; tau 0.5/1, lam 0/0.3/2) + 30 real VE1 windows (up to 156 paths; tau 0.5, lam 0/0.7): q_lam log Z, cend, E[Lat], E[#early] and q^pol cend, E[Lat], E[#early] max |d| 2.1e-13; budget == e-path Lat",
+   "PASS test_p1_brute_force (7.8s)",
+   "  P2 default modes: {'t2': 200, 't5': 200, 'v2p': 200, 'label': 200} real VE1 windows: plan, lattice, target / lat_label, posterior (log Z, q_label, E[Lat], exp_nf, cend; lam 0 / 0.37) == the module before PMC (46cc50e4) bit for bit",
+   "PASS test_p2_default_bit_identical (1.7s)",
+   "  P5 step path (tiny model, widened real windows, world 1, mode pmc): loss 24.088181 finite, prefetch 1 = 0 bit for bit; sum c_tok x D = 2 sum h (248), sum c_end x D = sum R (13); coefficients == set_coefs + h suf(cend_pol) / D (max |d| 1.7e-18); lam 0.0000 (binding False), E[Lat]/word q 0.029, q^pol -0.080, budget e path 0.084; E[#early] q 2.79, q^pol 3.16 of 11 chunks; --lw-mode pmc parses",
+   "PASS test_p5_run_step (8.4s)",
+   "ALL 3 PASSED (17.9s)"
+  ],
+  "pass": true
+ },
+ "P2_regression": {
+  "tests": {
+   "test_latent_write_crf": {
+    "rc": 0,
+    "tail": [
+     "ALL 5 PASSED (19.6s)"
+    ]
+   },
+   "test_train_crf_sft": {
+    "rc": 0,
+    "tail": [
+     "ALL 8 PASSED (14.0s)"
+    ]
+   },
+   "test_dart_aug": {
+    "rc": 0,
+    "tail": [
+     "ALL 6 PASSED (18.6s)"
+    ]
+   }
+  },
+  "pass": true
+ },
+ "P3a": {
+  "steps": 500,
+  "ve1_Eq_lat_per_word": 0.8375,
+  "e_path_budget_per_word": 0.6019,
+  "gap": 0.2357,
+  "pass": true
+ },
+ "P3b": {
+  "windows": 2052,
+  "per_word_s": {
+   "pmc_earliest": -0.2835,
+   "e_path": 0.6026,
+   "v2p_earliest": 0.6026,
+   "v2p_latest": 1.1943
+  },
+  "pass": true
+ },
+ "P4": {
+  "windows_used": 22671,
+  "per_step": {
+   "v2p": {
+    "p1": {
+     "mean": 62.291,
+     "p50": 59.0,
+     "p95": 96.05,
+     "max": 199.0
+    },
+    "p2": {
+     "mean": 96.615,
+     "p50": 94.0,
+     "p95": 125.0,
+     "max": 229.0
+    },
+    "tok1": {
+     "mean": 2075.1,
+     "p50": 1772.5,
+     "p95": 4426.7,
+     "max": 13177.0
+    },
+    "tok2": {
+     "mean": 2503.178,
+     "p50": 2205.5,
+     "p95": 4948.7,
+     "max": 13443.0
+    }
+   },
+   "pmc": {
+    "p1": {
+     "mean": 131.851,
+     "p50": 119.0,
+     "p95": 227.0,
+     "max": 705.0
+    },
+    "p2": {
+     "mean": 149.557,
+     "p50": 136.0,
+     "p95": 241.0,
+     "max": 720.0
+    },
+    "tok1": {
+     "mean": 4892.961,
+     "p50": 3895.0,
+     "p95": 11335.3,
+     "max": 51604.0
+    },
+    "tok2": {
+     "mean": 5061.313,
+     "p50": 4040.5,
+     "p95": 11579.7,
+     "max": 51778.0
+    }
+   }
+  },
+  "per_window_max_states": {
+   "v2p": {
+    "mean": 2.232,
+    "p50": 2.0,
+    "p95": 4.0,
+    "max": 30.0
+   },
+   "pmc": {
+    "mean": 3.225,
+    "p50": 2.0,
+    "p95": 8.0,
+    "max": 54.0
+   }
+  },
+  "tok1_ratio_mean": 2.358,
+  "tok2_ratio_mean": 2.022,
+  "tok2_ratio_p95": 2.34,
+  "cpu_s_per_step_dummy": {
+   "mean": 0.045,
+   "p50": 0.023,
+   "p95": 0.145,
+   "max": 0.159
+  },
+  "dummy_lam": {
+   "mean": 0.006,
+   "p50": 0.0,
+   "p95": 0.041,
+   "max": 0.04601494884259161
+  },
+  "dummy_binding_steps": 6,
+  "dummy_exp_early_share_q": 0.3285,
+  "dummy_exp_early_share_pol": 0.3302,
+  "ve1_step_s_mean_2501_3000": {
+   "t_pass1": 0.713,
+   "t_pass2": 3.038,
+   "t_step": 3.766
+  },
+  "est_step_s": 7.84,
+  "est_hours_3000": 6.53,
+  "pass": true
+ },
+ "P5_args": {
+  "objective": "latent_write",
+  "lw_mode": "pmc",
+  "seed": 20261109,
+  "steps": 3000,
+  "rows_per_step": 64,
+  "pass": true
+ },
+ "P5_manifest": {
+  "mode": "pmc",
+  "entries": 15585,
+  "same_draws_and_rows_as_ve1": true,
+  "pass": true
+ },
+ "pass": true,
+ "cpu_s": 150.8
+}

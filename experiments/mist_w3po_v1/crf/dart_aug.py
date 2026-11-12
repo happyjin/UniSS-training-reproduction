@@ -387,7 +387,7 @@ def main() -> None:
     ap.add_argument("--plan-seed", type=int, default=PLAN_SEED)
     ap.add_argument("--steps", type=int, default=PLAN_STEPS)
     ap.add_argument("--rows-per-step", type=int, default=PLAN_ROWS)
-    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p"],
+    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p", "pmc"],
                     help="lattice mode of the in-lattice statistic (v2p: VE1, thinker_v2p_evidence_ve1_prereg_v1)")
     a = ap.parse_args()
     if a.build_g1000:

@@ -872,9 +872,10 @@ def build_args(argv=None):
                     "(row_features: packing-invariant inputs; 0: one padded call per micro-batch, as before)")
     ap.add_argument("--prefetch", type=int, default=0, choices=[0, 1],
                     help="serial_v2p: collate the step's batches in a background thread while the GPU works (0: off)")
-    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p"],
+    ap.add_argument("--lw-mode", default="t2", choices=["t2", "t5", "v2p", "pmc"],
                     help="--objective latent_write / joint_speech (J1): the lattice bounds (latent_write_crf.bounds; t5 = "
-                    "T5's [e, max(u, e)]; v2p = v2''s {e, e + 1}, where lam* is 0 and the posterior is v2''s: VE1)")
+                    "T5's [e, max(u, e)]; v2p = v2''s {e, e + 1}, where lam* is 0 and the posterior is v2''s: VE1; pmc = "
+                    "[e - 1, e + 1] with the e-path latency budget and the policy-marginalised content term: PMC)")
     ap.add_argument("--dart", default="",
                     help="--objective latent_write (T4) or joint_speech (J1): directory of a crf/dart_aug.py --manifest "
                     "made for this --sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 / T3 "
