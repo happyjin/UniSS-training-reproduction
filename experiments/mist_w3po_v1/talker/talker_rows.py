@@ -29,6 +29,11 @@ bon     (2026-11-11, talker_crf_prereg_v2 experiment 1, the "no lattice" ablatio
         items) measured on the meeting lattice's proxy, minus --drop-1ch; everything else as --scope meeting. Saved
         with variant "meeting_v3". Defaults (--budget-ref aprule, --drop-1ch 1.0): unchanged.
 
+--lang cmn --units char  (additive, 2026-11-12, en2zh plan §4.3; defaults eng / word unchanged): Chinese talker output
+        (si_infer --direction en2zh): every <lang> token of the sequences is LANG_CMN (180372, e2_batch.LANG_TOKEN
+        ["cmn"], what si_infer used when sampling), and a block's W_n (the lattice's word count) is its number of
+        zh_units (CJK characters / Latin words, punctuation not counted) instead of str.split() words.
+
 Writes <out> (torch.save of a dict; refuses to overwrite) and <out>.json (stats).
 
     python -m experiments.mist_w3po_v1.talker.talker_rows --mode plem --cands '<dir>/cands_*.jsonl' --win <windows> --out <file>
@@ -51,6 +56,9 @@ GLOBAL_0, GLM_0 = 151665, 163953
 WRITE, TASK_S2T, TASK_TTS = 180396, 180380, 180375
 START_CONTENT, END_CONTENT, START_SEMANTIC = 180386, 180390, 180388
 LANG_ENG = 180373
+LANG_CMN = 180372            # --lang cmn (en2zh)
+LANG = LANG_ENG              # set by main (--lang); the default keeps every sequence bit-identical
+UNITS = "word"               # set by main (--units); "char": zh_units.n_units
 SPEED_0, N_SPEED = 180337, 35
 BACKLOG_IDS = (180381, 180382, 180383, 180384, 180385, 180397, 180398, 180405)
 Q_MIN = 0.01
@@ -65,11 +73,21 @@ def closing(c: dict, final: bool) -> int:
     return c["closing"] if c.get("closing") in (WAIT_READ, END_SEMANTIC) else (END_SEMANTIC if final else WAIT_READ)
 
 
-def prefix(it: dict, r: int, backlog: bool, lang: int = LANG_ENG) -> tuple[list[int], list[int]]:
+def n_units(text: str) -> int:
+    """W_n of a block: str.split() words (default) or, with --units char, zh_units (en2zh)."""
+    if UNITS == "word":
+        return len(text.split())
+    from experiments.mist_w3po_v1.evaluation.zh_units import n_units as nz
+
+    return nz(text)
+
+
+def prefix(it: dict, r: int, backlog: bool, lang: int | None = None) -> tuple[list[int], list[int]]:
     """Block r's input up to and including <write> <task_tts> <lang> (history = the chosen candidates), split as
     (head up to and including the S2T <lang>, rest from START_CONTENT ... <lang>) so the S2T speed token (native
     format: the block's speed) can be put between. backlog: head ends with nothing; the caller adds speed_base and the
-    backlog token. Mirrors si_infer.build_seq."""
+    backlog token. Mirrors si_infer.build_seq. lang None = the module's LANG (LANG_ENG unless --lang cmn)."""
+    lang = LANG if lang is None else lang
     bl = it["blocks"]
     glm = bl[r]["glm"]
     seq = [TASK_S2S, BALANCE, lang, START_GLOBAL] + [GLOBAL_0 + g for g in it["voice"]] + [END_GLOBAL]
@@ -117,7 +135,7 @@ def stream_of(it: dict, w: dict) -> PL.Stream:
     return PL.Stream([availability(w, b["write_ms"]) for b in bl],
                      [[len(c["codes"]) * 20 for c in b["cands"]] for b in bl],
                      [[feat(c) for c in b["cands"]] for b in bl],
-                     [len(b["text"].split()) for b in bl])
+                     [n_units(b["text"]) for b in bl])
 
 
 def load_items(pattern: str) -> list[dict]:
@@ -267,7 +285,7 @@ def meeting_lattice(items: list[dict], W: dict, drop: float = BUDGET_DROP_1CH_S,
         chains[m] = [(n, r) for _, n, r in L]
         bl = [items[n]["blocks"][r] for _, n, r in L]
         streams.append(PL.Stream([a for a, _, _ in L], [[len(c["codes"]) * 20 for c in b["cands"]] for b in bl],
-                                 [[feat(c) for c in b["cands"]] for b in bl], [len(b["text"].split()) for b in bl],
+                                 [[feat(c) for c in b["cands"]] for b in bl], [n_units(b["text"]) for b in bl],
                                  cap=cap, rounding=rounding))
     words = sum(sum(st.words) for st in streams)
     a_lat = sum(st.path_latency([items[n]["blocks"][r]["chosen"] for n, r in ch])
@@ -375,7 +393,11 @@ def main():
     ap.add_argument("--cands", required=True, help="glob of cands_*.jsonl")
     ap.add_argument("--win", required=True, help="the online windows the run's text was decoded on")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--lang", choices=("eng", "cmn"), default="eng", help="the talker's output language (en2zh: cmn)")
+    ap.add_argument("--units", choices=("word", "char"), default="word", help="W_n units (en2zh: char)")
     a = ap.parse_args()
+    global LANG, UNITS
+    LANG, UNITS = (LANG_ENG if a.lang == "eng" else LANG_CMN), a.units
     out = Path(a.out)
     if out.exists() or Path(str(out) + ".json").exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
@@ -398,6 +420,7 @@ def main():
         variant = "bon" if a.mode == "bon" else ("meeting_v3" if v3 else "meeting")
         import torch
 
+        stats.update({} if (a.lang, a.units) == ("eng", "word") else {"lang": a.lang, "units": a.units})
         out.parent.mkdir(parents=True, exist_ok=True)
         torch.save({"mode": "plem", "variant": variant, "blocks": rows, "stats": stats, "cands": a.cands}, out)
         Path(str(out) + ".json").write_text(json.dumps({"mode": a.mode, "variant": variant, "cands": a.cands, **stats},
@@ -415,6 +438,7 @@ def main():
         raise SystemExit("--mode lattice: use precheck_plcrf.py")
     import torch
 
+    stats.update({} if (a.lang, a.units) == ("eng", "word") else {"lang": a.lang, "units": a.units})
     out.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"mode": a.mode, "blocks": rows, "stats": stats, "cands": a.cands}, out)
     Path(str(out) + ".json").write_text(json.dumps({"mode": a.mode, "cands": a.cands, **stats}, indent=1) + "\n")
