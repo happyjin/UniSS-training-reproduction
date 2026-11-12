@@ -6,14 +6,16 @@ same files the paper-talker run spoke). Every block whose stripped text holds an
 request (SimulInfer's tts.Speech.run skips the others; they keep zero speech). Writes, refusing existing files:
   <E>/refs/<point>/<dir>/<id>.wav   voice reference: the source heard up to the sentence's first commit (>= 1 s), i.e.
                                     the paper talker's clip (si_infer), peak-normalised as SimulInfer's SourceVoice
-  <E>/jobs.jsonl                    one row per batch: blocks sorted by text length (fixed composition), torch seed
+                                    (already written: the bytes are checked equal instead)
+  <E>/<root>/jobs.jsonl             one row per batch: blocks sorted by text length (fixed composition), torch seed
                                     = SEED_BASE[seed] + batch index; seed-major order
 
-    PYTHONPATH=. venvs/tts_schemes/bin/python experiments/baselines_hysimulmt_qwen3tts_v1/make_jobs.py --batch 32
+    PYTHONPATH=. venvs/tts_schemes/bin/python experiments/baselines_hysimulmt_qwen3tts_v1/make_jobs.py --batch 32 --root a1
 """
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sys
 from pathlib import Path
@@ -49,8 +51,11 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
+    ap.add_argument("--root", default="a1", help="jobs / claims / tts / runs folder under E (amendment 1: a1)")
     a = ap.parse_args()
-    jobs_path = E / "jobs.jsonl"
+    R = E / a.root
+    R.mkdir(parents=True, exist_ok=True)
+    jobs_path = R / "jobs.jsonl"
     if jobs_path.exists():
         sys.exit(f"refusing: {jobs_path} exists")
     per_pd, stats = {}, {}
@@ -60,7 +65,7 @@ def main() -> None:
             rows = [json.loads(l) for l in open(THINKER / point / f"blocks_{d}.jsonl", encoding="utf-8")]
             assert {r["id"] for r in rows} == set(items), (point, d)
             refdir = E / "refs" / point / d
-            refdir.mkdir(parents=True, exist_ok=False)
+            refdir.mkdir(parents=True, exist_ok=True)
             cache, blocks, low = {}, [], 0
             for r in rows:
                 if not r["blocks"]:
@@ -75,8 +80,13 @@ def main() -> None:
                 ref, peak = reference(wav[: max(first, 1000) * 16])
                 low += peak < 1e-4
                 ref_path = refdir / f"{r['id']}.wav"
-                with open(ref_path, "xb") as fh:
-                    sf.write(fh, ref, 16000, format="WAV", subtype="PCM_16")
+                buf = io.BytesIO()
+                sf.write(buf, ref, 16000, format="WAV", subtype="PCM_16")
+                if ref_path.exists():
+                    assert ref_path.read_bytes() == buf.getvalue(), ref_path
+                else:
+                    with open(ref_path, "xb") as fh:
+                        fh.write(buf.getvalue())
                 for k, b in enumerate(r["blocks"]):
                     text = b["text"].strip()
                     if speakable(text):
@@ -92,7 +102,7 @@ def main() -> None:
             for n, i in enumerate(range(0, len(blocks), a.batch)):
                 out.append({"job": f"{point}_{d}_s{seed}_b{n:04d}", "point": point, "direction": d, "seed": seed,
                             "torch_seed": SEED_BASE[seed] + n, "language": LANGUAGE[d],
-                            "out": str((E / "tts" / f"{point}_s{seed}" / d).relative_to(REPO)),
+                            "out": str((R / "tts" / f"{point}_s{seed}" / d).relative_to(REPO)),
                             "blocks": blocks[i: i + a.batch]})
     with open(jobs_path, "x", encoding="utf-8") as fh:
         fh.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in out)

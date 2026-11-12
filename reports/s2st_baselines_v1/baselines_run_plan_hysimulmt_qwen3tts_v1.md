@@ -60,3 +60,21 @@
 - 代码：`experiments/baselines_hysimulmt_qwen3tts_v1/`（任务、TTS worker、时间轴拼接、打分）。运行输出：`eval_outputs/baselines_hysimulmt_qwen3tts_v1/`。
 - 结果：`paper/baselines_results/hysimulmt_qwen3tts/<点>_<方向>.json`（asr_bleu、text_bleu、laal_d1、laal_d0w、n、config、各种子）、
   `tiers.json`、`summary.md`（含与“Hy-SimulMT + 论文 talker”的并列表）；tracked 副本 `reports/s2st_baselines_v1/hysimulmt_qwen3tts_results/`。
+
+## 5. 修订 1（2026-11-12 20:17 布拉格，在任何 ASR、BLEU、延迟计算之前）
+
+- **现象**：20:06 第一次启动后几分钟内，12 个 worker 全都卡在个别批次上。诊断：同一批、同样的参考音频和种子，只把上限临时设为 400 帧。
+  std En→Zh 第 0 批 32 块里有 4 块（“而”“嗯。”“嗯，”“所以，”）到 400 帧还没有输出 codec EOS，其余块都 ≤ 16 帧。
+  按 generation_config 的 `max_new_tokens=8192`，这种块会一直生成到 8192 帧（约 655 s 音频）。这样每批要算约 35 min，
+  每个进程的显存会涨到约 50 GB，每卡 3 个进程会超出 135 GiB 预算。
+  用 LJSpeech 参考音色时，同样的极短文本都能正常停止。所以问题出在“真实会议录音的 x-vector + 极短文本”这个组合上。
+- **修订**：每块加生成长度上限，取 SimulInfer 自己的 qwen-tts 后端（`simulinfer/tts_backends/qwen.py`，与本运行用的是同一个
+  qwen-tts 包）对每次请求设的值：`max_new_tokens = min(1800, max(180, 18 × 字符数))` 帧。12.5 帧/s，即至少 14.4 s、至多 144 s。
+  采样参数仍用 generation_config 的默认值，不变。
+  实现：每批按批内最大的上限生成，每块的 codec 在解码前截到自己的上限。同一批的各行互不影响，所以这与每块单独请求等价。
+  到上限的块保留截断后的音频，照常进入时间轴和 ASR：SimulInfer 是流式播放的，已经播出的音频不会撤回。结果里报告到上限的块数。
+- 参考：vllm-omni 路径的服务端默认 `max_new_tokens` 是 2048，SimulInfer 客户端另有 `tts_max_audio_seconds=120`。
+  本运行用 qwen-tts 后端按文本长度定的上限，因为跑的是同一个 qwen-tts 包。
+- 第一次尝试（无上限）已全部停止，输出留在 `eval_outputs/baselines_hysimulmt_qwen3tts_v1/{jobs.jsonl,claims,tts}`，不用于任何结果。
+  修订后全部重新合成，放在 `eval_outputs/baselines_hysimulmt_qwen3tts_v1/a1/`。参考片段 `refs/` 沿用，重新生成并逐字节核对一致。
+- 其余设置都不变（批 32、种子、x-vector 音色、`non_streaming_mode=True`、时间轴、打分）。
