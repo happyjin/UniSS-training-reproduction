@@ -38,6 +38,17 @@ meetings), checked against v8's own validation rows:
     python -m experiments.mist_w3po_v1.crf.build_sched_windows --split validation \
         --v8-rows data/ami_multispk_si_v1/e2e_gstar_stream_zh2en_v1/rows_validation.jsonl \
         --out eval_outputs/mist_w3po_v1/crf/sched_dev_v1
+
+En->Zh (additive, 2026-11-12, reports/mist_w3po_v1/en2zh_full_plan_prereg_v1.zh-CN.md §2.2; every default unchanged):
+the same recipe on the en2zh v8 data (thinker_gstar_s2dl_20261029b was trained on e2e_gstar_stream_v1/rows_train.jsonl,
+built by uniss_qwen3_omni_v1/data_clean/build_ami_gstar_stream_rows.py): its reference windows, the Chinese text,
+its flat lowlat slot map, chunk deadlines from the AMI word times (utt_chunks with load_words, as that builder), the
+chunk text unstripped in the piece (as that builder), unit lengths in characters (zh_len). Every v8 read row is checked
+as for zh2en, and the chunks against the windows' own stream_target (stream_target_match / _mismatch):
+    python -m experiments.mist_w3po_v1.crf.build_sched_windows --src data/ami_multispk_si_v1/e2e_gstar_stream_v1 \
+        --v8-rows data/ami_multispk_si_v1/e2e_gstar_stream_v1/rows_train.jsonl --text-key zh --slot-key "" \
+        --words-manual data/ami_multispk_si_v1/annotations/ami_public_manual_1.6.2.zip --piece-strip 0 --units char \
+        --out eval_outputs/mist_w3po_v1/crf/sched_en2zh_v1
 """
 from __future__ import annotations
 
@@ -58,6 +69,8 @@ NEW0, N_TIME, N_SLOT = 151676, 251, 8
 SPK0 = NEW0 + N_TIME
 NEW_END = SPK0 + N_SLOT
 K_SPK, K_TA, K_TEXT, K_TB = 0, 1, 2, 3
+# en2zh options (main): their defaults reproduce the zh2en build bit for bit and are left out of summary.json's args
+NEW_DEFAULTS = {"text_key": "ref", "slot_key": "lowlat", "words_manual": "", "piece_strip": 1, "units": "word"}
 
 _TOK = None
 
@@ -77,20 +90,24 @@ def tokenizer(path: str = TOKENIZER):
     return _TOK
 
 
-def v8_chunks(w: dict, smap_m: dict, lag_ms: int) -> list[dict]:
-    """build_ami_gstar_stream_rows_zh2en.py lines 57-67 (+ the unit index, which the sort does not see)."""
+def v8_chunks(w: dict, smap_m: dict, lag_ms: int, text_key: str = "ref", words: dict | None = None,
+              strip: bool = True) -> list[dict]:
+    """build_ami_gstar_stream_rows_zh2en.py lines 57-67 (+ the unit index, which the sort does not see). en2zh
+    (build_ami_gstar_stream_rows.py lines 103-110): text_key "zh", words = the meeting's AMI word times per speaker,
+    strip False."""
     from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_gstar_si_rows import q
     from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import utt_chunks
 
     dur = w["dur_ms"]
     chunks = []
     for ui, u in enumerate(w["utts"]):
-        if u["hesitation"] or not u["ref"].strip():
+        if u["hesitation"] or not u[text_key].strip():
             continue
-        uu = {"begin_time": w["start_s"] + u["begin_s"], "end_time": w["start_s"] + u["end_s"], "zh": u["ref"]}
-        for c in utt_chunks(uu, [], lag_ms, w["start_s"]):
+        uu = {"begin_time": w["start_s"] + u["begin_s"], "end_time": w["start_s"] + u["end_s"], "zh": u[text_key]}
+        for c in utt_chunks(uu, [] if words is None else words.get(u["speaker_id"], []), lag_ms, w["start_s"]):
             c["commit_ms"] = min(c["commit_ms"], dur)
-            c["piece"] = (f"<|spk{smap_m[u['speaker_id']]}|><|t{q(c['src_start_ms'] / 1000)}|>{c['text'].strip()}"
+            txt = c["text"].strip() if strip else c["text"]
+            c["piece"] = (f"<|spk{smap_m[u['speaker_id']]}|><|t{q(c['src_start_ms'] / 1000)}|>{txt}"
                           f"<|t{q(c['src_end_ms'] / 1000)}|>")
             c["utt"] = ui
             c["slot"] = smap_m[u["speaker_id"]]
@@ -115,9 +132,10 @@ def first_read_at(t_ms: list[int], x: float) -> int:
     return min(bisect.bisect_left(t_ms, x), len(t_ms) - 1)
 
 
-def build_window(w: dict, smap_m: dict, args, tok) -> tuple[dict, dict]:
+def build_window(w: dict, smap_m: dict, args, tok, words: dict | None = None) -> tuple[dict, dict]:
     dur = w["dur_ms"]
-    chunks = v8_chunks(w, smap_m, round(args.lag * 1000))
+    o = {k: getattr(args, k, v) for k, v in NEW_DEFAULTS.items()}
+    chunks = v8_chunks(w, smap_m, round(args.lag * 1000), o["text_key"], words, bool(o["piece_strip"]))
     t_ms = v8_reads(dur)
     R = len(t_ms)
     ids, kind, chunk_of, unit_of, wstart = [], [], [], [], []
@@ -153,7 +171,8 @@ def build_window(w: dict, smap_m: dict, args, tok) -> tuple[dict, dict]:
             ov = sum(max(0.0, min(b, v["end_s"]) - max(a, v["begin_s"])) for v in utts
                      if v["speaker_id"] != u["speaker_id"])
             units[ui] = {"utt": ui, "a_ms": round(a * 1000), "b_ms": round(b * 1000), "slot": c["slot"],
-                         "speaker_id": u["speaker_id"], "ov_s": round(ov, 3), "words": len(u["ref"].split())}
+                         "speaker_id": u["speaker_id"], "ov_s": round(ov, 3),
+                         "words": len(u[o["text_key"]].split()) if o["units"] == "word" else zh_len(u[o["text_key"]])}
     # bounds
     lo, hi, req, tau = [], [], [], []
     for j in range(N):
@@ -239,8 +258,15 @@ def _init(threads: int):
     tokenizer()
 
 
+def zh_len(s: str) -> int:
+    from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import zh_len as z
+
+    return z(s)
+
+
 def run_shard(job: tuple) -> dict:
-    k, wins, smap, v8rows, args = job
+    k, wins, smap, v8rows, args, *rest = job
+    words = rest[0] if rest else None        # en2zh: meeting -> speaker -> AMI word times (--words-manual)
     tok = tokenizer()
     rng = np.random.default_rng(1000 + k)
     st = defaultdict(int)
@@ -248,7 +274,12 @@ def run_shard(job: tuple) -> dict:
     path = Path(args.out) / f"shard_{k:03d}.jsonl"
     with open(path, "x", encoding="utf-8") as fh:
         for w in wins:
-            rec, info = build_window(w, smap[w["meeting"]], args, tok)
+            rec, info = build_window(w, smap[w["meeting"]], args, tok,
+                                     None if words is None else words.get(w["meeting"], {}))
+            if "stream_target" in w:          # en2zh windows carry the v8 builder's own chunks
+                ok = [(c["piece"], c["commit_ms"]) for c in info["chunks"]] == \
+                    [(c["piece"], c["commit_ms"]) for c in w["stream_target"]["chunks"]]
+                st["stream_target_match" if ok else "stream_target_mismatch"] += 1
             for key, v in check_v8_rows(info["chunks"], rec["t_ms"], v8rows.get(w["id"], [])).items():
                 st[key] += v
             st["windows"] += 1
@@ -313,6 +344,11 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="first n windows only (smoke test)")
     ap.add_argument("--split", choices=["train", "validation"], default="train",
                     help="windows_<split>_ref.jsonl of --src (validation: pass v8's rows_validation.jsonl as --v8-rows)")
+    ap.add_argument("--text-key", default="ref", help="utterance field of the target text (en2zh: zh)")
+    ap.add_argument("--slot-key", default="lowlat", help="key of slot_map.json ('' = the file is the map itself, en2zh)")
+    ap.add_argument("--words-manual", default="", help="AMI manual zip: chunk deadlines from the word times (en2zh)")
+    ap.add_argument("--piece-strip", type=int, default=1, choices=[0, 1], help="strip the chunk text (en2zh: 0)")
+    ap.add_argument("--units", default="word", choices=["word", "char"], help="unit length (en2zh: char = zh_len)")
     args = ap.parse_args()
     if args.workers > 64:
         raise SystemExit("at most 64 workers")
@@ -321,7 +357,13 @@ def main() -> None:
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     t0 = time.time()
     src = Path(args.src)
-    smap = json.loads((src / "slot_map.json").read_text(encoding="utf-8"))["lowlat"]
+    smap = json.loads((src / "slot_map.json").read_text(encoding="utf-8"))
+    smap = smap[args.slot_key] if args.slot_key else smap
+    words_all = None
+    if args.words_manual:
+        from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import load_words
+
+        words_all = {m: {s: list(v) for s, v in d.items()} for m, d in load_words(Path(args.words_manual)).items()}
     wins = [json.loads(l) for l in open(src / f"windows_{args.split}_ref.jsonl", encoding="utf-8")]
     assert all(w["split"] == args.split for w in wins)
     if args.limit:
@@ -341,6 +383,8 @@ def main() -> None:
     shards = [wins[i: i + args.shard_size] for i in range(0, len(wins), args.shard_size)]
     jobs = [(k, sh, {m: smap[m] for m in {w["meeting"] for w in sh}}, {w["id"]: v8rows.get(w["id"], []) for w in sh},
              args) for k, sh in enumerate(shards)]
+    if words_all is not None:
+        jobs = [j + ({m: words_all.get(m, {}) for m in {w["meeting"] for w in j[1]}},) for j in jobs]
     print(f"{len(wins)} windows, {len(shards)} shards, {min(args.workers, len(shards))} workers, "
           f"{n_v8_read} v8 read rows", flush=True)
     import multiprocessing as mp
@@ -373,7 +417,8 @@ def main() -> None:
         "lat_heur": q_stats(lat[feas]),
         "dummy_fb_s": q_stats(dist["fb_s"]), "dummy_viterbi_s": q_stats(dist["vit_s"]),
         "dummy_fb_s_wcap": q_stats(dist.get("fb_s_wcap", [])),
-        "args": {k: v for k, v in vars(args).items() if not (k == "split" and v == "train")},   # as before at default
+        "args": {k: v for k, v in vars(args).items() if not (k == "split" and v == "train")
+                 and not (k in NEW_DEFAULTS and v == NEW_DEFAULTS[k])},   # as before at default
         "elapsed_s": time.time() - t0,
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
