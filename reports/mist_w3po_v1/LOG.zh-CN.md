@@ -2562,3 +2562,23 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 门槛：语音对 A′rl + PL-EM，文本对 A′；LAAL 同时 < 4.050 且 ≤ 3.757（chunk 基线 − 0.10）。
   - 另报：归属错误率、窗口切断率、听感。
 - **代码**：`data/specclose.py` + `test_specclose`（7/7）。没有用 GPU。
+
+## 2026-11-12 13:30 布拉格 — SpecClose：判别器训练 + CPU 预检 **NOT GO**；代码和评测脚本已备好（未启动）
+
+- **判别器**（`detector_v1/judge_v1`，CPU 43 s）：114 个训练会议，13 个留出会议，选中第 3 个 epoch，θ = 0.0111。留出集错关率 0.93%，召回 49.2%。
+- **预检**（`detector_v1/specclose_precheck_v1.json`）：
+  - P1 过；
+  - P2：错关率 0.49%（6 / 1228），只切开 7 个 C2 窗口，但**召回 39.2% < 50%**；
+  - P3：重算 A′rl + PL-EM 为 **3.762 > 3.757**（chunk 基线 3.857，现行协议 4.050）；
+  - P4：切断率 2.54%，过。
+  - 按登记规则 NOT GO：不改 θ，不上 GPU。
+- **代码**（只做加法）：
+  - `crf/decode_crf_ckpt_specclose.py` + 测试（全过；finalpost 回归全过）；
+  - `scripts/specclose_eval_orch.py`（只换解码模块）；
+  - `scripts/specclose_precheck.py`、`scripts/specclose_dev5_go.py`（用 A′ 自检：dev5 复现 28.36 / 24.12、3.435）；
+  - `evaluation/attribution_error.py`（参考：A′ 按词归属错误率 10.19%，VE1 10.94%，差 +0.75 个百分点，CI [0.03, 1.83]）；
+  - `scripts/specclose_eval.sh`（`bash -n` 和 DRY_RUN 检查过；NOT GO 时必须显式给 ALLOW_NOGO 才会启动）。
+- **chunk 协议**的参考数（CPU，`detector_v1/ref_chunk/`）：
+  - A′rl + PL-EM 3.859 / 3.854；VE1rl + PL-EM 3.584 / 3.588；
+  - A′ 文本 LAAL 3.268；A′ dev5 文本 LAAL 3.435（现行协议 3.635）。
+- 没有用 GPU。等协调者决定（见预登记 9.2）。
