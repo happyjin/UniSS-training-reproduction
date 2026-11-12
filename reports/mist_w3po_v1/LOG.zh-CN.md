@@ -2329,3 +2329,12 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - UTMOS / SIM：`talker_quality`，GPU 小作业，每个约 3 GB。RC5 速查结束后，4 个作业各放一张 4–7 号卡。占卡程序见到新进程就让开了，守护脚本 v3 会在这些小进程跑满 5 分钟后补上容忍小进程的占卡程序。A′ + PL-EM 的 UTMOS / SIM 用已有的结果。
   - talker WER：`speech_gap_decomp`，只用 CPU，输出在 `crf/t_eval/listen_rl_v1/`。
   - 块与停顿统计：新加 `evaluation/talker_block_pauses.py`，只读 talker 的 results.jsonl，用合成数据检查过。
+
+## 2026-11-12 07:55 布拉格（06:55 UTC）— 读级块听感对比完成
+
+- UTMOS / SIM 的 4 个作业（4–7 号卡，07:43–07:47）和 talker WER 的 4 个 CPU 作业都正常结束（rc=0）。
+- **结论**：读级块不影响 SIM（0.836）、talker WER（约 4.4%）和强制截断块（≤ 8 / 约 10k）；单词块占比 34.8% → 25.0%；突兀停顿（块间 ≥ 0.5 s、句中）基本不变（1.4 → 1.5 次 / 分钟）。
+  - UTMOS 小而一致地下降：A′rl + PL-EM 对 A′ + PL-EM 为 −0.019，CI [−0.027, −0.012]；VE1rl + PL-EM 为 −0.030。
+  - VE1 的突兀停顿只有 0.2 次 / 分钟。
+  - 详见 `aprime_rl_results_v1.zh-CN.md` 的"听感对比"一节。
+- **卡**：作业结束后 4–7 号卡没有我们的进程，守护脚本 v3 几秒内补上了占卡程序。0–3 号卡是 VE1-s2 训练。
