@@ -2590,3 +2590,14 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **测试**：`test_d1v` 全过（R0、R0b、R1–R3 与 M 在 VE1 数据和 v2p 格上）；回归 `test_d1` 4/4、`test_dart_aug` 6/6、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_pmc` 3/3、`test_pmc_noc` 3/3、`test_merge_read_segments` 2/2。
 - **脚本**：`start_d1v_rollin.sh`（评测类，`PAIRS`，拒绝训练槽位的卡）、`start_d1v.sh`（4 卡，端口 29975）、`v4a_after_train.sh`（`TAG=d1v`，端口 19601 / 19611，合并一步的预先授权续跑）。
 - **GPU**：没有用。
+
+## 2026-11-12 13:05 布拉格（12:05 UTC）— J1-v2：PC1–PC3 通过，PC4 (ii) 不过 → 按登记不训练（等协调者 / 用户决定）
+
+- **代码**（只做加法，默认路径与改动前逐位相同）：`joint_speech_crf` 加标签路径掩码、新预算、`solve_lambda_to`；`joint_speech_train.run_step(budget=)`；`train_crf_sft --js-budget / --js-delta`；`test_j1v2` 4/4；回归全过。
+- **预检** `crf/j1v2_precheck_v1.json`：
+  - PC2：读级块 + PL-EM talker 上模型与实际差 +0.002 / +0.007 s，r 0.994 / 0.996，过；
+  - PC3：加粗 0.004%，每步 p95 0.33 s，过；
+  - **PC4**：语音 l / 词 2.732 vs 基线 2.866（过）；文本 0.800 vs 0.896（过）；**块数 4963.1 vs 4933.3（不过）**。
+- **描述**：在同样的语音期望下，文本时间线后验的块数相同（4963.0），文本更早。语音时间线的势在 v2p 格上相对一个延迟预算没有额外作用，与原 J1 的诊断一致。
+- **决定**：按登记不训练。`start_j1v2.sh` 在 pass = False 时拒绝启动，不改。是否例外放行由协调者（用户）决定。
+- **GPU**：没有用。

@@ -889,7 +889,16 @@ def build_args(argv=None):
     ap.add_argument("--talker-model", default="",
                     help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
                     "(unused by the other objectives)")
+    ap.add_argument("--js-budget", default="t1", choices=["t1", "shift"],
+                    help="--objective joint_speech: lam's step target; t1 = J1 / T3 (T1 sub-lattice expectation); "
+                    "shift = J1-v2 (thinker_joint_crf_v2_prereg_v1): max(E0 - --js-delta x words, label path)")
+    ap.add_argument("--js-delta", type=float, default=0.134,
+                    help="--js-budget shift only: delta in seconds per word (registered 0.134)")
     a = ap.parse_args(argv)
+    if a.js_budget != "t1" and a.objective != "joint_speech":
+        ap.error("--js-budget shift needs --objective joint_speech")
+    if a.js_delta != 0.134 and a.js_budget != "shift":
+        ap.error("--js-delta needs --js-budget shift")
     if a.pmc_content_weight != 1.0 and (a.lw_mode != "pmc" or a.objective != "latent_write"):
         ap.error("--pmc-content-weight needs --objective latent_write --lw-mode pmc")
     if a.pmc_content_weight < 0.0:
@@ -1087,7 +1096,11 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             model.eval()
             for m in extra_params:
                 m.eval()
-            if dart is None and args.lw_mode == "t2":   # T3 exactly
+            if args.js_budget == "shift":   # J1-v2 (thinker_joint_crf_v2_prereg_v1): the strict speech budget
+                v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
+                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}),
+                                   budget="shift", delta=args.js_delta)
+            elif dart is None and args.lw_mode == "t2":   # T3 exactly
                 v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
             else:   # J1: the base's lattice mode and DART rows
                 v2p = JST.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),

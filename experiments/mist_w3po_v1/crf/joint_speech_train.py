@@ -24,11 +24,17 @@ TAU = JS.TAU
 
 
 def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step: int, tau: float, rk: int, nw: int,
-             prefetch: bool = False, mode: str = "t2", dart: dict | None = None) -> dict:
+             prefetch: bool = False, mode: str = "t2", dart: dict | None = None, budget: str = "t1",
+             delta: float = JS.JS_DELTA) -> dict:
     """Pass 1 + augmented chains + lam* + posterior + pass-2 rows of this rank. ctx["talker_model"]: JS.TalkerModel.
     J1 (reports/mist_w3po_v1/thinker_joint_crf_prereg_v1.zh-CN.md): mode = the base's lattice ("t2" T4 / "t5" T5) and
     dart = {w.idx: delay} of this step (crf/dart_aug.py rows appended to pass 2 exactly as latent_write_train does);
-    the defaults (mode "t2", dart None) are T3 bit for bit."""
+    the defaults (mode "t2", dart None) are T3 bit for bit.
+    J1-v2 (reports/mist_w3po_v1/thinker_joint_crf_v2_prereg_v1.zh-CN.md): budget "shift" = the step target
+    max(E0 - delta * words, label path) (JS.budget_shift / JS.solve_lambda_to) instead of T1's; "t1" (default) is J1 /
+    T3 unchanged."""
+    if budget not in ("t1", "shift"):
+        raise ValueError(budget)
     tm = ctx["talker_model"]
     t0 = time.time()
     hook = model._post_transform is not None
@@ -59,9 +65,16 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
         res = {k: v for g in gat for k, v in g.items()}
     t_gather = time.time() - t2
     t3 = time.time()
-    parts = {w.idx: JS.window_parts(w, plans[w.idx], res, tm, tau) for w in sw}
-    t_aug = time.time() - t3
-    lam, info = JS.solve_lambda([parts[w.idx] for w in sw])
+    binfo = None
+    if budget == "shift":
+        parts = {w.idx: JS.window_parts_shift(w, plans[w.idx], res, tm, tau) for w in sw}
+        t_aug = time.time() - t3
+        tgt, binfo = JS.budget_shift([parts[w.idx] for w in sw], delta)
+        lam, info = JS.solve_lambda_to([parts[w.idx] for w in sw], tgt)
+    else:
+        parts = {w.idx: JS.window_parts(w, plans[w.idx], res, tm, tau) for w in sw}
+        t_aug = time.time() - t3
+        lam, info = JS.solve_lambda([parts[w.idx] for w in sw])
     t_lam = time.time() - t3 - t_aug
     posts = {w.idx: JS.posterior_from_parts(w, plans[w.idx], parts[w.idx], tau, lam) for w in sw}
     V2T.set_coefs(p2, plans, posts, D)
@@ -95,6 +108,13 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
     if dart is not None:
         st["dart_rows"] = n_aug
         st["dart_windows"] = int(sum(1 for w in sw if dart.get(w.idx) is not None))
+    if binfo is not None:   # J1-v2 log fields (absent on the default paths)
+        st["js_budget"] = "shift"
+        st["budget_T"] = float(tgt) / max(sum_w, 1e-9)   # (Eq_speech_lat_T1_target then also holds T)
+        st["Eq_speech_lat_e_path"] = float(binfo["l_e"] / max(sum_w, 1e-9))
+        st["budget_shifted"] = float(binfo["shifted"] / max(sum_w, 1e-9))
+        st["budget_floor_active"] = bool(binfo["floor_active"])
+        st["js_delta"] = float(delta)
     return {"rows": p2all, "batches": batches, "t_pass1": t3 - t0, "t_post": t_post, "stats": st,
             "local": {"tok_pass1": s1["tok"], "mbs_pass1": s1["mbs"], "t_plan": t_plan,
                       "t_collate1": sum(getattr(b, "t_collate", 0.0) for _, b in b1),

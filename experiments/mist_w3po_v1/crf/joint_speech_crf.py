@@ -384,6 +384,79 @@ def solve_lambda(parts: list[dict]) -> tuple[float, dict]:
     return hi, info
 
 
+# ------------------------------------------------------------------------------------------------ J1-v2 (additive)
+# reports/mist_w3po_v1/thinker_joint_crf_v2_prereg_v1.zh-CN.md §1.3: per optimiser step the target is
+#   T = max(sum_w E_{q0,w}[l] - delta * sum_w W_w,  sum_w E_{q0,w}[l | evidence-label path]),   delta = 0.134 s / word
+# (q0 = the lam = 0 joint posterior, whose Thinker marginal is the base's (VE1's) posterior since sum_v pi(v | .) = 1;
+# the label path = every chunk written at its label read e_i, the speed classes as pi). The default T1 target
+# (window_parts / solve_lambda) is untouched.
+JS_DELTA = 0.134
+
+
+def label_mask(aug: dict, pl: dict) -> list:
+    """per read, the augmented edges whose Thinker edge is (label state at r - 1 -> label state at r); the label state
+    at r is the lattice state whose set is {i : e_i <= r} (asserted present and unique)."""
+    lat = pl["lat"]
+    e = lat["rho"]
+    out, prev = [], 0
+    for r, rd in enumerate(aug["reads"]):
+        lab = frozenset(x for x in range(len(e)) if e[x] <= r)
+        js = [j for j, A in enumerate(lat["sets"][r]) if frozenset(A) == lab]
+        assert len(js) == 1, (r, len(js))
+        i, j = rd["te"] // rd["ncur"], rd["te"] % rd["ncur"]
+        out.append((i == prev) & (j == js[0]))
+        prev = js[0]
+    return out
+
+
+def window_parts_shift(w, pl: dict, res: dict, tm: TalkerModel, tau: float = TAU) -> dict:
+    """window_parts (unchanged) plus E0 = E_{q, lam = 0}[l] and l_e = E_{q, lam = 0}[l | label path]."""
+    p = window_parts(w, pl, res, tm, tau)
+    p["E0"] = forward_backward(p["aug"], 0.0)["Eq_l"]
+    p["l_e"] = forward_backward(p["aug"], 0.0, label_mask(p["aug"], pl))["Eq_l"]
+    return p
+
+
+def budget_shift(parts: list[dict], delta: float = JS_DELTA) -> tuple[float, dict]:
+    """J1-v2's step target T and its parts."""
+    e0 = float(sum(p["E0"] for p in parts))
+    w = float(sum(p["sum_words"] for p in parts))
+    le = float(sum(p["l_e"] for p in parts))
+    shifted = e0 - delta * w
+    return max(shifted, le), {"E0": e0, "words": w, "l_e": le, "shifted": shifted, "floor_active": bool(shifted < le),
+                              "delta": delta}
+
+
+def solve_lambda_to(parts: list[dict], tgt: float) -> tuple[float, dict]:
+    """solve_lambda with an explicit step target (same bracket / bisection, LW constants); with
+    tgt = sum(p["target"]) it returns solve_lambda's lam and info."""
+    def f(lam):
+        return sum(forward_backward(p["aug"], lam)["Eq_l"] for p in parts)
+    f0 = f(0.0)
+    info = {"target": tgt, "Eq_l_lam0": f0, "binding": f0 > tgt, "bracketed": True, "capped": False, "evals": 1}
+    if f0 <= tgt:
+        return 0.0, info
+    lo, hi = 0.0, LW.LAM_START
+    while True:
+        fh = f(hi)
+        info["evals"] += 1
+        if fh <= tgt:
+            break
+        lo = hi
+        if hi >= LW.LAM_MAX:
+            info.update(bracketed=False, capped=True)
+            return LW.LAM_MAX, info
+        hi = min(2.0 * hi, LW.LAM_MAX)
+    for _ in range(LW.BISECT_ITERS):
+        mid = 0.5 * (lo + hi)
+        if f(mid) > tgt:
+            lo = mid
+        else:
+            hi = mid
+        info["evals"] += 1
+    return hi, info
+
+
 def edge_blocks(rec: dict, pl: dict, r: int, nprev: int, ncur: int) -> np.ndarray:
     """[nprev, ncur] number of non-empty (read, speaker) blocks the Thinker edge i -> j of read r writes (0 off the
     edges): the speakers of W = pl["W"][(r, i)][j]. J1's block statistic (= the talker blocks under read-level input)."""
