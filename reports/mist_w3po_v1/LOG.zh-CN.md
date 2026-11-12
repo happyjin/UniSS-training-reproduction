@@ -2143,3 +2143,18 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - `start_d1_rollin.sh` 开始为 T5 基线在 4,5 / 6,7 上排 roll-in 分片（每卡要 40 GiB 的余量，这两组卡上现在有 A′rl 的作业）；
   - `start_d1_after_v2.sh` 在等 roll-in 清单 `crf/d1_t5_w10_v1`。
 - **4–7 号卡**：A′rl 两个编排器（c1+b1+s2、PL-EM）在跑；T1 等 A′rl 的 talker 都开始后再续跑。
+
+## 2026-11-12 02:15 布拉格（01:15 UTC）— 问题：D1 roll-in 两个分片的自检都没过，D1 停在这一步
+
+- `start_d1_rollin.sh` 01:53 布拉格在 4,5 和 6,7 上开了两个 roll-in 分片（基线 T5 step_03000）。
+- 两个分片开头的自检都没过，自检比较的是"一次前向批量算出的写出决定"和"每个边界单独做前缀前向的写出决定"：
+  - 分片 0：20 个窗口中 16 个一致（02:03 退出，rc=1）；
+  - 分片 1：20 个窗口中 15 个一致（02:12 退出）。
+- `start_d1_rollin.sh` 记"shard 0 failed: no manifest"后退出。没有生成清单 `crf/d1_t5_w10_v1`，所以 `start_d1_after_v2.sh` 停在等清单这一步，D1 不会开训。
+- roll-in 的输出目录 `crf/d1_rollin_t5_v1/rollin_{0,1}of2` 是空目录，按拒绝覆盖的规则保留不动。重跑要换一个新的输出目录名。
+- **可能的原因**（未验证，留给设计代理）：`d1_rollin.gpu_batch_scorer` 用左填充、只传 attention_mask，调用 `thinker.model(inputs_embeds=...)` 时没有传 position_ids。如果模型在这种情况下按 arange 生成位置，填充长度不同，RoPE 的位置就不同。逐边界前向和批量前向的填充长度不一样，argmax 在接近平局的地方就可能翻转。
+- **卡**：
+  - 4–7 号卡：A′rl 两个编排器在跑，T1 等 A′rl 的 talker 都开始后续跑，之后是守护脚本的占卡任务；
+  - 0–3 号卡：VE1 在训。
+  - 没有卡空着。
+- 已报告协调者，等决定（修复后重跑 roll-in，还是放弃 D1、4–7 号卡另作他用）。
