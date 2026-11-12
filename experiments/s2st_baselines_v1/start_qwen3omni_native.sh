@@ -4,7 +4,8 @@
 # thinker on one card + its talker/code2wav on another (qwen3omni_native_split.yaml). Each engine worker takes the next
 # unclaimed shard (claim file, noclobber) until none is left, so engines added later share the remaining shards.
 #
-#   ENGINES="4:5 6:7" bash experiments/s2st_baselines_v1/start_qwen3omni_native.sh       # thinker:talker card pairs
+#   ENGINES="5:4 7:4 6:6" bash experiments/s2st_baselines_v1/start_qwen3omni_native.sh   # thinker:talker cards
+#   (T:T = all stages on one card, qwen3omni_native_onecard.yaml; the card then needs NEED_T + NEED_K)
 #   DRY_RUN=1 ...    prints what would be started (memory check, placeholder supervisors) and starts nothing
 #
 # Before an engine starts on a card: the card's train_mist_workload.py supervisor (placeholder) is stopped by PID after a
@@ -15,14 +16,15 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 VENV=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030
 OUT=${OUT:-eval_outputs/s2st_baselines_v1/qwen3omni_native_cvss}
 LOGD=${LOGD:-logs/s2st_baselines_v1/qwen3omni_native}
-NUM_SHARDS=${NUM_SHARDS:-4}
-SHARDS=${SHARDS:-"0 1 2 3"}
+NUM_SHARDS=${NUM_SHARDS:-6}
+SHARDS=${SHARDS:-"0 1 2 3 4 5"}
 ENGINES=${ENGINES:-"4:5 6:7"}
 STAGGER=${STAGGER:-60}
 CAP_MIB=${CAP_MIB:-138240}      # 135 GiB a card
 NEED_T=${NEED_T:-88000}         # thinker stage at 0.52 (75 GB declared) + context/cudagraph overhead
 NEED_K=${NEED_K:-34000}         # talker 0.10 + code2wav 0.05 (21.5 GB declared) + two processes' overhead
 DEPLOY=experiments/s2st_baselines_v1/qwen3omni_native_split.yaml
+DEPLOY1=experiments/s2st_baselines_v1/qwen3omni_native_onecard.yaml
 DRY_RUN=${DRY_RUN:-0}
 ts() { TZ=Europe/Prague date +%H:%M:%S; }
 
@@ -46,7 +48,7 @@ room() {   # $1 card, $2 MiB needed -> 0 if it fits under CAP_MIB
 }
 
 worker() {   # $1 thinker card, $2 talker card
-  local T=$1 K=$2 k log
+  local T=$1 K=$2 k log vis dep
   mkdir -p "$OUT/claims" "$LOGD"
   for k in $SHARDS; do
     if ! ( set -o noclobber; echo "$T:$K $$ $(date -u +%FT%TZ)" > "$OUT/claims/shard_${k}of${NUM_SHARDS}" ) 2>/dev/null; then
@@ -54,18 +56,20 @@ worker() {   # $1 thinker card, $2 talker card
     fi
     while true; do
       stop_placeholders "$T"; stop_placeholders "$K"
-      if room "$T" "$NEED_T" && room "$K" "$NEED_K"; then break; fi
+      if [ "$T" = "$K" ]; then room "$T" $((NEED_T + NEED_K)) && break
+      elif room "$T" "$NEED_T" && room "$K" "$NEED_K"; then break; fi
       echo "[$(ts)] engine $T:$K shard $k: no room yet (card $T $(used_mib "$T") MiB, card $K $(used_mib "$K") MiB); waiting"
       sleep 60
     done
     log="$LOGD/shard_${k}of${NUM_SHARDS}_e${T}${K}_$(date -u +%Y%m%dT%H%M%SZ).log"
     [ -e "$log" ] && { echo "refusing: $log exists"; return 1; }
     echo "[$(ts)] engine $T:$K starts shard $k -> $log"
-    env CUDA_VISIBLE_DEVICES="$T,$K" PATH="$VENV/bin:$PATH" VLLM_USE_FLASHINFER_SAMPLER=0 \
+    if [ "$T" = "$K" ]; then vis=$T; dep=$DEPLOY1; else vis="$T,$K"; dep=$DEPLOY; fi
+    env CUDA_VISIBLE_DEVICES="$vis" PATH="$VENV/bin:$PATH" VLLM_USE_FLASHINFER_SAMPLER=0 \
         VLLM_CACHE_ROOT=/opt/dlami/nvme/jasonleeeli/cache/vllm_omni_030 PYTHONPATH=. PYTHONUNBUFFERED=1 \
         TOKENIZERS_PARALLELISM=false HF_HOME=/opt/dlami/nvme/jasonleeeli/cache/huggingface \
         "$VENV/bin/python" -m experiments.s2st_baselines_v1.qwen3omni_native_cvss --out "$OUT" \
-        --shard "$k" --num-shards "$NUM_SHARDS" --deploy-config "$DEPLOY" > "$log" 2>&1
+        --shard "$k" --num-shards "$NUM_SHARDS" --deploy-config "$dep" > "$log" 2>&1
     echo "[$(ts)] engine $T:$K shard $k exit $? ($(grep -c . "$OUT"/cvss_*/part_${k}of${NUM_SHARDS}.jsonl 2>/dev/null | tr '\n' ' '))"
   done
   echo "[$(ts)] engine $T:$K: no unclaimed shard left; QWEN3OMNI_ENGINE_DONE"
