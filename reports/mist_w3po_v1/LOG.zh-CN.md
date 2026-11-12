@@ -2395,3 +2395,19 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **UTMOS 配对差工具** `pmc_listen_compare.py`：在 VE1rl + PL-EM 对 A′ + PL-EM 上复现了听感节的 −0.030（10,433 对）。
 - **启动命令**已发给协调者，由执行者启动。`start_pmc.sh` 会等 slotB 上只剩占卡进程（此刻 4 号卡上是 VE1 不合块的 SIM 作业，几分钟内结束）。
 - **GPU**：没有用。
+
+## 2026-11-12 08:29 布拉格（07:29 UTC）— PMC-1 在 4–7 号卡开训（用户批准，协调者下令）
+
+- 预登记 `thinker_pmc_prereg_v1.zh-CN.md`（46cc50e4），代码和 CPU 预检（51f6c4ca，P1–P5 全过）。
+- 启动前：`bash -n` 和 DRY_RUN 检查 `start_pmc.sh`、`pmc_after_train.sh`（预检 pass = True，清单计划种子 20261109、sched `sched_t5_merge3_w10_v1`、模式 pmc；引用齐全；端口 19401–19424 空闲）。
+- `RUN_ID=pmc_20261112T072924Z`。`start_pmc.sh`（3255611）等 4 号卡上 VE1 不合块的 UTMOS / SIM 作业结束后（07:29:36 UTC），07:29:40 占 slotB，按 takeover 停掉 4–7 号卡上的占卡 supervisor 和 worker（按 PID），07:29:47 启动 torchrun 3259990（根 3259980）。`pmc_after_train.sh`（3255612，日志 `logs/mist_w3po_v1/pmc/after_train.log`）已挂上。
+- **核对**（前 10 步）：4 个 rank（3260462–3260465）；master_port 29997；`--lw-mode pmc`（args.json 和命令行；metrics 里没有单独的 lw_mode 字段）；有 lam 字段（均值 0.24）；λ 每步都绑定，Eq_lat_T2 与 lat_e 逐步相等（0.633）；有 exp_early_q（3.0）和 exp_early_pol（11.3）；不可行窗口 0，没有 NaN，显存峰值 80 GiB（卡上 87 GB），约 5.7 s/步（前 10 步）。pmc 模式下 q_label / lat_label 指最早路径。
+- 训练约 5–6.5 小时，全部结果约布拉格 15:30–16:45。4–7 号卡是训练卡，不叠任何东西。
+
+## 2026-11-12 08:30 布拉格 — VE1 不合块 + PL-EM（探索性描述评测）完成
+
+- 编排器 `t_eval/ve1xsegplem` 07:49–08:20 跑完（tts2 的 3 个 talker 分片第一次 rc 1，重试成功），听感 08:30 算完。详见 `thinker_crf_t_results_v1.zh-CN.md` 的"VE1：不合块 + PL-EM"一节。
+- 语音 23.52（23.62 / 23.42）；每条流语音 LAAL 3.768；EndOffset 3.29；单通道 5.12；排队 0.34。
+- 门槛（只作描述）：对 A′ +0.26（P 0.03），对 A′ + PL-EM −0.09（P 0.83），对 A′rl + PL-EM −0.17（P 0.90），都在线内；对 VE1rl + PL-EM −0.12（P 0.988）。
+- 听感：UTMOS 1.857 / 1.867（对 A′ + PL-EM −0.015，对 VE1rl +0.014）；SIM 0.837；talker WER 4.1–4.3%；单词块 25.4%；句中停顿每分钟 0.2 次（与 VE1rl 相同）。
+- 结论（描述）：不合块时，VE1 的延迟收益几乎全保留（−0.28 s，VE1rl −0.29 s），突兀停顿少也保留；损失是合块带来的语音 +0.12；UTMOS 回升 0.014。
