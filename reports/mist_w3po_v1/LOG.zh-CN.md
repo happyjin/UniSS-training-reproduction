@@ -2860,3 +2860,11 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - A′ 两个 run 的 exclude_cards 改成 "4 5 6 7"（新文件 + `mv -f`），之前已落在 4、6、7 号卡的 3 个 AMI 分片照常跑完。
 - **卡**：4–7 号卡上 R3 的 tts_worker 每卡约 55–70 GiB；R4 的 vLLM 在 3 号卡约 43 GiB。所以 4–7 号卡现在每卡只放得下 1 个解码。
   - 3 号卡 OOM 1 次：R4 的 EngineCore 在我们的分片上卡之后变大。编排器已重试，不占重试次数。
+
+## 2026-11-12 20:32 布拉格 — 协调者同意：两个 A′ 解码都结束后，清空 VE1 / D1v 编排器的 exclude
+
+- 优先级：第一组语音链 > VE1 / D1v 解码 > 其他代理的评测作业。
+- 新脚本 `scripts/final_test_release_g2.sh`（PID 1729924，只用 `bash -n` 和 DRY_RUN 检查过）：
+  - 先等两个 A′ 解码编排器都 DONE；
+  - 再等第一组 6 条语音链的 96 个 talker 作业全部上卡，或者最后一条第一组链启动后满 25 分钟，或者 A′ 结束后满 90 分钟；
+  - 然后把 ali / ami 的 ve1、d1v 共 4 个 run 的 exclude_cards 换成空文件（新文件 + `mv -f`）。
