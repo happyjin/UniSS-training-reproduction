@@ -2897,3 +2897,22 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   3. 合并输出完整。
   - 由新脚本 `scripts/final_test_auto_merge.sh` 执行（只用 `bash -n` 和 DRY_RUN 检查过）。
 - **卡**：R5 的 ASR 和 vLLM 引起 1 号卡 OOM 1 次、7 号卡余量保护停了 3 个作业，都已自动重试，已报协调者。
+
+## 2026-11-12 22:45 布拉格 — 实验 (b) 联合双向 Simul：预登记 v1 与 CPU 准备（未启动）
+
+- **预登记**：`joint_bidir_plan_prereg_v1.zh-CN.md`，在任何 (b) 的 GPU 作业或结果之前写成。
+- **发现**：分开的两个系统没有共用的 base。zh→en A′ 基于 `s2dl_zh2en_3k_20261030`，en→zh (a) 基于 `s2dl_20261029b`，两者都是从 O2 出发的单方向 v8。
+  - 用户据此决定走 B1：第 1 段是联合 v8 SFT（双向基线，单独报告），第 2 段是在它之上做联合 SerialCRF v2′。
+  - 两段都不设固定步数：每 500 步看一次两个方向的 dev5 文本代理，J = 两个方向 tcpBLEU-all 的均值，延迟可行性为 ≤ 参照 + 0.1 s，ε 0.2，s_min 3000，耐心 2 次；余弦 horizon 12000，安全上限 15000；每个检查点都存优化器状态。
+- **部分 dev 的验证**（CPU，53 个已有的 zh→en 全 dev 解码）：
+  - dev5 对全 dev 的 ρ：s3000 各方法 0.976，正常系统 0.848（全 dev 上相差 ≥ 0.5 的 72 对中 0 对排反），两条 RL 轨迹 0.90；
+  - 退化系统上 dev5 失效，所以选中后必须做 dev 全集评测；
+  - 结果在 `eval_outputs/mist_w3po_v1/joint/devrank_v1/`。
+- **代码**（提交 2d7b53d58、a00e3a112）：
+  - `train_crf_sft` 新增 `--sched2/--dir2`、`--stop-file`、`--lr-horizon`；
+  - `--gstar-sequential`，以及 run_thinker_gstar 的 `GSTAR_SEQUENTIAL` / `LR_DECAY_ITERS` / `SAVE_OPTIM`；
+  - `joint/` 下的行构造、Megatron→CRF 检查点转换（与合并模型逐位相同）、恒等检查点；
+  - 默认路径都不变，测试全部通过。
+  - 已建好 `e2e_gstar_stream_bidir_v2`：960k 行，逐条复现两个分开 run 的样本顺序。
+- **(a) 的代理改卡**（用户的并行方案：(b) 用 4–7）：`en2zh_ckpt_proxy.sh` 改为等 (a) 训练退出后在 0–3 上跑（rc 0 时释放 slotA）。选择规则和输出不变。等待进程按原环境重启：旧 PID 3192300 已按 PID 停掉，新 PID 3951662。
+- **未完成**：joint_orch、joint_select 和各 launcher 还没写，(b) 没有启动。清单见预登记第 9 节。
