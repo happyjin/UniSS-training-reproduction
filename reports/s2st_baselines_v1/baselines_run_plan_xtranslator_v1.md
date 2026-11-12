@@ -105,3 +105,15 @@
 - 运行目录：`eval_outputs/baselines_xtranslator_v1/<点>/realsi_<方向>/`。
 - `paper/baselines_results/xtranslator/<点>_<方向>.json`：字段与 seamless / hysimulmt 一致，即 asr_bleu、text_bleu、laal_d1、laal_d0w、n、无输出句数、配置、run 路径，另加 X-Translator 的计数（TTS 失败段、边界 flush、块/句）。
 - 同目录还有 `tiers.json` 和 `summary.md`。tracked 副本放 `reports/s2st_baselines_v1/xtranslator_results/`。
+
+## 6. 修订 1（2026-11-12 20:30 布拉格时间，RealSI 运行刚开始；网格与协议不变）
+
+- **时间更正**：本文件开头写的“20:40”有误。实际写于约 20:05，以 commit a85c5baa1 的时间为准。这次修订是在 RealSI 运行开始以后写的，只记录环境和资源上的处理，不改网格、协议和任何解码设置。
+- **冒烟测试**：只用 CVSS-T 的拼接音频（`eval_outputs/baselines_xtranslator_v1/smoke_inputs/`），没有用 RealSI。
+- **环境兼容层**：都在启动器里，只影响依赖，不影响合成。
+  - DeepFilterLib 0.5.6 没有 cp312 wheel：用装在 venv 目录内的 Rust 工具链从 sdist 编译。`deepfilternet` 用 `--no-deps` 装，它要求的 numpy<2 和 packaging<24 没有满足。
+  - DeepFilterNet 会 import 已从 torchaudio 删除的 `torchaudio.backend.common.AudioMetaData`，`serve_xvoice.py` 给了一个空壳类。X-Voice 只用它的 `enhance()`，用不到这个类。
+  - torchaudio 2.9 的 `load` 要通过 torchcodec 调 FFmpeg，本机没有 FFmpeg：改用 soundfile 读 wav，返回同样的 float32 [声道, 帧] 张量。
+  - fasttext 0.9.3 在 numpy 2 下调用 `np.array(copy=False)` 会报错，X-Voice 的 fastlid 语种检测会静默回退到请求的语种：把 fasttext 模块里的这一调用映射回 `np.asarray`，即 numpy<2 时的行为。冒烟测试时还没有加这一层，所以冒烟结果只用于检查流水线。
+- **资源**：按协调者要求，所有 vLLM 服务固定 KV 上限。LMT 为 `--kv-cache-memory-bytes 3G`（实测 20.7 GiB）；Qwen3-ASR 每个实例 1.5 GiB KV（实测 13.0 GiB）。3 号卡上共 2 组 ASR + X-Voice（2 个 shard）和 1 个 LMT。这些都只影响资源。
+- **Qwen3-ASR 启动器**：adapter 把端口写死为 8001。`serve_qwen3asr.py` import 它的模块，照抄 `main()`，只换端口和资源参数。
