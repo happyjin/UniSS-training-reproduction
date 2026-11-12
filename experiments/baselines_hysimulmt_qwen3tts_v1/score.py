@@ -66,6 +66,21 @@ def seed_run(point: str, d: str, seed: int, items: list[dict]) -> dict:
         if x is not None:
             d0w.append(x["D0w"])
     bl = [b for r in recs for b in r["blocks"]]
+    capped = {r["id"] for r in recs if any(b["tts_hit_cap"] for b in r["blocks"])}
+    keep = [it for it in items if it["id"] not in capped]
+    sub = corpus_bleu([heard.get(it["id"], "") for it in keep], [it["trg_text"] for it in keep], language=lang)["score"]
+    r2run = REPO / json.load(open(R2 / f"{point}_{d}.json", encoding="utf-8"))["seeds"][str(seed)]["run"]
+    heard2 = {r["id"]: r.get("asr_text", "") for r in map(json.loads, open(r2run / "asr_speech.jsonl", encoding="utf-8"))}
+    sub2 = corpus_bleu([heard2.get(it["id"], "") for it in keep], [it["trg_text"] for it in keep], language=lang)["score"]
+
+    def d1_rest(rows):   # collect_results.realsi_points' D1 on the sentences without a capped block
+        v = []
+        for r in rows:
+            ds = [bl["start_ms"] for bl in r["blocks"] for _ in units(bl["text"], lang)]
+            if ds and r["id"] not in capped:
+                v.append(laal(ds, r["source_duration_ms"], len(units(r["translation_ref"], lang))))
+        return round(st.mean(v) / 1000, 3)
+    recs2 = [json.loads(l) for l in open(r2run / "results.jsonl", encoding="utf-8")]
     tts = [b for b in bl if b["tts"]]
     return {"run": str(run.relative_to(REPO)), "asr_bleu": round(bleu["score"], 2), "laal_d1": st.mean(seg) / 1000,
             "laal_d0w": st.mean(d0w) / 1000, "n_talker_rows": len(recs), "n_asr_rows": len(heard),
@@ -73,7 +88,10 @@ def seed_run(point: str, d: str, seed: int, items: list[dict]) -> dict:
             "n_blocks": len(bl), "n_tts_blocks": len(tts), "n_hit_cap": sum(b["tts_hit_cap"] for b in tts),
             "speech_s_per_sentence": round(st.mean(sum(b["dur_ms"] for b in r["blocks"]) for r in recs) / 1000, 3),
             "end_offset_s_mean": round(st.mean(r["end_offset_ms"] for r in recs) / 1000, 3),
-            "bleu_detail": {k: bleu[k] for k in ("bp", "sys_len", "ref_len", "sample_count")}}
+            "bleu_detail": {k: bleu[k] for k in ("bp", "sys_len", "ref_len", "sample_count")},
+            "diag_no_capped_sentences": {"n_sentences_with_capped_block": len(capped), "n_rest": len(keep),
+                                         "asr_bleu_rest": round(sub, 2), "paper_talker_same_seed_index_asr_bleu_rest": round(sub2, 2),
+                                         "laal_d1_rest": d1_rest(recs), "paper_talker_laal_d1_rest": d1_rest(recs2)}}
 
 
 def point_dir(point: str, d: str) -> dict:
@@ -112,6 +130,8 @@ def point_dir(point: str, d: str) -> dict:
             "end_offset_s_mean": round(st.mean(r["end_offset_s_mean"] for r in runs.values()), 3),
             "n_hit_cap_3seeds": sum(r["n_hit_cap"] for r in runs.values()),
             "paper_talker": {k: r2[k] for k in ("asr_bleu", "asr_bleu_sd", "text_bleu", "laal_d1", "laal_d0w")},
+            "diag_no_capped_sentences_mean": {k: round(st.mean(r["diag_no_capped_sentences"][k] for r in runs.values()), 3)
+                                              for k in runs[0]["diag_no_capped_sentences"]},
             "seeds": runs}
 
 
@@ -144,6 +164,16 @@ def write_summary(res: dict, t1: dict, t0: dict, r2t: dict, path: Path) -> None:
         L.append(f"| {dname[d]} | `{p}` | {r['config']['native_mode']} | {r['asr_bleu']:.2f} (±{r['asr_bleu_sd']:.2f}) | "
                  f"{q['asr_bleu']:.2f} (±{q['asr_bleu_sd']:.2f}) | {r['text_bleu']:.2f} | {r['laal_d1']:.2f} | "
                  f"{q['laal_d1']:.2f} | {r['laal_d0w']:.2f} | {r['speech_s_per_sentence']:.2f} | {r['end_offset_s_mean']:.2f} |")
+    L += ["", "## 诊断：到上限的块（描述性，不进分档）", "",
+          "每个种子里，凡是有一块到生成上限（没有 codec EOS）的句子算“受影响句”；其余句子上两个系统的 ASR-BLEU 和 D1 对比"
+          "（论文 talker 取同序号种子的运行，句子集合相同），三个种子取均值。", "",
+          "| 方向 | 点 | 到上限的块（三种子合计） | 受影响句 / 全部 | 其余句 ASR-BLEU Qwen3-TTS | 其余句 ASR-BLEU 论文 talker | "
+          "其余句 D1 Qwen3-TTS (s) | 其余句 D1 论文 talker (s) |", "|---|---|---|---|---|---|---|---|"]
+    for (p, d), r in sorted(res.items(), key=lambda x: (x[0][1], x[1]["laal_d1"])):
+        g = r["diag_no_capped_sentences_mean"]
+        L.append(f"| {dname[d]} | `{p}` | {r['n_hit_cap_3seeds']} | {g['n_sentences_with_capped_block']:.1f} / {r['n']} | "
+                 f"{g['asr_bleu_rest']:.2f} | {g['paper_talker_same_seed_index_asr_bleu_rest']:.2f} | {g['laal_d1_rest']:.2f} | "
+                 f"{g['paper_talker_laal_d1_rest']:.2f} |")
     for title, t, rt, key in (("## 分档（按 D1，论文规则）", t1, r2t["by_D1"], "laal_d1"),
                               ("## 分档（按 D0w，仅作参考）", t0, r2t["by_D0w_reference_only"], "laal_d0w")):
         L += ["", title, "", "| 方向 | 档 | 预算 (s) | SimulS2ST-Omni（报告值） | Hy-SimulMT + Qwen3-TTS | Hy-SimulMT + 论文 talker |",

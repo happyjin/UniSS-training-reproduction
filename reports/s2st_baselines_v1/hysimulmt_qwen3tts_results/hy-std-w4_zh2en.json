@@ -1,0 +1,138 @@
+{
+ "system": "Hy-SimulMT-30B-A3B + Qwen3-TTS-12Hz-0.6B-Base",
+ "point": "hy-std-w4",
+ "direction": "zh2en",
+ "config": {
+  "chunk_ms_first": 1600,
+  "chunk_ms": 1600,
+  "st_wait_chunks": 4,
+  "native_mode": "standard",
+  "blocks": "eval_outputs/baselines_hysimulmt_v1/thinker/hy-std-w4/blocks_zh2en.jsonl (R2, unchanged)",
+  "tts": "Qwen/Qwen3-TTS-12Hz-0.6B-Base @ 5d83992436eae1d760afd27aff78a71d676296fc, qwen-tts 0.1.1, bf16, sdpa",
+  "voice": "x-vector only, speaker embedding of the source up to the first commit (>= 1 s; the paper talker's clip), SimulInfer peak normalisation",
+  "text_input": "block text stripped, one request per committed block, non_streaming_mode=True, punctuation-only blocks not spoken",
+  "decoding": "generation_config.json sampling defaults (do_sample, T 0.9, top_k 50, top_p 1.0, rep 1.05, sub-talker 0.9/50/1.0); amendment 1: per-block cap min(1800, max(180, 18 * chars)) codec frames (SimulInfer tts_backends/qwen.py), capped audio kept",
+  "seeds": "3 (batch-level torch.manual_seed 20261112 / 1000000 / 2000000 + batch index, batch 32)",
+  "timeline": "start = max(write_ms, previous block end), no compute time; 24 kHz -> 16 kHz",
+  "registration": "paper/baselines_run_plan_hysimulmt_qwen3tts_v1.md (+ amendment 1)"
+ },
+ "n": 431,
+ "asr_bleu": 20.11,
+ "asr_bleu_sd": 1.62,
+ "text_bleu": 21.54,
+ "laal_d1": 2.108,
+ "laal_d0w": 1.608,
+ "speech_s_per_sentence": 10.286,
+ "end_offset_s_mean": 6.141,
+ "n_hit_cap_3seeds": 82,
+ "paper_talker": {
+  "asr_bleu": 21.88,
+  "asr_bleu_sd": 0.02,
+  "text_bleu": 21.54,
+  "laal_d1": 1.751,
+  "laal_d0w": 1.608
+ },
+ "diag_no_capped_sentences_mean": {
+  "n_sentences_with_capped_block": 24.667,
+  "n_rest": 406.333,
+  "asr_bleu_rest": 22.267,
+  "paper_talker_same_seed_index_asr_bleu_rest": 22.087,
+  "laal_d1_rest": 1.97,
+  "paper_talker_laal_d1_rest": 1.738
+ },
+ "seeds": {
+  "0": {
+   "run": "eval_outputs/baselines_hysimulmt_qwen3tts_v1/a1/runs/system_hy-std-w4_m1.6/realsi_zh2en",
+   "asr_bleu": 18.93,
+   "laal_d1": 2.0388618783250116,
+   "laal_d0w": 1.6083445926344773,
+   "n_talker_rows": 431,
+   "n_asr_rows": 431,
+   "asr_cover": 1.0,
+   "n_d1": 431,
+   "n_d0w": 431,
+   "errors": 0,
+   "n_blocks": 1604,
+   "n_tts_blocks": 1603,
+   "n_hit_cap": 19,
+   "speech_s_per_sentence": 9.875,
+   "end_offset_s_mean": 5.752,
+   "bleu_detail": {
+    "bp": 1.0,
+    "sys_len": 8943,
+    "ref_len": 7101,
+    "sample_count": 431
+   },
+   "diag_no_capped_sentences": {
+    "n_sentences_with_capped_block": 18,
+    "n_rest": 413,
+    "asr_bleu_rest": 22.23,
+    "paper_talker_same_seed_index_asr_bleu_rest": 22.04,
+    "laal_d1_rest": 1.976,
+    "paper_talker_laal_d1_rest": 1.743
+   }
+  },
+  "1": {
+   "run": "eval_outputs/baselines_hysimulmt_qwen3tts_v1/a1/runs/system_hy-std-w4-seed1_m1.6/realsi_zh2en",
+   "asr_bleu": 19.44,
+   "laal_d1": 2.1324253102762154,
+   "laal_d0w": 1.6083445926344773,
+   "n_talker_rows": 431,
+   "n_asr_rows": 431,
+   "asr_cover": 1.0,
+   "n_d1": 431,
+   "n_d0w": 431,
+   "errors": 0,
+   "n_blocks": 1604,
+   "n_tts_blocks": 1603,
+   "n_hit_cap": 32,
+   "speech_s_per_sentence": 10.485,
+   "end_offset_s_mean": 6.357,
+   "bleu_detail": {
+    "bp": 1.0,
+    "sys_len": 8729,
+    "ref_len": 7101,
+    "sample_count": 431
+   },
+   "diag_no_capped_sentences": {
+    "n_sentences_with_capped_block": 27,
+    "n_rest": 404,
+    "asr_bleu_rest": 22.33,
+    "paper_talker_same_seed_index_asr_bleu_rest": 22.15,
+    "laal_d1_rest": 1.958,
+    "paper_talker_laal_d1_rest": 1.735
+   }
+  },
+  "2": {
+   "run": "eval_outputs/baselines_hysimulmt_qwen3tts_v1/a1/runs/system_hy-std-w4-seed2_m1.6/realsi_zh2en",
+   "asr_bleu": 21.95,
+   "laal_d1": 2.1524073106478245,
+   "laal_d0w": 1.6083445926344773,
+   "n_talker_rows": 431,
+   "n_asr_rows": 431,
+   "asr_cover": 1.0,
+   "n_d1": 431,
+   "n_d0w": 431,
+   "errors": 0,
+   "n_blocks": 1604,
+   "n_tts_blocks": 1603,
+   "n_hit_cap": 31,
+   "speech_s_per_sentence": 10.497,
+   "end_offset_s_mean": 6.315,
+   "bleu_detail": {
+    "bp": 1.0,
+    "sys_len": 7826,
+    "ref_len": 7101,
+    "sample_count": 431
+   },
+   "diag_no_capped_sentences": {
+    "n_sentences_with_capped_block": 29,
+    "n_rest": 402,
+    "asr_bleu_rest": 22.24,
+    "paper_talker_same_seed_index_asr_bleu_rest": 22.07,
+    "laal_d1_rest": 1.975,
+    "paper_talker_laal_d1_rest": 1.735
+   }
+  }
+ }
+}
