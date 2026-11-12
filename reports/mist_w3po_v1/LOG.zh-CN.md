@@ -2446,3 +2446,13 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **听感**：UTMOS 1.849 / 1.848（对 VE1rl −0.006，分不开；对 A′ + PL-EM −0.032）；SIM 0.836；talker WER 4.3–4.4%；单词块 21.8%；句中停顿每分钟 0.26 次。
 - 结果写进预登记的"结果"节和 `thinker_crf_t_results_v1.zh-CN.md` 的 VE1-s2 一节。
 - **卡**：0–3 号卡交回守护脚本 v3 的占卡程序，4–7 号卡是 PMC 训练。
+
+## 2026-11-12 10:58 布拉格 — 为 PMC 备好合并一步的续跑脚本（未启动）
+
+- `pmc_after_train.sh` 的合并一步与 VE1-s2 一样：pair_lost > 0 就停。为了万一停住时不耽误时间，备好 `scripts/pmc_after_merge.sh`（`bash -n` 和 DRY_RUN 检查过）。
+  - 第 4–6 步从 `pmc_after_train.sh` 原样复制（diff 一致）：dev5 截取 + GO、PL-EM 语音链、听感。
+  - 只有满足下面三条才启动：
+    - 解码干净；
+    - `after_train.log` 里有 "merge failed"，且合并日志写的是 "pairing lost"；
+    - pair_lost 等于启动时显式给的 `PL_WANT`。
+- 要不要用它，等 PMC 的合并结果出来、由协调者决定。
