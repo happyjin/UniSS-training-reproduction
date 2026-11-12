@@ -12,6 +12,14 @@
 #     bash experiments/mist_w3po_v1/scripts/en2zh_ckpt_proxy.sh
 # Run detached: setsid nohup bash ... > logs/mist_w3po_v1/en2zh/ckpt_proxy.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
+# Card change 2026-11-12 (user's PARALLEL plan: the joint bidirectional run (b) trains on the other 4 cards,
+# reports/mist_w3po_v1/joint_bidir_plan_prereg_v1.zh-CN.md): each orchestrator now starts only after this Thinker
+# training has exited (CRF_RUN_EXIT in its log), and runs on the training cards TCARDS (--exclude = the other 4 cards),
+# stacking with this run's other eval jobs within 135 GiB per card (--cap135, shared ledger). Orchestrator commands,
+# outputs, the chunk LAAL and the selection rule are otherwise unchanged. Because the training slot's owner file keeps
+# every orchestrator off TCARDS (sync_train_exclude.sh), this script now releases the slot itself once the training
+# exited with rc 0 (the same rename as en2zh_after_select.sh step 1, which then finds nothing to release); a non-zero
+# exit keeps the slot for inspection and stops here with EN2ZH_PROXY_FAILED (ask the coordinator).
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 RUN=${RUN:?}; TCARDS=${TCARDS:?}
@@ -27,7 +35,8 @@ W5C=eval_outputs/mist_w3po_v1/data/windows_en2zh_c2g06_chunk_v1_dev5/windows_dev
 REF=data/ami_multispk_si_v1/e2e_gstar_v1/windows_validation_ref.jsonl
 SEL=$E/thinker_selection.json
 L=logs/mist_w3po_v1/$RUN.log
-EX=$(echo "$TCARDS" | tr ',' ' ')
+SLD=logs/mist_w3po_v1/slots
+EX=$(for c in 0 1 2 3 4 5 6 7; do case ",$TCARDS," in *",$c,"*) ;; *) echo -n "$c ";; esac; done | sed 's/ $//')
 log() { echo "$(date -u +%FT%TZ) $*"; }
 name() { printf 'dev5_%s_s%05d' "$RUN" "$1"; }
 ocmd() { local s=$1; echo "$PY experiments/mist_w3po_v1/scripts/en2zh_orch.py --set dev5 --run $E/dev5_s$(printf %05d $s) \
@@ -51,6 +60,17 @@ for s in $STEPS; do
       log "EN2ZH_PROXY_FAILED: training exited ($(grep CRF_RUN_EXIT $L | tail -1)) without $CK"; exit 1
     fi
     sleep 60
+  done
+  if ! grep -q CRF_RUN_EXIT $L 2>/dev/null; then
+    log "step $s: waiting for the training to exit (proxies run on $TCARDS, not on $EX)"
+    until [ -e $L ] && grep -q CRF_RUN_EXIT $L; do sleep 60; done
+  fi
+  if ! grep -q 'CRF_RUN_EXIT rc=0' $L; then
+    log "EN2ZH_PROXY_FAILED: training exit $(grep CRF_RUN_EXIT $L | tail -1); slot kept for inspection, ask the coordinator"; exit 1
+  fi
+  for sl in slotA slotB; do
+    [ -e $SLD/$sl.owner ] && grep -q "$RUN" $SLD/$sl.owner && command mv -f $SLD/$sl.owner $SLD/$sl.released_$(date -u +%Y%m%dT%H%M%SZ) \
+      && log "$sl released (training $RUN exited rc 0; proxies go to $TCARDS)"
   done
   C=$(ocmd $s)
   setsid nohup $C < /dev/null > $E/dev5_s$(printf %05d $s).launch.log 2>&1 &

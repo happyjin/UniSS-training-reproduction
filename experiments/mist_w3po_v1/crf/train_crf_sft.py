@@ -58,6 +58,18 @@ passes over its 160,957 rows, 81 % read rows). Loss = the global token-weighted 
 mean of the per-micro-batch means). Rows are micro-batched by --tok-budget (padded tokens); gradients are summed over
 micro-batches and ranks (the loss is already divided by the global D).
 
+Joint bidirectional training (reports/mist_w3po_v1/joint_bidir_plan_prereg_v1.zh-CN.md; all default off, then every
+code path, output and args.json is the single-direction one bit for bit):
+  --sched2 <sched dir> --dir2 <direction>   a second window set in the other direction. Its windows get indices
+        after the first set's (idx = n1 + i) and Window.dir = dir2 (the first set's: --dir); each step is the
+        direction-balanced union plan_joint(): step k = plan_steps(set 1, seed, steps, rows/2)[k] + plan_steps(set 2,
+        seed + 1, steps, rows/2)[k] (~rows/2 read rows of each direction). Each row's prompt is its own window's
+        direction's v8 prompt (JointPrompter -> core.engine.Prompter(dir)); n_prompt0 (micro-batch length estimate
+        only) is the larger of the two prompts.
+  --stop-file <path>   early stop: after each optimiser step k, rank 0 checks whether the file exists and broadcasts
+        the answer; if so a checkpoint step_k is saved (lora / extra / optim, as every checkpoint; resumable) and every
+        rank stops (log line STOP_FILE_SEEN step k, then CRF_SFT_TRAIN_DONE).
+
 Checkpoints: <out>/ckpt/step_NNNNN/ with lora.pt (lora.state_dict, the rl/train_w3po.py format, loadable by
 evaluation/online_decode.py --lora), optim.pt, extra.pt (sd_proj, new_emb, new_head, extra_params, last lam) and DONE.
 The LoRA alone is NOT the model: the projector and the token rows also move. Use crf/export_merged.py (a merged
@@ -174,6 +186,7 @@ class Window:
     bmax: np.ndarray          # [R] the largest state reachable after read r (first token with lo > r, else N)
     reach: np.ndarray | None = None   # [R, N] bool: (r, j) committed by some feasible schedule
     feasible: bool = True
+    dir: str = ""             # --sched2 only: the window's direction (JointPrompter); "" = the run's --dir
 
     @property
     def lag(self) -> np.ndarray:
@@ -238,6 +251,41 @@ def heur_states(w: Window, R_pad: int) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------------ step plan
+def plan_joint(Rs1: list[int], Rs2: list[int], seed: int, steps: int, rows_per_step: int) -> list[list[int]]:
+    """--sched2: direction-balanced steps. Set 1 keeps plan_steps(seed), set 2 plan_steps(seed + 1), each with half the
+    rows per step; set 2's indices are offset by len(Rs1). Step k = set 1's step k + set 2's step k."""
+    half = rows_per_step / 2
+    p1 = plan_steps(Rs1, seed, steps, half)
+    p2 = plan_steps(Rs2, seed + 1, steps, half)
+    n1 = len(Rs1)
+    return [a + [n1 + i for i in b] for a, b in zip(p1, p2)]
+
+
+def stop_file_hit(path: str, dev) -> bool:
+    """--stop-file: rank 0 looks for the file, every rank gets its answer (broadcast); "" -> False, no collective."""
+    if not path:
+        return False
+    sf = torch.tensor([1.0 if (rank() == 0 and Path(path).exists()) else 0.0], device=dev)
+    if is_dist():
+        torch.distributed.broadcast(sf, 0)
+    return float(sf.item()) > 0
+
+
+class JointPrompter:
+    """--sched2: one core.engine.Prompter per direction; pick(window) -> its direction's prompter (window.dir, or
+    the first direction when empty). proc / tok are the first prompter's (the same release processor + new rows)."""
+
+    def __init__(self, prompters: dict, first: str):
+        self.p = dict(prompters)
+        self.first = first
+        self.proc = self.p[first].proc
+        self.tok = self.p[first].tok
+        self.n_prompt0 = max(len(x.a_ids) + len(x.b_ids) - 1 for x in self.p.values())
+
+    def pick(self, w):
+        return self.p[w.dir or self.first]
+
+
 def plan_steps(Rs: list[int], seed: int, steps: int, rows_per_step: int) -> list[list[int]]:
     """Deterministic window stream (a seeded permutation per pass), cut into steps of ~rows_per_step read rows: a
     window joins the step while rows + R / 2 <= rows_per_step (at least one window per step)."""
@@ -397,7 +445,8 @@ def collate(rows: list[Row], audio: AudioCache, proc, prompter, hook: bool, pert
         S = rw.win.S if rw.seq is None else rw.seq
         n_s = rw.win.N if rw.seq is None else len(rw.seq)
         e_id = rw.win.end_ids[rw.r] if rw.end is None else rw.end
-        ids = prompter.ids(n, "", S[: rw.K]) + [e_id]   # v8's row layout: ... + block + end token
+        pr = prompter.pick(rw.win) if isinstance(prompter, JointPrompter) else prompter
+        ids = pr.ids(n, "", S[: rw.K]) + [e_id]   # v8's row layout: ... + block + end token
         Lp = len(ids) - rw.K - 1
         seqs.append(ids)
         for b in rw.pos.tolist():
@@ -894,7 +943,16 @@ def build_args(argv=None):
                     "shift = J1-v2 (thinker_joint_crf_v2_prereg_v1): max(E0 - --js-delta x words, label path)")
     ap.add_argument("--js-delta", type=float, default=0.134,
                     help="--js-budget shift only: delta in seconds per word (registered 0.134)")
+    ap.add_argument("--sched2", default="", help="joint bidirectional: a second sched dir (other direction)")
+    ap.add_argument("--dir2", default="", help="--sched2's direction (zh2en / en2zh), must differ from --dir")
+    ap.add_argument("--stop-file", default="", help="early stop: stop after the step at which this file exists")
     a = ap.parse_args(argv)
+    if bool(a.sched2) != bool(a.dir2):
+        ap.error("--sched2 and --dir2 go together")
+    if a.sched2 and (a.dir2 == a.dir or a.dir2 not in ("zh2en", "en2zh")):
+        ap.error("--dir2 must be the other direction")
+    if a.sched2 and (a.dart or a.d1 or a.objective not in ("heuristic", "serial_v2p")):
+        ap.error("--sched2 is wired for --objective serial_v2p / heuristic without --dart / --d1")
     if a.js_budget != "t1" and a.objective != "joint_speech":
         ap.error("--js-budget shift needs --objective joint_speech")
     if a.js_delta != 0.134 and a.js_budget != "shift":
@@ -931,14 +989,31 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
             raise SystemExit(f"拒绝覆盖已有输出: {out}")
         (out / "ckpt").mkdir(parents=True, exist_ok=True)
         if not args.resume:
-            (out / "args.json").write_text(json.dumps(vars(args), indent=1))
+            av = vars(args).copy()
+            for k_, d_ in (("sched2", ""), ("dir2", ""), ("stop_file", "")):   # default runs: args.json unchanged
+                if av.get(k_) == d_:
+                    av.pop(k_)
+            (out / "args.json").write_text(json.dumps(av, indent=1))
     if is_dist():
         torch.distributed.barrier()
     summ = json.loads((Path(args.sched) / "summary.json").read_text())
     lat_target = args.lat_target if args.lat_target is not None else float(summ["L_ref_mean_lat_heur_windows"])
 
     wins = load_windows(args.sched, bool(args.hier_weights))
-    plan = plan_steps([w.R for w in wins], args.seed, args.steps, args.rows_per_step)
+    if args.sched2:
+        n1 = len(wins)
+        for w in wins:
+            w.dir = args.dir
+        wins2 = load_windows(args.sched2, bool(args.hier_weights))
+        for w in wins2:
+            w.idx += n1
+            w.dir = args.dir2
+        plan = plan_joint([w.R for w in wins], [w.R for w in wins2], args.seed, args.steps, args.rows_per_step)
+        wins = wins + wins2
+        log0(f"--sched2 {args.sched2} ({args.dir2}): {len(wins2)} windows after {n1} ({args.dir}); direction-balanced "
+             f"steps of ~{args.rows_per_step / 2:g} read rows per direction")
+    else:
+        plan = plan_steps([w.R for w in wins], args.seed, args.steps, args.rows_per_step)
     log0(f"{len(wins)} windows, {sum(w.R for w in wins)} read rows; {args.steps} steps of "
          f"{np.mean([sum(wins[i].R for i in s) for s in plan]):.1f} rows / {np.mean([len(s) for s in plan]):.2f} "
          f"windows on average; world {world()}; objective {args.objective}; lat target {lat_target:.4f}")
@@ -950,6 +1025,11 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
     for w in wins[:20]:
         if prompter.tok(w.rec["S"], add_special_tokens=False)["input_ids"] != w.S:
             raise SystemExit(f"tokenizer mismatch with sched_v1: {w.rec['id']}")
+    if args.sched2:
+        for w in wins[n1: n1 + 20]:
+            if prompter.tok(w.rec["S"], add_special_tokens=False)["input_ids"] != w.S:
+                raise SystemExit(f"tokenizer mismatch with --sched2: {w.rec['id']}")
+        prompter = JointPrompter({args.dir: prompter, args.dir2: Prompter(args.dir2)}, args.dir)
 
     torch.manual_seed(args.seed)
     thinker = load_thinker(args.base, dev)
@@ -975,7 +1055,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                      "extra_modules": len(extra_params), "start": start}))
     ctx = {"audio": None, "proc": proc, "prompter": prompter, "perturb": args.perturb, "seed": args.seed,
            "tok_budget": args.tok_budget, "lp_chunk": args.lp_chunk, "final_bar_wait": bool(args.final_bar_wait),
-           "n_prompt0": len(prompter.a_ids) + len(prompter.b_ids) - 1}
+           "n_prompt0": (prompter.n_prompt0 if isinstance(prompter, JointPrompter)
+                         else len(prompter.a_ids) + len(prompter.b_ids) - 1)}
     if args.final_read_full_post:
         ctx["final_full_post"] = True
         log0("--final-read-full-post 1: final reads see the posteriors up to t // 80 (the whole window)")
@@ -1172,7 +1253,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                 fh.write(json.dumps(rec) + "\n")
             log0(json.dumps({a: (float(f"{b:.5g}") if isinstance(b, float) else b) for a, b in rec.items()}))
         stop = args.stop_after > 0 and k >= start + args.stop_after
-        if k % args.save_every == 0 or k == args.steps or stop:
+        stop_sf = stop_file_hit(args.stop_file, dev)   # --stop-file (False when unset); a checkpoint is saved here
+        if k % args.save_every == 0 or k == args.steps or stop or stop_sf:
             if is_dist():   # every rank must hold the same parameters (identical start + all-reduced gradients)
                 cs = torch.stack([p.detach().double().sum() for p in params]).sum().reshape(1)
                 lo_, hi_ = cs.clone(), cs.clone()
@@ -1184,6 +1266,9 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                 save_ckpt(out / "ckpt" / f"step_{k:05d}", model, opt, extra_params, lam_prev, k, args)
             if is_dist():
                 torch.distributed.barrier()
+        if stop_sf:
+            log0(f"STOP_FILE_SEEN step {k}: {args.stop_file} (checkpoint step_{k:05d} saved)")
+            break
         if args.empty_cache:
             torch.cuda.empty_cache()
         if stop:
