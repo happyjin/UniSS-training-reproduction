@@ -2868,3 +2868,12 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 先等两个 A′ 解码编排器都 DONE；
   - 再等第一组 6 条语音链的 96 个 talker 作业全部上卡，或者最后一条第一组链启动后满 25 分钟，或者 A′ 结束后满 90 分钟；
   - 然后把 ali / ami 的 ve1、d1v 共 4 个 run 的 exclude_cards 换成空文件（新文件 + `mv -f`）。
+
+## 2026-11-12 22:55 布拉格 — En→Zh 准备代理：A′ + PL-EM 的 En→Zh 计划与预登记（只用 CPU，没有任何 GPU 作业）
+
+- 预登记 `en2zh_full_plan_prereg_v1.zh-CN.md`：配方与 zh→en 主系统逐项相同，只换方向；一个种子；Thinker 检查点（500…3000）和 PL-EM 检查点（400 / 800 / 1200）都按 dev5 快速代理和写死的规则选（`scripts/en2zh_select.py`）。
+- 已建好（CPU）：
+  - En→Zh C2 窗口：dev 4996 个 / dev5 1248 个 / train16 7600 个 / test 5126 个，以及 chunk 协议窗口；gap 1.0 重建 v6 测试窗口逐字段相同；
+  - Thinker 训练窗口 `crf/sched_en2zh_v1`：21,581 个，v8 行全部匹配；serial_v2p 的标签路径与 C0 行相同。
+- 协调者批准下载中文 CTC 模型 `jonatasgrosman/wav2vec2-large-xlsr-53-chinese-zh-cn`（rev 99ccb27），用于 b1 选择和 PL-EM 的 f；CPU 自检通过（24 条：正确读法的 NLL/字 2.97，明显读错的 7.7–14.9，正确读法更低的比例 0.96–1.00）。
+- 新代码都只做加法，默认值不变，配单元测试；启动脚本只用 `bash -n` 和 DRY_RUN 检查。启动命令见预登记第 8 节。
