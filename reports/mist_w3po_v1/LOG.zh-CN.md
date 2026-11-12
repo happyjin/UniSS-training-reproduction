@@ -2796,3 +2796,13 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 前 100 步 → 最后 100 步：sft_loss 1.37 → 1.04（VE1 1.36 → 1.03），q_label 0.37 → 0.49（VE1 0.38 → 0.49）。D1 行每步平均 10.95 行，与清单相同。
 - `v4a_after_train.sh`（1835630）18:54:46 释放 slotA，启动 dev 解码编排器（PID 947317，0–3 号卡，`--cap135 --exclude 4 5 6 7`）。
 - 已备好的应急脚本 `d1v_after_merge.sh`（1f6cb5be，只用 bash -n 和 DRY_RUN 检查过）：只在合并停在 pairing lost、pair_lost 为 1–2、pair_ok < 3589 时用（修订 1 的预先授权）。其他状态它拒绝启动。
+
+## 2026-11-12 19:00 布拉格 — D1v 训后评测改为可用 8 张卡（协调者指示：4–7 号卡上只剩占卡程序，基线已跑完）
+
+- 编排器 `thinker_t_eval_orch.py`（经 `talker_crf_orch.YieldOrch.excluded()`）每个 tick 都重新读 `<run>/exclude_cards`，所以**不需要重启**编排器。
+- 做法：解码编排器（PID 947317）的 `logs/mist_w3po_v1/t_eval/d1v/exclude_cards`，原内容 "4 5 6 7"。先写新文件，再 `command mv -f` 替换成空文件（不排除任何卡），布拉格 18:57:20。
+  - 每卡上限照旧 135 GiB（`--cap135`）；占卡程序由编排器按 PID 停掉。
+  - 结果：前 4 个分片已在 0–3 号卡上（dec6 / dec5 / dec4 / dec1）。剩下 4 个分片在下一个 tick（18:58:33）排到 4–7 号卡，每卡一个（dec3 → 4、dec2 → 5、dec0 → 6、dec7 → 7）。
+- 解码按会议分 8 片，分片数不变；换卡不改变分片内容，结果仍可比。
+- 语音编排器（`d1vrlplem`）由 `v4a_after_train.sh` 带 `--exclude 4 5 6 7` 启动，启动时会写自己的 exclude 文件。它启动后照同样的做法换成空文件。talker 分片数不变（两个种子各 8 片）。
+- 全局的 `talker_crf_v1/exclude_cards` 现在是空的（训练结束后 `sync_train_exclude.sh` 已清空）。
