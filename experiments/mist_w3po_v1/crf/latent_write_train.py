@@ -11,6 +11,10 @@ PMC (mode "pmc", reports/mist_w3po_v1/thinker_pmc_prereg_v1.zh-CN.md §1.4; addi
 the lam* posterior, the content-free policy distribution q^pol (LW.pol_parts, same lattice / tau / lam*) gives a second
 set of per-sequence weights; set_coefs_pmc = serial_v2p_train.set_coefs plus h sum_{b>t} cend_pol[b] / D on every
 content token (end tokens: q_lam only).
+
+PMC-noC (reports/mist_w3po_v1/thinker_pmc_noc_prereg_v1.zh-CN.md; additive, default unchanged): run_step(pmc_w=w) scales
+the PMC content term by w (train_crf_sft --pmc-content-weight); w = 0 is V2T.set_coefs exactly (VE1's M step on PMC's
+lattice and lam* posterior); q^pol is still computed for the metrics. Default 1.0 = PMC-1 bit for bit.
 """
 from __future__ import annotations
 
@@ -36,9 +40,12 @@ def plan(w: T.Window, mode: str = "t2") -> dict:
     return pl
 
 
-def set_coefs_pmc(rows: list[T.Row], plans: dict, posts: dict, pols: dict, D: float) -> None:
-    """V2T.set_coefs (q_lam: content and end tokens), then the PMC content term: c_tok[t] += h_t sum_{b > t} cend_pol[b] / D."""
+def set_coefs_pmc(rows: list[T.Row], plans: dict, posts: dict, pols: dict, D: float, w_pol: float = 1.0) -> None:
+    """V2T.set_coefs (q_lam: content and end tokens), then the PMC content term: c_tok[t] += h_t sum_{b > t} cend_pol[b] / D.
+    w_pol (PMC-noC): the term's weight; 0 -> V2T.set_coefs exactly; 1.0 (default) -> PMC-1 bit for bit."""
     V2T.set_coefs(rows, plans, posts, D)
+    if w_pol == 0.0:
+        return
     for rw in rows:
         widx, k = rw.key
         q = plans[widx]["reqs"][k]
@@ -47,12 +54,16 @@ def set_coefs_pmc(rows: list[T.Row], plans: dict, posts: dict, pols: dict, D: fl
         h = V2T.token_weights(rw.win, q["forced_ids"])
         sp = np.cumsum(cp[::-1])[::-1]
         ct = rw.c_tok.copy()
-        ct[:m] += h * sp[1:] / D
+        term = h * sp[1:] / D
+        if w_pol != 1.0:
+            term = w_pol * term
+        ct[:m] += term
         rw.c_tok = ct
 
 
 def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step: int, tau: float, rk: int, nw: int,
-             prefetch: bool = False, mode: str = "t2", dart: dict | None = None, d1: dict | None = None) -> dict:
+             prefetch: bool = False, mode: str = "t2", dart: dict | None = None, d1: dict | None = None,
+             pmc_w: float = 1.0) -> dict:
     """Pass 1 + lam* + posterior + pass-2 rows of this rank (the grad pass is the trainer's grad_pass).
     dart (T4, crf/dart_aug.py): {w.idx: delay} of this step; its augmentation rows (coefficients fixed) are split over
     the ranks on their own and appended to this rank's pass-2 rows (None: T2 exactly)."""
@@ -100,7 +111,7 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
     if mode == "pmc":   # PMC: q^pol on the same lattice with the same lam*; content tokens get both weights
         pols = {w.idx: LW.posterior_from_parts(w, plans[w.idx], LW.pol_parts(w, plans[w.idx], res, parts[w.idx], tau),
                                                tau, lam) for w in sw}
-        set_coefs_pmc(p2, plans, posts, pols, D)
+        set_coefs_pmc(p2, plans, posts, pols, D, pmc_w)
     else:
         V2T.set_coefs(p2, plans, posts, D)
     t_post = time.time() - t3
@@ -132,6 +143,8 @@ def run_step(model: T.CrfThinker, sw: list[T.Window], D: float, ctx: dict, step:
         st["exp_early_q"] = float(sum(LW.exp_early(plans[w.idx], posts[w.idx]["fb"]) for w in sw))
         st["exp_early_pol"] = float(sum(LW.exp_early(plans[w.idx], pols[w.idx]["fb"]) for w in sw))
         st["n_chunks"] = int(sum(len(w.rec["chunks"]) for w in sw))
+        if pmc_w != 1.0:   # PMC-noC
+            st["pmc_w"] = float(pmc_w)
     if dart is not None:
         st["dart_rows"] = n_aug
         st["dart_windows"] = int(sum(1 for w in sw if dart.get(w.idx) is not None))

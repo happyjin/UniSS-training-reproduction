@@ -2476,3 +2476,13 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 判读线：语音差 > 0、P < 0.05、并且差 ≥ 0.40（VE1 与 VE1-s2 之间的语音差），才算"超出训练种子波动的贡献"；|LAAL 差| ≤ 0.05 s 算"延迟由写出窗 + λ* 决定"。
   - PMC-noC 自己的门槛只作描述。
 - 登记时 PMC-1 在第 1726 步左右。只看过启动核对项，没有看过任何 dev 结果。
+
+## 2026-11-12 11:08 布拉格 — PMC-noC：代码、测试、CPU 预检全部通过
+
+- **代码**（只做加法，默认不变）：
+  - `--pmc-content-weight`（默认 1.0，只在 pmc 模式下能改）；
+  - `set_coefs_pmc(w_pol)`、`run_step(pmc_w)`；
+  - 两个模块都是写新文件后 `command mv -f` 替换。在跑的 PMC-1 已经加载了旧模块，不受影响。
+- **测试与预检**：新测试 `test_pmc_noc` 3/3；回归 `test_pmc` 3/3、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_dart_aug` 6/6。预检 `crf/pmc_noc_precheck_v1.json` pass：权重 0 的系数与 VE1 的 M 步逐位相同，格和计划与 PMC 相同。
+- **脚本**（`bash -n` 和 DRY_RUN 检查过）：`start_pmcnoc.sh`、`pmcnoc_after_train.sh`、`pmcnoc_after_merge.sh`。0–3 号卡（slotA），训练端口 29995，评测端口 19501 / 19511。
+- 详见预登记的"结果"节。

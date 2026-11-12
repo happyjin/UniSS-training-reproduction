@@ -1,0 +1,90 @@
+{
+ "prereg": "reports/mist_w3po_v1/thinker_pmc_noc_prereg_v1.zh-CN.md",
+ "sched": "eval_outputs/mist_w3po_v1/crf/sched_t5_merge3_w10_v1",
+ "tests": {
+  "test_pmc_noc": {
+   "rc": 0,
+   "lines": [
+    "  N1 --pmc-content-weight: default 1.0; pmc + 0 -> 0.0; refused in v2p / t2 / joint_speech, negative, with --d1",
+    "PASS test_n1_args (0.0s)",
+    "  N2 coefficients: 40 widened sched_v1 windows + 40 real VE1 windows (1144 rows): w_pol 0 == V2T.set_coefs bit for bit; default == 1.0 bit for bit; 0.5 == set_coefs + 0.5 h suf(cend_pol) / D (max |d| 8.7e-19); PMC term share of the content weight at w = 1 (real, dummy scores) 0.500",
+    "PASS test_n2_coefs (0.5s)",
+    "  N3 step path (tiny model, mode pmc): pmc_w 0: loss 12.268782 finite, sum c_tok x D = sum h (124), sum c_end x D = sum R (13); lam 0.0000, E[Lat] 0.0289, q^pol stats == pmc_w 1 bit for bit; stats pmc_w 0.0; no pmc_w == 1.0 (loss 24.088181, grads, coefficients, prefetch 1 vs 0) bit for bit",
+    "PASS test_n3_run_step (8.8s)",
+    "ALL 3 PASSED (9.4s)"
+   ],
+   "pass": true
+  },
+  "test_pmc": {
+   "rc": 0,
+   "lines": [
+    "  P1 brute force over (z in [e-1, e+1] x order): 60 synthetic records (up to 4362 paths; tau 0.5/1, lam 0/0.3/2) + 30 real VE1 windows (up to 156 paths; tau 0.5, lam 0/0.7): q_lam log Z, cend, E[Lat], E[#early] and q^pol cend, E[Lat], E[#early] max |d| 2.1e-13; budget == e-path Lat",
+    "PASS test_p1_brute_force (7.9s)",
+    "  P2 default modes: {'t2': 200, 't5': 200, 'v2p': 200, 'label': 200} real VE1 windows: plan, lattice, target / lat_label, posterior (log Z, q_label, E[Lat], exp_nf, cend; lam 0 / 0.37) == the module before PMC (46cc50e4) bit for bit",
+    "PASS test_p2_default_bit_identical (1.7s)",
+    "  P5 step path (tiny model, widened real windows, world 1, mode pmc): loss 24.088181 finite, prefetch 1 = 0 bit for bit; sum c_tok x D = 2 sum h (248), sum c_end x D = sum R (13); coefficients == set_coefs + h suf(cend_pol) / D (max |d| 1.7e-18); lam 0.0000 (binding False), E[Lat]/word q 0.029, q^pol -0.080, budget e path 0.084; E[#early] q 2.79, q^pol 3.16 of 11 chunks; --lw-mode pmc parses",
+    "PASS test_p5_run_step (6.7s)",
+    "ALL 3 PASSED (16.3s)"
+   ],
+   "pass": true
+  },
+  "test_latent_write_crf": {
+   "rc": 0,
+   "tail": [
+    "ALL 5 PASSED (19.0s)"
+   ],
+   "pass": true
+  },
+  "test_train_crf_sft": {
+   "rc": 0,
+   "tail": [
+    "ALL 8 PASSED (14.4s)"
+   ],
+   "pass": true
+  },
+  "test_dart_aug": {
+   "rc": 0,
+   "tail": [
+    "ALL 6 PASSED (18.9s)"
+   ],
+   "pass": true
+  },
+  "pass": true
+ },
+ "plan": {
+  "steps": 30,
+  "windows": 313,
+  "pass2_rows": 4301,
+  "lattice_and_plan_same_as_pmc": true,
+  "w0_coefs_equal_set_coefs_bitwise": true,
+  "pmc1_coefs_differ_every_step": true,
+  "sum_abs_coef_diff_pmc1_vs_w0_per_step": {
+   "mean": 0.842572,
+   "min": 0.816199
+  },
+  "lam_deterministic": true,
+  "dummy_lam": {
+   "mean": 0.0062,
+   "binding_steps": 6
+  },
+  "note": "the PMC term's total mass equals q_lam's (sum_t h_t each), so its share of the content weight is 0.5 by construction; PMC-noC removes it",
+  "pass": true
+ },
+ "args": {
+  "objective": "latent_write",
+  "lw_mode": "pmc",
+  "pmc_content_weight": 0.0,
+  "seed": 20261109,
+  "steps": 3000,
+  "rows_per_step": 64,
+  "pass": true
+ },
+ "manifest": {
+  "dir": "eval_outputs/mist_w3po_v1/crf/pmc_dart_merge3_w10_v1",
+  "mode": "pmc",
+  "entries": 15585,
+  "pass": true
+ },
+ "pass": true,
+ "cpu_s": 173.9
+}

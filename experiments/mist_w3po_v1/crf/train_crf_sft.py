@@ -876,6 +876,9 @@ def build_args(argv=None):
                     help="--objective latent_write / joint_speech (J1): the lattice bounds (latent_write_crf.bounds; t5 = "
                     "T5's [e, max(u, e)]; v2p = v2''s {e, e + 1}, where lam* is 0 and the posterior is v2''s: VE1; pmc = "
                     "[e - 1, e + 1] with the e-path latency budget and the policy-marginalised content term: PMC)")
+    ap.add_argument("--pmc-content-weight", type=float, default=1.0,
+                    help="--lw-mode pmc only (PMC-noC, thinker_pmc_noc_prereg_v1): weight of the q^pol content term in "
+                    "the coefficients (0: VE1's M step on PMC's lattice and lam*; default 1.0: PMC-1)")
     ap.add_argument("--dart", default="",
                     help="--objective latent_write (T4) or joint_speech (J1): directory of a crf/dart_aug.py --manifest "
                     "made for this --sched and plan; adds its off-schedule augmentation rows to pass 2 (empty: T2 / T3 "
@@ -886,7 +889,14 @@ def build_args(argv=None):
     ap.add_argument("--talker-model", default="",
                     help="joint_speech (T3): the A1 / A2 talker model json of crf/joint_speech_crf.py --fit-talker "
                     "(unused by the other objectives)")
-    return ap.parse_args(argv)
+    a = ap.parse_args(argv)
+    if a.pmc_content_weight != 1.0 and (a.lw_mode != "pmc" or a.objective != "latent_write"):
+        ap.error("--pmc-content-weight needs --objective latent_write --lw-mode pmc")
+    if a.pmc_content_weight < 0.0:
+        ap.error("--pmc-content-weight must be >= 0")
+    if a.pmc_content_weight != 1.0 and a.d1:
+        ap.error("--pmc-content-weight is not wired into the --d1 step")
+    return a
 
 
 def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) -> None:
@@ -1061,7 +1071,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
                 v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch))
             elif d1 is None:
                 v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
-                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}))
+                                   mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}),
+                                   pmc_w=args.pmc_content_weight)
             else:   # D1: + the learner roll-in's rows
                 v2p = LWT.run_step(model, sw, D, ctx, step, args.tau, rank(), world(), prefetch=bool(args.prefetch),
                                    mode=args.lw_mode, dart=None if dart is None else dart.get(step, {}),

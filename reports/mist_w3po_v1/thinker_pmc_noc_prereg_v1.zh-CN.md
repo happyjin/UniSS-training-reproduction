@@ -93,4 +93,21 @@
 
 ## 结果
 
-（训练和评测完成后写在这里。）
+### 代码与 CPU 预检：全部通过（2026-11-12 布拉格 11:07）
+
+- **代码**（只做加法，默认不变；两个模块都是写新文件后 `command mv -f` 替换）：
+  - `crf/latent_write_train.py`：`set_coefs_pmc(..., w_pol=1.0)`（w_pol = 0 时直接返回 `set_coefs` 的结果）；`run_step(..., pmc_w=1.0)`；pmc_w ≠ 1 时 metrics 多一个字段 `pmc_w`；
+  - `crf/train_crf_sft.py`：`--pmc-content-weight`（默认 1.0；只能和 `--objective latent_write --lw-mode pmc` 一起改；不能为负；不能与 `--d1` 同用）；
+  - 新增：`crf/test_pmc_noc.py`、`crf/pmc_noc_precheck.py`、`scripts/start_pmcnoc.sh`、`scripts/pmcnoc_after_train.sh`、`scripts/pmcnoc_after_merge.sh`。后三个由 PMC 的脚本按名字、目录、端口（训练 29995，解码 19501，语音 19511）、卡（0–3，slotA）替换生成，其余逐行相同。
+- **预检** `eval_outputs/mist_w3po_v1/crf/pmc_noc_precheck_v1.json`（CPU 174 s）：
+
+| 项 | 结果 | 过 |
+|---|---|---|
+| N1 参数 | 默认 1.0；pmc + 0 解析为 0.0；在 v2p / t2 / joint_speech 下、负值、与 --d1 同用都被拒绝 | 是 |
+| N2 系数 | 40 个加宽的 sched_v1 窗口 + 40 个真实 VE1 窗口（1144 行）：w_pol = 0 与 `set_coefs` 逐位相同；默认与 1.0 逐位相同；0.5 = set_coefs + 0.5 · h · suf(cend_pol) / D（最大差 8.7e-19） | 是 |
+| N3 训练一步 | pmc_w = 0：损失有限；Σ c_tok × D = Σ h，Σ c_end × D = Σ R；λ*、E_q[Lat]、q^pol 的统计与 pmc_w = 1 逐位相同；metrics 有 pmc_w = 0；不给 pmc_w 与 1.0 的损失、梯度、系数逐位相同 | 是 |
+| 回归 | `test_pmc` 3/3（P1 / P2 / P5，新代码下）、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_dart_aug` 6/6 | 是 |
+| 计划上的核对 | PMC-1 计划的 30 个抽样步（313 个窗口，4301 行，dummy 打分）：格和计划与 `--lw-mode pmc` 相同；w_pol = 0 的系数与 VE1 的 M 步（`set_coefs`，同一个 pmc 后验）逐位相同；PMC-1 的系数每一步都不同（每步系数绝对差之和均值 0.84）；λ* 求解是确定的 | 是 |
+| 参数与清单 | 启动参数解析为 latent_write / pmc / 权重 0 / 种子 20261109 / 3000 步 / 64 行；清单 `pmc_dart_merge3_w10_v1`（模式 pmc，15,585 条）通过 `load_manifest` | 是 |
+
+- 说明：PMC 项的总质量与 q_λ 的相同（每个 token 各 Σ h），所以它在 PMC-1 内容权重里的占比按构造就是 0.5。PMC-noC 去掉的就是这一半。
