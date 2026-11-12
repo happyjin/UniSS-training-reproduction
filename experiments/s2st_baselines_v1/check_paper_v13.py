@@ -167,6 +167,27 @@ ok("min(1800,\\max(180,18\\times" in app, "cap formula")
 tts_fail = max(j["n_tts_fail_segments"] for j in xt.values())
 ok(tts_fail <= 2 and "at most two per point" in app.replace("\n", " "), f"XT tts fails max {tts_fail}")
 
+# ---------------------------------------------------------------- figures/curves.tex (upper envelopes, means)
+cv = tex("figures/curves.tex")
+for src, nm, sty in ((xt, "XTranslator", "xt"), (hq, "HySimulMTQwen3TTS", "hyq")):
+    for d in BUDGETS:
+        pts = sorted(((j["laal_d1"], j["asr_bleu"]) for (pp, dd), j in src.items() if dd == d))
+        env, top = [], -1.0
+        for x, y in pts:
+            if y > top:
+                env.append((x, y))
+                top = y
+        want = "laal bleu\n" + "".join(f"{x:.3f} {y:.2f}\n" for x, y in env)
+        got = (P / f"data/realsi_{d}_{nm}.dat").read_text(encoding="utf-8")
+        ok(got == want, f"curves data {d} {nm}: {got!r} != {want!r}")
+        ok(cv.count(f"\\addplot[{sty}] table[x=laal,y=bleu] {{data/realsi_{d}_{nm}.dat}};") == 1, f"curves addplot {d} {nm}")
+        ylo, yhi = (18, 32) if d == "en2zh" else (13, 25.5)
+        ok(all(ylo <= y <= yhi for x, y in env), f"curves y range {d} {nm}")
+for leg in ("\\addlegendentry{X-Translator}", "\\addlegendentry{Hy-SimulMT + Qwen3-TTS}"):
+    ok(cv.count(leg) == 1, f"curves legend {leg}")
+xa = xt[("xt-a1.6", "en2zh")]
+ok(f"({xa['asr_bleu']:.2f} at {xa['laal_d1']:.2f}\\,s)" in cv, "curves caption XT beyond 3.2 s")
+
 # ---------------------------------------------------------------- citations / build
 bib = tex("references.bib")
 for k in ("zhao2026xtranslator", "qwen2026qwen3tts", "hy2026simulmt", "seamless2023"):
@@ -176,7 +197,7 @@ log = tex("main.log")
 ok(not re.search(r"undefined|Citation .* undefined|There were undefined", log, re.I), "undefined refs/cites in main.log")
 ok("Overfull" not in log, "overfull boxes")
 ok((P / "main.pdf").stat().st_mtime >= max((P / f).stat().st_mtime for f in
-                                             ("generated/tab_omnitalker.tex", "sections/appendix.tex", "references.bib")),
+                                             ("generated/tab_omnitalker.tex", "sections/appendix.tex", "references.bib", "figures/curves.tex")),
    "main.pdf is newer than the filled sources")
 
 print(f"{n_ok} checks passed, {len(bad)} failed")

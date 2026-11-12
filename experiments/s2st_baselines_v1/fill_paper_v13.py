@@ -8,6 +8,8 @@ paper's (per direction and budget, the highest ASR-BLEU whose segment LAAL D1 fi
 means, tab_tiers / tab_tiers_main talker seed 0; bold = best ASR-BLEU in the row among the systems we ran; ASR-BLEU and
 LAAL with two decimals, text BLEU with one decimal in tab_tiers and two in tab_baselines. tab_tiers_main (column width)
 gets X-Translator only; the Qwen3-TTS reference cascade is in tab_tiers, tab_realsi_main and tab_baselines.
+figures/curves.tex gets both, as fill_paper_v12.fill_curves added Hy-SimulMT / SeamlessStreaming (upper envelope of the
+registered points, means; a corner note only for points below the y axis; points beyond 3.2 s are clipped at the frame).
 
     /opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin/python experiments/s2st_baselines_v1/fill_paper_v13.py
 """
@@ -388,6 +390,45 @@ def fill_bib():
     (PAPER / "references.bib").write_text(s.rstrip("\n") + "\n" + BIB_NEW, encoding="utf-8")
 
 
+def fill_curves():
+    """As fill_paper_v12.fill_curves: upper envelope (by D1) of each system's points, three-seed means."""
+    s = (BASE / "figures/curves.tex").read_text(encoding="utf-8")
+    s = replace_once(s, r"""  ss/.style={brown, mark=x, mark size=2.2pt, thick, loosely dashed},
+}""", r"""  ss/.style={brown, mark=x, mark size=2.2pt, thick, loosely dashed},
+  xt/.style={teal, mark=pentagon, mark size=2.2pt, thick, densely dashdotted},
+  hyq/.style={violet!55, mark=diamond*, mark size=1.8pt, thick, dotted},
+}""")
+    ylim = {"en2zh": (18, 32), "zh2en": (13, 25.5)}
+    for d in DIRS:
+        add = []
+        for key, nm, sty, name in (("xt", "XTranslator", "xt", "X-Translator"),
+                                   ("hyq", "HySimulMTQwen3TTS", "hyq", "Hy-SimulMT + Qwen3-TTS")):
+            pts = sorted(SYSTEMS[key][d], key=lambda p: p["d1"])
+            env, top = [], -1.0
+            for p in pts:
+                if p["asr"] > top:
+                    env.append(p)
+                    top = p["asr"]
+            (PAPER / f"data/realsi_{d}_{nm}.dat").write_text(
+                "laal bleu\n" + "".join(f"{p['d1']:.3f} {p['asr']:.2f}\n" for p in env), encoding="utf-8")
+            add.append(f"\\addplot[{sty}] table[x=laal,y=bleu] {{data/realsi_{d}_{nm}.dat}};")
+            # v12 notes off-axis systems in the top-left corner; here no point is below or above the y range
+            # (asserted), and points beyond 3.2 s are clipped at the frame like every other curve.
+            assert all(ylim[d][0] <= p["asr"] <= ylim[d][1] for p in pts), (key, d)
+        tag = f"\\addplot[ss] table[x=laal,y=bleu] {{data/realsi_{d}_SeamlessStreaming.dat}};"
+        s = replace_once(s, tag, tag + "".join("\n" + a for a in add))
+    s = replace_once(s, r"""\addplot[ss] coordinates {(10,0)}; \addlegendentry{SeamlessStreaming}""",
+                     r"""\addplot[ss] coordinates {(10,0)}; \addlegendentry{SeamlessStreaming}
+\addplot[xt] coordinates {(10,0)}; \addlegendentry{X-Translator}
+\addplot[hyq] coordinates {(10,0)}; \addlegendentry{Hy-SimulMT + Qwen3-TTS}""")
+    s = replace_once(s, r"""Hy-SimulMT (through our Talker, three talker seeds) and SeamlessStreaming: run by
+us with our protocol, upper envelopes of their registered points (Table~\ref{tab:baselines}).""",
+                     r"""Hy-SimulMT (through our Talker, three talker seeds), SeamlessStreaming, X-Translator (one run) and
+Hy-SimulMT + Qwen3-TTS (reference cascade, three seeds): run by us with our protocol, upper envelopes of their registered
+points (Table~\ref{tab:baselines}); X-Translator's En$\rightarrow$Zh envelope continues beyond 3.2\,s (25.62 at 3.37\,s).""")
+    (PAPER / "figures/curves.tex").write_text(s, encoding="utf-8")
+
+
 def main():
     for k, v in SYSTEMS.items():
         print(k, {d: [(p["name"], p["asr"], round(p["d1"], 3)) for p in v[d]] for d in DIRS})
@@ -399,6 +440,7 @@ def main():
     fill_tab_omnitalker()
     fill_text()
     fill_bib()
+    fill_curves()
     print("filled", PAPER)
 
 
