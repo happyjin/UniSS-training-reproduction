@@ -342,6 +342,72 @@ def test_r3_v2p():
           f"base + aug; prefetch 1 == 0; DART + D1: {kinds.count('dart')} + {kinds.count('d1')} rows")
 
 
+def test_margin_mode():
+    """D1v amendment 1: d1_rollin.margin_criterion (opt-in --selfcheck-mode margin) on synthetic decision tables, and
+    on the real selfcheck flow of run_score_v2 (TinyEngine, scorer v2 with diag, real VE1 windows)."""
+    W = R.WAIT_ID
+
+    def table(pairs, extra_lit=0):
+        d = {}
+        for k, ((al, ml), (ab, mb)) in enumerate(pairs):
+            d[("lit", "w", 1, k)] = (al, ml)
+            d[("bat", "w", 1, k)] = (ab, mb)
+        for k in range(extra_lit):                       # scored by one path only: not a decision
+            d[("lit", "w", 2, k)] = (W, 3.0)
+        return d
+    agree = [((W, 2.0), (W, 2.1))] * 50 + [((7, -3.0), (7, -2.9))] * 50
+    m = R.margin_criterion(table(agree, 5))
+    assert m["pass"] and m["decisions"] == 100 and m["agree"] == 100 and m["confident"] == 100
+    near = [((W, 0.125), (7, -0.25))]                     # a near-tie flip (|margin| <= 0.5 in both paths)
+    m = R.margin_criterion(table(agree[:99] + near))
+    assert m["pass"] and m["agree"] == 99 and m["confident_disagree"] == 0 and len(m["disagree"]) == 1
+    m = R.margin_criterion(table(agree[:99] + [((W, 0.6), (7, -0.1))]))   # one confident flip -> fail
+    assert not m["pass"] and m["confident_disagree"] == 1
+    m = R.margin_criterion(table(agree[:99] + [((W, 0.5), (7, -0.5))]))   # |margin| = 0.5 is not > 0.5
+    assert m["pass"] and m["confident_disagree"] == 0
+    assert R.margin_criterion(table(agree[:95] + near * 5))["pass"]             # 95 % exactly
+    assert not R.margin_criterion(table(agree[:94] + near * 6))["pass"]         # 94 %
+    m = R.margin_criterion(table(agree[:99] + [((5, -0.1), (6, -0.2))]))  # tokens differ, both write: same decision
+    assert m["pass"] and m["agree"] == 100 and m["token_agree_share"] == 0.99
+    assert not R.margin_criterion({})["pass"]
+    # the real selfcheck flow (run_score_v2's: shared acache, diag tags lit / bat, selfcheck_recs(.., 3))
+    recs = R.selfcheck_recs(TD.real_recs(VE1_SCHED, 4000), 12, 3)
+    eng = TinyEngine(seed=0, scale=0.1)   # margins of both kinds (|m| below and above 0.5)
+    wavs, acache, diag = {rec["id"]: (None, None) for rec in recs}, {}, {}
+    lit_sc = R.gpu_batch_scorer_v2(eng, wavs, 24000, 16, acache, diag, "lit")
+    bat_sc = R.gpu_batch_scorer_v2(eng, wavs, 24000, 16, acache, diag, "bat")
+
+    def prefix_scorer(rec, r, ids, pos):
+        return [lit_sc([(rec, r, ids[:p], [p])])[0][0] for p in pos]
+    lit = [R.simulate(rec, prefix_scorer) for rec in recs]
+    bat = R.simulate_rounds(recs, bat_sc)
+    sc = R.selfcheck_report(lit, bat, diag)
+    eff = R.decision_keys_effective(recs, lit)
+    mm = R.margin_criterion(diag, 0.5, 0.95, eff)
+    common = {k[1:] for k in diag if k[0] == "lit"} & {k[1:] for k in diag if k[0] == "bat"}
+    assert mm["decisions"] == sc["margin_abs_diff"]["n"] == len(common)
+    assert eff and eff <= common and mm["effective"]["decisions"] == len(eff)
+    assert sc["equal"] == sc["windows"] and mm["pass"] and mm["agree"] == mm["decisions"]
+    assert 0 < mm["confident"] < mm["decisions"]
+    # every literal read's decisions: the boundaries before the first <wait> write, the last one (if any) waits
+    for rec, a in zip(recs, lit):
+        order, h = R.kap_all(rec), 0
+        for r, j in enumerate(a["written"]):
+            if r < rec["n_read"] - 1 and h < len(order):
+                pos = R.read_input(rec, order, h)[1]
+                got = [diag[("lit", rec["id"], r, p)][0] == W for p in pos[: j + 1]]
+                assert got[:j] == [False] * j and (j == len(pos) or got[j])
+            h += j
+    # flipping one confident decision in the bat path fails the criterion; one near-tie flip does not
+    k = next(k for k in sorted(common) if abs(diag[("lit",) + k][1]) > 0.5)
+    d2 = dict(diag)
+    a_, m_ = d2[("bat",) + k]
+    d2[("bat",) + k] = (7 if a_ == W else W, -m_)
+    assert not R.margin_criterion(d2)["pass"]
+    print(f"  margin mode: synthetic 9 cases; real flow {len(recs)} windows, {mm['decisions']} decisions "
+          f"({len(eff)} effective), all agree, pass; one confident flip -> fail")
+
+
 def test_cli():
     import subprocess
     import sys
@@ -349,6 +415,10 @@ def test_cli():
     p = subprocess.run([sys.executable, "-m", "experiments.mist_w3po_v1.crf.d1_rollin", "--help"], capture_output=True,
                        text=True)
     assert p.returncode == 0 and "--scorer" in p.stdout and "v2p" in p.stdout
+    assert "--selfcheck-mode" in p.stdout and "{strict,margin}" in p.stdout
+    q = subprocess.run([sys.executable, "-m", "experiments.mist_w3po_v1.crf.d1_rollin", "--sched", "x", "--root", "y",
+                        "--selfcheck-mode", "margin"], capture_output=True, text=True)
+    assert q.returncode != 0 and "needs --scorer v2" in q.stderr + q.stdout
     print("  CLI: --scorer {v1, v2} (default v1), --selfcheck-min-reads, --selfcheck-tol, --manifest --lw-mode v2p")
 
 
@@ -358,7 +428,8 @@ def main():
     ap.add_argument("--only", default="")
     a = ap.parse_args()
     t0 = time.time()
-    tests = [("r0b", test_r0b), ("cli", test_cli), ("r3", test_r3_v2p), ("ve1", test_r1_r2_m_ve1),
+    tests = [("r0b", test_r0b), ("cli", test_cli), ("margin", test_margin_mode), ("r3", test_r3_v2p),
+             ("ve1", test_r1_r2_m_ve1),
              ("r0", lambda: r0(a.r0_out or None))]
     for name, t in tests:
         if a.only and name not in a.only.split(","):

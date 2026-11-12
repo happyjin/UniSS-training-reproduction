@@ -30,6 +30,9 @@ padding without position ids shifts every padded row's RoPE positions, and the p
 forward take different attention paths in transformers (explicit mask + repeat_kv vs is_causal + GQA inside SDPA); the
 bf16 differences of either are amplified by the top-k router into decision flips at near-ties. v2 removes both.
 --selfcheck-min-reads, --selfcheck-tol (0 = registered), --manifest --lw-mode v2p (the VE1 learner).
+D1v amendment 1 (prereg "修订 1", the user's decision after the 17/20 x 2 GPU selfcheck; opt-in, default strict):
+--selfcheck-mode margin = margin_criterion: every wait/write decision with max(|m_lit|, |m_bat|) > --selfcheck-margin
+(0.5) agrees, and the decision-level agreement over all decisions both paths scored is >= --selfcheck-min-agree (0.95).
     python -m experiments.mist_w3po_v1.crf.d1_rollin --score --scorer v2 --sched crf/sched_t5_merge3_w10_v1 \
         --ckpt <VE1 step_03000> --root crf/d1_rollin_ve1_v1 --shard k/n --selfcheck 20 --selfcheck-min-reads 3
     tests: PYTHONPATH=.:third_party/Megatron-LM CUDA_VISIBLE_DEVICES= python -m experiments.mist_w3po_v1.crf.test_d1v
@@ -309,6 +312,51 @@ def selfcheck_recs(recs: list[dict], n: int, min_reads: int) -> list[dict]:
     return [r for r in recs if r["n_read"] >= min_reads and len(r["chunks"]) >= 2][:n]
 
 
+def decision_keys_effective(recs: list[dict], lit: list[dict]) -> set:
+    """(id, r, p) of the decisions the literal trajectory actually took: per non-final read with pieces left, the
+    boundaries up to and including the first <wait> (all of them when the read wrote everything left)."""
+    keys = set()
+    for rec, a in zip(recs, lit):
+        order = kap_all(rec)
+        n, R_, h = len(order), rec["n_read"], 0
+        for r, j in enumerate(a["written"]):
+            if r < R_ - 1 and h < n:
+                _, pos = read_input(rec, order, h)
+                keys |= {(rec["id"], r, p) for p in pos[: j + 1]}
+            h += j
+    return keys
+
+
+def margin_criterion(diag: dict, margin: float = 0.5, min_agree: float = 0.95, effective: set | None = None) -> dict:
+    """D1v amendment 1 (opt-in selfcheck criterion). A decision = the wait / write outcome (argmax == <wait>) at a
+    (window, read, boundary) that BOTH paths scored (diag keys ("lit" | "bat", id, r, p) -> (argmax, margin), margin =
+    logit[<wait>] - max(other logits)); at a read the input is the same in both paths (committed = the full kappa
+    order), so a common key is the same computation even after the trajectories split. Pass = every decision with
+    max(|m_lit|, |m_bat|) > margin agrees AND the agreement over all decisions is >= min_agree (no decisions: fail).
+    Descriptive: token-level argmax agreement; the same counts over `effective` keys (the literal trajectory's)."""
+    rows = []
+    for k in sorted(k[1:] for k in diag if k[0] == "lit" and ("bat",) + k[1:] in diag):
+        (al, ml), (ab, mb) = diag[("lit",) + k], diag[("bat",) + k]
+        rows.append((k, al == WAIT_ID, ab == WAIT_ID, al == ab, float(ml), float(mb)))
+
+    def stats(rs):
+        n = len(rs)
+        ag = sum(dl == db for _, dl, db, _, _, _ in rs)
+        conf = [x for x in rs if max(abs(x[4]), abs(x[5])) > margin]
+        return {"decisions": n, "agree": ag, "agree_share": round(ag / n, 6) if n else None,
+                "confident": len(conf), "confident_disagree": sum(x[1] != x[2] for x in conf),
+                "token_agree_share": round(sum(x[3] for x in rs) / n, 6) if n else None}
+    out = stats(rows)
+    out["margin"], out["min_agree"] = margin, min_agree
+    out["disagree"] = [{"id": k[0], "read": k[1], "pos": k[2], "wait_lit": dl, "wait_bat": db, "m_lit": ml, "m_bat": mb}
+                       for k, dl, db, _, ml, mb in rows if dl != db]
+    out["max_abs_margin_disagree"] = max((max(abs(d["m_lit"]), abs(d["m_bat"])) for d in out["disagree"]), default=None)
+    if effective is not None:
+        out["effective"] = stats([x for x in rows if x[0] in effective])
+    out["pass"] = bool(out["decisions"] > 0 and out["confident_disagree"] == 0 and out["agree"] >= min_agree * out["decisions"])
+    return out
+
+
 def run_score(args) -> None:
     if getattr(args, "scorer", "v1") == "v2":
         return run_score_v2(args)
@@ -428,6 +476,14 @@ def run_score_v2(args) -> None:
             ok = all(all(abs(x[1][1]) <= args.selfcheck_tol and abs(y[1][1]) <= args.selfcheck_tol
                          for _, x, y in d["at_read"] if x and y and x[0] != y[0]) for d in sc["differ"])
             sc["accepted_by_tol"] = ok
+        if getattr(args, "selfcheck_mode", "strict") == "margin":   # D1v amendment 1 (opt-in)
+            sc["mode"] = "margin"
+            sc["margin_mode"] = margin_criterion(diag, args.selfcheck_margin, args.selfcheck_min_agree,
+                                                 decision_keys_effective(chk, lit))
+            ok = sc["margin_mode"]["pass"]
+            mm = sc["margin_mode"]
+            print("selfcheck_margin " + json.dumps({k_: mm[k_] for k_ in ("decisions", "agree", "agree_share",
+                                                    "confident", "confident_disagree", "pass")}), flush=True)
         (out / "selfcheck.json").write_text(json.dumps(sc, indent=1, default=str), encoding="utf-8")
         print("selfcheck " + json.dumps({k_: sc[k_] for k_ in ("windows", "equal")} |
                                         {"margin_abs_diff": sc.get("margin_abs_diff")}), flush=True)
@@ -452,7 +508,9 @@ def run_score_v2(args) -> None:
     peak = [round(torch.cuda.max_memory_allocated(i) / 2**30, 2) for i in range(torch.cuda.device_count())]
     st = {"windows": len(recs), "forwards": int(sum(sum(1 for r in range(len(x["written"]) - 1)) for x in res)),
           "load_s": round(load_s, 1), "rollin_s": round(time.time() - t1, 1),
-          "selfcheck": {k_: sc[k_] for k_ in ("windows", "equal", "tol") if k_ in sc}, "peak_alloc_gib": peak,
+          "selfcheck": {k_: sc[k_] for k_ in ("windows", "equal", "tol", "mode") if k_ in sc} |
+                       ({"margin_mode": {k_: v_ for k_, v_ in sc["margin_mode"].items() if k_ != "disagree"}}
+                        if "margin_mode" in sc else {}), "peak_alloc_gib": peak,
           "scorer": "v2", "ckpt": args.ckpt, "ckpt_info": info, "args": vars(args)}
     (out / "done.json").write_text(json.dumps(st, indent=1), encoding="utf-8")
     print(f"D1_ROLLIN_DONE {out} {json.dumps(st)}", flush=True)
@@ -588,7 +646,15 @@ def main() -> None:
     ap.add_argument("--selfcheck-tol", type=float, default=0.0,
                     help="--scorer v2: 0 = every selfcheck window must agree (registered); > 0 only on the "
                          "coordinator's decision")
+    ap.add_argument("--selfcheck-mode", default="strict", choices=["strict", "margin"],
+                    help="--scorer v2: strict = the registered window criterion (with --selfcheck-tol); margin = D1v "
+                         "amendment 1 (user decision): decisions with |margin| > --selfcheck-margin agree 100 %% and "
+                         "all decisions agree >= --selfcheck-min-agree")
+    ap.add_argument("--selfcheck-margin", type=float, default=0.5)
+    ap.add_argument("--selfcheck-min-agree", type=float, default=0.95)
     a = ap.parse_args()
+    if a.selfcheck_mode != "strict" and a.scorer != "v2":
+        raise SystemExit("--selfcheck-mode margin needs --scorer v2")
     if a.score:
         if not a.ckpt:
             raise SystemExit("--score needs --ckpt")

@@ -9,7 +9,12 @@
 # per shard, under flock(gpu_launch.lock), every card's nvidia-smi used + NEED_MIB <= 138240 MiB (135 GiB), launched
 # detached with the lock fd closed, the lock kept until the shard's memory shows (or 300 s) -> launches are staggered.
 # Refuses to start unless the R0 CPU precheck (crf/d1v_scorer_precheck_v1.json) passed.
-#   PAIRS="4,5 6,7" [NEED_MIB=40000] [MEMCAP=60] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/start_d1v_rollin.sh
+# D1v amendment 1 (prereg "修订 1", user decision 2026-11-12 after the 17/20 x 2 selfcheck; opt-in, defaults unchanged):
+#   SC_MODE=margin  -> d1_rollin --selfcheck-mode margin --selfcheck-margin ${SC_MARGIN:-0.5} --selfcheck-min-agree
+#                      ${SC_MIN_AGREE:-0.95} (decisions with |margin| > 0.5 agree 100 %, all decisions >= 95 %)
+#   ROOT_NAME=<dir under crf/> (default d1_rollin_ve1_v1), LOG_TAG=<shard / manifest log tag> (default ve1)
+#   PAIRS="4,5 6,7" [NEED_MIB=40000] [MEMCAP=60] [SC_MODE=margin ROOT_NAME=.. LOG_TAG=..] [DRY_RUN=1] \
+#     bash experiments/mist_w3po_v1/scripts/start_d1v_rollin.sh
 # Run detached: setsid nohup bash .../start_d1v_rollin.sh > logs/mist_w3po_v1/d1v/start_d1v_rollin.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
@@ -27,7 +32,14 @@ C=eval_outputs/mist_w3po_v1/crf
 S=$C/sched_t5_merge3_w10_v1
 M=v2p
 CK=$C/train/ve1_20261111T214454Z/ckpt/step_03000
-ROOT=$C/d1_rollin_ve1_v1
+ROOT=$C/${ROOT_NAME:-d1_rollin_ve1_v1}
+LT=${LOG_TAG:-ve1}
+SC_MODE=${SC_MODE:-strict}
+case $SC_MODE in
+  strict) SCX="";;
+  margin) SCX=" --selfcheck-mode margin --selfcheck-margin ${SC_MARGIN:-0.5} --selfcheck-min-agree ${SC_MIN_AGREE:-0.95}";;
+  *) echo "SC_MODE strict or margin"; exit 1;;
+esac
 MAN=$C/d1_ve1_w10_v1
 R0=$C/d1v_scorer_precheck_v1.json
 L=logs/mist_w3po_v1/d1v
@@ -38,12 +50,13 @@ slot_of() { case $1 in 0|1|2|3) echo slotA;; *) echo slotB;; esac; }
 training_slot() { local s; s=$(slot_of $1); [ -e $SL/$s.owner ] && grep -qi 'training' $SL/$s.owner; }
 read -r -a PA <<< "$PAIRS"
 N=${#PA[@]}
-cmd_of() { echo "CUDA_VISIBLE_DEVICES=${PA[$1]} $PY -m experiments.mist_w3po_v1.crf.d1_rollin --score --scorer v2 --sched $S --ckpt $CK --root $ROOT --shard $1/$N --selfcheck 20 --selfcheck-min-reads 3 --mem-cap-gib ${MEMCAP:-60}"; }
+cmd_of() { echo "CUDA_VISIBLE_DEVICES=${PA[$1]} $PY -m experiments.mist_w3po_v1.crf.d1_rollin --score --scorer v2 --sched $S --ckpt $CK --root $ROOT --shard $1/$N --selfcheck 20 --selfcheck-min-reads 3 --mem-cap-gib ${MEMCAP:-60}$SCX"; }
 BADPAIR=""
 for p in "${PA[@]}"; do for c in ${p//,/ }; do training_slot $c && BADPAIR="$BADPAIR $c"; done; done
 if [ -n "${DRY_RUN:-}" ]; then
   echo "R0 precheck pass: $(field $R0 "d['GO']['pass']" 2>/dev/null || echo missing); learner $CK DONE: $([ -e $CK/DONE ] && echo yes || echo no)"
   echo "root $ROOT ($([ -e $ROOT ] && echo EXISTS || echo new)); manifest $MAN ($([ -e $MAN ] && echo EXISTS || echo new))"
+  echo "selfcheck mode $SC_MODE; shard logs $L/rollin_${LT}_<k>of$N.log ($(ls $L/rollin_${LT}_*of$N.log 2>/dev/null | wc -l) exist); manifest log $L/manifest_$LT.log"
   echo "cards of PAIRS in a training slot (refused):${BADPAIR:- none}"
   for c in $(echo $PAIRS | tr ', ' '  '); do echo "card $c used MiB: $(nvidia-smi -i $c --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')"; done
   for k in $(seq 0 $((N - 1))); do echo "shard $k: $(cmd_of $k)"; done
@@ -56,11 +69,11 @@ fi
 [ -e $ROOT ] || [ -e $MAN ] && { log "拒绝覆盖已有输出: $ROOT / $MAN"; exit 1; }
 mkdir -p $L
 for k in $(seq 0 $((N - 1))); do
-  LOGK=$L/rollin_ve1_${k}of${N}.log
+  LOGK=$L/rollin_${LT}_${k}of${N}.log
   [ -e $LOGK ] && { log "拒绝覆盖已有日志: $LOGK"; exit 1; }
 done
 for k in $(seq 0 $((N - 1))); do
-  LOGK=$L/rollin_ve1_${k}of${N}.log
+  LOGK=$L/rollin_${LT}_${k}of${N}.log
   exec 9>"$LOCK"
   flock -w 1800 9 || { log "gpu_launch.lock busy for 1800 s"; exit 1; }
   ok=0
@@ -88,14 +101,16 @@ done
 log "all $N shards launched; waiting for their exits"
 fail=0
 for k in $(seq 0 $((N - 1))); do
-  until grep -q D1_ROLLIN_EXIT $L/rollin_ve1_${k}of${N}.log 2>/dev/null; do sleep 30; done
-  if grep -q 'D1_ROLLIN_EXIT rc=0' $L/rollin_ve1_${k}of${N}.log; then
-    log "shard $k done: $(grep -m1 '^selfcheck' $L/rollin_ve1_${k}of${N}.log | cut -c1-200)"
+  until grep -q D1_ROLLIN_EXIT $L/rollin_${LT}_${k}of${N}.log 2>/dev/null; do sleep 30; done
+  if grep -q 'D1_ROLLIN_EXIT rc=0' $L/rollin_${LT}_${k}of${N}.log; then
+    log "shard $k done: $(grep -m1 '^selfcheck' $L/rollin_${LT}_${k}of${N}.log | cut -c1-200)"
+    [ $SC_MODE = margin ] && log "shard $k margin criterion: $(grep -m1 '^selfcheck_margin' $L/rollin_${LT}_${k}of${N}.log | cut -c1-300)"
   else
-    log "shard $k FAILED: $(grep -m1 -E '^selfcheck|Error|error' $L/rollin_ve1_${k}of${N}.log | cut -c1-300)"; fail=1
+    log "shard $k FAILED: $(grep -m1 -E '^selfcheck|Error|error' $L/rollin_${LT}_${k}of${N}.log | cut -c1-300)"; fail=1
+    [ $SC_MODE = margin ] && log "shard $k margin criterion: $(grep -m1 '^selfcheck_margin' $L/rollin_${LT}_${k}of${N}.log | cut -c1-300)"
   fi
 done
 [ $fail = 0 ] || { log "D1V_ROLLIN_FAILED: no manifest (selfcheck details: $ROOT/rollin_*/selfcheck.json)"; exit 1; }
-$PY -m experiments.mist_w3po_v1.crf.d1_rollin --manifest --sched $S --root $ROOT --lw-mode $M --out $MAN > $L/manifest_ve1.log 2>&1 \
+$PY -m experiments.mist_w3po_v1.crf.d1_rollin --manifest --sched $S --root $ROOT --lw-mode $M --out $MAN > $L/manifest_$LT.log 2>&1 \
   && log "D1V_ROLLIN_DONE manifest $MAN: R4 $(field $MAN/summary.json "d['R4_pass']") (windows with an overdue read: $(field $MAN/summary.json "d['share_windows_with_overdue']"))" \
-  || { log "manifest failed (see $L/manifest_ve1.log)"; exit 1; }
+  || { log "manifest failed (see $L/manifest_$LT.log)"; exit 1; }
