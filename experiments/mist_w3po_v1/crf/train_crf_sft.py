@@ -326,7 +326,8 @@ def lr_at(k: int, args) -> float:
     """Megatron's schedule at iteration k (1-based): linear warm-up from 0, then cosine to min_lr at --steps."""
     if args.warmup > 0 and k <= args.warmup:
         return args.lr * k / args.warmup
-    ratio = (k - args.warmup) / max(1, args.steps - args.warmup)
+    horizon = getattr(args, "lr_horizon", 0) or args.steps   # --lr-horizon (0 = --steps, unchanged)
+    ratio = (k - args.warmup) / max(1, horizon - args.warmup)
     return args.min_lr + (args.lr - args.min_lr) * 0.5 * (math.cos(math.pi * min(1.0, ratio)) + 1.0)
 
 
@@ -946,6 +947,8 @@ def build_args(argv=None):
     ap.add_argument("--sched2", default="", help="joint bidirectional: a second sched dir (other direction)")
     ap.add_argument("--dir2", default="", help="--sched2's direction (zh2en / en2zh), must differ from --dir")
     ap.add_argument("--stop-file", default="", help="early stop: stop after the step at which this file exists")
+    ap.add_argument("--lr-horizon", type=int, default=0,
+                    help="cosine horizon in steps (0: --steps, unchanged); open-ended runs: --steps = a safety ceiling")
     a = ap.parse_args(argv)
     if bool(a.sched2) != bool(a.dir2):
         ap.error("--sched2 and --dir2 go together")
@@ -990,7 +993,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         (out / "ckpt").mkdir(parents=True, exist_ok=True)
         if not args.resume:
             av = vars(args).copy()
-            for k_, d_ in (("sched2", ""), ("dir2", ""), ("stop_file", "")):   # default runs: args.json unchanged
+            for k_, d_ in (("sched2", ""), ("dir2", ""), ("stop_file", ""), ("lr_horizon", 0)):   # defaults: unchanged
                 if av.get(k_) == d_:
                     av.pop(k_)
             (out / "args.json").write_text(json.dumps(av, indent=1))

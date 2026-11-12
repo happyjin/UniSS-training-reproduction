@@ -9,6 +9,7 @@
       pick() / n_prompt0 as documented; the plain Prompter path is unchanged (no pick attribute is consulted)
   (c) build_args: the new options default off ("" each); invalid combinations are refused; defaults leave every
       pre-existing argument unchanged
+  (e) lr_at with --lr-horizon: 0 (default) = the --steps cosine exactly; H: cosine to min_lr at H, then flat
   (d) stop_file_hit: "" -> False without touching the file system; a missing file -> False; an existing one -> True
 
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.crf.test_joint_bidir
@@ -16,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import math
 import tempfile
 import time
 from pathlib import Path
@@ -131,9 +133,22 @@ def test_stop_file_hit():
     print("  stop_file_hit: off / missing / present")
 
 
+def test_lr_horizon():
+    from types import SimpleNamespace as NS
+    a = NS(lr=1e-4, min_lr=1e-5, warmup=50, steps=3000)
+    b = NS(lr=1e-4, min_lr=1e-5, warmup=50, steps=3000, lr_horizon=0)
+    for k in (1, 50, 51, 1000, 2999, 3000):
+        assert T.lr_at(k, a) == T.lr_at(k, b)
+    h = NS(lr=1e-4, min_lr=1e-5, warmup=50, steps=15000, lr_horizon=12000)
+    assert T.lr_at(12000, h) == 1e-5 and T.lr_at(15000, h) == 1e-5 and T.lr_at(50, h) == 1e-4
+    assert abs(T.lr_at(3050, h) - (1e-5 + 9e-5 * 0.5 * (math.cos(math.pi * 3000 / 11950) + 1))) < 1e-15
+    assert T.build_args(["--objective", "serial_v2p", "--out", "/x"]).lr_horizon == 0
+    print("  lr horizon: 0 = unchanged; 12000 horizon flat at min_lr after it")
+
+
 def main():
     t0 = time.time()
-    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_joint_prompter_collate]
+    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_lr_horizon, test_joint_prompter_collate]
     for t in tests:
         t1 = time.time()
         t()

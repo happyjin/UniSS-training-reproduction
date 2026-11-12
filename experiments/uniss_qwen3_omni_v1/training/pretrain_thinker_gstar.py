@@ -105,11 +105,16 @@ def perturb(post: np.ndarray, rng: np.random.Generator, p: float) -> np.ndarray:
 
 
 class GStarRows(torch.utils.data.Dataset):
-    def __init__(self, path: str, n_samples: int, seed: int, qwen3_path: str, perturb_p: float, oracle: bool):
+    def __init__(self, path: str, n_samples: int, seed: int, qwen3_path: str, perturb_p: float, oracle: bool,
+                 sequential: bool = False):
         self.qwen3_path, self.perturb_p, self.oracle = qwen3_path, perturb_p, oracle
         self.rows = [json.loads(l) for l in open(path, encoding="utf-8")]
         rng = np.random.default_rng(seed)
-        self.order = np.concatenate([rng.permutation(len(self.rows)) for _ in range(math.ceil(n_samples / len(self.rows)))])
+        if sequential:   # --gstar-sequential: the file order is the sample order (joint v8, mist_w3po_v1 (b))
+            self.order = np.concatenate([np.arange(len(self.rows)) for _ in range(math.ceil(n_samples / len(self.rows)))])
+        else:
+            self.order = np.concatenate([rng.permutation(len(self.rows))
+                                         for _ in range(math.ceil(n_samples / len(self.rows)))])
         self.n = n_samples
         self.seed = seed
 
@@ -154,6 +159,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     g.add_argument("--gstar-init-merged", action="store_true",
                    help="--qwen3-path is a merged G-STAR-SI model: start from its token rows and sd_proj.pt (streaming)")
     g.add_argument("--omni-no-recompute", action="store_true")
+    g.add_argument("--gstar-sequential", action="store_true",
+                   help="sample i = row i of --gstar-rows (no per-pass permutation); default off = unchanged")
     return parser
 
 
@@ -190,7 +197,8 @@ def train_valid_test_datasets_provider(train_val_test_num_samples, vp_stage=None
     runtime = load_megatron_runtime()
     args = runtime.megatron_gpt.get_args()
     n = int(args.train_iters) * int(args.global_batch_size)
-    train = GStarRows(args.gstar_rows, n, args.gstar_seed, args.qwen3_path, args.gstar_perturb, args.gstar_oracle)
+    train = GStarRows(args.gstar_rows, n, args.gstar_seed, args.qwen3_path, args.gstar_perturb, args.gstar_oracle,
+                      sequential=bool(getattr(args, "gstar_sequential", False)))
     runtime.print_rank_0(f"thinker gstar: {len(train.rows):,} rows, {n / len(train.rows):.2f} passes")
     return train, None, None
 

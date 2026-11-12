@@ -9,6 +9,10 @@
 #   NOSD=1 (speaker tokens zeroed) / ORACLE=1 (reference posteriors); DRY_RUN=1 prints the command.
 #   Streaming continuation: BASE=<a merged G-STAR-SI model> INIT_MERGED=1 ROWS=<stream rows> (the new LoRA is merged
 #   onto BASE, and the token rows and projector continue from it).
+#   GSTAR_SEQUENTIAL=1: rows are consumed in file order (--gstar-sequential; joint bidirectional v8 of mist_w3po_v1 (b),
+#   rows from build_joint_v8_rows.py); unset = unchanged. LR_DECAY_ITERS=<n>: cosine horizon (default TRAIN_ITERS =
+#   unchanged; open-ended runs: horizon < TRAIN_ITERS = a safety ceiling). SAVE_OPTIM=" " (a space): checkpoints keep the
+#   optimizer and RNG state (default: --no-save-optim --no-save-rng, unchanged).
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "${REPO_ROOT}"
 ENV_ROOT="${ENV_ROOT:-/opt/dlami/nvme/jasonleeeli/conda_envs/qwen3omni}"
@@ -35,6 +39,7 @@ CMD=("${ENV_ROOT}/bin/python" -m torch.distributed.run
   --qwen3-path "${BASE}"
   --gstar-rows "${ROWS}" --gstar-lora-rank "${RANK}" --gstar-lora-alpha "${ALPHA}" --gstar-lora-from "${FROM}"
   ${NOSD:+--gstar-no-sd} ${ORACLE:+--gstar-oracle} ${INIT_MERGED:+--gstar-init-merged}
+  ${GSTAR_SEQUENTIAL:+--gstar-sequential}
   --tokenizer-type NullTokenizer --vocab-size 8448
   --tensor-model-parallel-size 1 --pipeline-model-parallel-size 1
   --num-layers 24 --hidden-size 896 --ffn-hidden-size 4864
@@ -45,11 +50,11 @@ CMD=("${ENV_ROOT}/bin/python" -m torch.distributed.run
   --micro-batch-size "${MBS}" --global-batch-size "${GBS}"
   --train-iters "${TRAIN_ITERS}"
   --lr "${LR:-1e-4}" --min-lr "${MIN_LR:-1e-5}" --lr-warmup-iters "${WARMUP_ITERS:-50}"
-  --lr-decay-iters "${TRAIN_ITERS}" --lr-decay-style cosine
+  --lr-decay-iters "${LR_DECAY_ITERS:-${TRAIN_ITERS}}" --lr-decay-style cosine
   --dataloader-type single --no-data-sharding --num-workers "${NUM_WORKERS:-8}"
   --weight-decay 0.0 --adam-beta1 0.9 --adam-beta2 0.95 --clip-grad 1.0
   --bf16 --no-create-attention-mask-in-dataloader --no-gradient-accumulation-fusion
-  --save "${SAVE_DIR}" --save-interval "${SAVE_INTERVAL:-250}" --no-save-optim --no-save-rng
+  --save "${SAVE_DIR}" --save-interval "${SAVE_INTERVAL:-250}" ${SAVE_OPTIM:---no-save-optim --no-save-rng}
   --eval-iters 0 --eval-interval "${TRAIN_ITERS}"
   --log-interval "${LOG_INTERVAL:-10}"
   --tensorboard-dir "${TB_DIR}" --log-throughput
