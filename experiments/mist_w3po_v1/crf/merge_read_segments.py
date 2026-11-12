@@ -10,7 +10,10 @@ Additive tool: a NEW decode dir <dst> with the merged hyp.jsonl and the source's
 scores stay those of the original decode; thinker_t_eval_orch --speech-from <dst> runs only the speech chain on it).
 Refuses to overwrite anything.
 
-    python -m experiments.mist_w3po_v1.crf.merge_read_segments --src <decode name> --dst <new decode name>
+    python -m experiments.mist_w3po_v1.crf.merge_read_segments --src <decode name> --dst <new decode name> [--sep '']
+
+--sep (additive, 2026-11-12, en2zh plan §3): the string that joins the member texts; default " " (unchanged); '' for
+Chinese output (en2zh: the talker prep joins a slot's Chinese segments with '' as well).
 """
 from __future__ import annotations
 
@@ -22,7 +25,7 @@ from pathlib import Path
 DEC = Path("eval_outputs/mist_w3po_v1/decode")
 
 
-def merge_entries(entries: list[dict], end_key: str | None) -> list[dict]:
+def merge_entries(entries: list[dict], end_key: str | None, sep: str = " ") -> list[dict]:
     """Merge, per speaker, the non-empty entries with the same write_ms that are consecutive in the list restricted to
     that speaker (a "run"). A run becomes one entry at its first member's list position; its members are ordered by
     (start_s or 0) (stable; the talker prep's order inside a read), text = the stripped member texts joined with one
@@ -51,7 +54,7 @@ def merge_entries(entries: list[dict], end_key: str | None) -> list[dict]:
             continue
         mem = sorted(runs[x], key=lambda i: (entries[i].get("start_s") or 0.0, i))
         m = dict(entries[mem[0]])
-        m["text"] = " ".join(entries[i]["text"].strip() for i in mem)
+        m["text"] = sep.join(entries[i]["text"].strip() for i in mem)
         if end_key is not None:
             m[end_key] = max(entries[i][end_key] for i in mem)
         m["_n"] = len(mem)
@@ -59,12 +62,12 @@ def merge_entries(entries: list[dict], end_key: str | None) -> list[dict]:
     return out
 
 
-def merge_hyp(h: dict) -> tuple[dict, dict]:
+def merge_hyp(h: dict, sep: str = " ") -> tuple[dict, dict]:
     """-> (merged hyp record, stats). Segments and blocks are merged by the same rule, each in its own list order (a
     speaker's same-read entries are consecutive in both), so a merged block has the merged segment with the same
     (spk, start_s) and text whenever the blocks are the segments (check_pair)."""
     h2 = dict(h)
-    segs = merge_entries(h.get("segments", []), "end_s")
+    segs = merge_entries(h.get("segments", []), "end_s", sep)
     st = {"seg_in": sum(1 for s in h.get("segments", []) if s["text"].strip()),
           "seg_out": sum(1 for s in segs if s["text"].strip()),
           "seg_merged_members": sum(s.get("_n", 1) - 1 for s in segs)}
@@ -72,7 +75,7 @@ def merge_hyp(h: dict) -> tuple[dict, dict]:
         s.pop("_n", None)
     h2["segments"] = segs
     if h.get("blocks"):
-        bm = merge_entries(h["blocks"], None)
+        bm = merge_entries(h["blocks"], None, sep)
         for b in bm:
             b.pop("_n", None)
         h2["blocks"] = bm
@@ -92,6 +95,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", required=True)
     ap.add_argument("--dst", required=True)
+    ap.add_argument("--sep", default=" ", help="joins the member texts (default ' '; en2zh: '')")
     a = ap.parse_args()
     src, dst = DEC / a.src, DEC / a.dst
     if dst.exists():
@@ -102,7 +106,7 @@ def main() -> None:
     tot = {"windows": 0, "pair_ok": 0, "src_pair_ok": 0, "pair_lost": 0}
     with open(dst / "hyp.jsonl", "x", encoding="utf-8") as fh:
         for l in open(src / "hyp.jsonl", encoding="utf-8"):
-            h2, st = merge_hyp(json.loads(l))
+            h2, st = merge_hyp(json.loads(l), a.sep)
             for k, v in st.items():
                 tot[k] = tot.get(k, 0) + v
             tot["windows"] += 1
@@ -114,6 +118,8 @@ def main() -> None:
     with open(src / "score_text.json", "rb") as fi, open(dst / "score_text.json", "xb") as fo:
         shutil.copyfileobj(fi, fo)
     tot["src"], tot["note"] = str(src), "read-level talker input (merge_read_segments.py); text scores = the source's"
+    if a.sep != " ":
+        tot["sep"] = a.sep
     with open(dst / "merge_read_segments.json", "x", encoding="utf-8") as fh:
         json.dump(tot, fh, indent=1)
     print(json.dumps(tot))
