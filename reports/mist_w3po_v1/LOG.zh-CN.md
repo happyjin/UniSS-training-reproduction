@@ -2486,3 +2486,18 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - **测试与预检**：新测试 `test_pmc_noc` 3/3；回归 `test_pmc` 3/3、`test_latent_write_crf` 5/5、`test_train_crf_sft` 8/8、`test_dart_aug` 6/6。预检 `crf/pmc_noc_precheck_v1.json` pass：权重 0 的系数与 VE1 的 M 步逐位相同，格和计划与 PMC 相同。
 - **脚本**（`bash -n` 和 DRY_RUN 检查过）：`start_pmcnoc.sh`、`pmcnoc_after_train.sh`、`pmcnoc_after_merge.sh`。0–3 号卡（slotA），训练端口 29995，评测端口 19501 / 19511。
 - 详见预登记的"结果"节。
+
+## 2026-11-12 11:10 布拉格（10:07 UTC）— PMC-noC 在 0–3 号卡开训
+
+- `RUN_ID=pmcnoc_20261112T100739Z`。`start_pmcnoc.sh`：
+  - 10:07:40 UTC 占 slotA，按 takeover 按 PID 停掉 0–3 号卡上的 4 个占卡 supervisor 和 worker；
+  - 10:07:47 启动 torchrun 646323（根 bash -c），没有空档。
+- `pmcnoc_after_train.sh`（PID 644217，日志 `logs/mist_w3po_v1/pmcnoc/after_train.log`）已挂上。
+- **核对**（前 14 步）：
+  - 4 个 rank；master_port 29995；
+  - 命令行和 args.json 都是 `--lw-mode pmc --pmc-content-weight 0`，种子 20261109，清单 `pmc_dart_merge3_w10_v1`；
+  - metrics 每步 `pmc_w` = 0.0；
+  - λ 每步都绑定，Eq_lat_T2 = lat_e（0.641，与 PMC-1 同样步数的均值相同）；
+  - 第 1 步的 λ* 与 PMC-1 逐位相同（同一初始模型、同一批窗口，说明内容项不影响后验）；第 1 步 loss_main 1.49（PMC-1 3.46，内容权重少了一半）；
+  - 不可行窗口 0，没有 NaN，显存峰值 80 GiB，约 5.6 s/步。
+- 预计约布拉格 15:30 训完，dev 全集结果约 16:30–17:00。8 张卡都是训练。
