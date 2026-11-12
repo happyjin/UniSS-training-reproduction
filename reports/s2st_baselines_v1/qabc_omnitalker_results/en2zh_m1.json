@@ -1,0 +1,282 @@
+{
+ "point": "en2zh_m1",
+ "omni_native_talker": {
+  "n_seeds": 3,
+  "n": 346,
+  "asr_bleu": 24.5369,
+  "text_bleu": 26.5415,
+  "laal_d1": 1.2777,
+  "laal_d0w": 1.005,
+  "speech_s_per_sentence": 7.5398,
+  "asr_bleu_sd": 0.082,
+  "talker_wer": 5.72,
+  "talker_wer_sub": 3.33,
+  "talker_wer_del": 0.33,
+  "talker_wer_ins": 2.06,
+  "talker_wer_unit": "char",
+  "queue_violations": 0,
+  "asr_cover_ok": true,
+  "config": {
+   "family": "swb-q-bm1",
+   "window_s": 0.5,
+   "b0": -1
+  },
+  "thinker_fidelity": {
+   "point": "en2zh_m1",
+   "unit": "char",
+   "per_seed": {
+    "0": {
+     "blocks": 1969,
+     "exact_share": 0.999,
+     "thinker_wer": 0.04,
+     "sub": 0.0,
+     "del": 0.04,
+     "ins": 0.0,
+     "ref_tokens": 10827,
+     "no_audio": 0,
+     "dur_ms_mean": 1331.5,
+     "dur_ms_max": 11416.875,
+     "worst": [
+      {
+       "sent": "istoria\"这个词",
+       "said": "istoria"
+      },
+      {
+       "sent": "这个的时候,我的意思是",
+       "said": "这个时候,我的意思是"
+      }
+     ]
+    },
+    "1": {
+     "blocks": 1969,
+     "exact_share": 0.999,
+     "thinker_wer": 0.04,
+     "sub": 0.0,
+     "del": 0.04,
+     "ins": 0.0,
+     "ref_tokens": 10827,
+     "no_audio": 0,
+     "dur_ms_mean": 1310.5,
+     "dur_ms_max": 10776.875,
+     "worst": [
+      {
+       "sent": "istoria\"这个词",
+       "said": "istoria"
+      },
+      {
+       "sent": "这个的时候,我的意思是",
+       "said": "这个时候,我的意思是"
+      }
+     ]
+    },
+    "2": {
+     "blocks": 1969,
+     "exact_share": 0.999,
+     "thinker_wer": 0.04,
+     "sub": 0.0,
+     "del": 0.04,
+     "ins": 0.0,
+     "ref_tokens": 10827,
+     "no_audio": 0,
+     "dur_ms_mean": 1332.5,
+     "dur_ms_max": 11096.875,
+     "worst": [
+      {
+       "sent": "istoria\"这个词",
+       "said": "istoria"
+      },
+      {
+       "sent": "这个的时候,我的意思是",
+       "said": "这个时候,我的意思是"
+      }
+     ]
+    }
+   },
+   "thinker_text_same_across_seeds": 1.0
+  },
+  "block_talker_wer_s0": {
+   "wer": 7.52,
+   "sub": 4.42,
+   "del": 0.35,
+   "ins": 2.74,
+   "ref_tokens": 10827,
+   "unit": "char",
+   "blocks": 1969
+  },
+  "seeds": [
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m1_s0/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 24.631125882571116,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.2695140676376295,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.63,
+     "sub": 3.09,
+     "del": 0.3,
+     "ins": 2.24,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 7.577708092485549,
+    "blocks": 2044,
+    "blocks_no_audio": 75
+   },
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m1_s1/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 24.485814190928483,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.2805319928603474,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.78,
+     "sub": 3.5,
+     "del": 0.35,
+     "ins": 1.93,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 7.458095375722543,
+    "blocks": 2044,
+    "blocks_no_audio": 75
+   },
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m1_s2/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 24.493657821103522,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.2830529410381766,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.74,
+     "sub": 3.4,
+     "del": 0.34,
+     "ins": 2.0,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 7.583679190751445,
+    "blocks": 2044,
+    "blocks_no_audio": 75
+   }
+  ]
+ },
+ "paper_talker": {
+  "n_seeds": 3,
+  "n": 346,
+  "asr_bleu": 25.3254,
+  "text_bleu": 26.5415,
+  "laal_d1": 1.1311,
+  "laal_d0w": 1.005,
+  "speech_s_per_sentence": 6.6698,
+  "asr_bleu_sd": 0.035,
+  "talker_wer": 5.4,
+  "talker_wer_sub": 2.42,
+  "talker_wer_del": 2.2,
+  "talker_wer_ins": 0.78,
+  "talker_wer_unit": "char",
+  "queue_violations": 0,
+  "asr_cover_ok": true,
+  "config": {
+   "family": "swb-q-bm1",
+   "window_s": 0.5,
+   "b0": -1
+  },
+  "paper_printed": {
+   "asr_bleu": 25.33,
+   "laal_d1": 1.13
+  },
+  "reproduces_paper": true,
+  "seeds": [
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-bm1_m0.5/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 25.36028130463391,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.1329645970568736,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.5,
+     "sub": 2.46,
+     "del": 2.22,
+     "ins": 0.82,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.665375722543353,
+    "blocks": 2044,
+    "blocks_no_audio": 0
+   },
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-bm1-seed1_m0.5/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 25.326231923637906,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.1327579638488217,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.01,
+     "sub": 2.38,
+     "del": 1.81,
+     "ins": 0.81,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.683583815028902,
+    "blocks": 2044,
+    "blocks_no_audio": 0
+   },
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-bm1-seed2_m0.5/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 25.28983298310128,
+    "text_bleu": 26.541456914480722,
+    "laal_d1": 1.1274633694317464,
+    "n_d1": 346,
+    "laal_d0w": 1.0049672691181222,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.69,
+     "sub": 2.41,
+     "del": 2.56,
+     "ins": 0.72,
+     "ref_tokens": 10827,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.660520231213873,
+    "blocks": 2044,
+    "blocks_no_audio": 0
+   }
+  ]
+ }
+}

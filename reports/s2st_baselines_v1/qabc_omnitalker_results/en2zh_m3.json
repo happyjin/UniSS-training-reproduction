@@ -1,0 +1,294 @@
+{
+ "point": "en2zh_m3",
+ "omni_native_talker": {
+  "n_seeds": 3,
+  "n": 346,
+  "asr_bleu": 29.5738,
+  "text_bleu": 31.8373,
+  "laal_d1": 2.2848,
+  "laal_d0w": 2.1706,
+  "speech_s_per_sentence": 6.8741,
+  "asr_bleu_sd": 0.263,
+  "talker_wer": 4.88,
+  "talker_wer_sub": 2.96,
+  "talker_wer_del": 0.23,
+  "talker_wer_ins": 1.68,
+  "talker_wer_unit": "char",
+  "queue_violations": 0,
+  "asr_cover_ok": true,
+  "config": {
+   "family": "swb-q-b1",
+   "window_s": 1.0,
+   "b0": 1
+  },
+  "thinker_fidelity": {
+   "point": "en2zh_m3",
+   "unit": "char",
+   "per_seed": {
+    "0": {
+     "blocks": 1347,
+     "exact_share": 0.9978,
+     "thinker_wer": 0.03,
+     "sub": 0.01,
+     "del": 0.02,
+     "ins": 0.0,
+     "ref_tokens": 10629,
+     "no_audio": 0,
+     "dur_ms_mean": 1770.4,
+     "dur_ms_max": 11736.875,
+     "worst": [
+      {
+       "sent": "分子特征,来",
+       "said": "分子特征"
+      },
+      {
+       "sent": "把事情简化到这种标准化的",
+       "said": "把事情简化到这种标准化"
+      },
+      {
+       "sent": "呢?这才是真正的问题。",
+       "said": "呢?這才是真正嘅問題。"
+      }
+     ]
+    },
+    "1": {
+     "blocks": 1347,
+     "exact_share": 0.9978,
+     "thinker_wer": 0.03,
+     "sub": 0.01,
+     "del": 0.02,
+     "ins": 0.0,
+     "ref_tokens": 10629,
+     "no_audio": 0,
+     "dur_ms_mean": 1760.2,
+     "dur_ms_max": 11576.875,
+     "worst": [
+      {
+       "sent": "分子特征,来",
+       "said": "分子特征"
+      },
+      {
+       "sent": "把事情简化到这种标准化的",
+       "said": "把事情简化到这种标准化"
+      },
+      {
+       "sent": "呢?这才是真正的问题。",
+       "said": "呢?這才是真正嘅問題。"
+      }
+     ]
+    },
+    "2": {
+     "blocks": 1347,
+     "exact_share": 0.9978,
+     "thinker_wer": 0.03,
+     "sub": 0.01,
+     "del": 0.02,
+     "ins": 0.0,
+     "ref_tokens": 10629,
+     "no_audio": 0,
+     "dur_ms_mean": 1766.4,
+     "dur_ms_max": 12536.875,
+     "worst": [
+      {
+       "sent": "分子特征,来",
+       "said": "分子特征"
+      },
+      {
+       "sent": "把事情简化到这种标准化的",
+       "said": "把事情简化到这种标准化"
+      },
+      {
+       "sent": "呢?这才是真正的问题。",
+       "said": "呢?這才是真正嘅問題。"
+      }
+     ]
+    }
+   },
+   "thinker_text_same_across_seeds": 1.0
+  },
+  "block_talker_wer_s0": {
+   "wer": 6.28,
+   "sub": 3.87,
+   "del": 0.16,
+   "ins": 2.26,
+   "ref_tokens": 10629,
+   "unit": "char",
+   "blocks": 1347
+  },
+  "seeds": [
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m3_s0/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 29.293312314417083,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.2836751070126358,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 5.26,
+     "sub": 2.98,
+     "del": 0.24,
+     "ins": 2.03,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.892462427745665,
+    "blocks": 1403,
+    "blocks_no_audio": 56
+   },
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m3_s1/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 29.613162612395314,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.2812389320102673,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 4.8,
+     "sub": 3.01,
+     "del": 0.21,
+     "ins": 1.58,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.852768786127168,
+    "blocks": 1403,
+    "blocks_no_audio": 56
+   },
+   {
+    "run": "eval_outputs/s2st_baselines_v1/qabc_omnitalker_realsi/runs/en2zh_m3_s2/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 29.815019585150058,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.2893670554080594,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 4.57,
+     "sub": 2.88,
+     "del": 0.25,
+     "ins": 1.44,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.877002890173411,
+    "blocks": 1403,
+    "blocks_no_audio": 56
+   }
+  ]
+ },
+ "paper_talker": {
+  "n_seeds": 3,
+  "n": 346,
+  "asr_bleu": 30.331,
+  "text_bleu": 31.8373,
+  "laal_d1": 2.2483,
+  "laal_d0w": 2.1706,
+  "speech_s_per_sentence": 6.4423,
+  "asr_bleu_sd": 0.068,
+  "talker_wer": 4.18,
+  "talker_wer_sub": 2.3,
+  "talker_wer_del": 1.32,
+  "talker_wer_ins": 0.56,
+  "talker_wer_unit": "char",
+  "queue_violations": 0,
+  "asr_cover_ok": true,
+  "config": {
+   "family": "swb-q-b1",
+   "window_s": 1.0,
+   "b0": 1
+  },
+  "paper_printed": {
+   "asr_bleu": 30.33,
+   "laal_d1": 2.25
+  },
+  "reproduces_paper": true,
+  "seeds": [
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-b1_m1/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 30.337754207256566,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.245792643743796,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 4.19,
+     "sub": 2.44,
+     "del": 1.19,
+     "ins": 0.56,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.4669364161849705,
+    "blocks": 1403,
+    "blocks_no_audio": 0
+   },
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-b1-seed1_m1/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 30.259338285255645,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.2486709910643223,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 4.23,
+     "sub": 2.29,
+     "del": 1.41,
+     "ins": 0.54,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.439768786127168,
+    "blocks": 1403,
+    "blocks_no_audio": 0
+   },
+   {
+    "run": "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/full_iter0001500/system_swb-q-b1-seed2_m1/realsi_en2zh",
+    "n": 346,
+    "n_asr": 346,
+    "asr_cover_ok": true,
+    "asr_bleu": 30.395812966289956,
+    "text_bleu": 31.837260162519613,
+    "laal_d1": 2.2505697157192657,
+    "n_d1": 346,
+    "laal_d0w": 2.170576774149723,
+    "n_d0w": 346,
+    "talker_wer": {
+     "wer": 4.12,
+     "sub": 2.16,
+     "del": 1.37,
+     "ins": 0.58,
+     "ref_tokens": 10629,
+     "unit": "char"
+    },
+    "queue_violations": 0,
+    "speech_s_per_sentence": 6.420115606936416,
+    "blocks": 1403,
+    "blocks_no_audio": 0
+   }
+  ]
+ }
+}

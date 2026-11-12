@@ -15,6 +15,7 @@ among the 4 points whose D1 fits the paper's budget (and the same by D0w, for re
 
     PYTHONPATH=. uniss-eval/bin/python experiments/s2st_baselines_v1/qabc_omnitalker/score.py paper    # check only
     ... score.py all --out paper/baselines_results/qabc_omnitalker                                       # refuses existing files
+    ... score.py blocks --out paper/baselines_results/qabc_omnitalker    # block-level WER (Omni, seed 0) once its ASR is done
 """
 from __future__ import annotations
 
@@ -147,6 +148,10 @@ def block_asr(name: str) -> dict | None:
         return None
     lang = "cmn" if d == "en2zh" else "eng"
     rows = [r for r in map(json.loads, open(f, encoding="utf-8")) if r["id"].startswith(f"{name}_s0__")]
+    want = sum(1 for l in open(OUT / "block_asr" / f"blocks_{d}_s0.jsonl", encoding="utf-8")
+               if json.loads(l)["id"].startswith(f"{name}_s0__"))
+    if len(rows) < want:   # still being transcribed: reported later (block_wer_s0.json), never on a partial set
+        return None
     out = wer_parts([(r["text_sent"], r.get("asr_text", "")) for r in rows], lang)
     out["blocks"] = len(rows)
     return out
@@ -167,9 +172,16 @@ def omni_points() -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=("paper", "all"))
+    ap.add_argument("what", choices=("paper", "all", "blocks"))
     ap.add_argument("--out")
     a = ap.parse_args()
+    if a.what == "blocks":   # the secondary block-level WER once the block ASR is complete
+        res = {point_name(p[0], p[1]): block_asr(point_name(p[0], p[1])) for p in POINTS}
+        assert all(v is not None for v in res.values()), "block ASR incomplete"
+        with open(Path(a.out) / "block_wer_s0.json", "x", encoding="utf-8") as fh:
+            json.dump(res, fh, indent=1)
+        print(json.dumps(res, indent=1))
+        return
     paper = paper_points()
     if a.what == "paper":
         for n, v in paper.items():
@@ -184,7 +196,7 @@ def main() -> None:
         with open(out / f"{n}.json", "x", encoding="utf-8") as fh:
             json.dump({"point": n, "omni_native_talker": omni[n], "paper_talker": paper[n]}, fh, ensure_ascii=False, indent=1)
     summ = {"points": {n: {"paper": {k: paper[n][k] for k in ("asr_bleu", "asr_bleu_sd", "laal_d1", "laal_d0w", "talker_wer",
-                                                               "text_bleu", "n", "reproduces_paper")},
+                                                               "text_bleu", "n", "reproduces_paper", "speech_s_per_sentence")},
                            "omni": {**{k: omni[n][k] for k in ("asr_bleu", "asr_bleu_sd", "laal_d1", "laal_d0w", "talker_wer",
                                                                "text_bleu", "n", "speech_s_per_sentence")},
                                     "thinker_exact_share_s0": omni[n]["thinker_fidelity"]["per_seed"]["0"]["exact_share"],
