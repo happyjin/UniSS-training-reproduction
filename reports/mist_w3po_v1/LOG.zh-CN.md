@@ -2360,3 +2360,12 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 唯一的负面信号是 UTMOS −0.019（CI [−0.027, −0.012]），远小于可感知的差别。
 - **对照**：VE1 不合块的 PL-EM 语音链（`t_eval/ve1xsegplem`，探索性描述评测）照常跑完、照常报告，作为对照。
 - **卡**：4–7 号卡在 VE1 不合块评测和听感计算跑完后先交给占卡程序。设计代理在准备最后一个新方法（后验加权的内容学习），启动命令约 09:30 经协调者转来，届时在 4–7 号卡上启动。
+
+## 2026-11-12 08:00 布拉格 — VE1-s2 的听感指标和 ≥ 10 s 拆分已挂上（只用 CPU 和一张非训练卡上的小作业）
+
+- 协调者要求 VE1-s2 也报同样的听感指标。新脚本 `scripts/ve1s2_listen_after.sh`（`bash -n` 和 DRY_RUN 检查过，PID 2891833，日志 `logs/mist_w3po_v1/ve1s2/listen_after.log`）。
+- 等 `t_eval/ve1s2rlplem` 的 DONE 之后：
+  - talker WER（`speech_gap_decomp`，CPU）和块 / 停顿统计（`talker_block_pauses`，CPU，输出 `listen_rl_v1/block_pauses_ve1s2.jsonl`）；
+  - 预登记第 3 节的 ≥ 10 s 拆分：`early_commit_diag --light`（对 A′，CPU）、`laal_breakdown`（种子 1，CPU）；
+  - UTMOS / SIM（`talker_quality`，约 3 GB），放在第一张不在训练槽位里的卡上，两个种子先后跑。
+- 已有输出一律拒绝覆盖。
