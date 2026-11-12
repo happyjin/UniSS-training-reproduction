@@ -39,7 +39,7 @@ launch_cmd() {   # <stage-1 merged model>
 --sched2 $CRF/sched_en2zh_v1 --dir2 en2zh --base $1 --lr-horizon 12000 --stop-file $OUT/STOP\" \
 bash experiments/mist_w3po_v1/scripts/run_crf_v2p.sh"
 }
-ranks() { ps -eo pid=,args= | awk -v s="--out $OUT " '$2 ~ /\/python$/ && $3 ~ /train_crf_sft\.py$/ && index($0, s) {print $1}'; }
+ranks() { ps -eo pid=,args= | awk -v s="--out $OUT " '$2 ~ /\/python$/ && $3 != "-m" && $0 ~ /train_crf_sft\.py / && index($0, s) {print $1}'; }   # workers: python -u <script>
 exited() { [ -e $TL ] && grep -q CRF_RUN_EXIT $TL; }
 release_slot() {
   [ -e $SL/slotB.owner ] && grep -q "$RUN_ID" $SL/slotB.owner && command mv -f $SL/slotB.owner $SL/slotB.released_$(date -u +%Y%m%dT%H%M%SZ) \

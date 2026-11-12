@@ -49,7 +49,7 @@ torchrun_pid() {   # the torch.distributed.run launcher of this run (first argum
   ps -eo pid=,args= | awk -v s="--save $SAVE " '$2 ~ /\/python$/ && $3 == "-m" && $4 == "torch.distributed.run" && index($0, s) {print $1}' | head -1
 }
 workers() {
-  ps -eo pid=,args= | awk -v s="--save $SAVE " '$2 ~ /\/python$/ && $3 ~ /pretrain_thinker_gstar\.py$/ && index($0, s) {print $1}'
+  ps -eo pid=,args= | awk -v s="--save $SAVE " '$2 ~ /\/python$/ && $3 != "-m" && $0 ~ /pretrain_thinker_gstar\.py / && index($0, s) {print $1}'   # torchrun adds -u
 }
 tracker() { cat $SAVE/latest_checkpointed_iteration.txt 2>/dev/null || echo 0; }
 stop_training() {   # by PID, never while a save is in progress (an iter dir newer than the tracker)
