@@ -118,3 +118,8 @@ SeamlessStreaming agent 自带三个推理延迟参数：
 - 登记：本文件；tracked 副本 `reports/s2st_baselines_v1/baselines_run_plan_seamless_v1.md`。
 - dev 校准表：`eval_outputs/s2st_baselines_v1/seamless/dev_calib/pilot_table.txt`（每行：dev 方向、设置、text BLEU、D1、D0w、
   D0、StartOffset 中位数、每句段数）。
+
+## 7. 修订记录
+
+- 2026-11-12 16:07（布拉格），RealSI 启动前，只改执行细节（网格、协议不变）：每张训练卡（0–3）上我的作业最多 2 个（约 24 GiB，
+  给训练峰值留余量，原写 ≤ 3 个）；4–7 号卡每卡我的作业最多 6 个，给别的代理留位置。

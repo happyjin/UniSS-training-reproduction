@@ -9,7 +9,7 @@ GPU rules (coordinator, 2026-11-12):
   cards 4-7: card total <= 135 GiB; launch only if used + job estimate + 6 GiB margin fits; stagger starts 60 s per
   card, and no launch on a card where someone else's GPU process (e.g. a vLLM engine) appeared < 90 s ago.
   cards 0-3 (D1v training): only when --use-train-cards and the training has logged >= 20 steps; my jobs <= 45 GiB per
-  card (max 3 x ~11.5 GiB); evicted (all my jobs there, cards disabled) if the training log shows an OOM / error, or
+  card, at most 2 jobs there (~24 GiB, margin for the training peak); at most 6 of my jobs on each of cards 4-7; evicted (all my jobs there, cards disabled) if the training log shows an OOM / error, or
   its median step time over the last 15 steps exceeds 1.4 x the baseline measured before my first launch there.
   Any card whose total passes its limit: kill MY newest job there (PID + cmdline check), requeue it (--resume).
   Placeholders (train_mist_workload.py) on a card are left alone: launches there only use the free memory.
@@ -45,6 +45,7 @@ EST = {"gen": 12 * GIB, "asr": 10 * GIB}
 MARGIN = 6 * GIB   # coordinator: new job peak + existing <= 135 GiB, plus ~5 GiB headroom
 TRAIN_MAX_MINE = 45 * GIB
 STAGGER = 60
+MAX_MINE = {g: 6 for g in range(4, 8)} | {g: 2 for g in range(4)}   # leave room for other agents / the training peak
 SHARDS = {"en2zh": 4, "zh2en": 5}
 
 
@@ -271,13 +272,15 @@ class Q:
                 (j for j in self.jobs if j["state"] == "wait" and self.ready(j)), None)
             if nxt is None:
                 return
+            if len(self.mine(c)) >= MAX_MINE[c]:
+                continue
             est = EST[nxt["kind"]]
             if used.get(c, 0) + est + MARGIN > LIMIT[c] - (4 * GIB if c < 4 else 0):
                 continue
             if c < 4:
                 mine_pids = {j["pid"] for j in self.mine(c)}
                 mine_mem = sum(m for p, m in procs.get(c, []) if p in mine_pids or self._child_of(p, mine_pids))
-                if mine_mem + est > TRAIN_MAX_MINE or len(self.mine(c)) >= 3:
+                if mine_mem + est > TRAIN_MAX_MINE:
                     continue
             self.launch(nxt, c)
             used[c] = used.get(c, 0) + est
