@@ -2110,3 +2110,20 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - **现象**：T5 速查的解码结束后，0、2 号卡上只剩 t2rl 的 CTC scorer（约 2.5 GB，利用率 0%），实际空了约 5–15 分钟，直到 01:26 VE1 接手。没有外人的进程上卡。
   - **原因**：守护脚本 v2 只要看到卡上有我们的任何进程就不补；占卡程序在卡上有其他 pid 时也不会启动。所以评测收尾阶段只剩 scorer 的卡没人补。
   - **今晚的对策**：评测收尾时，如果某张卡上只剩 scorer、下一个作业还要等 10 分钟以上，就先把等着的评测类作业（例如 T1 续跑的解码，或下一个评测）放到这张卡上，前提是不推迟后面要接手的训练。今晚不改守护脚本和占卡程序，怎么改留给用户明早决定。
+
+## 2026-11-12 01:35 布拉格（00:35 UTC）— T4 训完；A′rl 已登记并挂上；T1 续跑和 D1 的等待条件随之更新
+
+- **T4**：01:30 布拉格训完（rc=0）。`t_after_train.sh` 01:31:03 释放 slotB，在 4–7 号卡做 dev5 速查（第一个解码 01:31:17 开始）。`sync_train_exclude.sh` 把共享排除改成只剩 `0 1 2 3`（VE1）。
+- **A′rl**（协调者，约 01:35）：A′ 的 dev 解码换成读级块 talker 输入，用 c1+b1+s2 和 PL-EM 两个 talker 各跑一遍，每个两个种子；对 A′ 和对 A′ + PL-EM 各算一份门槛。优先级在 T1 存档评测之前。
+  - **预登记** `aprime_rl_prereg_v1.zh-CN.md`（7fa0aba3），在任何 A′rl 数字之前提交。
+  - **合并**：`merge_read_segments.py` 得到 `decode/dev_crf_v2p_s3000_finalpost_s8_c2g06_rl`。3618 个窗口；段 12205 → 9883，合并掉 2322 个；pair_lost 0。
+  - **`start_aprl_eval.sh`**（新，PID 2933930，日志 `t_eval/start_aprl_eval.log`）：等 T4 速查的 4 个解码都开始后，启动两个编排器：
+    - `t_eval/aprl`（c1+b1+s2，scorer 端口 19101–19104）；
+    - `t_eval/aprlplem`（PL-EM，端口 19111–19114）；
+    - 两个都是 `--exclude 0 1 2 3 --cap135`，门槛参考是 A′ 和 A′ + PL-EM。
+- **T1 续跑**：旧的 `t1_resume_after_t4.sh`（PID 2867893）在它动作之前（00:31:04 UTC）核对命令行后按 PID 停掉。换成 `t1_resume_after_t4_v2.sh`（PID 2939128）：多等一步，等 A′rl 两个编排器的 16 个 talker 分片都开始（或 DONE）后，再续跑 T1。
+- **D1**：`start_d1_after.sh`（PID 1255331，当时还在等 schedule.json）按 PID 停掉，换成 `start_d1_after_v2.sh`（PID 2953518，日志 `logs/mist_w3po_v1/d1/start_d1_v2.log`）。新增一步：D1 准备好时，如果 A′rl 还没跑完：
+  - **剩得少**（16 个 talker 都已开始，且最后一个开始已过 10 分钟；或者 talker 全部完成）：等 A′rl 跑完，最多 60 分钟；
+  - **否则**：运行 `aprl_move_to_0123.sh`。它把 A′rl 两个编排器的排除改成全部 8 张卡，按 PID 停掉它们在 4–7 号卡上正在跑的作业（之后按重试重跑），等 VE1 训完、它的速查解码都开始后，再把排除改成 `4 5 6 7`。D1 照常开训。
+  - 状态判定在 scratch 目录里模拟了 6 个场景，结果都对。
+- 所有新脚本只做了 `bash -n` 和 `DRY_RUN=1` 检查。
