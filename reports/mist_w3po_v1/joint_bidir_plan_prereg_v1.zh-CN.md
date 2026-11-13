@@ -225,3 +225,27 @@ zh→en 共 53 个全 dev 解码，按会议切成 dev5（5 场 1092 窗）和�
    - 结论：按现有解码配置（batch 16），4–7 每卡只剩 64.7–66.6 GiB 预算，放不下一个解码，严格 135 GiB 线下不能叠。是否放宽上限，或改用更小的解码占用，要用户决定。在此之前 stack 文件保持撤下，(b) 的速查按修正前的规则放在 0–3。
 6. **用户批准**（2026-11-13 约 07:35 布拉格）：4–7 的上限放宽到 138 GiB（每卡仍最多 1 个解码），看门狗另加一条：物理剩余少于 1.5 GiB 也撤卡；顺序改为旧检查点优先（`stack_group/order` = `oldest`），v8e 参照仍排最前。看门狗重启为 PID 1279715（`--cap-gib 138 --min-free-gib 1.5`，日志 `stack47_watchdog_v2.log`）。
 7. **卡 4 撤出，只叠 5–7**（协调者 2026-11-13 约 07:25 布拉格，在用户批准的 138 GiB 范围内）：07:24 卡 4 上训练瞬时到 72.2 GiB，加一个解码到了 138.0 GiB，第二次撤卡。卡 4 是训练的 rank 0，以后不再叠。看门狗 v3 只管 5、6、7（上限 138 GiB，物理剩余 ≥ 1.5 GiB，每卡 1 个解码），日志 `stack47_watchdog_v3.log`。stack 文件先建成空文件，90 s 后再写入卡号（`--warmup-s 90`），让各编排器先报上自己的待放数，旧检查点优先从第一次放置起就生效。
+
+
+## 修正 3（2026-11-13 08:00 布拉格，执行者；在任何第 1 段 dev 全集结果之前：第 1 段尚未选中，`JOINT_S1_SELECTED` 不存在，`jdev_*` 一个都没有）
+
+用户（约 08:00 布拉格）："不能用pl-em talker吧，需要用原始的之前单说话人同传的talker才算是基线吧"。
+
+1. **第 1 段基线行的语音**（改 §7 第 112 行、修正 1 第 11 条里"语音（rl + PL-EM，两个种子）只记录"）：
+   - talker 改为**原始的单说话人同传 talker T1c@1500**（`eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss`），冻结；
+   - 在第 1 段的**原始文本解码**上直接出语音（`jdev_b{z,e}_<rt>` → `<名>__t1c`、`<名>__t1c_tts2`）：**不做读级合块（rl），不用 PL-EM**，也不用任何多说话人线新加的 talker 改进；
+   - en→zh 不再等 (a) 的 PL-EM talker。
+2. **T1c 的配置 = T1c 的原始默认设置**：`crf_pair_dev_orch.speech` 的命令逐字不变，即 `si_infer --model <T1c> --window 1 --text-policy file --speed-policy fixed --history-ban 8 --max-model-len 32768`，prep 为 `gstar_talker_v6 prep --causal --blocks --preset lowlat`（zh→en `--session zh_mix_v8 --diar nemotron_lowlat_zh8 --sep ' '`；en→zh 由 en2zh_orch 换成 `--session ihm_mix --diar nemotron_lowlat --sep ''`、`--direction en2zh`，T1c 输出中文），`drop_long_streams 400`。不起 CTC 打分服务。
+   - **c1 / b1 / s2 不用**。查证来历：三者都是多说话人这条线 2026-11-10 的"语音缺口计划"（`text_to_speech_gap_plan.zh-CN.md` §5，`speech_var_orch.py`，提交 ec8062961 / 730452748 / c41e4ad87）在 C0-fp 文本上新加的 talker 改进：c1 = `--speed-policy queue`（替换 fixed），b1 = `--select-k 2` + 独立 wav2vec2 CTC 打分选候选，s2 = `--speed-shift 2`。之后它们才成为 A′ 的 talker 设置。
+   - 以前单向 v8 的语音**都不是**这么配的：dev 上 v8 参考、"v8 + finalpost"（语音 19.17，`metrics_first_si_analysis` §4.1）、`c0_pair_dev_eval`、`serial_v2p_dev_eval` 里的 v8 行都走 `finalpost_dev_orch` / `make_eval_jobs` 的链，即 T1c + `--speed-policy fixed --history-ban 8`；MIST v7（单说话人论文同一 talker）的 zh→en 和 en→zh 语音作业（`reports/gstar_si_v7/jobs/sp_*`）也是同一组参数。所以 fixed + history-ban 8 既是 T1c 的默认，也与以前 v8 的语音一致。
+3. **单向 v8 参照的语音行**：分开的 v8（`thinker_gstar_s2dl_zh2en_3k_20261030`、`thinker_gstar_s2dl_20261029b`，各配恒等检查点）在 C2 gap-0.6 dev 全集上本来只做文本（`jdev_v8sep_{z,e}`）。c2g06 dev 全集上没有任何 v8 的现成语音（19.17 那一行是旧窗口 `windows_dev_online`，不能比），所以**补跑**：在它们的文本上用**完全相同**的 T1c 链出语音（`jdev_v8sep_{z,e}__t1c[_tts2]`）。只推理。
+4. **完全相同**：联合基线和两个单向 v8 的语音用同一 talker 和参数、同一窗口（zh→en `windows_zh2en_c2g06_v1/windows_dev_online.jsonl`，en→zh `windows_en2zh_c2g06_v1/windows_dev_online.jsonl`）、同一解码窗口（1.0 s 读）、同样两个 TTS 种子（种子 1 = talker 默认；种子 2 = `--seed 20261109`）、同一 ASR 和打分。
+5. **打分口径不变**：ASR-BLEU（tcpBLEU all / ov，两个种子），每条流语音 LAAL 现行协议（编排器的 lat 作业）和 chunk 协议（`chunk_speech`），EndOffset 作补充。
+6. **语音行仍是描述性对比**：联合 v8 对分开 v8 只比文本，语音只记录。另记一个描述性的 `gate_2seed`（联合 v8 T1c 对分开 v8 T1c，`gate_vs_separate_v8_t1c.json`），不是门槛。**不改任何门槛数值、选择规则或解码配置。**
+   - 由此带来的一处变化，照实写明：§7 "联合方法 对 联合基线" 的比较（`gate_2seed`，规则 ≥ 参照 − 0.5 不变）里，联合基线的语音现在就是它的 T1c 语音（基线行的定义变了，比较对象跟着变）。于是这一比较的语音部分衡量的是"整套方法（v2′ + rl + PL-EM）对纯基线"。文本部分不变。
+7. **其他地方的检查**：
+   - 第 2 段方法行（联合 v2′ → rl → 各方向 PL-EM）和"联合方法 对 分开 A′rl + PL-EM"：PL-EM 和 rl 在那里是方法本身或分开系统的方法，**不改**。
+   - 第 1、2 段的 dev5 代理和延迟参照只做文本，不涉及 talker，不改。
+   - **test**（修正 1 第 11 条"每行都含语音"）：基线行（`jtest_b{ami,ali,en}_<rt>`）的语音同样改成 T1c（`__t1c[_tts2]`，不做 rl、不用 PL-EM），test 上的"方法 对 联合基线"同第 6 条。方法行不变。test 上不加分开 v8 行（原计划没有）。
+8. **实现**：`thinker_t_eval_orch.py --talker t1c`（新选项；其余选项逐位不变）；`joint_dev.sh` / `joint_test.sh` 用新开关 `BASE_TALKER=t1c`（默认 `plem` = 修正前，逐位不变）。两个等待进程按原环境加 `BASE_TALKER=t1c` 重启。只用单元测试、`bash -n` 和 DRY_RUN 检查。
+9. **放置**：这些都是推理作业，按现有规则：dev / test 的作业照旧排除 4–7，在 0–3 上按 `--cap135` 叠放（≤ 135 GiB）。分开 v8 的文本解码按原计划在第 1 段选中后才开（现在 0–3、5–7 被两个实验的 dev5 速查占满，提前开会和速查抢卡），文本一完成就接 T1c 语音，不等方法行。
