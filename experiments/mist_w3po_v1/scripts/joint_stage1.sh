@@ -26,12 +26,27 @@
 #      (joint_stage2.sh takes it over).
 #   RUN_ID=joint_v8_<UTC> [CARDS=4,5,6,7] [PORT=29817] [PEAK_GIB=75] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_stage1.sh
 # Run detached: setsid nohup bash ... > logs/mist_w3po_v1/joint/stage1.log 2>&1 < /dev/null &
+# S1_FULL=1 (prereg 修正 4, user 2026-11-13 ~08:20 / ~08:30 Prague; default empty = everything above, unchanged): the strict
+#   joint v8 baseline retrained from O2 with the single-direction v8 recipe step for step on 8 cards: CARDS=0,1,2,3,4,5,6,7
+#   NPROC=8 MBS=8 GBS=64 (= v8's DP 8 x MBS 8, no accumulation) TRAIN_ITERS=6000 LR_DECAY_ITERS=6000 WARMUP_ITERS=100
+#   (each global batch = 32 + 32 samples: lr at joint iteration 2k = v8's lr at k), seed 20261026, the same rows,
+#   LoRA r32 / alpha 64, lr 1e-4 -> 1e-5 cosine, SAVE_INTERVAL 500 with the optimizer. slotA AND slotB are claimed
+#   (noclobber). No reference decodes, no dev5 proxies, no early stop: the final model is iteration 6000 (as v8 = its
+#   last step). Optimizer check at 500 (and at 6000); training exit before 6000 -> JOINT_STOP. Then merge iteration
+#   6000 + identity checkpoint -> JOINT_S1_SELECTED (same format; zname / ename "-") and JOINT_SELECTED s1 6000; both
+#   slots stay claimed for stage 2 (joint_stage2.sh S2_FULL hands them over).
+#   S1_FULL=1 RUN_ID=joint_v8h6k_<UTC> CARDS=0,1,2,3,4,5,6,7 [PORT=29817] [DRY_RUN=1] bash .../joint_stage1.sh
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 . experiments/mist_w3po_v1/scripts/joint_lib.sh
+S1_FULL=${S1_FULL:-}; S1_ITERS=6000
 RUN_ID=${RUN_ID:?}; CARDS=${CARDS:-4,5,6,7}; PORT=${PORT:-29817}; PEAK_GIB=${PEAK_GIB:-75}
+if [ -n "$S1_FULL" ]; then
+[ "$CARDS" = 0,1,2,3,4,5,6,7 ] || { echo "S1_FULL trains on 0,1,2,3,4,5,6,7 (user 2026-11-13 08:30)"; exit 1; }
+else
 [ "$CARDS" = 4,5,6,7 ] || { echo "(b) trains on 4,5,6,7"; exit 1; }
+fi
 REPO=/opt/dlami/nvme/jasonleeeli/projects/UniSS
 SAVE=$REPO/checkpoints/mist_w3po_v1/$RUN_ID
 ROWS=data/ami_multispk_si_v1/e2e_gstar_stream_bidir_v2/rows_train.jsonl
@@ -44,6 +59,10 @@ FT=logs/mist_w3po_v1/final_test
 LAUNCH="setsid nohup env CUDA_VISIBLE_DEVICES=$CARDS RUN_ID=$RUN_ID ROWS=$ROWS BASE=$O2 INIT_MERGED=1 GSTAR_SEQUENTIAL=1 \
 NPROC=4 MBS=8 GBS=64 TRAIN_ITERS=15000 LR_DECAY_ITERS=12000 SAVE_INTERVAL=500 SAVE_OPTIM=' ' NO_MERGE=1 SAVE_DIR=$SAVE \
 TB_DIR=$REPO/runs/mist_w3po_v1/$RUN_ID MERGED=$REPO/$RO/unused_final_merge MASTER_PORT=$PORT \
+bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar.sh > $TL 2>&1 < /dev/null &"
+[ -n "$S1_FULL" ] && LAUNCH="setsid nohup env CUDA_VISIBLE_DEVICES=$CARDS RUN_ID=$RUN_ID ROWS=$ROWS BASE=$O2 INIT_MERGED=1 GSTAR_SEQUENTIAL=1 \
+NPROC=8 MBS=8 GBS=64 TRAIN_ITERS=$S1_ITERS LR_DECAY_ITERS=$S1_ITERS WARMUP_ITERS=100 SAVE_INTERVAL=500 SAVE_OPTIM=' ' NO_MERGE=1 \
+SAVE_DIR=$SAVE TB_DIR=$REPO/runs/mist_w3po_v1/$RUN_ID MERGED=$REPO/$RO/unused_final_merge MASTER_PORT=$PORT \
 bash experiments/uniss_qwen3_omni_v1/scripts/run_thinker_gstar.sh > $TL 2>&1 < /dev/null &"
 torchrun_pid() {   # the torch.distributed.run launcher of this run (first argument is the python binary: never a shell)
   ps -eo pid=,args= | awk -v s="--save $SAVE " '$2 ~ /\/python$/ && $3 == "-m" && $4 == "torch.distributed.run" && index($0, s) {print $1}' | head -1
@@ -94,6 +113,16 @@ IZ=$JO/refs/ident_v8sep_z; IE=$JO/refs/ident_v8sep_e
 RZ_ARGS="--ckpt $IZ --win $WZ_DEV5 --talker none --shards 4 --shard-by window --window 1 --exclude 4 5 6 7 --cap135"
 RE_ARGS="--set dev5 --ckpt $IE --talker none --shards 4 --shard-by window --window 1 --exclude 4 5 6 7 --cap135"
 RA_ARGS="--ckpt $APRIME_CK --win $WZ_DEV5 --talker none --shards 4 --shard-by window --window 1 --exclude 4 5 6 7 --cap135"
+if [ -n "${DRY_RUN:-}" ] && [ -n "$S1_FULL" ]; then
+  echo "S1_FULL: slotA owner: $([ -e $SL/slotA.owner ] && head -c 120 $SL/slotA.owner || echo none); slotB owner: $([ -e $SL/slotB.owner ] && head -c 120 $SL/slotB.owner || echo none)"
+  echo "cards $CARDS now (non-ready reasons):"; cards_ready $CARDS $PEAK_GIB | head -8
+  echo "processes on $CARDS by kind: $(others_on $CARDS | awk '{print $4}' | sort | uniq -c | tr '\n' ' ')"
+  CARDS=$CARDS LAUNCH="$LAUNCH" DRY_RUN=1 bash experiments/mist_w3po_v1/scripts/takeover_train.sh | tail -1 | cut -c1-400
+  eval "$(echo "$LAUNCH" | sed 's/^setsid nohup env /env DRY_RUN=1 /; s/ > .*$//')" | head -3 | cut -c1-1500
+  echo "optimizer checks: check_megatron_optim $SAVE/iter_0000500 and iter_$(printf %07d $S1_ITERS); no proxies, no refs, no early stop"
+  echo "merge: merge_thinker_gstar --checkpoint-dir $SAVE/iter_$(printf %07d $S1_ITERS) --rank 32 --alpha 64 --base $O2 --out $RO/merged_s$(printf %05d $S1_ITERS)/thinker_merged ; identity_ckpt -> $MARK"
+  exit 0
+fi
 if [ -n "${DRY_RUN:-}" ]; then
   echo "start condition now: ali $(grep -c 'FT_ALL_DONE ali' $FT/chain_v2_ali.log) ami $(grep -c 'FT_ALL_DONE ami' $FT/chain_v2_ami.log)"
   echo "slotB owner: $([ -e $SL/slotB.owner ] && head -c 120 $SL/slotB.owner || echo none)"
@@ -111,6 +140,67 @@ if [ -n "${DRY_RUN:-}" ]; then
   exit 0
 fi
 for f in $MARK $SEL $SAVE $R $RO; do [ -e $f ] && { echo "拒绝覆盖已有输出: $f"; exit 1; }; done
+if [ -n "$S1_FULL" ]; then
+# ---------------------------------------------------------------------------------------------- S1_FULL (修正 4)
+mkdir -p $R $RO
+optim_check() {   # <iteration>
+  local i=$1 f=$R/optim_check_s$1.json
+  $PY -m experiments.mist_w3po_v1.joint.check_megatron_optim $SAVE/iter_$(printf %07d $i) > $f 2>> $R/optim_check.log
+}
+log "stage 1 (S1_FULL) $RUN_ID: 8 cards, $S1_ITERS iterations, cosine to $S1_ITERS, warm-up 100, final = iteration $S1_ITERS"
+for sl in slotA slotB; do
+  until [ ! -e $SL/$sl.owner ]; do sleep 30; done
+  ( set -o noclobber; printf 'who: joint bidirectional (b) executor (mist_w3po_v1 (b), stage 1 then stage 2)\ntask: joint v8 Simul SFT %s on cards %s (8 cards: user 2026-11-13 08:30 Prague decision; %s iterations, no dev5, final = last iteration; then stage 2 SerialCRF v2p on the same 8 cards); released by renaming to %s.released_<UTC>\nutc: %s\n' \
+    "$RUN_ID" "$CARDS" "$S1_ITERS" "$sl" "$(date -u +%FT%TZ)" > $SL/$sl.owner ) && log "$sl.owner claimed" || jstop "$sl.owner claim failed"
+done
+t0=$(date +%s)
+until [ -z "$(cards_ready $CARDS $PEAK_GIB)" ]; do
+  [ $(( ($(date +%s) - t0) % 1800 )) -lt 30 ] && [ $(( $(date +%s) - t0 )) -gt 60 ] && log "waiting for $CARDS: $(cards_ready $CARDS $PEAK_GIB | head -3 | tr '\n' ' ')"
+  sleep 30
+done
+log "cards $CARDS ready: $(others_on $CARDS | awk '{print $4}' | sort | uniq -c | tr '\n' ' ')"
+CARDS=$CARDS LAUNCH="$LAUNCH" bash experiments/mist_w3po_v1/scripts/takeover_train.sh
+n=0
+for i in $(seq 1 30); do sleep 10; n=$(workers | wc -l); [ "$n" -ge 8 ] && break; done
+log "stage-1 ranks running: $n (torchrun $(torchrun_pid))"
+[ "$n" -ge 8 ] || { for sl in slotA slotB; do [ -e $SL/$sl.owner ] && grep -q "$RUN_ID" $SL/$sl.owner && command mv -f $SL/$sl.owner $SL/$sl.released_$(date -u +%Y%m%dT%H%M%SZ); done
+  jstop "training ranks missing ($n; $(tail -2 $TL | tr '\n' ' ' | cut -c1-300))"; }
+log "JOINT_TRAINING_STARTED s1 $RUN_ID (S1_FULL, 8 cards)"
+OPTIM_OK=""; LASTT=0
+while :; do
+  T=$(tracker)
+  if [ -z "$OPTIM_OK" ] && [ "$T" -ge 500 ]; then
+    if optim_check 500; then OPTIM_OK=1; log "optimizer state at step 500: ok ($(cut -c1-300 $R/optim_check_s500.json))"
+    else
+      log "optimizer state at step 500 NOT ok: $(cut -c1-400 $R/optim_check_s500.json) $(tail -1 $R/optim_check.log | cut -c1-200)"
+      [ -n "$(torchrun_pid)" ] && stop_training
+      jstop "optimizer state missing or empty in iter_0000500 (no fallback without the optimizer: ask the coordinator / user)"
+    fi
+  fi
+  [ "$T" != "$LASTT" ] && { log "checkpoint iteration $T saved"; LASTT=$T; }
+  if [ -z "$(torchrun_pid)" ]; then
+    sleep 20
+    if [ -z "$(torchrun_pid)" ]; then
+      [ "$(tracker)" -ge $S1_ITERS ] && grep -q THINKER_GSTAR_DONE_NO_MERGE $TL && break
+      jstop "training exited at tracker $(tracker) before $S1_ITERS ($(grep -E 'THINKER_GSTAR' $TL | tail -1))"
+    fi
+  fi
+  sleep 60
+done
+CH=$S1_ITERS
+log "training done: tracker $(tracker) ($(grep THINKER_GSTAR_DONE_NO_MERGE $TL | tail -1))"
+optim_check $CH && log "optimizer state at step $CH: ok" || log "note: optimizer check at step $CH not ok ($(tail -1 $R/optim_check.log | cut -c1-200)); the model weights are what is merged"
+( set -o noclobber; echo "fixed iteration $CH (prereg 修正 4: no dev5, no early stop; final = last iteration) utc $(date -u +%FT%TZ)" > $RO/STOP )
+C5=$(printf %05d $CH); M=$RO/merged_s$C5/thinker_merged; I=$RO/merged_s$C5/identity
+log "merging iteration $CH onto O2 -> $M"
+CUDA_VISIBLE_DEVICES= $PY experiments/uniss_qwen3_omni_v1/training/merge_thinker_gstar.py --checkpoint-dir $SAVE/iter_$(printf %07d $CH) \
+  --rank 32 --alpha 64 --base $O2 --out $M > $R/merge.log 2>&1 || jstop "merge of iteration $CH failed ($(tail -1 $R/merge.log | cut -c1-200))"
+CUDA_VISIBLE_DEVICES= $PY -m experiments.mist_w3po_v1.joint.identity_ckpt --base $M --out $I > $R/identity.log 2>&1 \
+  || jstop "identity checkpoint of $M failed"
+( set -o noclobber; echo "step $CH run $RUN_ID merged $M identity $I zname - ename - utc $(date -u +%FT%TZ)" > $MARK ) || jstop "marker $MARK exists"
+log "JOINT_SELECTED s1 $CH ($M)"
+exit 0
+fi
 mkdir -p $R/proxy $RO $JL/refs $JO/refs
 log "stage 1 $RUN_ID: waiting for FT_ALL_DONE ali + ami"
 until grep -q "FT_ALL_DONE ali" $FT/chain_v2_ali.log 2>/dev/null && grep -q "FT_ALL_DONE ami" $FT/chain_v2_ami.log 2>/dev/null; do sleep 60; done

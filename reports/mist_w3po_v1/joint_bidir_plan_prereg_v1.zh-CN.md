@@ -250,3 +250,47 @@ zh→en 共 53 个全 dev 解码，按会议切成 dev5（5 场 1092 窗）和�
 8. **实现**：`thinker_t_eval_orch.py --talker t1c`（新选项；其余选项逐位不变）；`joint_dev.sh` / `joint_test.sh` 用新开关 `BASE_TALKER=t1c`（默认 `plem` = 修正前，逐位不变）。两个等待进程按原环境加 `BASE_TALKER=t1c` 重启。只用单元测试、`bash -n` 和 DRY_RUN 检查。
 9. **放置**：这些都是推理作业，按现有规则：dev / test 的作业照旧排除 4–7，在 0–3 上按 `--cap135` 叠放（≤ 135 GiB）。分开 v8 的文本解码按原计划在第 1 段选中后才开（现在 0–3、5–7 被两个实验的 dev5 速查占满，提前开会和速查抢卡），文本一完成就接 T1c 语音，不等方法行。
 10. **实施记录**（07:51 布拉格）：脚本改动见提交（`thinker_t_eval_orch.py`、`joint_dev.sh`、`joint_test.sh`、`test_joint_orch.py` 9/9）。默认路径逐位不变：编排器 `--dry` 输出（none / c1b1s2 / plem / speech-from、en2zh、final_test）、两个脚本的 DRY_RUN 输出、dev 的 summary 代码与改前逐字相同；test 的 summary 代码只把后缀改成变量，默认取值相同。等待进程：dev 564748 → 1594999，test 564751 → 1595000，按 PID 停，用原 environ 加 `BASE_TALKER=t1c` 重启。
+
+## 修正 4（2026-11-13 08:40 布拉格（服务器时钟 07:40 UTC），执行者；在新第 1 段 run 的任何训练步之前、在第 2 段任何结果之前）
+
+用户决定（布拉格约 08:10–08:45，协调者转达）：第 1 段按 H6000 从头重训、8 卡、不做 dev5；第 2 段严格照单向 A′ 配方，只换双向数据，8 卡，dev5 从第 3000 步起叠在训练卡上，早停照原规则；暂停单向 (a) 和 v8 测试集解码，双向优先。
+
+**第 1 段（严格双向基线）**
+
+1. **重训原因**：旧 run `joint_v8_20261112T220626Z` 的学习率按 H12000 余弦，到第 6000 步时 lr 还是 5.53e-5，没退到 1e-5，和单向 v8（3000 步余弦到底）不对应。用户先选"接着训到 6000"，后确认学习率有问题，改为 H6000 从头重训。旧 run 在约第 4330 步按 PID 停掉，检查点 iter 500–4000 和它的 dev5 速查输出全部保留，**废弃，只作记录**，不参加任何选择或结论。
+2. **配方**（与单向 v8 `thinker_gstar_s2dl_zh2en_3k_20261030` / `thinker_gstar_s2dl_20261029b` 逐项对应）：从 O2 起训，`GSTAR_SEQUENTIAL=1`，rows `e2e_gstar_stream_bidir_v2`（每个全局 batch = 32 条 zh→en + 32 条 en→zh，各自按单向 run 的原顺序），TRAIN_ITERS 6000，LR_DECAY_ITERS 6000，cosine，lr 1e-4 → min_lr 1e-5，**warm-up 100**，种子 20261026，LoRA r32 / α64，其余参数同一个启动脚本（`run_thinker_gstar.sh`），每 500 步存检查点（带优化器）。
+   - warm-up 100 和 H6000 的理由：联合第 2k 步时每个方向见过的样本 = 单向第 k 步；lr_joint(2k) = lr_v8(k)（warm-up 段 1e-4·2k/100 = 1e-4·k/50；余弦段 (2k−100)/(6000−100) = (k−50)/(3000−50)）。
+3. **8 卡的 GBS 与学习率**：NPROC 8 × MBS 8 = GBS 64，不做梯度累积，与单向 v8（DP 8 × MBS 8）完全相同，学习率不改。核对：`--dataloader-type single` 用 `MegatronPretrainingSampler`，样本按 consumed_samples 顺序取，第 t 个全局 batch 恒为样本 [64t, 64t+64)，每个 DP rank 取其中连续的 MBS 条；所以数据顺序只取决于 GBS 和行文件（`--gstar-sequential` 下即文件顺序），与 DP 数无关。旧 run 的日志显示 `use_distributed_optimizer False`；新 run 同一启动脚本，也不用 distributed optimizer。损失是各 micro-batch 均值的平均，DP 8 无累积与 DP 4 × 累积 2 是同一组 8 个 micro-batch，数值语义相同（只差浮点求和顺序）。
+4. **选择**：不做 dev5 速查、不早停、不用 J；最终模型就是 iter 6000（与单向 v8 用最后一步一致）。第 500 步照旧做优化器检查（第 6000 步再查一次，只记录）。训练在 6000 前退出 → `JOINT_STOP`。训完合并 iter 6000（`merge_thinker_gstar` 到 O2）+ identity 检查点，写 `JOINT_S1_SELECTED`（格式不变，zname / ename 为 "-"），触发第 2 段开训和基线行 dev 评测（修正 3：冻结 T1c；分开 v8 用同一 T1c 链）。
+5. **占卡**：slotA、slotB 都占（noclobber，说明里写"用户 2026-11-13 08:30 决定 8 卡"），takeover 只按 PID 停占卡程序；第 2 段接手两个槽。
+6. **实现**：`joint_stage1.sh` 新开关 `S1_FULL=1`（默认空 = 修正前，DRY_RUN 输出逐位相同）。
+
+**第 2 段（方法）**
+
+7. **配方**：serial_v2p、τ 0.5、final-read-full-post 1、扰动 0.2、LoRA r32/α64、lr 1e-4 → 1e-5、AdamW (0.9, 0.95)、种子 20261109、rows_per_step 64、TOK 32000、CAP 120 等与 `crf_v2p_20261110T075131Z` 的 args.json 逐项相同；变化只有：双向数据（`--sched2 sched_en2zh_v1 --dir2 en2zh`），`--lr-horizon 6000`，`--warmup 100`，`--seed2 20261109`（en→zh 数据流与 (a) 同一个 plan 种子；train_crf_sft 新选项，默认 None = seed + 1，计划和 args.json 逐位不变，提交 d8d138506），上限 `--steps 15000`。
+   - 理由同第 2 条：每步 ≈ 32 条 zh→en + 32 条 en→zh 读行，联合第 2k 步时每个方向见过的读行与单向第 k 步相同（窗口流同一排列，只是切分不同），lr 曲线逐点对应单向 H3000。
+   - **6000 步之后**：`lr_at` 里 ratio = min(1, (k − warm-up)/(H − warm-up))，超过 horizon 后 lr 恒为 min_lr 1e-5（单元测试 `test_lr_horizon` 覆盖）。
+8. **卡**：8 卡（0–7）。全局 batch = 每步 64 读行，与卡数无关（`plan_steps` 先定每步的窗口，再按卡均分），与 v2′（8 卡）相同；学习率不改。
+9. **早停与选择**（替换原 §5 对第 2 段的评估起点；其余照 §5）：
+   - 第 3000 步之前不做速查。评估点 3000, 3500, 4000, …（每 500 步）；
+   - 可行：每个方向 dev5 文本 LAAL ≤ L^ref + 0.1 s，参照照原登记：zh→en 为 A′ s3000 的 dev5 解码，en→zh 为 (a) 选出的第 2000 步（`dev5_en2zh_v2p_20261112T204539Z_s02000`）；
+   - J = 两个方向 dev5 文本 tcpBLEU-all 的平均；J > best + 0.2 才算改进；从 3000 起的连续前缀里，最近一次改进之后连续 2 个评估点（1000 步）没有改进就停训（STOP 文件，`JOINT_EARLY_STOP s2 <s>`）；还在改进就继续训，可以超过 6000，上限 15000（`JOINT_CEILING`）；
+   - 选择：停止时已评的可行点里 round(J, 2) 最高；打平：held-out 均值 → O → L − L^ref → 步数（同 §5）。
+   - 这与单向 v2′ 的"跑满 3000 步取最后一步"不同，是用户的选择（"如果underfitting本身训练就不停，直到dev5没效果了就停止训练"）。
+   - 实现：`joint_select.py` 新选项 `--first-step 3000`（默认 500 = 修正前）。A′ 参照的 dev5 解码在第 1 段旧驱动停掉时尚未完成，第 2 段驱动在第一次速查时补跑（新名字，不覆盖旧输出）。
+10. **dev5 叠放**（用户："8卡训练不改batch 直接尝试dev5速查，如果所有显存放不下再说"）：
+    - 速查直接叠在 8 张训练卡上，每卡最多 1 个解码，上限按物理显存：实际占用（180 s 内最大值）+ 64 GiB ≤ 总显存 − 1.5 GiB（不再用 135 / 138 GiB 软上限）；
+    - 看门狗：任何卡物理剩余 < 1.5 GiB，或训练日志出现 OOM / Traceback / CUDA / NCCL 错误 → 撤 stack 文件，只按 PID 停解码，绝不碰训练；
+    - 错开：一次只在一张卡上启动一个解码，间隔 ≥ 60 s；
+    - 先在一张卡上试一个解码，实测训练 + 解码的峰值，可行再铺开到 8 卡；
+    - 放不下（没有卡满足上限）或看门狗跳闸 / 训练 OOM：不再试第二次、不改 batch，记 `JOINT_STACK_FAILED`，交用户决定。
+11. **talker** 不变：zh→en 用 `talker_plem_20261111T001759Z`，en→zh 用 (a) 选出的 PL-EM export。
+
+**暂停与顺序**
+
+12. 暂停（只按 PID 停，什么都不删）：(a) 的 after_select / en2zh_test 等待进程、dev 解码、train16 解码、采样编排器及其解码；v8 测试集解码（final_test_v8_launch 和 ali / ami 编排器及解码）。每个 PID 的 cmdline、environ、cwd 记在 `logs/mist_w3po_v1/paused_20261113/paused.tsv`，进度在 `progress.txt`，以后用原环境续跑。第 1 段旧 run 的 dev5 速查、A′ 参照解码（未完成）和看门狗一并停掉，stack 文件撤下。
+13. 第 2 段训完、dev5 选完后：0–3 恢复 (a) 的 en→zh PL-EM 路径（train16 解码 → 采样 → rows → PL-EM → 选 export），其余卡做方法行的 rl 和 zh→en 语音；en→zh PL-EM 就绪后补方法行 en→zh 语音，再出 dev 全集结论，最后测试集。(a) 的 dev / test 和 v8 测试集解码等双向卡空时再续跑。
+
+**笔误改正**
+
+14. §5"与分开 run 的差别"里"到第 3000 联合步时 lr ≈ 9.2e-5"应为 **8.71e-5**（H12000、warm-up 50 的余弦；第 6000 步 5.53e-5 无误）。该段描述的是已废弃的旧 run。
