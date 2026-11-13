@@ -2944,3 +2944,10 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - `JOINT_SELECTED s1|s2 <步>`
   - `JOINT_DEV_DONE`、`JOINT_TEST_DONE`
   - `JOINT_STOP <段> <原因>`（另有 `JOINT_CEILING`、`JOINT_MERGE_DEVIATION`）
+
+## 2026-11-13 布拉格约 02:50：最终测试集评测结果 v1（AMI 完整，Ali 第一组完整，Ali (d)(e) 待补）
+
+- 报告 `reports/mist_w3po_v1/final_test_results_v1.zh-CN.md`。AMI 全部 5 个系统、Ali 的 (a)(b)(c) 与三个 Thinker 文本已出表和门槛；Ali gates1 已由驱动在 23:55 生成，未重跑。
+- 结论：A′rl + PL-EM 相对 A′ 在两个测试集上保持 dev 结论（每条流语音 LAAL AMI −0.093 / Ali −0.154 s，两种协议同向；语音 ASR-BLEU +0.15 / +0.39；相对 PL-EM 不劣）。(e) D1vrl 在 AMI 复现 dev（ov、语音不过）；(d) VE1rl 在 AMI 文本 ov −0.29 不过，dev 上持平，未复现。
+- 敏感性（Ali pair_lost 12、AMI 2 窗口去掉后重算）：所有过/不过与全集一致。
+- Ali 驱动提前写 FT_ALL_DONE，VE1 / D1v 续跑链还在跑；已挂 `scripts/final_test_ali_g2_late.sh`（日志 `logs/mist_w3po_v1/final_test/ali_g2_late.log`，`FT_ALI_G2_LATE_DONE`），只写新文件。报告里 Ali (d)(e) 标"待补"。
