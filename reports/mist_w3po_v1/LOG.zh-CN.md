@@ -2980,3 +2980,6 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - 第 2 段：`--lr-horizon 6000 --warmup 100 --seed2 20261109`，上限 15000，6000 后 lr 恒 1e-5；3000 起每 500 步 dev5 叠在 8 张训练卡上（物理显存上限，看门狗只撤解码），原早停规则（ε 0.2，耐心 2 点，参照 A′ s3000 / (a) s2000），与 v2′ "跑满取最后一步"不同，是用户的选择。
   - 暂停清单 `logs/mist_w3po_v1/paused_20261113/paused.tsv`（60 行：cmdline / environ / cwd），进度 `progress.txt`；第 1 段旧 dev5 速查、A′ 参照、看门狗 1348155 一并停，stack 文件撤下。
   - 顺带改正预登记 §5 笔误：H12000 第 3000 步 lr 是 8.71e-5（原写 9.2e-5）。
+  - 08:48 布拉格：新第 1 段 `joint_v8h6k_20261113T073658Z` 08:37 开训（驱动 2068984，torchrun 2071259，日志 `logs/mist_w3po_v1/joint/stage1_s1full.log`），8 卡 2.55 s/步、每卡 71–72.7 GiB，lr 曲线核对无误（第 60 步 6.0e-5，第 230 步 9.989e-5），DP 8、warm-up 100、无 distributed optimizer；预计 12:55 前后到第 6000 步，合并后约 13:15 写 `JOINT_S1_SELECTED`。
+  - 第 2 段等待进程 564750 按 PID 停，按原 environ + `S2_FULL=1 CARDS=0,…,7` 重启为 2180449（新 RUN_ID `joint_v2p_20261113T074547Z`：旧 RUN_ID 的空目录已存在，脚本拒绝覆盖），日志 `stage2_s2full_r2.log`（`stage2_s2full.log` 是第一次用按行拆的 environ 启动失败的记录，没有起进程）。代码 5771ce515。
+  - 注意：第 2 段占满 8 卡期间，dev 等待进程 1594999 的基线行解码（排除训练槽）会排队到第 2 段结束；第 2 段 dev5 是否叠得上由第 3000 步的卡 7 试跑决定（`JOINT_STACK_TRIAL` / `JOINT_STACK_FAILED`）。
