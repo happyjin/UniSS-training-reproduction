@@ -104,6 +104,10 @@ def main() -> None:
     ap.add_argument("--min-free-gib", type=float, default=0.0,
                     help="also trip when total - used < this on a card (default 0 = off; user 2026-11-13 07:35: 1.5)")
     ap.add_argument("--tick", type=float, default=20.0)
+    ap.add_argument("--warmup-s", type=float, default=0.0,
+                    help="create the stack file EMPTY, wait this long, then append the cards (default 0 = off): the "
+                         "--stack-cards orchestrators publish their real ready counts first, so the group order holds "
+                         "from the first placement")
     ap.add_argument("--status-s", type=float, default=600.0)
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
@@ -121,6 +125,9 @@ def main() -> None:
         return
     sf.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(sf, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)   # refuses an existing file
+    if a.warmup_s > 0:
+        log(f"STACK47_WARMUP {sf} created empty; cards appended in {a.warmup_s:.0f} s")
+        time.sleep(a.warmup_s)
     os.write(fd, (" ".join(map(str, a.cards)) + "\n").encode())
     os.close(fd)
     log(f"STACK47_ON {sf} = {a.cards}; pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "

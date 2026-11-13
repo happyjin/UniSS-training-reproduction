@@ -41,6 +41,19 @@ def test_min_free_flag():
     assert "mem[c][1] - mem[c][0] < a.min_free_gib * 1024" in src   # default 0: never true (used <= total)
 
 
+def test_warmup_flag():
+    src = Path(W.__file__).read_text()
+    assert '"--warmup-s", type=float, default=0.0' in src and "if a.warmup_s > 0:" in src
+    import stack_cards as S
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "s"
+        f.write_text("")
+        assert S.read_cards(str(f)) == set()          # empty file: stack mode on, no card yet
+        f.write_text("5 6 7\n")
+        assert S.read_cards(str(f)) == {5, 6, 7}
+
+
 if __name__ == "__main__":
     for k, v in list(globals().items()):
         if k.startswith("test_"):
