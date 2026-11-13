@@ -3029,3 +3029,12 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
     - 基线 dev 四行恢复 8 卡；
     - (a) 链续跑（dev 解码、train16 解码、采样）；
     - 方法行 dev（mz / me）和 test（6 条链）已开始。
+
+- 2026-11-13 21:31 布拉格：**用户改选第 2 段检查点为第 3500 步**。原话："应该按照3500步，因为blue值比laal指标更优先，只要不是laal太差就可以"。
+  - 第 3500 步 J = 35.59，是三个点里最高的。延迟相对参考：zh→en +0.099 s，En→Zh +0.137 s。只有 En→Zh 超出预登记的 +0.1 s 可行线。
+  - 这是对预登记 §5 / 修正 4 第 9 条选择规则的用户覆盖，按规则选的是第 4000 步。论文里如实写明：最终检查点是用户按"BLEU 优先、LAAL 只要不过差"选的，并同时报告第 4000 步的 dev5 数字。
+  - 实施：
+    - `JOINT_S2_SELECTED` 原文件改名为 `.rule_s04000_*` 保留，新写一份第 3500 步的（带 override 说明）；
+    - 方法行 s04000 的 dev 编排器（mz / me）和 test 编排器（mami）都还没开始任何作业，按 PID 停，目录改名为 `*.superseded_s04000_*`；
+    - dev / test 驱动按 PID 停后重启：dev 用原 environ，已有目录照旧接管；test 加 `TEST_TRIGGER=s2 TEST_RESUME=1`，`joint_test.sh` 新开关 `TEST_RESUME`，默认 DRY_RUN 输出逐字相同；
+    - 基线行的编排器一直在跑，没动。

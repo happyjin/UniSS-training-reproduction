@@ -17,7 +17,10 @@
 #   = wait for JOINT_DEV_DONE, unchanged): start as soon as JOINT_S2_SELECTED exists. Nothing on test is chosen either
 #   way: the stage-1 / stage-2 checkpoints are fixed by their rules and the En->Zh PL-EM talker by (a)'s dev5 rule; the
 #   method En->Zh chain decodes and merges first, then waits for that talker (EN2ZH_TALKER_SELECTED) before its speech.
-#   [PORT0=19400] [BASE_TALKER=t1c] [TEST_TRIGGER=s2] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
+# TEST_RESUME=1 (2026-11-13 ~21:35 Prague, after the user's stage-2 override 3500; default empty = unchanged): an
+#   existing test dir is allowed and every orchestrator whose run dir already exists is adopted (not relaunched; the
+#   later steps of its chain are redone, idempotent)
+#   [PORT0=19400] [BASE_TALKER=t1c] [TEST_TRIGGER=s2] [TEST_RESUME=1] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
 # Run detached: setsid nohup bash ... > logs/mist_w3po_v1/joint/test.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
@@ -31,6 +34,7 @@ DONE_M=$JL/JOINT_TEST_DONE
 SUM=$JO/test_summary_v1.json
 TV=$JL/test
 X=eval_outputs/mist_w3po_v1/talker_crf/talker_align_20261111T001542Z/export   # DRY only
+adopt() { [ -n "${TEST_RESUME:-}" ] && [ -e $1 ] && { log "$1 exists: adopted (TEST_RESUME)"; return 0; }; return 1; }
 flag() { ( set -o noclobber; echo "$(date -u +%FT%TZ) $*" > $TV/FAILED_$(date -u +%s%N) ); log "JOINT_STOP test: $*"; }
 setvars() {   # <set ami|ali|en> -> D (dir flag) K (joint_orch --set) WIN CW REF DR SEP
   case $1 in
@@ -60,11 +64,11 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
   if [ $r = b ] && [ $BASE_TALKER = t1c ]; then   # 修正 3: frozen T1c on the plain text, no merge, no PL-EM
     local C2="$JORCH --dir $D --set $K --base $b --run $TV/${r}${s}_sp --name ${n}__t1c --ckpt - --speech-from ${n} --talker t1c --window 1 --cap135"
     if [ -n "${DRY_RUN:-}" ]; then echo "${r}$s: $C1"; $C1 --dry | tail -1; echo "${r}${s}_sp: $C2"; $C2 --dry | tail -1; return 0; fi
-    setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
+    adopt $TV/${r}$s || setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
     log "$n decode orchestrator pid $!"
     wait_done $TV/${r}$s; [ -z "$(orch_failed $TV/${r}$s)" ] || { flag "$n decode failed ($(tail -1 $TV/${r}$s/orch.log | cut -c1-200))"; return 1; }
     lat $s $n
-    setsid nohup $C2 < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
+    adopt $TV/${r}${s}_sp || setsid nohup $C2 < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
     log "${n}__t1c speech orchestrator pid $!"
     wait_done $TV/${r}${s}_sp; [ -z "$(orch_failed $TV/${r}${s}_sp)" ] || { flag "${n}__t1c speech failed"; return 1; }
     for x in ${n}__t1c ${n}__t1c_tts2; do lat $s $x $SPD/$x/talker; done
@@ -72,7 +76,7 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
     return 0
   fi
   if [ $D = en2zh ] && [ "${TEST_TRIGGER:-}" = s2 ] && [ -z "${DRY_RUN:-}" ]; then   # talker after the decode + merge
-    setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
+    adopt $TV/${r}$s || setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
     log "$n decode orchestrator pid $!"
     wait_done $TV/${r}$s; [ -z "$(orch_failed $TV/${r}$s)" ] || { flag "$n decode failed ($(tail -1 $TV/${r}$s/orch.log | cut -c1-200))"; return 1; }
     lat $s $n
@@ -85,7 +89,7 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
     tx=$(en2zh_talker)
     [ -e $tx/uniss/model.safetensors ] || { flag "$n: no En->Zh PL-EM export ('$tx')"; return 1; }
     local C2e="$JORCH --dir $D --set $K --base $b --run $TV/${r}${s}_sp --name ${n}__rlplem --ckpt - --speech-from ${n}_rl --talker plem --plem-export $tx --window 1 --cap135 --scorer-port0 $p"
-    setsid nohup $C2e < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
+    adopt $TV/${r}${s}_sp || setsid nohup $C2e < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
     log "${n}__rlplem speech orchestrator pid $!"
     wait_done $TV/${r}${s}_sp; [ -z "$(orch_failed $TV/${r}${s}_sp)" ] || { flag "${n}__rlplem speech failed"; return 1; }
     for x in ${n}__rlplem ${n}__rlplem_tts2; do lat $s $x $SPD/$x/talker; done
@@ -99,12 +103,12 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
   fi
   local C2="$JORCH --dir $D --set $K --base $b --run $TV/${r}${s}_sp --name ${n}__rlplem --ckpt - --speech-from ${n}_rl --talker plem $pe --window 1 --cap135 --scorer-port0 $p"
   if [ -n "${DRY_RUN:-}" ]; then echo "${r}$s: $C1"; $C1 --dry | tail -1; echo "${r}${s}_sp: $C2"; $C2 --dry | tail -1; return 0; fi
-  setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
+  adopt $TV/${r}$s || setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
   log "$n decode orchestrator pid $!"
   wait_done $TV/${r}$s; [ -z "$(orch_failed $TV/${r}$s)" ] || { flag "$n decode failed ($(tail -1 $TV/${r}$s/orch.log | cut -c1-200))"; return 1; }
   lat $s $n
   read_merge $n "$SEP" $WIN $TV/merge_$n.log || { flag "merge $n ($(tail -1 $TV/merge_$n.log | cut -c1-200))"; return 1; }
-  setsid nohup $C2 < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
+  adopt $TV/${r}${s}_sp || setsid nohup $C2 < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
   log "${n}__rlplem speech orchestrator pid $!"
   wait_done $TV/${r}${s}_sp; [ -z "$(orch_failed $TV/${r}${s}_sp)" ] || { flag "${n}__rlplem speech failed"; return 1; }
   for x in ${n}__rlplem ${n}__rlplem_tts2; do lat $s $x $SPD/$x/talker; done
@@ -120,7 +124,7 @@ if [ -n "${DRY_RUN:-}" ]; then
   done; done
   exit 0
 fi
-for f in $DONE_M $SUM $TV; do [ -e $f ] && { log "拒绝覆盖已有输出: $f (the test runs once)"; exit 1; }; done
+for f in $DONE_M $SUM $TV; do [ -n "${TEST_RESUME:-}" ] && [ $f = $TV ] && continue; [ -e $f ] && { log "拒绝覆盖已有输出: $f (the test runs once)"; exit 1; }; done
 W=$DEVD; [ "${TEST_TRIGGER:-}" = s2 ] && W=$M2
 log "test: waiting for $W"
 until [ -e $W ]; do
