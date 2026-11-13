@@ -2951,3 +2951,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 结论：A′rl + PL-EM 相对 A′ 在两个测试集上保持 dev 结论（每条流语音 LAAL AMI −0.093 / Ali −0.154 s，两种协议同向；语音 ASR-BLEU +0.15 / +0.39；相对 PL-EM 不劣）。(e) D1vrl 在 AMI 复现 dev（ov、语音不过）；(d) VE1rl 在 AMI 文本 ov −0.29 不过，dev 上持平，未复现。
 - 敏感性（Ali pair_lost 12、AMI 2 窗口去掉后重算）：所有过/不过与全集一致。
 - Ali 驱动提前写 FT_ALL_DONE，VE1 / D1v 续跑链还在跑；已挂 `scripts/final_test_ali_g2_late.sh`（日志 `logs/mist_w3po_v1/final_test/ali_g2_late.log`，`FT_ALI_G2_LATE_DONE`），只写新文件。报告里 Ali (d)(e) 标"待补"。
+
+## 2026-11-13 布拉格约 03:25：最终测试集 Ali (d)(e) 补入
+
+- Ali (d) VE1rl：LAAL 4.409（对 (c) −0.300 s，chunk −0.287），ASR-BLEU 16.25，门槛三项全过，复现 dev。(e) D1vrl：LAAL 3.841（−0.868 s，chunk −0.831），ASR-BLEU 16.95（+0.74，P 0.0001），文本 all +2.27、ov +0.84，三项全过——与 dev（ov、语音不过）及 AMI 相反，未复现。并集敏感性（27 窗口）判定不变。
+- 后补脚本的 paired UTMOS rc=2 是我的参数错（`--ref NAME S1 S2`），CPU 重跑成功，写 `ali/utmos_paired_v3_*`：(d)−(c) +0.0035、(e)−(c) +0.0072，CI 含 0。报告 final_test_results_v1.zh-CN.md 已补全。
