@@ -182,9 +182,32 @@ def test_seed2():
     print("  seed2: default = seed + 1 bit for bit; S -> set 2 = plan_steps(S); 2N half steps = N single steps' order")
 
 
+def test_joint_prompter_dup_module():
+    """Regression (2026-11-13 stage-2 crash): the run is train_crf_sft as __main__ while serial_v2p_train calls
+    train_crf_sft.collate from the imported module, so the JointPrompter is a different class object there."""
+    import importlib.util
+    from experiments.mist_w3po_v1.core.engine import Prompter
+
+    spec = importlib.util.spec_from_file_location("_crf_as_main", T.__file__)
+    M = importlib.util.module_from_spec(spec)
+    import sys as _sys
+    _sys.modules[spec.name] = M   # dataclasses look the module up while the copy executes
+    spec.loader.exec_module(M)
+    assert M.JointPrompter is not T.JointPrompter
+    pz, pe = Prompter("zh2en"), Prompter("en2zh")
+    jp = M.JointPrompter({"zh2en": pz, "en2zh": pe}, "zh2en")   # built by the "__main__" copy
+    audio = T.AudioCache()
+    for rows, single in ((T.scoring_rows(windows(S_ZH, 2, "zh2en")), pz),
+                         (T.scoring_rows(windows(S_EN, 2, "en2zh", offset=100000)), pe)):
+        same_batch(T.collate(rows, audio, pz.proc, jp, False, 0.0, 7, 0, "score"),
+                   T.collate(rows, audio, pz.proc, single, False, 0.0, 7, 0, "score"))
+    print("  JointPrompter from a second module copy: collate picks the direction's prompter")
+
+
 def main():
     t0 = time.time()
-    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_lr_horizon, test_seed2, test_joint_prompter_collate]
+    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_lr_horizon, test_seed2, test_joint_prompter_collate,
+             test_joint_prompter_dup_module]
     for t in tests:
         t1 = time.time()
         t()

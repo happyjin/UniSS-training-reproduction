@@ -448,7 +448,9 @@ def collate(rows: list[Row], audio: AudioCache, proc, prompter, hook: bool, pert
         S = rw.win.S if rw.seq is None else rw.seq
         n_s = rw.win.N if rw.seq is None else len(rw.seq)
         e_id = rw.win.end_ids[rw.r] if rw.end is None else rw.end
-        pr = prompter.pick(rw.win) if isinstance(prompter, JointPrompter) else prompter
+        # duck-typed: serial_v2p_train imports this file as a module while the run is __main__, so the JointPrompter
+        # built in main() is not an instance of this module's class (2026-11-13 stage-2 crash); Prompter has no pick
+        pr = prompter.pick(rw.win) if hasattr(prompter, "pick") else prompter
         ids = pr.ids(n, "", S[: rw.K]) + [e_id]   # v8's row layout: ... + block + end token
         Lp = len(ids) - rw.K - 1
         seqs.append(ids)
