@@ -125,14 +125,17 @@ else
   log "training $RUN exit: $(grep CRF_RUN_EXIT $L | tail -1); slot kept for inspection"
 fi
 # ---------------------------------------------------------------------------------------------- 2. three orchestrators
-C1="$ORCH --set dev --run $E/dev --name $F --ckpt $CK --talker none --window 1 --cap135"
+# RESUME_ORCH=1 (2026-11-13 night, after the pause for (b), prereg joint 修正 4 §13; default empty = unchanged): an
+# orchestrator whose run dir already exists is restarted with --resume (it adopts its state); a missing one starts fresh
+RS() { [ -n "${RESUME_ORCH:-}" ] && [ -e $1 ] && echo " --resume"; }
+C1="$ORCH --set dev --run $E/dev --name $F --ckpt $CK --talker none --window 1 --cap135$(RS $E/dev)"
 setsid nohup $C1 < /dev/null > $E/dev.launch.log 2>&1 &
 log "dev decode orchestrator pid $!"
 sleep 90
-C2="$TORCH --stage traindec --run $E/traindec --name $TN --ckpt $CK"
+C2="$TORCH --stage traindec --run $E/traindec --name $TN --ckpt $CK$(RS $E/traindec)"
 setsid nohup $C2 < /dev/null > $E/traindec.launch.log 2>&1 &
 log "train16 decode orchestrator pid $!"
-C3="$TORCH --stage sample --run $E/sample --name $TN --ckpt $CK --traindec-run $E/traindec --scorer-port0 $PORT0"
+C3="$TORCH --stage sample --run $E/sample --name $TN --ckpt $CK --traindec-run $E/traindec --scorer-port0 $PORT0$(RS $E/sample)"
 setsid nohup $C3 < /dev/null > $E/sample.launch.log 2>&1 &
 log "sampling orchestrator pid $!"
 # ---------------------------------------------------------------------------------------------- 3. dev merge, dev5 cut
