@@ -2968,3 +2968,9 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 
 - 2026-11-13 07:24 布拉格（看门狗 stack47_watchdog，pid 1279715）：STACK47_WITHDRAWN —— 卡 4: 138.0 GiB（剩 2.4） > 138.0 GiB 或剩余 < 1.5 GiB；4–7 号卡重新排除（stack_cards_b47.withdrawn_20261113T062420Z），按 PID 停了 4–7 上的解码 [1327925, 1280604, 1282478, 1284926]，编排器会在别处重试；(b) 训练未动。
 - 2026-11-13 07:25 布拉格：4–7 叠放（138 GiB）在 07:24 第二次撤卡（卡 4：训练 72.2 + 解码 65.8 = 138.0 GiB），训练步时 4954–5150 ms，没有报错。协调者决定只叠 5–7：看门狗 v3（`--cards 5 6 7 --warmup-s 90`，提交 17036367c），joint 修正 2 第 7 条。
+
+- 2026-11-13 07:51 布拉格：**(b) 第 1 段基线的语音改用原始单说话人 T1c**（用户："不能用pl-em talker吧，需要用原始的之前单说话人同传的talker才算是基线吧"）。joint 修正 3（提交 898b34f45，先于任何 `jdev_*` 结果），代码 88dff812a。
+  - 配置：T1c@1500 冻结，`crf_pair_dev_orch.speech` 逐字（`--speed-policy fixed --history-ban 8`），在原始文本解码上出语音，不做 rl、不用 PL-EM、不起 CTC 打分。c1 / b1 / s2 是多说话人线 11-10 语音缺口计划新加的 talker 改进（speech_var_orch），以前 v8 的语音（v8 参考、v8 + finalpost 19.17、MIST v7 两个方向）都是 fixed + history-ban 8，所以不用。
+  - 分开 v8 两个方向在 c2g06 dev 全集上没有现成语音，补跑同一条 T1c 链（`jdev_v8sep_{z,e}__t1c`）；文本按原计划第 1 段选中后才开（现在卡被 dev5 速查占满），文本完成即接语音。
+  - test 的基线行同样改 T1c；方法行（rl + PL-EM）不改；门槛、选择规则不改，"方法 对 联合基线"的语音参照随基线行变成 T1c。
+  - 等待进程按 PID 停、原 environ + `BASE_TALKER=t1c` 重启：dev 564748 → 1594999，test 564751 → 1595000。
