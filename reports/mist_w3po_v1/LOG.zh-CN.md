@@ -2987,3 +2987,15 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 2026-11-13 13:00–13:10 布拉格（协调者）：**(b) 第 2 段第一次启动在第 1 步崩溃**（`joint_v2p_20261113T074547Z`，11:59:41 UTC，8 个 rank 全部 `AttributeError: 'JointPrompter' object has no attribute 'ids'`，CRF_RUN_EXIT rc=1，没有任何检查点）。原因：训练以 `__main__` 运行 `train_crf_sft.py`，`serial_v2p_train` 又以模块 `train_crf_sft` 导入它，`collate` 里 `isinstance(prompter, JointPrompter)` 比的是另一份类对象，恒为假；修正 4 前的 CPU 测试在同一模块里构造 JointPrompter，没覆盖到。修复 fe26d10d0：按 `hasattr(prompter, "pick")` 选方向（普通 Prompter 没有 pick，单方向路径不变）；`test_joint_bidir` 新增 `test_joint_prompter_dup_module`（用第二份模块拷贝构造），7/7 通过。
   - 驱动 2180449 已按设计 JOINT_STOP 并释放 slotA/B；用 1594999 的 environ + `S2_FULL=1 CARDS=0,…,7` 重启为 182178，新 RUN_ID `joint_v2p_20261113T120415Z`（设置与修正 4 完全相同），日志 `logs/mist_w3po_v1/joint/stage2_s2full_r3.log`；崩溃的 run 目录保留作记录。
   - 释放卡位的 4 分钟里，基线 dev 评测（joint_dev.sh 1594999，bz/be/v8z/v8e）已在卡上开了 6 个解码；为按原计划让 dev 评测排在第 2 段之后，把这 4 个编排器的 `exclude_cards` 改为 `0 1 2 3 4 5 6 7`（新文件 + mv，原文件留 `exclude_cards.before_s2r3_*`）：在跑的解码不停、跑完即止；第 2 段在这些卡空出（约 1 小时内）后自动接手。没有停任何进程。
+
+- 2026-11-13 16:58 布拉格（(b) 第 2 段驱动）：JOINT_STACK_FAILED —— 第 3000 步起的 dev5 速查叠不上训练卡（卡 7 实占 83.9 of 140.4 GiB，需 实占 + 67 GiB ≤ 总量 − 1.5 GiB）；训练照常，速查未开，等用户决定（不再试第二次、不改 batch）。
+
+- 2026-11-13 19:05 布拉格（(b) 第 2 段，修正 5：dev5 改为两卡叠加）
+  - **起因**：16:58 `JOINT_STACK_FAILED`。第 2 段训练实占每卡 83–86 GiB（总 140.4），物理空余约 55 GiB；单卡 dev5 解码要 66.5 GiB（Thinker 权重约 59 GiB），任何 batch 都放不下。
+  - **用户决定**（约 18:40）："可以直接叠加吗？在不超过目前显存的前提下，只对加了novel idea的方法进行dev5速测"，两卡切分"可以做"。
+  - **做法**（代码 444b3ddd2）：每个 dev5 分片解码分到两张训练卡上（`CUDA_VISIBLE_DEVICES=c1,c2`，`--max-gib 34`，`core.engine.load_thinker` 原本就按可见卡 device_map 切层）。`stack_cards.py` PAIR 模式，每卡需 44 GiB 空余；看门狗 `--phys --pair`（空余 < 1.5 GiB 只停叠加作业，按 PID）。
+  - **一致性核对**（17:45–17:59 UTC，叠在训练的 6、7 号卡上）：(a) En→Zh s3000 dev5 第 0 片两卡解码与原单卡 `hyp_s0_a1.jsonl` **逐字节相同**（312/312 窗口）。解码每卡 +34 / +37.5 GiB，最小空余 20.9 GiB；训练 3.22 → 3.26 s/步。
+  - **held-out loss**：单卡 71 GiB，叠不上；只用于平局决胜，`proxy_stack.conf` 加 `HELDOUT=off`，训练结束后再补算。这是对预登记的偏离，选点时 H 缺失按规则记 +inf。
+  - **A′ s3000 参考**：A′ 是用户方法的 zh→en 单方向版本，是预登记的延迟门槛参考，照常解码（同样两卡），排在最前；其余按 `order = oldest`（3000 起，规则按步数前缀判断）。
+  - **重启**：排队中、从未开始任何作业的 3000–6000 步 proxy（7 个 bash）及其 14 个编排器、A′ 编排器按 PID 停止（均未占 GPU）。旧 run 目录改名为 `*.superseded_20261113T180256Z` 保留；proxy 用原 environ 重新启动；A′ 编排器 `--resume` 原地接管，驱动 182178 的等待不受影响。训练、驱动、基线 dev 编排器都没动。
+  - 18:03 UTC 起：A′ 的分片已叠在卡 (1,5)、(0,6) 上运行。
