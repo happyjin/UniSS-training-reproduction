@@ -5,7 +5,7 @@ reports/mist_w3po_v1/joint_bidir_plan_prereg_v1.zh-CN.md 修正 2). Detached (se
   start      creates --stack-file (exclusive; refuses if it exists) with the cards: from now on the orchestrators
              started with --stack-cards <file> may place one shard decode per card there (stack_cards.py)
   watch      every --tick s: nvidia-smi per card; the training log's new lines. From the first decode seen on the cards:
-               - any card > --cap-gib (135) GiB used                                  -> trip
+               - any card > --cap-gib (135) GiB used, or < --min-free-gib physically free (default 0: off) -> trip
                - --n-slow (3) consecutive iteration times > baseline x (1 + --slow)    -> trip (baseline 4650 ms, +40 %)
                - a new training-log line with OOM / Traceback / CUDA / NCCL error     -> trip (from the start)
   trip       command mv the stack file to <file>.withdrawn_<UTC> (the orchestrators exclude the cards again at their
@@ -101,6 +101,8 @@ def main() -> None:
     ap.add_argument("--slow", type=float, default=0.4)
     ap.add_argument("--n-slow", type=int, default=3)
     ap.add_argument("--cap-gib", type=float, default=135.0)
+    ap.add_argument("--min-free-gib", type=float, default=0.0,
+                    help="also trip when total - used < this on a card (default 0 = off; user 2026-11-13 07:35: 1.5)")
     ap.add_argument("--tick", type=float, default=20.0)
     ap.add_argument("--status-s", type=float, default=600.0)
     ap.add_argument("--dry", action="store_true")
@@ -121,7 +123,7 @@ def main() -> None:
     fd = os.open(sf, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)   # refuses an existing file
     os.write(fd, (" ".join(map(str, a.cards)) + "\n").encode())
     os.close(fd)
-    log(f"STACK47_ON {sf} = {a.cards}; pid {os.getpid()}; cap {a.cap_gib} GiB; slow > "
+    log(f"STACK47_ON {sf} = {a.cards}; pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "
         f"{a.baseline_ms * (1 + a.slow):.0f} ms x {a.n_slow}; training pid {a.train_pid} (never touched)")
     off = tl.stat().st_size if tl.exists() else 0
     buf = ""
@@ -204,9 +206,10 @@ def main() -> None:
                 m = IT_RE.search(l)
                 if m and first is not None:
                     pts.append((int(m.group(1)), float(m.group(2))))
-        over = [c for c in a.cards if mem[c][0] > a.cap_gib * 1024]
+        over = [c for c in a.cards if mem[c][0] > a.cap_gib * 1024 or mem[c][1] - mem[c][0] < a.min_free_gib * 1024]
         if over and first is not None:
-            withdraw("卡 " + ", ".join(f"{c}: {mem[c][0] / 1024:.1f} GiB" for c in over) + f" > {a.cap_gib} GiB",
+            withdraw("卡 " + ", ".join(f"{c}: {mem[c][0] / 1024:.1f} GiB（剩 {(mem[c][1] - mem[c][0]) / 1024:.1f}）" for c in over)
+                     + f" > {a.cap_gib} GiB 或剩余 < {a.min_free_gib} GiB",
                      kill=True)
             return
         if slow_trip(pts, a.baseline_ms, a.slow, a.n_slow):

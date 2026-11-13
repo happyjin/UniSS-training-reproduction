@@ -35,6 +35,12 @@ def test_cmd_split():
     assert not W.is_decode("python -m experiments.mist_w3po_v1.crf.heldout_loss --base x")
 
 
+def test_min_free_flag():
+    src = Path(W.__file__).read_text()
+    assert '"--min-free-gib", type=float, default=0.0' in src
+    assert "mem[c][1] - mem[c][0] < a.min_free_gib * 1024" in src   # default 0: never true (used <= total)
+
+
 if __name__ == "__main__":
     for k, v in list(globals().items()):
         if k.startswith("test_"):
