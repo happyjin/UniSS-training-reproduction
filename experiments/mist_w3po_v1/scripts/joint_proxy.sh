@@ -30,6 +30,18 @@ esac
 EXA=""; [ -n "$EXCLUDE" ] && EXA="--exclude $EXCLUDE"
 AZ="--dir zh2en --set dev5 --base $BASE $HZ --run $PD/z_s$S5 --name $NZ --ckpt $CK --talker none --shards 4 --shard-by window --window 1 $EXA --cap135"
 AE="--dir en2zh --set dev5 --base $BASE $HE --run $PD/e_s$S5 --name $NE --ckpt $CK --talker none --shards 4 --shard-by window --window 1 $EXA --cap135"
+# Stack mode (user 2026-11-13 ~06:50 / ~06:55 Prague, prereg 修正 2): if $JL/$RUN/proxy_stack.conf exists (absent =
+# unchanged) with lines STACK_FILE=<file> and STACK_GROUP=<dir>, both orchestrators also get --stack-cards <file>
+# --stack-rank <STEP> --stack-group <dir> (stack_cards.py: their shard decodes go one per card onto the cards in <file>
+# while it exists -- the (b) training cards 4-7 under stack47_watchdog.py --, newest checkpoint first; everything else
+# as before).
+SC_CONF=$JL/$RUN/proxy_stack.conf
+if [ -e $SC_CONF ]; then
+  STACK_FILE=$(sed -n 's/^STACK_FILE=//p' $SC_CONF | tail -1); STACK_GROUP=$(sed -n 's/^STACK_GROUP=//p' $SC_CONF | tail -1)
+  [ -n "$STACK_FILE" ] && [ -n "$STACK_GROUP" ] || { echo "bad $SC_CONF"; exit 1; }
+  AZ="$AZ --stack-cards $STACK_FILE --stack-rank $STEP --stack-group $STACK_GROUP"
+  AE="$AE --stack-cards $STACK_FILE --stack-rank $STEP --stack-group $STACK_GROUP"
+fi
 if [ -n "${DRY_RUN:-}" ]; then
   [ $STAGE = s1 ] && echo "convert: $PY -m experiments.mist_w3po_v1.joint.megatron_to_crf_ckpt --checkpoint-dir $SRC --base $BASE --rank 32 --alpha 64 --out $CK"
   echo "zh2en: $JORCH $AZ"; $JORCH $AZ --dry | tail -1

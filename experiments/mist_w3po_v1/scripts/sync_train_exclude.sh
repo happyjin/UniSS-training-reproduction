@@ -12,14 +12,25 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 SL=logs/mist_w3po_v1/slots
 G=logs/mist_w3po_v1/talker_crf_v1/exclude_cards
 log() { echo "$(date -u +%FT%TZ) $*"; }
+# STACK_OK_FILE=<file> (default empty = unchanged; user 2026-11-13 ~06:50 Prague, en2zh prereg 修正 1): while <file>
+# exists, the cards listed in it are left out of the exclusion even though their slot is owned (a training that allows
+# stacked decodes within 135 GiB, e.g. (a)'s PL-EM talker on 0-3 once its memory is stable; en2zh_after_select.sh
+# STACK_PLEM=1 writes and renames the file).
+STACK_OK_FILE=${STACK_OK_FILE:-}
 want() {
-  local x=""
+  local x="" ok="" c y=""
   [ -e $SL/slotA.owner ] && x="0 1 2 3"
   [ -e $SL/slotB.owner ] && x="$x 4 5 6 7"
+  if [ -n "$STACK_OK_FILE" ] && [ -e "$STACK_OK_FILE" ]; then
+    ok=" $(cat "$STACK_OK_FILE" 2>/dev/null | tr '\n' ' ') "
+    for c in $x; do case "$ok" in *" $c "*) ;; *) y="$y $c";; esac; done
+    x=$y
+  fi
+  x=$(echo $x)
   echo "${x# }"
 }
 if [ -n "${DRY_RUN:-}" ]; then echo "now: '$(cat $G 2>/dev/null)'; would be: '$(want)'"; exit 0; fi
-log "start: $G now '$(cat $G 2>/dev/null)'"
+log "start: $G now '$(cat $G 2>/dev/null)'${STACK_OK_FILE:+; STACK_OK_FILE $STACK_OK_FILE}"
 while [ ! -e $SL/sync_train_exclude.STOP ]; do
   W=$(want)
   if [ "$W" != "$(cat $G 2>/dev/null)" ]; then

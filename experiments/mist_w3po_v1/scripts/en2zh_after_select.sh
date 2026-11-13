@@ -63,6 +63,17 @@ busy_on() {   # compute processes on the given cards that are not our placeholde
     case "$cmd" in *scripts/gpu_load/train_mist_workload.py*|*gpu_keeper.py*) ;; *) echo "$idx:$pid";; esac
   done
 }
+# STACK_PLEM (default empty = unchanged): see step 5. PLEM_PEAK_GIB: max reserved of the three zh->en PL-EM runs
+# (talker_crf_v1/v2/v3 train logs, rank 0: 51606 / 51186 / 43820 MiB = 50.4 GiB) + CUDA context / NCCL / other ranks.
+STACK_PLEM=${STACK_PLEM:-}; PLEM_PEAK_GIB=${PLEM_PEAK_GIB:-56}; PLEM_MARGIN_GIB=${PLEM_MARGIN_GIB:-3}; STACK_OK_FILE=${STACK_OK_FILE:-}
+plem_blockers() {   # cards of TALKER_CARDS without room for the PL-EM peak, or with another training on them
+  local lim=$(( (135 - PLEM_PEAK_GIB - PLEM_MARGIN_GIB) * 1024 )) b
+  nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits 2>/dev/null | \
+    awk -F', ' -v cs=",$TALKER_CARDS," -v lim=$lim 'index(cs, "," $1 ",") && $2 + 0 > lim {print "card " $1 ": " $2 " MiB > " lim}' || echo "smi-failed"
+  for b in $(busy_on $TALKER_CARDS); do
+    tr '\0' ' ' < /proc/${b#*:}/cmdline 2>/dev/null | grep -q pretrain_ && echo "training ${b}"
+  done
+}
 free_card() {   # a card of CARDS_ALL (not a training slot's) with >= 20 GiB free, the freest; empty if none
   local ex; ex=$(cat logs/mist_w3po_v1/talker_crf_v1/exclude_cards 2>/dev/null)
   nvidia-smi --query-gpu=index,memory.total,memory.used --format=csv,noheader,nounits | \
@@ -92,6 +103,7 @@ if [ -n "${DRY_RUN:-}" ]; then
   $ORCH --set dev --run /nonexistent/c --name ${F}__rlplem --ckpt - --speech-from ${F}_rl --talker plem --plem-export $X --window 1 --cap135 --scorer-port0 $((PORT0 + 40)) --dry | tail -1
   $ORCH --set dev --run /nonexistent/a --name ${F}__seg --ckpt - --speech-from $F --talker c1b1s2 --window 1 --cap135 --scorer-port0 $((PORT0 + 50)) --dry | tail -1
   echo "free card now: $(free_card)"
+  [ -n "$STACK_PLEM" ] && echo "STACK_PLEM: peak $PLEM_PEAK_GIB + margin $PLEM_MARGIN_GIB GiB; blockers now on $TALKER_CARDS: $(plem_blockers | tr '\n' ' ')${STACK_OK_FILE:+; STACK_OK_FILE $STACK_OK_FILE}"
   exit 0
 fi
 mkdir -p $E
@@ -158,15 +170,38 @@ until [ ! -e $SL/$TSLOT.owner ]; do sleep 30; done
   "$RID" "$TALKER_CARDS" "$TSLOT" "$(date -u +%FT%TZ)" > $SL/$TSLOT.owner ) && log "$TSLOT.owner claimed" \
   || { log "EN2ZH_STOP: $TSLOT.owner claim failed"; exit 1; }
 t0=$(date +%s)
+if [ -n "$STACK_PLEM" ]; then
+  # STACK_PLEM=1 (user 2026-11-13 ~06:50 Prague, en2zh prereg 修正 1): no wait for empty cards. The slot claim above
+  # already holds the cards (sync_train_exclude: no new jobs there); start once every card has used + PLEM_PEAK_GIB +
+  # PLEM_MARGIN_GIB <= 135 GiB (running decodes stay) and no other training ("pretrain_") is on them.
+  log "STACK_PLEM: start when used + ${PLEM_PEAK_GIB} + ${PLEM_MARGIN_GIB} GiB <= 135 GiB on $TALKER_CARDS"
+  until [ -z "$(plem_blockers)" ]; do
+    [ $(( ($(date +%s) - t0) % 1800 )) -lt 30 ] && [ $(( $(date +%s) - t0 )) -gt 60 ] && log "still waiting (STACK_PLEM): $(plem_blockers | tr '\n' ' ')"
+    sleep 30
+  done
+  log "STACK_PLEM: room on $TALKER_CARDS ($(nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits | tr '\n' ' '))"
+else
 until [ -z "$(busy_on $TALKER_CARDS)" ]; do
   [ $(( ($(date +%s) - t0) % 1800 )) -lt 30 ] && [ $(( $(date +%s) - t0 )) -gt 60 ] && log "still waiting: $TALKER_CARDS busy ($(busy_on $TALKER_CARDS | tr '\n' ' '))"
   sleep 30
 done
+fi
 TL=$E/train_talker_$RID.log
 CARDS=$TALKER_CARDS LAUNCH="setsid nohup env RUN_ID=$RID MODE=plem ROWS=$ROWS CARDS=$TALKER_CARDS MASTER_PORT=29823 bash experiments/mist_w3po_v1/scripts/run_talker_crf.sh > $TL 2>&1 < /dev/null &" \
   bash experiments/mist_w3po_v1/scripts/takeover_train.sh
 log "PL-EM training $RID launched on $TALKER_CARDS (log $TL)"
+OKW=""
+if [ -n "$STACK_PLEM" ] && [ -n "$STACK_OK_FILE" ]; then
+  # memory stable = the iteration-400 save (the PL-EM peak of the earlier runs is reached by then); then new decodes
+  # may stack on the cards again within 135 GiB (sync_train_exclude STACK_OK_FILE)
+  until [ -e $TL ] && grep -qE "before save_checkpoint for iteration 400|TALKER_CRF_DONE|TALKER_CRF_FAILED|TALKER_CRF_EXPORT_FAILED" $TL; do sleep 30; done
+  if ! grep -qE "TALKER_CRF_DONE|TALKER_CRF_FAILED|TALKER_CRF_EXPORT_FAILED" $TL; then
+    ( set -o noclobber; echo "${TALKER_CARDS//,/ }" > $STACK_OK_FILE ) && OKW=1 && log "STACK_PLEM: PL-EM memory stable (iteration 400 save): $STACK_OK_FILE = ${TALKER_CARDS//,/ } (new decodes stack within 135 GiB)" \
+      || log "STACK_PLEM: $STACK_OK_FILE exists already; left as is"
+  fi
+fi
 until [ -e $TL ] && grep -qE "TALKER_CRF_DONE|TALKER_CRF_FAILED|TALKER_CRF_EXPORT_FAILED" $TL; do sleep 30; done
+[ -n "$OKW" ] && command mv -f $STACK_OK_FILE $STACK_OK_FILE.released_$(date -u +%Y%m%dT%H%M%SZ) && log "STACK_PLEM: $STACK_OK_FILE released"
 command mv -f $SL/$TSLOT.owner $SL/$TSLOT.released_$(date -u +%Y%m%dT%H%M%SZ) && log "$TSLOT released"
 grep -q TALKER_CRF_DONE $TL || { log "EN2ZH_STOP: PL-EM training: $(grep -E 'TALKER_CRF_' $TL | tail -1)"; exit 1; }
 EXP=eval_outputs/mist_w3po_v1/talker_crf/$RID

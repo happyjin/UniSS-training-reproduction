@@ -283,6 +283,11 @@ def main():
     ap.add_argument("--cap135", action="store_true", help="apply_cap135 (two decodes per card; default off = unchanged)")
     ap.add_argument("--dec-after", nargs=2, default=[], metavar=("RUN", "NAME"),
                     help="--cap135: our decodes wait until every NAME__dec<k> of RUN has started")
+    ap.add_argument("--stack-cards", default="", metavar="FILE",
+                    help="stack_cards.py: while FILE exists, shard decodes only on its cards (one per card, 135 GiB); "
+                         "needs --cap135; default off = unchanged")
+    ap.add_argument("--stack-rank", type=float, default=0.0, help="--stack-cards: order rank (checkpoint step)")
+    ap.add_argument("--stack-group", default="", help="--stack-cards: shared group dir (wants.jsonl, order)")
     a = ap.parse_args()
     os.chdir(REPO)
     run = Path(a.run)
@@ -317,6 +322,10 @@ def main():
     o.ledger, o.ledger_owner = LEDGER, f"{OWNER}_{run.name}"
     if a.cap135:
         apply_cap135(o, list(a.dec_after))   # one owner per orchestrator: they see each other's pending starts
+    if a.stack_cards:
+        assert a.cap135, "--stack-cards needs --cap135"
+        import stack_cards
+        stack_cards.apply_stack_cards(o, a.stack_cards, a.stack_rank, a.stack_group or None, fo, LEDGER)
     o.log(f"thinker T eval {a.name}: ckpt {a.ckpt}; window {a.window}; talker {a.talker}; gate refs {a.gate_ref}; "
           f"excluded {sorted(o.excluded())}; ledger {LEDGER} owner {o.ledger_owner}")
     try:
