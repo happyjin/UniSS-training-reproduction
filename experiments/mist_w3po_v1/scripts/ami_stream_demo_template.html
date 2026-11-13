@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMI 流式同传试听</title>
+<style>
+:root {
+  --bg: #f4f3ef; --panel: #ffffff; --ink: #1b1f24; --mute: #5f6670; --rule: #dcdad3; --soft: #ecebe5;
+  --accent: #b5452a; --accent-soft: #f6e3dc; --en: #1f6f8b; --en-soft: #dcecf2; --hl: #fff4c9;
+  --s0: #3d6fd1; --s1: #c27a1d; --s2: #2c8f63; --s3: #a8438c; --s4: #7a6a1b; --s5: #5a5fc6;
+  --f-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", system-ui, sans-serif;
+  --f-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121416; --panel: #1b1e22; --ink: #e8e6e1; --mute: #9ba1a8; --rule: #2e3237; --soft: #23272c;
+    --accent: #ef8a6a; --accent-soft: #3a2620; --en: #6cc0dc; --en-soft: #183039; --hl: #3a3420;
+    --s0: #7ea2f0; --s1: #e9a75a; --s2: #66c896; --s3: #db82c4; --s4: #cdb85a; --s5: #9ea1f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121416; --panel: #1b1e22; --ink: #e8e6e1; --mute: #9ba1a8; --rule: #2e3237; --soft: #23272c;
+  --accent: #ef8a6a; --accent-soft: #3a2620; --en: #6cc0dc; --en-soft: #183039; --hl: #3a3420;
+  --s0: #7ea2f0; --s1: #e9a75a; --s2: #66c896; --s3: #db82c4; --s4: #cdb85a; --s5: #9ea1f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 22px; }
+header { display: grid; gap: 8px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-size: clamp(24px, 4.2vw, 34px); line-height: 1.2; margin: 0; text-wrap: balance; font-weight: 700; }
+.lede { color: var(--mute); max-width: 72ch; margin: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab {
+  font: inherit; font-size: 14px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer; display: inline-flex; gap: 8px; align-items: baseline;
+}
+.tab small { color: var(--mute); font-family: var(--f-mono); font-size: 11px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab[aria-selected="true"] small { color: var(--bg); opacity: .75; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.player-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.player-head h2 { margin: 0; font-size: 19px; }
+.meta { color: var(--mute); font-size: 13px; }
+audio { width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--ink); padding: 6px 12px; cursor: pointer;
+  border-right: 1px solid var(--rule);
+}
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.hint { font-size: 12.5px; color: var(--mute); margin: 0; }
+.now { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.now > div { border-radius: 8px; padding: 12px 14px; min-height: 86px; min-width: 0; }
+.now .zh { background: var(--accent-soft); }
+.now .en { background: var(--en-soft); }
+.now .lab { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+.now .txt { font-size: 17px; line-height: 1.5; }
+.now .en .txt { font-family: Georgia, "Times New Roman", serif; }
+.now .who { font-weight: 700; margin-right: 6px; }
+.timeline { position: relative; cursor: pointer; user-select: none; }
+.timeline canvas { width: 100%; height: 74px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--mute); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.subs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col { display: grid; gap: 6px; min-width: 0; }
+.col h3 { margin: 0; font-size: 13px; color: var(--mute); font-weight: 600; }
+.list { height: 340px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 8px; padding: 4px; scroll-behavior: smooth; }
+.line { display: grid; grid-template-columns: 48px 1fr; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+.line:hover { background: var(--soft); }
+.line.on { background: var(--hl); }
+.line .ts { font-family: var(--f-mono); font-size: 12px; color: var(--mute); padding-top: 2px; }
+.line .tx { min-width: 0; overflow-wrap: anywhere; }
+.line .who { font-weight: 700; margin-right: 4px; }
+.col.en .tx { font-family: Georgia, "Times New Roman", serif; }
+.follow { font-size: 13px; color: var(--mute); display: inline-flex; gap: 6px; align-items: center; }
+footer { color: var(--mute); font-size: 12.5px; max-width: 80ch; }
+@media (max-width: 640px) {
+  .now, .subs { grid-template-columns: 1fr; }
+  .list { height: 240px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">AMI 测试会议 · 中文 → 英文 · 流式同传</div>
+    <h1>AMI 多人会议流式同传试听</h1>
+    <p class="lede">输入是 AMI 会议的中文配音版整场录音，多人自由讨论，常有抢话和重叠。系统边听边译：识别出谁在说，按说话人分别输出英文，并用该说话人自己的音色合成；每句译音在系统真实决定开口的时刻播出，时间轴与原声一致，不是事后对齐的配音。每场取开头约 4 分钟。</p>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+
+  <section class="panel">
+    <div class="player-head">
+      <h2 id="title"></h2>
+      <div class="seg" id="ver" role="group" aria-label="收听版本"></div>
+    </div>
+    <audio id="au" controls preload="metadata"></audio>
+    <p class="hint" id="vhint"></p>
+    <div class="now">
+      <div class="zh"><div class="lab">原声 · 中文</div><div class="txt" id="nowzh"></div></div>
+      <div class="en"><div class="lab">译音 · 英文</div><div class="txt" id="nowen"></div></div>
+    </div>
+    <div class="timeline" id="tl"><canvas id="cv" height="74"></canvas></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel">
+    <div class="player-head">
+      <h2>字幕</h2>
+      <label class="follow"><input type="checkbox" id="follow" checked> 跟随播放滚动</label>
+    </div>
+    <div class="subs">
+      <div class="col zh"><h3>原声（中文配音，字母为说话人）</h3><div class="list" id="lzh"></div></div>
+      <div class="col en"><h3>译音（英文，时间为开始播出的时刻）</h3><div class="list" id="len"></div></div>
+    </div>
+    <p class="hint">点击任意一行可跳到该处。</p>
+  </section>
+
+  <footer>音频为 16 kHz MP3。左右声道版：左耳原声、右耳译音，建议戴耳机。两条音轨已按语音响度对齐。</footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+const VERS = [
+  ["mix", "同传混音", "原声压低作背景，译音在上，接近现场听同传的感觉。"],
+  ["stereo", "左右声道", "左耳原声、右耳译音，戴耳机可以同时对照两边。"],
+  ["en", "只听译音", "只播放英文译音。"],
+  ["zh", "只听原声", "只播放中文原声。"],
+];
+const $ = (id) => document.getElementById(id);
+const au = $("au");
+let cur = 0, ver = "mix", zhEls = [], enEls = [], lastZh = -1, lastEn = -1;
+
+function fmt(t) { t = Math.max(0, t); const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ":" + String(s).padStart(2, "0"); }
+function spkVar(i) { return "var(--s" + (i % 6) + ")"; }
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function whoIdx(w) { return w.charCodeAt(0) - 65; }
+
+function tabs() {
+  const box = $("tabs");
+  DATA.forEach((m, i) => {
+    const b = document.createElement("button");
+    b.className = "tab"; b.setAttribute("role", "tab");
+    b.innerHTML = m.meeting + " <small>" + fmt(m.dur) + " · " + m.speakers + " 人</small>";
+    b.onclick = () => load(i, true);
+    box.append(b);
+  });
+  VERS.forEach(([k, name]) => {
+    const b = document.createElement("button");
+    b.textContent = name; b.dataset.k = k;
+    b.onclick = () => setVer(k);
+    $("ver").append(b);
+  });
+}
+
+function setVer(k) {
+  const t = au.currentTime, playing = !au.paused;
+  ver = k;
+  [...$("ver").children].forEach((b) => b.setAttribute("aria-pressed", b.dataset.k === k));
+  $("vhint").textContent = VERS.find((v) => v[0] === k)[2];
+  au.src = DATA[cur].files[k];
+  au.addEventListener("loadedmetadata", function f() {
+    au.removeEventListener("loadedmetadata", f);
+    au.currentTime = Math.min(t, au.duration || t);
+    if (playing) au.play().catch(() => {});
+  });
+  au.load();
+}
+
+function line(item, kind) {
+  const d = document.createElement("div");
+  d.className = "line";
+  const ts = document.createElement("span"); ts.className = "ts"; ts.textContent = fmt(item.t);
+  const tx = document.createElement("span"); tx.className = "tx";
+  if (kind === "zh") {
+    const w = document.createElement("span"); w.className = "who"; w.textContent = item.who;
+    w.style.color = spkVar(whoIdx(item.who)); tx.append(w);
+  }
+  tx.append(document.createTextNode(item.text));
+  d.append(ts, tx);
+  d.onclick = () => { au.currentTime = item.t; au.play().catch(() => {}); };
+  return d;
+}
+
+function load(i, keepVer) {
+  cur = i; const m = DATA[i];
+  [...$("tabs").children].forEach((b, j) => b.setAttribute("aria-selected", j === i));
+  $("title").textContent = "会议 " + m.meeting;
+  $("lzh").replaceChildren(...(zhEls = m.zh.map((x) => line(x, "zh"))));
+  $("len").replaceChildren(...(enEls = m.en.map((x) => line(x, "en"))));
+  const letters = [...new Set(m.zh.map((x) => x.who))].sort();
+  $("legend").innerHTML = letters.map((w) => '<span><i style="background:' + spkVar(whoIdx(w)) + '"></i>说话人 ' + w + "</span>").join("")
+    + '<span><i style="background:var(--en)"></i>英文译音（播出时段）</span>';
+  lastZh = lastEn = -1;
+  au.pause(); au.currentTime = 0;
+  setVer(keepVer ? ver : "mix");
+  draw();
+  tick();
+}
+
+function draw() {
+  const m = DATA[cur], cv = $("cv"), dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 74;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const x = (t) => (t / m.dur) * W;
+  g.fillStyle = css("--soft"); g.fillRect(0, 6, W, 24); g.fillRect(0, 40, W, 24);
+  m.zh.forEach((z) => { g.fillStyle = css("--s" + (whoIdx(z.who) % 6)); g.fillRect(x(z.t), 8, Math.max(1, x(z.e) - x(z.t)), 20); });
+  g.fillStyle = css("--en"); g.globalAlpha = 0.8;
+  m.en.forEach((e) => g.fillRect(x(e.t), 42, Math.max(1, x(e.e) - x(e.t)), 20));
+  g.globalAlpha = 1;
+  const p = x(au.currentTime || 0);
+  g.fillStyle = css("--ink"); g.fillRect(p - 1, 0, 2, H);
+}
+
+function active(list, t) { const out = []; list.forEach((x, i) => { if (x.t <= t && t < x.e) out.push(i); }); return out; }
+function lastStarted(list, t) { let k = -1; for (let i = 0; i < list.length; i++) { if (list[i].t <= t) k = i; else break; } return k; }
+
+function mark(els, list, t, prev, box) {
+  const on = new Set(active(list, t));
+  els.forEach((el, i) => el.classList.toggle("on", on.has(i)));
+  const k = lastStarted(list, t);
+  if (k !== prev && k >= 0 && $("follow").checked) {
+    const el = els[k];
+    box.scrollTop = el.offsetTop - box.offsetTop - box.clientHeight / 3;
+  }
+  return [k, [...on]];
+}
+
+function tick() {
+  const m = DATA[cur], t = au.currentTime || 0;
+  let az, ae;
+  [lastZh, az] = mark(zhEls, m.zh, t, lastZh, $("lzh"));
+  [lastEn, ae] = mark(enEls, m.en, t, lastEn, $("len"));
+  $("nowzh").innerHTML = az.map((i) => '<div><span class="who" style="color:' + spkVar(whoIdx(m.zh[i].who)) + '">' + m.zh[i].who
+    + "</span>" + esc(m.zh[i].text) + "</div>").join("");
+  $("nowen").innerHTML = ae.map((i) => "<div>" + esc(m.en[i].text) + "</div>").join("");
+  draw();
+}
+function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+$("tl").addEventListener("click", (ev) => {
+  const r = $("cv").getBoundingClientRect();
+  au.currentTime = ((ev.clientX - r.left) / r.width) * DATA[cur].dur;
+});
+au.addEventListener("timeupdate", tick);
+au.addEventListener("seeked", tick);
+let raf = 0;
+function loop() { tick(); raf = au.paused ? 0 : requestAnimationFrame(loop); }
+au.addEventListener("play", () => { if (!raf) raf = requestAnimationFrame(loop); });
+window.addEventListener("resize", draw);
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", draw);
+tabs();
+load(0, false);
+</script>
+</body>
+</html>
