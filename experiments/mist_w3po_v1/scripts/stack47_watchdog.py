@@ -17,6 +17,12 @@ reports/mist_w3po_v1/joint_bidir_plan_prereg_v1.zh-CN.md 修正 2). Detached (se
 
     setsid nohup python stack47_watchdog.py --stack-file F --cards 4 5 6 7 --train-log L --train-pid P \\
         [--baseline-ms 4650] [--slow 0.4] [--n-slow 3] [--cap-gib 135] [--tick 20] [--dry] > log 2>&1 < /dev/null &
+
+--phys (prereg joint 修正 4, stage-2 dev5 on the 8 CRF training cards; default off = everything above, unchanged): the
+stack file is written with the token "phys" after the cards (stack_cards.py physical-memory mode), the held-out loss
+jobs (crf.heldout_loss) count as stacked jobs too (watched, and stopped by PID on a trip), and the LOG line names the
+cards. --file-cards C ... (default = --cards): the cards written into the stack file at the start (e.g. one card for the
+trial decode; the caller widens the file later by new file + rename); all --cards are watched.
 """
 from __future__ import annotations
 
@@ -55,8 +61,9 @@ def cmdline(pid: int) -> str:
         return ""
 
 
-def is_decode(cmd: str) -> bool:
-    return any(p in cmd for p in DEC_PAT) and "pretrain_" not in cmd
+def is_decode(cmd: str, phys: bool = False) -> bool:
+    pats = DEC_PAT + ("crf.heldout_loss",) if phys else DEC_PAT
+    return any(p in cmd for p in pats) and "pretrain_" not in cmd and "train_crf_sft" not in cmd
 
 
 def smi() -> tuple[dict, dict]:
@@ -110,7 +117,11 @@ def main() -> None:
                          "from the first placement")
     ap.add_argument("--status-s", type=float, default=600.0)
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--phys", action="store_true", help="physical-memory stack mode (修正 4): token 'phys' in the file")
+    ap.add_argument("--file-cards", nargs="+", type=int, default=None, help="cards written at the start (default --cards)")
     a = ap.parse_args()
+    fcards = a.file_cards if a.file_cards else a.cards
+    isdec = (lambda cmd: is_decode(cmd, True)) if a.phys else is_decode
     os.chdir(REPO)
     sf = Path(a.stack_file)
     tl = Path(a.train_log)
@@ -128,9 +139,9 @@ def main() -> None:
     if a.warmup_s > 0:
         log(f"STACK47_WARMUP {sf} created empty; cards appended in {a.warmup_s:.0f} s")
         time.sleep(a.warmup_s)
-    os.write(fd, (" ".join(map(str, a.cards)) + "\n").encode())
+    os.write(fd, (" ".join(map(str, fcards)) + (" phys" if a.phys else "") + "\n").encode())
     os.close(fd)
-    log(f"STACK47_ON {sf} = {a.cards}; pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "
+    log(f"STACK47_ON {sf} = {fcards}{' phys' if a.phys else ''} (watching {a.cards}); pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "
         f"{a.baseline_ms * (1 + a.slow):.0f} ms x {a.n_slow}; training pid {a.train_pid} (never touched)")
     off = tl.stat().st_size if tl.exists() else 0
     buf = ""
@@ -149,7 +160,7 @@ def main() -> None:
             for c in a.cards:
                 for p, m in procs.get(c, []):
                     cmd = cmdline(p)
-                    if is_decode(cmd):
+                    if isdec(cmd):
                         try:
                             os.kill(p, signal.SIGTERM)
                             killed.append(p)
@@ -162,7 +173,7 @@ def main() -> None:
                 time.sleep(1)
             for p in killed:
                 cmd = cmdline(p)
-                if cmd and is_decode(cmd):
+                if cmd and isdec(cmd):
                     try:
                         os.kill(p, signal.SIGKILL)
                         log(f"SIGKILL decode pid {p}")
@@ -170,7 +181,7 @@ def main() -> None:
                         pass
         try:
             append_log_md(f"- {prague()} 布拉格（看门狗 stack47_watchdog，pid {os.getpid()}）：STACK47_WITHDRAWN —— {reason}；"
-                          f"4–7 号卡重新排除（{dst.name}），按 PID 停了 4–7 上的解码 {killed or '无'}，编排器会在别处重试；"
+                          f"{'卡 ' + ' '.join(map(str, a.cards)) if a.phys else '4–7 号卡'}重新排除（{dst.name}），按 PID 停了 4–7 上的解码 {killed or '无'}，编排器会在别处重试；"
                           f"(b) 训练未动。")
         except OSError as e:
             log(f"LOG.zh-CN.md append failed: {e!r}")
@@ -188,7 +199,7 @@ def main() -> None:
             log(f"nvidia-smi failed: {e!r}")
             time.sleep(a.tick)
             continue
-        decs = {c: [(p, m) for p, m in procs.get(c, []) if is_decode(cmdline(p))] for c in a.cards}
+        decs = {c: [(p, m) for p, m in procs.get(c, []) if isdec(cmdline(p))] for c in a.cards}
         for c, ds in decs.items():
             for p, m in ds:
                 if p not in seen:

@@ -15,6 +15,15 @@
 Every other job is planned exactly as without the flag. FILE absent (the watchdog renamed it: STACK47_WITHDRAWN) ->
 the shard decodes are planned as without the flag again (the cards in FILE stay excluded through <run>/exclude_cards or
 the shared exclude file), at the next tick. Default (no --stack-cards): nothing here runs; behaviour unchanged.
+
+PHYS mode (prereg joint 修正 4, user 2026-11-13 ~08:45 Prague: stage-2 dev5 stacked on the 8 CRF training cards, limit
+= physical memory): FILE also holds the token "phys" (absent = everything above, unchanged). Then
+  limit       (max real use over the last 180 s) + need <= total - 1.5 GiB (no 135 cap); need = 67 GiB for a shard
+              decode (66.5 GiB measured), 71 GiB for the held-out loss job <name>__dec_heldout (--mem-cap-gib 70),
+              which is stackable too in this mode (else it would wait for the end of the training)
+  training    a train_crf_sft.py process counts as the training (besides "pretrain_")
+  stagger     at most one stacked start per launch round, and >= 60 s after the previous stacked start of any
+              orchestrator (FILE.last_start, under gpu_launch.lock)
 """
 from __future__ import annotations
 
@@ -32,6 +41,28 @@ WANT_TTL_S = 90
 HIST_S = 180
 TRAIN_PAT = ("pretrain_",)
 PLACEHOLDER_PAT = ("scripts/gpu_load/train_mist_workload.py", "gpu_keeper.py")
+PHYS_TOKEN = "phys"
+PHYS_MARGIN = 1.5
+PHYS_NEED_DEC, PHYS_NEED_HELDOUT = 67.0, 71.0
+PHYS_TRAIN_PAT = ("pretrain_", "train_crf_sft.py")
+STAGGER_S = 60.0
+
+
+def read_phys(path: str) -> bool:
+    try:
+        return PHYS_TOKEN in Path(path).read_text().split()
+    except OSError:
+        return False
+
+
+def stackable(jid: str, phys: bool) -> bool:
+    return is_shard_decode(jid) or (phys and jid.endswith("__dec_heldout"))
+
+
+def job_need(jid: str, phys: bool) -> float:
+    if not phys:
+        return 64.0
+    return PHYS_NEED_HELDOUT if jid.endswith("__dec_heldout") else PHYS_NEED_DEC
 
 
 def is_shard_decode(jid: str) -> bool:
@@ -94,7 +125,7 @@ def append_line(path: Path, rec: dict) -> None:
         os.close(fd)
 
 
-def card_procs() -> dict[int, list[tuple[int, float, str]]]:
+def card_procs(train_pat: tuple = TRAIN_PAT) -> dict[int, list[tuple[int, float, str]]]:
     """card -> [(pid, GiB, kind)] for every compute process; kind train | placeholder | other."""
     q = subprocess.run(["nvidia-smi", "--query-gpu=index,uuid", "--format=csv,noheader"], capture_output=True,
                        text=True, timeout=60).stdout
@@ -115,7 +146,7 @@ def card_procs() -> dict[int, list[tuple[int, float, str]]]:
             cmd = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="ignore")
         except OSError:
             cmd = ""
-        kind = ("train" if any(x in cmd for x in TRAIN_PAT) else
+        kind = ("train" if any(x in cmd for x in train_pat) else
                 "placeholder" if any(x in cmd for x in PLACEHOLDER_PAT) else "other")
         mem = float(p[2]) / 1024 if p[2].replace(".", "").isdigit() else 0.0
         out[u2c[p[1]]].append((pid, mem, kind))
@@ -128,7 +159,7 @@ def card_free(total: float, hist_max_used: float, ledger_other_gib: float, cap_t
 
 
 def eligible(c: int, procs: dict, ledger: list[dict], own_cards: set[int], total: float, hist_max_used: float,
-             need: float = 64.0) -> tuple[bool, str]:
+             need: float = 64.0, cap_total: float = 135.0, margin: float = 5.4) -> tuple[bool, str]:
     """one decode per stack card, within min(135, total - 5.4) by real use."""
     if c in own_cards:
         return False, "own job there"
@@ -137,7 +168,7 @@ def eligible(c: int, procs: dict, ledger: list[dict], own_cards: set[int], total
         return False, f"process {oth[0][0]} there"
     if any(r.get("card") == c for r in ledger):
         return False, "pending ledger entry"
-    fr = card_free(total, hist_max_used, 0.0)
+    fr = card_free(total, hist_max_used, 0.0, cap_total, margin)
     if fr < need:
         return False, f"free {fr:.1f} < {need}"
     return True, ""
@@ -176,6 +207,9 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
         if cards is None:
             want(0)
             return orig_plan(snap, ready)
+        phys = read_phys(path)
+        if phys:
+            return plan_phys(snap, ready, cards, t)
         dec = sorted([j for j in ready if j.kind == "dec" and is_shard_decode(j.id)], key=lambda x: (x.prio, x.order))
         rest = [j for j in ready if j not in dec]
         out = orig_plan(snap, rest) if rest else []
@@ -201,9 +235,41 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
             out.append((j, c))
         return out
 
+    def plan_phys(snap, ready, cards, t):
+        dec = sorted([j for j in ready if j.kind == "dec" and stackable(j.id, True)], key=lambda x: (x.prio, x.order))
+        rest = [j for j in ready if j not in dec]
+        out = orig_plan(snap, rest) if rest else []
+        want(len(dec))
+        if not dec:
+            return out
+        if gdir is not None:
+            ok, who = gate_open(read_wants(gdir / "wants.jsonl"), me, rank, order(), t)
+            if not ok:
+                return out
+        procs = card_procs(PHYS_TRAIN_PAT)
+        led = [r for r in fo.ledger_pending(ledger_path)]
+        own = own_cards() | {c for _, c in out}
+        free = {}
+        for c in sorted(cards):
+            if c not in snap["cards"]:
+                continue
+            hm = max(u.get(c, 0.0) for _, u in hist)
+            ok, _ = eligible(c, procs, led, own, snap["cards"][c]["total"], hm, PHYS_NEED_DEC, float("inf"), PHYS_MARGIN)
+            if ok:
+                free[c] = card_free(snap["cards"][c]["total"], hm, 0.0, float("inf"), PHYS_MARGIN)
+        for j in dec:
+            cand = sorted(((f, c) for c, f in free.items() if f >= job_need(j.id, True)), reverse=True)
+            if not cand:
+                continue
+            c = cand[0][1]
+            out.append((j, c))
+            del free[c]
+        return out
+
     def launch_gpu(plan_):
         cards = read_cards(path)
-        st = [(j, c) for j, c in plan_ if cards is not None and c in cards and j.kind == "dec" and is_shard_decode(j.id)]
+        phys = cards is not None and read_phys(path)
+        st = [(j, c) for j, c in plan_ if cards is not None and c in cards and j.kind == "dec" and stackable(j.id, phys)]
         rest = [(j, c) for j, c in plan_ if (j, c) not in st]
         if rest:
             orig_launch(rest)
@@ -226,11 +292,23 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
                 if read_cards(path) is None:
                     o.log(f"stack: {path} gone at re-check; {j.id} not started")
                     break
+                if phys:
+                    lf = Path(f"{path}.last_start")
+                    try:
+                        last = float(lf.read_text().split()[0])
+                    except (OSError, ValueError, IndexError):
+                        last = 0.0
+                    if time.time() - last < STAGGER_S:
+                        break
                 snap = o.snapshot()
-                procs = card_procs()
+                procs = card_procs(PHYS_TRAIN_PAT) if phys else card_procs()
                 led = fo.ledger_pending(ledger_path)
                 hm = max([u.get(c, 0.0) for _, u in hist] + [snap["cards"][c]["used"]])
-                ok, why = eligible(c, procs, led, own_cards(), snap["cards"][c]["total"], hm)
+                if phys:
+                    ok, why = eligible(c, procs, led, own_cards(), snap["cards"][c]["total"], hm, job_need(j.id, True),
+                                       float("inf"), PHYS_MARGIN)
+                else:
+                    ok, why = eligible(c, procs, led, own_cards(), snap["cards"][c]["total"], hm)
                 if not ok:
                     o.log(f"stack: skip {j.id} on card {c}: {why} at re-check")
                     continue
@@ -241,6 +319,11 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
                     fo.ledger_append(o.ledger, {"owner": o.ledger_owner, "id": j.id, "card": c,
                                                 "mib": int(fo.NEED[j.kind] * 1024), "vllm": False, "state": "pending",
                                                 "pid": j.sid})
+                if phys:
+                    tmp = Path(f"{path}.last_start.tmp{os.getpid()}")
+                    tmp.write_text(f"{time.time():.1f} {j.id} card {c}\n")
+                    os.replace(tmp, f"{path}.last_start")
+                    break                                   # one stacked start per round
                 time.sleep(2)
         finally:
             fcntl.flock(lk, fcntl.LOCK_UN)

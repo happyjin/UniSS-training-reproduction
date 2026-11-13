@@ -204,6 +204,34 @@ def test_full_ties_and_no_last():
     assert S.decide_full(pts, "s2", 6000)["action"] == "no_last"
 
 
+def test_first_step():
+    # 修正 4 stage 2: points 3000, 3500, ...; the first feasible one improves; stop after 2 non-improving points
+    sq = lambda js: [pt(3000 + 500 * i, j) for i, j in enumerate(js)]
+    r = S.decide(sq([20, 20.1]), REF, "s2", 3000)
+    assert r["action"] == "continue" and r["prefix_end"] == 3500 and r["last_improvement"] == 3000, r
+    r = S.decide(sq([20, 20.1, 20.2]), REF, "s2", 3000)
+    assert r["action"] == "stop" and r["decision_step"] == 4000 and r["chosen"] == 4000 and r["first_step"] == 3000, r
+    r = S.decide(sq([20, 21, 22, 23, 23, 23]) + [pt(1000, 40)], REF, "s2", 3000)   # points before 3000 are ignored
+    assert r["action"] == "stop" and r["decision_step"] == 5500 and r["chosen"] == 5500, r
+    assert all(p["step"] >= 3000 for p in r["points"])
+    r = S.decide([pt(3500, 20)], REF, "s2", 3000)                   # 3000 missing: no prefix
+    assert r["action"] == "continue" and r["prefix_end"] == 0, r
+    js = [20 + i for i in range(25)]                                # still improving at 15000: ceiling
+    r = S.decide(sq(js), REF, "s2", 3000)
+    assert r["action"] == "ceiling" and r["prefix_end"] == 15000, r
+    pts = sq([20, 21, 21, 21])
+    pts[0] = pt(3000, 25, lz=3.2)                                    # infeasible: not an improvement
+    r = S.decide(pts, REF, "s2", 3000)
+    assert r["action"] == "stop" and r["decision_step"] == 4500 and r["last_improvement"] == 3500 and r["chosen"] == 4500, r
+    for bad in (["--first-step", "750"], ["--first-step", "3000", "--full-steps", "6000"]):
+        try:
+            S.main(["--stage", "s2", "--ref-zh2en", "a", "--ref-en2zh", "b"] + bad)
+            raise AssertionError(bad)
+        except SystemExit:
+            pass
+    assert S.decide(seq([20.0] * 6), REF, "s1") == S.decide(seq([20.0] * 6), REF, "s1", 500)   # default unchanged
+
+
 def test_full_main_files():
     import contextlib
     import io

@@ -137,6 +137,49 @@ def test_plan_split():
     assert all(c == 0 for _, c in out3)
 
 
+def run_plan_phys(stack_text, procs, used):
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "stack"
+        f.write_text(stack_text)
+        g = Path(d) / "g"
+        g.mkdir()
+        jobs = [J("n__dec0", order=1), J("n__dec1", order=2), J("n__dec_heldout", order=3), J("n__talk0", "talk", 2, 4)]
+        o = O(jobs)
+        orig = S.card_procs
+        S.card_procs = lambda *a: procs
+        try:
+            S.apply_stack_cards(o, str(f), 3000.0, str(g), FO, "led")
+            out = o.plan(snap(used), list(jobs))
+        finally:
+            S.card_procs = orig
+        return o, out
+
+
+def test_phys_mode():
+    # 修正 4: token "phys" -> limit total - 1.5 by real use, need 67 (shard) / 71 (held-out), held-out stackable
+    assert S.job_need("n__dec0", False) == 64.0 and S.job_need("n__dec_heldout", False) == 64.0
+    assert S.job_need("n__dec0", True) == 67.0 and S.job_need("n__dec_heldout", True) == 71.0
+    assert S.stackable("n__dec_heldout", True) and not S.stackable("n__dec_heldout", False)
+    tr = {0: [(1, 71.0, "train")]}
+    assert S.eligible(0, tr, [], set(), 140.4, 71.0, 67.0, float("inf"), 1.5)[0]       # 140.4 - 1.5 - 71 = 67.9
+    assert not S.eligible(0, tr, [], set(), 140.4, 72.0, 67.0, float("inf"), 1.5)[0]   # 66.9 < 67
+    assert not S.eligible(0, tr, [], set(), 140.4, 71.5)[0]                            # default 135 cap unchanged
+    procs = {c: [(c + 1, 0.0, "train")] for c in range(8)}
+    used = {0: 60.0, 1: 71.0, 2: 72.0, 3: 66.0, 4: 80.0, 5: 80.0, 6: 80.0, 7: 80.0}
+    o, out = run_plan_phys("0 1 2 3 4 5 6 7 phys\n", procs, used)
+    assert {j.id for j in o.planned} == {"n__talk0"}                    # held-out goes the stack path too
+    st = {j.id: c for j, c in out if j.id.startswith("n__dec")}
+    # card 0 holds the talker of the original plan (own job); free: card 3 72.9, card 1 67.9, card 2 66.9 (no), 4-7 no;
+    # greedy in job order, most free first; the held-out (71) finds no card left
+    assert st == {"n__dec0": 3, "n__dec1": 1}, st
+    o, out = run_plan_phys("0 1 2 3 4 5 6 7 phys\n", procs, {0: 60.0, 1: 60.0, 2: 60.0, 3: 60.0, 4: 90.0, 5: 90.0,
+                                                             6: 90.0, 7: 90.0})
+    st = {j.id: c for j, c in out if j.id.startswith("n__dec")}
+    assert st == {"n__dec0": 3, "n__dec1": 2, "n__dec_heldout": 1}, st
+    # a CRF training counts as the training only in phys mode
+    assert S.PHYS_TRAIN_PAT == ("pretrain_", "train_crf_sft.py") and S.TRAIN_PAT == ("pretrain_",)
+
+
 def test_cli_default_unchanged():
     src = (Path(__file__).resolve().parent / "thinker_t_eval_orch.py").read_text()
     assert "    if a.stack_cards:\n" in src and 'ap.add_argument("--stack-cards", default=""' in src

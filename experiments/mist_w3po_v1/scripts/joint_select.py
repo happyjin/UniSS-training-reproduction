@@ -41,6 +41,14 @@ without an early stop and the selection is made once every point 500, 1000, ...,
   A failed point other than N is not a candidate (recorded). --out is written at select / no_last.
 
     python joint_select.py --stage s2 --full-steps 6000 --cand ... [--out <json>]
+
+--first-step F (prereg 修正 4 stage 2, user 2026-11-13 ~08:45 Prague; default 500 = everything above, unchanged): the
+evaluation points are F, F + 500, ...; the contiguous prefix starts at F (no point before F is decoded or listed;
+listed ones before F are ignored); "no improvement yet" counts from F - 500 (default: 0, unchanged), so a stop
+needs 2 evaluated points without improvement. The rest of the early-stop rule is unchanged (first feasible point improves on
+-inf, eps 0.2, stop at s >= max(s_min, F) once the last 2 points brought no improvement, ceiling, selection, ties).
+
+    python joint_select.py --stage s2 --first-step 3000 --ref-zh2en <name> --ref-en2zh <name> --cand ... [--out <json>]
 """
 from __future__ import annotations
 
@@ -76,10 +84,10 @@ def load_ref(name: str) -> float:
     return float(json.load(open(TE / name / f"textlat_{name}.json"))["unit"]["text_laal_online"]["all"]["mean"])
 
 
-def decide(points: list[dict], ref: dict, stage: str) -> dict:
+def decide(points: list[dict], ref: dict, stage: str, first: int = INTERVAL) -> dict:
     """points: [{step, status: ok|failed|pending, zh2en: {Q,O,L[,H]} | None, en2zh: ...}] (any order); ref: {d: L_ref}.
     -> the decision dict (see the module doc)."""
-    pts = sorted(points, key=lambda p: p["step"])
+    pts = sorted((p for p in points if p["step"] >= first), key=lambda p: p["step"])
     for p in pts:
         if p["status"] == "ok" and not (p.get("zh2en") and p.get("en2zh")):
             p["status"] = "failed"
@@ -92,10 +100,10 @@ def decide(points: list[dict], ref: dict, stage: str) -> dict:
             p["H_mean"] = sum(hs) / 2 if stage == "s2" and all(h is not None for h in hs) else None
     prefix = []
     for i, p in enumerate(pts):
-        if p["step"] != INTERVAL * (i + 1) or p["status"] == "pending":
+        if p["step"] != first + INTERVAL * i or p["status"] == "pending":
             break
         prefix.append(p)
-    best, last_imp, action, stop_at = -math.inf, 0, "continue", None
+    best, last_imp, action, stop_at = -math.inf, first - INTERVAL, "continue", None   # 修正 4: 0 at the default
     for p in prefix:
         p["improved"] = bool(p["status"] == "ok" and p["feasible"] and p["J"] > best + EPS)
         if p["improved"]:
@@ -110,6 +118,8 @@ def decide(points: list[dict], ref: dict, stage: str) -> dict:
            "best_J": None if best == -math.inf else best, "last_improvement": last_imp, "ref_L": ref,
            "rule": f"eps {EPS}, s_min {S_MIN}, patience {PATIENCE} x {INTERVAL}, L <= L_ref + {LAT_SLACK} both dirs, "
                    f"ceiling {CEILING}", "points": pts}
+    if first != INTERVAL:
+        res["first_step"] = first
     if action == "stop":
         cands = [p for p in pts if p["status"] == "ok" and p["feasible"]]
         if not cands:
@@ -179,6 +189,7 @@ def main(argv=None) -> None:
     ap.add_argument("--stage", choices=["s1", "s2"], required=True)
     ap.add_argument("--ref-zh2en", default="")
     ap.add_argument("--ref-en2zh", default="")
+    ap.add_argument("--first-step", type=int, default=INTERVAL, help="first evaluation point (修正 4 s2: 3000); 500 = unchanged")
     ap.add_argument("--full-steps", type=int, default=0, help="full run to N, select after (修正 4); 0 = early stop")
     ap.add_argument("--cand", nargs=4, action="append", default=[], metavar=("STEP", "ZH2EN", "EN2ZH", "STATUS"))
     ap.add_argument("--out", default="")
@@ -187,6 +198,8 @@ def main(argv=None) -> None:
         ap.error("--ref-zh2en and --ref-en2zh are required (unless --full-steps)")
     if a.full_steps and (a.full_steps < INTERVAL or a.full_steps % INTERVAL):
         ap.error(f"--full-steps must be a positive multiple of {INTERVAL}")
+    if a.first_step < INTERVAL or a.first_step % INTERVAL or (a.first_step != INTERVAL and a.full_steps):
+        ap.error(f"--first-step must be a multiple of {INTERVAL} (not with --full-steps)")
     if a.out and Path(a.out).exists():
         raise SystemExit(f"拒绝覆盖已有输出: {a.out}")
     ref = None
@@ -208,7 +221,7 @@ def main(argv=None) -> None:
             except (OSError, KeyError, ValueError) as e:
                 p["error"] = repr(e)
         pts.append(p)
-    res = decide_full(pts, a.stage, a.full_steps) if a.full_steps else decide(pts, ref, a.stage)
+    res = decide_full(pts, a.stage, a.full_steps) if a.full_steps else decide(pts, ref, a.stage, a.first_step)
     if a.out and res["action"] in ("stop", "no_feasible", "ceiling", "select", "no_last"):
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         with open(a.out, "x", encoding="utf-8") as fh:

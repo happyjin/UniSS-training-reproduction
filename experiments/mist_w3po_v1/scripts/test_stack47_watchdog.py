@@ -54,6 +54,17 @@ def test_warmup_flag():
         assert S.read_cards(str(f)) == {5, 6, 7}
 
 
+
+def test_phys():
+    # 修正 4: --phys counts the held-out loss jobs as stacked jobs; never a CRF / Megatron training
+    assert W.is_decode("python -m experiments.mist_w3po_v1.crf.heldout_loss --base x", True)
+    assert not W.is_decode("python -m experiments.mist_w3po_v1.crf.heldout_loss --base x")
+    assert not W.is_decode("python -u experiments/mist_w3po_v1/crf/train_crf_sft.py --objective serial_v2p", True)
+    assert W.is_decode("python -m experiments.mist_w3po_v1.crf.decode_crf_ckpt_finalpost --crf-ckpt x", True)
+    src = Path(W.__file__).read_text()
+    assert '"--phys", action="store_true"' in src and '"--file-cards", nargs="+", type=int, default=None' in src
+
+
 if __name__ == "__main__":
     for k, v in list(globals().items()):
         if k.startswith("test_"):
