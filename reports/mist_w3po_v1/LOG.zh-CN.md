@@ -3038,3 +3038,12 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
     - 方法行 s04000 的 dev 编排器（mz / me）和 test 编排器（mami）都还没开始任何作业，按 PID 停，目录改名为 `*.superseded_s04000_*`；
     - dev / test 驱动按 PID 停后重启：dev 用原 environ，已有目录照旧接管；test 加 `TEST_TRIGGER=s2 TEST_RESUME=1`，`joint_test.sh` 新开关 `TEST_RESUME`，默认 DRY_RUN 输出逐字相同；
     - 基线行的编排器一直在跑，没动。
+
+- 2026-11-14 00:35 布拉格（协调者，授权内决定 4）：**(a) 的 En→Zh 链优先用 0–3 号卡**（`prio_a_cards.sh`）。
+  - 起因：方法行的 En→Zh 语音（dev + test）要等 (a) 的 PL-EM talker，这是最长的一条链：train16 解码 → 采样 → rows → PL-EM 训练 → export 速查 → 选 talker。
+  - 现状：(a) 的编排器只能用 0–3，而 0–3 被 joint 的 dev/test 作业占满，train16 解码一次只跑得上 1 片（共 9 片）。
+  - 做法：
+    - 每 120 s 把未完成的 joint dev/test 编排器的 `exclude_cards` 设为 `0 1 2 3`（原内容另存 `.before_prio_a`）；
+    - 正在跑的作业不动；
+    - (a) 选出 talker 或停止后自动放开。
+  - 预期：joint 的作业改在 4–7 上跑（8 个叠放位），(a) 独占 0–3 的 8 个位，最长链提前完成。
