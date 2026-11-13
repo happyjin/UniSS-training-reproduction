@@ -3011,3 +3011,21 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
     - 理由：test 上不做任何选择——第 1、2 段的检查点由各自的规则定死，En→Zh PL-EM talker 由 (a) 的 dev5 规则选；原先要等 `JOINT_DEV_DONE`，而它要等 (a) 整条链（含 UTMOS），test 会拖到明天下午以后。
     - 方法行 En→Zh 先解码、合并，再等 (a) 的 talker 选定后出语音。默认路径的 DRY_RUN 输出逐字相同。
     - 这是对预登记 §7"test 在 JOINT_DEV_DONE 之后"的偏离，只改时间，不改任何配置。
+
+- 2026-11-13 21:24 布拉格（看门狗 stack47_watchdog，pid 259348）：STACK47_WITHDRAWN —— training pid 397462 exited (STACK47_TRAIN_EXITED); running decodes left to end；卡 0 1 2 3 4 5 6 7重新排除（stack_cards_s2_joint_v2p_20261113T120415Z.withdrawn_20261113T202410Z），按 PID 停了 4–7 上的解码 无，编排器会在别处重试；(b) 训练未动。
+
+- 2026-11-13 21:24 布拉格：第 2 段按预登记规则早停，**选中第 4000 步**（`JOINT_SELECTED s2 4000`）。
+  - dev5（J = 两个方向文本 tcpBLEU-all 的平均）：
+
+    | 步 | J | zh→en（Q / L） | En→Zh（Q / L） | 可行 |
+    |---|---|---|---|---|
+    | 3000 | 35.14 | 27.81 / 3.664 | 42.48 / 2.879 | 是 |
+    | 3500 | 35.59 | 27.99 / 3.747 | 43.19 / 2.978 | **否**（En→Zh L > 2.841 + 0.1） |
+    | 4000 | 35.31 | 27.72 / 3.725 | 42.89 / 2.939 | 是 |
+
+  - 判定：可行点里 4000 对 3000 只提升 +0.16（< 0.2），连续两个点没有改进，于是停止；可行点中 J 最高的是 4000。
+  - 21:25 切换脚本 `NIGHT_SWITCH_DONE`：
+    - 剩余 dev5 速查按 PID 停；
+    - 基线 dev 四行恢复 8 卡；
+    - (a) 链续跑（dev 解码、train16 解码、采样）；
+    - 方法行 dev（mz / me）和 test（6 条链）已开始。
