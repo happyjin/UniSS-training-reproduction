@@ -2965,3 +2965,5 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
   - (a) 的 PL-EM 改为 STACK_PLEM：每卡实占 + 56 + 3 ≤ 135 GiB 就开训；第 400 步后，新的解码可以叠回 0–3。after_select 3192301 → 1222510，sync_train_exclude 1255324 → 1222453。
   - 预登记修正：joint 修正 2、en2zh 修正 1。
 - 2026-11-13 07:18 布拉格：用户批准 4–7 上限 138 GiB、物理剩余 ≥ 1.5 GiB，速查改为旧检查点优先（order = oldest）。看门狗 v2 PID 1279715（提交 b41438bda）。joint 修正 2 第 6 条。
+
+- 2026-11-13 07:24 布拉格（看门狗 stack47_watchdog，pid 1279715）：STACK47_WITHDRAWN —— 卡 4: 138.0 GiB（剩 2.4） > 138.0 GiB 或剩余 < 1.5 GiB；4–7 号卡重新排除（stack_cards_b47.withdrawn_20261113T062420Z），按 PID 停了 4–7 上的解码 [1327925, 1280604, 1282478, 1284926]，编排器会在别处重试；(b) 训练未动。
