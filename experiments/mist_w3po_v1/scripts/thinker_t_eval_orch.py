@@ -14,12 +14,17 @@ Candidate = (name, checkpoint). Jobs, A''s dev chain (c2_dev_orch / crf_pair_dev
             --talker c1b1s2: A''s talker (T1c) with speech_var_orch.talker_cmd's c1+b1+s2 flags
             --talker plem:   the PL-EM export with talker_crf_orch.eval_settings("plem")["c1b1s2"] flags
                              (EVAL_COMMON + --backlog-token --select-k 2) = talker_crf_results_v1's A' + PL-EM setting
+            --talker t1c:    the original single-speaker SI talker T1c, frozen, with crf_pair_dev_orch.speech's commands
+                             verbatim (= finalpost_dev_orch / make_eval_jobs / MIST v7: --speed-policy fixed
+                             --history-ban 8; no c1 / b1 / s2, no CTC scorers) -- the plain-baseline speech
+                             (joint prereg 修正 3, 2026-11-13)
             4 CTC scorer servers (b1) as jobs (ports --scorer-port0 ..+3), stopped once every other job is over
+            (not for t1c)
   lat       speech_latency_lit --win <c2g06 windows> per seed (per-stream speech LAAL, text LAAL, EndOffset, 1-channel)
   gate      gate_2seed vs each --gate-ref pair (seed 1 dir, seed 2 dir)
 
     python thinker_t_eval_orch.py --run <new run dir> --name <decode dir name> --ckpt <ckpt dir> \\
-        [--window 0.5] [--talker none|c1b1s2|plem] [--gate-ref <d1> <d2>]... [--exclude 4 5 6 7] [--dry]
+        [--window 0.5] [--talker none|c1b1s2|plem|t1c] [--gate-ref <d1> <d2>]... [--exclude 4 5 6 7] [--dry]
 """
 from __future__ import annotations
 
@@ -216,7 +221,8 @@ def build_jobs(run: str, name: str, ckpt: str, window: float, talker: str, gate_
 def speech_jobs(jobs: list, add, run: str, name: str, talker: str, gate_refs: list[list[str]]) -> list[fo.Job]:
     """scorers, both seeds' speech chains (after <name>__score), latency and gates."""
     tc.SCORER_PORT0, tc.N_SCORERS = SCORER_PORT0, N_SCORERS
-    tc.scorer_jobs(add, run)
+    if talker != "t1c":   # t1c: no CTC selection, so no scorer servers
+        tc.scorer_jobs(add, run)
     names = [name, name + "_tts2"]
     n0 = len(jobs)
     cp.speech(add, names[0], name, None, 2, [f"{name}__score"])
@@ -228,6 +234,9 @@ def speech_jobs(jobs: list, add, run: str, name: str, talker: str, gate_refs: li
         k = int(k)
         seed = fo.SEED2 if nm.endswith("_tts2") else None
         port = SCORER_PORT0 + k % N_SCORERS
+        if talker == "t1c":   # crf_pair_dev_orch.speech's T1c command, verbatim
+            assert "--speed-policy fixed --history-ban 8 " in j.cmd(1) and f"--model {fo.T1C} " in j.cmd(1), j.id
+            continue
         if talker == "c1b1s2":
             sv.SCORER_PORT0 = SCORER_PORT0
             j.cmd = (lambda att, f=j.cmd, k=k, port=port: ENV + tc.wait_port(port)
@@ -268,7 +277,7 @@ def main():
     ap.add_argument("--name", required=True)
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--window", type=float, default=0.5)
-    ap.add_argument("--talker", choices=["none", "c1b1s2", "plem"], default="c1b1s2")
+    ap.add_argument("--talker", choices=["none", "c1b1s2", "plem", "t1c"], default="c1b1s2")
     ap.add_argument("--gate-ref", nargs=2, action="append", default=[])
     ap.add_argument("--exclude", nargs="*", default=[])
     ap.add_argument("--win", default=WIN, help="online windows (default: the c2g06 dev windows)")

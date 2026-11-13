@@ -9,13 +9,19 @@
 # and method vs the separate A'rl + PL-EM test outputs (ft_ami / ft_ali_aprime_s3000__rlplem; (a)'s
 # ft_en2zh_<run>_s<step>__rlplem after EN2ZH_TEST_DONE) -> eval_outputs/mist_w3po_v1/joint/test_summary_v1.json,
 # logs/mist_w3po_v1/joint/JOINT_TEST_DONE, line JOINT_TEST_DONE. No COMET / MetricX.
-#   [PORT0=19400] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
+# BASE_TALKER=t1c (prereg 修正 3; default plem = everything above, unchanged): the baseline row's speech is the original
+#   single-speaker SI talker T1c@1500, frozen (thinker_t_eval_orch --talker t1c: --speed-policy fixed --history-ban 8,
+#   no c1 / b1 / s2, no CTC scorers) on the plain text decode (no read-level merge, no PL-EM) ->
+#   jtest_b<set>_<rt>__t1c[_tts2], both seeds; the "vs_joint_baseline" gate reads it. The method row is unchanged.
+#   [PORT0=19400] [BASE_TALKER=t1c] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
 # Run detached: setsid nohup bash ... > logs/mist_w3po_v1/joint/test.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 . experiments/mist_w3po_v1/scripts/joint_lib.sh
 PORT0=${PORT0:-19400}
+BASE_TALKER=${BASE_TALKER:-plem}
+case $BASE_TALKER in plem) BSFX=__rlplem;; t1c) BSFX=__t1c;; *) log "BASE_TALKER must be plem|t1c"; exit 2;; esac
 M1=$JL/JOINT_S1_SELECTED; M2=$JL/JOINT_S2_SELECTED; DEVD=$JL/JOINT_DEV_DONE
 DONE_M=$JL/JOINT_TEST_DONE
 SUM=$JO/test_summary_v1.json
@@ -47,6 +53,20 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
   setvars $s
   n=jtest_${r}${s}_$rt
   local C1="$JORCH --dir $D --set $K --base $b --run $TV/${r}$s --name $n --ckpt $ck --talker none --window 1 --cap135"
+  if [ $r = b ] && [ $BASE_TALKER = t1c ]; then   # 修正 3: frozen T1c on the plain text, no merge, no PL-EM
+    local C2="$JORCH --dir $D --set $K --base $b --run $TV/${r}${s}_sp --name ${n}__t1c --ckpt - --speech-from ${n} --talker t1c --window 1 --cap135"
+    if [ -n "${DRY_RUN:-}" ]; then echo "${r}$s: $C1"; $C1 --dry | tail -1; echo "${r}${s}_sp: $C2"; $C2 --dry | tail -1; return 0; fi
+    setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
+    log "$n decode orchestrator pid $!"
+    wait_done $TV/${r}$s; [ -z "$(orch_failed $TV/${r}$s)" ] || { flag "$n decode failed ($(tail -1 $TV/${r}$s/orch.log | cut -c1-200))"; return 1; }
+    lat $s $n
+    setsid nohup $C2 < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
+    log "${n}__t1c speech orchestrator pid $!"
+    wait_done $TV/${r}${s}_sp; [ -z "$(orch_failed $TV/${r}${s}_sp)" ] || { flag "${n}__t1c speech failed"; return 1; }
+    for x in ${n}__t1c ${n}__t1c_tts2; do lat $s $x $SPD/$x/talker; done
+    log "$n done (T1c)"
+    return 0
+  fi
   if [ $D = en2zh ]; then
     tx=$(en2zh_talker); [ -n "${DRY_RUN:-}" ] && tx=${tx:-$X}
     [ -n "$tx" ] && [ -e $tx/uniss/model.safetensors ] || { flag "$n: no En->Zh PL-EM export ('$tx')"; return 1; }
@@ -109,7 +129,7 @@ gate() {   # <cand> <ref> <tag>
     --out $O/gate_$3.json > $O/gate_$3.log 2>&1
   log "gate $1 vs $2 rc=$?"
 }
-for s in ami ali en; do gate jtest_m${s}_${RT2}__rlplem jtest_b${s}_${RT1}__rlplem vs_joint_baseline; done
+for s in ami ali en; do gate jtest_m${s}_${RT2}__rlplem jtest_b${s}_${RT1}$BSFX vs_joint_baseline; done
 gate jtest_mami_${RT2}__rlplem ft_ami_aprime_s3000__rlplem vs_separate_aprl_plem
 gate jtest_mali_${RT2}__rlplem ft_ali_aprime_s3000__rlplem vs_separate_aprl_plem
 gate jtest_men_${RT2}__rlplem $AE vs_separate_aprl_plem
@@ -123,20 +143,20 @@ def j(p):
     except Exception:
         return None
 res = {}
-for r, rt in (("b", "$RT1"), ("m", "$RT2")):
+for r, rt, sf in (("b", "$RT1", "$BSFX"), ("m", "$RT2", "__rlplem")):
     for s in ("ami", "ali", "en"):
         n = f"jtest_{r}{s}_{rt}"
         t = j(DEC / n / "score_text.json") or {}
         c = j(TE / n / f"textlat_chunk_{n}.json")
         row = {"text_all": t.get("tcpBLEU_all"), "text_ov": t.get("tcpBLEU_ov"), "text_1spk": t.get("tcpBLEU_1spk"),
                "text_laal_chunk": c["unit"]["text_laal_online"]["all"]["mean"] if c else None}
-        for nm in (n + "__rlplem", n + "__rlplem_tts2"):
+        for nm in (n + sf, n + sf + "_tts2"):
             a = j(DEC / nm / "score_asr.json") or {}
-            l = j(TE / (n + "__rlplem") / f"lat_{nm}.json"); lc = j(TE / (n + "__rlplem") / f"lat_chunk_{nm}.json")
+            l = j(TE / (n + sf) / f"lat_{nm}.json"); lc = j(TE / (n + sf) / f"lat_chunk_{nm}.json")
             g = lambda d: d["unit"]["speech_laal_online"]["all"]["mean"] if d else None
             row[nm] = {"asr_all": a.get("tcpBLEU_all"), "asr_ov": a.get("tcpBLEU_ov"), "speech_laal": g(l), "speech_laal_chunk": g(lc)}
         if r == "m":
-            row["gates"] = {t_: j(TE / (n + "__rlplem") / f"gate_{t_}.json") for t_ in ("vs_joint_baseline", "vs_separate_aprl_plem")}
+            row["gates"] = {t_: j(TE / (n + sf) / f"gate_{t_}.json") for t_ in ("vs_joint_baseline", "vs_separate_aprl_plem")}
         res[n] = row
 with open(sys.argv[1], "x") as fh:
     json.dump(res, fh, indent=1)

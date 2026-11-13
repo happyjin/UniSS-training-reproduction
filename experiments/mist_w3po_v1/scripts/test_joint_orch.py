@@ -99,6 +99,53 @@ def test_speech_only_chains():
     assert X in out and "--direction en2zh" in out
 
 
+T1C = "eval_outputs/uniss_qwen3_omni_v1/si_t1c_20261021T181440Z/autoext/export_1500/uniss"
+NOT_T1C = ("si_ctc_scorer", "--select-k", "--speed-shift", "--speed-policy queue", "--scorer-url", "--backlog-token",
+           "talker_plem", "/tcp/127.0.0.1/")
+
+
+def test_t1c_speech_chains():
+    """--talker t1c (prereg 修正 3): the frozen T1c, no c1 / b1 / s2, no scorers, two seeds, every set / direction."""
+    for d, key in (("zh2en", "dev"), ("en2zh", "dev"), ("zh2en", "test"), ("zh2en", "ali"), ("en2zh", "test")):
+        out = run("--dir", d, "--set", key, "--base", B, "--run", "/nonexistent/r", "--name", "jt_t1c", "--ckpt", "-",
+                  "--speech-from", "jt_src", "--talker", "t1c", "--window", "1", "--cap135")
+        lines = common(out, 0, d)
+        assert not any(x in out for x in NOT_T1C), (d, key, [x for x in NOT_T1C if x in out])
+        assert not any(" scorer" in l.split(" | ")[0] for l in lines), (d, key)
+        talk = [l for l in lines if " talk " in l.split(" | ")[0]]
+        assert len(talk) == 16 and all(f"--model {T1C} " in l and "--speed-policy fixed --history-ban 8 " in l
+                                       for l in talk), (d, key, len(talk))
+        assert all(f"--direction {d} " in l for l in talk), (d, key)
+        assert sum("jt_t1c_tts2__talk" in l for l in talk) == 8, (d, key)
+
+
+def test_t1c_full_commands():
+    """in process, untruncated: t1c's jobs = c1b1s2's minus the scorers, every command the same except the talker
+    shards, which are crf_pair_dev_orch.speech's verbatim (no scorer wait, fixed speed, seed 2 = --seed 20261109)."""
+    sys.path.insert(0, str(REPO / "experiments/mist_w3po_v1/scripts"))
+    os.chdir(REPO)
+    import crf_pair_dev_orch as cp
+    import finalpost_dev_orch as fo
+    import thinker_t_eval_orch as T
+    a = T.build_jobs("/nonexistent/r", "jt_n", "-", 1.0, "t1c", [], "jt_src")
+    b = T.build_jobs("/nonexistent/r", "jt_n", "-", 1.0, "c1b1s2", [], "jt_src")
+    b = [j for j in b if not j.id.startswith("scorer")]
+    assert [j.id for j in a] == [j.id for j in b]
+    ref: list = []
+    cp.speech(lambda *x, **k: ref.append(fo.Job(*x, **k)), "jt_n", "jt_n", None, 2, [])
+    cp.speech(lambda *x, **k: ref.append(fo.Job(*x, **k)), "jt_n_tts2", "jt_n", fo.SEED2, 2, [])
+    ref = {j.id: j.cmd(1) for j in ref}
+    n = 0
+    for x, y in zip(a, b):
+        if x.kind == "talk":
+            assert x.cmd(1) == ref[x.id] and x.cmd(1) != y.cmd(1), x.id
+            assert ("--seed 20261109 " in x.cmd(1)) == x.id.startswith("jt_n_tts2"), x.id
+            n += 1
+        else:
+            assert x.cmd(1) == y.cmd(1) and (x.kind, x.prio, x.deps) == (y.kind, y.prio, y.deps), x.id
+    assert n == 16
+
+
 def test_refusals():
     run("--dir", "zh2en", "--set", "dev5", "--base", "eval_outputs/uniss_qwen3_omni_v1/thinker_gstar_s2dl_zh2en_3k_20261030/"
         "thinker_merged", "--run", "/nonexistent/r", "--name", "x", "--ckpt", CK, "--talker", "none", ok=False)
