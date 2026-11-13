@@ -11,6 +11,10 @@
       pre-existing argument unchanged
   (e) lr_at with --lr-horizon: 0 (default) = the --steps cosine exactly; H: cosine to min_lr at H, then flat
   (d) stop_file_hit: "" -> False without touching the file system; a missing file -> False; an existing one -> True
+  (f) --seed2 (prereg 修正 4): default None = seed + 1 (plan bit-identical to the call without it); seed2 S -> set 2 is
+      plan_steps(set 2, S, steps, rows / 2); with S = the single-direction seed, the window order of each direction over
+      2N joint steps (rows / 2 each) is the single-direction order over N steps (rows each) (one a prefix of the other);
+      build_args: default None, needs --sched2, args.json drops it at the default
 
     PYTHONPATH=.:third_party/Megatron-LM python -m experiments.mist_w3po_v1.crf.test_joint_bidir
 """
@@ -146,9 +150,41 @@ def test_lr_horizon():
     print("  lr horizon: 0 = unchanged; 12000 horizon flat at min_lr after it")
 
 
+def test_seed2():
+    Rs1 = list(np.random.default_rng(0).integers(1, 23, 1500))
+    Rs2 = list(np.random.default_rng(1).integers(1, 30, 1100))
+    n1 = len(Rs1)
+    p0 = T.plan_joint(Rs1, Rs2, 20261109, 1200, 64)
+    assert p0 == T.plan_joint(Rs1, Rs2, 20261109, 1200, 64, seed2=None) == T.plan_joint(Rs1, Rs2, 20261109, 1200, 64,
+                                                                                        seed2=20261110)
+    p = T.plan_joint(Rs1, Rs2, 20261109, 1200, 64, seed2=20261109)
+    assert p != p0
+    a = T.plan_steps(Rs1, 20261109, 1200, 32)
+    b = T.plan_steps(Rs2, 20261109, 1200, 32)
+    for k in range(1200):
+        assert p[k] == a[k] + [n1 + i for i in b[k]], k
+    for Rs, part in ((Rs1, [[i for i in s if i < n1] for s in p]), (Rs2, [[i - n1 for i in s if i >= n1] for s in p])):
+        joint = [i for s in part for i in s]
+        single = [i for s in T.plan_steps(Rs, 20261109, 600, 64) for i in s]
+        m = min(len(joint), len(single))
+        assert joint[:m] == single[:m] and m > 0.95 * max(len(joint), len(single)), (m, len(joint), len(single))
+    base = ["--objective", "serial_v2p", "--out", "/nonexistent/x"]
+    assert T.build_args(base).seed2 is None
+    j = T.build_args(base + ["--sched2", S_EN, "--dir2", "en2zh", "--seed2", "20261109"])
+    assert j.seed2 == 20261109 and j.seed == 20261109
+    try:
+        T.build_args(base + ["--seed2", "20261109"])
+        raise AssertionError("--seed2 without --sched2 accepted")
+    except SystemExit:
+        pass
+    src = Path(T.__file__).read_text(encoding="utf-8")
+    assert '("seed2", None)' in src   # args.json: the default is dropped like the other joint options
+    print("  seed2: default = seed + 1 bit for bit; S -> set 2 = plan_steps(S); 2N half steps = N single steps' order")
+
+
 def main():
     t0 = time.time()
-    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_lr_horizon, test_joint_prompter_collate]
+    tests = [test_plan_joint, test_build_args, test_stop_file_hit, test_lr_horizon, test_seed2, test_joint_prompter_collate]
     for t in tests:
         t1 = time.time()
         t()

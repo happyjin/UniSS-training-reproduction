@@ -29,6 +29,18 @@ actions      continue | stop | no_feasible | ceiling | wait_ref (a reference's o
 
     python joint_select.py --stage s1|s2 --ref-zh2en <name> --ref-en2zh <name> \\
         --cand <step> <zh2en name> <en2zh name> ok|failed|pending [--cand ...] [--out <json>]
+
+--full-steps N (prereg 修正 4, user 2026-11-13; default 0 = everything above, unchanged): the run is trained to N
+without an early stop and the selection is made once every point 500, 1000, ..., N is resolved, (a)'s rule
+(en2zh_full_plan_prereg_v1 §3) applied to both directions:
+  feasible  L_d(s) <= L_d(N) + 0.1 s for both d (the reference is the run's own last point; --ref-* are not used)
+  J(s)      (Q_zh2en(s) + Q_en2zh(s)) / 2; the highest round(J, 2) among the feasible points; ties as above
+            (stage 2: lower mean H -> higher round(mean O, 2) -> lower round(mean (L - L(N)), 3) -> later step)
+  actions   continue (a point <= N still pending or not yet listed) | select (decision_step = N, chosen) |
+            no_last (the last point N failed or has missing outputs: no selection, ask the coordinator)
+  A failed point other than N is not a candidate (recorded). --out is written at select / no_last.
+
+    python joint_select.py --stage s2 --full-steps 6000 --cand ... [--out <json>]
 """
 from __future__ import annotations
 
@@ -115,21 +127,75 @@ def decide(points: list[dict], ref: dict, stage: str) -> dict:
     return res
 
 
+def decide_full(points: list[dict], stage: str, n_last: int) -> dict:
+    """--full-steps: points as for decide(); every point 500 .. n_last resolved -> select with L_d(n_last) as reference."""
+    pts = sorted(points, key=lambda p: p["step"])
+    for p in pts:
+        if p["status"] == "ok" and not (p.get("zh2en") and p.get("en2zh")):
+            p["status"] = "failed"
+    have = {p["step"]: p for p in pts}
+    need = list(range(INTERVAL, n_last + 1, INTERVAL))
+    end = 0
+    for s in need:
+        if s not in have or have[s]["status"] == "pending":
+            break
+        end = s
+    res = {"stage": stage, "action": "continue", "prefix_end": end, "decision_step": None, "full_steps": n_last,
+           "rule": f"full run to {n_last}; feasible L_d <= L_d({n_last}) + {LAT_SLACK} both dirs; max round(J, 2); "
+                   "ties: lower mean H (s2) -> higher round(mean O, 2) -> lower round(mean dL, 3) -> later step",
+           "points": pts}
+    if end < n_last:
+        return res
+    last = have[n_last]
+    res["decision_step"] = n_last
+    if last["status"] != "ok":
+        res["action"] = "no_last"
+        return res
+    ref = {d: last[d]["L"] for d in DIRS}
+    res["ref_L"] = ref
+    for p in pts:
+        if p["status"] == "ok":
+            p["feasible"] = all(p[d]["L"] <= ref[d] + LAT_SLACK + 1e-12 for d in DIRS)
+            p["J"] = (p["zh2en"]["Q"] + p["en2zh"]["Q"]) / 2
+            p["O_mean"] = (p["zh2en"]["O"] + p["en2zh"]["O"]) / 2
+            p["dL_mean"] = sum(p[d]["L"] - ref[d] for d in DIRS) / 2
+            hs = [p[d].get("H") for d in DIRS]
+            p["H_mean"] = sum(hs) / 2 if stage == "s2" and all(h is not None for h in hs) else None
+    cands = [p for p in pts if p["status"] == "ok" and p["feasible"] and p["step"] in need]
+
+    def key(p):
+        h = p["H_mean"] if stage == "s2" else 0.0
+        return (round(p["J"], 2), -(h if h is not None else math.inf), round(p["O_mean"], 2),
+                -round(p["dL_mean"], 3), p["step"])
+
+    ch = max(cands, key=key)
+    res.update(action="select", chosen=ch["step"], chosen_names={d: ch["names"][d] for d in DIRS},
+               candidates=[p["step"] for p in cands], best_J=ch["J"])
+    return res
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", choices=["s1", "s2"], required=True)
-    ap.add_argument("--ref-zh2en", required=True)
-    ap.add_argument("--ref-en2zh", required=True)
+    ap.add_argument("--ref-zh2en", default="")
+    ap.add_argument("--ref-en2zh", default="")
+    ap.add_argument("--full-steps", type=int, default=0, help="full run to N, select after (修正 4); 0 = early stop")
     ap.add_argument("--cand", nargs=4, action="append", default=[], metavar=("STEP", "ZH2EN", "EN2ZH", "STATUS"))
     ap.add_argument("--out", default="")
     a = ap.parse_args(argv)
+    if not a.full_steps and not (a.ref_zh2en and a.ref_en2zh):
+        ap.error("--ref-zh2en and --ref-en2zh are required (unless --full-steps)")
+    if a.full_steps and (a.full_steps < INTERVAL or a.full_steps % INTERVAL):
+        ap.error(f"--full-steps must be a positive multiple of {INTERVAL}")
     if a.out and Path(a.out).exists():
         raise SystemExit(f"拒绝覆盖已有输出: {a.out}")
-    try:
-        ref = {"zh2en": load_ref(a.ref_zh2en), "en2zh": load_ref(a.ref_en2zh)}
-    except (OSError, KeyError, ValueError) as e:
-        print(json.dumps({"stage": a.stage, "action": "wait_ref", "error": repr(e)}))
-        return
+    ref = None
+    if not a.full_steps:
+        try:
+            ref = {"zh2en": load_ref(a.ref_zh2en), "en2zh": load_ref(a.ref_en2zh)}
+        except (OSError, KeyError, ValueError) as e:
+            print(json.dumps({"stage": a.stage, "action": "wait_ref", "error": repr(e)}))
+            return
     pts = []
     for step, zn, en, st in a.cand:
         if st not in ("ok", "failed", "pending"):
@@ -142,8 +208,8 @@ def main(argv=None) -> None:
             except (OSError, KeyError, ValueError) as e:
                 p["error"] = repr(e)
         pts.append(p)
-    res = decide(pts, ref, a.stage)
-    if a.out and res["action"] in ("stop", "no_feasible", "ceiling"):
+    res = decide_full(pts, a.stage, a.full_steps) if a.full_steps else decide(pts, ref, a.stage)
+    if a.out and res["action"] in ("stop", "no_feasible", "ceiling", "select", "no_last"):
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         with open(a.out, "x", encoding="utf-8") as fh:
             json.dump(res, fh, indent=1)

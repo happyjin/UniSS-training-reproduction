@@ -164,6 +164,81 @@ def test_main_files():
             pass
 
 
+def test_full_wait_and_select():
+    # --full-steps 6000 (修正 4): no decision before every point 500 .. 6000 is resolved; never an early stop
+    js = [20, 21, 22, 23, 24, 25, 25, 25, 25, 25, 25, 24]
+    r = S.decide_full(seq(js[:11]), "s2", 6000)
+    assert r["action"] == "continue" and r["prefix_end"] == 5500, r
+    pts = seq(js[:11]) + [pt(6000, 24, status="pending")]
+    assert S.decide_full(pts, "s2", 6000)["action"] == "continue"
+    pts = seq(js[:5]) + seq(js)[6:]                  # 3000 not listed yet
+    r = S.decide_full(pts, "s2", 6000)
+    assert r["action"] == "continue" and r["prefix_end"] == 2500, r
+    r = S.decide_full(seq(js), "s2", 6000)
+    assert r["action"] == "select" and r["decision_step"] == 6000 and r["chosen"] == 5500, r   # J 25 ties -> later step
+    assert r["chosen_names"] == {"zh2en": "z5500", "en2zh": "e5500"} and r["ref_L"] == {"zh2en": 3.0, "en2zh": 2.0}
+
+
+def test_full_feasible_vs_last():
+    # reference = the run's own last point: L_d <= L_d(6000) + 0.1 in each direction
+    pts = seq([20] * 11) + [pt(6000, 20, lz=2.5, le=1.5)]
+    pts[2] = pt(1500, 30, lz=2.6, le=1.6)            # within +0.1 of the last point in both directions
+    pts[3] = pt(2000, 31, lz=2.61, le=1.5)           # zh2en over the cap
+    pts[4] = pt(2500, 32, lz=2.5, le=1.61)           # en2zh over the cap
+    r = S.decide_full(pts, "s2", 6000)
+    assert r["action"] == "select" and r["chosen"] == 1500, r
+    assert sorted(r["candidates"]) == [1500, 6000], r
+    pts[5] = pt(3000, 29, status="failed")
+    assert S.decide_full(pts, "s2", 6000)["chosen"] == 1500
+
+
+def test_full_ties_and_no_last():
+    pts = seq([20] * 12, hz=1.0, he=1.0)
+    pts[1] = pt(1000, 20.004, hz=0.5, he=0.5)        # round(J, 2) equal -> lower mean H
+    assert S.decide_full(pts, "s2", 6000)["chosen"] == 1000
+    pts = seq([20] * 11) + [pt(6000, 0, status="failed")]
+    r = S.decide_full(pts, "s2", 6000)
+    assert r["action"] == "no_last" and "chosen" not in r, r
+    pts = seq([20] * 11) + [pt(6000, 20)]
+    pts[-1]["en2zh"] = None                          # ok with missing outputs = failed
+    assert S.decide_full(pts, "s2", 6000)["action"] == "no_last"
+
+
+def test_full_main_files():
+    import contextlib
+    import io
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        S.DEC, S.TE = d / "decode", d / "t_eval"
+        for i in range(4):
+            s = 500 * (i + 1)
+            for n, q, lat in ((f"z{s}", 20.0 + i, 3.0), (f"e{s}", 30.0, 2.0)):
+                (S.DEC / n).mkdir(parents=True)
+                (S.DEC / n / "score_text.json").write_text(json.dumps({"tcpBLEU_all": q, "tcpBLEU_ov": q, "tcpBLEU_1spk": q}))
+                (S.TE / n).mkdir(parents=True)
+                (S.TE / n / f"textlat_{n}.json").write_text(json.dumps({"unit": {"text_laal_online": {"all": {"mean": lat}}}}))
+        out = d / "sel.json"
+        c = []
+        for i in range(4):
+            s = 500 * (i + 1)
+            c += ["--cand", str(s), f"z{s}", f"e{s}", "ok"]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            S.main(["--stage", "s2", "--full-steps", "2500", "--out", str(out)] + c)   # 2500 not listed: wait
+        assert json.loads(buf.getvalue())["action"] == "continue" and not out.exists()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            S.main(["--stage", "s2", "--full-steps", "2000", "--out", str(out)] + c)
+        r = json.loads(buf.getvalue())
+        assert r["action"] == "select" and r["chosen"] == 2000 and json.load(open(out))["chosen"] == 2000, r
+        for bad in (["--stage", "s2"] + c, ["--stage", "s2", "--full-steps", "750"] + c):   # refs needed / bad N
+            try:
+                S.main(bad)
+                raise AssertionError(bad)
+            except SystemExit:
+                pass
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

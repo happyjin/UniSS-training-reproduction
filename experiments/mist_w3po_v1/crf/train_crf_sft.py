@@ -63,7 +63,8 @@ code path, output and args.json is the single-direction one bit for bit):
   --sched2 <sched dir> --dir2 <direction>   a second window set in the other direction. Its windows get indices
         after the first set's (idx = n1 + i) and Window.dir = dir2 (the first set's: --dir); each step is the
         direction-balanced union plan_joint(): step k = plan_steps(set 1, seed, steps, rows/2)[k] + plan_steps(set 2,
-        seed + 1, steps, rows/2)[k] (~rows/2 read rows of each direction). Each row's prompt is its own window's
+        seed + 1, steps, rows/2)[k] (~rows/2 read rows of each direction; --seed2 S: set 2 uses plan_steps(set 2, S, ...)
+        instead of seed + 1, e.g. the other direction's single-direction seed). Each row's prompt is its own window's
         direction's v8 prompt (JointPrompter -> core.engine.Prompter(dir)); n_prompt0 (micro-batch length estimate
         only) is the larger of the two prompts.
   --stop-file <path>   early stop: after each optimiser step k, rank 0 checks whether the file exists and broadcasts
@@ -251,12 +252,13 @@ def heur_states(w: Window, R_pad: int) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------------ step plan
-def plan_joint(Rs1: list[int], Rs2: list[int], seed: int, steps: int, rows_per_step: int) -> list[list[int]]:
-    """--sched2: direction-balanced steps. Set 1 keeps plan_steps(seed), set 2 plan_steps(seed + 1), each with half the
-    rows per step; set 2's indices are offset by len(Rs1). Step k = set 1's step k + set 2's step k."""
+def plan_joint(Rs1: list[int], Rs2: list[int], seed: int, steps: int, rows_per_step: int,
+               seed2: int | None = None) -> list[list[int]]:
+    """--sched2: direction-balanced steps. Set 1 keeps plan_steps(seed), set 2 plan_steps(seed + 1) (--seed2: seed2),
+    each with half the rows per step; set 2's indices are offset by len(Rs1). Step k = set 1's step k + set 2's step k."""
     half = rows_per_step / 2
     p1 = plan_steps(Rs1, seed, steps, half)
-    p2 = plan_steps(Rs2, seed + 1, steps, half)
+    p2 = plan_steps(Rs2, seed + 1 if seed2 is None else seed2, steps, half)
     n1 = len(Rs1)
     return [a + [n1 + i for i in b] for a, b in zip(p1, p2)]
 
@@ -949,6 +951,8 @@ def build_args(argv=None):
     ap.add_argument("--stop-file", default="", help="early stop: stop after the step at which this file exists")
     ap.add_argument("--lr-horizon", type=int, default=0,
                     help="cosine horizon in steps (0: --steps, unchanged); open-ended runs: --steps = a safety ceiling")
+    ap.add_argument("--seed2", type=int, default=None,
+                    help="--sched2 only: set 2's plan seed (default: --seed + 1, unchanged)")
     a = ap.parse_args(argv)
     if bool(a.sched2) != bool(a.dir2):
         ap.error("--sched2 and --dir2 go together")
@@ -956,6 +960,8 @@ def build_args(argv=None):
         ap.error("--dir2 must be the other direction")
     if a.sched2 and (a.dart or a.d1 or a.objective not in ("heuristic", "serial_v2p")):
         ap.error("--sched2 is wired for --objective serial_v2p / heuristic without --dart / --d1")
+    if a.seed2 is not None and not a.sched2:
+        ap.error("--seed2 needs --sched2")
     if a.js_budget != "t1" and a.objective != "joint_speech":
         ap.error("--js-budget shift needs --objective joint_speech")
     if a.js_delta != 0.134 and a.js_budget != "shift":
@@ -993,7 +999,7 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         (out / "ckpt").mkdir(parents=True, exist_ok=True)
         if not args.resume:
             av = vars(args).copy()
-            for k_, d_ in (("sched2", ""), ("dir2", ""), ("stop_file", ""), ("lr_horizon", 0)):   # defaults: unchanged
+            for k_, d_ in (("sched2", ""), ("dir2", ""), ("stop_file", ""), ("lr_horizon", 0), ("seed2", None)):   # defaults: unchanged
                 if av.get(k_) == d_:
                     av.pop(k_)
             (out / "args.json").write_text(json.dumps(av, indent=1))
@@ -1011,7 +1017,8 @@ def main(argv=None, *, post_transform=None, extra_loss=None, extra_params=None) 
         for w in wins2:
             w.idx += n1
             w.dir = args.dir2
-        plan = plan_joint([w.R for w in wins], [w.R for w in wins2], args.seed, args.steps, args.rows_per_step)
+        plan = plan_joint([w.R for w in wins], [w.R for w in wins2], args.seed, args.steps, args.rows_per_step,
+                          seed2=getattr(args, "seed2", None))
         wins = wins + wins2
         log0(f"--sched2 {args.sched2} ({args.dir2}): {len(wins2)} windows after {n1} ({args.dir}); direction-balanced "
              f"steps of ~{args.rows_per_step / 2:g} read rows per direction")
