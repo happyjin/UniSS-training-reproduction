@@ -13,7 +13,11 @@
 #   single-speaker SI talker T1c@1500, frozen (thinker_t_eval_orch --talker t1c: --speed-policy fixed --history-ban 8,
 #   no c1 / b1 / s2, no CTC scorers) on the plain text decode (no read-level merge, no PL-EM) ->
 #   jtest_b<set>_<rt>__t1c[_tts2], both seeds; the "vs_joint_baseline" gate reads it. The method row is unchanged.
-#   [PORT0=19400] [BASE_TALKER=t1c] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
+# TEST_TRIGGER=s2 (user 2026-11-13 ~20:10 Prague: baseline and method dev + test results by the morning; default empty
+#   = wait for JOINT_DEV_DONE, unchanged): start as soon as JOINT_S2_SELECTED exists. Nothing on test is chosen either
+#   way: the stage-1 / stage-2 checkpoints are fixed by their rules and the En->Zh PL-EM talker by (a)'s dev5 rule; the
+#   method En->Zh chain decodes and merges first, then waits for that talker (EN2ZH_TALKER_SELECTED) before its speech.
+#   [PORT0=19400] [BASE_TALKER=t1c] [TEST_TRIGGER=s2] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/joint_test.sh
 # Run detached: setsid nohup bash ... > logs/mist_w3po_v1/joint/test.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
@@ -67,6 +71,27 @@ chain() {   # <row b|m> <set> <run tag> <base> <ckpt> <port0>
     log "$n done (T1c)"
     return 0
   fi
+  if [ $D = en2zh ] && [ "${TEST_TRIGGER:-}" = s2 ] && [ -z "${DRY_RUN:-}" ]; then   # talker after the decode + merge
+    setsid nohup $C1 < /dev/null > $TV/${r}$s.launch.log 2>&1 &
+    log "$n decode orchestrator pid $!"
+    wait_done $TV/${r}$s; [ -z "$(orch_failed $TV/${r}$s)" ] || { flag "$n decode failed ($(tail -1 $TV/${r}$s/orch.log | cut -c1-200))"; return 1; }
+    lat $s $n
+    read_merge $n "$SEP" $WIN $TV/merge_$n.log || { flag "merge $n ($(tail -1 $TV/merge_$n.log | cut -c1-200))"; return 1; }
+    log "$n: waiting for (a)'s PL-EM talker"
+    until [ -n "$(en2zh_talker)" ]; do
+      [ -n "$(en2zh_failed)" ] && { flag "(a) stopped before its PL-EM talker ($(en2zh_failed | cut -c1-200))"; return 1; }
+      sleep 60
+    done
+    tx=$(en2zh_talker)
+    [ -e $tx/uniss/model.safetensors ] || { flag "$n: no En->Zh PL-EM export ('$tx')"; return 1; }
+    local C2e="$JORCH --dir $D --set $K --base $b --run $TV/${r}${s}_sp --name ${n}__rlplem --ckpt - --speech-from ${n}_rl --talker plem --plem-export $tx --window 1 --cap135 --scorer-port0 $p"
+    setsid nohup $C2e < /dev/null > $TV/${r}${s}_sp.launch.log 2>&1 &
+    log "${n}__rlplem speech orchestrator pid $!"
+    wait_done $TV/${r}${s}_sp; [ -z "$(orch_failed $TV/${r}${s}_sp)" ] || { flag "${n}__rlplem speech failed"; return 1; }
+    for x in ${n}__rlplem ${n}__rlplem_tts2; do lat $s $x $SPD/$x/talker; done
+    log "$n done"
+    return 0
+  fi
   if [ $D = en2zh ]; then
     tx=$(en2zh_talker); [ -n "${DRY_RUN:-}" ] && tx=${tx:-$X}
     [ -n "$tx" ] && [ -e $tx/uniss/model.safetensors ] || { flag "$n: no En->Zh PL-EM export ('$tx')"; return 1; }
@@ -96,8 +121,9 @@ if [ -n "${DRY_RUN:-}" ]; then
   exit 0
 fi
 for f in $DONE_M $SUM $TV; do [ -e $f ] && { log "拒绝覆盖已有输出: $f (the test runs once)"; exit 1; }; done
-log "test: waiting for $DEVD"
-until [ -e $DEVD ]; do
+W=$DEVD; [ "${TEST_TRIGGER:-}" = s2 ] && W=$M2
+log "test: waiting for $W"
+until [ -e $W ]; do
   grep -q "JOINT_STOP" $JL/dev.log $JL/stage1.log $JL/stage2.log 2>/dev/null && { log "JOINT_STOP test: an earlier stage stopped"; exit 1; }
   sleep 60
 done
