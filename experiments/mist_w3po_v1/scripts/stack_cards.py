@@ -33,6 +33,8 @@ training: ~55 GiB physically free per card < 67): FILE holds "phys" and "pair" (
               need PAIR_NEED_DEC; the two largest-free eligible cards are taken; the job's card is c1, c2 is its partner
               (own cards, ledger "<id>#pair", re-checked at launch)
   held-out    the held-out loss job is single-card (71 GiB): not stackable in this mode
+  history     real use = max over the last PAIR_HIST_S (30 s, ~9 training steps) instead of 180 s (user 2026-11-13
+              ~19:30 Prague: keep all 8 cards stacked; with 180 s a card freed by a finished decode stayed blocked ~3 min)
   a job planned without stacking later gets its original command back
 """
 from __future__ import annotations
@@ -59,6 +61,7 @@ STAGGER_S = 60.0
 PAIR_TOKEN = "pair"
 PAIR_MAX_GIB = 34
 PAIR_NEED_DEC = 44.0
+PAIR_HIST_S = 30
 MAXGIB_SINGLE = "--max-gib 120"
 
 
@@ -302,7 +305,7 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
         for c in sorted(cards):
             if c not in snap["cards"]:
                 continue
-            hm = max(u.get(c, 0.0) for _, u in hist)
+            hm = max(u.get(c, 0.0) for tt, u in hist if not pair or t - tt < PAIR_HIST_S)
             ok, _ = eligible(c, procs, led, own, snap["cards"][c]["total"], hm,
                              PAIR_NEED_DEC if pair else PHYS_NEED_DEC, float("inf"), PHYS_MARGIN)
             if ok:
@@ -373,7 +376,9 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
                         if cc not in snap["cards"]:
                             why = f"card {cc} missing"
                             break
-                        hmc = max([u.get(cc, 0.0) for _, u in hist] + [snap["cards"][cc]["used"]])
+                        tn = time.time()
+                        hmc = max([u.get(cc, 0.0) for tt, u in hist if tn - tt < PAIR_HIST_S]
+                                  + [snap["cards"][cc]["used"]])
                         okc, w = eligible(cc, procs, led, own, snap["cards"][cc]["total"], hmc, PAIR_NEED_DEC,
                                           float("inf"), PHYS_MARGIN)
                         if not okc:

@@ -190,6 +190,7 @@ class JC(J):
 def test_pair_mode():
     # 修正 5: tokens "phys pair" -> a shard decode on two cards (need PAIR_NEED_DEC each), held-out not stackable
     assert S.read_pair is not None and S.PAIR_NEED_DEC == 44.0 and S.PAIR_MAX_GIB == 34
+    assert S.PAIR_HIST_S == 30 and S.HIST_S == 180                     # PHYS / default history unchanged
     assert S.stackable("n__dec0", True, True) and not S.stackable("n__dec_heldout", True, True)
     assert S.stackable("n__dec_heldout", True)                          # PHYS without pair unchanged
     procs = {c: [(c + 1, 0.0, "train")] for c in range(8)}
@@ -268,6 +269,29 @@ def test_pair_launch():
             assert o.plain == [("n__dec0", 5, "python -m x --max-gib 120 a1")]
         finally:
             S.card_procs = orig
+
+
+def test_pair_history():
+    # PAIR mode: a card freed 60 s ago (decode ended) is eligible again; PHYS mode still sees the 180 s maximum
+    procs = {c: [(c + 1, 0.0, "train")] for c in range(4)}
+    with tempfile.TemporaryDirectory() as d:
+        for text, want in (("0 1 2 3 phys pair\n", 1), ("0 1 2 3 phys\n", 0)):
+            f = Path(d) / "stack"
+            f.write_text(text)
+            jobs = [J("n__dec0", order=1)]
+            o = O(jobs)
+            orig, ot = S.card_procs, S.time.time
+            S.card_procs = lambda *a: procs
+            try:
+                S.apply_stack_cards(o, str(f), 3000.0, None, FO, "led")
+                now = [1000.0]
+                S.time.time = lambda: now[0]
+                o.plan(snap({0: 120.0, 1: 120.0, 2: 120.0, 3: 120.0}), [])      # decodes running: 120 GiB
+                now[0] = 1060.0
+                out = o.plan(snap({0: 84.0, 1: 84.0, 2: 120.0, 3: 120.0}), list(jobs))
+            finally:
+                S.card_procs, S.time.time = orig, ot
+            assert len([x for x in out if x[0].id == "n__dec0"]) == want, (text, out)
 
 def test_cli_default_unchanged():
     src = (Path(__file__).resolve().parent / "thinker_t_eval_orch.py").read_text()
