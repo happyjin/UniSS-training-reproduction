@@ -65,6 +65,15 @@ def test_phys():
     assert '"--phys", action="store_true"' in src and '"--file-cards", nargs="+", type=int, default=None' in src
 
 
+
+def test_pair_flag():
+    # 修正 5: --pair writes "phys pair"; without --pair the token string is exactly the old one
+    src = (Path(__file__).resolve().parent / "stack47_watchdog.py").read_text()
+    assert '"--pair", action="store_true"' in src and 'raise SystemExit("--pair needs --phys")' in src
+    assert 'tok = (" phys" if a.phys else "") + (" pair" if a.pair else "")' in src
+    for phys, pair, want in ((False, False, ""), (True, False, " phys"), (True, True, " phys pair")):
+        assert (" phys" if phys else "") + (" pair" if pair else "") == want
+
 if __name__ == "__main__":
     for k, v in list(globals().items()):
         if k.startswith("test_"):

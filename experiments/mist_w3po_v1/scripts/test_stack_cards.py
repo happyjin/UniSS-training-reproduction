@@ -180,6 +180,95 @@ def test_phys_mode():
     assert S.PHYS_TRAIN_PAT == ("pretrain_", "train_crf_sft.py") and S.TRAIN_PAT == ("pretrain_",)
 
 
+
+class JC(J):
+    def __init__(self, jid, cmd, **k):
+        super().__init__(jid, **k)
+        self.cmd, self.sid = cmd, 123
+
+
+def test_pair_mode():
+    # 修正 5: tokens "phys pair" -> a shard decode on two cards (need PAIR_NEED_DEC each), held-out not stackable
+    assert S.read_pair is not None and S.PAIR_NEED_DEC == 44.0 and S.PAIR_MAX_GIB == 34
+    assert S.stackable("n__dec0", True, True) and not S.stackable("n__dec_heldout", True, True)
+    assert S.stackable("n__dec_heldout", True)                          # PHYS without pair unchanged
+    procs = {c: [(c + 1, 0.0, "train")] for c in range(8)}
+    used = {0: 60.0, 1: 86.0, 2: 85.0, 3: 84.0, 4: 97.0, 5: 86.5, 6: 83.0, 7: 85.5}
+    # free = 138.9 - used: 1 52.9, 2 53.9, 3 54.9, 4 41.9 (no), 5 52.4, 6 55.9, 7 53.4; card 0 has the talker (own)
+    o, out = run_plan_phys("0 1 2 3 4 5 6 7 phys pair\n", procs, used)
+    assert {j.id for j in o.planned} == {"n__dec_heldout", "n__talk0"}  # held-out planned as without stacking
+    st = {j.id: c for j, c in out if j.id in ("n__dec0", "n__dec1")}
+    assert st == {"n__dec0": 3, "n__dec1": 2}, st                       # pairs (3, 6) and (2, 7) by free size
+    assert S.pick_pairs({1: 52.9, 2: 53.9, 3: 54.9, 5: 52.4, 6: 55.9, 7: 53.4}, 2) == [(3, 6), (2, 7)]
+    assert S.pick_pairs({1: 52.9, 4: 41.9}, 1) == []                   # one eligible card: no pair
+    assert S.pick_pairs({c: 50.0 for c in range(8)}, 9) == [(6, 7), (4, 5), (2, 3), (0, 1)]
+    # without "phys", "pair" alone does nothing
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "s"
+        f.write_text("0 1 pair\n")
+        assert not S.read_pair(str(f))
+        f.write_text("0 1 phys pair\n")
+        assert S.read_pair(str(f)) and S.read_phys(str(f))
+
+
+def test_pair_cmd():
+    base = lambda att: f"export A=1; python -m x --batch 16 --max-gib 120 --shard 0 > log_a{att}"
+    c = S.pair_cmd(base, 3, 6)
+    assert c(2) == "export CUDA_VISIBLE_DEVICES=3,6; export A=1; python -m x --batch 16 --max-gib 34 --shard 0 > log_a2"
+    assert S.pair_cmd(lambda att: "python -m heldout --mem-cap-gib 70", 0, 1) is None
+
+
+def test_pair_launch():
+    # the launch wraps the command (two cards), writes two ledger lines; a later plain launch gets the original back
+    base = lambda att: f"python -m x --max-gib 120 a{att}"
+    jobs = [JC("n__dec0", base, order=1), JC("n__dec1", base, order=2)]
+    led = []
+    started = []
+
+    class FO2(FO):
+        @staticmethod
+        def ledger_append(path, rec):
+            led.append(rec)
+
+    class O2(O):
+        ledger = "led"
+
+        def snapshot(self):
+            return snap(used)
+
+        def start(self, j, c):
+            started.append((j.id, c, j.cmd(1)))
+            j.state, j.card = "run", c
+
+        def launch_gpu(self, plan):
+            self.plain = [(j.id, c, j.cmd(1)) for j, c in plan]
+
+    used = {c: 85.0 for c in range(8)}
+    procs = {c: [(c + 1, 85.0, "train")] for c in range(8)}
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "stack"
+        f.write_text("0 1 2 3 4 5 6 7 phys pair\n")
+        o = O2(jobs)
+        o.ledger = "led"
+        orig = S.card_procs
+        S.card_procs = lambda *a: procs
+        try:
+            S.apply_stack_cards(o, str(f), 3000.0, None, FO2, "led")
+            pl = o.plan(snap(used), list(jobs))
+            o.launch_gpu(pl)
+            assert len(started) == 1                                    # one stacked start per round
+            jid, c, cmd = started[0]
+            assert jid == "n__dec0" and cmd.startswith(f"export CUDA_VISIBLE_DEVICES={c},") and "--max-gib 34" in cmd
+            c2 = int(cmd.split(",")[1].split(";")[0])
+            assert c2 != c and {r["card"] for r in led} == {c, c2} and {r["id"] for r in led} == {"n__dec0", "n__dec0#pair"}
+            # stack file withdrawn: dec0 planned plainly again -> original command
+            jobs[0].state = "wait"
+            f.rename(Path(d) / "gone")
+            o.launch_gpu([(jobs[0], 5)])
+            assert o.plain == [("n__dec0", 5, "python -m x --max-gib 120 a1")]
+        finally:
+            S.card_procs = orig
+
 def test_cli_default_unchanged():
     src = (Path(__file__).resolve().parent / "thinker_t_eval_orch.py").read_text()
     assert "    if a.stack_cards:\n" in src and 'ap.add_argument("--stack-cards", default=""' in src

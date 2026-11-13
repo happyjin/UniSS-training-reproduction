@@ -24,6 +24,16 @@ PHYS mode (prereg joint 修正 4, user 2026-11-13 ~08:45 Prague: stage-2 dev5 st
   training    a train_crf_sft.py process counts as the training (besides "pretrain_")
   stagger     at most one stacked start per launch round, and >= 60 s after the previous stacked start of any
               orchestrator (FILE.last_start, under gpu_launch.lock)
+
+PAIR mode (prereg joint 修正 5, user 2026-11-13 ~18:40 Prague: "可以做" -- one decode no longer fits next to the stage-2
+training: ~55 GiB physically free per card < 67): FILE holds "phys" and "pair" (no "pair" = PHYS mode above, unchanged).
+  pair        a shard decode goes onto TWO stack cards: CUDA_VISIBLE_DEVICES=<c1>,<c2> and --max-gib 120 -> --max-gib
+              PAIR_MAX_GIB in its command (core.engine.load_thinker already spreads the Thinker over the visible cards
+              with device_map="auto"; same layers, same kernels, same batches); both cards must pass the PHYS check with
+              need PAIR_NEED_DEC; the two largest-free eligible cards are taken; the job's card is c1, c2 is its partner
+              (own cards, ledger "<id>#pair", re-checked at launch)
+  held-out    the held-out loss job is single-card (71 GiB): not stackable in this mode
+  a job planned without stacking later gets its original command back
 """
 from __future__ import annotations
 
@@ -46,6 +56,10 @@ PHYS_MARGIN = 1.5
 PHYS_NEED_DEC, PHYS_NEED_HELDOUT = 67.0, 71.0
 PHYS_TRAIN_PAT = ("pretrain_", "train_crf_sft.py")
 STAGGER_S = 60.0
+PAIR_TOKEN = "pair"
+PAIR_MAX_GIB = 34
+PAIR_NEED_DEC = 44.0
+MAXGIB_SINGLE = "--max-gib 120"
 
 
 def read_phys(path: str) -> bool:
@@ -55,8 +69,39 @@ def read_phys(path: str) -> bool:
         return False
 
 
-def stackable(jid: str, phys: bool) -> bool:
+def read_pair(path: str) -> bool:
+    try:
+        w = Path(path).read_text().split()
+    except OSError:
+        return False
+    return PHYS_TOKEN in w and PAIR_TOKEN in w
+
+
+def stackable(jid: str, phys: bool, pair: bool = False) -> bool:
+    if pair:
+        return is_shard_decode(jid)
     return is_shard_decode(jid) or (phys and jid.endswith("__dec_heldout"))
+
+
+def pair_cmd(base, c1: int, c2: int):
+    """the shard decode command on two cards (PAIR mode); None if it has no single-card --max-gib to replace."""
+    if MAXGIB_SINGLE not in base(1):
+        return None
+
+    def cmd(att, base=base, c1=c1, c2=c2):
+        return (f"export CUDA_VISIBLE_DEVICES={c1},{c2}; "
+                + base(att).replace(MAXGIB_SINGLE, f"--max-gib {PAIR_MAX_GIB}"))
+    return cmd
+
+
+def pick_pairs(free: dict[int, float], n: int) -> list[tuple[int, int]]:
+    """up to n disjoint (c1, c2), c1 < c2, from the eligible cards, largest free first."""
+    order = [c for _, c in sorted(((f, c) for c, f in free.items() if f >= PAIR_NEED_DEC), reverse=True)]
+    out = []
+    while len(out) < n and len(order) >= 2:
+        a, b = order.pop(0), order.pop(0)
+        out.append((min(a, b), max(a, b)))
+    return out
 
 
 def job_need(jid: str, phys: bool) -> float:
@@ -188,8 +233,11 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
         except OSError:
             return "newest"
 
+    partner: dict[str, int] = {}     # PAIR mode: job id -> its second card (while it runs there)
+
     def own_cards() -> set[int]:
-        return {j.card for j in o.jobs if j.state == "run" and j.gpu and j.card is not None}
+        run = [j for j in o.jobs if j.state == "run" and j.gpu and j.card is not None]
+        return {j.card for j in run} | {partner[j.id] for j in run if j.id in partner}
 
     def want(n: int) -> None:
         if gdir is None:
@@ -236,7 +284,8 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
         return out
 
     def plan_phys(snap, ready, cards, t):
-        dec = sorted([j for j in ready if j.kind == "dec" and stackable(j.id, True)], key=lambda x: (x.prio, x.order))
+        pair = read_pair(path)
+        dec = sorted([j for j in ready if j.kind == "dec" and stackable(j.id, True, pair)], key=lambda x: (x.prio, x.order))
         rest = [j for j in ready if j not in dec]
         out = orig_plan(snap, rest) if rest else []
         want(len(dec))
@@ -254,9 +303,15 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
             if c not in snap["cards"]:
                 continue
             hm = max(u.get(c, 0.0) for _, u in hist)
-            ok, _ = eligible(c, procs, led, own, snap["cards"][c]["total"], hm, PHYS_NEED_DEC, float("inf"), PHYS_MARGIN)
+            ok, _ = eligible(c, procs, led, own, snap["cards"][c]["total"], hm,
+                             PAIR_NEED_DEC if pair else PHYS_NEED_DEC, float("inf"), PHYS_MARGIN)
             if ok:
                 free[c] = card_free(snap["cards"][c]["total"], hm, 0.0, float("inf"), PHYS_MARGIN)
+        if pair:
+            for j, (c1, c2) in zip(dec, pick_pairs(free, len(dec))):
+                out.append((j, c1))
+                partner[j.id] = c2
+            return out
         for j in dec:
             cand = sorted(((f, c) for c, f in free.items() if f >= job_need(j.id, True)), reverse=True)
             if not cand:
@@ -269,8 +324,14 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
     def launch_gpu(plan_):
         cards = read_cards(path)
         phys = cards is not None and read_phys(path)
-        st = [(j, c) for j, c in plan_ if cards is not None and c in cards and j.kind == "dec" and stackable(j.id, phys)]
+        pair = phys and read_pair(path)
+        st = [(j, c) for j, c in plan_ if cards is not None and c in cards and j.kind == "dec"
+              and stackable(j.id, phys, pair) and (not pair or j.id in partner)]
         rest = [(j, c) for j, c in plan_ if (j, c) not in st]
+        for j, _ in rest:                                  # planned without stacking: the original command again
+            if hasattr(j, "_stack_cmd0"):
+                j.cmd = j._stack_cmd0
+            partner.pop(j.id, None)
         if rest:
             orig_launch(rest)
         if not st:
@@ -304,6 +365,41 @@ def apply_stack_cards(o, path: str, rank: float, group: str | None, fo, ledger_p
                 procs = card_procs(PHYS_TRAIN_PAT) if phys else card_procs()
                 led = fo.ledger_pending(ledger_path)
                 hm = max([u.get(c, 0.0) for _, u in hist] + [snap["cards"][c]["used"]])
+                if pair:
+                    c2 = partner.get(j.id)
+                    own = own_cards()
+                    why = ""
+                    for cc in (c, c2):
+                        if cc not in snap["cards"]:
+                            why = f"card {cc} missing"
+                            break
+                        hmc = max([u.get(cc, 0.0) for _, u in hist] + [snap["cards"][cc]["used"]])
+                        okc, w = eligible(cc, procs, led, own, snap["cards"][cc]["total"], hmc, PAIR_NEED_DEC,
+                                          float("inf"), PHYS_MARGIN)
+                        if not okc:
+                            why = f"card {cc}: {w}"
+                            break
+                    base = getattr(j, "_stack_cmd0", j.cmd)
+                    pc = pair_cmd(base, c, c2) if not why else None
+                    if why or pc is None:
+                        o.log(f"stack: skip {j.id} on cards {c},{c2}: {why or 'no ' + MAXGIB_SINGLE + ' in its command'}"
+                              f" at re-check")
+                        partner.pop(j.id, None)
+                        continue
+                    j._stack_cmd0 = base
+                    j.cmd = pc
+                    o.log(f"stack: start {j.id} on stack cards {c},{c2} (pair, --max-gib {PAIR_MAX_GIB}; rank {rank}, "
+                          f"order {order()}; used {snap['cards'][c]['used']:.1f} / {snap['cards'][c2]['used']:.1f} GiB)")
+                    o.start(j, c)
+                    if o.ledger:
+                        for cc, jid in ((c, j.id), (c2, j.id + "#pair")):
+                            fo.ledger_append(o.ledger, {"owner": o.ledger_owner, "id": jid, "card": cc,
+                                                        "mib": int(PAIR_NEED_DEC * 1024), "vllm": False,
+                                                        "state": "pending", "pid": j.sid})
+                    tmp = Path(f"{path}.last_start.tmp{os.getpid()}")
+                    tmp.write_text(f"{time.time():.1f} {j.id} cards {c},{c2}\n")
+                    os.replace(tmp, f"{path}.last_start")
+                    break                                   # one stacked start per round
                 if phys:
                     ok, why = eligible(c, procs, led, own_cards(), snap["cards"][c]["total"], hm, job_need(j.id, True),
                                        float("inf"), PHYS_MARGIN)

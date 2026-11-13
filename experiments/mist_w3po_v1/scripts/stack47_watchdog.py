@@ -23,6 +23,8 @@ stack file is written with the token "phys" after the cards (stack_cards.py phys
 jobs (crf.heldout_loss) count as stacked jobs too (watched, and stopped by PID on a trip), and the LOG line names the
 cards. --file-cards C ... (default = --cards): the cards written into the stack file at the start (e.g. one card for the
 trial decode; the caller widens the file later by new file + rename); all --cards are watched.
+--pair (with --phys; prereg joint 修正 5, default off = unchanged): the token "pair" is written after "phys"
+(stack_cards.py PAIR mode: one shard decode on two cards); the held-out loss is not stacked in that mode.
 """
 from __future__ import annotations
 
@@ -119,7 +121,11 @@ def main() -> None:
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--phys", action="store_true", help="physical-memory stack mode (修正 4): token 'phys' in the file")
     ap.add_argument("--file-cards", nargs="+", type=int, default=None, help="cards written at the start (default --cards)")
+    ap.add_argument("--pair", action="store_true", help="with --phys: token 'pair' (stack_cards.py PAIR mode, 修正 5)")
     a = ap.parse_args()
+    if a.pair and not a.phys:
+        raise SystemExit("--pair needs --phys")
+    tok = (" phys" if a.phys else "") + (" pair" if a.pair else "")
     fcards = a.file_cards if a.file_cards else a.cards
     isdec = (lambda cmd: is_decode(cmd, True)) if a.phys else is_decode
     os.chdir(REPO)
@@ -139,9 +145,9 @@ def main() -> None:
     if a.warmup_s > 0:
         log(f"STACK47_WARMUP {sf} created empty; cards appended in {a.warmup_s:.0f} s")
         time.sleep(a.warmup_s)
-    os.write(fd, (" ".join(map(str, fcards)) + (" phys" if a.phys else "") + "\n").encode())
+    os.write(fd, (" ".join(map(str, fcards)) + tok + "\n").encode())
     os.close(fd)
-    log(f"STACK47_ON {sf} = {fcards}{' phys' if a.phys else ''} (watching {a.cards}); pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "
+    log(f"STACK47_ON {sf} = {fcards}{tok} (watching {a.cards}); pid {os.getpid()}; cap {a.cap_gib} GiB; min free {a.min_free_gib} GiB; slow > "
         f"{a.baseline_ms * (1 + a.slow):.0f} ms x {a.n_slow}; training pid {a.train_pid} (never touched)")
     off = tl.stat().st_size if tl.exists() else 0
     buf = ""

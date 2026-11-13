@@ -41,6 +41,11 @@ if [ -e $SC_CONF ]; then
   [ -n "$STACK_FILE" ] && [ -n "$STACK_GROUP" ] || { echo "bad $SC_CONF"; exit 1; }
   AZ="$AZ --stack-cards $STACK_FILE --stack-rank $STEP --stack-group $STACK_GROUP"
   AE="$AE --stack-cards $STACK_FILE --stack-rank $STEP --stack-group $STACK_GROUP"
+  # 修正 5 (user 2026-11-13 ~18:40 Prague, PAIR stacking): a line HELDOUT=off drops the held-out loss jobs (single card,
+  # 71 GiB: not stackable next to the stage-2 training; tie-break only, computed after the training); absent = unchanged
+  if [ "$(sed -n 's/^HELDOUT=//p' $SC_CONF | tail -1)" = off ]; then
+    AZ=$(echo "$AZ" | sed "s# --heldout [^ ]*##"); AE=$(echo "$AE" | sed "s# --heldout [^ ]*##")
+  fi
 fi
 if [ -n "${DRY_RUN:-}" ]; then
   [ $STAGE = s1 ] && echo "convert: $PY -m experiments.mist_w3po_v1.joint.megatron_to_crf_ckpt --checkpoint-dir $SRC --base $BASE --rank 32 --alpha 64 --out $CK"
