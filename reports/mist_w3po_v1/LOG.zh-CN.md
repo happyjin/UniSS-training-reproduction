@@ -2956,3 +2956,11 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 
 - Ali (d) VE1rl：LAAL 4.409（对 (c) −0.300 s，chunk −0.287），ASR-BLEU 16.25，门槛三项全过，复现 dev。(e) D1vrl：LAAL 3.841（−0.868 s，chunk −0.831），ASR-BLEU 16.95（+0.74，P 0.0001），文本 all +2.27、ov +0.84，三项全过——与 dev（ov、语音不过）及 AMI 相反，未复现。并集敏感性（27 窗口）判定不变。
 - 后补脚本的 paired UTMOS rc=2 是我的参数错（`--ref NAME S1 S2`），CPU 重跑成功，写 `ali/utmos_paired_v3_*`：(d)−(c) +0.0035、(e)−(c) +0.0072，CI 含 0。报告 final_test_results_v1.zh-CN.md 已补全。
+
+- 2026-11-13 07:11 布拉格（看门狗 stack47_watchdog，pid 1194235）：STACK47_WITHDRAWN —— 卡 6: 135.3 GiB, 7: 135.4 GiB > 135.0 GiB；4–7 号卡重新排除（stack_cards_b47.withdrawn_20261113T061116Z），按 PID 停了 4–7 上的解码 [1202271, 1199185, 1199596, 1201363]，编排器会在别处重试；(b) 训练未动。
+
+- 2026-11-13 07:20 布拉格：**dev5 速查改为叠放**（用户 06:50 / 06:55；提交 26ac3caf3）。
+  - (b) 的 14 个编排器（500–3000 两个方向、v8e 和 A′ 参照）按 PID 停掉，加 `--resume --stack-cards` 后重启，新 PID 在 `logs/mist_w3po_v1/joint/joint_v8_20261112T220626Z/stack_relaunch.log`。
+  - 看门狗 1194235 开了 4–7（07:10）。z_s03000 的 4 个分片上卡后，解码实占 66.2–66.5 GiB，加上训练 68.4–70.3 GiB，卡 6、7 到了 135.3–135.4 GiB，07:11 看门狗撤卡（STACK47_WITHDRAWN），训练步时 4770–4803 ms，没受影响。**严格 135 GiB 线下，4–7 放不下这种解码，要用户决定**，在此之前按修正前的规则在 0–3 跑。
+  - (a) 的 PL-EM 改为 STACK_PLEM：每卡实占 + 56 + 3 ≤ 135 GiB 就开训；第 400 步后，新的解码可以叠回 0–3。after_select 3192301 → 1222510，sync_train_exclude 1255324 → 1222453。
+  - 预登记修正：joint 修正 2、en2zh 修正 1。

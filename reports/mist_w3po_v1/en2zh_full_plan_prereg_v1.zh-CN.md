@@ -296,3 +296,17 @@ RUN=$R setsid nohup bash experiments/mist_w3po_v1/scripts/en2zh_test.sh > logs/m
 2. **中文 CTC 的识别力**：在混音片段上 CER 是 0.32。实际的 talker 语音更干净，但 f 的量级比英文大，PL-EM 的 λ 会自动适应预算。照配方，不调参。
 3. **Paraformer 的分词**：中文 ASR-BLEU 由 sacreBLEU 的 zh 分词决定。跨方向的 BLEU 只作并列，不作比较。
 4. **dev5 选择噪声**：dev5 的文本 tcpBLEU 在检查点之间可能只差 ±0.3。规则已经写死，不另作解释。
+
+
+## 修正 1（2026-11-13 07:20 布拉格，执行者；只改卡的放置，不改选择规则、门槛或任何训练 / 解码配置）
+
+用户（约 06:50、06:55 布拉格）："都改成叠加跑dev5速查"；0–3 叠 (a) 的 dev5 速查和 PL-EM 训练。
+
+1. **PL-EM 开训条件**（`en2zh_after_select.sh` 的 `STACK_PLEM=1`，默认关闭时行为不变；提交 26ac3caf3）：
+   - 和原来一样，先用 noclobber 占 slotA。占槽后 `sync_train_exclude` 会排除 0–3，新的作业进不来。
+   - 原条件"0–3 上没有任何非占卡进程"改为：0–3 每卡实际占用 + 56 GiB（PL-EM 峰值）+ 3 GiB（余量）≤ 135 GiB，也就是 ≤ 76 GiB，相当于每卡最多还有 1 个解码在跑；同时卡上没有别的训练。正在跑的解码不停。
+2. **PL-EM 峰值的来源**：三次 zh→en 的 PL-EM 训练（talker_crf_v1/v2/v3），rank 0 的 max reserved 分别是 51606 / 51186 / 43820 MiB，最大约 50.4 GiB；再加 CUDA 上下文、NCCL 和其他 rank 之间的差异，按 56 GiB 计。
+3. **训练中继续叠放**：PL-EM 日志出现第 400 步存盘（之前三次的峰值都在这之前达到）后，写 `logs/mist_w3po_v1/slots/stack_ok_cards_a`（"0 1 2 3"）。`sync_train_exclude`（新环境变量 `STACK_OK_FILE`）不再排除这几张卡，新的解码按 --cap135 以实际占用叠到 135 GiB。训练结束后这个文件改名释放。
+4. 两个等待进程已按 PID 停掉，用相同的 argv、env、cwd 重启，只加了上面的环境变量，日志接着原来的文件追加：
+   - `en2zh_after_select.sh`：3192301 → 1222510；
+   - `sync_train_exclude.sh`：1255324 → 1222453。

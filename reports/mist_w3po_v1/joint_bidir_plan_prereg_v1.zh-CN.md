@@ -206,3 +206,20 @@ zh→en 共 53 个全 dev 解码，按会议切成 dev5（5 场 1092 窗）和�
     - `JOINT_SELECTED s1|s2 <步>`（同时写标记文件 `logs/mist_w3po_v1/joint/JOINT_S1_SELECTED` / `JOINT_S2_SELECTED`）
     - `JOINT_DEV_DONE`、`JOINT_TEST_DONE`
     - `JOINT_STOP <段> <原因>`、`JOINT_CEILING`、`JOINT_MERGE_DEVIATION`
+
+
+## 修正 2（2026-11-13 07:20 布拉格，执行者；只改卡的放置和速查顺序，不改选择规则、任何门槛或解码配置）
+
+用户（约 06:50、06:55 布拉格）："都改成叠加跑dev5速查"；"0-3叠加第一个训练的dev5速查，4-7叠加第二个训练的dev5速查"。
+
+1. **放置（已实现，提交 26ac3caf3）**：`joint_proxy.sh` 在 `logs/mist_w3po_v1/joint/<run>/proxy_stack.conf` 存在时，给两个方向的编排器加 `--stack-cards logs/mist_w3po_v1/slots/stack_cards_b47 --stack-rank <步> --stack-group <run>/stack_group`（`stack_cards.py`）。文件存在时，分片解码只放 4–7，每卡最多 1 个；按 nvidia-smi 实际占用（180 s 内最大值）+ 64 GiB ≤ min(135, total − 5.4)，在 gpu_launch.lock 下复核。其他作业照旧。文件不存在时，行为与修正前完全相同。
+2. **顺序**：新检查点优先，旧检查点有空位再补。参照解码 v8e（第 1 段 L^ref 要用）排最前，A′ 参照（只供第 2 段）排最后。`<run>/stack_group/order` 写 `oldest` 就能改成旧的优先，不用重启。注意：§9 修正 1 第 4 条的规则只看从 500 开始连续完成的前缀，所以新检查点先出结果并不能让早停提前判定。
+3. **held-out**：第 1 段的代理本来就没有 held-out 作业（§2.3）。第 2 段的 held-out 仍排除 4–7（它约 65 GiB，叠上会超过 135 GiB），0–3 有空时才放。它只用于打平，不阻塞早停判断。
+4. **看门狗** `stack47_watchdog.py`：
+   - 触发条件：任一卡超过 135 GiB；训练步时连续 3 个日志点超过基线 4650 ms 的 1.4 倍；训练日志报错。
+   - 触发后：把 stack 文件改名，按 PID 停掉 4–7 上的解码，记 `STACK47_WITHDRAWN`。训练不动。
+5. **实测结果（07:10–07:11 布拉格）**：
+   - 4 个 z_s03000 分片放上 4–7。启动后每个解码占 66.2–66.5 GiB，训练本身占 68.4–70.3 GiB，卡 6、7 合计 135.3–135.4 GiB，超过 135。看门狗在第一个解码上卡后约 26 s 撤卡（`stack_cards_b47.withdrawn_20261113T061116Z`）。
+   - 训练步时没有变化（4770、4803 ms），没有报错。
+   - 这 4 个分片各用掉 1 次重试（rc 143），按原规则回到 0–3 排队。
+   - 结论：按现有解码配置（batch 16），4–7 每卡只剩 64.7–66.6 GiB 预算，放不下一个解码，严格 135 GiB 线下不能叠。是否放宽上限，或改用更小的解码占用，要用户决定。在此之前 stack 文件保持撤下，(b) 的速查按修正前的规则放在 0–3。
