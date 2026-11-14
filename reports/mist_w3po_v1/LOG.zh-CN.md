@@ -3071,3 +3071,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 09:17 (a) EN2ZH_TEST_DONE，09:18 JOINT_TEST_DONE。正式 test 汇总与预算一致；联合 vs 单方向（test）：AMI text −0.28 / ASR −0.20，Ali text +0.84 / ASR +1.15，En→Zh 持平。
 - (a) 的 4 个 UTMOS / SIM 失败（缺 TORCH_HOME → 联网下载时 SSL 报错；权重已在 /opt/dlami/nvme/jasonleeeli/cache/torch）。新增 en2zh_test_quality_rerun.sh（同命令 + TORCH_HOME；等有 20 GiB 空闲的卡；已有输出跳过），已用 setsid nohup 后台启动。只做了 bash -n 和 DRY_RUN 检查。
 - 更正：报告和本 LOG 中两个手写时间标签（09:40 → 09:00，10:40 → 09:15）。
+
+### 2026-11-14 10:35 布拉格 — 用户：先 A 后 B，8 卡；A 推理叠加跑，dev5 速验叠加在 8 卡
+- A（推理时写入偏置）代码，只新增：crf/decode_crf_ckpt_waitbias.py（Engine.read 的 wait_bias += b；最终读仍禁止 <wait>；b = 0 不安装包装）、scripts/joint_orch_wb.py（把 joint_orch 的 decode_crf_ckpt_finalpost 命令换成 waitbias 版本，其余不变；找不到 finalpost 模块时拒绝）、crf/test_decode_crf_ckpt_waitbias.py（3/3 通过，含与 finalpost 包装的叠加）。
+- dev5 标定 scripts/wb_dev5.sh：方法（joint v2′ s3500）在 b ∈ {−1, −2, −3, −5} 下解码，加严格基线（同一 base 的 identity，无偏置）在同一批 dev5 窗口上，两个方向，只解码文本；joint_proxy 的 dev5 参数；--cap135，8 张卡全用（不排除）。说明：这是为“同延迟对比”做的单旋钮标定，不是方法调参。挑选规则：每个方向取文本 chunk LAAL 最接近严格基线的 b，再在全 dev（含语音）上确认。
+- 只做了 bash -n 和 DRY_RUN 检查。
