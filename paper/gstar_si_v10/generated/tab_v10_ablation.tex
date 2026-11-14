@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrr}
+\toprule
+ & tcpBLEU & ASR-BLEU & text & speech & End- \\
+Dev system & all & all & LAAL & LAAL & Offset \\
+\midrule
+\multicolumn{6}{l}{\emph{Zh$\rightarrow$En}} \\
+(1) deadline SFT + T1c & 27.93 & 19.24 & 2.95 & 3.97 & 4.14 \\
+(2) \quad + rl + PL-EM & 27.93 & \textbf{??} & 2.95 & \textbf{??} & \textbf{??} \\
+(3) \quad + SerialCRF v2$'$ & 27.75 & 23.33 & 3.37 & 3.96 & 3.43 \\
+(4) \quad + $\bias=-1$ (\sys{} v10) & 28.31 & 23.50 & 3.03 & 3.61 & 3.18 \\
+\multicolumn{6}{l}{\emph{En$\rightarrow$Zh}} \\
+(1) deadline SFT + T1c & 41.07 & 31.07 & 2.32 & 3.12 & 3.45 \\
+(2) \quad + rl + PL-EM & 41.07 & \textbf{??} & 2.32 & \textbf{??} & \textbf{??} \\
+(3) \quad + SerialCRF v2$'$ & 41.90 & 31.72 & 2.70 & 3.25 & 3.16 \\
+(4) \quad + $\bias=-1$ (\sys{} v10) & 41.35 & 31.65 & 2.42 & 2.96 & 2.93 \\
+\bottomrule
+\end{tabular}}
+\caption{Full development set (15 / 18 meetings), one change per row. Rows (1)--(2) share their text. Latency in seconds, chunk protocol. A training-time latency budget and an earlier-write lattice are compared on text in \S\ref{sec:res-v10} and Appendix~\ref{app:calib}.}
+\label{tab:abl10}
+\end{table}

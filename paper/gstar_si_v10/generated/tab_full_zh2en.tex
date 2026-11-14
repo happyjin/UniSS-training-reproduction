@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering\small
+\resizebox{\textwidth}{!}{\begin{tabular}{lccccccccc}
+\toprule
+System & cpBLEU$_\text{sess}$ & cpBLEU$_\text{win}$ & cpchrF$_\text{sess}$ & BLEU$_\text{blind}$ & Len & Spk & DER & Conf. & Empty \\
+\midrule
+Qwen3-Omni, prompted & 6.40 & 13.55 & 19.00 & 14.24 & 0.76 & 63.5 & 78.7 & 50.6 & 0.0 \\
+Cascade: diarizer $\rightarrow$ Qwen3-Omni & 16.07 & 16.67 & 40.61 & 16.84 & 0.94 & 83.6 & 15.5 & 4.1 & 0.0 \\
+Cascade: diarizer $\rightarrow$ same-data model & 22.36 & 23.22 & 48.18 & 24.85 & 1.04 & 83.6 & 15.5 & 4.1 & 0.0 \\
+\sys{} w/o speaker stream & 12.20 & 26.24 & 26.17 & 28.13 & 0.91 & 84.9 & 57.4 & 48.5 & 0.1 \\
+\sys{} (offline) & 25.86 & 27.06 & 49.06 & 28.43 & 0.91 & 91.3 & 16.0 & 5.4 & 0.0 \\
+\sys{} (offline), oracle stream & 27.32 & 27.39 & 51.29 & 28.37 & 0.92 & 95.9 & 11.6 & 1.2 & 0.1 \\
+Qwen3-Omni + LA2 & 6.31 & 13.41 & 18.74 & 14.11 & 0.78 & 63.5 & 101.6 & 0.1 & 0.0 \\
+\sys{} (offline) + LA2 & 24.81 & 26.23 & 47.98 & 27.67 & 0.94 & 90.7 & 17.3 & 6.6 & 0.0 \\
+\sys{}-Simul & 24.30 & 25.81 & 47.72 & 26.71 & 1.03 & 93.2 & 12.8 & 6.3 & 0.0 \\
+\bottomrule
+\end{tabular}}
+\caption{All text metrics, Zh$\rightarrow$En. cpBLEU$_\text{win}$ matches speakers once per window; Len: output
+over reference length (words); Conf.: speaker-confusion part of
+DER; Empty: windows with no output.}
+\label{tab:full-zh2en}
+\end{table*}

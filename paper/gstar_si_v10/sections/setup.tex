@@ -1,0 +1,58 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Data.} \emph{En$\rightarrow$Zh}: AMI~\citep{carletta2005ami} IHM-mix recordings (headsets summed into one
+channel), official split; each utterance's translation is selected from three MT systems by reference-free quality
+estimation and an audio check (Appendix~\ref{app:data}). Reference windows group overlapping or touching utterances (at
+most 20\,s): 2{,}375 test windows from 16 meetings, 35\% with several speakers, keeping \num{v6:filt:en2zh:all:dur}\% of
+the test speech (Table~\ref{tab:funnel7}); whole-meeting runs read all of it. \emph{Zh$\rightarrow$En}: each AMI
+utterance's Chinese translation is re-spoken by the UniSS Talker with one voice per speaker at its original start; the
+human AMI transcripts are the references (Appendix~\ref{app:zhdata}; the same 16 test meetings). \emph{Real Mandarin}:
+the AliMeeting test set~\citep{yu2022m2met}, 20 meetings of two to four people (10.8\,h), scored against human English
+translations (\S\ref{sec:res-real}), never used for training or tuning.
+
+\paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
+Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) is one
+bidirectional model; the v9 \sys{}-Simul adds deadline training per direction (Table~\ref{tab:hyper}). \sys{} v10 is one
+bidirectional model trained in two stages on 8 H200 GPUs (Appendix~\ref{app:v10train}). \emph{Stage 1}, the strict
+baseline, trains the deadline objective from \sys{} (offline) on \num{v10:c:j:rows} rows, every batch of 64 holding 32
+rows per direction, for \num{v10:c:j:s1steps} steps. \emph{Stage 2} trains latent write alignment from stage 1 with 64
+read rows per step; checkpoints are decoded on five development meetings per direction (dev5), and a pre-registered rule
+stops training and selects one. The rule selected step \num{v10:c:j:s2rule}; we use step \num{v10:c:j:s2step}, chosen on
+development data (Appendix~\ref{app:v10train}). The Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
+simultaneous speech (T1c); the PL-EM Talker is fine-tuned from it per direction (Appendix~\ref{app:plem}). Decoding is
+greedy.
+
+\paragraph{Baselines.} \emph{Strict baseline}: the stage-1 Thinker with the frozen T1c Talker in its default setting
+(fixed rate, one sample per block, no merging), as in v9. \emph{Baseline + PL-EM}: the same text, merged per read and
+spoken by the PL-EM Talker; \sys{} v10 differs from it only in the Thinker.
+\ifEseven\emph{SeamlessStreaming}~\citep{seamless2023} with its official defaults reads our online windows, its segments
+relabelled causally by the diarizer (Appendix~\ref{app:e7}).\fi\
+The v9 comparisons keep the v9 system and protocol: \emph{cascades} translate the diarizer's turns one by one with our
+speaker-blind window model (\emph{same-data}), with the same recipe trained on the cascade's turns (\emph{turn-trained}),
+or on reference turns and speakers (oracle input); LocalAgreement-2~\citep{liu2020low,polak2022cuni} and fixed lag are
+commit policies on the same model (Appendices~\ref{app:full},~\ref{app:v9proto}).
+
+\paragraph{Metrics.} \textbf{cpBLEU}, the translation analogue of concatenated minimum-permutation
+WER~\citep{watanabe2020chime6}, scores windows: per meeting, output slots are matched one-to-one to reference speakers by
+chrF~\citep{popovic2015chrf} and BLEU is computed over the matched pairs. Whole meetings are scored by \textbf{tcpBLEU},
+the analogue of tcpWER~\citep{neumann2023meeteval}: each output segment joins the reference unit of its matched speaker
+that it overlaps within a 2\,s collar (Appendix~\ref{app:metrics}). \textbf{ASR-BLEU} is tcpBLEU of the speech
+transcribed by Whisper-large-v3 (English) or Paraformer (Chinese), averaged over two TTS seeds. \textbf{Latency} is
+measured per speaker stream. \emph{Speech LAAL}, our primary measure, is LAAL~\citep{papi2022over} over reference units
+with each target word delayed until it is heard (a block's words spread evenly over its playback, blocks released no
+earlier than the online detector allows; chunk protocol, Appendix~\ref{app:chunk}); \emph{EndOffset} runs from the end of
+a source unit to the end of its last heard word; text LAAL uses commit times.
+
+\paragraph{Overlap-aware evaluation.}
+\label{sec:eval-overlap}
+A tcpBLEU unit is \emph{overlapped} when another speaker talks during at least 20\% of it, else \emph{single};
+tcpBLEU-ov and tcpBLEU-1spk score each part. \emph{Concurrent-speaker recall} (CR) takes every pair of utterances of two
+speakers that overlap by at least 0.5\,s and asks whether both received text attributed to their own speaker within
+1\,s; \emph{collapse} counts pairs whose missing side is covered by the other side's speaker. \emph{Post-hoc relabelling}
+gives each segment of a speaker-blind model the diarizer slot most active over its span, one speaker per span as in
+recognition-then-attribution pipelines; online it uses only the frames available at the commit (\emph{causal}).
+
+\paragraph{Statistics.} v7--v9 tests are pre-registered (Appendices~\ref{app:stats7},~\ref{app:prereg},~\ref{app:v8}).
+v10 comparisons use an exact two-sided sign-flip test and a paired bootstrap over test meetings, pooling both TTS seeds,
+with Holm correction (Table~\ref{tab:sig10}); latency differences are point estimates.

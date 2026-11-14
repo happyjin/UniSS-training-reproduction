@@ -1,0 +1,26 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrr}
+\toprule
+ & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{3}{c}{latency (s) $\downarrow$} \\
+\cmidrule(lr){3-5}\cmidrule(lr){7-9}
+Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech LAAL & EndOffset \\
+\midrule
+\multirow{3}{*}{AMI Zh$\rightarrow$En} & Deadline SFT (strict baseline) & 25.02 & 19.97 & 27.10 & 18.07 & 2.99 & 4.01 & 4.08 \\
+ & \quad + rl + PL-EM Talker & 25.02 & 19.97 & 27.10 & \textbf{??} & 2.99 & \textbf{??} & \textbf{??} \\
+ & \sys{} v10 ($\bias=-1$) & \textbf{25.34} & \textbf{20.53} & \textbf{27.30} & \textbf{??} & \textbf{3.07} & \textbf{??} & \textbf{??} \\
+\midrule
+\multirow{3}{*}{AliMeeting Zh$\rightarrow$En} & Deadline SFT (strict baseline) & 21.43 & 16.91 & 23.05 & 16.73 & 2.82 & 4.28 & 4.57 \\
+ & \quad + rl + PL-EM Talker & 21.43 & 16.91 & 23.05 & \textbf{??} & 2.82 & \textbf{??} & \textbf{??} \\
+ & \sys{} v10 ($\bias=-1$) & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+\multirow{3}{*}{AMI En$\rightarrow$Zh} & Deadline SFT (strict baseline) & 41.15 & 36.16 & 42.51 & 31.65 & 2.37 & 3.21 & 3.48 \\
+ & \quad + rl + PL-EM Talker & 41.15 & 36.16 & 42.51 & \textbf{??} & 2.37 & \textbf{??} & \textbf{??} \\
+ & \sys{} v10 ($\bias=-1$) & \textbf{41.74} & \textbf{36.48} & \textbf{43.24} & \textbf{??} & \textbf{2.47} & \textbf{??} & \textbf{??} \\
+% E7 (SeamlessStreaming) rows appear here once eval_outputs/mist_w3po_v1/decode/jtest_<set>_seamless_default/score_text.json exists (reports/mist_w3po_v1/e7_seamless_multispk_*).
+\bottomrule
+\end{tabular}}
+\caption{Test sets, decoded once. The strict baseline is the joint deadline-trained Thinker with the frozen T1c Talker; the second row keeps its text and speaks it with read-level merging and the PL-EM Talker; \sys{} v10 is the latent-write-aligned Thinker (SerialCRF v2$'$) with the fixed write bias $\bias=-1$ and the same speech layer. Text tcpBLEU on whole meetings (all / overlapped / single-speaker units); speech: ASR-BLEU (tcpBLEU of the ASR transcript, mean of two TTS seeds); latency under the chunk protocol, per speaker stream: text LAAL, speech LAAL (primary) and EndOffset (end of source unit to end of its last heard word). Bold: \sys{} v10. Significance: Table~\ref{tab:sig10}; $\bias=0$: Table~\ref{tab:delta0}.}
+\label{tab:main10}
+\end{table*}

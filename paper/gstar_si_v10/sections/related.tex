@@ -1,0 +1,26 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Simultaneous speech translation.} Wait-$k$~\citep{ma2019stacl} writes after a fixed delay;
+LocalAgreement~\citep{liu2020low,polak2022cuni,machacek2023turning} commits the prefix two consecutive hypotheses agree
+on; learned policies emit a wait token~\citep{koshkin2024transllama}. SimulS2ST systems keep one speaker's
+voice~\citep{zhang2024streamspeech,seamless2023,labiausse2025hibiki,cheng2025liveinterpret,he2026simuls2st,deng2025simuls2s}.
+Pre-segmented evaluation overstates deployability~\citep{papi2025real}.
+
+\paragraph{Latent timing.} Read/write policies have been learned as latent variables: monotonic attention marginalises
+over write positions~\citep{arivazhagan2019milk}, and the Hidden Markov Transformer treats the moment each target token
+starts as a hidden state~\citep{zhang2023hmt}. Our latent write alignment differs in its state space, sets of written
+chunks of several speakers plus the speaker order within a read, over which the partition function is exact. Posterior
+regularisation constrains expectations under a latent posterior by a KL projection~\citep{ganchev2010posterior}; we use
+it to bound the delay at which synthesised words are heard. Thresholds on the write decision are a common test-time
+latency control (e.g.\ in SeamlessStreaming;~\citealp{seamless2023}); our write bias is one such constant, fixed once.
+
+\paragraph{Multi-speaker recognition and translation.} Serialised output training transcribes overlapping speakers
+in order~\citep{kanda2020sot,kanda2022tsot,kanda2021saasr}; streaming diarizers keep speaker order over long
+recordings~\citep{park2024sortformer,medennikov2025streaming}, and diarization can condition a
+recogniser~\citep{polok2026dicow,huo2026tagspeech} or be interleaved with a speech LLM's audio tokens
+(G-STAR;~\citealp{peng2026gstar}), which we adopt. STAC-ST translates two-party calls offline with turn
+tokens~\citep{zuluaga2023stac}; DiariST~\citep{yang2024diarist} streams speaker-attributed translation with token-level
+serialisation and introduces speaker-attributed BLEU; X-Translator~\citep{zhao2026xtranslator} binds each committed
+recognition span to the speaker with the largest temporal overlap. Voice-cloned translation lowers listeners' workload
+in online meetings~\citep{ma2026samevoice}, a motivation, not a validation of our voices.

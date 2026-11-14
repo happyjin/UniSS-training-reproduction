@@ -1,0 +1,200 @@
+\section{Method}
+\label{sec:method}
+
+\input{figures/arch}
+
+\subsection{Task and input: who said what}
+\label{sec:method-task}
+\label{sec:method-audio}
+\label{sec:method-spk}
+\label{sec:method-fuse}
+
+\paragraph{Task.} From a single-channel recording $\bm{x}$ of $T$ seconds in which an unknown number of speakers talk,
+sometimes at once, the system outputs segments
+\begin{equation}
+\mathcal{Y}=\big((k_n,\,a_n,\,b_n,\,\bm{y}^{(n)})\big)_{n=1}^{N_\mathcal{Y}},
+\label{eq:task}
+\end{equation}
+where $k_n\in\{1,\dots,S\}$ is the speaker label (arbitrary, but one person keeps one label for the whole meeting),
+$a_n<b_n$ the start and end of the source speech and $\bm{y}^{(n)}$ its translation; in speech output $\bm{y}^{(n)}$ is
+spoken in the voice of $k_n$. In simultaneous mode segments are produced while $\bm{x}$ is recorded.
+
+\paragraph{Two streams.} The frozen audio encoder of Qwen3-Omni, whose LLM (the ``Thinker'') already translates
+single-speaker speech~\citep{xu2025qwen3omni}, maps the recording to acoustic tokens
+$\bm{A}=\mathrm{Enc}(\bm{x})=[\bm{a}_1;\dots;\bm{a}_N]\in\R^{N\times d}$ (one per 80\,ms, centred at $c_i$; $d=2048$), which carry no memory of who spoke earlier. A frozen Streaming Sortformer~\citep{medennikov2025streaming}, run in its
+streaming mode, keeps every voice in the slot it got when it first appeared and gives slot activities
+$\bm{P}=\mathrm{Diar}(\bm{x})\in[0,1]^{F\times S}$  for $F$ frames
+of $\delta=80$\,ms and $S=8$ slots; overlapped speech appears as several large entries in one row. We resample $\bm{P}$
+to the token centres, $\tilde{\bm{P}}=\mathrm{Interp}(\bm{P};c_{1:N})$ , and summarise every block of $K=5$ rows by a strided
+convolution and a two-layer perceptron into one speaker token $\bm{s}_j\in\R^{d}$ (6.3M parameters; the output layer starts at zero, so training
+starts from the pretrained Thinker; Appendix~\ref{app:model}). A streaming frame is emitted once and never revised, so a
+reader at time $t$ sees what a run on $\bm{x}_{\le t}$ gives (Appendix~\ref{app:causal}).
+
+\paragraph{Interleaved fusion.} Following G-STAR~\citep{peng2026gstar}, each speaker token follows the audio it describes,
+\begin{equation}
+\bm{E}=[\bm{A}_1;\bm{s}_1;\,\bm{A}_2;\bm{s}_2;\,\dots;\,\bm{A}_M;\bm{s}_M],
+\label{eq:interleave}
+\end{equation}
+with $\bm{A}_j$ the $j$-th block of $K$ acoustic tokens; $\bm{E}$ fills the audio placeholder of the chat template after
+an instruction $\bm{c}$ (Appendix~\ref{app:prompt}).
+
+\subsection{Speaker-attributed, time-stamped output}
+\label{sec:method-out}
+\label{sec:method-train}
+
+\paragraph{Serialisation.} We add 251 time tokens $\tim{0},\dots,\tim{250}$ (80\,ms steps, up to 20\,s) and 8 speaker
+tokens $\spk{1},\dots,\spk{8}$ with trainable input and output rows, and write a window's segments speaker first,
+ordered by start as in serialized output training~\citep{kanda2020sot},
+\begin{equation}
+\bm{y}=\mathop{\Vert}_{n=1}^{N_\mathcal{Y}}\big[\spk{k_n}\,\tim{\alpha_n}\,\bm{y}^{(n)}\,\tim{\beta_n}\big],
+\label{eq:serial}
+\end{equation}
+with $\alpha_n,\beta_n$ start and end rounded to 80\,ms. Targets use the diarizer's slots: per meeting, each reference
+speaker is mapped to the slot that overlaps most with that speaker's speech over the whole meeting (Hungarian
+matching;~\citealp{kuhn1955hungarian}), so the model learns to copy the slot rather than invent a label per window
+(Appendix~\ref{app:model}).
+
+\paragraph{Training.} The Thinker $p_\theta(\bm{y}\mid\bm{E},\bm{c})=\prod_u p_\theta(y_u\mid\bm{y}_{<u},\bm{E},\bm{c})$ is trained with the weighted cross-entropy
+\begin{equation}
+\mathcal{L}=-\frac{\sum_{u}\omega(y_u)\log p_\theta(y_u\mid\bm{y}_{<u},\bm{E},\bm{c})}{\sum_{u}\omega(y_u)},
+\label{eq:loss}
+\end{equation}
+$\omega=2$ for speaker and $1.5$ for time tokens, since one wrong speaker or time token can misattribute a sentence.
+Trained are the projector, the new rows and LoRA adapters~\citep{hu2022lora} on all 48 layers (Table~\ref{tab:hyper});
+\sys{} (offline) decodes a window at once.
+
+\subsection{Simultaneous interpretation}
+\label{sec:method-simul}
+
+\paragraph{Reading and writing.} The model reads every $\Delta=1$\,s, at $t_r=\min(r\Delta,T)$, $r=1,\dots,R$. It sees
+$\bm{x}_{\le t_r}$ and a causal speaker stream: the low-latency diarizer finalises a frame only $\lambda=1.04$\,s later,
+so later frames are zeroed,
+\begin{equation}
+P^{(r)}_{f,k}=P_{f,k}\;\mathds{1}\big[f\delta\le t_r-\lambda\big],
+\label{eq:causal}
+\end{equation}
+and $\bm{E}^{(r)}$ is built from $\bm{x}_{\le t_r}$ and $\bm{P}^{(r)}$. With $\hat{\bm{y}}^{(<r)}$ everything committed
+before read $r$, the model continues greedily,
+\begin{equation}
+\hat{\bm{y}}^{(r)}=\mathrm{Greedy}_\theta\big(\cdot\mid\hat{\bm{y}}^{(<r)},\bm{E}^{(r)},\bm{c}\big)\ \text{until}\ \eta_r,
+\label{eq:write}
+\end{equation}
+where the stop token is $\eta_r=\wait$ for $r<R$ and $\eta_R=\eos$; what precedes it is committed and never revised.
+
+\paragraph{Deadline targets.} Each reference translation is split at punctuation into chunks, and each chunk is timed by
+the source it covers (word alignments, or the same fraction of the utterance where none exist; Appendix~\ref{app:model}).
+A chunk $j$ ending at $e_j$ becomes due one interpreting lag $\epsilon=1$\,s later, at the read
+\begin{equation}
+r(j)=\min\big(\{r: t_r\ge e_j+\epsilon\}\cup\{R\}\big),
+\label{eq:due}
+\end{equation}
+and the target of read $r$ is the chunks due at $r$, serialised as in Eq.~\eqref{eq:serial}, then $\eta_r$; each read is
+one training row whose prefix is the targets of all earlier reads. A deadline model trains new LoRA adapters, the
+projector and the new rows on these rows with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). The v9 system,
+\sys{}-Simul, has one such model per direction; in v10 one model is trained on both directions (\S\ref{sec:setup}). It is
+our strict baseline and the initialisation of latent write alignment.
+
+\subsection{Latent write alignment}
+\label{sec:method-latent}
+
+\paragraph{Lattice.} Deadlines fix when each chunk is written; we let the model's likelihood decide within one read. Let
+$\mathcal{C}$ be the chunks of a window. A \emph{write plan} $z=(A_{1:R},o_{1:R})$ gives the set
+$A_r\subseteq\mathcal{C}$ of chunks written by read $r$, with
+\begin{equation}
+\{j:r(j)\le r-1\}\subseteq A_r\subseteq\{j:r(j)\le r\},
+\label{eq:lattice}
+\end{equation}
+$A_R=\mathcal{C}$, and each speaker's chunks written in order, so a chunk is written on time or one read late; $o_r$ chooses whether chunks
+deferred from read $r-1$ precede the newly due chunks of other speakers. With $Y_r^{o}(A',A)$ the tokens of
+$A\setminus A'$ serialised in order $o$ and $\kappa(A')$ the canonical serialisation of the chunks already written, the
+posterior over plans is a linear-chain CRF whose states are sets of written chunks and whose potentials are the
+Thinker's own log-likelihoods,
+\begin{equation}
+\begin{aligned}
+q_\tau(z)&=\tfrac{1}{Z}\exp(\tau\textstyle\sum_{r}\psi_{r,o_r}(A_{r-1},A_r)),\\
+\psi_{r,o}(A',A)&=\log p_\theta(Y_r^{o}\eta_r\mid\bm{E}^{(r)},\kappa(A')),
+\end{aligned}
+\label{eq:post}
+\end{equation}
+with $A_0=\emptyset$, $Y_r^o=Y_r^o(A',A)$ and the instruction $\bm{c}$ omitted.
+Since the history depends only on the set $A'$, the plan score factorises over reads, and $Z$ and every edge marginal
+$q_\tau(r,A'\!\to\!A,o)$ are exact by forward--backward over the feasible sets.
+
+\paragraph{EM.} The E-step scores every feasible transition with the current model; the M-step minimises the
+posterior-weighted form of Eq.~\eqref{eq:loss} with $q_\tau$ held fixed,
+\begin{equation}
+\mathcal{L}_{\mathrm{W}}=-\frac{1}{D}\sum_{e}q_\tau(e)\,
+\log_\omega p_\theta\big(Y_r^{o}\eta_r\mid\cdot\big),
+\label{eq:mstep}
+\end{equation}
+where $e=(r,A'\!\to\!A,o)$ ranges over the lattice edges, $\log_\omega$ applies the token weights and $D$ the normaliser of Eq.~\eqref{eq:loss}. With all mass on the deadline
+plan this is the deadline loss exactly; we anneal with $\tau=0.5$ (Appendix~\ref{app:crf}).
+
+\paragraph{Write bias.} One more read makes the same translation more likely, so EM moves mass to the later write and
+the decoder learns to wait longer (\S\ref{sec:res-drift}). At decoding we add one constant to the wait logit at every
+step of every read but the last,
+\begin{equation}
+\tilde{\ell}_u(\wait)=\ell_u(\wait)+\bias,\qquad \bias=-1 .
+\label{eq:bias}
+\end{equation}
+$\bias$ is a fixed decoding constant like greedy search or $\Delta$, chosen once on five development meetings as the
+value whose text lag is closest to the deadline model's, for both directions (Appendix~\ref{app:calib}).
+
+\subsection{Speaking in each speaker's voice}
+\label{sec:method-voice}
+
+\paragraph{Voices.} Slot $k$'s solo frames are
+\begin{equation}
+m_{f,k}=\mathds{1}\big[P_{f,k}>0.5\big]\prod_{k'\neq k}\mathds{1}\big[P_{f,k'}<0.5\big];
+\label{eq:alone}
+\end{equation}
+runs of at least 0.4\,s are concatenated into a voice prompt $\bm{v}_k$ of at most 8\,s, in simultaneous mode only from
+audio heard before the slot's first commitment. The UniSS Talker~\citep{uniss2025}, which predicts BiCodec
+tokens~\citep{wang2025spark}, speaks each slot's segments with prompt $\bm{v}_k$. Each speaker has a stream of its own;
+within a stream, segment $n$ of duration $D_n$ starts at
+\begin{equation}
+\pi_n=\max\big(\zeta_n,\;\pi_{n-1}+D_{n-1}\big),
+\label{eq:layout}
+\end{equation}
+with $\zeta_n$ its release time (the source start offline). The baseline Talker plays every committed block in full at a
+fixed rate, so a stream that receives more speech than its source builds a queue.
+
+\subsection{Speaking on the playback timeline}
+\label{sec:method-plem}
+
+\paragraph{Lattice.} A stream's blocks $i=1,\dots,I$ have $W_i$ target words and are released at $\nu_i$
+(\S\ref{sec:method-online}). For each block the Talker proposes candidates $c\in C_i$ (8 samples at two speaking rates)
+of duration $D(c)$. The backlog $h_i$, how long block $i$ waits for earlier speech, is rounded up ($\lceil\cdot\rceil$) to an 80\,ms grid
+up to 8\,s:
+$h_{i+1}=T_i(h_i,c_i)$ with
+\begin{equation}
+T_i(h,c)=\big\lceil\max(0,\,\nu_i+h+D(c)-\nu_{i+1})\big\rceil,
+\label{eq:backlog}
+\end{equation}
+and with a block's words spread evenly over its playback they are heard $L_i(h,c)=W_ih+\tfrac{W_i+1}{2}D(c)$
+word-seconds after $\nu_i$ in total. A linear-chain CRF over $(h_i,c_i)$ has potentials
+\begin{equation}
+\phi_i(h,c)=0.5\,\bar{\ell}(c)+5\,f(c)-\lambda L_i(h,c),
+\label{eq:plpot}
+\end{equation}
+with $\bar{\ell}$ the Talker's mean token log-probability and $f$ the negative CTC loss per character under an
+independent recogniser; forward--backward over the backlog is exact.
+
+\paragraph{Latency budget and training.} $\lambda$ is the dual variable of $\min_q\mathrm{KL}(q\Vert q_0)$ subject to
+$\mathbb{E}_q[\sum_iL_i]/\sum_iW_i\le b$, a posterior-regularised problem~\citep{ganchev2010posterior} whose solution is the
+CRF of Eq.~\eqref{eq:plpot}; the expected delay falls monotonically in $\lambda$, so bisection finds $\lambda^\star$. The
+budget $b$ is the rule-based Talker's own delay minus 0.3\,s. The Talker is fine-tuned on each block's candidates weighted
+by their posterior given the backlog the rule-based path reached, which brings the backlog cost of later blocks into the
+current one through the backward messages (\emph{PL-EM}; Appendix~\ref{app:plem}). At inference it samples two
+candidates per block at a backlog-dependent rate and keeps the one with the better CTC fidelity.
+
+\subsection{Running on a whole meeting}
+\label{sec:method-online}
+
+\paragraph{Online windows.} A window opens at the first frame where any slot of the low-latency diarizer is active and
+closes after 0.6\,s with no active slot or at 20\,s (v9: 1\,s). All audio is processed. A window's opening and end are
+known only $\lambda$ after the frames that decide them, so commits are delayed to the opening, and those of the last read
+to the moment the end is known, with frames timed as the diarizer emits them, in blocks of nine (\emph{chunk protocol},
+Appendix~\ref{app:chunk}). Slots persist across windows; the decoder restarts at each window. Blocks of one speaker
+committed in the same read are merged before they reach the Talker (\emph{read-level merging}, rl). Latencies count audio
+and playback time, not computation (the v9 compute study: Appendix~\ref{app:v9proto}).

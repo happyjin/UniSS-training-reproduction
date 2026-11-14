@@ -1,0 +1,28 @@
+\begin{table}[t]
+\centering\small
+\resizebox{\columnwidth}{!}{\begin{tabular}{lccccc}
+\toprule
+ & \multicolumn{2}{c}{cpBLEU$_\text{sess}$} & \multicolumn{2}{c}{DER} & Spk-count \\
+System & single & multi & single & multi & multi \\
+\midrule
+\multicolumn{6}{l}{\emph{En$\rightarrow$Zh}} \\
+Qwen3-Omni, prompted & 16.64 & 9.97 & 68.0 & 65.4 & 0.0 \\
+Cascade: diarizer $\rightarrow$ same-data model & 43.21 & 31.97 & 22.1 & 28.6 & 78.7 \\
+\sys{} w/o speaker stream & 25.04 & 18.28 & 48.1 & 57.7 & 57.6 \\
+\sys{} (offline) & 47.42 & 39.39 & 6.9 & 19.6 & 72.8 \\
+\sys{} (offline), oracle stream & 47.59 & 38.40 & 6.2 & 20.5 & 80.1 \\
+\sys{} (offline) + LA2 & 43.75 & 25.42 & 8.4 & 20.5 & 68.1 \\
+\sys{}-Simul & 45.79 & 40.21 & 5.4 & 15.4 & 77.0 \\
+\multicolumn{6}{l}{\emph{Zh$\rightarrow$En}} \\
+Qwen3-Omni, prompted & 9.26 & 4.49 & 79.6 & 75.1 & 0.0 \\
+Cascade: diarizer $\rightarrow$ same-data model & 27.71 & 19.34 & 13.5 & 16.9 & 74.2 \\
+\sys{} w/o speaker stream & 15.68 & 9.94 & 50.0 & 60.9 & 59.6 \\
+\sys{} (offline) & 29.09 & 23.76 & 9.9 & 20.3 & 77.7 \\
+\sys{} (offline), oracle stream & 30.64 & 25.16 & 4.9 & 16.4 & 88.8 \\
+\sys{} (offline) + LA2 & 27.07 & 23.36 & 13.2 & 20.2 & 75.6 \\
+\sys{}-Simul & 27.61 & 21.64 & 10.2 & 14.6 & 82.3 \\
+\bottomrule
+\end{tabular}}
+\caption{Single- and multi-speaker test windows.}
+\label{tab:groups}
+\end{table}

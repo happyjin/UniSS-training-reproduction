@@ -1,0 +1,48 @@
+\section{Introduction}
+\label{sec:intro}
+
+A meeting interpreter renders each contribution into the listener's language as it unfolds and makes clear whose
+contribution it is: a ``yes'' from the project manager means something different from a ``yes'' from the client. And
+people talk at once: over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers.
+Simultaneous speech-to-speech translation (SimulS2ST) systems translate one speaker and can keep that speaker's
+voice~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s}. DiariST~\citep{yang2024diarist}
+streams speaker-attributed speech-to-text translation of overlapping conversations, without timestamps or speech;
+X-Translator~\citep{zhao2026xtranslator} is a speaker-aware speech-to-speech cascade that recognises one stream and routes
+each committed span to one speaker, so a merged second voice cannot be recovered. No multi-speaker system reports
+latency on overlapping meetings (Appendix~\ref{app:related7}, Table~\ref{tab:related8}).
+
+We present \sys{} (\emph{Meeting Interpretation with Speaker Tracking}), in which one decoder writes, for every speaker
+of a window, speaker-attributed, time-stamped translation segments $\spk{k}\,\tim{a}\,\text{translation}\,\tim{b}$,
+which a speech generator speaks in the voice of speaker $k$ (Figure~\ref{fig:arch}). The decoder reads a frozen
+streaming diarizer, whose slots stay fixed for the whole meeting, as speaker tokens interleaved with its acoustic tokens
+(from G-STAR;~\citealp{peng2026gstar}), so two concurrent voices stay two speakers; it writes speaker first, because a
+segment's voice must be known before its first word is spoken.
+
+The other half of the problem is \emph{when} to write and to speak. Our first simultaneous decoder learned a wait token
+from deadlines, each translated chunk due one fixed lag after the source it covers. It commits only
+\num{v10:dev:z:b:pre}\% of its Zh$\rightarrow$En words before the source utterance has ended, and a rule-based speech
+layer that plays every committed block in full adds a queue (speech LAAL \num{v10:dev:z:b:slaal}\,s on the development
+set). We learn both decisions as latent structure. For the decoder, the read at
+which each chunk is written (on time or one read later) and the speaker order within a read are latent; their posterior
+has an exact partition function over sets of written chunks, and EM re-weights the training rows by it. For the speech
+generator, each block's rendering and the playback backlog form a linear-chain CRF whose potentials contain the delay at
+which each word is heard, under a latency budget imposed by posterior regularisation~\citep{ganchev2010posterior}. More
+audio makes the same translation more likely, so EM drifts towards later writes; one constant bias on the wait logit,
+set once on development meetings, corrects this at decoding.
+
+Our contributions are (i) the speaker-first, time-stamped joint decoding format with the diarizer read inside the
+decoder; (ii) an overlap-aware evaluation with cascade and relabelling controls on the same diarizer
+(\S\ref{sec:eval-overlap}); (iii) latent write alignment, exact EM over when and in which speaker order chunks are
+written, with a fixed write bias (\S\ref{sec:method-latent}); and (iv) playback-timeline EM for the speech generator
+under a latency budget (\S\ref{sec:method-plem}). \sys{} beats the strongest non-oracle cascade on AMI reference windows by
+\num{v7:gainoff:en2zh} / \num{v7:gainoff:zh2en} speaker-attributed BLEU (En$\rightarrow$Zh / Zh$\rightarrow$En) and, on
+overlapped speech, a speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} /
+\num{v8:x:ov-O2-rel-zh2en:diff} (\S\ref{sec:res-overlap}). On whole AMI test meetings, against the same joint model
+trained on deadlines, latent alignment changes speech ASR-BLEU by \num{v10:test:ami:m-b:asr} /
+\num{v10:test:en:m-b:asr} and speech LAAL by \num{v10:test:ami:m-b:slaal} / \num{v10:test:en:m-b:slaal}\,s
+(Zh$\rightarrow$En / En$\rightarrow$Zh; \S\ref{sec:res-v10}).
+\ifAliwin
+On real Mandarin meetings the changes are \num{v10:test:ali:m-b:asr} ASR-BLEU and \num{v10:test:ali:m-b:slaal}\,s.
+\else
+On real Mandarin meetings its text score is lower than the baseline's.
+\fi

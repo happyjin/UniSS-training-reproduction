@@ -1,0 +1,31 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{lccccc@{\hskip 10pt}ccccc}
+\toprule
+ & \multicolumn{5}{c}{En$\rightarrow$Zh} & \multicolumn{5}{c}{Zh$\rightarrow$En} \\
+\cmidrule(lr){2-6}\cmidrule(lr){7-11}
+System & LAAL\,s & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER & LAAL\,s & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER \\
+\midrule
+\multicolumn{11}{l}{\emph{Offline}} \\
+Cascade, same-data translator & -- & 36.29 & 37.01 & 88.2 & 25.8 & -- & 22.36 & 24.85 & 83.6 & 15.5 \\
+Cascade, turn-trained translator & -- & 35.27 & 35.27 & 79.3 & 37.8 & -- & 23.69 & 25.32 & 86.4 & 16.9 \\
+Cascade, turns + 2\,s context & -- & 23.75 & 25.02 & 88.3 & 25.9 & -- & 16.88 & 19.53 & 83.5 & 15.6 \\
+\sys{} w/o speaker stream & -- & 21.17 & 43.40 & 84.8 & 54.5 & -- & 12.20 & 28.13 & 84.9 & 57.4 \\
+\quad + diarizer relabelling & -- & 42.06 & 43.40 & 82.2 & 13.9 & -- & 24.66 & 28.13 & 82.0 & 15.7 \\
+\sys{} (offline) & -- & 42.81$^\dagger$ & 43.33 & 89.5 & 14.0 & -- & 25.86$^\dagger$ & 28.43 & 91.3 & 16.0 \\
+\addlinespace
+\multicolumn{11}{l}{\emph{Simultaneous ($\Delta{=}1$\,s)}} \\
+\sys{} (offline) + LA2 & 2.37 & 31.64 & 32.74 & 87.8 & 15.2 & 2.50 & 24.81 & 27.67 & 90.7 & 17.3 \\
+\sys{}-Simul model + LA2 & 3.07 & 39.21 & 39.64 & 88.4 & 12.0 & 2.97 & 24.86 & 27.21 & 91.7 & 13.2 \\
+Streaming cascade (turns + LA2) & 2.50 & 35.16 & 35.84 & 87.4 & 26.1 & 2.70 & 21.55 & 23.68 & 80.3 & 16.2 \\
+\sys{}-Simul & 2.40 & 43.08$\pm$0.45$^{3}$ & 43.24 & 90.4 & 11.3 & 3.04 & 23.55$\pm$1.07$^{2}$ & 25.88 & 93.1 & 12.3 \\
+\addlinespace
+\multicolumn{11}{l}{\emph{Oracle input (reference turns or activity), same translator}} \\
+Cascade, reference turns (oracle) & -- & 37.43 & 38.32 & 99.7 & 0.5 & -- & 24.95 & 26.28 & 100.0 & 1.0 \\
+\sys{} (offline), oracle stream & -- & 42.32 & 42.95 & 92.2 & 14.2 & -- & 27.32 & 28.37 & 95.9 & 11.6 \\
+\bottomrule
+\end{tabular}}
+\caption{Speaker-attributed translation (text) on the reference windows of the AMI test meetings (2{,}375 En$\rightarrow$Zh and 3{,}317 Zh$\rightarrow$En windows, 16 meetings). One bidirectional \sys{} (offline) serves both directions; \sys{}-Simul is trained per direction and reported as the mean $\pm$ s.d.\ over its training seeds (superscript: number of seeds; per seed in Table~\ref{tab:seeds7}). cpBLEU$_\text{sess}$ (primary) matches output speakers to reference speakers once per meeting; BLEU$_\text{blind}$ ignores speakers. Spk: windows with the right number of speakers (\%); DER (\%) of the output segments. LAAL includes the diarizer's 1.04\,s look-ahead and is computation-unaware. $^\dagger$: better than the strongest non-oracle baseline of its block (exact permutation test over meetings $p<0.05$ and the decoder-noise-widened interval excludes 0; Table~\ref{tab:sig7}).}
+\label{tab:main7full}
+\end{table*}

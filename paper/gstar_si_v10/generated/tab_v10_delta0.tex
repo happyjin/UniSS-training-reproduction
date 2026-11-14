@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrr}
+\toprule
+Set & System & tcpBLEU & ov & ASR-BLEU & sp.\ LAAL & EndOff. \\
+\midrule
+AMI Zh$\rightarrow$En & strict baseline & 25.02 & 19.97 & 18.07 & 4.01 & 4.08 \\
+ & $\bias=0$ (first run) & 25.09 & 19.96 & 20.48 & 3.99 & 3.42 \\
+ & $\bias=-1$ & 25.34 & 20.53 & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+AliMeeting & strict baseline & 21.43 & 16.91 & 16.73 & 4.28 & 4.57 \\
+ & $\bias=0$ (first run) & 18.99 & 15.63 & 17.37 & 4.85 & 4.23 \\
+ & $\bias=-1$ & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+AMI En$\rightarrow$Zh & strict baseline & 41.15 & 36.16 & 31.65 & 3.21 & 3.48 \\
+ & $\bias=0$ (first run) & 41.85 & 36.18 & 32.41 & 3.34 & 3.21 \\
+ & $\bias=-1$ & 41.74 & 36.48 & \textbf{??} & \textbf{??} & \textbf{??} \\
+\bottomrule
+\end{tabular}}
+\caption{Test results of the latent-write-aligned system without the write bias ($\bias=0$), the run that preceded the introduction of $\bias$, next to the strict baseline and the final system. Same speech layer (rl + PL-EM) for both $\bias$ values; chunk protocol.}
+\label{tab:delta0}
+\end{table}

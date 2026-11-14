@@ -1,0 +1,533 @@
+\section{Model Details}
+\label{app:model}
+
+\paragraph{Streams.} The encoder gives
+\begin{equation}
+\bm{A}=\mathrm{Enc}(\bm{x})=[\bm{a}_1;\dots;\bm{a}_N]\in\R^{N\times d},
+\label{eq:enc}
+\end{equation}
+row $\bm{a}_i$ describing about 80\,ms centred at $c_i=(i-\tfrac12)T/N$. The diarizer (chunks of 0.72\,s, 0.32\,s right
+context, a speaker cache) gives
+\begin{equation}
+\bm{P}=\mathrm{Diar}(\bm{x})\in[0,1]^{F\times S},\quad F=\lceil T/\delta\rceil,
+\label{eq:diar}
+\end{equation}
+resampled linearly in time to the token centres,
+\begin{equation}
+\tilde{\bm{P}}=\mathrm{Interp}(\bm{P};\,c_1,\dots,c_N)\in[0,1]^{N\times S}.
+\label{eq:interp}
+\end{equation}
+With $\tilde{\bm{P}}$ zero-padded to $MK$ rows, $M=\lceil N/K\rceil$, the projector computes
+\begin{equation}
+\bm{z}_j=\sum_{r=1}^{K}\bm{W}^{(r)}\,\tilde{\bm{p}}_{(j-1)K+r}+\bm{b}\in\R^{h},
+\label{eq:conv}
+\end{equation}
+\begin{equation}
+\bm{s}_j=\bm{W}_2\,\mathrm{GELU}\big(\bm{W}_1\mathrm{GELU}(\bm{z}_j)+\bm{b}_1\big)+\bm{b}_2\in\R^{d},
+\label{eq:mlp}
+\end{equation}
+with $h=1024$; $\bm{W}_2,\bm{b}_2$ start at zero, so training starts from the pretrained Thinker reading zero vectors and
+phases the speaker stream in only as far as it lowers the loss. The Thinker defines
+\begin{equation}
+p_\theta(\bm{y}\mid\bm{x})=\prod_{u=1}^{|\bm{y}|}p_\theta\big(y_u\mid \bm{y}_{<u},\bm{E},\bm{c}\big).
+\label{eq:ar}
+\end{equation}
+
+\paragraph{Slot-consistent targets.} Per meeting, reference speakers $\rho\in\mathcal{R}$ are mapped to slots by
+\begin{equation}
+\sigma^\star=\arg\max_{\sigma}\sum_{\rho\in\mathcal{R}}\sum_{f=1}^{F_\text{m}}
+G_{f,\rho}\,\mathds{1}\big[P_{f,\sigma(\rho)}>0.5\big],
+\label{eq:slotmap}
+\end{equation}
+over injective maps $\sigma$, with $G_{f,\rho}\in\{0,1\}$ marking reference speech of $\rho$ in frame $f$ of the meeting;
+an utterance by $\rho$ is labelled $\sigma^\star(\rho)$. Rounding can make $\alpha_n=\beta_n$ for very short segments
+(\num{v6:sameb:en2zh:O2}\% of \sys{}'s En$\rightarrow$Zh segments); such a segment keeps its text but counts as
+zero-length speech in DER. Hesitations produce no segment.
+
+\paragraph{Deadline timing.} An utterance's reference translation is split at punctuation into chunks $c_1,\dots,c_J$;
+chunk $j$ covers the fraction
+\begin{equation}
+\phi_j=\textstyle\sum_{j'\le j}|c_{j'}|\,/\,\sum_{j'=1}^{J}|c_{j'}|
+\label{eq:frac}
+\end{equation}
+of the utterance and ends at $e_j=\mathrm{end}(w_{\lceil\phi_j|\bm{w}|\rceil})$ for the time-aligned source words
+$\bm{w}$, or at $e_j=a+\phi_j(b-a)$ where no word timings exist (the re-voiced Chinese source). The target of read $r$ is
+\begin{equation}
+\bm{y}^{(r)}=\Big(\mathop{\Vert}_{j:\,r(j)=r}\big[\spk{k_j}\,\tim{\alpha_j}\,c_j\,\tim{\beta_j}\big]\Big)\,\Vert\,\eta_r .
+\label{eq:readtarget}
+\end{equation}
+
+\paragraph{One channel for all speakers.} The v9 single-channel layout serialises all streams of a meeting,
+$\pi_n=\max(\zeta_n,\pi_{n-1}+D_{n-1}+g\,\mathds{1}[k_n\neq k_{n-1}])$ with $g=0.2$\,s between speakers; per-speaker
+streams use Eq.~\eqref{eq:layout}.
+
+\section{Data Construction}
+\label{app:data}
+
+\input{generated/tab_data}
+
+\paragraph{Translations.} Every AMI utterance (IHM segmentation, official train/dev/test meetings) is translated by
+three MT systems (Hy-MT2-30B-A3B, NiuTrans LMT-60-4B and MiLMMT-46-4B). One candidate is selected with reference-free
+quality estimation (XCOMET-XL and an XLM-R-XL estimator) and the chrF agreement between candidates. The selected
+translation is also synthesised in the speaker's voice (VoxCPM2), and the synthesis is checked for audibility and
+intelligibility (Whisper large-v3 CER). Of the 12{,}643 test utterances, 96.3\% received a translation and speech.
+
+\paragraph{Review.} A window enters our data only if all its non-hesitation utterances have a non-empty translation
+whose speech decodes and is not silent. A stricter review also requires the speech not to be over-long and to be
+recognised with CER $\le0.3$; it rejects many windows with short back-channels and is used only as a test subset
+(1{,}454 of 2{,}375 test windows).
+
+\paragraph{Windows.} Reference windows are AMI utterance groups: utterances that overlap or touch are grouped, and a
+group longer than 20\,s is dropped. Diarizer windows (training only) open at the first active diarizer frame and close
+after 1\,s without activity or at 20\,s; they are padded by 0.2\,s before and 0.3\,s after. A window is dropped if an
+utterance overlapping it has less than 90\% of its duration inside the window.
+
+\section{Instruction}
+\label{app:prompt}
+
+The instruction $\bm{c}$ is the Thinker's speech translation instruction followed by: \emph{``Several people are
+speaking. For every utterance write \texttt{<|spk k|><|t a|>}translation\texttt{<|t b|>}: k is the speaker's slot in the
+speaker stream, a and b are its start and end in 80 ms steps from the start of the audio, utterances in order of
+start.''} The prompted baseline receives the same audio without speaker tokens and the plain translation
+instruction.
+
+\section{Metrics}
+\label{app:metrics}
+
+\paragraph{cpBLEU.} Let meeting $m$ consist of windows $\mathcal{W}_m$. For output slot $k$ and window $w$, let
+$H_{w,k}$ be the concatenated text of all segments with label $k$, and for reference speaker $\rho$ let $G_{w,\rho}$ be
+the concatenated reference translations of $\rho$ in $w$. The session-level matching is
+\begin{equation}
+\pi_m=\arg\max_{\pi}\sum_{k}\mathrm{chrF}\big(H_{m,k},\,G_{m,\pi(k)}\big),
+\end{equation}
+where $H_{m,k}=\Vert_{w\in\mathcal{W}_m}H_{w,k}$ and $G_{m,\rho}=\Vert_{w\in\mathcal{W}_m}G_{w,\rho}$ are the
+meeting-level concatenations and $\pi$ ranges over one-to-one partial maps from output slots to reference speakers. cpBLEU$_\text{sess}$ is corpus BLEU over the
+pairs $(H_{w,k},G_{w,\pi_m(k)})$ of all windows and matched slots, plus $(H_{w,k},\varnothing)$ for unmatched output
+slots and $(\varnothing,G_{w,\rho})$ for unmatched reference speakers; missing or extra speakers are therefore
+penalised through brevity and precision. cpBLEU$_\text{win}$ uses a separate matching $\pi_w$ for every window.
+
+\paragraph{DER.} Output segments $(k_n,a_n,b_n)$ and reference utterances (hesitations excluded) are rasterised on
+10\,ms frames; output labels are mapped to reference speakers per meeting by maximal total overlap (Hungarian), and
+missed speech, false alarm and confusion are summed over all windows without a collar.
+
+\paragraph{LAAL.} For a window of duration $T$ whose committed output has $|\hat{\bm{y}}|$ characters with commit times
+$d_1\le\dots\le d_{|\hat{\bm{y}}|}$ and whose reference has $|\bm{y}^\star|$ characters,
+\begin{equation}
+\mathrm{LAAL}=\frac{1}{\tau}\sum_{i=1}^{\tau}\Big(d_i-(i-1)\frac{T}{\max(|\hat{\bm{y}}|,|\bm{y}^\star|)}\Big),
+\end{equation}
+where $\tau$ is the index of the first character committed at or after $T$ (or $|\hat{\bm{y}}|$). We average LAAL
+over windows.
+
+\paragraph{tcpBLEU.} Whole meetings have no windows to pair output with reference, so we score time-constrained:
+(1) reference units are a speaker's scored utterances chained while less than 1\,s apart (a model may write two
+consecutive utterances of one person as one segment); (2) output slots are matched to speakers per meeting by chrF over
+the whole meeting's text, as for cpBLEU; (3) each output segment, on the meeting clock and widened by a collar $c$ on both
+sides, goes to the annotated utterance it overlaps most: if that utterance was not scored (a hesitation, or speech the
+reference windows dropped) the segment is ignored; if it belongs to the segment's matched speaker the segment joins that
+utterance's unit; otherwise it joins the matched speaker's own unit that it overlaps most, and if there is none it is an
+insertion. A segment spanning two units counts once, for the one it overlaps most; several segments in one unit are
+joined in time order; a segment overlapping no annotated speech is an insertion. tcpBLEU is corpus BLEU over
+(unit hypothesis, unit reference) pairs plus (insertion, empty) pairs. \emph{Example}: speakers A and B, A says $u_1$
+(0--4\,s) and $u_2$ (4.5--8\,s), B says ``yes'' (2--2.5\,s) inside $u_1$ and $u_3$ (6--9\,s) overlapping $u_2$. A's units:
+$\{u_1u_2\}$ (0.5\,s apart); B's: $\{\text{yes}\}$, $\{u_3\}$. An output segment of A over 0--8\,s goes to A's unit; an
+output ``yes'' labelled A at 2--2.5\,s overlaps $u_1$ most, belongs to A's unit, and is therefore scored there (a wrong
+attribution costs B's ``yes'' as a deletion and adds an extra word to A's unit); an output of B at 6--9\,s goes to
+$u_3$; an output at 10--11\,s with no speech is an insertion. Table~\ref{tab:collar} varies $c$.
+
+\input{generated/tab_v6_collar}
+
+\section{Hyperparameters}
+\label{app:hyper}
+
+\paragraph{Simul training rows.} Reads with nothing due are kept with probability 0.5; whole-window (20\%) and
+single-speaker (15\%) rows are mixed in.
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcc}
+\toprule
+ & \sys{} (offline) & \sys{}-Simul \\
+\midrule
+Initialisation & Qwen3-Omni Thinker & \sys{} (offline), merged \\
+Directions & both & one model each \\
+Diarizer preset & offline & low latency (1.04\,s) \\
+Rows & 67{,}795 & 128{,}879 / 160{,}957 \\
+Steps & 2{,}000 & 3{,}000 \\
+GPUs (H200) & 8 & 8 \\
+Batch (global / micro) & 64 / 8 & 64 / 8 \\
+Learning rate & \multicolumn{2}{c}{$10^{-4}\to10^{-5}$, cosine, 50 warm-up} \\
+LoRA & \multicolumn{2}{c}{$r=32$, $\alpha=64$, q/k/v/o, 48 layers} \\
+Loss weights $\omega$ & \multicolumn{2}{c}{speaker 2, time 1.5, other 1} \\
+Posterior perturbation & \multicolumn{2}{c}{$p=0.2$, $\mathcal{N}(0,0.1^2)$, shift $\le1$ frame} \\
+Single-speaker rows & 15\% & 15\% (+20\% offline) \\
+Read interval / lag & -- & $\Delta=1$\,s (-M: 0.5/1/2\,s) / $\epsilon=1$\,s \\
+\bottomrule
+\end{tabular}}
+\caption{Training hyperparameters (\sys{}-Simul: En$\rightarrow$Zh / Zh$\rightarrow$En).}
+\label{tab:hyper}
+\end{table}
+
+\section{Latency and Full Metrics}
+\label{app:full}
+
+\input{generated/fig_tradeoff}
+\input{generated/tab_v7_real}
+\input{generated/tab_v7_seeds}
+
+\paragraph{Read interval.} Varying $\Delta$ at test time (Figure~\ref{fig:tradeoff}): at 2\,s, \sys{}-Simul loses
+\num{cost:en2zh:d2} points for \num{lat:en2zh:d2}\,s more LAAL (LocalAgreement trails by \num{gain:en2zh:simul2}); at
+0.5\,s, earlier than any training read, it commits guesses and collapses (\num{tx:en2zh:S2dl_d0.5:cp};
+Zh$\rightarrow$En \num{tx:zh2en:S2dl_d0.5:cp}). Drawing the
+interval per training window from $\{0.5,1,2\}$\,s (\sys{}-Simul-M) removes the collapse: \num{tx:en2zh:S2dlm_d0.5:cp}
+at 0.5\,s with \num{tx:en2zh:S2dlm_d0.5:laal}\,s LAAL, by waiting longer, not by sub-second commits.
+
+
+\input{generated/tab_tradeoff}
+\input{generated/tab_full_en2zh}
+\input{generated/tab_full_zh2en}
+
+\section{Statistics}
+\label{app:sig}
+\label{app:stats7}
+
+\input{generated/tab_v7_reg}
+\input{generated/tab_v7_sig}
+
+Every comparison uses one procedure. The difference A$-$B is taken over the windows both systems decoded. Its 95\%
+interval comes from 1{,}000 bootstrap resamples of whole meetings (16 AMI, 20 AliMeeting); the slot-to-speaker matching
+is made per meeting, so a meeting resample re-uses exactly the matching a re-match would find. The $p$ value is an
+exact two-sided permutation test that flips the two systems' outputs per meeting over all $2^{16}$ (AMI) or $2^{20}$
+(AliMeeting) assignments, so it cannot go below $2^{-15}\approx3\cdot10^{-5}$ or $2^{-19}$. Leave-one-meeting-out
+minima and maxima and the per-meeting differences are in the released statistics file. Seed comparisons average the
+difference over the training seeds; their bootstrap resamples meetings and seeds, their permutation flips a meeting's
+outputs for all seeds at once. The decoder adds noise that neither test contains: greedy bf16 decoding of the MoE Thinker
+is not batch-invariant (Appendix~\ref{app:noise}), so we widen the meeting interval by
+$\sigma_\text{dec}(n)=\sigma_0/\sqrt{n}$ for $n$ scored windows (variances added), with $\sigma_0$ the larger of the v6
+estimate (12.3) and the v7 re-decode (\num{v7:nchk:diff} tcpBLEU on 1{,}412 windows). A difference is called real only if
+$p<0.05$ (Holm-adjusted over the eight pre-registered tests of Table~\ref{tab:reg7}) and the widened interval excludes
+0. Table~\ref{tab:sig7} lists the exploratory comparisons without correction.
+
+\section{Single- and Multi-Speaker Windows, Errors}
+\label{app:more}
+
+\input{generated/tab_groups}
+\input{generated/tab_diar}
+\input{generated/tab_errors}
+
+\paragraph{Remaining errors.} Most remaining errors are short back-channels (``yeah'', ``okay'') of a second speaker in
+overlap that are merged into the main turn or dropped: \num{er:en2zh:O2:under}\% of the multi-speaker En$\rightarrow$Zh
+windows are under-counted (\num{er:en2zh:O2-nosd:under}\% without the speaker stream), while whole utterances are
+rarely omitted (\num{er:en2zh:O2:omit}\%; Appendix~\ref{app:more}).
+
+\sys{} loses \num{tx:en2zh:O2:single} $\rightarrow$ \num{tx:en2zh:O2:multi} cpBLEU$_\text{sess}$ from single- to
+multi-speaker windows (En$\rightarrow$Zh) and finds the right number of speakers in only \num{tx:en2zh:O2:spkmulti}\% of
+the latter. Table~\ref{tab:groups} splits the test set by the number of speakers, Table~\ref{tab:errors} counts the errors on
+multi-speaker windows after aligning each output segment to a reference utterance by time overlap and text
+similarity, and Table~\ref{tab:diar} evaluates on windows cut by the diarizer.
+
+\section{Example}
+\label{app:example}
+
+Table~\ref{tab:example} shows a window in which speaker B says ``yes'' while A is still talking. The cascade translates
+the overlapped stretch in every turn that contains it: ``yes'' appears in A's turn, in a spurious third slot and in B's
+turn. \sys{} writes it once and attributes it to B.
+
+\input{generated/example}
+
+\section{Chinese AMI Meetings}
+\label{app:zhdata}
+
+\paragraph{Construction.} The Chinese meetings reuse the En$\rightarrow$Zh translations of every AMI utterance. A first
+version laid the MT pipeline's own Chinese speech (one voice clone per utterance) on the meeting clock; the audit below
+found that the diarizer split most speakers into several slots, because a person sounded different from one utterance
+to the next. We therefore re-spoke every utterance with the UniSS Talker and one voice prompt per speaker. Each clip is
+trimmed of leading and trailing silence, set to its speaker's median loudness in the English recording (gain at most
+$4\times$, peak below 0.9), placed at the utterance's original start, and sped up or slowed down (pitch kept) towards the
+English duration within $[0.8, 1.5]$; a speaker's next clip waits until the previous one ends. The meeting's background
+is the quieter half of its speech-free English frames.
+
+\paragraph{Audit.} Table~\ref{tab:zhaudit} lists the checks, the problems they found and the fixes; every check was rerun
+after its fix. An utterance that fails the clip checks is left out of the meeting (neither heard nor translated) rather
+than dropping its window, which would remove most multi-speaker windows, since the failures are mostly short
+back-channels.
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{p{2.3cm}p{3.1cm}p{2.6cm}}
+\toprule
+Check & Problem found & Fix \\
+\midrule
+Overlap vs.\ English ($\pm$20\%) & +36\% (Chinese longer) & speed-up $\le1.5\times$ \\
+ & $-25\%$ after re-speaking & slow-down $\le1.25\times$: $-12$ to $-17\%$ \\
+Windows & clock shifts split groups & English utterance groups \\
+Intelligibility (CER $\le0.3$) & 17\% fail Whisper & Paraformer recheck; failing clips left out \\
+Clipping & bursts in background & quieter frames only, gain cap \\
+Diarizer (DER $\le$ English + 10) & 40--44\% vs.\ 28\%, extra slots & one voice per speaker: 17.7--21.7\% \\
+ & 13 meetings still fail & meetings dropped (none in test) \\
+\bottomrule
+\end{tabular}}
+\caption{Audit of the Chinese AMI meetings. Left out in the end: 19{,}081 of 123{,}353 utterances (CER 13{,}681; no
+translation 5{,}295; long pauses 98; other 7).}
+\label{tab:zhaudit}
+\end{table}
+
+\section{Read Targets}
+\label{app:labels}
+
+\input{generated/tab_ablation}
+
+Deadline targets (\S\ref{sec:method-simul}) are derived from the reference and its timing. An alternative that needs
+neither is to label each read with the \emph{stable prefix} of the model's own output: the offline model drafts a
+continuation from the audio heard so far and another from the whole window, both after the same committed prefix, and
+the target is the longest common prefix of the two (speaker and time tokens included), followed by the wait token. We
+continued the same offline model for 3{,}000 steps on such reads of 8{,}000 training windows (both directions,
+intervals drawn from $\{0.5,1,1,2\}$\,s) and decode it with the same plain wait rule (greedy, the wait token
+competing with all others). Table~\ref{tab:ablation} compares
+the two at $\Delta=1$\,s: deadline targets are far better in En$\rightarrow$Zh (\num{gain:en2zh:labels} cpBLEU$_\text{sess}$,
+$p<0.001$) and slightly better but later in Zh$\rightarrow$En (\num{gain:zh2en:labels}, not significant), so we use them.
+
+\section{Causality of the Speaker Stream}
+\label{app:causal}
+
+The streaming runs read posteriors from one low-latency run of the diarizer over the whole session, with every frame
+later than $t-\lambda$ zeroed at a read at $t$ (Eq.~\ref{eq:causal}). This equals a causal system only if those frames
+do not change when the audio after $t$ is never given. For every test meeting of the three sets we drew three reference
+windows and one read time in each (fixed seed), truncated the session audio at that time and ran the diarizer from
+scratch with the same model and preset, pooling its 10\,ms output to 80\,ms exactly as for the stream. Over
+\num{v6:caus:cuts} cuts and \num{v6:caus:frames} compared frames, the largest absolute difference to the posteriors the
+streaming runs read was \num{v6:caus:maxabs} (the fp16 precision in which they are stored), the mean absolute difference \num{v6:caus:mean},
+the most active slot agreed on at least \num{v6:caus:arg}\% and the whole set of active slots on at least
+\num{v6:caus:slotset}\% of active frames in every cut, and the $>0.5$ decision differed on \num{v6:caus:ndec} frames
+(\num{v6:caus:ovldiff} of them among the \num{v6:caus:ovlframes} overlapped frames), every one of them a posterior within
+$5\cdot10^{-4}$ of 0.5, i.e.\ an fp16 rounding tie. Our pre-registered criterion (all decisions
+identical) is therefore missed by these rounding ties; we consider the stream causal up to floating-point noise and did
+not re-decode with prefix posteriors. Prefix runs of the same meeting cut at different times also agree with each other
+(\num{v6:caus:selfpairs} pairs, largest difference \num{v6:caus:selfmax}): later audio never changes earlier frames.
+(A first comparison script compared the 10\,ms prefix output with the 80\,ms stream and reported large differences; it
+was a frame-rate error, corrected before the numbers above.) The audio encoder needs no such test: each read
+encodes the audio prefix itself. Algorithm~\ref{alg:read} lists one read.
+
+\begin{figure}[h]
+\small
+\resizebox{\columnwidth}{!}{\begin{tabular}{@{}l@{}}
+\toprule
+\textbf{Algorithm 1}: read $r$ of a window that started at $s$ (meeting clock) \\
+\midrule
+1: $t\gets\min(r\Delta, T)$; audio $\bm{x}_{s:s+t}$ (only what has been heard) \\
+2: $\bm{A}\gets\mathrm{Enc}(\bm{x}_{s:s+t})$ \hfill (prefix forward, Eq.~\ref{eq:enc}) \\
+3: $\bm{P}^{(r)}\gets$ diarizer frames of $(s, s+t-\lambda]$, later ones zero \hfill (Eq.~\ref{eq:causal}) \\
+4: $\bm{E}^{(r)}\gets$ interleave $\bm{A}$ with speaker tokens of $\bm{P}^{(r)}$ \hfill (Eq.~\ref{eq:interleave}) \\
+5: greedy decode after the committed tokens until $\wait$ (or $\eos$ if $t=T$) \\
+6: commit the new tokens; parse segments; hand each new block to the Talker \\
+7: whole meetings: commit time $\gets\max(\text{now},\ \text{window opening known})$; \\
+\quad at $t=T$, $\max(\cdot,\ \text{window end known})$ \hfill (\S\ref{sec:method-online}) \\
+\quad no slot active $\Rightarrow$ no window; empty decode $\Rightarrow$ nothing spoken \\
+\bottomrule
+\end{tabular}}
+\caption{One read of \sys{}-Simul. The full prompt is re-encoded at every read (no cache is kept across reads).}
+\label{alg:read}
+\end{figure}
+
+\section{Decoder Run-to-Run Noise}
+\label{app:noise}
+
+\paragraph{Batch invariance.} Greedy decoding of the MoE Thinker in bf16 is not invariant to the batch composition:
+decoding the same 96 Zh$\rightarrow$En windows at batch 16 and at batch 4 gives token-identical output for only
+\num{v6:t13:same}\% of them, with cpBLEU$_\text{sess}$ \num{v6:t13:b16} vs.\ \num{v6:t13:b4}. Differences of this size between
+runs decoded in different batches (including the shards re-decoded after a stopped worker, and the late runs that split the
+Thinker over two cards, prereg\_v6 amendment 6) are within this noise. To size it for our tests, we resample $N$
+windows with replacement from the 96 and take the spread of the difference between the two runs: its standard deviation is
+\num{v6:noise:sd1410} cpBLEU at $N{=}1{,}410$ (a whole-meeting subset), \num{v6:noise:sd2375} at 2{,}375 and \num{v6:noise:sd3317}
+at 3{,}317. Neither the meeting bootstrap nor the permutation test contains this source: they treat each system's output as
+fixed. We therefore widen every interval by it (Appendix~\ref{app:stats7}) and call a difference real only if the widened
+interval excludes 0. A second estimate comes from re-decoding the 8 En$\rightarrow$Zh meetings decoded in v6 with the v7
+decoder (Appendix~\ref{app:online7}): \num{v7:nchk:diff} tcpBLEU on 1{,}412 windows, smaller than the first; we keep the
+larger.
+
+\section{Deadline Targets: How Accurate?}
+\label{app:deadline}
+
+For 2{,}000 validation utterances per direction we aligned source and translation with a SimAlign-style
+aligner~\citep{jalili2021simalign} (multilingual BERT, layer 8, mutual argmax) and took, for every chunk, the end of the
+last source word or character aligned to it or to an earlier chunk, i.e.\ what must have been heard to write it. The
+En$\rightarrow$Zh rule (character fraction mapped to AMI word times) deviates from this by \num{v6:dl:en2zh:word_fraction:mae}\,s
+on average; \num{v6:dl:en2zh:word_fraction:early}\% of its deadlines precede the evidence, and
+\num{v6:dl:en2zh:word_fraction:before}\% do so by more than the 1\,s lag. The Zh$\rightarrow$En duration rule of v5 deviates by
+\num{v6:dl:zh2en:duration_v5:mae}\,s (\num{v6:dl:zh2en:duration_v5:early}\% early, \num{v6:dl:zh2en:duration_v5:before}\% by
+more than the lag); with forced-aligned character times (FunASR timestamp predictor~\citep{gao2023funasr}) it deviates by
+\num{v6:dl:zh2en:char_fraction_v6:mae}\,s (\num{v6:dl:zh2en:char_fraction_v6:early}\% early). Because a window ends 0.3\,s
+after its last word and the lag is 1\,s, \num{v6:flush:labels:zh2en}\% of Zh$\rightarrow$En training chunks are due only at
+the last read; at test time \sys{}-Simul commits \num{v6:flush:en2zh:S2dl_d1}\% (En$\rightarrow$Zh) and
+\num{v6:flush:zh2en:S2dl_d1}\% (Zh$\rightarrow$En) of its output at the last read of a window (LA2 on \sys{}:
+\num{v6:flush:en2zh:O2_LA2_d1}\%), which is why the whole-meeting evaluation moves those commits to the moment the end
+is known.
+
+\section{Segment-Level Attribution}
+\label{app:attr}
+
+\input{generated/tab_v6_attr}
+
+Table~\ref{tab:attr} scores who-said-what-when per reference utterance. The cascades' turns come straight from the
+diarizer, so their time placement is as good as or better than \sys{}'s; \sys{}'s gain in cpBLEU is a translation gain on
+the same attribution, not better segmentation. Recall on a speaker's first utterance after $\ge$60\,s of silence (re-entry)
+stays within a few points of the overall recall for every system that reads the diarizer, and drops by half without
+it: identity over the meeting is the diarizer's contribution.
+
+\section{Voice Prompts}
+\label{app:voice}
+
+A causal voice prompt ($\ge$1\,s of the slot heard alone before its first commit) exists for
+\num{v6:prompt:en2zh:avail}\% (En$\rightarrow$Zh), \num{v6:prompt:zh2en:avail}\% (Zh$\rightarrow$En) and
+\num{v6:prompt:ali:avail}\% (AliMeeting) of the output speaker streams of \sys{}-Simul, with
+\num{v6:prompt:en2zh:len}\,s of audio on average; during the prompt the strongest other slot has a mean posterior of
+\num{v6:prompt:en2zh:other} (En$\rightarrow$Zh) and \num{v6:prompt:zh2en:other} (Zh$\rightarrow$En). The rest
+(\num{v6:prompt:en2zh:fallback}\% / \num{v6:prompt:zh2en:fallback}\% / \num{v6:prompt:ali:fallback}\%) fall back to the
+window's audio up to the first commit, which may contain other voices. Cold start (re-review M17): from a slot's first activity it takes a median
+\num{v8:vp:en2zh:wait}\,s (En$\rightarrow$Zh), \num{v8:vp:zh2en:wait}\,s (Zh$\rightarrow$En) and \num{v8:vp:ali:wait}\,s
+(AliMeeting) until 1\,s of it has been heard alone; segments committed earlier use the fallback. Every test meeting has fewer than eight
+speakers, so the slots never run out; larger meetings are untested. Voice confusion (Table~\ref{tab:voice}) counts only
+output streams of windows with at least two reference speakers; single-speaker windows have no other voice to confuse.
+
+\input{generated/tab_v6_voice}
+
+\input{generated/tab_speech}
+
+\section{Pre-registration and Amendments}
+\label{app:prereg}
+
+All v7 analyses were registered in \texttt{prereg\_v7} before any v7 decode or score; every change was committed as a
+dated amendment before the results it touches: \num{v7:prereg:list}. The registration fixes the full meeting lists
+(AMI test EN2002a--d, ES2004a--d, IS1009a--d, TS3003a--d; all 20 AliMeeting test meetings), the eight confirmatory tests
+and their Holm family, the decoder-noise widening and the dev gates. The amendments were forced by compute and by
+colleagues' jobs on the shared cards: they cut the K, loss-weight and noise ablations and the matched-data
+deadline/stable-prefix control (amendment 2), restricted fixed lag to the 8-meeting En$\rightarrow$Zh subset
+(amendment 2), retrained the third En$\rightarrow$Zh seed from scratch after a resume restarted its learning-rate schedule
+(amendments 3, 6), and changed decoding layouts and batch sizes (amendments 4, 5, 7, 8), which only enter through decoder
+noise. The v6 subset results that v7 extends were registered in \texttt{prereg\_v6} and are reused unchanged.
+
+\section{Whole-Meeting Runs and Listener-Side Lag}
+\label{app:online}
+\label{app:online7}
+
+\input{figures/timeline}
+\input{generated/tab_v7_oa}
+
+\paragraph{Online procedure.} For each meeting, with $\lambda=1.04$\,s the diarizer's look-ahead:
+\begin{enumerate}\setlength{\itemsep}{0pt}
+\item The streaming diarizer runs over the whole meeting once; its frame $f$ is final at $t_f+\lambda$ and never revised
+(Appendix~\ref{app:causal}). Slots persist for the whole meeting.
+\item A window opens at the first final frame with any slot $>0.5$ and closes after 1\,s without an active slot or when it
+reaches 20\,s; the opening is known at its frame $+\lambda$, the end at the deciding frame $+\lambda$. The window's audio is
+$[\text{open}-0.2\,\text{s},\ \text{last active frame}+0.3\,\text{s}]$; the 0.2\,s before the opening are kept in a ring
+buffer of the past audio. A window cut at 20\,s is followed by a new window that opens at the next active frame, so a
+sentence spoken across the cut is split and translated in two parts (Table~\ref{tab:oa7}: coverage of 20\,s-cut windows).
+\item Reads at $t_r=r\Delta$ within the window: the encoder re-encodes $x_{\le t_r}$ from scratch, the speaker stream holds
+the final frames $\le t_r-\lambda$ (later frames zero, Eq.~\eqref{eq:causal}), and the decoder, restarted at every window,
+continues greedily from its own committed tokens until $\wait$. No key-value cache is kept across reads.
+\item Commit times are clamped to the window's detected opening; the last read, which writes until $\eos$, commits at the
+moment the window's end is known. Committed text is never revised; the 0.2\,s / 0.3\,s padding can make two windows
+translate the same short utterance (``repeat'' in Table~\ref{tab:oa7}); we do not deduplicate.
+\item Each committed block is spoken by the Talker with the speaker's causal prompt (Eq.~\eqref{eq:alone}) and placed on
+the channel by Eq.~\eqref{eq:layout}: one channel for all speakers, or one per speaker slot.
+\end{enumerate}
+The online windows cover all speech: \num{v7:on:en2zh:S2dl:windows} (En$\rightarrow$Zh), \num{v7:on:zh2en:S2dl:windows}
+(Zh$\rightarrow$En) and \num{v7:on:ali:S2dl:windows} (AliMeeting) windows. The 8+8+10 meetings decoded in v6 are reused
+unchanged; the others were decoded in v7 with the Thinker split over two cards or on one card (prereg\_v7 amendments 4--8).
+Re-decoding the 8 En$\rightarrow$Zh meetings of v6 with the v7 decoder gave \num{v7:nchk:v7} vs.\ \num{v7:nchk:v6}
+tcpBLEU (\num{v7:nchk:same}\% of windows token-identical), the decoder noise of Appendix~\ref{app:stats7}.
+
+\paragraph{Listener-side lag.} Every committed block gets its commit time plus the median single-stream time of one read
+with the Thinker on two H200 cards (batch 1, HuggingFace eager decoding; \num{v6:lat:en2zh:S2dl:read_ms}\,ms for
+\sys{}-Simul, \num{v6:lat:en2zh:O2_LA2:read_ms}\,ms for LA2, which decodes to the end at every read), plus synthesis at
+the Talker's measured single-stream rate (\num{v6:lat:en2zh:S2dl:tok_rate} codec tokens/s), and is played at the later of
+that time and the end of the previous block on its channel (0.2\,s more on a change of speaker). Synthesis of a block can
+overlap the next read; reads of one window are sequential. Output streams of more than 400 blocks (runaway repetition)
+were not synthesised (prereg\_v7 amendment 1): they count as empty speech, and both systems' listener lag is reported
+without them. One channel serialises overlapping speech and so builds a backlog (Table~\ref{tab:online7}); one channel per
+speaker keeps it near zero.
+
+\section{Coverage of the Reference Windows}
+\label{app:funnel7}
+
+\input{generated/tab_v7_funnel}
+
+Table~\ref{tab:funnel7} follows the test speech from the meetings to the reference windows of Tables~\ref{tab:main7}
+and~\ref{tab:real7}: windows are reference utterance groups that touch or overlap, kept only if they last at most 20\,s,
+do not straddle another group and pass the automatic translation and synthesis review (Appendix~\ref{app:data}).
+Overlapped speech is kept least. The whole-meeting runs of \S\ref{sec:res-online} are scored on the same reference
+utterances but read all speech; En$\rightarrow$Zh loses \num{v7:gap:en2zh} tcpBLEU against the reference windows of the same
+meetings, Zh$\rightarrow$En none.
+
+\section{Speaker Counts and Zero-Length Segments}
+\label{app:count7}
+
+\input{generated/tab_v7_count}
+\input{generated/tab_v7_zerolen}
+
+On multi-speaker windows \sys{} under-counts and the cascade over-counts (Table~\ref{tab:count7}): the cascade translates
+every diarizer turn, including two turns for one back-channel; \sys{} merges or drops a back-channel of at most 0.5\,s in
+\num{v7:count:en2zh:O2:under:le0.5}\% of the windows whose least-heard speaker talks that briefly. Zero-length segments
+come mostly from such short responses and from the 20\,s end of the time vocabulary (Table~\ref{tab:zerolen7}); enforcing a
+positive length after decoding leaves cpBLEU unchanged (it does not use time) and moves DER by at most 0.02 points. We did
+not train or decode with the constraint.
+
+\section{Quality of the AliMeeting References}
+\label{app:qe7}
+
+The English AliMeeting references are machine translations (Hy-MT2-30B) of the human transcripts; no human check was made
+(by decision, Limitations). We scored every reference utterance with GEMBA-DA~\citep{kocmi2023large}, the original
+Qwen3-Omni-30B-A3B Thinker prompted for a 0--100 score of the (source, translation) pair; a CometKiwi model was not
+available offline. Over \num{v7:qe:n} utterances the median score is \num{v7:qe:median}; \num{v7:qe:lt70}\% score below 70
+and \num{v7:qe:lt50}\% below 50. Leaving out every window that holds one of the lowest-scored 10\% of references changes
+\sys{} $-$ cascade from \num{v7:qerank:cas_all} to \num{v7:qerank:cas} and \sys{}-Simul $-$ LocalAgreement from
+\num{v7:qerank:sim_all} to \num{v7:qerank:sim} cpBLEU$_\text{sess}$. An LLM judge is a weak substitute for a bilingual check.
+
+\section{Relation to Prior Work}
+\label{app:related7}
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{2.4pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lccccccc}
+\toprule
+ & concurrent & time & & & latency on & & own \\
+Work & speakers & stamps & streaming & latency & overlap & speech & voice \\
+\midrule
+STAC-ST~\citeyearpar{zuluaga2023stac} & two-party & -- & -- & -- & -- & -- & -- \\
+DiariST~\citeyearpar{yang2024diarist} & \checkmark & -- & \checkmark & not reported & -- & -- & -- \\
+X-Translator~\citeyearpar{zhao2026xtranslator} & one per span$^b$ & segment & \checkmark & single speaker & -- & \checkmark & \checkmark \\
+SimulS2ST systems$^a$ & -- & -- & \checkmark & \checkmark & -- & \checkmark & one speaker \\
+\sys{} & \checkmark & \checkmark & \checkmark & text, speech, compute & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}}
+\caption{What prior multi-speaker and simultaneous translation work supports and reports. Concurrent speakers: two
+people talking at once are translated as two speakers. Latency on overlap: measured on overlapping multi-party meetings.
+$^a$\,\citet{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s}. $^b$\,One recognition
+stream, each committed span routed to one speaker; cascades that translate diarizer turns in parallel (our baselines)
+can translate two concurrent speakers. Details: Table~\ref{tab:related7}.}
+\label{tab:related8}
+\end{table}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.3cm}p{5.4cm}p{6.0cm}}
+\toprule
+Function & Prior work & What this paper adds \\
+\midrule
+Concurrent speakers & DiariST~\citep{yang2024diarist} (t-SOT serialisation, text only, no timestamps); STAC-ST~\citep{zuluaga2023stac} (two-party, offline) & every speaker of an overlapping window written with speaker, time and translation; overlap-aware scores show the gain over one-speaker-per-span relabelling (\S\ref{sec:res-overlap}) \\
+Speaker tokens interleaved with acoustic tokens & G-STAR~\citep{peng2026gstar}: multi-talker ASR with a persistent speaker stream & the same interleaving for translation; its benefit is measurable on overlapped speech, not on single-speaker speech \\
+Simultaneous policy & LocalAgreement~\citep{liu2020low,polak2022cuni}, fixed lag; SimulS2S-LLM~\citep{deng2025simuls2s}; latent read/write models~\citep{arivazhagan2019milk,zhang2023hmt} & v9: a wait token trained from source-timed chunk deadlines; v10: exact EM over write plans of several speakers (sets of written chunks and speaker order) and a fixed write bias \\
+Speech timing & rule-based queueing; posterior regularisation~\citep{ganchev2010posterior} & a linear-chain CRF over the playback backlog with a posterior-regularised latency budget (PL-EM) \\
+Voice in the output & X-Translator~\citep{zhao2026xtranslator} (one speaker per recognised span), single-speaker SimulS2ST~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret}; user study~\citep{ma2026samevoice} & causal per-speaker voice prompts from the diarizer's solo regions; one vs.\ per-speaker channels; no listening test \\
+Meeting evaluation & cpWER / tcpWER~\citep{watanabe2020chime6,neumann2023meeteval}; overlap decomposition of tcpWER; unsegmented evaluation~\citep{papi2025real} & cpBLEU, tcpBLEU with overlap / single-speaker split and concurrent-speaker recall; whole-meeting runs with queued reads and listener-side lag \\
+\bottomrule
+\end{tabular}
+\caption{What each part of \sys{} takes from prior work and what this paper adds. The comparison with other systems is
+by capability; we do not re-run them under our protocol, and no cross-paper numerical comparison is made.}
+\label{tab:related7}
+\end{table*}
+
+\input{sections/appendix_v8}

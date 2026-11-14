@@ -1,0 +1,102 @@
+\section{v8: Overlap, Latency and Pre-registered Tests}
+\label{app:v8}
+
+\input{generated/tab_v7_online}
+
+\paragraph{Pre-registration.} prereg\_v8 was committed before any v8 test decode started; it fixes the systems, the
+overlap metrics and their thresholds, the causal relabelling rule, the twelve confirmatory tests and the wording for
+each outcome. Amendment 1, before any C2 or scheduling result, fixed the short-turn fallback and the playback policies.
+The speaker-blind Simul model is trained like \sys{}-Simul (same deadline-target rows, seed, 3{,}000 steps, batch 64),
+from the offline speaker-blind model with the speaker tokens zeroed. Table~\ref{tab:reg8} lists the tests.
+
+\input{generated/tab_v8_reg}
+
+\paragraph{All systems.} Table~\ref{tab:overlap8} gives every system on reference windows and whole meetings with the
+overlap split, concurrent-speaker recall and collapse, recall of overlapped utterances under 0.5\,s and units translated
+twice. \sys{}-Simul translates a unit twice more often than the offline model (\num{v8:ov:en2zh:S2dl_d1:dup} vs.\
+\num{v8:ov:en2zh:O2:dup}\% in En$\rightarrow$Zh), mostly when padding puts the same words into two consecutive reads'
+segments. Splitting a segment that spans two reference units in proportion to time (the v8 default) changes tcpBLEU by
+at most a few hundredths of a point against v7's rule.
+
+\input{generated/tab_v8_overlap}
+\input{generated/fig_v8_overlap}
+
+\paragraph{Labels or translation?} Relabelling \sys{}'s own output with the diarizer, keeping its text, separates the
+two (re-review M09): on overlapped units its own labels score \num{v8:ov:en2zh:O2:ov} against
+\num{v8:ov:en2zh:O2-relabel:ov} with diarizer labels (Zh$\rightarrow$En \num{v8:ov:zh2en:O2:ov} vs.\
+\num{v8:ov:zh2en:O2-relabel:ov}), while with diarizer labels on both sides its text leads the speaker-blind model's by
+\num{v8:ov:en2zh:O2-relabel:ov} vs.\ \num{v8:ov:en2zh:O2-nosd-relabel:ov}. Decoder-side speaker conditioning therefore mainly yields better
+attributed segments under overlap: relabelling \sys{}'s own text costs \num{v8:ov:en2zh:O2:ov}$\rightarrow$\num{v8:ov:en2zh:O2-relabel:ov},
+while its text with diarizer labels is only \num{v8:ov:en2zh:O2-relabel:ov} vs.\ \num{v8:ov:en2zh:O2-nosd-relabel:ov} for the
+speaker-blind text; we do not claim that it translates overlapped speech better.
+
+\paragraph{Short-turn fallback (C2).} For every window, a cascade segment of at most 1.5\,s is added to \sys{}'s output
+when no \sys{} segment of the same diarizer slot overlaps it within 0.5\,s and no nearby \sys{} text has chrF $\ge$50 with
+it. On offline \sys{} this raises tcpBLEU in all three sets (Table~\ref{tab:overlap8}) and concurrent-speaker recall to
+\num{v8:ov:en2zh:C2_O:cr} / \num{v8:ov:zh2en:C2_O:cr} / \num{v8:ov:ali:C2_O:cr}\%; on \sys{}-Simul it raises recall but
+lowers tcpBLEU slightly, so by the pre-registered criterion it is adopted only for the offline model.
+
+\paragraph{Latency.} Table~\ref{tab:lat8} queues the reads of a meeting on one decoder stream at the median single-stream
+read time measured in v6 (batch 1, two H200 cards, HuggingFace eager decoding). The wall-clock replay (B6) could only run beside another
+training job that held about \num{v8:b6:foreign_gib}\,GiB and most of the compute of every card (prereg\_v8 amendments 3--4),
+with the Thinker spread over three cards at batch 1, so its real-time factor is an upper bound on the single-stream one.
+On the one meeting completed (AliMeeting \num{v8:b6:ali_S2dl:meeting}, \sys{}-Simul) the median read took
+\num{v8:b6:ali_S2dl:readp50}\,ms, \num{v8:b6:ali_S2dl:over}\% of the reads exceeded the 1\,s cadence, and the measured
+real-time factor is \num{v8:b6:ali_S2dl:rtf}. By the pre-registered rule this is inconclusive, not a negative result:
+contention only slows reads down, and an upper bound above 1 says nothing about the uncontended case. The user then
+stopped the remaining B6 runs, since further contended runs could not change that conclusion; two runs stopped part-way
+(En$\rightarrow$Zh \sys{}-Simul, \num{v8:b6:en2zh_S2dl:done} of \num{v8:b6:en2zh_S2dl:of} windows; AliMeeting LocalAgreement,
+\num{v8:b6:ali_O2_LA2:done} of \num{v8:b6:ali_O2_LA2:of}) are not used. The real-time factors of Table~\ref{tab:lat8} remain
+estimates from the measured single-stream read time, not a replay. LocalAgreement's reads take longer than the 1\,s read period, so queued it falls
+behind without bound (per-speaker median \num{v8:lat:en2zh:O2_LA2:ps:p50}\,s). OpenSTBench-style start offset and
+average delay of \sys{}-Simul (per-speaker channels, units spread uniformly over their block): \num{v8:lat:en2zh:S2dl:ps:start} and
+\num{v8:lat:en2zh:S2dl:ps:atd}\,s in En$\rightarrow$Zh; these are not comparable with numbers reported on single-speaker
+clips. Streams of more than 400 blocks (runaway repetition) were not synthesised: \num{v8:lat:ali:S2dl:ps:cens} on
+AliMeeting, none elsewhere; counted as never heard, they leave the percentiles unchanged at the reported precision.
+
+\paragraph{Fixed lag and seeds.} On the 8 AMI meetings of the v7 subset (prereg\_v8 amendment 2), fixed lag 2\,s on the
+prefix-trained model scores \num{v8:sub:en2zh:lag2:all} tcpBLEU against \sys{}-Simul's \num{v8:sub:en2zh:on_S2dl:all} and
+LocalAgreement's \num{v8:sub:en2zh:pla2:all} (En$\rightarrow$Zh; Zh$\rightarrow$En \num{v8:sub:zh2en:lag2:all} /
+\num{v8:sub:zh2en:on_S2dl:all} / \num{v8:sub:zh2en:pla2:all}), but on overlapped units \num{v8:sub:en2zh:lag2:ov} vs.\
+\num{v8:sub:en2zh:on_S2dl:ov} (\num{v8:sub:zh2en:lag2:ov} vs.\ \num{v8:sub:zh2en:on_S2dl:ov}), with a median text lag on
+overlapped units of \num{v8:sub:en2zh:lag2:lagov} vs.\ \num{v8:sub:en2zh:on_S2dl:lagov}\,s. On the 10 AliMeeting subset
+meetings (completed after the other runs, prereg\_v8 amendment 3, exploratory) fixed lag is ahead of \sys{}-Simul overall
+and on overlapped units (\num{v8:sub:ali:lag2:all} / \num{v8:sub:ali:lag2:ov} vs.\ \num{v8:sub:ali:on_S2dl:all} /
+\num{v8:sub:ali:on_S2dl:ov}; LocalAgreement \num{v8:sub:ali:pla2:all} / \num{v8:sub:ali:pla2:ov}), again at a longer lag on
+overlapped units (\num{v8:sub:ali:lag2:lagov} vs.\ \num{v8:sub:ali:on_S2dl:lagov}\,s). Whole-meeting tcpBLEU of
+\sys{}-Simul over training seeds: \num{v8:seed:en2zh:all} (En$\rightarrow$Zh, \num{v8:seed:en2zh:n} seeds; overlapped
+\num{v8:seed:en2zh:ov}), \num{v8:seed:zh2en:all} (Zh$\rightarrow$En, \num{v8:seed:zh2en:n}), \num{v8:seed:ali:all}
+(AliMeeting, \num{v8:seed:ali:n}).
+
+\paragraph{Playback scheduling.} Table~\ref{tab:sched8} replays \sys{}-Simul's committed blocks under four single-channel
+policies and the per-speaker layout. Captions for short overlapped interjections and skipping stale blocks bound the lag
+of what is spoken, but on AliMeeting, where speakers overlap most, only \num{v8:b7:ali:d:cov}\% of the units are then
+spoken.
+
+\input{generated/tab_v8_sched}
+
+\paragraph{Voice prompts (B8).} On the 8 whole AMI En$\rightarrow$Zh meetings of v7's second half (3{,}318 output
+streams), the Talker was run again with only the most recent 1\,s of a slot heard alone as its prompt instead of up to
+8\,s, nothing else changed. The short prompt makes the voices less like the attributed speaker (WavLM SIM
+\num{v8:b8:1s:sim} vs.\ \num{v8:b8:8s:sim}, meeting-bootstrap intervals \num{v8:b8:1s:simci} and \num{v8:b8:8s:simci}),
+more often closer to another speaker of the window (\num{v8:b8:1s:conf} vs.\ \num{v8:b8:8s:conf}\%) and slightly less
+intelligible (ASR-BLEU against the Talker's input \num{v8:b8:1s:asr} vs.\ \num{v8:b8:8s:asr}), so we keep 8\,s. At the
+first commit \num{v8:b8:avail1}\% of the streams have 1\,s heard alone and \num{v8:b8:avail8}\% a full 8\,s. Holding a
+slot's speech until 1\,s of it has been heard alone, instead of starting with the fallback prompt, would delay
+\num{v8:b8:wait:streams}\% of the streams (\num{v8:b8:wait:blocks}\% of the blocks), but those by a median
+\num{v8:b8:wait:p50}\,s (90th percentile \num{v8:b8:wait:p90}\,s): slots that rarely talk alone. Speaking at once is the
+better default.
+
+\paragraph{Threshold flips (B5).} The causality check (Appendix~\ref{app:causal}) found \num{v8:b5:frames} distinct
+80\,ms frames whose 0.5 activity decision differs between the prefix run and the dump. Rebuilding the online windows
+with the prefix values changes \num{v8:b5:bound_same} window boundaries (none moves). The \num{v8:b5:windows} windows
+holding a flipped frame were decoded again, each together with a copy using the original posteriors in the same batch:
+\num{v8:b5:flip_same} are token-identical; an unchanged copy decoded in the same batch is identical in
+\num{v8:b5:dup_same}. With so few windows the two cannot be told apart: the flips change outputs no more than
+re-decoding does, but this check cannot show that they change nothing.
+
+\paragraph{Full-coverage references.} The reference windows keep \num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh
+test speech. Every test utterance has a selected translation (Appendix~\ref{app:data}), so we also score the whole-meeting
+runs on all \num{v8:full:en2zh:on_S2dl:units} non-hesitation units: \sys{}-Simul \num{v8:full:en2zh:on_S2dl:all}, LocalAgreement
+on the offline model \num{v8:full:en2zh:on_O2_LA2:all}; overlapped units \num{v8:full:en2zh:on_S2dl:ov} vs.\
+\num{v8:full:en2zh:on_O2_LA2:ov}. These are still machine translations.

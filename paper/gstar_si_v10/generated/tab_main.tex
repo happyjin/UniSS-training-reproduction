@@ -1,0 +1,36 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{lccccc@{\hskip 10pt}ccccc}
+\toprule
+ & \multicolumn{5}{c}{En$\rightarrow$Zh} & \multicolumn{5}{c}{Zh$\rightarrow$En} \\
+\cmidrule(lr){2-6}\cmidrule(lr){7-11}
+System & LAAL\,s & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER & LAAL\,s & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER \\
+\midrule
+\multicolumn{11}{l}{\emph{Offline}} \\
+Qwen3-Omni, prompted & -- & 12.82 & 29.01 & 65.0 & 67.6 & -- & 6.40 & 14.24 & 63.5 & 78.7 \\
+Cascade: diarizer $\rightarrow$ Qwen3-Omni & -- & 29.47 & 29.16 & 88.2 & 25.8 & -- & 16.07 & 16.84 & 83.6 & 15.5 \\
+Cascade: diarizer $\rightarrow$ same-data model & -- & 36.29 & 37.01 & 88.2 & 25.8 & -- & 22.36 & 24.85 & 83.6 & 15.5 \\
+\sys{} w/o speaker stream & -- & 21.17 & 43.40 & 84.8 & 54.5 & -- & 12.20 & 28.13 & 84.9 & 57.4 \\
+\sys{} (offline) & -- & \textbf{42.81$^\dagger$} & 43.33 & 89.5 & 14.0 & -- & \textbf{25.86$^\dagger$} & 28.43 & 91.3 & 16.0 \\
+\addlinespace
+\multicolumn{11}{l}{\emph{Simultaneous ($\Delta{=}1$\,s)}} \\
+Qwen3-Omni + LA2 & 2.33 & 12.07 & 26.87 & 65.0 & 101.5 & 2.48 & 6.31 & 14.11 & 63.5 & 101.6 \\
+\sys{} (offline) + LA2 & 2.37 & 31.64 & 32.74 & 87.8 & 15.2 & 2.50 & 24.81 & 27.67 & 90.7 & 17.3 \\
+\sys{}-Simul & 2.32 & \textbf{42.63$^\dagger$} & 42.80 & 90.6 & 11.0 & 2.93 & 24.30 & 26.71 & 93.2 & 12.8 \\
+\addlinespace
+\multicolumn{11}{l}{\emph{Oracle speaker activity instead of the diarizer}} \\
+\sys{} (offline), oracle stream & -- & 42.32 & 42.95 & 92.2 & 14.2 & -- & 27.32 & 28.37 & 95.9 & 11.6 \\
+\bottomrule
+\end{tabular}}
+\caption{Speaker-attributed translation (text) of the AMI test meetings in both directions (2{,}375
+En$\rightarrow$Zh and 3{,}317 Zh$\rightarrow$En windows, 16 meetings). One bidirectional
+\sys{} (offline) serves both directions; \sys{}-Simul is trained per direction (3{,}000 steps each). cpBLEU$_\text{sess}$ (primary) matches output speakers to reference speakers once per
+meeting; BLEU$_\text{blind}$ ignores speakers (character BLEU for Chinese, 13a for English). Spk: windows with the
+right number of speakers (\%); DER (\%) from the output segments. LAAL includes the diarizer's 1.04\,s look-ahead
+and is computation-unaware; Zh$\rightarrow$En has human references (the AMI transcripts). $^\dagger$: better than the strongest baseline of its block (same-data cascade offline,
+\sys{} + LA2 simultaneous) with $p<0.05$ under paired bootstrap over windows and over meetings
+(Appendix~\ref{app:sig}). Prompted and LA2-on-prompted baselines write no time stamps, so their DER is near 100\%
+by construction.}
+\label{tab:main}
+\end{table*}

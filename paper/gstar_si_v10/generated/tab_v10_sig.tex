@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrr}
+\toprule
+Set & Comparison & $\Delta$ & 95\% interval & $p$ & $p_\text{Holm}$ \\
+\midrule
+AMI Zh$\rightarrow$En & text: \sys{} $-$ B & +0.32 & [0.01, 0.64] & 0.081 & 0.081 \\
+ & speech: \sys{} $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: B+PL $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: \sys{} $-$ B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+AliMeeting & text: \sys{} $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: \sys{} $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: B+PL $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: \sys{} $-$ B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+AMI En$\rightarrow$Zh & text: \sys{} $-$ B & +0.58 & [0.12, 0.90] & 0.013 & 0.027 \\
+ & speech: \sys{} $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: B+PL $-$ B & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & speech: \sys{} $-$ B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\bottomrule
+\end{tabular}}
+\caption{Paired tests over meetings on the test sets (16 AMI, 20 AliMeeting meetings): exact two-sided sign-flip permutation $p$ over all $2^M$ flips, 95\% meeting-bootstrap interval (10{,}000 resamples), Holm over the 2 tests. Speech pools the two TTS seeds per meeting. B: strict baseline; B+PL: its text with rl + PL-EM; \sys{}: v10 with $\bias=-1$. Text of B+PL equals B by construction.}
+\label{tab:sig10}
+\end{table}

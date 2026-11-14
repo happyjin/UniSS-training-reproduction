@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{2}{c}{Zh$\rightarrow$En} & \multicolumn{2}{c}{En$\rightarrow$Zh} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+dev5, text only & tcpBLEU & LAAL & tcpBLEU & LAAL \\
+\midrule
+deadline SFT (strict baseline) & 28.11 & 3.07 & 41.44 & 2.35 \\
+SerialCRF v2$'$, $\bias=0$ & 27.99 & 3.54 & 43.19 & 2.81 \\
+\quad $\bias=-1$ (chosen) & 28.25 & 3.16 & 42.29 & 2.45 \\
+\quad $\bias=-2$ & 25.25 & 2.55 & 39.16 & 2.17 \\
+\quad $\bias=-3$ & 14.66 & 1.95 & 33.93 & 1.90 \\
+\quad $\bias=-5$ & 6.51 & 1.30 & 17.28 & 1.39 \\
+\midrule
+E-step budget $\rho=0.5$, step 3{,}500 (rule) & 27.92 & 3.45 & 42.90 & 2.68 \\
+\quad step 5{,}000 & 28.20 & 3.37 & 42.99 & 2.59 \\
+\bottomrule
+\end{tabular}}
+\caption{Write-bias calibration on the five development meetings (dev5; text decoding, chunk-protocol text LAAL in seconds). The rule, fixed before decoding: per direction, the $\bias$ whose text LAAL is closest to the strict baseline's; both directions gave $\bias=-1$, which was then confirmed once on the full development set. Bottom: SerialCRF v2$'$ retrained with an E-step latency budget (plan B, $\rho=0.5$, a single pre-registered value), checkpoint chosen by the same rule as stage 2, $\bias=0$.}
+\label{tab:calib10}
+\end{table}

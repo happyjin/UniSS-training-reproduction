@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{rrrrrrc}
+\toprule
+ & \multicolumn{2}{c}{Zh$\rightarrow$En} & \multicolumn{2}{c}{En$\rightarrow$Zh} & & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+step & $Q$ & $L-L^{\mathrm{ref}}$ & $Q$ & $L-L^{\mathrm{ref}}$ & $J$ & feasible \\
+\midrule
+3{,}000 & 27.81 & +0.016 & 42.48 & +0.038 & 35.15 & yes \\
+3{,}500 & 27.99 & +0.099 & 43.19 & +0.137 & 35.59 & no \\
+4{,}000 & 27.72 & +0.077 & 42.89 & +0.098 & 35.31 & yes \\
+\bottomrule
+\end{tabular}}
+\caption{Stage-2 checkpoints on dev5 under the pre-registered rule ($Q$: text tcpBLEU-all; $L$: text LAAL of the rule's protocol, s; $J$: mean $Q$ of the two directions; feasible: $L\le L^{\mathrm{ref}}+0.1$\,s in both directions). The rule selects step 4{,}000; we use step 3{,}500 (Appendix~\ref{app:v10train}).}
+\label{tab:s2sel10}
+\end{table}

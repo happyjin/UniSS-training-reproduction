@@ -1,0 +1,25 @@
+\begin{abstract}
+A meeting interpreter must say what each person said, attribute it to the right person, and decide when to say it, also
+when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved with tokens of a frozen
+streaming diarizer, writes speaker-first, time-stamped translations for every speaker of an overlapping window, and hands
+them to a speech generator prompted with each speaker's voice. On AMI reference windows \sys{}
+beats the strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff:en2zh} (English$\rightarrow$Chinese) and
+\num{v7:gainoff:zh2en} (Chinese$\rightarrow$English) speaker-attributed BLEU, and on overlapped speech it leads a
+speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} and
+\num{v8:x:ov-O2-rel-zh2en:diff} BLEU. Trained on fixed per-chunk deadlines, the decoder commits most words after their
+utterance has ended, and a rule-based speech layer queues them. We learn both timing decisions as latent structure with
+exact EM: when, and in which speaker order, each translated chunk is written, and which rendering of each block is spoken
+given the playback backlog, under a posterior-regularised latency budget; one constant write bias, set on development
+meetings, corrects the drift of EM towards later writes. Against the same jointly trained deadline model on the two AMI test directions, \sys{} changes speech ASR-BLEU
+by \num{v10:test:ami:m-b:asr} / \num{v10:test:en:m-b:asr}, per-stream speech LAAL by \num{v10:test:ami:m-b:slaal} /
+\num{v10:test:en:m-b:slaal}\,s and the end offset by \num{v10:test:ami:m-b:endoff} /
+\num{v10:test:en:m-b:endoff}\,s (Zh$\rightarrow$En / En$\rightarrow$Zh).
+\ifAliwin
+On real Mandarin meetings (AliMeeting) it changes text BLEU by \num{v10:test:ali:m-b:all} and speech ASR-BLEU by
+\num{v10:test:ali:m-b:asr}.
+\else
+On real Mandarin meetings (AliMeeting) its text BLEU is lower than the baseline's; a diagnostic points to the
+baseline's duplicated translations inflating its length.
+\fi
+Per utterance, the system remains closer to consecutive than to simultaneous interpretation.
+\end{abstract}

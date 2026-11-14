@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcccc@{\hskip 10pt}cccc}
+\toprule
+ & \multicolumn{4}{c}{En$\rightarrow$Zh} & \multicolumn{4}{c}{Zh$\rightarrow$En} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+System & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER \\
+\midrule
+\multicolumn{9}{l}{\emph{Offline}} \\
+Cascade, same-data translator & 36.29 & 37.01 & 88.2 & 25.8 & 22.36 & 24.85 & 83.6 & 15.5 \\
+Cascade, turn-trained translator & 35.27 & 35.27 & 79.3 & 37.8 & 23.69 & 25.32 & 86.4 & 16.9 \\
+\sys{} w/o speaker stream & 21.17 & 43.40 & 84.8 & 54.5 & 12.20 & 28.13 & 84.9 & 57.4 \\
+\quad + diarizer relabelling & 42.06 & 43.40 & 82.2 & 13.9 & 24.66 & 28.13 & 82.0 & 15.7 \\
+\sys{} (offline) & 42.81$^\dagger$ & 43.33 & 89.5 & 14.0 & 25.86$^\dagger$ & 28.43 & 91.3 & 16.0 \\
+\addlinespace
+\multicolumn{9}{l}{\emph{Oracle input (reference turns or activity), same translator}} \\
+Cascade, reference turns (oracle) & 37.43 & 38.32 & 99.7 & 0.5 & 24.95 & 26.28 & 100.0 & 1.0 \\
+\sys{} (offline), oracle stream & 42.32 & 42.95 & 92.2 & 14.2 & 27.32 & 28.37 & 95.9 & 11.6 \\
+\bottomrule
+\end{tabular}}
+\caption{Speaker-attributed translation (text) on the reference windows of the AMI test meetings (2{,}375 En$\rightarrow$Zh and 3{,}317 Zh$\rightarrow$En windows, 16 meetings), offline. cpBLEU$_\text{sess}$ (primary) matches output to reference speakers once per meeting; BLEU$_\text{blind}$ ignores speakers; Spk: windows with the right number of speakers (\%); DER (\%). $^\dagger$: better than the strongest non-oracle baseline (Table~\ref{tab:sig7}). Simultaneous v9 rows: Table~\ref{tab:main7full}.}
+\label{tab:main7}
+\end{table}

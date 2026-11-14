@@ -1,0 +1,26 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{En$\rightarrow$Zh} & \multicolumn{3}{c}{Zh$\rightarrow$En} & \multicolumn{3}{c}{AliMeeting} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+System & all & overlap & CR & all & overlap & CR & all & overlap & CR \\
+\midrule
+\multicolumn{10}{l}{\emph{Reference windows, offline}} \\
+Cascade, same data & 36.13 & 26.21 & 89.3 & 21.96 & 14.36 & 87.4 & 15.70 & 9.79 & 93.3 \\
+Speaker-blind + relabel & 41.39 & 30.98 & 51.8 & 24.36 & 16.90 & 50.6 & 16.27 & 12.04 & 58.0 \\
+\sys{} (offline) & 42.06 & 34.56 & 76.3 & 25.43 & 19.72 & 79.0 & 15.19 & 12.10 & 79.2 \\
+\quad + short-turn fallback & 42.53 & 34.67 & 86.2 & 25.74 & 20.07 & 84.2 & 15.44 & 12.64 & 86.7 \\
+\multicolumn{10}{l}{\emph{Whole meetings, online, 1\,s reads}} \\
+Offline model + LA2 & 34.30 & 22.34 & 73.4 & 23.94 & 18.88 & 78.7 & 11.11 & 7.19 & 75.6 \\
+Simul model + LA2 & 39.31 & 32.91 & 75.5 & 23.96 & 17.89 & 79.4 & 11.91 & 7.60 & 76.7 \\
+Speaker-blind Simul + causal relabel & 35.22 & 27.17 & 65.5 & 19.33 & 9.06 & 54.4 & 12.67 & 8.55 & 63.0 \\
+\sys{}-Simul & 40.09 & 35.71 & 82.3 & 24.53 & 17.73 & 80.2 & 11.47 & 9.18 & 80.2 \\
+\bottomrule
+\end{tabular}
+\caption{Overlap-aware evaluation (\S\ref{sec:eval-overlap}): tcpBLEU over all units and over overlapped units, and
+concurrent-speaker recall (CR, \%). Relabelling attaches one diarizer speaker to each translated segment. All rows and
+metrics: Table~\ref{tab:overlap8}.}
+\label{tab:ovmain8}
+\end{table*}

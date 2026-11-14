@@ -1,0 +1,27 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrr}
+\toprule
+Set & System & BLEU & len.\ ratio & BP & BLEU/BP & dup.\ units (\%) \\
+\midrule
+AliMeeting & B & 21.43 & 1.001 & 1.000 & 21.43 & 18.1 \\
+ & $\bias=0$ & 18.99 & 0.913 & 0.909 & 20.90 & 11.6 \\
+ & $\bias=-1$ & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+\midrule
+AMI Zh$\rightarrow$En & B & 25.02 & 0.946 & 0.944 & 26.50 & 6.5 \\
+ & $\bias=0$ & 25.09 & 0.917 & 0.914 & 27.45 & 6.2 \\
+ & $\bias=-1$ & 25.34 & 0.943 & 0.942 & 26.90 & 7.7 \\
+\midrule
+AMI En$\rightarrow$Zh & B & 41.15 & 1.005 & 1.000 & 41.15 & 7.8 \\
+ & $\bias=0$ & 41.85 & 0.969 & 0.968 & 43.22 & 7.0 \\
+ & $\bias=-1$ & 41.74 & 1.000 & 1.000 & 41.74 & 8.6 \\
+\midrule
+dev Zh$\rightarrow$En & B & 27.93 & 0.967 & 0.966 & 28.90 & 5.9 \\
+ & $\bias=0$ & 27.75 & 0.931 & 0.928 & 29.90 & 5.2 \\
+ & $\bias=-1$ & 28.31 & 0.968 & 0.967 & 29.28 & 6.5 \\
+\bottomrule
+\end{tabular}}
+\caption{Text tcpBLEU split into its brevity penalty (BP) and the precision part (BLEU/BP), with the share of reference units that received two near-identical translations (dup.). Computed from the official score files; diagnostic only.}
+\label{tab:dup10}
+\end{table}
