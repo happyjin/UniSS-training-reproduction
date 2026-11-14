@@ -3147,3 +3147,11 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 
 - 问题：Seamless 分片实际约 15.5 GiB/个（估计 12），每卡 2–3 个，加上之后才起的 vLLM 引擎，卡 7 在 22:09 到 139.4 GB、卡 0 到 138.9 GB，超过每卡 135 GiB；talker 作业可能 OOM。（卡 7 那次 v1 队列已按规则停掉我最新的 ali__dec3 并在别卡 --resume。）
 - 处理：按 PID 停了 v1 队列 e7_queue.py（pid 60364；只停启动器，已在跑的 10 个分片不动）。新副本 e7_queue_v2.py（pid 244062，日志 logs/mist_w3po_v1/e7/e7_queue_v2.log）：接管在跑的 10 个分片（按 PID 观察，退出时没有 E7_SHARD_DONE 就 --resume 重排）；新规则：每卡最多 1 个我的 GPU 作业（Seamless 或 ASR），只有 卡上已用 + 16 GiB ≤ 118 GiB 才启动、启动前重新读 nvidia-smi，间隔 60 s；某卡连续 10 分钟高于 135 GiB 就按 PID 停我在该卡上最年轻的作业并重排。输出目录、续跑逻辑、登记的设置都不变。
+
+## 2026-11-14 22:29 Prague — 论文 v10 初稿可构建（paper/gstar_si_v10，v9 未动）
+
+- 按 docs/mist_v10_plan.zh-CN.md §4 实现：新标题（用户定）、四条贡献、潜写对齐（SerialCRF v2′，式 8–10）、写偏置 δ_w = −1（新宏 \bias，不占用 80 ms 帧的 \delta）、PL-EM（式 14–15）、新主表 tab_v10_main、dev 消融 tab_v10_ablation、§5.5 晚写漂移；v9 在线/延迟内容移到附录 F（v9 口径）；新附录 A–E（训练与 3500 偏离、CRF/PL-EM 细节、δ 标定与 δ=0 测试、chunk 协议与延迟分解、Ali 的 BP/重复诊断、显著性、E7 槽位）。
+- scripts/make_tables_v10.py：所有数字由脚本生成；缺文件不报错、输出 \textbf{??}，清单在 generated/v10_missing.json。E3 显著性在脚本内实现（精确双侧符号翻转 + 1 万次配对 bootstrap，语音两种子合并，Holm 12 项）；δ=0 时 AMI 语音 +2.41 [1.53, 3.31]，与 gate_2seed 的 [1.56, 3.30] 一致。
+- 构建：tectonic 无错误、无未定义引用/引文、无 overfull；正文（摘要到结论）正好 8 页，Limitations 从第 9 页开始，共 33 页。
+- 待补（重跑脚本即可）：E1 的 Ali 文本与三个测试集语音、E2 的 dev/test 语音、E7（可选）；Ali 结论用 \ifAliwin 自动切换（E1 Ali tcpBLEU ≥ 基线才写 Ali 增益，未出结果时为收窄到 AMI 的写法）。
+- 决定（授权内）：为满足 8 页，把能力对比表、重叠分箱图、离线表的同传行、v9 在线文本移到附录（不删结果）；cp 带过来的 v9 嵌套 .git 改名为 .git_copied_from_v9（未删除，已忽略），外层仓库直接跟踪 v10 文件。详见 paper/gstar_si_v10/CHANGELOG_v10.md。

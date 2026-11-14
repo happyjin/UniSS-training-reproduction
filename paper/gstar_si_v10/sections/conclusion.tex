@@ -16,7 +16,7 @@ sets were decoded once with it (Table~\ref{tab:delta0} reports the run without i
 \num{v10:c:j:s2step}) is not the one the pre-registered rule selected (step \num{v10:c:j:s2rule}): it was chosen on
 development data for its higher BLEU, its En$\rightarrow$Zh text lag exceeds the rule's feasibility bound by
 \num{v10:s2:e:3500:dL}\,s (Table~\ref{tab:s2sel10}). The training-time latency budget was run with one value
-($\rho=0.5$). Speech still trails its source by three to four seconds on average, and per utterance the system remains
+($\rho=0.5$). Speech LAAL is still three to five seconds (Table~\ref{tab:main10}), and per utterance the system remains
 close to consecutive interpretation (\S\ref{sec:res-drift}). Latencies count audio and playback time, not computation;
 we did not measure the v10 decoder and Talker cost (PL-EM inference samples two candidates per block, the baseline
 Talker one), and the v9 compute measurements (Appendix~\ref{app:v9proto}) do not transfer. Latency differences are point
