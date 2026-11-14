@@ -3110,3 +3110,11 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 新看门狗 stack47_watchdog --phys --pair --file-cards 0–7（pid 1528643，日志 stack_watchdog_pair.log），stack_group/order = oldest（同决定 1），proxy_stack.conf 加 HELDOUT=off（同修正 5：held-out loss 单卡放不下，只用于平局决胜，H 缺失按规则记 +inf）。
   - 排队中、从未启动任何作业的 3000 / 3500 步速验（bash + 编排器）按 PID 停止。旧目录改名为 *.superseded_20261114T163622Z 和第二次的 *.superseded_<UTC> 保留，然后用原 environ 重启。
   - 16:46:28Z 第一个两卡解码已在卡 (1,5) 上启动（每卡 +30–33 GiB，约 120 GiB / 140.4）。之后各步的速验由驱动按 proxy_stack.conf 自动发起，同样走两卡模式。
+
+- 2026-11-14 20:19 布拉格（看门狗 stack47_watchdog，pid 1528643）：STACK47_WITHDRAWN —— training pid 3054737 exited (STACK47_TRAIN_EXITED); running decodes left to end；卡 0 1 2 3 4 5 6 7重新排除（stack_cards_s2_joint_v2pl_20261114T130043Z.withdrawn_20261114T191922Z），按 PID 停了 4–7 上的解码 无，编排器会在别处重试；(b) 训练未动。
+
+## 2026-11-14 20:55 Prague — 方案 B（ρ=0.5）训练结束
+
+- 规则在 4500 步判定早停（20:18 布拉格），选 3500 步（JOINT_S2LAT_SELECTED）；训练在 6405 步收到 STOP 后退出，rc=0，slotA/B 已释放。3000–6000 步的 dev5 速验全部完成（5000–6000 步在判定之后，只记录）。
+- dev5（tcpBLEU / chunk 文本 LAAL）：严格基线 zh→en 28.11 / 3.065、En→Zh 41.44 / 2.350；原方法 s3500 27.99 / 3.540、43.19 / 2.808；方法 + δ=−1 28.25 / 3.155、42.29 / 2.451；**B s3500 27.92 / 3.445、42.90 / 2.679**（B s5000 28.20 / 3.372、42.99 / 2.591）。
+- 结论：训练时延迟预算 ρ=0.5 只把文本 LAAL 降了约 0.10–0.13 s，BLEU 基本持平（−0.07 / −0.29）；离严格基线仍差 +0.38 / +0.33 s。推理时 δ=−1（方案 A）降得更多（−0.39 / −0.36 s），且两方向全部主指标优于基线。
