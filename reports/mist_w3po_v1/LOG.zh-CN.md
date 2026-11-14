@@ -3138,3 +3138,7 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 ## 2026-11-14 21:57 Prague — E7 登记（SeamlessStreaming 多说话人测试基线）
 
 - 登记文件 reports/mist_w3po_v1/e7_seamless_multispk_prereg.zh-CN.md，在任何测试解码之前提交。官方默认一个点（τ 0.5 / W 192 / C 50，fp32），输入为我们的在线测试窗口（每窗 reset，320 ms 一步），说话人按 v8 因果重标规则（窗口自带的分离器后验，t − 1.04 s）；另报全部算一个说话人的文本下界。指标：tcpBLEU all/ov/1spk、ASR-BLEU、chunk 协议文本 / 语音 LAAL。
+
+## 2026-11-14 22:05 Prague — E7 启动
+
+- e7_queue.py（pid 60364，setsid nohup；日志 logs/mist_w3po_v1/e7/e7_queue.log）：三个测试集的 SeamlessStreaming 解码（ami 6、ali 10、en 8 个分片，每片约 12 GiB，按卡上实际占用 + 18 GiB ≤ 135 GiB 放，每卡最多 3 个、总共最多 10 个，同卡间隔 60 s；超过 136 GiB 连续两次就按 PID 停我在该卡上最新的作业并 --resume 重排），之后 build → score_run → ASR（4 片）→ score_asr → chunk 协议延迟。代码 experiments/s2st_baselines_v1/seamless_multispk/，登记见 e7_seamless_multispk_prereg。
