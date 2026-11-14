@@ -77,3 +77,10 @@ Seamless 不分说话人。每个输出段用 **v8 登记的因果重标规则**
   `eval_outputs/mist_w3po_v1/speech/jtest_{ami,ali,en}_seamless_default/talker/`；目录已存在就拒绝运行。
 - 代码：`experiments/mist_w3po_v1/e7_seamless/`（单说话人驱动的副本加多说话人部分；原文件不改）。
 - 论文主表里作为“外部 S2ST 系统，输入混合会议音频（我们的窗口切分 + 因果说话人归属）”一行；注明它用了我们的检测器窗口和分离器后验。
+
+## 7. 修订记录（测试解码之前，只改执行细节）
+
+- 2026-11-14 22:04（布拉格）：代码放在 `experiments/s2st_baselines_v1/seamless_multispk/`（不是 §6 写的
+  `experiments/mist_w3po_v1/e7_seamless/`），这样卡位工具（`joint_lib.sh` 的 `is_baseline_eval`）把这些进程认作外部基线评测。
+  原始解码输出 `eval_outputs/mist_w3po_v1/e7_seamless/raw/<set>/`，日志 `logs/mist_w3po_v1/e7/`。设置、规则、指标都不变。
+  冒烟测试：dev 上 2 + 3 个 zh→en 窗口、2 个 En→Zh 窗口，只检查格式和整条打分链（build → score_run → ASR → 延迟工具）能跑通。
