@@ -3128,3 +3128,9 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 
 - 用户（约 21:45）：1. E2 现在跑；2. E6 不做；3. 外部基线只要是开源模型、只做测试推理就可以；4. 方法变了，重新定标题；5. Ali 若仍偏低，同意收窄到 AMI。今晚到明早，需要拍板的事由我按最优选择决定（记忆 overnight-autonomy-20261114）。
 - E2 启动（21:49）：新驱动 e2_baseline_plem.sh。严格基线已有的文本解码 → 读级合并 → PL-EM talker（两个种子）→ chunk 语音延迟，dev 两个方向 + 测试集三个，8 卡 --cap135 叠加。日志 logs/mist_w3po_v1/joint/e2/e2.log，标记 E2_DONE。
+
+## 2026-11-14 22:00 Prague — 夜间决定（授权内）
+
+- **决定 1：新标题** "Who Said What, and When to Say It: Latent Write and Playback Alignment for Speaker-Attributed Simultaneous Meeting Interpretation"。理由：保留 v9 的“谁说了什么”，用“When to Say It”点出新方法（写出时刻 + 播放时间线），副标题直接写方法名。
+- **决定 2：E7 用 SeamlessStreaming**（开源权重 + 官方 agent，只推理，官方默认设置一个点，测试集各跑一次）。输入为我们检测器给出的同一批在线窗口，说话人按因果的分离器后验归属。先登记再跑（e7_seamless_multispk_prereg），由后台执行者完成，不调参。
+- **决定 3：v10 LaTeX** 在 paper/gstar_si_v10（v9 原样保留）按 docs/mist_v10_plan 实施；数字全部由 make_tables_v10.py 从结果文件生成，E1/E2/E7 未出时占位，出结果后重跑脚本。之后做一轮严格审稿并按审稿意见再改一遍。
