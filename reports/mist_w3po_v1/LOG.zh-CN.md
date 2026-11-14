@@ -3052,3 +3052,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 发现：(a) 驱动以 STACK_PLEM=1 运行；第 5 步认领 slotA 后，要等 0–3 每卡 used + 59 GiB ≤ 135 GiB 才启动，而 plem_blockers 把我们自己的无 ckpt 占卡进程（0–2 号卡各约 130 GB）也算在内；takeover_train.sh（停占卡）要等这个条件满足后才运行 → 永远等不到。
 - 决策：新增 plem_free_cards_a.sh（setsid nohup 后台运行）：等 after_select.log 出现 "STACK_PLEM: start when"、slotA.owner 属于 En->Zh PL-EM，并且 guard 的训练槽排除列表已包含 0 1 2 3（不会再补占卡）后，用 takeover_train.sh（LAUNCH=":"）按 PID 只停 0–3 上我们自己的占卡进程；之后 PL-EM 的等待会自行通过。不改正在运行的驱动；只做了 bash -n 和 DRY_RUN 检查。
 - 现状：采样只剩最后一个分片 train__talk3（3 号卡，round 4）；其余 7 个已完成。
+
+### 2026-11-14 07:05 布拉格 — (a) En→Zh PL-EM talker 已选定
+- 决策 5 的脚本在 05:50 生效：按 PID 停了 0–3 号卡上我们的 4 个占卡 supervisor 和 3 个 worker → 05:50 PL-EM 训练 talker_plem_en2zh_20261114T045019Z 启动（rows 190995，λ 0.703，预算 1.62 s）。
+- dev5 选择（规则：在 L ≤ L(last)+0.1 的前提下取 Q 最大）：i0400 Q 32.28 / O 25.58 / 1spk 36.28 / L 3.459（chunk 3.314）；i0800 32.14 / 3.456；i1200 32.21 / 3.462 → 选 i0400（三个都可行，BLEU 最高）。
+- 06:58 EN2ZH_TALKER_SELECTED；方法行的 En→Zh 语音（dev mz_sp、test men_sp）以及 (a) 的 devrlplem 已启动；prio_a 在 07:00 解除 0–3 限制。
