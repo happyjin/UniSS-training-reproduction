@@ -3118,3 +3118,8 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 规则在 4500 步判定早停（20:18 布拉格），选 3500 步（JOINT_S2LAT_SELECTED）；训练在 6405 步收到 STOP 后退出，rc=0，slotA/B 已释放。3000–6000 步的 dev5 速验全部完成（5000–6000 步在判定之后，只记录）。
 - dev5（tcpBLEU / chunk 文本 LAAL）：严格基线 zh→en 28.11 / 3.065、En→Zh 41.44 / 2.350；原方法 s3500 27.99 / 3.540、43.19 / 2.808；方法 + δ=−1 28.25 / 3.155、42.29 / 2.451；**B s3500 27.92 / 3.445、42.90 / 2.679**（B s5000 28.20 / 3.372、42.99 / 2.591）。
 - 结论：训练时延迟预算 ρ=0.5 只把文本 LAAL 降了约 0.10–0.13 s，BLEU 基本持平（−0.07 / −0.29）；离严格基线仍差 +0.38 / +0.33 s。推理时 δ=−1（方案 A）降得更多（−0.39 / −0.36 s），且两方向全部主指标优于基线。
+
+## 2026-11-14 21:18 Prague — 方案 A 测试集（最终配置，只跑一次）
+
+- 用户（约 21:15）："先用A跑测试集出最终结果"。配置在 dev 上已定死：原方法 v2′ stage 2 s3500 + 写偏置 δ_zh2en = δ_en2zh = −1（dev5 标定、完整 dev 确认）。测试集上不做任何选择。
+- 新脚本 wb_test.sh（joint_test.sh 方法行的副本，只把文本解码换成 joint_orch_wb.py --wait-bias；joint_test.sh 不改）。AMI zh→en、AliMeeting、AMI En→Zh 三条链并行，8 卡 --cap135 叠加；PL-EM 语音两个种子；chunk 协议的文本和语音延迟。gate_2seed 对比严格基线已有的测试输出（__t1c）和不加偏置的方法。汇总写到 eval_outputs/mist_w3po_v1/joint/wb_test_summary_v1.json，标记 logs/mist_w3po_v1/joint/wb/WB_TEST_DONE；已有输出拒绝覆盖。20:18Z 启动，驱动 PID 3816049，日志 logs/mist_w3po_v1/joint/wb/wb_test.log。
