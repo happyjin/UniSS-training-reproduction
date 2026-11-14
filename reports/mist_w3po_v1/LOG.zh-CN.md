@@ -3062,3 +3062,7 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 08:39 JOINT_DEV_DONE；6 个 test 集合全部完成（joint_test.sh 只在等 (a) 的 EN2ZH_TEST_DONE，用于“方法 vs 单方向系统”参考对比）。
 - test 数字用 joint_test.sh 的同一段 summary 代码和 gate_2seed 在 CPU 上算出，写在 scratchpad，没有提前写正式的 test_summary_v1.json（它用 "x" 模式创建，避免冲突）。
 - 结果见 reports/mist_w3po_v1/joint_baseline_vs_method_20261114.zh-CN.md：ASR-BLEU 5/5 处显著提高；文本 BLEU 在 AliMeeting −2.44（单方向 A′ 也低），其余持平或提高；speech LAAL 在 zh→en 持平，En→Zh +0.13，Ali +0.57。
+
+### 2026-11-14 09:40 布拉格 — 用户问：方法为何有些指标不如严格基线、是否训练过度
+- 只读诊断（scratchpad 中复制的打分器加统计，仓库代码未改）：ASR-BLEU 5/5 均更高；Ali 文本 −2.44 中约 1.9 来自长度惩罚；基线在 Ali 上有 33% 的已挂译文是跨窗口重复输出，方法去重后的非重复译文多 22%；去重 BLEU 方法在 Ali/AMI/dev 上分别 +2.33/+0.42/+0.53。
+- stage-2 dev5 精度随步数单调上升，3500 在变短拐点之前 → 不是训练过度。详见 joint_baseline_vs_method_20261114.zh-CN.md 的“原因分析”。
