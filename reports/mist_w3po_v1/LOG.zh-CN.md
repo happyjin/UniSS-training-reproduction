@@ -3142,3 +3142,8 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 ## 2026-11-14 22:05 Prague — E7 启动
 
 - e7_queue.py（pid 60364，setsid nohup；日志 logs/mist_w3po_v1/e7/e7_queue.log）：三个测试集的 SeamlessStreaming 解码（ami 6、ali 10、en 8 个分片，每片约 12 GiB，按卡上实际占用 + 18 GiB ≤ 135 GiB 放，每卡最多 3 个、总共最多 10 个，同卡间隔 60 s；超过 136 GiB 连续两次就按 PID 停我在该卡上最新的作业并 --resume 重排），之后 build → score_run → ASR（4 片）→ score_asr → chunk 协议延迟。代码 experiments/s2st_baselines_v1/seamless_multispk/，登记见 e7_seamless_multispk_prereg。
+
+## 2026-11-14 22:22 Prague — E7 卡位修正（协调者 22:20）
+
+- 问题：Seamless 分片实际约 15.5 GiB/个（估计 12），每卡 2–3 个，加上之后才起的 vLLM 引擎，卡 7 在 22:09 到 139.4 GB、卡 0 到 138.9 GB，超过每卡 135 GiB；talker 作业可能 OOM。（卡 7 那次 v1 队列已按规则停掉我最新的 ali__dec3 并在别卡 --resume。）
+- 处理：按 PID 停了 v1 队列 e7_queue.py（pid 60364；只停启动器，已在跑的 10 个分片不动）。新副本 e7_queue_v2.py（pid 244062，日志 logs/mist_w3po_v1/e7/e7_queue_v2.log）：接管在跑的 10 个分片（按 PID 观察，退出时没有 E7_SHARD_DONE 就 --resume 重排）；新规则：每卡最多 1 个我的 GPU 作业（Seamless 或 ASR），只有 卡上已用 + 16 GiB ≤ 118 GiB 才启动、启动前重新读 nvidia-smi，间隔 60 s；某卡连续 10 分钟高于 135 GiB 就按 PID 停我在该卡上最年轻的作业并重排。输出目录、续跑逻辑、登记的设置都不变。
