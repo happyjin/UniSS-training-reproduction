@@ -1,6 +1,6 @@
 # E7：SeamlessStreaming 直接喂多说话人测试窗口（外部 S2ST 基线）——登记
 
-写于 2026-11-14 22:20（布拉格），在三个多说话人测试集上跑任何 SeamlessStreaming 输出之前。来源：`docs/mist_v10_plan.zh-CN.md`
+写于 2026-11-14 21:57（布拉格），在三个多说话人测试集上跑任何 SeamlessStreaming 输出之前。来源：`docs/mist_v10_plan.zh-CN.md`
 §3.2 E7、`reports/mist_w3po_v1/multispeaker_baselines_plan_v1.zh-CN.md` §4.2 B-sim-2，用户 2026-11-14 约 21:45 的决定
 （外部基线只要是开源模型、只做测试推理即可）。下面的设置、规则和报告项现在固定，结果出来以后不改。
 

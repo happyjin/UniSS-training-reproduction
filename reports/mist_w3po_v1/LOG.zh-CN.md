@@ -3135,6 +3135,6 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **决定 2：E7 用 SeamlessStreaming**（开源权重 + 官方 agent，只推理，官方默认设置一个点，测试集各跑一次）。输入为我们检测器给出的同一批在线窗口，说话人按因果的分离器后验归属。先登记再跑（e7_seamless_multispk_prereg），由后台执行者完成，不调参。
 - **决定 3：v10 LaTeX** 在 paper/gstar_si_v10（v9 原样保留）按 docs/mist_v10_plan 实施；数字全部由 make_tables_v10.py 从结果文件生成，E1/E2/E7 未出时占位，出结果后重跑脚本。之后做一轮严格审稿并按审稿意见再改一遍。
 
-## 2026-11-14 22:22 Prague — E7 登记（SeamlessStreaming 多说话人测试基线）
+## 2026-11-14 21:57 Prague — E7 登记（SeamlessStreaming 多说话人测试基线）
 
 - 登记文件 reports/mist_w3po_v1/e7_seamless_multispk_prereg.zh-CN.md，在任何测试解码之前提交。官方默认一个点（τ 0.5 / W 192 / C 50，fp32），输入为我们的在线测试窗口（每窗 reset，320 ms 一步），说话人按 v8 因果重标规则（窗口自带的分离器后验，t − 1.04 s）；另报全部算一个说话人的文本下界。指标：tcpBLEU all/ov/1spk、ASR-BLEU、chunk 协议文本 / 语音 LAAL。
