@@ -3092,3 +3092,8 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 决策：BZ = BE = −1（两方向 LAAL 最接近基线，仅超 +0.09 / +0.10 s；BLEU 均高于基线 +0.14 / +0.85；按 BLEU 优先规则）。
 δ=−1 相对 δ=0 把文本 LAAL 降 0.385 / 0.357 s，zh→en BLEU 还 +0.26，En→Zh −0.90。δ ≤ −2 质量崩得快，不用。
 未做细网格（不扫参）。11:45Z 启动 wb_dev.sh（完整 dev 文本+语音，8 卡叠加），结束标记 logs/mist_w3po_v1/joint/wb/A_DONE；之后启动方案 B。
+
+## 2026-11-14 14:01 Prague — 方案 A 完整 dev 完成；方案 B 启动
+
+- wb_dev.sh（δ=−1 两方向）12:56Z 完成（A_DONE）。完整 dev：方法 δ=−1 相对严格基线 zh→en 文本 28.31 vs 27.93、ASR 23.50 vs 19.24、语音 LAAL 3.605 vs 3.973、M2 式 3.064 vs 3.097、EndOffset 3.176 vs 4.142；En→Zh 文本 41.35 vs 41.07、ASR 31.65 vs 31.07、语音 LAAL 2.962 vs 3.121、M2 式 2.478 vs 2.486、EndOffset 2.932 vs 3.450。全部主指标优于基线。详表见 joint_baseline_vs_method_20261114.zh-CN.md 末节。
+- 决策：按“先A后B”启动方案 B，ρ = 0.5（预注册单值，不扫）。RUN_ID joint_v2pl_20261114T130043Z，8 卡 0–7，配方与 stage 2 完全相同（64 行/步，lr 1e-4→1e-5 / 6000，warmup 100），dev5 速验从 3000 步叠加在训练卡上；选择标记 JOINT_S2LAT_SELECTED。驱动日志 logs/mist_w3po_v1/joint/stage2_lat.log，训练 PID 3054733。
