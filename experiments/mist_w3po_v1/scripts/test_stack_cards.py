@@ -177,7 +177,7 @@ def test_phys_mode():
     st = {j.id: c for j, c in out if j.id.startswith("n__dec")}
     assert st == {"n__dec0": 3, "n__dec1": 2, "n__dec_heldout": 1}, st
     # a CRF training counts as the training only in phys mode
-    assert S.PHYS_TRAIN_PAT == ("pretrain_", "train_crf_sft.py") and S.TRAIN_PAT == ("pretrain_",)
+    assert S.PHYS_TRAIN_PAT == ("pretrain_", "train_crf_sft.py", "train_v2p_lat.py") and S.TRAIN_PAT == ("pretrain_",)
 
 
 

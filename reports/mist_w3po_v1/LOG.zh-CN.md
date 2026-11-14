@@ -3097,3 +3097,16 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 
 - wb_dev.sh（δ=−1 两方向）12:56Z 完成（A_DONE）。完整 dev：方法 δ=−1 相对严格基线 zh→en 文本 28.31 vs 27.93、ASR 23.50 vs 19.24、语音 LAAL 3.605 vs 3.973、M2 式 3.064 vs 3.097、EndOffset 3.176 vs 4.142；En→Zh 文本 41.35 vs 41.07、ASR 31.65 vs 31.07、语音 LAAL 2.962 vs 3.121、M2 式 2.478 vs 2.486、EndOffset 2.932 vs 3.450。全部主指标优于基线。详表见 joint_baseline_vs_method_20261114.zh-CN.md 末节。
 - 决策：按“先A后B”启动方案 B，ρ = 0.5（预注册单值，不扫）。RUN_ID joint_v2pl_20261114T130043Z，8 卡 0–7，配方与 stage 2 完全相同（64 行/步，lr 1e-4→1e-5 / 6000，warmup 100），dev5 速验从 3000 步叠加在训练卡上；选择标记 JOINT_S2LAT_SELECTED。驱动日志 logs/mist_w3po_v1/joint/stage2_lat.log，训练 PID 3054733。
+
+- 2026-11-14 17:35 布拉格（(b) 第 2 段驱动）：JOINT_STACK_FAILED —— 第 3000 步起的 dev5 速查叠不上训练卡（卡 7 实占 83.8 of 140.4 GiB，需 实占 + 67 GiB ≤ 总量 − 1.5 GiB）；训练照常，速查未开，等用户决定（不再试第二次、不改 batch）。
+
+## 2026-11-14 17:50 Prague — 方案 B：dev5 速验叠加修正（照搬修正 5）
+
+- **问题**：16:50–17:35 布拉格的 3000 / 3500 步 dev5 速验一个解码都没开始。原因有两个，都是我造成的：
+  1. joint_stage2_lat.sh 抄自 joint_stage2.sh，带的是修正 5 之前的“卡 7 单卡试叠”流程。训练每卡实占约 84 GiB，单卡解码（约 66.5 GiB）放不下，和 11-13 第 2 段一样，驱动在 17:35 判定 JOINT_STACK_FAILED（训练不受影响）。
+  2. stack_cards.py 用 PHYS_TRAIN_PAT 识别训练进程，只认 train_crf_sft.py。方案 B 的入口是 train_v2p_lat.py，于是每张卡都被当成“有他人进程”，即使开了两卡模式也叠不上。
+- **处理**（与 11-13 修正 5 相同，用户当时已授权两卡切分、只对新方法做 dev5 速验；本次指令“dev5速验还是和之前一样叠加在8卡进行”）：
+  - stack_cards.py 的 PHYS_TRAIN_PAT 加上 train_v2p_lat.py（纯增量，其他训练的判定不变）；test_stack_cards 中钉死该常量的断言同步更新，11/11 通过。
+  - 新看门狗 stack47_watchdog --phys --pair --file-cards 0–7（pid 1528643，日志 stack_watchdog_pair.log），stack_group/order = oldest（同决定 1），proxy_stack.conf 加 HELDOUT=off（同修正 5：held-out loss 单卡放不下，只用于平局决胜，H 缺失按规则记 +inf）。
+  - 排队中、从未启动任何作业的 3000 / 3500 步速验（bash + 编排器）按 PID 停止。旧目录改名为 *.superseded_20261114T163622Z 和第二次的 *.superseded_<UTC> 保留，然后用原 environ 重启。
+  - 16:46:28Z 第一个两卡解码已在卡 (1,5) 上启动（每卡 +30–33 GiB，约 120 GiB / 140.4）。之后各步的速验由驱动按 proxy_stack.conf 自动发起，同样走两卡模式。
