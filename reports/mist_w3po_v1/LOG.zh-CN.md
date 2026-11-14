@@ -3057,3 +3057,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
 - 决策 5 的脚本在 05:50 生效：按 PID 停了 0–3 号卡上我们的 4 个占卡 supervisor 和 3 个 worker → 05:50 PL-EM 训练 talker_plem_en2zh_20261114T045019Z 启动（rows 190995，λ 0.703，预算 1.62 s）。
 - dev5 选择（规则：在 L ≤ L(last)+0.1 的前提下取 Q 最大）：i0400 Q 32.28 / O 25.58 / 1spk 36.28 / L 3.459（chunk 3.314）；i0800 32.14 / 3.456；i1200 32.21 / 3.462 → 选 i0400（三个都可行，BLEU 最高）。
 - 06:58 EN2ZH_TALKER_SELECTED；方法行的 En→Zh 语音（dev mz_sp、test men_sp）以及 (a) 的 devrlplem 已启动；prio_a 在 07:00 解除 0–3 限制。
+
+### 2026-11-14 08:50 布拉格 — 早晨交付：严格基线 vs 方法（dev + test）
+- 08:39 JOINT_DEV_DONE；6 个 test 集合全部完成（joint_test.sh 只在等 (a) 的 EN2ZH_TEST_DONE，用于“方法 vs 单方向系统”参考对比）。
+- test 数字用 joint_test.sh 的同一段 summary 代码和 gate_2seed 在 CPU 上算出，写在 scratchpad，没有提前写正式的 test_summary_v1.json（它用 "x" 模式创建，避免冲突）。
+- 结果见 reports/mist_w3po_v1/joint_baseline_vs_method_20261114.zh-CN.md：ASR-BLEU 5/5 处显著提高；文本 BLEU 在 AliMeeting −2.44（单方向 A′ 也低），其余持平或提高；speech LAAL 在 zh→en 持平，En→Zh +0.13，Ali +0.57。
