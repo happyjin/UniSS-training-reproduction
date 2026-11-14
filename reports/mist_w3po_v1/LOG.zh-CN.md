@@ -3047,3 +3047,8 @@ w3dia2 what/when 与 w3dia 逐位相同，who 与公式一致（1096 个 who tok
     - 正在跑的作业不动；
     - (a) 选出 talker 或停止后自动放开。
   - 预期：joint 的作业改在 4–7 上跑（8 个叠放位），(a) 独占 0–3 的 8 个位，最长链提前完成。
+
+### 2026-11-14 05:40 布拉格 — 夜间决策 5：防止 (a) PL-EM 启动死锁
+- 发现：(a) 驱动以 STACK_PLEM=1 运行；第 5 步认领 slotA 后，要等 0–3 每卡 used + 59 GiB ≤ 135 GiB 才启动，而 plem_blockers 把我们自己的无 ckpt 占卡进程（0–2 号卡各约 130 GB）也算在内；takeover_train.sh（停占卡）要等这个条件满足后才运行 → 永远等不到。
+- 决策：新增 plem_free_cards_a.sh（setsid nohup 后台运行）：等 after_select.log 出现 "STACK_PLEM: start when"、slotA.owner 属于 En->Zh PL-EM，并且 guard 的训练槽排除列表已包含 0 1 2 3（不会再补占卡）后，用 takeover_train.sh（LAUNCH=":"）按 PID 只停 0–3 上我们自己的占卡进程；之后 PL-EM 的等待会自行通过。不改正在运行的驱动；只做了 bash -n 和 DRY_RUN 检查。
+- 现状：采样只剩最后一个分片 train__talk3（3 号卡，round 4）；其余 7 个已完成。
