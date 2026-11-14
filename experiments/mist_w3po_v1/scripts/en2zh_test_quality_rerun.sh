@@ -2,7 +2,9 @@
 # Rerun of en2zh_test.sh's UTMOS / SIM step (2026-11-14): the four talker_quality runs failed at 09:17 Prague because the
 # night relaunch's environ had no TORCH_HOME -> torch.hub looked in /root/.cache, tried to download the UTMOS weights
 # and hit an SSL error. The weights are in /opt/dlami/nvme/jasonleeeli/cache/torch/hub/checkpoints. Same commands as
-# en2zh_test.sh lines 98-109 with TORCH_HOME set; each run waits for a card with >= 20 GiB free (as free_card there).
+# en2zh_test.sh lines 98-109 with TORCH_HOME set. Card choice (v2, 2026-11-14 09:40 Prague): every card is held by a
+# 129 GiB placeholder, so instead of 20 GiB free (never reached) a run stacks on the card with the most free memory if
+# used + NEED_MIB (5500; UTMOS22 + WavLM-base, ~2-4 GB) stays <= 135 GiB (138240 MiB); eval may stack (GPU policy).
 # A run is skipped when its quality.json exists; the paired UTMOS file is written only if absent.
 #   setsid nohup bash experiments/mist_w3po_v1/scripts/en2zh_test_quality_rerun.sh > logs/mist_w3po_v1/en2zh/quality_rerun.log 2>&1 < /dev/null &
 # Checked with bash -n and DRY_RUN=1 only.
@@ -14,8 +16,9 @@ SPD=eval_outputs/mist_w3po_v1/speech; TE=eval_outputs/mist_w3po_v1/crf/t_eval; Q
 FT=ft_en2zh_en2zh_v2p_20261112T204539Z_s02000
 O=$TE/${FT}__rlplem
 log() { echo "$(date -u +%FT%TZ) $*"; }
+NEED_MIB=${NEED_MIB:-5500}
 free_card() { nvidia-smi --query-gpu=index,memory.total,memory.used --format=csv,noheader,nounits | \
-  awk -F', ' '$2 - $3 >= 20480 {print $2 - $3, $1}' | sort -rn | head -1 | awk '{print $2}'; }
+  awk -F', ' -v n=$NEED_MIB '$3 + n <= 138240 {print $2 - $3, $1}' | sort -rn | head -1 | awk '{print $2}'; }
 [ -e $TORCH_HOME/hub/checkpoints/utmos22_strong_step7459_v1.pt ] || { log "UTMOS weights missing under $TORCH_HOME"; exit 1; }
 for nm in ${FT}__rlplem ${FT}__rlplem_tts2 ${FT}__seg ${FT}__seg_tts2; do
   base=${nm%_tts2}; Od=$TE/$base
