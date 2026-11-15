@@ -3257,3 +3257,15 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 13:26 布拉格 补充：第一张预留卡（6）已让 b 的第一个分片在 12:19Z 启动；单个分片约 23 min，三行串行在一张卡上要 ~6 h，所以再起第二个实例（--rows m,m4 --exclude 6，卡 4）给 m / m4 用。P0-1 仍有 6 张卡。
 - 14:12 布拉格（F3）：分析脚本 evaluation/alieval_analysis.py 已在 e1c3ebcf6 提交。新加 scripts/alieval_after.sh（detached）：等 ALIEVAL_DONE → alieval_postproc.sh → 分析 → 标记 ALIEVAL_ANALYSIS_DONE / _FAILED；之后只等这个事件。
 - 14:40 布拉格（F3）：按协调者要求，alieval_paper_json.py 增加宏 v11:ae:abstract（一句英文，≤35 词）：三项确认性检验全过才写 "confirms"，否则逐项写方向 + 是否 Holm 后显著。表格仍同时写 JSON 的 "table" 键和 v11_paper/tab_v11_alieval.tex。
+
+## 2026-11-15 20:40 布拉格 — 会话中断后接手（协调者）；P0-1 测试、P2 测试启动；三项结果收齐
+
+- 上一会话进程退出，F1–F5 子代理随之停止；detached 作业不受影响。完成情况：WB_BASE_DEV5_DONE（18:05）、WB_TEST_S4000_DONE + S4000_POSTPROC_DONE（19:36）、ALIEVAL_ANALYSIS_DONE、V11F_dev_DONE（15:18）、P2_DEV_{zh2en,en2zh}_DONE。还在跑：P1-1 wall-clock（卡 0,1,4,5,6,7 独占）、第二 ASR whisper_zh（卡 2,3）、COMET。
+- **P0-1 R3′ 选 shift（按登记规则）**：dev 平均语速（两种子）Zh→En s2 3.245 / s5 3.391 / s8 3.448，R5 3.557；En→Zh s2 4.694 / s5 4.872 / s8 4.964，R5 5.068。两方向都取 N=8（差 0.109 / 0.104 < 0.15，不加跑 N=11）。附：R4 plemk1 3.524 / 5.086，R1 rlt1c 2.423 / 3.899，R2 c1s2 3.210 / 4.675。
+- **P0-1 测试启动**（20:29 布拉格）：PHASE=test SETS="ami ali en" VARS="t1c c1s2 c1b1s2 c1b1s8 plemk1" PORT0=21000，日志 logs/mist_w3po_v1/joint/v11f/test.log，标记 DONE_test。
+- **P2 dev 门槛**（登记：点估计 ≥ B+PA − 0.2 且 P(差≤0) < 0.95）：Zh→En PA-F − B+PA ASR-BLEU +0.05 [−0.15, 0.28]，P(≤0) 0.33 → **通过**；语速 3.42 vs 3.56 词/秒，停顿 8.77 vs 9.55 /min（F2 中间结果）。En→Zh −0.09 [−0.12, −0.04]，P(≤0) 1.0 → **不通过**，按登记不测，负结果（语速 4.69 vs 5.07 字/秒）。UTMOS 一步 "quality failed"（dev，非门槛项）未重跑。
+- **P2 测试启动**（20:30 布拉格）：新文件 scripts/v11_p2_plemf_test.sh（dev 链换 --set test|ali；bash -n + DRY_RUN），只跑 Zh→En 的 ami / ali，日志 logs/mist_v11/p2/test.log，标记 P2_TEST_DONE。
+- **P0-3 B+δ 曲线（dev5）**：B 的 δ ∈ {+1,+0.5,0,−0.5,−1,−2}：Zh→En (LAAL, tcpBLEU) = (3.38,27.99) (3.26,27.85) (3.065,28.11) (2.784,27.53) (2.458,25.59) (1.952,19.26)；En→Zh (2.604,43.08) (2.451,42.45) (2.35,41.44) (2.204,40.42) (2.065,39.03) (1.862,36.07)。WA（s3500）各点都在 B 曲线上或之下：deadline 附近持平，低延迟处更差（Zh→En ~1.95 s 14.66 vs 19.26；En→Zh ~1.9 s 33.93 vs ~36.6）。**决定：放进论文**（用户"看效果"——效果是清楚的负结果，支撑 WA 分析）。
+- **P0-4 step 4000 测试**：文本 25.08/20.87/41.61（s3500 25.34/21.07/41.74，B 25.02/21.43/41.15）；ASR-BLEU 20.11/17.48/32.24（s3500 20.4/17.82/32.34）。规则选的检查点不改变结论，写附录。
+- **P0-2 AliMeeting Eval**：三项确认性检验全部成立（Holm p 0.023）：ASR-BLEU +2.23 [0.75, 3.37]，LAAL_block −0.366 s，EndOffset −1.434 s。
+- 用户 20:40 布拉格：明早前的决策按最佳方案替他选。
