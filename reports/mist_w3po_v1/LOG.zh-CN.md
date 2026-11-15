@@ -3256,3 +3256,4 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 决定：`scripts/alieval_reserve.py`（detached，日志 logs/mist_w3po_v1/joint/alieval/reserve.log）每 120 s 在 ledger 里为当前行（b→m→m4 顺序）写一条 68 GiB 的 pending 记录，固定在启动时占用最少的一张卡上；其他 owner 不再往该卡放新作业，我们的行在该卡现有作业结束后拿到它。24 个解码分片全部启动后自动退出，记录 300 s 后自然失效。只占一张卡，P0-1 仍有其余 7 张。理由：两个 P0 实验公平共享；不停任何人的进程。
 - 13:26 布拉格 补充：第一张预留卡（6）已让 b 的第一个分片在 12:19Z 启动；单个分片约 23 min，三行串行在一张卡上要 ~6 h，所以再起第二个实例（--rows m,m4 --exclude 6，卡 4）给 m / m4 用。P0-1 仍有 6 张卡。
 - 14:12 布拉格（F3）：分析脚本 evaluation/alieval_analysis.py 已在 e1c3ebcf6 提交。新加 scripts/alieval_after.sh（detached）：等 ALIEVAL_DONE → alieval_postproc.sh → 分析 → 标记 ALIEVAL_ANALYSIS_DONE / _FAILED；之后只等这个事件。
+- 14:40 布拉格（F3）：按协调者要求，alieval_paper_json.py 增加宏 v11:ae:abstract（一句英文，≤35 词）：三项确认性检验全过才写 "confirms"，否则逐项写方向 + 是否 Holm 后显著。表格仍同时写 JSON 的 "table" 键和 v11_paper/tab_v11_alieval.tex。

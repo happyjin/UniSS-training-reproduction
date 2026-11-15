@@ -86,14 +86,25 @@ def main() -> None:
         f"Write alignment changes text tcpBLEU by {sd(me2['text_all']['diff'])} "
         f"({sd(me2['text_all']['ci'][0])} to {sd(me2['text_all']['ci'][1])}; step 4{{,}}000: "
         f"{sd(m4e2['text_all']['diff'])}) and ASR-BLEU by {sd(me2['asr_all']['diff'])}, exploratory comparisons.")
+    sig = {k: v["confirmed"] for k, v in C.items()}
+    if all(sig.values()):
+        abstract = (f"On eight AliMeeting meetings never used before, a locked test confirms the speech-layer gains: "
+                    f"ASR-BLEU {sd(C['H1a_asr_bleu']['diff'])}, block-start speech LAAL "
+                    f"{sd(C['H1b_laal_block']['diff'])}\\,s, EndOffset {sd(C['H2_endoffset']['diff'])}\\,s.")
+    else:
+        part = lambda k, n, u: f"{n} {sd(C[k]['diff'])}{u} ({'confirmed' if sig[k] else 'not significant after Holm'})"
+        abstract = ("On eight AliMeeting meetings never used before, a locked test gives "
+                    + ", ".join([part("H1a_asr_bleu", "ASR-BLEU", ""), part("H1b_laal_block", "block-start LAAL", "\\,s"),
+                                 part("H2_endoffset", "EndOffset", "\\,s")]) + ".")
     V.mkdir(parents=True, exist_ok=True)
     (V / "tab_v11_alieval.tex").open("x").write(table)
     with open(V / "alieval.json", "x") as fh:
         json.dump({"switch": "AliEval", "final": True,
-                   "macros": {"v11:ae:verdict": verdict, "v11:ae:hours": f"{hours:.1f}"},
+                   "macros": {"v11:ae:verdict": verdict, "v11:ae:hours": f"{hours:.1f}", "v11:ae:abstract": abstract},
                    "table": table, "table_path": str((V / "tab_v11_alieval.tex").relative_to(REPO)),
                    "source": str(A.relative_to(REPO))}, fh, indent=1)
     print(verdict)
+    print(abstract, len(abstract.split()), "words")
 
 
 if __name__ == "__main__":
