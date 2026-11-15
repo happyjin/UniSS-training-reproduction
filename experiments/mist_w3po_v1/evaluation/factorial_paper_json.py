@@ -52,7 +52,7 @@ def main() -> None:
     pos = sum(1 for s, h in zip(SETS, h_asr) if h < 0.05 and P[s]["asr_all"]["diff"] > 0
               and P[s]["asr_all"]["ci95"][0] > 0)
     fmt_p = lambda ps: " / ".join("$<$0.001" if p < 0.001 else f"{p:.3f}" for p in ps)
-    nums = (f"Against the rate-matched rule layer (R3$^\\prime$), \\sys{} changes ASR-BLEU by {' / '.join(sd(x) for x in d_asr)} "
+    nums = (f"Against the rate-matched rule layer (R3$^\\prime$), \\sys{{}} changes ASR-BLEU by {' / '.join(sd(x) for x in d_asr)} "
             f"($p_\\text{{Holm}}$ {fmt_p(h_asr)}) and LAAL$_\\text{{block}}$ by {' / '.join(sd(x) for x in d_lat)}\\,s "
             f"($p_\\text{{Holm}}$ {fmt_p(h_lat)}).")
     if pos >= 2:
