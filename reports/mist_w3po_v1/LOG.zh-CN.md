@@ -3216,3 +3216,12 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 检查点不新选：Zh→En 用第 1200 步，En→Zh 用第 400 步（与 PA 相同）。dev 门槛：gate_2seed 语音项（点估计 ≥ B+PA − 0.2 且 P(差 ≤ 0) < 0.95）；通过才测 test。
 - 代码：talker/fluency_rows.py（+ test_fluency_rows.py，穷举一致、μ=0 与 PL-EM 一致）；scripts/joint_orch_plemx.py（Zh→En 换 PL-EM export 的包装，不改原文件）；scripts/v11_p2_plemf.sh（rows → 有空间的 4 卡上 takeover 训练 → dev 链 + 延迟/停顿/UTMOS）。只用 bash -n 和 DRY_RUN 检查。
 - 启动：rows 两个方向（CPU，日志 logs/mist_v11/p2/rows_*.log）；驱动 v11_p2_plemf.sh，日志 logs/mist_v11/p2/plemf.log，标记 P2_DEV_{zh2en,en2zh}_DONE。训练选卡规则：非占位进程显存 + 59 GiB ≤ 135 GiB 且卡上无其他训练，两方向不共用卡。
+
+## 2026-11-15 10:40 布拉格 — v11 P1-1 工具与登记（F4）
+- 登记 reports/mist_w3po_v1/v11_p11_wallclock_prereg.zh-CN.md。新工具：evaluation/timed_reads.py（Engine.read 最外层计时包装）、evaluation/timed_talker.py（vLLM generate 逐块拆分计时 + 轮次 / 打分计时）、evaluation/wallclock_v11.py（计算感知回放）+ 单元测试 test_wallclock_v11.py（8 项通过）、scripts/wallclock_v11_launch.py（--dry 检查）。
+- 决定（授权内）：在本分支 P0-4 测试跑完之后才开始（门槛 WB_TEST_S4000_DONE），只用只有占位训练的卡，作业内预留显存防叠加，有竞争就重跑。没有可用的共享排除机制（sync_train_exclude.sh 每 10 s 覆盖 GLOBAL_EXCLUDE），所以用显存预留 + 共租监测代替。
+
+## 2026-11-15 09:45 布拉格 — v11 P0-1：分析工具就绪并核对
+- 新文件：`experiments/mist_w3po_v1/scripts/v11_p01_postproc.sh`（lat_units_dump perword/blockstart、talker_block_pauses、talker_quality 种子 1；只补缺、不覆盖）和 `experiments/mist_w3po_v1/evaluation/v11_factorial_analysis.py`（ASR-BLEU 配对 = make_tables_v10.paired；延迟/语速/UTMOS = post_review_v10_analysis.paired_ratio；主族 Holm）。
+- 核对：在已有测试输出 R0（B）/ R5（B+PA）上重算，R5−R0 的 ASR-BLEU +2.28/+1.35/+0.58、LAAL_block −0.091/−0.331/−0.111、LAAL_spread、EndOffset、语速与 v10 宏 / post_review analysis_v1.json 逐项一致（区间差 ≤0.003，bootstrap 抽样顺序不同）。
+- 小事故：第一次 talker_quality 缺 TORCH_HOME → 联网下载 UTMOS 权重 SSL 失败（同 11-14 的已知问题）；脚本已加 TORCH_HOME（新文件 + mv），测试集 R0/R5 的 quality 直接复制 post_review_v10 的同一结果（同工具、同种子）。
