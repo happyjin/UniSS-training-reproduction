@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llrrrrrr}
+\toprule
+ & & text & ASR- & text & \multicolumn{3}{c}{speech LAAL (s)} \\
+\cmidrule(lr){6-8}
+Set & System & BLEU & BLEU & LAAL & block & spread & EndOff. \\
+\midrule
+Zh$\rightarrow$En & \sys{} & 25.02 & 20.35 & 2.99 & 3.03 & 3.61 & 3.13 \\
+ & +WA 3{,}500 & 25.34 & 20.45 & 3.07 & 3.10 & 3.69 & 3.20 \\
+ & +WA 4{,}000 & 25.08 & 20.12 & 3.05 & 3.08 & 3.66 & 3.16 \\
+\midrule
+En$\rightarrow$Zh & \sys{} & 41.15 & 32.23 & 2.37 & 2.43 & 2.95 & 2.91 \\
+ & +WA 3{,}500 & 41.74 & 32.34 & 2.47 & 2.52 & 3.05 & 2.98 \\
+ & +WA 4{,}000 & 41.61 & 32.24 & 2.48 & 2.54 & 3.07 & 3.01 \\
+\midrule
+Ali & \sys{} & 21.43 & 18.08 & 2.82 & 2.95 & 3.65 & 3.23 \\
+ & +WA 3{,}500 & 21.07 & 17.84 & 3.06 & 3.19 & 3.91 & 3.45 \\
+ & +WA 4{,}000 & 20.87 & 17.51 & 2.97 & 3.10 & 3.79 & 3.33 \\
+\bottomrule
+\end{tabular}
+\caption{The checkpoint chosen by the pre-set selection rule (step 4{,}000) against the one reported in v10 (step 3{,}500), both written +WA here, with $\bias=-1$ and the playback layer, decoded once on each test set after the registration; \sys{} for reference. Speech metrics: mean of two TTS seeds, chunk protocol.}
+\label{tab:s4000}
+\end{table}

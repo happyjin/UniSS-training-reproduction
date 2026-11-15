@@ -1,0 +1,13 @@
+{
+ "switch": "AliEval",
+ "final": true,
+ "macros": {
+  "v11:ae:verdict": "Against B, \\sys{} changes ASR-BLEU by +2.23, the conventional block-start speech LAAL by $-$0.37\\,s and EndOffset by $-$1.43\\,s (all three pre-registered tests confirmed after Holm correction); speech start moves by $-$0.14\\,s and the speaking rate rises from 2.36 to 3.50 words per second. The pause cost of \\S\\ref{sec:res-pa} replicates as well.",
+  "v11:ae:hours": "4.2",
+  "v11:ae:abstract": "On eight AliMeeting meetings never used before, a locked test confirms the speech-layer gains: ASR-BLEU +2.23, block-start speech LAAL $-$0.37\\,s, EndOffset $-$1.43\\,s.",
+  "v11:ae:wa": "Write alignment changes text tcpBLEU by $-$0.29 ($-$0.59 to +0.09; step 4{,}000: $-$0.12) and ASR-BLEU by $-$0.10, exploratory comparisons."
+ },
+ "table": "\\begin{table*}[t]\n\\centering\\small\n\\setlength{\\tabcolsep}{3.5pt}\n\\begin{tabular}{lrrrrrrrrrr}\n\\toprule\n & text & ASR- & text & \\multicolumn{4}{c}{speech latency (s)} & rate & pauses & \\\\\n\\cmidrule(lr){5-8}\nSystem & tcpBLEU & BLEU & LAAL & LAAL$_\\text{block}$ & LAAL$_\\text{spread}$ & start & EndOff. & (w/s) & /min & UTMOS \\\\\n\\midrule\nB & 14.58 & 10.66 & 2.87 & 3.39 & 4.50 & 3.23 & 4.79 & 2.36 & 4.3 & 3.50 \\\\\n\\sys{} (B + PA) & 14.58 & 12.89 & 2.87 & 3.02 & 3.81 & 3.09 & 3.35 & 3.50 & 11.1 & 3.77 \\\\\n\\sys{}+WA, step 3{,}500 & 14.29 & 12.79 & 3.08 & 3.21 & 4.04 & 3.29 & 3.59 & 3.48 & 10.2 & 3.76 \\\\\n\\sys{}+WA, step 4{,}000 & 14.46 & 13.00 & 3.04 & 3.17 & 3.93 & 3.20 & 3.43 & 3.48 & 11.0 & -- \\\\\n\\bottomrule\n\\end{tabular}\n\\caption{Locked test on the eight unused AliMeeting evaluation meetings (4.2\\,h, Zh$\\rightarrow$En, DiariST human references), each system decoded once (+WA: $\\bias=-1$); ASR-BLEU and speech metrics averaged over two TTS seeds (UTMOS: seed 1), latencies under the chunk protocol without computation. Confirmatory tests of \\sys{} $-$ B (Holm over three; exact sign-flip over 8 meetings, minimum $p$ = 2/256; 95\\% meeting-bootstrap interval): ASR-BLEU +2.23 [+0.75, +3.37], $p_\\text{Holm}$ 0.023; LAAL$_\\text{block}$ $-$0.37 [$-$0.41, $-$0.33], $p_\\text{Holm}$ 0.023; EndOffset $-$1.43 [$-$1.51, $-$1.32], $p_\\text{Holm}$ 0.023.}\n\\label{tab:alieval}\n\\end{table*}\n",
+ "table_path": "eval_outputs/mist_w3po_v1/v11_paper/tab_v11_alieval.tex",
+ "source": "eval_outputs/mist_w3po_v1/joint/alieval_analysis/analysis_v1.json"
+}
