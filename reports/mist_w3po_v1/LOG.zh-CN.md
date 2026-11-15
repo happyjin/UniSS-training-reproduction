@@ -3188,3 +3188,31 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - P0-3 启动：`experiments/mist_w3po_v1/scripts/wb_dev5_base.sh`（wb_dev5.sh 的副本，只换行：严格基线 identity + δ ∈ {+1, +0.5, −0.5, −1, −2}，两个方向，dev5 文本），08:19Z 启动，驱动 PID 2048504，日志 logs/mist_w3po_v1/joint/wb/wb_dev5_base.log，标记 WB_BASE_DEV5_DONE，汇总 summary_base.tsv。只在 dev 上，测试集不动。脚本注释里的时间 "~08:10 Prague" 应为 ~09:15 Prague（脚本在跑，不改文件）。
 - P0-2 准备：DiariST dev 人工英文参考 data/diarist_alimeeting_refs_v1/dev.txt（8 场 = AliMeeting Eval，与 test 20 场无重叠；SOURCE_dev.md）；AliMeeting Eval_Ali.tar.gz（3.67 GB，含远场/近场音频和 TextGrid 转写）下载到 data/raw/alimeeting/，日志 logs/mist_v11/eval_ali_download.log。只做测试，处理前先写登记。
 - paper/gstar_si_v11 由 v10 复制（不含构建产物和 .git_copied_from_v9）；v10 不动。
+
+## 2026-11-15 09:45 布拉格 — v11 P0-4 登记与启动（分支执行者 F4，用户外出授权按最优选择）
+- 登记 reports/mist_w3po_v1/v11_p04_s4000_prereg.zh-CN.md（测试解码前）。脚本 wb_test_s4000.sh = wb_test.sh 只换 step_04000、名字、输出目录（logs/mist_w3po_v1/joint/wb/test_s4000）、端口 19950–19970；第二个 gate 改为对 3500+δ=−1（无偏置的 4000 没有测试解码）。bash -n + DRY_RUN 检查。8 卡 --cap135 叠加。
+
+## 2026-11-15 09:35 布拉格 — v11 P1-4 分析（代理 F5）：定义在计算前固定
+
+- 范围：只用已有输出。流式 B（jdev/jtest_b*_joint_v8h6k…_s06000，语音 __t1c）、B+PA（同一文本，语音 __rlplem）、M（…_s03500_wbzm1em1，语音 __rlplem），dev 两方向 + test ami/ali/en，语音两个 TTS 种子；离线重叠表（scores_ov2 的 C-ft2 / O2-nosd-relabel / O2，三个集）。测试集上不做任何选择。
+- (a) 去重 tcpBLEU：与原打分器同一切分和分配；每个参考单元内，按片段与单元的时间重叠从大到小依次保留，若与已保留片段的 chrF（双向取大）≥ 50（打分器判重复的同一阈值）就丢掉；保留的按时间拼接。
+- (b) 短插话内容召回：被打分的话语，时长 ≤ 1.5 s 且 ≥ 20% 时间与他人重叠（另报不重叠的短话语作对照）；话语的译文 = 分配到其单元、且片段在话语 ±1 s 内的文本（与 CR 的"recalled"同一规则）；内容召回 = 参考词元多重集召回（英文小写去标点按词，中文按字去标点）≥ 0.5 记为召回；另报平均词元召回。次要定义：参考 ≤ 3 词（英）/ ≤ 5 字（中）。
+- (b′) 归属无关质量（speaker-blind tcpBLEU）：片段分配时不看说话人，按时间重叠给任意说话人的参考单元（拆分同理），其余不变；归属损失 = blind − attributed。
+- (c) COMET：wmt22-comet-da（参考单元级：src = 源转写，mt = 单元假设，ref = 参考；空假设照算，插入不计），按会议 bootstrap 差值；MetricX-24 权重能拿到就加。决定：新建独立 venv venvs/mt_metrics（uniss-eval 的 python -m venv），不往已有环境装包——用户不在，按"最佳选择"授权，隔离最安全。
+- (d) 第二个 ASR：英文用 NVIDIA parakeet-tdt-0.6b-v2（nemo_diar 环境；与 CTC 选择器 wav2vec2-960h 和 Whisper 都不同），中文用 Whisper-large-v3（language=zh，opencc t2s）；只做测试集 B / B+PA / M × 两种子，用已有 speech-only 音频，写到 eval_outputs/mist_w3po_v1/v11_metrics/asr2/，不改原目录。
+- 09:40 更正（F5）：新建 venvs/mt_metrics 被权限拒绝（记忆：只有用户批准的环境可装包），不装包。COMET 改为在已有环境 uniss-eval 中用 transformers 按 wmt22-comet-da 的 hparams 重写推理（只下载权重），用官方示例分数核对；核对不过就不报 COMET。
+
+## 2026-11-15 09:31 布拉格 — v11 P0-1 逐因子消融：dev 启动（F1 执行者，用户外出、授权按最优选择）
+- 新文件：`experiments/mist_w3po_v1/scripts/v11_factorial_orch.py`（joint_orch.py 不改，只改写 si_infer 命令，同 joint_orch_wb 的挂钩）和 `v11_p01_factorial.sh`（照 e2_baseline_plem.sh；bash -n + DRY_RUN 核过；拒绝覆盖）。
+- 行定义（B 的 rl 合并文本，两个 TTS 种子）：R1 `t1c`（T1c 固定语速 1 样本）；R2 `c1s2`（队列语速规则 + speed-shift 2，1 样本，不起 CTC 打分服务）；R3 `c1b1s2`（规则 + 2 选 1 CTC = v10 表 6 规则层）；R3′ `c1b1s<N>`；R4 `plemk1`（PA Talker + backlog token + 同一规则语速，1 样本）；R0 = 已有 `__t1c`，R5 = 已有 E2 `__rlplem`。
+- 决定 1：R4 不用 `--self-speed`（plem k1 原设置），而用与 R5 相同的规则语速、只去掉 CTC 选择。理由：R5−R4 只差候选选择，R4−R2 只差 Talker 权重（+backlog token），两个对比都是单因子。
+- 决定 2：R3′ 的语速匹配。现有 A′ dev 数据：规则 s2 3.13 词/秒、s3 3.18（每步约 +0.06），PA 3.47；B 文本上 PA（E2 rlplem）3.56。需要约 +6 步，线性外推不可靠 → dev 上同时跑 s5、s8 两个标定点（与 s2 = R3 一起），每个方向取 dev 语速最接近 E2 rlplem 的点作 R3′，只在测试集上跑选中的那一个。这是对照组的语速标定，不是方法调参。
+- dev 12 条链（2 方向 × 6 变体），--cap135 叠加，日志 logs/mist_w3po_v1/joint/v11f/dev.log，标记 DONE_dev。测试集在登记文件提交后再跑。
+
+## 2026-11-15 10:20 布拉格 — v11 P2（流畅性约束 PA Talker，PA-F）登记并启动
+
+- 登记 reports/mist_w3po_v1/v11_p2_fluency_pa_prereg.zh-CN.md（commit fdf4b4dd6），训练前写死：第二个期望约束 E_q[Σd]/ΣW ≥ s_min，s_min = 1/(r_0 + 0.5(r_PA − r_0))，由训练集统计给出：Zh→En 0.3129 s/词（r_0 2.971 → r_PA 3.422 → 上限 3.196 词/秒），En→Zh 0.2116 s/字（4.431 → 5.023 → 4.727 字/秒）。延迟预算不变（规则路径 − 0.3 s）。对偶坐标上升精确求解；不可行时按登记放宽延迟预算到 −0 s。
+- 决定（授权内，最优选择）：只约束语速（期望每词语音时长），不另设停顿约束。理由：候选只有语义码，停顿需要解码音频；停顿主要来自"说完后等下一块"，语速上限直接作用于它；一个设置、不扫参。
+- 检查点不新选：Zh→En 用第 1200 步，En→Zh 用第 400 步（与 PA 相同）。dev 门槛：gate_2seed 语音项（点估计 ≥ B+PA − 0.2 且 P(差 ≤ 0) < 0.95）；通过才测 test。
+- 代码：talker/fluency_rows.py（+ test_fluency_rows.py，穷举一致、μ=0 与 PL-EM 一致）；scripts/joint_orch_plemx.py（Zh→En 换 PL-EM export 的包装，不改原文件）；scripts/v11_p2_plemf.sh（rows → 有空间的 4 卡上 takeover 训练 → dev 链 + 延迟/停顿/UTMOS）。只用 bash -n 和 DRY_RUN 检查。
+- 启动：rows 两个方向（CPU，日志 logs/mist_v11/p2/rows_*.log）；驱动 v11_p2_plemf.sh，日志 logs/mist_v11/p2/plemf.log，标记 P2_DEV_{zh2en,en2zh}_DONE。训练选卡规则：非占位进程显存 + 59 GiB ≤ 135 GiB 且卡上无其他训练，两方向不共用卡。

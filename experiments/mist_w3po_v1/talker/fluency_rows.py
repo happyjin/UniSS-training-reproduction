@@ -127,11 +127,11 @@ def stats(items: list[dict], W: dict) -> dict:
             "rate_base": round(b0_w / b0_d, 4), "rate_plem": round(1 / dp, 4), "rate_rule": round(1 / rule_d, 4)}
 
 
-def rows(items: list[dict], W: dict, spw_min: float) -> tuple[list[dict], dict]:
+def rows(items: list[dict], W: dict, spw_min: float, drop: float = TR.BUDGET_DROP_S) -> tuple[list[dict], dict]:
     streams = build(items, W)
     words = sum(sum(st.words) for st in streams)
     a_lat = sum(st.path_latency([b["chosen"] for b in it["blocks"]]) for st, it in zip(streams, items)) / words
-    budget = a_lat - TR.BUDGET_DROP_S
+    budget = a_lat - drop
     sol = solve(streams, budget, spw_min)
     lam, mu = sol["lambda"], sol["mu"]
     blocks, kl_u, ent = [], [], []
@@ -166,6 +166,9 @@ def main():
     ap.add_argument("--spw-min", type=float)
     ap.add_argument("--rate-frac", type=float)
     ap.add_argument("--out")
+    ap.add_argument("--drop", type=float, default=TR.BUDGET_DROP_S,
+                    help="latency budget = rule path latency - drop (prereg: 0.3; 0 only under the infeasibility rule)")
+    ap.add_argument("--require-feasible", action="store_true", help="write nothing when the duals do not converge")
     a = ap.parse_args()
     TR.LANG, TR.UNITS = (TR.LANG_ENG if a.lang == "eng" else TR.LANG_CMN), a.units
     items, W = TR.load_items(a.cands), TR.windows(a.win)
@@ -192,7 +195,11 @@ def main():
         r0, rp = s["rate_base"], s["rate_plem"]
         spw_min = 1.0 / (r0 + a.rate_frac * (rp - r0))
         extra = {"rate_frac": a.rate_frac, "rate_base": r0, "rate_plem": rp, "rate_cap": round(1 / spw_min, 4)}
-    blocks, st = rows(items, W, spw_min)
+    blocks, st = rows(items, W, spw_min, a.drop)
+    st["drop_s"] = a.drop
+    if a.require_feasible and not st["feasible"]:
+        print(json.dumps({"INFEASIBLE": True, **{k: v for k, v in st.items() if k != "dual_history"}}))
+        raise SystemExit(3)
     st.update(extra)
     st.update({} if (a.lang, a.units) == ("eng", "word") else {"lang": a.lang, "units": a.units})
     import torch
