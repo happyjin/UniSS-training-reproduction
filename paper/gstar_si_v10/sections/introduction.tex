@@ -6,10 +6,9 @@ contribution it is: a ``yes'' from the project manager means something different
 people talk at once: over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers.
 Simultaneous speech-to-speech translation (SimulS2ST) systems translate one speaker and can keep that speaker's
 voice~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s}. DiariST~\citep{yang2024diarist}
-streams speaker-attributed speech-to-text translation of overlapping conversations, without timestamps or speech;
-X-Translator~\citep{zhao2026xtranslator} is a speaker-aware speech-to-speech cascade that recognises one stream and routes
-each committed span to one speaker, so a merged second voice cannot be recovered. No multi-speaker system reports
-latency on overlapping meetings (Appendix~\ref{app:related7}, Table~\ref{tab:related8}).
+streams speaker-attributed text translation of overlapping conversations, without timestamps or speech;
+X-Translator~\citep{zhao2026xtranslator} routes each committed span of one recognition stream to one speaker. We are not aware of a multi-speaker
+system that reports latency on overlapping meetings (Appendix~\ref{app:related7}).
 
 We present \sys{} (\emph{Meeting Interpretation with Speaker Tracking}), in which one decoder writes, for every speaker
 of a window, speaker-attributed, time-stamped translation segments $\spk{k}\,\tim{a}\,\text{translation}\,\tim{b}$,
@@ -18,34 +17,23 @@ streaming diarizer, whose slots stay fixed for the whole meeting, as speaker tok
 (from G-STAR;~\citealp{peng2026gstar}), so two concurrent voices stay two speakers; it writes speaker first, because a
 segment's voice must be known before its first word is spoken.
 
-The other half of the problem is \emph{when} to write and to speak. Our first simultaneous decoder learned a wait token
-from deadlines, each translated chunk due one fixed lag after the source it covers. It commits only
-\num{v10:dev:z:b:pre}\% of its Zh$\rightarrow$En words before the source utterance has ended, and a rule-based speech
-layer that plays every committed block in full adds a queue (speech LAAL \num{v10:dev:z:b:slaal}\,s on the development
-set). We learn both decisions as latent structure, as two complementary alignments: \emph{write alignment} decides what
-text is written and when, \emph{playback alignment} when it is heard. For the decoder, the read at
-which each chunk is written (on time or one read later) and the speaker order within a read are latent, and EM
-re-weights the training rows by their exact posterior over sets of written chunks. For the speech
-generator, each block's rendering and the playback backlog form a linear-chain CRF whose potentials contain the delay at
-which each word is heard, under a latency budget imposed by posterior regularisation~\citep{ganchev2010posterior}. More
-audio makes the same translation more likely, so EM drifts towards later writes; one constant bias on the wait logit,
-set once on development meetings, corrects this at decoding.
+The other half of the problem is \emph{when} to write and to speak. A decoder trained with a wait token on deadlines
+(each chunk due one fixed lag after its source) commits only \num{v10:dev:z:b:pre}\% of its Zh$\rightarrow$En words
+before the source utterance ends, and a speech layer that plays every block in full builds a queue. We cast both decisions as latent structure. \emph{Write alignment} lets the read at which
+each chunk is written (on time or one read later) and the speaker order within a read be latent; training re-weights the
+rows by their exact tempered posterior over sets of written chunks. As with other likelihood-trained latent
+policies~\citep{arivazhagan2019milk,ma2020mma}, more audio makes the same translation more likely, so the posterior drifts
+towards later writes; one constant bias on the wait logit, set on development meetings, counters this at decoding.
+\emph{Playback alignment} scores each block's candidate renderings and the playback backlog with a linear-chain CRF
+whose potentials contain the delay at which each word is heard, under a latency budget imposed by posterior
+regularisation~\citep{ganchev2010posterior}, and fine-tunes the speech generator once on the posterior-weighted
+candidates.
 
 Our contributions are (i) the speaker-first, time-stamped joint decoding format with the diarizer read inside the
-decoder; (ii) an overlap-aware evaluation with cascade and relabelling controls on the same diarizer
-(\S\ref{sec:eval-overlap}); (iii) write alignment by exact EM, with a fixed write bias
-(\S\ref{sec:method-latent}); and (iv) playback alignment by exact EM under a latency budget (\S\ref{sec:method-plem}). \sys{} beats the strongest non-oracle cascade on AMI reference windows by
-\num{v7:gainoff:en2zh} / \num{v7:gainoff:zh2en} speaker-attributed BLEU (En$\rightarrow$Zh / Zh$\rightarrow$En) and, on
-overlapped speech, a speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} /
-\num{v8:x:ov-O2-rel-zh2en:diff} (\S\ref{sec:res-overlap}). On whole AMI test meetings, against the same joint model
-trained on deadlines, the full system raises text tcpBLEU by \num{v10:sig:test:ami:text:m-b:diff} /
-\num{v10:sig:test:en:text:m-b:diff} and speech ASR-BLEU by \num{v10:sig:test:ami:speech:m-b:diff} /
-\num{v10:sig:test:en:speech:m-b:diff} and changes speech LAAL by \num{v10:test:ami:m-b:slaal} /
-\num{v10:test:en:m-b:slaal}\,s (Zh$\rightarrow$En / En$\rightarrow$Zh). Speaking the baseline's own text with playback
-alignment yields the speech gains and the latency reduction; write alignment adds the text gain, not speech quality
-or speed (\S\ref{sec:res-v10}).
-\ifAliwin
-On real Mandarin meetings the changes are \num{v10:test:ali:m-b:asr} ASR-BLEU and \num{v10:test:ali:m-b:slaal}\,s.
-\else
-On real Mandarin meetings the speech gains carry over, but the text score does not improve.
-\fi
+decoder; (ii) an overlap-aware evaluation of whole meetings, run online, with cascade and relabelling controls on the same
+diarizer (\S\ref{sec:eval-overlap}); and (iii) the two timing alignments (\S\ref{sec:method-latent},
+\S\ref{sec:method-plem}) with an analysis of what each does and does not change. Online, against the same joint model
+trained on deadlines, the playback-alignment layer brings significant speech ASR-BLEU gains on all three test sets
+(\S\ref{sec:res-v10}); write alignment yields no gain that survives multiple-comparison correction (AMI text tcpBLEU
+\num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff}) and is heard slightly later. Per utterance
+the system remains closer to consecutive than to simultaneous interpretation; we therefore call it \emph{streaming}.

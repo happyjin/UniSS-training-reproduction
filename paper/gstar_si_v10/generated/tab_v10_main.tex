@@ -1,28 +1,28 @@
 \begin{table*}[t]
 \centering\small
-\setlength{\tabcolsep}{4pt}
-\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrr}
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrr}
 \toprule
- & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{3}{c}{latency (s) $\downarrow$} \\
-\cmidrule(lr){3-5}\cmidrule(lr){7-9}
-Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech LAAL & EndOffset \\
+ & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{4}{c}{latency (s) $\downarrow$} \\
+\cmidrule(lr){3-5}\cmidrule(lr){7-10}
+Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech start & LAAL$_\text{spread}$ & EndOffset \\
 \midrule
-\multirow{4}{*}{AMI Zh$\rightarrow$En} & Deadline SFT (strict baseline) & 25.02 & 19.97 & 27.10 & 18.07 & \textbf{2.99} & 4.01 & 4.08 \\
- & \quad + rl + PL-EM Talker & 25.02 & 19.97 & 27.10 & 20.35 & \textbf{2.99} & \textbf{3.61} & \textbf{3.13} \\
- & \sys{} v10 ($\bias=-1$) & \textbf{25.34} & \textbf{20.53} & \textbf{27.30} & \textbf{20.45} & 3.07 & 3.69 & 3.20 \\
- & SeamlessStreaming$^\dagger$ & 8.69 & 3.07 & 11.19 & 8.48 & 2.63 & 3.29 & 2.53 \\
+\multirow{4}{*}{AMI Zh$\rightarrow$En} & Deadline baseline (B) & 25.02 & 19.97 & 27.10 & 18.07 & 2.99 & 2.99 & 4.01 & 4.08 \\
+ & B + playback alignment (B+PA) & 25.02 & 19.97 & 27.10 & 20.35$^{*}$ & 2.99 & 2.96 & 3.61 & 3.13 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 25.34$^{\circ}$ & 20.53 & 27.30 & 20.45$^{*}$ & 3.07 & 3.04 & 3.69 & 3.20 \\
+ & \quad\emph{first test run, $\bias=0$} & 25.09 & 19.96 & 27.18 & 20.48 & 3.36 & 3.39 & 3.99 & 3.42 \\
 \midrule
-\multirow{4}{*}{AliMeeting Zh$\rightarrow$En} & Deadline SFT (strict baseline) & \textbf{21.43} & 16.91 & \textbf{23.05} & 16.73 & \textbf{2.82} & 4.28 & 4.57 \\
- & \quad + rl + PL-EM Talker & \textbf{21.43} & 16.91 & \textbf{23.05} & \textbf{18.08} & \textbf{2.82} & \textbf{3.65} & \textbf{3.23} \\
- & \sys{} v10 ($\bias=-1$) & 21.07 & \textbf{17.38} & 22.68 & 17.84 & 3.06 & 3.91 & 3.45 \\
- & SeamlessStreaming$^\dagger$ & 10.41 & 4.42 & 13.27 & 9.42 & 3.09 & 3.96 & 2.72 \\
+\multirow{4}{*}{AliMeeting Zh$\rightarrow$En} & Deadline baseline (B) & 21.43 & 16.91 & 23.05 & 16.73 & 2.82 & 3.05 & 4.28 & 4.57 \\
+ & B + playback alignment (B+PA) & 21.43 & 16.91 & 23.05 & 18.08$^{*}$ & 2.82 & 2.92 & 3.65 & 3.23 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 21.07$^{\circ}$ & 17.38 & 22.68 & 17.84$^{*}$ & 3.06 & 3.20 & 3.91 & 3.45 \\
+ & \quad\emph{first test run, $\bias=0$} & 18.99 & 15.63 & 20.45 & 17.37 & 3.87 & 4.15 & 4.85 & 4.23 \\
 \midrule
-\multirow{4}{*}{AMI En$\rightarrow$Zh} & Deadline SFT (strict baseline) & 41.15 & 36.16 & 42.51 & 31.65 & \textbf{2.37} & 3.21 & 3.48 \\
- & \quad + rl + PL-EM Talker & 41.15 & 36.16 & 42.51 & 32.23 & \textbf{2.37} & \textbf{2.95} & \textbf{2.91} \\
- & \sys{} v10 ($\bias=-1$) & \textbf{41.74} & \textbf{36.48} & \textbf{43.24} & \textbf{32.34} & 2.47 & 3.05 & 2.99 \\
- & SeamlessStreaming$^\dagger$ & 13.28 & 5.86 & 16.71 & 11.31 & 2.31 & 3.19 & 3.04 \\
+\multirow{4}{*}{AMI En$\rightarrow$Zh} & Deadline baseline (B) & 41.15 & 36.16 & 42.51 & 31.65 & 2.37 & 2.43 & 3.21 & 3.48 \\
+ & B + playback alignment (B+PA) & 41.15 & 36.16 & 42.51 & 32.23$^{*}$ & 2.37 & 2.39 & 2.95 & 2.91 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 41.74$^{\circ}$ & 36.48 & 43.24 & 32.34$^{\circ}$ & 2.47 & 2.50 & 3.05 & 2.99 \\
+ & \quad\emph{first test run, $\bias=0$} & 41.85 & 36.18 & 44.33 & 32.41 & 2.73 & 2.81 & 3.34 & 3.21 \\
 \bottomrule
 \end{tabular}}
-\caption{Test sets, each decoded once. Strict baseline: joint deadline-trained Thinker, frozen T1c Talker; second row: its text spoken with read-level merging (rl) and the PL-EM Talker; \sys{} v10: latent write alignment with $\bias=-1$ and the same speech layer. tcpBLEU over all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds; latency per speaker stream, chunk protocol (speech LAAL primary). Bold: best of our three systems. Tests: Table~\ref{tab:sig10}; $\bias=0$: Table~\ref{tab:delta0}. $^\dagger$External zero-shot single-speaker S2ST, no speaker attribution of its own: our windows, causal diarizer relabelling, one deterministic run (Appendix~\ref{app:e7}).}
+\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}). Italic: the first test decoding, before $\bias$ was introduced (\S\ref{sec:res-hygiene}). tcpBLEU over all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk protocol, computation not counted; speech start: first heard word of a unit. Against B, Holm-corrected (Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; latency has no test.}
 \label{tab:main10}
 \end{table*}

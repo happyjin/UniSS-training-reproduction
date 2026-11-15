@@ -533,6 +533,11 @@ def main():
             put(f"v10:tk:{s}:{lab}:wer", None if e is None else 100 * float(np.mean(e["listen"]["talker_wer"])),
                 "{:.1f}", src=f)
         put(f"v10:tk:{s}:text", g(d, "text", "A′", "bleu", "all"), src=f)
+        # learned PA Talker (+ read-level merging) over the rule-based layer on the same text
+        for f2 in ("asr", "slaal"):
+            a_, c_ = MAC.get(f"v10:tk:{s}:a:{f2}"), MAC.get(f"v10:tk:{s}:c:{f2}")
+            ok = a_ not in (None, PH) and c_ not in (None, PH)
+            putd(f"v10:tk:{s}:c-a:{f2}", float(c_) - float(a_) if ok else None, src=f)
 
     # --- block-start ("single-speaker") speech LAAL (copied inputs)
     for tag, sp, s, sy in (("devz", "dev", "z", "b"), ("devz", "dev", "z", "m0"), ("devz", "dev", "z", "m"),
@@ -578,7 +583,9 @@ def main():
         elif isinstance(v, int):
             MAC["v10:c:" + k] = str(v)
         else:
-            put("v10:c:" + k, v, "{:.1f}" if k.startswith("rw:") else "{:.2f}")
+            # per-step row counts are averages: print them as whole rows (no spurious precision)
+            fmt = "{:.1f}" if k.startswith("rw:") else ("{:.0f}" if k in ("crf:pass1", "crf:pass2") else "{:.2f}")
+            put("v10:c:" + k, v, fmt)
     # derived from constants
     putd("v10:c:dd:ali:diff", C["dd:ali:m0"] - C["dd:ali:b"])
     putd("v10:c:dd:ami:diff", C["dd:ami:m0"] - C["dd:ami:b"])
@@ -588,6 +595,7 @@ def main():
     write_macros(e7_any, R)
     write_tables(R, e7, e7_any)
     compact_v7_main()
+    sanitize_legacy()
     json.dump(MISSING, open(GEN / "v10_missing.json", "w"), indent=1, sort_keys=True)
     print(f"macros {len(MAC)}, placeholders {len(MISSING)}")
     groups = {}
@@ -653,76 +661,97 @@ def compact_v7_main():
                  r"(2{,}375 En$\rightarrow$Zh and 3{,}317 Zh$\rightarrow$En windows, 16 meetings), offline. cpBLEU$_\text{sess}$ "
                  r"(primary) matches output to reference speakers once per meeting; BLEU$_\text{blind}$ ignores speakers; Spk: "
                  r"windows with the right number of speakers (\%); DER (\%). $^\dagger$: better than the strongest "
-                 r"non-oracle baseline (Table~\ref{tab:sig7}). Simultaneous v9 rows: Table~\ref{tab:main7full}.}")
+                 r"non-oracle baseline (exploratory, Table~\ref{tab:sig7}). Streaming rows of the per-direction model: "
+                 r"Table~\ref{tab:main7full}.}")
         l = l.replace(r"\begin{table*}", r"\begin{table}").replace(r"\end{table*}", r"\end{table}")
         l = l.replace(r"\resizebox{\textwidth}", r"\resizebox{\columnwidth}")
         out.append(l)
     (GEN / "tab_v7_main_compact.tex").write_text("\n".join(out) + "\n")
 
 
+def holm_sig(key):
+    """True when the Holm-adjusted p of a v10 test macro is below 0.05."""
+    v = N(key + ":holm")
+    if v == PH:
+        return False
+    if "<" in v:
+        return True
+    try:
+        return float(v) < 0.05
+    except ValueError:
+        return False
+
+
 def write_tables(R, e7, e7_any):
     ARR = {"ami": r"AMI Zh$\rightarrow$En", "ali": r"AliMeeting Zh$\rightarrow$En", "en": r"AMI En$\rightarrow$Zh"}
-    NAME = {"b": r"Deadline SFT (strict baseline)", "e2": r"\quad + rl + PL-EM Talker",
-            "m0": r"\sys{} v10, $\bias=0$", "m": r"\sys{} v10 ($\bias=-1$)", "e7": r"SeamlessStreaming$^\dagger$"}
+    NAME = {"b": r"Deadline baseline (B)", "e2": r"B + playback alignment (B+PA)",
+            "m": r"\sys{}: B+PA + write alignment, $\bias=-1$", "m0": r"\quad\emph{first test run, $\bias=0$}",
+            "e7": r"SeamlessStreaming$^\dagger$"}
+    FIELDS = ("all", "ov", "1spk", "asr", "tlaal", "sstart", "slaal", "endoff")
+    # significance marks against B (Holm over the family of Table tab:sig10): text all (MIST), ASR-BLEU (B+PA, MIST)
+    SIGK = {("m", "all"): "text:m-b", ("m", "asr"): "speech:m-b", ("e2", "asr"): "speech:e2-b"}
 
-    # main test table
-    L = [r"\begin{table*}[t]", r"\centering\small", r"\setlength{\tabcolsep}{4pt}",
-         r"\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrr}", r"\toprule",
-         r" & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{3}{c}{latency (s) $\downarrow$} \\",
-         r"\cmidrule(lr){3-5}\cmidrule(lr){7-9}",
-         r"Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech LAAL & EndOffset \\",
+    def row_cells(s, sy, mark=True):
+        p = f"v10:test:{s}:{sy}"
+        out = []
+        for f in FIELDS:
+            x = N(f"{p}:{f}")
+            k = SIGK.get((sy, f))
+            if mark and k is not None:
+                x += r"$^{*}$" if holm_sig(f"v10:sig:test:{s}:{k}") else r"$^{\circ}$"
+            out.append(x)
+        return out
+
+    # main test table: our systems only (the external SeamlessStreaming reference is in the appendix, tab:e7)
+    L = [r"\begin{table*}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3.5pt}",
+         r"\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrr}", r"\toprule",
+         r" & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{4}{c}{latency (s) $\downarrow$} \\",
+         r"\cmidrule(lr){3-5}\cmidrule(lr){7-10}",
+         r"Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech start & "
+         r"LAAL$_\text{spread}$ & EndOffset \\",
          r"\midrule"]
     for i, s in enumerate(SETS):
-        rows = ["b", "e2", "m"] + (["e7"] if e7.get(s) else [])
-        FIELDS = ("all", "ov", "1spk", "asr", "tlaal", "slaal", "endoff")
-        LOWER = {"tlaal", "slaal", "endoff"}
-        # bold: best of our own three systems per column (ties bold all); the external E7 row is never bold
-        best = {}
-        for f in FIELDS:
-            vals = []
-            for sy in ("b", "e2", "m"):
-                try:
-                    vals.append(float(N(f"v10:test:{s}:{sy}:{f}").replace("$-$", "-")))
-                except ValueError:
-                    pass
-            if vals:
-                best[f] = min(vals) if f in LOWER else max(vals)
+        rows = ["b", "e2", "m", "m0"]
         for k, sy in enumerate(rows):
-            p = f"v10:test:{s}:{sy}"
             lab = (r"\multirow{%d}{*}{%s}" % (len(rows), ARR[s])) if k == 0 else ""
-            nm = NAME[sy]
-            row = [lab, nm]
-            for f in FIELDS:
-                x = N(f"{p}:{f}")
-                try:
-                    isbest = sy != "e7" and f in best and float(x.replace("$-$", "-")) == best[f]
-                except ValueError:
-                    isbest = False
-                row.append(r"\textbf{" + x + "}" if isbest else x)
-            L.append(" & ".join(row) + r" \\")
+            L.append(" & ".join([lab, NAME[sy]] + row_cells(s, sy, mark=sy != "m0")) + r" \\")
         if i < len(SETS) - 1:
             L.append(r"\midrule")
-    if not e7_any:
-        L.append("% E7 (SeamlessStreaming) rows appear here once eval_outputs/mist_w3po_v1/decode/"
-                 "jtest_<set>_seamless_default/score_text.json exists (reports/mist_w3po_v1/e7_seamless_multispk_*).")
     L += [r"\bottomrule", r"\end{tabular}}",
-          r"\caption{Test sets, each decoded once. Strict baseline: joint deadline-trained Thinker, frozen T1c Talker; "
-          r"second row: its text spoken with read-level merging (rl) and the PL-EM Talker; \sys{} v10: latent write "
-          r"alignment with $\bias=-1$ and the same speech layer. tcpBLEU over all / overlapped / single-speaker units; "
-          r"ASR-BLEU: mean of two TTS seeds; latency per speaker stream, chunk protocol (speech LAAL primary). Bold: best "
-          r"of our three systems. Tests: Table~\ref{tab:sig10}; $\bias=0$: Table~\ref{tab:delta0}."
-          + (r" $^\dagger$External zero-shot single-speaker S2ST, no speaker attribution of its own: our windows, "
-             r"causal diarizer relabelling, one deterministic run (Appendix~\ref{app:e7})." if e7_any else "") + "}",
+          r"\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}). Italic: "
+          r"the first test decoding, before $\bias$ was introduced (\S\ref{sec:res-hygiene}). tcpBLEU over all / "
+          r"overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk "
+          r"protocol, computation not counted; speech start: first heard word of a unit. Against B, Holm-corrected "
+          r"(Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; latency has no test.}",
           r"\label{tab:main10}", r"\end{table*}"]
     (GEN / "tab_v10_main.tex").write_text("\n".join(L) + "\n")
+
+    # external reference (appendix)
+    L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{2.5pt}",
+         r"\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrr}", r"\toprule",
+         r"Set & System & tcpBLEU & ov & ASR-BLEU & LAAL$_\text{spread}$ & EndOff. \\", r"\midrule"]
+    for i, s in enumerate(SETS):
+        for k, sy in enumerate(("m", "e7")):
+            p = f"v10:test:{s}:{sy}"
+            lab = {"ami": "AMI Zh$\\rightarrow$En", "ali": "AliMeeting", "en": "AMI En$\\rightarrow$Zh"}[s] if k == 0 else ""
+            nm = {"m": r"\sys{}", "e7": "SeamlessStreaming"}[sy]
+            L.append(" & ".join([lab, nm] + [N(f"{p}:{f}") for f in ("all", "ov", "asr", "slaal", "endoff")]) + r" \\")
+        if i < 2:
+            L.append(r"\midrule")
+    L += [r"\bottomrule", r"\end{tabular}}",
+          r"\caption{External zero-shot single-speaker S2ST reference on our online test windows (no speaker "
+          r"attribution of its own: causal diarizer relabelling; one deterministic run; chunk protocol, seconds). "
+          r"LAAL compares systems of similar quality only, so its latency does not place it on our trade-off.}",
+          r"\label{tab:e7}", r"\end{table}"]
+    (GEN / "tab_v10_e7.tex").write_text("\n".join(L) + "\n")
 
     # dev ablation table (single column)
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3pt}",
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrr}", r"\toprule",
          r" & tcpBLEU & ASR-BLEU & text & speech & End- \\",
-         r"Dev system & all & all & LAAL & LAAL & Offset \\", r"\midrule"]
-    ROWN = {"b": r"(1) deadline SFT + T1c", "e2": r"(2) \quad + rl + PL-EM", "m0": r"(3) \quad + SerialCRF v2$'$",
-            "m": r"(4) \quad + $\bias=-1$ (\sys{} v10)"}
+         r"Dev system & all & all & LAAL & LAAL$_\text{spr.}$ & Offset \\", r"\midrule"]
+    ROWN = {"b": r"(1) deadline Thinker, base Talker (B)", "e2": r"(2) \quad + rl + PA Talker (B+PA)",
+            "m0": r"(3) \quad + write alignment, $\bias=0$", "m": r"(4) \quad + $\bias=-1$ (\sys{})"}
     for d, lab in (("z", r"Zh$\rightarrow$En"), ("e", r"En$\rightarrow$Zh")):
         L.append(r"\multicolumn{6}{l}{\emph{%s}} \\" % lab)
         for sy in SYSS:
@@ -738,19 +767,19 @@ def write_tables(R, e7, e7_any):
     # delta = 0 test table (appendix)
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{2.5pt}",
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrr}", r"\toprule",
-         r"Set & System & tcpBLEU & ov & ASR-BLEU & sp.\ LAAL & EndOff. \\", r"\midrule"]
+         r"Set & System & tcpBLEU & ov & ASR-BLEU & LAAL$_\text{spr.}$ & EndOff. \\", r"\midrule"]
     for i, s in enumerate(SETS):
         for k, sy in enumerate(("b", "m0", "m")):
             p = f"v10:test:{s}:{sy}"
             lab = {"ami": "AMI Zh$\\rightarrow$En", "ali": "AliMeeting", "en": "AMI En$\\rightarrow$Zh"}[s] if k == 0 else ""
-            nm = {"b": "strict baseline", "m0": r"$\bias=0$ (first run)", "m": r"$\bias=-1$"}[sy]
+            nm = {"b": "B", "m0": r"$\bias=0$ (first run)", "m": r"$\bias=-1$"}[sy]
             L.append(" & ".join([lab, nm] + [N(f"{p}:{f}") for f in ("all", "ov", "asr", "slaal", "endoff")]) + r" \\")
         if i < 2:
             L.append(r"\midrule")
     L += [r"\bottomrule", r"\end{tabular}}",
           r"\caption{Test results of the latent-write-aligned system without the write bias ($\bias=0$), the run that "
-          r"preceded the introduction of $\bias$, next to the strict baseline and the final system. Same speech layer "
-          r"(rl + PL-EM) for both $\bias$ values; chunk protocol.}", r"\label{tab:delta0}", r"\end{table}"]
+          r"preceded the introduction of $\bias$, next to the deadline baseline (B) and the final system. Same speech "
+          r"layer (rl + PA Talker) for both $\bias$ values; chunk protocol.}", r"\label{tab:delta0}", r"\end{table}"]
     (GEN / "tab_v10_delta0.tex").write_text("\n".join(L) + "\n")
 
     # calibration (dev5) incl. plan B
@@ -758,19 +787,20 @@ def write_tables(R, e7, e7_any):
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrr}", r"\toprule",
          r" & \multicolumn{2}{c}{Zh$\rightarrow$En} & \multicolumn{2}{c}{En$\rightarrow$Zh} \\",
          r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}", r"dev5, text only & tcpBLEU & LAAL & tcpBLEU & LAAL \\", r"\midrule"]
-    for key, nm in (("b", "deadline SFT (strict baseline)"), ("m0", r"SerialCRF v2$'$, $\bias=0$"),
+    for key, nm in (("b", "deadline baseline (B)"), ("m0", r"write alignment, $\bias=0$"),
                     ("m1", r"\quad $\bias=-1$ (chosen)"), ("m2", r"\quad $\bias=-2$"), ("m3", r"\quad $\bias=-3$"),
                     ("m5", r"\quad $\bias=-5$")):
         L.append(" & ".join([nm] + [N(f"v10:cal:{d}:{key}:{f}") for d in DIRS for f in ("bleu", "laal")]) + r" \\")
     L.append(r"\midrule")
-    for st, nm in ((3500, r"E-step budget $\rho=0.5$, step 3{,}500 (rule)"), (5000, r"\quad step 5{,}000")):
+    for st, nm in ((3500, r"E-step budget $\xi=0.5$, step 3{,}500 (rule)"), (5000, r"\quad step 5{,}000")):
         L.append(" & ".join([nm] + [N(f"v10:pb:{d}:{st}:{f}") for d in DIRS for f in ("bleu", "laal")]) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}}",
           r"\caption{Write-bias calibration on the five development meetings (dev5; text decoding, chunk-protocol text "
           r"LAAL in seconds). The rule, fixed before decoding: per direction, the $\bias$ whose text LAAL is closest to "
-          r"the strict baseline's; both directions gave $\bias=-1$, which was then confirmed once on the full development "
-          r"set. Bottom: SerialCRF v2$'$ retrained with an E-step latency budget (plan B, $\rho=0.5$, a single "
-          r"pre-registered value), checkpoint chosen by the same rule as stage 2, $\bias=0$.}",
+          r"the deadline baseline's; both directions gave $\bias=-1$, which was then checked on the full development "
+          r"set (which contains dev5, so the check is not independent). Bottom: write alignment retrained with an "
+          r"E-step latency budget ($\xi=0.5$, the single value fixed in advance), checkpoint chosen by the same rule "
+          r"as stage 2, $\bias=0$.}",
           r"\label{tab:calib10}", r"\end{table}"]
     (GEN / "tab_v10_calib.tex").write_text("\n".join(L) + "\n")
 
@@ -784,16 +814,17 @@ def write_tables(R, e7, e7_any):
         L.append(" & ".join([f"{st:,}".replace(",", "{,}")] + [N(f"v10:s2:{d}:{st}:{f}") for d in DIRS for f in ("Q", "dL")]
                             + [N(f"v10:s2:{st}:J"), N(f"v10:s2:{st}:feas")]) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}}",
-          r"\caption{Stage-2 checkpoints on dev5 under the pre-registered rule ($Q$: text tcpBLEU-all; $L$: text LAAL "
+          r"\caption{Stage-2 checkpoints on dev5 under the selection rule fixed before stage 2 ($Q$: text tcpBLEU-all; $L$: text LAAL "
           r"of the rule's protocol, s; $J$: mean $Q$ of the two directions; feasible: $L\le L^{\mathrm{ref}}+0.1$\,s in "
-          r"both directions). The rule selects step 4{,}000; we use step 3{,}500 (Appendix~\ref{app:v10train}).}",
+          r"both directions). The rule selects step 4{,}000; we use step 3{,}500, which is not feasible under the rule "
+          r"(Appendix~\ref{app:v10train}).}",
           r"\label{tab:s2sel10}", r"\end{table}"]
     (GEN / "tab_v10_s2sel.tex").write_text("\n".join(L) + "\n")
 
     # drift table
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3pt}",
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}", r"\toprule",
-         r"Training posterior (steps 1--3{,}500) & v2$'$ & $\rho=0.5$ \\", r"\midrule",
+         r"Training posterior (steps 1--3{,}500) & WA & $\xi=0.5$ \\", r"\midrule",
          r"label-path mass $q(\text{label})$, mean & " + N("v10:drift:v2p:q") + " & " + N("v10:drift:pb:q") + r" \\",
          r"\quad first 100 / last 500 steps & " + N("v10:drift:v2p:q_first") + " / " + N("v10:drift:v2p:q_last")
          + " & " + N("v10:drift:pb:q_first") + " / " + N("v10:drift:pb:q_last") + r" \\",
@@ -804,23 +835,23 @@ def write_tables(R, e7, e7_any):
          r"\quad first 100 / last 500 steps & -- & " + N("v10:drift:pb:E0_first") + " / " + N("v10:drift:pb:E0_last") + r" \\",
          r"\bottomrule", r"\end{tabular}}"]
     L += [r"\vspace{4pt}", r"\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrr}", r"\toprule",
-          r"Decoding (full dev) & B & v2$'$ $\bias{=}0$ & v2$'$ $\bias{=}{-}1$ \\", r"\midrule"]
+          r"Decoding (full dev) & B & WA $\bias{=}0$ & WA $\bias{=}{-}1$ \\", r"\midrule"]
     for d, lab in (("z", r"Zh$\rightarrow$En"), ("e", r"En$\rightarrow$Zh")):
         L.append(lab + r": words before unit end (\%) & " + " & ".join(N(f"v10:dev:{d}:{sy}:pre") for sy in ("b", "m0", "m")) + r" \\")
         L.append(r"\quad speech start offset (s) & " + " & ".join(N(f"v10:dev:{d}:{sy}:sstart") for sy in ("b", "m0", "m")) + r" \\")
         L.append(r"\quad text LAAL (s) & " + " & ".join(N(f"v10:dev:{d}:{sy}:tlaal") for sy in ("b", "m0", "m")) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}}",
           r"\caption{Late-write drift. Top: posterior statistics logged at every stage-2 training step (about "
-          + N("v10:drift:v2p:win_step") + r" windows per step); $\rho=0.5$ is the run with an E-step latency budget "
+          + N("v10:drift:v2p:win_step") + r" windows per step); WA: write alignment; $\xi=0.5$ is the run with an E-step latency budget "
           r"(its $\mathbb{E}_{q_0}$ is the cost under the unconstrained posterior of the current model). Bottom: full "
-          r"development set, strict baseline (B) and the latent-write-aligned Thinker without and with the write bias.}",
+          r"development set, deadline baseline (B) and the write-aligned Thinker without and with the write bias.}",
           r"\label{tab:drift10}", r"\end{table}"]
     (GEN / "tab_v10_drift.tex").write_text("\n".join(L) + "\n")
 
     # block-start LAAL
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{4pt}",
          r"\begin{tabular}{lrrrr}", r"\toprule",
-         r" & \multicolumn{2}{c}{block start} & \multicolumn{2}{c}{word heard (ours)} \\",
+         r" & \multicolumn{2}{c}{block start} & \multicolumn{2}{c}{playback spread} \\",
          r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}", r"Set & B & \sys{} & B & \sys{} \\", r"\midrule"]
     for sp, s, lab in (("dev", "z", r"dev Zh$\rightarrow$En"), ("dev", "e", r"dev En$\rightarrow$Zh"),
                        ("test", "ami", r"test AMI Zh$\rightarrow$En"), ("test", "ali", "test AliMeeting"),
@@ -829,10 +860,10 @@ def write_tables(R, e7, e7_any):
         L.append(" & ".join([lab, N(f"v10:m2:{sp}:{s}:b"), N(f"v10:m2:{sp}:{s}:{msys}"),
                              N(f"v10:{sp}:{s}:b:slaal"), N(f"v10:{sp}:{s}:{msys}:slaal")]) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}",
-          r"\caption{Speech LAAL with the single-speaker convention (every word of a block is delayed until the block "
-          r"\emph{starts} playing) next to ours (each word at the moment it is heard). B: strict baseline; \sys{}: "
-          r"$\bias=-1$ on dev, $\bias=0$ on test (the $\bias=-1$ test runs were not rescored with this convention). "
-          r"Chunk protocol, mean of two TTS seeds, seconds.}",
+          r"\caption{Speech LAAL under the conventional block-start definition (every word of a block is charged when "
+          r"the block \emph{starts} playing) and the playback-spread variant of Table~\ref{tab:main10} (a block's words "
+          r"spread evenly over its playback). B: deadline baseline; \sys{}: $\bias=-1$ on dev, $\bias=0$ on test (the "
+          r"$\bias=-1$ test runs are not rescored here). Chunk protocol, mean of two TTS seeds, seconds.}",
           r"\label{tab:m2laal10}", r"\end{table}"]
     (GEN / "tab_v10_m2laal.tex").write_text("\n".join(L) + "\n")
 
@@ -858,13 +889,14 @@ def write_tables(R, e7, e7_any):
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3pt}",
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrrr}", r"\toprule",
          r" & \multicolumn{3}{c}{AMI Zh$\rightarrow$En} & \multicolumn{3}{c}{AliMeeting} \\",
-         r"\cmidrule(lr){2-4}\cmidrule(lr){5-7}", r"Talker & ASR-BLEU & LAAL & EndOff. & ASR-BLEU & LAAL & EndOff. \\", r"\midrule"]
-    for lab, nm in (("a", "rule (queue rate, 2-best CTC)"), ("b", "PL-EM"), ("c", "rl + PL-EM")):
+         r"\cmidrule(lr){2-4}\cmidrule(lr){5-7}", r"Talker & ASR-BLEU & LAAL$_\text{spr.}$ & EndOff. & ASR-BLEU & LAAL$_\text{spr.}$ & EndOff. \\", r"\midrule"]
+    for lab, nm in (("a", "rule (queue rate, 2-best CTC)"), ("b", "PA Talker"), ("c", "rl + PA Talker")):
         L.append(" & ".join([nm] + [N(f"v10:tk:{s}:{lab}:{f}") for s in ("ami", "ali") for f in ("asr", "slaal", "endoff")]) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}}",
-          r"\caption{Speech layer alone, on the separately trained Zh$\rightarrow$En v2$'$ Thinker (same text in all rows: "
+          r"\caption{Speech layer alone, on a separately trained single-direction Zh$\rightarrow$En write-aligned Thinker (same text in all rows: "
           r"tcpBLEU " + N("v10:tk:ami:text") + " / " + N("v10:tk:ali:text") + r"); test sets, two TTS seeds, speech "
-          r"LAAL and EndOffset in seconds (chunk protocol). rl: read-level merging.}",
+          r"LAAL and EndOffset in seconds (chunk protocol). rl: read-level merging. The rule-based layer here already "
+          r"uses two samples per block with CTC selection and a queue-dependent rate.}",
           r"\label{tab:talker10}", r"\end{table}"]
     (GEN / "tab_v10_talker.tex").write_text("\n".join(L) + "\n")
 
@@ -877,7 +909,7 @@ def write_tables(R, e7, e7_any):
                                       ("test", "en", r"AMI En$\rightarrow$Zh"))):
         for k, sy in enumerate(("b", "e2", "m")):
             p = f"v10:{sp}:{s}:{sy}"
-            nm = {"b": "B", "e2": "B+PL", "m": r"\sys{}"}[sy]
+            nm = {"b": "B", "e2": "B+PA", "m": r"\sys{}"}[sy]
             L.append(" & ".join([lab if k == 0 else "", nm] + [N(f"{p}:{f}") for f in
                                 ("sstart", "p_model_lag", "p_detector_wait", "p_queue_wait", "p_last_block_dur", "endoff", "load")]) + r" \\")
         if i < 4:
@@ -886,16 +918,16 @@ def write_tables(R, e7, e7_any):
           r"\caption{Where the speech delay of a source unit comes from (chunk protocol, mean over units and two TTS "
           r"seeds, seconds). EndOffset = model lag (last commit after the unit's end) + detector wait (online window "
           r"release) + queue wait (earlier speech of the same stream) + duration of the last block. start: speech "
-          r"start offset from the unit's start. load: synthesised speech per second of source speech. B+PL: strict "
-          r"baseline text with rl + PL-EM.}", r"\label{tab:decomp10}", r"\end{table}"]
+          r"start offset from the unit's start. load: synthesised speech per second of source speech. B+PA: deadline "
+          r"baseline text with rl + PA Talker.}", r"\label{tab:decomp10}", r"\end{table}"]
     (GEN / "tab_v10_decomp.tex").write_text("\n".join(L) + "\n")
 
     # significance table
     L = [r"\begin{table}[t]", r"\centering\small", r"\setlength{\tabcolsep}{2.5pt}",
          r"\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrr}", r"\toprule",
          r"Set & Comparison & $\Delta$ & 95\% interval & $p$ & $p_\text{Holm}$ \\", r"\midrule"]
-    CN = {"text:m-b": r"text: \sys{} $-$ B", "speech:m-b": r"speech: \sys{} $-$ B", "speech:e2-b": r"speech: B+PL $-$ B",
-          "speech:m-e2": r"speech: \sys{} $-$ B+PL"}
+    CN = {"text:m-b": r"text: \sys{} $-$ B", "speech:m-b": r"speech: \sys{} $-$ B", "speech:e2-b": r"speech: B+PA $-$ B",
+          "speech:m-e2": r"speech: \sys{} $-$ B+PA"}
     for i, s in enumerate(SETS):
         for k, c in enumerate(CN):
             mk = f"v10:sig:test:{s}:{c}"
@@ -906,10 +938,91 @@ def write_tables(R, e7, e7_any):
     L += [r"\bottomrule", r"\end{tabular}}",
           r"\caption{Paired tests over meetings on the test sets (16 AMI, 20 AliMeeting meetings): exact two-sided "
           r"sign-flip permutation $p$ over all $2^M$ flips, 95\% meeting-bootstrap interval (10{,}000 resamples), Holm "
-          r"over the " + N("v10:sig:ntests") + r" tests. Speech pools the two TTS seeds per meeting. B: strict baseline; "
-          r"B+PL: its text with rl + PL-EM; \sys{}: v10 with $\bias=-1$. Text of B+PL equals B by construction.}",
+          r"over the " + N("v10:sig:ntests") + r" tests. Speech pools the two TTS seeds per meeting. B: deadline baseline; "
+          r"B+PA: its text with rl + PA Talker; \sys{}: $\bias=-1$. Text of B+PA equals B by construction. The "
+          r"intervals do not include decoder run-to-run noise (Appendix~\ref{app:noise}); training-seed variance is "
+          r"not covered.}",
           r"\label{tab:sig10}", r"\end{table}"]
     (GEN / "tab_v10_sig.tex").write_text("\n".join(L) + "\n")
+
+
+# ---------------------------------------------------------------------------------------------------------- legacy
+# Tables generated by the earlier make_tables*.py scripts carry internal names (analysis-plan file names, version
+# labels, run IDs) in captions and row labels. They are not regenerated here; instead a cleaned copy is written to
+# generated/clean/<name>.tex (the paper inputs the copy; the original file is never modified). Only wording and number
+# *formatting* change: p-values printed as 0.000 become <0.001, and four-decimal interval endpoints are rounded
+# half-up to three decimals.
+LEGACY = {
+    "tab_tradeoff": [
+        (r"the last row is the 1{,}000-step Zh$\rightarrow$En model of our previous version",
+         r"the last row is a shorter-trained (1{,}000-step) Zh$\rightarrow$En model")],
+    "tab_v6_voice": [
+        (r" (v5 matched Zh$\rightarrow$En output against the Chinese source text, which made its Zh$\rightarrow$En "
+         r"matching close to arbitrary; corrected here)", "")],
+    "tab_v7_reg": [
+        (r"The eight pre-registered tests of v7 (prereg\_v7).",
+         r"The eight confirmatory tests of the offline and per-direction streaming study (analysis plan fixed before "
+         r"decoding).")],
+    "tab_v7_seeds": [
+        (r"Seed 1 is the model of v6; seeds 2 and 3 differ only in the random seed (seed 3 of En$\rightarrow$Zh was "
+         r"retrained from scratch, prereg\_v7 amendment 6).",
+         r"Seeds differ only in the random seed (seed 3 of En$\rightarrow$Zh was retrained from scratch after a resume "
+         r"had restarted its learning-rate schedule).")],
+    "tab_v7_sig": [
+        (r"sp2\_on\_S2dl vs.\ sp2\_on\_O2\_LA2", r"speech: \sys{}-Simul vs.\ \sys{}+LA2"),
+        (r"\caption{Exploratory comparisons of v7 (", r"\caption{Exploratory comparisons of the offline and "
+                                                       r"per-direction streaming study ("),
+        (r"Fixed lag is on the 8-meeting subset (prereg\_v7 amendment 2).",
+         r"Fixed lag is on the 8-meeting subset (restricted for compute).")],
+    "tab_v8_overlap": [(r"On the v7 meeting subset only", r"On a meeting subset only"),
+                       (r"\label{tab:overlap8}", r"\vspace{-2pt}\par\footnotesize AliMeeting references in this table: "
+                        r"machine translations of the human transcripts (Appendix~\ref{app:qe7}).\label{tab:overlap8}")],
+    "tab_v8_ovmain": [(r"metrics: Table~\ref{tab:overlap8}.}",
+                       r"metrics: Table~\ref{tab:overlap8}. AliMeeting references: machine translations of the "
+                       r"human transcripts (Appendix~\ref{app:qe7}).}")],
+    "tab_v7_online": [(r"one channel per speaker (Appendix~\ref{app:online7}).}",
+                       r"one channel per speaker (Appendix~\ref{app:online7}). AliMeeting references: machine translations "
+                       r"(Appendix~\ref{app:qe7}).}")],
+    "tab_v8_reg": [(r"The twelve confirmatory tests of prereg\_v8, Holm-corrected together.",
+                    r"The twelve confirmatory tests of the overlap study, Holm-corrected together.")],
+    "tab_v8_sched": [(r" prereg\_v8 amendment 1.}", r" Policies fixed before any scheduling result.}")],
+    "tab_v9_reg": [
+        (r"The eleven confirmatory tests of prereg\_v9 (committed before any v9 decode), Holm-corrected together.",
+         r"The eleven confirmatory tests of the per-direction streaming study (fixed before its decoding), "
+         r"Holm-corrected together; ten were not run."),
+        ("the v7 meeting subset (8 AMI / 10 AliMeeting\nmeetings; prereg\\_v9 amendment 2)",
+         "a meeting subset (8 AMI / 10 AliMeeting\nmeetings; restricted for compute)")],
+}
+
+
+# rows left out of a main-text copy (they stay in the full appendix table)
+DROP_ROWS = {"tab_v8_ovmain": (r"\quad + short-turn fallback &",)}
+
+
+def _round4(m):
+    v = Decimal(m.group(0)).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+    return f"{v}"
+
+
+def sanitize_legacy():
+    out = GEN / "clean"
+    out.mkdir(exist_ok=True)
+    for name, reps in LEGACY.items():
+        src = GEN / f"{name}.tex"
+        if not src.exists():
+            print(f"  legacy table missing: {src}")
+            continue
+        t = src.read_text()
+        for old, new in reps:
+            if old not in t:
+                print(f"  legacy {name}: pattern not found: {old[:60]!r}")
+            t = t.replace(old, new)
+        drop = DROP_ROWS.get(name, ())
+        t = "\n".join(l for l in t.split("\n") if not any(l.startswith(d) for d in drop))
+        if name == "tab_v8_reg":
+            t = re.sub(r"& 0\.000 &", r"& $<$0.001 &", t)
+            t = re.sub(r"(?<![\d.])-?\d+\.\d{4}(?!\d)", _round4, t)
+        (out / f"{name}.tex").write_text(t)
 
 
 if __name__ == "__main__":

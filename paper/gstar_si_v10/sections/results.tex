@@ -1,57 +1,39 @@
 \section{Results}
 \label{sec:results}
 
-\input{generated/tab_v7_main_compact}
-
-In v7--v9, a difference is real only if the Holm-adjusted permutation test gives $p<0.05$ \emph{and} the 95\% interval
-with decoder noise excludes zero (Appendix~\ref{app:stats7}); otherwise we report a tie.
-
 \subsection{Offline: joint decoding against cascades}
 \label{sec:res-offline}
 
-\sys{} (offline) reaches \num{v7:tx:en2zh:O2:cp} / \num{v7:tx:zh2en:O2:cp} cpBLEU$_\text{sess}$
-(En$\rightarrow$Zh / Zh$\rightarrow$En; Table~\ref{tab:main7}); the cascade whose translator was trained on our windows
-reaches \num{v7:tx:en2zh:C-ft2:cp} / \num{v7:tx:zh2en:C-ft2:cp}, and retraining it on its own diarizer turns helps only in
-Zh$\rightarrow$En (\num{v7:tx:en2zh:C-turn:cp} / \num{v7:tx:zh2en:C-turn:cp}; \sys{} ahead by \num{v7:reg:E-cas1:diff} and
-\num{v7:reg:E-cas2:diff}, $p_\text{Holm}$ \num{v7:reg:E-cas1:holm}, \num{v7:reg:E-cas2:holm}). With reference turns and
-speakers (oracle input for the same translator, not an upper bound) it reaches \num{v7:tx:en2zh:OC:cp} /
-\num{v7:tx:zh2en:OC:cp}. A speaker-blind model relabelled after decoding with
-the same diarizer reaches \num{v6:relabel:en2zh:cp} / \num{v6:relabel:zh2en:cp}, close to \sys{} overall; the next
-section shows where the two differ.
+On the AMI reference windows (Table~\ref{tab:main7full}), \sys{} (offline) reaches
+\num{v7:tx:en2zh:O2:cp} / \num{v7:tx:zh2en:O2:cp} cpBLEU$_\text{sess}$ (En$\rightarrow$Zh / Zh$\rightarrow$En) against
+\num{v7:tx:en2zh:C-ft2:cp} / \num{v7:tx:zh2en:C-ft2:cp} for the cascade whose translator was trained on our windows
+(exploratory comparison) and \num{v7:tx:en2zh:C-turn:cp} / \num{v7:tx:zh2en:C-turn:cp} for the one retrained on its own
+diarizer turns (confirmatory: \sys{} ahead by \num{v7:reg:E-cas1:diff} and \num{v7:reg:E-cas2:diff}, $p_\text{Holm}$
+\num{v7:reg:E-cas1:holm}). A speaker-blind model relabelled after decoding with the same diarizer reaches
+\num{v6:relabel:en2zh:cp} / \num{v6:relabel:zh2en:cp}, close to \sys{} overall.
 
 \subsection{Overlapped speech}
 \label{sec:res-overlap}
 
-\input{generated/tab_v8_ovmain}
+\input{generated/clean/tab_v8_ovmain}
 
 Table~\ref{tab:ovmain8} splits the scores by overlap (\S\ref{sec:eval-overlap}). On single-speaker units relabelling
 matches \sys{} (\num{v8:ov:en2zh:O2-nosd-relabel:1spk} vs.\ \num{v8:ov:en2zh:O2:1spk} in En$\rightarrow$Zh). On
 overlapped units \sys{} leads by \num{v8:x:ov-O2-rel-en2zh:diff} (En$\rightarrow$Zh, 95\% interval
 \num{v8:x:ov-O2-rel-en2zh:ci}) and \num{v8:x:ov-O2-rel-zh2en:diff} (Zh$\rightarrow$En, \num{v8:x:ov-O2-rel-zh2en:ci}),
-and ties on AliMeeting (\num{v8:x:ov-O2-rel-ali:diff}); the gap opens with the amount of overlap
+both exploratory, and ties on AliMeeting (\num{v8:x:ov-O2-rel-ali:diff}); the gap opens with the amount of overlap
 (Figure~\ref{fig:overlap8}). Relabelling gives one speaker per segment, so when two people talk at once one of them
 disappears or is merged into the other (concurrent-speaker recall \num{v8:ov:en2zh:O2-nosd-relabel:cr}\%, collapse
 \num{v8:ov:en2zh:O2-nosd-relabel:coll}\%); \sys{}, reading both speakers' activity, writes both (\num{v8:ov:en2zh:O2:cr}\%,
 \num{v8:ov:en2zh:O2:coll}\%; recall gain \num{v8:x:cr-O2-rel-en2zh:diff} / \num{v8:x:cr-O2-rel-zh2en:diff} /
-\num{v8:x:cr-O2-rel-ali:diff}, all $p<0.001$). This is the measurable contribution of reading the speaker stream inside
-the decoder. Against the cascade \sys{} is far ahead on overlapped units (\num{v8:x:ov-O2-cas-en2zh:diff} /
-\num{v8:x:ov-O2-cas-zh2en:diff} / \num{v8:x:ov-O2-cas-ali:diff}), but the cascade, which translates every diarizer turn
-on its own, recovers more concurrent pairs (\num{v8:ov:en2zh:C-ft2:cr}\%) and more short overlapped utterances
-(\num{v8:ov:en2zh:C-ft2:s05ov} vs.\ \num{v8:ov:en2zh:O2:s05ov}\% of those under 0.5\,s): \sys{} drops short
-interjections (a fallback rule: Appendix~\ref{app:v8}). Online, the v9 \sys{}-Simul shows the same picture against
-a causally relabelled speaker-blind Simul model and keeps pace with the audio where LocalAgreement does not (v9
-protocol, Appendix~\ref{app:v9proto}).
-
-\subsection{Real Mandarin meetings}
+\num{v8:x:cr-O2-rel-ali:diff}, all $p<0.001$). Relabelling \sys{}'s own text shows that this gain is mainly
+attribution, not better translation of overlapped speech (Appendix~\ref{app:v8}). The cascade, which translates every diarizer turn on its own, scores far
+lower on overlapped units but recovers more concurrent pairs (\num{v8:ov:en2zh:C-ft2:cr}\%): \sys{} drops short
+interjections (Appendix~\ref{app:v8}). With the human AliMeeting references, the per-direction streaming model ties a causally
+relabelled speaker-blind model on overlapped units but has higher concurrent recall (\num{v9:ali:S:hum:cr} vs.\
+\num{v9:ali:Rel:hum:cr}\%): on real Mandarin meetings reading the diarizer improves attribution of concurrent speakers,
+not translation quality (Appendix~\ref{app:v9}).
 \label{sec:res-real}
-
-AliMeeting is scored against the human English translations released with DiariST~\citep{yang2024diarist}
-(references only, not the system; Appendix~\ref{app:v9}). Offline, \sys{} leads the same-data cascade on overlapped
-units by \num{v9:x:ali:O2-C-ft2:hum:ov:diff} tcpBLEU (interval \num{v9:x:ali:O2-C-ft2:hum:ov:ci}) and ties overall
-(\num{v9:x:ali:O2-C-ft2:hum:all:diff}). Online, the v9 \sys{}-Simul ties with the causally relabelled speaker-blind
-model on overlapped units (\num{v9:reg:ali-hum:diff}, $p_\text{Holm}$ \num{v9:reg:ali-hum:holm}) with higher concurrent
-recall (\num{v9:ali:S:hum:cr} vs.\ \num{v9:ali:Rel:hum:cr}\%): on real Mandarin meetings \sys{} improves attribution of
-concurrent speakers, not translation quality.
 \label{sec:res-speech}
 
 \subsection{Learning when to write and when to speak}
@@ -59,66 +41,65 @@ concurrent speakers, not translation quality.
 
 \input{generated/tab_v10_main}
 
-Our systems in Table~\ref{tab:main10} share training data, online windows and diarizer. On AMI, \sys{} v10 is ahead of the strict baseline in text tcpBLEU,
-\num{v10:sig:test:ami:text:m-b:diff} (Zh$\rightarrow$En, interval \num{v10:sig:test:ami:text:m-b:ci}; overlapped units
-\num{v10:sig:test:ami:textov:m-b:diff}, \num{v10:sig:test:ami:textov:m-b:ci}) and \num{v10:sig:test:en:text:m-b:diff}
-(En$\rightarrow$Zh, \num{v10:sig:test:en:text:m-b:ci}), in speech ASR-BLEU, \num{v10:sig:test:ami:speech:m-b:diff}
-(\num{v10:sig:test:ami:speech:m-b:ci}) and \num{v10:sig:test:en:speech:m-b:diff} (\num{v10:sig:test:en:speech:m-b:ci}),
-and in speech LAAL, \num{v10:test:ami:m:slaal} / \num{v10:test:en:m:slaal}\,s against \num{v10:test:ami:b:slaal} /
-\num{v10:test:en:b:slaal}\,s. The text gains are small: their intervals exclude zero, but after Holm correction
-(Table~\ref{tab:sig10}) they are not significant ($p_\text{Holm}$ \num{v10:sig:test:ami:text:m-b:holm} /
-\num{v10:sig:test:en:text:m-b:holm}); the speech gains are significant in Zh$\rightarrow$En
-($p_\text{Holm}$ \num{v10:sig:test:ami:speech:m-b:holm}) and borderline in En$\rightarrow$Zh (\num{v10:sig:test:en:speech:m-b:holm}).
-The fixed write bias was introduced after a first test decoding without it ($\bias=0$, Table~\ref{tab:delta0}), which
-started speaking later than the baseline (AliMeeting speech LAAL \num{v10:test:ali:m0:slaal} vs.\
-\num{v10:test:ali:b:slaal}\,s); its value was then set on development meetings only, and each test set was decoded once
-with it.
-\ifEseven The zero-shot, single-speaker SeamlessStreaming is a reference, not a competitor: less than half our
-ASR-BLEU, and lower speech LAAL only on AMI Zh$\rightarrow$En (\num{v10:test:ami:e7:slaal} vs.\
-\num{v10:test:ami:m:slaal}\,s), which at that quality says little (Appendix~\ref{app:e7}).\fi
+Table~\ref{tab:main10} gives the streaming systems on whole test meetings; all share training data, online windows and
+diarizer. \emph{Speech layer.} Speaking the deadline baseline's own text with playback alignment (B+PA) raises ASR-BLEU
+by \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
+\num{v10:sig:test:ali:speech:e2-b:diff} (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting; all
+$p_\text{Holm}<0.001$, Table~\ref{tab:sig10}) and shortens EndOffset by \num{v10:test:ami:e2-b:endoff} /
+\num{v10:test:en:e2-b:endoff} / \num{v10:test:ali:e2-b:endoff}\,s, mainly by removing queueing (queue wait per unit
+\num{v10:dev:z:b:p_queue_wait} vs.\ \num{v10:dev:z:e2:p_queue_wait}\,s, Zh$\rightarrow$En dev; Table~\ref{tab:decomp10}).
+Speech starts hardly earlier (\num{v10:test:ami:e2-b:sstart} / \num{v10:test:en:e2-b:sstart} /
+\num{v10:test:ali:e2-b:sstart}\,s): LAAL$_\text{spread}$ falls (\num{v10:test:ami:e2-b:slaal} /
+\num{v10:test:en:e2-b:slaal} / \num{v10:test:ali:e2-b:slaal}\,s) because blocks wait less and play shorter. Under the conventional
+block-start definition the dev gain of the full system shrinks to a few hundredths of a second
+(Table~\ref{tab:m2laal10}).
+\ifPostReview
+On test, block-start speech LAAL is \num{v10:pr:test:ami:b:bslaal} / \num{v10:pr:test:ami:e2:bslaal} /
+\num{v10:pr:test:ami:m:bslaal}\,s for B / B+PA / \sys{} on AMI Zh$\rightarrow$En (all sets, intervals, speech rate and
+UTMOS: Appendix~\ref{app:postreview}).
+\fi
+B+PA differs from B in four ways at once (merging, the fine-tuned Talker, a backlog-dependent rate, best-of-two
+CTC selection); on a fixed text, a rule-based layer with the same rate rule and selection gets most of the gain, and the
+learned layer adds \num{v10:tk:ami:c-a:asr} / \num{v10:tk:ali:c-a:asr} ASR-BLEU and
+\num{v10:tk:ami:c-a:slaal} / \num{v10:tk:ali:c-a:slaal}\,s of LAAL$_\text{spread}$ (AMI Zh$\rightarrow$En / AliMeeting,
+Table~\ref{tab:talker10}). As selection uses a CTC recogniser and
+scoring uses ASR, the gain may partly reflect ASR-friendly rather than more natural speech.
 
-\paragraph{Which part brings what?} The second row speaks the baseline's own text with read-level merging and the PL-EM
-Talker. This speech layer alone changes ASR-BLEU by \num{v10:sig:test:ami:speech:e2-b:diff} /
-\num{v10:sig:test:en:speech:e2-b:diff} / \num{v10:sig:test:ali:speech:e2-b:diff} and speech LAAL by
-\num{v10:test:ami:e2-b:slaal} / \num{v10:test:en:e2-b:slaal} / \num{v10:test:ali:e2-b:slaal}\,s (AMI Zh$\rightarrow$En
-/ En$\rightarrow$Zh / AliMeeting). On top of it the
-write-aligned Thinker changes ASR-BLEU by only \num{v10:sig:test:ami:speech:m-e2:diff} /
+\emph{Write alignment.} On top of B+PA, the write-aligned Thinker (\sys{}) changes text tcpBLEU by
+\num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} / \num{v10:sig:test:ali:text:m-b:diff}
+(intervals \num{v10:sig:test:ami:text:m-b:ci} / \num{v10:sig:test:en:text:m-b:ci} / \num{v10:sig:test:ali:text:m-b:ci});
+none is significant after Holm correction ($p_\text{Holm}$ \num{v10:sig:test:ami:text:m-b:holm} /
+\num{v10:sig:test:en:text:m-b:holm} / \num{v10:sig:test:ali:text:m-b:holm}), and the AMI gains are of the size of the
+seed spread of the per-direction deadline model (\num{v8:seed:zh2en:all} / \num{v8:seed:en2zh:all},
+Appendix~\ref{app:v8}). It changes ASR-BLEU by only \num{v10:sig:test:ami:speech:m-e2:diff} /
 \num{v10:sig:test:en:speech:m-e2:diff} / \num{v10:sig:test:ali:speech:m-e2:diff} (all intervals include zero) and is
 heard later, by \num{v10:test:ami:m-e2:slaal} / \num{v10:test:en:m-e2:slaal} / \num{v10:test:ali:m-e2:slaal}\,s of
-speech LAAL. The speech gains and the whole latency reduction thus come from playback alignment, which mainly removes queueing
-(queue wait per unit \num{v10:dev:z:b:p_queue_wait} vs.\ \num{v10:dev:z:e2:p_queue_wait}\,s, Zh$\rightarrow$En dev;
-Table~\ref{tab:decomp10}); write alignment contributes the text gain. The two
-are complementary: one acts on what is written and when, the other on when it is heard.
-
-\input{generated/tab_v10_ablation}
+LAAL$_\text{spread}$, because it writes later (text LAAL \num{v10:test:ami:m-b:tlaal} /
+\num{v10:test:en:m-b:tlaal} / \num{v10:test:ali:m-b:tlaal}\,s). In this study, write alignment thus yields no
+significant improvement; the speech gains of \sys{} over B (\num{v10:sig:test:ami:speech:m-b:diff},
+$p_\text{Holm}$ \num{v10:sig:test:ami:speech:m-b:holm}; \num{v10:sig:test:en:speech:m-b:diff}, $p_\text{Holm}$
+\num{v10:sig:test:en:speech:m-b:holm}) are those of the playback layer. The AliMeeting text gap is a brevity penalty
+(Appendix~\ref{app:dup}). As \sys{} writes later than B on every set, the AMI text differences may be a move along the
+quality--latency curve; we did not run the controls that would tell (Limitations).
 
 \paragraph{Ablation and the write bias.}
 \label{sec:res-drift}
-On the development set (Table~\ref{tab:abl10}), write alignment without the bias (row 3) changes ASR-BLEU by
-\num{v10:dev:z:m0-e2:asr} / \num{v10:dev:e:m0-e2:asr} over row 2 but writes later (text LAAL
-\num{v10:dev:z:m0-e2:tlaal} / \num{v10:dev:e:m0-e2:tlaal}\,s). Over stage 2 the posterior mass on the deadline plan falls
-from \num{v10:drift:v2p:q_first} to \num{v10:drift:v2p:q_last} (Table~\ref{tab:drift10}), and the decoder commits only
-\num{v10:dev:z:m0:pre}\% of its Zh$\rightarrow$En words before the source unit ends (deadline model
-\num{v10:dev:z:b:pre}\%). The bias (row 4) restores \num{v10:dev:z:m:pre}\% and moves text LAAL by
-\num{v10:dev:z:m-m0:tlaal} / \num{v10:dev:e:m-m0:tlaal}\,s, speech LAAL by \num{v10:dev:z:m-m0:slaal} /
-\num{v10:dev:e:m-m0:slaal}\,s and text tcpBLEU by \num{v10:dev:z:m-m0:all} / \num{v10:dev:e:m-m0:all}. An E-step latency
-budget acts less, and earlier writes cost quality (Appendix~\ref{app:calib}).
+Without the bias, write alignment writes later than B+PA on the development set (text LAAL
+\num{v10:dev:z:m0-e2:tlaal} / \num{v10:dev:e:m0-e2:tlaal}\,s; Table~\ref{tab:abl10}): as expected for a
+likelihood-trained policy whose lattice can only defer, the posterior mass on the deadline plan falls over training from
+\num{v10:drift:v2p:q_first} to \num{v10:drift:v2p:q_last} (Table~\ref{tab:drift10}). The bias undoes this; a
+training-time latency budget acts less (Appendix~\ref{app:calib}).
 
-\paragraph{AliMeeting.}
-\ifAliwin
-On real Mandarin meetings \sys{} v10 changes text tcpBLEU by \num{v10:sig:test:ali:text:m-b:diff}
-(\num{v10:sig:test:ali:text:m-b:ci}) and ASR-BLEU by \num{v10:sig:test:ali:speech:m-b:diff}, with speech LAAL
-\num{v10:test:ali:m:slaal} vs.\ \num{v10:test:ali:b:slaal}\,s (duplicates: Appendix~\ref{app:dup}).
-\else
-AliMeeting, never used for training or tuning, tests cross-corpus generalisation.
-The text tcpBLEU of \sys{} v10 is below the baseline's (\num{v10:test:ali:m:all} vs.\ \num{v10:test:ali:b:all}; interval
-\num{v10:sig:test:ali:text:m-b:ci}), so we claim no text gain and restrict text claims to AMI. The precision part is
-equal (BLEU without brevity penalty \num{v10:test:ali:m:nobp} vs.\ \num{v10:test:ali:b:nobp}); the gap is a brevity
-penalty (length ratio \num{v10:test:ali:m:lenratio} vs.\ \num{v10:test:ali:b:lenratio}; Appendix~\ref{app:dup}). Speech still improves over the baseline
-(ASR-BLEU \num{v10:sig:test:ali:speech:m-b:diff}, speech LAAL \num{v10:test:ali:m:slaal} vs.\
-\num{v10:test:ali:b:slaal}\,s), but less than with the baseline's text (\num{v10:test:ali:e2:asr}, \num{v10:test:ali:e2:slaal}\,s).
-\fi
+\subsection{Test-set hygiene}
+\label{sec:res-hygiene}
 
-\label{sec:res-ablation}
-\label{sec:res-errors}
-\label{sec:analysis}
+The final streaming numbers are not fully blind. (i) The write bias was introduced after a first test decoding without
+it ($\bias=0$, italic rows of Table~\ref{tab:main10}), which wrote and spoke later than B, most on AliMeeting (text
+tcpBLEU \num{v10:test:ali:m0:all} vs.\ \num{v10:test:ali:b:all}); its value was set on development meetings only, but
+adding it was a test-informed decision that repaired what that run showed. (ii) The stage-2 checkpoint (step \num{v10:c:j:s2step}) is not the one the selection rule picked (step
+\num{v10:c:j:s2rule}, never decoded on test): its dev5 criterion is higher (\num{v10:s2:3500:J} vs.\
+\num{v10:s2:4000:J}) by a margin within decoder noise, and its En$\rightarrow$Zh text lag exceeds the rule's bound by
+\num{v10:s2:e:3500:dL}\,s, a bound set relative to a later-writing system, not B (Appendix~\ref{app:v10train}). (iii) The same 16 AMI and 20
+AliMeeting test meetings served throughout development, while the window closing gap, the latency protocol, read-level
+merging, a short-turn fallback and the AliMeeting references changed; adaptive overfitting cannot be ruled out. (iv) The
+analysis plans were internal, and most per-direction streaming tests were not run (Table~\ref{tab:reg9}).

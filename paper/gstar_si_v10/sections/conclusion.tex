@@ -1,58 +1,52 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\sys{} writes who, when and what for every speaker of an overlapping window as the meeting runs; joint window
-translation beats cascades, and reading the diarizer inside the decoder pays off where people talk at once. Learned as
-latent structure with exact posteriors, the two timing alignments are complementary: on AMI, playback alignment brings
-the speech gains and the lower speech latency; write alignment, with one constant against the drift of EM towards later
-writes, improves the text, but not speech quality or speed, nor the text of real Mandarin meetings. Alignment below the
-utterance and a learned latency reward are left open.
+\sys{} writes who, when and what for every speaker of an overlapping window; reading the diarizer in the decoder helps
+attribution where people talk at once. Playback alignment brings significant speech gains, largely
+matched by a rule-based rate with candidate selection; write alignment brings none that survives correction. With one
+output channel per speaker, a listener hears several translated voices at once during overlap; a single channel falls
+far behind (Appendix~\ref{app:v9proto}).
 
 \section*{Limitations}
 
-\paragraph{Timing.} The write bias $\bias$ is one global constant, and it was introduced after the first test decoding
-of the latent-write-aligned system had shown a later start; it was chosen on development meetings only and the test
-sets were decoded once with it (Table~\ref{tab:delta0} reports the run without it). The stage-2 checkpoint (step
-\num{v10:c:j:s2step}) is not the one the pre-registered rule selected (step \num{v10:c:j:s2rule}): it was chosen on
-development data for its higher BLEU, its En$\rightarrow$Zh text lag exceeds the rule's feasibility bound by
-\num{v10:s2:e:3500:dL}\,s (Table~\ref{tab:s2sel10}). The training-time latency budget was run with one value
-($\rho=0.5$). Speech LAAL is still \num{v10:test:en:m:slaal}--\num{v10:test:ali:m:slaal}\,s (Table~\ref{tab:main10}), and per
-utterance the system remains close to consecutive interpretation (Appendix~\ref{app:decomp}). The write-aligned
-Thinker is heard later than the baseline's text spoken by the same speech layer, so its text gain, which is small and
-not significant after Holm correction, comes at a cost in speech latency. Latencies count audio and playback time, not computation;
-we did not measure the v10 decoder and Talker cost (PL-EM inference samples two candidates per block, the baseline
-Talker one), and the v9 compute measurements (Appendix~\ref{app:v9proto}) do not transfer. Latency differences are point
-estimates without intervals. One interpreter channel for all speakers cannot keep up (Appendix~\ref{app:v9proto}); all
-v10 latencies assume one channel per speaker.
+\paragraph{Test hygiene and missing controls.} The final streaming results are not fully blind
+(\S\ref{sec:res-hygiene}): the write bias was added after a first test run, the stage-2 checkpoint deviates from the
+selection rule and exceeds its latency bound, and the same test meetings served throughout development. We did not
+decode the rule-selected checkpoint on test or evaluate on an untouched meeting set. We did not run the controls that
+would attribute the text effect of write alignment: a write-bias sweep on the deadline baseline compared at matched
+latency, deadline training continued for the same number of steps, and deadline training with mixed lags. We did not
+isolate the speech-layer components (merging, rate rule, candidate selection, learned Talker) on the baseline text, and
+the Zh$\rightarrow$En PA Talker was trained on outputs of a separately trained write-aligned Thinker, not on the
+baseline's text. Fixed-lag, LocalAgreement, cascade and relabelling baselines were run only with the per-direction model under
+the earlier look-ahead protocol (Appendix~\ref{app:v9proto}), not with the final speech layer. Every streaming model was
+trained once, with one seed. The training-time latency budget was run with one value.
 
-\paragraph{What was not done.} No human evaluation: no listening test of voice identity or naturalness, no bilingual
-check of the machine-translated En$\rightarrow$Zh references, and no learned quality metric (COMET, MetricX); speech is
-scored by ASR and two speaker-verification models. Every v10 model was trained once, with one seed. Not run for compute
-in v7--v9 (Appendices~\ref{app:prereg},~\ref{app:v9proto}): ablations of the speaker-token rate, loss weights and posterior
-noise; other fusions of the speaker stream; the diarizer-threshold sensitivity; the full fixed-lag and speaker-blind
-seed comparisons; an uncontended wall-clock replay; and a same-protocol comparison with DiariST or X-Translator, which we
-compare by capability only (Table~\ref{tab:related8}). \ifEseven The only external S2ST system we ran,
-SeamlessStreaming, is single-speaker and zero-shot; no trained multi-speaker SimulS2ST baseline was available.\else The external SimulS2ST baseline on our test windows (SeamlessStreaming) was not finished for this
-version.\fi
+\paragraph{Latency.} LAAL$_\text{spread}$ is not the conventional speech LAAL; under the block-start convention the
+gains largely disappear (Table~\ref{tab:m2laal10}), and LAAL may degenerate when, as here, most words are written at a
+window's last read (Appendix~\ref{app:decomp}). Latency differences are point estimates without intervals. Latencies
+count audio and playback time, not computation; the decoder re-encodes the prefix at every read and the PA Talker
+samples two candidates per block, and we did not measure the cost of the final system. All streaming latencies assume
+one channel per speaker.
 
-\paragraph{Evaluation scope.} The reference windows keep \num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh test
-speech and \num{v6:filt:en2zh:ovl:dur}\% of its overlapped speech (Table~\ref{tab:funnel7}); whole-meeting runs read all
-speech but score the same reference utterances. The two AMI directions share their 16 meetings and are not independent
-replications; the Zh$\rightarrow$En source is re-voiced, not real. On AliMeeting, the only real Mandarin set, \sys{} v10
-\ifAliwin does not lose text quality\else loses text tcpBLEU against the baseline (not significant), so text
-claims are restricted to AMI; that the gap is a brevity penalty rests on a diagnostic, not on the official
-metric\fi. All audio is close-talk microphones mixed into one channel;
-far-field audio is untested. Greedy bf16 decoding is not batch-invariant (Appendix~\ref{app:noise}).
+\paragraph{Evaluation.} No human evaluation: no listening test of voice identity, naturalness or comprehensibility, and
+no bilingual check of the machine-translated En$\rightarrow$Zh references, which come from the same pipeline as the
+training targets. No learned quality metric is used; tcpBLEU keeps duplicate translations of a unit and so partly rewards
+duplication, and ASR-BLEU after CTC-based candidate selection may favour ASR-friendly speech. The Zh$\rightarrow$En
+source is synthetic (re-voiced by the same model family as our Talker), the two AMI directions share their 16 meetings,
+and on AliMeeting, the only real Mandarin set, the text score does not improve. AliMeeting audio is mixed close-talk
+channels and we do not report DiariST's own metric, so the numbers are not comparable with published results; the reference windows keep
+\num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh test speech. Greedy bf16 decoding is not batch-invariant
+(Appendix~\ref{app:noise}). Earlier studies left further tests unrun for compute (Appendix~\ref{app:prereg}), and other
+multi-speaker systems are compared by capability only (Table~\ref{tab:related8}).
 
-\paragraph{System.} The diarizer, the encoder and the joint Thinker are trained separately from the Talker; the latent
-write plan and the playback lattice are not one joint model. Committed output is never revised, so a wrong speaker label
-is spoken. Slots are anonymous, and voice prompts come from the diarizer's solo regions, which a speaker who never talks
-alone lacks. Reference speaker activity does not help En$\rightarrow$Zh, so a better diarizer need not give better
-translations.
+\paragraph{System.} The diarizer, the encoder and the Thinker are trained separately from the Talker, and the two
+alignments are not one joint model. Committed output is never revised, so a wrong speaker label is spoken. Voice prompts
+come from the diarizer's solo regions, which a speaker who never talks alone lacks.
 
 \section*{Ethics Statement}
 
 Speaker-attributed interpretation processes the voices of meeting participants and reproduces them in another
 language. Voice cloning can be misused to impersonate people; a deployed system should obtain the participants'
-consent and mark synthesised speech as such. AMI is distributed under a CC BY 4.0 licence and was recorded with the
-participants' consent; AliMeeting is used for testing only, under its licence.
+consent and mark synthesised speech as such. Our Chinese AMI test audio clones the voices of AMI participants into
+Chinese and is synthetic speech. AMI is distributed under a CC BY 4.0 licence and was recorded with the participants'
+consent; AliMeeting (CC BY-SA 4.0) is used for testing only.

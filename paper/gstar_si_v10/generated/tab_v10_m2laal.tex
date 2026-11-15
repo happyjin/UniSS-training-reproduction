@@ -3,7 +3,7 @@
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lrrrr}
 \toprule
- & \multicolumn{2}{c}{block start} & \multicolumn{2}{c}{word heard (ours)} \\
+ & \multicolumn{2}{c}{block start} & \multicolumn{2}{c}{playback spread} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 Set & B & \sys{} & B & \sys{} \\
 \midrule
@@ -14,6 +14,6 @@ test AliMeeting & 3.28 & 4.01 & 4.28 & 4.85 \\
 test AMI En$\rightarrow$Zh & 2.54 & 2.80 & 3.21 & 3.34 \\
 \bottomrule
 \end{tabular}
-\caption{Speech LAAL with the single-speaker convention (every word of a block is delayed until the block \emph{starts} playing) next to ours (each word at the moment it is heard). B: strict baseline; \sys{}: $\bias=-1$ on dev, $\bias=0$ on test (the $\bias=-1$ test runs were not rescored with this convention). Chunk protocol, mean of two TTS seeds, seconds.}
+\caption{Speech LAAL under the conventional block-start definition (every word of a block is charged when the block \emph{starts} playing) and the playback-spread variant of Table~\ref{tab:main10} (a block's words spread evenly over its playback). B: deadline baseline; \sys{}: $\bias=-1$ on dev, $\bias=0$ on test (the $\bias=-1$ test runs are not rescored here). Chunk protocol, mean of two TTS seeds, seconds.}
 \label{tab:m2laal10}
 \end{table}

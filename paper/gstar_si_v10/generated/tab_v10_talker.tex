@@ -5,13 +5,13 @@
 \toprule
  & \multicolumn{3}{c}{AMI Zh$\rightarrow$En} & \multicolumn{3}{c}{AliMeeting} \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-Talker & ASR-BLEU & LAAL & EndOff. & ASR-BLEU & LAAL & EndOff. \\
+Talker & ASR-BLEU & LAAL$_\text{spr.}$ & EndOff. & ASR-BLEU & LAAL$_\text{spr.}$ & EndOff. \\
 \midrule
 rule (queue rate, 2-best CTC) & 20.52 & 4.00 & 3.65 & 15.83 & 4.73 & 4.42 \\
-PL-EM & 20.64 & 3.92 & 3.42 & 16.26 & 4.61 & 4.08 \\
-rl + PL-EM & 20.68 & 3.90 & 3.36 & 16.22 & 4.57 & 4.00 \\
+PA Talker & 20.64 & 3.92 & 3.42 & 16.26 & 4.61 & 4.08 \\
+rl + PA Talker & 20.68 & 3.90 & 3.36 & 16.22 & 4.57 & 4.00 \\
 \bottomrule
 \end{tabular}}
-\caption{Speech layer alone, on the separately trained Zh$\rightarrow$En v2$'$ Thinker (same text in all rows: tcpBLEU 25.37 / 18.14); test sets, two TTS seeds, speech LAAL and EndOffset in seconds (chunk protocol). rl: read-level merging.}
+\caption{Speech layer alone, on a separately trained single-direction Zh$\rightarrow$En write-aligned Thinker (same text in all rows: tcpBLEU 25.37 / 18.14); test sets, two TTS seeds, speech LAAL and EndOffset in seconds (chunk protocol). rl: read-level merging. The rule-based layer here already uses two samples per block with CTC selection and a queue-dependent rate.}
 \label{tab:talker10}
 \end{table}
