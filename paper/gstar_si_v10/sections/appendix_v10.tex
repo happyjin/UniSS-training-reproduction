@@ -68,6 +68,16 @@ pre-registered $\rho=0.5$. Same data, schedule and selection rule as stage 2; th
 
 \input{generated/tab_v10_drift}
 
+\paragraph{Drift towards later writes.} Over stage 2 the posterior of Eq.~\eqref{eq:post} leaves the deadline plan: its
+mass falls from \num{v10:drift:v2p:q_first} in the first 100 steps to \num{v10:drift:v2p:q_last} in the last 500 before
+the selected checkpoint, and the expected number of deferred chunks per window rises from
+\num{v10:drift:v2p:defer_win_first} to \num{v10:drift:v2p:defer_win_last} (Table~\ref{tab:drift10}). The decoder then
+commits \num{v10:dev:z:m0:pre}\% of its Zh$\rightarrow$En words before the source unit ends, against
+\num{v10:dev:z:b:pre}\% for the deadline model, and its speech starts \num{v10:dev:z:m0:sstart} instead of
+\num{v10:dev:z:b:sstart}\,s after the unit; with the bias, \num{v10:dev:z:m:pre}\% and \num{v10:dev:z:m:sstart}\,s.
+Under the E-step budget the unconstrained cost itself keeps growing during training (\num{v10:drift:pb:E0_first} to
+\num{v10:drift:pb:E0_last} unit-seconds per window).
+
 \subsection{PL-EM}
 \label{app:plem}
 
@@ -104,6 +114,13 @@ tcpBLEU \num{v10:cal:z:m1-b:bleu} / \num{v10:cal:e:m1-b:bleu}. Larger biases cut
 (Table~\ref{tab:abl10}), and each test set was decoded once with it. The decision to introduce a bias at all was
 influenced by the first test run; its value was not.
 
+\paragraph{Other ways to control the write time.} An E-step latency budget in training (posterior reweighted by
+$e^{-\lambda\cdot\text{deferral cost}}$, halving the expected cost; Appendix~\ref{app:crf}) lowers dev5 text LAAL by
+only \num{v10:pb:z:3500-m0:laal} / \num{v10:pb:e:3500-m0:laal}\,s, the bias by \num{v10:cal:z:m1-m0:laal} /
+\num{v10:cal:e:m1-m0:laal}\,s (Table~\ref{tab:calib10}). A lattice that also allows writing one read early (separate
+Zh$\rightarrow$En system) overshoots: speech LAAL \num{v10:c:pmc:slaal} vs.\ \num{v10:c:pmc:ref}\,s, but text tcpBLEU
+\num{v10:c:pmc:text} and ASR-BLEU \num{v10:c:pmc:asr}.
+
 \input{generated/tab_v10_calib}
 \input{generated/tab_v10_delta0}
 
@@ -134,8 +151,9 @@ word of a block is charged at the block's start, which cannot see how long a blo
 
 On the separate Zh$\rightarrow$En system, speech LAAL (\num{v10:c:dec:speech}\,s) is the raw commit delay
 (\num{v10:c:dec:raw}\,s) plus \num{v10:c:dec:det}\,s of detector wait and \num{v10:c:dec:play}\,s of playback, and text
-LAAL after the detector (\num{v10:c:dec:online}\,s) equals the mean reference-unit duration; at the utterance level the
-system interprets consecutively.
+LAAL after the detector (\num{v10:c:dec:online}\,s) equals the mean reference-unit duration, and
+\num{v10:c:dec:final}\% of the words are written at a window's last read: at the utterance level the system interprets
+consecutively.
 
 Table~\ref{tab:decomp10} splits EndOffset into its parts. The speech layer of the baseline (fixed rate, every committed
 block in full) produces more speech than the source holds, so each stream accumulates a queue; PL-EM with read-level
@@ -164,7 +182,11 @@ only the longest translation of each duplicated unit, tcpBLEU is \num{v10:c:dd:a
 \num{v10:c:dd:devz:m0} (development Zh$\rightarrow$En), baseline vs.\ $\bias=0$. The same drop on AliMeeting appears with
 the separately trained Zh$\rightarrow$En latent-write Thinker (\num{v10:c:ali:sepA} vs.\ \num{v10:test:ali:b:all}), so it
 is a property of the write plan, not of the joint model. These are diagnostics; the official tcpBLEU is the reported
-metric. Table~\ref{tab:dup10} recomputes the brevity-penalty split from the score files for all three systems.
+metric. Table~\ref{tab:dup10} recomputes the brevity-penalty split from the score files for all three systems. With
+the write bias the duplicate explanation no longer applies: \sys{} v10 ($\bias=-1$) duplicates as many units as the
+baseline (\num{v10:test:ali:m:dup}\% vs.\ \num{v10:test:ali:b:dup}\%), its precision part equals the baseline's
+(\num{v10:test:ali:m:nobp} vs.\ \num{v10:test:ali:b:nobp}), and its remaining AliMeeting gap is a brevity penalty of
+\num{v10:test:ali:m:bp}.
 
 \input{generated/tab_v10_dup}
 
@@ -186,7 +208,14 @@ baseline changes text tcpBLEU by \num{v10:sig:dev:z:text:m-b:diff} (\num{v10:sig
 SeamlessStreaming~\citep{seamless2023} (official agent and default settings, inference only) reads each of our online
 test windows; each output segment is attributed to a diarizer slot by the causal relabelling rule of
 \S\ref{sec:eval-overlap}, and text, speech and latency are scored with our tools under the chunk protocol. It thus gets our
-segmentation and speaker stream, which it does not have on its own. Results: Table~\ref{tab:main10}.
+segmentation and speaker stream, which it does not have on its own; nothing was trained or tuned, and each test set was
+decoded once. It is a zero-shot reference for what a public single-speaker SimulS2ST system does on overlapping
+meetings, not a like-for-like baseline. Results: Table~\ref{tab:main10}. Its quality is far below ours, most on
+overlapped units (tcpBLEU-ov \num{v10:test:ami:e7:ov} / \num{v10:test:ali:e7:ov} / \num{v10:test:en:e7:ov}). Its speech
+LAAL is \num{v10:test:ami:e7:slaal} / \num{v10:test:ali:e7:slaal} / \num{v10:test:en:e7:slaal}\,s against our
+\num{v10:test:ami:m:slaal} / \num{v10:test:ali:m:slaal} / \num{v10:test:en:m:slaal}\,s (AMI Zh$\rightarrow$En /
+AliMeeting / En$\rightarrow$Zh); LAAL compares systems of similar quality, so these values do not place it on our
+quality--latency trade-off.
 \else
 % E7 slot: filled when reports/mist_w3po_v1/e7_seamless_multispk_results.zh-CN.md and
 % eval_outputs/mist_w3po_v1/decode/jtest_<set>_seamless_default/score_text.json exist (rerun make_tables_v10.py).
@@ -203,6 +232,11 @@ stream at the measured single-stream read time) and the listener-side lag of the
 with the v10 numbers.
 
 \input{generated/tab_v7_main_full}
+
+\paragraph{Synthesised speech (v6 protocol).} Offline, \sys{} leads the same-data cascade by less in speech than in
+text (\num{v6:bs:sp-en2zh-O2_vs_sp-en2zh-C-ft2:diff} / \num{v6:bs:sp-zh2en-O2_vs_sp-zh2en-C-ft2:diff} cpASR-BLEU,
+En$\rightarrow$Zh / Zh$\rightarrow$En); voices are evaluated only by automatic speaker similarity
+(Appendix~\ref{app:voice}).
 
 \paragraph{Speaker-blind Simul control.} Online, a speaker-blind Simul model trained identically and relabelled causally
 (pre-registered E-ov1/E-ov2, Table~\ref{tab:reg8}) trails \sys{}-Simul on overlapped units by
@@ -269,6 +303,8 @@ The DiariST release~\citep{yang2024diarist} provides human English translations 
 utterances. With the machine-translated references used before v9, \sys{} (offline) against the same-data cascade is
 \num{v9:x:ali:O2-C-ft2:std:all:diff} tcpBLEU overall (interval \num{v9:x:ali:O2-C-ft2:std:all:ci}) and
 \num{v9:x:ali:O2-C-ft2:std:ov:diff} on overlapped units (\num{v9:x:ali:O2-C-ft2:std:ov:ci}); with the human references
-the corresponding numbers are those of \S\ref{sec:res-real}. Table~\ref{tab:reg9} lists the pre-registered v9 tests.
+the corresponding numbers are those of \S\ref{sec:res-real}. Offline, relabelling the speaker-blind model is ahead of
+\sys{} overall on AliMeeting (\num{v9:x:ali:O2-O2-nosd-relabel:hum:all:diff}). Table~\ref{tab:reg9} lists the
+pre-registered v9 tests.
 
 \input{generated/tab_v9_reg}

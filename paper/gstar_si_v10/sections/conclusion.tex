@@ -1,12 +1,12 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\sys{} writes who, when and what for every speaker of an overlapping window as the meeting runs: joint window
-translation beats cascades, and reading the diarizer inside the decoder pays off where people talk at once. Learning when
-to write and when to speak as latent structure, with exact posteriors over write plans and over the playback backlog,
-replaces fixed deadlines and a rule-based queue; one decoding constant corrects the drift of EM towards later writes.
-The analysis points to the next step, latent alignment below the utterance; a latency reward on the wait decisions
-learned by reinforcement is the other direction we leave open.
+\sys{} writes who, when and what for every speaker of an overlapping window as the meeting runs; joint window
+translation beats cascades, and reading the diarizer inside the decoder pays off where people talk at once. Learned as
+latent structure with exact posteriors, the two timing alignments are complementary: on AMI, playback alignment brings
+the speech gains and the lower speech latency; write alignment, with one constant against the drift of EM towards later
+writes, improves the text, but not speech quality or speed, nor the text of real Mandarin meetings. Alignment below the
+utterance and a learned latency reward are left open.
 
 \section*{Limitations}
 
@@ -16,8 +16,10 @@ sets were decoded once with it (Table~\ref{tab:delta0} reports the run without i
 \num{v10:c:j:s2step}) is not the one the pre-registered rule selected (step \num{v10:c:j:s2rule}): it was chosen on
 development data for its higher BLEU, its En$\rightarrow$Zh text lag exceeds the rule's feasibility bound by
 \num{v10:s2:e:3500:dL}\,s (Table~\ref{tab:s2sel10}). The training-time latency budget was run with one value
-($\rho=0.5$). Speech LAAL is still three to five seconds (Table~\ref{tab:main10}), and per utterance the system remains
-close to consecutive interpretation (\S\ref{sec:res-drift}). Latencies count audio and playback time, not computation;
+($\rho=0.5$). Speech LAAL is still \num{v10:test:en:m:slaal}--\num{v10:test:ali:m:slaal}\,s (Table~\ref{tab:main10}), and per
+utterance the system remains close to consecutive interpretation (Appendix~\ref{app:decomp}). The write-aligned
+Thinker is heard later than the baseline's text spoken by the same speech layer, so its text gain, which is small and
+not significant after Holm correction, comes at a cost in speech latency. Latencies count audio and playback time, not computation;
 we did not measure the v10 decoder and Talker cost (PL-EM inference samples two candidates per block, the baseline
 Talker one), and the v9 compute measurements (Appendix~\ref{app:v9proto}) do not transfer. Latency differences are point
 estimates without intervals. One interpreter channel for all speakers cannot keep up (Appendix~\ref{app:v9proto}); all
@@ -29,16 +31,17 @@ scored by ASR and two speaker-verification models. Every v10 model was trained o
 in v7--v9 (Appendices~\ref{app:prereg},~\ref{app:v9proto}): ablations of the speaker-token rate, loss weights and posterior
 noise; other fusions of the speaker stream; the diarizer-threshold sensitivity; the full fixed-lag and speaker-blind
 seed comparisons; an uncontended wall-clock replay; and a same-protocol comparison with DiariST or X-Translator, which we
-compare by capability only (Table~\ref{tab:related8}).
-\ifEseven\else The external SimulS2ST baseline on our test windows (SeamlessStreaming) was not finished for this
+compare by capability only (Table~\ref{tab:related8}). \ifEseven The only external S2ST system we ran,
+SeamlessStreaming, is single-speaker and zero-shot; no trained multi-speaker SimulS2ST baseline was available.\else The external SimulS2ST baseline on our test windows (SeamlessStreaming) was not finished for this
 version.\fi
 
 \paragraph{Evaluation scope.} The reference windows keep \num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh test
 speech and \num{v6:filt:en2zh:ovl:dur}\% of its overlapped speech (Table~\ref{tab:funnel7}); whole-meeting runs read all
 speech but score the same reference utterances. The two AMI directions share their 16 meetings and are not independent
 replications; the Zh$\rightarrow$En source is re-voiced, not real. On AliMeeting, the only real Mandarin set, \sys{} v10
-\ifAliwin does not lose text quality\else loses text tcpBLEU against the baseline\fi; our explanation by duplicated output
-rests on a diagnostic, not on the official metric. All audio is close-talk microphones mixed into one channel;
+\ifAliwin does not lose text quality\else loses text tcpBLEU against the baseline (not significant), so text
+claims are restricted to AMI; that the gap is a brevity penalty rests on a diagnostic, not on the official
+metric\fi. All audio is close-talk microphones mixed into one channel;
 far-field audio is untested. Greedy bf16 decoding is not batch-invariant (Appendix~\ref{app:noise}).
 
 \paragraph{System.} The diarizer, the encoder and the joint Thinker are trained separately from the Talker; the latent

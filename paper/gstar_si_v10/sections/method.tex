@@ -196,5 +196,4 @@ closes after 0.6\,s with no active slot or at 20\,s (v9: 1\,s). All audio is pro
 known only $\lambda$ after the frames that decide them, so commits are delayed to the opening, and those of the last read
 to the moment the end is known, with frames timed as the diarizer emits them, in blocks of nine (\emph{chunk protocol},
 Appendix~\ref{app:chunk}). Slots persist across windows; the decoder restarts at each window. Blocks of one speaker
-committed in the same read are merged before they reach the Talker (\emph{read-level merging}, rl). Latencies count audio
-and playback time, not computation (the v9 compute study: Appendix~\ref{app:v9proto}).
+committed in the same read are merged before they reach the Talker (\emph{read-level merging}, rl).

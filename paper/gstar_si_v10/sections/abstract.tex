@@ -8,18 +8,21 @@ beats the strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff
 speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} and
 \num{v8:x:ov-O2-rel-zh2en:diff} BLEU. Trained on fixed per-chunk deadlines, the decoder writes much of its output only after an
 utterance has ended, and a rule-based speech layer queues it. We learn both timing decisions as latent structure with
-exact EM: when, and in which speaker order, each translated chunk is written, and which rendering of each block is spoken
-given the playback backlog, under a posterior-regularised latency budget; one constant write bias, set on development
-meetings, corrects the drift of EM towards later writes. Against the same jointly trained deadline model on the two AMI test directions, \sys{} changes speech ASR-BLEU
-by \num{v10:test:ami:m-b:asr} / \num{v10:test:en:m-b:asr}, per-stream speech LAAL by \num{v10:test:ami:m-b:slaal} /
-\num{v10:test:en:m-b:slaal}\,s and the end offset by \num{v10:test:ami:m-b:endoff} /
-\num{v10:test:en:m-b:endoff}\,s (Zh$\rightarrow$En / En$\rightarrow$Zh).
+exact EM. Write alignment decides when, and in which speaker order, each translated chunk is written; one constant write
+bias, set on development meetings, corrects the drift of EM towards later writes. Playback alignment decides which
+rendering of each block is spoken given the playback backlog, under a posterior-regularised latency budget. Against the
+same jointly trained deadline model on the two AMI test directions (Zh$\rightarrow$En / En$\rightarrow$Zh), \sys{} raises
+text BLEU by \num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} and speech ASR-BLEU by
+\num{v10:sig:test:ami:speech:m-b:diff} / \num{v10:sig:test:en:speech:m-b:diff}, and changes per-stream speech LAAL by
+\num{v10:test:ami:m-b:slaal} / \num{v10:test:en:m-b:slaal}\,s. A decomposition shows the two parts are complementary:
+playback alignment brings the speech gains and the whole latency reduction, write alignment the text gain.
 \ifAliwin
 On real Mandarin meetings (AliMeeting) it changes text BLEU by \num{v10:test:ali:m-b:all} and speech ASR-BLEU by
 \num{v10:test:ali:m-b:asr}.
 \else
-On real Mandarin meetings (AliMeeting) its text BLEU is lower than the baseline's; a diagnostic points to the
-baseline's duplicated translations inflating its length.
+On real Mandarin meetings (AliMeeting), held out from all training and tuning, text BLEU changes by
+\num{v10:sig:test:ali:text:m-b:diff} (not significant), so we claim no text gain there, while speech ASR-BLEU (\num{v10:sig:test:ali:speech:m-b:diff})
+and speech LAAL (\num{v10:test:ali:m-b:slaal}\,s) still improve.
 \fi
 Per utterance, the system remains closer to consecutive than to simultaneous interpretation.
 \end{abstract}

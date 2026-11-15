@@ -674,13 +674,31 @@ def write_tables(R, e7, e7_any):
          r"\midrule"]
     for i, s in enumerate(SETS):
         rows = ["b", "e2", "m"] + (["e7"] if e7.get(s) else [])
+        FIELDS = ("all", "ov", "1spk", "asr", "tlaal", "slaal", "endoff")
+        LOWER = {"tlaal", "slaal", "endoff"}
+        # bold: best of our own three systems per column (ties bold all); the external E7 row is never bold
+        best = {}
+        for f in FIELDS:
+            vals = []
+            for sy in ("b", "e2", "m"):
+                try:
+                    vals.append(float(N(f"v10:test:{s}:{sy}:{f}").replace("$-$", "-")))
+                except ValueError:
+                    pass
+            if vals:
+                best[f] = min(vals) if f in LOWER else max(vals)
         for k, sy in enumerate(rows):
             p = f"v10:test:{s}:{sy}"
             lab = (r"\multirow{%d}{*}{%s}" % (len(rows), ARR[s])) if k == 0 else ""
             nm = NAME[sy]
-            row = [lab, nm] + [N(f"{p}:{f}") for f in ("all", "ov", "1spk", "asr", "tlaal", "slaal", "endoff")]
-            if sy == "m":
-                row = row[:2] + [r"\textbf{" + x + "}" if x != PH else x for x in row[2:]]
+            row = [lab, nm]
+            for f in FIELDS:
+                x = N(f"{p}:{f}")
+                try:
+                    isbest = sy != "e7" and f in best and float(x.replace("$-$", "-")) == best[f]
+                except ValueError:
+                    isbest = False
+                row.append(r"\textbf{" + x + "}" if isbest else x)
             L.append(" & ".join(row) + r" \\")
         if i < len(SETS) - 1:
             L.append(r"\midrule")
@@ -688,15 +706,13 @@ def write_tables(R, e7, e7_any):
         L.append("% E7 (SeamlessStreaming) rows appear here once eval_outputs/mist_w3po_v1/decode/"
                  "jtest_<set>_seamless_default/score_text.json exists (reports/mist_w3po_v1/e7_seamless_multispk_*).")
     L += [r"\bottomrule", r"\end{tabular}}",
-          r"\caption{Test sets, decoded once. The strict baseline is the joint deadline-trained Thinker with the frozen "
-          r"T1c Talker; the second row keeps its text and speaks it with read-level merging and the PL-EM Talker; "
-          r"\sys{} v10 is the latent-write-aligned Thinker (SerialCRF v2$'$) with the fixed write bias $\bias=-1$ and the "
-          r"same speech layer. Text tcpBLEU on whole meetings (all / overlapped / single-speaker units); speech: "
-          r"ASR-BLEU (tcpBLEU of the ASR transcript, mean of two TTS seeds); latency under the chunk protocol, per "
-          r"speaker stream: text LAAL, speech LAAL (primary) and EndOffset (end of source unit to end of its last heard "
-          r"word). Bold: \sys{} v10. Significance: Table~\ref{tab:sig10}; $\bias=0$: Table~\ref{tab:delta0}."
-          + (r" $^\dagger$External S2ST system on our online windows with causal diarizer relabelling, one TTS "
-             r"draw (Appendix~\ref{app:e7})." if e7_any else "") + "}",
+          r"\caption{Test sets, each decoded once. Strict baseline: joint deadline-trained Thinker, frozen T1c Talker; "
+          r"second row: its text spoken with read-level merging (rl) and the PL-EM Talker; \sys{} v10: latent write "
+          r"alignment with $\bias=-1$ and the same speech layer. tcpBLEU over all / overlapped / single-speaker units; "
+          r"ASR-BLEU: mean of two TTS seeds; latency per speaker stream, chunk protocol (speech LAAL primary). Bold: best "
+          r"of our three systems. Tests: Table~\ref{tab:sig10}; $\bias=0$: Table~\ref{tab:delta0}."
+          + (r" $^\dagger$External zero-shot single-speaker S2ST, no speaker attribution of its own: our windows, "
+             r"causal diarizer relabelling, one deterministic run (Appendix~\ref{app:e7})." if e7_any else "") + "}",
           r"\label{tab:main10}", r"\end{table*}"]
     (GEN / "tab_v10_main.tex").write_text("\n".join(L) + "\n")
 
@@ -715,7 +731,7 @@ def write_tables(R, e7, e7_any):
     L += [r"\bottomrule", r"\end{tabular}}",
           r"\caption{Full development set (" + N("v10:dev:z:b:meetings") + " / " + N("v10:dev:e:b:meetings") + r" meetings), one change per row. Rows (1)--(2) share their text. "
           r"Latency in seconds, chunk protocol. A training-time latency budget and an earlier-write lattice are "
-          r"compared on text in \S\ref{sec:res-v10} and Appendix~\ref{app:calib}.}",
+          r"compared in Appendix~\ref{app:calib}.}",
           r"\label{tab:abl10}", r"\end{table}"]
     (GEN / "tab_v10_ablation.tex").write_text("\n".join(L) + "\n")
 

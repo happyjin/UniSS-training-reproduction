@@ -26,8 +26,8 @@ greedy.
 \paragraph{Baselines.} \emph{Strict baseline}: the stage-1 Thinker with the frozen T1c Talker in its default setting
 (fixed rate, one sample per block, no merging), as in v9. \emph{Baseline + PL-EM}: the same text, merged per read and
 spoken by the PL-EM Talker; \sys{} v10 differs from it only in the Thinker.
-\ifEseven\emph{SeamlessStreaming}~\citep{seamless2023} with its official defaults reads our online windows, its segments
-relabelled causally by the diarizer (Appendix~\ref{app:e7}).\fi\
+\ifEseven\emph{SeamlessStreaming}~\citep{seamless2023}, zero-shot with its official defaults, reads our online windows,
+its segments relabelled causally by the diarizer (an external reference; Appendix~\ref{app:e7}).\fi\
 The v9 comparisons keep the v9 system and protocol: \emph{cascades} translate the diarizer's turns one by one with our
 speaker-blind window model (\emph{same-data}), with the same recipe trained on the cascade's turns (\emph{turn-trained}),
 or on reference turns and speakers (oracle input); LocalAgreement-2~\citep{liu2020low,polak2022cuni} and fixed lag are

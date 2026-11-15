@@ -6,24 +6,24 @@
 Set & Sys. & start & model & detector & queue & last block & EndOff. & load \\
 \midrule
 dev Zh$\rightarrow$En & B & 2.95 & 0.74 & 0.61 & 0.64 & 2.16 & 4.14 & 1.41 \\
- & B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & B+PL & 2.90 & 0.75 & 0.61 & 0.12 & 1.62 & 3.10 & 0.94 \\
  & \sys{} & 2.99 & 0.79 & 0.61 & 0.13 & 1.65 & 3.18 & 0.95 \\
 \midrule
 dev En$\rightarrow$Zh & B & 2.36 & 0.76 & 0.55 & 0.59 & 1.54 & 3.45 & 1.33 \\
- & B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & B+PL & 2.32 & 0.78 & 0.55 & 0.14 & 1.37 & 2.83 & 1.00 \\
  & \sys{} & 2.42 & 0.83 & 0.56 & 0.14 & 1.40 & 2.93 & 1.00 \\
 \midrule
 AMI Zh$\rightarrow$En & B & 2.99 & 0.67 & 0.66 & 0.65 & 2.10 & 4.08 & 1.37 \\
- & B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
- & \sys{} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & B+PL & 2.96 & 0.68 & 0.66 & 0.14 & 1.64 & 3.13 & 0.94 \\
+ & \sys{} & 3.04 & 0.71 & 0.67 & 0.14 & 1.67 & 3.20 & 0.95 \\
 \midrule
 AliMeeting & B & 3.05 & 0.88 & 0.40 & 1.33 & 1.96 & 4.57 & 1.56 \\
- & B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
- & \sys{} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & B+PL & 2.92 & 0.95 & 0.40 & 0.33 & 1.55 & 3.23 & 1.05 \\
+ & \sys{} & 3.20 & 1.02 & 0.40 & 0.35 & 1.67 & 3.45 & 1.06 \\
 \midrule
 AMI En$\rightarrow$Zh & B & 2.43 & 0.69 & 0.64 & 0.54 & 1.61 & 3.48 & 1.28 \\
- & B+PL & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
- & \sys{} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} & \textbf{??} \\
+ & B+PL & 2.39 & 0.71 & 0.64 & 0.14 & 1.42 & 2.91 & 0.99 \\
+ & \sys{} & 2.50 & 0.73 & 0.65 & 0.14 & 1.46 & 2.99 & 0.99 \\
 \bottomrule
 \end{tabular}}
 \caption{Where the speech delay of a source unit comes from (chunk protocol, mean over units and two TTS seeds, seconds). EndOffset = model lag (last commit after the unit's end) + detector wait (online window release) + queue wait (earlier speech of the same stream) + duration of the last block. start: speech start offset from the unit's start. load: synthesised speech per second of source speech. B+PL: strict baseline text with rl + PL-EM.}

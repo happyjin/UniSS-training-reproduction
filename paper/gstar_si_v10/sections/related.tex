@@ -12,8 +12,8 @@ over write positions~\citep{arivazhagan2019milk}, and the Hidden Markov Transfor
 starts as a hidden state~\citep{zhang2023hmt}. Our latent write alignment differs in its state space, sets of written
 chunks of several speakers plus the speaker order within a read, over which the partition function is exact. Posterior
 regularisation constrains expectations under a latent posterior by a KL projection~\citep{ganchev2010posterior}; we use
-it to bound the delay at which synthesised words are heard. Thresholds on the write decision are a common test-time
-latency control (e.g.\ in SeamlessStreaming;~\citealp{seamless2023}); our write bias is one such constant, fixed once.
+it to bound the delay at which synthesised words are heard. Our write bias is one fixed instance of the test-time thresholds on the write decision used, e.g., by
+SeamlessStreaming~\citep{seamless2023}.
 
 \paragraph{Multi-speaker recognition and translation.} Serialised output training transcribes overlapping speakers
 in order~\citep{kanda2020sot,kanda2022tsot,kanda2021saasr}; streaming diarizers keep speaker order over long

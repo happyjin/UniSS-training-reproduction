@@ -75,3 +75,55 @@ Re-run `scripts/make_tables_v10.py` and tectonic when these exist; `generated/v1
 - If E7 rows and the E7 setup sentence push the Conclusion past page 8, move the "Where the delay remains" paragraph of §5.5 to Appendix D.1 (it is duplicated there in substance).
 - `arivazhagan2019milk` page range (bib comment).
 - Optional: an Overleaf zip under a new file name (not done).
+
+## 5. 2026-11-15 (Prague 01:45 CET): prose made consistent with the final E1 / E2 / E7 numbers
+
+All experiments finished; `generated/v10_missing.json` is `{}`; switches `\Eseventrue`, `\Eonedonetrue`,
+`\Etwodonetrue`, `\Aliwinfalse`. No number was typed by hand: every number in the text is a macro from
+`scripts/make_tables_v10.py` (no new macro was needed; existing `v10:sig:test:*`, `v10:test:*:{m,b,e2,e7,m-b,m-e2,e2-b}:*`,
+`v10:test:ali:*:{nobp,bp,lenratio,dup}` cover every sentence).
+
+Substantive prose changes:
+
+1. **Credit split (E2) made explicit everywhere.** Abstract, introduction, §5.4 and the conclusion now say that the
+   speech-layer (read-level merging + PL-EM, "playback alignment") brings the speech ASR-BLEU gain and the whole
+   speech-latency reduction, and that the latent-write-aligned Thinker ("write alignment") contributes the text tcpBLEU
+   gain only: on top of E2 it changes ASR-BLEU by +0.10 / +0.11 / −0.24 (intervals include zero) and is heard 0.08 /
+   0.10 / 0.26 s later. The two are presented as complementary (write alignment: what/when text is written; playback
+   alignment: when it is heard). The old intro sentence "latent alignment changes speech ASR-BLEU ..." (which credited
+   both to "latent alignment") was replaced. §5.4 paragraph renamed "Which part brings what?". Limitations: new sentence
+   that the write-aligned Thinker costs speech latency and that its text gain is small and not significant after Holm.
+2. **Significance stated honestly.** §5.4 now says the AMI text gains (+0.32 / +0.58) have bootstrap intervals that
+   exclude zero but are not significant after Holm (p_Holm 0.403 / 0.080); speech gains are significant in Zh→En
+   (<0.001) and borderline in En→Zh (0.053). The abstract states the text and speech gains as numbers, not "wins".
+3. **AliMeeting (`\Aliwinfalse` branch) rewritten for δ = −1.** The old explanation (baseline duplicates inflating its
+   length) held for δ = 0 only; with δ = −1 the system duplicates as many units as the baseline (19.2 vs 18.1 %), its
+   precision part is equal (BLEU/BP 21.42 vs 21.43) and the −0.36 gap is a brevity penalty (BP 0.984). Abstract,
+   §5.4, Limitations and App. E.1 now say this; AliMeeting is framed as cross-corpus generalisation (never trained or
+   tuned on), text claims restricted to AMI, speech ASR-BLEU (+1.11) and speech LAAL (−0.37 s) still improve but less
+   than E2.
+4. **δ disclosure** kept and tightened in §5.4 (bias introduced after the first δ = 0 test decoding, value set on dev
+   only, each test set decoded once with it; Table 9 gives δ = 0), Limitations and App. C unchanged in substance.
+5. **E7 SeamlessStreaming** described as a zero-shot, single-speaker external reference with no speaker attribution
+   of its own (setup, §5.4, Table 3 footnote, App. E.3). Its speech LAAL is lower only on AMI Zh→En (3.29 vs 3.69 s);
+   it is about equal on AliMeeting (3.96 vs 3.91) and higher on En→Zh (3.19 vs 3.05), so the text no longer implies it
+   is faster overall, and says LAAL at less than half our ASR-BLEU does not place it on our trade-off. Note: the E7
+   report's "语音 LAAL 比我们低 0.0–0.5 s" is not true for En→Zh (3.19 > 3.05).
+6. **Table 3 (`make_tables_v10.py`, formatting only):** bold is now "best of our three systems per set and column"
+   (was: every MIST v10 cell bold, which bolded worse latency values); E2 is thus bold on speech LAAL / EndOffset.
+   Caption shortened; † footnote rewritten (zero-shot, no own speaker attribution, deterministic single run instead of
+   "one TTS draw"). Table 4 caption points to App. C only.
+7. **Page budget.** The draft with these changes was one column over. Moved to the appendix (nothing dropped):
+   §5.5 "Why latent alignment writes late" → merged into the §5.4 paragraph "Ablation and the write bias" (label
+   `sec:res-drift` kept there) + full drift paragraph in App. B ("Drift towards later writes"); "Where the delay
+   remains" → App. D.1 (adds the last-read share); E-step budget and early-write lattice numbers → App. C ("Other ways
+   to control the write time"); §5.3 compressed (relabelling-overall sentence → App. G, v6 synthesised-speech
+   sentence → App. F); the v9 RTF numbers in §5.2 → pointer to App. F (already there). Shorter conclusion, intro
+   contribution list, related-work threshold sentence; method's "latencies count computation" sentence removed (it is
+   in Limitations and setup).
+8. Title line break moved after the colon (the forced break produced a three-line title). Title text unchanged.
+
+State: builds without errors, no undefined references/citations/number keys, no overfull boxes; main body (abstract
+to the end of the Conclusion) is exactly 8 pages (Conclusion ends at the bottom of page 8, Limitations start at the top
+of page 9); 33 pages in total. Still open: `arivazhagan2019milk` page range (bib TODO comment); the inactive
+`\ifAliwin`-true / `\ifEseven`-false branches are kept in the source for robustness.
