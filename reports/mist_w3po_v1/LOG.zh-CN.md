@@ -3167,3 +3167,10 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 
 ## 2026-11-15 01:40 布拉格 — E7（SeamlessStreaming 测试推理）完成
 - 结果见 reports/mist_w3po_v1/e7_seamless_multispk_results.zh-CN.md：ASR-BLEU 8.48 / 9.42 / 11.31，远低于我们；语音 LAAL 仅 AMI zh→en 略低（Ali 持平，En→Zh 更高，11-15 更正）。决定：作为外部参考行进论文（\Eseventrue），不作主比较。
+
+## 2026-11-15 ~02:20 布拉格 — 严格审稿（新代理）与修改决定
+- 审稿：paper/gstar_si_v10/review_v10.md（独立代理，只读论文）。评分 Soundness 2.5 / Excitement 2.5 / Overall 2.5（Findings 边缘），Confidence 4。主要问题 M1 结论强于证据（文本增益 Holm 后不显著）、M2 语音增益混淆、M3 缺同延迟/同算力对照、M4 测试集卫生、M5 主延迟指标非标准、M6–M11。
+- 决定（按最优选择替用户决定）：
+  1. 全部 [TEXT] 修改照做（如实降调主张、披露 δ / 3500 / 测试集复用 / 未执行的预注册检验、删内部痕迹、补可核实的引用）。
+  2. [ANALYSIS] 做：现有测试输出上的常规 block-start 语音 LAAL、延迟差 bootstrap CI、语速、UTMOS（不重解码，不在测试集上做选择）。
+  3. [EXPERIMENT] 不做：基线+δw 对照是用户明确拒绝的 E6；同算力 SFT / talker 对照 / 新 seed 都要在测试集上追加事后运行，会加重审稿人指出的测试集卫生问题 → 写入 Limitations 作为已知缺口。
