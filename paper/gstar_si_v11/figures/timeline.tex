@@ -1,0 +1,60 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, x=2.6cm, y=0.62cm,
+  lane/.style={anchor=east, align=right, font=\footnotesize},
+  bar/.style={draw, rounded corners=1pt, minimum height=0.36cm, inner sep=0pt},
+  arr/.style={-{Stealth[length=1.6mm]}, thin}]
+  % time axis 0..5 s
+  \draw[->] (0,0) -- (5.25,0) node[right]{meeting clock (s)};
+  \foreach \t in {0,1,2,3,4,5} { \draw (\t,0.12) -- (\t,-0.12) node[below]{\t}; }
+  % lanes
+  \node[lane] at (-0.08,7) {source speech (speaker A, then B)};
+  \node[lane] at (-0.08,6) {diarizer frames final ($t-\lambda$, $\lambda{=}1.04$\,s)};
+  \node[lane] at (-0.08,5) {window opening known};
+  \node[lane] at (-0.08,4) {read $r$ at $t_r$: encode $x_{\le t_r}$, prefill, decode};
+  \node[lane] at (-0.08,3) {committed text (speaker, span, words)};
+  \node[lane] at (-0.08,2) {voice prompt of the speaker ready};
+  \node[lane] at (-0.08,1) {Talker synthesis, then playback};
+  % source speech
+  \node[bar, fill=gray!25, minimum width=2.6cm*1.9] at (0.25+0.95,7) {A: ``so the budget is \dots''};
+  \node[bar, fill=gray!45, minimum width=2.6cm*0.6] at (2.3+0.3,7) {B: ``yes''};
+  \node[bar, fill=gray!25, minimum width=2.6cm*1.5] at (2.6+0.75,7) {A: ``\dots{} next week''};
+  % diarizer finality: frames up to t-1.04
+  \fill[spkc!30] (1.04,5.82) rectangle (5.2,6.18);
+  \node[font=\scriptsize] at (3.1,6) {frames $\le t-\lambda$ fixed; later frames zero in the read};
+  % opening known
+  \draw[arr, spkc] (0.25,7-0.3) -- (1.29,5.2);
+  \node[draw, circle, fill=spkc!60, inner sep=1.2pt] at (1.29,5) {};
+  \node[anchor=west, font=\scriptsize] at (1.33,5) {opening frame + $\lambda$: commits may start};
+  % reads every second, each taking ~1 s of compute (batch 1)
+  \foreach \t in {1,2,3,4,5} {
+    \node[bar, fill=trained!25, minimum width=2.6cm*0.95, anchor=west] at (\t,4) {};
+    \node[font=\scriptsize] at (\t+0.47,4) {read};
+  }
+  % commits
+  \node[bar, fill=trained!45, anchor=west, minimum width=2.6cm*0.9] at (2.0,3) {A:\,\zh{所以预算}};
+  \node[bar, fill=trained!45, anchor=west, minimum width=2.6cm*0.45] at (3.0,3) {B:\,\zh{对}};
+  \node[bar, fill=trained!45, anchor=west, minimum width=2.6cm*0.95] at (4.0,3) {A:\,\zh{下周\dots}};
+  \draw[arr] (1.95,4-0.3) -- (2.0,3+0.3);
+  \draw[arr] (2.95,4-0.3) -- (3.0,3+0.3);
+  % voice prompts: A has solo speech early; B only after its turn (fallback before that)
+  \node[bar, fill=spkc!35, anchor=west, minimum width=2.6cm*1.0] at (1.04,2) {A: solo speech heard};
+  \node[bar, fill=spkc!15, anchor=west, minimum width=2.6cm*0.7] at (3.0,2) {B: fallback};
+  % talker: synthesis then playback, per-speaker channels
+  \node[bar, fill=frozen!30, anchor=west, minimum width=2.6cm*0.25] at (2.9,1) {};
+  \node[bar, fill=frozen!60, anchor=west, minimum width=2.6cm*1.1] at (3.15,1) {play A};
+  \node[bar, fill=frozen!30, anchor=west, minimum width=2.6cm*0.12] at (3.95,1) {};
+  \node[bar, fill=frozen!60, anchor=west, minimum width=2.6cm*0.35] at (4.07,1) {play B};
+  \draw[arr] (2.9,3-0.3) -- (2.95,1+0.3);
+  \node[anchor=west, font=\scriptsize, align=left] at (4.45,1) {one channel per speaker:\\B is not queued behind A};
+\end{tikzpicture}}
+\caption{One online window, 0--5\,s, to scale except for the text. Audio arrives continuously; a read at $t_r$ (every
+1\,s) re-encodes the audio prefix $x_{\le t_r}$ from scratch, reads diarizer frames up to $t_r-\lambda$ (later frames are
+zero), and decodes until $\wait$; with batch 1 on the two-card Thinker a read takes about 1\,s, so its text is committed
+at about $t_r+1$\,s (the measured median, Appendix~\ref{app:online}). Nothing is committed before the window's opening is
+known ($\lambda$ after its first active frame). The Talker speaks a block once it is committed and the speaker has a voice
+prompt (its solo frames heard before the first commit, Eq.~\ref{eq:alone}; else a fallback); synthesis of the next block runs
+while the previous one plays. With one channel for all speakers, B's ``yes'' would wait until A's block ends.}
+\label{fig:timeline}
+\end{figure*}

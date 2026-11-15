@@ -1,0 +1,752 @@
+{
+ "count": {
+  "en2zh:O2": {
+   "multi_windows": 831,
+   "exact": 0.728,
+   "under": 0.2587,
+   "over": 0.0132,
+   "wrong_speakers": 0.0229,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 190,
+     "under": 0.2211,
+     "least_speaker_missing": 0.1842
+    },
+    "1-2": {
+     "windows": 199,
+     "under": 0.191,
+     "least_speaker_missing": 0.1457
+    },
+    "gt2": {
+     "windows": 156,
+     "under": 0.109,
+     "least_speaker_missing": 0.0641
+    },
+    "le0.5": {
+     "windows": 286,
+     "under": 0.4126,
+     "least_speaker_missing": 0.3531
+    },
+    "not_overlapped": {
+     "windows": 9,
+     "under": 0.5556,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 822,
+     "under": 0.2555,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "en2zh:C-ft2": {
+   "multi_windows": 831,
+   "exact": 0.787,
+   "under": 0.1492,
+   "over": 0.0638,
+   "wrong_speakers": 0.0241,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 190,
+     "under": 0.1211,
+     "least_speaker_missing": 0.1053
+    },
+    "1-2": {
+     "windows": 199,
+     "under": 0.0603,
+     "least_speaker_missing": 0.0402
+    },
+    "gt2": {
+     "windows": 156,
+     "under": 0.0513,
+     "least_speaker_missing": 0.0385
+    },
+    "le0.5": {
+     "windows": 286,
+     "under": 0.2832,
+     "least_speaker_missing": 0.2587
+    },
+    "not_overlapped": {
+     "windows": 9,
+     "under": 0.2222,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 822,
+     "under": 0.1484,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "en2zh:O2-nosd": {
+   "multi_windows": 831,
+   "exact": 0.5764,
+   "under": 0.4116,
+   "over": 0.012,
+   "wrong_speakers": 0.4308,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 190,
+     "under": 0.4053,
+     "least_speaker_missing": 0.2579
+    },
+    "1-2": {
+     "windows": 199,
+     "under": 0.3518,
+     "least_speaker_missing": 0.206
+    },
+    "gt2": {
+     "windows": 156,
+     "under": 0.2244,
+     "least_speaker_missing": 0.1538
+    },
+    "le0.5": {
+     "windows": 286,
+     "under": 0.5594,
+     "least_speaker_missing": 0.3706
+    },
+    "not_overlapped": {
+     "windows": 9,
+     "under": 0.6667,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 822,
+     "under": 0.4088,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "en2zh:S2dl_d1": {
+   "multi_windows": 831,
+   "exact": 0.7702,
+   "under": 0.2106,
+   "over": 0.0193,
+   "wrong_speakers": 0.065,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 190,
+     "under": 0.1789,
+     "least_speaker_missing": 0.1579
+    },
+    "1-2": {
+     "windows": 199,
+     "under": 0.1407,
+     "least_speaker_missing": 0.0854
+    },
+    "gt2": {
+     "windows": 156,
+     "under": 0.0641,
+     "least_speaker_missing": 0.0513
+    },
+    "le0.5": {
+     "windows": 286,
+     "under": 0.3601,
+     "least_speaker_missing": 0.3182
+    },
+    "not_overlapped": {
+     "windows": 9,
+     "under": 0.5556,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 822,
+     "under": 0.2068,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "en2zh:O2_LA2_d1": {
+   "multi_windows": 831,
+   "exact": 0.6811,
+   "under": 0.296,
+   "over": 0.0229,
+   "wrong_speakers": 0.0397,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 190,
+     "under": 0.3053,
+     "least_speaker_missing": 0.2474
+    },
+    "1-2": {
+     "windows": 199,
+     "under": 0.1658,
+     "least_speaker_missing": 0.1106
+    },
+    "gt2": {
+     "windows": 156,
+     "under": 0.109,
+     "least_speaker_missing": 0.0833
+    },
+    "le0.5": {
+     "windows": 286,
+     "under": 0.4825,
+     "least_speaker_missing": 0.4161
+    },
+    "not_overlapped": {
+     "windows": 9,
+     "under": 0.5556,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 822,
+     "under": 0.2932,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "zh2en:O2": {
+   "multi_windows": 1211,
+   "exact": 0.777,
+   "under": 0.1817,
+   "over": 0.0413,
+   "wrong_speakers": 0.0842,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 323,
+     "under": 0.2012,
+     "least_speaker_missing": 0.1548
+    },
+    "1-2": {
+     "windows": 308,
+     "under": 0.1104,
+     "least_speaker_missing": 0.0844
+    },
+    "gt2": {
+     "windows": 231,
+     "under": 0.0736,
+     "least_speaker_missing": 0.0346
+    },
+    "le0.5": {
+     "windows": 349,
+     "under": 0.298,
+     "least_speaker_missing": 0.2321
+    },
+    "not_overlapped": {
+     "windows": 88,
+     "under": 0.1477,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1123,
+     "under": 0.1843,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "zh2en:C-ft2": {
+   "multi_windows": 1211,
+   "exact": 0.7424,
+   "under": 0.1148,
+   "over": 0.1429,
+   "wrong_speakers": 0.0702,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 323,
+     "under": 0.0991,
+     "least_speaker_missing": 0.0619
+    },
+    "1-2": {
+     "windows": 308,
+     "under": 0.0552,
+     "least_speaker_missing": 0.0422
+    },
+    "gt2": {
+     "windows": 231,
+     "under": 0.039,
+     "least_speaker_missing": 0.0173
+    },
+    "le0.5": {
+     "windows": 349,
+     "under": 0.2321,
+     "least_speaker_missing": 0.1862
+    },
+    "not_overlapped": {
+     "windows": 88,
+     "under": 0.1477,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1123,
+     "under": 0.1122,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "zh2en:O2-nosd": {
+   "multi_windows": 1211,
+   "exact": 0.5962,
+   "under": 0.3889,
+   "over": 0.0149,
+   "wrong_speakers": 0.4608,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 323,
+     "under": 0.4303,
+     "least_speaker_missing": 0.2539
+    },
+    "1-2": {
+     "windows": 308,
+     "under": 0.3149,
+     "least_speaker_missing": 0.1591
+    },
+    "gt2": {
+     "windows": 231,
+     "under": 0.2814,
+     "least_speaker_missing": 0.1342
+    },
+    "le0.5": {
+     "windows": 349,
+     "under": 0.4871,
+     "least_speaker_missing": 0.2865
+    },
+    "not_overlapped": {
+     "windows": 88,
+     "under": 0.4659,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1123,
+     "under": 0.3829,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "zh2en:S2dl_d1": {
+   "multi_windows": 1211,
+   "exact": 0.8233,
+   "under": 0.1453,
+   "over": 0.0314,
+   "wrong_speakers": 0.0991,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 323,
+     "under": 0.1734,
+     "least_speaker_missing": 0.1238
+    },
+    "1-2": {
+     "windows": 308,
+     "under": 0.0617,
+     "least_speaker_missing": 0.0292
+    },
+    "gt2": {
+     "windows": 231,
+     "under": 0.0606,
+     "least_speaker_missing": 0.039
+    },
+    "le0.5": {
+     "windows": 349,
+     "under": 0.2493,
+     "least_speaker_missing": 0.1691
+    },
+    "not_overlapped": {
+     "windows": 88,
+     "under": 0.1932,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1123,
+     "under": 0.1416,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "zh2en:O2_LA2_d1": {
+   "multi_windows": 1211,
+   "exact": 0.7556,
+   "under": 0.1982,
+   "over": 0.0462,
+   "wrong_speakers": 0.0801,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 323,
+     "under": 0.2167,
+     "least_speaker_missing": 0.161
+    },
+    "1-2": {
+     "windows": 308,
+     "under": 0.1006,
+     "least_speaker_missing": 0.0747
+    },
+    "gt2": {
+     "windows": 231,
+     "under": 0.0433,
+     "least_speaker_missing": 0.026
+    },
+    "le0.5": {
+     "windows": 349,
+     "under": 0.3696,
+     "least_speaker_missing": 0.2951
+    },
+    "not_overlapped": {
+     "windows": 88,
+     "under": 0.2841,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1123,
+     "under": 0.1915,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "ali:O2": {
+   "multi_windows": 1418,
+   "exact": 0.8322,
+   "under": 0.141,
+   "over": 0.0268,
+   "wrong_speakers": 0.0099,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 332,
+     "under": 0.1627,
+     "least_speaker_missing": 0.1265
+    },
+    "1-2": {
+     "windows": 398,
+     "under": 0.0854,
+     "least_speaker_missing": 0.0704
+    },
+    "gt2": {
+     "windows": 470,
+     "under": 0.0681,
+     "least_speaker_missing": 0.0426
+    },
+    "le0.5": {
+     "windows": 218,
+     "under": 0.367,
+     "least_speaker_missing": 0.3532
+    },
+    "not_overlapped": {
+     "windows": 12,
+     "under": 0.1667,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1406,
+     "under": 0.1408,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "ali:C-ft2": {
+   "multi_windows": 1418,
+   "exact": 0.8801,
+   "under": 0.0508,
+   "over": 0.0691,
+   "wrong_speakers": 0.0063,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 332,
+     "under": 0.0392,
+     "least_speaker_missing": 0.0331
+    },
+    "1-2": {
+     "windows": 398,
+     "under": 0.0126,
+     "least_speaker_missing": 0.0101
+    },
+    "gt2": {
+     "windows": 470,
+     "under": 0.0149,
+     "least_speaker_missing": 0.0085
+    },
+    "le0.5": {
+     "windows": 218,
+     "under": 0.2156,
+     "least_speaker_missing": 0.2064
+    },
+    "not_overlapped": {
+     "windows": 12,
+     "under": 0.0,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1406,
+     "under": 0.0512,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "ali:S2dl_d1": {
+   "multi_windows": 1418,
+   "exact": 0.8357,
+   "under": 0.1283,
+   "over": 0.036,
+   "wrong_speakers": 0.0317,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 332,
+     "under": 0.1657,
+     "least_speaker_missing": 0.1416
+    },
+    "1-2": {
+     "windows": 398,
+     "under": 0.0829,
+     "least_speaker_missing": 0.0528
+    },
+    "gt2": {
+     "windows": 470,
+     "under": 0.0319,
+     "least_speaker_missing": 0.0255
+    },
+    "le0.5": {
+     "windows": 218,
+     "under": 0.3624,
+     "least_speaker_missing": 0.3211
+    },
+    "not_overlapped": {
+     "windows": 12,
+     "under": 0.0833,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1406,
+     "under": 0.1287,
+     "least_speaker_missing": 0.0
+    }
+   }
+  },
+  "ali:O2_LA2_d1": {
+   "multi_windows": 1418,
+   "exact": 0.8032,
+   "under": 0.1749,
+   "over": 0.0219,
+   "wrong_speakers": 0.0247,
+   "under_by_least_speaker": {
+    "0.5-1": {
+     "windows": 332,
+     "under": 0.25,
+     "least_speaker_missing": 0.2108
+    },
+    "1-2": {
+     "windows": 398,
+     "under": 0.103,
+     "least_speaker_missing": 0.0804
+    },
+    "gt2": {
+     "windows": 470,
+     "under": 0.0574,
+     "least_speaker_missing": 0.0404
+    },
+    "le0.5": {
+     "windows": 218,
+     "under": 0.445,
+     "least_speaker_missing": 0.4128
+    },
+    "not_overlapped": {
+     "windows": 12,
+     "under": 0.1667,
+     "least_speaker_missing": 0.0
+    },
+    "overlapped": {
+     "windows": 1406,
+     "under": 0.175,
+     "least_speaker_missing": 0.0
+    }
+   }
+  }
+ },
+ "funnel": {
+  "en2zh": {
+   "meetings": 16,
+   "meeting_hours_upto_last_window": 8.89,
+   "window_audio_hours": 3.92,
+   "windows": 2375,
+   "speech_hours": 8.54,
+   "kept_speech": 0.4561,
+   "overlap_hours": 4.91,
+   "kept_overlap": 0.3556,
+   "short_hours": 0.57,
+   "kept_short": 0.5125
+  },
+  "zh2en": {
+   "meetings": 16,
+   "meeting_hours_upto_last_window": 8.89,
+   "window_audio_hours": 5.81,
+   "windows": 3317,
+   "speech_hours": 6.02,
+   "kept_speech": 0.8803,
+   "overlap_hours": 2.92,
+   "kept_overlap": 0.8006,
+   "short_hours": 0.62,
+   "kept_short": 0.862
+  },
+  "ali": {
+   "meetings": 20,
+   "meeting_hours_upto_last_window": 10.74,
+   "window_audio_hours": 7.49,
+   "windows": 4243,
+   "speech_hours": 12.16,
+   "kept_speech": 0.6302,
+   "overlap_hours": 8.03,
+   "kept_overlap": 0.4503,
+   "short_hours": 0.54,
+   "kept_short": 0.6509
+  }
+ },
+ "zerolen": {
+  "en2zh:O2": {
+   "segments": 4955,
+   "zero_len": 0.0264,
+   "zero_len_at_20s_end": 0.0229,
+   "zero_len_short_ref_le1s": 0.1374,
+   "before": {
+    "cpBLEU_session": 42.81,
+    "cpBLEU_window": 42.97,
+    "count_exact": 0.8952,
+    "DER": 13.99
+   },
+   "after_fix": {
+    "cpBLEU_session": 42.81,
+    "cpBLEU_window": 42.97,
+    "count_exact": 0.8952,
+    "DER": 13.98
+   }
+  },
+  "en2zh:S2dl_d1": {
+   "segments": 9807,
+   "zero_len": 0.0434,
+   "zero_len_at_20s_end": 0.007,
+   "zero_len_short_ref_le1s": 0.0681,
+   "before": {
+    "cpBLEU_session": 42.63,
+    "cpBLEU_window": 43.06,
+    "count_exact": 0.9057,
+    "DER": 11.04
+   },
+   "after_fix": {
+    "cpBLEU_session": 42.63,
+    "cpBLEU_window": 43.06,
+    "count_exact": 0.9057,
+    "DER": 11.02
+   }
+  },
+  "en2zh:C-ft2": {
+   "segments": 6922,
+   "zero_len": 0.0,
+   "zero_len_at_20s_end": 0.0,
+   "zero_len_short_ref_le1s": 0.0,
+   "before": {
+    "cpBLEU_session": 36.29,
+    "cpBLEU_window": 36.36,
+    "count_exact": 0.8825,
+    "DER": 25.8
+   },
+   "after_fix": {
+    "cpBLEU_session": 36.29,
+    "cpBLEU_window": 36.36,
+    "count_exact": 0.8825,
+    "DER": 25.8
+   }
+  },
+  "zh2en:O2": {
+   "segments": 8542,
+   "zero_len": 0.0208,
+   "zero_len_at_20s_end": 0.0393,
+   "zero_len_short_ref_le1s": 0.2247,
+   "before": {
+    "cpBLEU_session": 25.86,
+    "cpBLEU_window": 27.06,
+    "count_exact": 0.9126,
+    "DER": 16.02
+   },
+   "after_fix": {
+    "cpBLEU_session": 25.86,
+    "cpBLEU_window": 27.06,
+    "count_exact": 0.9126,
+    "DER": 16.01
+   }
+  },
+  "zh2en:S2dl_d1": {
+   "segments": 11760,
+   "zero_len": 0.0497,
+   "zero_len_at_20s_end": 0.1214,
+   "zero_len_short_ref_le1s": 0.0342,
+   "before": {
+    "cpBLEU_session": 24.3,
+    "cpBLEU_window": 25.81,
+    "count_exact": 0.9325,
+    "DER": 12.78
+   },
+   "after_fix": {
+    "cpBLEU_session": 24.3,
+    "cpBLEU_window": 25.81,
+    "count_exact": 0.9325,
+    "DER": 12.78
+   }
+  },
+  "zh2en:C-ft2": {
+   "segments": 8071,
+   "zero_len": 0.0,
+   "zero_len_at_20s_end": 0.0,
+   "zero_len_short_ref_le1s": 0.0,
+   "before": {
+    "cpBLEU_session": 22.36,
+    "cpBLEU_window": 23.22,
+    "count_exact": 0.8357,
+    "DER": 15.5
+   },
+   "after_fix": {
+    "cpBLEU_session": 22.36,
+    "cpBLEU_window": 23.22,
+    "count_exact": 0.8357,
+    "DER": 15.5
+   }
+  },
+  "ali:O2": {
+   "segments": 8988,
+   "zero_len": 0.02,
+   "zero_len_at_20s_end": 0.0056,
+   "zero_len_short_ref_le1s": 0.0278,
+   "before": {
+    "cpBLEU_session": 14.9,
+    "cpBLEU_window": 14.98,
+    "count_exact": 0.9194,
+    "DER": 14.73
+   },
+   "after_fix": {
+    "cpBLEU_session": 14.9,
+    "cpBLEU_window": 14.98,
+    "count_exact": 0.9194,
+    "DER": 14.73
+   }
+  },
+  "ali:S2dl_d1": {
+   "segments": 18563,
+   "zero_len": 0.0732,
+   "zero_len_at_20s_end": 0.0884,
+   "zero_len_short_ref_le1s": 0.0133,
+   "before": {
+    "cpBLEU_session": 12.97,
+    "cpBLEU_window": 13.09,
+    "count_exact": 0.9149,
+    "DER": 10.81
+   },
+   "after_fix": {
+    "cpBLEU_session": 12.97,
+    "cpBLEU_window": 13.09,
+    "count_exact": 0.9149,
+    "DER": 10.8
+   }
+  },
+  "ali:C-ft2": {
+   "segments": 10995,
+   "zero_len": 0.0,
+   "zero_len_at_20s_end": 0.0,
+   "zero_len_short_ref_le1s": 0.0,
+   "before": {
+    "cpBLEU_session": 15.25,
+    "cpBLEU_window": 15.26,
+    "count_exact": 0.9255,
+    "DER": 13.1
+   },
+   "after_fix": {
+    "cpBLEU_session": 15.25,
+    "cpBLEU_window": 15.26,
+    "count_exact": 0.9255,
+    "DER": 13.1
+   }
+  }
+ }
+}

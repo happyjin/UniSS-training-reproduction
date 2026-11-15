@@ -1,0 +1,35 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Simultaneous speech translation.} Wait-$k$~\citep{ma2019stacl} writes after a fixed delay;
+LocalAgreement~\citep{liu2020low,polak2022cuni,machacek2023turning} commits the prefix two consecutive hypotheses agree
+on; learned policies emit a wait token~\citep{koshkin2024transllama} or read the decoder's attention to the
+audio~\citep{papi2023edatt,papi2024streamatt}. Latency is measured with SimulEval~\citep{ma2020simuleval} and LAAL~\citep{papi2022over};
+pre-segmented evaluation overstates deployability~\citep{papi2025real}. SimulS2ST systems
+keep one speaker's voice~\citep{zhang2024streamspeech,seamless2023,labiausse2025hibiki,cheng2025liveinterpret,he2026simuls2st,deng2025simuls2s}.
+
+\paragraph{Latent and learned timing.} Monotonic attention marginalises over write positions
+(MILk;~\citealp{arivazhagan2019milk}), also per attention head (MMA;~\citealp{ma2020mma}) and for streaming speech (EMMA,
+the policy of SeamlessStreaming;~\citealp{ma2023emma}); all add a latency loss, because likelihood alone prefers late
+writes. The drift of our write posterior (\S\ref{sec:res-drift}) is this known effect. The Hidden Markov Transformer
+treats the moment a target token starts as a hidden state~\citep{zhang2023hmt}, and Hibiki's contextual alignment places
+each target word after the source that makes it predictable under a text model~\citep{labiausse2025hibiki}, close in
+spirit to timing chunks by the model's own likelihood. Our write alignment differs in its state space, sets of written
+chunks of several speakers plus a speaker-order choice per read, with an exact partition function; its lattice can only
+delay, and we counter this with a decoding-time bias, since a training-time budget moved the write time less
+(Appendix~\ref{app:calib}). Posterior
+regularisation constrains expectations under a latent posterior by a KL projection~\citep{ganchev2010posterior}; we use
+it to bound the delay at which synthesised words are heard. Automatic dubbing controls the length of the
+translation~\citep{lakew2022isometric}; our speech layer instead chooses among renderings of fixed text, and there the
+learned playback layer adds little over a rule-based rate with candidate selection (\S\ref{sec:res-v10}).
+
+\paragraph{Multi-speaker recognition and translation.} Serialised output training transcribes overlapping speakers
+in order~\citep{kanda2020sot,kanda2021saasr}, token-level serialisation does so in streaming~\citep{kanda2022tsot} and
+also for joint streaming recognition and translation~\citep{papi2023tsot}; streaming diarizers keep speaker order over
+long recordings~\citep{park2024sortformer,medennikov2025streaming}, LLMs can post-edit diarized
+transcripts~\citep{wang2024diarizationlm}, and diarization can condition a recogniser~\citep{polok2026dicow,huo2026tagspeech}
+or be interleaved with a speech LLM's audio tokens (G-STAR;~\citealp{peng2026gstar}), which we adopt. STAC-ST translates
+two-party calls offline with turn tokens~\citep{zuluaga2023stac}; DiariST~\citep{yang2024diarist} streams
+speaker-attributed translation with token-level serialisation; X-Translator~\citep{zhao2026xtranslator} binds each
+committed recognition span to the speaker with the largest temporal overlap. Voice-cloned translation lowers listeners'
+workload in online meetings~\citep{ma2026samevoice}.

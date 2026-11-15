@@ -1,0 +1,28 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{lllrrrl}
+\toprule
+Test & Set & Comparison (whole meetings, online) & $\Delta$ & 95\% interval & $p_\text{Holm}$ & \\
+\midrule
+E-pareto-en2zh & En$\rightarrow$Zh & \sys{}-Simul not dominated by LA2 / lag 1, 2, 3\,s / block 2\,s (quality, text lag) & -- & -- & -- & not run \\
+E-ovcap1-en2zh & En$\rightarrow$Zh & tcpBLEU-ov, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-ovcap2-en2zh & En$\rightarrow$Zh & concurrent recall, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-pareto-zh2en & Zh$\rightarrow$En & \sys{}-Simul not dominated by LA2 / lag 1, 2, 3\,s / block 2\,s (quality, text lag) & -- & -- & -- & not run \\
+E-ovcap1-zh2en & Zh$\rightarrow$En & tcpBLEU-ov, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-ovcap2-zh2en & Zh$\rightarrow$En & concurrent recall, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-pareto-ali & AliMeeting & \sys{}-Simul not dominated by LA2 / lag 1, 2, 3\,s / block 2\,s (quality, text lag) & -- & -- & -- & not run \\
+E-ovcap1-ali & AliMeeting & tcpBLEU-ov, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-ovcap2-ali & AliMeeting & concurrent recall, \sys{}-Simul $>$ D1 and D2 & -- & -- & -- & not run \\
+E-far & AMI SDM & SDM far field: tcpBLEU-ov, \sys{}-Simul $>$ causal relabel & -- & -- & -- & not run \\
+E-ali-hum & AliMeeting & AliMeeting, human references: tcpBLEU-ov, \sys{}-Simul $>$ causal relabel & 0.61 & [-3.74, 4.18] & 0.387 & tie / fails \\
+\bottomrule
+\end{tabular}}
+\caption{The eleven confirmatory tests of the per-direction streaming study (fixed before its decoding), Holm-corrected together; ten were not run. A test
+holds when $p_\text{Holm}<0.05$ and, for differences, the interval excludes 0. E-pareto: for every competitor, \sys{}-Simul
+must be better on quality or on text lag (two-dimension Bonferroni); the set's $p$ is the largest over competitors.
+LA2 and lag 2\,s: all meetings; lag 1 and 3\,s, block 2\,s and D2: a meeting subset (8 AMI / 10 AliMeeting
+meetings; restricted for compute), with \sys{}-Simul scored on the same meetings.
+E-ovcap: the larger $p$ of the comparisons with D1 and D2; $\Delta$ and the interval are the less favourable of the two.}
+\label{tab:reg9}
+\end{table*}

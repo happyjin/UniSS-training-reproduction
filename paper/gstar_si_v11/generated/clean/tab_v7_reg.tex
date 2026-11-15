@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrl}
+\toprule
+Test & Comparison & Mtgs & $\Delta$ & 95\% CI & + decoder noise & $p_\text{perm}$ & $p_\text{Holm}$ & verdict \\
+\midrule
+E-on1 & En$\rightarrow$Zh whole meetings, \sys{}-Simul vs.\ \sys{} + LA2 (tcpBLEU) & 16 & 5.83 & [3.09, 8.48] & [3.17, 8.48] & {<}0.001 & {<}0.001 & a better \\
+E-on2 & Zh$\rightarrow$En whole meetings, same & 16 & 0.59 & [$-$1.00, 1.15] & [$-$0.56, 1.75] & 0.079 & 0.238 & tie \\
+E-on3 & AliMeeting whole meetings, same & 20 & 0.38 & [$-$1.55, 2.19] & [$-$1.52, 2.28] & 0.711 & 0.951 & tie \\
+E-cas1 & En$\rightarrow$Zh, \sys{} vs.\ turn-trained cascade (cpBLEU$_\text{sess}$) & 16 & 7.54 & [4.86, 10.47] & [4.70, 10.38] & {<}0.001 & {<}0.001 & a better \\
+E-cas2 & Zh$\rightarrow$En, same & 16 & 2.17 & [1.65, 2.81] & [1.44, 2.90] & {<}0.001 & {<}0.001 & a better \\
+E-cas3 & AliMeeting, same & 20 & 1.85 & [1.14, 2.63] & [1.03, 2.67] & {<}0.001 & 0.001 & a better \\
+E-seed-en & En$\rightarrow$Zh, \sys{}-Simul (seed mean) vs.\ \sys{} + LA2 & 16 & 11.44 & [4.45, 17.22] & [5.09, 17.79] & {<}0.001 & 0.003 & a better \\
+E-seed-zh & Zh$\rightarrow$En, same & 16 & $-$1.27 & [$-$4.75, 0.73] & [$-$4.22, 1.69] & 0.475 & 0.951 & tie \\
+\bottomrule
+\end{tabular}}
+\caption{The eight confirmatory tests of the offline and per-direction streaming study (analysis plan fixed before decoding). $\Delta$: first minus second system; 95\% CI: cluster bootstrap over meetings; + decoder noise: the same interval widened by the run-to-run noise of decoding (Appendix~\ref{app:stats7}); $p_\text{perm}$: exact two-sided permutation test over meeting sign flips; $p_\text{Holm}$: Holm-adjusted over the eight. A difference is called real only if $p_\text{Holm}<0.05$ and the widened interval excludes 0; otherwise ``tie''.}
+\label{tab:reg7}
+\end{table*}

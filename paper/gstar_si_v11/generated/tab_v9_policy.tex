@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrc}
+\toprule
+Set & Commit policy (same model) & all & overlap & CR & lag p50 & decodes to end \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul (learned) & 40.09 & 35.71 & 82.3 & 1.87 & no \\
+ & LocalAgreement-2 & 39.31 & 32.91 & 75.5 & 2.60 & yes \\
+Zh$\rightarrow$En & \sys{}-Simul (learned) & 24.53 & 17.73 & 80.2 & 1.94 & no \\
+ & LocalAgreement-2 & 23.96 & 17.89 & 79.4 & 2.02 & yes \\
+AliMeeting & \sys{}-Simul (learned) & 14.14 & 11.21 & 80.2 & 1.62 & no \\
+ & LocalAgreement-2 & 14.78 & 9.33 & 77.1 & 3.23 & yes \\
+\bottomrule
+\end{tabular}}
+\caption{Commit policies on the same prefix-trained model, whole meetings online: tcpBLEU, concurrent recall (\%) and the
+median text completion lag (s, commit of a unit's last segment minus the unit's end). AliMeeting: human references.
+Policies that decode to the end at every read cost about twice a learned-policy read (\S\ref{sec:res-latency}).}
+\label{tab:policy9}
+\end{table}

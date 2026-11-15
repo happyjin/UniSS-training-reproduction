@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lccccc}
+\toprule
+System & LAAL & First & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & RTF \\
+\midrule
+\sys{}-Simul, $\Delta{=}0.5$\,s & 0.49 & 0.25 & 24.80 & 26.08 & 0.50 \\
+\sys{}-Simul, $\Delta{=}1$\,s & 2.39 & 2.20 & 39.81 & 40.04 & 0.40 \\
+\sys{}-Simul, $\Delta{=}2$\,s & 2.64 & 2.42 & 39.35 & 39.60 & 0.30 \\
+\sys{} (offline) + LA2, $\Delta{=}1$\,s & 2.37 & 2.21 & 29.49 & 31.34 & 1.04 \\
+\sys{} (offline) + LA2, $\Delta{=}2$\,s & 3.33 & 3.01 & 36.46 & 38.30 & 0.65 \\
+\addlinespace
+\sys{} (offline) & -- & -- & 42.29 & 43.70 & 0.22 \\
+\sys{}-Simul decoded offline & 5.95 & 5.69 & 40.38 & 40.84 & -- \\
+\bottomrule
+\end{tabular}}
+\caption{Latency and quality. LAAL and \emph{First} (delay of the first commit after the first source utterance
+starts) in seconds. RTF: GPU-seconds of decoding per second of audio (batches of 16 windows on one H200). \sys{}-Simul was
+trained with $\Delta=1$\,s; 0.5\,s is outside its training read times. The last row decodes \sys{}-Simul with a single
+read at the end of each window.}
+\label{tab:latency}
+\end{table}

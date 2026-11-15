@@ -1,0 +1,6292 @@
+{
+ "score": {
+  "en2zh": {
+   "B-off": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 12.82,
+     "cpchrF_session": 12.5,
+     "cpBLEU_window": 26.91,
+     "BLEU_speaker_blind": 29.01,
+     "count_exact": 0.6501,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 67.57,
+      "miss": 10.1,
+      "fa": 10.71,
+      "conf": 46.77
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 16.64,
+     "cpchrF_session": 15.73,
+     "cpBLEU_window": 35.72,
+     "BLEU_speaker_blind": 35.72,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 67.98,
+      "miss": 0.0,
+      "fa": 16.09,
+      "conf": 51.88
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 9.97,
+     "cpchrF_session": 10.18,
+     "cpBLEU_window": 20.42,
+     "BLEU_speaker_blind": 23.87,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 65.43,
+      "miss": 18.06,
+      "fa": 6.46,
+      "conf": 40.91
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 9.99,
+     "cpchrF_session": 10.19,
+     "cpBLEU_window": 20.43,
+     "BLEU_speaker_blind": 23.89,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 65.36,
+      "miss": 18.09,
+      "fa": 6.4,
+      "conf": 40.88
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 14.7,
+     "cpchrF_session": 14.14,
+     "cpBLEU_window": 31.77,
+     "BLEU_speaker_blind": 32.92,
+     "count_exact": 0.793,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 66.22,
+      "miss": 4.37,
+      "fa": 11.81,
+      "conf": 50.04
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "C-van": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 29.47,
+     "cpchrF_session": 25.07,
+     "cpBLEU_window": 29.52,
+     "BLEU_speaker_blind": 29.16,
+     "count_exact": 0.8821,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 25.75,
+      "miss": 22.62,
+      "fa": 2.29,
+      "conf": 0.84
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 33.51,
+     "cpchrF_session": 28.22,
+     "cpBLEU_window": 33.63,
+     "BLEU_speaker_blind": 33.42,
+     "count_exact": 0.9339,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 22.15,
+      "miss": 18.93,
+      "fa": 2.7,
+      "conf": 0.52
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 26.48,
+     "cpchrF_session": 22.72,
+     "cpBLEU_window": 26.48,
+     "BLEU_speaker_blind": 26.13,
+     "count_exact": 0.7858,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.5,
+      "miss": 25.53,
+      "fa": 1.96,
+      "conf": 1.02
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 26.5,
+     "cpchrF_session": 22.75,
+     "cpBLEU_window": 26.5,
+     "BLEU_speaker_blind": 26.15,
+     "count_exact": 0.7864,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.47,
+      "miss": 25.54,
+      "fa": 1.92,
+      "conf": 1.01
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 32.32,
+     "cpchrF_session": 27.49,
+     "cpBLEU_window": 32.39,
+     "BLEU_speaker_blind": 32.05,
+     "count_exact": 0.9078,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 21.51,
+      "miss": 18.74,
+      "fa": 2.18,
+      "conf": 0.58
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "C-ft2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 36.29,
+     "cpchrF_session": 33.9,
+     "cpBLEU_window": 36.36,
+     "BLEU_speaker_blind": 37.01,
+     "count_exact": 0.8825,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 25.8,
+      "miss": 22.67,
+      "fa": 2.28,
+      "conf": 0.84
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 43.21,
+     "cpchrF_session": 37.21,
+     "cpBLEU_window": 43.27,
+     "BLEU_speaker_blind": 43.04,
+     "count_exact": 0.9339,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 22.15,
+      "miss": 18.93,
+      "fa": 2.7,
+      "conf": 0.52
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 31.97,
+     "cpchrF_session": 31.54,
+     "cpBLEU_window": 32.05,
+     "BLEU_speaker_blind": 33.38,
+     "count_exact": 0.787,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.58,
+      "miss": 25.61,
+      "fa": 1.95,
+      "conf": 1.02
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 31.99,
+     "cpchrF_session": 31.55,
+     "cpBLEU_window": 32.07,
+     "BLEU_speaker_blind": 33.39,
+     "count_exact": 0.7876,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.56,
+      "miss": 25.63,
+      "fa": 1.92,
+      "conf": 1.01
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 40.15,
+     "cpchrF_session": 36.15,
+     "cpBLEU_window": 40.28,
+     "BLEU_speaker_blind": 40.28,
+     "count_exact": 0.9085,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 21.56,
+      "miss": 18.79,
+      "fa": 2.18,
+      "conf": 0.59
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "O2-nosd": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 21.17,
+     "cpchrF_session": 19.65,
+     "cpBLEU_window": 42.32,
+     "BLEU_speaker_blind": 43.4,
+     "count_exact": 0.8476,
+     "empty": 0.0013,
+     "DER_output": {
+      "DER": 54.49,
+      "miss": 8.57,
+      "fa": 2.48,
+      "conf": 43.45
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 25.04,
+     "cpchrF_session": 23.68,
+     "cpBLEU_window": 48.11,
+     "BLEU_speaker_blind": 48.08,
+     "count_exact": 0.9935,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 48.13,
+      "miss": 2.97,
+      "fa": 1.37,
+      "conf": 43.79
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 18.28,
+     "cpchrF_session": 16.78,
+     "cpBLEU_window": 38.04,
+     "BLEU_speaker_blind": 40.02,
+     "count_exact": 0.5764,
+     "empty": 0.0036,
+     "DER_output": {
+      "DER": 57.7,
+      "miss": 12.98,
+      "fa": 3.36,
+      "conf": 41.37
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 18.28,
+     "cpchrF_session": 16.78,
+     "cpBLEU_window": 38.07,
+     "BLEU_speaker_blind": 40.05,
+     "count_exact": 0.5777,
+     "empty": 0.0036,
+     "DER_output": {
+      "DER": 57.71,
+      "miss": 12.98,
+      "fa": 3.35,
+      "conf": 41.38
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 23.21,
+     "cpchrF_session": 21.71,
+     "cpBLEU_window": 45.74,
+     "BLEU_speaker_blind": 46.19,
+     "count_exact": 0.9257,
+     "empty": 0.0007,
+     "DER_output": {
+      "DER": 50.13,
+      "miss": 4.92,
+      "fa": 1.69,
+      "conf": 43.52
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "O2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.81,
+     "cpchrF_session": 36.71,
+     "cpBLEU_window": 42.97,
+     "BLEU_speaker_blind": 43.33,
+     "count_exact": 0.8952,
+     "empty": 0.0038,
+     "DER_output": {
+      "DER": 13.99,
+      "miss": 9.7,
+      "fa": 2.56,
+      "conf": 1.73
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.42,
+     "cpchrF_session": 40.6,
+     "cpBLEU_window": 47.55,
+     "BLEU_speaker_blind": 47.53,
+     "count_exact": 0.9851,
+     "empty": 0.0032,
+     "DER_output": {
+      "DER": 6.93,
+      "miss": 4.88,
+      "fa": 1.4,
+      "conf": 0.65
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 39.39,
+     "cpchrF_session": 33.83,
+     "cpBLEU_window": 39.58,
+     "BLEU_speaker_blind": 40.34,
+     "count_exact": 0.728,
+     "empty": 0.0048,
+     "DER_output": {
+      "DER": 19.55,
+      "miss": 13.51,
+      "fa": 3.47,
+      "conf": 2.58
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 39.43,
+     "cpchrF_session": 33.86,
+     "cpBLEU_window": 39.62,
+     "BLEU_speaker_blind": 40.37,
+     "count_exact": 0.7306,
+     "empty": 0.0049,
+     "DER_output": {
+      "DER": 19.53,
+      "miss": 13.5,
+      "fa": 3.47,
+      "conf": 2.56
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 45.57,
+     "cpchrF_session": 39.09,
+     "cpBLEU_window": 45.69,
+     "BLEU_speaker_blind": 45.71,
+     "count_exact": 0.9443,
+     "empty": 0.0041,
+     "DER_output": {
+      "DER": 9.19,
+      "miss": 6.49,
+      "fa": 1.89,
+      "conf": 0.8
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "O2-oracle": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.32,
+     "cpchrF_session": 36.27,
+     "cpBLEU_window": 42.58,
+     "BLEU_speaker_blind": 42.95,
+     "count_exact": 0.9221,
+     "empty": 0.0034,
+     "DER_output": {
+      "DER": 14.18,
+      "miss": 10.0,
+      "fa": 2.89,
+      "conf": 1.29
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     }
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.59,
+     "cpchrF_session": 40.73,
+     "cpBLEU_window": 47.61,
+     "BLEU_speaker_blind": 47.57,
+     "count_exact": 0.987,
+     "empty": 0.0019,
+     "DER_output": {
+      "DER": 6.16,
+      "miss": 4.51,
+      "fa": 1.54,
+      "conf": 0.11
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     }
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 38.4,
+     "cpchrF_session": 32.95,
+     "cpBLEU_window": 38.84,
+     "BLEU_speaker_blind": 39.65,
+     "count_exact": 0.8014,
+     "empty": 0.006,
+     "DER_output": {
+      "DER": 20.51,
+      "miss": 14.33,
+      "fa": 3.95,
+      "conf": 2.23
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     }
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 38.42,
+     "cpchrF_session": 32.97,
+     "cpBLEU_window": 38.87,
+     "BLEU_speaker_blind": 39.67,
+     "count_exact": 0.8034,
+     "empty": 0.0061,
+     "DER_output": {
+      "DER": 20.5,
+      "miss": 14.34,
+      "fa": 3.94,
+      "conf": 2.22
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     }
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 45.58,
+     "cpchrF_session": 39.07,
+     "cpBLEU_window": 45.75,
+     "BLEU_speaker_blind": 45.74,
+     "count_exact": 0.9567,
+     "empty": 0.0028,
+     "DER_output": {
+      "DER": 8.89,
+      "miss": 6.21,
+      "fa": 2.15,
+      "conf": 0.52
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     }
+    }
+   },
+   "B-LA2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 12.07,
+     "cpchrF_session": 11.86,
+     "cpBLEU_window": 25.05,
+     "BLEU_speaker_blind": 26.87,
+     "count_exact": 0.6501,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 101.45,
+      "miss": 99.83,
+      "fa": 1.53,
+      "conf": 0.09
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.333,
+     "first_commit_s": 1.855
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 16.02,
+     "cpchrF_session": 15.09,
+     "cpBLEU_window": 33.48,
+     "BLEU_speaker_blind": 33.48,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 102.2,
+      "miss": 99.8,
+      "fa": 2.29,
+      "conf": 0.11
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 1.954,
+     "first_commit_s": 1.692
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 9.08,
+     "cpchrF_session": 9.52,
+     "cpBLEU_window": 18.69,
+     "BLEU_speaker_blind": 21.65,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 100.85,
+      "miss": 99.86,
+      "fa": 0.92,
+      "conf": 0.07
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 3.036,
+     "first_commit_s": 2.158
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 9.09,
+     "cpchrF_session": 9.53,
+     "cpBLEU_window": 18.69,
+     "BLEU_speaker_blind": 21.66,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 100.85,
+      "miss": 99.86,
+      "fa": 0.91,
+      "conf": 0.07
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 3.044,
+     "first_commit_s": 2.159
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 14.07,
+     "cpchrF_session": 13.54,
+     "cpBLEU_window": 29.51,
+     "BLEU_speaker_blind": 30.56,
+     "count_exact": 0.793,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 101.59,
+      "miss": 99.81,
+      "fa": 1.67,
+      "conf": 0.11
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.242,
+     "first_commit_s": 1.863
+    }
+   },
+   "O2_LA2_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 31.64,
+     "cpchrF_session": 33.52,
+     "cpBLEU_window": 32.16,
+     "BLEU_speaker_blind": 32.74,
+     "count_exact": 0.8783,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.25,
+      "miss": 8.47,
+      "fa": 2.9,
+      "conf": 3.87
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.373,
+     "first_commit_s": 2.229
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 43.75,
+     "cpchrF_session": 39.08,
+     "cpBLEU_window": 44.74,
+     "BLEU_speaker_blind": 44.85,
+     "count_exact": 0.9845,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 8.41,
+      "miss": 3.5,
+      "fa": 1.83,
+      "conf": 3.08
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.023,
+     "first_commit_s": 1.953
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 25.42,
+     "cpchrF_session": 29.77,
+     "cpBLEU_window": 25.69,
+     "BLEU_speaker_blind": 26.68,
+     "count_exact": 0.6811,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.54,
+      "miss": 12.4,
+      "fa": 3.75,
+      "conf": 4.39
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 3.022,
+     "first_commit_s": 2.74
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 25.42,
+     "cpchrF_session": 29.79,
+     "cpBLEU_window": 25.69,
+     "BLEU_speaker_blind": 26.68,
+     "count_exact": 0.6833,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.51,
+      "miss": 12.39,
+      "fa": 3.74,
+      "conf": 4.38
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 3.027,
+     "first_commit_s": 2.745
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 40.32,
+     "cpchrF_session": 37.18,
+     "cpBLEU_window": 40.94,
+     "BLEU_speaker_blind": 41.22,
+     "count_exact": 0.9319,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.11,
+      "miss": 5.3,
+      "fa": 2.13,
+      "conf": 2.67
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.305,
+     "first_commit_s": 2.234
+    }
+   },
+   "O2_LA2_d2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 37.29,
+     "cpchrF_session": 35.33,
+     "cpBLEU_window": 37.85,
+     "BLEU_speaker_blind": 38.33,
+     "count_exact": 0.8821,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.58,
+      "miss": 8.39,
+      "fa": 2.87,
+      "conf": 3.33
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 3.31,
+     "first_commit_s": 2.975
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.15,
+     "cpchrF_session": 40.44,
+     "cpBLEU_window": 48.15,
+     "BLEU_speaker_blind": 48.13,
+     "count_exact": 0.987,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 8.01,
+      "miss": 3.57,
+      "fa": 1.8,
+      "conf": 2.64
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.753,
+     "first_commit_s": 2.547
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 31.32,
+     "cpchrF_session": 31.75,
+     "cpBLEU_window": 31.62,
+     "BLEU_speaker_blind": 32.58,
+     "count_exact": 0.6871,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 19.71,
+      "miss": 12.18,
+      "fa": 3.71,
+      "conf": 3.82
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 4.344,
+     "first_commit_s": 3.772
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 31.32,
+     "cpchrF_session": 31.76,
+     "cpBLEU_window": 31.62,
+     "BLEU_speaker_blind": 32.58,
+     "count_exact": 0.6893,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 19.68,
+      "miss": 12.17,
+      "fa": 3.7,
+      "conf": 3.81
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 4.359,
+     "first_commit_s": 3.786
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 44.04,
+     "cpchrF_session": 38.79,
+     "cpBLEU_window": 44.6,
+     "BLEU_speaker_blind": 44.7,
+     "count_exact": 0.9354,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 9.52,
+      "miss": 5.3,
+      "fa": 2.13,
+      "conf": 2.1
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 3.235,
+     "first_commit_s": 2.962
+    }
+   },
+   "S2dl_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.63,
+     "cpchrF_session": 36.81,
+     "cpBLEU_window": 43.06,
+     "BLEU_speaker_blind": 42.8,
+     "count_exact": 0.9057,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.04,
+      "miss": 6.48,
+      "fa": 2.28,
+      "conf": 2.27
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.323,
+     "first_commit_s": 2.186
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 45.79,
+     "cpchrF_session": 40.05,
+     "cpBLEU_window": 46.6,
+     "BLEU_speaker_blind": 46.54,
+     "count_exact": 0.9786,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.42,
+      "miss": 2.11,
+      "fa": 1.23,
+      "conf": 2.08
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.212,
+     "first_commit_s": 2.061
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 40.21,
+     "cpchrF_session": 34.41,
+     "cpBLEU_window": 40.36,
+     "BLEU_speaker_blind": 40.07,
+     "count_exact": 0.7702,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.38,
+      "miss": 9.93,
+      "fa": 3.11,
+      "conf": 2.34
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 2.528,
+     "first_commit_s": 2.418
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 40.23,
+     "cpchrF_session": 34.43,
+     "cpBLEU_window": 40.39,
+     "BLEU_speaker_blind": 40.09,
+     "count_exact": 0.7731,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.35,
+      "miss": 9.94,
+      "fa": 3.08,
+      "conf": 2.32
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 2.532,
+     "first_commit_s": 2.424
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 44.51,
+     "cpchrF_session": 38.67,
+     "cpBLEU_window": 44.97,
+     "BLEU_speaker_blind": 44.75,
+     "count_exact": 0.9422,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.77,
+      "miss": 3.69,
+      "fa": 1.64,
+      "conf": 1.44
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.399,
+     "first_commit_s": 2.279
+    }
+   },
+   "S2dl_d0.5": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 23.31,
+     "cpchrF_session": 23.41,
+     "cpBLEU_window": 23.81,
+     "BLEU_speaker_blind": 24.3,
+     "count_exact": 0.5272,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 21.24,
+      "miss": 12.78,
+      "fa": 5.27,
+      "conf": 3.19
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 0.435,
+     "first_commit_s": 0.253
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 27.78,
+     "cpchrF_session": 25.15,
+     "cpBLEU_window": 28.57,
+     "BLEU_speaker_blind": 28.09,
+     "count_exact": 0.4883,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.73,
+      "miss": 9.67,
+      "fa": 4.05,
+      "conf": 2.01
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 0.407,
+     "first_commit_s": 0.245
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 20.71,
+     "cpchrF_session": 22.21,
+     "cpBLEU_window": 21.05,
+     "BLEU_speaker_blind": 22.1,
+     "count_exact": 0.5993,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 25.54,
+      "miss": 15.23,
+      "fa": 6.24,
+      "conf": 4.07
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 0.486,
+     "first_commit_s": 0.27
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 20.71,
+     "cpchrF_session": 22.22,
+     "cpBLEU_window": 21.05,
+     "BLEU_speaker_blind": 22.1,
+     "count_exact": 0.5995,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 25.5,
+      "miss": 15.22,
+      "fa": 6.23,
+      "conf": 4.05
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 0.485,
+     "first_commit_s": 0.271
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 26.29,
+     "cpchrF_session": 24.67,
+     "cpBLEU_window": 26.89,
+     "BLEU_speaker_blind": 26.78,
+     "count_exact": 0.4759,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.07,
+      "miss": 10.59,
+      "fa": 4.4,
+      "conf": 2.07
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 0.42,
+     "first_commit_s": 0.255
+    }
+   },
+   "S2dl_d2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 40.66,
+     "cpchrF_session": 36.34,
+     "cpBLEU_window": 41.08,
+     "BLEU_speaker_blind": 40.86,
+     "count_exact": 0.8994,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.3,
+      "miss": 5.96,
+      "fa": 3.03,
+      "conf": 2.31
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.609,
+     "first_commit_s": 2.431
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 46.42,
+     "cpchrF_session": 39.88,
+     "cpBLEU_window": 47.26,
+     "BLEU_speaker_blind": 47.23,
+     "count_exact": 0.9832,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.3,
+      "miss": 2.11,
+      "fa": 1.13,
+      "conf": 2.06
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.423,
+     "first_commit_s": 2.246
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 36.75,
+     "cpchrF_session": 33.77,
+     "cpBLEU_window": 36.89,
+     "BLEU_speaker_blind": 36.71,
+     "count_exact": 0.7437,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.94,
+      "miss": 9.0,
+      "fa": 4.53,
+      "conf": 2.41
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 2.957,
+     "first_commit_s": 2.775
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 36.77,
+     "cpchrF_session": 33.79,
+     "cpBLEU_window": 36.91,
+     "BLEU_speaker_blind": 36.72,
+     "count_exact": 0.7464,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.92,
+      "miss": 9.01,
+      "fa": 4.51,
+      "conf": 2.39
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 2.962,
+     "first_commit_s": 2.783
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 41.12,
+     "cpchrF_session": 37.95,
+     "cpBLEU_window": 41.54,
+     "BLEU_speaker_blind": 41.32,
+     "count_exact": 0.945,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 7.15,
+      "miss": 3.5,
+      "fa": 2.07,
+      "conf": 1.58
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.688,
+     "first_commit_s": 2.527
+    }
+   },
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.79,
+     "cpchrF_session": 36.61,
+     "cpBLEU_window": 43.26,
+     "BLEU_speaker_blind": 42.97,
+     "count_exact": 0.8964,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 12.73,
+      "miss": 8.2,
+      "fa": 2.32,
+      "conf": 2.21
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.183,
+     "first_commit_s": 2.233
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 46.4,
+     "cpchrF_session": 40.06,
+     "cpBLEU_window": 47.22,
+     "BLEU_speaker_blind": 47.19,
+     "count_exact": 0.9825,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.8,
+      "miss": 3.77,
+      "fa": 1.01,
+      "conf": 2.01
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.08,
+     "first_commit_s": 2.1
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 39.82,
+     "cpchrF_session": 34.06,
+     "cpBLEU_window": 40.02,
+     "BLEU_speaker_blind": 39.66,
+     "count_exact": 0.7365,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.37,
+      "miss": 11.69,
+      "fa": 3.35,
+      "conf": 2.34
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 2.376,
+     "first_commit_s": 2.479
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 39.85,
+     "cpchrF_session": 34.09,
+     "cpBLEU_window": 40.06,
+     "BLEU_speaker_blind": 39.7,
+     "count_exact": 0.7367,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.34,
+      "miss": 11.68,
+      "fa": 3.32,
+      "conf": 2.33
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 2.379,
+     "first_commit_s": 2.486
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 45.02,
+     "cpchrF_session": 38.7,
+     "cpBLEU_window": 45.48,
+     "BLEU_speaker_blind": 45.2,
+     "count_exact": 0.9381,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 8.27,
+      "miss": 5.41,
+      "fa": 1.52,
+      "conf": 1.34
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.284,
+     "first_commit_s": 2.356
+    }
+   },
+   "S2dlm_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 43.72,
+     "cpchrF_session": 37.51,
+     "cpBLEU_window": 44.13,
+     "BLEU_speaker_blind": 43.78,
+     "count_exact": 0.8989,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.16,
+      "miss": 6.58,
+      "fa": 2.32,
+      "conf": 2.26
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.579,
+     "first_commit_s": 2.449
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.63,
+     "cpchrF_session": 40.88,
+     "cpBLEU_window": 48.45,
+     "BLEU_speaker_blind": 48.43,
+     "count_exact": 0.9877,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.37,
+      "miss": 2.43,
+      "fa": 1.0,
+      "conf": 1.94
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.405,
+     "first_commit_s": 2.284
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 40.73,
+     "cpchrF_session": 35.01,
+     "cpBLEU_window": 40.84,
+     "BLEU_speaker_blind": 40.37,
+     "count_exact": 0.7341,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.63,
+      "miss": 9.85,
+      "fa": 3.36,
+      "conf": 2.43
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 2.904,
+     "first_commit_s": 2.755
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 40.77,
+     "cpchrF_session": 35.04,
+     "cpBLEU_window": 40.88,
+     "BLEU_speaker_blind": 40.4,
+     "count_exact": 0.7354,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.6,
+      "miss": 9.85,
+      "fa": 3.34,
+      "conf": 2.42
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 2.909,
+     "first_commit_s": 2.763
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 46.01,
+     "cpchrF_session": 39.52,
+     "cpBLEU_window": 46.46,
+     "BLEU_speaker_blind": 46.18,
+     "count_exact": 0.9464,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.72,
+      "miss": 3.74,
+      "fa": 1.6,
+      "conf": 1.38
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.657,
+     "first_commit_s": 2.566
+    }
+   },
+   "S2dlm_d2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 43.29,
+     "cpchrF_session": 37.04,
+     "cpBLEU_window": 43.73,
+     "BLEU_speaker_blind": 43.47,
+     "count_exact": 0.8952,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.42,
+      "miss": 6.58,
+      "fa": 2.45,
+      "conf": 2.39
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.832,
+     "first_commit_s": 2.671
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.67,
+     "cpchrF_session": 40.83,
+     "cpBLEU_window": 48.49,
+     "BLEU_speaker_blind": 48.48,
+     "count_exact": 0.989,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.4,
+      "miss": 2.41,
+      "fa": 1.02,
+      "conf": 1.97
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 2.592,
+     "first_commit_s": 2.446
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 40.04,
+     "cpchrF_session": 34.24,
+     "cpBLEU_window": 40.2,
+     "BLEU_speaker_blind": 39.9,
+     "count_exact": 0.7208,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.03,
+      "miss": 9.87,
+      "fa": 3.58,
+      "conf": 2.59
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 3.276,
+     "first_commit_s": 3.088
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 40.08,
+     "cpchrF_session": 34.27,
+     "cpBLEU_window": 40.24,
+     "BLEU_speaker_blind": 39.93,
+     "count_exact": 0.7221,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.0,
+      "miss": 9.87,
+      "fa": 3.55,
+      "conf": 2.58
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 3.284,
+     "first_commit_s": 3.098
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 45.87,
+     "cpchrF_session": 39.4,
+     "cpBLEU_window": 46.32,
+     "BLEU_speaker_blind": 46.07,
+     "count_exact": 0.9429,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.89,
+      "miss": 3.92,
+      "fa": 1.59,
+      "conf": 1.39
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.9,
+     "first_commit_s": 2.779
+    }
+   },
+   "S2_b0_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 32.73,
+     "cpchrF_session": 31.65,
+     "cpBLEU_window": 35.22,
+     "BLEU_speaker_blind": 36.38,
+     "count_exact": 0.848,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 21.83,
+      "miss": 8.46,
+      "fa": 2.78,
+      "conf": 10.59
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "LAAL_s": 2.431,
+     "first_commit_s": 2.108
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 42.07,
+     "cpchrF_session": 36.33,
+     "cpBLEU_window": 46.18,
+     "BLEU_speaker_blind": 46.79,
+     "count_exact": 0.954,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.84,
+      "miss": 3.55,
+      "fa": 1.83,
+      "conf": 10.46
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "LAAL_s": 1.988,
+     "first_commit_s": 1.846
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 27.28,
+     "cpchrF_session": 28.38,
+     "cpBLEU_window": 28.85,
+     "BLEU_speaker_blind": 30.5,
+     "count_exact": 0.651,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 26.4,
+      "miss": 12.33,
+      "fa": 3.53,
+      "conf": 10.55
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "LAAL_s": 3.254,
+     "first_commit_s": 2.594
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 27.28,
+     "cpchrF_session": 28.39,
+     "cpBLEU_window": 28.85,
+     "BLEU_speaker_blind": 30.49,
+     "count_exact": 0.6541,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 26.39,
+      "miss": 12.33,
+      "fa": 3.52,
+      "conf": 10.54
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "LAAL_s": 3.264,
+     "first_commit_s": 2.599
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 39.55,
+     "cpchrF_session": 34.89,
+     "cpBLEU_window": 42.73,
+     "BLEU_speaker_blind": 43.59,
+     "count_exact": 0.8955,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.81,
+      "miss": 5.18,
+      "fa": 2.05,
+      "conf": 9.58
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "LAAL_s": 2.334,
+     "first_commit_s": 2.102
+    }
+   }
+  },
+  "zh2en": {
+   "B-off": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 6.4,
+     "cpchrF_session": 19.0,
+     "cpBLEU_window": 13.55,
+     "BLEU_speaker_blind": 14.24,
+     "count_exact": 0.6349,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 78.7,
+      "miss": 9.3,
+      "fa": 18.75,
+      "conf": 50.65
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 9.26,
+     "cpchrF_session": 24.72,
+     "cpBLEU_window": 20.41,
+     "BLEU_speaker_blind": 20.41,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 79.63,
+      "miss": 0.0,
+      "fa": 25.28,
+      "conf": 54.35
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 4.49,
+     "cpchrF_session": 15.1,
+     "cpBLEU_window": 9.05,
+     "BLEU_speaker_blind": 10.08,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 75.07,
+      "miss": 15.9,
+      "fa": 14.12,
+      "conf": 45.06
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 4.46,
+     "cpchrF_session": 14.96,
+     "cpBLEU_window": 8.93,
+     "BLEU_speaker_blind": 9.96,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 74.74,
+      "miss": 16.5,
+      "fa": 13.5,
+      "conf": 44.74
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "C-van": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 16.07,
+     "cpchrF_session": 40.61,
+     "cpBLEU_window": 16.67,
+     "BLEU_speaker_blind": 16.84,
+     "count_exact": 0.8357,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.46,
+      "miss": 7.03,
+      "fa": 4.33,
+      "conf": 4.1
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 19.57,
+     "cpchrF_session": 46.5,
+     "cpBLEU_window": 20.53,
+     "BLEU_speaker_blind": 20.46,
+     "count_exact": 0.8894,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 13.49,
+      "miss": 4.99,
+      "fa": 3.66,
+      "conf": 4.85
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 13.69,
+     "cpchrF_session": 36.48,
+     "cpBLEU_window": 14.05,
+     "BLEU_speaker_blind": 14.49,
+     "count_exact": 0.7424,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.86,
+      "miss": 8.48,
+      "fa": 4.8,
+      "conf": 3.58
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 13.54,
+     "cpchrF_session": 36.19,
+     "cpBLEU_window": 13.89,
+     "BLEU_speaker_blind": 14.34,
+     "count_exact": 0.7435,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.08,
+      "miss": 8.6,
+      "fa": 4.85,
+      "conf": 3.62
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "C-ft2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 22.36,
+     "cpchrF_session": 48.18,
+     "cpBLEU_window": 23.22,
+     "BLEU_speaker_blind": 24.85,
+     "count_exact": 0.8357,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.5,
+      "miss": 7.06,
+      "fa": 4.33,
+      "conf": 4.11
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.71,
+     "cpchrF_session": 52.78,
+     "cpBLEU_window": 28.99,
+     "BLEU_speaker_blind": 28.92,
+     "count_exact": 0.8894,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 13.49,
+      "miss": 4.99,
+      "fa": 3.66,
+      "conf": 4.85
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 19.34,
+     "cpchrF_session": 45.1,
+     "cpBLEU_window": 19.97,
+     "BLEU_speaker_blind": 22.62,
+     "count_exact": 0.7424,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.92,
+      "miss": 8.54,
+      "fa": 4.8,
+      "conf": 3.58
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 19.07,
+     "cpchrF_session": 44.84,
+     "cpBLEU_window": 19.7,
+     "BLEU_speaker_blind": 22.36,
+     "count_exact": 0.7435,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.14,
+      "miss": 8.67,
+      "fa": 4.84,
+      "conf": 3.63
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "O2-nosd": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 12.2,
+     "cpchrF_session": 26.17,
+     "cpBLEU_window": 26.24,
+     "BLEU_speaker_blind": 28.13,
+     "count_exact": 0.849,
+     "empty": 0.0006,
+     "DER_output": {
+      "DER": 57.41,
+      "miss": 6.85,
+      "fa": 2.08,
+      "conf": 48.48
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 15.68,
+     "cpchrF_session": 31.53,
+     "cpBLEU_window": 30.46,
+     "BLEU_speaker_blind": 30.49,
+     "count_exact": 0.9943,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 49.98,
+      "miss": 2.8,
+      "fa": 1.0,
+      "conf": 46.18
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 9.94,
+     "cpchrF_session": 22.6,
+     "cpBLEU_window": 23.55,
+     "BLEU_speaker_blind": 26.68,
+     "count_exact": 0.5962,
+     "empty": 0.0008,
+     "DER_output": {
+      "DER": 60.86,
+      "miss": 9.73,
+      "fa": 2.85,
+      "conf": 48.27
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 9.78,
+     "cpchrF_session": 22.41,
+     "cpBLEU_window": 23.42,
+     "BLEU_speaker_blind": 26.56,
+     "count_exact": 0.5916,
+     "empty": 0.0009,
+     "DER_output": {
+      "DER": 60.75,
+      "miss": 9.99,
+      "fa": 2.87,
+      "conf": 47.88
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "O2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 25.86,
+     "cpchrF_session": 49.06,
+     "cpBLEU_window": 27.06,
+     "BLEU_speaker_blind": 28.43,
+     "count_exact": 0.9126,
+     "empty": 0.0003,
+     "DER_output": {
+      "DER": 16.02,
+      "miss": 7.48,
+      "fa": 3.14,
+      "conf": 5.41
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 29.09,
+     "cpchrF_session": 53.76,
+     "cpBLEU_window": 30.52,
+     "BLEU_speaker_blind": 30.7,
+     "count_exact": 0.9905,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 9.95,
+      "miss": 3.36,
+      "fa": 1.61,
+      "conf": 4.97
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.76,
+     "cpchrF_session": 45.78,
+     "cpBLEU_window": 24.81,
+     "BLEU_speaker_blind": 27.04,
+     "count_exact": 0.777,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.34,
+      "miss": 10.4,
+      "fa": 4.22,
+      "conf": 5.72
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.66,
+     "cpchrF_session": 45.58,
+     "cpBLEU_window": 24.71,
+     "BLEU_speaker_blind": 26.94,
+     "count_exact": 0.7714,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.7,
+      "miss": 10.64,
+      "fa": 4.24,
+      "conf": 5.82
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "O2-oracle": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 27.32,
+     "cpchrF_session": 51.29,
+     "cpBLEU_window": 27.39,
+     "BLEU_speaker_blind": 28.37,
+     "count_exact": 0.959,
+     "empty": 0.0006,
+     "DER_output": {
+      "DER": 11.64,
+      "miss": 7.02,
+      "fa": 3.38,
+      "conf": 1.24
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     }
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 30.64,
+     "cpchrF_session": 56.28,
+     "cpBLEU_window": 30.64,
+     "BLEU_speaker_blind": 30.64,
+     "count_exact": 0.9995,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 4.89,
+      "miss": 3.09,
+      "fa": 1.8,
+      "conf": 0.0
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     }
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 25.16,
+     "cpchrF_session": 47.79,
+     "cpBLEU_window": 25.27,
+     "BLEU_speaker_blind": 26.97,
+     "count_exact": 0.8885,
+     "empty": 0.0008,
+     "DER_output": {
+      "DER": 16.44,
+      "miss": 9.82,
+      "fa": 4.49,
+      "conf": 2.13
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     }
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 25.04,
+     "cpchrF_session": 47.6,
+     "cpBLEU_window": 25.15,
+     "BLEU_speaker_blind": 26.86,
+     "count_exact": 0.8831,
+     "empty": 0.0009,
+     "DER_output": {
+      "DER": 16.75,
+      "miss": 10.05,
+      "fa": 4.52,
+      "conf": 2.18
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     }
+    }
+   },
+   "B-LA2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 6.31,
+     "cpchrF_session": 18.74,
+     "cpBLEU_window": 13.41,
+     "BLEU_speaker_blind": 14.11,
+     "count_exact": 0.6349,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 101.58,
+      "miss": 99.89,
+      "fa": 1.63,
+      "conf": 0.06
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 2.476,
+     "first_commit_s": 2.075
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 9.16,
+     "cpchrF_session": 24.51,
+     "cpBLEU_window": 19.8,
+     "BLEU_speaker_blind": 19.8,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 102.45,
+      "miss": 99.86,
+      "fa": 2.51,
+      "conf": 0.08
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.078,
+     "first_commit_s": 1.85
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 4.46,
+     "cpchrF_session": 14.83,
+     "cpBLEU_window": 9.3,
+     "BLEU_speaker_blind": 10.35,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 100.96,
+      "miss": 99.91,
+      "fa": 1.0,
+      "conf": 0.05
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.166,
+     "first_commit_s": 2.468
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 4.45,
+     "cpchrF_session": 14.8,
+     "cpBLEU_window": 9.19,
+     "BLEU_speaker_blind": 10.25,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 100.93,
+      "miss": 99.91,
+      "fa": 0.98,
+      "conf": 0.05
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.191,
+     "first_commit_s": 2.471
+    }
+   },
+   "O2_LA2_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.81,
+     "cpchrF_session": 47.98,
+     "cpBLEU_window": 26.23,
+     "BLEU_speaker_blind": 27.67,
+     "count_exact": 0.9068,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.33,
+      "miss": 7.57,
+      "fa": 3.15,
+      "conf": 6.61
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 2.505,
+     "first_commit_s": 2.236
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.07,
+     "cpchrF_session": 51.89,
+     "cpBLEU_window": 29.35,
+     "BLEU_speaker_blind": 29.53,
+     "count_exact": 0.9938,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 13.23,
+      "miss": 3.62,
+      "fa": 1.73,
+      "conf": 7.88
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.091,
+     "first_commit_s": 1.977
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.36,
+     "cpchrF_session": 45.28,
+     "cpBLEU_window": 24.23,
+     "BLEU_speaker_blind": 26.58,
+     "count_exact": 0.7556,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.25,
+      "miss": 10.38,
+      "fa": 4.16,
+      "conf": 5.71
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.223,
+     "first_commit_s": 2.688
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.26,
+     "cpchrF_session": 45.07,
+     "cpBLEU_window": 24.14,
+     "BLEU_speaker_blind": 26.47,
+     "count_exact": 0.7565,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.55,
+      "miss": 10.59,
+      "fa": 4.2,
+      "conf": 5.76
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.255,
+     "first_commit_s": 2.684
+    }
+   },
+   "O2_LA2_d2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 25.36,
+     "cpchrF_session": 48.52,
+     "cpBLEU_window": 26.8,
+     "BLEU_speaker_blind": 28.21,
+     "count_exact": 0.9053,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.05,
+      "miss": 7.41,
+      "fa": 3.16,
+      "conf": 6.47
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 3.455,
+     "first_commit_s": 2.982
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 28.0,
+     "cpchrF_session": 52.46,
+     "cpBLEU_window": 30.4,
+     "BLEU_speaker_blind": 30.57,
+     "count_exact": 0.9919,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 12.94,
+      "miss": 3.39,
+      "fa": 1.66,
+      "conf": 7.89
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.77,
+     "first_commit_s": 2.51
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.66,
+     "cpchrF_session": 45.81,
+     "cpBLEU_window": 24.49,
+     "BLEU_speaker_blind": 26.81,
+     "count_exact": 0.7547,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 19.97,
+      "miss": 10.27,
+      "fa": 4.23,
+      "conf": 5.47
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 4.647,
+     "first_commit_s": 3.801
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.52,
+     "cpchrF_session": 45.6,
+     "cpBLEU_window": 24.36,
+     "BLEU_speaker_blind": 26.66,
+     "count_exact": 0.7548,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.27,
+      "miss": 10.49,
+      "fa": 4.27,
+      "conf": 5.52
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 4.682,
+     "first_commit_s": 3.815
+    }
+   },
+   "S2dl_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.3,
+     "cpchrF_session": 47.72,
+     "cpBLEU_window": 25.81,
+     "BLEU_speaker_blind": 26.71,
+     "count_exact": 0.9325,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 12.78,
+      "miss": 4.88,
+      "fa": 1.58,
+      "conf": 6.32
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 2.927,
+     "first_commit_s": 2.788
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.61,
+     "cpchrF_session": 52.51,
+     "cpBLEU_window": 30.12,
+     "BLEU_speaker_blind": 30.12,
+     "count_exact": 0.9953,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.18,
+      "miss": 1.8,
+      "fa": 0.75,
+      "conf": 7.63
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.744,
+     "first_commit_s": 2.665
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 21.64,
+     "cpchrF_session": 44.5,
+     "cpBLEU_window": 22.53,
+     "BLEU_speaker_blind": 24.09,
+     "count_exact": 0.8233,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.63,
+      "miss": 7.07,
+      "fa": 2.17,
+      "conf": 5.39
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.246,
+     "first_commit_s": 3.001
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 21.35,
+     "cpchrF_session": 44.25,
+     "cpBLEU_window": 22.22,
+     "BLEU_speaker_blind": 23.76,
+     "count_exact": 0.8211,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.89,
+      "miss": 7.3,
+      "fa": 2.2,
+      "conf": 5.4
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.253,
+     "first_commit_s": 2.972
+    }
+   },
+   "S2dl_d0.5": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 5.89,
+     "cpchrF_session": 25.17,
+     "cpBLEU_window": 9.44,
+     "BLEU_speaker_blind": 10.79,
+     "count_exact": 0.5996,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 49.0,
+      "miss": 13.5,
+      "fa": 5.35,
+      "conf": 30.15
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 0.717,
+     "first_commit_s": 0.237
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 6.62,
+     "cpchrF_session": 27.49,
+     "cpBLEU_window": 11.23,
+     "BLEU_speaker_blind": 11.05,
+     "count_exact": 0.6054,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 50.47,
+      "miss": 12.42,
+      "fa": 4.05,
+      "conf": 34.0
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 0.625,
+     "first_commit_s": 0.233
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 5.5,
+     "cpchrF_session": 23.75,
+     "cpBLEU_window": 8.48,
+     "BLEU_speaker_blind": 10.63,
+     "count_exact": 0.5896,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 47.77,
+      "miss": 14.27,
+      "fa": 6.27,
+      "conf": 27.23
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 0.876,
+     "first_commit_s": 0.245
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 5.47,
+     "cpchrF_session": 23.69,
+     "cpBLEU_window": 8.38,
+     "BLEU_speaker_blind": 10.5,
+     "count_exact": 0.5864,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 47.73,
+      "miss": 14.37,
+      "fa": 6.32,
+      "conf": 27.04
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 0.882,
+     "first_commit_s": 0.247
+    }
+   },
+   "S2dl_d2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 25.3,
+     "cpchrF_session": 48.57,
+     "cpBLEU_window": 26.81,
+     "BLEU_speaker_blind": 27.71,
+     "count_exact": 0.9258,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 12.72,
+      "miss": 4.64,
+      "fa": 1.72,
+      "conf": 6.36
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 3.252,
+     "first_commit_s": 3.03
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.8,
+     "cpchrF_session": 52.72,
+     "cpBLEU_window": 30.26,
+     "BLEU_speaker_blind": 30.26,
+     "count_exact": 0.9957,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 9.95,
+      "miss": 1.54,
+      "fa": 0.74,
+      "conf": 7.67
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.967,
+     "first_commit_s": 2.848
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.68,
+     "cpchrF_session": 45.71,
+     "cpBLEU_window": 24.59,
+     "BLEU_speaker_blind": 26.19,
+     "count_exact": 0.8043,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.68,
+      "miss": 6.84,
+      "fa": 2.41,
+      "conf": 5.43
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.747,
+     "first_commit_s": 3.346
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.46,
+     "cpchrF_session": 45.46,
+     "cpBLEU_window": 24.34,
+     "BLEU_speaker_blind": 25.93,
+     "count_exact": 0.801,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.94,
+      "miss": 7.05,
+      "fa": 2.44,
+      "conf": 5.44
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.753,
+     "first_commit_s": 3.32
+    }
+   },
+   "S2dl1k_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.78,
+     "cpchrF_session": 47.69,
+     "cpBLEU_window": 26.18,
+     "BLEU_speaker_blind": 27.26,
+     "count_exact": 0.9108,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.61,
+      "miss": 7.19,
+      "fa": 2.28,
+      "conf": 6.14
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 2.853,
+     "first_commit_s": 2.83
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.81,
+     "cpchrF_session": 52.36,
+     "cpBLEU_window": 30.07,
+     "BLEU_speaker_blind": 30.07,
+     "count_exact": 0.9938,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.2,
+      "miss": 3.06,
+      "fa": 1.01,
+      "conf": 7.13
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 2.721,
+     "first_commit_s": 2.726
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 22.83,
+     "cpchrF_session": 44.48,
+     "cpBLEU_window": 23.7,
+     "BLEU_speaker_blind": 25.59,
+     "count_exact": 0.7663,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 18.74,
+      "miss": 10.13,
+      "fa": 3.18,
+      "conf": 5.43
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.082,
+     "first_commit_s": 3.01
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 22.69,
+     "cpchrF_session": 44.23,
+     "cpBLEU_window": 23.57,
+     "BLEU_speaker_blind": 25.43,
+     "count_exact": 0.7696,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 19.12,
+      "miss": 10.44,
+      "fa": 3.21,
+      "conf": 5.48
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.085,
+     "first_commit_s": 2.995
+    }
+   },
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.07,
+     "cpchrF_session": 46.94,
+     "cpBLEU_window": 26.02,
+     "BLEU_speaker_blind": 27.62,
+     "count_exact": 0.8875,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 19.9,
+      "miss": 7.5,
+      "fa": 3.26,
+      "conf": 9.14
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "LAAL_s": 2.352,
+     "first_commit_s": 1.853
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 26.24,
+     "cpchrF_session": 50.47,
+     "cpBLEU_window": 29.39,
+     "BLEU_speaker_blind": 29.57,
+     "count_exact": 0.9763,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.4,
+      "miss": 3.57,
+      "fa": 1.81,
+      "conf": 11.02
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "LAAL_s": 1.852,
+     "first_commit_s": 1.65
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 22.66,
+     "cpchrF_session": 44.5,
+     "cpBLEU_window": 23.85,
+     "BLEU_speaker_blind": 26.45,
+     "count_exact": 0.7333,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 22.39,
+      "miss": 10.29,
+      "fa": 4.3,
+      "conf": 7.8
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "LAAL_s": 3.22,
+     "first_commit_s": 2.207
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 22.59,
+     "cpchrF_session": 44.34,
+     "cpBLEU_window": 23.77,
+     "BLEU_speaker_blind": 26.33,
+     "count_exact": 0.7373,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 22.61,
+      "miss": 10.52,
+      "fa": 4.35,
+      "conf": 7.74
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "LAAL_s": 3.267,
+     "first_commit_s": 2.219
+    }
+   }
+  },
+  "ali": {
+   "B-off": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 7.35,
+     "cpchrF_session": 20.45,
+     "cpBLEU_window": 12.34,
+     "BLEU_speaker_blind": 13.27,
+     "count_exact": 0.6658,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 56.21,
+      "miss": 10.07,
+      "fa": 7.66,
+      "conf": 38.47
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 10.91,
+     "cpchrF_session": 27.81,
+     "cpBLEU_window": 18.79,
+     "BLEU_speaker_blind": 18.79,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 52.94,
+      "miss": 0.0,
+      "fa": 11.72,
+      "conf": 41.22
+     },
+     "DER_nemotron": {
+      "DER": 13.53,
+      "miss": 12.65,
+      "fa": 0.73,
+      "conf": 0.14
+     }
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 4.56,
+     "cpchrF_session": 14.54,
+     "cpBLEU_window": 7.32,
+     "BLEU_speaker_blind": 8.94,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 57.17,
+      "miss": 18.68,
+      "fa": 4.2,
+      "conf": 34.29
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.55
+     }
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 4.53,
+     "cpchrF_session": 14.45,
+     "cpBLEU_window": 7.3,
+     "BLEU_speaker_blind": 8.92,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 57.28,
+      "miss": 18.75,
+      "fa": 4.18,
+      "conf": 34.35
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 15.0,
+      "fa": 1.58,
+      "conf": 0.55
+     }
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 7.35,
+     "cpchrF_session": 20.45,
+     "cpBLEU_window": 12.34,
+     "BLEU_speaker_blind": 13.27,
+     "count_exact": 0.6658,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 56.21,
+      "miss": 10.07,
+      "fa": 7.66,
+      "conf": 38.47
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    }
+   },
+   "C-van": null,
+   "C-ft2": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 15.25,
+     "cpchrF_session": 41.67,
+     "cpBLEU_window": 15.26,
+     "BLEU_speaker_blind": 15.58,
+     "count_exact": 0.9255,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 13.1,
+      "miss": 11.58,
+      "fa": 1.21,
+      "conf": 0.31
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 18.11,
+     "cpchrF_session": 44.71,
+     "cpBLEU_window": 18.11,
+     "BLEU_speaker_blind": 18.03,
+     "count_exact": 0.9483,
+     "empty": 0.0007,
+     "DER_output": {
+      "DER": 10.91,
+      "miss": 10.02,
+      "fa": 0.79,
+      "conf": 0.1
+     },
+     "DER_nemotron": {
+      "DER": 13.53,
+      "miss": 12.65,
+      "fa": 0.73,
+      "conf": 0.14
+     }
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 12.14,
+     "cpchrF_session": 39.21,
+     "cpBLEU_window": 12.16,
+     "BLEU_speaker_blind": 12.85,
+     "count_exact": 0.8801,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.97,
+      "miss": 12.91,
+      "fa": 1.57,
+      "conf": 0.49
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.55
+     }
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 12.13,
+     "cpchrF_session": 39.19,
+     "cpBLEU_window": 12.15,
+     "BLEU_speaker_blind": 12.84,
+     "count_exact": 0.8808,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.97,
+      "miss": 12.92,
+      "fa": 1.56,
+      "conf": 0.49
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 15.0,
+      "fa": 1.58,
+      "conf": 0.55
+     }
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 15.25,
+     "cpchrF_session": 41.67,
+     "cpBLEU_window": 15.26,
+     "BLEU_speaker_blind": 15.58,
+     "count_exact": 0.9255,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 13.1,
+      "miss": 11.58,
+      "fa": 1.21,
+      "conf": 0.31
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    }
+   },
+   "O2-nosd": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 8.34,
+     "cpchrF_session": 24.07,
+     "cpBLEU_window": 15.91,
+     "BLEU_speaker_blind": 16.38,
+     "count_exact": 0.8713,
+     "empty": 0.004,
+     "DER_output": {
+      "DER": 52.05,
+      "miss": 8.67,
+      "fa": 2.04,
+      "conf": 41.34
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 10.42,
+     "cpchrF_session": 27.58,
+     "cpBLEU_window": 18.41,
+     "BLEU_speaker_blind": 18.36,
+     "count_exact": 0.9706,
+     "empty": 0.0025,
+     "DER_output": {
+      "DER": 46.36,
+      "miss": 4.03,
+      "fa": 1.28,
+      "conf": 41.05
+     },
+     "DER_nemotron": {
+      "DER": 13.53,
+      "miss": 12.65,
+      "fa": 0.73,
+      "conf": 0.14
+     }
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 6.61,
+     "cpchrF_session": 21.26,
+     "cpBLEU_window": 13.87,
+     "BLEU_speaker_blind": 14.82,
+     "count_exact": 0.6735,
+     "empty": 0.0071,
+     "DER_output": {
+      "DER": 52.75,
+      "miss": 12.64,
+      "fa": 2.68,
+      "conf": 37.44
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.55
+     }
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 6.62,
+     "cpchrF_session": 21.25,
+     "cpBLEU_window": 13.89,
+     "BLEU_speaker_blind": 14.84,
+     "count_exact": 0.6728,
+     "empty": 0.0071,
+     "DER_output": {
+      "DER": 52.7,
+      "miss": 12.67,
+      "fa": 2.66,
+      "conf": 37.37
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 15.0,
+      "fa": 1.58,
+      "conf": 0.55
+     }
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 8.34,
+     "cpchrF_session": 24.07,
+     "cpBLEU_window": 15.91,
+     "BLEU_speaker_blind": 16.38,
+     "count_exact": 0.8713,
+     "empty": 0.004,
+     "DER_output": {
+      "DER": 52.05,
+      "miss": 8.67,
+      "fa": 2.04,
+      "conf": 41.34
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    }
+   },
+   "O2": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 14.9,
+     "cpchrF_session": 40.42,
+     "cpBLEU_window": 14.98,
+     "BLEU_speaker_blind": 15.11,
+     "count_exact": 0.9194,
+     "empty": 0.0099,
+     "DER_output": {
+      "DER": 14.73,
+      "miss": 10.47,
+      "fa": 2.93,
+      "conf": 1.33
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 16.54,
+     "cpchrF_session": 43.08,
+     "cpBLEU_window": 16.57,
+     "BLEU_speaker_blind": 16.52,
+     "count_exact": 0.9632,
+     "empty": 0.0081,
+     "DER_output": {
+      "DER": 8.09,
+      "miss": 5.78,
+      "fa": 2.22,
+      "conf": 0.08
+     },
+     "DER_nemotron": {
+      "DER": 13.53,
+      "miss": 12.65,
+      "fa": 0.73,
+      "conf": 0.14
+     }
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 13.56,
+     "cpchrF_session": 38.15,
+     "cpBLEU_window": 13.68,
+     "BLEU_speaker_blind": 14.01,
+     "count_exact": 0.8322,
+     "empty": 0.0134,
+     "DER_output": {
+      "DER": 20.41,
+      "miss": 14.47,
+      "fa": 3.54,
+      "conf": 2.4
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.55
+     }
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 13.58,
+     "cpchrF_session": 38.18,
+     "cpBLEU_window": 13.7,
+     "BLEU_speaker_blind": 14.04,
+     "count_exact": 0.8332,
+     "empty": 0.0128,
+     "DER_output": {
+      "DER": 20.36,
+      "miss": 14.44,
+      "fa": 3.52,
+      "conf": 2.4
+     },
+     "DER_nemotron": {
+      "DER": 17.13,
+      "miss": 15.0,
+      "fa": 1.58,
+      "conf": 0.55
+     }
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 14.9,
+     "cpchrF_session": 40.42,
+     "cpBLEU_window": 14.98,
+     "BLEU_speaker_blind": 15.11,
+     "count_exact": 0.9194,
+     "empty": 0.0099,
+     "DER_output": {
+      "DER": 14.73,
+      "miss": 10.47,
+      "fa": 2.93,
+      "conf": 1.33
+     },
+     "DER_nemotron": {
+      "DER": 15.47,
+      "miss": 13.91,
+      "fa": 1.19,
+      "conf": 0.36
+     }
+    }
+   },
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 12.1,
+     "cpchrF_session": 38.27,
+     "cpBLEU_window": 12.3,
+     "BLEU_speaker_blind": 12.55,
+     "count_exact": 0.917,
+     "empty": 0.0002,
+     "DER_output": {
+      "DER": 12.94,
+      "miss": 7.56,
+      "fa": 2.89,
+      "conf": 2.49
+     },
+     "DER_nemotron": {
+      "DER": 15.59,
+      "miss": 13.92,
+      "fa": 1.22,
+      "conf": 0.45
+     },
+     "LAAL_s": 2.836,
+     "first_commit_s": 2.476
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 14.97,
+     "cpchrF_session": 41.67,
+     "cpBLEU_window": 15.23,
+     "BLEU_speaker_blind": 15.2,
+     "count_exact": 0.9742,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.97,
+      "miss": 3.13,
+      "fa": 2.32,
+      "conf": 1.52
+     },
+     "DER_nemotron": {
+      "DER": 13.62,
+      "miss": 12.67,
+      "fa": 0.78,
+      "conf": 0.17
+     },
+     "LAAL_s": 2.484,
+     "first_commit_s": 2.288
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 10.16,
+     "cpchrF_session": 35.49,
+     "cpBLEU_window": 10.31,
+     "BLEU_speaker_blind": 10.81,
+     "count_exact": 0.8032,
+     "empty": 0.0007,
+     "DER_output": {
+      "DER": 18.03,
+      "miss": 11.33,
+      "fa": 3.38,
+      "conf": 3.32
+     },
+     "DER_nemotron": {
+      "DER": 17.27,
+      "miss": 14.98,
+      "fa": 1.6,
+      "conf": 0.7
+     },
+     "LAAL_s": 3.54,
+     "first_commit_s": 2.852
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 10.15,
+     "cpchrF_session": 35.49,
+     "cpBLEU_window": 10.3,
+     "BLEU_speaker_blind": 10.8,
+     "count_exact": 0.8041,
+     "empty": 0.0007,
+     "DER_output": {
+      "DER": 18.03,
+      "miss": 11.36,
+      "fa": 3.37,
+      "conf": 3.3
+     },
+     "DER_nemotron": {
+      "DER": 17.27,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.69
+     },
+     "LAAL_s": 3.547,
+     "first_commit_s": 2.854
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 12.1,
+     "cpchrF_session": 38.27,
+     "cpBLEU_window": 12.3,
+     "BLEU_speaker_blind": 12.55,
+     "count_exact": 0.917,
+     "empty": 0.0002,
+     "DER_output": {
+      "DER": 12.94,
+      "miss": 7.56,
+      "fa": 2.89,
+      "conf": 2.49
+     },
+     "DER_nemotron": {
+      "DER": 15.59,
+      "miss": 13.92,
+      "fa": 1.22,
+      "conf": 0.45
+     },
+     "LAAL_s": 2.836,
+     "first_commit_s": 2.476
+    }
+   },
+   "O2_LA2_d2": null,
+   "S2dl_d1": {
+    "all": {
+     "windows": 4243,
+     "cpBLEU_session": 12.97,
+     "cpchrF_session": 38.58,
+     "cpBLEU_window": 13.09,
+     "BLEU_speaker_blind": 13.14,
+     "count_exact": 0.9149,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.81,
+      "miss": 6.98,
+      "fa": 2.33,
+      "conf": 1.49
+     },
+     "DER_nemotron": {
+      "DER": 15.59,
+      "miss": 13.92,
+      "fa": 1.22,
+      "conf": 0.45
+     },
+     "LAAL_s": 3.092,
+     "first_commit_s": 2.828
+    },
+    "single_spk": {
+     "windows": 2825,
+     "cpBLEU_session": 14.44,
+     "cpchrF_session": 41.2,
+     "cpBLEU_window": 14.56,
+     "BLEU_speaker_blind": 14.51,
+     "count_exact": 0.9547,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.88,
+      "miss": 3.11,
+      "fa": 1.77,
+      "conf": 0.99
+     },
+     "DER_nemotron": {
+      "DER": 13.62,
+      "miss": 12.67,
+      "fa": 0.78,
+      "conf": 0.17
+     },
+     "LAAL_s": 3.007,
+     "first_commit_s": 2.897
+    },
+    "multi_spk": {
+     "windows": 1418,
+     "cpBLEU_session": 11.7,
+     "cpchrF_session": 36.36,
+     "cpBLEU_window": 11.82,
+     "BLEU_speaker_blind": 12.0,
+     "count_exact": 0.8357,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.01,
+      "miss": 10.29,
+      "fa": 2.81,
+      "conf": 1.92
+     },
+     "DER_nemotron": {
+      "DER": 17.27,
+      "miss": 14.98,
+      "fa": 1.6,
+      "conf": 0.7
+     },
+     "LAAL_s": 3.261,
+     "first_commit_s": 2.69
+    },
+    "overlap": {
+     "windows": 1409,
+     "cpBLEU_session": 11.71,
+     "cpchrF_session": 36.36,
+     "cpBLEU_window": 11.83,
+     "BLEU_speaker_blind": 12.0,
+     "count_exact": 0.8368,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.01,
+      "miss": 10.32,
+      "fa": 2.79,
+      "conf": 1.9
+     },
+     "DER_nemotron": {
+      "DER": 17.27,
+      "miss": 14.99,
+      "fa": 1.59,
+      "conf": 0.69
+     },
+     "LAAL_s": 3.268,
+     "first_commit_s": 2.695
+    },
+    "strict_review": {
+     "windows": 4243,
+     "cpBLEU_session": 12.97,
+     "cpchrF_session": 38.58,
+     "cpBLEU_window": 13.09,
+     "BLEU_speaker_blind": 13.14,
+     "count_exact": 0.9149,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.81,
+      "miss": 6.98,
+      "fa": 2.33,
+      "conf": 1.49
+     },
+     "DER_nemotron": {
+      "DER": 15.59,
+      "miss": 13.92,
+      "fa": 1.22,
+      "conf": 0.45
+     },
+     "LAAL_s": 3.092,
+     "first_commit_s": 2.828
+    }
+   },
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  }
+ },
+ "speech": {
+  "en2zh": {
+   "B-off": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 12.82,
+     "cpchrF_session": 12.5,
+     "cpBLEU_window": 26.91,
+     "BLEU_speaker_blind": 29.01,
+     "count_exact": 0.6501,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 67.57,
+      "miss": 10.1,
+      "fa": 10.71,
+      "conf": 46.77
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     },
+     "cpASR_BLEU_session": 10.13,
+     "ASR_BLEU_speaker_blind": 23.29
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 16.64,
+     "cpchrF_session": 15.73,
+     "cpBLEU_window": 35.72,
+     "BLEU_speaker_blind": 35.72,
+     "count_exact": 1.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 67.98,
+      "miss": 0.0,
+      "fa": 16.09,
+      "conf": 51.88
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     },
+     "cpASR_BLEU_session": 14.36,
+     "ASR_BLEU_speaker_blind": 31.65
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 9.97,
+     "cpchrF_session": 10.18,
+     "cpBLEU_window": 20.42,
+     "BLEU_speaker_blind": 23.87,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 65.43,
+      "miss": 18.06,
+      "fa": 6.46,
+      "conf": 40.91
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 6.99,
+     "ASR_BLEU_speaker_blind": 16.89
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 9.99,
+     "cpchrF_session": 10.19,
+     "cpBLEU_window": 20.43,
+     "BLEU_speaker_blind": 23.89,
+     "count_exact": 0.0,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 65.36,
+      "miss": 18.09,
+      "fa": 6.4,
+      "conf": 40.88
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 7.0,
+     "ASR_BLEU_speaker_blind": 16.89
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 14.7,
+     "cpchrF_session": 14.14,
+     "cpBLEU_window": 31.77,
+     "BLEU_speaker_blind": 32.92,
+     "count_exact": 0.793,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 66.22,
+      "miss": 4.37,
+      "fa": 11.81,
+      "conf": 50.04
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     },
+     "cpASR_BLEU_session": 12.45,
+     "ASR_BLEU_speaker_blind": 28.2
+    }
+   },
+   "C-van": null,
+   "C-ft2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 36.29,
+     "cpchrF_session": 33.9,
+     "cpBLEU_window": 36.36,
+     "BLEU_speaker_blind": 37.01,
+     "count_exact": 0.8825,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 25.8,
+      "miss": 22.67,
+      "fa": 2.28,
+      "conf": 0.84
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     },
+     "cpASR_BLEU_session": 31.06,
+     "ASR_BLEU_speaker_blind": 31.36
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 43.21,
+     "cpchrF_session": 37.21,
+     "cpBLEU_window": 43.27,
+     "BLEU_speaker_blind": 43.04,
+     "count_exact": 0.9339,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 22.15,
+      "miss": 18.93,
+      "fa": 2.7,
+      "conf": 0.52
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     },
+     "cpASR_BLEU_session": 33.91,
+     "ASR_BLEU_speaker_blind": 33.78
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 31.97,
+     "cpchrF_session": 31.54,
+     "cpBLEU_window": 32.05,
+     "BLEU_speaker_blind": 33.38,
+     "count_exact": 0.787,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.58,
+      "miss": 25.61,
+      "fa": 1.95,
+      "conf": 1.02
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 28.85,
+     "ASR_BLEU_speaker_blind": 29.62
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 31.99,
+     "cpchrF_session": 31.55,
+     "cpBLEU_window": 32.07,
+     "BLEU_speaker_blind": 33.39,
+     "count_exact": 0.7876,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 28.56,
+      "miss": 25.63,
+      "fa": 1.92,
+      "conf": 1.01
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 28.87,
+     "ASR_BLEU_speaker_blind": 29.65
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 40.15,
+     "cpchrF_session": 36.15,
+     "cpBLEU_window": 40.28,
+     "BLEU_speaker_blind": 40.28,
+     "count_exact": 0.9085,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 21.56,
+      "miss": 18.79,
+      "fa": 2.18,
+      "conf": 0.59
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     },
+     "cpASR_BLEU_session": 33.27,
+     "ASR_BLEU_speaker_blind": 33.18
+    }
+   },
+   "O2-nosd": null,
+   "O2": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.81,
+     "cpchrF_session": 36.71,
+     "cpBLEU_window": 42.97,
+     "BLEU_speaker_blind": 43.33,
+     "count_exact": 0.8952,
+     "empty": 0.0038,
+     "DER_output": {
+      "DER": 13.99,
+      "miss": 9.7,
+      "fa": 2.56,
+      "conf": 1.73
+     },
+     "DER_nemotron": {
+      "DER": 27.68,
+      "miss": 24.95,
+      "fa": 1.87,
+      "conf": 0.86
+     },
+     "cpASR_BLEU_session": 32.69,
+     "ASR_BLEU_speaker_blind": 32.51
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 47.42,
+     "cpchrF_session": 40.6,
+     "cpBLEU_window": 47.55,
+     "BLEU_speaker_blind": 47.53,
+     "count_exact": 0.9851,
+     "empty": 0.0032,
+     "DER_output": {
+      "DER": 6.93,
+      "miss": 4.88,
+      "fa": 1.4,
+      "conf": 0.65
+     },
+     "DER_nemotron": {
+      "DER": 23.89,
+      "miss": 21.67,
+      "fa": 1.76,
+      "conf": 0.45
+     },
+     "cpASR_BLEU_session": 37.43,
+     "ASR_BLEU_speaker_blind": 37.5
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 39.39,
+     "cpchrF_session": 33.83,
+     "cpBLEU_window": 39.58,
+     "BLEU_speaker_blind": 40.34,
+     "count_exact": 0.728,
+     "empty": 0.0048,
+     "DER_output": {
+      "DER": 19.55,
+      "miss": 13.51,
+      "fa": 3.47,
+      "conf": 2.58
+     },
+     "DER_nemotron": {
+      "DER": 30.58,
+      "miss": 27.53,
+      "fa": 1.95,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 29.19,
+     "ASR_BLEU_speaker_blind": 28.94
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 39.43,
+     "cpchrF_session": 33.86,
+     "cpBLEU_window": 39.62,
+     "BLEU_speaker_blind": 40.37,
+     "count_exact": 0.7306,
+     "empty": 0.0049,
+     "DER_output": {
+      "DER": 19.53,
+      "miss": 13.5,
+      "fa": 3.47,
+      "conf": 2.56
+     },
+     "DER_nemotron": {
+      "DER": 30.56,
+      "miss": 27.55,
+      "fa": 1.92,
+      "conf": 1.09
+     },
+     "cpASR_BLEU_session": 29.22,
+     "ASR_BLEU_speaker_blind": 28.97
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 45.57,
+     "cpchrF_session": 39.09,
+     "cpBLEU_window": 45.69,
+     "BLEU_speaker_blind": 45.71,
+     "count_exact": 0.9443,
+     "empty": 0.0041,
+     "DER_output": {
+      "DER": 9.19,
+      "miss": 6.49,
+      "fa": 1.89,
+      "conf": 0.8
+     },
+     "DER_nemotron": {
+      "DER": 23.6,
+      "miss": 21.28,
+      "fa": 1.74,
+      "conf": 0.58
+     },
+     "cpASR_BLEU_session": 35.67,
+     "ASR_BLEU_speaker_blind": 35.42
+    }
+   },
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 31.64,
+     "cpchrF_session": 33.52,
+     "cpBLEU_window": 32.16,
+     "BLEU_speaker_blind": 32.74,
+     "count_exact": 0.8783,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.25,
+      "miss": 8.47,
+      "fa": 2.9,
+      "conf": 3.87
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "cpASR_BLEU_session": 33.32,
+     "ASR_BLEU_speaker_blind": 33.68,
+     "LAAL_s": 2.373,
+     "first_commit_s": 2.229
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 43.75,
+     "cpchrF_session": 39.08,
+     "cpBLEU_window": 44.74,
+     "BLEU_speaker_blind": 44.85,
+     "count_exact": 0.9845,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 8.41,
+      "miss": 3.5,
+      "fa": 1.83,
+      "conf": 3.08
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "cpASR_BLEU_session": 37.68,
+     "ASR_BLEU_speaker_blind": 38.51,
+     "LAAL_s": 2.023,
+     "first_commit_s": 1.953
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 25.42,
+     "cpchrF_session": 29.77,
+     "cpBLEU_window": 25.69,
+     "BLEU_speaker_blind": 26.68,
+     "count_exact": 0.6811,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.54,
+      "miss": 12.4,
+      "fa": 3.75,
+      "conf": 4.39
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "cpASR_BLEU_session": 30.1,
+     "ASR_BLEU_speaker_blind": 30.28,
+     "LAAL_s": 3.022,
+     "first_commit_s": 2.74
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 25.42,
+     "cpchrF_session": 29.79,
+     "cpBLEU_window": 25.69,
+     "BLEU_speaker_blind": 26.68,
+     "count_exact": 0.6833,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.51,
+      "miss": 12.39,
+      "fa": 3.74,
+      "conf": 4.38
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "cpASR_BLEU_session": 30.13,
+     "ASR_BLEU_speaker_blind": 30.31,
+     "LAAL_s": 3.027,
+     "first_commit_s": 2.745
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 40.32,
+     "cpchrF_session": 37.18,
+     "cpBLEU_window": 40.94,
+     "BLEU_speaker_blind": 41.22,
+     "count_exact": 0.9319,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.11,
+      "miss": 5.3,
+      "fa": 2.13,
+      "conf": 2.67
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "cpASR_BLEU_session": 36.14,
+     "ASR_BLEU_speaker_blind": 36.45,
+     "LAAL_s": 2.305,
+     "first_commit_s": 2.234
+    }
+   },
+   "O2_LA2_d2": null,
+   "S2dl_d1": {
+    "all": {
+     "windows": 2375,
+     "cpBLEU_session": 42.63,
+     "cpchrF_session": 36.81,
+     "cpBLEU_window": 43.06,
+     "BLEU_speaker_blind": 42.8,
+     "count_exact": 0.9057,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 11.04,
+      "miss": 6.48,
+      "fa": 2.28,
+      "conf": 2.27
+     },
+     "DER_nemotron": {
+      "DER": 27.96,
+      "miss": 25.13,
+      "fa": 1.86,
+      "conf": 0.96
+     },
+     "cpASR_BLEU_session": 35.42,
+     "ASR_BLEU_speaker_blind": 35.23,
+     "LAAL_s": 2.323,
+     "first_commit_s": 2.186
+    },
+    "single_spk": {
+     "windows": 1544,
+     "cpBLEU_session": 45.79,
+     "cpchrF_session": 40.05,
+     "cpBLEU_window": 46.6,
+     "BLEU_speaker_blind": 46.54,
+     "count_exact": 0.9786,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 5.42,
+      "miss": 2.11,
+      "fa": 1.23,
+      "conf": 2.08
+     },
+     "DER_nemotron": {
+      "DER": 24.03,
+      "miss": 21.85,
+      "fa": 1.74,
+      "conf": 0.44
+     },
+     "cpASR_BLEU_session": 39.57,
+     "ASR_BLEU_speaker_blind": 40.16,
+     "LAAL_s": 2.212,
+     "first_commit_s": 2.061
+    },
+    "multi_spk": {
+     "windows": 831,
+     "cpBLEU_session": 40.21,
+     "cpchrF_session": 34.41,
+     "cpBLEU_window": 40.36,
+     "BLEU_speaker_blind": 40.07,
+     "count_exact": 0.7702,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.38,
+      "miss": 9.93,
+      "fa": 3.11,
+      "conf": 2.34
+     },
+     "DER_nemotron": {
+      "DER": 30.99,
+      "miss": 27.72,
+      "fa": 1.96,
+      "conf": 1.31
+     },
+     "cpASR_BLEU_session": 32.31,
+     "ASR_BLEU_speaker_blind": 31.67,
+     "LAAL_s": 2.528,
+     "first_commit_s": 2.418
+    },
+    "overlap": {
+     "windows": 824,
+     "cpBLEU_session": 40.23,
+     "cpchrF_session": 34.43,
+     "cpBLEU_window": 40.39,
+     "BLEU_speaker_blind": 40.09,
+     "count_exact": 0.7731,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.35,
+      "miss": 9.94,
+      "fa": 3.08,
+      "conf": 2.32
+     },
+     "DER_nemotron": {
+      "DER": 30.98,
+      "miss": 27.74,
+      "fa": 1.93,
+      "conf": 1.3
+     },
+     "cpASR_BLEU_session": 32.34,
+     "ASR_BLEU_speaker_blind": 31.69,
+     "LAAL_s": 2.532,
+     "first_commit_s": 2.424
+    },
+    "strict_review": {
+     "windows": 1454,
+     "cpBLEU_session": 44.51,
+     "cpchrF_session": 38.67,
+     "cpBLEU_window": 44.97,
+     "BLEU_speaker_blind": 44.75,
+     "count_exact": 0.9422,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 6.77,
+      "miss": 3.69,
+      "fa": 1.64,
+      "conf": 1.44
+     },
+     "DER_nemotron": {
+      "DER": 23.8,
+      "miss": 21.41,
+      "fa": 1.77,
+      "conf": 0.63
+     },
+     "cpASR_BLEU_session": 37.91,
+     "ASR_BLEU_speaker_blind": 37.92,
+     "LAAL_s": 2.399,
+     "first_commit_s": 2.279
+    }
+   },
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  },
+  "zh2en": {
+   "B-off": null,
+   "C-van": null,
+   "C-ft2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 22.36,
+     "cpchrF_session": 48.18,
+     "cpBLEU_window": 23.22,
+     "BLEU_speaker_blind": 24.85,
+     "count_exact": 0.8357,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 15.5,
+      "miss": 7.06,
+      "fa": 4.33,
+      "conf": 4.11
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     },
+     "cpASR_BLEU_session": 12.47,
+     "ASR_BLEU_speaker_blind": 13.96
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.71,
+     "cpchrF_session": 52.78,
+     "cpBLEU_window": 28.99,
+     "BLEU_speaker_blind": 28.92,
+     "count_exact": 0.8894,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 13.49,
+      "miss": 4.99,
+      "fa": 3.66,
+      "conf": 4.85
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     },
+     "cpASR_BLEU_session": 16.81,
+     "ASR_BLEU_speaker_blind": 17.76
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 19.34,
+     "cpchrF_session": 45.1,
+     "cpBLEU_window": 19.97,
+     "BLEU_speaker_blind": 22.62,
+     "count_exact": 0.7424,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 16.92,
+      "miss": 8.54,
+      "fa": 4.8,
+      "conf": 3.58
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     },
+     "cpASR_BLEU_session": 10.12,
+     "ASR_BLEU_speaker_blind": 11.97
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 19.07,
+     "cpchrF_session": 44.84,
+     "cpBLEU_window": 19.7,
+     "BLEU_speaker_blind": 22.36,
+     "count_exact": 0.7435,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.14,
+      "miss": 8.67,
+      "fa": 4.84,
+      "conf": 3.63
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     },
+     "cpASR_BLEU_session": 10.25,
+     "ASR_BLEU_speaker_blind": 12.17
+    }
+   },
+   "O2-nosd": null,
+   "O2": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 25.86,
+     "cpchrF_session": 49.06,
+     "cpBLEU_window": 27.06,
+     "BLEU_speaker_blind": 28.43,
+     "count_exact": 0.9126,
+     "empty": 0.0003,
+     "DER_output": {
+      "DER": 16.02,
+      "miss": 7.48,
+      "fa": 3.14,
+      "conf": 5.41
+     },
+     "DER_nemotron": {
+      "DER": 17.1,
+      "miss": 9.31,
+      "fa": 3.82,
+      "conf": 3.97
+     },
+     "cpASR_BLEU_session": 14.44,
+     "ASR_BLEU_speaker_blind": 15.64
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 29.09,
+     "cpchrF_session": 53.76,
+     "cpBLEU_window": 30.52,
+     "BLEU_speaker_blind": 30.7,
+     "count_exact": 0.9905,
+     "empty": 0.0005,
+     "DER_output": {
+      "DER": 9.95,
+      "miss": 3.36,
+      "fa": 1.61,
+      "conf": 4.97
+     },
+     "DER_nemotron": {
+      "DER": 14.91,
+      "miss": 7.36,
+      "fa": 2.99,
+      "conf": 4.57
+     },
+     "cpASR_BLEU_session": 16.39,
+     "ASR_BLEU_speaker_blind": 17.29
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.76,
+     "cpchrF_session": 45.78,
+     "cpBLEU_window": 24.81,
+     "BLEU_speaker_blind": 27.04,
+     "count_exact": 0.777,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.34,
+      "miss": 10.4,
+      "fa": 4.22,
+      "conf": 5.72
+     },
+     "DER_nemotron": {
+      "DER": 18.66,
+      "miss": 10.7,
+      "fa": 4.41,
+      "conf": 3.55
+     },
+     "cpASR_BLEU_session": 13.05,
+     "ASR_BLEU_speaker_blind": 14.52
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.66,
+     "cpchrF_session": 45.58,
+     "cpBLEU_window": 24.71,
+     "BLEU_speaker_blind": 26.94,
+     "count_exact": 0.7714,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.7,
+      "miss": 10.64,
+      "fa": 4.24,
+      "conf": 5.82
+     },
+     "DER_nemotron": {
+      "DER": 18.9,
+      "miss": 10.85,
+      "fa": 4.45,
+      "conf": 3.59
+     },
+     "cpASR_BLEU_session": 12.95,
+     "ASR_BLEU_speaker_blind": 14.45
+    }
+   },
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.81,
+     "cpchrF_session": 47.98,
+     "cpBLEU_window": 26.23,
+     "BLEU_speaker_blind": 27.67,
+     "count_exact": 0.9068,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 17.33,
+      "miss": 7.57,
+      "fa": 3.15,
+      "conf": 6.61
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "cpASR_BLEU_session": 15.79,
+     "ASR_BLEU_speaker_blind": 17.17,
+     "LAAL_s": 2.505,
+     "first_commit_s": 2.236
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.07,
+     "cpchrF_session": 51.89,
+     "cpBLEU_window": 29.35,
+     "BLEU_speaker_blind": 29.53,
+     "count_exact": 0.9938,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 13.23,
+      "miss": 3.62,
+      "fa": 1.73,
+      "conf": 7.88
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "cpASR_BLEU_session": 15.99,
+     "ASR_BLEU_speaker_blind": 17.53,
+     "LAAL_s": 2.091,
+     "first_commit_s": 1.977
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 23.36,
+     "cpchrF_session": 45.28,
+     "cpBLEU_window": 24.23,
+     "BLEU_speaker_blind": 26.58,
+     "count_exact": 0.7556,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.25,
+      "miss": 10.38,
+      "fa": 4.16,
+      "conf": 5.71
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "cpASR_BLEU_session": 15.61,
+     "ASR_BLEU_speaker_blind": 16.89,
+     "LAAL_s": 3.223,
+     "first_commit_s": 2.688
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 23.26,
+     "cpchrF_session": 45.07,
+     "cpBLEU_window": 24.14,
+     "BLEU_speaker_blind": 26.47,
+     "count_exact": 0.7565,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 20.55,
+      "miss": 10.59,
+      "fa": 4.2,
+      "conf": 5.76
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "cpASR_BLEU_session": 15.65,
+     "ASR_BLEU_speaker_blind": 16.94,
+     "LAAL_s": 3.255,
+     "first_commit_s": 2.684
+    }
+   },
+   "O2_LA2_d2": null,
+   "S2dl_d1": {
+    "all": {
+     "windows": 3317,
+     "cpBLEU_session": 24.3,
+     "cpchrF_session": 47.72,
+     "cpBLEU_window": 25.81,
+     "BLEU_speaker_blind": 26.71,
+     "count_exact": 0.9325,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 12.78,
+      "miss": 4.88,
+      "fa": 1.58,
+      "conf": 6.32
+     },
+     "DER_nemotron": {
+      "DER": 18.03,
+      "miss": 8.72,
+      "fa": 5.3,
+      "conf": 4.01
+     },
+     "cpASR_BLEU_session": 17.79,
+     "ASR_BLEU_speaker_blind": 19.28,
+     "LAAL_s": 2.927,
+     "first_commit_s": 2.788
+    },
+    "single_spk": {
+     "windows": 2106,
+     "cpBLEU_session": 27.61,
+     "cpchrF_session": 52.51,
+     "cpBLEU_window": 30.12,
+     "BLEU_speaker_blind": 30.12,
+     "count_exact": 0.9953,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 10.18,
+      "miss": 1.8,
+      "fa": 0.75,
+      "conf": 7.63
+     },
+     "DER_nemotron": {
+      "DER": 17.02,
+      "miss": 7.22,
+      "fa": 4.79,
+      "conf": 5.01
+     },
+     "cpASR_BLEU_session": 21.78,
+     "ASR_BLEU_speaker_blind": 23.86,
+     "LAAL_s": 2.744,
+     "first_commit_s": 2.665
+    },
+    "multi_spk": {
+     "windows": 1211,
+     "cpBLEU_session": 21.64,
+     "cpchrF_session": 44.5,
+     "cpBLEU_window": 22.53,
+     "BLEU_speaker_blind": 24.09,
+     "count_exact": 0.8233,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.63,
+      "miss": 7.07,
+      "fa": 2.17,
+      "conf": 5.39
+     },
+     "DER_nemotron": {
+      "DER": 18.74,
+      "miss": 9.79,
+      "fa": 5.65,
+      "conf": 3.3
+     },
+     "cpASR_BLEU_session": 15.52,
+     "ASR_BLEU_speaker_blind": 16.81,
+     "LAAL_s": 3.246,
+     "first_commit_s": 3.001
+    },
+    "overlap": {
+     "windows": 1146,
+     "cpBLEU_session": 21.35,
+     "cpchrF_session": 44.25,
+     "cpBLEU_window": 22.22,
+     "BLEU_speaker_blind": 23.76,
+     "count_exact": 0.8211,
+     "empty": 0.0,
+     "DER_output": {
+      "DER": 14.89,
+      "miss": 7.3,
+      "fa": 2.2,
+      "conf": 5.4
+     },
+     "DER_nemotron": {
+      "DER": 18.99,
+      "miss": 9.92,
+      "fa": 5.71,
+      "conf": 3.36
+     },
+     "cpASR_BLEU_session": 15.44,
+     "ASR_BLEU_speaker_blind": 16.75,
+     "LAAL_s": 3.253,
+     "first_commit_s": 2.972
+    }
+   },
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  },
+  "ali": {
+   "B-off": null,
+   "C-van": null,
+   "C-ft2": null,
+   "O2-nosd": null,
+   "O2": null,
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": null,
+   "O2_LA2_d2": null,
+   "S2dl_d1": null,
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  }
+ },
+ "voice": {
+  "en2zh": {
+   "B-off": {
+    "streams": 2375,
+    "SIM_mean": 0.7922,
+    "streams_in_multi_windows": 1780,
+    "confusion_rate": 0.3961,
+    "ref_ref_cos_mean": 0.7459
+   },
+   "C-van": null,
+   "C-ft2": {
+    "streams": 3577,
+    "SIM_mean": 0.8171,
+    "streams_in_multi_windows": 2068,
+    "confusion_rate": 0.2403,
+    "ref_ref_cos_mean": 0.7459,
+    "identification_in_meeting": 0.6204,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7877,
+     0.8437
+    ],
+    "confusion_rate_ci95": [
+     0.207,
+     0.2701
+    ],
+    "identification_in_meeting_ci95": [
+     0.5654,
+     0.6805
+    ]
+   },
+   "O2-nosd": null,
+   "O2": {
+    "streams": 3329,
+    "SIM_mean": 0.8168,
+    "streams_in_multi_windows": 1831,
+    "confusion_rate": 0.2343,
+    "ref_ref_cos_mean": 0.7459,
+    "identification_in_meeting": 0.6224,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7852,
+     0.8452
+    ],
+    "confusion_rate_ci95": [
+     0.1922,
+     0.2717
+    ],
+    "identification_in_meeting_ci95": [
+     0.5564,
+     0.6908
+    ]
+   },
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": {
+    "streams": 3320,
+    "SIM_mean": 0.8292,
+    "streams_in_multi_windows": 2090,
+    "confusion_rate": 0.1976,
+    "ref_ref_cos_mean": 0.7459,
+    "identification_in_meeting": 0.6762,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.8064,
+     0.85
+    ],
+    "confusion_rate_ci95": [
+     0.1725,
+     0.2204
+    ],
+    "identification_in_meeting_ci95": [
+     0.6296,
+     0.7216
+    ]
+   },
+   "O2_LA2_d2": null,
+   "S2dl_d1": {
+    "streams": 3401,
+    "SIM_mean": 0.8287,
+    "streams_in_multi_windows": 2165,
+    "confusion_rate": 0.2134,
+    "ref_ref_cos_mean": 0.7459,
+    "identification_in_meeting": 0.6633,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.8064,
+     0.8502
+    ],
+    "confusion_rate_ci95": [
+     0.1956,
+     0.2298
+    ],
+    "identification_in_meeting_ci95": [
+     0.621,
+     0.7062
+    ]
+   },
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  },
+  "zh2en": {
+   "B-off": null,
+   "C-van": null,
+   "C-ft2": {
+    "streams": 5195,
+    "SIM_mean": 0.7608,
+    "streams_in_multi_windows": 3219,
+    "confusion_rate": 0.2939,
+    "ref_ref_cos_mean": 0.7482,
+    "identification_in_meeting": 0.5592,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7409,
+     0.7795
+    ],
+    "confusion_rate_ci95": [
+     0.2434,
+     0.3546
+    ],
+    "identification_in_meeting_ci95": [
+     0.4906,
+     0.6244
+    ]
+   },
+   "O2-nosd": null,
+   "O2": {
+    "streams": 4809,
+    "SIM_mean": 0.7571,
+    "streams_in_multi_windows": 2843,
+    "confusion_rate": 0.3014,
+    "ref_ref_cos_mean": 0.7482,
+    "identification_in_meeting": 0.5614,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7364,
+     0.7771
+    ],
+    "confusion_rate_ci95": [
+     0.255,
+     0.3504
+    ],
+    "identification_in_meeting_ci95": [
+     0.501,
+     0.618
+    ]
+   },
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": {
+    "streams": 4835,
+    "SIM_mean": 0.7663,
+    "streams_in_multi_windows": 3229,
+    "confusion_rate": 0.271,
+    "ref_ref_cos_mean": 0.7482,
+    "identification_in_meeting": 0.6093,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7516,
+     0.7805
+    ],
+    "confusion_rate_ci95": [
+     0.235,
+     0.3089
+    ],
+    "identification_in_meeting_ci95": [
+     0.5647,
+     0.6545
+    ]
+   },
+   "O2_LA2_d2": null,
+   "S2dl_d1": {
+    "streams": 4896,
+    "SIM_mean": 0.7688,
+    "streams_in_multi_windows": 3242,
+    "confusion_rate": 0.2785,
+    "ref_ref_cos_mean": 0.7482,
+    "identification_in_meeting": 0.5997,
+    "sv": "wavlm",
+    "SIM_mean_ci95": [
+     0.7556,
+     0.7818
+    ],
+    "confusion_rate_ci95": [
+     0.2448,
+     0.316
+    ],
+    "identification_in_meeting_ci95": [
+     0.5588,
+     0.649
+    ]
+   },
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  },
+  "ali": {
+   "B-off": null,
+   "C-van": null,
+   "C-ft2": null,
+   "O2-nosd": null,
+   "O2": null,
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": null,
+   "O2_LA2_d2": null,
+   "S2dl_d1": null,
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  }
+ },
+ "speech_extras": {
+  "en2zh": {
+   "B-off": {
+    "misread": 0.1453640537177672
+   },
+   "C-van": {},
+   "C-ft2": {
+    "misread": 0.14693420856332987,
+    "abrupt_per_min": 3.231,
+    "single_unit": 0.0675,
+    "lag_start_med": -0.24,
+    "lag_end_med": 2.58,
+    "utmos": 2.7609120770585243
+   },
+   "O2-nosd": {},
+   "O2": {
+    "misread": 0.10707282913165266,
+    "abrupt_per_min": 0.898,
+    "single_unit": 0.0272,
+    "lag_start_med": -0.8,
+    "lag_end_med": 1.54,
+    "utmos": 2.76750041771622
+   },
+   "O2-oracle": {},
+   "B-LA2": {},
+   "O2_LA2_d1": {
+    "misread": 0.08855280831799413,
+    "abrupt_per_min": 2.862,
+    "single_unit": 0.0941,
+    "lag_start_med": 0.65,
+    "lag_end_med": 3.995,
+    "utmos": 3.186404611237107
+   },
+   "O2_LA2_d2": {},
+   "S2dl_d1": {
+    "misread": 0.0579212916246216,
+    "abrupt_per_min": 2.301,
+    "single_unit": 0.1121,
+    "lag_start_med": 2.08,
+    "lag_end_med": 4.06,
+    "utmos": 3.204510686054157
+   },
+   "S2dl_d0.5": {},
+   "S2dl_d2": {},
+   "S2dl1k_d1": {},
+   "S2dlm_d0.5": {},
+   "S2dlm_d1": {},
+   "S2dlm_d2": {},
+   "S2_b0_d1": {}
+  },
+  "zh2en": {
+   "B-off": {},
+   "C-van": {},
+   "C-ft2": {
+    "misread": 0.33492498739283916,
+    "abrupt_per_min": 0.045,
+    "single_unit": 0.2021,
+    "lag_start_med": -0.4,
+    "lag_end_med": 2.78,
+    "utmos": 1.9624183755566929
+   },
+   "O2-nosd": {},
+   "O2": {
+    "misread": 0.3429198761788208,
+    "abrupt_per_min": 0.023,
+    "single_unit": 0.2938,
+    "lag_start_med": -0.4,
+    "lag_end_med": 2.38,
+    "utmos": 1.9505973722201502
+   },
+   "O2-oracle": {},
+   "B-LA2": {},
+   "O2_LA2_d1": {
+    "misread": 0.23564500141602945,
+    "abrupt_per_min": 1.557,
+    "single_unit": 0.3069,
+    "lag_start_med": 1.88,
+    "lag_end_med": 4.88,
+    "utmos": 1.8262253620950655
+   },
+   "O2_LA2_d2": {},
+   "S2dl_d1": {
+    "misread": 0.18302952776889458,
+    "abrupt_per_min": 0.061,
+    "single_unit": 0.3687,
+    "lag_start_med": 2.2,
+    "lag_end_med": 4.93,
+    "utmos": 1.840440708524506
+   },
+   "S2dl_d0.5": {},
+   "S2dl_d2": {},
+   "S2dl1k_d1": {},
+   "S2dlm_d0.5": {},
+   "S2dlm_d1": {},
+   "S2dlm_d2": {},
+   "S2_b0_d1": {}
+  },
+  "ali": {
+   "B-off": {},
+   "C-van": {},
+   "C-ft2": {},
+   "O2-nosd": {},
+   "O2": {},
+   "O2-oracle": {},
+   "B-LA2": {},
+   "O2_LA2_d1": {},
+   "O2_LA2_d2": {},
+   "S2dl_d1": {},
+   "S2dl_d0.5": {},
+   "S2dl_d2": {},
+   "S2dl1k_d1": {},
+   "S2dlm_d0.5": {},
+   "S2dlm_d1": {},
+   "S2dlm_d2": {},
+   "S2_b0_d1": {}
+  }
+ },
+ "len_ratio": {
+  "en2zh": {
+   "B-off": 0.7692734891704953,
+   "C-van": 0.8696588748085694,
+   "C-ft2": 1.108682115750324,
+   "O2-nosd": 0.9478298917890982,
+   "O2": 0.9490079264906346,
+   "O2-oracle": 0.9461974722741119,
+   "B-LA2": 0.7466047356995001,
+   "O2_LA2_d1": 1.175661803066256,
+   "O2_LA2_d2": 1.0576395550394642,
+   "S2dl_d1": 0.9891284226115347,
+   "S2dl_d0.5": 1.2652092694501944,
+   "S2dl_d2": 1.0113932784705744,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": 0.9819087527978324,
+   "S2dlm_d1": 0.9699601151108194,
+   "S2dlm_d2": 0.9698759697749954,
+   "S2_b0_d1": 1.0688477137712256
+  },
+  "zh2en": {
+   "B-off": 0.7618992834133194,
+   "C-van": 0.9405693248307146,
+   "C-ft2": 1.042929458944185,
+   "O2-nosd": 0.9097035040431267,
+   "O2": 0.9132206955492735,
+   "O2-oracle": 0.9150943396226415,
+   "B-LA2": 0.7755242916310565,
+   "O2_LA2_d1": 0.9350634409309053,
+   "O2_LA2_d2": 0.9381533101045296,
+   "S2dl_d1": 1.030865820787588,
+   "S2dl_d0.5": 1.3360890145289592,
+   "S2dl_d2": 0.9390901321412136,
+   "S2dl1k_d1": 0.9615738610216291,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": 0.9217014003024128
+  },
+  "ali": {
+   "B-off": 0.7747243183470364,
+   "C-van": null,
+   "C-ft2": 0.9759079320548394,
+   "O2-nosd": 0.8459971126378408,
+   "O2": 0.8151473885754656,
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": 1.1740608393828007,
+   "O2_LA2_d2": null,
+   "S2dl_d1": 1.0401568595329027,
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  }
+ },
+ "blocks": {
+  "en2zh": {
+   "B-off": {},
+   "C-van": {},
+   "C-ft2": {},
+   "O2-nosd": {},
+   "O2": {},
+   "O2-oracle": {},
+   "B-LA2": {
+    "units_per_block": 5.303272814142379,
+    "single_unit": 0.1341376015289059,
+    "mid_stop": 0.5568561872909699,
+    "blocks": 8372
+   },
+   "O2_LA2_d1": {
+    "units_per_block": 7.196744952616399,
+    "single_unit": 0.09260403790688092,
+    "mid_stop": 0.4661104243922538,
+    "blocks": 9708
+   },
+   "O2_LA2_d2": {
+    "units_per_block": 8.709851738949702,
+    "single_unit": 0.057918802826659274,
+    "mid_stop": 0.34100041568518774,
+    "blocks": 7217
+   },
+   "S2dl_d1": {
+    "units_per_block": 5.993168145202406,
+    "single_unit": 0.11114510043846232,
+    "mid_stop": 0.12919343326195576,
+    "blocks": 9807
+   },
+   "S2dl_d0.5": {
+    "units_per_block": 4.641908995492993,
+    "single_unit": 0.11817003148731246,
+    "mid_stop": 0.4555781934926221,
+    "blocks": 16197
+   },
+   "S2dl_d2": {
+    "units_per_block": 6.5695870657636,
+    "single_unit": 0.09700677299541184,
+    "mid_stop": 0.12093074065982085,
+    "blocks": 9154
+   },
+   "S2dl1k_d1": {},
+   "S2dlm_d0.5": {
+    "units_per_block": 5.977156320426142,
+    "single_unit": 0.12784265519360788,
+    "mid_stop": 0.15263265724236838,
+    "blocks": 9762
+   },
+   "S2dlm_d1": {
+    "units_per_block": 6.300852086519554,
+    "single_unit": 0.10028402883985144,
+    "mid_stop": 0.11940135459908237,
+    "blocks": 9154
+   },
+   "S2dlm_d2": {
+    "units_per_block": 6.559640336899613,
+    "single_unit": 0.09367175051217846,
+    "mid_stop": 0.11381743683132256,
+    "blocks": 8786
+   },
+   "S2_b0_d1": {
+    "units_per_block": 8.259427828348505,
+    "single_unit": 0.08166449934980494,
+    "mid_stop": 0.36892067620286084,
+    "blocks": 7690
+   }
+  },
+  "zh2en": {
+   "B-off": {},
+   "C-van": {},
+   "C-ft2": {},
+   "O2-nosd": {},
+   "O2": {},
+   "O2-oracle": {},
+   "B-LA2": {
+    "units_per_block": 4.090325936199722,
+    "single_unit": 0.22962898751733704,
+    "mid_stop": 0.5520110957004161,
+    "blocks": 11536
+   },
+   "O2_LA2_d1": {
+    "units_per_block": 3.678175727905179,
+    "single_unit": 0.30687967018809587,
+    "mid_stop": 0.4121360474104612,
+    "blocks": 15524
+   },
+   "O2_LA2_d2": {
+    "units_per_block": 4.8338123415046494,
+    "single_unit": 0.2863060016906171,
+    "mid_stop": 0.2586644125105664,
+    "blocks": 11830
+   },
+   "S2dl_d1": {
+    "units_per_block": 5.281008403361344,
+    "single_unit": 0.36865546218487394,
+    "mid_stop": 0.006218487394957983,
+    "blocks": 11900
+   },
+   "S2dl_d0.5": {
+    "units_per_block": 2.45694818158146,
+    "single_unit": 0.49631108410728236,
+    "mid_stop": 0.05765558545265168,
+    "blocks": 46084
+   },
+   "S2dl_d2": {
+    "units_per_block": 5.274926144756278,
+    "single_unit": 0.3613367799113737,
+    "mid_stop": 0.004246676514032497,
+    "blocks": 10832
+   },
+   "S2dl1k_d1": {
+    "units_per_block": 4.824352118469766,
+    "single_unit": 0.37819827231591935,
+    "mid_stop": 0.008391608391608392,
+    "blocks": 12155
+   },
+   "S2dlm_d0.5": {},
+   "S2dlm_d1": {},
+   "S2dlm_d2": {},
+   "S2_b0_d1": {
+    "units_per_block": 4.20804012576733,
+    "single_unit": 0.32774367420272493,
+    "mid_stop": 0.32250336876777963,
+    "blocks": 13358
+   }
+  },
+  "ali": {
+   "B-off": {},
+   "C-van": {},
+   "C-ft2": {},
+   "O2-nosd": {},
+   "O2": {},
+   "O2-oracle": {},
+   "B-LA2": {},
+   "O2_LA2_d1": {
+    "units_per_block": 5.920342126957956,
+    "single_unit": 0.24659934047815335,
+    "mid_stop": 0.46460222588623246,
+    "blocks": 19408
+   },
+   "O2_LA2_d2": {},
+   "S2dl_d1": {
+    "units_per_block": 5.297910024796316,
+    "single_unit": 0.25732503415819036,
+    "mid_stop": 0.004402611203886443,
+    "blocks": 19761
+   },
+   "S2dl_d0.5": {},
+   "S2dl_d2": {},
+   "S2dl1k_d1": {},
+   "S2dlm_d0.5": {},
+   "S2dlm_d1": {},
+   "S2dlm_d2": {},
+   "S2_b0_d1": {}
+  }
+ },
+ "data": {
+  "en2zh": {
+   "train": {
+    "windows": 21581,
+    "meetings": 137,
+    "hours": 36.8047725,
+    "mean_s": 6.1395292618507025,
+    "multi": 8309,
+    "overlap": 8242,
+    "utts": 54824
+   },
+   "validation": {
+    "windows": 3203,
+    "meetings": 18,
+    "hours": 5.2288258333333335,
+    "mean_s": 5.8769194505151425,
+    "multi": 1280,
+    "overlap": 1269,
+    "utts": 8206
+   },
+   "test": {
+    "windows": 2375,
+    "meetings": 16,
+    "hours": 3.9218961111111112,
+    "mean_s": 5.944768842105263,
+    "multi": 831,
+    "overlap": 824,
+    "utts": 5790
+   }
+  },
+  "zh2en": {
+   "train": {
+    "windows": 27953,
+    "meetings": 127,
+    "hours": 48.53655555555556,
+    "mean_s": 6.250906879404715,
+    "multi": 10459,
+    "overlap": 9677,
+    "utts": 69540
+   },
+   "validation": {
+    "windows": 3366,
+    "meetings": 15,
+    "hours": 5.722334444444445,
+    "mean_s": 6.1201437908496725,
+    "multi": 1323,
+    "overlap": 1233,
+    "utts": 8340
+   },
+   "test": {
+    "windows": 3317,
+    "meetings": 16,
+    "hours": 5.812351666666666,
+    "mean_s": 6.308250226107929,
+    "multi": 1211,
+    "overlap": 1146,
+    "utts": 8634
+   }
+  },
+  "ali": {
+   "test": {
+    "windows": 4243,
+    "meetings": 20,
+    "hours": 7.487253611111111,
+    "mean_s": 6.352607353287769,
+    "multi": 1418,
+    "overlap": 1409,
+    "utts": 9730
+   }
+  }
+ },
+ "rtf": {
+  "en2zh": {
+   "B-off": 0.09767101032337958,
+   "C-van": null,
+   "C-ft2": null,
+   "O2-nosd": 0.18337218689429274,
+   "O2": 0.17735185630873274,
+   "O2-oracle": 0.22232726715379875,
+   "B-LA2": null,
+   "O2_LA2_d1": 0.9159401780289663,
+   "O2_LA2_d2": 0.5958002457144808,
+   "S2dl_d1": 0.5709398217670506,
+   "S2dl_d0.5": 0.8351260933451549,
+   "S2dl_d2": 0.4314806344380191,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": 1.176868388349003,
+   "S2dlm_d1": 0.9886799369862621,
+   "S2dlm_d2": 0.8299556917834386,
+   "S2_b0_d1": 0.43452621344012593
+  },
+  "zh2en": {
+   "B-off": 0.20172557808643718,
+   "C-van": null,
+   "C-ft2": null,
+   "O2-nosd": 0.1515450860251344,
+   "O2": 0.15532057066593719,
+   "O2-oracle": 0.26222891422892225,
+   "B-LA2": null,
+   "O2_LA2_d1": 0.7211175663933311,
+   "O2_LA2_d2": 0.8606671252685731,
+   "S2dl_d1": 1.0489634478605092,
+   "S2dl_d0.5": 1.937205948290389,
+   "S2dl_d2": 0.7985866879470186,
+   "S2dl1k_d1": 0.6980345400451319,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": 0.397094960511776
+  },
+  "ali": {
+   "B-off": 0.31123264935484984,
+   "C-van": null,
+   "C-ft2": null,
+   "O2-nosd": 0.3425822248352227,
+   "O2": 0.3455873320706194,
+   "O2-oracle": null,
+   "B-LA2": null,
+   "O2_LA2_d1": 1.9276093411050106,
+   "O2_LA2_d2": null,
+   "S2dl_d1": 1.4311730458353424,
+   "S2dl_d0.5": null,
+   "S2dl_d2": null,
+   "S2dl1k_d1": null,
+   "S2dlm_d0.5": null,
+   "S2dlm_d1": null,
+   "S2dlm_d2": null,
+   "S2_b0_d1": null
+  }
+ },
+ "bootstrap": {
+  "en2zh:O2_vs_en2zh:C-ft2": {
+   "a": "en2zh:O2",
+   "b": "en2zh:C-ft2",
+   "diff": 6.52,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     5.73,
+     7.31
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     5.45,
+     7.43
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:O2_vs_en2zh:C-van": {
+   "a": "en2zh:O2",
+   "b": "en2zh:C-van",
+   "diff": 13.33,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     12.6,
+     14.02
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     12.45,
+     14.1
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:O2_vs_en2zh:B-off": {
+   "a": "en2zh:O2",
+   "b": "en2zh:B-off",
+   "diff": 29.99,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     29.02,
+     31.05
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     27.94,
+     31.83
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:O2_vs_en2zh:O2-nosd": {
+   "a": "en2zh:O2",
+   "b": "en2zh:O2-nosd",
+   "diff": 21.64,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     20.36,
+     23.0
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     19.51,
+     23.46
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:O2-oracle_vs_en2zh:O2": {
+   "a": "en2zh:O2-oracle",
+   "b": "en2zh:O2",
+   "diff": -0.49,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     -1.0,
+     -0.03
+    ],
+    "p": 0.982
+   },
+   "meeting": {
+    "ci95": [
+     -1.09,
+     0.11
+    ],
+    "p": 0.942
+   }
+  },
+  "en2zh:S2dl_d1_vs_en2zh:O2_LA2_d1": {
+   "a": "en2zh:S2dl_d1",
+   "b": "en2zh:O2_LA2_d1",
+   "diff": 10.98,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     6.71,
+     14.86
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     3.66,
+     17.27
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:S2dl_d1_vs_en2zh:B-LA2": {
+   "a": "en2zh:S2dl_d1",
+   "b": "en2zh:B-LA2",
+   "diff": 30.55,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     29.28,
+     31.69
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     28.44,
+     32.11
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:S2dl_d2_vs_en2zh:O2_LA2_d2": {
+   "a": "en2zh:S2dl_d2",
+   "b": "en2zh:O2_LA2_d2",
+   "diff": 3.37,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     -0.97,
+     6.79
+    ],
+    "p": 0.058
+   },
+   "meeting": {
+    "ci95": [
+     -1.23,
+     7.45
+    ],
+    "p": 0.076
+   }
+  },
+  "en2zh:O2_vs_en2zh:S2dl_d1": {
+   "a": "en2zh:O2",
+   "b": "en2zh:S2dl_d1",
+   "diff": 0.18,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     -0.68,
+     1.2
+    ],
+    "p": 0.368
+   },
+   "meeting": {
+    "ci95": [
+     -0.84,
+     1.43
+    ],
+    "p": 0.376
+   }
+  },
+  "en2zh:S2dl_d1_vs_en2zh:S2_b0_d1": {
+   "a": "en2zh:S2dl_d1",
+   "b": "en2zh:S2_b0_d1",
+   "diff": 9.9,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     7.95,
+     11.7
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     6.64,
+     12.96
+    ],
+    "p": 0.0
+   }
+  },
+  "sp:en2zh:O2_vs_sp:en2zh:C-ft2": {
+   "a": "sp:en2zh:O2",
+   "b": "sp:en2zh:C-ft2",
+   "diff": 1.63,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     0.92,
+     2.38
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     0.26,
+     3.02
+    ],
+    "p": 0.011
+   }
+  },
+  "sp:en2zh:S2dl_d1_vs_sp:en2zh:O2_LA2_d1": {
+   "a": "sp:en2zh:S2dl_d1",
+   "b": "sp:en2zh:O2_LA2_d1",
+   "diff": 2.1,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     1.56,
+     2.67
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     1.5,
+     2.7
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:O2_vs_zh2en:C-ft2": {
+   "a": "zh2en:O2",
+   "b": "zh2en:C-ft2",
+   "diff": 3.5,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     3.08,
+     3.95
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     2.62,
+     4.36
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:O2_vs_zh2en:C-van": {
+   "a": "zh2en:O2",
+   "b": "zh2en:C-van",
+   "diff": 9.79,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     9.26,
+     10.35
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     8.79,
+     10.78
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:O2_vs_zh2en:B-off": {
+   "a": "zh2en:O2",
+   "b": "zh2en:B-off",
+   "diff": 19.46,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     18.8,
+     20.13
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     18.23,
+     20.74
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:O2_vs_zh2en:O2-nosd": {
+   "a": "zh2en:O2",
+   "b": "zh2en:O2-nosd",
+   "diff": 13.66,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     12.94,
+     14.36
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     12.08,
+     15.54
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:O2-oracle_vs_zh2en:O2": {
+   "a": "zh2en:O2-oracle",
+   "b": "zh2en:O2",
+   "diff": 1.46,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     1.15,
+     1.8
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     0.93,
+     2.11
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:S2dl_d1_vs_zh2en:O2_LA2_d1": {
+   "a": "zh2en:S2dl_d1",
+   "b": "zh2en:O2_LA2_d1",
+   "diff": -0.52,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -3.69,
+     0.68
+    ],
+    "p": 0.633
+   },
+   "meeting": {
+    "ci95": [
+     -2.67,
+     0.67
+    ],
+    "p": 0.677
+   }
+  },
+  "zh2en:S2dl_d1_vs_zh2en:B-LA2": {
+   "a": "zh2en:S2dl_d1",
+   "b": "zh2en:B-LA2",
+   "diff": 17.99,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     14.92,
+     19.33
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     15.59,
+     19.87
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:S2dl_d2_vs_zh2en:O2_LA2_d2": {
+   "a": "zh2en:S2dl_d2",
+   "b": "zh2en:O2_LA2_d2",
+   "diff": -0.06,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -0.47,
+     0.36
+    ],
+    "p": 0.632
+   },
+   "meeting": {
+    "ci95": [
+     -0.51,
+     0.35
+    ],
+    "p": 0.607
+   }
+  },
+  "zh2en:O2_vs_zh2en:S2dl_d1": {
+   "a": "zh2en:O2",
+   "b": "zh2en:S2dl_d1",
+   "diff": 1.56,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     0.29,
+     4.59
+    ],
+    "p": 0.001
+   },
+   "meeting": {
+    "ci95": [
+     0.21,
+     3.81
+    ],
+    "p": 0.012
+   }
+  },
+  "zh2en:S2dl_d1_vs_zh2en:S2_b0_d1": {
+   "a": "zh2en:S2dl_d1",
+   "b": "zh2en:S2_b0_d1",
+   "diff": 0.23,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -2.89,
+     1.46
+    ],
+    "p": 0.4
+   },
+   "meeting": {
+    "ci95": [
+     -2.51,
+     1.67
+    ],
+    "p": 0.35
+   }
+  },
+  "sp:zh2en:O2_vs_sp:zh2en:C-ft2": {
+   "a": "sp:zh2en:O2",
+   "b": "sp:zh2en:C-ft2",
+   "diff": 1.97,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     0.27,
+     3.84
+    ],
+    "p": 0.012
+   },
+   "meeting": {
+    "ci95": [
+     0.66,
+     3.5
+    ],
+    "p": 0.001
+   }
+  },
+  "sp:zh2en:S2dl_d1_vs_sp:zh2en:O2_LA2_d1": {
+   "a": "sp:zh2en:S2dl_d1",
+   "b": "sp:zh2en:O2_LA2_d1",
+   "diff": 2.0,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -0.09,
+     4.09
+    ],
+    "p": 0.03
+   },
+   "meeting": {
+    "ci95": [
+     -0.35,
+     4.74
+    ],
+    "p": 0.05
+   }
+  },
+  "en2zh:S2dlm_d1_vs_en2zh:S2dl_d1": {
+   "a": "en2zh:S2dlm_d1",
+   "b": "en2zh:S2dl_d1",
+   "diff": 1.09,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     0.32,
+     1.98
+    ],
+    "p": 0.005
+   },
+   "meeting": {
+    "ci95": [
+     0.3,
+     2.0
+    ],
+    "p": 0.001
+   }
+  },
+  "en2zh:S2dlm_d0.5_vs_en2zh:S2dl_d0.5": {
+   "a": "en2zh:S2dlm_d0.5",
+   "b": "en2zh:S2dl_d0.5",
+   "diff": 19.48,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     16.37,
+     22.61
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     15.99,
+     22.37
+    ],
+    "p": 0.0
+   }
+  },
+  "en2zh:S2dlm_d2_vs_en2zh:S2dl_d2": {
+   "a": "en2zh:S2dlm_d2",
+   "b": "en2zh:S2dl_d2",
+   "diff": 2.64,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     -0.1,
+     7.6
+    ],
+    "p": 0.043
+   },
+   "meeting": {
+    "ci95": [
+     -0.06,
+     6.9
+    ],
+    "p": 0.034
+   }
+  },
+  "en2zh:S2dlm_d1_vs_en2zh:O2_LA2_d1": {
+   "a": "en2zh:S2dlm_d1",
+   "b": "en2zh:O2_LA2_d1",
+   "diff": 12.07,
+   "windows": 2375,
+   "window": {
+    "ci95": [
+     8.3,
+     15.73
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     5.35,
+     17.73
+    ],
+    "p": 0.0
+   }
+  },
+  "zh2en:S2dl_d1_vs_zh2en:S2dl1k_d1": {
+   "a": "zh2en:S2dl_d1",
+   "b": "zh2en:S2dl1k_d1",
+   "diff": -0.48,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -3.63,
+     1.48
+    ],
+    "p": 0.553
+   },
+   "meeting": {
+    "ci95": [
+     -2.9,
+     1.2
+    ],
+    "p": 0.609
+   }
+  },
+  "zh2en:O2_LA2_d1_vs_zh2en:S2dl_d1": {
+   "a": "zh2en:O2_LA2_d1",
+   "b": "zh2en:S2dl_d1",
+   "diff": 0.52,
+   "windows": 3317,
+   "window": {
+    "ci95": [
+     -0.74,
+     3.3
+    ],
+    "p": 0.386
+   },
+   "meeting": {
+    "ci95": [
+     -0.66,
+     2.69
+    ],
+    "p": 0.312
+   }
+  },
+  "ali:O2_vs_ali:C-ft2": {
+   "a": "ali:O2",
+   "b": "ali:C-ft2",
+   "diff": -0.35,
+   "windows": 4243,
+   "window": {
+    "ci95": [
+     -0.73,
+     0.04
+    ],
+    "p": 0.962
+   },
+   "meeting": {
+    "ci95": [
+     -1.8,
+     1.17
+    ],
+    "p": 0.655
+   }
+  },
+  "ali:C-ft2_vs_ali:O2": {
+   "a": "ali:C-ft2",
+   "b": "ali:O2",
+   "diff": 0.35,
+   "windows": 4243,
+   "window": {
+    "ci95": [
+     -0.05,
+     0.75
+    ],
+    "p": 0.042
+   },
+   "meeting": {
+    "ci95": [
+     -1.06,
+     1.69
+    ],
+    "p": 0.297
+   }
+  },
+  "ali:O2_vs_ali:O2-nosd": {
+   "a": "ali:O2",
+   "b": "ali:O2-nosd",
+   "diff": 6.56,
+   "windows": 4243,
+   "window": {
+    "ci95": [
+     6.13,
+     7.0
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     5.73,
+     7.4
+    ],
+    "p": 0.0
+   }
+  },
+  "ali:O2_vs_ali:B-off": {
+   "a": "ali:O2",
+   "b": "ali:B-off",
+   "diff": 7.55,
+   "windows": 4243,
+   "window": {
+    "ci95": [
+     7.03,
+     8.08
+    ],
+    "p": 0.0
+   },
+   "meeting": {
+    "ci95": [
+     6.82,
+     8.29
+    ],
+    "p": 0.0
+   }
+  },
+  "ali:S2dl_d1_vs_ali:O2_LA2_d1": {
+   "a": "ali:S2dl_d1",
+   "b": "ali:O2_LA2_d1",
+   "diff": 0.87,
+   "windows": 4243,
+   "window": {
+    "ci95": [
+     -0.76,
+     2.3
+    ],
+    "p": 0.134
+   },
+   "meeting": {
+    "ci95": [
+     -0.58,
+     2.18
+    ],
+    "p": 0.119
+   }
+  }
+ },
+ "diar_windows": {
+  "B-off": {
+   "windows": 871,
+   "cpBLEU_session": 14.85,
+   "cpchrF_session": 14.16,
+   "cpBLEU_window": 26.72,
+   "BLEU_speaker_blind": 29.34,
+   "count_exact": 0.6119,
+   "empty": 0.0,
+   "DER_output": {
+    "DER": 63.38,
+    "miss": 8.03,
+    "fa": 12.08,
+    "conf": 43.27
+   },
+   "DER_nemotron": {
+    "DER": 22.73,
+    "miss": 18.96,
+    "fa": 2.94,
+    "conf": 0.83
+   }
+  },
+  "C-ft2": {
+   "windows": 871,
+   "cpBLEU_session": 37.53,
+   "cpchrF_session": 34.56,
+   "cpBLEU_window": 37.45,
+   "BLEU_speaker_blind": 37.91,
+   "count_exact": 0.8634,
+   "empty": 0.0,
+   "DER_output": {
+    "DER": 20.69,
+    "miss": 16.85,
+    "fa": 3.07,
+    "conf": 0.77
+   },
+   "DER_nemotron": {
+    "DER": 22.73,
+    "miss": 18.96,
+    "fa": 2.94,
+    "conf": 0.83
+   }
+  },
+  "O2-nosd": {
+   "windows": 871,
+   "cpBLEU_session": 21.57,
+   "cpchrF_session": 20.07,
+   "cpBLEU_window": 42.32,
+   "BLEU_speaker_blind": 43.91,
+   "count_exact": 0.8381,
+   "empty": 0.0011,
+   "DER_output": {
+    "DER": 55.36,
+    "miss": 6.48,
+    "fa": 4.8,
+    "conf": 44.09
+   },
+   "DER_nemotron": {
+    "DER": 22.73,
+    "miss": 18.96,
+    "fa": 2.94,
+    "conf": 0.83
+   }
+  },
+  "O2": {
+   "windows": 871,
+   "cpBLEU_session": 43.36,
+   "cpchrF_session": 37.12,
+   "cpBLEU_window": 43.31,
+   "BLEU_speaker_blind": 43.83,
+   "count_exact": 0.8944,
+   "empty": 0.0023,
+   "DER_output": {
+    "DER": 15.54,
+    "miss": 8.42,
+    "fa": 5.14,
+    "conf": 1.97
+   },
+   "DER_nemotron": {
+    "DER": 22.73,
+    "miss": 18.96,
+    "fa": 2.94,
+    "conf": 0.83
+   }
+  }
+ }
+}

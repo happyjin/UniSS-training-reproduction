@@ -1,0 +1,89 @@
+{
+ "set": "ali",
+ "name": "S2dl_full",
+ "close": {
+  "silence": {
+   "utts": 4274,
+   "coverage": 0.788,
+   "near_boundary_share": 0.4691,
+   "coverage_near_boundary": 0.8095,
+   "coverage_inside": 0.7691,
+   "repeated_in_two_windows": 0.0202
+  },
+  "cap": {
+   "utts": 5437,
+   "coverage": 0.6822,
+   "near_boundary_share": 0.1856,
+   "coverage_near_boundary": 0.7126,
+   "coverage_inside": 0.6752,
+   "repeated_in_two_windows": 0.1073
+  },
+  "none": {
+   "utts": 19,
+   "coverage": 0.5263,
+   "near_boundary_share": 0.0,
+   "coverage_near_boundary": 0.0,
+   "coverage_inside": 0.5263,
+   "repeated_in_two_windows": 0.3
+  }
+ },
+ "close_latency_s": {
+  "silence": {
+   "n": 1508,
+   "p50": 1.89,
+   "p90": 2.02
+  },
+  "cap": {
+   "n": 857,
+   "p50": 2.84,
+   "p90": 11.19
+  }
+ },
+ "drift_5min": {
+  "0-5min": {
+   "covered_utts": 1051,
+   "attribution": 0.9515
+  },
+  "5-10min": {
+   "covered_utts": 1041,
+   "attribution": 0.95
+  },
+  "10-15min": {
+   "covered_utts": 1038,
+   "attribution": 0.9509
+  },
+  "15-20min": {
+   "covered_utts": 1145,
+   "attribution": 0.9607
+  },
+  "20-25min": {
+   "covered_utts": 1031,
+   "attribution": 0.9631
+  },
+  "25-30min": {
+   "covered_utts": 1148,
+   "attribution": 0.9434
+  },
+  "30-35min": {
+   "covered_utts": 633,
+   "attribution": 0.9194
+  }
+ },
+ "reentry": {
+  "utts": 196,
+  "attribution": 0.898
+ },
+ "hol": {
+  "nested": {
+   "segments": 3998,
+   "commit_after_end_p50_s": 1.52,
+   "p90_s": 2.4
+  },
+  "other": {
+   "segments": 29449,
+   "commit_after_end_p50_s": 1.44,
+   "p90_s": 2.56
+  }
+ },
+ "windows_cap_share": 0.4385
+}

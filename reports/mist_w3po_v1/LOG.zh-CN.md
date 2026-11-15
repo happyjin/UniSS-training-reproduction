@@ -3181,3 +3181,10 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 常规 block-start 语音 LAAL 下 M−B ≈ 0（AMI −0.02 不显著，Ali −0.08，En→Zh −0.02 不显著）；E2−B −0.09/−0.33/−0.11；M−E2 +0.08/+0.25/+0.09。逐词 LAAL / EndOffset 的大幅下降主要来自 PA talker 语速快约 45%、语音时长少约 1/3、排队短。
   - UTMOS 小幅上升（+0.12/+0.19/+0.12），SIM 不变；但 ≥0.5 s 停顿/分钟约增至 2–3 倍（流畅性风险）。
 - 决定：论文不再声称"标准定义下延迟下降"；主张改为 LAAL_spread / EndOffset 下降来自更快、按积压调度的播放，block-start LAAL 与基线持平，代价是语速更快、停顿更多 → 写入正文与 Limitations（已交给修订代理整合，\PostReviewtrue）。
+
+## 2026-11-15 09:20 布拉格 — v11 启动（回应模拟 ACL 审稿 Weak Reject 2.5）
+
+- 方案：docs/mist_v11_plan.zh-CN.md（commit 899f4253a）。用户（约 09:15）：1. 采用方案 A（主系统 B+PA，WA 降为负结果分析）；3. B + 写偏置曲线"可以做但要看效果"；4. 不做人工听测；6. 投主会。
+- P0-3 启动：`experiments/mist_w3po_v1/scripts/wb_dev5_base.sh`（wb_dev5.sh 的副本，只换行：严格基线 identity + δ ∈ {+1, +0.5, −0.5, −1, −2}，两个方向，dev5 文本），08:19Z 启动，驱动 PID 2048504，日志 logs/mist_w3po_v1/joint/wb/wb_dev5_base.log，标记 WB_BASE_DEV5_DONE，汇总 summary_base.tsv。只在 dev 上，测试集不动。脚本注释里的时间 "~08:10 Prague" 应为 ~09:15 Prague（脚本在跑，不改文件）。
+- P0-2 准备：DiariST dev 人工英文参考 data/diarist_alimeeting_refs_v1/dev.txt（8 场 = AliMeeting Eval，与 test 20 场无重叠；SOURCE_dev.md）；AliMeeting Eval_Ali.tar.gz（3.67 GB，含远场/近场音频和 TextGrid 转写）下载到 data/raw/alimeeting/，日志 logs/mist_v11/eval_ali_download.log。只做测试，处理前先写登记。
+- paper/gstar_si_v11 由 v10 复制（不含构建产物和 .git_copied_from_v9）；v10 不动。

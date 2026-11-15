@@ -1,0 +1,65 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Data.} \emph{En$\rightarrow$Zh}: AMI~\citep{carletta2005ami} IHM-mix recordings (headsets summed into one
+channel), official split; each utterance's translation is selected from three MT systems by reference-free quality
+estimation and an audio check (Appendix~\ref{app:data}); test references are therefore machine translations. Reference
+windows group overlapping or touching utterances (at most 20\,s): 2{,}375 test windows from 16 meetings, 35\% with
+several speakers, keeping \num{v6:filt:en2zh:all:dur}\% of the test speech (Table~\ref{tab:funnel7}); whole-meeting runs
+read all of it. \emph{Zh$\rightarrow$En}: each AMI utterance's Chinese translation is re-spoken by the UniSS Talker with
+one voice per speaker at its original start; the human AMI transcripts are the references (Appendix~\ref{app:zhdata};
+the same 16 test meetings), so this source is synthetic. \emph{Real Mandarin}: the AliMeeting test set~\citep{yu2022m2met}, 20
+meetings of two to four people (10.8\,h), headset channels mixed into one (not the far-field condition of M2MeT or
+DiariST); no AliMeeting data is used in training. AliMeeting is scored
+against the human English translations released with DiariST~\citep{yang2024diarist}, except in the overlap study
+(Table~\ref{tab:ovmain8}) and the appendix tables marked as such, which used machine translations of the human
+transcripts (Appendices~\ref{app:qe7},~\ref{app:v9}).
+
+\paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
+Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) is one
+bidirectional model (Table~\ref{tab:hyper}). The streaming \sys{} is one bidirectional model trained in two stages on 8
+H200 GPUs (Appendix~\ref{app:v10train}). \emph{Stage 1}, the deadline baseline, trains the deadline objective from
+\sys{} (offline) on \num{v10:c:j:rows} rows, every batch of 64 holding 32 rows per direction, for \num{v10:c:j:s1steps}
+steps. \emph{Stage 2} trains write alignment from stage 1 with 64 read rows per step; checkpoints are decoded on five
+development meetings per direction (dev5), and a rule fixed before stage 2 stops training and selects one. The rule
+selected step \num{v10:c:j:s2rule}; we use step \num{v10:c:j:s2step}, which had higher dev5 BLEU but exceeds the rule's
+latency bound (\S\ref{sec:res-hygiene}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
+streaming speech; the PA Talker is fine-tuned from it per direction (Appendix~\ref{app:plem}). Decoding is greedy.
+
+\paragraph{Systems.} \emph{B}: the stage-1 Thinker with the base Talker (fixed rate, one sample per block, no
+merging). \emph{B+PA}: the same text, merged per read and spoken by the PA Talker. \emph{\sys{}}: the stage-2 Thinker
+with $\bias=-1$ and the B+PA speech layer. Offline \emph{cascades} translate the diarizer's turns one by one with our
+speaker-blind window model (\emph{same-data}), with the same recipe trained on the cascade's turns
+(\emph{turn-trained}), or on reference turns (oracle input). SeamlessStreaming~\citep{seamless2023} is a zero-shot
+external reference (Appendix~\ref{app:e7}).
+
+\paragraph{Metrics.} \textbf{cpBLEU}, the translation analogue of concatenated minimum-permutation
+WER~\citep{watanabe2020chime6}, scores windows: per meeting, output slots are matched one-to-one to reference speakers by
+chrF~\citep{popovic2015chrf} and BLEU is computed over the matched pairs. Whole meetings are scored by \textbf{tcpBLEU},
+the analogue of tcpWER~\citep{neumann2023meeteval}: each output segment joins the reference unit of its matched speaker
+that it overlaps within a 2\,s collar (Appendix~\ref{app:metrics}); a unit translated again in a neighbouring window
+keeps both translations, so duplication is not penalised (Appendix~\ref{app:dup}). BLEU is corpus-level
+sacreBLEU~\citep{post2018call} (13a tokenisation for English, zh for Chinese); no learned metric (COMET, MetricX) is used.
+\textbf{ASR-BLEU} is tcpBLEU of the speech transcribed by Whisper-large-v3~\citep{radford2023robust} (English) or
+Paraformer~\citep{gao2022paraformer} (Chinese), averaged over two TTS seeds. \textbf{Latency} is measured per speaker
+stream from audio and playback time, without computation. \emph{Text LAAL}~\citep{papi2022over} uses commit times.
+Conventional speech LAAL charges every word of a block when the block starts playing (\emph{LAAL$_\text{block}$}); our
+\emph{LAAL$_\text{spread}$} spreads a block's words over its playback, so it also falls when blocks are shorter or
+faster (Appendix~\ref{app:chunk}). We also report \emph{speech start} (first heard word of a unit) and \emph{EndOffset}
+(unit end to the end of its last heard word).
+
+\paragraph{Overlap-aware evaluation.}
+\label{sec:eval-overlap}
+A tcpBLEU unit is \emph{overlapped} when another speaker talks during at least 20\% of it, else \emph{single};
+tcpBLEU-ov and tcpBLEU-1spk score each part. \emph{Concurrent-speaker recall} (CR) takes every pair of utterances of two
+speakers that overlap by at least 0.5\,s and asks whether both received text attributed to their own speaker within
+1\,s; \emph{collapse} counts pairs whose missing side is covered by the other side's speaker. \emph{Post-hoc relabelling}
+gives each segment of a speaker-blind model the diarizer slot most active over its span, one speaker per span as in
+recognition-then-attribution pipelines; online it uses only the frames available at the commit (\emph{causal}).
+
+\paragraph{Statistics.} Confirmatory tests of the offline study were fixed in an internal analysis plan before
+decoding (Appendix~\ref{app:prereg}) and need Holm-adjusted $p<0.05$ \emph{and} a 95\% interval, widened by decoder
+noise, that excludes zero (Appendix~\ref{app:stats7}). Streaming systems (Table~\ref{tab:sig10}) use an exact sign-flip
+test and a paired bootstrap over test meetings, pooling both TTS seeds, Holm-corrected over twelve tests, without the
+widening. Speech-latency differences get the same bootstrap and sign-flip test without correction
+(Appendix~\ref{app:postreview}).

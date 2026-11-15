@@ -1,0 +1,61 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=2pt, minimum height=0.9cm, align=center, inner sep=4pt},
+  fz/.style={box, fill=frozen!15, draw=frozen, thick},
+  tr/.style={box, fill=trained!15, draw=trained, thick},
+  tok/.style={draw, minimum width=0.38cm, minimum height=0.42cm, inner sep=0pt},
+  arr/.style={-{Stealth[length=2.2mm]}, thick}]
+  % inputs and the two streams
+  \node[box, fill=gray!10, minimum width=1.9cm] (x) at (0,0) {Meeting\\audio $\bm{x}$};
+  \node[fz, minimum width=2.7cm] (enc) at (3.2,1.0) {Audio encoder\\(\S\ref{sec:method-task})};
+  \node[fz, minimum width=2.7cm] (dia) at (3.2,-1.0) {Streaming diarizer\\$S{=}8$ slots};
+  \node[tr, minimum width=2.3cm] (proj) at (6.5,-1.0) {Speaker projector\\(App.~\ref{app:model})};
+  \draw[arr] (x.east) -- ++(0.3,0) |- (enc.west);
+  \draw[arr] (x.east) -- ++(0.3,0) |- (dia.west);
+  \draw[arr] (dia) -- node[above]{$\bm{P}$} (proj);
+  % interleaved sequence
+  \foreach \i/\c in {0/frozen,1/frozen,2/frozen,3/frozen,4/frozen,5/spkc,6/frozen,7/frozen,8/frozen,9/frozen,10/frozen,11/spkc} {
+    \node[tok, fill=\c!35] (t\i) at (8.9+\i*0.4,0) {};
+  }
+  \node (dots) at (8.9+12*0.4+0.05,0) {$\cdots$};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (t0.north west) -- node[above=4pt, font=\small]{$\bm{A}_1$: $K{=}5$ acoustic tokens} (t4.north east);
+  \node[below=2pt of t5, font=\small] {$\bm{s}_1$};
+  \node[below=2pt of t11, font=\small] {$\bm{s}_2$};
+  \node[font=\small] at (11.2,-1.25) {interleaved input $\bm{E}$ (Eq.~\ref{eq:interleave})};
+  \draw[arr] (enc.east) -| node[pos=0.3, above, font=\small]{acoustic tokens $\bm{a}_i$} (t8.north);
+  \draw[arr] (proj.east) -- node[above, font=\small]{$\bm{s}_j$} ++(0.75,0) |- (t0.west);
+  % LLM
+  \node[tr, minimum height=1.9cm, minimum width=2.0cm] (llm) at (15.6,0) {Thinker LLM\\+ LoRA\\(Eq.~\ref{eq:loss})};
+  \draw[arr] (dots.east) -- (llm.west);
+  % output segments (second row)
+  \node[box, fill=white, anchor=west] (o1) at (6.2,-2.6)
+    {$\spk{2}\,\tim{5}$\ \zh{我想知道会议的时间}\ $\tim{48}$};
+  \node[box, fill=white, anchor=west] (o2) at (6.2,-3.7)
+    {$\spk{3}\,\tim{42}$\ \zh{对，没错。}\ $\tim{56}$};
+  \draw[arr] (llm.south) -- ++(0,-0.85) -| ([xshift=-0.3cm]o1.west) -- (o1.west);
+  \draw[arr] ([xshift=-0.3cm]o1.west) |- (o2.west);
+  \node[font=\small, anchor=west] at (6.2,-4.45) {who, when, what (Eq.~\ref{eq:serial})};
+  % talker
+  \node[tr, minimum width=2.4cm] (talk) at (14.9,-3.15) {Talker, voice $\bm{v}_k$\\playback alignment\\(\S\ref{sec:method-plem})};
+  \draw[arr] (o1.east) -- ++(0.25,0) |- (talk.west);
+  \draw[arr] (o2.east -| o1.east) ++(0,0) -- ++(0.25,0) |- (talk.west);
+  \draw[thick] (o2.east) -- (o2.east -| o1.east);
+  \node[box, fill=gray!10, minimum width=1.7cm] (y) at (17.6,-3.15) {Translated\\speech};
+  \draw[arr] (talk) -- (y);
+  % voice prompts
+  \draw[arr, dashed, spkc!80!black] (dia.south) -- ++(0,-3.75) -| node[pos=0.25, below, font=\small]{voice prompt $\bm{v}_k$: solo regions of slot $k$ (Eq.~\ref{eq:alone})} (talk.south);
+  % streaming loop
+  \draw[arr, dotted, trained!80!black] (llm.north) -- ++(0,0.5) -- node[above, font=\small]{streaming: read every $\Delta$\,s, write or $\wait$ (Eqs.~\ref{eq:write}, \ref{eq:bias}); write alignment (\S\ref{sec:method-latent})} ++(-7.4,0);
+\end{tikzpicture}}
+\caption{\sys{}. A frozen audio encoder turns the meeting into acoustic tokens (what is said); a frozen streaming
+diarizer gives slot activities $\bm{P}$ that a trained projector turns into speaker tokens $\bm{s}_j$ (who says it).
+One speaker token follows every block of $K{=}5$ acoustic tokens. The Thinker writes speaker-attributed, time-stamped
+translation segments, offline or read by read, and a Talker speaks each segment in the voice of its speaker slot.
+Blue: frozen; orange: trained. Dotted: the streaming loop, whose write times are trained by write alignment; the Talker's playback is trained by playback alignment. The Thinker's gradients reach only the projector, the new token rows and its LoRA
+adapters; the Talker is fine-tuned separately on the playback timeline (\S\ref{sec:method-plem}) with the Thinker
+fixed. The diarizer and the encoder are never trained.}
+\label{fig:arch}
+\end{figure*}

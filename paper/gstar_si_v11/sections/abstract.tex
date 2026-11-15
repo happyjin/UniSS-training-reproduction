@@ -1,0 +1,26 @@
+\begin{abstract}
+A meeting interpreter must say what each person said, attribute it to the right person, and decide when to say it, also
+when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved with tokens of a frozen
+streaming diarizer, writes speaker-first, time-stamped translations for every speaker of an overlapping window, and hands
+them to a speech generator prompted with each speaker's voice. Offline, on AMI reference windows, \sys{} beats the
+strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff:en2zh} cpBLEU in English$\rightarrow$Chinese
+(exploratory comparison) and \num{v7:gainoff:zh2en} in Chinese$\rightarrow$English (confirmatory, Holm-corrected), and on
+overlapped speech it leads a speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} and
+\num{v8:x:ov-O2-rel-zh2en:diff} tcpBLEU (exploratory). For streaming operation we treat two timing decisions as latent
+structure. \emph{Write alignment} trains the decoder on an exact, tempered posterior over when, and in which speaker order,
+each translated chunk is written, with one constant write bias against the resulting drift towards later writes.
+\emph{Playback alignment} fine-tunes the speech generator once on its own candidates, weighted by a posterior over the
+playback backlog under a latency budget. On whole AMI test meetings (Zh$\rightarrow$En / En$\rightarrow$Zh), against a
+jointly trained deadline baseline, the playback-alignment layer alone raises speech ASR-BLEU by
+\num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} (significant after Holm correction) and
+ends each utterance's speech earlier, mainly by speaking faster (+\num{v10:pr:test:ami:m-b:ratepct}\% /
++\num{v10:pr:test:en:m-b:ratepct}\% rate) with less queueing, at the price of about twice as many pauses; the
+conventional block-start speech LAAL of the full system is unchanged against the baseline
+(\num{v10:pr:test:ami:m-b:bslaal:diff} / \num{v10:pr:test:en:m-b:bslaal:diff}\,s, not significant). The write-aligned
+decoder adds \num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} text tcpBLEU, which is not
+significant after Holm correction, no speech gain, and slightly later speech. On real Mandarin meetings (AliMeeting) the
+text score does not improve (\num{v10:sig:test:ali:text:m-b:diff}, not significant) while speech ASR-BLEU does
+(\num{v10:sig:test:ali:speech:m-b:diff}). The write bias was introduced after a first test run, so
+the final test numbers are not fully blind. Per utterance the system works closer to consecutive than to simultaneous
+interpretation, with one output channel per speaker.
+\end{abstract}
