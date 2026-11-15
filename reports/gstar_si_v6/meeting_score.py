@@ -39,6 +39,7 @@ from experiments.uniss_qwen3_omni_v1.evaluation.gstar_score import match  # noqa
 
 D = REPO / "data/ami_multispk_si_v1"
 A = REPO / "data/alimeeting_si_v1"
+AE = REPO / "data/alimeeting_eval_si_v1"   # v11 P0-2 clean set (test only)
 
 
 def universe(dr: str, meetings: set) -> dict:
@@ -60,7 +61,10 @@ def universe(dr: str, meetings: set) -> dict:
                     out[m].append((u["record_id"], u["speaker_id"], u["zh_begin"], u["zh_end"], u["hes"]))
     else:
         for m in meetings:
-            for u in map(json.loads, open(A / f"utts/{m}.jsonl", encoding="utf-8")):
+            f = A / f"utts/{m}.jsonl"
+            if not f.exists():   # v11 P0-2: the AliMeeting Eval meetings (disjoint ids) live in their own data dir
+                f = AE / f"utts/{m}.jsonl"
+            for u in map(json.loads, open(f, encoding="utf-8")):
                 out[m].append((u["record_id"], u["speaker_id"], u["begin_s"], u["end_s"], u["hesitation"]))
     return out
 
