@@ -3175,7 +3175,7 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   2. [ANALYSIS] 做：现有测试输出上的常规 block-start 语音 LAAL、延迟差 bootstrap CI、语速、UTMOS（不重解码，不在测试集上做选择）。
   3. [EXPERIMENT] 不做：基线+δw 对照是用户明确拒绝的 E6；同算力 SFT / talker 对照 / 新 seed 都要在测试集上追加事后运行，会加重审稿人指出的测试集卫生问题 → 写入 Limitations 作为已知缺口。
 
-## 2026-11-15 ~03:40 布拉格 — 审稿后分析完成 + 文字修订完成
+## 2026-11-15 ~02:55 布拉格 — 审稿后分析完成 + 文字修订完成
 - 文字修订（审稿 [TEXT] 全部）：commit c009d3353；标题 "Simultaneous" → "Streaming"；正文 8 页。
 - 分析（reports/mist_w3po_v1/post_review_v10_analysis.zh-CN.md，commit 538d1d940）关键发现：
   - 常规 block-start 语音 LAAL 下 M−B ≈ 0（AMI −0.02 不显著，Ali −0.08，En→Zh −0.02 不显著）；E2−B −0.09/−0.33/−0.11；M−E2 +0.08/+0.25/+0.09。逐词 LAAL / EndOffset 的大幅下降主要来自 PA talker 语速快约 45%、语音时长少约 1/3、排队短。
