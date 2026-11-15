@@ -40,6 +40,7 @@ from experiments.mist_w3po_v1.talker import playback_lattice as PL
 from experiments.mist_w3po_v1.talker import talker_rows as TR
 
 
+SOLVER = "coord"   # --solver (coord: dual coordinate ascent; nested: the same KKT point by nested bisection)
 PROCS = 1   # --procs (forked workers for the dual's corpus sums)
 
 
@@ -135,6 +136,43 @@ def solve(streams: list[FStream], budget: float, spw_min: float, rounds: int = 5
             "feasible": feasible, "history": hist}
 
 
+def solve_nested(streams: list[FStream], budget: float, spw_min: float, lam_hi: float = 200.0, mu_hi: float = 2000.0,
+                 iters: int = 40, tol_l: float = 2e-3, tol_d: float = 2e-4) -> dict:
+    """the same KKT point as solve(), found directly: mu*(lam) = the smallest mu meeting the time-per-word bound at lam;
+    h(lam) = latency(lam, mu*(lam)) falls with lam; lam = the smallest lam with h(lam) <= budget (bisection). When one
+    constraint already holds with the other's dual alone, that dual is 0 (complementary slackness)."""
+    hist = []
+
+    def mu_of(lam):
+        return bisect(lambda x: corpus(streams, lam, x)[1], spw_min, increasing=True, hi=mu_hi, iters=iters)
+
+    def h(lam):
+        mu = mu_of(lam)
+        el, ed = corpus(streams, lam, mu)
+        hist.append((round(lam, 6), round(mu, 6), round(el, 5), round(ed, 5)))
+        print(json.dumps({"lam": lam, "mu": mu, "latency_s": el, "spw_s": ed}), flush=True)
+        return el, mu
+
+    if h(0.0)[0] <= budget:
+        lam = 0.0
+    elif h(lam_hi)[0] > budget:
+        lam = lam_hi
+    else:
+        lo, hi = 0.0, lam_hi
+        for _ in range(iters):
+            mid = (lo + hi) / 2
+            if h(mid)[0] > budget:
+                lo = mid
+            else:
+                hi = mid
+        lam = hi
+    mu = mu_of(lam)
+    el, ed = corpus(streams, lam, mu)
+    feasible = el <= budget + tol_l and ed >= spw_min - tol_d and lam < lam_hi and mu < mu_hi
+    return {"lambda": lam, "mu": mu, "eq_latency_s": round(el, 4), "eq_spw_s": round(ed, 4), "rounds": len(hist),
+            "feasible": feasible, "solver": "nested", "history": hist}
+
+
 def stats(items: list[dict], W: dict) -> dict:
     streams = build(items, W)
     words = sum(sum(st.words) for st in streams)
@@ -164,7 +202,7 @@ def rows(items: list[dict], W: dict, spw_min: float, drop: float = TR.BUDGET_DRO
     budget = a_lat - drop
     if PROCS > 1:
         use_pool(streams, PROCS)
-    sol = solve(streams, budget, spw_min)
+    sol = solve_nested(streams, budget, spw_min) if SOLVER == "nested" else solve(streams, budget, spw_min)
     lam, mu = sol["lambda"], sol["mu"]
     blocks, kl_u, ent = [], [], []
     for it, st in zip(items, streams):
@@ -200,11 +238,12 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--drop", type=float, default=TR.BUDGET_DROP_S,
                     help="latency budget = rule path latency - drop (prereg: 0.3; 0 only under the infeasibility rule)")
+    ap.add_argument("--solver", choices=("coord", "nested"), default="coord")
     ap.add_argument("--procs", type=int, default=1, help="forked workers for the dual solve (default 1 = serial)")
     ap.add_argument("--require-feasible", action="store_true", help="write nothing when the duals do not converge")
     a = ap.parse_args()
-    global PROCS
-    PROCS = a.procs
+    global PROCS, SOLVER
+    PROCS, SOLVER = a.procs, a.solver
     TR.LANG, TR.UNITS = (TR.LANG_ENG if a.lang == "eng" else TR.LANG_CMN), a.units
     items, W = TR.load_items(a.cands), TR.windows(a.win)
     if a.stats:
