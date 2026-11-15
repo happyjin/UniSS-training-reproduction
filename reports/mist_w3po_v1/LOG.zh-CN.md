@@ -3160,3 +3160,7 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - E2（严格基线 Thinker + rl + PL-EM talker）dev+test 全部完成，结果见 reports/mist_w3po_v1/e2_baseline_plem_results.zh-CN.md。
 - 关键发现：语音层单独给出大部分 ASR-BLEU 增益与全部 LAAL 下降；v2′ Thinker（δ=0）在 AMI 上 ASR 只再 +0.14/+0.18 且 LAAL +0.38 s，Ali 上反而更差。决定：论文 v10 把 E2 作为分解行如实报告，Thinker 的贡献表述限于文本 tcpBLEU，等 E1(δ=−1) 完成后定稿。
 - GPU：卡 0/3 在 E2 退出后由 guard 自动补上 no-ckpt 占位训练。
+
+## 2026-11-15 01:35 布拉格 — E1（δ=−1 测试）完成
+- 结果见 reports/mist_w3po_v1/e1_wb_test_results.zh-CN.md。AMI 两方向 gate 全过；Ali 文本仍 −0.36（p=0.87）。
+- 决定（按用户第 5 条）：主张收窄到 AMI；Ali 作为泛化结果报告。Thinker 贡献表述限于文本；语音增益主要归 PL-EM 语音层（E2 分解）。
