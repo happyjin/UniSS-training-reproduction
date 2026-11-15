@@ -1,13 +1,10 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Once translations are spoken in each
-speaker's voice, much of the listener's delay is queueing of synthesised speech; aligning playback to this backlog
-brings significant gains in speech ASR-BLEU and in both conventional and playback-aware speech latency, mostly by
-speaking faster\ifFluencyPA{}, and a rate budget in the same posterior-regularised objective limits that cost\else{},
-with more pauses\fi. Making the write time latent and training it on the decoder's likelihood does not beat deadlines:
-the likelihood itself rewards waiting. With one channel per speaker, a listener hears several voices at once during
-overlap.
+Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Much of the listener's delay is
+queueing of synthesised speech; aligning playback to this backlog significantly improves speech ASR-BLEU and speech
+latency, mostly by speaking faster. A latent write time trained on the decoder's likelihood does not beat deadlines,
+because the likelihood itself rewards waiting.
 
 \section*{Limitations}
 
@@ -47,7 +44,8 @@ test speech. Greedy bf16 decoding is not batch-invariant (Appendix~\ref{app:nois
 
 \paragraph{System.} The diarizer, the encoder and the Thinker are trained separately from the Talker. Committed output
 is never revised, so a wrong speaker label is spoken. Voice prompts come from the diarizer's solo regions, which a
-speaker who never talks alone lacks.
+speaker who never talks alone lacks. With one output channel per speaker, a listener hears several voices at once
+during overlap; how listeners cope with this is untested.
 
 \section*{Ethics Statement}
 

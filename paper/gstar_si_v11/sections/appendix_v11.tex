@@ -1,0 +1,22 @@
+% v11 appendices: each section appears only when its result exists (generated/switches_v11.tex)
+\ifSfourK
+\section{The Selection Rule's Checkpoint}
+\label{app:s4000}
+The stage-2 checkpoint of \sys{}+WA reported in v10 (step 3{,}500) was not the one the pre-set selection rule picks
+(step 4{,}000). We registered the comparison and decoded step 4{,}000 once on every test set with the same bias
+($\bias=-1$) and playback layer (Table~\ref{tab:s4000}). It gives \num{v11:s4000:summary}; neither checkpoint improves
+on \sys{} in ASR-BLEU, and both are heard later. The conclusion of \S\ref{sec:write} does not depend on the choice.
+\input{generated/tab_v11_s4000}
+\fi
+
+\ifAliEval
+\section{Locked Test on Unused AliMeeting Meetings}
+\label{app:alieval}
+The eight AliMeeting evaluation meetings (\num{v11:ae:hours}\,h of meeting audio) were never used for training,
+development or any earlier test. Windows, diarizer runs and scoring follow the AliMeeting test set, with two
+differences fixed before decoding: the references are the human English translations of DiariST (no machine
+translation), and no window is filtered by its reference. The analysis plan fixed four systems (B, \sys{} and
+\sys{}+WA at steps 3{,}500 and 4{,}000) and three confirmatory hypotheses (\sys{} $-$ B on ASR-BLEU, LAAL$_\text{block}$
+and EndOffset, Holm over three); everything else is exploratory. \num{v11:ae:wa}
+\input{generated/tab_v11_alieval}
+\fi

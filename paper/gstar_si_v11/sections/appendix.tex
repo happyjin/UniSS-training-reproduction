@@ -328,7 +328,7 @@ encodes the audio prefix itself. Algorithm~\ref{alg:read} lists one read.
 1: $t\gets\min(r\Delta, T)$; audio $\bm{x}_{s:s+t}$ (only what has been heard) \\
 2: $\bm{A}\gets\mathrm{Enc}(\bm{x}_{s:s+t})$ \hfill (prefix forward, Eq.~\ref{eq:enc}) \\
 3: $\bm{P}^{(r)}\gets$ diarizer frames of $(s, s+t-\lambda]$, later ones zero \hfill (Eq.~\ref{eq:causal}) \\
-4: $\bm{E}^{(r)}\gets$ interleave $\bm{A}$ with speaker tokens of $\bm{P}^{(r)}$ \hfill (Eq.~\ref{eq:interleave}) \\
+4: $\bm{E}^{(r)}\gets$ interleave $\bm{A}$ with speaker tokens of $\bm{P}^{(r)}$ \hfill (\S\ref{sec:method-task}) \\
 5: greedy decode after the committed tokens until $\wait$ (or $\eos$ if $t=T$) \\
 6: commit the new tokens; parse segments; hand each new block to the Talker \\
 7: whole meetings: commit time $\gets\max(\text{now},\ \text{window opening known})$; \\

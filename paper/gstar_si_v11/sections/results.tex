@@ -42,23 +42,19 @@ Table~\ref{tab:main10} gives the streaming systems on whole test meetings; all s
 and diarizer, and B and \sys{} share their text. Playback alignment raises ASR-BLEU by
 \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
 \num{v10:sig:test:ali:speech:e2-b:diff} (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting; all
-$p_\text{Holm}<0.001$, Table~\ref{tab:sig10}). It also changes \emph{when} speech is heard, on every latency
-definition (meeting-bootstrap intervals, Appendix~\ref{app:postreview}): speech start (first heard word of a unit) changes by
-\num{v10:pr:test:ami:e2-b:startoff:diff} / \num{v10:pr:test:en:e2-b:startoff:diff} /
-\num{v10:pr:test:ali:e2-b:startoff:diff}\,s, conventional block-start LAAL changes by
+$p_\text{Holm}<0.001$, Table~\ref{tab:sig10}). It also changes \emph{when} speech is heard, on every latency definition (meeting-bootstrap intervals,
+Appendix~\ref{app:postreview}): conventional block-start LAAL changes by
 \num{v10:pr:test:ami:e2-b:bslaal:diff} \num{v10:pr:test:ami:e2-b:bslaal:ci} / \num{v10:pr:test:en:e2-b:bslaal:diff}
-\num{v10:pr:test:en:e2-b:bslaal:ci} / \num{v10:pr:test:ali:e2-b:bslaal:diff} \num{v10:pr:test:ali:e2-b:bslaal:ci}\,s,
-LAAL$_\text{spread}$ by \num{v10:pr:test:ami:e2-b:spread:diff} / \num{v10:pr:test:en:e2-b:spread:diff} /
-\num{v10:pr:test:ali:e2-b:spread:diff}\,s and EndOffset by \num{v10:pr:test:ami:e2-b:endoff:diff} /
-\num{v10:pr:test:en:e2-b:endoff:diff} / \num{v10:pr:test:ali:e2-b:endoff:diff}\,s. Speech \emph{starts} only slightly
-earlier; it \emph{ends} much earlier, because the PA Talker speaks faster (\num{v10:pr:test:ami:e2:rate} instead of
-\num{v10:pr:test:ami:b:rate} words per second in AMI Zh$\rightarrow$En; \num{v10:pr:test:en:e2:rate} vs.\
-\num{v10:pr:test:en:b:rate} characters in En$\rightarrow$Zh), so the same text takes
-\num{v10:pr:test:ami:e2-b:speechpct} / \num{v10:pr:test:en:e2-b:speechpct} / \num{v10:pr:test:ali:e2-b:speechpct}\%
-less time and blocks queue less (Table~\ref{tab:decomp10}). UTMOS rises slightly (\num{v10:pr:test:ami:b:utmos}
-$\rightarrow$ \num{v10:pr:test:ami:e2:utmos}, AMI Zh$\rightarrow$En), but pauses of at least 0.5\,s per minute of
-speech rise from \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses}, \num{v10:pr:test:en:b:pauses} to
-\num{v10:pr:test:en:e2:pauses} and \num{v10:pr:test:ali:b:pauses} to \num{v10:pr:test:ali:e2:pauses}, a fluency cost
+\num{v10:pr:test:en:e2-b:bslaal:ci} / \num{v10:pr:test:ali:e2-b:bslaal:diff} \num{v10:pr:test:ali:e2-b:bslaal:ci}\,s
+and EndOffset by \num{v10:pr:test:ami:e2-b:endoff:diff} / \num{v10:pr:test:en:e2-b:endoff:diff} /
+\num{v10:pr:test:ali:e2-b:endoff:diff}\,s, while speech start moves by only \num{v10:pr:test:ami:e2-b:startoff:diff} /
+\num{v10:pr:test:en:e2-b:startoff:diff} / \num{v10:pr:test:ali:e2-b:startoff:diff}\,s. Speech ends earlier because
+the PA Talker speaks faster (\num{v10:pr:test:ami:e2:rate} instead of \num{v10:pr:test:ami:b:rate} words per second
+in AMI Zh$\rightarrow$En), so the same text takes \num{v10:pr:test:ami:e2-b:speechpct} /
+\num{v10:pr:test:en:e2-b:speechpct} / \num{v10:pr:test:ali:e2-b:speechpct}\% less time and blocks queue less
+(Table~\ref{tab:decomp10}). UTMOS rises slightly (\num{v10:pr:test:ami:b:utmos} $\rightarrow$
+\num{v10:pr:test:ami:e2:utmos}), but pauses of at least 0.5\,s per minute of speech rise from
+\num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses} (AMI Zh$\rightarrow$En; similar elsewhere), a fluency cost
 UTMOS does not capture\ifFluencyPA{}; the rate budget (\S\ref{sec:res-fluency}) addresses it\fi.
 \ifMetricsV
 As selection uses a CTC recogniser and ASR-BLEU uses ASR, the gain could partly reflect ASR-friendly speech; with a
@@ -89,10 +85,10 @@ adding \num{v10:tk:ami:c-a:asr} / \num{v10:tk:ali:c-a:asr} ASR-BLEU (Table~\ref{
 \ifAliEval
 \paragraph{Unused meetings.}
 \label{sec:res-alieval}
-\input{generated/tab_v11_alieval}
 To test the speech-layer claims without the selection effects of a test set used throughout development, we fixed the
 systems and hypotheses in an analysis plan and decoded once the eight AliMeeting evaluation meetings, never used before,
-scored against the human English translations released with DiariST (Table~\ref{tab:alieval}). \num{v11:ae:verdict}
+scored against the human English translations released with DiariST (Table~\ref{tab:alieval}, Appendix~\ref{app:alieval}).
+\num{v11:ae:verdict}
 \fi
 
 \ifWallclock
@@ -104,9 +100,8 @@ scored against the human English translations released with DiariST (Table~\ref{
 \subsection{Test-set hygiene}
 \label{sec:res-hygiene}
 
-\sys{} and B are a fixed-step Thinker (stage 1 trains for \num{v10:c:j:s1steps} steps) with Talkers chosen on
-development data; no choice was made on test. Still, the same 16 AMI and 20 AliMeeting test meetings served throughout
-development, while windows, latency protocol, merging, a fallback and the AliMeeting references changed, so adaptive
-overfitting cannot be ruled out\ifAliEval{}; the unused meetings above address this for the speech layer\fi. The
-write-alignment rows carry two further test-informed decisions (\S\ref{sec:write}). Analysis plans were internal, and
-most per-direction streaming tests were not run (Table~\ref{tab:reg9}).
+\sys{} and B are a fixed-step Thinker with Talkers chosen on development data; no choice was made on test. Still, the
+same 16 AMI and 20 AliMeeting test meetings served throughout development while windows, latency protocol, merging and
+the AliMeeting references changed, so adaptive overfitting cannot be ruled out\ifAliEval{} (the unused meetings above
+address this for the speech layer)\fi; the write-alignment rows carry two further test-informed decisions
+(\S\ref{sec:write}). Analysis plans were internal (Table~\ref{tab:reg9}).

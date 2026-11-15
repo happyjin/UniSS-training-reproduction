@@ -31,12 +31,9 @@ starts from the pretrained Thinker; Appendix~\ref{app:model}). A streaming frame
 reader at time $t$ sees what a run on $\bm{x}_{\le t}$ gives (Appendix~\ref{app:causal}).
 
 \paragraph{Interleaved fusion.} Following G-STAR~\citep{peng2026gstar}, each speaker token follows the audio it describes,
-\begin{equation}
-\bm{E}=[\bm{A}_1;\bm{s}_1;\,\bm{A}_2;\bm{s}_2;\,\dots;\,\bm{A}_M;\bm{s}_M],
-\label{eq:interleave}
-\end{equation}
-with $\bm{A}_j$ the $j$-th block of $K$ acoustic tokens; $\bm{E}$ fills the audio placeholder of the chat template after
-an instruction $\bm{\iota}$ (Appendix~\ref{app:prompt}).
+$\bm{E}=[\bm{A}_1;\bm{s}_1;\dots;\bm{A}_M;\bm{s}_M]$ with $\bm{A}_j$ the $j$-th block of $K$ acoustic tokens;
+$\bm{E}$ fills the audio placeholder of the chat template after an instruction
+$\bm{\iota}$ (Appendix~\ref{app:prompt}).
 
 \subsection{Speaker-attributed, time-stamped output}
 \label{sec:method-out}
