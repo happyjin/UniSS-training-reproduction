@@ -3164,3 +3164,6 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 ## 2026-11-15 01:35 布拉格 — E1（δ=−1 测试）完成
 - 结果见 reports/mist_w3po_v1/e1_wb_test_results.zh-CN.md。AMI 两方向 gate 全过；Ali 文本仍 −0.36（p=0.87）。
 - 决定（按用户第 5 条）：主张收窄到 AMI；Ali 作为泛化结果报告。Thinker 贡献表述限于文本；语音增益主要归 PL-EM 语音层（E2 分解）。
+
+## 2026-11-15 01:40 布拉格 — E7（SeamlessStreaming 测试推理）完成
+- 结果见 reports/mist_w3po_v1/e7_seamless_multispk_results.zh-CN.md：ASR-BLEU 8.48 / 9.42 / 11.31，远低于我们；延迟略低。决定：作为外部参考行进论文（\Eseventrue），不作主比较。
