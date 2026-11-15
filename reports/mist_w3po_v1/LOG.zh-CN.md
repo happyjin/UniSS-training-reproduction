@@ -3155,3 +3155,8 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 构建：tectonic 无错误、无未定义引用/引文、无 overfull；正文（摘要到结论）正好 8 页，Limitations 从第 9 页开始，共 33 页。
 - 待补（重跑脚本即可）：E1 的 Ali 文本与三个测试集语音、E2 的 dev/test 语音、E7（可选）；Ali 结论用 \ifAliwin 自动切换（E1 Ali tcpBLEU ≥ 基线才写 Ali 增益，未出结果时为收窄到 AMI 的写法）。
 - 决定（授权内）：为满足 8 页，把能力对比表、重叠分箱图、离线表的同传行、v9 在线文本移到附录（不删结果）；cp 带过来的 v9 嵌套 .git 改名为 .git_copied_from_v9（未删除，已忽略），外层仓库直接跟踪 v10 文件。详见 paper/gstar_si_v10/CHANGELOG_v10.md。
+
+## 2026-11-15 01:20 布拉格 — E2 完成
+- E2（严格基线 Thinker + rl + PL-EM talker）dev+test 全部完成，结果见 reports/mist_w3po_v1/e2_baseline_plem_results.zh-CN.md。
+- 关键发现：语音层单独给出大部分 ASR-BLEU 增益与全部 LAAL 下降；v2′ Thinker（δ=0）在 AMI 上 ASR 只再 +0.14/+0.18 且 LAAL +0.38 s，Ali 上反而更差。决定：论文 v10 把 E2 作为分解行如实报告，Thinker 的贡献表述限于文本 tcpBLEU，等 E1(δ=−1) 完成后定稿。
+- GPU：卡 0/3 在 E2 退出后由 guard 自动补上 no-ckpt 占位训练。
