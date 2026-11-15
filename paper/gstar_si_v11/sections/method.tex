@@ -92,60 +92,10 @@ r(j)=\min\big(\{r: t_r\ge e_j+\epsilon\}\cup\{R\}\big),
 \end{equation}
 and the target of read $r$ is the chunks due at $r$, serialised as in Eq.~\eqref{eq:serial}, then $\eta_r$; each read is
 one training row whose prefix is the targets of all earlier reads. A deadline model trains new LoRA adapters, the
-projector and the new rows on these rows with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). One such model
-trained on both directions (\S\ref{sec:setup}) is our \emph{deadline baseline} (B) and the initialisation of write
-alignment; \sys{}-Simul, used in the appendix analyses, has one deadline model per direction.
-
-\subsection{Latent write alignment}
-\label{sec:method-latent}
-
-\paragraph{Lattice.} Deadlines fix when each chunk is written; we let the model's likelihood decide within one read. Let
-$\mathcal{C}$ be the chunks of a window. A \emph{write plan} $z=(A_{1:R},o_{1:R})$ gives the set
-$A_r\subseteq\mathcal{C}$ of chunks written by read $r$, with
-\begin{equation}
-\{j:r(j)\le r-1\}\subseteq A_r\subseteq\{j:r(j)\le r\},
-\label{eq:lattice}
-\end{equation}
-$A_R=\mathcal{C}$, and each speaker's chunks written in order, so a chunk is written on time or one read late. The
-binary $o_r$ chooses whether the newly due chunks of speakers without a deferred chunk are written before the chunks
-deferred from read $r-1$ or after them (one choice per read, whatever the number of speakers). With $Y_r^{o}(A',A)$ the
-tokens of $A\setminus A'$ serialised in order $o$ and $\kappa(A')$ the \emph{canonical serialisation} of the chunks
-already written (ordered by due read, then due time and source start, independent of the order in which they were
-written), the posterior over plans is a linear-chain CRF whose states are sets of written chunks and whose potentials are
-the Thinker's own log-likelihoods,
-\begin{equation}
-\begin{aligned}
-q_\tau(z)&=\tfrac{1}{Z}\exp(\tau\textstyle\sum_{r}\psi_{r,o_r}(A_{r-1},A_r)),\\
-\psi_{r,o}(A',A)&=\log p_\theta(Y_r^{o}\eta_r\mid\bm{E}^{(r)},\kappa(A')),
-\end{aligned}
-\label{eq:post}
-\end{equation}
-with $A_0=\emptyset$, $Y_r^o=Y_r^o(A',A)$ and the instruction $\bm{\iota}$ omitted.
-Since the history depends only on the set $A'$, the plan score factorises over reads, and $Z$ and every edge marginal
-$q_\tau(r,A'\!\to\!A,o)$ are exact by forward--backward over the feasible sets.
-
-\paragraph{Training.} At every step, an E-step scores every feasible transition of the minibatch's windows with the
-current model; the M-step minimises the posterior-weighted form of Eq.~\eqref{eq:loss} with $q_\tau$ held fixed,
-\begin{equation}
-\mathcal{L}_{\mathrm{W}}=-\frac{1}{\Omega}\sum_{e}q_\tau(e)\,
-\log_\omega p_\theta\big(Y_r^{o}\eta_r\mid\cdot\big),
-\label{eq:mstep}
-\end{equation}
-where $e=(r,A'\!\to\!A,o)$ ranges over the lattice edges, $\log_\omega$ applies the token weights and $\Omega$ the
-normaliser of Eq.~\eqref{eq:loss}. With all mass on the deadline plan this is the deadline loss exactly. The temperature
-is fixed at $\tau=0.5$; with $\tau\neq1$ the procedure is a stochastic, EM-style self-training on a tempered posterior,
-not EM on the marginal likelihood (Appendix~\ref{app:crf}).
-
-\paragraph{Write bias.} One more read makes the same translation more likely, so EM moves mass to the later write and
-the decoder learns to wait longer (\S\ref{sec:res-drift}). At decoding we add one constant to the wait logit at every
-step of every read but the last,
-\begin{equation}
-\tilde{\ell}_u(\wait)=\ell_u(\wait)+\bias,\qquad \bias=-1 .
-\label{eq:bias}
-\end{equation}
-$\bias$ is a fixed decoding constant, chosen once on five development meetings as the value whose text lag is closest
-to the deadline model's, for both directions (Appendix~\ref{app:calib}). It was added after a first test decoding
-without it (\S\ref{sec:res-hygiene}).
+projector and the new rows on these rows with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). One such model,
+trained on both directions (\S\ref{sec:setup}), is the Thinker of \sys{}; with the base Talker it is the
+\emph{deadline baseline} (B), and it initialises write alignment (\S\ref{sec:write}). \sys{}-Simul, used in the
+appendix analyses, has one deadline model per direction.
 
 \subsection{Speaking in each speaker's voice}
 \label{sec:method-voice}
@@ -158,38 +108,45 @@ in which a segment starts at its release time or when the previous one ends (Eq.
 plays every committed block in full at a fixed rate, so a stream that receives more speech than its source builds a
 queue.
 
-\subsection{Speaking on the playback timeline}
+\subsection{Playback alignment: when the translation is heard}
 \label{sec:method-plem}
+
+\input{figures/pa_lattice}
 
 \paragraph{Lattice.} A stream's blocks $i=1,\dots,I$ have $W_i$ target words and are released at $\nu_i$
 (\S\ref{sec:method-online}). For each block the Talker proposes candidates $c\in C_i$ (8 samples at two speaking rates)
-of duration $D(c)$. The backlog $h_i$, how long block $i$ waits for earlier speech, is rounded up ($\lceil\cdot\rceil$) to an 80\,ms grid
-up to 8\,s:
-$h_{i+1}=g_i(h_i,c_i)$ with
+of duration $D(c)$. The backlog $h_i$, how long block $i$ waits for earlier speech of its speaker, is rounded up
+($\lceil\cdot\rceil$) to an 80\,ms grid up to 8\,s: $h_{i+1}=g_i(h_i,c_i)$ with
 \begin{equation}
 g_i(h,c)=\big\lceil\max(0,\,\nu_i+h+D(c)-\nu_{i+1})\big\rceil,
 \label{eq:backlog}
 \end{equation}
 and with a block's words spread evenly over its playback they are heard $L_i(h,c)=W_ih+\tfrac{W_i+1}{2}D(c)$
-word-seconds after $\nu_i$ in total. A linear-chain CRF over $(h_i,c_i)$ has potentials
+word-seconds after $\nu_i$ in total. A linear-chain CRF over $(h_i,c_i)$ (Figure~\ref{fig:pa}) has potentials
 \begin{equation}
-\phi_i(h,c)=0.5\,\bar{\ell}(c)+5\,f(c)-\lambda L_i(h,c),
+\phi_i(h,c)=0.5\,\bar{\ell}(c)+5\,f(c)-\lambda L_i(h,c)\ifFluencyPA{}-\mu\,\rho_i(c)\fi,
 \label{eq:plpot}
 \end{equation}
 with $\bar{\ell}$ the Talker's mean token log-probability and $f$ the negative CTC loss per character under an
-independent recogniser~\citep{baevski2020wav2vec}; forward--backward over the backlog is exact. The weights $0.5$ and
-$5$ were fixed before training and are not ablated.
+independent recogniser~\citep{baevski2020wav2vec}\ifFluencyPA{}, and $\rho_i(c)$ the speaking-rate excess of candidate
+$c$ (\S\ref{app:fluencypa})\fi. A long candidate delays every later block of the stream, so the choice for block $i$
+depends on the future; forward--backward over the backlog sums exactly over all candidate sequences \emph{within this
+state space} (fixed candidates, the 80\,ms grid and the cap). The weights $0.5$ and $5$ were fixed before training and
+are not ablated.
 
-\paragraph{Latency budget and training.} With $q_0$ the CRF at $\lambda=0$, $\lambda$ is the dual variable of
-$\min_q\mathrm{KL}(q\Vert q_0)$ subject to
-$\mathbb{E}_q[\sum_iL_i]/\sum_iW_i\le b$, a posterior-regularised problem~\citep{ganchev2010posterior} whose solution is the
-CRF of Eq.~\eqref{eq:plpot}; the expected delay falls monotonically in $\lambda$, so bisection finds $\lambda^\star$. The
-budget $b$ is the rule-based Talker's own delay minus 0.3\,s. The Talker is then fine-tuned \emph{once} on each block's
-candidates, weighted by their posterior given the backlog the rule-based path reached; the backward messages bring the
-backlog cost of later blocks into the current one (the \emph{playback-aligned}, PA, Talker; Appendix~\ref{app:plem}).
-This is one round of posterior-weighted fine-tuning, not iterated EM, and no CRF runs at inference: the PA Talker
-samples two candidates per block at a backlog-dependent rate and keeps the one with the better CTC fidelity. The playback layer (\emph{PA}) is read-level merging (\S\ref{sec:method-online}) plus the
-PA Talker.
+\paragraph{Budgets and training.} With $q_0$ the CRF at $\lambda=0$\ifFluencyPA{} and $\mu=0$\fi, $\lambda$ is the dual
+variable of $\min_q\mathrm{KL}(q\Vert q_0)$ subject to $\mathbb{E}_q[\sum_iL_i]/\sum_iW_i\le b$\ifFluencyPA{} and
+$\mu$ that of a second constraint on the expected speaking rate (Appendix~\ref{app:fluencypa})\fi, a
+posterior-regularised problem~\citep{ganchev2010posterior} whose solution is the CRF of Eq.~\eqref{eq:plpot}; the
+expected delay falls monotonically in $\lambda$, so bisection finds $\lambda^\star$. The budget $b$ is the rule-based
+Talker's own delay minus 0.3\,s. The Talker is then fine-tuned \emph{once} on each block's candidates, weighted by their
+posterior marginal at the backlog the rule-based path reached, so the backward messages bring the queueing cost of
+later blocks into the target for the current one (the \emph{playback-aligned}, PA, Talker; Appendix~\ref{app:plem}).
+This is one round of posterior-weighted fine-tuning, not iterated EM, and no CRF runs at inference: the PA Talker,
+conditioned on a backlog token, samples two candidates per block and keeps the one with the better CTC fidelity. The
+budget therefore constrains the training posterior, not the online delay, which we measure. The \emph{playback layer}
+(PA) is read-level merging (\S\ref{sec:method-online}) plus the PA Talker; \sys{} is the deadline Thinker with this
+layer.
 
 \subsection{Running on a whole meeting}
 \label{sec:method-online}

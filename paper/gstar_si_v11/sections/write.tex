@@ -1,0 +1,48 @@
+\section{Is There a Better Time to Write?}
+\label{sec:write}
+\label{sec:method-latent}
+
+Deadlines fix when each chunk is written. We asked whether the decoder's own likelihood can choose better, by making
+the write time and the speaker order latent.
+
+\paragraph{Write alignment.} A \emph{write plan} gives, for every read $r$, the set $A_r$ of a window's chunks
+written so far, constrained so that each chunk is written on time or one read late and each speaker's chunks in order,
+plus one binary choice per read of whether newly due chunks precede or follow deferred ones. Scoring each transition by
+the Thinker's own log-likelihood of the newly written tokens, given the \emph{canonical} serialisation of the chunks
+already written (by due time, independent of the order in which they were written), makes the tempered posterior
+$q_\tau$ over plans a linear-chain CRF over sets of written chunks, with exact partition function and edge marginals by
+forward--backward (Appendix~\ref{app:crf}). Each training step re-scores the lattice with the current model and
+minimises the posterior-weighted read loss (Eq.~\eqref{eq:loss}); with all mass on the deadline plan this is the
+deadline loss. With $\tau=0.5$ this is a stochastic, EM-style self-training on a tempered posterior, not EM on the
+marginal likelihood. Stage 2 trains it from the deadline Thinker for \num{v10:c:j:s2step} further steps.
+
+\paragraph{The posterior drifts late.} One more read makes the same translation more likely, and the lattice can only
+defer, so training moves mass to later writes: the posterior mass on the deadline plan falls from
+\num{v10:drift:v2p:q_first} to \num{v10:drift:v2p:q_last} and the deferred chunks per window rise from
+\num{v10:drift:v2p:defer_win_first} to \num{v10:drift:v2p:defer_win_last} (Table~\ref{tab:drift10}); on development
+meetings the decoder writes \num{v10:dev:z:m0-e2:tlaal} / \num{v10:dev:e:m0-e2:tlaal}\,s later (text LAAL). This is
+the effect that made MILk and MMA add latency losses~\citep{arivazhagan2019milk,ma2020mma}. We tried three remedies,
+each with one pre-set value (Appendix~\ref{app:calib}). (a) A training-time budget that reweights the posterior by the
+deferral cost lowers dev text LAAL by only \num{v10:pb:z:3500-m0:laal} / \num{v10:pb:e:3500-m0:laal}\,s. (b) A
+lattice that also allows writing one read early (single-direction system) overshoots: text tcpBLEU \num{v10:c:pmc:text},
+ASR-BLEU \num{v10:c:pmc:asr}. (c) A constant bias $\bias=-1$ on the wait logit at decoding, set on five development
+meetings as the value whose text lag is closest to the deadline model's, lowers it by \num{v10:cal:z:m1-m0:laal} /
+\num{v10:cal:e:m1-m0:laal}\,s.
+\ifWAcurve
+\input{generated/fig_v11_wacurve}
+\paragraph{Matched latency.} Applying the same bias family to the deadline Thinker traces its own quality--latency
+curve on the same development meetings (Figure~\ref{fig:wacurve}). \num{v11:wacurve:verdict}
+\fi
+
+\paragraph{Test results.} With $\bias=-1$ and the playback layer, \sys{}+WA changes text tcpBLEU against \sys{} by
+\num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} / \num{v10:sig:test:ali:text:m-b:diff}
+($p_\text{Holm}$ \num{v10:sig:test:ami:text:m-b:holm} / \num{v10:sig:test:en:text:m-b:holm} /
+\num{v10:sig:test:ali:text:m-b:holm}; seed spread of the per-direction deadline model \num{v8:seed:zh2en:all} /
+\num{v8:seed:en2zh:all}) and ASR-BLEU by \num{v10:sig:test:ami:speech:m-e2:diff} /
+\num{v10:sig:test:en:speech:m-e2:diff} / \num{v10:sig:test:ali:speech:m-e2:diff} (not significant), and is heard later
+(LAAL$_\text{block}$ \num{v10:pr:test:ami:m-e2:bslaal:diff} / \num{v10:pr:test:en:m-e2:bslaal:diff} /
+\num{v10:pr:test:ali:m-e2:bslaal:diff}\,s) because it writes later. It also trained for more steps, and its rows are not
+blind: the bias was added after a first test decoding without it (Table~\ref{tab:main10}, italic), and the checkpoint
+(step \num{v10:c:j:s2step}) is not the rule's (step \num{v10:c:j:s2rule})\ifSfourK{}, which gives
+\num{v11:s4000:summary} (Appendix~\ref{app:s4000})\fi. As trained here, write alignment does not improve on deadlines;
+a latent write policy needs a latency term inside its likelihood, not after it.

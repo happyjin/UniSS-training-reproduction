@@ -10,7 +10,9 @@ read all of it. \emph{Zh$\rightarrow$En}: each AMI utterance's Chinese translati
 one voice per speaker at its original start; the human AMI transcripts are the references (Appendix~\ref{app:zhdata};
 the same 16 test meetings), so this source is synthetic. \emph{Real Mandarin}: the AliMeeting test set~\citep{yu2022m2met}, 20
 meetings of two to four people (10.8\,h), headset channels mixed into one (not the far-field condition of M2MeT or
-DiariST); no AliMeeting data is used in training. AliMeeting is scored
+DiariST); no AliMeeting data is used in training.\ifAliEval{} The eight AliMeeting \emph{evaluation} meetings
+(\num{v11:ae:hours}\,h), prepared in the same way and scored against DiariST's human development translations, were
+first used for the locked test of \S\ref{sec:res-alieval}.\fi AliMeeting is scored
 against the human English translations released with DiariST~\citep{yang2024diarist}, except in the overlap study
 (Table~\ref{tab:ovmain8}) and the appendix tables marked as such, which used machine translations of the human
 transcripts (Appendices~\ref{app:qe7},~\ref{app:v9}).
@@ -20,15 +22,15 @@ Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency pr
 bidirectional model (Table~\ref{tab:hyper}). The streaming \sys{} is one bidirectional model trained in two stages on 8
 H200 GPUs (Appendix~\ref{app:v10train}). \emph{Stage 1}, the deadline baseline, trains the deadline objective from
 \sys{} (offline) on \num{v10:c:j:rows} rows, every batch of 64 holding 32 rows per direction, for \num{v10:c:j:s1steps}
-steps. \emph{Stage 2} trains write alignment from stage 1 with 64 read rows per step; checkpoints are decoded on five
-development meetings per direction (dev5), and a rule fixed before stage 2 stops training and selects one. The rule
-selected step \num{v10:c:j:s2rule}; we use step \num{v10:c:j:s2step}, which had higher dev5 BLEU but exceeds the rule's
-latency bound (\S\ref{sec:res-hygiene}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
+steps. \emph{Stage 2} trains write alignment from stage 1 with 64 read rows per step
+(\S\ref{sec:write}); checkpoints are decoded on five development meetings per direction (dev5), and a rule fixed before
+stage 2 stops training and selects one. The rule selected step \num{v10:c:j:s2rule}; we use step \num{v10:c:j:s2step},
+which had higher dev5 BLEU but exceeds the rule's latency bound (\S\ref{sec:write}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
 streaming speech; the PA Talker is fine-tuned from it per direction (Appendix~\ref{app:plem}). Decoding is greedy.
 
-\paragraph{Systems.} \emph{B}: the stage-1 Thinker with the base Talker (fixed rate, one sample per block, no
-merging). \emph{B+PA}: the same text, merged per read and spoken by the PA Talker. \emph{\sys{}}: the stage-2 Thinker
-with $\bias=-1$ and the B+PA speech layer. Offline \emph{cascades} translate the diarizer's turns one by one with our
+\paragraph{Systems.} \emph{B}: the stage-1 (deadline) Thinker with the base Talker (fixed rate, one sample per
+block, no merging). \emph{\sys{}}: the same Thinker and text, merged per read and spoken by the PA Talker (B+PA).
+\emph{\sys{}+WA}: the stage-2 Thinker with $\bias=-1$ and the same playback layer (\S\ref{sec:write}). Offline \emph{cascades} translate the diarizer's turns one by one with our
 speaker-blind window model (\emph{same-data}), with the same recipe trained on the cascade's turns
 (\emph{turn-trained}), or on reference turns (oracle input). SeamlessStreaming~\citep{seamless2023} is a zero-shot
 external reference (Appendix~\ref{app:e7}).

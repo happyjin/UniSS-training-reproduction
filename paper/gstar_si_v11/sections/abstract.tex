@@ -1,26 +1,24 @@
 \begin{abstract}
-A meeting interpreter must say what each person said, attribute it to the right person, and decide when to say it, also
-when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved with tokens of a frozen
-streaming diarizer, writes speaker-first, time-stamped translations for every speaker of an overlapping window, and hands
-them to a speech generator prompted with each speaker's voice. Offline, on AMI reference windows, \sys{} beats the
-strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff:en2zh} cpBLEU in English$\rightarrow$Chinese
-(exploratory comparison) and \num{v7:gainoff:zh2en} in Chinese$\rightarrow$English (confirmatory, Holm-corrected), and on
-overlapped speech it leads a speaker-blind model relabelled by the same diarizer by \num{v8:x:ov-O2-rel-en2zh:diff} and
-\num{v8:x:ov-O2-rel-zh2en:diff} tcpBLEU (exploratory). For streaming operation we treat two timing decisions as latent
-structure. \emph{Write alignment} trains the decoder on an exact, tempered posterior over when, and in which speaker order,
-each translated chunk is written, with one constant write bias against the resulting drift towards later writes.
-\emph{Playback alignment} fine-tunes the speech generator once on its own candidates, weighted by a posterior over the
-playback backlog under a latency budget. On whole AMI test meetings (Zh$\rightarrow$En / En$\rightarrow$Zh), against a
-jointly trained deadline baseline, the playback-alignment layer alone raises speech ASR-BLEU by
-\num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} (significant after Holm correction) and
-ends each utterance's speech earlier, mainly by speaking faster (+\num{v10:pr:test:ami:m-b:ratepct}\% /
-+\num{v10:pr:test:en:m-b:ratepct}\% rate) with less queueing, at the price of about twice as many pauses; the
-conventional block-start speech LAAL of the full system is unchanged against the baseline
-(\num{v10:pr:test:ami:m-b:bslaal:diff} / \num{v10:pr:test:en:m-b:bslaal:diff}\,s, not significant). The write-aligned
-decoder adds \num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} text tcpBLEU, which is not
-significant after Holm correction, no speech gain, and slightly later speech. On real Mandarin meetings (AliMeeting) the
-text score does not improve (\num{v10:sig:test:ali:text:m-b:diff}, not significant) while speech ASR-BLEU does
-(\num{v10:sig:test:ali:speech:m-b:diff}). The write bias was introduced after a first test run, so
-the final test numbers are not fully blind. Per utterance the system works closer to consecutive than to simultaneous
-interpretation, with one output channel per speaker.
+A meeting interpreter must say what each person said, attribute it to the right person, and get the translation to
+the listener in time, also when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved
+with tokens of a frozen streaming diarizer, writes speaker-first, time-stamped translations for every speaker of an
+overlapping window, and hands them to a speech generator prompted with each speaker's voice. Offline, \sys{} beats the
+strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff:zh2en} cpBLEU in Chinese$\rightarrow$English
+(confirmatory, Holm-corrected), and on overlapped speech it leads a speaker-blind model relabelled by the same diarizer,
+mainly by attributing both voices. Online, much of the delay a listener experiences arises after the text is written,
+while synthesised speech queues behind earlier speech of the same speaker. \emph{Playback alignment} scores each
+block's candidate renderings together with this backlog in a linear-chain CRF whose potentials charge the delay at
+which each word is heard, imposes a latency budget by posterior regularisation\ifFluencyPA{} together with a
+speaking-rate budget\fi, and fine-tunes the speech generator once on the posterior-weighted candidates. On the same
+text, on whole AMI meetings (Zh$\rightarrow$En / En$\rightarrow$Zh) and real Mandarin AliMeeting meetings, it raises
+speech ASR-BLEU by \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
+\num{v10:sig:test:ali:speech:e2-b:diff}, lowers conventional block-start speech LAAL by
+\num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
+\num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and ends each utterance's speech \num{v10:pr:test:ami:e2-b:endoff:diffabs} /
+\num{v10:pr:test:en:e2-b:endoff:diffabs} / \num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s earlier (all significant), by speaking faster with less queueing\ifFluencyPA{}\else{} and at the price of about twice as many
+pauses\fi.\ifFactorial{} A factorial ablation separates the learned component from merging, rate rules and candidate
+selection.\fi\ifAliEval{} On eight AliMeeting meetings never used before, the speech gains replicate under a locked
+protocol.\fi{} Treating the write time as latent structure instead, trained on the decoder's own likelihood, brings no
+significant gain: its posterior drifts towards later writes, and we analyse why neither a training-time budget, an
+early-write lattice nor a decoding bias turns it into a better quality--latency trade-off.
 \end{abstract}

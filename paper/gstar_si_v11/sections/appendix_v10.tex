@@ -40,10 +40,10 @@ $k^\ast$, $i^\ast$ & LAAL cut-off index (speech, text) \\
 \toprule
 \textbf{Algorithm 2}: one training step of write alignment \\
 \midrule
-1: draw windows; for each, enumerate feasible sets $A_r$ (Eq.~\ref{eq:lattice}) and orders $o_r$ \\
+1: draw windows; for each, enumerate feasible sets $A_r$ (\S\ref{sec:write}) and orders $o_r$ \\
 2: score every non-forced edge $\psi_{r,o}(A'\!\to\!A)$ with the current $\theta$ (one forward per row) \\
 3: forward--backward over set states with $\tau=0.5$ $\Rightarrow$ edge marginals $q_\tau(e)$ \\
-4: merge rows sharing a prefix; gradient step on $\mathcal{L}_\mathrm{W}$ (Eq.~\ref{eq:mstep}) with $q_\tau$ fixed \\
+4: merge rows sharing a prefix; gradient step on the posterior-weighted loss (\S\ref{sec:write}) with $q_\tau$ fixed \\
 \midrule
 \textbf{Algorithm 3}: playback alignment (run once) \\
 \midrule
@@ -67,7 +67,7 @@ exactly the rows of its per-direction run at step $k$, and the learning rate (co
 \num{v10:c:j:s1steps} steps, 100 warm-up steps) matches the per-direction schedule at the same point. LoRA, projector and new rows as in Table~\ref{tab:hyper}; 8 H200 GPUs, micro-batch 8, no
 gradient accumulation. There is no checkpoint selection: the deadline baseline is the last step.
 
-\paragraph{Stage 2 (write alignment).} From the merged stage-1 model, Eq.~\eqref{eq:mstep} with $\tau=0.5$, new
+\paragraph{Stage 2 (write alignment).} From the merged stage-1 model, the posterior-weighted loss (\S\ref{sec:write}) with $\tau=0.5$, new
 LoRA adapters ($r=32$, $\alpha=64$), the same posterior perturbation (random dropping, jitter and shifting of diarizer frames; Table~\ref{tab:hyper}) and
 the same learning-rate schedule as stage 1; each
 step draws about 32 read rows per direction (64 in total). Checkpoints are saved every 500 steps. From step 3{,}000 on,
@@ -105,7 +105,7 @@ meetings in use.
 \section{Write and Playback Alignment: Details}
 \label{app:crf}
 
-\paragraph{Scoring.} For every window the E-step enumerates the feasible sets of Eq.~\eqref{eq:lattice} read by read; a
+\paragraph{Scoring.} For every window the E-step enumerates the feasible sets (\S\ref{sec:write}) read by read; a
 read with a single feasible transition (forced read) adds the same constant to every plan and is not scored. Every other
 transition and order is one row: the read's input $\bm{E}^{(r)}$, the history $\kappa(A')$ and the tokens
 $Y_r^o(A',A)\,\eta_r$; at the last read the wait token is masked before the softmax, as at decoding. The scores use the
@@ -117,6 +117,25 @@ not check that it increases the tempered marginal likelihood. On the label plan 
 token by token: on all \num{v10:c:crf:win} windows used by a 3{,}000-step single-direction run, the rows were identical;
 \num{v10:c:crf:realwin} of those windows contain a real order choice. A step scores about \num{v10:c:crf:pass1} rows
 and trains on about \num{v10:c:crf:pass2} (rows sharing a prefix are merged and their coefficients added).
+
+\paragraph{Lattice and posterior.} With $\mathcal{C}$ the chunks of a window and $r(j)$ the due read of chunk $j$
+(Eq.~\eqref{eq:due}), a write plan $z=(A_{1:R},o_{1:R})$ satisfies
+\begin{equation}
+\{j:r(j)\le r-1\}\subseteq A_r\subseteq\{j:r(j)\le r\},
+\label{eq:lattice}
+\end{equation}
+$A_R=\mathcal{C}$, each speaker's chunks written in order. With $Y_r^{o}(A',A)$ the tokens of $A\setminus A'$ serialised in order $o$ and
+$\kappa(A')$ the canonical serialisation of $A'$,
+\begin{equation}
+\begin{aligned}
+q_\tau(z)&=\tfrac{1}{Z}\exp\Big(\tau\textstyle\sum_{r}\psi_r\Big),\\
+\psi_r&=\log p_\theta\big(Y_r\,\eta_r\mid\bm{E}^{(r)},\kappa(A_{r-1})\big),
+\end{aligned}
+\label{eq:post}
+\end{equation}
+$Y_r=Y_r^{o_r}(A_{r-1},A_r)$, $A_0=\emptyset$, and the M-step minimises $\mathcal{L}_\mathrm{W}=-\frac{1}{\Omega}\sum_e q_\tau(e)\log_\omega
+p_\theta(Y_r^{o}\eta_r\mid\cdot)$ over lattice edges $e=(r,A'\!\to\!A,o)$, with the token weights of
+Eq.~\eqref{eq:loss}.
 
 \paragraph{Why the factorisation is exact.} The input of read $r$ depends on the plan only through the set $A_{r-1}$
 (the history is the canonical serialisation of the set, not the order in which it was written), so
@@ -172,7 +191,7 @@ En$\rightarrow$Zh: the same recipe, \num{v10:c:plem:rows:e} rows, $\lambda^\star
 
 \paragraph{When and how.} The first test decoding of the write-aligned system used no bias. It showed that the
 system started speaking later than the deadline baseline, most on AliMeeting (Table~\ref{tab:delta0}). We then added
-Eq.~\eqref{eq:bias} and calibrated it on dev5 only: candidates $\{-1,-2,-3,-5\}$ in both directions, rule fixed before
+the wait logit (\S\ref{sec:write}) and calibrated it on dev5 only: candidates $\{-1,-2,-3,-5\}$ in both directions, rule fixed before
 decoding (text LAAL closest to the deadline baseline's), no finer grid. Both directions gave $\bias=-1$
 (Table~\ref{tab:calib10}): text LAAL \num{v10:cal:z:m1-b:laal} / \num{v10:cal:e:m1-b:laal}\,s from the baseline's,
 tcpBLEU \num{v10:cal:z:m1-b:bleu} / \num{v10:cal:e:m1-b:bleu}. Larger biases cut the translation short

@@ -1,4 +1,4 @@
-% Build: python scripts/make_tables_v10.py && tectonic main.tex
+% Build: python scripts/make_tables_v10.py && python scripts/make_tables_v11.py && tectonic main.tex
 \documentclass[11pt]{article}
 
 \usepackage[no-math]{fontspec}
@@ -40,6 +40,7 @@
 \input{generated/macros_v8}
 \input{generated/macros_v9}
 \input{generated/macros_v10}
+\input{generated/macros_v11}
 % an undefined number key prints a visible marker and a log warning instead of nothing
 \renewcommand{\num}[1]{\ifcsname n@#1\endcsname\csname n@#1\endcsname\else
   \textbf{??}\PackageWarning{numbers}{undefined number key \detokenize{#1}}\fi}
@@ -47,12 +48,16 @@
 % generated/tab_v10_postreview.tex from scripts/make_tables_v10.py); \PostReviewfalse restores the shorter text.
 \newif\ifPostReview
 \PostReviewtrue
+% v11 result switches, set by scripts/make_tables_v11.py (generated/switches_v11.tex) once each result exists
+\newif\ifFactorial \newif\ifFluencyPA \newif\ifAliEval \newif\ifWallclock \newif\ifWAcurve \newif\ifSfourK
+\newif\ifMetricsV
+\input{generated/switches_v11}
 \definecolor{frozen}{HTML}{4C78A8}
 \definecolor{trained}{HTML}{E4572E}
 \definecolor{spkc}{HTML}{2E8B57}
 
-\title{Who Said What, and When to Say It:\\
-Latent Write and Playback Alignment for Speaker-Attributed Streaming Meeting Interpretation}
+\title{Who Said What, and When It Is Heard:\\
+Backlog-Aware Playback Alignment for Speaker-Attributed Streaming Meeting Interpretation}
 
 \author{Anonymous ACL submission}
 
@@ -65,6 +70,7 @@ Latent Write and Playback Alignment for Speaker-Attributed Streaming Meeting Int
 \input{sections/method}
 \input{sections/setup}
 \input{sections/results}
+\input{sections/write}
 \input{sections/conclusion}
 
 \bibliography{references}

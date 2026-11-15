@@ -1,50 +1,53 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Playback alignment brings significant
-speech gains and ends speech earlier by speaking faster, with more pauses; write alignment brings no gain that survives
-correction. With one channel per speaker, a listener hears several voices at once during overlap.
+Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Once translations are spoken in each
+speaker's voice, much of the listener's delay is queueing of synthesised speech; aligning playback to this backlog
+brings significant gains in speech ASR-BLEU and in both conventional and playback-aware speech latency, mostly by
+speaking faster\ifFluencyPA{}, and a rate budget in the same posterior-regularised objective limits that cost\else{},
+with more pauses\fi. Making the write time latent and training it on the decoder's likelihood does not beat deadlines:
+the likelihood itself rewards waiting. With one channel per speaker, a listener hears several voices at once during
+overlap.
 
 \section*{Limitations}
 
-\paragraph{Test hygiene and missing controls.} The final streaming results are not fully blind
-(\S\ref{sec:res-hygiene}): the write bias was added after a first test run, the stage-2 checkpoint deviates from the
-selection rule and exceeds its latency bound, and the same test meetings served throughout development. We did not
-decode the rule-selected checkpoint on test or evaluate on an untouched meeting set. We did not run the controls that
-would attribute the text effect of write alignment: a write-bias sweep on the deadline baseline compared at matched
-latency, deadline training continued for the same number of steps, and deadline training with mixed lags. We did not
-isolate the speech-layer components (merging, rate rule, candidate selection, learned Talker) on the baseline text, and
-the Zh$\rightarrow$En PA Talker was trained on outputs of a separately trained write-aligned Thinker, not on the
-baseline's text. Fixed-lag, LocalAgreement, cascade and relabelling baselines were run only with the per-direction model under
-the earlier look-ahead protocol (Appendix~\ref{app:v9proto}), not with the final speech layer. Every streaming model was
-trained once, with one seed. The training-time latency budget was run with one value.
+\paragraph{Non-blind procedure.} The test meetings served throughout development (\S\ref{sec:res-hygiene})%
+\ifAliEval{}; only the eight unused AliMeeting meetings give a locked test, and they cover Zh$\rightarrow$En only\fi.
+The write-alignment rows additionally depend on a bias introduced after a first test run and on a checkpoint that
+deviates from the selection rule (\S\ref{sec:write}).
 
-\paragraph{Latency and speech.} LAAL$_\text{spread}$ is not the conventional speech LAAL; under LAAL$_\text{block}$ the
-full system is not earlier than the baseline (Appendix~\ref{app:postreview}), and LAAL may degenerate when, as here, most
-words are written at a window's last read (Appendix~\ref{app:decomp}). The lower EndOffset is bought with speech that is
-\num{v10:pr:test:ami:m-b:ratepct}\% (Zh$\rightarrow$En) and \num{v10:pr:test:en:m-b:ratepct}\% (En$\rightarrow$Zh)
-faster and has about twice as many pauses, including more mid-sentence pauses; UTMOS does not capture this, and speaker
-similarity was measured against the Talker's voice prompt, not the speakers' own recordings. Text-latency differences
-are point estimates, and the speech-latency tests are not corrected for multiple comparisons. Word times are spread over
-a block, not forced-aligned. Latencies
-count audio and playback time, not computation; the decoder re-encodes the prefix at every read and the PA Talker
-samples two candidates per block, and we did not measure the cost of the final system. All streaming latencies assume
-one channel per speaker.
+\paragraph{Incomplete attribution of effects.}\ifFactorial{} The factorial ablation (Table~\ref{tab:factorial}) uses
+one rate-matched rule; other rules could do better.\else{} We did not isolate the speech-layer components (merging, rate
+rule, candidate selection, learned Talker) on the baseline text.\fi{} The Zh$\rightarrow$En PA Talker was trained on
+outputs of a separately trained write-aligned Thinker, not on the deadline Thinker's text. Every streaming Thinker was
+trained once, with one seed; the latency budget was run with one value. Fixed-lag, LocalAgreement, cascade and
+relabelling baselines were run only with the per-direction model under an earlier look-ahead protocol
+(Appendix~\ref{app:v9proto}), not with the final speech layer.
 
-\paragraph{Evaluation.} No human evaluation: no listening test of voice identity, naturalness or comprehensibility, and
-no bilingual check of the machine-translated En$\rightarrow$Zh references, which come from the same pipeline as the
-training targets. No learned quality metric is used; tcpBLEU keeps duplicate translations of a unit and so partly rewards
-duplication, and ASR-BLEU after CTC-based candidate selection may favour ASR-friendly speech. The Zh$\rightarrow$En
-source is synthetic (re-voiced by the same model family as our Talker), the two AMI directions share their 16 meetings,
-and on AliMeeting, the only real Mandarin set, the text score does not improve. AliMeeting audio is mixed close-talk
-channels and we do not report DiariST's own metric, so the numbers are not comparable with published results; the reference windows keep
-\num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh test speech. Greedy bf16 decoding is not batch-invariant
-(Appendix~\ref{app:noise}). Earlier studies left further tests unrun for compute (Appendix~\ref{app:prereg}), and other
-multi-speaker systems are compared by capability only (Table~\ref{tab:related8}).
+\paragraph{Computation.} Latencies count audio and playback time, not computation; the decoder re-encodes the prefix
+at every read and the PA Talker samples two candidates per block.\ifWallclock{} Our wall-clock replay
+(Appendix~\ref{app:wallclock}) covers few meetings on one hardware setting.\else{} We did not measure the cost of the
+final system.\fi{} All streaming latencies assume one channel per speaker.
 
-\paragraph{System.} The diarizer, the encoder and the Thinker are trained separately from the Talker, and the two
-alignments are not one joint model. Committed output is never revised, so a wrong speaker label is spoken. Voice prompts
-come from the diarizer's solo regions, which a speaker who never talks alone lacks.
+\paragraph{Latency and speech.} LAAL$_\text{spread}$ is not the conventional speech LAAL, and its word times are spread
+over a block, not forced-aligned; LAAL may degenerate when most words are written at a window's last read
+(Appendix~\ref{app:decomp}). The faster speech of the PA Talker comes with more pauses, including mid-sentence pauses,
+which UTMOS does not capture; speaker similarity was measured against the Talker's voice prompt, not the speakers' own
+recordings. Speech-latency tests are not corrected for multiple comparisons.
+
+\paragraph{Evaluation.} No human evaluation: no listening test of voice identity, naturalness or comprehensibility,
+and no bilingual check of the machine-translated En$\rightarrow$Zh references, which come from the same pipeline as the
+training targets. tcpBLEU keeps duplicate translations of a unit and so partly rewards duplication
+(Appendix~\ref{app:dup})\ifMetricsV{}; deduplicated tcpBLEU, COMET and a second recogniser are reported in
+Appendix~\ref{app:metricsv11}\fi. The Zh$\rightarrow$En AMI source is synthetic (re-voiced by the same model family as
+our Talker), the two AMI directions share their 16 meetings, and on AliMeeting the text of write alignment does not
+improve. AliMeeting audio is mixed close-talk channels and we do not report DiariST's own metric, so the numbers are not
+comparable with published results; the reference windows keep \num{v6:filt:en2zh:all:dur}\% of the En$\rightarrow$Zh
+test speech. Greedy bf16 decoding is not batch-invariant (Appendix~\ref{app:noise}).
+
+\paragraph{System.} The diarizer, the encoder and the Thinker are trained separately from the Talker. Committed output
+is never revised, so a wrong speaker label is spoken. Voice prompts come from the diarizer's solo regions, which a
+speaker who never talks alone lacks.
 
 \section*{Ethics Statement}
 
