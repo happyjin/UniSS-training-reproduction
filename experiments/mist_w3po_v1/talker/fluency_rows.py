@@ -40,6 +40,9 @@ from experiments.mist_w3po_v1.talker import playback_lattice as PL
 from experiments.mist_w3po_v1.talker import talker_rows as TR
 
 
+PROCS = 1   # --procs (forked workers for the dual's corpus sums)
+
+
 class FStream(PL.Stream):
     """PL.Stream with the fluency dual: psi gains + mu * d_c (seconds)."""
 
@@ -58,8 +61,7 @@ def build(items: list[dict], W: dict) -> list[FStream]:
     return out
 
 
-def corpus(streams: list[FStream], lam: float, mu: float) -> tuple[float, float]:
-    """(E_q[sum l] / sum W, E_q[sum d] / sum W) at (lam, mu), seconds."""
+def _partial(streams, lam: float, mu: float) -> tuple[float, float, int]:
     el = ed = 0.0
     words = 0
     for st in streams:
@@ -68,6 +70,34 @@ def corpus(streams: list[FStream], lam: float, mu: float) -> tuple[float, float]
         el += e
         ed += sum(float(m.sum(0) @ st.dur[n]) for n, m in enumerate(marg)) / 1000.0
         words += sum(st.words)
+    return el, ed, words
+
+
+_POOL = {"streams": None, "pool": None, "chunks": None}
+
+
+def _work(args):
+    i, lam, mu = args
+    return _partial(_POOL["chunks"][i], lam, mu)
+
+
+def use_pool(streams: list[FStream], procs: int) -> None:
+    """corpus() on these streams runs in `procs` forked workers (same sums, only the order of the additions differs)."""
+    import multiprocessing as mp
+
+    k = max(1, procs)
+    _POOL["streams"] = streams
+    _POOL["chunks"] = [streams[i::k] for i in range(k)]
+    _POOL["pool"] = mp.get_context("fork").Pool(k)
+
+
+def corpus(streams: list[FStream], lam: float, mu: float) -> tuple[float, float]:
+    """(E_q[sum l] / sum W, E_q[sum d] / sum W) at (lam, mu), seconds."""
+    if _POOL["pool"] is not None and streams is _POOL["streams"]:
+        parts = _POOL["pool"].map(_work, [(i, lam, mu) for i in range(len(_POOL["chunks"]))])
+        el, ed, words = (sum(x[j] for x in parts) for j in range(3))
+    else:
+        el, ed, words = _partial(streams, lam, mu)
     return el / words, ed / words
 
 
@@ -132,6 +162,8 @@ def rows(items: list[dict], W: dict, spw_min: float, drop: float = TR.BUDGET_DRO
     words = sum(sum(st.words) for st in streams)
     a_lat = sum(st.path_latency([b["chosen"] for b in it["blocks"]]) for st, it in zip(streams, items)) / words
     budget = a_lat - drop
+    if PROCS > 1:
+        use_pool(streams, PROCS)
     sol = solve(streams, budget, spw_min)
     lam, mu = sol["lambda"], sol["mu"]
     blocks, kl_u, ent = [], [], []
@@ -168,8 +200,11 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--drop", type=float, default=TR.BUDGET_DROP_S,
                     help="latency budget = rule path latency - drop (prereg: 0.3; 0 only under the infeasibility rule)")
+    ap.add_argument("--procs", type=int, default=1, help="forked workers for the dual solve (default 1 = serial)")
     ap.add_argument("--require-feasible", action="store_true", help="write nothing when the duals do not converge")
     a = ap.parse_args()
+    global PROCS
+    PROCS = a.procs
     TR.LANG, TR.UNITS = (TR.LANG_ENG if a.lang == "eng" else TR.LANG_CMN), a.units
     items, W = TR.load_items(a.cands), TR.windows(a.win)
     if a.stats:

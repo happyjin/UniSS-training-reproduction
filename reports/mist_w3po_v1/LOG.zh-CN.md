@@ -3225,3 +3225,21 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 新文件：`experiments/mist_w3po_v1/scripts/v11_p01_postproc.sh`（lat_units_dump perword/blockstart、talker_block_pauses、talker_quality 种子 1；只补缺、不覆盖）和 `experiments/mist_w3po_v1/evaluation/v11_factorial_analysis.py`（ASR-BLEU 配对 = make_tables_v10.paired；延迟/语速/UTMOS = post_review_v10_analysis.paired_ratio；主族 Holm）。
 - 核对：在已有测试输出 R0（B）/ R5（B+PA）上重算，R5−R0 的 ASR-BLEU +2.28/+1.35/+0.58、LAAL_block −0.091/−0.331/−0.111、LAAL_spread、EndOffset、语速与 v10 宏 / post_review analysis_v1.json 逐项一致（区间差 ≤0.003，bootstrap 抽样顺序不同）。
 - 小事故：第一次 talker_quality 缺 TORCH_HOME → 联网下载 UTMOS 权重 SSL 失败（同 11-14 的已知问题）；脚本已加 TORCH_HOME（新文件 + mv），测试集 R0/R5 的 quality 直接复制 post_review_v10 的同一结果（同工具、同种子）。
+- 09:55（F5）：COMET 重写（experiments/mist_w3po_v1/evaluation/v11_comet.py，uniss-eval 环境，只下载权重）在 unbabel-comet README 示例上给出 [0.8417137265205383, 0.7745389342308044]，官方 [0.8417137265205383, 0.7745391726493835] → 实现无误，采用。speaker-blind 指标最终定义为"说话人无关 tcpBLEU"（所有说话人并成一个，等价 meeteval 的 tcORC 思路）；最初按时间重叠就近分配的版本在 AMI 测试上低于带归属的分数（不是 oracle），在出任何表之前弃用。第二 ASR 的 Whisper 中文对少数短片段会循环输出（"U.M.U.M…"），统一截断到 ceil(8 字/秒 × 时长) + 4 字，对所有系统同一规则。
+
+## 2026-11-15 10:55 布拉格 — v11 P0-4 审稿后指标链（F4）
+- scripts/s4000_postproc.sh（等 WB_TEST_S4000_DONE；lat_units_dump perword/blockstart、talker_block_pauses、talker_quality 种子 1）+ evaluation/post_review_v11_s4000.py（post_review_v10_analysis 的副本，加系统 m4 与配对 m4−b / m4−e2 / m4−m，其余不变）。输出 eval_outputs/mist_w3po_v1/joint/post_review_v11_s4000/，日志 logs/mist_v11/s4000_postproc.log。bash -n + DRY_RUN 检查。
+- P1-1 启动器 wallclock_v11_launch.py 已在等同一个门槛（PID 2245994，日志 logs/mist_v11/wallclock/launch.log）。
+
+## 2026-11-15 09:45 布拉格 — v11 P0-2 AliMeeting Eval 干净集：数据与登记（F3）
+
+- 下载完成（Eval_Ali.tar.gz 3.67 GB）；只解出近场音频和 TextGrid 到 data/raw/alimeeting/Eval_Ali。`build_alimeeting_test prep` → data/alimeeting_eval_si_v1：8 场、6,457 句（语气词 1,084）、约 4.2 h。
+- **决定 1（按最佳选择）：参考用人工译文代替 Hy-MT2。** Hy-MT2 模型不在本服务器；DiariST dev 人工译文按会议/说话人/起止/中文匹配 6,451 / 6,457。测试集的 MT 审核规则若套在人工译文上会误判 222 句（长度比），所以**不按参考做窗口筛选**（refs_audit.json fails = {}，规则计数仅记录）。理由：避免依据参考选窗口；测试集该规则实际只删了 4 / 14,148 句，影响可忽略。
+- 分离器后验：offline / lowlat 两预设（nemo_diar venv，卡 0 / 7）。等待脚本误把 setsid 父进程当成工作进程，在 lowlat 运行中又起了一个重复进程，约 15 s 后按 PID 停掉（未写出任何文件；日志改名 nemo_lowlat.dup_killed.log）。
+- 登记：reports/mist_w3po_v1/v11_p02_alieval_prereg.zh-CN.md（commit d7a425fea，任何解码之前）。系统 B（T1c）、B+PA（rl + PL-EM）、M（s3500, δ=−1）、M4000（s4000, δ=−1）；确认性 H1a/H1b/H2（B+PA − B 的 ASR-BLEU、LAAL_block、EndOffset，Holm 3 项；8 场最小双侧 p = 2/256）。
+- 新工具：data/alieval_build.py（构建）、scripts/alieval_orch.py（只换 AliMeeting 集合定义）、scripts/alieval_run.sh（驱动，PORT0 20600）、scripts/alieval_postproc.sh、evaluation/alieval_analysis.py；reports/gstar_si_v6/meeting_score.py 增加回退（测试集目录没有该会议时读 Eval 目录，测试集结果不变）。
+
+## 2026-11-15 09:46 布拉格 — v11 P2：时间更正 + 对偶求解并行化
+
+- 时间更正：上一条 "10:20 布拉格" 与登记文件里的 "约 10:00" 都写错了，按 date 核对实际为约 09:35–09:40 布拉格（08:35–08:40 UTC）。登记仍早于任何 PA-F 训练。
+- rows 的对偶坐标上升串行太慢（每轮 3–5 分钟；Zh→En 第 2 轮 λ 1.37、μ 8.28，延迟 2.00 > 预算 1.948，尚未收敛）。子集探查（cands_0–1）表明可行：λ=5、μ=22 时延迟 1.92 已低于预算。按 PID 停掉两个串行进程（2182242、2182243；日志改名 rows_*.log.serial_stopped_*），加 --procs 48（fork 工作进程分块求同一个和，与串行结果差 < 1e-10，已核对），同一登记设置重启。求解算法和预算不变。
