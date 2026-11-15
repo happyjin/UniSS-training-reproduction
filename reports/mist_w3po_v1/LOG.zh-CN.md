@@ -3249,3 +3249,9 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 10:20 布拉格 — En→Zh 的 PA-F 训练也在第 1 步后 OOM（卡 1：重复启动的 Zh→En 训练在被停之前已占显存，加上其他分支的作业；TALKER_CRF_FAILED）。旧驱动两条链都已退出（P2_DEV_CHAINS_EXITED）。按 PID 停掉只跑 Zh→En 的 v2 实例（还在等卡，未占卡），用一个 v2 实例重启两个方向（DIRS="zh2en en2zh"，端口 19960/19970 不冲突），日志 logs/mist_v11/p2/plemf_v2.log。两个失败的 RUN_ID 目录保留不动。
 - 11:31 布拉格 — Zh→En PA-F 训练完成（talker_plemf_zh2en_20261115T091808Z，卡 1,4,5,6，1200 步，叠在其他作业上约 70 分钟），export = 第 1200 步；dev 语音链已启动（编排器 PID 3658271，run logs/mist_v11/p2/dev_zh2en，门槛对照 E2 的 B+PA dev）。En→Zh 在等卡。
 - 12:34 布拉格 — En→Zh PA-F 训练完成（talker_plemf_en2zh_20261115T091938Z，卡 1,4,5,6），按登记导出第 400 步（export_i0400）；dev 语音链启动（编排器 PID 144325，run logs/mist_v11/p2/dev_en2zh）。Zh→En dev 链仍在跑（talker 分片在其他分支的作业间排队）。
+
+## 2026-11-15 13:10 布拉格 — v11 P0-2：解码排不上卡，预留一张卡（F3，按最佳选择）
+
+- alieval 三行（b/m/m4）的 64 GiB 文本解码 08:48Z 起排队 3 h+ 未启动：P0-1 析因的 12 个编排器不断启动 24 GiB 的 talker 作业，每次在共享 pending ledger 里占 300 s，任何卡上的可用量都到不了 64 GiB（饿死）。
+- 决定：`scripts/alieval_reserve.py`（detached，日志 logs/mist_w3po_v1/joint/alieval/reserve.log）每 120 s 在 ledger 里为当前行（b→m→m4 顺序）写一条 68 GiB 的 pending 记录，固定在启动时占用最少的一张卡上；其他 owner 不再往该卡放新作业，我们的行在该卡现有作业结束后拿到它。24 个解码分片全部启动后自动退出，记录 300 s 后自然失效。只占一张卡，P0-1 仍有其余 7 张。理由：两个 P0 实验公平共享；不停任何人的进程。
+- 13:26 布拉格 补充：第一张预留卡（6）已让 b 的第一个分片在 12:19Z 启动；单个分片约 23 min，三行串行在一张卡上要 ~6 h，所以再起第二个实例（--rows m,m4 --exclude 6，卡 4）给 m / m4 用。P0-1 仍有 6 张卡。
