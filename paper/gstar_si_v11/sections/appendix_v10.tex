@@ -180,7 +180,7 @@ round: the weights are computed once, from candidates of the base Talker and the
 neither recomputed with the fine-tuned Talker nor marginalised over the backlog.
 
 \paragraph{Data.} Zh$\rightarrow$En: \num{v10:c:plem:meet:z} AMI training meetings decoded by the separately trained
-Zh$\rightarrow$En write-aligned Thinker (not by the deadline baseline, whose text the PA Talker speaks in B+PA), \num{v10:c:plem:blocks:z} blocks, \num{v10:c:plem:rows:z} weighted candidate rows;
+Zh$\rightarrow$En write-aligned Thinker (not by the deadline baseline, whose text the PA Talker speaks in \sys{}), \num{v10:c:plem:blocks:z} blocks, \num{v10:c:plem:rows:z} weighted candidate rows;
 budget: the rule path's own delay minus \num{v10:c:plem:budgetoff}\,s, $\lambda^\star=$ \num{v10:c:plem:lam:z}.
 En$\rightarrow$Zh: the same recipe, \num{v10:c:plem:rows:e} rows, $\lambda^\star=$ \num{v10:c:plem:lam:e}.
 
@@ -208,7 +208,7 @@ only \num{v10:pb:z:3500-m0:laal} / \num{v10:pb:e:3500-m0:laal}\,s, the bias by \
 Zh$\rightarrow$En system) overshoots: speech LAAL \num{v10:c:pmc:slaal} vs.\ \num{v10:c:pmc:ref}\,s, but text tcpBLEU
 \num{v10:c:pmc:text} and ASR-BLEU \num{v10:c:pmc:asr}.
 
-\input{generated/tab_v10_ablation}
+\input{generated/tab_v11_ablation}
 \input{generated/tab_v10_calib}
 \input{generated/tab_v10_delta0}
 
@@ -235,7 +235,7 @@ $d_k$ also grows with how long a block takes to say, and a shorter or faster ren
 when the block starts at the same time. Word times are not forced-aligned to the synthesised audio. Units, matching and
 collars are those of tcpBLEU; each speaker has its own stream. Table~\ref{tab:m2laal10} compares the two definitions.
 
-\input{generated/tab_v10_m2laal}
+\input{generated/tab_v11_m2laal}
 
 \subsection{Where the delay comes from}
 \label{app:decomp}
@@ -256,7 +256,7 @@ first read after its reference unit ends plus a lag: with 1\,s reads and 0.3\,s 
 the most a better write decision at utterance level can give; the rest of the gap to single-speaker systems needs
 writing within the utterance.
 
-\input{generated/tab_v10_decomp}
+\input{generated/tab_v11_decomp}
 
 \section{Further Streaming Results}
 
@@ -275,7 +275,7 @@ the separately trained Zh$\rightarrow$En write-aligned Thinker (\num{v10:c:ali:s
 is a property of the write plan, not of the joint model. Because duplicates lengthen the hypothesis and so reduce the brevity
 penalty, tcpBLEU partly rewards duplication. These are diagnostics; the official tcpBLEU is the reported
 metric. Table~\ref{tab:dup10} recomputes the brevity-penalty split from the score files for all three systems. With
-the write bias the duplicate explanation no longer applies: \sys{} ($\bias=-1$) duplicates as many units as the
+the write bias the duplicate explanation no longer applies: \sys{}+WA ($\bias=-1$) duplicates as many units as the
 baseline (\num{v10:test:ali:m:dup}\% vs.\ \num{v10:test:ali:b:dup}\%), its precision part equals the baseline's
 (\num{v10:test:ali:m:nobp} vs.\ \num{v10:test:ali:b:nobp}), and its remaining AliMeeting gap is a brevity penalty of
 \num{v10:test:ali:m:bp}.
@@ -285,9 +285,9 @@ baseline (\num{v10:test:ali:m:dup}\% vs.\ \num{v10:test:ali:b:dup}\%), its preci
 \subsection{Significance}
 \label{app:sig10}
 
-\input{generated/tab_v10_sig}
+\input{generated/tab_v11_sig}
 
-Table~\ref{tab:sig10} lists the paired tests on the test sets. On the development set, \sys{} against the deadline
+Table~\ref{tab:sig10} lists the paired tests on the test sets. On the development set, \sys{}+WA against the deadline
 baseline changes text tcpBLEU by \num{v10:sig:dev:z:text:m-b:diff} (\num{v10:sig:dev:z:text:m-b:ci}) /
 \num{v10:sig:dev:e:text:m-b:diff} (\num{v10:sig:dev:e:text:m-b:ci}) and ASR-BLEU by
 \num{v10:sig:dev:z:speech:m-b:diff} (\num{v10:sig:dev:z:speech:m-b:ci}) / \num{v10:sig:dev:e:speech:m-b:diff}
@@ -305,24 +305,24 @@ English words (Zh$\rightarrow$En) or characters (En$\rightarrow$Zh) per second o
 and speaker similarity (WavLM speaker verification, against the Talker's voice prompt) use one TTS seed and every stream
 of at least 0.5\,s; UTMOS differences pair the same stream across systems.
 
-Under LAAL$_\text{block}$, \sys{} $-$ B is \num{v10:pr:test:ami:m-b:bslaal:diff} ($p$ \num{v10:pr:test:ami:m-b:bslaal:p}),
+Under LAAL$_\text{block}$, \sys{}+WA $-$ B is \num{v10:pr:test:ami:m-b:bslaal:diff} ($p$ \num{v10:pr:test:ami:m-b:bslaal:p}),
 \num{v10:pr:test:ali:m-b:bslaal:diff} ($p$ \num{v10:pr:test:ali:m-b:bslaal:p}) and \num{v10:pr:test:en:m-b:bslaal:diff}
-($p$ \num{v10:pr:test:en:m-b:bslaal:p})\,s on AMI Zh$\rightarrow$En / AliMeeting / En$\rightarrow$Zh; B+PA $-$ B is
+($p$ \num{v10:pr:test:en:m-b:bslaal:p})\,s on AMI Zh$\rightarrow$En / AliMeeting / En$\rightarrow$Zh; \sys{} $-$ B is
 \num{v10:pr:test:ami:e2-b:bslaal:diff} / \num{v10:pr:test:ali:e2-b:bslaal:diff} / \num{v10:pr:test:en:e2-b:bslaal:diff}\,s
-(all $p<0.001$), and \sys{} is later than B+PA under every definition (Table~\ref{tab:postreview2}), by about its later
+(all $p<0.001$), and \sys{}+WA is later than \sys{} under every definition (Table~\ref{tab:postreview2}), by about its later
 text (text LAAL \num{v10:pr:test:ami:m-e2:tlaal:diff} / \num{v10:pr:test:ali:m-e2:tlaal:diff} /
 \num{v10:pr:test:en:m-e2:tlaal:diff}\,s). The $\bias=0$ run is later than B under LAAL$_\text{block}$ by
 \num{v10:pr:test:ami:m0-b:bslaal:diff} / \num{v10:pr:test:ali:m0-b:bslaal:diff} / \num{v10:pr:test:en:m0-b:bslaal:diff}\,s.
 The PA Talker speaks \num{v10:pr:test:ami:m-b:ratepct} / \num{v10:pr:test:ali:m-b:ratepct} /
-\num{v10:pr:test:en:m-b:ratepct}\% faster than the base Talker (\sys{} vs.\ B); UTMOS rises by
+\num{v10:pr:test:en:m-b:ratepct}\% faster than the base Talker (\sys{}+WA vs.\ B); UTMOS rises by
 \num{v10:pr:test:ami:m-b:utmos:diff} \num{v10:pr:test:ami:m-b:utmos:ci} / \num{v10:pr:test:ali:m-b:utmos:diff}
 \num{v10:pr:test:ali:m-b:utmos:ci} / \num{v10:pr:test:en:m-b:utmos:diff} \num{v10:pr:test:en:m-b:utmos:ci} and is
-unchanged between \sys{} and B+PA; speaker similarity is unchanged. Pauses of at least 0.5\,s, and on English output
+unchanged between \sys{}+WA and \sys{}; speaker similarity is unchanged. Pauses of at least 0.5\,s, and on English output
 mid-sentence pauses, become two to three times as frequent (Table~\ref{tab:postreview}): with faster speech the stream
 falls silent while the next block is awaited. The absolute UTMOS on AMI Zh$\rightarrow$En is low for all systems; it is
 computed on stream-level speech-only audio. No listening test was run, and forced-aligned word times and the
 distribution of the LAAL cut-off were not computed.
-\IfFileExists{generated/tab_v10_postreview.tex}{\input{generated/tab_v10_postreview}}{}
+\IfFileExists{generated/tab_v11_postreview.tex}{\input{generated/tab_v11_postreview}}{}
 \else
 Block-start speech LAAL for all test runs, intervals on latency differences, speaking rate and UTMOS of the streaming
 systems are not reported.
@@ -338,7 +338,7 @@ test windows; each output segment is attributed to a diarizer slot by the causal
 segmentation and speaker stream, which it does not have on its own; nothing was trained or tuned, and each test set was
 decoded once. It is a zero-shot reference for what a public single-speaker SimulS2ST system does on overlapping
 meetings, not a like-for-like baseline. Results: Table~\ref{tab:e7}.
-\input{generated/tab_v10_e7} Its quality is far below ours, most on
+\input{generated/tab_v11_e7} Its quality is far below ours, most on
 overlapped units (tcpBLEU-ov \num{v10:test:ami:e7:ov} / \num{v10:test:ali:e7:ov} / \num{v10:test:en:e7:ov}). Its
 LAAL$_\text{spread}$ is \num{v10:test:ami:e7:slaal} / \num{v10:test:ali:e7:slaal} / \num{v10:test:en:e7:slaal}\,s against our
 \num{v10:test:ami:m:slaal} / \num{v10:test:ali:m:slaal} / \num{v10:test:en:m:slaal}\,s (AMI Zh$\rightarrow$En /

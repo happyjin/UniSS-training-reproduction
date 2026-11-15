@@ -63,4 +63,10 @@ for a, b in [("B + playback alignment (B+PA)", "\\sys{}: B + playback alignment"
     assert a in t, a
     t = t.replace(a, b)
 (GEN / "tab_v11_main.tex").write_text(t)
+
+# appendix tables carried over from v10: v10's MIST (write-aligned) is v11's MIST+WA; v10's B+PA is v11's MIST
+for f in ("e7", "ablation", "sig", "postreview", "decomp", "m2laal"):
+    u = (GEN / f"tab_v10_{f}.tex").read_text()
+    u = re.sub(r"\\sys\{\}(?!-Simul| \(offline\)|\+WA)", "@@WA@@", u).replace("B+PA", "\\sys{}").replace("@@WA@@", "\\sys{}+WA")
+    (GEN / f"tab_v11_{f}.tex").write_text(u)
 print("switches:", {k: v for k, v in switches.items() if v} or "none", "| macros:", len(out))
