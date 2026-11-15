@@ -13,7 +13,10 @@ each translated chunk is written, with one constant write bias against the resul
 playback backlog under a latency budget. On whole AMI test meetings (Zh$\rightarrow$En / En$\rightarrow$Zh), against a
 jointly trained deadline baseline, the playback-alignment layer alone raises speech ASR-BLEU by
 \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} (significant after Holm correction) and
-shortens the queue of speech per speaker, while the first word of an utterance is heard hardly earlier. The write-aligned
+ends each utterance's speech earlier, mainly by speaking faster (+\num{v10:pr:test:ami:m-b:ratepct}\% /
++\num{v10:pr:test:en:m-b:ratepct}\% rate) with less queueing, at the price of about twice as many pauses; the
+conventional block-start speech LAAL of the full system is unchanged against the baseline
+(\num{v10:pr:test:ami:m-b:bslaal:diff} / \num{v10:pr:test:en:m-b:bslaal:diff}\,s, not significant). The write-aligned
 decoder adds \num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} text tcpBLEU, which is not
 significant after Holm correction, no speech gain, and slightly later speech. On real Mandarin meetings (AliMeeting) the
 text score does not improve (\num{v10:sig:test:ali:text:m-b:diff}, not significant) while speech ASR-BLEU does

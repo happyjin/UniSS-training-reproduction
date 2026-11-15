@@ -1,9 +1,8 @@
 \section{Introduction}
 \label{sec:intro}
 
-A meeting interpreter renders each contribution into the listener's language as it unfolds and makes clear whose
-contribution it is: a ``yes'' from the project manager means something different from a ``yes'' from the client. And
-people talk at once: over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers.
+A meeting interpreter renders each contribution into the listener's language and makes clear whose it is: a
+``yes'' from the project manager means something different from a ``yes'' from the client. And people talk at once: over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers.
 Simultaneous speech-to-speech translation (SimulS2ST) systems translate one speaker and can keep that speaker's
 voice~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s}. DiariST~\citep{yang2024diarist}
 streams speaker-attributed text translation of overlapping conversations, without timestamps or speech;
@@ -34,6 +33,6 @@ decoder; (ii) an overlap-aware evaluation of whole meetings, run online, with ca
 diarizer (\S\ref{sec:eval-overlap}); and (iii) the two timing alignments (\S\ref{sec:method-latent},
 \S\ref{sec:method-plem}) with an analysis of what each does and does not change. Online, against the same joint model
 trained on deadlines, the playback-alignment layer brings significant speech ASR-BLEU gains on all three test sets
-(\S\ref{sec:res-v10}); write alignment yields no gain that survives multiple-comparison correction (AMI text tcpBLEU
+and ends speech earlier by speaking faster, without lowering conventional speech LAAL (\S\ref{sec:res-v10}); write alignment yields no gain that survives multiple-comparison correction (AMI text tcpBLEU
 \num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff}) and is heard slightly later. Per utterance
 the system remains closer to consecutive than to simultaneous interpretation; we therefore call it \emph{streaming}.

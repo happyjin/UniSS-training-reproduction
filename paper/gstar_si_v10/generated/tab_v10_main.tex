@@ -1,28 +1,28 @@
 \begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{3.5pt}
-\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrr}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrrr}
 \toprule
- & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{4}{c}{latency (s) $\downarrow$} \\
-\cmidrule(lr){3-5}\cmidrule(lr){7-10}
-Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech start & LAAL$_\text{spread}$ & EndOffset \\
+ & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{5}{c}{latency (s) $\downarrow$} \\
+\cmidrule(lr){3-5}\cmidrule(lr){7-11}
+Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech start & LAAL$_\text{block}$ & LAAL$_\text{spread}$ & EndOffset \\
 \midrule
-\multirow{4}{*}{AMI Zh$\rightarrow$En} & Deadline baseline (B) & 25.02 & 19.97 & 27.10 & 18.07 & 2.99 & 2.99 & 4.01 & 4.08 \\
- & B + playback alignment (B+PA) & 25.02 & 19.97 & 27.10 & 20.35$^{*}$ & 2.99 & 2.96 & 3.61 & 3.13 \\
- & \sys{}: B+PA + write alignment, $\bias=-1$ & 25.34$^{\circ}$ & 20.53 & 27.30 & 20.45$^{*}$ & 3.07 & 3.04 & 3.69 & 3.20 \\
- & \quad\emph{first test run, $\bias=0$} & 25.09 & 19.96 & 27.18 & 20.48 & 3.36 & 3.39 & 3.99 & 3.42 \\
+\multirow{4}{*}{AMI Zh$\rightarrow$En} & Deadline baseline (B) & 25.02 & 19.97 & 27.10 & 18.07 & 2.99 & 2.99 & 3.12 & 4.01 & 4.08 \\
+ & B + playback alignment (B+PA) & 25.02 & 19.97 & 27.10 & 20.35$^{*}$ & 2.99 & 2.96 & 3.03 & 3.61 & 3.13 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 25.34$^{\circ}$ & 20.53 & 27.30 & 20.45$^{*}$ & 3.07 & 3.04 & 3.10 & 3.69 & 3.20 \\
+ & \quad\emph{first test run, $\bias=0$} & 25.09 & 19.96 & 27.18 & 20.48 & 3.36 & 3.39 & 3.39 & 3.99 & 3.42 \\
 \midrule
-\multirow{4}{*}{AliMeeting Zh$\rightarrow$En} & Deadline baseline (B) & 21.43 & 16.91 & 23.05 & 16.73 & 2.82 & 3.05 & 4.28 & 4.57 \\
- & B + playback alignment (B+PA) & 21.43 & 16.91 & 23.05 & 18.08$^{*}$ & 2.82 & 2.92 & 3.65 & 3.23 \\
- & \sys{}: B+PA + write alignment, $\bias=-1$ & 21.07$^{\circ}$ & 17.38 & 22.68 & 17.84$^{*}$ & 3.06 & 3.20 & 3.91 & 3.45 \\
- & \quad\emph{first test run, $\bias=0$} & 18.99 & 15.63 & 20.45 & 17.37 & 3.87 & 4.15 & 4.85 & 4.23 \\
+\multirow{4}{*}{AliMeeting Zh$\rightarrow$En} & Deadline baseline (B) & 21.43 & 16.91 & 23.05 & 16.73 & 2.82 & 3.05 & 3.28 & 4.28 & 4.57 \\
+ & B + playback alignment (B+PA) & 21.43 & 16.91 & 23.05 & 18.08$^{*}$ & 2.82 & 2.92 & 2.95 & 3.65 & 3.23 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 21.07$^{\circ}$ & 17.38 & 22.68 & 17.84$^{*}$ & 3.06 & 3.20 & 3.19 & 3.91 & 3.45 \\
+ & \quad\emph{first test run, $\bias=0$} & 18.99 & 15.63 & 20.45 & 17.37 & 3.87 & 4.15 & 4.01 & 4.85 & 4.23 \\
 \midrule
-\multirow{4}{*}{AMI En$\rightarrow$Zh} & Deadline baseline (B) & 41.15 & 36.16 & 42.51 & 31.65 & 2.37 & 2.43 & 3.21 & 3.48 \\
- & B + playback alignment (B+PA) & 41.15 & 36.16 & 42.51 & 32.23$^{*}$ & 2.37 & 2.39 & 2.95 & 2.91 \\
- & \sys{}: B+PA + write alignment, $\bias=-1$ & 41.74$^{\circ}$ & 36.48 & 43.24 & 32.34$^{\circ}$ & 2.47 & 2.50 & 3.05 & 2.99 \\
- & \quad\emph{first test run, $\bias=0$} & 41.85 & 36.18 & 44.33 & 32.41 & 2.73 & 2.81 & 3.34 & 3.21 \\
+\multirow{4}{*}{AMI En$\rightarrow$Zh} & Deadline baseline (B) & 41.15 & 36.16 & 42.51 & 31.65 & 2.37 & 2.43 & 2.54 & 3.21 & 3.48 \\
+ & B + playback alignment (B+PA) & 41.15 & 36.16 & 42.51 & 32.23$^{*}$ & 2.37 & 2.39 & 2.43 & 2.95 & 2.91 \\
+ & \sys{}: B+PA + write alignment, $\bias=-1$ & 41.74$^{\circ}$ & 36.48 & 43.24 & 32.34$^{\circ}$ & 2.47 & 2.50 & 2.52 & 3.05 & 2.99 \\
+ & \quad\emph{first test run, $\bias=0$} & 41.85 & 36.18 & 44.33 & 32.41 & 2.73 & 2.81 & 2.79 & 3.34 & 3.21 \\
 \bottomrule
 \end{tabular}}
-\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}). Italic: the first test decoding, before $\bias$ was introduced (\S\ref{sec:res-hygiene}). tcpBLEU over all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk protocol, computation not counted; speech start: first heard word of a unit. Against B, Holm-corrected (Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; latency has no test.}
+\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}). Italic: the first test decoding, before $\bias$ was introduced (\S\ref{sec:res-hygiene}). tcpBLEU over all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk protocol, computation not counted; speech start: first heard word of a unit; LAAL$_\text{block}$: conventional block-start speech LAAL (\S\ref{sec:setup}). Against B, Holm-corrected (Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; speech-latency intervals: Table~\ref{tab:postreview2}.}
 \label{tab:main10}
 \end{table*}

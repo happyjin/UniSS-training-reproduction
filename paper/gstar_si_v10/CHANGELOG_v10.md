@@ -184,3 +184,43 @@ protocol; `ρ` (E-step budget ratio) → `ξ`; "plan B" → training-time / E-st
 Still open: PostReview numbers (other agent); release statement; full appendix reorder; Figure 2; unverified long
 author lists; all [EXPERIMENT] items (by decision). `docs/` (old plans/reviews) and `review_v10.md` must not go into a
 submission archive.
+
+## 7. 2026-11-15: post-review speech analyses integrated (`\PostReviewtrue`)
+
+Source: `eval_outputs/mist_w3po_v1/joint/post_review_v10/analysis_v1.json` (method in
+`reports/mist_w3po_v1/post_review_v10_analysis.zh-CN.md`: per-unit latency under both definitions, two TTS seeds pooled
+per meeting, 10k meeting bootstrap, exact sign-flip p, **no Holm**; UTMOS/SIM on seed 1, SIM against the Talker's voice
+prompt; pauses from `talker_block_pauses`). New `make_tables_v10.py::postreview()` writes 426 `v10:pr:*` macros
+(latency means and paired diff/ci/p for m-b, e2-b, m-e2, m0-b, m-m0; rate, speech minutes, rate %, speech-time %, UTMOS,
+SIM, UTMOS paired diff/ci/p, pauses and mid-sentence pauses per minute); `write_postreview_tables()` writes
+`generated/tab_v10_postreview.tex` (`tab:postreview`: per-system latency/rate/UTMOS/SIM/pauses; `tab:postreview2`:
+paired latency differences with intervals). No number typed by hand. `\PostReviewtrue` in main.tex
+(`\PostReviewfalse` restores the shorter text).
+
+Prose (all numbers are macros; checked against the JSON):
+- Table 2 gains a LAAL$_\text{block}$ column; caption points to the interval table.
+- §5.3 speech layer: B+PA ends speech earlier mainly by speaking faster (2.40 → 3.49 words/s AMI Zh→En; 3.90 → 5.04
+  char/s En→Zh; 31 / 23 / 32 % less speech), queues less; under LAAL$_\text{block}$ B+PA − B is −0.09 / −0.11 / −0.33 s
+  and MIST − B only −0.02 [−0.04, +0.01] / −0.02 [−0.04, +0.00] / −0.08 [−0.15, −0.02] s, first words later
+  (+0.06 / +0.06 / +0.14 s); LAAL$_\text{spread}$ / EndOffset gains are a playback effect. UTMOS +0.12 / +0.12 / +0.19
+  (MIST − B), but pauses ≥ 0.5 s per minute 3.3 → 7.7, 4.6 → 8.9, 4.4 → 11.0. Note: the coordinator's "~45 % faster" holds
+  for Zh→En (45 / 47 %); En→Zh is 29 %, and En→Zh speech time falls 23 %, not 31–33 % — the text uses the macros.
+- Abstract: latency claim rewritten (ends speech earlier mainly by speaking faster, about twice as many pauses,
+  block-start LAAL of the full system unchanged vs B, not significant). Intro and conclusion likewise; no claim of a
+  latency reduction under the standard definition remains.
+- App. F.3 (`app:postreview`, retitled "Speech latency under both definitions, speech rate and voice quality"): method,
+  all block-start / rate / UTMOS / pause results incl. δw=0, SIM vs voice prompt, low absolute AMI UTMOS, no listening
+  test, no forced alignment / τ′ distribution. Table m2laal10 caption points to the new tables.
+- Setup statistics: speech-latency differences now have bootstrap + sign-flip tests, uncorrected.
+- Limitations "Latency and speech": block-start result, speech-rate / pause trade-off (incl. mid-sentence pauses), SIM
+  against the prompt, uncorrected latency tests, no forced alignment.
+- To stay at 8 pages: AliMeeting human-reference sentence in §5.2 shortened, ablation paragraph and B+PA confound
+  sentence shortened, AliMeeting brevity-penalty sentence moved out of §5.3 (still App. F.1), hygiene (iii) and
+  conclusion tightened.
+
+Title kept ("When to Say It"): the system does decide when each block is heard, and the playback layer measurably
+changes it (block-start LAAL of B+PA −0.09 / −0.11 / −0.33 s, EndOffset −0.96 / −0.58 / −1.34 s); the text no longer
+claims that this makes the full system start speaking earlier.
+
+State: no errors, no undefined refs / citations / number keys, no overfull boxes; main body = 8 pages (Limitations at the
+top of page 9); 37 pages in total.

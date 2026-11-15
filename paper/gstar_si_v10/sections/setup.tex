@@ -43,7 +43,7 @@ sacreBLEU~\citep{post2018call} (13a tokenisation for English, zh for Chinese); n
 \textbf{ASR-BLEU} is tcpBLEU of the speech transcribed by Whisper-large-v3~\citep{radford2023robust} (English) or
 Paraformer~\citep{gao2022paraformer} (Chinese), averaged over two TTS seeds. \textbf{Latency} is measured per speaker
 stream from audio and playback time, without computation. \emph{Text LAAL}~\citep{papi2022over} uses commit times.
-Conventional speech LAAL charges every word of a block when the block starts playing (\emph{block-start}); our
+Conventional speech LAAL charges every word of a block when the block starts playing (\emph{LAAL$_\text{block}$}); our
 \emph{LAAL$_\text{spread}$} spreads a block's words over its playback, so it also falls when blocks are shorter or
 faster (Appendix~\ref{app:chunk}). We also report \emph{speech start} (first heard word of a unit) and \emph{EndOffset}
 (unit end to the end of its last heard word).
@@ -61,4 +61,5 @@ recognition-then-attribution pipelines; online it uses only the frames available
 decoding (Appendix~\ref{app:prereg}) and need Holm-adjusted $p<0.05$ \emph{and} a 95\% interval, widened by decoder
 noise, that excludes zero (Appendix~\ref{app:stats7}). Streaming systems (Table~\ref{tab:sig10}) use an exact sign-flip
 test and a paired bootstrap over test meetings, pooling both TTS seeds, Holm-corrected over twelve tests, without the
-widening. Latency differences are point estimates.
+widening. Speech-latency differences get the same bootstrap and sign-flip test without correction
+(Appendix~\ref{app:postreview}).

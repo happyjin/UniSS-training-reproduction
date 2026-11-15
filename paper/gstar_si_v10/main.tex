@@ -43,11 +43,10 @@
 % an undefined number key prints a visible marker and a log warning instead of nothing
 \renewcommand{\num}[1]{\ifcsname n@#1\endcsname\csname n@#1\endcsname\else
   \textbf{??}\PackageWarning{numbers}{undefined number key \detokenize{#1}}\fi}
-% Post-review latency and speech analyses (block-start speech LAAL, latency intervals, speech rate, UTMOS): the
-% guarded text in sections/results.tex and sections/appendix_v10.tex prints only after \PostReviewtrue, once
-% scripts/make_tables_v10.py has written the v10:pr:* macros.
+% Block-start speech LAAL, latency intervals, speech rate, UTMOS and pauses (v10:pr:* macros and
+% generated/tab_v10_postreview.tex from scripts/make_tables_v10.py); \PostReviewfalse restores the shorter text.
 \newif\ifPostReview
-\PostReviewfalse
+\PostReviewtrue
 \definecolor{frozen}{HTML}{4C78A8}
 \definecolor{trained}{HTML}{E4572E}
 \definecolor{spkc}{HTML}{2E8B57}

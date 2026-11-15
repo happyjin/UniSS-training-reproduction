@@ -1,11 +1,9 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\sys{} writes who, when and what for every speaker of an overlapping window; reading the diarizer in the decoder helps
-attribution where people talk at once. Playback alignment brings significant speech gains, largely
-matched by a rule-based rate with candidate selection; write alignment brings none that survives correction. With one
-output channel per speaker, a listener hears several translated voices at once during overlap; a single channel falls
-far behind (Appendix~\ref{app:v9proto}).
+Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Playback alignment brings significant
+speech gains and ends speech earlier by speaking faster, with more pauses; write alignment brings no gain that survives
+correction. With one channel per speaker, a listener hears several voices at once during overlap.
 
 \section*{Limitations}
 
@@ -21,9 +19,14 @@ baseline's text. Fixed-lag, LocalAgreement, cascade and relabelling baselines we
 the earlier look-ahead protocol (Appendix~\ref{app:v9proto}), not with the final speech layer. Every streaming model was
 trained once, with one seed. The training-time latency budget was run with one value.
 
-\paragraph{Latency.} LAAL$_\text{spread}$ is not the conventional speech LAAL; under the block-start convention the
-gains largely disappear (Table~\ref{tab:m2laal10}), and LAAL may degenerate when, as here, most words are written at a
-window's last read (Appendix~\ref{app:decomp}). Latency differences are point estimates without intervals. Latencies
+\paragraph{Latency and speech.} LAAL$_\text{spread}$ is not the conventional speech LAAL; under LAAL$_\text{block}$ the
+full system is not earlier than the baseline (Appendix~\ref{app:postreview}), and LAAL may degenerate when, as here, most
+words are written at a window's last read (Appendix~\ref{app:decomp}). The lower EndOffset is bought with speech that is
+\num{v10:pr:test:ami:m-b:ratepct}\% (Zh$\rightarrow$En) and \num{v10:pr:test:en:m-b:ratepct}\% (En$\rightarrow$Zh)
+faster and has about twice as many pauses, including more mid-sentence pauses; UTMOS does not capture this, and speaker
+similarity was measured against the Talker's voice prompt, not the speakers' own recordings. Text-latency differences
+are point estimates, and the speech-latency tests are not corrected for multiple comparisons. Word times are spread over
+a block, not forced-aligned. Latencies
 count audio and playback time, not computation; the decoder re-encodes the prefix at every read and the PA Talker
 samples two candidates per block, and we did not measure the cost of the final system. All streaming latencies assume
 one channel per speaker.

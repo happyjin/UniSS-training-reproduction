@@ -592,9 +592,12 @@ def main():
     putd("v10:c:dd:devz:diff", C["dd:devz:m0"] - C["dd:devz:b"])
 
     # ------------------------------------------------------------------------------------------------ write
+    pr_any = postreview()
     write_macros(e7_any, R)
     write_tables(R, e7, e7_any)
     compact_v7_main()
+    if pr_any:
+        write_postreview_tables()
     sanitize_legacy()
     json.dump(MISSING, open(GEN / "v10_missing.json", "w"), indent=1, sort_keys=True)
     print(f"macros {len(MAC)}, placeholders {len(MISSING)}")
@@ -687,7 +690,7 @@ def write_tables(R, e7, e7_any):
     NAME = {"b": r"Deadline baseline (B)", "e2": r"B + playback alignment (B+PA)",
             "m": r"\sys{}: B+PA + write alignment, $\bias=-1$", "m0": r"\quad\emph{first test run, $\bias=0$}",
             "e7": r"SeamlessStreaming$^\dagger$"}
-    FIELDS = ("all", "ov", "1spk", "asr", "tlaal", "sstart", "slaal", "endoff")
+    FIELDS = ("all", "ov", "1spk", "asr", "tlaal", "sstart", "bslaal", "slaal", "endoff")
     # significance marks against B (Holm over the family of Table tab:sig10): text all (MIST), ASR-BLEU (B+PA, MIST)
     SIGK = {("m", "all"): "text:m-b", ("m", "asr"): "speech:m-b", ("e2", "asr"): "speech:e2-b"}
 
@@ -695,7 +698,7 @@ def write_tables(R, e7, e7_any):
         p = f"v10:test:{s}:{sy}"
         out = []
         for f in FIELDS:
-            x = N(f"{p}:{f}")
+            x = N(f"v10:pr:test:{s}:{sy}:bslaal") if f == "bslaal" else N(f"{p}:{f}")
             k = SIGK.get((sy, f))
             if mark and k is not None:
                 x += r"$^{*}$" if holm_sig(f"v10:sig:test:{s}:{k}") else r"$^{\circ}$"
@@ -704,11 +707,11 @@ def write_tables(R, e7, e7_any):
 
     # main test table: our systems only (the external SeamlessStreaming reference is in the appendix, tab:e7)
     L = [r"\begin{table*}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3.5pt}",
-         r"\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrr}", r"\toprule",
-         r" & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{4}{c}{latency (s) $\downarrow$} \\",
-         r"\cmidrule(lr){3-5}\cmidrule(lr){7-10}",
+         r"\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrrr}", r"\toprule",
+         r" & & \multicolumn{3}{c}{text tcpBLEU $\uparrow$} & speech & \multicolumn{5}{c}{latency (s) $\downarrow$} \\",
+         r"\cmidrule(lr){3-5}\cmidrule(lr){7-11}",
          r"Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech start & "
-         r"LAAL$_\text{spread}$ & EndOffset \\",
+         r"LAAL$_\text{block}$ & LAAL$_\text{spread}$ & EndOffset \\",
          r"\midrule"]
     for i, s in enumerate(SETS):
         rows = ["b", "e2", "m", "m0"]
@@ -721,8 +724,10 @@ def write_tables(R, e7, e7_any):
           r"\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}). Italic: "
           r"the first test decoding, before $\bias$ was introduced (\S\ref{sec:res-hygiene}). tcpBLEU over all / "
           r"overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk "
-          r"protocol, computation not counted; speech start: first heard word of a unit. Against B, Holm-corrected "
-          r"(Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; latency has no test.}",
+          r"protocol, computation not counted; speech start: first heard word of a unit; LAAL$_\text{block}$: "
+          r"conventional block-start speech LAAL (\S\ref{sec:setup}). Against B, Holm-corrected "
+          r"(Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; speech-latency "
+          r"intervals: Table~\ref{tab:postreview2}.}",
           r"\label{tab:main10}", r"\end{table*}"]
     (GEN / "tab_v10_main.tex").write_text("\n".join(L) + "\n")
 
@@ -862,8 +867,9 @@ def write_tables(R, e7, e7_any):
     L += [r"\bottomrule", r"\end{tabular}",
           r"\caption{Speech LAAL under the conventional block-start definition (every word of a block is charged when "
           r"the block \emph{starts} playing) and the playback-spread variant of Table~\ref{tab:main10} (a block's words "
-          r"spread evenly over its playback). B: deadline baseline; \sys{}: $\bias=-1$ on dev, $\bias=0$ on test (the "
-          r"$\bias=-1$ test runs are not rescored here). Chunk protocol, mean of two TTS seeds, seconds.}",
+          r"spread evenly over its playback). B: deadline baseline; \sys{}: $\bias=-1$ on dev, $\bias=0$ on test (all "
+          r"test systems with intervals: Tables~\ref{tab:postreview},~\ref{tab:postreview2}). Chunk protocol, mean of two "
+          r"TTS seeds, seconds.}",
           r"\label{tab:m2laal10}", r"\end{table}"]
     (GEN / "tab_v10_m2laal.tex").write_text("\n".join(L) + "\n")
 
@@ -944,6 +950,121 @@ def write_tables(R, e7, e7_any):
           r"not covered.}",
           r"\label{tab:sig10}", r"\end{table}"]
     (GEN / "tab_v10_sig.tex").write_text("\n".join(L) + "\n")
+
+
+# ---------------------------------------------------------------------------------------------------------- post-review
+PRJ = JO / "post_review_v10" / "analysis_v1.json"
+PR_LAT = {"bslaal": "slaal_blockstart", "spread": "slaal_perword", "endoff": "endoff", "startoff": "startoff",
+          "tlaal": "tlaal"}
+PR_CMP = ("m-b", "e2-b", "m-e2", "m0-b", "m-m0")
+
+
+def _ci(c, fmt="{:+.2f}"):
+    def f(v):
+        x = hfmt(fmt, float(v))
+        return x.replace("-", "$-$") if x.startswith("-") else x
+    return "[" + f(c[0]) + ", " + f(c[1]) + "]"
+
+
+def postreview():
+    """Block-start speech LAAL, paired latency differences with meeting-bootstrap intervals and exact sign-flip p (no
+    multiple-test correction), speech rate, UTMOS / speaker similarity and pauses, read from the post-review analysis
+    (eval_outputs/mist_w3po_v1/joint/post_review_v10/analysis_v1.json; report
+    reports/mist_w3po_v1/post_review_v10_analysis.zh-CN.md). Returns True when the file was read."""
+    d = j(PRJ)
+    if d is None:
+        return False
+    for st in SETS:
+        L = d["latency"][st]
+        for sy, v in L["systems"].items():
+            for k, jk in PR_LAT.items():
+                put(f"v10:pr:test:{st}:{sy}:{k}", g(v, jk, "mean"), src=PRJ)
+        for c in PR_CMP:
+            for k, jk in PR_LAT.items():
+                e = g(L, "paired", c, jk)
+                key = f"v10:pr:test:{st}:{c}:{k}"
+                putd(key + ":diff", None if e is None else e["diff_pooled"], src=PRJ)
+                MAC[key + ":ci"] = PH if e is None else _ci(e["ci95"])
+                MAC[key + ":p"] = PH if e is None else fp(e["p_signflip"])
+        S = d["speech"][st]
+        for sy, v in S["systems"].items():
+            put(f"v10:pr:test:{st}:{sy}:rate", v.get("units_per_s"), src=PRJ)
+            put(f"v10:pr:test:{st}:{sy}:speechmin", v.get("speech_min"), "{:.0f}", src=PRJ)
+        for c, e in (S.get("paired_rate") or {}).items():
+            putd(f"v10:pr:test:{st}:{c}:rate:diff", e["diff_pooled"], src=PRJ)
+            MAC[f"v10:pr:test:{st}:{c}:rate:ci"] = _ci(e["ci95"])
+        b, m, e2 = (S["systems"][k] for k in ("b", "m", "e2"))
+        put(f"v10:pr:test:{st}:m-b:ratepct", 100 * (m["units_per_s"] / b["units_per_s"] - 1), "{:.0f}", src=PRJ)
+        put(f"v10:pr:test:{st}:e2-b:speechpct", 100 * (1 - e2["speech_min"] / b["speech_min"]), "{:.0f}", src=PRJ)
+        Q = d["quality"][st]
+        for sy, v in Q["systems"].items():
+            put(f"v10:pr:test:{st}:{sy}:utmos", v["utmos_mean"], src=PRJ)
+            put(f"v10:pr:test:{st}:{sy}:sim", v["sim_mean"], "{:.3f}", src=PRJ)
+        for c, e in Q["paired_utmos"].items():
+            putd(f"v10:pr:test:{st}:{c}:utmos:diff", e["diff_pooled"], src=PRJ)
+            MAC[f"v10:pr:test:{st}:{c}:utmos:ci"] = _ci(e["ci95"])
+            MAC[f"v10:pr:test:{st}:{c}:utmos:p"] = fp(e["p_signflip"])
+        P = d["block_pauses"][st]
+        for sy, v in P.items():
+            seeds = [v[k] for k in sorted(v) if k.startswith("s")]
+            put(f"v10:pr:test:{st}:{sy}:pauses", float(np.mean([x["pauses_all"]["per_min"] for x in seeds])), "{:.1f}",
+                src=PRJ)
+            if st != "en":   # mid-sentence pauses need sentence punctuation (English output only)
+                put(f"v10:pr:test:{st}:{sy}:midpauses",
+                    float(np.mean([x["pauses_mid_sent"]["per_min"] for x in seeds])), "{:.1f}", src=PRJ)
+            else:
+                MAC[f"v10:pr:test:{st}:{sy}:midpauses"] = "--"
+    for sy in ("b", "e2", "m0", "m"):
+        MAC[f"v10:pr:test:en:{sy}:unit"] = "char/s"
+        for st in ("ami", "ali"):
+            MAC[f"v10:pr:test:{st}:{sy}:unit"] = "words/s"
+    return True
+
+
+def write_postreview_tables():
+    ARR = {"ami": r"AMI Zh$\rightarrow$En", "ali": "AliMeeting", "en": r"AMI En$\rightarrow$Zh"}
+    NM = {"b": "B", "e2": "B+PA", "m": r"\sys{}", "m0": r"$\bias=0$"}
+    L = [r"\begin{table*}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3.5pt}",
+         r"\begin{tabular}{llrrrrrrrrr}", r"\toprule",
+         r" & & \multicolumn{4}{c}{speech latency (s)} & & \multicolumn{2}{c}{voice} & \multicolumn{2}{c}{pauses / min} \\",
+         r"\cmidrule(lr){3-6}\cmidrule(lr){8-9}\cmidrule(lr){10-11}",
+         r"Set & Sys. & LAAL$_\text{block}$ & LAAL$_\text{spread}$ & start & EndOffset & rate & UTMOS & SIM & "
+         r"$\ge$0.5\,s & mid-sent. \\", r"\midrule"]
+    for i, st in enumerate(SETS):
+        for k, sy in enumerate(("b", "e2", "m", "m0")):
+            p = f"v10:pr:test:{st}:{sy}"
+            q = [N(f"{p}:utmos"), N(f"{p}:sim")] if sy != "m0" else ["--", "--"]
+            L.append(" & ".join([ARR[st] if k == 0 else "", NM[sy]]
+                                + [N(f"{p}:{f}") for f in ("bslaal", "spread", "startoff", "endoff", "rate")]
+                                + q + [N(f"{p}:pauses"), N(f"{p}:midpauses")]) + r" \\")
+        if i < 2:
+            L.append(r"\midrule")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Speech of the streaming systems on the test sets. Latency: chunk protocol, mean of two TTS seeds; "
+          r"block-start LAAL charges every word of a block when the block starts playing, LAAL$_\text{spread}$ spreads "
+          r"them over its playback; start: first heard word of a unit. Rate: English words (Zh$\rightarrow$En) or "
+          r"characters (En$\rightarrow$Zh) per second of synthesised speech. UTMOS and SIM (WavLM speaker similarity "
+          r"to the Talker's voice prompt, not to the speaker's own recording): one TTS seed, all streams of at least "
+          r"0.5\,s. Pauses: silences of at least 0.5\,s per minute of speech; mid-sentence: after a block that does "
+          r"not end a sentence (English output only).}", r"\label{tab:postreview}", r"\end{table*}"]
+    L += ["", r"\begin{table*}[t]", r"\centering\small", r"\setlength{\tabcolsep}{3pt}",
+          r"\resizebox{\textwidth}{!}{\begin{tabular}{llllll}", r"\toprule",
+          r"Set & Comparison & LAAL$_\text{block}$ & LAAL$_\text{spread}$ & start & EndOffset \\", r"\midrule"]
+    CN = {"m-b": r"\sys{} $-$ B", "e2-b": r"B+PA $-$ B", "m-e2": r"\sys{} $-$ B+PA"}
+    for i, st in enumerate(SETS):
+        for k, c in enumerate(CN):
+            cells = []
+            for f in ("bslaal", "spread", "startoff", "endoff"):
+                key = f"v10:pr:test:{st}:{c}:{f}"
+                cells.append(N(key + ":diff") + " " + N(key + ":ci"))
+            L.append(" & ".join([ARR[st] if k == 0 else "", CN[c]] + cells) + r" \\")
+        if i < 2:
+            L.append(r"\midrule")
+    L += [r"\bottomrule", r"\end{tabular}}",
+          r"\caption{Paired speech-latency differences on the test sets (seconds): difference and 95\% meeting-bootstrap "
+          r"interval (10{,}000 resamples, two TTS seeds pooled per meeting). Exact sign-flip $p$ values are given in "
+          r"the text where used; no multiple-test correction.}", r"\label{tab:postreview2}", r"\end{table*}"]
+    (GEN / "tab_v10_postreview.tex").write_text("\n".join(L) + "\n")
 
 
 # ---------------------------------------------------------------------------------------------------------- legacy

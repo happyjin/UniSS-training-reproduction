@@ -274,13 +274,35 @@ baseline changes text tcpBLEU by \num{v10:sig:dev:z:text:m-b:diff} (\num{v10:sig
 \num{v10:sig:dev:z:speech:m-b:diff} (\num{v10:sig:dev:z:speech:m-b:ci}) / \num{v10:sig:dev:e:speech:m-b:diff}
 (\num{v10:sig:dev:e:speech:m-b:ci}), Zh$\rightarrow$En / En$\rightarrow$Zh.
 
-\subsection{Post-review latency and speech analyses}
+\subsection{Speech latency under both definitions, speech rate and voice quality}
 \label{app:postreview}
 
 \ifPostReview
-For B, B+PA, \sys{} and the $\bias=0$ run on the three test sets, Table~\ref{tab:postreview} gives speech LAAL under the
-block-start definition next to LAAL$_\text{spread}$, meeting-bootstrap intervals for the latency differences against B,
-the speaking rate of the synthesised speech and its UTMOS~\citep{saeki2022utmos}.
+These analyses use the existing test outputs only (no new decoding). Latency is recomputed per reference unit under
+both speech-LAAL definitions with the chunk protocol (the LAAL$_\text{spread}$, start and EndOffset values reproduce
+Table~\ref{tab:main10}); paired differences pool the two TTS seeds per meeting, with a 95\% interval from 10{,}000
+meeting-bootstrap resamples and an exact two-sided sign-flip $p$, without multiple-test correction. Speech rate counts
+English words (Zh$\rightarrow$En) or characters (En$\rightarrow$Zh) per second of synthesised speech. UTMOS~\citep{saeki2022utmos}
+and speaker similarity (WavLM speaker verification, against the Talker's voice prompt) use one TTS seed and every stream
+of at least 0.5\,s; UTMOS differences pair the same stream across systems.
+
+Under LAAL$_\text{block}$, \sys{} $-$ B is \num{v10:pr:test:ami:m-b:bslaal:diff} ($p$ \num{v10:pr:test:ami:m-b:bslaal:p}),
+\num{v10:pr:test:ali:m-b:bslaal:diff} ($p$ \num{v10:pr:test:ali:m-b:bslaal:p}) and \num{v10:pr:test:en:m-b:bslaal:diff}
+($p$ \num{v10:pr:test:en:m-b:bslaal:p})\,s on AMI Zh$\rightarrow$En / AliMeeting / En$\rightarrow$Zh; B+PA $-$ B is
+\num{v10:pr:test:ami:e2-b:bslaal:diff} / \num{v10:pr:test:ali:e2-b:bslaal:diff} / \num{v10:pr:test:en:e2-b:bslaal:diff}\,s
+(all $p<0.001$), and \sys{} is later than B+PA under every definition (Table~\ref{tab:postreview2}), by about its later
+text (text LAAL \num{v10:pr:test:ami:m-e2:tlaal:diff} / \num{v10:pr:test:ali:m-e2:tlaal:diff} /
+\num{v10:pr:test:en:m-e2:tlaal:diff}\,s). The $\bias=0$ run is later than B under LAAL$_\text{block}$ by
+\num{v10:pr:test:ami:m0-b:bslaal:diff} / \num{v10:pr:test:ali:m0-b:bslaal:diff} / \num{v10:pr:test:en:m0-b:bslaal:diff}\,s.
+The PA Talker speaks \num{v10:pr:test:ami:m-b:ratepct} / \num{v10:pr:test:ali:m-b:ratepct} /
+\num{v10:pr:test:en:m-b:ratepct}\% faster than the base Talker (\sys{} vs.\ B); UTMOS rises by
+\num{v10:pr:test:ami:m-b:utmos:diff} \num{v10:pr:test:ami:m-b:utmos:ci} / \num{v10:pr:test:ali:m-b:utmos:diff}
+\num{v10:pr:test:ali:m-b:utmos:ci} / \num{v10:pr:test:en:m-b:utmos:diff} \num{v10:pr:test:en:m-b:utmos:ci} and is
+unchanged between \sys{} and B+PA; speaker similarity is unchanged. Pauses of at least 0.5\,s, and on English output
+mid-sentence pauses, become two to three times as frequent (Table~\ref{tab:postreview}): with faster speech the stream
+falls silent while the next block is awaited. The absolute UTMOS on AMI Zh$\rightarrow$En is low for all systems; it is
+computed on stream-level speech-only audio. No listening test was run, and forced-aligned word times and the
+distribution of the LAAL cut-off were not computed.
 \IfFileExists{generated/tab_v10_postreview.tex}{\input{generated/tab_v10_postreview}}{}
 \else
 Block-start speech LAAL for all test runs, intervals on latency differences, speaking rate and UTMOS of the streaming
