@@ -12,4 +12,4 @@
 （"1-spk LB" 为把整窗当单说话人时的下界；En→Zh 的"speech LAAL 1ch"=18.02 是单通道拼接口径，不进论文主表。）
 
 ## 结论
-SeamlessStreaming 延迟更低（语音 LAAL 比我们低 0.0–0.5 s），但质量远低：ASR-BLEU 约为我们的 40%（AMI zh→en 8.48 vs 20.45；En→Zh 11.31 vs 32.33），重叠区 tcpBLEU 尤其低（3–6）。它没有说话人归属，单说话人模型在会议多说话人场景下不可用。论文中作为外部参考行（\ifEseven），注明 zero-shot、无说话人归属、延迟不可直接比较质量-延迟权衡。
+SeamlessStreaming 的语音 LAAL 与我们相近（AMI zh→en 3.29 vs 3.69 更低；Ali 3.96 vs 3.91 持平；En→Zh 3.19 vs 3.05 反而更高；2026-11-15 更正，原写“低 0.0–0.5 s”与数字不符），但质量远低：ASR-BLEU 约为我们的 40%（AMI zh→en 8.48 vs 20.45；En→Zh 11.31 vs 32.33），重叠区 tcpBLEU 尤其低（3–6）。它没有说话人归属，单说话人模型在会议多说话人场景下不可用。论文中作为外部参考行（\ifEseven），注明 zero-shot、无说话人归属、延迟只在 AMI zh→en 略低。
