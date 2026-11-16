@@ -52,21 +52,23 @@ def main() -> None:
     pos = sum(1 for s, h in zip(SETS, h_asr) if h < 0.05 and P[s]["asr_all"]["diff"] > 0
               and P[s]["asr_all"]["ci95"][0] > 0)
     fmt_p = lambda ps: " / ".join("$<$0.001" if p < 0.001 else f"{p:.3f}" for p in ps)
-    nums = (f"Against the rate-matched rule layer (R3$^\\prime$), \\sys{{}} changes ASR-BLEU by {' / '.join(sd(x) for x in d_asr)} "
-            f"($p_\\text{{Holm}}$ {fmt_p(h_asr)}) and LAAL$_\\text{{block}}$ by {' / '.join(sd(x) for x in d_lat)}\\,s "
-            f"($p_\\text{{Holm}}$ {fmt_p(h_lat)}).")
+    lat_ns = all(h >= 0.05 for h in h_lat)
+    lat_txt = (f"LAAL$_\\text{{block}}$ by at most {max(abs(x) for x in d_lat):.3f}\\,s (none significant)" if lat_ns else
+               f"LAAL$_\\text{{block}}$ by {' / '.join(sd(x, 3) for x in d_lat)}\\,s ($p_\\text{{Holm}}$ {fmt_p(h_lat)})")
+    nums = (f"Against R3$^\\prime$, \\sys{{}} changes ASR-BLEU by {' / '.join(sd(x) for x in d_asr)} "
+            f"($p_\\text{{Holm}}$ {fmt_p(h_asr)}) and {lat_txt}")
     if pos >= 2:
-        verdict = nums + (" The learned Talker therefore adds to what merging, a rate rule and selection give, also when the "
-                          "rule speaks as fast.")
+        verdict = nums + (". The learned Talker therefore adds to what merging, a rate rule and selection give, also when "
+                          "the rule speaks as fast.")
     else:
         # registered fallback (prereg section 5); the sets where R5 - R3' is nevertheless significant are named
         NAMES = {"ami": "AMI Zh$\\rightarrow$En", "en": "AMI En$\\rightarrow$Zh", "ali": "AliMeeting"}
         sig = [NAMES[s] for s, h in zip(SETS, h_asr) if h < 0.05 and P[s]["asr_all"]["diff"] > 0]
         step = lambda k: " / ".join(sd(S[s]["paired"][k]["asr_all"]["diff"]) for s in SETS)
-        verdict = nums + ((f" The difference is significant only on {sig[0]}. " if len(sig) == 1 else " ") +
-                          "Most of the playback layer's gain comes from the backlog-dependent rate (R2$-$R1 "
-                          f"{step('R2-R1')}) and candidate selection (R3$-$R2 {step('R3-R2')}; exploratory); at matched "
-                          "speaking rate the learned Talker adds little to them.")
+        verdict = nums + (": most of the gain comes from the backlog-dependent rate (R2$-$R1 "
+                          f"{step('R2-R1')}) and candidate selection (R3$-$R2 {step('R3-R2')}; exploratory), and the "
+                          "learned Talker adds a significant gain " + (f"only on {sig[0]}." if len(sig) == 1 else
+                                                                         "on none of the test sets."))
     rate3, rate5 = S["ami"]["rows"].get("R3p", {}).get("rate"), S["ami"]["rows"].get("R5", {}).get("rate")
     table = ("\\begin{table}[t]\n\\centering\\scriptsize\n\\setlength{\\tabcolsep}{2pt}\n\\begin{tabular}{lrrrrrrrr}\n\\toprule\n"
              " & \\multicolumn{3}{c}{ASR-BLEU} & \\multicolumn{3}{c}{LAAL$_\\text{block}$ (s)} & rate & pause \\\\\n"

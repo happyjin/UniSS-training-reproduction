@@ -1,10 +1,9 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Much of the listener's delay is
-queueing of synthesised speech; aligning playback to this backlog significantly improves speech ASR-BLEU and speech
-latency, mostly by speaking faster. A latent write time trained on the decoder's likelihood does not beat deadlines,
-because the likelihood itself rewards waiting.
+Reading the diarizer inside the decoder lets \sys{} attribute overlapping speech. Aligning playback to the queue of
+synthesised speech improves speech ASR-BLEU and latency, mostly by speaking faster. A latent write time trained on
+the decoder's likelihood does not beat deadlines, because likelihood rewards waiting.
 
 \section*{Limitations}
 

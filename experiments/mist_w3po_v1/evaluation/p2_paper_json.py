@@ -33,6 +33,10 @@ def sd(x, d=2):
     return f"+{x:.{d}f}" if x >= 0 else f"$-${-x:.{d}f}"
 
 
+def sn(x, d=2):
+    return f"{x:.{d}f}" if x >= 0 else f"$-${-x:.{d}f}"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--analysis", required=True)
@@ -55,13 +59,13 @@ def main() -> None:
             pz = [r5["pauses_per_min"], r6["pauses_per_min"]]
             lat = f"{r5['laal_block']:.2f} / {r6['laal_block']:.2f}"
         ok = g["diff"] >= -0.2 and g["p_le0"] < 0.95
-        rows.append(f"{lab} & {g['A']:.2f} & {g['B']:.2f} & {sd(g['diff'])} [{g['ci95'][0]:.2f}, {g['ci95'][1]:.2f}] & "
+        rows.append(f"{lab} & {g['A']:.2f} & {g['B']:.2f} & {sd(g['diff'])} [{sn(g['ci95'][0])}, {sn(g['ci95'][1])}] & "
                     f"{'yes' if ok else 'no'} & {rate[0]:.2f} / {rate[1]:.2f} & {pz[0]:.1f} / {pz[1]:.1f} & {lat} \\\\")
     rows.insert(2, "\\midrule")
     app = (f"On development meetings PA-F keeps ASR-BLEU in Zh$\\rightarrow$En ({sd(gate['devz']['diff'])}) but not in "
            f"En$\\rightarrow$Zh ({sd(gate['deve']['diff'])}, below the gate), so only the Zh$\\rightarrow$En Talker was "
            f"tested. On test it changes ASR-BLEU by {sd(gate['ami']['diff'])} on AMI and {sd(gate['ali']['diff'])} on "
-           f"AliMeeting (95\\% interval [{gate['ali']['ci95'][0]:.2f}, {gate['ali']['ci95'][1]:.2f}]).")
+           f"AliMeeting (95\\% interval [{sn(gate['ali']['ci95'][0])}, {sn(gate['ali']['ci95'][1])}]).")
     table = ("\\begin{table}[t]\n\\centering\\scriptsize\n\\setlength{\\tabcolsep}{2.5pt}\n\\begin{tabular}{lrrlcccc}\n\\toprule\n"
              " & \\multicolumn{4}{c}{ASR-BLEU} & rate & pauses & LAAL$_\\text{block}$ \\\\\n\\cmidrule(lr){2-5}\n"
              "Set & \\sys{} & PA-F & $\\Delta$ [95\\%] & gate & \\multicolumn{3}{c}{\\sys{} / PA-F} \\\\\n\\midrule\n"

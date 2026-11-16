@@ -36,7 +36,7 @@ for s in ("ami", "en", "ali"):
         absval(f"v10:pr:test:{s}:e2-b:{k}:diff")
 
 # v11 results: each file is {"switch": "Factorial", "macros": {key: value}}; present -> switch on
-WIDE = {"wallclock"}
+WIDE = {"wallclock", "factorial", "fluencypa"}
 switches = {k: False for k in ("Factorial", "FluencyPA", "AliEval", "Wallclock", "WAcurve", "SfourK", "MetricsV")}
 if V11.exists():
     for f in sorted(V11.glob("*.json")):

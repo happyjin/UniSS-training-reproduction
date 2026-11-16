@@ -3284,3 +3284,9 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **按登记判定：跟不上**（Ali 实时率 ≥ 1；AMI 实时率 < 1 但斜率 > 0.05 s/分钟）。瓶颈是 Thinker（每读重编码前缀、batch 1；33–45% 的读超过 1 s 节拍），Talker 只用三分之一实时以内。
 - MIST+WA 的 Talker：ali（a1）、en（a3）三次尝试都有争用（K_m_ali gaveup、K_m_en gaveup），按登记"全部保留"，用 launcher 选的尝试并在表中标 †；Talker 不是瓶颈，结论不受影响。
 - 论文：v11:wc:verdict 写进 Limitations 的 Computation 段（不占正文），新附录 app:wallclock + 通栏表 tab:wallclock；v8 旧附录（有竞争、未完成的回放）加一句指向新附录。新工具 evaluation/wallclock_paper_json.py；make_tables_v11 对 wallclock 表用 table*。
+
+## 2026-11-16 04:45 布拉格 — 析因测试完成并写入论文；P2 写入附录
+
+- V11F_test_DONE（03:17）。后处理改为 ami/en/ali 三个并行实例（按 PID 停掉串行实例，确认在算文件已完整）。ami R3′ 的 quality 第二次调用撞文件失败，但第一次（被停实例的子进程）已完整写出，结果可用。
+- 析因结果与判定见 reports/mist_w3po_v1/v11_p01_factorial_results.zh-CN.md：R5−R3′ ASR-BLEU 只在 Ali 显著（+0.23，p_Holm 0.007），LAAL_block 全部 ≤ 0.003 s 不显著 → 保底写法 + 点名 Ali。**决定**（登记未覆盖"恰好 1 个显著"）：按保底写，摘要改为"同样快的规则层复现大部分收益"。
+- 论文：factorial.json / fluencypa.json 生成（两次格式修正：LAAL 三位小数、区间负号；旧 JSON 改名 *.v{1,2}_superseded 保留，不删除）；三张附录表改为 table*；正文压回 8 页（结果段去掉 LAAL 区间、AliEval 段缩短、Test-set hygiene 改为段落、结论 3 句、§6 s4000 只写结论）。

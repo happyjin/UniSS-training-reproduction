@@ -15,8 +15,8 @@ speech ASR-BLEU by \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:e
 \num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
 \num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and ends each utterance's speech \num{v10:pr:test:ami:e2-b:endoff:diffabs} /
 \num{v10:pr:test:en:e2-b:endoff:diffabs} / \num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s earlier (all significant), by speaking faster with less queueing and at the price of about twice as many
-pauses.\ifFactorial{} A factorial ablation separates the learned component from merging, rate rules and candidate
-selection.\fi\ifAliEval{} \num{v11:ae:abstract}\fi{} Treating the write time as latent structure instead, trained on the decoder's own likelihood, brings no
+pauses.\ifFactorial{} A factorial ablation shows that a rule-based layer speaking as fast reproduces most of this
+gain.\fi\ifAliEval{} \num{v11:ae:abstract}\fi{} Treating the write time as latent structure instead, trained on the decoder's own likelihood, brings no
 significant gain: its posterior drifts towards later writes, and we analyse why neither a training-time budget, an
 early-write lattice nor a decoding bias turns it into a better quality--latency trade-off.
 \end{abstract}
