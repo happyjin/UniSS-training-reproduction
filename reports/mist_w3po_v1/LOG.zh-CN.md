@@ -3356,3 +3356,16 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 探索性 Table 1 口径（table1_analysis --extra，文件 `e9_cascade/table1_analysis_with_e9_v1.json`）：cpASR 24.88 / 21.81 / 35.07；MIST−E9 cp +1.97 / +2.23 / +1.41、tcp +1.98 / +1.92 / +1.26，p_Holm < 0.001，四项延迟 MIST 都显著更早。
 - 计数：unk 片段 1 / 18 / 0；归属不确定且标签不同的块 0.19% / 1.26% / 0.39%（只影响音色）；Talker 流没有丢弃。
 - 过程问题：约 19:30–22:00 整机 CPU 超载（E8 X-Voice 服务未限线程），已报协调者并由其处理；只影响耗时。卡 4–7 上我方进程已全部结束，guard 已补回占位训练。
+
+## 2026-11-17 00:01 布拉格 — E8：X-Translator 多说话人外部基线完成（登记 multispk_s2st_baselines_prereg_v2 §1 S2，修订 2）
+- 原始官方默认运行（3 个集合，2026-11-16 18:30–22:24）和电平校准变体（只跑 AMI 两集，22:25–00:01）都已完成，没有失败。所有窗口齐全，每个集合只解码一次。代码在 `experiments/s2st_baselines_v1/xtranslator_multispk/`，报告 `e8_xtranslator_multispk_results.zh-CN.md`，汇总 `e8_xtranslator/e8_summary_v1.json`。
+- **Table 1 行**（修订 2：AMI 用 level，Ali 用 default）：
+  - tcpASR-BLEU：AMI Zh→En 8.64，En→Zh 19.96，Ali 13.77；
+  - cpASR-BLEU：12.05 / 23.31 / 19.46；
+  - LAAL_block：2.69 / 2.74 / 2.77 s；EndOffset：3.44 / 3.32 / 3.80 s。
+- **原始运行（附录）**：AMI tcpASR-BLEU 4.53 / 10.86。能量门在两个 AMI 集合上很关键：增益 g 由 dev 定为 1.808 / 2.157，测试输入上能量门始终关闭的窗口从 32% / 28% 降到 8.4% / 9.7%，削顶采样占 7×10⁻⁷ / 0.14%。
+- **执行中的处理**：
+  - 20:01 按 PID 把队列 v1 换成 v2（v1 同卡相隔 11 s 启动两个 Whisper 导致显存到 140 GiB，ASR 日志重定向有错）。v2 接管了 22 个驱动和 4 个 ASR 任务，没有重复启动。
+  - 连接故障续跑 2 次。`ali__dec06` 的 rc −1 只是被接管进程的记法：该分片 82/82 窗口齐全，没有续跑。
+  - 电平变体的服务都限 4 线程（新入口 `thread_limit_run.py`，原服务文件不改，整机 load 从约 777 降到约 50），只是基础设施设置。
+  - 两次运行结束后都按 PID 停服务，guard 补回占位；guard 和 gpu_watch 没有动过。

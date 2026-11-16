@@ -25,6 +25,12 @@ The scorer formats (speaker relabelling, streams, queues): build_e8.py (CPU).
 
     PATH=$V/bin:$PATH CUDA_VISIBLE_DEVICES=<c> $V/bin/python run_e8.py --windows <online windows> --direction zh2en|en2zh \
         --out <raw dir> --asr-port P --tts-port P --mt-port P --shard k --num-shards n [--ids a,b] [--limit N] [--resume]
+        [--gain g]
+
+--gain (prereg v2 amendment 2, level-calibrated variant xt-level, AMI sets only): every window's audio becomes
+x' = clip(g x, -1, 1) right after it is read (a constant, causal input gain standing in for the official frontend's
+autoGainControl); g = clip(0.1 / m_dev, 1, 31.6) from the set's dev windows (level_gain_v1.json). Default 1.0 = the
+audio unchanged (the original E8 run). Each row records the gain (config, counters) and the clipped-sample count.
 """
 from __future__ import annotations
 
@@ -138,6 +144,7 @@ def main() -> None:
     ap.add_argument("--ids", default="", help="comma-separated window ids (smoke tests only)")
     ap.add_argument("--limit", type=int, default=0, help="first N windows of the shard (smoke tests only)")
     ap.add_argument("--resume", action="store_true", help="append to an existing part file, skipping its ids")
+    ap.add_argument("--gain", type=float, default=1.0, help="constant input gain g: x' = clip(g x, -1, 1) (1.0 = unchanged)")
     a = ap.parse_args()
 
     out = Path(a.out)
@@ -170,7 +177,9 @@ def main() -> None:
            "direction": a.direction, "code": "X-Translator dc6a59a, X-Voice 817bcdd, qwen-asr 0.0.6, vllm 0.14.0",
            "config_file": str(cfg_path), "asr_request_chunk_samples": settings.paraformer_chunk_size,
            "asr_server_chunk_size_sec": 0.6, "frame_samples": XR.FRAME, "driver": "xt_realsi.Runner (unchanged)",
-           "registration": "reports/mist_w3po_v1/multispk_s2st_baselines_prereg_v2.zh-CN.md"}
+           "registration": "reports/mist_w3po_v1/multispk_s2st_baselines_prereg_v2.zh-CN.md", "gain": a.gain,
+           "cpu_threads": {k: os.environ.get(k) for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                                                          "TORCH_NUM_THREADS", "E8_SERVER_THREADS")}}
     assert cj["translation"]["max_tokens"] == 256
 
     W = [json.loads(l) for l in open(a.windows, encoding="utf-8")]
@@ -182,7 +191,7 @@ def main() -> None:
         items = items[: a.limit]
     runner = E8Runner(S, settings, out / "sessions")
     print(f"[e8 {time.strftime('%H:%M:%S')}] dir={a.direction} shard={a.shard}/{a.num_shards} windows={len(items)} "
-          f"done={len(done)} asr={settings.qwen3_asr_url} mt={settings.lmt_url} tts={settings.xvoice_tts_url}", flush=True)
+          f"done={len(done)} gain={a.gain} asr={settings.qwen3_asr_url} mt={settings.lmt_url} tts={settings.xvoice_tts_url}", flush=True)
     t_all = time.time()
     n_new = 0
     with open(part, "a", encoding="utf-8") as fh:
@@ -192,6 +201,9 @@ def main() -> None:
             x, sr = sf.read(w["audio"], dtype="float32", always_2d=True)
             assert sr == SR, w["audio"]
             wav = x.mean(axis=1)
+            clipped = int((np.abs(a.gain * wav) > 1.0).sum())
+            if a.gain != 1.0:   # amendment 2: x' = clip(g x, -1, 1)
+                wav = np.clip(a.gain * wav, -1.0, 1.0).astype(np.float32)
             t0 = time.perf_counter()
             err = None
             try:
@@ -207,6 +219,7 @@ def main() -> None:
                 res = {"segs": [], "counters": {}, "session_id": ""}
                 print(f"[e8] ERROR {w['id']}\n{err}", flush=True)
             rec = make_record(w, wav, res, err, out, settings.tts_sample_rate, cfg, time.perf_counter() - t0)
+            rec["counters"] = dict(rec["counters"], gain=a.gain, clipped_samples=clipped)
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
             fh.flush()
             n_new += 1

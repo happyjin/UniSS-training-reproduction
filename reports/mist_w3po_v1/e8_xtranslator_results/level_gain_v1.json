@@ -1,0 +1,42 @@
+{
+ "rule": "g = clip(0.1 / m_dev, 1, 31.6); x' = clip(g x, -1, 1); gate = any 2560-sample chunk RMS >= 0.01",
+ "prereg": "reports/mist_w3po_v1/multispk_s2st_baselines_prereg_v2.zh-CN.md amendment 2 (c18ee367a)",
+ "sets": {
+  "ami": {
+   "dev_windows_file": "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl",
+   "dev_windows": 3618,
+   "m_dev": 0.0553,
+   "g": 1.8083,
+   "g_db": 5.15,
+   "dev_gate_closed_share_raw": 0.1805,
+   "dev_gate_closed_share_after_g": 0.0243,
+   "test_windows_file": "eval_outputs/mist_w3po_v1/data/windows_test_c2g06_v1/windows_test_online_zh2en.jsonl",
+   "test_windows": 3973,
+   "test_gate_closed_share_raw": 0.3224,
+   "test_gate_closed_share_after_g": 0.0843,
+   "test_clipped_sample_share": 7e-07,
+   "test_windows_with_clipping": 30,
+   "test_windows_with_clipping_share": 0.0076
+  },
+  "en": {
+   "dev_windows_file": "eval_outputs/mist_w3po_v1/data/windows_en2zh_c2g06_v1/windows_dev_online.jsonl",
+   "dev_windows": 4996,
+   "m_dev": 0.04637,
+   "g": 2.1567,
+   "g_db": 6.68,
+   "dev_gate_closed_share_raw": 0.2058,
+   "dev_gate_closed_share_after_g": 0.0789,
+   "test_windows_file": "eval_outputs/mist_w3po_v1/data/windows_test_en2zh_c2g06_v1/windows_test_online_en2zh.jsonl",
+   "test_windows": 5126,
+   "test_gate_closed_share_raw": 0.2772,
+   "test_gate_closed_share_after_g": 0.097,
+   "test_clipped_sample_share": 0.0013683,
+   "test_windows_with_clipping": 493,
+   "test_windows_with_clipping_share": 0.0962
+  },
+  "ali": {
+   "g": 1.0,
+   "note": "AliMeeting: no tuning data allowed, no dev; g = 1 (amendment 2 item 2)"
+  }
+ }
+}
