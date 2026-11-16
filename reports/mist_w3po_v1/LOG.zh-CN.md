@@ -3269,3 +3269,11 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **P0-4 step 4000 测试**：文本 25.08/20.87/41.61（s3500 25.34/21.07/41.74，B 25.02/21.43/41.15）；ASR-BLEU 20.11/17.48/32.24（s3500 20.4/17.82/32.34）。规则选的检查点不改变结论，写附录。
 - **P0-2 AliMeeting Eval**：三项确认性检验全部成立（Holm p 0.023）：ASR-BLEU +2.23 [0.75, 3.37]，LAAL_block −0.366 s，EndOffset −1.434 s。
 - 用户 20:40 布拉格：明早前的决策按最佳方案替他选。
+
+## 2026-11-16 03:10 布拉格 — P2 测试结果与决策（夜间自主）
+
+- P2_TEST_DONE（02:53 布拉格）。Zh→En PA-F − B+PA（\sys{}）ASR-BLEU，两种子、按会议 bootstrap：AMI Zh→En +0.03 [−0.15, 0.19]，P(≤0) 0.37；AliMeeting **−0.13 [−0.24, −0.01]，P(≤0) 0.983**（按门槛口径不通过）。文本相同。
+- **决策**：PA-F 不进入 \sys{} 的主张。理由：En→Zh dev 未过门槛、Ali 测试 ASR-BLEU 显著下降，违反"流畅度改动不得降低 ASR-BLEU"（硬门槛）。论文：附录 app:fluencypa（方法、预算、dev+test 表 tab:fluencypa），正文 §res-pa 一句"第二个说话时长预算减少停顿但损失 ASR-BLEU"。摘要、引言、方法中 \ifFluencyPA 的正面措辞全部删除（不再依赖开关）。
+- 发现：15 日 08:35 的旧后处理只用 R0/R5 写了 block_pauses_{ami,ali,en}.jsonl，脚本"存在即跳过"会让其他行缺停顿。不覆盖：另写 block_pauses_<set>_rows2.jsonl（ami/en 已在算，ali 等析因完成），v11_factorial_analysis 改为读 block_pauses_<set>*.jsonl；并加 R6−R5 对比（不进 Holm 族）。
+- 后处理 ami/en（R0–R6）已启动（PID 565940，logs/mist_v11/post/postproc_ami_en.log）。新工具 evaluation/p2_paper_json.py。
+- wall-clock：K_m_ali 三次都有外来进程（max 20–36 GB）→ gaveup；K_m_en 第 3 次在卡 7 跑。
