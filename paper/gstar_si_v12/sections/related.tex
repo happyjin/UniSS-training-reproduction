@@ -1,0 +1,33 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Simultaneous speech translation.} Wait-$k$~\citep{ma2019stacl} writes after a fixed delay;
+LocalAgreement~\citep{liu2020low,polak2022cuni,machacek2023turning} commits the prefix two consecutive hypotheses agree
+on; learned policies emit a wait token~\citep{koshkin2024transllama} or read the decoder's attention to the
+audio~\citep{papi2023edatt,papi2024streamatt}. Latency is measured with SimulEval~\citep{ma2020simuleval} and
+LAAL~\citep{papi2022over}. SimulS2ST systems
+keep one speaker's voice~\citep{zhang2024streamspeech,seamless2023,labiausse2025hibiki,cheng2025liveinterpret,he2026simuls2st,deng2025simuls2s}.
+
+\paragraph{Latent timing and structured prediction.} Monotonic attention marginalises over write positions
+(MILk;~\citealp{arivazhagan2019milk}), also per attention head (MMA;~\citealp{ma2020mma}) and for streaming speech
+(EMMA, the policy of SeamlessStreaming;~\citealp{ma2023emma}); the Hidden Markov Transformer treats the moment a target
+token starts as a hidden state and marginalises over it with an HMM~\citep{zhang2023hmt}; Hibiki places each target
+word after the source that makes it predictable~\citep{labiausse2025hibiki}. All of these time the \emph{text}: their
+latent variable is how much source has been read before a target token is written, and they are trained by the
+likelihood of the target. Playback alignment times the \emph{speech} of text that is already fixed: its state is the
+queue of synthesised speech in each speaker's stream, its transitions are deterministic queue dynamics rather than
+learned, its potentials score renderings by intelligibility and by the delay at which a listener hears each word, and
+it trains the speech generator, not the translation policy. Linear-chain CRFs~\citep{lafferty2001crf} with exact
+forward--backward inference are standard for sequence labelling; posterior regularisation constrains expectations under
+a latent posterior by a KL projection~\citep{ganchev2010posterior}, which we use to bound the expected delay at which
+synthesised words are heard. Automatic dubbing controls the length of the translation~\citep{lakew2022isometric}; we
+instead choose among renderings of a fixed text by their effect on the speaker's backlog.
+
+\paragraph{Multi-speaker recognition and translation.} Serialised output training transcribes overlapping speakers
+in order~\citep{kanda2020sot,kanda2021saasr}, also in streaming~\citep{kanda2022tsot} and for joint recognition and
+translation~\citep{papi2023tsot}; streaming diarizers keep speaker order over long
+recordings~\citep{park2024sortformer,medennikov2025streaming}, and diarization can condition a
+recogniser~\citep{polok2026dicow,huo2026tagspeech} or be interleaved with a speech LLM's audio tokens
+(G-STAR;~\citealp{peng2026gstar}), which we adopt. STAC-ST translates two-party calls offline~\citep{zuluaga2023stac};
+DiariST~\citep{yang2024diarist} and X-Translator~\citep{zhao2026xtranslator} attribute streaming text translation to
+speakers. Voice-cloned translation lowers listeners' workload in online meetings~\citep{ma2026samevoice}.

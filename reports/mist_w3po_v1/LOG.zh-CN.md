@@ -3324,3 +3324,12 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **因果回放（同日傍晚，用户批准）**：预登记 d89fa5f9e（事后假设）。不加新输入的 TS-PA，因果模仿后句内停顿只降 1.7%（Zh→En dev5）/ 0.8%、1.0%（En→Zh 两折），而已知到达时刻的上界是 −24% 到 −40% → **NOT GO，TS-PA 线结束**。停顿由文本到达时刻决定，只改 Talker 的训练目标在因果推理中消不掉。详见 `tspa_precheck_results_v1.zh-CN.md` 追加节。
 - **停顿试听包与播放缓冲探索（同日，用户要求，只用 dev）**：`demo_packages/pause_listening_20261116/`（音频不入库，README 中有说明），共 B / MIST / MIST+0.5 s 句首缓冲三个版本，Zh→En、En→Zh 各有 closeup、typical、severe 三个片段。探索性分析 `evaluation/pause_buffer_explore.py`（dev，种子 1，talker 布局）：句首缓冲 0.5 s 时，句内停顿 Zh→En 3.92 → 2.12/min（−46%），En→Zh 9.82 → 7.69（−22%）；起播延迟分别 +0.42 / +0.23 s，句末滞后 +0.44 / +0.32 s，仍早于 B（Zh→En 2.31 对 2.94 s，En→Zh 2.09 对 2.47 s）。只作描述，没有登记，不进论文主张。
 - **用户确认（同日）**：目标是提高 ASR-BLEU、降低 LAAL，不以流畅度为目标；**CRF 只加在 Talker**（播放对齐 CRF），Thinker 不加。依据见 `crf_effectiveness_vs_hmt.zh-CN.md` §9：MIST+WA 相对 MIST 的 ASR-BLEU 都不显著，四项延迟在三个测试集上都显著更晚；MIST 相对 B 全面显著，相对最严格的规则 R3′ 不劣，只在 AliMeeting 上显著更好。
+
+## 2026-11-16 晚（布拉格）— 论文 v12（用户要求）
+- 新目录 `paper/gstar_si_v12`，从 v11 复制而来，v11 保持不动。方法只保留 Talker 侧的播放对齐 CRF，删去 WA 的全部内容。
+- §3.5 按标准 CRF 形式重写，推导逐步展开，每一步都有一句话衔接（用户中途追加了"公式间要平滑"的要求）；附录 A 给出命题 1–3 的证明。
+- 新增图 1 动机图（三栏，参照 SEE 论文 Figure 1 的版式；第 2 栏是实测的 EndOffset 分解：B 有 67% 的延迟发生在文本写出之后）。
+- 主表改为析因表 R0–R5，标出相对 B 和相对 R3′ 的显著性。附录只保留能支撑 MIST 有效的内容。
+- 篇幅：40 页 → 18 页，正文 8 页；没有未定义引用，没有溢出。
+- 自查中修正了我自己写错的一处：第 k 个词的听到时刻应为 h + (k/W)D，这样求和才等于 (W+1)D/2，与代码一致。
+- 说明文件：`paper/gstar_si_v12/CHANGELOG_v12.md`。

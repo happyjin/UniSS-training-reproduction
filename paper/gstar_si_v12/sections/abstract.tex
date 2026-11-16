@@ -1,0 +1,21 @@
+\begin{abstract}
+A meeting interpreter must say what each person said, attribute it to the right person, and get the translation to the
+listener in time, including when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved
+with tokens of a frozen streaming diarizer and writes speaker-first, time-stamped translations for every speaker of an
+overlapping window; a speech generator speaks them in each speaker's voice. Online, much of the delay a listener
+experiences arises \emph{after} the text is written, while synthesised speech queues behind earlier speech of the same
+speaker. We cast this as structured prediction: \emph{playback alignment} is a linear-chain CRF whose states are the
+speaker's playback backlog and candidate renderings of each block, with potentials for the generator's likelihood, the
+fidelity of an independent recogniser and the delay at which every word is heard. Exact forward--backward inference
+sums over all rendering sequences, a latency budget is imposed by posterior regularisation, whose dual we solve in
+closed form up to a monotone one-dimensional search, and the CRF posterior is distilled into the speech generator. On
+fixed text, on whole AMI meetings (Zh$\rightarrow$En / En$\rightarrow$Zh) and real Mandarin AliMeeting meetings, the
+playback layer raises speech ASR-BLEU by \num{v10:sig:test:ami:speech:e2-b:diff} /
+\num{v10:sig:test:en:speech:e2-b:diff} / \num{v10:sig:test:ali:speech:e2-b:diff}, lowers conventional block-start
+speech LAAL by \num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
+\num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and ends each utterance's speech
+\num{v10:pr:test:ami:e2-b:endoff:diffabs} / \num{v10:pr:test:en:e2-b:endoff:diffabs} /
+\num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s earlier (all significant). It is never worse than rule-based playback
+layers with the same merging and candidate selection, even one given \sys{}'s own speaking rate, and beats that
+strictest control significantly on AliMeeting, where queues are longest.\ifAliEval{} \num{v11:ae:abstract}\fi
+\end{abstract}

@@ -1,0 +1,28 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=0.82cm,y=0.6cm,font=\scriptsize,
+  st/.style={circle,draw,inner sep=0pt,minimum size=4.2mm},
+  on/.style={st,fill=trained!25},
+  blk/.style={rectangle,draw,rounded corners=1pt,inner sep=1.5pt,minimum height=3.2mm}]
+% time axis with release times
+\draw[->,gray] (-0.3,-3.75) -- (7.4,-3.75) node[right,black]{$t$};
+\foreach \x/\l in {0/\nu_i,2.4/\nu_{i+1},4.8/\nu_{i+2}}{\draw[gray] (\x,-3.65)--(\x,-3.85) node[below,black]{$\l$};}
+% backlog states (rows = backlog values)
+\foreach \c/\x in {i/0,i+1/2.4,i+2/4.8}{\node[gray] at (\x,1.05) {$h_{\c}$};}
+\foreach \i/\x in {0/0,1/2.4,2/4.8}{\foreach \j in {0,1,2}{\node[st] (s\i\j) at (\x,-\j) {};}}
+\node[left,gray] at (-0.25,0) {0\,s};\node[left,gray] at (-0.25,-1) {0.4\,s};\node[left,gray] at (-0.25,-2) {0.8\,s};
+% candidate edges from h_i = 0
+\draw[->,thick,trained] (s00) -- node[above,sloped]{$c$: short} (s10);
+\draw[->,thick,frozen,dashed] (s00) -- node[below,sloped,pos=0.6]{long} (s12);
+\draw[->,thin,gray] (s10) -- (s20); \draw[->,thin,gray] (s10) -- (s21);
+\draw[->,thin,gray] (s12) -- (s21); \draw[->,thin,gray] (s12) -- (s22);
+% backward message
+\draw[->,densely dotted,thick,spkc] (5.6,-2.4) to[bend left=12] node[below,pos=0.45]{backward message $\beta_{i+1}(h)$} (0.6,-2.55);
+\node[right,align=left] at (5.15,-0.35) {$\phi_i(h,c)=$\\$0.5\bar\ell(c)+5f(c)$\\$-\lambda L_i(h,c)$};
+\end{tikzpicture}
+\caption{Playback alignment for one speaker stream. States are the backlog $h_i$ (time block $i$ waits for earlier
+speech); an edge is a candidate rendering $c$ of block $i$, whose duration sets the next backlog
+(Eq.~\eqref{eq:backlog}). A long candidate delays every later block; backward messages bring that cost into the choice
+for block $i$.}
+\label{fig:pa}
+\end{figure}

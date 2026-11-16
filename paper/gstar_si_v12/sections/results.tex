@@ -1,0 +1,76 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Who said what}
+\label{sec:res-offline}
+\label{sec:res-overlap}
+
+On reference windows \sys{} (offline) reaches 42.06 / 25.43 tcpBLEU (En$\rightarrow$Zh / Zh$\rightarrow$En) against
+36.13 / 21.96 for a cascade that translates the diarizer's turns with our own window model (Table~\ref{tab:ovmain8},
+Appendix~\ref{app:v8}). A speaker-blind model relabelled with the same diarizer is close on all units, but on
+overlapped units \sys{} leads by \num{v8:x:ov-O2-rel-en2zh:diff} \num{v8:x:ov-O2-rel-en2zh:ci} and
+\num{v8:x:ov-O2-rel-zh2en:diff} \num{v8:x:ov-O2-rel-zh2en:ci} and ties on AliMeeting: relabelling keeps one speaker
+per segment, so concurrent-speaker recall falls from \num{v8:ov:en2zh:O2:cr}\% to
+\num{v8:ov:en2zh:O2-nosd-relabel:cr}\%. The gain is mainly attribution. The rest of the paper fixes this text and asks
+when it is heard.
+
+\subsection{When the translation is heard}
+\label{sec:res-pa}
+\label{sec:res-v10}
+
+Table~\ref{tab:main} gives the playback layer and its rule-based controls on whole test meetings, all on the deadline
+Thinker's text, so differences come from the speech layer alone.
+
+\paragraph{Against the deadline baseline.} On the same text, \sys{} raises ASR-BLEU by
+\num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
+\num{v10:sig:test:ali:speech:e2-b:diff} (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting; all
+$p_\text{Holm}<0.001$, Table~\ref{tab:sig}), lowers LAAL$_\text{block}$ by
+\num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
+\num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and EndOffset by \num{v10:pr:test:ami:e2-b:endoff:diffabs} /
+\num{v10:pr:test:en:e2-b:endoff:diffabs} / \num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s (all $p<0.001$;
+LAAL$_\text{spread}$ and intervals: Table~\ref{tab:speech}). Speech start barely moves (\num{v10:pr:test:ami:e2-b:startoff:diff} /
+\num{v10:pr:test:en:e2-b:startoff:diff} / \num{v10:pr:test:ali:e2-b:startoff:diff}\,s): the playback layer acts after
+the first block is written.
+
+\paragraph{What the CRF terms do.} The rows of Table~\ref{tab:main} follow the terms of Eq.~\eqref{eq:plpot}. The delay
+price $\lambda L_i$, propagated by the backward messages of Eq.~\eqref{eq:w}, favours renderings that keep the queue
+short: the PA Talker speaks \num{v11:pr:test:ami:e2-b:ratepct} / \num{v11:pr:test:en:e2-b:ratepct} /
+\num{v11:pr:test:ali:e2-b:ratepct}\% faster than the base Talker, and the wait behind earlier speech of the same
+speaker falls from 0.65 to 0.14\,s per unit in AMI Zh$\rightarrow$En and from 1.33 to 0.33\,s on AliMeeting
+(Table~\ref{tab:decomp}). The fidelity term $f$ shows in the Talker itself: under the same rate rule and with one sample,
+the PA Talker (R4) beats the base Talker (R2) by +0.29 / +0.02 / +0.33 ASR-BLEU (exploratory $p$ 0.002 / 0.82 /
+0.001) while ending speech 0.18 / 0.15 / 0.23\,s earlier, and keeping the better of two samples by the same $f$ at test
+time adds +0.18 / +0.30 / +0.27 (R5 $-$ R4).
+
+\paragraph{Against rule-based layers.} R3 adds to B everything \sys{} adds except the CRF: merging, a backlog-dependent
+rate and the same best-of-two selection. \sys{} is earlier on every set (LAAL$_\text{block}$ $-$0.011 / $-$0.018 /
+$-$0.043\,s, EndOffset $-$0.18 / $-$0.14 / $-$0.22\,s; $p<0.001$, exploratory) at ASR-BLEU +0.07 / $-$0.03 / +0.27.
+R3$^\prime$ is the strictest control: its rate shift was raised until it speaks as fast as \sys{} on development
+meetings, so it borrows the rate the CRF found. Against it, the contrast fixed in the analysis plan gives ASR-BLEU
++0.11 / +0.05 / +0.23 ($p_\text{Holm}$ 0.89 / 0.89 / 0.007) with LAAL$_\text{block}$ within 0.003\,s (none
+significant). \sys{} is thus never worse than a rule-based layer, even one tuned to its own speaking rate, and
+significantly better on AliMeeting, where queues are longest (wait behind earlier speech under B 1.33\,s, against
+0.65 and 0.54\,s on AMI): there the backward messages, which price a rendering by the waiting it causes later, have
+the most to price.
+
+\ifAliEval
+\paragraph{Unused meetings.}
+\label{sec:res-alieval}
+To test the playback layer on meetings never used before, we fixed systems and hypotheses in an analysis plan and
+decoded the eight AliMeeting evaluation meetings once (Appendix~\ref{app:alieval}). \num{v11:ae:verdict}
+\fi
+
+\paragraph{Robustness and cost.}\ifMetricsV{} Selection uses a CTC recogniser and ASR-BLEU uses ASR, so the gain could
+partly reflect recogniser-friendly speech; with a second recogniser of another family it is
+\num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} / \num{v11:asr2:gain:ali} (the En$\rightarrow$Zh value is inflated by
+recogniser failures on B), and COMET of the speech rises as well (Appendix~\ref{app:metricsv11}).\fi{} The faster
+speech has a cost that Eq.~\eqref{eq:plpot} does not price: pauses of at least 0.5\,s per minute of speech rise from
+\num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses} (AMI Zh$\rightarrow$En; similar elsewhere,
+Table~\ref{tab:speech}), because the stream falls silent while the next block is awaited; UTMOS
+(\num{v10:pr:test:ami:b:utmos} $\rightarrow$ \num{v10:pr:test:ami:e2:utmos}) does not capture this.
+
+\paragraph{Test-set hygiene.}
+\label{sec:res-hygiene}
+All rows share one Thinker at its last training step; the PA Talker and R3$^\prime$'s shift were chosen on
+development data. The test meetings served throughout development, so adaptive overfitting cannot be ruled
+out\ifAliEval{}; the unused meetings above address this\fi.
