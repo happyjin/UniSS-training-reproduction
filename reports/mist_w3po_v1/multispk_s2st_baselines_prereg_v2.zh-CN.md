@@ -60,3 +60,21 @@
 - 用 DiariST 官方 `eval.py` 和官方 195 个 3–6 分钟小会话，对 B/MIST 的 Thinker 文本和语音转写计算 SAgBLEU / SAtBLEU。
 - 与 DiariST 论文 Table 1/2 的 IHM-MIX 数字（Whisper-small 级联、DiariST t-SOT+t-vec）并列引用。
 - 需写明：我们是整场会议解码，他们是逐个小会话解码；DiariST 只输出文本、没有报告延迟。
+
+## 修订 1（同日晚，在任何 X-Translator / 级联输出之前）
+
+**问题**：第一次用 CPU 计算 cpASR-BLEU 时（只算了 B / MIST / Seamless），En→Zh 和 AliMeeting 的 cp 低于 tcp，例如 B 的 En→Zh：cp 21.05，tcp 31.65。
+
+**原因**：tcpBLEU（`score_ext`）会忽略落在"无参考语音"上的假设段。这类语音包括犹豫，以及参考窗口在审核中删掉的部分（En→Zh 与 AliMeeting 都有）。而 §2 的 cp 只在参考一侧用了同一个范围，假设一侧把这些语音的译文也拼了进去，导致精确率被稀释。
+
+**修正**：假设一侧用与 `score_ext` 相同的规则：带 2 s 容差、重叠最多的标注话语如果不计分，该段丢弃。这样两侧覆盖同一个计分范围。
+
+修正后 cp ≥ tcp，结果为：
+
+| 集合 | B（cp / tcp） | MIST（cp） |
+|---|---|---|
+| AMI En→Zh | 35.83 / 31.65 | 36.48 |
+| AliMeeting | 22.52 / 16.73 | — |
+| AMI Zh→En | 24.84 / 18.07 | — |
+
+这一修正是在看过上述三个已知系统的初步 cp 数字之后做的，照实记录在此。
