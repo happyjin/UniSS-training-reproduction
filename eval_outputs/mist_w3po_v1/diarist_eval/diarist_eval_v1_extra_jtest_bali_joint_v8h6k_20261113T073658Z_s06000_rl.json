@@ -1,0 +1,48 @@
+{
+ "set": "test",
+ "key": "B_MIST:text_merged_reads(_rl)",
+ "runs": [
+  "jtest_bali_joint_v8h6k_20261113T073658Z_s06000_rl"
+ ],
+ "hyp": "hyp.jsonl",
+ "later": {
+  "per_run": [
+   {
+    "run": "jtest_bali_joint_v8h6k_20261113T073658Z_s06000_rl",
+    "hyp": "hyp.jsonl",
+    "windows_missing": 0,
+    "segments": 26774,
+    "segments_in_overlap": 59,
+    "segments_after_last_end": 0,
+    "empty_mini_sessions": 0,
+    "dir": "eval_outputs/mist_w3po_v1/diarist_eval/hyp/later/test/jtest_bali_joint_v8h6k_20261113T073658Z_s06000_rl",
+    "n_mini_sessions": 195,
+    "SAgBLEU": 22.51,
+    "SAtBLEU": 21.06
+   }
+  ],
+  "SAgBLEU": 22.51,
+  "SAtBLEU": 21.06,
+  "n_mini_sessions": 195
+ },
+ "earlier": {
+  "per_run": [
+   {
+    "run": "jtest_bali_joint_v8h6k_20261113T073658Z_s06000_rl",
+    "hyp": "hyp.jsonl",
+    "windows_missing": 0,
+    "segments": 26774,
+    "segments_in_overlap": 59,
+    "segments_after_last_end": 0,
+    "empty_mini_sessions": 0,
+    "dir": "eval_outputs/mist_w3po_v1/diarist_eval/hyp/earlier/test/jtest_bali_joint_v8h6k_20261113T073658Z_s06000_rl",
+    "n_mini_sessions": 195,
+    "SAgBLEU": 22.49,
+    "SAtBLEU": 21.04
+   }
+  ],
+  "SAgBLEU": 22.49,
+  "SAtBLEU": 21.04,
+  "n_mini_sessions": 195
+ }
+}

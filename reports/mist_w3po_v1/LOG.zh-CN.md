@@ -3340,3 +3340,11 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 解码：现引擎无 zero-sd，新增 `online_decode_finalpost_zerosd`（投影器输出置零 = 训练 use_sd=False = v6s --zero-sd），其余为 B 的命令；重标用 `overlap_score.relabel_causal` 原函数（`relabel_causal_run` 生成 `<name>_rel` 解码目录）；prep 新增 `gstar_talker_v6_unk`（无 unk 时与原 prep 输出逐字节相同）；编排 `e9_orch.py` 复用 joint_orch，只换两个模块名。
 - 冒烟（3 个 dev 窗口，卡 4，18:21–18:24）：解码 → 重标 → 打分 → prep → T1c → ASR → score_run --asr → chunk 延迟全部 rc 0。卡 4 占位按 PID 停（769513/770908，先核对命令行），结束后 guard 已补回。
 - 判定 GO（约 22 分钟准备）。测试按 `e9_test.sh` 在卡 4–7 运行，每卡规划上限 129 GiB（已用 + 估计 + 6 ≤ 135）→ 每卡 1 个解码。结果写入 `e9_cascade_multispk_results.zh-CN.md`。
+
+## 2026-11-16 18:30 布拉格 — DiariST 官方 SAgBLEU / SAtBLEU（登记 multispk_s2st_baselines_prereg_v2 §5，只用 CPU）
+- DiariST 仓库 commit 2a95bfbd 只读克隆到 research_sources/diarist_20261116。官方 generate_data_json.py 与 eval.py 不改，sacreBLEU 2.6.0（官方锁定 2.3.1 本机没有；2.5.1 抽查结果相同）。
+- 参考：test 195 个小会话、16,358 句，dev 76 个、6,454 句，每句恰好属于一个小会话。dev 的 76 个 JSON 与直接运行官方 gen_ihm_mix 的输出逐字节相同；官方 IHM-MIX 音频与我们的 near_mix 相关系数为 1.0000（只差整体增益）。把参考当假设打分得 100 / 100。
+- 假设段按会议时钟起点归入小会话，重叠区归后一个；改为归前一个时变化 ≤ 0.09。
+- **test（SAgBLEU / SAtBLEU）**：B/MIST 文本 22.38 / 21.06，MIST 语音 20.25 / 18.61，B 语音 19.02 / 17.38，Seamless 9.28 / 7.97。DiariST 论文 t-SOT+t-vec 为 16.62 / 14.76。
+- **dev**：文本 15.26 / 13.74，MIST 语音 14.54 / 12.78，B 语音 12.50 / 10.95。论文 dev 为 16.05 / 13.91，即 dev 上我们相当或略低。
+- X-Translator 打分时还没有输出，之后用 `diarist_eval extra` 补。报告：`diarist_eval_results.zh-CN.md`。
