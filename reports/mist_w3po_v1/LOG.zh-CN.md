@@ -3334,3 +3334,9 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 自查中修正了我自己写错的一处：第 k 个词的听到时刻应为 h + (k/W)D，这样求和才等于 (W+1)D/2，与代码一致。
 - 说明文件：`paper/gstar_si_v12/CHANGELOG_v12.md`。
 - **论文 v13（同日晚，用户要求）**：基线只用 B，去掉 R3′ 和 R3，主表改为 MIST 各组成部分逐个叠加（R0–R4）；方法中每个变量都写明含义、维度和各维度的含义；新增附录符号表；修正 η_r 与 r 的符号冲突；正文仍在 8 页内。说明见 `paper/gstar_si_v13/CHANGELOG_v13.md`。
+
+## 2026-11-16 18:30 布拉格 — E9 级联基线可行性：GO（协调者交办，登记 multispk_s2st_baselines_prereg_v2 §1 S3 / §4）
+- 检查点：v8 speaker-blind Simul = `thinker_gstar_s2dlnosd_{zh2en,en2zh}_v8`（prereg_v8 C1）。换服务器后两个目录（本地和 S3 都一样）缺 model-00014/00015 与 config/tokenizer 等文件；合并日志 shards_rewritten 13，缺的正是 merge 从基座 o2nosd 原样复制的文件，与 release 逐字节相同 → 只新增相对符号链接指向 o2nosd，未覆盖任何文件。
+- 解码：现引擎无 zero-sd，新增 `online_decode_finalpost_zerosd`（投影器输出置零 = 训练 use_sd=False = v6s --zero-sd），其余为 B 的命令；重标用 `overlap_score.relabel_causal` 原函数（`relabel_causal_run` 生成 `<name>_rel` 解码目录）；prep 新增 `gstar_talker_v6_unk`（无 unk 时与原 prep 输出逐字节相同）；编排 `e9_orch.py` 复用 joint_orch，只换两个模块名。
+- 冒烟（3 个 dev 窗口，卡 4，18:21–18:24）：解码 → 重标 → 打分 → prep → T1c → ASR → score_run --asr → chunk 延迟全部 rc 0。卡 4 占位按 PID 停（769513/770908，先核对命令行），结束后 guard 已补回。
+- 判定 GO（约 22 分钟准备）。测试按 `e9_test.sh` 在卡 4–7 运行，每卡规划上限 129 GiB（已用 + 估计 + 6 ≤ 135）→ 每卡 1 个解码。结果写入 `e9_cascade_multispk_results.zh-CN.md`。
