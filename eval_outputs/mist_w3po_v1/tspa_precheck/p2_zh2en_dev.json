@@ -1,0 +1,41 @@
+{
+ "run": "eval_outputs/mist_w3po_v1/speech/jdev_bz_joint_v8h6k_20261113T073658Z_s06000__rlplem",
+ "win": "eval_outputs/mist_w3po_v1/data/windows_zh2en_c2g06_v1/windows_dev_online.jsonl",
+ "units": 5836,
+ "meetings": 15,
+ "pause_rate": 0.4705,
+ "pause_rate_mid": 0.441,
+ "auc_base": 0.7471,
+ "auc_full": 0.7602,
+ "auc_gain": 0.0131,
+ "coef_base": {
+  "backlog_s": -0.869,
+  "units": -1.006,
+  "sent_end": 0.343
+ },
+ "coef_full": {
+  "backlog_s": -0.838,
+  "units": -0.921,
+  "sent_end": 0.229,
+  "final": 0.0,
+  "closed": 0.0,
+  "debt_s": -0.023,
+  "pend_s": -0.048,
+  "act1": -0.351
+ },
+ "feature_means": {
+  "backlog_s": 0.2318,
+  "units": 4.7389,
+  "sent_end": 0.5625,
+  "final": 0.0,
+  "closed": 0.0,
+  "debt_s": 0.3896,
+  "pend_s": 0.2636,
+  "act1": 0.7659
+ },
+ "go": {
+  "auc_full_ge_0.75": true,
+  "gain_ge_0.03": false
+ },
+ "GO": false
+}

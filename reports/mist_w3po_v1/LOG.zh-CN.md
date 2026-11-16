@@ -3314,3 +3314,10 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 ## 2026-11-16 布拉格上午 — CRF 有效性与 HMT 对比分析（用户要求）
 - 新文件 `reports/mist_w3po_v1/crf_effectiveness_vs_hmt.zh-CN.md`：PA/WA 两个 CRF 的数学形式；有效性分层（播放层 vs B 有效；CRF 相对同语速规则只在 Ali 显著；WA 无效）；比基线差的四处及机制（停顿=断粮且目标无空隙项；En→Zh 积压轻；WA 向晚漂移+域外；起点不动）；与 HMT（arXiv 2303.00257 + ictnlp/HMT 代码，Tables 2–6、C.1 已对 PDF 核对）逐项对比；HMT 自身消融（λ_latency=0 漂到 AL 6.66 且掉出前沿；state loss −1.55；max 崩溃）；联合 Thinker+Talker CRF 不建议（J1/J1-v2 预检 NOT GO，排队已被播放层吃掉）；建议 A（论文写法）/B（WA-H，HMT 式单设置）/C（空隙代价）/D（不做）。
 - 没有启动任何 GPU 作业。
+
+## 2026-11-16 布拉格傍晚 — TS-PA CPU 预检 P1 / P2（用户要求，只用 CPU 并行）
+- 预登记 e22805af4 → 代码（单元测试 60/60 与暴力枚举一致）→ 7 个作业并行（P1 每个 24–56 进程，P2 10 进程），约 4 分钟。
+- P1 第一次运行算完但写 JSON 时 numpy bool 无法序列化；残缺文件改名 *.partial_typeerror（未删除），修正类型后重跑，数值与第一次的日志一致。
+- **P1 GO**（三套全过）：TS-PA Viterbi 句内停顿 −41% / −29% / −32%（dev5 Zh→En / train En→Zh / train Zh→En），延迟代理 +0.01–0.02 s，CTC f −0.02 至 −0.03，语速几乎不变；PL-EM 路径上约 80% 的停顿无法靠单块换候选填上（dev5 已独立复算 654/817）。
+- **P2 NOT GO**：新增 AUC +0.013（Zh→En）/ +0.024（En→Zh）< 0.03；基线组 AUC 已有 0.73–0.75；final / closed 特征在有后继的样本里恒为 0（登记时未预见，不改判定）。
+- **按登记总体 NOT GO**：不上 GPU，不改阈值。登记外的新假设（不加新输入的 TS-PA）需要重新登记并由用户决定。报告：`tspa_precheck_results_v1.zh-CN.md`。

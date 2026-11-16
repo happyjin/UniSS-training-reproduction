@@ -263,14 +263,14 @@ def main() -> None:
     R.update({"q_pl": summary(s_pl), "q_ts": summary(s_ts)})
     go = {
         "1_feasible": bool(feasible),
-        "2_vit_mid_pauses": R["vit_ts"]["mid_pauses_per_min"] <= TARGET * R["vit_pl"]["mid_pauses_per_min"],
-        "3_vit_latency": R["vit_ts"]["latency_s"] <= R["vit_pl"]["latency_s"] + 0.10,
-        "4_f": R["q_ts"]["f_mean"] >= R["q_pl"]["f_mean"] - 0.05}
+        "2_vit_mid_pauses": bool(R["vit_ts"]["mid_pauses_per_min"] <= TARGET * R["vit_pl"]["mid_pauses_per_min"]),
+        "3_vit_latency": bool(R["vit_ts"]["latency_s"] <= R["vit_pl"]["latency_s"] + 0.10),
+        "4_f": bool(R["q_ts"]["f_mean"] >= R["q_pl"]["f_mean"] - 0.05)}
     res = {"cands": a.cands, "win": a.win, "lang": a.lang, "units": a.units, "streams": len(streams),
-           "blocks": int(acc["rule"][7]), "budget_s": round(budget, 4), "lam_pl": lam_pl, "lam_ts": lam_ts,
-           "kappa_ts": kap_ts, "target_weighted_pauses": round(target, 3), "feasible": bool(feasible),
-           "unfillable_share_on_pl_viterbi": round(unf / max(1, tot), 4), "pl_viterbi_pauses": tot,
-           "rows": R, "go": go, "GO": all(go.values()), "dual_history": hist,
+           "blocks": int(acc["rule"][7]), "budget_s": round(budget, 4), "lam_pl": float(lam_pl), "lam_ts": float(lam_ts),
+           "kappa_ts": float(kap_ts), "target_weighted_pauses": round(target, 3), "feasible": bool(feasible),
+           "unfillable_share_on_pl_viterbi": round(float(unf / max(1, tot)), 4), "pl_viterbi_pauses": int(tot),
+           "rows": R, "go": go, "GO": bool(all(go.values())), "dual_history": hist,
            "secs": round(time.time() - t0, 1)}
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "x", encoding="utf-8") as fh:
