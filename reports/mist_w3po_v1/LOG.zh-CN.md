@@ -3321,3 +3321,4 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **P1 GO**（三套全过）：TS-PA Viterbi 句内停顿 −41% / −29% / −32%（dev5 Zh→En / train En→Zh / train Zh→En），延迟代理 +0.01–0.02 s，CTC f −0.02 至 −0.03，语速几乎不变；PL-EM 路径上约 80% 的停顿无法靠单块换候选填上（dev5 已独立复算 654/817）。
 - **P2 NOT GO**：新增 AUC +0.013（Zh→En）/ +0.024（En→Zh）< 0.03；基线组 AUC 已有 0.73–0.75；final / closed 特征在有后继的样本里恒为 0（登记时未预见，不改判定）。
 - **按登记总体 NOT GO**：不上 GPU，不改阈值。登记外的新假设（不加新输入的 TS-PA）需要重新登记并由用户决定。报告：`tspa_precheck_results_v1.zh-CN.md`。
+- **因果回放（同日傍晚，用户批准）**：预登记 d89fa5f9e（事后假设）。不加新输入的 TS-PA，因果模仿后句内停顿只降 1.7%（Zh→En dev5）/ 0.8%、1.0%（En→Zh 两折），而已知到达时刻的上界是 −24% 到 −40% → **NOT GO，TS-PA 线结束**。停顿由文本到达时刻决定，只改 Talker 的训练目标在因果推理中消不掉。详见 `tspa_precheck_results_v1.zh-CN.md` 追加节。
