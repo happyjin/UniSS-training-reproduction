@@ -45,3 +45,16 @@ gate of earlier stages, both fixed before training (Table~\ref{tab:fluencypa}). 
 speaks more slowly, but the fluency gain is not free in recognisability, so \sys{} keeps the PA Talker.
 \input{generated/tab_v11_fluencypa}
 \fi
+
+\ifWallclock
+\section{Computation-Aware Replay}
+\label{app:wallclock}
+All latencies in the main text exclude computation. To measure it for the final systems, we decoded a fixed set of
+whole test meetings again with the test settings, timing every read of the Thinker (prefix re-encoding included, GPU
+synchronised) and every Talker generation and candidate-scoring call, each job alone on one H200 GPU (a job was
+repeated, up to three times, when another process appeared on its GPU). A replay then schedules the reads on one
+decoder stream per meeting, each read starting when it is due or when the previous one ends, and the blocks on one
+Talker worker per meeting in release order, and plays them as in the main evaluation (Table~\ref{tab:wallclock}).
+\num{v11:wc:app}
+\input{generated/tab_v11_wallclock}
+\fi

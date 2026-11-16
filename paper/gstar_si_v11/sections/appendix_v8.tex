@@ -48,7 +48,7 @@ contention only slows reads down, and an upper bound above 1 says nothing about 
 replay runs were stopped, since further contended runs could not change that conclusion; two runs stopped part-way
 (En$\rightarrow$Zh \sys{}-Simul, \num{v8:b6:en2zh_S2dl:done} of \num{v8:b6:en2zh_S2dl:of} windows; AliMeeting LocalAgreement,
 \num{v8:b6:ali_O2_LA2:done} of \num{v8:b6:ali_O2_LA2:of}) are not used. The real-time factors of Table~\ref{tab:lat8} remain
-estimates from the measured single-stream read time, not a replay. LocalAgreement's reads take longer than the 1\,s read period, so queued it falls
+estimates from the measured single-stream read time, not a replay.\ifWallclock{} An uncontended replay of the final systems is in Appendix~\ref{app:wallclock}.\fi LocalAgreement's reads take longer than the 1\,s read period, so queued it falls
 behind without bound (per-speaker median \num{v8:lat:en2zh:O2_LA2:ps:p50}\,s). OpenSTBench-style start offset and
 average delay of \sys{}-Simul (per-speaker channels, units spread uniformly over their block): \num{v8:lat:en2zh:S2dl:ps:start} and
 \num{v8:lat:en2zh:S2dl:ps:atd}\,s in En$\rightarrow$Zh; these are not comparable with numbers reported on single-speaker

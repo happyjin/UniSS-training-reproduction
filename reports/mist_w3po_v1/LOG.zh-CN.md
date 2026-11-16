@@ -3277,3 +3277,10 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 发现：15 日 08:35 的旧后处理只用 R0/R5 写了 block_pauses_{ami,ali,en}.jsonl，脚本"存在即跳过"会让其他行缺停顿。不覆盖：另写 block_pauses_<set>_rows2.jsonl（ami/en 已在算，ali 等析因完成），v11_factorial_analysis 改为读 block_pauses_<set>*.jsonl；并加 R6−R5 对比（不进 Holm 族）。
 - 后处理 ami/en（R0–R6）已启动（PID 565940，logs/mist_v11/post/postproc_ami_en.log）。新工具 evaluation/p2_paper_json.py。
 - wall-clock：K_m_ali 三次都有外来进程（max 20–36 GB）→ gaveup；K_m_en 第 3 次在卡 7 跑。
+
+## 2026-11-16 03:15 布拉格 — P1-1 wall-clock 结果（WALLCLOCK_V11_DONE 03:12）
+
+- MIST（= 运行名 b：B 的 Thinker + PA Talker）六个作业都无外来进程。Thinker 实时率 AMI Zh→En 0.65（单场最大 0.85）/ En→Zh 0.80（0.94）/ AliMeeting **1.20（1.46）**；Talker 0.18 / 0.26 / 0.31。计算导致块结束额外延迟 p50 +3.4 / +2.9 / +52.8 s，斜率 +0.44 / +0.20 / +18.3 s/分钟。
+- **按登记判定：跟不上**（Ali 实时率 ≥ 1；AMI 实时率 < 1 但斜率 > 0.05 s/分钟）。瓶颈是 Thinker（每读重编码前缀、batch 1；33–45% 的读超过 1 s 节拍），Talker 只用三分之一实时以内。
+- MIST+WA 的 Talker：ali（a1）、en（a3）三次尝试都有争用（K_m_ali gaveup、K_m_en gaveup），按登记"全部保留"，用 launcher 选的尝试并在表中标 †；Talker 不是瓶颈，结论不受影响。
+- 论文：v11:wc:verdict 写进 Limitations 的 Computation 段（不占正文），新附录 app:wallclock + 通栏表 tab:wallclock；v8 旧附录（有竞争、未完成的回放）加一句指向新附录。新工具 evaluation/wallclock_paper_json.py；make_tables_v11 对 wallclock 表用 table*。

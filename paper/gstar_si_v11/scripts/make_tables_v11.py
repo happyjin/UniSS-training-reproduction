@@ -36,6 +36,7 @@ for s in ("ami", "en", "ali"):
         absval(f"v10:pr:test:{s}:e2-b:{k}:diff")
 
 # v11 results: each file is {"switch": "Factorial", "macros": {key: value}}; present -> switch on
+WIDE = {"wallclock"}
 switches = {k: False for k in ("Factorial", "FluencyPA", "AliEval", "Wallclock", "WAcurve", "SfourK", "MetricsV")}
 if V11.exists():
     for f in sorted(V11.glob("*.json")):
@@ -44,7 +45,10 @@ if V11.exists():
             switches[d["switch"]] = True
             out.update({k: str(v) for k, v in d.get("macros", {}).items()})
             if d.get("table"):   # a ready LaTeX table -> generated/tab_v11_<stem>.tex
-                (GEN / f"tab_v11_{f.stem}.tex").write_text(d["table"])
+                tab = d["table"]
+                if f.stem in WIDE:   # wider than one column -> both columns
+                    tab = tab.replace("\\begin{table}", "\\begin{table*}").replace("\\end{table}", "\\end{table*}")
+                (GEN / f"tab_v11_{f.stem}.tex").write_text(tab)
 
 # P0-3: the deadline Thinker under the same decoding bias family (dev5 text) next to write alignment's calibration points
 WB = ROOT / "logs/mist_w3po_v1/joint/wb"
