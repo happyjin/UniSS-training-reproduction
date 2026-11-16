@@ -3370,7 +3370,7 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 电平变体的服务都限 4 线程（新入口 `thread_limit_run.py`，原服务文件不改，整机 load 从约 777 降到约 50），只是基础设施设置。
   - 两次运行结束后都按 PID 停服务，guard 补回占位；guard 和 gpu_watch 没有动过。
 
-## 2026-11-17 01:10 布拉格 — Table 1（多说话人 S2ST 系统）定稿，paper v14
+## 2026-11-17 00:15 布拉格 — Table 1（多说话人 S2ST 系统）定稿，paper v14
 - **数据**：`table1_analysis` 写出 `eval_outputs/mist_w3po_v1/joint/table1_v14/table1_v1.json`，tracked 副本在 `reports/mist_w3po_v1/table1_v14/`。
   - X-Translator 行按修订 2：AMI 两集用 level 变体，Ali 用 default。
   - 级联通过 `--extra` 加入。
