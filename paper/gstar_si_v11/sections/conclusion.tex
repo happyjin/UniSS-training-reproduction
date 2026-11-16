@@ -22,7 +22,7 @@ relabelling baselines were run only with the per-direction model under an earlie
 (Appendix~\ref{app:v9proto}), not with the final speech layer.
 
 \paragraph{Computation.} Latencies count audio and playback time, not computation; the decoder re-encodes the prefix
-at every read and the PA Talker samples two candidates per block.\ifWallclock{} Our wall-clock replay
+at every read and the PA Talker samples two candidates per block.\ifWallclock{} \num{v11:wc:verdict}; the replay
 (Appendix~\ref{app:wallclock}) covers few meetings on one hardware setting.\else{} We did not measure the cost of the
 final system.\fi{} All streaming latencies assume one channel per speaker.
 
