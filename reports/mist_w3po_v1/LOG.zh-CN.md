@@ -3322,3 +3322,4 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **P2 NOT GO**：新增 AUC +0.013（Zh→En）/ +0.024（En→Zh）< 0.03；基线组 AUC 已有 0.73–0.75；final / closed 特征在有后继的样本里恒为 0（登记时未预见，不改判定）。
 - **按登记总体 NOT GO**：不上 GPU，不改阈值。登记外的新假设（不加新输入的 TS-PA）需要重新登记并由用户决定。报告：`tspa_precheck_results_v1.zh-CN.md`。
 - **因果回放（同日傍晚，用户批准）**：预登记 d89fa5f9e（事后假设）。不加新输入的 TS-PA，因果模仿后句内停顿只降 1.7%（Zh→En dev5）/ 0.8%、1.0%（En→Zh 两折），而已知到达时刻的上界是 −24% 到 −40% → **NOT GO，TS-PA 线结束**。停顿由文本到达时刻决定，只改 Talker 的训练目标在因果推理中消不掉。详见 `tspa_precheck_results_v1.zh-CN.md` 追加节。
+- **停顿试听包与播放缓冲探索（同日，用户要求，只用 dev）**：`demo_packages/pause_listening_20261116/`（音频不入库，README 中有说明），共 B / MIST / MIST+0.5 s 句首缓冲三个版本，Zh→En、En→Zh 各有 closeup、typical、severe 三个片段。探索性分析 `evaluation/pause_buffer_explore.py`（dev，种子 1，talker 布局）：句首缓冲 0.5 s 时，句内停顿 Zh→En 3.92 → 2.12/min（−46%），En→Zh 9.82 → 7.69（−22%）；起播延迟分别 +0.42 / +0.23 s，句末滞后 +0.44 / +0.32 s，仍早于 B（Zh→En 2.31 对 2.94 s，En→Zh 2.09 对 2.47 s）。只作描述，没有登记，不进论文主张。
