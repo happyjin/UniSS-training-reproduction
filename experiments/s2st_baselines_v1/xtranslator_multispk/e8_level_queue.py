@@ -8,7 +8,10 @@ A copy of e8_queue_v2.py (not changed; it finished the original E8). Differences
   * raw dir eval_outputs/mist_w3po_v1/e8_xtranslator/raw_level/<set>, runs jtest_<set>_xtranslator_level
   * logs / markers logs/mist_w3po_v1/e8_level, markers E8L_<set>_DONE, E8L_QUEUE_DONE
   * servers the first queue stopped are launched fresh (not counted as restarts)
-Servers, slots, GPU rules, build, scoring chain, ASR, latency, table1_lat.sh: unchanged.
+Servers, slots, GPU rules, build, scoring chain, ASR, latency, table1_lat.sh: unchanged, except (infrastructure only,
+coordinator 2026-11-16 ~20:30 Prague: load ~777 on 192 cores, X-Voice 500-900% CPU each) the CPU threads: every server
+starts through thread_limit_run.py 4 (OMP / MKL / OPENBLAS / TORCH_NUM_THREADS = 4, torch.set_num_threads(4)), the
+drivers get the same variables, the ASR / scoring jobs MKL / OPENBLAS = 8 next to E7's OMP 8.
 
     PYTHONPATH=. $PY experiments/s2st_baselines_v1/xtranslator_multispk/e8_level_queue.py [--dry-run]
 
@@ -63,7 +66,9 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+os.environ["E8_SERVER_THREADS"] = "4"   # CPU thread limit for every new server process (infrastructure only)
 import e8_servers as ES  # noqa: E402
+assert ES.THREADS == 4
 
 REPO = ES.REPO
 J = ES.J
@@ -80,9 +85,9 @@ PYE = f"{J}/conda_envs/uniss-eval/bin/python"
 V = ES.V
 ENV_E = (f"export TMPDIR={J}/work/mist_w3po_v1/tmp HF_HOME={J}/cache/huggingface TORCH_HOME={J}/cache/torch "
          f"XDG_CACHE_HOME={J}/cache MODELSCOPE_CACHE={J}/cache/modelscope PYTHONPATH=.:third_party/Megatron-LM "
-         f"OMP_NUM_THREADS=8 TOKENIZERS_PARALLELISM=false; ")
+         f"OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 TOKENIZERS_PARALLELISM=false; ")
 ENV_D = (f"unset PYTHONPATH; export PATH={V}/bin:$PATH HF_HOME={J}/cache/huggingface MODELSCOPE_CACHE={J}/cache/modelscope "
-         f"TMPDIR={J}/work/e8_xtranslator_tmp OMP_NUM_THREADS=4 SSL_CERT_FILE=$({V}/bin/python -m certifi); ")
+         f"TMPDIR={J}/work/e8_xtranslator_tmp OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 TORCH_NUM_THREADS=4 E8_SERVER_THREADS=4 SSL_CERT_FILE=$({V}/bin/python -m certifi); ")
 DD = "eval_outputs/mist_w3po_v1/data"
 SETS = {   # e7_queue_v2.SETS (+ direction, shard count ~ 12 min of source audio per shard)
     "ami": {"win": f"{DD}/windows_test_c2g06_v1/windows_test_online_zh2en.jsonl",

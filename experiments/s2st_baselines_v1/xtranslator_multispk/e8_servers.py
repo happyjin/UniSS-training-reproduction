@@ -34,6 +34,11 @@ SRV = REPO / "eval_outputs/mist_w3po_v1/e8_xtranslator/servers"
 ALLOWED_CARDS = (0, 1, 2, 3)
 PROTECTED = {2726951, 52045}   # keep_cards_busy_v3.sh guard, gpu_watch_shell.sh: never stopped
 EST_MIB = {"lmt": 22 * 1024, "asr": 14 * 1024, "xvoice": 6 * 1024}   # observed + margin (RealSI notes / smoke)
+# CPU thread limit per server process (infrastructure only; coordinator 2026-11-16 ~20:30 Prague). 0 = unchanged (the
+# original E8 servers); the level queue sets E8_SERVER_THREADS=4 before importing this module: OMP / MKL / OPENBLAS /
+# TORCH_NUM_THREADS = n and torch.set_num_threads(n) via thread_limit_run.py (a new entry; the server files unchanged).
+THREADS = int(os.environ.get("E8_SERVER_THREADS", "0") or 0)
+THREAD_WRAPPER = REPO / "experiments/s2st_baselines_v1/xtranslator_multispk/thread_limit_run.py"
 GIB = 1024
 
 
@@ -45,6 +50,9 @@ def env_for(card: int) -> dict:
              PHONEMIZER_ESPEAK_LIBRARY=f"{V}/opt/espeak-ng/lib/libespeak-ng.so",
              PHONEMIZER_ESPEAK_DATA_PATH=f"{V}/opt/espeak-ng/share/espeak-ng-data",
              TMPDIR=f"{J}/work/e8_xtranslator_tmp")
+    if THREADS:
+        for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "TORCH_NUM_THREADS"):
+            e[k] = str(THREADS)
     e["SSL_CERT_FILE"] = subprocess.run([f"{V}/bin/python", "-m", "certifi"], capture_output=True, text=True,
                                         env=e).stdout.strip()
     os.makedirs(e["TMPDIR"], exist_ok=True)
@@ -52,7 +60,15 @@ def env_for(card: int) -> dict:
 
 
 def command(kind: str, port: int) -> tuple[list[str], str | None]:
-    """start_servers.sh's command lines (cwd for X-Voice)."""
+    """start_servers.sh's command lines (cwd for X-Voice); with THREADS, the same targets run through thread_limit_run.py."""
+    cmd, cwd = _command(kind, port)
+    if THREADS:
+        w = [cmd[0], str(THREAD_WRAPPER), str(THREADS)]
+        cmd = w + (["--module"] + cmd[2:] if cmd[1] == "-m" else cmd[1:])
+    return cmd, cwd
+
+
+def _command(kind: str, port: int) -> tuple[list[str], str | None]:
     if kind == "lmt":
         return ([f"{V}/bin/python", "-m", "vllm.entrypoints.openai.api_server", "--host", "127.0.0.1", "--port", str(port),
                  "--trust-remote-code", "--model", f"{M}/LMT-60-8B", "--tensor-parallel-size", "1", "--dtype", "bfloat16",
@@ -245,7 +261,7 @@ def start(kind: str, card: int, port: int, dry: bool = False, log=print) -> dict
         p = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=fh, stderr=subprocess.STDOUT,
                              start_new_session=True)
     r = {"name": name, "kind": kind, "card": card, "port": port, "pid": p.pid, "log": str(logf),
-         "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cmd": cmd}
+         "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cmd": cmd, "threads": THREADS}
     rec = SRV / f"{name}.json"
     if rec.exists():   # keep the old record (a previous, dead instance)
         k = 0

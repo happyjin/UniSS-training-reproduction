@@ -177,7 +177,9 @@ def main() -> None:
            "direction": a.direction, "code": "X-Translator dc6a59a, X-Voice 817bcdd, qwen-asr 0.0.6, vllm 0.14.0",
            "config_file": str(cfg_path), "asr_request_chunk_samples": settings.paraformer_chunk_size,
            "asr_server_chunk_size_sec": 0.6, "frame_samples": XR.FRAME, "driver": "xt_realsi.Runner (unchanged)",
-           "registration": "reports/mist_w3po_v1/multispk_s2st_baselines_prereg_v2.zh-CN.md", "gain": a.gain}
+           "registration": "reports/mist_w3po_v1/multispk_s2st_baselines_prereg_v2.zh-CN.md", "gain": a.gain,
+           "cpu_threads": {k: os.environ.get(k) for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                                                          "TORCH_NUM_THREADS", "E8_SERVER_THREADS")}}
     assert cj["translation"]["max_tokens"] == 256
 
     W = [json.loads(l) for l in open(a.windows, encoding="utf-8")]
