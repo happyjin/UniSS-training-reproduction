@@ -98,6 +98,19 @@ a = ("Italic: the first test decoding of \\sys{}+WA, before $\\bias$ was introdu
      "The first test decoding of \\sys{}+WA, before $\\bias$ was introduced, is in Table~\\ref{tab:delta0}.")
 assert a[0] in t
 t = t.replace(*a)
+a = ("Latency per speaker stream, chunk protocol, computation not counted; speech start: first heard word of a unit; "
+     "LAAL$_\\text{block}$: conventional block-start speech LAAL (\\S\\ref{sec:setup}).",
+     "Latency (\\S\\ref{sec:setup}): per speaker stream, chunk protocol, computation not counted.")
+assert a[0] in t, a[0]
+t = t.replace(*a)
+# one caption, shorter than v10's (page budget); metric definitions are in the setup section
+t = re.sub(r"\\caption\{Whole test meetings.*\}\n", lambda m: (
+    "\\caption{Whole test meetings, run online, each system decoded once (\\S\\ref{sec:setup}); B and \\sys{} share "
+    "their text; the first test decoding of \\sys{}+WA (before $\\bias$) is in Table~\\ref{tab:delta0}. tcpBLEU: all / "
+    "overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds; latency: per speaker stream, chunk protocol, "
+    "without computation. Against B (Table~\\ref{tab:sig10}): $^{*}$ $p_\\text{Holm}<0.05$, $^{\\circ}$ not "
+    "significant; latency intervals: Table~\\ref{tab:postreview2}.}\n"), t, count=1)
+assert "latency intervals: Table" in t
 (GEN / "tab_v11_main.tex").write_text(t)
 
 # appendix tables carried over from v10: v10's MIST (write-aligned) is v11's MIST+WA; v10's B+PA is v11's MIST

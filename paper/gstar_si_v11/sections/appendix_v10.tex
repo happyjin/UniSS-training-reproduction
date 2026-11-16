@@ -119,7 +119,7 @@ token by token: on all \num{v10:c:crf:win} windows used by a 3{,}000-step single
 and trains on about \num{v10:c:crf:pass2} (rows sharing a prefix are merged and their coefficients added).
 
 \paragraph{Lattice and posterior.} With $\mathcal{C}$ the chunks of a window and $r(j)$ the due read of chunk $j$
-(Eq.~\eqref{eq:due}), a write plan $z=(A_{1:R},o_{1:R})$ satisfies
+(\S\ref{sec:method-simul}), a write plan $z=(A_{1:R},o_{1:R})$ satisfies
 \begin{equation}
 \{j:r(j)\le r-1\}\subseteq A_r\subseteq\{j:r(j)\le r\},
 \label{eq:lattice}
@@ -199,7 +199,7 @@ tcpBLEU \num{v10:cal:z:m1-b:bleu} / \num{v10:cal:e:m1-b:bleu}. Larger biases cut
 (Table~\ref{tab:abl10}), which contains dev5, so this check is not independent; each test set was then decoded once with
 it. The decision to introduce a bias was a test-informed design decision; its value was set on development data. The
 grid is coarse: $\bias=-1$ still writes \num{v10:cal:z:m1-b:laal} / \num{v10:cal:e:m1-b:laal}\,s later than the baseline
-on dev5, and we did not apply the same bias family to the baseline.
+on dev5\ifWAcurve{}; the same bias family applied to the baseline is in Figure~\ref{fig:wacurve}\else{}, and we did not apply the same bias family to the baseline\fi.
 
 \paragraph{Other ways to control the write time.} An E-step latency budget in training (posterior reweighted by
 $e^{-\mu\cdot\text{deferral cost}}$, halving the expected cost; Appendix~\ref{app:crf}) lowers dev5 text LAAL by

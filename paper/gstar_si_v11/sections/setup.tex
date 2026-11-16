@@ -17,12 +17,11 @@ against the human English translations released with DiariST~\citep{yang2024diar
 transcripts (Appendices~\ref{app:qe7},~\ref{app:v9}).
 
 \paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
-Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) is one
-bidirectional model (Table~\ref{tab:hyper}). The streaming \sys{} is one bidirectional model trained in two stages on 8
-H200 GPUs (Appendix~\ref{app:v10train}). \emph{Stage 1}, the deadline baseline, trains the deadline objective from
-\sys{} (offline) on \num{v10:c:j:rows} rows, every batch of 64 holding 32 rows per direction, for \num{v10:c:j:s1steps}
-steps. \emph{Stage 2} trains write alignment from stage 1 (\S\ref{sec:write}; checkpoint selection on five development
-meetings per direction, dev5, Appendix~\ref{app:calib}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
+Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) and the
+streaming Thinker are each one bidirectional model (Table~\ref{tab:hyper}); the latter is trained on 8 H200 GPUs
+(Appendix~\ref{app:v10train}) in \emph{stage 1}, the deadline objective from \sys{} (offline) on \num{v10:c:j:rows}
+rows (batches of 64, 32 rows per direction) for \num{v10:c:j:s1steps} steps, and \emph{stage 2}, write alignment from
+stage 1 (\S\ref{sec:write}; selection on five development meetings per direction, dev5, Appendix~\ref{app:calib}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
 streaming speech; the PA Talker is fine-tuned from it per direction (Appendix~\ref{app:plem}). Decoding is greedy.
 
 \paragraph{Systems.} \emph{B}: the stage-1 (deadline) Thinker with the base Talker (fixed rate, one sample per
@@ -56,8 +55,7 @@ speakers that overlap by at least 0.5\,s and asks whether both received text att
 gives each segment of a speaker-blind model the diarizer slot most active over its span, one speaker per span as in
 recognition-then-attribution pipelines; online it uses only the frames available at the commit (\emph{causal}).
 
-\paragraph{Statistics.} Confirmatory tests of the offline study were fixed in an internal analysis plan before
-decoding (Appendix~\ref{app:prereg}) and need Holm-adjusted $p<0.05$ \emph{and} a 95\% interval, widened by decoder
-noise, that excludes zero (Appendix~\ref{app:stats7}). Streaming systems use an exact sign-flip test and a paired bootstrap over test meetings, pooling both TTS seeds,
-Holm-corrected over twelve BLEU tests (Table~\ref{tab:sig10}); speech-latency differences get the same tests without
+\paragraph{Statistics.} Confirmatory offline tests were fixed in an internal analysis plan before decoding (Appendix~\ref{app:prereg}) and need Holm-adjusted $p<0.05$ \emph{and} a 95\% interval, widened by decoder
+noise, that excludes zero (Appendix~\ref{app:stats7}). Streaming systems use an exact sign-flip test and a meeting bootstrap, pooling both TTS seeds, Holm over twelve
+BLEU tests (Table~\ref{tab:sig10}); speech-latency differences get the same tests without
 correction (Appendix~\ref{app:postreview}).

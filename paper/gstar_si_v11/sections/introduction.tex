@@ -28,12 +28,10 @@ For the third gap we introduce \emph{playback alignment} (PA): the speech genera
 block, and a linear-chain CRF over the playback backlog scores them by their own likelihood, the fidelity of an
 independent recogniser and the delay at which each word is heard; a latency budget is imposed by posterior
 regularisation~\citep{ganchev2010posterior}, and the
-generator is fine-tuned once on the posterior-weighted candidates. Backward messages carry the queueing cost of later
-blocks into the choice for the current one. For the second gap we also tried the analogous latent-variable route,
-\emph{write alignment}, which lets the read at which each chunk is written and the speaker order within a read be latent
-and trains on their exact tempered posterior. Like other likelihood-trained latent
-policies~\citep{arivazhagan2019milk,ma2020mma}, it drifts towards later writes, because more audio makes the same
-translation more likely; we report it as an analysis.
+generator is fine-tuned once on the posterior-weighted candidates. For the second gap we also tried a latent route,
+\emph{write alignment}, trained on the exact tempered posterior over when each chunk is written; like other
+likelihood-trained policies~\citep{arivazhagan2019milk,ma2020mma}, it drifts towards later writes, and we report it as
+an analysis.
 
 Our contributions are (i) speaker-first, time-stamped joint decoding with the diarizer read inside the decoder, whose
 gain on overlapped speech is mainly attribution; (ii) an overlap-aware evaluation of whole meetings run online, with

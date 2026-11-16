@@ -48,7 +48,7 @@
   % voice prompts
   \draw[arr, dashed, spkc!80!black] (dia.south) -- ++(0,-3.75) -| node[pos=0.25, below, font=\small]{voice prompt $\bm{v}_k$: solo regions of slot $k$ (Eq.~\ref{eq:alone})} (talk.south);
   % streaming loop
-  \draw[arr, dotted, trained!80!black] (llm.north) -- ++(0,0.5) -- node[above, font=\small]{streaming: read every $\Delta$\,s, write or $\wait$ on deadlines (Eq.~\ref{eq:write})} ++(-7.4,0);
+  \draw[arr, dotted, trained!80!black] (llm.north) -- ++(0,0.5) -- node[above, font=\small]{streaming: read every $\Delta$\,s, write or $\wait$ on deadlines (\S\ref{sec:method-simul})} ++(-7.4,0);
 \end{tikzpicture}}
 \caption{\sys{}. A frozen audio encoder turns the meeting into acoustic tokens (what is said); a frozen streaming
 diarizer gives slot activities $\bm{P}$ that a trained projector turns into speaker tokens $\bm{s}_j$ (who says it).

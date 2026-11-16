@@ -12,11 +12,9 @@ keep one speaker's voice~\citep{zhang2024streamspeech,seamless2023,labiausse2025
 (MILk;~\citealp{arivazhagan2019milk}), also per attention head (MMA;~\citealp{ma2020mma}) and for streaming speech (EMMA,
 the policy of SeamlessStreaming;~\citealp{ma2023emma}); all add a latency loss, because likelihood alone prefers late
 writes. The drift of our write posterior (\S\ref{sec:write}) is this known effect. The Hidden Markov Transformer
-treats the moment a target token starts as a hidden state~\citep{zhang2023hmt}, and Hibiki's contextual alignment places
-each target word after the source that makes it predictable under a text model~\citep{labiausse2025hibiki}, close in
-spirit to timing chunks by the model's own likelihood. Our write alignment differs in its state space, sets of written
-chunks of several speakers plus a speaker-order choice per read, with an exact partition function, and like MILk it
-needs a latency term to stay on time. These policies time the \emph{text}; for speech output we time
+treats the moment a target token starts as a hidden state~\citep{zhang2023hmt}, and Hibiki places each target word after the source that makes it
+predictable~\citep{labiausse2025hibiki}. Our write alignment differs in its state space (written chunks of several
+speakers and their order) and, like MILk, needs a latency term. These policies time the \emph{text}; for speech output we time
 \emph{playback}, where the state is the queue of synthesised speech, not the source read so far. Posterior
 regularisation constrains expectations under a latent posterior by a KL projection~\citep{ganchev2010posterior}; we use
 it to bound the delay at which synthesised words are heard. Automatic dubbing controls the length of the

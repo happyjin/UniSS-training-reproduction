@@ -25,10 +25,8 @@ curve (Figure~\ref{fig:wacurve}). \num{v11:wacurve:verdict}
 \fi
 
 \paragraph{Test results.} With $\bias=-1$ and the playback layer, \sys{}+WA changes text tcpBLEU against \sys{} by
-\num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} / \num{v10:sig:test:ali:text:m-b:diff}
-($p_\text{Holm}$ \num{v10:sig:test:ami:text:m-b:holm} / \num{v10:sig:test:en:text:m-b:holm} /
-\num{v10:sig:test:ali:text:m-b:holm}) and ASR-BLEU by \num{v10:sig:test:ami:speech:m-e2:diff} /
-\num{v10:sig:test:en:speech:m-e2:diff} / \num{v10:sig:test:ali:speech:m-e2:diff} (not significant), and is heard
+\num{v10:sig:test:ami:text:m-b:diff} / \num{v10:sig:test:en:text:m-b:diff} / \num{v10:sig:test:ali:text:m-b:diff} and ASR-BLEU by \num{v10:sig:test:ami:speech:m-e2:diff} /
+\num{v10:sig:test:en:speech:m-e2:diff} / \num{v10:sig:test:ali:speech:m-e2:diff} (none significant), and is heard
 later (LAAL$_\text{block}$ \num{v10:pr:test:ami:m-e2:bslaal:diff} / \num{v10:pr:test:en:m-e2:bslaal:diff} /
 \num{v10:pr:test:ali:m-e2:bslaal:diff}\,s). These rows are not blind: the bias was added after a first test decoding
 without it (Appendix~\ref{app:calib})\ifSfourK{}, and the rule's checkpoint (step \num{v10:c:j:s2rule}) gives

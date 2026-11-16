@@ -1,4 +1,14 @@
 % v11 appendices: each section appears only when its result exists (generated/switches_v11.tex)
+\ifFactorial
+\section{Factorial Ablation of the Playback Layer}
+\label{app:factorial}
+Rows R1--R5 add one component at a time on B's text (\S\ref{sec:res-pa}); R3$^\prime$ is R3 with the rule's rate
+shift raised until its mean development rate matches the PA Talker's (shift chosen on development meetings before
+test decoding). The registered contrast is \sys{} (R5) against R3$^\prime$ on ASR-BLEU and LAAL$_\text{block}$ on
+the three test sets, Holm over six; all other contrasts are descriptive.
+\input{generated/tab_v11_factorial}
+\fi
+
 \ifSfourK
 \section{The Selection Rule's Checkpoint}
 \label{app:s4000}

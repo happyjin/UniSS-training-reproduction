@@ -11,11 +11,7 @@
 
 \paragraph{Task.} From a single-channel recording $\bm{x}$ of $T$ seconds in which an unknown number of speakers talk,
 sometimes at once, the system outputs segments
-\begin{equation}
-\mathcal{Y}=\big((k_n,\,a_n,\,b_n,\,\bm{y}^{(n)})\big)_{n=1}^{N_\mathcal{Y}},
-\label{eq:task}
-\end{equation}
-where $k_n\in\{1,\dots,S\}$ is the speaker label (arbitrary, but one person keeps one label for the whole meeting),
+$\mathcal{Y}=\big((k_n,a_n,b_n,\bm{y}^{(n)})\big)_{n=1}^{N_\mathcal{Y}}$, where $k_n\in\{1,\dots,S\}$ is the speaker label (arbitrary, but one person keeps one label for the whole meeting),
 $a_n<b_n$ the start and end of the source speech and $\bm{y}^{(n)}$ its translation; in speech output $\bm{y}^{(n)}$ is
 spoken in the voice of $k_n$. In streaming mode segments are produced while $\bm{x}$ is recorded.
 
@@ -71,23 +67,15 @@ P^{(r)}_{f,k}=P_{f,k}\;\mathds{1}\big[t_f\le t_r-\gamma\big],
 \label{eq:causal}
 \end{equation}
 and $\bm{E}^{(r)}$ is built from $\bm{x}_{\le t_r}$ and $\bm{P}^{(r)}$. With $\hat{\bm{y}}^{(<r)}$ everything committed
-before read $r$, the model continues greedily,
-\begin{equation}
-\hat{\bm{y}}^{(r)}=\mathrm{Greedy}_\theta\big(\cdot\mid\hat{\bm{y}}^{(<r)},\bm{E}^{(r)},\bm{\iota}\big)\ \text{until}\ \eta_r,
-\label{eq:write}
-\end{equation}
-where the stop token is $\eta_r=\wait$ for $r<R$ and $\eta_R=\eos$; what precedes it is committed and never revised.
+before read $r$, the model continues greedily from $(\hat{\bm{y}}^{(<r)},\bm{E}^{(r)},\bm{\iota})$ until a stop
+token, $\eta_r=\wait$ for $r<R$ and $\eta_R=\eos$; what precedes it is committed and never revised.
 Eq.~\eqref{eq:causal} uses the bound $\gamma$; the actual release time of each frame (Appendix~\ref{app:chunk}) is used
 to time commits for scoring.
 
 \paragraph{Deadline targets.} Each reference translation is split at punctuation into chunks, and each chunk is timed by
 the source it covers (word alignments, or the same fraction of the utterance where none exist; Appendix~\ref{app:model}).
 A chunk $j$ ending at $e_j$ becomes due one interpreting lag $\epsilon=1$\,s later, at the read
-\begin{equation}
-r(j)=\min\big(\{r: t_r\ge e_j+\epsilon\}\cup\{R\}\big),
-\label{eq:due}
-\end{equation}
-and the target of read $r$ is the chunks due at $r$, serialised as in Eq.~\eqref{eq:serial}, then $\eta_r$; each read is
+$r(j)=\min(\{r: t_r\ge e_j+\epsilon\}\cup\{R\})$, and the target of read $r$ is the chunks due at $r$, serialised as in Eq.~\eqref{eq:serial}, then $\eta_r$; each read is
 one training row whose prefix is the targets of all earlier reads. A deadline model trains new LoRA adapters, the
 projector and the new rows on these rows with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). One such model,
 trained on both directions (\S\ref{sec:setup}), is the Thinker of \sys{}; with the base Talker it is the

@@ -67,10 +67,9 @@ As selection uses a CTC recogniser and ASR-BLEU uses ASR, the gain may partly re
 
 \ifFactorial
 \paragraph{Which part does it?}
-\input{generated/tab_v11_factorial}
-B+PA differs from B in merging, a backlog-dependent rate, best-of-two CTC selection and the learned Talker.
-Table~\ref{tab:factorial} switches them on one at a time on B's text, with a rule-based layer whose mean rate is set to
-the PA Talker's on development meetings. \num{v11:fact:verdict}
+\sys{} differs from B in merging, a backlog-dependent rate, best-of-two CTC selection and the learned Talker.
+Table~\ref{tab:factorial} (Appendix~\ref{app:factorial}) switches them on one at a time on B's text, with a
+rule-based layer whose mean rate is set to the PA Talker's on development meetings. \num{v11:fact:verdict}
 \else
 B+PA differs from B in four ways (merging, the fine-tuned Talker, a backlog-dependent rate, best-of-two CTC
 selection); on a fixed text a rule-based layer with the same rate and selection gets most of the gain, the learned layer
