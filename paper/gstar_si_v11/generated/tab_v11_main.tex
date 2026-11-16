@@ -20,6 +20,6 @@ Test set & System & all & ov & 1spk & ASR-BLEU $\uparrow$ & text LAAL & speech s
  & \sys{}+WA, $\bias=-1$ (\S\ref{sec:write}) & 41.74$^{\circ}$ & 36.48 & 43.24 & 32.34$^{\circ}$ & 2.47 & 2.50 & 2.52 & 3.05 & 2.99 \\
 \bottomrule
 \end{tabular}}
-\caption{Whole test meetings, run online; each system decoded once (systems: \S\ref{sec:setup}); B and \sys{} share their text. The first test decoding of \sys{}+WA, before $\bias$ was introduced, is in Table~\ref{tab:delta0}. tcpBLEU over all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds. Latency per speaker stream, chunk protocol, computation not counted; speech start: first heard word of a unit; LAAL$_\text{block}$: conventional block-start speech LAAL (\S\ref{sec:setup}). Against B, Holm-corrected (Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; speech-latency intervals: Table~\ref{tab:postreview2}.}
+\caption{Whole test meetings, run online, each system decoded once (\S\ref{sec:setup}); B and \sys{} share their text; the first test decoding of \sys{}+WA (before $\bias$) is in Table~\ref{tab:delta0}. tcpBLEU: all / overlapped / single-speaker units; ASR-BLEU: mean of two TTS seeds; latency: per speaker stream, chunk protocol, without computation. Against B (Table~\ref{tab:sig10}): $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant; latency intervals: Table~\ref{tab:postreview2}.}
 \label{tab:main10}
 \end{table*}

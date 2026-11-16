@@ -3304,3 +3304,9 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - Limitations：锁定测试 8 场、p 下限 2/256、绝对分数低；停顿成本 PA-F 未能在不损 ASR-BLEU 的情况下去掉。
 - 压缩以腾出篇幅：方法时间 token 括号、在线窗口长句、AliMeeting 参考说明、UTMOS 一句合并。
 未采纳/延后：Table 10（v10 遗留、标题已如实写 δw=0 并指向完整表）；附录符号冲突（λ/μ/c 复用）与附录自引；表间 0.01 舍入差（31.645 的四舍五入）；术语全文统一（LAAL_block 等）——留待用户醒后决定是否做全文术语统一。
+
+## 2026-11-16 08:40 布拉格 — P1-4 MetricsV 收尾（第二 ASR 完成）
+- En→Zh 第二 ASR（Whisper-large-v3 zh）跑完，v11_summarize 写出 summary_v11_p14.json。原始结果 MIST−B：AMI +1.32 / **En→Zh +6.46** / Ali +0.93，与 Paraformer 的 +0.58 差距异常。
+- 排查：Whisper 在短片段上重复循环（"鳄鱼"→"鳄鳄鳄…"）并有片尾幻觉（"请不吝点赞 订阅"）；B（基础 Talker 音频）受影响的话语约 16%，MIST 约 6% → 原始 +6.46 被识别器故障放大。
+- **决定（替用户）**：新增 v11_asr2_deloop.py，用同一条固定规则处理所有系统和所有集（1–6 字/1–3 词单元连续重复 ≥4 次只保留一次；含片尾短语的话语置空），另写 asr2_deloop/、scores_deloop/、summary_v11_p14_deloop.json（不覆盖原始结果）。处理后 MIST−B：+1.32 / **+3.74** [1.93, 4.54] / +0.93，p_Holm 均 < 0.001；MIST+WA vs MIST 全不显著。英语两集不变。
+- 论文：tab:metricsv11 用去循环后的数字，标题注明规则；附录写明 En→Zh 第二识别器增益偏大的原因（16% vs 6%，处理前 +6.46），"only its sign is informative"；正文句加"(the En→Zh value is inflated by recogniser failures on B)"。旧 metricsv.json 改名 metricsv.json.v1_raw_superseded。MetricsV 开关打开；40 页，正文仍止于第 8 页，无未定义引用/溢出。
