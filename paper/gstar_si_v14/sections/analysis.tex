@@ -1,0 +1,30 @@
+\section{Analysis}
+\label{sec:analysis}
+
+Where do the remaining errors occur? We split the test windows by the number of speakers and align every output
+segment to a reference utterance by time overlap and text similarity (Tables~\ref{tab:groups} and~\ref{tab:errors},
+Appendix~\ref{app:more}).
+
+\paragraph{Overlap is the hard case.} \sys{} loses about ten cpBLEU$_\text{sess}$ points on multi-speaker windows
+(\num{tx:O-G1:single} vs.\ \num{tx:O-G1:multi} offline), and finds the right number of speakers in only
+\num{tx:O-G1:spkmulti}\% of them. The dominant error is under-counting: a short back-channel (``yeah'', ``okay'') of a
+second speaker is merged into the main speaker's turn or dropped. Without the speaker stream the model merges even more
+(40.4\% of multi-speaker windows under-counted, against 28.3\%), and even the oracle stream leaves 76.4\% speaker-count
+accuracy. Whole utterances are rarely omitted (4.1\%); the second error type is insertion (14.0\% offline, 18.6\%
+simultaneous), usually one short response given to two speakers. Both errors concern back-channels, which carry little
+content but are frequent in meetings.
+
+\paragraph{Why the simultaneous model attributes better.} \sys{}-Simul has a lower DER than the offline model
+(\num{tx:S-T:der}\% vs.\ \num{tx:O-G1:der}\%) and a higher speaker-count accuracy on multi-speaker windows
+(\num{tx:S-T:spkmulti}\% vs.\ \num{tx:O-G1:spkmulti}\%). Its targets are punctuation-level chunks timed by word
+alignments, which are shorter and more precisely placed than whole utterances. We hypothesise that this finer
+supervision helps it separate a back-channel from the surrounding turn; testing it would require training the offline
+model on chunk-level targets. On the 1{,}454 windows that pass the strict data review (Appendix~\ref{app:data}) the two
+models are almost equal (45.51 vs.\ 45.12 cpBLEU$_\text{sess}$), so the 2.5-point simultaneous gap comes from noisier,
+more overlapped windows.
+
+\paragraph{Why speech favours short chunks.} Synthesis costs \num{sp:O-G1:gap} cpBLEU points for \sys{} (offline) but
+only \num{sp:S-T:gap} for \sys{}-Simul. The Talker was fine-tuned on short committed blocks, and \sys{}-Simul hands it
+chunks of \num{sx:S-T:block} characters on average, against \num{sx:O-G1:block} for whole utterances. The character
+error rate of the ASR transcript against the text the Talker was given, which mixes Talker and ASR errors, is
+\num{sx:S-T:misread}\% for \sys{}-Simul and \num{sx:O-G1:misread}\% offline.

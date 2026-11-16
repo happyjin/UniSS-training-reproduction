@@ -1,0 +1,411 @@
+\section{Notation}
+\label{app:notation}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{8.9cm}@{}}
+\toprule
+Symbol & Space / dimension & Meaning \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Input and Thinker (\S\ref{sec:method-task}--\ref{sec:method-simul})}} \\
+$\bm{x}$, $T$ & $\R^{16000T}$; seconds & recording (16\,kHz samples) and its duration \\
+$\bm{A}=[\bm{a}_1;\dots;\bm{a}_N]$ & $\R^{N\times d}$ & acoustic tokens: row $i$ = 80\,ms of audio centred at $\bar{t}_i$; $d=2048$ Thinker hidden dimensions \\
+$\bm{P}$, $P_{f,k}$ & $[0,1]^{F\times S}$ & diarizer activities: row $f$ = 80\,ms frame at $t_f$, column $k$ = one of $S=8$ speaker slots \\
+$\bm{s}_j$ & $\R^{d}$ & speaker token of the $j$-th block of $K=5$ acoustic tokens (0.4\,s) \\
+$\bm{E}$ & $\R^{(N+M)\times d}$ & interleaved input, $M=\lceil N/K\rceil$ speaker tokens after their blocks $\bm{A}_j\in\R^{K\times d}$ \\
+$\bm{\iota}$ & token sequence & text instruction \\
+$\bm{y}$, $y_u$ & $\mathcal{V}^{|\bm{y}|}$ & serialised output; $\mathcal{V}$ = text vocabulary + 251 time tokens + 8 speaker tokens \\
+$k_n$, $a_n,b_n$, $\bm{y}^{(n)}$ & $\{1,\dots,S\}$; $[0,T]$ (s); $\mathcal{V}^{|\bm{y}^{(n)}|}$ & segment $n$: speaker slot, source start and end, translation \\
+$\alpha_n,\beta_n$ & $\{0,\dots,250\}$ & segment start and end in 80\,ms steps (time tokens $\tim{\alpha_n},\tim{\beta_n}$) \\
+$\omega(y_u)$, $\Omega$ & $\{1,1.5,2\}$; $\R_{>0}$ & token weight (other / time / speaker) and its sum \\
+$\Delta$, $\gamma$, $\epsilon$ & seconds & read interval (1), diarizer finalisation delay (1.04), interpreting lag (1) \\
+$r$, $t_r$, $R$ & index; seconds; count & read, its time $\min(r\Delta,T)$, number of reads \\
+$\bm{P}^{(r)}$ & $[0,1]^{F\times S}$ & diarizer activities visible at read $r$ (frames after $t_r-\gamma$ zeroed) \\
+$\eta_r$ & $\{\wait,\eos\}$ & stop token of read $r$ \\
+$e_j$, $r(j)$ & seconds; read index & source end of chunk $j$ and the read at which it is due \\
+$\bm{v}_k$ & $\le8$\,s of audio & voice prompt of slot $k$, encoded into 32 BiCodec global tokens \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Playback alignment (\S\ref{sec:method-plem}), one speaker stream $\bm{x}$ with blocks $i=1,\dots,I$}} \\
+$W_i$, $\nu_i$ & $\mathbb{N}$; seconds & target units (words or characters) of block $i$; its release time \\
+$C_i$, $c$ & set, $|C_i|=8$ & candidate renderings of block $i$ (base-Talker samples at two rates) \\
+$\bm{a}(c)$, $D(c)$ & semantic-token sequence; seconds & speech codes of $c$ (one per 20\,ms) and duration $0.02|\bm{a}(c)|$ \\
+$\bar{\ell}(c)$, $f(c)$ & $\R_{\le0}$ (nats/token); $[-10,0]$ (nats/char) & Talker mean log-probability; negative CTC loss per character (fidelity) \\
+$\mathcal{H}$, $h_i$ & 101 values in $[0,8]$\,s & backlog grid ($\delta=80$\,ms) and backlog of block $i$ \\
+$g_i$ & $\mathcal{H}\times C_i\to\mathcal{H}$ & backlog transition, Eq.~\eqref{eq:backlog} \\
+$L_i(h,c)$ & unit-seconds & total delay at which block $i$'s units are heard, Eq.~\eqref{eq:lat} \\
+$\bm{z}$, $z_i$, $\mathcal{Z}(\bm{x})$ & $\prod_i(\mathcal{H}\times C_i)$ & playback plan, its state at block $i$, feasible plans \\
+$\phi^\lambda_i$ & $\mathcal{H}\times C_i\to\R$ & node potential, Eq.~\eqref{eq:plpot}, weights $(0.5,5)$ fixed \\
+$\lambda$, $\lambda^\star$ & $\R_{\ge0}$ (per unit-second) & price of delay; its value at the budget \\
+$Z_\lambda(\bm{x})$ & $\R_{>0}$ & partition function \\
+$\alpha_i$, $\beta_i$ & $\R_{\ge0}^{|\mathcal{H}|}$ & forward / backward messages, one entry per backlog value \\
+$\mu_i$ & $[0,1]^{|\mathcal{H}|\times|C_i|}$ & posterior marginals: rows backlog values, columns candidates \\
+$\Phi$, $\Phi_\mathcal{S}$ & unit-seconds & total delay of a plan; of a corpus $\mathcal{S}$ of streams \\
+$b$, $W$ & seconds per unit; $\mathbb{N}$ & latency budget; target units in $\mathcal{S}$ \\
+$\mathcal{D}(\lambda)$ & $\R$ & dual function, Eq.~\eqref{eq:dual} \\
+$\tilde{h}_i$, $w_i$ & $\mathcal{H}$; $[0,1]^{|C_i|}$ & backlog under the base rate; posterior weights of block $i$'s candidates \\
+$\pi_{\bm{\omega}}$, $\pi_0$ & distributions over token sequences & PA Talker (parameters $\bm{\omega}$) and base Talker \\
+$\tau(c)$, $\rho_i$ & $\{1,\dots,35\}$; $[0,1]^{35}$ & rate token of $c$; posterior distribution over rate tokens \\
+$\kappa_\text{rate}$, $\kappa_\text{kl}$ & $\R_{\ge0}$ & loss weights (1, 0.5) \\
+\bottomrule
+\end{tabular}
+\caption{Notation. Spaces give the dimensions of every symbol and what each dimension indexes.}
+\label{tab:notation}
+\end{table*}
+
+% Paper v12 appendix: only what the playback-alignment CRF and the main text rely on.
+
+\section{Playback Alignment: Proofs}
+\label{app:proofs}
+
+\input{figures/pa_lattice}
+
+Figure~\ref{fig:pa} shows the state space of Eq.~\eqref{eq:crf} for one stream.
+
+Throughout, fix $\lambda$ and write $\phi_i=\phi^\lambda_i$. A feasible plan is determined by its candidates: given
+$c_{1:I}$, Eq.~\eqref{eq:backlog} fixes every backlog from $h_1=0$. We write $h_j(c_{<j})$ for the backlog that
+$c_{<j}$ leads to, and $e(\bm{z})=\exp\sum_i\phi_i(z_i)$ for the unnormalised weight of a plan.
+
+\begin{proposition}[Exact inference]
+\label{prop:fb}
+For the CRF of Eq.~\eqref{eq:crf}, the messages of Eq.~\eqref{eq:msg} satisfy the recursions of Eq.~\eqref{eq:fb};
+for every $i$, $Z_\lambda=\sum_h\alpha_i(h)\beta_i(h)$, in particular $Z_\lambda=\beta_1(0)$; and the marginals are given
+by Eq.~\eqref{eq:marg}. The cost is $O(I\,|\mathcal{H}|\max_i|C_i|)$.
+\end{proposition}
+
+\begin{proof}
+\emph{Factorisation.} By Eq.~\eqref{eq:backlog}, the backlogs after block $i$ are computed from $h_i$ and
+$c_i,c_{i+1},\dots$ alone: $c_{<i}$ influences them only through $h_i$. Hence the weight of a plan splits at any block,
+\[
+e(\bm{z})=\Big(\textstyle\prod_{j<i}e^{\phi_j(h_j,c_j)}\Big)\Big(\textstyle\prod_{j\ge i}e^{\phi_j(h_j,c_j)}\Big),
+\]
+a prefix factor that ends at $h_i$ times a suffix factor that starts at $h_i$ and depends on the prefix only through
+$h_i$.
+\emph{Partition function.} Summing $e(\bm{z})$ over all feasible plans and grouping them by the value $h$ of $h_i$, the
+prefix sums give $\alpha_i(h)$ and the suffix sums $\beta_i(h)$ (Eq.~\eqref{eq:msg}), so $Z_\lambda=\sum_h\alpha_i(h)\beta_i(h)$.
+At $i=1$, $\alpha_1(h)=\mathds{1}[h=0]$ gives $Z_\lambda=\beta_1(0)$.
+\emph{Recursions.} A prefix ending at $h_{i+1}=h'$ is a prefix ending at some $h_i=h$ followed by a candidate $c$ with
+$g_i(h,c)=h'$; its weight is the old weight times $e^{\phi_i(h,c)}$, which gives $\alpha_{i+1}$. A suffix starting at
+$h_i=h$ is a candidate $c$ followed by a suffix starting at $g_i(h,c)$, which gives $\beta_i$.
+\emph{Marginals.} The plans with $z_i=(h,c)$ are a prefix ending at $h$, the state $(h,c)$ and a suffix starting at
+$g_i(h,c)$, with total weight $\alpha_i(h)e^{\phi_i(h,c)}\beta_{i+1}(g_i(h,c))$; dividing by $Z_\lambda$ gives
+Eq.~\eqref{eq:marg}, and $\mathbb{E}_{p_\lambda}[\Phi]=\sum_i\mathbb{E}[L_i(z_i)]$ by linearity.
+\emph{Cost.} Each recursion step visits every pair $(h,c)\in\mathcal{H}\times C_i$ once.
+\end{proof}
+
+\begin{proposition}[Latency budget]
+\label{prop:pr}
+Assume some distribution meets the budget of Eq.~\eqref{eq:pr} strictly (it suffices that the minimum-delay plans do).
+Then the solution of Eq.~\eqref{eq:pr} is $q^\star=\prod_{\bm{x}\in\mathcal{S}}p_{\lambda^\star}(\cdot\mid\bm{x})$, where
+$\lambda^\star$ maximises the dual of Eq.~\eqref{eq:dual} over $\lambda\ge0$; the dual has the derivatives of
+Eq.~\eqref{eq:dualderiv}, and $\lambda^\star=0$ if $\mathbb{E}_{p_0}[\Phi_\mathcal{S}]\le bW$, otherwise
+$\mathbb{E}_{p_{\lambda^\star}}[\Phi_\mathcal{S}]=bW$.
+\end{proposition}
+
+\begin{proof}
+\emph{Inner minimisation.} For $\lambda\ge0$, define the Gibbs distribution
+$q_\lambda(\bm{z})=p_0(\bm{z})e^{-\lambda\Phi_\mathcal{S}(\bm{z})}/M_\lambda$ with $M_\lambda=\mathbb{E}_{p_0}[e^{-\lambda\Phi_\mathcal{S}}]$.
+Rearranging the Lagrangian,
+\[
+\begin{aligned}
+&\mathrm{KL}(q\Vert p_0)+\lambda\,\mathbb{E}_q[\Phi_\mathcal{S}]\\
+&\quad=\textstyle\sum_{\bm{z}}q\log\big(q/(p_0e^{-\lambda\Phi_\mathcal{S}})\big)\\
+&\quad=\mathrm{KL}(q\Vert q_\lambda)-\log M_\lambda ,
+\end{aligned}
+\]
+which is minimised, uniquely, by $q=q_\lambda$.
+\emph{The minimiser is the CRF.} $p_0$ is a product over streams of Eq.~\eqref{eq:crf} at $\lambda=0$, and
+$\Phi_\mathcal{S}$ is a sum of per-block delays, so
+$p_0(\bm{z})e^{-\lambda\Phi_\mathcal{S}(\bm{z})}=\prod_{\bm{x}}\mathds{1}[\bm{z}_{\bm{x}}\in\mathcal{Z}(\bm{x})]\exp\big(\sum_i\phi^0_i-\lambda L_i\big)/Z_0(\bm{x})$;
+since $\phi^0_i-\lambda L_i=\phi^\lambda_i$, normalising gives $q_\lambda=\prod_{\bm{x}}p_\lambda(\cdot\mid\bm{x})$ and
+$M_\lambda=\prod_{\bm{x}}Z_\lambda(\bm{x})/Z_0(\bm{x})$.
+\emph{Dual and its derivatives.} Substituting $q_\lambda$ into the Lagrangian gives
+$\mathcal{D}(\lambda)=-\log M_\lambda-\lambda bW$, i.e.\ Eq.~\eqref{eq:dual}. For one stream,
+$\partial_\lambda\log Z_\lambda=\sum_{\bm{z}}(-\Phi(\bm{z}))e^{\sum_i\phi^\lambda_i}/Z_\lambda=-\mathbb{E}_{p_\lambda}[\Phi]$, and
+differentiating once more, $\partial^2_\lambda\log Z_\lambda=\mathbb{E}_{p_\lambda}[\Phi^2]-\mathbb{E}_{p_\lambda}[\Phi]^2=\mathrm{Var}_{p_\lambda}[\Phi]$.
+Streams are independent under $q_\lambda$, so expectations and variances add, which gives Eq.~\eqref{eq:dualderiv}.
+\emph{Optimality.} Eq.~\eqref{eq:pr} minimises a convex function of $q$ under one linear constraint, and a strictly
+feasible point exists, so strong duality holds and $q^\star=q_{\lambda^\star}$ with $\lambda^\star=\arg\max_{\lambda\ge0}\mathcal{D}$.
+As $\mathcal{D}''\le0$, $\mathcal{D}'(\lambda)=\mathbb{E}_{p_\lambda}[\Phi_\mathcal{S}]-bW$ is non-increasing: if it is
+$\le0$ at $\lambda=0$ the maximum is at $\lambda^\star=0$, otherwise at its root, where the budget holds with equality
+(complementary slackness). A non-increasing function has its root found by bisection.
+\end{proof}
+
+\begin{proposition}[Posterior distillation]
+\label{prop:distill}
+Let $\pi$ be a distribution over speech-code sequences, $C$ a set of candidates with distinct code sequences
+$\bm{a}(c)$, $\pi(C)=\sum_{c\in C}\pi(\bm{a}(c))>0$ and $\tilde{\pi}(c)=\pi(\bm{a}(c))/\pi(C)$. For any distribution $w$
+on $C$,
+$-\sum_{c\in C}w(c)\log\pi(\bm{a}(c))=\mathrm{KL}(w\Vert\tilde{\pi})+\mathrm{H}(w)-\log\pi(C)$.
+\end{proposition}
+
+\begin{proof}
+Write $\log\pi(\bm{a}(c))=\log\tilde{\pi}(c)+\log\pi(C)$ and use $\sum_cw(c)=1$:
+$-\sum_cw(c)\log\pi(\bm{a}(c))=-\sum_cw(c)\log\tilde{\pi}(c)-\log\pi(C)$, and
+$-\sum_cw(c)\log\tilde{\pi}(c)=\mathrm{KL}(w\Vert\tilde{\pi})+\mathrm{H}(w)$.
+Since $\mathrm{H}(w)$ does not depend on $\pi$, minimising the weighted cross-entropy over $\pi$ moves $\tilde{\pi}$
+towards the CRF posterior $w$ and raises the mass $\pi(C)$ on renderings of the kind the CRF scored.
+\end{proof}
+
+\section{Playback Alignment: Candidates, Training and Base Rate}
+\label{app:plem}
+
+\begin{figure}[h]
+\small
+\resizebox{\columnwidth}{!}{\begin{tabular}{@{}l@{}}
+\toprule
+\textbf{Algorithm 1}: training the PA Talker (one direction) \\
+\midrule
+1: decode training meetings with a streaming Thinker; merge each read's blocks per speaker \\
+2: play every stream at the base rate; record $\nu_i$ and the backlog $\tilde{h}_i$ \\
+3: for every block, sample 8 candidates from the base Talker; compute $D$, $\bar{\ell}$, $f$ \\
+4: bisect $\lambda$ until $\mathbb{E}_{p_\lambda}[\Phi_\mathcal{S}]=bW$ (Eq.~\eqref{eq:marg}; Proposition~\ref{prop:pr}) \\
+5: run the backward recursion at $\lambda^\star$; weight candidates by $w_i(c)$ (Eq.~\eqref{eq:w}) \\
+6: fine-tune the Talker on $\mathcal{J}$ (Eq.~\eqref{eq:distill}), candidates with $w_i(c)\ge0.01$ \\
+\textbf{Test}: backlog token of the actual queue; 2 samples per block; keep the higher $f$ \\
+\bottomrule
+\end{tabular}}
+\caption{Training and decoding of the playback layer. No CRF runs at test time.}
+\label{alg:pa}
+\end{figure}
+
+\paragraph{Candidates and fidelity.} For every block the base Talker samples 8 candidates: 4 at the rate the
+base rate gives and 4 at two rate steps faster. $f(c)=-\min(\text{CTC loss per character},10)$ under an
+independent wav2vec2 CTC recogniser~\citep{baevski2020wav2vec} of the target language. The forward and backward
+recursions agree with brute-force enumeration on small streams.
+
+\paragraph{Objective.} The Talker, conditioned on a backlog token (0.5\,s bins, capped at 3.5\,s), minimises
+Eq.~\eqref{eq:distill}: the weighted cross-entropy of the candidates' speech codes, plus \num{v10:c:plem:wrate} times the
+cross-entropy of its rate token (\num{v10:c:plem:rates} rates) against the posterior's rate marginal, plus
+\num{v10:c:plem:wkl} times the KL divergence from the frozen base Talker on the semantic codes and the end token. All
+Talker parameters are trained.
+
+\paragraph{Data.} Zh$\rightarrow$En: \num{v10:c:plem:meet:z} AMI training meetings, decoded by a separately trained
+single-direction streaming Thinker, \num{v10:c:plem:blocks:z} blocks, \num{v10:c:plem:rows:z} weighted candidate rows,
+$\lambda^\star=$ \num{v10:c:plem:lam:z}, \num{v10:c:plem:steps:z} steps. En$\rightarrow$Zh: the same recipe,
+\num{v10:c:plem:rows:e} rows, $\lambda^\star=$ \num{v10:c:plem:lam:e}; of its checkpoints at iterations 400, 800 and
+1{,}200 a rule on five development meetings (highest ASR-BLEU among checkpoints within 0.1\,s of the last one's speech
+latency) chose iteration \num{v10:c:plem:it:e}. The budget is the base-rate path's own delay minus
+\num{v10:c:plem:budgetoff}\,s.
+
+\paragraph{Base rate and ablation rows.} The base rate of a block is its source pace plus three rate steps per second
+of backlog (at most six), shifted by two steps. In Table~\ref{tab:ablation}, R1 merges the blocks of one read, R2 speaks
+them with the base Talker at the base rate, R3 replaces the base Talker by the PA Talker with one sample, and R4
+(\sys{}) keeps the better of two samples by $f$; R3 $-$ R2 isolates the CRF-distilled Talker and R4 $-$ R3 the
+selection. Differences between rows are descriptive.
+
+\section{Streaming Thinker: Model and Training}
+\label{app:model}
+\label{app:train}
+\label{app:causal}
+\label{app:prompt}
+
+\paragraph{Speaker tokens.} The diarizer's posteriors $\bm{P}\in[0,1]^{F\times S}$ (80\,ms frames, $S=8$ slots) are
+resampled to the acoustic token centres, $\tilde{\bm{P}}=\mathrm{Interp}(\bm{P};\bar{t}_{1:N})$, zero-padded to $MK$
+rows ($M=\lceil N/K\rceil$), and every block of $K=5$ rows becomes one speaker token,
+\begin{equation}
+\begin{aligned}
+\bm{e}_j&=\textstyle\sum_{r=1}^{K}\bm{W}^{(r)}\tilde{\bm{p}}_{(j-1)K+r}+\bm{b},\\
+\bm{s}_j&=\bm{W}_2\,\mathrm{GELU}\big(\bm{W}_1\mathrm{GELU}(\bm{e}_j)+\bm{b}_1\big)+\bm{b}_2,
+\end{aligned}
+\label{eq:conv}
+\end{equation}
+with a hidden size of 1{,}024; $\bm{W}_2,\bm{b}_2$ start at zero, so training starts from the pretrained Thinker.
+Per meeting, reference speakers $\rho$ are mapped to slots by the injective map $\sigma^\star$ that maximises the
+number of frames in which $\rho$ speaks and slot $\sigma(\rho)$ is active ($P>0.5$); an utterance by $\rho$ is
+labelled $\sigma^\star(\rho)$. Hesitations have no target segment. The instruction asks for
+\texttt{<|spk k|><|t a|>}translation\texttt{<|t b|>} per utterance, $k$ the slot, $a,b$ in 80\,ms steps, utterances
+in order of start.
+
+\paragraph{Deadlines.} An utterance's reference translation is split at punctuation into chunks $c_1,\dots,c_J$; chunk
+$j$ covers the fraction $\varphi_j=\sum_{j'\le j}|c_{j'}|/\sum_{j'}|c_{j'}|$ of the utterance and ends at the end of
+source word $\lceil\varphi_j|\bm{w}|\rceil$ of the time-aligned words $\bm{w}$, or at $a+\varphi_j(b-a)$ where no
+word timings exist (the re-voiced Chinese source).
+
+\paragraph{Voices and playback layout.} Slot $k$'s solo frames are
+\begin{equation}
+m_{f,k}=\mathds{1}\big[P_{f,k}>0.5\big]\textstyle\prod_{k'\neq k}\mathds{1}\big[P_{f,k'}<0.5\big].
+\label{eq:alone}
+\end{equation}
+Within a speaker's stream, segment $n$ of duration $D_n$ starts at
+\begin{equation}
+\pi_n=\max\big(\zeta_n,\;\pi_{n-1}+D_{n-1}\big),
+\label{eq:layout}
+\end{equation}
+with $\zeta_n$ its release time; this is the queue of Eq.~\eqref{eq:backlog} before discretisation.
+
+\paragraph{Causality.} Streaming runs read the posteriors of one low-latency diarizer run over the whole session, with
+every frame later than $t-\gamma$ zeroed at a read at time $t$. For three windows of every test meeting we truncated the
+audio at a read time and re-ran the diarizer from scratch: over \num{v6:caus:cuts} cuts the largest absolute posterior
+difference was \num{v6:caus:maxabs} (fp16 precision) and every differing $>0.5$ decision was an fp16 rounding tie
+within $5\cdot10^{-4}$ of 0.5. The audio encoder encodes the heard prefix at every read.
+
+\paragraph{Training.} The deadline rows of the two directions are interleaved into \num{v10:c:j:rows} rows such that
+every global batch of 64 holds 32 Zh$\rightarrow$En and 32 En$\rightarrow$Zh rows; learning rate cosine from $10^{-4}$
+to $10^{-5}$ over \num{v10:c:j:s1steps} steps (100 warm-up), LoRA, projector and new rows as in Table~\ref{tab:hyper},
+8 H200 GPUs, micro-batch 8. There is no checkpoint selection: the Thinker is the last step. Reads with nothing due are
+kept with probability 0.5; whole-window (20\%) and single-speaker (15\%) rows are mixed in.
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcc}
+\toprule
+ & \sys{} (offline) & \sys{}-Simul \\
+\midrule
+Initialisation & Qwen3-Omni Thinker & \sys{} (offline), merged \\
+Directions & both & one model each \\
+Diarizer preset & offline & low latency (1.04\,s) \\
+Rows & 67{,}795 & 128{,}879 / 160{,}957 \\
+Steps & 2{,}000 & 3{,}000 \\
+Batch (global / micro) & 64 / 8 & 64 / 8 \\
+Learning rate & \multicolumn{2}{c}{$10^{-4}\to10^{-5}$, cosine, 50 warm-up} \\
+LoRA & \multicolumn{2}{c}{$r=32$, $\alpha=64$, q/k/v/o, 48 layers} \\
+Loss weights $\omega$ & \multicolumn{2}{c}{speaker 2, time 1.5, other 1} \\
+Posterior perturbation & \multicolumn{2}{c}{$p=0.2$, $\mathcal{N}(0,0.1^2)$, shift $\le1$ frame} \\
+Read interval / lag & -- & $\Delta=1$\,s / $\epsilon=1$\,s \\
+\bottomrule
+\end{tabular}}
+\caption{Training hyperparameters (\sys{}-Simul: En$\rightarrow$Zh / Zh$\rightarrow$En). The streaming Thinker of
+\sys{} is one bidirectional model trained like \sys{}-Simul on the rows of both directions.}
+\label{tab:hyper}
+\end{table}
+
+\section{Data}
+\label{app:data}
+
+\input{generated/tab_data}
+
+\paragraph{Translations.} Every AMI utterance (IHM segmentation, official split) is translated by three MT systems
+(Hy-MT2-30B-A3B, NiuTrans LMT-60-4B, MiLMMT-46-4B); one candidate is selected by reference-free quality estimation
+(XCOMET-XL~\citep{guerreiro2024xcomet} and an XLM-R-XL estimator) and chrF agreement, synthesised in the speaker's
+voice and checked for audibility and intelligibility. A window enters the data only if all its non-hesitation
+utterances have a translation whose speech decodes. Reference windows group utterances that overlap or touch, up to
+20\,s.
+
+\paragraph{Chinese AMI meetings.}\label{app:zhdata} Every utterance's Chinese translation is re-spoken by the UniSS Talker with one voice
+prompt per speaker, trimmed, set to the speaker's median loudness in the English recording, placed at the utterance's
+original start and time-stretched towards the English duration within $[0.8,1.5]$; a speaker's next clip waits until
+the previous one ends. Clips failing an intelligibility check (CER $>0.3$) are left out of the meeting, and 13 training
+meetings whose diarization error stayed high were dropped (none in test).
+
+\paragraph{AliMeeting references.} The main results use DiariST's human English translations~\citep{yang2024diarist};
+the overlap study (Table~\ref{tab:ovmain8}) uses machine translations (Hy-MT2-30B) of the human transcripts, without a human check.
+
+\section{Metrics and Latency}
+\label{app:metrics}
+\label{app:chunk}
+
+\paragraph{tcpBLEU.} Reference units are a speaker's scored utterances chained while less than 1\,s apart; output
+slots are matched to speakers per meeting by chrF over the meeting's text; each output segment, on the meeting clock and
+widened by a 2\,s collar, goes to the annotated utterance it overlaps most: to that utterance's unit if it belongs to the
+segment's matched speaker, otherwise to the matched speaker's own unit it overlaps most, and otherwise it is an
+insertion. tcpBLEU is corpus BLEU over (unit hypothesis, unit reference) pairs plus (insertion, empty) pairs.
+
+\paragraph{Chunk protocol.} The low-latency diarizer emits frames in blocks of nine; frame $f$ (80\,ms) is known at
+$t^{\mathrm{rel}}_f=(9\lfloor f/9\rfloor+13)\cdot 80\,\text{ms}\le t_f+\gamma$, $\gamma=1.04$\,s. A window's opening is
+released at $t^{\mathrm{rel}}$ of its first active frame and its end at $t^{\mathrm{rel}}$ of the last frame of the
+closing gap; commits before the opening are delayed to it, and those of the last read to the release of the end.
+
+\paragraph{Speech LAAL.} For a reference unit with source duration $|X|$ and $|Y|$ heard target words (words or Chinese
+characters) with delays $d_1\le\dots\le d_{|Y|}$ from the unit's start,
+$\mathrm{LAAL}=\frac{1}{k^\ast}\sum_{k=1}^{k^\ast}\big(d_k-(k-1)\frac{|X|}{\max(|Y|,|Y^\ast|)}\big)$, with $|Y^\ast|$ the
+reference length and $k^\ast$ the first $k$ with $d_k\ge|X|$~\citep{papi2022over}. Block $i$ of a stream starts playing
+at $\nu_i+h_i$. LAAL$_\text{block}$ gives every word of the block $d_k=\nu_i+h_i$ (relative to the unit's start);
+LAAL$_\text{spread}$ spreads its $W_i$ words evenly over the block's duration, as Eq.~\eqref{eq:lat}. Speech start is the
+first heard word of a unit; EndOffset runs from the unit's end to the end of its last heard word.
+
+\paragraph{Where the delay comes from.} Table~\ref{tab:decomp} splits EndOffset into the model's lag, the detector's
+wait, the wait behind earlier speech of the same speaker (the backlog of Eq.~\eqref{eq:backlog}) and the duration of the
+last block. The base Talker produces more speech than the source holds (load above one), so each stream accumulates a
+queue; the playback layer removes most of that queue and shortens the last block, the two parts of its gain in
+EndOffset.
+
+\input{generated/v14/tab_decomp}
+
+\section{Further Results of the Playback Layer}
+\label{app:sig10}
+\label{app:postreview}
+
+\paragraph{Significance.} Table~\ref{tab:sig} lists the paired BLEU tests of \sys{} against B. The speech of the two
+systems is compared on the same text; Table~\ref{tab:speech} gives both speech-LAAL definitions, speech start,
+EndOffset, speaking rate, UTMOS~\citep{saeki2022utmos}, speaker similarity (WavLM, against the Talker's voice prompt)
+and pauses, with paired latency differences and their intervals. Every latency definition falls; the speaking rate rises
+by \num{v11:pr:test:ami:e2-b:ratepct} / \num{v11:pr:test:ali:e2-b:ratepct} / \num{v11:pr:test:en:e2-b:ratepct}\%
+(AMI Zh$\rightarrow$En / AliMeeting / En$\rightarrow$Zh); UTMOS, paired per stream, rises by
+\num{v10:pr:test:ami:e2-b:utmos:diff} / \num{v10:pr:test:ali:e2-b:utmos:diff} / \num{v10:pr:test:en:e2-b:utmos:diff};
+speaker similarity is unchanged; pauses become two to three times as frequent.
+
+\input{generated/v14/tab_sig}
+\input{generated/v14/tab_speech}
+
+\ifAliEval
+\subsection{Locked test on unused AliMeeting meetings}
+\label{app:alieval}
+The eight AliMeeting evaluation meetings (\num{v11:ae:hours}\,h) were never used for training, development or any
+earlier test. Windows, diarizer runs and scoring follow the AliMeeting test set, except that the references are
+DiariST's human English translations and no window is filtered by its reference. The analysis plan fixed the systems
+and three confirmatory hypotheses (\sys{} $-$ B on ASR-BLEU, LAAL$_\text{block}$ and EndOffset, Holm over three)
+before decoding; each system was decoded once (Table~\ref{tab:alieval}).
+\input{generated/v14/tab_alieval}
+\fi
+
+\ifMetricsV
+\subsection{A second recogniser and COMET}
+\label{app:metricsv11}
+Candidate selection uses a CTC recogniser (wav2vec~2.0), and ASR-BLEU uses Whisper-large-v3 or Paraformer, so part of
+the gain could be speech that suits recognisers rather than listeners. We rescored the existing test outputs with
+definitions fixed before computing: the speech of both TTS seeds transcribed by a second recogniser of a different
+family (English: Parakeet-TDT-0.6B-v2; Chinese: Whisper-large-v3, whose repetition loops and video-outro hallucinations
+are removed by one rule for all systems), and COMET~\citep{rei2022comet} per reference unit (Table~\ref{tab:metricsv11}).
+Against B, \sys{} gains on the second recogniser by \num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} /
+\num{v11:asr2:gain:ali} and in speech COMET on all three sets. The En$\rightarrow$Zh second-recogniser gain is larger
+than with Paraformer because Whisper fails more often on B's audio (loops or hallucinations in 16\% of B's utterances
+against 6\% of \sys{}'s), so only its sign is informative.
+\input{generated/v14/tab_metricsv}
+\fi
+
+\subsection{External system: SeamlessStreaming}
+\label{app:e7}
+SeamlessStreaming~\citep{seamless2023} (official agent and default settings, inference only) reads each of our online
+test windows; each output segment is attributed to a diarizer slot by causal relabelling, and text, speech and latency
+are scored with our tools under the chunk protocol. Nothing was trained or tuned, and each test set was decoded once.
+It is a zero-shot reference for a public single-speaker SimulS2ST system on overlapping meetings, not a like-for-like
+baseline (Table~\ref{tab:e7}): its quality is far below ours, most on overlapped units, and LAAL compares systems of
+similar quality only.
+\input{generated/v14/tab_e7}
+
+\section{Overlap Study}
+\label{app:v8}
+\label{sec:eval-overlap}
+
+A tcpBLEU unit is \emph{overlapped} when another speaker talks during at least 20\% of it. \emph{Concurrent-speaker
+recall} (CR) takes every pair of utterances of two speakers that overlap by at least 0.5\,s and asks whether both
+received text attributed to their own speaker within 1\,s. Before speech is added, speaker attribution already pays off on text (Table~\ref{tab:ovmain8}, Appendix~\ref{app:v8}):
+a speaker-blind model relabelled with the same diarizer is close to \sys{} on all units, but trails on overlapped units by
+\num{v8:x:ov-O2-rel-en2zh:diff} / \num{v8:x:ov-O2-rel-zh2en:diff} tcpBLEU (En$\rightarrow$Zh / Zh$\rightarrow$En),
+because it gives each segment one speaker (concurrent-speaker recall \num{v8:ov:en2zh:O2-nosd-relabel:cr}\% against
+\num{v8:ov:en2zh:O2:cr}\%).
+
+
+The overlap study's analysis plan (internal) was fixed before any of its test decodes; it fixes the systems, the overlap
+metrics and their thresholds, the causal relabelling rule and twelve confirmatory tests (Table~\ref{tab:reg8}). The
+speaker-blind models are trained like \sys{} and \sys{}-Simul with the speaker tokens zeroed. Relabelling \sys{}'s own
+output with the diarizer, keeping its text, separates labels from translation: on overlapped units its own labels score
+\num{v8:ov:en2zh:O2:ov} against \num{v8:ov:en2zh:O2-relabel:ov} with diarizer labels (En$\rightarrow$Zh), while with
+diarizer labels on both sides its text and the speaker-blind model's are close
+(\num{v8:ov:en2zh:O2-relabel:ov} vs.\ \num{v8:ov:en2zh:O2-nosd-relabel:ov}).
+
+\input{generated/v14/tab_ovmain}
+\input{generated/clean/tab_v8_reg}
+
+\section{Analysis Plans}
+\label{app:prereg}
+
+Each study followed an internal analysis plan written before its test decoding and scoring, with every change recorded
+as a dated amendment before the results it touches. The plans are timestamped only in a private repository, so
+reviewers cannot verify them; we call their tests \emph{confirmatory} but do not rely on them as public
+pre-registrations. The plans fix the meeting lists (AMI test EN2002a--d, ES2004a--d, IS1009a--d, TS3003a--d; all 20
+AliMeeting test meetings; the eight AliMeeting evaluation meetings), the systems, the confirmatory contrasts with their
+Holm families and the development rules for choosing checkpoints.

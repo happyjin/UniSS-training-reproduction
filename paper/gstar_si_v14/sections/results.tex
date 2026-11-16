@@ -1,0 +1,63 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Against multi-speaker speech-to-speech systems}
+\label{sec:res-sys}
+\label{sec:res-offline}
+\label{sec:res-overlap}
+
+\input{generated/v14/tab_ablation}
+
+Table~\ref{tab:main} compares the systems on whole test meetings, all on the same detector windows and scored with the
+same recognisers. SeamlessStreaming, which translates every window as one speaker, reaches 35--52\% of \sys{}'s
+tcpASR-BLEU: \sys{} leads by \num{v14:ami:MIST-seamless:tcp} / \num{v14:en:MIST-seamless:tcp} /
+\num{v14:ali:MIST-seamless:tcp} tcpASR-BLEU and \num{v14:ami:MIST-seamless:cp} / \num{v14:en:MIST-seamless:cp} /
+\num{v14:ali:MIST-seamless:cp} cpASR-BLEU (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting). It starts speaking
+earlier on AMI Zh$\rightarrow$En and finishes earlier on both Zh$\rightarrow$En sets, but LAAL only compares systems of
+similar quality.\ifXT{} X-Translator, which tracks speakers to clone their voices but recognises a single stream, reaches
+\num{v14:ami:xtranslator:tcpASR} / \num{v14:en:xtranslator:tcpASR} / \num{v14:ali:xtranslator:tcpASR} tcpASR-BLEU;
+\sys{} leads by \num{v14:ami:MIST-xtranslator:tcp} / \num{v14:en:MIST-xtranslator:tcp} /
+\num{v14:ali:MIST-xtranslator:tcp}.\fi\ifCascade{} The cascade, a speaker-blind streaming model trained on our data
+and attributed afterwards, reaches \num{v14:ami:cascade:tcpASR} / \num{v14:en:cascade:tcpASR} /
+\num{v14:ali:cascade:tcpASR} tcpASR-BLEU; \sys{} leads by \num{v14:ami:MIST-cascade:tcp} /
+\num{v14:en:MIST-cascade:tcp} / \num{v14:ali:MIST-cascade:tcp}.\fi{} Against B, which shares its text and speaker
+labels, \sys{} gains \num{v14:ami:MIST-B:cp} / \num{v14:en:MIST-B:cp} / \num{v14:ali:MIST-B:cp} cpASR-BLEU and
+\num{v14:ami:MIST-B:tcp} / \num{v14:en:MIST-B:tcp} / \num{v14:ali:MIST-B:tcp} tcpASR-BLEU at lower LAAL and EndOffset
+on every set (\S\ref{sec:res-pa}). On text alone, speaker tokens mainly help attribution under overlap
+(Appendix~\ref{app:v8}).
+
+\subsection{When the translation is heard}
+\label{sec:res-pa}
+\label{sec:res-v10}
+
+Table~\ref{tab:ablation} gives the deadline baseline B and the components of \sys{}'s playback layer added one at a
+time, all on the deadline Thinker's text, so differences come from the speech layer alone.
+
+\paragraph{Against the deadline baseline.} Besides the speech-quality gain of Table~\ref{tab:main} (all
+$p_\text{Holm}<0.001$, Table~\ref{tab:sig}), \sys{} lowers LAAL$_\text{block}$ by
+\num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
+\num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and EndOffset by \num{v10:pr:test:ami:e2-b:endoff:diffabs} /
+\num{v10:pr:test:en:e2-b:endoff:diffabs} / \num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s (all $p<0.001$,
+Table~\ref{tab:speech}); speech start barely moves, as the playback layer acts after the first block is written.
+
+\paragraph{What each component adds.} The rows of Table~\ref{tab:ablation} follow the terms of Eq.~\eqref{eq:plpot}.
+Merging (R1) changes little; the backlog-dependent base rate (R2) gives the largest step, +1.55 / +0.24 / +0.80
+tcpASR-BLEU; the CRF-distilled PA Talker (R3) adds +0.29 / +0.02 / +0.33 (exploratory $p$ 0.002 / 0.82 / 0.001) and
+ends speech 0.18 / 0.15 / 0.23\,s earlier, because the delay price, propagated by the backward messages of
+Eq.~\eqref{eq:w}, favours renderings that keep the queue short: the wait behind earlier speech falls from 0.65 to
+0.14\,s per unit in AMI Zh$\rightarrow$En and from 1.33 to 0.33\,s on AliMeeting (Table~\ref{tab:decomp}). Selecting
+by the fidelity term $f$ at test time (R4) adds +0.18 / +0.30 / +0.27.
+
+\ifAliEval
+\paragraph{Unused meetings.}
+\label{sec:res-alieval}
+On eight AliMeeting meetings never used before, decoded once with systems and tests fixed in advance
+(Appendix~\ref{app:alieval}), \sys{} changes tcpASR-BLEU by +2.23, LAAL$_\text{block}$ by $-$0.37\,s and EndOffset by
+$-$1.43\,s against B (all $p_\text{Holm}=0.023$, the minimum for eight meetings).
+\fi
+
+\paragraph{Robustness and cost.}\ifMetricsV{} With a second recogniser the gain over B is
+\num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} / \num{v11:asr2:gain:ali}, and COMET of the speech rises as well
+(Appendix~\ref{app:metricsv11}).\fi{} The faster speech has a cost that Eq.~\eqref{eq:plpot} does not price: pauses of
+at least 0.5\,s per minute of speech rise from \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses}
+(AMI Zh$\rightarrow$En; Table~\ref{tab:speech}), as the stream falls silent while the next block is awaited.
