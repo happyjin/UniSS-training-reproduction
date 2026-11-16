@@ -3310,3 +3310,7 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - 排查：Whisper 在短片段上重复循环（"鳄鱼"→"鳄鳄鳄…"）并有片尾幻觉（"请不吝点赞 订阅"）；B（基础 Talker 音频）受影响的话语约 16%，MIST 约 6% → 原始 +6.46 被识别器故障放大。
 - **决定（替用户）**：新增 v11_asr2_deloop.py，用同一条固定规则处理所有系统和所有集（1–6 字/1–3 词单元连续重复 ≥4 次只保留一次；含片尾短语的话语置空），另写 asr2_deloop/、scores_deloop/、summary_v11_p14_deloop.json（不覆盖原始结果）。处理后 MIST−B：+1.32 / **+3.74** [1.93, 4.54] / +0.93，p_Holm 均 < 0.001；MIST+WA vs MIST 全不显著。英语两集不变。
 - 论文：tab:metricsv11 用去循环后的数字，标题注明规则；附录写明 En→Zh 第二识别器增益偏大的原因（16% vs 6%，处理前 +6.46），"only its sign is informative"；正文句加"(the En→Zh value is inflated by recogniser failures on B)"。旧 metricsv.json 改名 metricsv.json.v1_raw_superseded。MetricsV 开关打开；40 页，正文仍止于第 8 页，无未定义引用/溢出。
+
+## 2026-11-16 布拉格上午 — CRF 有效性与 HMT 对比分析（用户要求）
+- 新文件 `reports/mist_w3po_v1/crf_effectiveness_vs_hmt.zh-CN.md`：PA/WA 两个 CRF 的数学形式；有效性分层（播放层 vs B 有效；CRF 相对同语速规则只在 Ali 显著；WA 无效）；比基线差的四处及机制（停顿=断粮且目标无空隙项；En→Zh 积压轻；WA 向晚漂移+域外；起点不动）；与 HMT（arXiv 2303.00257 + ictnlp/HMT 代码，Tables 2–6、C.1 已对 PDF 核对）逐项对比；HMT 自身消融（λ_latency=0 漂到 AL 6.66 且掉出前沿；state loss −1.55；max 崩溃）；联合 Thinker+Talker CRF 不建议（J1/J1-v2 预检 NOT GO，排队已被播放层吃掉）；建议 A（论文写法）/B（WA-H，HMT 式单设置）/C（空隙代价）/D（不做）。
+- 没有启动任何 GPU 作业。
