@@ -58,3 +58,14 @@ Talker worker per meeting in release order, and plays them as in the main evalua
 \num{v11:wc:app}
 \input{generated/tab_v11_wallclock}
 \fi
+
+\ifMetricsV
+\section{A Second Recogniser and COMET}
+\label{app:metricsv11}
+Candidate selection in the playback layer uses a CTC recogniser (wav2vec~2.0), and ASR-BLEU uses Whisper-large-v3 or
+Paraformer, so part of the gain could be speech that suits recognisers rather than listeners. We therefore rescored the
+existing test outputs, with definitions fixed before computing: the speech-only audio of both TTS seeds transcribed by a
+second recogniser of a different family, and COMET~\citep{rei2022comet} per reference unit (source transcript,
+hypothesis, reference) for the text and for both ASR transcripts (Table~\ref{tab:metricsv11}). \num{v11:metricsv:app}
+\input{generated/tab_v11_metricsv}
+\fi

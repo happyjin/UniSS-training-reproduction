@@ -37,7 +37,7 @@ chrF~\citep{popovic2015chrf} and BLEU is computed over the matched pairs. Whole 
 the analogue of tcpWER~\citep{neumann2023meeteval}: each output segment joins the reference unit of its matched speaker
 that it overlaps within a 2\,s collar (Appendix~\ref{app:metrics}); a unit translated again in a neighbouring window
 keeps both translations, so duplication is not penalised (Appendix~\ref{app:dup}). BLEU is corpus-level
-sacreBLEU~\citep{post2018call} (13a tokenisation for English, zh for Chinese); no learned metric (COMET, MetricX) is used.
+sacreBLEU~\citep{post2018call} (13a tokenisation for English, zh for Chinese)\ifMetricsV{}; COMET~\citep{rei2022comet} and a second recogniser are in Appendix~\ref{app:metricsv11}\else{}; no learned metric (COMET, MetricX) is used\fi.
 \textbf{ASR-BLEU} is tcpBLEU of the speech transcribed by Whisper-large-v3~\citep{radford2023robust} (English) or
 Paraformer~\citep{gao2022paraformer} (Chinese), averaged over two TTS seeds. \textbf{Latency} is measured per speaker
 stream from audio and playback time, without computation. \emph{Text LAAL}~\citep{papi2022over} uses commit times.
