@@ -303,6 +303,15 @@ widened by a 2\,s collar, goes to the annotated utterance it overlaps most: to t
 segment's matched speaker, otherwise to the matched speaker's own unit it overlaps most, and otherwise it is an
 insertion. tcpBLEU is corpus BLEU over (unit hypothesis, unit reference) pairs plus (insertion, empty) pairs.
 
+\paragraph{cpASR-BLEU.} Per meeting, the ASR transcripts of each output speaker label are concatenated in time order,
+and so are the scored reference utterances of each reference speaker (the units of tcpBLEU); a transcript segment is
+left out, as in tcpBLEU, when the annotated utterance it overlaps most within the 2\,s collar is not scored (a
+hesitation, or speech outside the reference windows). Output labels are matched one-to-one to reference speakers by
+chrF (Hungarian), and corpus BLEU is computed over the matched pairs together with every unmatched output against an
+empty reference and every unmatched reference against an empty output. This is the meeting-level analogue of
+cpWER~\citep{watanabe2020chime6}: it ignores timing but charges a sentence given to the wrong speaker twice. Per-meeting
+statistics are averaged over TTS runs, and paired tests resample meetings as for tcpBLEU.
+
 \paragraph{Chunk protocol.} The low-latency diarizer emits frames in blocks of nine; frame $f$ (80\,ms) is known at
 $t^{\mathrm{rel}}_f=(9\lfloor f/9\rfloor+13)\cdot 80\,\text{ms}\le t_f+\gamma$, $\gamma=1.04$\,s. A window's opening is
 released at $t^{\mathrm{rel}}$ of its first active frame and its end at $t^{\mathrm{rel}}$ of the last frame of the
@@ -375,6 +384,17 @@ It is a zero-shot reference for a public single-speaker SimulS2ST system on over
 baseline (Table~\ref{tab:e7}): its quality is far below ours, most on overlapped units, and LAAL compares systems of
 similar quality only.
 \input{generated/v14/tab_e7}
+
+\subsection{Text: DiariST-AliMeeting with its official metric}
+\label{app:diarist}
+DiariST~\citep{yang2024diarist} reports speaker-attributed text translation on AliMeeting with its own split into 3--6
+minute mini-sessions and its own metrics. We cut our whole-meeting outputs into the official mini-sessions (each
+segment by its start time) and scored them with the released evaluation script, unmodified (Table~\ref{tab:diarist}).
+The audio condition (IHM-MIX) and the human references are those of our AliMeeting test; the published systems are
+trained on AliMeeting and decode each mini-session separately, ours are not trained on it and decode whole meetings
+online. \sys{}'s text leads on test and is level on dev; its speech, scored on ASR transcripts, stays above the
+published text systems on test.
+\input{generated/v14/tab_diarist}
 
 \section{Overlap Study}
 \label{app:v8}

@@ -87,6 +87,39 @@ def macros(R: dict) -> str:
     return "\n".join(out) + "\n"
 
 
+DE = REPO / "eval_outputs/mist_w3po_v1/diarist_eval/diarist_eval_v1.json"
+# DiariST (Yang et al., arXiv 2309.08007v2), IHM-MIX, checked against the PDF: (dev SAg, dev SAt, test SAg, test SAt)
+PUBLISHED = [("Whisper-small, SD$\\rightarrow$ST", "text", "offline", (10.71, 9.21, 10.40, 9.31)),
+             ("Whisper-small, ST$\\rightarrow$SD", "text", "offline", (14.48, 11.96, 13.68, 12.10)),
+             ("DiariST (t-SOT + t-vector)", "text", "streaming", (16.05, 13.91, 16.62, 14.76))]
+
+
+def diarist_table(D: dict) -> str:
+    f = lambda x: "--" if x is None else "%.2f" % x  # noqa: E731
+    rows = [f"{n}$^\\dagger$ & {o} & {m} & " + " & ".join(f(x) for x in v) + " \\\\" for n, o, m, v in PUBLISHED]
+    rows.append("\\midrule")
+    ours = [("B_MIST:text", "\\sys{} Thinker (= B)", "text"), ("MIST:asr", "\\sys{}", "speech"), ("B:asr", "B", "speech"),
+            ("SeamlessStreaming:asr", "SeamlessStreaming", "speech"), ("X-Translator:asr", "X-Translator", "speech")]
+    for k, n, o in ours:
+        v = []
+        for st in ("dev", "test"):
+            x = D["sets"].get(st, {}).get("systems", {}).get(k)
+            v += [x["later"]["SAgBLEU"], x["later"]["SAtBLEU"]] if x else [None, None]
+        if all(x is None for x in v):
+            continue
+        rows.append(f"{n} & {o} & streaming & " + " & ".join(f(x) for x in v) + " \\\\")
+    return ("\\begin{table}[t]\n\\centering\\small\n\\setlength{\\tabcolsep}{2.5pt}\n"
+            "\\resizebox{\\columnwidth}{!}{\\begin{tabular}{lllrrrr}\n\\toprule\n"
+            " & & & \\multicolumn{2}{c}{dev} & \\multicolumn{2}{c}{test} \\\\\n\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}\n"
+            "System & output & mode & SAg & SAt & SAg & SAt \\\\\n\\midrule\n" + "\n".join(rows) +
+            "\n\\bottomrule\n\\end{tabular}}\n"
+            "\\caption{DiariST-AliMeeting (IHM-MIX, human English references) with its official evaluation: "
+            "speaker-agnostic (SAg) and speaker-attributed (SAt) BLEU over 76 dev / 195 test mini-sessions of 3--6 min. "
+            "$^\\dagger$Published by \\citet{yang2024diarist}; these systems are trained on AliMeeting, ours are not. "
+            "Ours decode whole meetings online and are cut into the mini-sessions afterwards; speech rows score the ASR "
+            "transcripts (two TTS seeds averaged for B and \\sys{}).}\n\\label{tab:diarist}\n\\end{table}\n")
+
+
 def systems_table(R: dict) -> str:
     """Table 1: multi-speaker S2ST systems x test sets: cpASR-BLEU, tcpASR-BLEU, LAAL_block, EndOffset."""
     order = [sy["key"] for sy in R["systems"]]
@@ -153,6 +186,8 @@ def main() -> None:
     if R is not None:
         w("tab_systems", systems_table(R))
         w("macros_v14", macros(R))
+    if DE.exists():
+        w("tab_diarist", diarist_table(json.loads(DE.read_text())))
     have = lambda k: R is not None and any(k in R["sets"][s_]["rows"] for s_ in SETS)  # noqa: E731
     w("switches", "\\XT%s\n\\Cascade%s\n" % ("true" if have("xtranslator") else "false",
                                                "true" if have("cascade") else "false"))
