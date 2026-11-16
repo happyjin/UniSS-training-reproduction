@@ -8,9 +8,9 @@ A meeting interpreter renders each contribution into the listener's language and
 over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers. Simultaneous speech-to-speech
 translation (SimulS2ST) systems translate one speaker and can keep that speaker's
 voice~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s};
-DiariST~\citep{yang2024diarist} and X-Translator~\citep{zhao2026xtranslator} attribute streaming \emph{text}
-translation to speakers. We are not aware of a multi-speaker system that reports speech latency on overlapping
-meetings.
+DiariST~\citep{yang2024diarist} attributes streaming \emph{text} translation to speakers, and
+X-Translator~\citep{zhao2026xtranslator} clones a voice per tracked speaker but recognises one stream. We are not aware
+of a system that reports speaker-attributed speech quality and latency on overlapping meetings.
 
 Two gaps separate these systems from a meeting interpreter. \emph{Who said what}: during overlap, a speaker-blind
 translator followed by speaker attribution keeps one speaker per span and loses the other voice. \emph{When it is
@@ -33,9 +33,8 @@ the delay at which each word is heard. Inference is exact, a latency budget is i
 regularisation~\citep{ganchev2010posterior}, and the posterior, which prices each rendering by the queueing cost it
 imposes on all later blocks, is distilled into the speech generator.
 
-Our contributions are (i) playback alignment, a CRF formulation of when and how fast committed translations are heard,
-with exact inference, a posterior-regularised latency budget and posterior distillation (\S\ref{sec:method-plem});
-(ii) speaker-first, time-stamped joint decoding with the diarizer read inside the decoder (\S\ref{sec:res-overlap});
-and (iii) an online evaluation of whole meetings against a deadline baseline with the same text, adding the
-components of the playback layer one at a time, on three test sets and unused meetings (\S\ref{sec:res-pa}). Per utterance the
+Our contributions are (i) playback alignment (\S\ref{sec:method-plem}); (ii) speaker-first, time-stamped joint
+decoding with the diarizer read inside the decoder (\S\ref{sec:res-overlap}); and (iii) an online evaluation of whole
+meetings by speaker-attributed speech BLEU and latency, against public and same-data multi-speaker S2ST systems and,
+component by component, a deadline baseline with the same text (\S\ref{sec:res-sys}, \S\ref{sec:res-pa}). Per utterance the
 system remains closer to consecutive than to simultaneous interpretation; we therefore call it \emph{streaming}.

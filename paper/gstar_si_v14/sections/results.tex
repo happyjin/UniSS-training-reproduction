@@ -9,22 +9,13 @@
 \input{generated/v14/tab_ablation}
 
 Table~\ref{tab:main} compares the systems on whole test meetings, all on the same detector windows and scored with the
-same recognisers. SeamlessStreaming, which translates every window as one speaker, reaches 35--52\% of \sys{}'s
-tcpASR-BLEU: \sys{} leads by \num{v14:ami:MIST-seamless:tcp} / \num{v14:en:MIST-seamless:tcp} /
-\num{v14:ali:MIST-seamless:tcp} tcpASR-BLEU and \num{v14:ami:MIST-seamless:cp} / \num{v14:en:MIST-seamless:cp} /
-\num{v14:ali:MIST-seamless:cp} cpASR-BLEU (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting). It starts speaking
-earlier on AMI Zh$\rightarrow$En and finishes earlier on both Zh$\rightarrow$En sets, but LAAL only compares systems of
-similar quality.\ifXT{} X-Translator, which tracks speakers to clone their voices but recognises a single stream, reaches
-\num{v14:ami:xtranslator:tcpASR} / \num{v14:en:xtranslator:tcpASR} / \num{v14:ali:xtranslator:tcpASR} tcpASR-BLEU;
-\sys{} leads by \num{v14:ami:MIST-xtranslator:tcp} / \num{v14:en:MIST-xtranslator:tcp} /
-\num{v14:ali:MIST-xtranslator:tcp}.\fi\ifCascade{} The cascade, a speaker-blind streaming model trained on our data
-and attributed afterwards, reaches \num{v14:ami:cascade:tcpASR} / \num{v14:en:cascade:tcpASR} /
-\num{v14:ali:cascade:tcpASR} tcpASR-BLEU; \sys{} leads by \num{v14:ami:MIST-cascade:tcp} /
-\num{v14:en:MIST-cascade:tcp} / \num{v14:ali:MIST-cascade:tcp}.\fi{} Against B, which shares its text and speaker
-labels, \sys{} gains \num{v14:ami:MIST-B:cp} / \num{v14:en:MIST-B:cp} / \num{v14:ali:MIST-B:cp} cpASR-BLEU and
-\num{v14:ami:MIST-B:tcp} / \num{v14:en:MIST-B:tcp} / \num{v14:ali:MIST-B:tcp} tcpASR-BLEU at lower LAAL and EndOffset
-on every set (\S\ref{sec:res-pa}). On text alone, speaker tokens mainly help attribution under overlap
-(Appendix~\ref{app:v8}).
+same recognisers. \sys{} has the highest cpASR-BLEU and tcpASR-BLEU on every set, and each of its BLEU differences is
+significant ($p_\text{Holm}<0.001$). The public systems reach 35--76\% of its tcpASR-BLEU: SeamlessStreaming, which
+translates each window as one speaker, trails by 8.7--20.9, and X-Translator, whose speaker tracker only picks the
+cloned voice, by 4.3--12.3. Both have lower LAAL or EndOffset on the Zh$\rightarrow$En sets, but latency compares only
+systems of similar quality. The same-data cascade, a speaker-blind streaming model attributed afterwards, is level with
+B in speech ($-$0.7 to +0.3 tcpASR-BLEU) although its text trails B under overlap (Appendix~\ref{app:cascade}); it
+starts 0.3--0.4\,s later, and \sys{} leads it by 1.3--2.0 tcpASR-BLEU and 0.4--0.6\,s LAAL.
 
 \subsection{When the translation is heard}
 \label{sec:res-pa}
@@ -58,6 +49,6 @@ $-$1.43\,s against B (all $p_\text{Holm}=0.023$, the minimum for eight meetings)
 
 \paragraph{Robustness and cost.}\ifMetricsV{} With a second recogniser the gain over B is
 \num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} / \num{v11:asr2:gain:ali}, and COMET of the speech rises as well
-(Appendix~\ref{app:metricsv11}).\fi{} The faster speech has a cost that Eq.~\eqref{eq:plpot} does not price: pauses of
-at least 0.5\,s per minute of speech rise from \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses}
-(AMI Zh$\rightarrow$En; Table~\ref{tab:speech}), as the stream falls silent while the next block is awaited.
+(Appendix~\ref{app:metricsv11}).\fi{} Faster speech has a cost Eq.~\eqref{eq:plpot} does not price: pauses of at least
+0.5\,s per minute rise from \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses} (AMI
+Zh$\rightarrow$En; Table~\ref{tab:speech}) while the next block is awaited.

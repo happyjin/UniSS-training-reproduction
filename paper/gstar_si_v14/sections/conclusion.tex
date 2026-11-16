@@ -3,7 +3,9 @@
 
 When a listener hears an interpretation is largely decided after its text is written, by the queue of synthesised
 speech in each speaker's stream. A linear-chain CRF over this queue, distilled into the speech generator, improves
-speaker-attributed speech BLEU and latency on three test sets and on unused meetings, most where queues are longest.
+speaker-attributed speech BLEU and latency over a deadline baseline with the same text on three test sets and on unused
+meetings, most where queues are longest; the full system leads public and same-data multi-speaker speech-to-speech
+systems on every set.
 
 \section*{Limitations}
 
@@ -11,6 +13,11 @@ speaker-attributed speech BLEU and latency on three test sets and on unused meet
 on development data, but the test meetings served throughout development, so adaptive overfitting cannot be ruled out%
 \ifAliEval{}; only the eight unused AliMeeting meetings give a locked test, and they cover Zh$\rightarrow$En only;
 with eight meetings its sign-flip $p$-values cannot fall below $2/256$, and its absolute scores are low\fi.
+
+\paragraph{External systems.} SeamlessStreaming and X-Translator run zero-shot on our detector windows and are
+attributed by our diarizer, not as deployed by their authors; X-Translator's AMI input level was set by a constant gain
+calibrated on dev in place of its browser's gain control, and both external systems have one TTS run against two for
+ours.
 
 \paragraph{The CRF and its training.} The candidate sets are eight samples of the base Talker, the backlog is
 discretised, and the potential weights were fixed, not learned; the posterior is distilled in one round, on the backlog

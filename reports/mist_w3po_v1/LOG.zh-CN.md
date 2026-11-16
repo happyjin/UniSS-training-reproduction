@@ -3369,3 +3369,20 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 连接故障续跑 2 次。`ali__dec06` 的 rc −1 只是被接管进程的记法：该分片 82/82 窗口齐全，没有续跑。
   - 电平变体的服务都限 4 线程（新入口 `thread_limit_run.py`，原服务文件不改，整机 load 从约 777 降到约 50），只是基础设施设置。
   - 两次运行结束后都按 PID 停服务，guard 补回占位；guard 和 gpu_watch 没有动过。
+
+## 2026-11-17 01:10 布拉格 — Table 1（多说话人 S2ST 系统）定稿，paper v14
+- **数据**：`table1_analysis` 写出 `eval_outputs/mist_w3po_v1/joint/table1_v14/table1_v1.json`，tracked 副本在 `reports/mist_w3po_v1/table1_v14/`。
+  - X-Translator 行按修订 2：AMI 两集用 level 变体，Ali 用 default。
+  - 级联通过 `--extra` 加入。
+  - 不加增益的原始运行记为探索行 `~xtraw`，不进 Holm。
+- **结果（cp / tcp）**：MIST 在 3 个集合上的 cp 和 tcp 都是最高，全部 p_Holm < 0.001。
+  - AMI Zh→En：MIST 26.84 / 20.35；级联 24.88 / 18.37；B 24.72 / 18.07；X-Translator 12.05 / 8.64；Seamless 12.10 / 8.48。
+  - En→Zh：MIST 36.49 / 32.23；B 35.83 / 31.65；级联 35.07 / 30.97；X-Translator 23.31 / 19.96；Seamless 13.79 / 11.31。
+  - Ali：MIST 24.04 / 18.08；B 22.60 / 16.73；级联 21.81 / 16.16；X-Translator 19.46 / 13.77；Seamless 13.59 / 9.42。
+- **延迟**：
+  - MIST 在 En→Zh 的 LAAL 和 EndOffset 都最低。
+  - Zh→En 两集上，X-Translator 的 LAAL 更低，Seamless 的 EndOffset 更低，但两者质量只有 MIST 的 35–76%。
+  - 级联比 B 晚 0.3–0.4 s，MIST 对它全部延迟指标显著更早。
+- **口径说明**：级联 Ali 的 tcpASR 按会议级统计量合并两种子为 16.16，`score_run` 的两种子均值为 15.91。论文 B/MIST 用的是合并口径（18.07），全表统一用合并口径。
+- **DiariST 官方指标补 X-Translator**（Ali test）：SAg / SAt 为 16.04 / 13.66。
+- **paper v14**：Table 1 改为系统对比，消融改用 tcpASR 标签，正文 §5.1 重写；摘要、引言、结论、Limitations 和附录 G.4 / G.5 同步更新。正文仍在 8 页内，详见 `paper/gstar_si_v14/CHANGELOG_v14.md`。

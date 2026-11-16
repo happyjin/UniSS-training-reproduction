@@ -385,6 +385,36 @@ baseline (Table~\ref{tab:e7}): its quality is far below ours, most on overlapped
 similar quality only.
 \input{generated/v14/tab_e7}
 
+\ifXT
+\subsection{External system: X-Translator}
+\label{app:xt}
+X-Translator~\citep{zhao2026xtranslator} (released code, weights and configuration: streaming Qwen3-ASR-1.7B, LMT-60-8B
+translation, X-Voice TTS cloning a voice prompt per tracked speaker) runs each online window as one fresh session with
+the per-session logic of its server. A translated segment counts as written when the audio that produced it has been
+received (computation is not counted), is queued for playback like ours, and is attributed by causal relabelling; its
+own speaker tracker only chooses the cloned voice. Its client skips 0.16\,s chunks with RMS below 0.01, a gate meant for
+browser input with automatic gain control. Our AMI audio is quieter (median loudest-chunk RMS 0.016--0.018, against
+0.066 on AliMeeting), and the gate never opens in 32\% / 28\% of the AMI Zh$\rightarrow$En / En$\rightarrow$Zh test
+windows. Before any X-Translator score was seen we therefore fixed one constant gain per AMI set on its dev windows, $g=0.1/m_\text{dev}$
+($\times$1.81 / $\times$2.16, $m_\text{dev}$ the dev median of the loudest-chunk RMS), which leaves 8\% / 10\% of the
+test windows gated; AliMeeting (1.4\% gated) is used as is. Without the gain X-Translator reaches
+\num{v14:ami:xtraw:cpASR} / \num{v14:en:xtraw:cpASR} cpASR-BLEU and \num{v14:ami:xtraw:tcpASR} /
+\num{v14:en:xtraw:tcpASR} tcpASR-BLEU on the two AMI sets. Each configuration was decoded once.
+\fi
+
+\ifCascade
+\subsection{Same-data cascade}
+\label{app:cascade}
+The cascade row of Table~\ref{tab:main} asks what translating speaker-blind and attributing afterwards gives with
+our training data, detector windows and Talker. Its streaming model is the speaker-blind \sys{}-Simul of
+Appendix~\ref{app:v8} (trained like \sys{}-Simul with the speaker tokens zeroed), decoded online with B's settings; each
+segment is relabelled causally to the diarizer slot most active over it and spoken by the base Talker with B's settings
+(two TTS seeds). Without relabelling, its own guessed labels give text tcpBLEU of only 10.9 / 24.4 / 11.4 (AMI
+Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting), so its attribution comes from the diarizer. After relabelling its
+text is close to B's on single-speaker units but lower on overlapped units (15.7 vs.\ 20.0 on AMI Zh$\rightarrow$En,
+30.9 vs.\ 36.2 on En$\rightarrow$Zh), the gap speaker tokens close in Appendix~\ref{app:v8}.
+\fi
+
 \subsection{Text: DiariST-AliMeeting with its official metric}
 \label{app:diarist}
 DiariST~\citep{yang2024diarist} reports speaker-attributed text translation on AliMeeting with its own split into 3--6
@@ -393,7 +423,7 @@ segment by its start time) and scored them with the released evaluation script, 
 The audio condition (IHM-MIX) and the human references are those of our AliMeeting test; the published systems are
 trained on AliMeeting and decode each mini-session separately, ours are not trained on it and decode whole meetings
 online. \sys{}'s text leads on test and is level on dev; its speech, scored on ASR transcripts, stays above the
-published text systems on test.
+published text systems and X-Translator's speech on test.
 \input{generated/v14/tab_diarist}
 
 \section{Overlap Study}

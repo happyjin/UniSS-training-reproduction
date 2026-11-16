@@ -127,7 +127,8 @@ def systems_table(R: dict) -> str:
              "B": "B (deadline baseline)", "MIST": "\\sys{} (ours)"}
     note = {"seamless": "$^a$", "xtranslator": "$^b$", "cascade": "$^c$", "B": "", "MIST": ""}
     lines = []
-    present = [k for k in order if any(k in R["sets"][s_]["rows"] for s_ in SETS)]
+    expl = {sy["key"] for sy in R["systems"] if sy.get("exploratory")}       # appendix-only rows (prefix ~)
+    present = [k for k in order if k not in expl and any(k in R["sets"][s_]["rows"] for s_ in SETS)]
     best = {}
     for s_ in SETS:
         rows = R["sets"][s_]["rows"]
@@ -166,15 +167,13 @@ def systems_table(R: dict) -> str:
             "\\cmidrule(lr){2-5}\\cmidrule(lr){6-9}\\cmidrule(lr){10-13}\n"
             "System & cpASR & tcpASR & LAAL & EndOff. & cpASR & tcpASR & LAAL & EndOff. & cpASR & tcpASR & LAAL & "
             "EndOff. \\\\\n\\midrule\n")
-    cap = ("\\caption{Multi-speaker speech-to-speech interpretation of whole test meetings, run online on the same "
-           "detector windows. cpASR / tcpASR: speaker-attributed ASR-BLEU of the synthesised speech, without (cp, "
-           "meeting-level minimum-permutation) and with (tcp) time constraints ($\\uparrow$); LAAL: block-start speech "
-           "LAAL; EndOff.: EndOffset (s, $\\downarrow$; chunk protocol, without computation). $^{a}$zero-shot "
-           "single-speaker SimulS2ST; $^{b}$open speaker-aware cascade S2ST (streaming ASR, MT, voice-cloning TTS), "
-           "zero-shot; $^{c}$speaker-blind streaming model trained on our data, base Talker. Systems without speaker "
-           "labels of their own are attributed by causal relabelling with the same diarizer (\\S\\ref{sec:setup}). "
-           "$^{*}$: \\sys{} $-$ system significant (BLEU: Holm over all sets and systems; latency: sign-flip "
-           "$p<0.05$). Best per column in bold.}\n\\label{tab:main}\n\\end{table*}\n")
+    cap = ("\\caption{Multi-speaker speech-to-speech interpretation of whole test meetings, online on the same "
+           "detector windows. cpASR / tcpASR: speaker-attributed ASR-BLEU without / with time constraints "
+           "($\\uparrow$); LAAL (block start) and EndOff.\\ in s ($\\downarrow$, chunk protocol). $^{a}$zero-shot "
+           "single-speaker SimulS2ST; $^{b}$open speaker-aware cascade, zero-shot, AMI input level set on dev "
+           "(App.~\\ref{app:xt}); $^{c}$speaker-blind model trained on our data (App.~\\ref{app:cascade}); "
+           "$^{a\\text{--}c}$attributed by causal relabelling. $^{*}$: \\sys{} $-$ system significant (BLEU: Holm; "
+           "latency: sign-flip $p<0.05$). Bold: best.}\n\\label{tab:main}\n\\end{table*}\n")
     return head + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}}\n" + cap
 
 
@@ -187,7 +186,12 @@ def main() -> None:
         w("tab_systems", systems_table(R))
         w("macros_v14", macros(R))
     if DE.exists():
-        w("tab_diarist", diarist_table(json.loads(DE.read_text())))
+        D = json.loads(DE.read_text())
+        for ex in (DE.parent / "diarist_eval_v1_extra_jtest_ali_xtranslator_default.json",):   # added systems
+            if ex.exists():
+                X = json.loads(ex.read_text())
+                D["sets"].setdefault(X["set"], {}).setdefault("systems", {})[X["key"]] = X
+        w("tab_diarist", diarist_table(D))
     have = lambda k: R is not None and any(k in R["sets"][s_]["rows"] for s_ in SETS)  # noqa: E731
     w("switches", "\\XT%s\n\\Cascade%s\n" % ("true" if have("xtranslator") else "false",
                                                "true" if have("cascade") else "false"))

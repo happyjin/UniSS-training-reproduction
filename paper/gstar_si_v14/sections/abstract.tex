@@ -15,7 +15,8 @@ playback layer raises speaker-attributed speech BLEU (tcpASR-BLEU) by \num{v10:s
 speech LAAL by \num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
 \num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and ends each utterance's speech
 \num{v10:pr:test:ami:e2-b:endoff:diffabs} / \num{v10:pr:test:en:e2-b:endoff:diffabs} /
-\num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s earlier (all significant). Adding its components one at a time, the backlog-dependent rate, the
+\num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s earlier (all significant); \sys{} also leads SeamlessStreaming,
+X-Translator and a same-data speaker-blind cascade in speaker-attributed speech BLEU on every set. Added one at a time, the playback layer's backlog-dependent rate, the
 CRF-distilled speech generator and selection by recogniser fidelity each add to the gain, which is largest where queues
 are longest.\ifAliEval{} \num{v11:ae:abstract}\fi
 \end{abstract}

@@ -7,7 +7,8 @@ statistics averaged over the system's TTS runs; chunk-protocol speech LAAL_block
 EndOffset (lat_units_dump files, mean over units, averaged over runs). Paired tests MIST - system: exact sign-flip and
 meeting bootstrap (v11_factorial_analysis.paired_bleu / post_review_v10_analysis.paired_ratio), Holm within each BLEU
 family (cp, tcp) over all sets x baselines; latency differences uncorrected. Systems whose runs do not exist yet are
-skipped. Writes one JSON (refuses to overwrite).
+skipped. X-Translator: level-calibrated runs on the AMI sets, official default on Ali (prereg v2 amendment 2);
+exploratory extras (prefix ~) get paired tests but stay outside the Holm families. Writes one JSON (refuses to overwrite).
 
     python -m experiments.mist_w3po_v1.evaluation.table1_analysis --out <json> [--extra name=label:set=run[,run]...]
 """
@@ -35,11 +36,16 @@ LK = {"speech_laal_online": None, "speech_end_online": "endoff", "speech_start_o
 def systems(extra: list[str]) -> list[dict]:
     T = FA.TEXT
     out = [{"key": "seamless", "label": "SeamlessStreaming", "runs": {s: [f"jtest_{s}_seamless_default"] for s in SETS}},
-           {"key": "xtranslator", "label": "X-Translator", "runs": {s: [f"jtest_{s}_xtranslator_default"] for s in SETS}}]
-    for e in extra:   # key=label:set=run,run;set=run,run
-        k, rest = e.split("=", 1)
+           # prereg v2 amendment 2: level-calibrated variant on the AMI sets, official-default run on Ali (g = 1)
+           {"key": "xtranslator", "label": "X-Translator", "runs": {"ami": ["jtest_ami_xtranslator_level"],
+                                                                     "en": ["jtest_en_xtranslator_level"],
+                                                                     "ali": ["jtest_ali_xtranslator_default"]}}]
+    for e in extra:   # [~]key=label:set=run,run;set=run,run   (~: exploratory, outside the Holm families)
+        expl = e.startswith("~")
+        k, rest = e.lstrip("~").split("=", 1)
         lab, sets = rest.split(":", 1)
-        out.append({"key": k, "label": lab, "runs": {x.split("=")[0]: x.split("=")[1].split(",") for x in sets.split(";")}})
+        out.append({"key": k, "label": lab, "runs": {x.split("=")[0]: x.split("=")[1].split(",") for x in sets.split(";")},
+                    "exploratory": expl})
     out += [{"key": "B", "label": "B (deadline baseline)", "runs": {s: [T[s] + "__t1c", T[s] + "__t1c_tts2"] for s in SETS},
              "lat_rows": "R0"},
             {"key": "MIST", "label": "MIST", "runs": {s: [T[s] + "__rlplem", T[s] + "__rlplem_tts2"] for s in SETS},
@@ -129,8 +135,9 @@ def main() -> None:
                     if name in lats[k] and name in lats["MIST"]:
                         d[name] = PRA.paired_ratio(lats[k][name][1], lats["MIST"][name][1], rng)
                 P[f"MIST-{k}"] = d
-                tests["cp"][f"{s}:{k}"] = d["cp"]
-                tests["tcp"][f"{s}:{k}"] = d["tcp"]
+                if not next(sy for sy in SY if sy["key"] == k).get("exploratory"):
+                    tests["cp"][f"{s}:{k}"] = d["cp"]
+                    tests["tcp"][f"{s}:{k}"] = d["tcp"]
         res["sets"][s] = {"rows": rows, "paired": P}
     for fam in tests.values():
         FA.holm(fam)

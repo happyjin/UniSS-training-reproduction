@@ -4,8 +4,8 @@
 \input{generated/v14/tab_systems}
 
 \paragraph{Data.} \emph{En$\rightarrow$Zh}: AMI~\citep{carletta2005ami} IHM-mix recordings (headsets summed into one
-channel), official split; each utterance's translation is selected from three MT systems by reference-free quality
-estimation and an audio check, so test references are machine translations (Appendix~\ref{app:data}); 16 test
+channel), official split; test references are machine translations selected by quality estimation
+(Appendix~\ref{app:data}); 16 test
 meetings, 35\% of whose reference windows hold several speakers. \emph{Zh$\rightarrow$En}: the Chinese translations
 re-spoken in each speaker's voice at the original times, with the human AMI transcripts as references (a synthetic
 source). \emph{Real Mandarin}: the AliMeeting test
@@ -14,20 +14,17 @@ data is used in training, and it is scored against DiariST's human English trans
 \emph{evaluation} meetings (\num{v11:ae:hours}\,h) are used only for the locked test of \S\ref{sec:res-alieval}.\fi
 
 \paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
-Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) and the
-streaming Thinker are each one bidirectional model; the latter is trained with the deadline objective from \sys{}
-(offline) on \num{v10:c:j:rows} rows (batches of 64, 32 rows per direction) for \num{v10:c:j:s1steps} steps on 8 H200
-GPUs and used at its last step (Appendix~\ref{app:train}). The base Talker is a UniSS model~\citep{uniss2025}
-fine-tuned for block-wise streaming speech. The PA Talker is fine-tuned from it once per direction (1{,}200 steps
-Zh$\rightarrow$En) on candidates rendered for 15 AMI training meetings; their text came from separately trained
-single-direction streaming Thinkers, not from the deadline Thinker whose text it speaks at test time
+Streaming Sortformer~\citep{medennikov2025streaming}. The deadline Thinker is trained on both directions on 8 H200 GPUs
+and used at its last step (Appendix~\ref{app:train}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for
+block-wise streaming speech; the PA Talker is fine-tuned from it once per direction on candidates rendered for 15 AMI
+training meetings, whose text came from separately trained single-direction Thinkers, not from the deadline Thinker
 (Appendix~\ref{app:plem}). Decoding is greedy.
 
 \paragraph{Systems.} Table~\ref{tab:main} compares multi-speaker speech-to-speech systems on the same online detector
 windows. \emph{SeamlessStreaming}~\citep{seamless2023} is a public single-speaker SimulS2ST model, run zero-shot.\ifXT{} \emph{X-Translator}~\citep{zhao2026xtranslator} is an open, speaker-aware cascade (streaming
-Qwen3-ASR, LMT-60 translation and voice-cloning X-Voice TTS whose speaker tracker picks a voice prompt per speaker), run
-zero-shot with its released defaults.\fi\ifCascade{} The \emph{cascade} is a speaker-blind streaming model trained on
-our data (\sys{}-Simul without speaker tokens), spoken by the base Talker.\fi{} Lacking meeting-wide speaker labels, these
+ASR, MT and voice-cloning TTS with a voice prompt per tracked speaker), run zero-shot with its released defaults (input level set on dev for AMI; Appendix~\ref{app:xt}).\fi\ifCascade{} The
+\emph{cascade} is a speaker-blind streaming model trained on our data (\sys{}-Simul without speaker tokens), spoken by
+the base Talker (Appendix~\ref{app:cascade}).\fi{} Lacking meeting-wide speaker labels, these
 systems are attributed causally by the diarizer slot most active over each segment (Appendix~\ref{app:e7}). \emph{B} is our deadline Thinker with the
 base Talker (fixed rate, one sample per block, no merging); \sys{} is the same Thinker and text with the playback layer,
 whose components Table~\ref{tab:ablation} adds to B one at a time.
@@ -49,5 +46,6 @@ Appendix~\ref{app:chunk}.
 
 \paragraph{Statistics.} Paired tests are over meetings (exact sign-flip test, 95\% meeting bootstrap, both TTS seeds
 pooled). Confirmatory contrasts were fixed in internal analysis plans before test decoding (Appendix~\ref{app:prereg})
-and Holm-corrected: \sys{} $-$ B over twelve BLEU tests (Table~\ref{tab:sig}); differences between ablation rows
-are exploratory.
+and Holm-corrected: \sys{} $-$ B over twelve BLEU tests (Table~\ref{tab:sig}), and \sys{} $-$ each system of
+Table~\ref{tab:main} per BLEU score, fixed before the added systems were decoded; ablation differences are
+exploratory.
