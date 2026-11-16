@@ -1,0 +1,56 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\input{generated/v13/tab_main}
+
+\paragraph{Data.} \emph{En$\rightarrow$Zh}: AMI~\citep{carletta2005ami} IHM-mix recordings (headsets summed into one
+channel), official split; each utterance's translation is selected from three MT systems by reference-free quality
+estimation and an audio check, so test references are machine translations (Appendix~\ref{app:data}). Reference
+windows group overlapping or touching utterances (at most 20\,s): 2{,}375 test windows from 16 meetings, 35\% with
+several speakers; whole-meeting runs read all test audio. \emph{Zh$\rightarrow$En}: the Chinese translations
+re-spoken in each speaker's voice at the original times, with the human AMI transcripts as references (a synthetic
+source). \emph{Real Mandarin}: the AliMeeting test
+set~\citep{yu2022m2met}, 20 meetings of two to four people (10.8\,h), headset channels mixed into one; no AliMeeting
+data is used in training, and it is scored against DiariST's human English translations~\citep{yang2024diarist} (the
+overlap study of \S\ref{sec:res-overlap} uses machine translations).\ifAliEval{} The eight AliMeeting
+\emph{evaluation} meetings (\num{v11:ae:hours}\,h) are used only for the locked test of \S\ref{sec:res-alieval}.\fi
+
+\paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
+Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) and the
+streaming Thinker are each one bidirectional model; the latter is trained with the deadline objective from \sys{}
+(offline) on \num{v10:c:j:rows} rows (batches of 64, 32 rows per direction) for \num{v10:c:j:s1steps} steps on 8 H200
+GPUs and used at its last step (Appendix~\ref{app:train}). The base Talker is a UniSS model~\citep{uniss2025}
+fine-tuned for block-wise streaming speech. The PA Talker is fine-tuned from it once per direction (1{,}200 steps
+Zh$\rightarrow$En) on candidates rendered for 15 AMI training meetings; their text came from separately trained
+single-direction streaming Thinkers, not from the deadline Thinker whose text it speaks at test time
+(Appendix~\ref{app:plem}). Decoding is greedy.
+
+\paragraph{Systems.} \emph{B}: the deadline Thinker with the base Talker (fixed rate, one sample per block, no
+merging). \emph{\sys{}}: the same Thinker and text with the playback layer. Rows R1--R4 of Table~\ref{tab:main}
+add the playback layer's components to B one at a time; R4 is \sys{}. For attribution, a \emph{cascade} translates the diarizer's turns with our speaker-blind window model, and
+\emph{relabelling} gives each segment of a speaker-blind model the diarizer slot most active over its span (online:
+causally).
+
+\paragraph{Metrics.} Whole meetings are scored by \textbf{tcpBLEU}, the translation analogue of
+tcpWER~\citep{neumann2023meeteval}: output slots are matched to reference speakers per meeting by
+chrF~\citep{popovic2015chrf}, and each output segment joins the reference unit of its matched speaker that it overlaps
+within a 2\,s collar (Appendix~\ref{app:metrics}). BLEU is corpus-level sacreBLEU~\citep{post2018call} (13a
+tokenisation for English, zh for Chinese). \textbf{ASR-BLEU} is tcpBLEU of the speech transcribed by
+Whisper-large-v3~\citep{radford2023robust} (English) or Paraformer~\citep{gao2022paraformer} (Chinese), averaged over
+two TTS seeds\ifMetricsV{}; COMET~\citep{rei2022comet} and a second recogniser are in Appendix~\ref{app:metricsv11}\fi.
+\textbf{Latency} is measured per speaker stream from audio and playback time, without computation. Conventional speech
+LAAL~\citep{papi2022over} charges every word of a block when the block starts playing (\emph{LAAL$_\text{block}$});
+\emph{LAAL$_\text{spread}$} spreads a block's words over its playback, as Eq.~\eqref{eq:lat} does. We also report
+\emph{speech start} (first heard word of a unit) and \emph{EndOffset} (unit end to the end of its last heard word);
+all are defined in Appendix~\ref{app:chunk}.
+
+\paragraph{Overlap-aware evaluation.}
+\label{sec:eval-overlap}
+A tcpBLEU unit is \emph{overlapped} when another speaker talks during at least 20\% of it. \emph{Concurrent-speaker
+recall} (CR) takes every pair of utterances of two speakers that overlap by at least 0.5\,s and asks whether both
+received text attributed to their own speaker within 1\,s.
+
+\paragraph{Statistics.} Paired tests are over meetings (exact sign-flip test, 95\% meeting bootstrap, both TTS seeds
+pooled). Confirmatory contrasts were fixed in internal analysis plans before test decoding (Appendix~\ref{app:prereg})
+and Holm-corrected: \sys{} $-$ B over twelve BLEU tests (Table~\ref{tab:sig}); differences between ablation rows
+are exploratory.

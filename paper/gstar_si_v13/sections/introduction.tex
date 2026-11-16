@@ -1,0 +1,42 @@
+\section{Introduction}
+\label{sec:intro}
+
+\input{figures/motivation}
+
+A meeting interpreter renders each contribution into the listener's language and makes clear whose it is: a
+``yes'' from the project manager means something different from a ``yes'' from the client. And people talk at once:
+over a third of our AMI test windows~\citep{carletta2005ami} hold several speakers. Simultaneous speech-to-speech
+translation (SimulS2ST) systems translate one speaker and can keep that speaker's
+voice~\citep{seamless2023,labiausse2025hibiki,cheng2025liveinterpret,deng2025simuls2s};
+DiariST~\citep{yang2024diarist} and X-Translator~\citep{zhao2026xtranslator} attribute streaming \emph{text}
+translation to speakers. We are not aware of a multi-speaker system that reports speech latency on overlapping
+meetings.
+
+Two gaps separate these systems from a meeting interpreter. \emph{Who said what}: during overlap, a speaker-blind
+translator followed by speaker attribution keeps one speaker per span and loses the other voice. \emph{When it is
+heard}: once speech is synthesised in each speaker's voice, a block can only play after that speaker's earlier speech,
+so the listener's delay depends on how long the generated speech is, not only on when its text was written. For a
+deadline-based streaming system, two thirds of the time from the end of an utterance to the end of its heard translation
+arise after the text is written (Figure~\ref{fig:motivation}). Simultaneous policies time the
+\emph{text}~\citep{ma2019stacl,arivazhagan2019milk,zhang2023hmt}; the playback of speech that is already written
+has, to our knowledge, not been modelled.
+
+We present \sys{} (\emph{Meeting Interpretation with Speaker Tracking}), in which one decoder writes, for every speaker
+of a window, speaker-attributed, time-stamped translation segments $\spk{k}\,\tim{a}\,\text{translation}\,\tim{b}$,
+which a speech generator speaks in the voice of speaker $k$ (Figure~\ref{fig:arch}). The decoder reads a frozen
+streaming diarizer as speaker tokens interleaved with its acoustic tokens (adapted from G-STAR;~\citealp{peng2026gstar}),
+so two concurrent voices stay two speakers, and writes on deadlines, each chunk one fixed lag after its source.
+
+For the second gap we introduce \emph{playback alignment} (PA), a linear-chain CRF over a speaker's playback queue. Its
+state is the backlog of synthesised speech and the rendering chosen for each block; deterministic queue dynamics make
+the transitions, and the potentials combine the generator's likelihood, the fidelity of an independent recogniser and
+the delay at which each word is heard. Inference is exact, a latency budget is imposed by posterior
+regularisation~\citep{ganchev2010posterior}, and the posterior, which prices each rendering by the queueing cost it
+imposes on all later blocks, is distilled into the speech generator.
+
+Our contributions are (i) playback alignment, a CRF formulation of when and how fast committed translations are heard,
+with exact inference, a posterior-regularised latency budget and posterior distillation (\S\ref{sec:method-plem});
+(ii) speaker-first, time-stamped joint decoding with the diarizer read inside the decoder (\S\ref{sec:res-overlap});
+and (iii) an online evaluation of whole meetings against a deadline baseline with the same text, adding the
+components of the playback layer one at a time, on three test sets and unused meetings (\S\ref{sec:res-pa}). Per utterance the
+system remains closer to consecutive than to simultaneous interpretation; we therefore call it \emph{streaming}.

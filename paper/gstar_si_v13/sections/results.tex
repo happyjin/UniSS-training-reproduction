@@ -1,0 +1,62 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Who said what}
+\label{sec:res-offline}
+\label{sec:res-overlap}
+
+On reference windows \sys{} (offline) reaches 42.06 / 25.43 tcpBLEU (En$\rightarrow$Zh / Zh$\rightarrow$En) against
+36.13 / 21.96 for a cascade that translates the diarizer's turns with our own window model (Table~\ref{tab:ovmain8},
+Appendix~\ref{app:v8}). A speaker-blind model relabelled with the same diarizer is close on all units, but on
+overlapped units \sys{} leads by \num{v8:x:ov-O2-rel-en2zh:diff} \num{v8:x:ov-O2-rel-en2zh:ci} and
+\num{v8:x:ov-O2-rel-zh2en:diff} \num{v8:x:ov-O2-rel-zh2en:ci} and ties on AliMeeting: relabelling keeps one speaker
+per segment, so concurrent-speaker recall falls from \num{v8:ov:en2zh:O2:cr}\% to
+\num{v8:ov:en2zh:O2-nosd-relabel:cr}\%. The gain is mainly attribution. The rest of the paper fixes this text and asks
+when it is heard.
+
+\subsection{When the translation is heard}
+\label{sec:res-pa}
+\label{sec:res-v10}
+
+Table~\ref{tab:main} gives the deadline baseline B and the components of \sys{}'s playback layer added one at a time,
+all on the deadline Thinker's text, so differences come from the speech layer alone.
+
+\paragraph{Against the deadline baseline.} On the same text, \sys{} raises ASR-BLEU by
+\num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
+\num{v10:sig:test:ali:speech:e2-b:diff} (AMI Zh$\rightarrow$En / En$\rightarrow$Zh / AliMeeting; all
+$p_\text{Holm}<0.001$, Table~\ref{tab:sig}), lowers LAAL$_\text{block}$ by
+\num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
+\num{v10:pr:test:ali:e2-b:bslaal:diffabs}\,s and EndOffset by \num{v10:pr:test:ami:e2-b:endoff:diffabs} /
+\num{v10:pr:test:en:e2-b:endoff:diffabs} / \num{v10:pr:test:ali:e2-b:endoff:diffabs}\,s (all $p<0.001$;
+LAAL$_\text{spread}$ and intervals: Table~\ref{tab:speech}). Speech start barely moves (\num{v10:pr:test:ami:e2-b:startoff:diff} /
+\num{v10:pr:test:en:e2-b:startoff:diff} / \num{v10:pr:test:ali:e2-b:startoff:diff}\,s): the playback layer acts after
+the first block is written.
+
+\paragraph{What each component adds.} The rows of Table~\ref{tab:main} follow the terms of Eq.~\eqref{eq:plpot}.
+Merging the blocks of one read (R1) changes little. The backlog-dependent base rate (R2) gives the largest step,
++1.55 / +0.24 / +0.80 ASR-BLEU, and the CRF-distilled PA Talker (R3) adds +0.29 / +0.02 / +0.33 (exploratory $p$ 0.002
+/ 0.82 / 0.001) while ending speech 0.18 / 0.15 / 0.23\,s earlier: the delay price $\lambda L_i$, propagated by the
+backward messages of Eq.~\eqref{eq:w}, favours renderings that keep the queue short, so the PA Talker speaks
+\num{v11:pr:test:ami:e2-b:ratepct} / \num{v11:pr:test:en:e2-b:ratepct} / \num{v11:pr:test:ali:e2-b:ratepct}\% faster
+than the base Talker and the wait behind earlier speech of the same speaker falls from 0.65 to 0.14\,s per unit in
+AMI Zh$\rightarrow$En and from 1.33 to 0.33\,s on AliMeeting (Table~\ref{tab:decomp}). Keeping the better of two
+samples by the fidelity term $f$ at test time (R4) adds +0.18 / +0.30 / +0.27. The latency gain is largest on
+AliMeeting, where B's queues are longest: there the backward messages have the most waiting to price.
+
+\ifAliEval
+\paragraph{Unused meetings.}
+\label{sec:res-alieval}
+To test the playback layer on meetings never used before, we fixed systems and hypotheses in an analysis plan and
+decoded the eight AliMeeting evaluation meetings once (Appendix~\ref{app:alieval}). \num{v11:ae:verdict}
+\fi
+
+\paragraph{Robustness and cost.}\ifMetricsV{} With a second recogniser of another family the ASR-BLEU gain is
+\num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} / \num{v11:asr2:gain:ali}, and COMET of the speech rises as well
+(Appendix~\ref{app:metricsv11}).\fi{} The faster speech has a cost that Eq.~\eqref{eq:plpot} does not price: pauses of
+at least 0.5\,s per minute of speech rise from \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses}
+(AMI Zh$\rightarrow$En; Table~\ref{tab:speech}), as the stream falls silent while the next block is awaited.
+
+\paragraph{Test-set hygiene.}
+\label{sec:res-hygiene}
+The PA Talker was chosen on development data; the test meetings served throughout development, so adaptive
+overfitting cannot be ruled out\ifAliEval{}, which the unused meetings above address\fi.
