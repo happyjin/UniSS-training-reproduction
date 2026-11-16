@@ -4,18 +4,21 @@
 \label{app:factorial}
 Rows R1--R5 add one component at a time on B's text (\S\ref{sec:res-pa}); R3$^\prime$ is R3 with the rule's rate
 shift raised until its mean development rate matches the PA Talker's (shift chosen on development meetings before
-test decoding). The registered contrast is \sys{} (R5) against R3$^\prime$ on ASR-BLEU and LAAL$_\text{block}$ on
-the three test sets, Holm over six; all other contrasts are descriptive.
+test decoding). The contrast fixed in the analysis plan is \sys{} (R5) against R3$^\prime$ on ASR-BLEU and LAAL$_\text{block}$ on
+the three test sets, Holm over six; all other contrasts are descriptive. The backlog rate rule asks each block for
+the rate of its source pace plus three rate steps per second of backlog (at most six), shifted by a constant number of
+steps (two in R2 and R3, eight in R3$^\prime$); R4 replaces the base Talker by the PA Talker under the same rule with
+one sample, so that R4 $-$ R2 isolates the learned Talker and R5 $-$ R4 CTC selection.
 \input{generated/tab_v11_factorial}
 \fi
 
 \ifSfourK
 \section{The Selection Rule's Checkpoint}
 \label{app:s4000}
-The stage-2 checkpoint of \sys{}+WA reported in v10 (step 3{,}500) was not the one the pre-set selection rule picks
-(step 4{,}000). We registered the comparison and decoded step 4{,}000 once on every test set with the same bias
+The stage-2 checkpoint of \sys{}+WA that we report (step 3{,}500) was not the one the pre-set selection rule picks
+(step 4{,}000). We fixed the comparison in an analysis plan and decoded step 4{,}000 once on every test set with the same bias
 ($\bias=-1$) and playback layer (Table~\ref{tab:s4000}). It gives \num{v11:s4000:summary}; neither checkpoint improves
-on \sys{} in ASR-BLEU, and both are heard later. The conclusion of \S\ref{sec:write} does not depend on the choice.
+significantly on \sys{} in ASR-BLEU, and both are heard later. The conclusion of \S\ref{sec:write} does not depend on the choice.
 \input{generated/tab_v11_s4000}
 \fi
 

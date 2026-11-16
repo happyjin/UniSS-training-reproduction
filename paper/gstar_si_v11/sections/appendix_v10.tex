@@ -313,10 +313,10 @@ Under LAAL$_\text{block}$, \sys{}+WA $-$ B is \num{v10:pr:test:ami:m-b:bslaal:di
 text (text LAAL \num{v10:pr:test:ami:m-e2:tlaal:diff} / \num{v10:pr:test:ali:m-e2:tlaal:diff} /
 \num{v10:pr:test:en:m-e2:tlaal:diff}\,s). The $\bias=0$ run is later than B under LAAL$_\text{block}$ by
 \num{v10:pr:test:ami:m0-b:bslaal:diff} / \num{v10:pr:test:ali:m0-b:bslaal:diff} / \num{v10:pr:test:en:m0-b:bslaal:diff}\,s.
-The PA Talker speaks \num{v10:pr:test:ami:m-b:ratepct} / \num{v10:pr:test:ali:m-b:ratepct} /
-\num{v10:pr:test:en:m-b:ratepct}\% faster than the base Talker (\sys{}+WA vs.\ B); UTMOS rises by
-\num{v10:pr:test:ami:m-b:utmos:diff} \num{v10:pr:test:ami:m-b:utmos:ci} / \num{v10:pr:test:ali:m-b:utmos:diff}
-\num{v10:pr:test:ali:m-b:utmos:ci} / \num{v10:pr:test:en:m-b:utmos:diff} \num{v10:pr:test:en:m-b:utmos:ci} and is
+The PA Talker speaks \num{v11:pr:test:ami:e2-b:ratepct} / \num{v11:pr:test:ali:e2-b:ratepct} /
+\num{v11:pr:test:en:e2-b:ratepct}\% faster than the base Talker (\sys{} vs.\ B); UTMOS, paired per stream, rises by
+\num{v10:pr:test:ami:e2-b:utmos:diff} \num{v10:pr:test:ami:e2-b:utmos:ci} / \num{v10:pr:test:ali:e2-b:utmos:diff}
+\num{v10:pr:test:ali:e2-b:utmos:ci} / \num{v10:pr:test:en:e2-b:utmos:diff} \num{v10:pr:test:en:e2-b:utmos:ci} and is
 unchanged between \sys{}+WA and \sys{}; speaker similarity is unchanged. Pauses of at least 0.5\,s, and on English output
 mid-sentence pauses, become two to three times as frequent (Table~\ref{tab:postreview}): with faster speech the stream
 falls silent while the next block is awaited. The absolute UTMOS on AMI Zh$\rightarrow$En is low for all systems; it is
@@ -340,8 +340,8 @@ decoded once. It is a zero-shot reference for what a public single-speaker Simul
 meetings, not a like-for-like baseline. Results: Table~\ref{tab:e7}.
 \input{generated/tab_v11_e7} Its quality is far below ours, most on
 overlapped units (tcpBLEU-ov \num{v10:test:ami:e7:ov} / \num{v10:test:ali:e7:ov} / \num{v10:test:en:e7:ov}). Its
-LAAL$_\text{spread}$ is \num{v10:test:ami:e7:slaal} / \num{v10:test:ali:e7:slaal} / \num{v10:test:en:e7:slaal}\,s against our
-\num{v10:test:ami:m:slaal} / \num{v10:test:ali:m:slaal} / \num{v10:test:en:m:slaal}\,s (AMI Zh$\rightarrow$En /
+LAAL$_\text{spread}$ is \num{v10:test:ami:e7:slaal} / \num{v10:test:ali:e7:slaal} / \num{v10:test:en:e7:slaal}\,s against \sys{}'s
+\num{v10:test:ami:e2:slaal} / \num{v10:test:ali:e2:slaal} / \num{v10:test:en:e2:slaal}\,s (AMI Zh$\rightarrow$En /
 AliMeeting / En$\rightarrow$Zh); LAAL compares systems of similar quality, so these values do not place it on our
 quality--latency trade-off.
 \else

@@ -11,18 +11,18 @@ one voice per speaker at its original start; the human AMI transcripts are the r
 the same 16 test meetings), so this source is synthetic. \emph{Real Mandarin}: the AliMeeting test set~\citep{yu2022m2met}, 20
 meetings of two to four people (10.8\,h), headset channels mixed into one (not the far-field condition of M2MeT or
 DiariST); no AliMeeting data is used in training.\ifAliEval{} The eight AliMeeting \emph{evaluation} meetings
-(\num{v11:ae:hours}\,h) are used only for the locked test of \S\ref{sec:res-alieval}.\fi AliMeeting is scored
-against the human English translations released with DiariST~\citep{yang2024diarist}, except in the overlap study
-(Table~\ref{tab:ovmain8}) and the appendix tables marked as such, which used machine translations of the human
-transcripts (Appendices~\ref{app:qe7},~\ref{app:v9}).
+(\num{v11:ae:hours}\,h) are used only for the locked test of \S\ref{sec:res-alieval}.\fi{} AliMeeting is scored
+against DiariST's human English translations~\citep{yang2024diarist}, except in the overlap study
+(Table~\ref{tab:ovmain8}) and marked appendix tables (machine translations; Appendices~\ref{app:qe7},~\ref{app:v9}).
 
 \paragraph{Models.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}; the diarizer is
-Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline) and the
-streaming Thinker are each one bidirectional model (Table~\ref{tab:hyper}); the latter is trained on 8 H200 GPUs
+Streaming Sortformer~\citep{medennikov2025streaming} (offline and low-latency presets). \sys{} (offline;
+Table~\ref{tab:hyper}) and the streaming Thinker are each one bidirectional model; the latter is trained on 8 H200 GPUs
 (Appendix~\ref{app:v10train}) in \emph{stage 1}, the deadline objective from \sys{} (offline) on \num{v10:c:j:rows}
 rows (batches of 64, 32 rows per direction) for \num{v10:c:j:s1steps} steps, and \emph{stage 2}, write alignment from
-stage 1 (\S\ref{sec:write}; selection on five development meetings per direction, dev5, Appendix~\ref{app:calib}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
-streaming speech; the PA Talker is fine-tuned from it per direction (Appendix~\ref{app:plem}). Decoding is greedy.
+stage 1 (\S\ref{sec:write}; selection on five development meetings per direction, dev5, Appendix~\ref{app:v10train}). The base Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise
+streaming speech; the PA Talker is fine-tuned from it per direction, in Zh$\rightarrow$En on text of the write-aligned Thinker
+(Appendix~\ref{app:plem}). Decoding is greedy.
 
 \paragraph{Systems.} \emph{B}: the stage-1 (deadline) Thinker with the base Talker (fixed rate, one sample per
 block, no merging). \emph{\sys{}}: the same Thinker and text, merged per read and spoken by the PA Talker (B+PA).
@@ -40,7 +40,8 @@ keeps both translations, so duplication is not penalised (Appendix~\ref{app:dup}
 sacreBLEU~\citep{post2018call} (13a tokenisation for English, zh for Chinese)\ifMetricsV{}; COMET~\citep{rei2022comet} and a second recogniser are in Appendix~\ref{app:metricsv11}\else{}; no learned metric (COMET, MetricX) is used\fi.
 \textbf{ASR-BLEU} is tcpBLEU of the speech transcribed by Whisper-large-v3~\citep{radford2023robust} (English) or
 Paraformer~\citep{gao2022paraformer} (Chinese), averaged over two TTS seeds. \textbf{Latency} is measured per speaker
-stream from audio and playback time, without computation. \emph{Text LAAL}~\citep{papi2022over} uses commit times.
+stream from audio and playback time, without computation\ifWallclock{} (as implemented, the Thinker is not
+real-time on AliMeeting; Appendix~\ref{app:wallclock})\fi. \emph{Text LAAL}~\citep{papi2022over} uses commit times.
 Conventional speech LAAL charges every word of a block when the block starts playing (\emph{LAAL$_\text{block}$}); our
 \emph{LAAL$_\text{spread}$} spreads a block's words over its playback, so it also falls when blocks are shorter or
 faster (Appendix~\ref{app:chunk}). We also report \emph{speech start} (first heard word of a unit) and \emph{EndOffset}

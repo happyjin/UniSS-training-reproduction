@@ -35,7 +35,28 @@ for s in ("ami", "en", "ali"):
     for k in ("bslaal", "endoff", "spread", "startoff"):
         absval(f"v10:pr:test:{s}:e2-b:{k}:diff")
 
+# MIST (e2) vs B speaking rate, percent faster (appendix F.3 states it for MIST, not MIST+WA)
+for s in ("ami", "en", "ali"):
+    out[f"v11:pr:test:{s}:e2-b:ratepct"] = f"{100 * (float(MAC[f'v10:pr:test:{s}:e2:rate']) / float(MAC[f'v10:pr:test:{s}:b:rate']) - 1):.0f}"
+
 # v11 results: each file is {"switch": "Factorial", "macros": {key: value}}; present -> switch on
+# wording fixes from the v11 self-review, applied to the result JSONs' text (the JSONs themselves are kept as written):
+# analysis plans were internal, not publicly registered; no internal version names; the gate fails on its probability term
+WORDING = [("all three pre-registered tests confirmed", "all three tests fixed in the analysis plan confirmed"),
+           ("($-$0.09, below the gate)", "($-$0.09, with $P(\\Delta\\le0)\\ge0.95$ it fails the gate)"),
+           ("(meeting bootstrap), registered before decoding.", "(meeting bootstrap), fixed before decoding."),
+           ("against the one reported in v10 (step 3{,}500)", "against the one we report (step 3{,}500)"),
+           ("The pause cost of \\S\\ref{sec:res-pa} replicates as well.", "The pause cost replicates as well."),
+           ("from the backlog-dependent rate (R2$-$R1 ", "from the backlog-dependent rate (paired differences, R2$-$R1 "),
+           ("the two curves meet (Zh$\\rightarrow$En 28.25", "the two curves meet (tcpBLEU, +WA vs.\\ B: Zh$\\rightarrow$En 28.25")]
+
+
+def fix(t: str) -> str:
+    for a, b in WORDING:
+        t = t.replace(a, b)
+    return t
+
+
 WIDE = {"wallclock", "factorial", "fluencypa"}
 switches = {k: False for k in ("Factorial", "FluencyPA", "AliEval", "Wallclock", "WAcurve", "SfourK", "MetricsV")}
 if V11.exists():
@@ -43,9 +64,9 @@ if V11.exists():
         d = json.loads(f.read_text())
         if d.get("final"):
             switches[d["switch"]] = True
-            out.update({k: str(v) for k, v in d.get("macros", {}).items()})
+            out.update({k: fix(str(v)) for k, v in d.get("macros", {}).items()})
             if d.get("table"):   # a ready LaTeX table -> generated/tab_v11_<stem>.tex
-                tab = d["table"]
+                tab = fix(d["table"])
                 if f.stem in WIDE:   # wider than one column -> both columns
                     tab = tab.replace("\\begin{table}", "\\begin{table*}").replace("\\end{table}", "\\end{table*}")
                 (GEN / f"tab_v11_{f.stem}.tex").write_text(tab)

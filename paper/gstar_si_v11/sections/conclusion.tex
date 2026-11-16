@@ -8,7 +8,8 @@ the decoder's likelihood does not beat deadlines, because likelihood rewards wai
 \section*{Limitations}
 
 \paragraph{Non-blind procedure.} The test meetings served throughout development (\S\ref{sec:res-hygiene})%
-\ifAliEval{}; only the eight unused AliMeeting meetings give a locked test, and they cover Zh$\rightarrow$En only\fi.
+\ifAliEval{}; only the eight unused AliMeeting meetings give a locked test, and they cover Zh$\rightarrow$En only;
+with eight meetings its sign-flip $p$-values cannot fall below $2/256$, and its absolute scores are low\fi.
 The write-alignment rows additionally depend on a bias introduced after a first test run and on a checkpoint that
 deviates from the selection rule (\S\ref{sec:write}).
 
@@ -28,7 +29,8 @@ final system.\fi{} All streaming latencies assume one channel per speaker.
 \paragraph{Latency and speech.} LAAL$_\text{spread}$ is not the conventional speech LAAL, and its word times are spread
 over a block, not forced-aligned; LAAL may degenerate when most words are written at a window's last read
 (Appendix~\ref{app:decomp}). The faster speech of the PA Talker comes with more pauses, including mid-sentence pauses,
-which UTMOS does not capture; speaker similarity was measured against the Talker's voice prompt, not the speakers' own
+which UTMOS does not capture\ifFluencyPA{} and which our speaking-time budget did not remove without losing
+ASR-BLEU\fi; speaker similarity was measured against the Talker's voice prompt, not the speakers' own
 recordings. Speech-latency tests are not corrected for multiple comparisons.
 
 \paragraph{Evaluation.} No human evaluation: no listening test of voice identity, naturalness or comprehensibility,

@@ -3290,3 +3290,17 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - V11F_test_DONE（03:17）。后处理改为 ami/en/ali 三个并行实例（按 PID 停掉串行实例，确认在算文件已完整）。ami R3′ 的 quality 第二次调用撞文件失败，但第一次（被停实例的子进程）已完整写出，结果可用。
 - 析因结果与判定见 reports/mist_w3po_v1/v11_p01_factorial_results.zh-CN.md：R5−R3′ ASR-BLEU 只在 Ali 显著（+0.23，p_Holm 0.007），LAAL_block 全部 ≤ 0.003 s 不显著 → 保底写法 + 点名 Ali。**决定**（登记未覆盖"恰好 1 个显著"）：按保底写，摘要改为"同样快的规则层复现大部分收益"。
 - 论文：factorial.json / fluencypa.json 生成（两次格式修正：LAAL 三位小数、区间负号；旧 JSON 改名 *.v{1,2}_superseded 保留，不删除）；三张附录表改为 table*；正文压回 8 页（结果段去掉 LAAL 区间、AliEval 段缩短、Test-set hygiene 改为段落、结论 3 句、§6 s4000 只写结论）。
+
+## 2026-11-16 05:30 布拉格 — v11 严格自审（独立子代理只读审稿）与修改
+
+采纳（正文仍在 8 页内，约 4 行余量）：
+- M1：摘要主语改为 "the playback layer raises"，摘要已有析因句；引言 (iii) 改为 "most of which a rate-matched rule reproduces, confirmed on unused AliMeeting meetings"（原句不通）。
+- M2：§4 指标处加"按当前实现 Thinker 在 AliMeeting 上不实时（附录 wallclock）"。M3：v8 旧计时段改指向新回放（并说明跟不上），表 48 脚注 c 更新；"uncontended" 改为 "measured"。
+- M4：§6 末句改为"训练后加偏置不能让它胜过 deadline，训练时的预算太弱，止不住漂移（附录 calib）"，与附录证据一致；并写明规则选的检查点不是报告的 3,500。
+- M5：§4 写明 Zh→En PA Talker 在 WA Thinker 的文本上训练。
+- M6/M7：v11 结果 JSON 文本经 make_tables_v11 的 WORDING 修正层改措辞（"pre-registered"→"fixed in the analysis plan"；"reported in v10"→"we report"；PA-F 门槛失败的理由改为概率条件），JSON 本身保留不改；附录 "registered" 同改。
+- M8：s4000 附录"neither improves significantly"。M9：F.3 语速/UTMOS 改为 MIST vs B（新宏 v11:pr:test:*:e2-b:ratepct = 45/29/48%），F.4 Seamless 对比改用 MIST 的 LAAL_spread。
+- 次要：析因结论注明"配对差"；hygiene 引用改 app:prereg；dev5 选择规则引用改 app:v10train；Table hyper 只指离线；语速引用加 Table postreview2；PA-F 一句改为"在 AliMeeting 和 En→Zh dev 上降低 ASR-BLEU"；"Which component matters?"；hygiene 句改写并保留"测试上不做选择"；"decoded … once"；deadline model "is trained"；"including when"；§3.4 定义 rule-based Talker（指向析因附录，规则定义写入该附录：节奏语速 + 每秒积压 3 档（上限 6）+ 常数 shift 2/8）；\fi 吞空格两处；wacurve 数对标明 "+WA vs. B"。
+- Limitations：锁定测试 8 场、p 下限 2/256、绝对分数低；停顿成本 PA-F 未能在不损 ASR-BLEU 的情况下去掉。
+- 压缩以腾出篇幅：方法时间 token 括号、在线窗口长句、AliMeeting 参考说明、UTMOS 一句合并。
+未采纳/延后：Table 10（v10 遗留、标题已如实写 δw=0 并指向完整表）；附录符号冲突（λ/μ/c 复用）与附录自引；表间 0.01 舍入差（31.645 的四舍五入）；术语全文统一（LAAL_block 等）——留待用户醒后决定是否做全文术语统一。

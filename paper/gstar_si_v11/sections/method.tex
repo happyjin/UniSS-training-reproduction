@@ -35,7 +35,7 @@ $\bm{\iota}$ (Appendix~\ref{app:prompt}).
 \label{sec:method-out}
 \label{sec:method-train}
 
-\paragraph{Serialisation.} We add 251 time tokens $\tim{0},\dots,\tim{250}$ (80\,ms steps, up to 20\,s, so times in a window's padding beyond 20\,s are clipped) and 8 speaker
+\paragraph{Serialisation.} We add 251 time tokens $\tim{0},\dots,\tim{250}$ (80\,ms steps up to 20\,s) and 8 speaker
 tokens $\spk{1},\dots,\spk{8}$ with trainable input and output rows, and write a window's segments speaker first,
 ordered by start as in serialized output training~\citep{kanda2020sot},
 \begin{equation}
@@ -76,8 +76,8 @@ to time commits for scoring.
 the source it covers (word alignments, or the same fraction of the utterance where none exist; Appendix~\ref{app:model}).
 A chunk $j$ ending at $e_j$ becomes due one interpreting lag $\epsilon=1$\,s later, at the read
 $r(j)=\min(\{r: t_r\ge e_j+\epsilon\}\cup\{R\})$, and the target of read $r$ is the chunks due at $r$, serialised as in Eq.~\eqref{eq:serial}, then $\eta_r$; each read is
-one training row whose prefix is the targets of all earlier reads. A deadline model trains new LoRA adapters, the
-projector and the new rows on these rows with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). One such model,
+one training row whose prefix is the targets of all earlier reads. A deadline model is trained on these rows (new LoRA
+adapters, the projector and the new rows) with Eq.~\eqref{eq:loss}, starting from \sys{} (offline). One such model,
 trained on both directions (\S\ref{sec:setup}), is the Thinker of \sys{}; with the base Talker it is the
 \emph{deadline baseline} (B), and it initialises write alignment (\S\ref{sec:write}). \sys{}-Simul, used in the
 appendix analyses, has one deadline model per direction.
@@ -91,7 +91,7 @@ audio heard before the slot's first commitment. The UniSS Talker~\citep{uniss202
 tokens~\citep{wang2025spark}, speaks each slot's segments with prompt $\bm{v}_k$. Each speaker has a stream of its own,
 in which a segment starts at its release time or when the previous one ends (Eq.~\eqref{eq:layout}). The base Talker
 plays every committed block in full at a fixed rate, so a stream that receives more speech than its source builds a
-queue.
+queue; a \emph{rule-based} Talker instead speeds up with the backlog\ifFactorial{} (Appendix~\ref{app:factorial})\fi.
 
 \subsection{Playback alignment: when the translation is heard}
 \label{sec:method-plem}
@@ -134,8 +134,7 @@ layer.
 \label{sec:method-online}
 
 \paragraph{Online windows.} A window opens at the first frame where any slot of the low-latency diarizer is active and
-closes after 0.6\,s with no active slot (chosen on development meetings) or at 20\,s. All audio is processed. A
-window's opening and end are known only after the diarizer has released the frames that decide them, so commits are delayed to the opening, and those of the last read
-to the moment the end is known, with frames timed as the diarizer emits them, in blocks of nine (\emph{chunk protocol},
-Appendix~\ref{app:chunk}). Slots persist across windows; the decoder restarts at each window. Blocks of one speaker
+closes after 0.6\,s with no active slot (chosen on development meetings) or at 20\,s. All audio is processed. Commits
+wait until the diarizer has released the frames that open the window (for the last read, those that close it), timed
+as it emits them in blocks of nine (\emph{chunk protocol}, Appendix~\ref{app:chunk}). Slots persist across windows; the decoder restarts at each window. Blocks of one speaker
 committed in the same read are merged before they reach the Talker (\emph{read-level merging}, rl).

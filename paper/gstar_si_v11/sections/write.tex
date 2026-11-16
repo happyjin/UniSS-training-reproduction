@@ -29,6 +29,6 @@ curve (Figure~\ref{fig:wacurve}). \num{v11:wacurve:verdict}
 \num{v10:sig:test:en:speech:m-e2:diff} / \num{v10:sig:test:ali:speech:m-e2:diff} (none significant), and is heard
 later (LAAL$_\text{block}$ \num{v10:pr:test:ami:m-e2:bslaal:diff} / \num{v10:pr:test:en:m-e2:bslaal:diff} /
 \num{v10:pr:test:ali:m-e2:bslaal:diff}\,s). These rows are not blind: the bias was added after a first test decoding
-without it (Appendix~\ref{app:calib})\ifSfourK{}, and the rule's checkpoint (step \num{v10:c:j:s2rule}) scores lower
-on all three sets (Appendix~\ref{app:s4000})\fi. A latent write policy needs a latency term inside its
-likelihood, not after it.
+without it (Appendix~\ref{app:calib})\ifSfourK{}, and the checkpoint the selection rule picks (step \num{v10:c:j:s2rule}, not the
+reported 3{,}500) scores lower on all three sets (Appendix~\ref{app:s4000})\fi. A bias after training does not make
+it beat deadlines, and our training-time budget was too weak to stop the drift (Appendix~\ref{app:calib}).

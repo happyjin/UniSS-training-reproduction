@@ -1,6 +1,6 @@
 \begin{abstract}
 A meeting interpreter must say what each person said, attribute it to the right person, and get the translation to
-the listener in time, also when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved
+the listener in time, including when several people talk at once. In \sys{}, a speech LLM reads acoustic tokens interleaved
 with tokens of a frozen streaming diarizer, writes speaker-first, time-stamped translations for every speaker of an
 overlapping window, and hands them to a speech generator prompted with each speaker's voice. Offline, \sys{} beats the
 strongest non-oracle diarize-then-translate cascade by \num{v7:gainoff:zh2en} cpBLEU in Chinese$\rightarrow$English
@@ -9,7 +9,7 @@ mainly by attributing both voices. Online, much of the delay a listener experien
 while synthesised speech queues behind earlier speech of the same speaker. \emph{Playback alignment} scores each
 block's candidate renderings together with this backlog in a linear-chain CRF whose potentials charge the delay at
 which each word is heard, imposes a latency budget by posterior regularisation, and fine-tunes the speech generator once on the posterior-weighted candidates. On the same
-text, on whole AMI meetings (Zh$\rightarrow$En / En$\rightarrow$Zh) and real Mandarin AliMeeting meetings, it raises
+text, on whole AMI meetings (Zh$\rightarrow$En / En$\rightarrow$Zh) and real Mandarin AliMeeting meetings, the playback layer raises
 speech ASR-BLEU by \num{v10:sig:test:ami:speech:e2-b:diff} / \num{v10:sig:test:en:speech:e2-b:diff} /
 \num{v10:sig:test:ali:speech:e2-b:diff}, lowers conventional block-start speech LAAL by
 \num{v10:pr:test:ami:e2-b:bslaal:diffabs} / \num{v10:pr:test:en:e2-b:bslaal:diffabs} /
