@@ -3348,3 +3348,11 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **test（SAgBLEU / SAtBLEU）**：B/MIST 文本 22.38 / 21.06，MIST 语音 20.25 / 18.61，B 语音 19.02 / 17.38，Seamless 9.28 / 7.97。DiariST 论文 t-SOT+t-vec 为 16.62 / 14.76。
 - **dev**：文本 15.26 / 13.74，MIST 语音 14.54 / 12.78，B 语音 12.50 / 10.95。论文 dev 为 16.05 / 13.91，即 dev 上我们相当或略低。
 - X-Translator 打分时还没有输出，之后用 `diarist_eval extra` 补。报告：`diarist_eval_results.zh-CN.md`。
+
+## 2026-11-16 23:55 布拉格 — E9 级联基线测试完成（E9_TEST_DONE 23:50）
+- 三个集合一次运行，6 个编排器全部 `failed/skipped []`；汇总 `eval_outputs/mist_w3po_v1/e9_cascade/e9_summary_v1.json`，报告 `e9_cascade_multispk_results.zh-CN.md` §3。
+- 文本 tcpBLEU 全部/ov/1spk（E9 | B）：AMI 23.51/15.65/26.93 | 25.02/19.97/27.10；Ali 19.94/14.50/22.20 | 21.43/16.91/23.05；En→Zh 39.96/30.87/43.19 | 41.15/36.16/42.51。重标前（模型自猜标签）只有 10.91 / 11.42 / 24.38。
+- tcpASR-BLEU（score_run --asr，两种子均值；E9 | B）：AMI 18.37 | 18.06；Ali 15.91 | 16.73；En→Zh 30.97 | 31.64。LAAL_block：3.510 | 3.119；3.551 | 3.279；2.803 | 2.539（StartOffset / EndOffset 也都晚 0.2–0.5 s）。
+- 探索性 Table 1 口径（table1_analysis --extra，文件 `e9_cascade/table1_analysis_with_e9_v1.json`）：cpASR 24.88 / 21.81 / 35.07；MIST−E9 cp +1.97 / +2.23 / +1.41、tcp +1.98 / +1.92 / +1.26，p_Holm < 0.001，四项延迟 MIST 都显著更早。
+- 计数：unk 片段 1 / 18 / 0；归属不确定且标签不同的块 0.19% / 1.26% / 0.39%（只影响音色）；Talker 流没有丢弃。
+- 过程问题：约 19:30–22:00 整机 CPU 超载（E8 X-Voice 服务未限线程），已报协调者并由其处理；只影响耗时。卡 4–7 上我方进程已全部结束，guard 已补回占位训练。
