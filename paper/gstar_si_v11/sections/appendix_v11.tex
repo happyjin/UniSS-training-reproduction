@@ -20,3 +20,18 @@ translation), and no window is filtered by its reference. The analysis plan fixe
 and EndOffset, Holm over three); everything else is exploratory. \num{v11:ae:wa}
 \input{generated/tab_v11_alieval}
 \fi
+
+\ifFluencyPA
+\section{A Speaking-Time Budget for the PA Talker}
+\label{app:fluencypa}
+The PA Talker speaks faster than B and pauses about twice as often (\S\ref{sec:res-pa}). PA-F adds to the posterior
+regularisation of \S\ref{sec:method-plem} a second expected constraint, a lower bound on speech duration per output word,
+$\mathbb{E}_q[\sum_i D(c_i)]/\sum_iW_i\ge s_{\min}$. The projection stays a linear-chain CRF, with $+\mu D(c)$ added to
+Eq.~\eqref{eq:plpot} and $\lambda,\mu\ge0$ found by alternating bisection (Zh$\rightarrow$En $\lambda^\star=3.14$,
+$\mu^\star=16.4$; En$\rightarrow$Zh $4.49$, $27.6$). The bound halves the PA Talker's speed-up on the training
+candidates, $s_{\min}=1/(r_0+\tfrac12(r_\text{PA}-r_0))$ with $r_0$ the base-speed rate and $r_\text{PA}$ the PA
+posterior's expected rate; training, checkpoint and decoding are those of the PA Talker. One setting was run, with the
+gate of earlier stages, both fixed before training (Table~\ref{tab:fluencypa}). \num{v11:flu:app} PA-F pauses less and
+speaks more slowly, but the fluency gain is not free in recognisability, so \sys{} keeps the PA Talker.
+\input{generated/tab_v11_fluencypa}
+\fi

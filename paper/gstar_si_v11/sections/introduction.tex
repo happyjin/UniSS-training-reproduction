@@ -27,7 +27,7 @@ lag after its source.
 For the third gap we introduce \emph{playback alignment} (PA): the speech generator proposes several renderings of each
 block, and a linear-chain CRF over the playback backlog scores them by their own likelihood, the fidelity of an
 independent recogniser and the delay at which each word is heard; a latency budget is imposed by posterior
-regularisation~\citep{ganchev2010posterior}\ifFluencyPA{}, together with a budget on the speaking rate\fi, and the
+regularisation~\citep{ganchev2010posterior}, and the
 generator is fine-tuned once on the posterior-weighted candidates. Backward messages carry the queueing cost of later
 blocks into the choice for the current one. For the second gap we also tried the analogous latent-variable route,
 \emph{write alignment}, which lets the read at which each chunk is written and the speaker order within a read be latent

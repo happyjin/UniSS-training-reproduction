@@ -39,7 +39,8 @@ TEXT = {"devz": f"jdev_bz_{RT1}", "deve": f"jdev_be_{RT1}", "ami": f"jtest_bami_
 ZH_OUT = {"deve", "en"}           # Chinese output: count CJK chars / Latin words
 NBOOT = 10000
 CONTRASTS = (("R1", "R0"), ("R2", "R1"), ("R3", "R2"), ("R4", "R2"), ("R5", "R4"), ("R5", "R3"), ("R5", "R3p"),
-             ("R3p", "R3"), ("R5", "R0"))
+             ("R3p", "R3"), ("R5", "R0"),
+             ("R6", "R5"))   # R6 = P2 PA-F (fluency-constrained PA Talker, Zh->En sets only), outside the Holm family
 LK = {"speech_laal_online": "slaal", "speech_end_online": "endoff", "speech_start_online": "startoff"}
 
 
@@ -140,11 +141,10 @@ def analyse_set(s: str, rows: dict, rng) -> dict:
     R = {"rows": {}, "paired": {}}
     asr, latd, rated, utm = {}, {}, {}, {}
     pz = {}
-    pf = A / "pauses" / f"block_pauses_{s}.jsonl"
-    if pf.exists():
-        for l in open(pf):
+    for pf in sorted((A / "pauses").glob(f"block_pauses_{s}.jsonl")) + sorted((A / "pauses").glob(f"block_pauses_{s}_*.jsonl")):
+        for l in open(pf):   # block_pauses_<set>.jsonl, then block_pauses_<set>_<tag>.jsonl for rows added later
             r = json.loads(l)
-            pz[r["talker"].rstrip("/").split("/")[-2]] = r
+            pz.setdefault(r["talker"].rstrip("/").split("/")[-2], r)
     for row, sfx in rows.items():
         rn = runs(s, sfx)
         x = {"runs": rn}

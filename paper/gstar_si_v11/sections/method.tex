@@ -121,20 +121,17 @@ g_i(h,c)=\big\lceil\max(0,\,\nu_i+h+D(c)-\nu_{i+1})\big\rceil,
 and with a block's words spread evenly over its playback they are heard $L_i(h,c)=W_ih+\tfrac{W_i+1}{2}D(c)$
 word-seconds after $\nu_i$ in total. A linear-chain CRF over $(h_i,c_i)$ (Figure~\ref{fig:pa}) has potentials
 \begin{equation}
-\phi_i(h,c)=0.5\,\bar{\ell}(c)+5\,f(c)-\lambda L_i(h,c)\ifFluencyPA{}-\mu\,\rho_i(c)\fi,
+\phi_i(h,c)=0.5\,\bar{\ell}(c)+5\,f(c)-\lambda L_i(h,c),
 \label{eq:plpot}
 \end{equation}
 with $\bar{\ell}$ the Talker's mean token log-probability and $f$ the negative CTC loss per character under an
-independent recogniser~\citep{baevski2020wav2vec}\ifFluencyPA{}, and $\rho_i(c)$ the speaking-rate excess of candidate
-$c$ (\S\ref{app:fluencypa})\fi. A long candidate delays every later block of the stream, so the choice for block $i$
+independent recogniser~\citep{baevski2020wav2vec}. A long candidate delays every later block of the stream, so the choice for block $i$
 depends on the future; forward--backward over the backlog sums exactly over all candidate sequences \emph{within this
 state space} (fixed candidates, the 80\,ms grid and the cap). The weights $0.5$ and $5$ were fixed before training and
 are not ablated.
 
-\paragraph{Budgets and training.} With $q_0$ the CRF at $\lambda=0$\ifFluencyPA{} and $\mu=0$\fi, $\lambda$ is the dual
-variable of $\min_q\mathrm{KL}(q\Vert q_0)$ subject to $\mathbb{E}_q[\sum_iL_i]/\sum_iW_i\le b$\ifFluencyPA{} and
-$\mu$ that of a second constraint on the expected speaking rate (Appendix~\ref{app:fluencypa})\fi, a
-posterior-regularised problem~\citep{ganchev2010posterior} whose solution is the CRF of Eq.~\eqref{eq:plpot}; the
+\paragraph{Budgets and training.} With $q_0$ the CRF at $\lambda=0$, $\lambda$ is the dual
+variable of $\min_q\mathrm{KL}(q\Vert q_0)$ subject to $\mathbb{E}_q[\sum_iL_i]/\sum_iW_i\le b$, a posterior-regularised problem~\citep{ganchev2010posterior} whose solution is the CRF of Eq.~\eqref{eq:plpot}; the
 expected delay falls monotonically in $\lambda$, so bisection finds $\lambda^\star$. The budget $b$ is the rule-based
 Talker's own delay minus 0.3\,s. The Talker is then fine-tuned \emph{once} on each block's candidates, weighted by their
 posterior marginal at the backlog the rule-based path reached, so the backward messages bring the queueing cost of

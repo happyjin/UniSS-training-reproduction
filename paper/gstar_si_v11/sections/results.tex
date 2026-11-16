@@ -55,7 +55,8 @@ in AMI Zh$\rightarrow$En), so the same text takes \num{v10:pr:test:ami:e2-b:spee
 (Table~\ref{tab:decomp10}). UTMOS rises slightly (\num{v10:pr:test:ami:b:utmos} $\rightarrow$
 \num{v10:pr:test:ami:e2:utmos}), but pauses of at least 0.5\,s per minute of speech rise from
 \num{v10:pr:test:ami:b:pauses} to \num{v10:pr:test:ami:e2:pauses} (AMI Zh$\rightarrow$En; similar elsewhere), a fluency cost
-UTMOS does not capture\ifFluencyPA{}; the rate budget (\S\ref{sec:res-fluency}) addresses it\fi.
+UTMOS does not capture\ifFluencyPA{}; a second budget on speaking time reduces pauses but costs ASR-BLEU
+(Appendix~\ref{app:fluencypa})\fi.
 \ifMetricsV
 As selection uses a CTC recogniser and ASR-BLEU uses ASR, the gain could partly reflect ASR-friendly speech; with a
 second recogniser the gain is \num{v11:asr2:gain:ami} / \num{v11:asr2:gain:en} / \num{v11:asr2:gain:ali}
@@ -74,12 +75,6 @@ the PA Talker's on development meetings. \num{v11:fact:verdict}
 B+PA differs from B in four ways (merging, the fine-tuned Talker, a backlog-dependent rate, best-of-two CTC
 selection); on a fixed text a rule-based layer with the same rate and selection gets most of the gain, the learned layer
 adding \num{v10:tk:ami:c-a:asr} / \num{v10:tk:ali:c-a:asr} ASR-BLEU (Table~\ref{tab:talker10}).
-\fi
-
-\ifFluencyPA
-\paragraph{A rate budget.}
-\label{sec:res-fluency}
-\num{v11:flu:verdict}
 \fi
 
 \ifAliEval
