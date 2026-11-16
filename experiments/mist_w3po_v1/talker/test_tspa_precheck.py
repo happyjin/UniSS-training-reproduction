@@ -66,3 +66,43 @@ def test_sent_end():
 if __name__ == "__main__":
     test_sent_end()
     test_against_brute()
+
+
+def test_replay_vs_enumeration(trials=40):
+    """tspa_causal_replay: the exact forward expectation equals the sum over paths with probability prod pi2."""
+    from experiments.mist_w3po_v1.talker import tspa_causal_replay as CR
+
+    rng = np.random.default_rng(1)
+    for t in range(trials):
+        N = int(rng.integers(1, 5))
+        a = np.cumsum(rng.uniform(0, 3000, N)).tolist()
+        dur = [rng.integers(5, 150, int(rng.integers(1, 4))).astype(float) * 20 for _ in range(N)]
+        f = [np.round(rng.normal(-1, 0.5, len(d)), 1) for d in dur]          # rounding makes ties
+        words = rng.integers(1, 9, N).tolist()
+        texts = [rng.choice(["ok so", "fine.", "好的，", "是的。"]) for _ in range(N)]
+        rec = {"a": a, "dur": [d.tolist() for d in dur], "feat": [x.tolist() for x in f], "words": words,
+               "texts": texts, "f": [x.tolist() for x in f], "lp": [x.tolist() for x in f], "chosen": [0] * N}
+        st = T.make_stream(rec)
+        st.fast = [rng.integers(0, 2, len(d)).astype(float) for d in dur]
+        st.se = [float(T.sent_end(x)) for x in texts]
+        th, mu, sd = rng.normal(0, 1, 12), np.zeros(12), np.ones(12)
+        for bo2 in (True, False):
+            acc = CR.replay_stream(st, th, mu, sd, bo2)
+            el = pz = 0.0
+            for path in itertools.product(*[range(len(d)) for d in dur]):
+                ss = st.path_states(list(path))
+                pr = 1.0
+                for n, (s, c) in enumerate(zip(ss, path)):
+                    p = CR.policy(st, n, 0.5 * CR.bin_s(s), th, mu, sd)
+                    p = CR.best_of_2(p, st.f[n]) if bo2 else p
+                    pr *= p[c]
+                el += pr * sum(st.lat[n][s, c] for n, (s, c) in enumerate(zip(ss, path)))
+                pz += pr * sum(st.pz[n][s, c] for n, (s, c) in enumerate(zip(ss, path)))
+            assert abs(acc[0] - el) < 1e-9 and abs(acc[2] - pz) < 1e-9, (t, bo2, acc[0], el, acc[2], pz)
+        p = CR.policy(st, 0, 0.5, th, mu, sd)
+        assert abs(CR.best_of_2(p, st.f[0]).sum() - 1) < 1e-12
+    print(f"test_replay_vs_enumeration: {trials}/{trials} ok")
+
+
+if __name__ == "__main__":
+    test_replay_vs_enumeration()
