@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\centering\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lrrlcccc}
+\toprule
+ & \multicolumn{4}{c}{ASR-BLEU} & rate & pauses & LAAL$_\text{block}$ \\
+\cmidrule(lr){2-5}
+Set & \sys{} & PA-F & $\Delta$ [95\%] & gate & \multicolumn{3}{c}{\sys{} / PA-F} \\
+\midrule
+Zh$\rightarrow$En dev & 23.28 & 23.33 & +0.05 [$-$0.15, 0.28] & yes & 3.56 / 3.42 & 9.6 / 8.7 & -- \\
+En$\rightarrow$Zh dev & 31.57 & 31.49 & $-$0.09 [$-$0.12, $-$0.04] & no & 5.07 / 4.69 & 10.8 / 8.9 & -- \\
+\midrule
+AMI Zh$\rightarrow$En & 20.35 & 20.38 & +0.03 [$-$0.15, 0.19] & yes & 3.49 / 3.35 & 8.3 / 7.6 & 3.03 / 3.03 \\
+AliMeeting & 18.08 & 17.95 & $-$0.13 [$-$0.24, $-$0.01] & no & 3.56 / 3.47 & 11.8 / 11.0 & 2.95 / 2.95 \\
+\bottomrule
+\end{tabular}
+\caption{PA-F, the PA Talker trained with a second budget on the expected speech duration per word, against \sys{} on the same text (two TTS seeds). Gate: $\Delta\ge-0.2$ and $P(\Delta\le0)<0.95$ (meeting bootstrap), fixed before decoding. Rate: words (En) or characters (Zh) per second of speech; pauses: $\ge$0.5\,s per minute of speech.}
+\label{tab:fluencypa}
+\end{table*}

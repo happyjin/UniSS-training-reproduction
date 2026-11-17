@@ -1,0 +1,32 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+When an interpretation is heard is largely decided after its text is written, by each speaker's speech queue.
+\sys{} decodes speaker-first and trains its Talker on a latency-constrained playback-queue CRF; by the proposed
+cpASR-BLEU and tcpASR-BLEU, it beats a same-text baseline in speech quality and latency on every test set,
+including out-of-domain meetings, and leads all compared systems.
+
+\section*{Limitations}
+\label{sec:res-hygiene}
+
+\paragraph{Evaluation.} Evaluation is automatic: there is no listening test of voice, naturalness or
+comprehensibility, and the En$\rightarrow$Zh references are machine translations without a bilingual check. The
+Zh$\rightarrow$En AMI source is synthetic, and both AMI directions share 16 meetings. The test meetings were scored
+repeatedly during development, so only the eight locked AliMeeting meetings form a blind test; AliMeeting is
+out-of-domain for our models but not for the off-the-shelf diarizer. External systems run zero-shot on our windows,
+with our diarizer's speaker labels.
+
+\paragraph{Method.} The CRF ranks a few sampled renderings on a discretised backlog with fixed weights, and the Talker
+is trained on its posterior in one round, along the base-rate backlog trajectory. Every model was trained once, with
+one seed and one latency budget. Faster speech brings more pauses, which the potentials do not price.
+
+\paragraph{System.} Committed output is never revised, so a wrong speaker label is spoken; a speaker who never talks
+alone gets no voice prompt; and with one channel per speaker, overlapping translations are heard at once. Latencies
+exclude computation, and as implemented, decoding does not keep up in real time (Appendix~\ref{app:online}).
+
+\section*{Ethics Statement}
+
+Speaker-attributed interpretation reproduces meeting participants' voices in another language. Voice cloning can be
+misused for impersonation, so deployments should obtain participants' consent and mark synthetic speech. Our Chinese AMI
+test audio clones AMI participants' voices. AMI (CC BY 4.0) was recorded with consent; AliMeeting (CC BY-SA 4.0) is used
+for testing only.

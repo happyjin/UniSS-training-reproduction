@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}
+\toprule
+Training posterior (steps 1--3{,}500) & WA & $\xi=0.5$ \\
+\midrule
+label-path mass $q(\text{label})$, mean & 0.58 & 0.72 \\
+\quad first 100 / last 500 steps & 0.66 / 0.56 & 0.77 / 0.70 \\
+$\mathbb{E}_q$[deferred chunks] per window & 0.86 & 0.43 \\
+\quad first 100 / last 500 steps & 0.60 / 0.91 & 0.30 / 0.46 \\
+$\mathbb{E}_{q_0}$[deferral cost] per window (unit$\cdot$s) & -- & 2.89 \\
+\quad first 100 / last 500 steps & -- & 2.37 / 3.37 \\
+\bottomrule
+\end{tabular}}
+\vspace{4pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrr}
+\toprule
+Decoding (full dev) & B & WA $\bias{=}0$ & WA $\bias{=}{-}1$ \\
+\midrule
+Zh$\rightarrow$En: words before unit end (\%) & 39.7 & 31.6 & 38.3 \\
+\quad speech start offset (s) & 2.95 & 3.41 & 2.99 \\
+\quad text LAAL (s) & 2.95 & 3.37 & 3.03 \\
+En$\rightarrow$Zh: words before unit end (\%) & 55.3 & 49.1 & 53.9 \\
+\quad speech start offset (s) & 2.36 & 2.74 & 2.42 \\
+\quad text LAAL (s) & 2.32 & 2.70 & 2.42 \\
+\bottomrule
+\end{tabular}}
+\caption{Late-write drift. Top: posterior statistics logged at every stage-2 training step (about 9.6 windows per step); WA: write alignment; $\xi=0.5$ is the run with an E-step latency budget (its $\mathbb{E}_{q_0}$ is the cost under the unconstrained posterior of the current model). Bottom: full development set, deadline baseline (B) and the write-aligned Thinker without and with the write bias.}
+\label{tab:drift10}
+\end{table}

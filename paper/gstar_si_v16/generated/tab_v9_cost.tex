@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrr}
+\toprule
+ & H200 & hours & GPU-hours \\
+\midrule
+Training: MIST (offline) & 8 & 1.4 & 11 \\
+Training: MIST-Simul En-Zh & 8 & 2.6 & 20 \\
+Training: MIST-Simul Zh-En & 8 & 2.8 & 22 \\
+Training: speaker-blind Simul En-Zh (C1) & 4 & 7.0 & 28 \\
+Training: speaker-blind Simul Zh-En (C1) & 4 & 7.0 & 28 \\
+Inference: \sys{}-Simul, En$\rightarrow$Zh & 2 & RTF 0.86 & 1.72/h \\
+Inference: \sys{} + LA2, En$\rightarrow$Zh & 2 & RTF 1.73 & 3.47/h \\
+Inference: \sys{}-Simul, Zh$\rightarrow$En & 2 & RTF 0.72 & 1.45/h \\
+Inference: \sys{} + LA2, Zh$\rightarrow$En & 2 & RTF 1.45 & 2.91/h \\
+Inference: \sys{}-Simul, AliMeeting & 2 & RTF 0.98 & 1.97/h \\
+Inference: \sys{} + LA2, AliMeeting & 2 & RTF 1.98 & 3.96/h \\
+\bottomrule
+\end{tabular}}
+\caption{Cost. Training: logged wall-clock times the GPUs used. Inference: GPU-hours per meeting-hour under the
+queued-read simulation (median single-stream read time measured on two H200 cards, batch 1; every read re-encodes the
+window prefix without a key-value cache). No wall-clock replay on dedicated hardware was run.}
+\label{tab:cost9}
+\end{table}

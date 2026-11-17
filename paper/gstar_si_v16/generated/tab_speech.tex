@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcccccc}
+\toprule
+System & cpASR$\uparrow$ & SIM$\uparrow$ & V-conf$\downarrow$ & Misr.$\downarrow$ & UTMOS$\uparrow$ & Abr.$\downarrow$ \\
+\midrule
+\multicolumn{7}{l}{\emph{En$\rightarrow$Zh}} \\
+Prompted & 10.13 & 0.79 & 39.6 & 14.5 & -- & -- \\
+Cascade (same data) & 31.06 & 0.82 & 24.0 & 14.7 & 2.76 & -- \\
+\sys{} (offline) & 32.69 & 0.82 & 23.4 & 10.7 & 2.77 & -- \\
+\sys{} + LA2 & 33.32 & 0.83 & 19.8 & 8.9 & 3.19 & 2.86 \\
+\sys{}-Simul & 35.42 & 0.83 & 21.3 & 5.8 & 3.20 & 2.30 \\
+\multicolumn{7}{l}{\emph{Zh$\rightarrow$En}} \\
+Cascade (same data) & 12.47 & 0.76 & 29.4 & 33.5 & 1.96 & -- \\
+\sys{} (offline) & 14.44 & 0.76 & 30.1 & 34.3 & 1.95 & -- \\
+\sys{} + LA2 & 15.79 & 0.77 & 27.1 & 23.6 & 1.83 & 1.56 \\
+\sys{}-Simul & 17.79 & 0.77 & 27.9 & 18.3 & 1.84 & 0.06 \\
+\bottomrule
+\end{tabular}}
+\caption{Speech of the UniSS Talker: offline systems dubbed, simultaneous ones spoken block by block on one channel with
+causal voice prompts. cpASR: cpBLEU$_\text{sess}$ of the ASR transcripts; SIM: WavLM cosine to the attributed speaker
+(two speakers of a meeting: 0.75); V-conf: output speakers closer to another speaker of the window
+(\%); Misr.: CER of the transcript against the Talker's input (\%); Abr.: abrupt pauses per minute.}
+\label{tab:speech}
+\end{table}

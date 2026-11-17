@@ -1,0 +1,64 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{tcpBLEU$\uparrow$} & \multicolumn{2}{c}{concurrent speakers} & short & \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+System & all & overlap & single & recall$\uparrow$ & collapse$\downarrow$ & $\le$0.5\,s$\uparrow$ & dup.$\downarrow$ \\
+\midrule
+\multicolumn{8}{l}{\emph{En$\rightarrow$Zh, reference windows}} \\
+Cascade, same data & 36.13 & 26.21 & 41.72 & 89.3 & 9.1 & 67.8 & 1.6 \\
+Cascade, turn-trained & 34.61 & 32.77 & 35.28 & 81.9 & 14.6 & 56.8 & 1.3 \\
+Speaker-blind + relabel (offline) & 41.39 & 30.98 & 46.04 & 51.8 & 40.9 & 34.8 & 2.1 \\
+\sys{} (offline) & 42.06 & 34.56 & 45.35 & 76.3 & 20.3 & 60.0 & 1.4 \\
+\sys{} text, diarizer relabelling & 41.17 & 31.94 & 45.31 & 53.3 & 40.5 & 35.7 & 2.5 \\
+\sys{} (offline) + fallback & 42.53 & 34.67 & 45.52 & 86.2 & 12.7 & 69.1 & 2.5 \\
+\sys{}-Simul model + LA2 & 38.96 & 27.38 & 45.04 & 75.9 & 22.5 & 51.7 & 3.6 \\
+\sys{}-Simul & 42.45 & 36.00 & 44.71 & 83.8 & 15.5 & 56.9 & 8.1 \\
+\multicolumn{8}{l}{\emph{En$\rightarrow$Zh, whole meetings online}} \\
+\sys{} (offline) + LA2 & 34.30 & 22.34 & 41.86 & 73.4 & 23.8 & 50.7 & 1.4 \\
+\sys{}-Simul model + LA2 & 39.31 & 32.91 & 40.91 & 75.5 & 22.8 & 50.4 & 4.0 \\
+\sys{}-Simul model, lag 2\,s$^\dagger$ & 40.28 & 32.24 & 43.65 & 74.4 & 24.0 & 47.8 & 6.2 \\
+Speaker-blind Simul + causal relabel & 35.22 & 27.17 & 38.80 & 65.5 & 30.6 & 37.9 & 9.3 \\
+\sys{}-Simul & 40.09 & 35.71 & 41.39 & 82.3 & 16.2 & 55.0 & 8.6 \\
+\multicolumn{8}{l}{\emph{Zh$\rightarrow$En, reference windows}} \\
+Cascade, same data & 21.96 & 14.36 & 26.31 & 87.4 & 12.0 & 67.5 & 1.0 \\
+Cascade, turn-trained & 23.20 & 19.39 & 24.76 & 83.8 & 15.4 & 64.1 & 1.1 \\
+Speaker-blind + relabel (offline) & 24.36 & 16.90 & 27.63 & 50.6 & 44.8 & 34.9 & 5.5 \\
+\sys{} (offline) & 25.43 & 19.72 & 27.80 & 79.0 & 19.1 & 62.2 & 4.2 \\
+\sys{} text, diarizer relabelling & 24.46 & 16.74 & 27.86 & 46.6 & 48.6 & 30.9 & 5.4 \\
+\sys{} (offline) + fallback & 25.74 & 20.07 & 28.08 & 84.2 & 15.0 & 67.2 & 4.7 \\
+\sys{}-Simul model + LA2 & 24.41 & 18.26 & 26.94 & 80.4 & 18.7 & 63.9 & 5.3 \\
+\sys{}-Simul & 23.96 & 15.59 & 26.99 & 82.4 & 17.1 & 68.3 & 7.3 \\
+\multicolumn{8}{l}{\emph{Zh$\rightarrow$En, whole meetings online}} \\
+\sys{} (offline) + LA2 & 23.94 & 18.88 & 26.04 & 78.7 & 19.8 & 61.4 & 4.1 \\
+\sys{}-Simul model + LA2 & 23.96 & 17.89 & 26.43 & 79.4 & 19.9 & 65.2 & 5.1 \\
+\sys{}-Simul model, lag 2\,s$^\dagger$ & 24.69 & 19.43 & 26.80 & 76.8 & 22.3 & 66.0 & 6.7 \\
+Speaker-blind Simul + causal relabel & 19.33 & 9.06 & 26.72 & 54.4 & 42.4 & 35.7 & 7.5 \\
+\sys{}-Simul & 24.53 & 17.73 & 26.68 & 80.2 & 19.0 & 68.1 & 7.0 \\
+\multicolumn{8}{l}{\emph{AliMeeting, reference windows}} \\
+Cascade, same data & 15.70 & 9.79 & 17.96 & 93.3 & 6.5 & 60.6 & 2.1 \\
+Cascade, turn-trained & 13.27 & 12.03 & 13.68 & 89.2 & 10.1 & 52.9 & 1.6 \\
+Speaker-blind + relabel (offline) & 16.27 & 12.04 & 18.26 & 58.0 & 35.2 & 20.9 & 6.2 \\
+\sys{} (offline) & 15.19 & 12.10 & 16.60 & 79.2 & 15.0 & 46.3 & 4.4 \\
+\sys{} text, diarizer relabelling & 14.91 & 11.34 & 16.59 & 55.9 & 36.3 & 19.6 & 5.9 \\
+\sys{} (offline) + fallback & 15.44 & 12.64 & 16.65 & 86.7 & 11.8 & 59.4 & 5.3 \\
+\sys{}-Simul model + LA2 & 13.80 & 10.13 & 15.34 & 80.2 & 18.4 & 40.0 & 10.1 \\
+\sys{}-Simul & 13.34 & 9.90 & 14.95 & 83.4 & 15.7 & 46.1 & 17.1 \\
+\multicolumn{8}{l}{\emph{AliMeeting, whole meetings online}} \\
+\sys{} (offline) + LA2 & 11.11 & 7.19 & 13.39 & 75.6 & 20.1 & 40.2 & 5.3 \\
+\sys{}-Simul model + LA2 & 11.91 & 7.60 & 14.30 & 76.7 & 21.4 & 36.8 & 9.7 \\
+\sys{}-Simul model, lag 2\,s$^\dagger$ & 12.83 & 10.17 & 14.00 & 84.8 & 13.9 & 41.2 & 17.2 \\
+Speaker-blind Simul + causal relabel & 12.67 & 8.55 & 14.52 & 63.0 & 31.7 & 22.9 & 18.7 \\
+\sys{}-Simul & 11.47 & 9.18 & 12.42 & 80.2 & 17.4 & 46.1 & 17.4 \\
+\bottomrule
+\end{tabular}
+\caption{Overlap-aware scores (\S\ref{sec:eval-overlap}). Overlap: reference units with $\ge$20\% of their time overlapped
+by another speaker; single: the rest. Concurrent speakers: pairs of utterances of two speakers overlapping $\ge$0.5\,s;
+recall: both translated and attributed; collapse: one side missing and covered by the other side's output speaker. Short:
+recall of overlapped utterances $\le$0.5\,s. Dup.: units translated twice (chrF $\ge$50 between two segments, \%).
+$^\dagger$\,On a meeting subset only (8 AMI / 10 AliMeeting meetings); compare with Appendix~\ref{app:v8}, not with the
+other rows.}
+\vspace{-2pt}\par\footnotesize AliMeeting references in this table: machine translations of the human transcripts (Appendix~\ref{app:qe7}).\label{tab:overlap8}
+\end{table*}

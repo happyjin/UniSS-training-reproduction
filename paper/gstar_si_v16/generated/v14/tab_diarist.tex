@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lllrrrr}
+\toprule
+ & & & \multicolumn{2}{c}{dev} & \multicolumn{2}{c}{test} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+System & output & mode & SAg & SAt & SAg & SAt \\
+\midrule
+Whisper-small, SD$\rightarrow$ST$^\dagger$ & text & offline & 10.71 & 9.21 & 10.40 & 9.31 \\
+Whisper-small, ST$\rightarrow$SD$^\dagger$ & text & offline & 14.48 & 11.96 & 13.68 & 12.10 \\
+DiariST (t-SOT + t-vector)$^\dagger$ & text & streaming & 16.05 & 13.91 & 16.62 & 14.76 \\
+\midrule
+\sys{} Thinker (= B) & text & streaming & 15.26 & 13.74 & 22.38 & 21.06 \\
+\sys{} & speech & streaming & 14.54 & 12.78 & 20.25 & 18.61 \\
+B & speech & streaming & 12.50 & 10.95 & 19.02 & 17.38 \\
+SeamlessStreaming & speech & streaming & -- & -- & 9.28 & 7.97 \\
+X-Translator & speech & streaming & -- & -- & 16.04 & 13.66 \\
+\bottomrule
+\end{tabular}}
+\caption{DiariST-AliMeeting (IHM-MIX, human English references) with its official evaluation: speaker-agnostic (SAg) and speaker-attributed (SAt) BLEU over 76 dev / 195 test mini-sessions of 3--6 min. $^\dagger$Published by \citet{yang2024diarist}; these systems are trained on AliMeeting, ours are not. Ours decode whole meetings online and are cut into the mini-sessions afterwards; speech rows score the ASR transcripts (two TTS seeds averaged for B and \sys{}).}
+\label{tab:diarist}
+\end{table}

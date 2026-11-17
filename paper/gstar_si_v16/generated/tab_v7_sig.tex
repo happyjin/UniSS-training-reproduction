@@ -1,0 +1,51 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrl}
+\toprule
+Set & Comparison & Mtgs & $\Delta$ & 95\% CI & + decoder noise & $p_\text{perm}$ & verdict \\
+\midrule
+En$\rightarrow$Zh & \sys{} vs.\ same-data casc. & 16 & 6.52 & [5.47, 7.59] & [5.36, 7.68] & {<}0.001 & a better \\
+En$\rightarrow$Zh & \sys{} vs.\ relabelling & 16 & 0.75 & [0.13, 1.31] & [$-$0.02, 1.52] & 0.036 & tie \\
+En$\rightarrow$Zh & \sys{}-Simul vs.\ \sys{}+LA2 & 16 & 10.98 & [3.87, 16.73] & [4.53, 17.44] & 0.006 & a better \\
+En$\rightarrow$Zh (speech) & \sys{} vs.\ same-data casc. & 16 & 1.63 & [0.26, 2.90] & [0.23, 3.04] & 0.048 & a better \\
+En$\rightarrow$Zh (speech) & \sys{}-Simul vs.\ \sys{}+LA2 & 16 & 2.10 & [1.47, 2.69] & [1.31, 2.89] & {<}0.001 & a better \\
+Zh$\rightarrow$En & \sys{} vs.\ same-data casc. & 16 & 3.50 & [2.68, 4.36] & [2.54, 4.46] & {<}0.001 & a better \\
+Zh$\rightarrow$En & \sys{} vs.\ relabelling & 16 & 1.20 & [0.81, 1.56] & [0.64, 1.75] & {<}0.001 & a better \\
+Zh$\rightarrow$En & \sys{}-Simul vs.\ \sys{}+LA2 & 16 & $-$0.52 & [$-$2.70, 0.66] & [$-$2.45, 1.41] & 0.535 & tie \\
+Zh$\rightarrow$En (speech) & \sys{} vs.\ same-data casc. & 16 & 1.97 & [0.59, 3.49] & [0.49, 3.45] & 0.014 & a better \\
+Zh$\rightarrow$En (speech) & \sys{}-Simul vs.\ \sys{}+LA2 & 16 & 2.00 & [$-$0.30, 4.78] & [$-$0.52, 4.52] & 0.154 & tie \\
+AliMeeting & \sys{} vs.\ same-data casc. & 20 & $-$0.35 & [$-$1.78, 1.08] & [$-$1.85, 1.14] & 0.458 & tie \\
+AliMeeting & \sys{} vs.\ relabelling & 20 & $-$1.09 & [$-$1.54, $-$0.68] & [$-$1.67, $-$0.52] & {<}0.001 & b better \\
+AliMeeting & \sys{}-Simul vs.\ \sys{}+LA2 & 20 & 0.87 & [$-$0.54, 2.07] & [$-$0.51, 2.25] & 0.276 & tie \\
+AliMeeting (speech) & \sys{} vs.\ same-data casc. & 20 & $-$0.75 & [$-$2.12, 0.49] & [$-$2.15, 0.65] & 0.115 & tie \\
+AliMeeting (speech) & \sys{}-Simul vs.\ \sys{}+LA2 & 20 & 1.21 & [$-$0.22, 2.20] & [$-$0.08, 2.50] & 0.106 & tie \\
+En$\rightarrow$Zh & \sys{} vs.\ turn-trained casc. & 16 & 7.54 & [4.86, 10.47] & [4.70, 10.38] & {<}0.001 & a better \\
+En$\rightarrow$Zh & turn-trained casc. vs.\ same-data casc. & 16 & $-$1.02 & [$-$3.72, 1.64] & [$-$3.74, 1.70] & 0.304 & tie \\
+En$\rightarrow$Zh & \sys{} vs.\ ref.-turn casc. & 16 & 5.38 & [4.27, 6.42] & [4.17, 6.60] & {<}0.001 & a better \\
+En$\rightarrow$Zh & \sys{} vs.\ context casc. & 16 & 19.06 & [18.11, 19.78] & [18.10, 20.01] & {<}0.001 & a better \\
+Zh$\rightarrow$En & \sys{} vs.\ turn-trained casc. & 16 & 2.17 & [1.65, 2.81] & [1.44, 2.90] & {<}0.001 & a better \\
+Zh$\rightarrow$En & turn-trained casc. vs.\ same-data casc. & 16 & 1.33 & [0.15, 2.46] & [0.08, 2.57] & 0.003 & a better \\
+Zh$\rightarrow$En & \sys{} vs.\ ref.-turn casc. & 16 & 0.91 & [$-$0.22, 1.98] & [$-$0.29, 2.12] & 0.208 & tie \\
+Zh$\rightarrow$En & \sys{} vs.\ context casc. & 16 & 8.98 & [7.93, 10.01] & [7.88, 10.08] & {<}0.001 & a better \\
+AliMeeting & \sys{} vs.\ turn-trained casc. & 20 & 1.85 & [1.14, 2.63] & [1.03, 2.67] & {<}0.001 & a better \\
+AliMeeting & turn-trained casc. vs.\ same-data casc. & 20 & $-$2.20 & [$-$3.81, $-$0.50] & [$-$3.97, $-$0.44] & 0.004 & b better \\
+En$\rightarrow$Zh & \sys{}-Simul vs.\ stream. casc. & 16 & 7.47 & [5.57, 9.37] & [5.50, 9.44] & {<}0.001 & a better \\
+En$\rightarrow$Zh & \sys{}-Simul vs.\ Simul model+LA2 & 16 & 3.42 & [0.14, 8.08] & [$-$0.88, 7.72] & 0.134 & tie \\
+En$\rightarrow$Zh & Simul model+LA2 vs.\ \sys{}+LA2 & 16 & 7.57 & [1.72, 13.57] & [1.55, 13.58] & 0.039 & a better \\
+En$\rightarrow$Zh & \sys{}-Simul vs.\ fixed lag 1\,s & 8 & 23.29 & [20.78, 25.38] & [20.84, 25.73] & 0.008 & a better \\
+En$\rightarrow$Zh & \sys{}-Simul vs.\ fixed lag 2\,s & 8 & $-$0.75 & [$-$2.91, 0.63] & [$-$2.78, 1.28] & 0.148 & tie \\
+En$\rightarrow$Zh & fixed lag 2\,s vs.\ \sys{}+LA2 & 8 & 15.35 & [3.36, 21.89] & [5.85, 24.86] & 0.008 & a better \\
+Zh$\rightarrow$En & \sys{}-Simul vs.\ stream. casc. & 16 & 2.74 & [0.54, 4.19] & [0.88, 4.61] & 0.010 & a better \\
+Zh$\rightarrow$En & \sys{}-Simul vs.\ Simul model+LA2 & 16 & $-$0.56 & [$-$2.74, 0.55] & [$-$2.41, 1.29] & 0.594 & tie \\
+Zh$\rightarrow$En & Simul model+LA2 vs.\ \sys{}+LA2 & 16 & 0.04 & [$-$0.32, 0.45] & [$-$0.53, 0.62] & 0.825 & tie \\
+AliMeeting & \sys{}-Simul vs.\ Simul model+LA2 & 20 & $-$0.47 & [$-$1.74, 0.49] & [$-$1.75, 0.81] & 0.548 & tie \\
+AliMeeting & Simul model+LA2 vs.\ \sys{}+LA2 & 20 & 1.34 & [$-$0.31, 2.44] & [$-$0.08, 2.76] & 0.089 & tie \\
+En$\rightarrow$Zh whole mtgs & sp2\_on\_S2dl vs.\ sp2\_on\_O2\_LA2 & 16 & 1.58 & [1.15, 1.97] & [1.00, 2.16] & {<}0.001 & a better \\
+Zh$\rightarrow$En whole mtgs & sp2\_on\_S2dl vs.\ sp2\_on\_O2\_LA2 & 16 & 1.69 & [0.02, 3.47] & [$-$0.15, 3.53] & 0.096 & tie \\
+AliMeeting whole mtgs & sp2\_on\_S2dl vs.\ sp2\_on\_O2\_LA2 & 20 & 0.29 & [$-$1.03, 1.48] & [$-$1.02, 1.61] & 0.671 & tie \\
+\bottomrule
+\end{tabular}}
+\caption{Exploratory comparisons of v7 (cpBLEU$_\text{sess}$ on reference windows, ASR-cpBLEU for speech, tcpBLEU for whole meetings), on the windows both systems decoded. Columns as Table~\ref{tab:reg7}; no multiple-test correction (exploratory). Fixed lag is on the 8-meeting subset (prereg\_v7 amendment 2).}
+\label{tab:sig7}
+\end{table*}

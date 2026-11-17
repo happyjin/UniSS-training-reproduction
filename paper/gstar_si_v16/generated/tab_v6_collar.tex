@@ -1,0 +1,24 @@
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\ifdim\width>\columnwidth\columnwidth\else\width\fi}{!}{\begin{tabular}{lllrrrr}
+\toprule
+Set & System & Run & 0\,s & 0.5\,s & 1\,s & 2\,s \\
+\midrule
+En$\rightarrow$Zh & Simul & windows & 42.45 & 42.39 & 42.34 & 42.15 \\
+En$\rightarrow$Zh & Simul & online & 39.40 & 39.36 & 39.29 & 38.85 \\
+En$\rightarrow$Zh & LA2 & windows & 27.64 & 27.64 & 27.64 & 27.45 \\
+En$\rightarrow$Zh & LA2 & online & 33.74 & 33.82 & 33.78 & 33.43 \\
+Zh$\rightarrow$En & Simul & windows & 25.39 & 25.32 & 25.30 & 25.07 \\
+Zh$\rightarrow$En & Simul & online & 25.19 & 25.16 & 25.11 & 24.91 \\
+Zh$\rightarrow$En & LA2 & windows & 24.73 & 24.73 & 24.69 & 24.46 \\
+Zh$\rightarrow$En & LA2 & online & 24.41 & 24.38 & 24.34 & 24.11 \\
+AliMeeting & Simul & windows & 12.05 & 12.03 & 12.02 & 11.97 \\
+AliMeeting & Simul & online & 11.65 & 11.63 & 11.62 & 11.55 \\
+AliMeeting & LA2 & windows & 11.73 & 11.72 & 11.73 & 11.69 \\
+AliMeeting & LA2 & online & 10.09 & 10.11 & 10.11 & 10.05 \\
+\bottomrule
+\end{tabular}}
+\caption{tcpBLEU on the whole-meeting subset at four collars (Simul: \sys{}-Simul; LA2: \sys{} + LA2; windows: the reference-window run of the same system, scored on the same meetings).}
+\label{tab:collar}
+\end{table}

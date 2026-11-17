@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{AMI Zh$\rightarrow$En} & \multicolumn{3}{c}{AMI En$\rightarrow$Zh} & \multicolumn{3}{c}{AliMeeting} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Thinker & all & ov. & CR & all & ov. & CR & all & ov. & CR \\
+\midrule
+Speaker-blind + relabel & 19.33 & 9.06 & 54.4 & 35.22 & 27.17 & 65.5 & \textbf{12.67} & 8.55 & 63.0 \\
+With speaker tokens & \textbf{24.53} & \textbf{17.73} & \textbf{80.2} & \textbf{40.09} & \textbf{35.71} & \textbf{82.3} & 11.47 & \textbf{9.18} & \textbf{80.2} \\
+\bottomrule
+\end{tabular}}
+\caption{Speaker tokens under overlap: text tcpBLEU on all and overlapped (ov.) units and concurrent-speaker recall (CR, \%), with and without (zeroed) speaker tokens. Gains hold on both AMI sets, only CR on AliMeeting (Table~\ref{tab:reg8}; machine-translated references).}
+\label{tab:overlap}
+\end{table}

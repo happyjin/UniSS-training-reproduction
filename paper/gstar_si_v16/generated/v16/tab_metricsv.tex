@@ -1,0 +1,17 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{tcpASR-BLEU} & \multicolumn{3}{c}{tcpASR-BLEU, second recogniser} & \multicolumn{3}{c}{COMET of speech} & COMET \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-6}\cmidrule(lr){7-9}
+Test set & B & \sys{} & B & \sys{} & $\Delta$ & B & \sys{} & $\Delta$ & of text \\
+\midrule
+AMI Zh$\rightarrow$En & 18.07 & 20.35 & 19.30 & 20.61 & +1.32$^{*}$ & 73.86 & 76.44 & +2.58$^{*}$ & 79.42 \\
+AMI En$\rightarrow$Zh & 31.65 & 32.23 & 28.13 & 31.87 & +3.74$^{*}$ & 73.16 & 73.50 & +0.34$^{*}$ & 78.81 \\
+AliMeeting & 16.73 & 18.08 & 17.60 & 18.54 & +0.93$^{*}$ & 64.97 & 66.44 & +1.47$^{*}$ & 71.49 \\
+\bottomrule
+\end{tabular}
+\caption{The speech-layer gain under a second recogniser (English: Parakeet-TDT-0.6B-v2, Chinese: Whisper-large-v3; neither is the CTC recogniser used for selection; repetition loops and video-outro hallucinations of the second recogniser removed by one fixed rule for all systems) and under COMET (wmt22-comet-da, $\times100$, per reference unit, empty hypotheses scored). tcpASR-BLEU: the paper's recognisers (Whisper-large-v3 / Paraformer). Both TTS seeds pooled; B and \sys{} share their text. $\Delta$: \sys{} $-$ B, meeting sign-flip test, Holm over the test family: $^{*}$ $p_\text{Holm}<0.05$, $^{\circ}$ not significant.}
+\label{tab:metricsv11}
+\end{table*}

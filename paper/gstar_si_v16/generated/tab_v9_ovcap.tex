@@ -1,0 +1,27 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrr}
+\toprule
+Set & System (whole meetings, online) & all & overlap & CR & $\le$0.5\,s & dup. \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 40.09 & 35.71 & 82.3 & 55.0 & 8.6 \\
+ & speaker-blind + causal relabel & 35.22 & 27.17 & 65.5 & 37.9 & 9.3 \\
+ & D1: + multi-label split & 37.73 & 27.39 & 74.9 & 46.7 & 4.2 \\
+ & offline \sys{} + LA2 & 34.30 & 22.34 & 73.4 & 50.7 & 1.4 \\
+Zh$\rightarrow$En & \sys{}-Simul & 24.53 & 17.73 & 80.2 & 68.1 & 7.0 \\
+ & speaker-blind + causal relabel & 19.33 & 9.06 & 54.4 & 35.7 & 7.5 \\
+ & D1: + multi-label split & 20.93 & 10.56 & 66.2 & 44.9 & 2.3 \\
+ & offline \sys{} + LA2 & 23.94 & 18.88 & 78.7 & 61.4 & 4.1 \\
+AliMeeting & \sys{}-Simul & 14.14 & 11.21 & 80.2 & 46.1 & 17.4 \\
+ & speaker-blind + causal relabel & 15.55 & 10.60 & 62.9 & 23.2 & 18.7 \\
+ & D1: + multi-label split & 17.86 & 11.94 & 72.9 & 25.5 & 8.3 \\
+ & offline \sys{} + LA2 & 14.42 & 9.31 & 75.6 & 40.2 & 5.3 \\
+\bottomrule
+\end{tabular}}
+\caption{\sys{}-Simul against controls that may give overlapping speech two speakers, built on the same speaker-blind
+prefix-trained model (prereg\_v9 \S3): D1 splits a segment where the dominant diarizer slot changes; D2 translates every
+diarizer turn on its own (a turn-level cascade with the same translator). AliMeeting: human references. CR: concurrent
+recall; $\le$0.5\,s: recall of overlapped short utterances; dup.: units translated twice (\%).}
+\label{tab:ovcap9}
+\end{table}

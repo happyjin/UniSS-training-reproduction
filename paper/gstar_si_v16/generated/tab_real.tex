@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcccccc}
+\toprule
+System & LAAL & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER & Conf. \\
+\midrule
+Qwen3-Omni, prompted & -- & 7.35 & 13.27 & 66.6 & 56.2 & 38.5 \\
+Cascade: diarizer $\rightarrow$ same-data model & -- & 15.25 & 15.58 & 92.5 & 13.1 & 0.3 \\
+\sys{} w/o speaker stream & -- & 8.34 & 16.38 & 87.1 & 52.0 & 41.3 \\
+\sys{} (offline) & -- & 14.90 & 15.11 & 91.9 & 14.7 & 1.3 \\
+\addlinespace
+\sys{} (offline) + LA2 & 2.84 & 12.10 & 12.55 & 91.7 & 12.9 & 2.5 \\
+\sys{}-Simul & 3.09 & 12.97 & 13.14 & 91.5 & 10.8 & 1.5 \\
+\bottomrule
+\end{tabular}}
+\caption{Real Mandarin meetings: Zh$\rightarrow$En on the AliMeeting test set (4{,}243 windows, 20 meetings, headset channels summed), never seen in training. References are Hy-MT2
+translations of the human transcripts; speakers and times are human annotations. Simultaneous rows at
+$\Delta=1$\,s; --: not completed. $^\dagger$ as in Table~\ref{tab:main}.}
+\label{tab:real}
+\end{table}
