@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{ASR-BLEU $\uparrow$} & \multicolumn{3}{c}{LAAL$_\text{block}$ (s) $\downarrow$} & \multicolumn{3}{c}{EndOffset (s) $\downarrow$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Speech layer (B's text throughout) & Z$\rightarrow$E & E$\rightarrow$Z & Ali & Z$\rightarrow$E & E$\rightarrow$Z & Ali & Z$\rightarrow$E & E$\rightarrow$Z & Ali \\
+\midrule
+R0\ \ B: base Talker, fixed rate & 18.07 & 31.64 & 16.73 & 3.12 & 2.54 & 3.28 & 4.08 & 3.48 & 4.57 \\
+R1\ \ + read-level merging & 18.32 & 31.66 & 16.61 & 3.09 & 2.50 & 3.16 & 4.00 & 3.45 & 4.41 \\
+R2\ \ + backlog-dependent base rate & 19.88 & 31.91 & 17.48 & 3.04 & 2.45 & 3.00 & 3.31 & 3.05 & 3.47 \\
+R3\ \ + PA Talker (CRF-distilled) & 20.17 & 31.93 & 17.82 & 3.03 & 2.43 & 2.95 & 3.13 & 2.90 & 3.24 \\
+\midrule
+R4\ \ + best-of-2 = \sys{} & \textbf{20.35}$^{*}$ & \textbf{32.23}$^{*}$ & \textbf{18.08}$^{*}$ & \textbf{3.03}$^{*}$ & \textbf{2.43}$^{*}$ & \textbf{2.95}$^{*}$ & \textbf{3.13}$^{*}$ & \textbf{2.91}$^{*}$ & \textbf{3.23}$^{*}$ \\
+\bottomrule
+\end{tabular}
+\caption{Whole test meetings run online: the deadline baseline B and the components of \sys{}'s playback layer added one at a time, all on one fixed text, that of the deadline Thinker (text tcpBLEU 25.02 / 41.15 / 21.43 in every row). Z$\rightarrow$E, E$\rightarrow$Z: AMI test (16 meetings each); Ali: AliMeeting test (20 meetings). Each row decoded once; ASR-BLEU and latency averaged over two TTS seeds; latency per speaker stream under the chunk protocol, without computation. R2: base rate rising with the backlog (\S\ref{sec:method-voice}); R3: the PA Talker of \S\ref{sec:method-plem} with one sample; R4: two samples, the one with the higher CTC fidelity kept. $^{*}$: \sys{} $-$ B significant (Table~\ref{tab:sig}; latency: Table~\ref{tab:speech2}).}
+\label{tab:main}
+\end{table*}

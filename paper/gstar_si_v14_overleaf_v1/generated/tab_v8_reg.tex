@@ -1,0 +1,26 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lllrrrl}
+\toprule
+Test & Set & Comparison (whole meetings, online) & $\Delta$ & 95\% interval & $p_\text{Holm}$ & \\
+\midrule
+E-ov1-en2zh & En$\rightarrow$Zh & tcpBLEU-ov, \sys{}-Simul $-$ causal relabel & 8.54 & [3.82, 14.28] & 0.000 & holds \\
+E-ov2-en2zh & En$\rightarrow$Zh & concurrent-speaker recall, same pair & 0.168 & [0.1451, 0.1939] & 0.000 & holds \\
+E-lat-en2zh & En$\rightarrow$Zh & text lag, overlapped $-$ single ($<$0.5\,s) & -0.36 & [-0.425, -0.299] & 0.000 & holds \\
+E-pol-en2zh & En$\rightarrow$Zh & text lag, LA2 (same model) $-$ \sys{}-Simul & 0.81 & [0.553, 1.081] & 0.000 & holds \\
+E-ov1-zh2en & Zh$\rightarrow$En & tcpBLEU-ov, \sys{}-Simul $-$ causal relabel & 8.67 & [2.63, 12.94] & 0.002 & holds \\
+E-ov2-zh2en & Zh$\rightarrow$En & concurrent-speaker recall, same pair & 0.258 & [0.2185, 0.3022] & 0.000 & holds \\
+E-lat-zh2en & Zh$\rightarrow$En & text lag, overlapped $-$ single ($<$0.5\,s) & -0.21 & [-0.264, -0.167] & 0.000 & holds \\
+E-pol-zh2en & Zh$\rightarrow$En & text lag, LA2 (same model) $-$ \sys{}-Simul & 0.23 & [0.107, 0.374] & 0.000 & holds \\
+E-ov1-ali & AliMeeting & tcpBLEU-ov, \sys{}-Simul $-$ causal relabel & 0.63 & [-2.43, 3.51] & 0.381 & tie / fails \\
+E-ov2-ali & AliMeeting & concurrent-speaker recall, same pair & 0.172 & [0.1313, 0.2049] & 0.000 & holds \\
+E-lat-ali & AliMeeting & text lag, overlapped $-$ single ($<$0.5\,s) & -0.23 & [-0.325, -0.119] & 0.000 & holds \\
+E-pol-ali & AliMeeting & text lag, LA2 (same model) $-$ \sys{}-Simul & 1.89 & [1.327, 2.496] & 0.000 & holds \\
+\bottomrule
+\end{tabular}
+\caption{The twelve confirmatory tests of prereg\_v8, Holm-corrected together. A test holds when $p_\text{Holm}<0.05$ and
+the interval excludes 0 (E-lat: lies below the 0.5\,s bound). Exact sign-flip permutation over meetings; intervals from
+10,000 meeting resamples, BLEU differences with a decoder-noise draw per resample.}
+\label{tab:reg8}
+\end{table*}

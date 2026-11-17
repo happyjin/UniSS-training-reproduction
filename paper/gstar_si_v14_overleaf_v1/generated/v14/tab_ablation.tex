@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{tcpASR-BLEU $\uparrow$} & \multicolumn{3}{c}{EndOffset (s) $\downarrow$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Speech layer & Z$\rightarrow$E & E$\rightarrow$Z & Ali & Z$\rightarrow$E & E$\rightarrow$Z & Ali \\
+\midrule
+R0 B (base Talker) & 18.07 & 31.64 & 16.73 & 4.08 & 3.48 & 4.57 \\
+R1 + read merging & 18.32 & 31.66 & 16.61 & 4.00 & 3.45 & 4.41 \\
+R2 + backlog rate & 19.88 & 31.91 & 17.48 & 3.31 & 3.05 & 3.47 \\
+R3 + PA Talker & 20.17 & 31.93 & 17.82 & 3.13 & 2.90 & 3.24 \\
+\midrule
+R4 + best-of-2 = \sys{} & \textbf{20.35}$^{*}$ & \textbf{32.23}$^{*}$ & \textbf{18.08}$^{*}$ & \textbf{3.13}$^{*}$ & \textbf{2.91}$^{*}$ & \textbf{3.23}$^{*}$ \\
+\bottomrule
+\end{tabular}}
+\caption{Ablation on the deadline Thinker's text (text tcpBLEU 25.02 / 41.15 / 21.43 in every row): the components of \sys{}'s playback layer added to B one at a time (R2: base rate rising with the backlog; R3: PA Talker, one sample; R4: two samples, the higher CTC fidelity kept). Speaker labels come from the Thinker, so every row attributes speech identically. $^{*}$: \sys{} $-$ B significant (Tables~\ref{tab:sig},~\ref{tab:speech2}); LAAL$_\text{block}$: Table~\ref{tab:speech}.}
+\label{tab:ablation}
+\end{table}

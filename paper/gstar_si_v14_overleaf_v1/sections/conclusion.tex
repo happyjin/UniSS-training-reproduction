@@ -1,0 +1,57 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+When a listener hears an interpretation is largely decided after its text is written, by the queue of synthesised
+speech in each speaker's stream. A linear-chain CRF over this queue, distilled into the speech generator, improves
+speaker-attributed speech BLEU and latency over a deadline baseline with the same text on three test sets and on unused
+meetings, most where queues are longest; the full system leads public and same-data multi-speaker speech-to-speech
+systems on every set.
+
+\section*{Limitations}
+
+\paragraph{Non-blind procedure.}\label{sec:res-hygiene} All systems were run once on test and the PA Talker was chosen
+on development data, but the test meetings served throughout development, so adaptive overfitting cannot be ruled out%
+\ifAliEval{}; only the eight unused AliMeeting meetings give a locked test, and they cover Zh$\rightarrow$En only;
+with eight meetings its sign-flip $p$-values cannot fall below $2/256$, and its absolute scores are low\fi.
+
+\paragraph{External systems.} SeamlessStreaming and X-Translator run zero-shot on our detector windows and are
+attributed by our diarizer, not as deployed by their authors; X-Translator's AMI input level was set by a constant gain
+calibrated on dev in place of its browser's gain control, and both external systems have one TTS run against two for
+ours.
+
+\paragraph{The CRF and its training.} The candidate sets are eight samples of the base Talker, the backlog is
+discretised, and the potential weights were fixed, not learned; the posterior is distilled in one round, on the backlog
+trajectory under the base rate rather than marginalised over it. The PA Talkers were trained on text of separately
+trained single-direction Thinkers, not on the deadline Thinker's text. Every model was trained once, with one
+seed, and the latency budget was run with one value.
+
+\paragraph{Computation.} Latencies count audio and playback time, not computation; the decoder re-encodes the prefix
+at every read and the PA Talker samples two candidates per block.\ifWallclock{} \num{v11:wc:verdict}; the replay
+covered few meetings on one hardware setting.\fi{} All streaming latencies assume one channel per speaker.
+
+\paragraph{Latency and speech.} LAAL$_\text{spread}$ is not the conventional speech LAAL, and its word times are spread
+over a block, not forced-aligned. The faster speech of the PA Talker comes with more pauses, including mid-sentence
+pauses, which our potentials do not price and UTMOS does not capture; speaker similarity was measured against the
+Talker's voice prompt, not the speakers' own recordings. Speech-latency tests are not corrected for multiple
+comparisons.
+
+\paragraph{Evaluation.} No human evaluation: no listening test of voice identity, naturalness or comprehensibility,
+and no bilingual check of the machine-translated En$\rightarrow$Zh references, which come from the same pipeline as the
+training targets. tcpBLEU keeps duplicate translations of a unit and so partly rewards duplication; it is the same for
+all rows of Table~\ref{tab:ablation}, which share their text. The Zh$\rightarrow$En AMI source is synthetic (re-voiced by
+the same model family as our Talker), and the two AMI directions share their 16 meetings. AliMeeting audio is mixed
+close-talk channels and we do not report DiariST's own metric, so the numbers are not comparable with published
+results.
+
+\paragraph{System.} The diarizer, the encoder and the Thinker are trained separately from the Talker. Committed output
+is never revised, so a wrong speaker label is spoken. Voice prompts come from the diarizer's solo regions, which a
+speaker who never talks alone lacks. With one output channel per speaker, a listener hears several voices at once
+during overlap; how listeners cope with this is untested.
+
+\section*{Ethics Statement}
+
+Speaker-attributed interpretation processes the voices of meeting participants and reproduces them in another
+language. Voice cloning can be misused to impersonate people; a deployed system should obtain the participants'
+consent and mark synthesised speech as such. Our Chinese AMI test audio clones the voices of AMI participants into
+Chinese and is synthetic speech. AMI is distributed under a CC BY 4.0 licence and was recorded with the participants'
+consent; AliMeeting (CC BY-SA 4.0) is used for testing only.

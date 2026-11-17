@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llrrrrrrrrr}
+\toprule
+ & & \multicolumn{2}{c}{tcpBLEU} & & & \multicolumn{2}{c}{text end lag (s)} & \multicolumn{3}{c}{listener lag, one channel (s)} \\
+\cmidrule(lr){3-4}\cmidrule(lr){7-8}\cmidrule(lr){9-11}
+Set & System & windows & online & Omit & Ins. & p50 & p90 & p50 & p90 & backlog p95 \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 42.15 & 38.85 & 21.6 & 5.9 & 1.85 & 2.76 & 133.5 & 766.9 & 862.9 \\
+ & \sys{} + LA2 & 27.45 & 33.43 & 25.9 & 8.1 & 2.24 & 5.77 & 249.4 & 926.8 & 1026.8 \\
+\midrule
+Zh$\rightarrow$En & \sys{}-Simul & 25.07 & 24.91 & 18.9 & 6.4 & 1.94 & 2.41 & 25.2 & 229.2 & 331.6 \\
+ & \sys{} + LA2 & 24.46 & 24.11 & 21.3 & 7.4 & 2.01 & 5.72 & 27.5 & 278.4 & 376.5 \\
+\midrule
+AliMeeting & \sys{}-Simul & 11.97 & 11.55 & 11.6 & 3.7 & 1.61 & 2.39 & 695.9 & 3065.7 & 4786.1 \\
+ & \sys{} + LA2 & 11.69 & 10.05 & 14.5 & 3.9 & 2.67 & 7.28 & 789.6 & 2900.1 & 2977.6 \\
+\bottomrule
+\end{tabular}
+\caption{Whole meetings run online (8 AMI test meetings per direction, 10 AliMeeting meetings; no reference boundary). tcpBLEU of the same system on the reference windows of the same meetings (windows) and run online; Omit / Ins.: unscored reference units / inserted segments (\%); text end lag: last commit of a reference unit minus its end, including the delay until a window's end is detected; listener lag: end of a block's speech on one interpreter channel minus the end of its source segment, with measured computation and synthesis (Appendix~\ref{app:online}).}
+\label{tab:online}
+\end{table*}

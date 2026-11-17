@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llccccc}
+\toprule
+Set & Seed & cpBLEU$_\text{sess}$ & cpBLEU$_\text{win}$ & LAAL\,s & Spk & Empty \\
+\midrule
+En$\rightarrow$Zh & 1 & 42.63 & 43.06 & 2.32 & 90.6 & 0.0 \\
+ & 2 & 43.10 & 43.57 & 2.35 & 90.4 & 0.0 \\
+ & 3 & 43.52 & 44.01 & 2.53 & 90.3 & 0.0 \\
+ & mean $\pm$ s.d. & 43.08 $\pm$ 0.45 & & 2.40 & & \\
+\midrule
+Zh$\rightarrow$En & 1 & 24.30 & 25.81 & 2.93 & 93.2 & 0.0 \\
+ & 2 & 22.79 & 24.07 & 3.16 & 93.0 & 0.0 \\
+ & mean $\pm$ s.d. & 23.55 $\pm$ 1.07 & & 3.04 & & \\
+\midrule
+AliMeeting & 1 & 12.97 & 13.09 & 3.09 & 91.5 & 0.0 \\
+ & 2 & 10.98 & 11.08 & 4.15 & 91.5 & 0.0 \\
+ & mean $\pm$ s.d. & 11.98 $\pm$ 1.41 & & 3.62 & & \\
+\bottomrule
+\end{tabular}}
+\caption{\sys{}-Simul per training seed ($\Delta{=}1$\,s, reference windows; AliMeeting uses the Zh$\rightarrow$En models). Seeds differ only in the random seed (seed 3 of En$\rightarrow$Zh was retrained from scratch after a resume had restarted its learning-rate schedule). Empty: windows with no output (failures).}
+\label{tab:seeds7}
+\end{table}

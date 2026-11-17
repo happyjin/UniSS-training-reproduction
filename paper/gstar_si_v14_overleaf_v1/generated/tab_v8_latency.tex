@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrrrr}
+\toprule
+ & & & \multicolumn{2}{c}{text lag p50 (s)} & \multicolumn{3}{c}{per-speaker channel (s)} & 1 ch. \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-8}
+Set & System & RTF & overlap & single & ovl. p50 & single p50 & p90 & p50 \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 0.86 & 1.59 & 1.96 & 6.8 & 7.7 & 12.2 & 142.4 \\
+ & \sys{} + LA2 & 1.73 & 3.01 & 2.02 & 874.1 & 821.4 & 1688.6 & 903.0 \\
+Zh$\rightarrow$En & \sys{}-Simul & 0.72 & 1.73 & 1.95 & 7.5 & 8.5 & 15.1 & 26.4 \\
+ & \sys{} + LA2 & 1.45 & 2.99 & 1.98 & 613.7 & 445.9 & 1009.6 & 500.1 \\
+AliMeeting & \sys{}-Simul & 0.98 & 1.47 & 1.82 & 33.7 & 20.2 & 314.1 & 604.6 \\
+ & \sys{} + LA2 & 1.98 & 4.09 & 1.99 & 1045.8 & 990.2 & 1783.9 & 1252.5 \\
+\bottomrule
+\end{tabular}}
+\caption{Whole meetings with queued reads. RTF: read computation per second of meeting ($>1$: falls behind). Text
+lag: commit of a unit's last segment minus the unit's end. Per-speaker channel and one channel (1 ch.): completion lag
+of the speech heard.}
+\label{tab:lat8}
+\end{table}

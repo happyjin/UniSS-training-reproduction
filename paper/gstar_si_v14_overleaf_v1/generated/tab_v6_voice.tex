@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrrrr}
+\toprule
+ & & \multicolumn{3}{c}{WavLM-SV} & \multicolumn{3}{c}{TitaNet-large} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+Dir. & System & SIM & Confusion [95\% CI] & ID & SIM & Confusion [95\% CI] & ID \\
+\midrule
+En$\rightarrow$Zh & Cascade, same data & 0.82 & 24.0 [20.7, 27.0] & 62.0 & 0.34 & 9.8 [5.8, 15.9] & 85.9 \\
+ & \sys{} & 0.82 & 23.4 [19.2, 27.2] & 62.2 & 0.35 & 10.2 [5.7, 16.3] & 86.7 \\
+ & \sys{} + LA2 & 0.83 & 19.8 [17.2, 22.0] & 67.6 & 0.37 & 7.3 [5.4, 9.8] & 90.5 \\
+ & \sys{}-Simul & 0.83 & 21.3 [19.6, 23.0] & 66.3 & 0.38 & 6.7 [4.7, 8.8] & 91.9 \\
+\midrule
+Zh$\rightarrow$En & Cascade, same data & 0.76 & 29.4 [24.3, 35.5] & 55.9 & 0.20 & 24.6 [18.4, 30.4] & 70.7 \\
+ & \sys{} & 0.76 & 30.1 [25.5, 35.0] & 56.1 & 0.20 & 25.9 [20.2, 31.0] & 68.8 \\
+ & \sys{} + LA2 & 0.77 & 27.1 [23.5, 30.9] & 60.9 & 0.20 & 23.3 [19.4, 27.8] & 71.8 \\
+ & \sys{}-Simul & 0.77 & 27.9 [24.5, 31.6] & 60.0 & 0.20 & 23.3 [19.7, 27.4] & 71.4 \\
+\bottomrule
+\end{tabular}
+\caption{Voice of each output speaker's synthesised speech, matched to reference speakers per meeting by the target-language text (v5 matched Zh$\rightarrow$En output against the Chinese source text, which made its Zh$\rightarrow$En matching close to arbitrary; corrected here). SIM: cosine to the attributed speaker's own clean speech. Confusion: share of streams in multi-speaker windows closer to another speaker of the window (interval: meeting bootstrap). ID: the attributed speaker is the closest of all speakers of the meeting. Cosines of the two models are not comparable in scale.}
+\label{tab:voice}
+\end{table*}

@@ -1,0 +1,27 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Simultaneous speech translation.} Wait-$k$~\citep{ma2019stacl} writes after a fixed delay;
+LocalAgreement~\citep{liu2020low,polak2022cuni,machacek2023turning} commits the prefix two consecutive hypotheses agree
+on; learned policies emit a wait token~\citep{koshkin2024transllama} or read the decoder's attention to the
+audio~\citep{papi2023edatt,papi2024streamatt}; latency is measured by LAAL~\citep{papi2022over}. SimulS2ST systems
+keep one speaker's voice~\citep{zhang2024streamspeech,seamless2023,labiausse2025hibiki,cheng2025liveinterpret,he2026simuls2st,deng2025simuls2s}.
+
+\paragraph{Latent timing and structured prediction.} Monotonic attention (MILk, MMA and EMMA, the policy of
+SeamlessStreaming;~\citealp{arivazhagan2019milk,ma2020mma,ma2023emma}) and the Hidden Markov
+Transformer~\citep{zhang2023hmt} treat how much source is read before a target token is written as latent and train it
+by the likelihood of the target; Hibiki places each target word after the source that makes it
+predictable~\citep{labiausse2025hibiki}. All of them time the \emph{text}. Playback alignment times the \emph{speech} of
+fixed text: its state is the queue of synthesised speech, its transitions are deterministic, its potentials score
+renderings by intelligibility and heard delay, and it trains the speech generator, not the translation policy. It is a
+linear-chain CRF~\citep{lafferty2001crf} with a posterior-regularised latency budget~\citep{ganchev2010posterior};
+automatic dubbing instead controls the length of the translation~\citep{lakew2022isometric}.
+
+\paragraph{Multi-speaker recognition and translation.} Serialised output training transcribes overlapping speakers
+in order~\citep{kanda2020sot,kanda2021saasr}, also in streaming~\citep{kanda2022tsot} and for joint recognition and
+translation~\citep{papi2023tsot}; streaming diarizers keep speaker order over long
+recordings~\citep{park2024sortformer,medennikov2025streaming}, and diarization can condition a
+recogniser~\citep{polok2026dicow,huo2026tagspeech} or be interleaved with a speech LLM's audio tokens
+(G-STAR;~\citealp{peng2026gstar}). STAC-ST translates two-party calls offline~\citep{zuluaga2023stac};
+DiariST~\citep{yang2024diarist} and X-Translator~\citep{zhao2026xtranslator} attribute streaming text translation to
+speakers. Voice-cloned translation lowers listeners' workload in online meetings~\citep{ma2026samevoice}.

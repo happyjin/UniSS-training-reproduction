@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrrrr}
+\toprule
+ & & \multicolumn{4}{c}{tcpBLEU by overlapped share of a unit} & \multicolumn{3}{c}{short-utterance recall (\%)} \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-9}
+Set & System & 0 & 0--10\% & 10--30\% & $>$30\% & $\le$0.5\,s & $\le$0.5\,s ovl. & 0.5--1\,s ovl. \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 44.75 & 42.49 & 35.55 & 34.20 & 50.0 & 55.0 & 79.5 \\
+ & causal relabel & 45.68 & 33.71 & 32.45 & 25.19 & 62.7 & 37.9 & 59.4 \\
+Zh$\rightarrow$En & \sys{}-Simul & 26.25 & 26.52 & 24.68 & 16.16 & 56.9 & 68.1 & 80.2 \\
+ & causal relabel & 27.25 & 25.60 & 15.62 & 8.98 & 78.4 & 35.7 & 54.6 \\
+AliMeeting & \sys{}-Simul & 16.69 & 16.44 & 12.34 & 10.98 & 61.3 & 46.1 & 76.9 \\
+ & causal relabel & 21.24 & 17.54 & 15.36 & 8.49 & 66.1 & 23.2 & 55.4 \\
+\bottomrule
+\end{tabular}}
+\caption{Strata (review M15), whole meetings online. The sets also differ in source naturalness: real English (AMI
+En$\rightarrow$Zh), the same meetings re-voiced in Chinese (Zh$\rightarrow$En), real Mandarin (AliMeeting, human references).}
+\label{tab:strata9}
+\end{table}
