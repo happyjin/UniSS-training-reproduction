@@ -108,3 +108,24 @@ reviewer 这一条是提醒，不是指出错误。唯一可能引起误会的�
 5. 附录排版按 §5 修改？建议是。
 
 确认后新建 `paper/gstar_si_v18/` 执行，v17 不动。
+
+
+---
+
+## 第二轮决定（用户，2026-11-17）：最终执行清单
+
+1. **W3，Table 18**：保留表格，**删掉最后一列**（holds / tie / fails）。caption 中“A test holds when … (E-lat: lies below the 0.5 s bound)”这一句也一并删掉。p 值列保留。
+   - 正文 4.5 的 AliMeeting 句改为如实的点估计：*recall rises by 17 points and overlapped units slightly (9.18 vs. 8.55), while all units are 1.2 points lower.*（不写“持平”）。
+   - Table 4 的 caption 不动。
+2. **W4，测试集**：**不再提测试集在开发中使用过**，涉及两处：
+   - Limitations 的 *Evaluation* 段：删掉 “The test meetings were scored repeatedly during development, so only the eight locked AliMeeting meetings form a blind test;”，只保留后半句关于 diarizer 的内容；
+   - 4.4 的开头一句 “Could the gains over B reflect speech that suits our recognisers, or meetings used during development?” 改为 *Do the gains over B hold with another recogniser and on meetings never decoded before?*
+3. **附录 E**：删掉 “The plans are timestamped only in a private repository, so reviewers cannot verify them; we call their tests confirmatory but do not rely on them as public pre-registrations.” 这一句，**不加**关于计划开源的句子。
+4. **Abstract 加一个脚注**（只加脚注，正文一字不改）：在 “(\sys{})” 之后加 `\footnote{Code and models will be released upon acceptance.}`。§3.6 里原有的 “we will release the scorer” 保留。
+5. **Table 1 caption**：改成 “without / with source-time constraints”。
+6. **附录排版**按 §5 执行：
+   - 去掉 subsection 前的 `\FloatBarrier`；section 前的视实测结果决定；
+   - 只在附录中放宽浮动体参数；
+   - 较窄的跨栏表改成单栏；
+   - 用脚本检查每页空白不超过 25%，并检查每张表与提到它的文字在同一页或下一页。
+7. 不跑新实验；正文 ≤ 8 页；新建 `paper/gstar_si_v18/`，v17 不动；编译、打包 zip、commit 并 push。
