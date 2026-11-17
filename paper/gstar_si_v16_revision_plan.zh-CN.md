@@ -1,172 +1,207 @@
-# MIST 论文 v16 修改方案（基于 gstar_si_v15，待确认）
+# MIST 论文 v16 修改方案（基于 gstar_si_v15，第二轮）
 
-2026-11-17（布拉格时间）。v15：`paper/gstar_si_v15/`（commit 88bd508ad）。不做新实验；新增的正文内容只用已有 JSON 和已有表格。
+2026-11-17（布拉格时间）。v15：`paper/gstar_si_v15/`（commit 88bd508ad）。不做新实验。
 不改动：abstract、introduction、Figure 1（同 v15）。
 
+**第二轮的变化**
+- 用户决定 R3′ 不放进正文。
+- 正文写出 Proposition 2，并先用一句话交代它的用处。
+- 压缩 Problem Formulation，以及每个小节开头的动机段。
+- 新增全部数学符号的审查结果（§2）。
+- 实验部分与 Method 的对应关系见 §4。
+- 承诺公开评测脚本。
+
 ---
 
-## 1. 结尾三部分压缩到半页以内（第 1 问）
+## 1. 已定决策
 
-| | SimulS2ST-Omni | SEE | v15 |
+| 问题 | 决定 |
+|---|---|
+| R3′（语速匹配规则）放进正文 ablation | **不放**（用户）。正文措辞要克制：不说“收益主要来自 CRF”，只说 PA Talker 在每个集上进一步缩短语音、在 Zh→En 上提高质量，这些都是事实。完整析因表是否放进附录 G 见 §7 |
+| 恢复数学推导，正文写出 Proposition 2 | **放**，要讲清动机和用处，简短，衔接顺 |
+| 实验部分合并为 “4 Experiments”，最后一节是 Ablation Analysis | **是** |
+| 公开 cpASR-BLEU / tcpASR-BLEU 评测脚本 | **承诺**。匿名审稿期写 “we will release the scorer” |
+
+---
+
+## 2. 数学符号逐个审查（新问题）
+
+### 2.1 Eq. (9) 中各量的类型
+
+$\min_q \mathrm{KL}(q\Vert p_0)\ \text{s.t.}\ \mathbb{E}_q[\Phi_\mathcal{S}]\le bW$：
+
+- $q$、$p_0$ 是定义在训练语料全部播放计划上的**概率分布**（有限集合上的分布），不是向量或矩阵。
+- $\mathbb{E}_q[\Phi_\mathcal{S}]$、$b$（秒/单位）、$W$（目标单位总数）**都是标量**。所以 $bW$ 是一个标量预算，单位是“单位·秒”。
+- 问题在 $W$：它和每个块的 $W_i$ 容易混淆。v16 改成 $W_\mathcal{S}=\sum_{\mathcal{U}\in\mathcal{S}}\sum_i W_i$，与 $\Phi_\mathcal{S}$ 的写法对应。
+
+### 2.2 v15 Method 中的问题和改法
+
+| 问题 | v15 写法 | v16 改法 |
+|---|---|---|
+| **字母冲突** | $q$ 既表示 PR 分布，又表示语速 token（$q_i$、$q(c)$） | 语速 token 改用 $\tau$（$\tau_i$、$\tau^{\mathrm{pace}}_i$、$\tau_0$、$\bar\tau$），$q$ 只留给分布 |
+| 字母冲突 | $h_i$ 是 backlog，$\hat{\bm h}_k$ 是 ASR 转写 | 转写改为 $\bm{o}_k$，参考改为 $\bm{g}_\varrho$ |
+| 字母冲突 | $g_\psi$ 是投影器，$g_i$ 是 backlog 转移 | 投影器改为 $\mathrm{Proj}_\psi$ |
+| 字母冲突 | $W$ 与 $W_i$ | $W_\mathcal{S}$ |
+| 字母冲突 | $\mathrm{H}$（交叉熵）与 $\mathcal{H}$（格点）、$\bar H$ | 交叉熵改为 $\mathrm{CE}(\cdot,\cdot)$ |
+| 字母冲突 | §3.2 里 $j$ 同时作块下标（$\bm{s}_j$）和 chunk 下标（$e_j$） | chunk 下标改为 $l$ |
+| **缺维度** | $\bm{x}$ 只写了 “T seconds” | $\bm{x}\in\R^{L}$（$L$ 个采样点，时长 $T$ 秒） |
+| 缺维度 | $\bm{y}^{(n)}$、$\bm{y}$ 没有空间 | $\bm{y}^{(n)}\in\mathcal{V}^{|\bm{y}^{(n)}|}$，$\mathcal{V}$ 为词表（含新增的说话人 token 和时间 token） |
+| 缺维度 | $\bm{v}_k$ | $\bm{v}_k\in\R^{L_k}$（一段音频） |
+| **该用向量/矩阵却写成标量函数** | $\alpha_i(h)$、$\beta_i(h)$ | 向量 $\bm{\alpha}_i,\bm{\beta}_i\in\R_{\ge0}^{|\mathcal{H}|}$，每个 backlog 值对应一维 |
+| 同上 | $\mu_i(h,c)$ | 矩阵 $\bm{\mu}_i\in[0,1]^{|\mathcal{H}|\times|C_i|}$，行对应 backlog，列对应候选 |
+| 同上 | $w_i(c)$ | 概率向量 $\bm{w}_i\in\Delta^{|C_i|}$（单纯形，各分量之和为 1） |
+| 同上 | $\rho_i(q)$ | 概率向量 $\bm{\rho}_i\in\Delta^{|\mathcal{T}|}$，$\mathcal{T}$ 为语速 token 集合 |
+| 同上 | CRF 的观测 $\mathcal{U}$ 只用文字描述 | 写成 $\mathcal{U}=(\bm{\nu},\bm{W},C_{1:I})$，其中 $\bm{\nu}\in\R^{I}$ 是释放时刻，$\bm{W}\in\mathbb{N}^{I}$ 是各块单位数。这样 “conditional” 的含义就明确了 |
+
+### 2.3 下标 $i$ 的标量要不要改成向量？
+
+**大多数确实是标量**，例如 $h_i$、$\nu_i$、$W_i$、$D(c)$、$\lambda$、$b$、$\eta$、$\kappa$。链式模型的要点就是沿 $i$ 递推，所以逐块标量写法清楚，也是 HMM/CRF 论文的标准写法，保留。
+
+**本身是向量或矩阵的量**（消息、边缘分布、候选权重、语速后验）改成粗体，并写明维度。前向–后向也改成矩阵–向量形式：对每个候选 $c$，定义 0/1 转移矩阵 $\bm{T}_i^{(c)}\in\{0,1\}^{|\mathcal{H}|\times|\mathcal{H}|}$，其元素为 $[\bm{T}_i^{(c)}]_{h,h'}=\mathds{1}[g_i(h,c)=h']$，每行只有一个 1；再定义势函数向量 $\bm{\phi}_i^{(c)}\in\R^{|\mathcal{H}|}$。于是
+
+$$\bm{\alpha}_{i+1}=\sum_{c}\bm{T}_i^{(c)\top}\big(\bm{\alpha}_i\odot e^{\bm{\phi}_i^{(c)}}\big),\qquad
+\bm{\beta}_i=\sum_{c}e^{\bm{\phi}_i^{(c)}}\odot\big(\bm{T}_i^{(c)}\bm{\beta}_{i+1}\big),$$
+
+$\bm{\mu}_i$ 的第 $c$ 列等于 $\bm{\alpha}_i\odot e^{\bm{\phi}_i^{(c)}}\odot\bm{T}_i^{(c)}\bm{\beta}_{i+1}/Z_\lambda$。由于每行只有一个 1，每个候选的计算量是 $O(|\mathcal{H}|)$，复杂度 $O(I|\mathcal{H}|\max_i|C_i|)$ 一眼可见。篇幅与 v15 相当。
+
+**统一记号规则（全文）**：
+- 标量用普通斜体；
+- 向量用粗体小写（希腊字母也用 `\bm`）；
+- 矩阵用粗体大写；
+- 集合用 `\mathcal`；
+- 分布用 $p,q,\pi$；
+- 函数写成 $\mathrm{Proj}_\psi$、$g_i$ 这类形式；
+- 每个符号第一次出现时，在同一句里给出类型和维度。
+
+附录里的符号同样按这些规则统一：$\varphi_l$、$\sigma^\star$、$\bm{V}^{(m)}$ 等。
+
+---
+
+## 3. Method 的修改
+
+### 3.1 压缩 Problem Formulation 和各小节开头
+
+**3.1 Problem Formulation**：从约 12 行压到约 6 行，不写动机句，只给定义：
+> *Given a single-channel recording $\bm{x}\in\R^L$ ($T$ s), \sys{} outputs segments $(k_n,a_n,b_n,\bm{y}^{(n)})$ … committed at reads $t_1<\dots<t_R$ from $\bm{x}_{\le t_r}$ only and never revised; each is played in the stream of speaker $k_n$, and a target unit's heard time is its playback time there (computed, §3.3).*
+
+“为什么要同时解决‘谁说了什么’和‘何时听到’”这层意思，已经由 §3 开头的那句话交代了。
+
+**其余各节开头只用一两句话交代问题，意思不变**：
+
+| 小节 | v16 开头 |
+|---|---|
+| 3.2 | *Acoustic tokens carry no speaker identity across a meeting and are shared by overlapping speakers, so a speaker-blind translator merges concurrent contributions (Figure 1). \sys{} therefore conditions the Thinker on a speaker stream and has it name the speaker first.* |
+| 3.3 | *Committed text is heard only after it is spoken, and one speaker's blocks are spoken in turn, so a stream that receives more speech than its source time builds a queue; in B, two thirds of the delay arise there (Figure 1).* |
+| 3.4 | *A rendering also delays every later block of its stream; playback alignment (PA) prices this by scoring whole playback plans with a linear-chain CRF.* |
+| 3.5 | *The CRF needs future release times, so it runs only in training, where its posterior becomes the Talker's training target.* |
+| 3.6 | *Inspired by cpWER and tcpWER, we propose cpASR-BLEU and tcpASR-BLEU to score translated speech for content and speaker attribution, without and with time constraints.* |
+
+每节结尾的承接句也压成一句。
+
+### 3.2 恢复 3.4 的数学推导，并在正文写出 Proposition 2
+
+在 3.4 的 *A latency budget instead of a tuned price* 一段中，按以下顺序写：
+
+1. **动机，一句**：*Hand-tuning $\lambda$ would need a sweep per direction and its scale has no meaning; a budget in seconds per unit is interpretable, and Proposition 2 shows it fixes $\lambda$ uniquely while keeping the same CRF and inference.*
+2. Eq. (9)（$W$ 改成 $W_\mathcal{S}$）。
+3. 拉格朗日函数的极小点是 Gibbs 形式：$q_\lambda\propto p_0\,e^{-\lambda\Phi_\mathcal{S}}=\prod_{\mathcal{U}}p_\lambda(\cdot\mid\mathcal{U})$。原因是 $\Phi_\mathcal{S}$ 可以按块分解，所以这一项只是在每个节点势上减去 $\lambda L_i$。这正好解释了为什么延迟的价格会出现在 Eq. (6) 里。
+4. 对偶函数与导数：$\mathcal{D}(\lambda)=-\sum\log Z_\lambda/Z_0-\lambda bW_\mathcal{S}$，$\mathcal{D}'=\mathbb{E}_{p_\lambda}[\Phi_\mathcal{S}]-bW_\mathcal{S}$，$\mathcal{D}''=-\mathrm{Var}\le0$。
+5. **Proposition 2（陈述）**：Eq. (9) 的解是共享 $\lambda^\star$ 的 CRF；若 $p_0$ 已满足预算，则 $\lambda^\star=0$，否则 $\lambda^\star$ 是 $\mathbb{E}_{p_\lambda}[\Phi_\mathcal{S}]=bW_\mathcal{S}$ 的唯一根，可用二分求出。证明见附录 D。
+6. 一句话说明**用处**：同一次前向–后向就能算出约束后的后验；求 $\lambda$ 只需一维二分，并保证收敛。
+
+此外：
+- 消息改为 §2.3 的向量形式。
+- 3.4 加一句建模近似：候选是采样的，backlog 做了离散化，“精确”指在该状态空间内精确。
+- 3.5 的 “one M-step of posterior-regularised EM” 改成 “analogous to …”。
+- Proposition 1 和 3 只在正文行内引用。
+
+### 3.3 3.6 只保留我们提出的指标
+
+- LAAL（Papi et al. 2022）和 EndOffset（SimulEval）移到 Setup 的 Metrics 段，并加引用。
+- 3.6 写 cpASR-BLEU 和 tcpASR-BLEU 各一个公式，转写和参考使用新记号 $\bm{o}_k$、$\bm{g}_\varrho$。
+- 末尾加一句：*We will release the scorer.*
+
+---
+
+## 4. 实验部分（按 SEE 的组织方式，与 Method 对应）
+
+是的，v16 按 SEE 的方式组织：先 Setup，再主结果，然后每节分析回答一个关于方法的论点，最后一节是 Ablation Analysis。
+
+| v16 小节 | 证据 | 对应的 Method | 能否证明 |
 |---|---|---|---|
-| Conclusion | 约 0.45 栏 | 约 0.3 栏 | 69 词，约 0.2 栏 |
-| Limitations | 约 0.5 栏，3 段 | 约 0.65 栏，3 段 | **510 词，7 段，约 1.3 栏** |
-| Ethics | 约 0.25 栏 | 无 | 80 词，约 0.2 栏 |
-| 合计 | 约半页 | 约半页 | **约 0.85 页** |
+| 4.1 Experimental Setup | — | — | — |
+| 4.2 Main Results | Table 1 | 整个系统（3.2–3.5），并用 3.6 的指标打分 | 能。所有集合上 cp/tcpASR-BLEU 都最高；同数据级联与 B 的对比说明“先翻译、后归属说话人”不够 |
+| 4.3 Where the Listener-Side Delay Is Removed | 时延分解表 | 3.3 的队列模型 Eq. (3)、(4) 和语速 Eq. (5) | 能。延迟的减少全部来自排队等待和最后一块，load 降到约 1，正是 Eq. (3) 预测的机制 |
+| 4.4 Out-of-Domain Generalisation and Robustness | 稳健性表 | 3.6 的指标是否可靠，以及 3.3–3.5 能否泛化 | 能。第二识别器和 COMET 结论一致；锁定的 OOD 会议上方向相同 |
+| 4.5 Ablation Analysis，*Speaker tokens* 段 | 重叠说话表 | 3.2 的 Eq. (1)、(2) | AMI 上能（重叠单元得分和并发召回 CR 都上升）；AliMeeting 只有 CR 上升，照实写 |
+| 4.5 Ablation Analysis，*Playback-layer components* 段 | ablation 表 | 3.3 Eq. (5)、3.5 的 PA Talker、Eq. (10)、按保真度选择 | 能证明每个组件都有贡献。措辞克制：PA Talker 在每个集上进一步缩短语音，在 Zh→En 上提高质量 |
 
-v16 目标：三部分合计约 1 栏（约 420 词）。
-- **Conclusion**：约 90 词，三句。第一句总结问题，第二句总结方法（说话人优先解码、播放队列 CRF、两个新指标），第三句总结证据（三个测试集、OOD 和锁定测试）。可加半句 future work。
-- **Limitations**：约 250 词，压成 3 段。
-  1. **Evaluation**：只有自动指标、没有听测；En→Zh 参考是机器翻译；Zh→En 源语音是合成的；AliMeeting 测试集在开发中被多次打分，只有 8 场锁定会议是盲测；diarizer 见过 AMI/AliMeeting 的训练数据。
-  2. **Method**：候选是采样得到的，backlog 做了离散化；势函数权重是固定的；Talker 的训练只沿 base-rate 的 backlog 轨迹进行，只做了一轮；只用一个随机种子、一个预算值；更快的语音带来更多停顿。
-  3. **System**：已提交的输出不再修改，所以错的说话人标签也会被念出来；没有单人发言段的说话人拿不到 voice prompt；每个说话人一个声道，重叠时会同时听到多个声音；时延不含计算时间。
-- **移到附录**：Computation 段里的实测耗时数字移到附录 C；外部系统的运行细节已在附录 F，Limitations 中只留一句。
-- **Ethics**：约 60 词，三句：说明有声音克隆风险，需要征得同意并标注合成语音；Zh→En 的 AMI 语音是克隆合成的；数据集许可证。
+**三处对应不足，v16 的处理**：
+1. **时延预算（3.4 的 Eq. 9 / Prop. 2）没有单独的实验**：预算只跑了一个值。v16 在 4.5 加一句：λ* 由预算自动确定（0.50 / 0.70），两个方向都没有调参。Limitations 已经写了“一个预算值”。不做新实验。
+2. **3.6 的新指标缺少有效性证据**（SEE 用整节验证它的指标）。可以用已有数据补一句：在 AliMeeting 上，我们的 tcpASR-BLEU 给四个系统的排序（MIST > B > X-Translator > SeamlessStreaming）与 DiariST 官方的说话人归属 BLEU（SAt，附录 Table 17）**完全一致**。这句放在 4.4，引用附录。另外，级联系统用自己猜的标签时 text tcpBLEU 只有 10.9 / 24.4 / 11.4（附录 F），说明这类指标确实会惩罚错误的说话人归属，也可以加一句。
+3. **R3′ 不放正文**（用户决定）。相应地，正文不写会被 R3′ 反驳的结论。
 
-**注意（影响第 3 问）**：按 ACL 规定，Limitations 和 Ethics **不计入 8 页正文**，计入的只有 Conclusion，而它已经很短。所以压缩这三部分主要是为了好读，**不会给正文腾出空间**。
+**还要不要从附录再搬实验进正文？** 不需要。正文已有 5 个结果图表，加上两张方法图共 7 个浮动体，与 SimulS2ST-Omni 相当。
 
 ---
 
-## 2. 实验章节的结构（第 2 问）
+## 5. 结尾三部分压到半页以内（同第一轮）
 
-| | 小节 | 组织逻辑 |
-|---|---|---|
-| SimulS2ST-Omni | 4.1 Experimental Protocol / 4.2 Offline S2ST / 4.3 Sentence-Level Simultaneous / 4.4 Long-form Simultaneous / **4.5 Ablation Studies**（段落：Data quality and sampling strategy；Dataset size and augmented tasks） | 按**评测场景由易到难**排列，最后一节集中放消融 |
-| SEE | 4.1 Setups / 4.2 Quantifying Noise Intensity with SEE / 4.3 Effectiveness Across Noise Types / 4.4 SEE on Denoising / 4.5 Suppressing Noise with SEEN / **4.6 Ablation Analysis**（段落：Layer Selection；Sensitivity to Hyperparameters） | 按**论点**排列：指标有效 → 能泛化 → 能诊断 → 能指导方法；最后一节集中放消融 |
+- Conclusion：约 90 词。
+- Limitations：约 250 词，3 段（Evaluation / Method / System）。
+- Ethics：约 60 词。
+- 耗时实测数字移到附录 C。
 
-两篇的共同点：
-1. Setup 是实验章的第一小节，不单独成章。
-2. 前面几节是主结果和分析，**最后一个 Ablation 小节里用加粗段落标题**分开不同的消融。
-
-SEE 按论点排列，这和我们的情况更接近，因为我们的贡献本身就是论点：说话人归属、播放队列、指标、泛化。
-
-**v16 实验章**：
-- **4 Experiments**
-  - 4.1 Experimental Setup
-  - 4.2 Main Results（Table 1）
-  - 4.3 Where the Listener-Side Delay Is Removed（时延分解 + 语音性质表）
-  - 4.4 Out-of-Domain Generalisation and Robustness（稳健性表）
-  - **4.5 Ablation Analysis**，下分三段：
-    - *Speaker tokens under overlap*（重叠说话表）
-    - *Playback-layer components*（ablation 表）
-    - *CRF-trained Talker vs. a rate-matched rule*（见下）
-
-v15 的第 4、5 章合并成一章。
-
-**附录里的实验还要不要放进正文？**
-- 正文已有 5 个结果图表，8 页的空间基本用满了。**建议只加一行，不加新表**：把 v11 的“语速匹配规则”行（R3′）加进 ablation 表。
-- 原因：这是 v11 的**预注册主检验**（PA Talker 对比“语速调到同样快、同样做 best-of-2 的规则层”），结果对 CRF 不利：
-  - MIST − R3′ 的 tcpASR-BLEU 差值为 +0.11 / +0.05 / +0.23，**只有 AliMeeting 显著**（p_Holm = 0.007）；
-  - 两者 LAAL 相同（差值 ≤ 0.003 s）。
-- 当时（LOG 第 3291 行）决定在摘要里写“同样快的规则层复现大部分收益”。但从 v12 起，这个结果在正文和附录里都消失了。
-- 现在的累积 ablation 顺序是 R2→PA Talker→best-of-2，会让读者以为收益主要来自 CRF。审稿人很可能追问“是不是只要说快一点就行”。
-- 如实写法：规则层的语速需要在 dev 上手调（shift 8）才能达到 MIST 的语速，PA 则由预算自动确定工作点；在相同语速下，CRF 训练的 Talker 只在 OOD 的 AliMeeting 上显著更好。这样写也正好支撑 OOD 的叙事。
-- 质量–LAAL 图（附录 Figure 5）：只有页面还有空余时才放回正文，否则留在附录。
+按 ACL 规定，只有 Conclusion 计入 8 页正文；Limitations 和 Ethics 不计入，所以压缩它们不会给正文腾出位置。
 
 ---
 
-## 3. 数学部分：v15 相对 v14 删了什么、要不要恢复（第 3、4 问）
+## 6. 正文能不能放下（第 2 问）
 
-**Proposition**：从 v12 起，三个 Proposition（精确推断、时延预算、后验加权训练）**一直放在附录**，正文只引用。v15 并没有把它们从正文移走。v15 真正删掉的是**正文里的推导**：
+| 变化 | 行数（估计，正文） |
+|---|---|
+| 恢复 Gibbs 形式、对偶、Proposition 2 及其动机和用处 | +16 |
+| 向量形式的消息（转移矩阵定义） | +2 |
+| 3.6 指标公式和 “release” | +3 |
+| 4.4 指标一致性的一句、4.5 预算的一句 | +3 |
+| **合计增加** | **约 +24** |
+| 压缩 Problem Formulation | −6 |
+| 压缩 6 个小节的开头和结尾 | −8 |
+| LAAL/EndOffset 移到 Setup | −2 |
+| 第 4、5 章合并，小节合并 | −6 |
+| Figure 2 缩到 0.85 倍宽 | 约 −6 |
+| caption 再精简 | −3 |
+| **合计减少** | **约 −31** |
 
-| v14 正文里有、v15 正文删掉的 | 是否属于我的方法核心 | v16 建议 |
-|---|---|---|
-| 前向/后向消息 α_i、β_i 的定义式（v14 Eq. 6） | 中等：能精确说明消息的含义 | **恢复**为一个紧凑公式 |
-| 拉格朗日函数 → Gibbs 形式 q_λ ∝ p_0·e^{−λΦ_S} → 恰好等于共享 λ 的 CRF（即“延迟的价格为何出现在势函数里”） | **是**，时延预算这个贡献的核心 | **恢复**，并把 **Proposition 2 的陈述放进正文**，证明留在附录 |
-| 对偶函数 D(λ) 及其导数 D′ = E[Φ_S] − bW、D″ = −Var ≤ 0（v14 Eq. 10–11） | **是**，二分法成立的依据 | **恢复**为一个公式 |
-| w_i 的两种等价写法（μ 的比值 = β 的形式） | 较小 | 恢复为一行 |
-| 加权交叉熵的公式和 Ω、读时刻的掩码公式 P^(r)、cpASR-BLEU 的集合公式 | 不是（或已用文字说明） | 正文保持文字；cpASR/tcpASR 的完整公式放进附录（见第 4 节） |
-| 符号表、具体数值 | 不是 | 留在附录 B |
+预计能放下，还剩约 7 行余量。
 
-**Eq. (9) 的求解过程（第 4 问）**：
-- 正文只有一段结论性的文字。
-- 附录 D 的 Proposition 2 有完整证明：Lagrangian → 唯一的 Gibbs 极小点 → 等于共享 λ 的 CRF → 对偶 D(λ) 及其一二阶导 → 强对偶和互补松弛 → 二分。
-- **缺的是数值细节**。代码 `experiments/mist_w3po_v1/talker/playback_lattice.py::solve_lambda` 的做法是：λ ∈ [0, 50]；若 E_{p0} 已满足预算则取 λ = 0；否则二分 40 次，取满足预算的最小 λ。v16 把这一点写进附录 D 和 Algorithm 1。
-
-**多出来的空间放在哪里**：第 1 节已说明，压缩 Limitations 和 Ethics 不会给正文腾出位置。v16 正文要增加约 20 行：
-- 恢复上表三项公式和 Proposition 2 的陈述，约 +15 行；
-- R3′ 行和对应的说明句，约 +3 行；
-- §3.6 加上指标公式，约 +3 行。
-
-需要从下面这些地方腾出：
-- Setup 并入实验章，少一个章标题（约 −3 行）；
-- 实验小节合并（约 −4 行）；
-- LAAL/EndOffset 从 Method 移到 Setup（约 −2 行）；
-- Figure 2 缩小到 0.85 倍宽（约 −6 行当量）；
-- 各表 caption 再精简（约 −3 行）。
-
-**建议全部用在 Method**，因为恢复的是核心推导；实验部分的增量只有 R3′ 那一行。如果还超页，把稳健性表的 COMET 行移到附录。
+如果仍然超页，按以下顺序处理，不动方法：
+1. 稳健性表的 COMET 行移到附录；
+2. Related Work 精简两三行（它不在受保护范围内）。
 
 ---
 
-## 4. Speaker-Attributed Speech Metrics 一节（第 5 问）
+## 7. 附录修改（同第一轮，再加一个待定项）
 
-- **LAAL 不是我们提出的**（Papi et al., 2022）。**EndOffset 也不是**，它是 SimulEval（Ma et al., 2020）的语音时延指标，我们只是按单元计算。所以两者都**移出 Method**，放到 Setup 的 Metrics 段，并分别引用 Papi 2022 和 ma2020simuleval（bib 里已有）。
-- Method 的 §3.6 只保留我们提出的两个指标，标题改为 **“cpASR-BLEU and tcpASR-BLEU”**。第一段写明：受说话人归属识别指标 cpWER（Watanabe et al., 2020）和 tcpWER（von Neumann et al., 2023）启发，我们为语音翻译提出这两个指标。正文各给一个公式：
-  - cpASR-BLEU：在最优一对一说话人匹配 σ* 下计算 corpus BLEU；
-  - tcpASR-BLEU：加 collar 的单元分配规则。
-- **附录现状**：附录 E 只有文字描述，**没有公式，也没有算法**，有些细节读者无法复现，例如：
-  - chrF 的参数；
-  - “重叠最多”怎么度量、平局怎么处理；
-  - 犹豫词和窗口外语音怎么排除；
-  - 各会议怎么汇总成 corpus BLEU；
-  - TTS 两次运行怎么合并。
-- **v16 的附录 E 改成完整的形式化定义**，读者照着就能实现：
-  1. 记号：会议 m；输出流 k 的转写片段，带时间 (s, e) 和文本；参考话语，带说话人 ϱ、时间和是否计分。
-  2. 参考单元的构造：同一说话人间隔小于 1 s 的话语串成一个单元（公式）。
-  3. 说话人匹配：用 sacreBLEU 默认 chrF 打分，Hungarian 算法求 σ*（公式）。
-  4. 片段归属规则：先把片段的时间区间两边各加 2 s collar，找它重叠时长最长的计分话语。
-     - 若该话语属于 σ* 匹配到的说话人，片段归入这个话语所在的单元。
-     - 若不属于，就在匹配说话人自己的单元里找重叠最长的那个，归入它。
-     - 两步都找不到时，片段算插入。平局按时间顺序取第一个。
-  5. 两个指标的定义：cpASR-BLEU 和 tcpASR-BLEU 各写成一个 corpus-BLEU 公式，并写明分词器（13a / zh）、各会议的统计量合并方式、TTS 两次运行的合并方式。
-  6. 一个 **Algorithm 2** 伪代码框，外加一个小例子：一句话被分给了错误的说话人，分别算两个指标各被扣多少。
+- **D**：补充 CRF 的正式因子分解定义、建模假设（采样候选、80 ms 格点、上限 8 s、向上取整）、对数空间实现、二分细节（λ ∈ [0, 50]，二分 40 次）和与暴力枚举的对照验证。
+- **E**：cpASR-BLEU / tcpASR-BLEU 的完整形式化定义（记号、单元构造、匹配、归属规则、插入、平局、汇总、分词、TTS 合并方式），外加 Algorithm 2 和一个小例子，并写明会公开评测脚本。
+- **C**：接收原 Computation 段的耗时数字。
+- **G（待你定）**：是否把完整析因表（R0–R5，含 R3、R3′）放进附录。正文不放。建议放进附录：不占正文页数，审稿人问到时有据可查，可以避免“选择性报告”的质疑。如果你不同意，就完全不放。
 
-  **需要你决定：是否在论文里承诺公开评测脚本**（建议承诺，便于别人使用新指标）。
+## 8. 执行步骤（确认后执行）
 
----
-
-## 5. CRF 是否是严格的数学模型、推导在哪里（第 6 问）
-
-**结论：是严格的线性链 CRF**，推导和证明都在附录 D。
-- Eq. (7) 是给定观测 𝒰（各块文本、释放时间、候选集合）时，在状态序列 z 上的 Gibbs 分布。
-- 它能分解成节点因子 exp φ_i(z_i) 与成对因子 𝟙[h_{i+1} = g_i(h_i, c_i)] 的乘积：成对因子的对数势只取 0 或 −∞，也就是确定性的 FIFO 约束。归一化常数是 Z_λ。这正是 Lafferty et al. (2001) 定义的线性链结构。
-- 前向–后向是精确的：Prop. 1 有证明；实现在对数空间；单元测试与暴力枚举结果一致（test_playback_lattice.py）。
-- 后验正则的解仍然是 CRF：Prop. 2。
-- 训练目标的分解：Prop. 3。
-
-**需要如实说明的近似**（v16 写进 3.4 的一句话和附录 D 的“Modelling assumptions”段）：
-1. 势函数权重 η_ℓ、η_f 是固定的，不是用条件似然学出来的。这个 CRF 只用于推断，不做参数学习。
-2. 状态空间是近似的：候选是有限次采样；backlog 被离散到 80 ms 格点、上限 8 s，并且向上取整。代码注释记录了这一点：在很长的链上，向上取整平均会累积 +0.28 s 的漂移。“精确”只是指在这个状态空间内精确。
-3. 把训练称为“一步后验正则 EM”只是类比：E 步里的“模型”是 base Talker 的似然加上一个外部识别器给的保真度分，不完全是 PR-EM 的定义。正文改成 “analogous to one M-step of posterior-regularised EM”。
-4. Talker 只在 base-rate 的 backlog 轨迹上取条件分布训练，没有对 backlog 做边缘化。Limitations 中已写。
-
-v16 附录 D 还要补充：
-- 用因子分解写出 CRF 的正式定义（一个公式）；
-- 对数空间实现和复杂度；
-- 二分的数值细节；
-- 与暴力枚举的对照验证。
-
----
-
-## 6. v16 执行步骤（确认后执行）
-
-1. 新建 `paper/gstar_si_v16/`，从 v15 复制过去。v15 不做任何修改。
-2. **Method**：
-   - 3.4 恢复消息定义、Gibbs 形式和对偶推导，正文写出 Proposition 2 的陈述；加一句建模近似；“M-step”改为类比措辞。
-   - 3.6 改为只讲 cpASR-BLEU 和 tcpASR-BLEU，第一段写明受 cpWER/tcpWER 启发，各给一个公式；LAAL/EndOffset 移到 Setup，引用 Papi 2022 和 SimulEval。
-3. **实验**：第 4、5 章合并成 “4 Experiments”（4.1–4.5）；4.5 Ablation Analysis 分三段；ablation 表加入 R3′ 行（数据来自 factorial_test_v1.json，含 p_Holm）。
-4. **附录**：
-   - D 补充 CRF 的正式定义、建模假设和二分细节；
-   - E 改成 cpASR-BLEU / tcpASR-BLEU 的完整形式化定义，加 Algorithm 2 和一个小例子；
-   - C 接收原 Computation 段的耗时数字；
-   - G 放入完整的 factorial 表（R0–R5，含 R3、R3′）。
-5. **结尾三部分**：压到约 420 词，约半页。
-6. 编译（Overleaf 用的 pdflatex），检查：正文 ≤ 8 页；没有未定义引用和溢出；全文 grep 不到 distil；正文中没有外部系统的 EndOffset。然后打包 zip，commit 后 push。
-
-## 7. 需要你确认
-
-1. **R3′（语速匹配规则）放进正文 ablation 表并如实说明。** 建议放；这是预注册的主检验，审稿人一定会问。
-2. **数学恢复范围按第 3 节**：消息定义 + Gibbs 形式 + 对偶公式 + 正文写出 Proposition 2，其余 Proposition 只引用。建议是。
-3. **实验章合并成 “4 Experiments”，最后一节是 Ablation Analysis。** 建议是。
-4. **是否在论文中承诺公开 cpASR-BLEU / tcpASR-BLEU 评测脚本。** 建议承诺。
+1. 新建 `paper/gstar_si_v16/`，从 v15 复制过去，v15 不做任何修改。
+2. 统一符号（§2）。
+3. 修改 Method（§3）。
+4. 合并实验部分并改写（§4）。
+5. 修改附录（§7）。
+6. 压缩结尾三部分（§5）。
+7. 编译，检查以下各项：
+   - 正文 ≤ 8 页；
+   - 没有未定义引用；
+   - 没有 overfull box；
+   - 全文 grep 不到 distil；
+   - 外部系统没有 EndOffset；
+   - 只读每段首句时能读通；
+   - 符号表里每个符号都在正文有定义和维度。
+8. 打包 zip，commit 后 push。
