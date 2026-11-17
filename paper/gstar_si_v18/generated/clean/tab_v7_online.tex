@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3.0pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrrrrr}
+\toprule
+ & & & \multicolumn{3}{c}{tcpBLEU} & & & \multicolumn{2}{c}{text end lag (s)} & \multicolumn{3}{c}{listener lag, completion (s)} \\
+\cmidrule(lr){4-6}\cmidrule(lr){9-10}\cmidrule(lr){11-13}
+Set & System & Mtgs & windows & online & speech & Omit & Ins. & p50 & p90 & 1 ch.\ p50 & per-spk p50 & per-spk p90 \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 16 & 42.45 & 40.09 & 29.07 & 20.6 & 4.9 & 1.87 & 2.82 & 141.8 & 6.5 & 11.2 \\
+ & \sys{} + LA2 & 16 & 31.41 & 34.26 & 27.49 & 25.7 & 7.0 & 2.30 & 6.09 & 255.1 & 11.0 & 104.7 \\
+\midrule
+Zh$\rightarrow$En & \sys{}-Simul & 16 & 23.96 & 24.53 & 16.60 & 18.6 & 6.3 & 1.94 & 2.41 & 26.0 & 7.9 & 14.9 \\
+ & \sys{} + LA2 & 16 & 24.30 & 23.94 & 14.90 & 21.0 & 7.8 & 2.01 & 5.57 & 27.5 & 7.4 & 15.8 \\
+\midrule
+AliMeeting & \sys{}-Simul & 20 & 13.34 & 11.46 & 9.43 & 13.0 & 3.1 & 1.62 & 2.49 & 604.4 & 18.0 & 306.3 \\
+ & \sys{} + LA2 & 20 & 12.41 & 11.09 & 9.14 & 15.8 & 3.6 & 2.77 & 7.91 & 734.9 & 36.7 & 194.3 \\
+\bottomrule
+\end{tabular}}
+\caption{Whole meetings run online, all test meetings (AMI 16 per direction, AliMeeting 20; no reference boundary). tcpBLEU of the same system on the reference windows of the same meetings (windows), run online (text), and of the ASR of its synthesised speech (speech); Omit / Ins.: unscored reference units / inserted segments (\%); text end lag: last commit of a reference unit minus its end, including the delay until a window's end is detected; listener lag: end of a block's speech minus the end of its source segment, with measured computation and synthesis, on one interpreter channel (1 ch.) or one channel per speaker (Appendix~\ref{app:online7}). AliMeeting references: machine translations (Appendix~\ref{app:qe7}).}
+\label{tab:online7}
+\end{table*}

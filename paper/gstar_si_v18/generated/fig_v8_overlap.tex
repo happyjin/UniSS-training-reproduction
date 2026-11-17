@@ -1,0 +1,20 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}\begin{axis}[width=0.52\columnwidth,height=3.6cm,xtick={0,1,2,3},
+xticklabels={0,0--10,10--30,30+},xlabel={overlapped share of unit (\%)},ylabel={tcpBLEU},title={En$\rightarrow$Zh},
+title style={font=\small},label style={font=\scriptsize},tick label style={font=\scriptsize},legend style={font=\tiny,at={(0.02,0.02)},anchor=south west}]
+\addplot[dashed,mark=*,mark size=1.2pt] coordinates {(0,43.36) (1,40.84) (2,36.17) (3,25.04)}; \addlegendentry{Cascade}
+\addplot[dotted,mark=*,mark size=1.2pt] coordinates {(0,46.88) (1,45.49) (2,41.82) (3,28.28)}; \addlegendentry{Relabel}
+\addplot[solid,mark=*,mark size=1.2pt] coordinates {(0,46.11) (1,44.63) (2,42.59) (3,32.63)}; \addlegendentry{\sys{}}
+\end{axis}\end{tikzpicture}
+\begin{tikzpicture}\begin{axis}[width=0.52\columnwidth,height=3.6cm,xtick={0,1,2,3},
+xticklabels={0,0--10,10--30,30+},xlabel={overlapped share of unit (\%)},ylabel={tcpBLEU},title={Zh$\rightarrow$En},
+title style={font=\small},label style={font=\scriptsize},tick label style={font=\scriptsize},legend style={font=\tiny,at={(0.02,0.02)},anchor=south west}]
+\addplot[dashed,mark=*,mark size=1.2pt] coordinates {(0,26.48) (1,25.81) (2,22.67) (3,13.19)}; \addlegendentry{Cascade}
+\addplot[dotted,mark=*,mark size=1.2pt] coordinates {(0,27.91) (1,27.48) (2,24.48) (3,14.64)}; \addlegendentry{Relabel}
+\addplot[solid,mark=*,mark size=1.2pt] coordinates {(0,28.06) (1,27.59) (2,24.84) (3,18.07)}; \addlegendentry{\sys{}}
+\end{axis}\end{tikzpicture}
+\caption{tcpBLEU by how much of a reference unit overlaps another speaker (reference windows, offline systems). The gap
+between \sys{} and post-hoc relabelling opens where speakers overlap.}
+\label{fig:overlap8}
+\end{figure}

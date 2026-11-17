@@ -1,0 +1,74 @@
+% v11 appendices: each section appears only when its result exists (generated/switches_v11.tex)
+\ifFactorial
+\section{Factorial Ablation of the Playback Layer}
+\label{app:factorial}
+Rows R1--R5 add one component at a time on B's text (\S\ref{sec:res-pa}); R3$^\prime$ is R3 with the rule's rate
+shift raised until its mean development rate matches the PA Talker's (shift chosen on development meetings before
+test decoding). The contrast fixed in the analysis plan is \sys{} (R5) against R3$^\prime$ on ASR-BLEU and LAAL$_\text{block}$ on
+the three test sets, Holm over six; all other contrasts are descriptive. The backlog rate rule asks each block for
+the rate of its source pace plus three rate steps per second of backlog (at most six), shifted by a constant number of
+steps (two in R2 and R3, eight in R3$^\prime$); R4 replaces the base Talker by the PA Talker under the same rule with
+one sample, so that R4 $-$ R2 isolates the learned Talker and R5 $-$ R4 CTC selection.
+\input{generated/tab_v11_factorial}
+\fi
+
+\ifSfourK
+\section{The Selection Rule's Checkpoint}
+\label{app:s4000}
+The stage-2 checkpoint of \sys{}+WA that we report (step 3{,}500) was not the one the pre-set selection rule picks
+(step 4{,}000). We fixed the comparison in an analysis plan and decoded step 4{,}000 once on every test set with the same bias
+($\bias=-1$) and playback layer (Table~\ref{tab:s4000}). It gives \num{v11:s4000:summary}; neither checkpoint improves
+significantly on \sys{} in ASR-BLEU, and both are heard later. The conclusion of \S\ref{sec:write} does not depend on the choice.
+\input{generated/tab_v11_s4000}
+\fi
+
+\ifAliEval
+\section{Locked Test on Unused AliMeeting Meetings}
+\label{app:alieval}
+The eight AliMeeting evaluation meetings (\num{v11:ae:hours}\,h of meeting audio) were never used for training,
+development or any earlier test. Windows, diarizer runs and scoring follow the AliMeeting test set, with two
+differences fixed before decoding: the references are the human English translations of DiariST (no machine
+translation), and no window is filtered by its reference. The analysis plan fixed four systems (B, \sys{} and
+\sys{}+WA at steps 3{,}500 and 4{,}000) and three confirmatory hypotheses (\sys{} $-$ B on ASR-BLEU, LAAL$_\text{block}$
+and EndOffset, Holm over three); everything else is exploratory. \num{v11:ae:wa}
+\input{generated/tab_v11_alieval}
+\fi
+
+\ifFluencyPA
+\section{A Speaking-Time Budget for the PA Talker}
+\label{app:fluencypa}
+The PA Talker speaks faster than B and pauses about twice as often (\S\ref{sec:res-pa}). PA-F adds to the posterior
+regularisation of \S\ref{sec:method-plem} a second expected constraint, a lower bound on speech duration per output word,
+$\mathbb{E}_q[\sum_i D(c_i)]/\sum_iW_i\ge s_{\min}$. The projection stays a linear-chain CRF, with $+\mu D(c)$ added to
+Eq.~\eqref{eq:plpot} and $\lambda,\mu\ge0$ found by alternating bisection (Zh$\rightarrow$En $\lambda^\star=3.14$,
+$\mu^\star=16.4$; En$\rightarrow$Zh $4.49$, $27.6$). The bound halves the PA Talker's speed-up on the training
+candidates, $s_{\min}=1/(r_0+\tfrac12(r_\text{PA}-r_0))$ with $r_0$ the base-speed rate and $r_\text{PA}$ the PA
+posterior's expected rate; training, checkpoint and decoding are those of the PA Talker. One setting was run, with the
+gate of earlier stages, both fixed before training (Table~\ref{tab:fluencypa}). \num{v11:flu:app} PA-F pauses less and
+speaks more slowly, but the fluency gain is not free in recognisability, so \sys{} keeps the PA Talker.
+\input{generated/tab_v11_fluencypa}
+\fi
+
+\ifWallclock
+\section{Computation-Aware Replay}
+\label{app:wallclock}
+All latencies in the main text exclude computation. To measure it for the final systems, we decoded a fixed set of
+whole test meetings again with the test settings, timing every read of the Thinker (prefix re-encoding included, GPU
+synchronised) and every Talker generation and candidate-scoring call, each job alone on one H200 GPU (a job was
+repeated, up to three times, when another process appeared on its GPU). A replay then schedules the reads on one
+decoder stream per meeting, each read starting when it is due or when the previous one ends, and the blocks on one
+Talker worker per meeting in release order, and plays them as in the main evaluation (Table~\ref{tab:wallclock}).
+\num{v11:wc:app}
+\input{generated/tab_v11_wallclock}
+\fi
+
+\ifMetricsV
+\section{A Second Recogniser and COMET}
+\label{app:metricsv11}
+Candidate selection in the playback layer uses a CTC recogniser (wav2vec~2.0), and ASR-BLEU uses Whisper-large-v3 or
+Paraformer, so part of the gain could be speech that suits recognisers rather than listeners. We therefore rescored the
+existing test outputs, with definitions fixed before computing: the speech-only audio of both TTS seeds transcribed by a
+second recogniser of a different family, and COMET~\citep{rei2022comet} per reference unit (source transcript,
+hypothesis, reference) for the text and for both ASR transcripts (Table~\ref{tab:metricsv11}). \num{v11:metricsv:app}
+\input{generated/tab_v11_metricsv}
+\fi

@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrrrrrr}
+\toprule
+ & & \multicolumn{5}{c}{EndOffset and its parts (s)} & \multicolumn{4}{c}{speech} \\
+\cmidrule(lr){3-7}\cmidrule(lr){8-11}
+Set & Sys. & lag & det. & queue & last & total & load & UTMOS & SIM & pauses \\
+\midrule
+Z$\rightarrow$E & B & 0.67 & 0.66 & 0.65 & 2.10 & 4.08 & 1.37 & 1.80 & 0.827 & 3.3 \\
+ & \sys{} & 0.68 & 0.66 & 0.14 & 1.64 & 3.13 & 0.94 & 1.94 & 0.827 & 8.3 \\
+\midrule
+E$\rightarrow$Z & B & 0.69 & 0.64 & 0.54 & 1.61 & 3.48 & 1.28 & 3.25 & 0.833 & 4.6 \\
+ & \sys{} & 0.71 & 0.64 & 0.14 & 1.42 & 2.91 & 0.99 & 3.40 & 0.831 & 9.4 \\
+\midrule
+Ali & B & 0.88 & 0.40 & 1.33 & 1.96 & 4.57 & 1.56 & 3.48 & 0.873 & 4.4 \\
+ & \sys{} & 0.95 & 0.40 & 0.33 & 1.55 & 3.23 & 1.05 & 3.72 & 0.873 & 11.8 \\
+\bottomrule
+\end{tabular}}
+\caption{Where B's delay is removed (test sets, identical text): EndOffset (total) = model lag + detector wait + queue wait (Eq.~\eqref{eq:backlog}) + last block. Load: speech per second of source; UTMOS: automatic MOS predictor; SIM: similarity to the voice prompt; pauses $\ge$0.5\,s per minute.}
+\label{tab:decomp}
+\end{table}

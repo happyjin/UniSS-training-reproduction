@@ -1,0 +1,26 @@
+\begin{table}[!htbp]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrrrrr}
+\toprule
+Set & Sys. & start & model & detector & queue & last block & EndOff. & load \\
+\midrule
+dev Zh$\rightarrow$En & B & 2.95 & 0.74 & 0.61 & 0.64 & 2.16 & 4.14 & 1.41 \\
+ & \sys{} & 2.90 & 0.75 & 0.61 & 0.12 & 1.62 & 3.10 & 0.94 \\
+\midrule
+dev En$\rightarrow$Zh & B & 2.36 & 0.76 & 0.55 & 0.59 & 1.54 & 3.45 & 1.33 \\
+ & \sys{} & 2.32 & 0.78 & 0.55 & 0.14 & 1.37 & 2.83 & 1.00 \\
+\midrule
+AMI Zh$\rightarrow$En & B & 2.99 & 0.67 & 0.66 & 0.65 & 2.10 & 4.08 & 1.37 \\
+ & \sys{} & 2.96 & 0.68 & 0.66 & 0.14 & 1.64 & 3.13 & 0.94 \\
+\midrule
+AliMeeting & B & 3.05 & 0.88 & 0.40 & 1.33 & 1.96 & 4.57 & 1.56 \\
+ & \sys{} & 2.92 & 0.95 & 0.40 & 0.33 & 1.55 & 3.23 & 1.05 \\
+\midrule
+AMI En$\rightarrow$Zh & B & 2.43 & 0.69 & 0.64 & 0.54 & 1.61 & 3.48 & 1.28 \\
+ & \sys{} & 2.39 & 0.71 & 0.64 & 0.14 & 1.42 & 2.91 & 0.99 \\
+\bottomrule
+\end{tabular}}
+\caption{Development and test sets: where the speech delay of a source unit comes from (chunk protocol, mean over units and two TTS seeds, seconds). EndOffset = model lag (last commit after the unit's end) + detector wait (online window release) + queue wait (earlier speech of the same stream) + duration of the last block. start: speech start offset from the unit's start. load: synthesised speech per second of source speech. \sys{}: the deadline Thinker's text with read-level merging and the PA Talker.}
+\label{tab:decompfull}
+\end{table}

@@ -1,0 +1,21 @@
+\begin{table}[!htbp]
+\centering\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lrr}
+\toprule
+Locked AliMeeting test & B & \sys{} \\
+\midrule
+text tcpBLEU & 14.58 & 14.58 \\
+tcpASR-BLEU & 10.66 & 12.89 \\
+text LAAL (s) & 2.87 & 2.87 \\
+LAAL$_\text{block}$ (s) & 3.39 & 3.02 \\
+LAAL$_\text{spread}$ (s) & 4.50 & 3.81 \\
+speech start (s) & 3.23 & 3.09 \\
+EndOffset (s) & 4.79 & 3.35 \\
+rate (words/s) & 2.36 & 3.50 \\
+UTMOS & 3.50 & 3.77 \\
+\bottomrule
+\end{tabular}
+\caption{Locked test on the eight unused AliMeeting evaluation meetings (4.2\,h, Zh$\rightarrow$En, DiariST human references), each system decoded once; means over two TTS seeds (UTMOS: one), computation-excluded latencies. Confirmatory tests of \sys{} $-$ B (Holm over three; exact sign-flip over 8 meetings, minimum $p$ = 2/256; 95\% meeting-bootstrap interval): tcpASR-BLEU +2.23 [+0.75, +3.37]; LAAL$_\text{block}$ $-$0.37 [$-$0.41, $-$0.33]; EndOffset $-$1.43 [$-$1.51, $-$1.32]; each $p_\text{Holm}$ = 0.023.}
+\label{tab:alieval}
+\end{table}

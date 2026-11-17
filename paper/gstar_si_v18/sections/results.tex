@@ -1,0 +1,60 @@
+\input{generated/v18/tab_systems}
+
+\subsection{Main Results}
+\label{sec:res-sys}
+
+Does \sys{} translate meetings better than existing multi-speaker speech-to-speech systems? It obtains the highest
+cpASR-BLEU and tcpASR-BLEU on all three sets, including the out-of-domain AliMeeting meetings (Table~\ref{tab:main}),
+although the others receive our diarizer's speaker labels. The public
+systems keep only a third to three quarters of \sys{}'s tcpASR-BLEU, though partly heard earlier: SeamlessStreaming translates each window as one speaker and
+X-Translator tracks speakers only to choose the cloned voice, so concurrent contributions are lost or misattributed and
+their lower delay is bought with content (Figure~\ref{fig:tradeoff}, Appendix~\ref{app:more}). The same-data cascade,
+translating speaker-blind and attributing afterwards, reaches B's quality but is heard later, whereas \sys{} is better
+and earlier than either on every set.
+
+\input{generated/v18/tab_delay}
+
+\subsection{Where the Listener-Side Delay Is Removed}
+\label{sec:res-delay}
+
+As \sys{} and B commit identical text, every difference arises in the speech streams. Table~\ref{tab:decomp} splits
+EndOffset into the Thinker's lag, the detector's wait, the queue wait and the last block; the first two barely change.
+Under B every stream produces more speech than its source holds (load above one) and queues as in
+Eq.~\eqref{eq:backlog}; the playback layer brings the load to about one, removes most of the queue and shortens the
+last block, which account for the entire reduction. It is largest on AliMeeting, whose streams queue longest: the queue
+depends only on speech durations and release times, so the playback layer carries over to out-of-domain meetings
+without adaptation. The automatic MOS estimate rises and similarity to each voice prompt is unchanged.
+
+\input{generated/v18/tab_robust}
+
+\subsection{Out-of-Domain Generalisation and Robustness}
+\label{sec:res-robust}
+
+Do the gains over B hold with another recogniser and on meetings never decoded before? A second
+recogniser, not the one used for selection, and COMET both prefer \sys{} on every set
+(Table~\ref{tab:robust}). On eight AliMeeting meetings never decoded before, with systems and tests fixed in advance,
+\sys{} again improves tcpASR-BLEU, LAAL and EndOffset, by margins at least as large as on the test set: the
+playback layer, set on AMI only, carries over to another corpus of real Mandarin meetings. Our metrics
+also agree with an independent one: on AliMeeting they rank \sys{}, B, X-Translator and SeamlessStreaming as DiariST's
+official speaker-attributed BLEU does (Table~\ref{tab:diarist}).
+
+\input{generated/v18/tab_overlap}
+\input{generated/v18/tab_ablation}
+
+\subsection{Ablation Analysis}
+\label{sec:res-ablation}
+\label{sec:res-overlap}
+
+\paragraph{Speaker tokens under overlap.} Would attributing a speaker-blind translation afterwards suffice? We train two simultaneous Thinkers per direction alike, with speaker tokens and with them zeroed,
+and relabel the latter causally (Table~\ref{tab:overlap}). On both AMI sets, speaker tokens raise tcpBLEU on overlapped
+units by about eight and a half points, more than on all units, and concurrent-speaker recall by 17--26 points: once a
+speaker-blind model has merged two concurrent contributions, relabelling cannot split them, whereas speaker-first
+decoding (Eq.~\eqref{eq:serial}) translates them as two segments (Figure~\ref{fig:motivation}). On the out-of-domain
+AliMeeting meetings, recall rises by 17 points and overlapped units slightly (9.18 vs.\ 8.55), while all units are 1.2
+points lower.
+
+\paragraph{Playback-layer components.} Table~\ref{tab:ablation} adds the components to B one at a time, on the same
+text. Read-level merging changes little; the backlog-aware rate of Eq.~\eqref{eq:rate} gives the largest step in quality
+and EndOffset, keeping each stream's load near one. Under the same rate rule, the PA Talker, trained on the CRF posterior, raises
+tcpASR-BLEU on every set and ends speech 0.15--0.23\,s earlier (R3 against R2), most on AliMeeting, whose streams queue
+longest: the backward messages of Eq.~\eqref{eq:w} reward shorter renderings where later blocks would otherwise wait. The budget set its operating point without tuning ($\lambda^\star=0.50$ / $0.70$). Choosing the more intelligible of two samples adds quality without changing EndOffset.

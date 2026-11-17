@@ -1,0 +1,23 @@
+\begin{table}[!htbp]
+\centering\small
+\resizebox{\columnwidth}{!}{\begin{tabular}{lrrrrrrr}
+\toprule
+Split & Mtg. & Windows & Hours & Mean\,s & Utt. & Multi\,\% & Ovl.\,\% \\
+\midrule
+\multicolumn{8}{l}{\emph{En$\rightarrow$Zh}} \\
+Train & 137 & 21{,}581 & 36.8 & 6.1 & 54{,}824 & 38.5 & 38.2 \\
+Dev & 18 & 3{,}203 & 5.2 & 5.9 & 8{,}206 & 40.0 & 39.6 \\
+Test & 16 & 2{,}375 & 3.9 & 5.9 & 5{,}790 & 35.0 & 34.7 \\
+\multicolumn{8}{l}{\emph{Zh$\rightarrow$En}} \\
+Train & 127 & 27{,}953 & 48.5 & 6.3 & 69{,}540 & 37.4 & 34.6 \\
+Dev & 15 & 3{,}366 & 5.7 & 6.1 & 8{,}340 & 39.3 & 36.6 \\
+Test & 16 & 3{,}317 & 5.8 & 6.3 & 8{,}634 & 36.5 & 34.5 \\
+\multicolumn{8}{l}{\emph{Zh$\rightarrow$En, AliMeeting (real meetings)}} \\
+Test & 20 & 4{,}243 & 7.5 & 6.4 & 9{,}730 & 33.4 & 33.2 \\
+\bottomrule
+\end{tabular}}
+\caption{Reference windows of the two directions. En$\rightarrow$Zh: AMI IHM-mix with Chinese references;
+Zh$\rightarrow$En: the re-voiced Chinese meetings (Appendix~\ref{app:zhdata}) with the AMI English transcripts as
+references. \emph{Multi}: windows with two or more speakers; \emph{Ovl.}: windows in which two utterances overlap.}
+\label{tab:data}
+\end{table}
