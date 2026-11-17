@@ -1,0 +1,29 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Data.} \emph{En$\rightarrow$Zh} uses mixed-headset AMI meetings~\citep{carletta2005ami} with Chinese
+references selected by quality estimation; \emph{Zh$\rightarrow$En} re-voices these translations in each speaker's voice
+at the original times, with the human AMI transcripts as references (16 test meetings each). \emph{AliMeeting}~\citep{yu2022m2met}
+(20 test meetings, DiariST's human translations;~\citealp{yang2024diarist}) is an out-of-domain Zh$\rightarrow$En test:
+its speech is real Mandarin, whereas our Chinese training source is re-voiced AMI. No model we train sees AliMeeting
+audio or text, and every choice was made on AMI development data; the off-the-shelf diarizer, however, was trained
+with AMI and AliMeeting training recordings~\citep{medennikov2026nemotron}. Eight further AliMeeting meetings, never
+decoded before, form a locked test (data in Appendix~\ref{app:data}).
+
+\paragraph{Compared systems.} All systems translate the same online windows of whole test meetings
+(Appendix~\ref{app:online}). \emph{SeamlessStreaming}~\citep{seamless2023}, a public single-speaker SimulS2ST model, and
+\emph{X-Translator}~\citep{zhao2026xtranslator}, an open speaker-aware cascade of simultaneous ASR, MT and voice-cloning
+TTS, run zero-shot; the \emph{cascade} is a speaker-blind simultaneous model trained on our data and spoken by the base
+Talker. All three are attributed causally to the diarizer slot most active over each segment
+(Appendix~\ref{app:baselines}). \emph{B} is the deadline Thinker with the base Talker (fixed rate, one sample per
+block); \sys{} adds the playback layer.
+
+\paragraph{Implementation.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}, the diarizer
+is Nemotron 3 Diarization~\citep{medennikov2026nemotron}, and the base Talker is a UniSS model~\citep{uniss2025}
+fine-tuned for block-wise speech. Training, CRF and decoding details and all hyperparameters are in
+Appendix~\ref{app:hyper}.
+
+\paragraph{Metrics and statistics.} Speech is scored by cpASR-BLEU and tcpASR-BLEU (\S\ref{sec:method-metrics}) on
+Whisper-large-v3~\citep{radford2023robust} (English) or Paraformer~\citep{gao2022paraformer} (Chinese) transcripts, and
+delay by LAAL and EndOffset. Paired tests run over meetings; confirmatory contrasts were fixed in internal analysis
+plans before test decoding and are Holm-corrected, ablations are descriptive (Appendix~\ref{app:eval}).

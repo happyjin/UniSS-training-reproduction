@@ -1,0 +1,21 @@
+\begin{table*}[t]
+\centering\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{ASR-BLEU} & \multicolumn{3}{c}{LAAL$_\text{block}$ (s)} & rate & pause \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Speech layer on B's text & Z$\rightarrow$E & E$\rightarrow$Z & Ali & Z$\rightarrow$E & E$\rightarrow$Z & Ali & w/s & /min \\
+\midrule
+R0 B & 18.07 & 31.64 & 16.73 & 3.12 & 2.54 & 3.28 & 2.40 & 3.3 \\
+R1 + read-level merging & 18.32 & 31.66 & 16.61 & 3.09 & 2.50 & 3.16 & 2.46 & 3.5 \\
+R2 + backlog rate rule & 19.88 & 31.91 & 17.48 & 3.04 & 2.45 & 3.00 & 3.20 & 6.8 \\
+R3 + best-of-2 CTC & 20.27 & 32.26 & 17.81 & 3.04 & 2.45 & 2.99 & 3.21 & 6.9 \\
+R3$^\prime$ R3, rate-matched & 20.24 & 32.17 & 17.85 & 3.03 & 2.43 & 2.94 & 3.38 & 7.7 \\
+R4 R2 + PA Talker & 20.17 & 31.93 & 17.82 & 3.03 & 2.43 & 2.95 & 3.48 & 8.2 \\
+R5 \sys{} (R4 + best-of-2) & 20.35 & 32.23 & 18.08 & 3.03 & 2.43 & 2.95 & 3.49 & 8.3 \\
+\bottomrule
+\end{tabular}
+\caption{Factorial ablation of the playback layer on the test sets, B's text throughout, each row decoded once with two TTS seeds. R3$^\prime$ raises the rule's rate shift until its mean development rate matches \sys{}'s (shift 8 / 8; AMI Zh$\rightarrow$En rate 3.38 vs.\ 3.49). Rate and pauses: AMI Zh$\rightarrow$En.}
+\label{tab:factorial}
+\end{table*}

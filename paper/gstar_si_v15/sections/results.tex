@@ -1,0 +1,71 @@
+\section{Results}
+\label{sec:results}
+
+\input{generated/v15/tab_systems}
+
+\subsection{Comparison with Multi-Speaker S2ST Systems}
+\label{sec:res-sys}
+
+Does \sys{} translate meetings better than existing multi-speaker speech-to-speech systems? \sys{} obtains the highest
+cpASR-BLEU and tcpASR-BLEU on all three sets, including the out-of-domain AliMeeting meetings (Table~\ref{tab:main}).
+The public systems are partly heard earlier (X-Translator on both Zh$\rightarrow$En sets, SeamlessStreaming on AMI)
+but keep only a third to three quarters of \sys{}'s tcpASR-BLEU: SeamlessStreaming translates each window as one speaker, and X-Translator tracks speakers only to choose
+the cloned voice, so concurrent contributions are lost or misattributed. Their lower
+delay is bought with content (Figure~\ref{fig:tradeoff}, Appendix~\ref{app:more}). The same-data cascade, which
+translates speaker-blind and attributes afterwards, reaches B's quality but is heard later, whereas \sys{} is both
+better and earlier than either on every set; \S\ref{sec:res-overlap}--\ref{sec:res-ablation} trace this to
+speaker-first decoding and the playback layer.
+
+\input{generated/v15/tab_overlap}
+
+\subsection{Speaker Tokens under Overlapping Speech}
+\label{sec:res-overlap}
+
+Do the speaker tokens help, or would attributing a speaker-blind translation afterwards suffice? For each direction,
+we train two simultaneous Thinkers alike, with speaker tokens and with them zeroed, and attribute the latter's output
+causally with the same diarizer (Table~\ref{tab:overlap}). On both AMI sets, speaker tokens raise tcpBLEU on overlapped
+units by about eight and a half points, more than on all units, and concurrent-speaker recall by 17--26 points. This is
+the failure of Figure~\ref{fig:motivation}(1): relabelling gives each translated segment one speaker, so once a
+speaker-blind model has merged two concurrent contributions no relabelling can split them, whereas speaker-first
+decoding (Eq.~\eqref{eq:serial}) translates them as two segments from the start. On the out-of-domain AliMeeting
+meetings the transfer is partial: recall still rises by 17 points, but overlapped units are level and all units
+slightly lower, so the speaker stream carries over mainly as better separation of concurrent speakers.
+
+\input{generated/v15/tab_delay}
+
+\subsection{Where the Listener-Side Delay Is Removed}
+\label{sec:res-delay}
+
+As \sys{} and B commit identical text, every difference arises in the speech streams. Table~\ref{tab:decomp} splits
+EndOffset into the Thinker's lag, the detector's wait, the queue wait and the last block's duration. The first two
+barely change. Under B every stream produces more speech than its source holds (load above one) and builds the queue
+of Eq.~\eqref{eq:backlog}; the playback layer brings the load to about one, removes most of the queue and shortens the
+last block, which together account for the entire reduction of EndOffset. The reduction is largest on AliMeeting,
+whose streams queue longest under B: since the queue depends only on speech durations and release times, the playback
+layer carries over to out-of-domain meetings without adaptation. The automatic MOS estimate rises and similarity to
+each voice prompt is unchanged, so streams keep their speakers' voices; the cost is more frequent pauses between
+blocks, which Eq.~\eqref{eq:plpot} does not price.
+
+\input{generated/v15/tab_ablation}
+
+\subsection{Ablation of the Playback Layer}
+\label{sec:res-ablation}
+
+Which component produces these gains (Table~\ref{tab:ablation})? Read-level merging alone changes little. The
+backlog-aware rate of Eq.~\eqref{eq:rate} gives the largest step in quality and EndOffset, as it keeps each stream's
+load near one and so prevents most of the queue. The PA Talker, trained on the CRF posterior, shortens the speech
+further on every set and raises tcpASR-BLEU on both Zh$\rightarrow$En sets, whose streams queue longest, while
+En$\rightarrow$Zh quality is unchanged. This matches what the backward messages of Eq.~\eqref{eq:w} reward: a shorter
+rendering gains weight where later blocks would otherwise wait. Choosing the more intelligible of two samples adds
+quality without changing EndOffset: delay and intelligibility come from different components.
+
+\input{generated/v15/tab_robust}
+
+\subsection{Robustness and Out-of-Domain Generalisation}
+\label{sec:res-robust}
+
+Could the gains over B reflect speech that suits our recognisers, or meetings used during development? A second
+recogniser of another family, which is not the CTC model used for selection, and COMET both prefer \sys{} on every set
+(Table~\ref{tab:robust}). On eight AliMeeting meetings never decoded before, with systems and tests fixed in advance,
+\sys{} again improves tcpASR-BLEU, LAAL and EndOffset, by margins at least as large as on the AliMeeting test set. The
+playback layer, trained and set on AMI only, thus carries over to real Mandarin meetings of another corpus.

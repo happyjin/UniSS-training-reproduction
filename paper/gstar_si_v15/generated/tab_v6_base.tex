@@ -1,0 +1,27 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{En$\rightarrow$Zh} & \multicolumn{2}{c}{Zh$\rightarrow$En} & \multicolumn{2}{c}{AliMeeting} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Offline system & cpBLEU & $\Delta_{\sys{}}$ & cpBLEU & $\Delta_{\sys{}}$ & cpBLEU & $\Delta_{\sys{}}$ \\
+\midrule
+Cascade, same-data translator & 36.29 & +6.52$^{***}$ & 22.36 & +3.50$^{***}$ & 15.25 & $-$0.35 \\
+Cascade, turn-trained translator (not run) & -- &  & -- &  & -- &  \\
+Cascade, turns + 2\,s context (not run) & -- &  & -- &  & -- &  \\
+Cascade, reference turns and speakers (not run) & -- &  & -- &  & -- &  \\
+No speaker stream + diarizer relabelling & 42.06 & +0.75$^{*}$ & 24.66 & +1.20$^{***}$ & 15.99 & $-$1.09$^{***}$ \\
+\sys{} (offline) & 42.81 &  & 25.86 &  & 14.90 &  \\
+\midrule
+Simultaneous ($\Delta{=}1$\,s) & cpBLEU & LAAL & cpBLEU & LAAL & cpBLEU & LAAL \\
+\midrule
+\sys{} (offline) + LA2 & 31.64 & 2.37 & 24.81 & 2.50 & 12.10 & 2.84 \\
+\sys{}-Simul & 42.63 & 2.32 & 24.30 & 2.93 & 12.97 & 3.09 \\
+\sys{}-Simul, second seed$^\dagger$ & 42.98 & 2.34 & -- & -- & -- & -- \\
+\sys{}-Simul, character-timed deadlines$^\dagger$ & -- & -- & 25.58 & 3.02 & -- & -- \\
+\bottomrule
+\end{tabular}}
+\caption{Stronger baselines on the reference windows (cpBLEU$_\text{sess}$). $^\dagger$On the 8-meeting subset of \S\ref{sec:res-online} only. En$\rightarrow$Zh on the same subset: \sys{} + LA2 27.67, LA2 on the prefix-trained \sys{}-Simul model 34.67, \sys{}-Simul 42.28 ($\Delta$ vs.\ the former +7.60). $\Delta_{\sys{}}$: \sys{} minus the system, with the two-sided meeting permutation test ($^{*}p{<}0.05$, $^{**}p{<}0.01$, $^{***}p{<}0.001$; Table~\ref{tab:sig6}). ``--'': not run (prereg\_v6 amendments; the three cascade controls were pre-registered and cancelled for compute in amendments 5 and 6).}
+\label{tab:base6}
+\end{table*}

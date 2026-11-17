@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{2.6pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lccccc}
+\toprule
+System & LAAL\,s & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk & DER \\
+\midrule
+Cascade, same-data translator & -- & 15.25 & 15.58 & 92.5 & 13.1 \\
+Cascade, turn-trained translator & -- & 13.05 & 13.11 & 76.4 & 26.0 \\
+\sys{} w/o speaker stream & -- & 8.34 & 16.38 & 87.1 & 52.0 \\
+\quad + diarizer relabelling & -- & 15.99 & 16.38 & 86.8 & 12.9 \\
+\sys{} (offline) & -- & 14.90 & 15.11 & 91.9 & 14.7 \\
+\midrule
+\sys{} (offline) + LA2 & 2.84 & 12.10 & 12.55 & 91.7 & 12.9 \\
+\sys{}-Simul model + LA2 & 3.40 & 13.44 & 13.62 & 91.3 & 10.6 \\
+\sys{}-Simul & 3.62 & 11.98$\pm$1.41$^{2}$ & 12.14 & 91.5 & 10.8 \\
+\bottomrule
+\end{tabular}}
+\caption{Real Mandarin meetings (AliMeeting test, Zh$\rightarrow$En, 20 meetings, 4{,}243 reference windows; zero-shot: no AliMeeting data in training). The English references are machine translations of the human transcripts (their automatic quality estimate: Appendix~\ref{app:qe7}).}
+\label{tab:real7}
+\end{table}
