@@ -135,3 +135,19 @@ abstract、introduction、Figure 1 仍然不改；“first” 的声明不改，
    - 附录每张表都在引用处附近；
    - 全文 grep 不到 distil 和 pauses。
 5. 打包 zip，commit 后 push。
+
+
+---
+
+## 第三轮决定（用户，2026-11-17）
+
+1. **CRF 证据**：
+   - Table 5 只加 R3a 一行，4.5 讨论 CRF 训练的 Talker 带来的时延收益；
+   - **不写显著性**，不在附录补配对检验小表，正文也不强调哪些不显著；
+   - 措辞如实描述数字：AMI 上质量相当，AliMeeting 上提高。
+   - 上文 §1 中 “caption 加 p<0.001”和“附录新增小表”两项**取消**。
+2. **计算时间**：
+   - 删掉 52.8 s。连同它所在的整句（“computation delays the median block's end by a further 3.4 / 2.9 / 52.8 s, and the delay grows over a meeting”）一起删掉；只删 52.8 而保留 3.4 / 2.9 会显得只挑了好的那两个数。
+   - 保留每秒计算量（Thinker 0.65 / 0.80 / 1.20 s，PA Talker 0.18 / 0.26 / 0.31 s）。
+   - 保留 4.1 的 “computation-excluded” 一句和 Limitations 的一句。
+3. **Table 18**：offline 三行（两个 offline 基线 + MIST offline）与 MIST 的对比结果见回复；是否删除待你决定。
