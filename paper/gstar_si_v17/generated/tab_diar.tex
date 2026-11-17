@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lcccc}
+\toprule
+System & cpBLEU$_\text{sess}$ & BLEU$_\text{blind}$ & Spk-count & DER \\
+\midrule
+Qwen3-Omni, prompted & 14.85 & 29.34 & 61.2 & 63.4 \\
+Cascade: diarizer $\rightarrow$ same-data model & 37.53 & 37.91 & 86.3 & 20.7 \\
+\sys{} w/o speaker stream & 21.57 & 43.91 & 83.8 & 55.4 \\
+\sys{} (offline) & 43.36 & 43.83 & 89.4 & 15.5 \\
+\bottomrule
+\end{tabular}}
+\caption{En$\rightarrow$Zh test windows opened and closed by the diarizer itself (871
+windows that contain whole utterances), offline.}
+\label{tab:diar}
+\end{table}

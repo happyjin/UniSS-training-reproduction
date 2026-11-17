@@ -1,0 +1,17 @@
+\begin{table}[!htbp]
+\centering\small
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llrrrr}
+\toprule
+Set & Comparison & $\Delta$ & 95\% interval & $p$ & $p_\text{Holm}$ \\
+\midrule
+AMI Zh$\rightarrow$En & tcpASR-BLEU: \sys{} $-$ B & +2.28 & [1.57, 3.04] & $<$0.001 & $<$0.001 \\
+\midrule
+AliMeeting & tcpASR-BLEU: \sys{} $-$ B & +1.35 & [1.09, 2.28] & $<$0.001 & $<$0.001 \\
+\midrule
+AMI En$\rightarrow$Zh & tcpASR-BLEU: \sys{} $-$ B & +0.58 & [0.43, 0.74] & $<$0.001 & $<$0.001 \\
+\bottomrule
+\end{tabular}}
+\caption{Paired tests over meetings on the test sets (16 AMI, 20 AliMeeting meetings): exact two-sided sign-flip permutation $p$ over all $2^M$ flips, 95\% meeting-bootstrap interval (10{,}000 resamples), Holm over the twelve BLEU tests of the analysis plan. tcpASR-BLEU pools the two TTS seeds per meeting. B: deadline baseline; \sys{}: its text with rl + PA Talker. The text of \sys{} equals B's by construction. The intervals do not include decoder run-to-run noise; training-seed variance is not covered.}
+\label{tab:sig}
+\end{table}

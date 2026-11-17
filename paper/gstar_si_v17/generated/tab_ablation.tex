@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{lccccc}
+\toprule
+ & LAAL & cpBLEU$_\text{sess}$ & Units/blk & 1-unit\,\% & Mid\,\% \\
+\midrule
+\multicolumn{6}{l}{\emph{En$\rightarrow$Zh}} \\
+Deadline labels (\sys{}-Simul) & 2.32 & 42.63 & 6.0 & 11.1 & 12.9 \\
+Stable-prefix labels & 2.43 & 32.73 & 8.3 & 8.2 & 36.9 \\
+\multicolumn{6}{l}{\emph{Zh$\rightarrow$En}} \\
+Deadline labels (\sys{}-Simul) & 2.93 & 24.30 & 5.3 & 36.9 & 0.6 \\
+Stable-prefix labels & 2.35 & 24.07 & 4.2 & 32.8 & 32.3 \\
+\bottomrule
+\end{tabular}}
+\caption{Read targets at $\Delta=1$\,s, both continued from the same offline model for 3{,}000 steps. Stable-prefix
+labels: at each read, the prefix of the model's own draft that it also writes after hearing the whole window, decoded
+with the same plain wait rule. Units/blk: mean characters (Zh) or words (En) per committed block; 1-unit: blocks of a
+single unit; Mid: blocks that stop mid-phrase before the same speaker's next block.}
+\label{tab:ablation}
+\end{table}

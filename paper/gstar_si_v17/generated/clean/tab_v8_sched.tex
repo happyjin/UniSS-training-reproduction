@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{En$\rightarrow$Zh} & \multicolumn{3}{c}{Zh$\rightarrow$En} & \multicolumn{3}{c}{AliMeeting} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Playback & p50 & p90 & spoken & p50 & p90 & spoken & p50 & p90 & spoken \\
+\midrule
+one channel, as is & 142.4 & 772.6 & 100 & 26.4 & 313.0 & 100 & 604.6 & 2481.2 & 100 \\
+short interjections as captions & 43.9 & 320.6 & 91 & 13.3 & 47.5 & 94 & 441.0 & 1630.3 & 93 \\
+skip blocks $>$10\,s late & 9.7 & 11.8 & 80 & 9.8 & 13.1 & 82 & 10.8 & 17.2 & 35 \\
+b + c & 9.1 & 11.6 & 80 & 9.4 & 12.9 & 82 & 10.8 & 17.4 & 35 \\
+one channel per speaker, mixed & 7.4 & 12.2 & 100 & 8.2 & 15.1 & 100 & 23.2 & 314.1 & 100 \\
+\bottomrule
+\end{tabular}
+\caption{Playback scheduling of \sys{}-Simul's whole-meeting output (reads queued; nothing re-synthesised, so the speech
+of every played block is unchanged): listener completion lag (s) of the units played, and the share of units spoken
+(\%; the rest are shown as captions). Policies fixed before any scheduling result.}
+\label{tab:sched8}
+\end{table*}

@@ -1,0 +1,21 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3.2pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{lcrrrrrrrrr}
+\toprule
+ & Own speaker & \multicolumn{3}{c}{AMI Zh$\rightarrow$En} & \multicolumn{3}{c}{AMI En$\rightarrow$Zh} & \multicolumn{3}{c}{AliMeeting Zh$\rightarrow$En (out-of-domain)} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}
+System & attribution & cpASR-BLEU & tcpASR-BLEU & LAAL & cpASR-BLEU & tcpASR-BLEU & LAAL & cpASR-BLEU & tcpASR-BLEU & LAAL \\
+\midrule
+SeamlessStreaming$^{a}$ & $\times$ & 12.10 & 8.48 & 2.73 & 13.79 & 11.31 & 2.50 & 13.59 & 9.42 & 3.24 \\
+X-Translator$^{b}$ & voice only & 12.05 & 8.64 & \textbf{2.69} & 23.31 & 19.96 & 2.74 & 19.46 & 13.77 & \textbf{2.77} \\
+Cascade$^{c}$ & $\times$ & 24.88 & 18.37 & 3.51 & 35.07 & 30.97 & 2.80 & 21.81 & 16.16 & 3.55 \\
+\midrule
+B (deadline baseline) & \checkmark & 24.72 & 18.07 & 3.12 & 35.83 & 31.65 & 2.54 & 22.60 & 16.73 & 3.28 \\
+\midrule
+\sys{} (ours) & \checkmark & \textbf{26.84} & \textbf{20.35} & 3.03 & \textbf{36.49} & \textbf{32.23} & \textbf{2.43} & \textbf{24.04} & \textbf{18.08} & 2.95 \\
+\bottomrule
+\end{tabular}}
+\caption{Multi-speaker speech-to-speech translation of whole test meetings (same windows and recognisers). cpASR-BLEU / tcpASR-BLEU ($\uparrow$): speaker-attributed speech BLEU without / with time constraints; LAAL ($\downarrow$, computation-excluded) in s; every BLEU difference to \sys{} is significant (Holm, $p<0.001$; Table~\ref{tab:syssig}). Systems $^{a\text{--}c}$ have no speaker attribution of their own, so we give them our diarizer's slots (Appendix~\ref{app:baselines}), which favours them. $^{a}$Single-speaker SimulS2ST and $^{b}$speaker-aware cascade whose tracker only picks the cloned voice, both public and zero-shot; $^{c}$speaker-blind model trained on our data. Bold: best.}
+\label{tab:main}
+\end{table*}

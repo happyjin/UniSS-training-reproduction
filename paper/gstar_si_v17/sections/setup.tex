@@ -1,0 +1,34 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Data.} \emph{En$\rightarrow$Zh} uses mixed-headset AMI meetings~\citep{carletta2005ami} with Chinese
+references selected by quality estimation, and \emph{Zh$\rightarrow$En} re-voices them in each speaker's voice at the
+original times, with the human AMI transcripts as references (16 test meetings each). \emph{AliMeeting}~\citep{yu2022m2met}
+(20 test meetings, DiariST's human translations;~\citealp{yang2024diarist}) is an out-of-domain Zh$\rightarrow$En test of
+real Mandarin, whereas our Chinese training source is re-voiced AMI: no model we train sees AliMeeting and all choices
+were made on AMI development data; only the off-the-shelf diarizer saw AMI and AliMeeting training
+recordings~\citep{medennikov2026nemotron}. Eight further AliMeeting meetings, never decoded before, form a locked test
+(Appendix~\ref{app:data}).
+
+\paragraph{Compared systems.} All systems translate the same online windows of whole test meetings
+(Appendix~\ref{app:online}). \emph{SeamlessStreaming}~\citep{seamless2023}, a public single-speaker SimulS2ST model, and
+\emph{X-Translator}~\citep{zhao2026xtranslator}, an open speaker-aware cascade of simultaneous ASR, MT and voice-cloning
+TTS, run zero-shot; the \emph{cascade} is a speaker-blind simultaneous model trained on our data and spoken by the base
+Talker. Lacking speaker attribution of their own, all three are assigned to our diarizer's slots
+(Appendix~\ref{app:baselines}). \emph{B} is the deadline Thinker with the base Talker (fixed rate, one sample per
+block); \sys{} adds the playback layer.
+
+\paragraph{Implementation.} Encoder and Thinker are Qwen3-Omni-30B-A3B-Instruct~\citep{xu2025qwen3omni}, and the base
+Talker is a UniSS model~\citep{uniss2025} fine-tuned for block-wise speech. Training, CRF and decoding details and all hyperparameters are in
+Appendix~\ref{app:hyper}.
+
+\paragraph{Metrics and statistics.} Speech is scored by cpASR-BLEU and tcpASR-BLEU (\S\ref{sec:method-metrics}) on
+Whisper-large-v3~\citep{radford2023robust} (English) or Paraformer~\citep{gao2022paraformer} (Chinese) transcripts. Our
+simultaneous evaluation is computation-excluded, as SimulEval's default (computation-aware replay:
+Appendix~\ref{app:online}): delay is measured from heard times by speech LAAL~\citep{papi2022over}, charging each word of a block the
+block's start, and EndOffset~\citep{ma2020simuleval}, from a unit's end until its last translated word is heard. Paired
+tests run over meetings; confirmatory contrasts, fixed in internal analysis plans before test decoding, are
+Holm-corrected (Appendix~\ref{app:eval}).

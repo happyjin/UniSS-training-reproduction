@@ -1,0 +1,17 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}\begin{axis}[width=0.52\columnwidth,height=3.3cm,xlabel={text LAAL (s)},ylabel={tcpBLEU},title={Zh$\rightarrow$En},
+title style={font=\small},label style={font=\scriptsize},tick label style={font=\scriptsize},legend style={font=\tiny,at={(0.98,0.02)},anchor=south east}]
+\addplot[solid,mark=*,mark size=1.2pt,frozen] coordinates {(1.952,19.26) (2.458,25.59) (2.784,27.53) (3.065,28.11) (3.260,27.85) (3.380,27.99)}; \addlegendentry{B, $\bias\in[-2,1]$}
+\addplot[dashed,mark=square*,mark size=1.2pt,trained] coordinates {(1.950,14.66) (2.550,25.25) (3.160,28.25) (3.540,27.99)}; \addlegendentry{+WA, $\bias\in[-3,0]$}
+\addplot[only marks,mark=o,mark size=2.4pt] coordinates {(3.065,28.11)};
+\end{axis}\end{tikzpicture}
+\begin{tikzpicture}\begin{axis}[width=0.52\columnwidth,height=3.3cm,xlabel={text LAAL (s)},ylabel={tcpBLEU},title={En$\rightarrow$Zh},
+title style={font=\small},label style={font=\scriptsize},tick label style={font=\scriptsize},legend style={font=\tiny,at={(0.98,0.02)},anchor=south east}]
+\addplot[solid,mark=*,mark size=1.2pt,frozen] coordinates {(1.862,36.07) (2.065,39.03) (2.204,40.42) (2.350,41.44) (2.451,42.45) (2.604,43.08)}; \addlegendentry{B, $\bias\in[-2,1]$}
+\addplot[dashed,mark=square*,mark size=1.2pt,trained] coordinates {(1.900,33.93) (2.170,39.16) (2.450,42.29) (2.810,43.19)}; \addlegendentry{+WA, $\bias\in[-3,0]$}
+\addplot[only marks,mark=o,mark size=2.4pt] coordinates {(2.350,41.44)};
+\end{axis}\end{tikzpicture}
+\caption{Text quality against text lag on five development meetings when a constant bias $\bias$ is added to the wait logit, for the deadline Thinker (B) and for the write-aligned Thinker (+WA, stage 2). Circle: B without bias. The write-aligned points lie on or below the deadline curve.}
+\label{fig:wacurve}
+\end{figure}

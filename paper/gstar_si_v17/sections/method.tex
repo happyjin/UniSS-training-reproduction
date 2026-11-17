@@ -1,0 +1,253 @@
+\section{Method}
+\label{sec:method}
+
+\input{figures/arch}
+
+For every contribution to a meeting, \sys{} decides who said what (\S\ref{sec:method-thinker}) and when the listener
+hears its translation (\S\ref{sec:method-queue}--\ref{sec:method-train}); Figure~\ref{fig:arch} gives an overview.
+
+\subsection{Problem Formulation}
+\label{sec:method-task}
+
+Given a single-channel recording $\bm{x}\in\R^{L}$ of $T$ seconds ($L$ samples), \sys{} outputs segments
+$\big(k_n,a_n,b_n,\bm{y}^{(n)}\big)_{n=1}^{N_\mathcal{Y}}$: a speaker label $k_n\in\{1,\dots,S\}$ that stays with one
+person for the whole meeting, the start and end $a_n<b_n$ of the source speech in seconds, and the translation
+$\bm{y}^{(n)}\in\mathcal{V}^{|\bm{y}^{(n)}|}$, a token sequence over the vocabulary $\mathcal{V}$. Segments are committed
+at reads $t_1<\dots<t_R=T$ from $\bm{x}_{\le t_r}$ alone and never revised, and each is spoken in the output stream of
+speaker $k_n$; the time at which a target unit (word or character) is played there is its \emph{heard time}, computed
+from the playback schedule (\S\ref{sec:method-queue}), not measured on listeners.
+
+\subsection{Speaker-Attributed Simultaneous Translation}
+\label{sec:method-thinker}
+
+Acoustic tokens carry no speaker identity across a meeting and are shared by overlapping speakers, so a speaker-blind
+translator merges concurrent contributions (Figure~\ref{fig:motivation}). \sys{} therefore conditions the Thinker on a
+speaker stream and has it name the speaker before translating.
+
+\paragraph{Speaker tokens.} The frozen audio encoder of Qwen3-Omni~\citep{xu2025qwen3omni} maps $\bm{x}$ to acoustic
+tokens $\bm{A}\in\R^{N\times d}$, $N$ tokens in the hidden space of size $d$ of its LLM, the Thinker. A frozen
+simultaneous diarizer, Nemotron 3 Diarization~\citep{medennikov2026nemotron}, returns speaker-activity posteriors
+$\bm{P}\in[0,1]^{F\times S}$ over $F$ frames and $S$ slots, which are ordered by first arrival and kept for the whole
+meeting; overlapped speech activates several slots. For the $j$-th block of $K$ acoustic tokens, a trained projector
+$\mathrm{Proj}_\psi$ maps the activities resampled to its token centres, $\bm{P}_j\in[0,1]^{K\times S}$, to a speaker
+token $\bm{s}_j=\mathrm{Proj}_\psi(\bm{P}_j)\in\R^{d}$, placed after the block as in G-STAR~\citep{peng2026gstar}:
+\begin{equation}
+\bm{E}=[\bm{A}_1;\bm{s}_1;\dots;\bm{A}_M;\bm{s}_M]\in\R^{(N+M)\times d},
+\label{eq:interleave}
+\end{equation}
+with $\bm{A}_j\in\R^{K\times d}$ and $M=\lceil N/K\rceil$; $\bm{E}$ fills the audio slot of the Thinker's prompt
+(Appendix~\ref{app:train-thinker}).
+
+\paragraph{Speaker-first, time-stamped output.} The output must then say who is speaking. We add a speaker token
+$\spk{k}$ per slot and time tokens $\tim{m}$, marking $m\delta_t$ seconds from the window start, to $\mathcal{V}$, and
+serialise a window's segments by start time, speaker first, as in serialised output training~\citep{kanda2020sot}:
+\begin{equation}
+\bm{y}=\mathop{\Vert}_{n=1}^{N_\mathcal{Y}}\big[\spk{k_n}\,\tim{\hat a_n}\,\bm{y}^{(n)}\,\tim{\hat b_n}\big]\in\mathcal{V}^{|\bm{y}|},
+\label{eq:serial}
+\end{equation}
+where $\Vert$ concatenates and $\hat a_n,\hat b_n\in\mathbb{N}$ are $a_n,b_n$ in steps of $\delta_t$. The speaker token
+conditions every translated word on its speaker, so two concurrent contributions become two segments; the time tokens
+give each segment its source span. Targets use the diarizer's slots (each reference speaker is mapped to the slot most
+active during their speech), so the Thinker learns to copy a slot rather than invent a label. The projector, the new
+embeddings and LoRA adapters~\citep{hu2022lora} of the Thinker $p_\theta$ are trained with cross-entropy on $\bm{y}$,
+speaker and time tokens up-weighted because one wrong label misattributes a whole sentence.
+
+\paragraph{Reading and writing.} The Thinker reads every $\Delta$ seconds, $t_r=\min(r\Delta,T)$; the diarizer
+finalises a frame $\gamma$ seconds after it, so read $r$ uses only frames up to $t_r-\gamma$. The Thinker continues its
+committed output greedily until it emits $\wait$ ($\eos$ at the last read) and commits what precedes it. It learns when
+to write from deadlines: each reference translation is split at punctuation into chunks, and chunk $l$, whose source
+ends at $e_l$, is due at read $r(l)=\min\{r:t_r\ge e_l+\epsilon\}$ with interpreting lag $\epsilon$; the target of read
+$r$ is the chunks due at $r$, serialised by Eq.~\eqref{eq:serial} and followed by $\wait$. This \emph{deadline Thinker}
+is shared by \sys{} and its baseline B, so both commit the same text with the same speakers at the same times.
+
+\subsection{Speaker Streams and Playback Queues}
+\label{sec:method-queue}
+
+Committed text is heard only after it is spoken, and one speaker's blocks are spoken in turn, so a stream that receives
+more speech than its source time builds a queue; in B, two thirds of the delay after a source unit ends accrue after
+its text is committed (Figure~\ref{fig:motivation}).
+
+\paragraph{Voice-prompted streams.} The text a slot commits at one read forms a \emph{block}; one speaker's blocks of
+the same read are merged (\emph{read-level merging}). The UniSS Talker~\citep{uniss2025} speaks each block as discrete
+speech codes, conditioned on its text, the stream's earlier speech, a speaking-rate token and a voice prompt
+$\bm{v}_k\in\R^{L_k}$, audio cut from regions where slot $k$ alone is active before its first commitment
+(Appendix~\ref{app:train-talker}).
+
+\paragraph{Queue and heard delay.} A speaker stream with blocks $i=1,\dots,I$ has release times $\bm{\nu}\in\R^{I}$ and
+target-unit counts $\bm{W}\in\mathbb{N}^{I}$; a rendering $c$ of a block is a sequence of speech codes lasting $D(c)$
+seconds. Block $i$ waits a \emph{backlog} $h_i\ge0$ (seconds) for the previous block to finish, with $h_1=0$ and
+\begin{equation}
+h_{i+1}=\max\big(0,\;\nu_i+h_i+D(c_i)-\nu_{i+1}\big).
+\label{eq:backlog}
+\end{equation}
+Spreading its units evenly over its playback, the delay summed over block $i$'s units is the scalar
+\begin{equation}
+L_i(h_i,c_i)=W_i\,h_i+\tfrac{W_i+1}{2}\,D(c_i)
+\label{eq:lat}
+\end{equation}
+in unit-seconds. A long rendering thus costs twice: its own units are spread over more time, and through
+Eq.~\eqref{eq:backlog} every later block waits longer.
+
+\paragraph{Backlog-aware speaking rate.} B's base Talker uses one fixed rate, so only a pause in the source drains a
+queue. The playback layer starts from the block's
+\emph{pace} $\tau^{\mathrm{pace}}_i$, the rate token at which its text would last as long as the source time since the
+previous release, and raises it with the backlog:
+\begin{equation}
+\tau_i=\tau^{\mathrm{pace}}_i+\tau_0+\min\big(\bar\tau,\;\lfloor\kappa_h h_i\rceil\big),
+\label{eq:rate}
+\end{equation}
+with offset $\tau_0$ and cap $\bar\tau$ in rate steps and $\kappa_h$ steps per second of backlog. An empty queue follows
+the source's pace; a stream that falls behind speaks faster until its queue drains. The rule, however, reacts only to
+the existing backlog: it cannot see that a long rendering chosen now delays every later block.
+
+\subsection{Playback Alignment: A Latency-Constrained CRF}
+\label{sec:method-plem}
+
+Playback alignment (PA) charges each rendering also for the delay it imposes on later blocks by scoring whole playback
+plans of a stream; since a rendering affects later blocks only through the backlog it leaves, a linear-chain
+CRF~\citep{lafferty2001crf} over these plans admits exact inference.
+
+\paragraph{Playback plans as a CRF.} For each block, the base Talker proposes a finite set $C_i$ of renderings, sampled
+at the base rate and at a faster rate; the stream $\mathcal{U}=(\bm{\nu},\bm{W},C_{1:I})$ is the CRF's observation. A plan
+$\bm{z}=(z_1,\dots,z_I)$ assigns block $i$ a state $z_i=(h_i,c_i)\in\mathcal{H}\times C_i$, where rounding
+Eq.~\eqref{eq:backlog} up to a grid $\mathcal{H}=\{0,\delta_h,\dots,\bar H\}$ defines transitions
+$g_i:\mathcal{H}\times C_i\to\mathcal{H}$, $h_{i+1}=g_i(h_i,c_i)$; $\bm{z}$ is feasible, $\bm{z}\in\mathcal{Z}(\mathcal{U})$,
+if $h_1=0$ and it follows $g_i$. Each state receives the scalar score
+\begin{equation}
+\phi^\lambda_i(h,c)=\underbrace{\eta_\ell\,\bar\ell(c)+\eta_f\,f(c)}_{\text{quality}}-\underbrace{\lambda\,L_i(h,c)}_{\text{delay}},
+\label{eq:plpot}
+\end{equation}
+where $\bar\ell(c)\le0$ is the base Talker's mean log-probability per code, $f(c)\le0$ the negative CTC loss per
+character of the block's text under an independent recogniser~\citep{baevski2020wav2vec} (intelligibility),
+$\eta_\ell,\eta_f>0$ fixed weights, and $\lambda\ge0$ the price of a unit-second. Normalising over feasible plans gives
+\begin{equation}
+p_\lambda(\bm{z}\mid\mathcal{U})=\frac{\mathds{1}[\bm{z}\in\mathcal{Z}(\mathcal{U})]}{Z_\lambda(\mathcal{U})}\exp\sum_{i=1}^{I}\phi^\lambda_i(z_i),
+\label{eq:crf}
+\end{equation}
+with partition function $Z_\lambda(\mathcal{U})>0$: a linear-chain CRF whose node potentials are Eq.~\eqref{eq:plpot} and
+whose pairwise potentials, $0$ or $-\infty$, encode the first-in-first-out queue. It is exact up to two approximations,
+the sampled candidates and the backlog grid (Appendix~\ref{app:proofs}).
+
+\paragraph{Exact inference.} Sums over the $\prod_i|C_i|$ candidate sequences can therefore be grouped by the backlog.
+For candidate $c$ of block $i$, let $\bm{T}_i^{(c)}\in\{0,1\}^{|\mathcal{H}|\times|\mathcal{H}|}$ be its transition matrix,
+$[\bm{T}_i^{(c)}]_{h,h'}=\mathds{1}[g_i(h,c)=h']$, and $\bm{\phi}_i^{(c)}\in\R^{|\mathcal{H}|}$ its potentials over $h$.
+The forward and backward messages $\bm{\alpha}_i,\bm{\beta}_i\in\R_{\ge0}^{|\mathcal{H}|}$, whose entry $h$ is the total
+weight of feasible prefixes leaving block $i$ with backlog $h$ and of all completions from there, satisfy
+\begin{equation}
+\begin{aligned}
+\bm{\alpha}_{i+1}&=\textstyle\sum_{c\in C_i}\bm{T}_i^{(c)\top}\big(\bm{\alpha}_i\odot e^{\bm{\phi}_i^{(c)}}\big),\\
+\bm{\beta}_i&=\textstyle\sum_{c\in C_i}e^{\bm{\phi}_i^{(c)}}\odot\bm{T}_i^{(c)}\bm{\beta}_{i+1},\\
+\bm{\mu}_i^{(c)}&=\bm{\alpha}_i\odot e^{\bm{\phi}_i^{(c)}}\odot\bm{T}_i^{(c)}\bm{\beta}_{i+1}\,/\,Z_\lambda,
+\end{aligned}
+\label{eq:fb}
+\end{equation}
+with $\bm{\alpha}_1$ one-hot at $h=0$, $\bm{\beta}_{I+1}=\bm{1}$, $Z_\lambda=[\bm{\beta}_1]_0$, and $\odot$ the elementwise
+product. $\bm{\mu}_i^{(c)}$ is column $c$ of the posterior marginal matrix $\bm{\mu}_i\in[0,1]^{|\mathcal{H}|\times|C_i|}$,
+and the expected total delay $\Phi(\bm{z})=\sum_iL_i(z_i)$ of the stream is $\mathbb{E}_{p_\lambda}[\Phi]=\sum_{i,h,c}
+\mu_i(h,c)L_i(h,c)$. As each $\bm{T}_i^{(c)}$ has one 1 per row, inference costs $O(I\,|\mathcal{H}|\max_i|C_i|)$ per
+stream (Proposition~\ref{prop:fb}, Figure~\ref{fig:pa}).
+
+\paragraph{A latency budget instead of a tuned price.} Tuning $\lambda$ by hand would need a sweep per direction, and its
+scale has no direct meaning. We instead fix an interpretable budget, the expected delay per target unit, and let
+$\lambda$ follow. Over a training corpus $\mathcal{S}$ of streams with $W_\mathcal{S}=\sum_{\mathcal{U}\in\mathcal{S}}\sum_i
+W_i$ target units and summed delay $\Phi_\mathcal{S}$, we seek the distribution $q$ over the corpus's plans that stays
+closest to the quality-only CRF $p_0$ within a budget of $b$ seconds per unit~\citep{ganchev2010posterior}:
+\begin{equation}
+\min_q\ \mathrm{KL}(q\,\Vert\,p_0)\quad\text{s.t.}\quad\mathbb{E}_q[\Phi_\mathcal{S}]\le bW_\mathcal{S},
+\label{eq:pr}
+\end{equation}
+where $b$ and $W_\mathcal{S}$ are scalars. For a multiplier $\lambda\ge0$, the Lagrangian
+$\mathrm{KL}(q\Vert p_0)+\lambda(\mathbb{E}_q[\Phi_\mathcal{S}]-bW_\mathcal{S})$ is minimised by the Gibbs distribution
+$q_\lambda\propto p_0\,e^{-\lambda\Phi_\mathcal{S}}$. As $\Phi_\mathcal{S}$ is a sum of per-block delays, the factor
+$e^{-\lambda\Phi_\mathcal{S}}$ only subtracts $\lambda L_i$ from every node potential, so
+$q_\lambda=\prod_{\mathcal{U}\in\mathcal{S}}p_\lambda(\cdot\mid\mathcal{U})$: the price of delay in Eq.~\eqref{eq:plpot} is
+the budget's Lagrange multiplier. Substituting $q_\lambda$ gives the dual function and its derivatives,
+\begin{equation}
+\begin{aligned}
+\mathcal{D}(\lambda)&=-\textstyle\sum_{\mathcal{U}\in\mathcal{S}}\log\frac{Z_\lambda(\mathcal{U})}{Z_0(\mathcal{U})}-\lambda bW_\mathcal{S},\\
+\mathcal{D}'&=\mathbb{E}_{p_\lambda}[\Phi_\mathcal{S}]-bW_\mathcal{S},\;
+\mathcal{D}''=-\mathrm{Var}_{p_\lambda}\Phi_\mathcal{S}\le0,
+\end{aligned}
+\label{eq:dual}
+\end{equation}
+which yield the following guarantee.
+
+\begin{proposition}[Latency budget]
+\label{prop:pr}
+If some distribution meets the budget of Eq.~\eqref{eq:pr} strictly, its solution is
+$\prod_{\mathcal{U}\in\mathcal{S}}p_{\lambda^\star}(\cdot\mid\mathcal{U})$, where $\lambda^\star=0$ if
+$\mathbb{E}_{p_0}[\Phi_\mathcal{S}]\le bW_\mathcal{S}$ and otherwise
+$\mathbb{E}_{p_{\lambda^\star}}[\Phi_\mathcal{S}]=bW_\mathcal{S}$; the expected delay is non-increasing in $\lambda$.
+\end{proposition}
+
+\noindent The proposition makes the budget practical: the constrained posterior is the same CRF, computed by the same
+pass of Eq.~\eqref{eq:fb}, and $\lambda^\star$ is found by bisection (proof and details in Appendix~\ref{app:proofs}).
+We set $b$ below the delay of base-rate playback, so the budget binds.
+
+\subsection{Training the Talker on the CRF Posterior}
+\label{sec:method-train}
+
+Because the CRF needs future release times, it runs only in training, where its posterior becomes the Talker's
+training target.
+
+\paragraph{Candidate weights.} On a training stream, we condition the marginals on the backlog $\tilde h_i\in\mathcal{H}$
+that block $i$ meets under base-rate playback: row $\tilde h_i$ of $\bm{\mu}_i$, normalised, is the probability vector
+$\bm{w}_i\in\Delta^{|C_i|}$ ($\Delta^n$ the probability simplex in $\R^n$) with entries
+\begin{equation}
+w_i(c)=e^{\phi_i(\tilde h_i,c)}\,\beta_{i+1}\big(g_i(\tilde h_i,c)\big)\big/\beta_i(\tilde h_i)
+\label{eq:w}
+\end{equation}
+for $c\in C_i$, as $\alpha_i(\tilde h_i)$ cancels. Through $\beta_{i+1}$, a candidate is weighted by the quality and delay of every later
+block it makes wait, so a rendering slightly better on its own but leaving a long backlog loses weight to a shorter one.
+
+\paragraph{Objective.} The PA Talker $\pi_\xi$, initialised from the base Talker $\pi_0$, also reads a token
+$\langle\tilde h_i\rangle$ of the binned backlog and is fine-tuned on the weighted candidates:
+\begin{equation}
+\begin{aligned}
+\mathcal{J}(\xi)=\textstyle\sum_{\mathcal{U},i}\Big[&-\textstyle\sum_{c\in C_i}w_i(c)\log\pi_\xi(c\mid\cdot)\\
+&+\kappa_\tau\,\mathrm{CE}\big(\bm{\rho}_i,\pi_\xi(\tau\mid\cdot)\big)\\
+&+\kappa_{\mathrm{KL}}\,\mathrm{KL}\big(\pi_0\,\Vert\,\pi_\xi\big)\Big],
+\end{aligned}
+\label{eq:patrain}
+\end{equation}
+where $\pi_\xi(c\mid\cdot)$ is the probability of $c$'s codes given the block's text, voice prompt, history and backlog
+token; $\bm{\rho}_i\in\Delta^{|\mathcal{T}|}$ is the posterior over the rate-token set $\mathcal{T}$,
+$\rho_i(\tau)=\sum_cw_i(c)\mathds{1}[\tau(c)=\tau]$ with $\tau(c)$ the rate $c$ was sampled at, fitted by the
+cross-entropy $\mathrm{CE}$; the KL keeps the codes close to $\pi_0$; and $\kappa_\tau,\kappa_{\mathrm{KL}}\ge0$ are weights.
+Up to a constant, the first term equals $\mathrm{KL}(\bm{w}_i\Vert\tilde{\bm{\pi}}_\xi)-\log\pi_\xi(C_i)$, with
+$\tilde{\bm{\pi}}_\xi\in\Delta^{|C_i|}$ the Talker renormalised on the candidates (Proposition~\ref{prop:patrain}): it fits
+the Talker's preferences among renderings to the CRF posterior, analogous to one M-step of posterior-regularised
+EM~\citep{ganchev2010posterior}. The target thus comes from a posterior that sees future release times, not from a
+teacher network (cf.~\citealp{hu2016harnessing}).
+
+\paragraph{Decoding.} At test time the PA Talker reads the backlog token of its actual queue, samples a few candidates
+per block at the rate of Eq.~\eqref{eq:rate}, and keeps the one the recogniser finds most intelligible (highest $f$).
+Read-level merging, the backlog-aware rate and the PA Talker form the \emph{playback layer}; \sys{} is the deadline
+Thinker with this layer.
+
+\subsection{cpASR-BLEU and tcpASR-BLEU}
+\label{sec:method-metrics}
+
+Inspired by cpWER~\citep{watanabe2020chime6} and tcpWER~\citep{neumann2023meeteval}, we propose cpASR-BLEU and tcpASR-BLEU,
+which score the ASR transcripts of translated speech for content and speaker attribution, without and with time
+constraints; we will release the scorer.
+
+\paragraph{cpASR-BLEU.} For a meeting, let $\bm{o}_k$ be the transcript of output stream $k$ and $\bm{g}_\varrho$ the
+reference translations of reference speaker $\varrho$, each concatenated in time order, and let $\sigma^\star$ be the
+one-to-one assignment of streams to speakers that maximises the summed chrF~\citep{popovic2015chrf}, with $\mathcal{K}$
+the matched streams. cpASR-BLEU is corpus BLEU~\citep{post2018call} over all meetings of the pairs
+\begin{equation}
+\begin{aligned}
+\mathcal{P}_{\mathrm{cp}}={}&\{(\bm{o}_k,\bm{g}_{\sigma^\star(k)})\}_{k\in\mathcal{K}}\cup\{(\bm{o}_k,\varnothing)\}_{k\notin\mathcal{K}}\\
+&\cup\{(\varnothing,\bm{g}_\varrho)\}_{\varrho\notin\sigma^\star(\mathcal{K})},
+\end{aligned}
+\label{eq:cpbleu}
+\end{equation}
+with $\varnothing$ the empty string, so a sentence spoken into the wrong stream costs twice: it is missing from its
+speaker's pair and superfluous in another's.
+
+\paragraph{tcpASR-BLEU.} tcpASR-BLEU adds the time constraint of tcpWER: every transcript segment, placed at its source
+time with a collar, joins the overlapping unit $u$ (a speaker's consecutive utterances) of its matched speaker or
+becomes an insertion. With $\bm{o}_u$ the segments joining $u$, $\bm{g}_u$ its reference and $\mathcal{I}$ the
+insertions, it is corpus BLEU over $\mathcal{P}_{\mathrm{tcp}}=\{(\bm{o}_u,\bm{g}_u)\}_u\cup\{(\bm{o}_s,\varnothing)\}_{s\in\mathcal{I}}$,
+so a correct translation given to the wrong speaker or time earns no credit (full definition: Appendix~\ref{app:eval}).

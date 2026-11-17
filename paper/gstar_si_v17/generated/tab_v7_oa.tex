@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{2.6pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrrrrr}
+\toprule
+ & & 20\,s & \multicolumn{2}{c}{coverage} & \multicolumn{2}{c}{silence-closed} & & \multicolumn{2}{c}{close lat.\ (s)} & attribution & re-entry & commit lag (s) \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){9-10}
+Set & System & windows & silence & 20\,s cut & $\le$2\,s bound. & inside & repeat & silence & 20\,s & per 5 min & ($\ge$60\,s) & nested / other \\
+\midrule
+En$\rightarrow$Zh & \sys{}-Simul & 15.3 & 75.2 & 68.5 & 75.0 & 75.6 & 7.8 & 2.01 & 4.94 & 87.5--92.6 & 85.4 & 1.36 / 1.24 \\
+ & \sys{} + LA2 & 15.3 & 66.0 & 58.9 & 66.4 & 65.3 & 6.8 & 2.01 & 4.94 & 84.9--91.7 & 77.1 & 4.94 / 1.48 \\
+Zh$\rightarrow$En & \sys{}-Simul & 5.9 & 78.3 & 69.2 & 79.9 & 76.0 & 0.7 & 1.97 & 2.76 & 76.0--89.5 & 78.1 & 1.40 / 1.20 \\
+ & \sys{} + LA2 & 5.9 & 75.8 & 65.2 & 77.2 & 73.8 & 0.5 & 1.97 & 2.76 & 83.9--89.8 & 74.9 & 3.86 / 1.48 \\
+AliMeeting & \sys{}-Simul & 43.9 & 78.8 & 68.2 & 81.0 & 76.9 & 2.0 & 1.89 & 2.84 & 91.9--96.3 & 89.8 & 1.52 / 1.44 \\
+ & \sys{} + LA2 & 43.9 & 65.1 & 52.9 & 67.2 & 63.2 & 1.8 & 1.89 & 2.84 & 88.8--94.2 & 84.5 & 6.50 / 2.92 \\
+\bottomrule
+\end{tabular}}
+\caption{Whole-meeting online runs, by window type (\%, except lags). 20\,s windows: windows cut at the 20\,s cap. Coverage: scored utterances that get an output segment, for utterances in silence-closed windows and in 20\,s-cut windows, and (silence-closed) within 2\,s of a window boundary or inside; repeat: covered utterances translated in two windows (the 0.2\,s / 0.3\,s padding). Close lat.: from the window's last reference speech to the moment its end is known (median). Attribution: share of covered utterances whose segment carries the right speaker after the meeting matching, lowest--highest over 5-minute bins with at least 50 utterances; re-entry: utterances of a speaker silent for at least 60\,s. Commit lag (median, s after the segment's end) of segments nested in another speaker's segment vs.\ the rest (head-of-line blocking of the start-ordered output).}
+\label{tab:oa7}
+\end{table*}

@@ -1,0 +1,108 @@
+% Overleaf: compiler pdfLaTeX (default) or XeLaTeX/LuaLaTeX; main document main.tex
+\documentclass[11pt]{article}
+
+\usepackage{iftex}
+\ifTUTeX
+  \usepackage[no-math]{fontspec}
+\fi
+\usepackage[review]{acl}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,mathtools,amsthm}
+\newtheorem{proposition}{Proposition}
+\usepackage{dsfont}   % \mathds{1}: msbm has no blackboard digit one
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,decorations.pathreplacing}
+\usepackage{bm}
+\usepackage{pgfplots}
+\usepackage{placeins}  % \FloatBarrier: appendix floats stay in their section
+\pgfplotsset{compat=1.17}
+\usepgfplotslibrary{groupplots}
+
+\newcommand{\sys}{\textsc{Mist}}
+\newcommand{\spk}[1]{\langle\mathrm{spk}_{#1}\rangle}
+\newcommand{\tim}[1]{\langle\mathrm{t}_{#1}\rangle}
+\newcommand{\wait}{\langle\mathrm{wait}\rangle}
+\newcommand{\eos}{\langle\mathrm{eos}\rangle}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\bias}{\delta_{\mathrm{w}}}   % write bias
+% CJK: fontspec engines use a system font; pdfLaTeX (Overleaf default) uses CJKutf8 + gbsn
+\ifTUTeX
+  \IfFontExistsTF{Noto Sans CJK SC}{\newfontfamily\zhfont{Noto Sans CJK SC}}{%
+    \IfFontExistsTF{Droid Sans Fallback}{\newfontfamily\zhfont{Droid Sans Fallback}}{%
+      \IfFontExistsTF{AR PL UMing CN}{\newfontfamily\zhfont{AR PL UMing CN}}{%
+        \newfontfamily\zhfont{FandolSong-Regular.otf}}}}
+  \newcommand{\zh}[1]{{\zhfont #1}}
+\else
+  \usepackage{CJKutf8}
+  \newcommand{\zh}[1]{\begin{CJK*}{UTF8}{gbsn}#1\end{CJK*}}
+\fi
+\input{generated/macros}
+\input{generated/macros_v6}
+\input{generated/macros_v7}
+\input{generated/macros_v8}
+\input{generated/macros_v9}
+\input{generated/macros_v10}
+\input{generated/macros_v11}
+\input{generated/v14/macros_v14}
+% an undefined number key prints a visible marker and a log warning instead of nothing
+\renewcommand{\num}[1]{\ifcsname n@#1\endcsname\csname n@#1\endcsname\else
+  \textbf{??}\PackageWarning{numbers}{undefined number key \detokenize{#1}}\fi}
+% Block-start speech LAAL, latency intervals, speech rate and UTMOS (v10:pr:* macros and
+% generated/tab_v10_postreview.tex from scripts/make_tables_v10.py); \PostReviewfalse restores the shorter text.
+\newif\ifPostReview
+\PostReviewtrue
+% v11 result switches, set by scripts/make_tables_v11.py (generated/switches_v11.tex) once each result exists
+\newif\ifFactorial \newif\ifFluencyPA \newif\ifAliEval \newif\ifWallclock \newif\ifWAcurve \newif\ifSfourK
+\newif\ifMetricsV
+\newif\ifXT \newif\ifCascade
+\input{generated/v14/switches}
+\input{generated/switches_v11}
+\definecolor{frozen}{HTML}{4C78A8}
+\definecolor{trained}{HTML}{E4572E}
+\definecolor{spkc}{HTML}{2E8B57}
+
+\title{Who Said What, and When It Is Heard:\\
+A Playback-Queue CRF for Speaker-Attributed Simultaneous Meeting Interpretation}
+
+\author{Anonymous ACL submission}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/method}
+\input{sections/setup}
+\input{sections/results}
+\input{sections/conclusion}
+
+\bibliography{references}
+
+\clearpage
+\appendix
+% more than 26 appendix sections: A..Z, then AA, AB, ...
+\makeatletter
+\renewcommand{\thesection}{\ifnum\c@section>26 A\@Alph{\numexpr\c@section-26\relax}\else\@Alph{\c@section}\fi}
+\makeatother
+% appendix float pages start at the top instead of being centred
+\makeatletter\setlength{\@fptop}{0pt}\setlength{\@dblfptop}{0pt}\makeatother
+% every appendix section first flushes the floats of the previous one
+\let\appendixsection\section
+\renewcommand{\section}{\FloatBarrier\appendixsection}
+\let\appendixsubsection\subsection
+\renewcommand{\subsection}{\FloatBarrier\appendixsubsection}
+\input{sections/appendix_v17}
+\FloatBarrier
+
+\end{document}

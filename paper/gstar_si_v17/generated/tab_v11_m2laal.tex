@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{2}{c}{block start} & \multicolumn{2}{c}{playback spread} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Set & B & \sys{}+WA & B & \sys{}+WA \\
+\midrule
+dev Zh$\rightarrow$En & 3.10 & 3.06 & 3.97 & 3.61 \\
+dev En$\rightarrow$Zh & 2.49 & 2.48 & 3.12 & 2.96 \\
+test AMI Zh$\rightarrow$En & 3.12 & 3.39 & 4.01 & 3.99 \\
+test AliMeeting & 3.28 & 4.01 & 4.28 & 4.85 \\
+test AMI En$\rightarrow$Zh & 2.54 & 2.80 & 3.21 & 3.34 \\
+\bottomrule
+\end{tabular}
+\caption{Speech LAAL under the conventional block-start definition (every word of a block is charged when the block \emph{starts} playing) and the playback-spread variant of Table~\ref{tab:main10} (a block's words spread evenly over its playback). B: deadline baseline; \sys{}+WA: $\bias=-1$ on dev, $\bias=0$ on test (all test systems with intervals: Tables~\ref{tab:postreview},~\ref{tab:postreview2}). Chunk protocol, mean of two TTS seeds, seconds.}
+\label{tab:m2laal10}
+\end{table}
