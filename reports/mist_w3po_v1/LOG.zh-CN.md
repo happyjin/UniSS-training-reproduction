@@ -3440,3 +3440,16 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - Idea 1（卡 0–3）：M1 = 开源诊断集、预登记、E1.0（G1.0）、E1.1、E1.2（G1.2）；
   - Idea 2（卡 4–7）：M1 = 预登记、100 h 开源合成多人流、预处理、E2.0（G2.0）、E2.2 线性 CA-Kalman（G2.2）；
   - 两者都在 M1 处停下汇报，不做测试集运行，也不做端到端训练。
+
+## 2026-11-19 00:36 布拉格 — Idea 1（ZNE）M1 开工：预登记、FSD50K 分卷补下载、探索性探针
+
+- **事故：** 下载器只取了 `FSD50K.eval_audio.zip`。实际 eval 音频是分卷压缩（`.z01` 加 `.zip`），所以完整性检查报 "spans multiple disks" 而失败，并非文件损坏。
+  - 处理：新脚本 `experiments/mist_w3po_v1/scripts/idea1_fetch_fsd50k_z01.sh` 后台补下 `.z01`（3.2 GB）。不用 curl 的 `--retry`，避免 dd 偏移错位。下载后用 `zip -s 0` 合并成 `raw/fsd50k/FSD50K.eval_audio.merged.zip`，再做 `unzip -t` 检查。
+  - 原 `.zip` 未改动；Idea 2 也可以用合并后的文件。
+- **预登记：** `reports/mist_w3po_v1/voicecond_idea1_prereg.zh-CN.md`，在任何选择和电竞运行之前提交。
+  - 内容：固定设置；三个外推族的公式；诊断集构造（中英各 1000 对，dev / test 各半）；按 §2.12 选族的规则（取差距在 5% 以内的最简单族）；G1.0、G1.2 和试听验收线；"见过"的语料清单。
+- **决定（协调者转达用户要求：尽快）：** 在诊断集构建的同时先跑 E1.2a 的探索性探针。
+  - 设置：R-t 族；80 条配对流 × 2 个方向；与 game_swap 同一顺序、同一种子。
+  - 标注为探索性，不参与外推族选择。若之后选定的就是 R-t，这次运行即作为正式的 E1.2a。
+- **决定：** 诊断集的 test 部分在 M1 中不运行，留作 ID-1 测试；E1.0 和 E1.1 只用 dev 部分。
+- **决定：** 独立的说话人确认模型用本地缓存的 TitaNet-large（`cache/hf_v6`，nemo_diar 环境）。
