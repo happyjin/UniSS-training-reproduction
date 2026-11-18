@@ -52,6 +52,13 @@ def universe(dr: str, meetings: set) -> dict:
         for u in map(json.loads, open(f, encoding="utf-8")):
             out[m].append((u["record_id"], u["speaker_id"], u["begin_s"], u["end_s"], u["hesitation"]))
     meetings = set(meetings) - game
+    obsi = {m for m in meetings if re.fullmatch(r"o[boc][ze]\d\d\d", m)}   # OpenBroadcast-SI v1 (voicecond bench)
+    for m in obsi:
+        f = (REPO / "data/open_voicecond_v1/bench" / {"b": "id2", "o": "ood1", "c": "clean"}[m[1]]
+             / ("en2zh" if m[2] == "e" else "zh2en") / f"utts/{m}.jsonl")
+        for u in map(json.loads, open(f, encoding="utf-8")):
+            out[m].append((u["record_id"], u["speaker_id"], u["begin_s"], u["end_s"], u["hesitation"]))
+    meetings = set(meetings) - obsi
     if dr == "en2zh":
         import pyarrow.dataset as pads
         from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import is_hesitation

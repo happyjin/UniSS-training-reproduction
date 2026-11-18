@@ -60,10 +60,12 @@ DIRS = {"zh2en": ("z", "zh-CN_en", "mix"), "en2zh": ("e", "en_zh-CN", "ihm_mix")
 TARGET_S = 7200.0            # stream time per direction
 STREAM_MAX_S = 300.0
 SPEECH_DBFS = -26.0
-FSD_CROWD = {"Crowd", "Cheering", "Applause", "Clapping"}
+FSD_CROWD = {"Crowd", "Cheering", "Applause", "Clapping", "Chatter"}
 FSD_SFX = {"Explosion", "Gunshot_and_gunfire", "Whoosh_and_swoosh_and_swish", "Boom", "Fireworks"}
+# clips with intelligible speech or singing are excluded; crowd shouting / chatter (Human_voice, Shout, Chatter) is kept
+# (v0 also excluded Human_voice and Chatter: only 14 held-out crowd clips, ~100 s; kept as bgsrc.v0_strict_speech_filter)
 FSD_BAD = {"Speech", "Male_speech_and_man_speaking", "Female_speech_and_woman_speaking", "Child_speech_and_kid_speaking",
-           "Conversation", "Singing", "Speech_synthesizer", "Human_voice", "Male_singing", "Female_singing", "Chatter"}
+           "Conversation", "Singing", "Speech_synthesizer", "Male_singing", "Female_singing", "Narration_and_monologue"}
 DEMAND_ENVS = ["PCAFETER", "PRESTO", "PSTATION", "SPSQUARE", "TMETRO"]
 ESC_SFX = {"fireworks", "glass_breaking", "door_wood_knock", "can_opening", "clock_alarm", "thunderstorm", "mouse_click",
            "keyboard_typing"}
@@ -456,7 +458,7 @@ def bgprep() -> None:
             for line in v.splitlines():
                 f = line.split()
                 if len(f) >= 4:
-                    musan_artists.add(" ".join(f[3:]).lower())
+                    musan_artists.add(f[3].replace("_", " ").strip().lower())
     fma = []
     for r in rows[3:]:
         if len(r) < len(h0):
@@ -471,7 +473,7 @@ def bgprep() -> None:
         if key not in names:
             skipped["missing"] += 1
             continue
-        if artist.lower() in musan_artists:
+        if artist.replace("_", " ").strip().lower() in musan_artists:
             skipped["musan_artist"] += 1
             continue
         try:
