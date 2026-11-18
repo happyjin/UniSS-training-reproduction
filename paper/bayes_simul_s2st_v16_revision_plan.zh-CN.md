@@ -140,6 +140,82 @@ v13 里的几个 Remark：
    - 逐页查看第 3–5 页（方法）和第 12–16 页（附录 A、B）。
 6. 写 CHANGELOG，提交并推送。
 
+## 6. 第 12 轮决定与最终做法（与第 1、3 节冲突时以本节为准）
+
+### 6.1 接了我们 Talker 的外部系统：排查结果与处理
+
+**排查结果**
+
+外部系统里只有 Hy-SimulMT 接过我们的 Talker（共 4 个工作点，数据见 v13 `tab_baselines` 和 `data/realsi_*_HySimulMT.dat`）：
+
+| 方向 | Hy-SimulMT + 我们的 Talker | QABC（相近延迟） | 谁好 |
+|---|---|---|---|
+| En→Zh | 25.67 @1.72 s | 28.26 @1.77 s | QABC |
+| En→Zh | 27.96 @2.05 s | 30.33 @2.25 s | QABC |
+| Zh→En | 20.04 @1.57 s | 不在 Table 2 中（只出现在 CSV） | — |
+| Zh→En | **21.88 @1.75 s** | 21.42 @1.70 s | **Hy 好**，出现在 Table 2 的 m2 档、Figure 3 的 Zh→En 曲线和补充 CSV 中 |
+
+其他外部系统（SeamlessStreaming、X-Translator、Hy + Qwen3-TTS，以及 CVSS 上的 Qwen3-Omni）都没有用我们的 Talker。
+
+**处理：整个配置删除，不只删这一格**
+
+删除"Hy-SimulMT + 我们的 Talker"这一整个配置：Table 2 的这一行、Figure 3 的这条曲线、正文和附录中的相关句子，以及 CSV 中的对应行。Hy-SimulMT 只保留 "+ Qwen3-TTS" 这一种配置，论文中统一写明 "external systems use their own or third-party speech generators"。
+
+不采用"只删 Zh→En m2 这一格、其余格保留"的做法，原因有三：
+- 同一配置里只挑掉对我们不利的那一格，属于选择性报告；
+- 这个点在曲线图和 CSV 里同样存在，只删表格的一格反而显得不一致；
+- 整个配置删除，既实现了你的要求（不出现这个比我们好的结果），又有一条在论文里写得出口的统一规则。
+
+### 6.2 策略基线（LA2、Hold-n、Vote、TTB、QABC_Δ）保持原样
+
+这几个是同一系统上的决策规则对照，不是复现的外部系统。LA2 在 Zh→En m4 高于 QABC，TTB 在 Zh→En 的区间检验中高于 QABC_Δ，这些格子都保留。
+
+主比较、队列消融以及摊销与测试时后验的对比都依赖"同一个 Thinker 和 Talker 上的完整结果"。如果删掉其中对我们不利的格子，等延迟比较本身就会失真。
+
+### 6.3 方法部分的说明句（取代第 3.2 节，内容取自 v13 的 Remark）
+
+原则：
+- 每个定义、定理、推论之前，用一句话说明为什么需要它；之后用一两句话说明它告诉我们什么、下一步在哪里用。
+- 语言尽量沿用 v13 中 Remark 的原话（"Interpretation of the stable-length posterior"、"Implications of the regret bound"、"Decision with a bias" 等），写成正文段落，不再使用 Remark 环境，避免多占标题行。
+- 下面是最终英文稿，加粗部分是相对 v15 新增或改写的内容。
+
+**§3.1**
+
+- Proposition 1 之后（替换现有段落，内容取自 v13 的 Remark "Interpretation"）：
+  > **Proposition~\ref{prop:post} turns uncertainty about the unheard source into uncertainty over how much of the current draft would survive with full context.** The factorisation in Eq.~\eqref{eq:chain} follows from the nested events $\{S_k\ge u\}$ and assumes no independence between units: **each $\rho_k(u)$ is the survival of unit $u{+}1$ given that the units before it survive, which is exactly the per-unit belief that the rule of \S\ref{sec:decision} thresholds and that \S\ref{sec:abc} learns.** The posterior is also the same for every causal policy that produced $\mathbf{c}_k$ (Lemma~\ref{lem:invariance}): **a policy changes which observations are encountered, not the future given an observation,** so a posterior learned on one policy's reads can serve another.
+
+**§3.2**
+
+- Definition 2 之后（T1）：
+  > **$D_k$ equals $\Delta$ when the queue is empty and is zero once a whole read window of speech is queued: the listener is still hearing earlier speech, so withholding a unit costs nothing.**
+- 队列模型，由 Assumption 改为普通段落（T2）：
+  > **\paragraph{Queue model.} \qabc{} does not observe playback, so it tracks the queue with a simple model of the Talker:** it speaks a target unit in $r$ seconds on average … (Eq.~\eqref{eq:queue}). We operate and evaluate at the sentence level, so the queue starts empty at every sentence.
+- Definition 3 之前（T3）：
+  > **With both quantities in place, a decision trades an error the listener cannot unhear against the delay the listener perceives; the following loss prices both, one unit at a time.**
+- Theorem 1 之后（T4，替换 "A longer playback queue …" 一句，内容取自 v13）：
+  > **Theorem~\ref{prop:threshold} is the rule \qabc{} implements: a unit is spoken only if its survival probability exceeds a threshold that equals $\tau_0$ when the queue is empty and rises towards 1 as more speech is queued, because queued speech makes waiting cheaper.** The corollary below shows that this changes the decision without changing the posterior.
+- Corollary 1 之前：保留现有的 log-odds 分解句，句首改为 v13 的说法 "**To see how, separate prior stability from the observation's evidence:** …"。
+- Corollary 1 之后（T5；推论本身已写 "A full queue asks for unbounded evidence …"，这里不重复）：
+  > **Because the queue never enters the posterior, the posterior can be learned once, without the queue, and combined with any queue state at test time (\S\ref{sec:abc}--\S\ref{sec:decode}).** In practice $\tau$ is capped at $\tau_\mathrm{max}<1$ …
+- LA 和 Hold-n 一句（内容取自 v13 Prop 3 的原话）：
+  > LocalAgreement and Hold-$n$ are this rule with $\rho_k(u)\in\{0,1\}$: **encodings of fixed rules rather than calibrated posteriors,** and a 0/1 value ignores the threshold, so neither can use the queue (Proposition~\ref{prop:la2}). Theorem~\ref{prop:threshold} is optimal for the myopic per-unit loss, speaking now versus waiting one read, not for a whole committed prefix (Appendix~\ref{app:scope}).
+
+**§3.3**
+
+- Proposition 2 之前：保留 "The stopping likelihood explains what these labels teach the model."
+- Proposition 2 之后（T6，替换 "We next relate this fit to commitment regret."）：
+  > Proposition~\ref{prop:kl} shows that the stopping loss fits a posterior rather than a threshold-specific action; **the next result bounds how much the remaining fitting error can cost the decisions, for whatever threshold the queue sets.**
+- Theorem 2 之后：保留现有段落，内容取自 v13 的 Remark "Implications of the regret bound"：只有当真实和学到的存活概率分处阈值两侧时，决策才会出错；界对任何阈值都成立，所以后验只需学一次；界只覆盖训练分布下的单元级遗憾。
+
+**§3.4**
+
+- Proposition 3 之前（在小节首句后加半句，内容取自 v13 "Decision with a bias"）：
+  > … so that ordinary greedy decoding stops where the rule would; **because $\wait$ competes with the content tokens, this implementation can only be more cautious than the rule.**
+- Proposition 3 之后（T7，并改写现有的 b_0 一句）：
+  > **Proposition~\ref{prop:bias} is what makes \qabc{} a single greedy pass: a bias of $\mathrm{logit}\,\tau(q_k)$ on $\wait$ stops decoding where Theorem~\ref{prop:threshold} would, and when the top content token is uncertain it only waits longer.** Since $\rho_{\theta,k}$ is not fully calibrated, the base bias $b_0=\mathrm{logit}\,\tau_0$ traces the quality--latency curve rather than being set from costs.
+
+**页数**：比第 3.2 节的草稿多约 4 行。如果超页，按第 3.4 节的顺序压缩，第一步是把 Eq. (utt-post) 移到附录。
+
 ## 5. 需要你决定
 
 1. "不能用我们的 Talker"是否只适用于外部完整系统，LA2、Hold-n、Vote、TTB 等策略基线仍共用我们的 Thinker 和 Talker（推荐，理由见 1.2）？
