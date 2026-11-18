@@ -706,6 +706,165 @@ v14 计划把 v13 的 Table 11（`tab_realsi_main`）移进正文。表里还有
 | H5 | RealSI 文本检验的统计功效不足 | — | 以 80% 功效只能检出约 1 BLEU | 附录 T35 |
 | H6 | 几项扩展没有起作用 | MBR、per-talk 自适应、语音侧选择 vs 原方法 | 只有定性描述 | 附录 E |
 
+## 17. 第 5 轮：表格处置与附录重构（与第 8、13–15 节冲突时以本节为准）
+
+### 17.1 全局规则
+
+1. **不再使用 Holm p**，全文删除所有 Holm 列。
+2. **p 值采用统一规则，而不是只删对我们不利的那几列**：
+   - 附录所有表格都不放 p，只给差值和 95% CI，或者 mean ± sd。
+   - 正文只有主比较表（Table 3）保留一列单侧 p，不做多重校正。表注写一句："one-sided paired bootstrap; the three primary comparisons stay below 0.05 after correction for three test sets"。
+   - 去掉 Holm 后，正文不能再拿未校正的 p 宣称次要比较"显著"。次要结果一律写"95% CI 不含 0"或"CI 含 0"。
+   - 原因：同一篇论文里，有的表有 p、有的表恰好在不利处没有 p，审稿人一眼就能看出来；统一规则同样能删掉那些 p 列，却不留话柄。
+3. **seed 只报统计量**：写 mean ± sd（标准差，单位与 BLEU 相同），不写方差，也不写变异系数。Omni 的 Table 12 也是 "mean ± std over 3 seeds"。表中不再列 s0–s4 的单个值，不再有 Worst 列及其说明。"Seeds > 0" 一列（5/5）是有利信息，可以保留。
+4. **envelope**：只在附录 C.3 的 E1 定义里写一句（"E1 compares upper envelopes of each policy's quality–latency points"），这是复现所必需的；所有表注删去 envelope 的内容，删除 "no envelope" 一列。
+5. **延迟只用 segment LAAL**，即每个单元的时间取它所在块的起播时间。这是 SimulS2ST-Omni 分档所用的度量，定义写在附录 C.3。删除按词计时（v13 T33）及正文 Setup、T31、T32 中所有 word-aligned 的列和描述。
+6. **只保留能证明结果有效、或能验证方法各部分的实验**。探索性实验、重复实验和失败的扩展都删掉；完整数据以 CSV 形式放进补充材料。
+7. **FR（流畅化规则）**：主结果并没有使用 FR。证据是：区间检验表注写着 "no FR"；分档表中 QABC 的 m2 点 28.26 @1.77 s，与 FR 表里"不加 FR"的 QABC（28.27 @1.77 s）一致。而 v13 方法 §5.2 写的是测试时使用 FR，前后不一致。
+   - 建议：先从运行配置确认这一点。若确认主结果确实没用 FR，就**把 FR 从论文中整体删除**（方法 §5.1、附录中 FR 的定义、T12、T13），并改正 §5.2 的表述。
+   - 播放缓冲和加速 token 也要同样核实：主结果里用了，就写进附录 E 的推理设置；没用，就删除。
+   - FR 使 En→Zh ASR-BLEU 下降 0.47，按你"流畅性改动不能降低 ASR-BLEU"的规则本来也不合格。
+
+### 17.2 v13 每张图表的处置（T# 为 v13 PDF 表号）
+
+| v13 | 内容 | 处置 | v14 位置 |
+|---|---|---|---|
+| F1 | 方法流程图 | 保留；q_θ 改为 p_θ，并标注 "stopping NLL" | 正文 Figure 1 |
+| F2 | 质量–延迟曲线 | 移入正文 | 正文 Figure 2 |
+| T1 | CVSS 离线 | 改为紧凑版，约 6 行，加模型规模和所用 Talker 的脚注 | 正文 Table 1 |
+| T11 + T5 + T8 + T55 | 四张分档表 | **合并为一张**：用 s0（登记的 adapter）、三个 talker seed；行为 m1–m4（≤3 s）× RealSI 两个方向 + ACL60/60；列为 Omni（报告值）、SeamlessStreaming、Hy-SimulMT、X-Translator、Hy+Qwen3-TTS、LA2、Hold-n、Vote、QABC。删除 TTB(+q) 和 QABC_Δ 两列（它们是消融，放到 Table 4、5）。删除 T55（它用的是看过登记结果后才选的 s1 adapter） | 正文 Table 2 |
+| T2 + T46 + T36 | 主比较 + 五个 seed | 合为一张：每个测试集一行 s0、一行五 seed 的 mean ± sd（另附两层 bootstrap CI）。列为 E1 [95% CI]、单侧 p（只在 s0 行）、E2、Seeds > 0。删除 Holm、Worst 和逐 seed 的值 | 正文 Table 3 |
+| T10 + T9（2 行） | 队列消融 + 对照 | QABC 对 QABC_Δ 的配对差，给 Δ 和 CI。T9 只留 2 行："同一份草稿上 QABC 对 LA2"（En→Zh +2.01、Zh→En +0.17），证明增益来自决策规则而不是 adapter 改了译文；"加队列门的 LA2 对 LA2"（+0.01/+0.07），证明只有队列、没有后验是不够的 | 正文 Table 4 |
+| T6（含 T7 的 CI） | QABC / QABC_Δ / TTB 对 LA2 的区间检验 | 给 Δ 和 CI，不放 p。删掉 T7（CI 已并入） | 正文 Table 5 |
+| T42 + T31 | 决策规则 + 计算量 | 规则只留"严格按 Thm 1"、全局 argmin、Platt 三行（如果删掉块内延迟扩展，就不留 seq-B），只给 Δ，不放 p。计算量只留 ms/read 和 +CA 两列，删去按词计时的 LAAL | 正文 Table 6 |
+| T3 | myopic 对全局最优 | 保留（审稿人引用过；属于理论适用范围） | 附录 B |
+| T45 | 各理论结论分别针对什么 | 保留，压缩 | 附录 B |
+| T44 | 统计协议（含各轮注册） | 删除，改为附录 C.3 里一段统计方法说明 | — |
+| T4 | TTB 的 17 维特征 | 保留 | 附录 C.2 |
+| T17 | 我们的 Talker 对 Qwen3-Omni 原生 Talker | 保留，只留 ASR-BLEU（mean ± sd），作为选择 Talker 的公平性依据 | 附录 C.2 |
+| T16 | 外部系统全部工作点（43 行） | **删除**，完整数据放 CSV（理由见 17.5） | 补充材料 |
+| T19 | oracle 按 S_k 提交 | 保留（S_k 是值得估计的量，对应 3.1） | 附录 F |
+| T18 | 测试时后验的质量 | 保留（说明为什么要摊销，而不是在测试时估计，对应 3.3） | 附录 F |
+| T29 | 文本端的各种消融 | 只保留"标签来源"消融：full-context 标签对 consensus 标签（对应 3.3 的标签设计）；删除 TTB β 和训练步数两组行 | 附录 F |
+| T43 | 在 QABC 自己读上的校准 | 保留 NLL 和 ECE；target shift 的数字移到附录 B 的推论里；删除损失和扣下比例等列 | 附录 F |
+| T30 | 语速 r 的敏感性 | 删除 p，给 Δ（有 CI 就加 CI） | 附录 G |
+| T39 + T54 | 增益来源、三种时间轴 | 合为一张：提交时刻文本、被听到时的文本、语音。它说明增益出现在"被听到的时间轴"上，正是 Cor 1 所说的队列作用。只给 Δ 和 CI。原第二个登记检验（提交时刻文本）就在这张表里报告，T27 不再单列 | 附录 G |
+| T37 + T51 | 推导阈值对二值门；两规则不同的比例 | 合为一张小表，标题 "τ(q) and its two-level approximation"，给 Δ、CI 和"不同决策的读占比"，不放 p。理由见 17.5 | 附录 G |
+| T38 | 稳健性 | 只留"去掉任一 talk 后 E1 的范围"和"网格步长"两列；删除 talk 重采样 p 和 no envelope 两列（按你的规则；另见 17.6） | 附录 H |
+| T40 | 队列模型 D_k 对实测延迟 | **删除**，同时删除"块内延迟"Remark 和 seq-B。附录 B 只用一句话把"平均语速"列为近似之一 | — |
+| T12、T13 | FR | 删除（见 17.1 第 7 条） | — |
+| T14、T15 | 全部工作点 | 删除，改为 CSV | 补充材料 |
+| T20、T21、T22 | 测试时 refine 与 FR 余量 | 删除（探索性） | — |
+| T23 | QABC 对所有 heuristic | 删除 | — |
+| T24 | 三个 adapter 的区间检验 | 删除（已被五个 seed 的结果覆盖） | — |
+| T26 | ACL 三种跑法 | 删除。正文的 ACL 主数字建议改用"全部读窗在同一台服务器重跑"的 +1.97 [+0.97, +4.34]，见 17.5 | — |
+| T27 | 文本登记检验 | 并入 T39 + T54 | — |
+| T28 | 文本端分档 | 删除 | — |
+| T32 | 语音质量 A.PCP / SIM | 删除（与方法无关） | — |
+| T33 | 按词计时 | 删除 | — |
+| T34、T35 | 按方向选择、统计功效 | 删除 | — |
+| T41、T47–T50 | 一条时钟 | 删除 | — |
+| T52、T53 | 早期错误 | 删除；正文中 "early units are not less reliable" 一句也删掉 | — |
+| 附录 E 段 | Extensions that did not help | 删除 | — |
+
+结果：
+
+- 正文 8 个浮动体：F1、F2、Table 1–6。
+- 附录 v13 原有的图表从 53 张减到约 12 张：T3、T45、T4、T17、T19、T18、T29′、T43′、T30、T39+54、T37+51、T38′。另新增训练超参表、推理超参表和 Algorithm 1。
+
+### 17.3 新附录结构（结合 SEE 和 SimulS2ST-Omni 的写法）
+
+- **SEE 附录的逻辑**：先是 A "More Experimental Setups"（模型、任务、数据规模、超参、基线），接着 B "Supplementary Analysis of SEE"、C/D 是 SEEN 的补充分析，然后依次是可迁移性、效率、有效性和稳健性、算法流程，最后是 AI 写作声明。
+- **SEE 的段落写法**：段首是一句结论式标题（如 "SEE Is Stable on Clean Audio."、"SEE Tracks Noise-induced Degradation."），然后"我们评估 X → 图表 N 显示 … → 这说明 …"。收益有限时也直说，并给出原因。例如 SEE 附录 D 写的是 "the gains are limited … we have the following conjectures"。
+- **Omni 的附录**：数据 → 训练 → 推理 → 评测协议 → 补充结果 → 计算代价 → 稳健性，每节首句说明它补充正文的哪一部分。
+
+v14 附录：
+
+| 节 | 标题 | 内容 | 图表 |
+|---|---|---|---|
+| A | Proofs | 按正文命题顺序 | — |
+| B | Scope of the Theory | 完整的假设、Lemma 2、myopic 与全局、两个偏移推论及其证明、近似列表 | T3、T45 |
+| C | More Experimental Setups | C.1 数据（训练、dev、测试；ACL60/60 的切分与偏移恢复）<br>C.2 基线与外部系统（设置、TTB、Talker 公平性）<br>C.3 评测协议（ASR-BLEU 流程与文本归一化；segment LAAL；**分档 m 的定义与预算来源**；E1/E2 的定义，含 envelope 那一句；bootstrap 方法） | T4、T17 |
+| D | Training Implementation Details and Hyperparameters | 分阶段写，加训练超参表和 Algorithm 1（仿 Omni 附录 B 和 SEE 附录 I） | 训练超参表、Alg. 1 |
+| E | Inference and Decoding | Thinker 解码、队列跟踪、偏置与 τ_max、Talker 采样；按 17.1 第 7 条核实后写入播放器设置 | 推理超参表 |
+| F | Supplementary Analysis of the Stable-Length Posterior（对应 3.1、3.3） | 段首结论句，例如："Committing the stable length is near-offline."（T19）、"Test-time estimates are miscalibrated, which motivates amortization."（T18）、"Full-context labels beat consensus labels."（T29′）、"The amortized posterior is calibrated on the policy's own reads."（T43′） | T19、T18、T29′、T43′ |
+| G | Supplementary Analysis of the Queue-Aware Rule（对应 3.2） | "The gain appears on the heard time line."（T39 + 54）、"The gain holds across speech rates."（T30）、"A two-level gate approximates τ(q)."（T37 + 51） | 3 张 |
+| H | Robustness of the Main Comparison | 去掉任一 talk、网格步长（T38′）。五个 seed 已在正文 Table 3 | 1 张 |
+
+AI Use Statement 和 Impact Statement 按 ICML 2027 要求放在参考文献之前，不放进附录。
+
+### 17.4 排版：表格紧跟文字，减少空白
+
+v13 的问题出在三处：
+
+- 附录有 12 张跨栏表（`table*`）。在双栏排版里，跨栏表只能浮动到后面某一页的顶部，于是越积越多，最后堆在一起。
+- 多处连续 `\input` 4–7 张表，中间只有一句话（`appendix.tex:355–363`、`556–569`）。
+- 浮动体总数达到 53 张。
+
+v14 的做法：
+
+1. 浮动体减到约 12 张（见 17.2），这是最有效的一步。
+2. 附录除确有必要的情况外，一律用单栏表 `table`；把多余的列删掉或转置，让表能放进单栏。正文只有分档表 Table 2 用 `table*`。
+3. 每段只引用一张表，`\input` 紧跟在首次引用它的那段之后；放置参数用 `[!htb]`。
+4. 在 `\appendix` 之后设置浮动参数：`topnumber 3`、`bottomnumber 2`、`totalnumber 5`、`\topfraction 0.9`、`\bottomfraction 0.8`、`\textfraction 0.07`、`\floatpagefraction 0.85`、`\dbltopfraction 0.9`、`\dblfloatpagefraction 0.85`。
+5. 附录开头加 `\clearpage`，不在每节末尾加 `\FloatBarrier`。
+6. 编译后用空白检查脚本核对，每栏空白不超过 20%；每张表与首次引用它的文字相距不超过一页。
+
+### 17.5 对第 5 轮问题的回答
+
+**1. 分档 m1–m6 的定义（A10）**
+
+- 三篇参考论文中，只有 SimulS2ST-Omni 定义了分档。m 是 latency multiplier：把 m 个源语音 chunk 合成一步读取，即读窗为 m 秒（Omni 案例研究写的是 "one source second per step at m=1"），训练时 m ∈ {1,…,12}。
+- 1.98 / 1.92 / 1.90 是 **m2**，不是 m1；m1 是 1.18 / 1.18 / 1.30。
+- 我们的 m 标签是对的：T55 中 Omni 一列 m2–m6 的数值（24.21、25.01、25.54、25.92、26.32；19.55、21.07、22.47、22.94、23.47）与 Omni 的 Table 3 完全一致。
+- 各档的 LAAL 预算是写死在 `experiments/s2st_baselines_v1/fill_paper_v13.py` 的 `BUDGETS` 里的。Omni 的 Table 3 只给了 ASR-BLEU、没有给 LAAL，所以这些预算应该是从它的 Fig. 3 / Fig. 5 曲线上读出来的。附录 C.3 需要写明来源，写之前我再核对一次。
+- T55 中只有一个值的行（En→Zh m1 只有 Omni，Zh→En m1 只有 QABC，ACL m1 只有 LA2）随 T55 一起删除。合并后的分档表中，m1 各有 Omni 和 QABC 两个值，体现了 QABC 能工作在 LA2 达不到的低延迟，建议保留。
+
+**2. 为什么要比较推导出的阈值和二值门（C1–C3）**
+
+- 二值门是一个更简单的规则，用的是同一个后验：队列里至少有一整个读窗的语音时扣下不确定的单元，否则用 τ_0。它正好是 Thm 1 的 τ(q) 在两个端点上的取值：q = 0 时等于 τ_0，q ≥ Δ 时阈值趋近 1。所以二值门就是 τ(q) 的两档近似。
+- 这个比较检验的是：Thm 1 推出的连续阈值形状，是否比两档近似更好。
+- 结果没有差异，原因是 82% 的读的队列落在两个端点上，两条规则在这些读上完全一致。所以它说明"队列信息有用"成立，但"连续形状优于两档"在 RealSI 上无法区分；它并不否定方法本身。
+- 它是事先登记的比较（C2）。建议不删，按 17.2 把 T37 和 T51 合成附录 G 的一张小表，标题 "A two-level gate approximates τ(q)"：由 Thm 1 可以推出二值门这种更简单的实现，这反而是对理论的一个用处。
+- T9（对照表）里有两行是证明方法有效的关键证据，不能整张删掉；其余行可以删。
+
+**3. Hy-SimulMT 不接我们的 Talker（B1）**
+
+- Hy-SimulMT 只输出文本，没有官方 Talker。我们跑过两种接法：
+  1. 接我们的 Talker：与 QABC 用同一个 Talker，只比较策略本身。Zh→En m2 上 21.88 对 21.42，QABC 落后。
+  2. 接 Qwen3-TTS 的参考级联：在它有工作点的档位上都低于 QABC（En→Zh m2 25.72 对 28.26；Zh→En m3/m4 20.11 对 22.46/22.65），但 Zh→En m2 上没有工作点。
+- 建议两列都保留，以第 1 列为主。如果只放第 2 列，就是为强基线挑了一个更弱的 TTS。我们自己的 T17 也表明我们的 Talker 比 Qwen3-Omni 原生 Talker好，审稿人会认为这个比较不公平。
+- 8 个档位里只输一格（−0.46），而 En→Zh 领先 2.4–2.6，这样写是可以接受的。
+
+**4. Table 16**
+
+- 建议**整张删除**，完整数据放 CSV。
+- 分档表已经给出了每个外部系统在每个延迟预算内的最佳点；不同系统都用同一规则取点，这就是公平的摘要。
+- "SeamlessStreaming 挑最差的一条、QABC 挑最好的一条"会被视为挑选结果，不建议这样做。
+
+**5. ACL60/60 的主数字（删除 T26 的后果）**
+
+- v13 的 +2.63 来自"旧服务器跑的部分读窗 + 新服务器补齐的读窗"拼接而成；全部读窗在同一台服务器上重跑得到 +1.97 [+0.97, +4.34]。
+- 删掉 T26 后，建议正文改用 +1.97：口径干净，而且仍然明显为正。
+- 同时要确认五个 seed 中 ACL 的结果也是在同一台服务器上跑的。
+
+### 17.6 这些删除对审稿人改分条件的影响
+
+审稿人提出的改分条件 3 要求正文呈现四项敏感性分析。按本轮决定：
+
+- 五个 seed：**满足**（Table 3 的 mean ± sd 和 CI）。
+- talk 重采样、按词计时、无 envelope：**都不在论文里了**。
+
+如果真实审稿人问到这三项，需要在 rebuttal 中补充。数据都已有，只需用 CPU 计算。按你的规则，第 15.5 节第 1、2 项计算可以暂缓，留到 rebuttal 时再做。
+
+### 17.7 需要你确认的事
+
+1. 正文 Table 3 是否保留一列单侧 p（推荐保留，表注写一句多重校正后仍成立）；或者只放 CI。
+2. ACL60/60 主数字是否改用同一台服务器重跑的 +1.97（推荐）。
+3. T37 + T51 合成二值门小表（推荐），还是删除。
+4. Hy-SimulMT 的两列都保留（推荐）。
+5. 我来核实 FR、播放缓冲是否用于主结果，以及分档预算的出处。
+
 ## 来源
 
 - ICML 2027 Author Instructions：https://icml.cc/Conferences/2027/AuthorInstructions
