@@ -170,3 +170,25 @@
 - 电竞数据（80 条配对流、demo 10 段）只做评测；
 - M1 中不跑开源诊断集的 test 部分、OpenBroadcast-SI、AMI / AliMeeting、任何电竞测试片段；
 - 不在 OpenBroadcast-SI 上做任何选择或调参。
+
+---
+
+## v2 修订（2026-11-19 00:52 布拉格；诊断集构建之前、任何选择之前）
+
+原因：协调者转达了基准（OpenBroadcast-SI v1，提交 2563d6b94）的留出规则和 OOD-1 语料。
+
+1. **背景留出：** 排除以下两份清单中的全部文件，并对每个文件再按基准自己的规则复核一遍：
+   - 清单：`bench/HELDOUT_BACKGROUNDS.txt`（FSD50K 1560 条）和 `bench/HELDOUT_BACKGROUNDS_MUSAN.txt`；
+   - 规则：`int(sha1('OpenBroadcast-SI-v1|' + 路径)) % 1000 < 150`。
+   - 实测：已解压的 686 个 FSD50K 片段中有 91 个属于留出，清单与规则逐条一致。
+2. **MUSAN music 只用 hd-classical、jamendo、rfm 三个子集**（仍只取无人声曲目），不用 fma 和 fma-western-art。
+   - 原因：这两个子集来自 Free Music Archive，而 FMA 是 OOD-1 的背景语料，整体留给基准。
+3. **永不使用：** FMA、DEMAND、ESC-50、CoVoST 2，以及 `HELDOUT_SPEECH.txt` 中的说话人。
+4. **背景池规模（留出之后）：**
+
+| 划分 | music | crowd | sfx |
+|---|---|---|---|
+| dev | 137 | 94 | 182 |
+| test | 114 | 68 | 176 |
+
+5. §2 的"见过的语料"相应改为：MUSAN music 的 hd-classical / jamendo / rfm（无人声），以及 FSD50K eval 的 9 个类别（去掉留出部分）。

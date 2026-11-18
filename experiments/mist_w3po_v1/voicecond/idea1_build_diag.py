@@ -8,8 +8,10 @@ bh = y - vhat = c b + kappa s + e (least squares on the waveform).
 Speech  en: LibriSpeech dev-clean -> dev, test-clean -> test; zh: AISHELL-3 test speakers, sorted by sha1(speaker id),
         first half -> dev, second half -> test.
 Background files split dev / test by sha1(file name) parity; files listed in data/open_voicecond_v1/bench/
-HELDOUT_BACKGROUNDS.txt (OpenBroadcast-SI) are excluded (the list must exist).
-  music  MUSAN music, ANNOTATIONS vocals = N, random 6 s with RMS >= 0.1 x track RMS
+HELDOUT_BACKGROUNDS.txt / HELDOUT_BACKGROUNDS_MUSAN.txt (OpenBroadcast-SI) and every file matching the benchmark's
+own hold-out rule are excluded (both lists must exist). FMA / DEMAND / ESC-50 (OOD-1) and CoVoST 2 are never used.
+  music  MUSAN music hd-classical / jamendo / rfm (the Free-Music-Archive subsets fma, fma-western-art are skipped:
+         FMA is an OOD-1 corpus), ANNOTATIONS vocals = N, random 6 s with RMS >= 0.1 x track RMS
   crowd  FSD50K eval, labels contain Crowd / Cheering / Applause and none of the speech / singing / music labels
   sfx    FSD50K eval, labels contain Explosion / Gunshot_and_gunfire / Whoosh_and_swoosh_and_swish / Boom / Fireworks /
          Crack and none of those labels; crowd / sfx: random clips of the category concatenated to 6 s
@@ -83,14 +85,28 @@ def esports_bvr() -> np.ndarray:
 
 
 def heldout() -> set:
-    if not HELDOUT.exists():
-        raise SystemExit(f"{HELDOUT} missing: backgrounds are drawn only after the held-out list exists")
+    """stems listed in HELDOUT_BACKGROUNDS.txt (FSD50K) and HELDOUT_BACKGROUNDS_MUSAN.txt; both must exist"""
     out = set()
-    for line in open(HELDOUT, encoding="utf-8"):
-        line = line.strip().split("\t")[0].strip()
-        if line and not line.startswith("#"):
-            out.add(Path(line).stem)
+    for f in (HELDOUT, HELDOUT.with_name("HELDOUT_BACKGROUNDS_MUSAN.txt")):
+        if not f.exists():
+            raise SystemExit(f"{f} missing: backgrounds are drawn only after the held-out lists exist")
+        for line in open(f, encoding="utf-8"):
+            line = line.strip().split("\t")[0].strip()
+            if line and not line.startswith("#"):
+                out.add(Path(line).stem)
     return out
+
+
+def bench_rule(member: str) -> bool:
+    """the benchmark's own rule (HELDOUT_BACKGROUNDS.txt header), applied as a second check"""
+    return int(hashlib.sha1(("OpenBroadcast-SI-v1|" + member).encode()).hexdigest(), 16) % 1000 < 150
+
+
+def member_path(p: Path) -> str:
+    parts = p.parts
+    if "musan" in parts:
+        return "/".join(parts[parts.index("musan"):])          # musan/music/<subset>/<file>.wav (tar member)
+    return f"FSD50K.eval_audio/{p.name}"
 
 
 def bg_pools(a, held: set) -> dict:
@@ -99,6 +115,8 @@ def bg_pools(a, held: set) -> dict:
     n_held = 0
     music = []
     for ann in glob.glob(os.path.join(a.musan, "*", "ANNOTATIONS")):
+        if Path(ann).parent.name in ("fma", "fma-western-art"):   # Free Music Archive: FMA is an OOD-1 corpus
+            continue
         for line in open(ann, encoding="utf-8", errors="replace"):
             f = line.split()
             if len(f) >= 3 and f[2] == "N":
@@ -118,7 +136,7 @@ def bg_pools(a, held: set) -> dict:
             sfx.append(p)
     for cat, lst in (("music", music), ("crowd", crowd), ("sfx", sfx)):
         for p in sorted(lst):
-            if p.stem in held:
+            if p.stem in held or bench_rule(member_path(p)):
                 n_held += 1
                 continue
             pools["dev" if h(p.name) % 2 == 0 else "test"][cat].append(p)

@@ -3515,3 +3515,12 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **流的构造：** 轮次长度、句间停顿、换人间隙（负值即重叠）都从 AMI train 统计中抽样（只用非犹豫、≥ 1 s 的段）。重叠占语音时间 7.5–8.2%（AMI 为 9.6%）。
   - BVR：按电竞提示 BVR（444 条，中位数 −14.3 dB）的分位数 0.05–0.95 分层抽取。ID-2 和 OOD-1 用同一条流、同一个 BVR、同一份事件时间表，只换背景语料。
 - **GPU：** 停掉卡 3 的占位程序（PID 2733489、2736184），跑无背景版本的 Nemotron lowlat 分离器。
+
+## 2026-11-19 00:53 布拉格 — Idea 1：诊断集排除基准留出背景和 FMA
+
+- **基准留出：** 按 HELDOUT_BACKGROUNDS.txt、HELDOUT_BACKGROUNDS_MUSAN.txt 两份清单排除，并按基准规则逐条复核。
+  - 已解压的 686 个 FSD50K 片段中有 91 个属于留出，已全部排除，不进入诊断集，也不参与选族。
+- **决定：** MUSAN music 不用 fma 和 fma-western-art 子集，因为它们来自 Free Music Archive，与 OOD-1 的 FMA 可能重叠。
+  - 改用 hd-classical、jamendo、rfm 三个子集，只取无人声曲目；
+  - 留出之后 dev / test 的背景池：music 137 / 114，crowd 94 / 68，sfx 182 / 176；
+  - 已写入预登记 v2 修订。
