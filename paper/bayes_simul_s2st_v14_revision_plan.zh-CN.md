@@ -1118,6 +1118,20 @@ Hy-SimulMT（30B-A3B，输入语音、输出文本）没有自己的 Talker。�
    - 附录 C.3 照此写明出处。
 3. **我们的延迟口径比 SimulEval 更严**：同一文档记录，在 QABC 的工作点上，我们的 segment LAAL（D1）比 SimulEval 的逐词 LAAL（D0w，在发出时计时、不含排队）高约 0.1 s。例如 En→Zh m1/m2/m3 为 1.13/1.77/2.25 对 1.00/1.67/2.17。所以与 SimulS2ST-Omni 分档的比较是保守的。附录 C.3 可以写一句；这个数据已有，不需要新实验。
 
+## 20. 第 8 轮：ACL60/60 主数字（取代 17.5 第 5 点和 18.4 的建议）
+
+- **决定（用户）**：ACL60/60 的 E1 沿用 v13 的 **+2.63 [+1.54, +5.76]**，E2 为 +0.35 s。删除 T26，论文中不提服务器。
+- **一致性**：以下各处全部沿用 v13 中同一批结果（登记网格补齐后的版本），无需重新统计：
+  - Figure 2 的 ACL 曲线；
+  - Table 2 的 ACL 行；
+  - Table 3 的 s0 行（+2.63）；
+  - 五 seed 均值 +2.13 ± sd。
+- **需要清理的残留**，避免与删除 T26 相矛盾：
+  - v13 `tab_prereg_all` 表注中的 "completed in v8, Table~\ref{tab:acl-sens}"；
+  - 附录 "The registered speech test: run counting and protocol gap" 一段（已按第 13 节删除）；
+  - 其余所有对 `tab:acl-sens` 的引用。
+- **内部备忘（不进论文）**：全部读窗在同一台服务器上重跑的结果是 +1.97 [+0.97, +4.34]，E2 +0.30 s，数据在 v13 的 `generated/tab_acl_sensitivity.tex` 和对应的结果 JSON 中。复现或 rebuttal 被问到时用。
+
 ## 来源
 
 - ICML 2027 Author Instructions：https://icml.cc/Conferences/2027/AuthorInstructions
