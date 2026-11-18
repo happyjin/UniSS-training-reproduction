@@ -128,3 +128,52 @@
   - Table 1 改在 §3.4 开头插入，使其落在第 6 页顶部。浮动体分布：Table 1 在第 6 页，Table 2–4 在第 7 页，Figure 3 和 Table 5–6 在第 8 页。
   - 附录 G、H 的开头句并入段落，避免第 25 页只剩两行。
 - **编译**：tectonic 编译通过，没有未定义的引用，也没有 Overfull；全文 24 页，正文结束于第 8 页（第 9 页从 Impact Statement 开始），每栏空白不超过 16%（参考文献末页除外）。
+
+## v17（2026-11-18，布拉格时间）
+
+按 `paper/bayes_simul_s2st_v17_revision_plan.zh-CN.md` §2 修改。这一版只改说法，不补实验，也不恢复此前删掉的数据：门控比较、talk 聚类区间和 p 值都不恢复。
+
+- **目录**：新建 `paper/bayes_simul_s2st_v17/`，由 v16 用 `cp -a` 复制得到，v16 不动。
+- **摘要与引言**
+  - 摘要与 v16 逐字相同。
+  - 引言只删了第 2 段中与第 1 段重复的一句（"Existing policies often rely on heuristics …"）。
+- **方法**
+  - Definition 2 改为 "We model the delay the listener perceives …"。
+  - 队列模型段末补一句：评测在句子边界重置播放队列，跨句连续播放属于另一种部署场景。
+  - Definition 3 之后补一句，说明为什么只计第一个错误单元，与 stable length 止于第一个分歧相对应。
+  - Proposition 2 前后说明：完整训练损失还有内容项，内容项与停止项共用 adapter，命题只涉及停止项。
+  - Theorem 2 之后的范围句按审稿人的句子 B 改写。
+  - Proposition 3 之后改为：实现的规则是 Bayes 规则的保守版本，仅在 π_k=1 时与之完全一致。
+  - Figure 2 训练框的标签改为 "stopping NLL = E KL(p‖p_θ)+H (Prop. 2)"。
+- **实验**
+  - §4.1：Data 段注明每句重置播放队列。
+  - §4.3：补一句，说明外部系统只作参照，策略比较限于 LA2、Hold-n 和 Vote。
+  - §4.3：Primary 段按审稿人的句子 C 改写。主比较是预先指定的单 adapter 比较；在五个训练种子下，RealSI En→Zh 的区间包含 0，这个方向的证据对 adapter 训练敏感。
+  - Table 3 表注：
+    - 说明 E1/E2 是 QABC > LA2 的单侧检验，区间是同一 bootstrap 的双侧 95% 百分位区间；
+    - E1/E2 的定义改为指向 §4.1。
+  - §4.4：Table 4 下半部分的两个对照改写进正文，数字不变：
+    - 在 adapted Thinker 自己的草稿上，QABC 的规则对 LA2 的 E1 为 +2.01 / +0.17；
+    - 加了队列门控的 LA2 对 LA2 为 +0.01 / +0.07。
+  - §4.4：Table 4 只保留 QABC − QABC_Δ 一块；段末按审稿人的句子 D 说明这一比较的范围。
+  - §4.5：
+    - 补一句说明 TTB 与 QABC 比较的是完整后验，两者的标签和容量都不同，标签的作用由 Table 6 单独隔离；
+    - "cheapest" 改为 "lowest Thinker cost"；
+    - Table 5 表注写明计时条件：单流、单张 H200，评测时 Thinker 用张量并行 2，不含 Talker。
+  - §4.6：注明 consensus 标签有两次训练，语速消融只用一个 talker 种子。
+  - Limitations 并入两点：每句重置播放队列；感知延迟由平均语速建模，没有经过听者测量。
+- **篇幅**
+  - 新增的说明句约占 0.3 栏，用以下压缩抵消：
+    - §3 导言段；
+    - Proposition 1 之后的解释段；
+    - Theorem 1 与 Corollary 1 之间的过渡；
+    - LocalAgreement/Hold-n 一句；
+    - Proposition 2 之前的过渡段并入上一段；
+    - Related Work 精简两句；
+    - Table 1/2/3/5/6 和 Figure 3 的图注精简：删去 "our Thinker is far larger than the S2ST models"（§4.2 已有）和 "X-Translator 的曲线超出 3.2 s"。
+  - 定义、命题、定理以及本版新增的说明句都没有删。
+- **脚本**：`experiments/s2st_baselines_v1/fill_paper_v17_body.py` 由 v16 脚本复制并修改输出目录和表注，所有数值仍逐一与 v13 的 generated 表核对。
+- **编译**
+  - tectonic 编译通过，没有未定义的引用，也没有 Overfull；全文 24 页。
+  - 正文结束于第 8 页，Limitations 在第 8 页右栏，第 9 页从 Impact Statement 开始。
+  - 浮动体分布：Table 1 在第 6 页；Figure 3 和 Table 2–4 在第 7 页；Table 5–6 在第 8 页。
