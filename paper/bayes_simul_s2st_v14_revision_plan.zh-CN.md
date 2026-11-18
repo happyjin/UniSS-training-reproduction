@@ -865,6 +865,174 @@ v14 的做法：
 4. Hy-SimulMT 的两列都保留（推荐）。
 5. 我来核实 FR、播放缓冲是否用于主结果，以及分档预算的出处。
 
+## 18. 第 6 轮：最终章节结构与决定（取代第 3.3、8、13.3、15.3、17.3 节中有关结构的部分）
+
+### 18.0 本轮决定
+
+- **不增加任何额外实验**，包括 15.5 的补算和审稿人要求的三项敏感性分析。
+- **Table 3 不放 p**。只放 E1 [95% CI]、E2 和 Seeds > 0；每个测试集一行 s0、一行五个 seed 的 mean ± sd。
+- **二值门删除**：
+  - 删除的内容：T37、T51；T9 中与二值门相关的两行；正文 Controls 段里的二值门句子；Setup 统计段中登记检验 (2) 里的二值门部分。
+  - 带来的约束：全文不再声称"连续阈值 τ(q) 的形状优于更简单的规则"，只声称"队列项有效"（Table 4）。
+- **不补的三项敏感性分析**：talk 重采样、按词计时、不用 envelope。如果真实审稿人问到，在 rebuttal 中再给。
+
+### 18.1 全文结构（每节都具体到子节和段落）
+
+**1 Introduction（0.85 页）**
+
+- ¶1 问题：同传中的提交不可撤回；本文范围是句级评测，播放队列有界。
+- ¶2 缺口：采用审稿人给的两句——现有规则没有校准的存活概率，也不按已排队的语音给等待定价。
+- ¶3 方法：按四个问题依次引出 QABC 的四步。
+- ¶4 结果：写主比较结果和五个 seed 的结论；ACL60/60 的数字见 18.4。
+- 贡献三条：
+  1. 稳定长度后验和队列感知 Bayes 规则（myopic、单元级）；
+  2. 摊销学习，在训练分布下对任意阈值都有单元遗憾界，并且只需单次解码；
+  3. 在同一 Thinker 和 Talker 下的策略比较。
+
+**2 Related Work（0.35 页，用段落，不分子节）**
+
+¶Read/write policies · ¶Learning when to stop · ¶Simultaneous S2ST systems · ¶Bayesian decisions and amortized inference
+
+**3 Queue-Aware Amortized Bayesian Commitment（2.5 页，含 Figure 1）**
+
+- 节首 3–4 句，提出四个问题，引出 Figure 1。
+- **3.1 Commitment Risk as a Stable-Length Posterior**
+  - ¶Streaming commitment：读窗协议，引用 Omni。
+  - ¶Stable length and survival：S_k 和 ρ_k(u) 的定义。
+  - ¶Posterior：给出后验式和链式分解，加一句"后验与策略无关"。
+- **3.2 Queue-Aware Bayes Rule**
+  - ¶Perceived delay：队列 q_k、等待代价 D_k；写明"队列有界（每句重置）"。
+  - ¶Myopic loss。
+  - Theorem 1。
+  - Corollary 1：队列只移动决策阈值，不改变后验。
+  - ¶Heuristics as 0/1 encodings：一句话。
+- **3.3 Amortized Posterior Learning**
+  - ¶Self-labels：同一 Thinker 的全上下文续写，目标 z_k。
+  - ¶Hazard parameterisation：ρ = 1 − h。
+  - ¶Stopping and content terms：一行 KL 等式，写明两项共享 LoRA。
+  - Theorem 2：写明适用于训练分布、单元级。
+- **3.4 Single-Pass Queue-Aware Decoding**
+  - ¶Bias on ⟨wait⟩：b_k = logit τ(q_k)。
+  - Proposition 5：这样实现只会比 Bayes 规则更保守。
+  - ¶Per-read procedure：每读三步。
+
+**4 Experiments（3.2 页）**
+
+- **4.1 Experimental Setup**（0.5 页，无表）：¶Data and benchmarks · ¶Models · ¶Baselines · ¶Metrics（segment LAAL；E1/E2 只写一句，细节指向附录 C.3）
+- **4.2 Offline S2ST**（Table 1 紧凑版）：共享的 Thinker 和 Talker 作为离线参照；加 adapter 前后结果几乎不变，说明 adapter 只学"何时停"，对应 3.3。
+- **4.3 Simultaneous S2ST**（Figure 2、Table 2、Table 3）
+  - ¶Sentence-level RealSI：曲线和分档表。
+  - ¶Long-form ACL60/60。
+  - ¶Primary comparison and adapter seeds：Table 3。
+  - 外部系统只作为背景，正文写明增益集中在 2.5 s 以内。
+- **4.4 Effect of the Queue-Aware Rule**（Table 4，对应 3.2）
+  - QABC 与 QABC_Δ 的配对比较；
+  - 同一草稿上 QABC 对 LA2；
+  - LA2 只加队列门，几乎没有收益。
+- **4.5 Effect of Amortized Posterior Learning**（Table 5，对应 3.3；有待你定的事，见 18.3）
+- **4.6 Effect of Single-Pass Decoding**（Table 6，对应 3.4；有待你定的事，见 18.3）
+- **4.7 Ablation Analysis**（0.25 页，按段落写，无表，参照 SEE 4.6）：
+  - ¶Label source：full-context 标签对 consensus 标签，见附录 F；
+  - ¶Speech rate r：见附录 G。
+
+**5 Conclusion**
+
+- 3 句结论，再接一段不编号的 Limitations：
+  - 只用了一个 Thinker、一个 Talker、两个方向；ACL60/60 只评测文本；
+  - 句级评测、每句重置队列；
+  - 五个 seed 平均后 En→Zh 不显著；
+  - 理论的适用范围：myopic、单元级、训练分布；
+  - 没有人工听测。
+
+**Impact Statement、AI Use Statement**（不计页）
+
+**附录**
+
+| 节 | 子节 / 段落 | 图表 |
+|---|---|---|
+| A Proofs | A.1 Stable-length posterior（Prop 1、Lemma 1）· A.2 Queue-aware Bayes rule（Thm 1、Cor 1、0/1 编码）· A.3 Amortized learning（hazard、Prop 4，改掉 "does not compete" 那一句；Thm 2）· A.4 Single-pass decoding（Prop 5） | — |
+| B Scope of the Theory | B.1 Assumptions in full（Ass 1/2、Lemma 2）· B.2 Myopic versus global commitment · B.3 Distribution shifts（两个推论）· B.4 Practical approximations | T3、T45 |
+| C More Experimental Setups | C.1 Data（训练与 roll-in、dev、RealSI、ACL60/60 的切分与偏移、CVSS-T）· C.2 Baselines（LA2、Hold-n、Vote、TTB、外部系统设置、Talker 对照）· C.3 Evaluation Protocol（ASR-BLEU 与文本归一化、segment LAAL、StreamLAAL、分档 m 与预算来源、E1/E2 与 envelope 一句、bootstrap） | T4、T17 |
+| D Training Implementation Details and Hyperparameters | D.1 Simultaneous Talker · D.2 Oracle label generation · D.3 QABC adapter · D.4 TTB prior head | 训练超参表、Algorithm 1 |
+| E Inference and Decoding | E.1 Thinker decoding and the queue · E.2 Talker and playback（FR 和播放器按 17.1 第 7 条核实后再写） | 推理超参表 |
+| F Supplementary Analysis of the Stable-Length Posterior | ¶Committing the stable length is near-offline（T19）· ¶Test-time estimates are miscalibrated（T18）· ¶Full-context labels outperform consensus labels（T29′）· ¶The posterior stays calibrated on the policy's own reads（T43′） | 4 张 |
+| G Supplementary Analysis of the Queue-Aware Rule | ¶The gain appears on the heard time line（T39 + 54）· ¶The queue gain holds across speech rates（T30） | 2 张 |
+| H Robustness of the Main Comparison | ¶No single talk drives the gain（T38′：去掉任一 talk、网格步长） | 1 张 |
+
+合计：正文 8 个浮动体（F1、F2、Table 1–6）；附录约 11 张表，加 2 张超参表和 1 个 Algorithm。
+
+### 18.2 与三篇参考论文的逻辑对照
+
+| 部分 | Hibiki（ICML） | SEE（ACL） | SimulS2ST-Omni（ACL） | v14 |
+|---|---|---|---|---|
+| 方法 | 3 个子节：建模 → 数据对齐 → 声音迁移 | 3 个子节：找出噪声子空间 → 计算 SEE → 用它构造 SEEN | 3 个子节：问题设定 → 轨迹构造 → 骨干 | 4 个子节：风险是什么 → 何时说 → 后验从哪来 → 怎样一次解码。顺序同样是"定义 → 构造 → 使用" |
+| 实验设置 | 1.8 页（附录只有 1 页） | 0.5 页 | 0.65 页 | 0.5 页 |
+| 主结果 | 离线 + 同传 | — | 离线 → 句级 → 长文 | 离线（4.2）→ 句级 + 长文（4.3） |
+| 按方法组件的分析 | 消融表 | 4.2–4.5，每节对应一个方法部分 | — | 4.4–4.6，分别对应 3.2–3.4 |
+| 消融 | Table 4–5 | 4.6，按段落写 | 4.5 | 4.7，按段落写 |
+| 附录 | 1 张图 | 补充设置 → 各组件的补充分析 → 效率 → 有效性 → 算法 → AI 声明 | 数据 → 训练 → 推理 → 评测协议 → 补充结果 → 计算代价 → 稳健性 → 人评 → 案例 → 失败案例 → 发布 | 证明 → 理论范围 → 补充设置 → 训练 → 推理 → 各组件的补充分析 → 稳健性 |
+
+与参考论文的三处不同：
+
+1. **方法有 4 个子节，参考论文是 3 个。** 原因是每一步都对应一个独立的实验子节。如果要严格对齐成 3 个，可以把 3.3 和 3.4 合并为 "Amortized Learning and Single-Pass Decoding"。
+2. **附录先放证明（A、B）。** 三篇参考论文都没有定理，ICML 的理论类论文一般把证明放在附录最前面。
+3. **没有人评、案例研究和失败案例。** 这是已经做出的决定。
+
+### 18.3 正文里还剩两处对 QABC 不利的结果
+
+**Table 5（摊销后验对测试时后验）**
+
+- En→Zh 和 ACL60/60 上摊销后验更好：
+  - En→Zh 2–3 s：QABC_Δ +0.35，TTB −0.27；
+  - ACL60/60：QABC_Δ +1.53，TTB +0.83。
+- 但 Zh→En 上 TTB 更好：+0.47 对 −0.21。
+- 建议：保留，并把论点写成"摊销后验在 En→Zh 和 ACL60/60 上更好，只需一次解码，每读计算量约为 TTB 的一半（59 ms 对 132 ms）"。如果删掉，3.3 就没有直接的对照证据了。
+
+**Table 6 的规则对比（dev）**
+
+- 严格按 Thm 1 实现、全局 argmin 和 Platt 重校准，在 dev 上都比部署的保守贪心规则差（例如 −0.36/−0.47）。
+- 这一结果有两种读法：一种是"保守的实现就够了"，支持 Prop 5；另一种是"严格的 Bayes 规则反而更差"，对理论不利。
+- 建议：正文 Table 6 只放计算量（QABC 每读最快）；规则对比移到附录，或者删除，由你定。
+
+### 18.4 ACL60/60 的主数字
+
+E1 指同等延迟下 QABC 比 LA2 高出的 BLEU，在 3 s 以内取平均；用登记的 s0 adapter，在 LA2 的 15 个读窗上计算。v13 里一共有三个版本：
+
+| 版本 | 读窗（LA2 / QABC） | E1 [95% CI] | E2 |
+|---|---|---|---|
+| 只用旧服务器 | 9/7 | +2.40 [+1.30, +5.05] | +0.29 s |
+| 旧服务器 + 新服务器补齐（v13 正文所用） | 15/15 | +2.63 [+1.54, +5.76] | +0.35 s |
+| **全部在新服务器上重跑** | 15/15 | **+1.97 [+0.97, +4.34]** | +0.30 s |
+
+- 建议用 **+1.97**：所有读窗在同一台服务器上跑，口径干净，删掉 T26 后不需要额外解释。
+- 改用后要保持一致的地方：Figure 2 的 ACL 曲线、Table 2 的 ACL 行、Table 3 中 ACL 的五 seed 均值。这三处都改用重跑的那批输出重新统计，只是对已有输出的重算，不是新实验。
+- 写之前要确认 s1–s4 的 ACL 结果在哪台服务器上跑；五 seed 均值由 +2.13 变为约 +2.00。
+
+### 18.5 Hy-SimulMT 的两列
+
+Hy-SimulMT（30B-A3B，输入语音、输出文本）没有自己的 Talker。两列的区别只在于由谁把它提交的文本块读出来：
+
+- **Hy-SimulMT（接我们的 Talker）**：由 QABC 也在用的 streaming UniSS Talker 朗读，三个 talker seed。和 QABC 相比，只有策略和译文不同。
+- **Hy + Qwen3-TTS**：同一批文本块由 Qwen3-TTS-12Hz-0.6B-Base 朗读（x-vector 克隆源说话人、默认采样、三个 seed），是一个现成 TTS 的参考级联。
+
+数值（ASR-BLEU，括号内为 LAAL s；s0，三个 talker seed 的均值；v13 T11）：
+
+| 方向 | 档位 | Hy-SimulMT（我们的 Talker） | Hy + Qwen3-TTS | QABC |
+|---|---|---|---|---|
+| En→Zh | m1 | — | — | 25.33 (1.13) |
+| | m2 | 25.67 (1.72) | 25.72 (1.90) | **28.26 (1.77)** |
+| | m3 | 27.96 (2.05) | 27.93 (2.17) | **30.33 (2.25)** |
+| | m4 | 27.96 (2.05) | 27.93 (2.17) | **30.51 (2.75)** |
+| Zh→En | m1 | — | — | 17.83 (1.14) |
+| | m2 | **21.88 (1.75)** | —（没有工作点落在预算内） | 21.42 (1.70) |
+| | m3 | 21.88 (1.75) | 20.11 (2.11) | **22.46 (2.18)** |
+| | m4 | 21.88 (1.75) | 20.11 (2.11) | **22.65 (2.67)** |
+
+- Hy-SimulMT 只有两个原生模式（即两个工作点），所以各档反复出现同一个点。
+- En→Zh 上两种 Talker 相差无几。Zh→En 上 Qwen3-TTS 更低，而且读得更慢，在 m2 没有工作点。
+- QABC 只在 Zh→En m2 输给"接我们的 Talker"那一列（−0.46）。
+- 建议：两列都保留，以"接我们的 Talker"为主。只保留 Qwen3-TTS 那一列，等于给强基线换了一个更弱的 TTS，会被认为不公平。
+
 ## 来源
 
 - ICML 2027 Author Instructions：https://icml.cc/Conferences/2027/AuthorInstructions
