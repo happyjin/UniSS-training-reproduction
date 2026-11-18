@@ -2,6 +2,7 @@
 
 - 第 1 轮：2026-11-18 09:20（布拉格时间）。
 - 第 2 轮：2026-11-18 10:30（布拉格时间）。本轮写入了你的决定（第 11 节），补了附录诊断和重排方案（第 13 节）。
+- 第 3 轮：2026-11-18 11:40（布拉格时间）。审稿意见（QABC_v13_ICML_Review_CN.pdf）已收到。本轮新增第 14 节（负面结果清单）和第 15 节（对方案的修改）。**第 15 节与前文冲突时，以第 15 节为准。**
 
 到目前为止只做了阅读和统计，没有改动 v13 或任何其他版本。
 
@@ -281,12 +282,9 @@ adapter 训练缺的项目：
 | Conclusion + Limitations | 0.4 | 0.35 | 约 0.2 |
 | **合计** | **约 8.5（超页）** | **约 7.7，留 0.3 页余量** | — |
 
-## 10. 审稿意见（待补）
+## 10. 审稿意见
 
-审稿意见到手后，按下面的格式逐条补入：
-
-| 意见 | 是否同意 | 修改位置 | 是否需要实验 |
-|---|---|---|---|
+已收到，见第 14、15 节。
 
 ## 11. 第 2 轮决定（2026-11-18）与回答
 
@@ -305,6 +303,8 @@ adapter 训练缺的项目：
    - `tab_v11_rules` 段落中 "Under one clock…" 一句。
 
    删除后在 Setup 里写清"RealSI 按句级评测，与 SimulS2ST-Omni 一致"，让结论的适用范围仍然明确。
+
+   第 3 轮补充：建议在 Limitations 保留一句，见 14.3。
 5. **Limitations**：
    - ICML 2027 不强制设 Limitations 章节；Hibiki（ICML 2025）就只有 Conclusion。
    - 但 ICML 2027 的审稿表单有 "Limitations" 一项："Have the authors adequately discussed the limitations and potential negative societal impact of their work?"，并且写明 "Authors should be rewarded rather than punished for being up front about the limitations"。
@@ -403,7 +403,7 @@ Omni 的附录顺序：
    - 另外用 Omni 原生 Talker 做了对照。
 6. **seed 稳健性集中在一处**：一张 mean ± std 表加一句结论。我们把三处 seed 表合成一张。
 7. **案例时间线图（I Case Study）**：把源语音、WAIT 区间和提交块画在同一条时间轴上。我们可以画 QABC 与 LA2 在同一句上的对比：每一读的 ρ、τ(q_k)、q_k、提交块和播放，直接展示 Cor 1。数据预计可以取自 `tab_v11_rules` 用到的逐读回放数据，不需要重新解码，但要先确认字段齐全。
-8. **失败案例分类（J Bad Cases）**：每类按"现象 → 例子 → 原因 → 是数据问题还是模型问题"来写。我们已有的材料：
+8. ~~**失败案例分类（J Bad Cases）**~~（第 3 轮按你的要求取消，不放失败案例）。原计划每类按"现象 → 例子 → 原因 → 是数据问题还是模型问题"来写。当时列出的材料：
    - Zh→En 语序导致的过早提交（v13 H 节里的 *suoyi zuohao …* 例子）；
    - 数字和否定词变化（`tab_v11_critical`）；
    - 块尾落在悬空功能词或单字上（"Choose to"，这是 FR 的动机）。
@@ -427,7 +427,7 @@ Omni 的附录顺序：
 | G Baselines | LA2、Hold-n、Vote；TTB（定义、特征表、推导）；外部系统设置（`tab_baselines`）；Talker 对照（`tab_omnitalker`）；Fairness of comparisons 段 | 旧 A 的 TTB、旧 C |
 | H Supplementary Results | 按方法组件分组，见下表 | 旧 B、D、F、G、J、K |
 | I Case Study（新） | 1–2 个句子的时间线图 | 新，用已有数据 |
-| J Failure Analysis | 三类失败（见 13.2 第 8 点）；Zh→En 的诊断与按方向的选择（`tab_dirsel`）；Extensions that did not help | 旧 H、旧 E |
+| ~~J Failure Analysis~~ | 第 3 轮取消；其中原有内容的去留见 15.4 | 旧 H、旧 E |
 
 H 节内部的分组：
 
@@ -462,6 +462,141 @@ H 节内部的分组：
 - Supplementary Results 放在文字较多的节之前；
 - 用 float 参数控制位置，每栏空白不超过 20%；
 - 表格紧跟它首次被提到的地方。
+
+## 14. 审稿意见与负面结果清单
+
+审稿报告：QABC_v13_ICML_Review_CN.pdf（2026-11-18）。
+
+- **总评**：Weak Reject，3/6。分项：Soundness 3、Presentation 2、Significance 2、Originality 3；Confidence 4。
+- **改为 Weak Accept（4/6）的四个条件**：
+  1. 正文合规（≤ 8 页）；
+  2. 摘要和引言统一到句级适用范围；
+  3. **正文清楚呈现五个 seed、按 talk 重采样、word-aligned 计时、无 envelope 的敏感性**，并且核心方向保持稳健；
+  4. 理论与实现的表述不再混淆。
+- 审稿人把"披露负面结果"列为三条优点之一，并两次写明负面结果应保留（第 1 页、2.1 节）。
+
+### 14.1 审稿人指出的负面结果：位置与处理
+
+| # | 负面结果 | 审稿人出处 | v13 位置 | 能否删 | v14 处理 |
+|---|---|---|---|---|---|
+| N1 | 连续整场录音：Talker 跟不上，积压 1.1–1.8 s/min；共同区间 −0.45/−0.07（p = 0.70/0.53） | 2.2 P1、Q4 | **正文** §7.4（第 9 页）、Limitations；附录 J（Table 41）、K（Table 47–50） | 你已决定删实验 | 删除 §7.4、Table 41、47–50 及相关段落。建议 Limitations 留一句（见 14.3）。审稿人对 D_k 机制的批评（q_k ≥ Δ 时等待免费，可能加剧积压）只读方法就能提出，与实验删不删无关，所以在 3.2 明确写出"队列有界（每句重置）" |
+| N2 | 五个 seed 平均后 En→Zh +0.36，Holm p = 0.139，不显著 | 2.3 P1、Q1 | **正文** §7.2 第二段、Conclusion、Limitations；附录 Table 36、46 | **不能删**：这是事先登记的比较（C1），而且是改分条件 3 | 进正文 Table 3：s0 与五 seed 均值并列，标注重采样单位。正文写一句："every seed is ahead on all three test sets; the mean is significant on Zh→En and ACL60/60" |
+| N3 | 按 talk 重采样时 En→Zh p = 0.057；seed × talk 时 p = 0.253 | 2.3、Q1 | **正文** §7.2 第一段；附录 Table 38 | 不建议删（改分条件 3） | Table 3 加一列"按 talk 重采样的 p"；详表放附录 H.1 |
+| N4 | 不用 upper envelope 时，E1 从 +0.76/+0.78/+2.63 降到约 +0.48/+0.53/+2.26 | 第 4 节、Q2 | 附录 J "Robustness" 段（第 30 页） | 不建议删（改分条件 3） | 附录 F 定义 envelope；附录 H.1 给出无 envelope 的 E1、CI 和 p（需补算，见 15.5）；Table 3 表注写一句 |
+| N5 | word-aligned LAAL 比 segment LAAL 高 0.7–1.1 s，QABC 的优势少约 0.2 s | 2.6 P2、Q2 | **正文** Setup 的 Metrics 段；附录 Table 33、54 | 不建议删（改分条件 3） | 补算 word-aligned 计时下的 E1、CI、Holm p（见 15.5）；附录 F 加三种时间轴的定义小表；正文写一句 |
+| N6 | 推导出的连续阈值对二值队列门：+0.35/−0.26/+0.24，Holm p ≥ 0.06；两者只在 3.8% 的读上不同 | 2.4 P1、Q3 | **正文** §7.3 Controls 段；附录 Table 37、51 | 不建议删：这是事先登记的比较（C2） | 主张拆成两层：(i) 队列有用，证据强（Table 4）；(ii) 精确的 τ(q) 是否优于二值门，本数据无法区分，因为 96% 的读队列要么为空、要么满一个读窗，两条规则在这些读上一致。正文写一句，详表放附录 H.3。可选做分桶分析（见 15.5） |
+| N7 | Thm 1 只对 myopic 单元损失最优；与全局最优在 9–22% 的读上不同 | 2.5 P2 | **正文** Remark（§4.2）；附录 Table 3 | 不能删：这是定理适用范围的限定 | 定理陈述写明 "myopic, per-unit"；数字和 Table 3 移到附录 B |
+| N8 | χ² 偏移未估计；target shift 使上界增加约 1.93/1.05 C_err，无法据此认证部署策略 | 2.5 P2、Q5 | **正文** §5 Remark；附录 K | 数值可以只放附录；限定语不能删 | 贡献句写成"训练分布下、对任意阈值成立的单元遗憾界"，不单用 "guarantee"；数值和量级解释放附录 B；Limitations 写一句 |
+| N9 | Zh→En m2：Hy-SimulMT 接我们的 Talker 得 21.88，高于 QABC 的 21.42 | 2.7 P2 | **正文** §7.2；附录 Table 11 | 不能删：它是主表里的一个格子 | 结论只写"同一 Thinker 和 Talker 下的策略比较"，外部系统作为背景；不写 SOTA；表注写清各系统的模型规模、解码方式和所用 Talker |
+| N10 | 摘要里的 3.1%/5.5% 是挑选出的 m2 工作点；"同时降低延迟"没有统计支持（0.07/0.08 s） | 5.1 | **正文** 摘要、引言第 3 段 | 删的是这句话，不是结果 | 改写摘要，见 15.1 |
+| N11 | 附录中 Prop 4 证明的末句 "does not compete" 超出了命题能证明的范围 | 第 3 节，标为"矛盾" | 附录 A（第 14 页） | 应删这一句 | 换成审稿人 5.3 节给的句子 |
+
+### 14.2 审稿人没点名、但 v14 计划移进正文的表里也有的不利数字
+
+v14 计划把 v13 的 Table 11（`tab_realsi_main`）移进正文。表里还有这些格子：
+
+- Zh→En m4：LA2 23.47，高于 QABC 22.65；
+- Zh→En m3/m4：TTB+q（冻结 Thinker 的测试时后验加队列）23.16/24.06，高于 QABC 22.46/22.65；
+- En→Zh m4：QABC_Δ 30.70，略高于 QABC 30.51。
+
+处理方式：
+
+- 正文 Table 2 只放外部系统、LA2 和 QABC；TTB+q 和 QABC_Δ 属于消融，分别放进 4.5 和 4.4 的消融表，如实报告。
+- 4.5 的论点改为：摊销后验在 ACL60/60 上明显更好，在 RealSI 上与测试时后验相当，但只需一次解码，不需要每读再生成一份 virtual draft。
+- 正文写明增益集中在 2.5 s 以内（与 v13 的 Conclusion 一致）。
+
+其他不在审稿人清单上的负面结果：
+
+| 负面结果 | 处理 |
+|---|---|
+| FR 使 ASR-BLEU 下降 0.47（正文 §7.5、Limitations） | FR 已移到附录，代价放附录 H.6，正文不再提 |
+| Zh→En 差距诊断、按方向选择（Table 34）、power（Table 35） | 探索性分析，不支撑任何主张，**可以删**（与你"不放失败案例"一致） |
+| "Extensions that did not help"、测试时 refine（Table 20–22） | 探索性，**可以删**；Prop monotone 随之删除，审稿人对它前提的意见也就不用处理 |
+| 提交时刻计时的文本终点 +0.57/+0.19，不显著（正文 §7.2） | 事先登记的配套检验，保留在附录 H.1，正文不提 |
+| E2（等质量时节省的延迟）在 RealSI 上不显著（正文 §7.2） | 保留为 Table 3 的一列，正文不展开 |
+
+### 14.3 删与留的原则（我的建议）
+
+- **可以删**：不支撑任何主张的探索性实验和次要扩展。
+- **只能移到附录，不能删**：
+  - **事先登记的比较**（C1 五个 seed、C2 门控、配套文本检验）。正文保留了"主比较及其统计在跑测试集前已固定"这句话；如果只报告结果好的那几项，这句话就有误导性。
+  - **直接限定主结论的结果**（seed、talk、计时方式、envelope）。审稿人把它们列为改分条件，真实审稿人也最常问这些；论文里已经有答案，比在 rebuttal 里补要好。
+- **一条时钟**：尊重你删除实验的决定。但这是一个已知的失败，而引言又以会议和讲座作为动机，所以建议 Limitations 保留一句（约两行），例如：
+
+  > Our evaluation resets the playback queue at each sentence; on a continuous recording clock the Talker cannot keep up with the source and the queue does not drain, so sustained interpretation needs throughput control, which QABC does not provide.
+
+  同时把引言的动机改成句级场景。这比完全不提更稳妥，也能回应审稿人对 D_k 机制的质疑。保不保留这一句由你决定。
+
+## 15. 结合审稿意见对前面方案的修改（与前文冲突时以本节为准）
+
+### 15.1 摘要和引言
+
+- **摘要**：删去 3.1%/5.5% 和 "while also reducing latency"，改为：
+
+  > In a sentence-level evaluation whose primary comparison was fixed in advance, QABC improves equal-latency ASR-BLEU over LocalAgreement by 0.76 and 0.78 on RealSI En→Zh and Zh→En (Holm-adjusted p = 0.030 for both) and by 2.63 BLEU on ACL60/60; across five adapter seeds every adapter is ahead on all three test sets, and the mean gain is significant on RealSI Zh→En and ACL60/60.
+
+  理论那一句加限定："bounds per-unit decision regret for every threshold under the training distribution"。摘要控制在 4–6 句。
+- **引言**：
+  - 删掉第 2 段重复的 "Existing policies often rely on heuristics …"；
+  - 采用审稿人 5.2 节给的两句 "Existing stopping rules neither estimate … nor price waiting …"；
+  - 批评 heuristic 时写"没有校准过的存活概率"，不要写成"完全不考虑稳定性"；
+  - 写明适用范围：句级评测，播放队列有界；
+  - 第 3 条贡献改为"同一 Thinker 和 Talker 下的策略比较"，并区分"队列有用"和"精确阈值形式"两层。
+
+### 15.2 方法（修改第 3 节）
+
+- 3.2 明确写出"队列有界（每句重置）"这一假设，并说明在持续过载时，myopic 损失不会推动系统清空队列。
+- 贡献列表区分三层：myopic Bayes 最优性；训练分布下、对任意阈值成立的单元遗憾界；部署时的近似。
+- 数学和写法的修正：
+  - Prop 4 证明末句改为审稿人 5.3 节给的句子；
+  - 附录 A 中 Lemma 2 的证明标题从 "Proof of Proposition" 改为 "Proof of Lemma"；
+  - "Densities are with respect to Lebesgue measure" 限定为"在密度存在时"；
+  - Figure 1 中的 q_θ 统一为 p_θ，并标注 "stopping NLL"；
+  - Prop monotone 随 refine 一起删除；如果保留，补上"g 是连续双射"的假设。
+
+### 15.3 实验章（替换 8.2 中的对应行）
+
+- **4.2 Offline（Table 1）**：
+  - 按你的决定留在正文。审稿人建议移到附录，所以采用 Omni 那样的紧凑版：两个方向，只保留 ASR-BLEU、Text-BLEU、SIM-O 三列，约 6 行系统；
+  - 加一列或脚注，写清模型规模、解码方式和所用 Talker；
+  - 不写 "above every S2ST system"，改写"作为同传实验的离线参照"。
+- **4.3 Main Results**：
+  - **Table 2（分档表）**：只放外部系统、LA2 和 QABC。表注写 "selected best-in-tier operating points; not the primary equal-latency comparison"；外部系统作为背景，不写 SOTA。
+  - **Table 3（主比较）**：每个测试集一行 s0、一行五 seed 均值。列为 E1、95% CI、Holm p、E2、按 talk 重采样的 p，并标注重采样单位。
+  - 正文采用审稿人 5.4 节那句限定的前半句："The single-adapter result is significant in both RealSI directions, whereas averaging over five adapters retains significance for Zh→En and ACL60/60"。后半句讲连续时钟，随删除决定一起去掉。
+  - 4.3 末尾补一段 **"Sensitivity to timing and curve construction"**：正文一句，加附录 H.1 的表，覆盖 word-aligned 下的 E1 和无 envelope 的 E1。这回应改分条件 3 和 Q2。
+- **4.4 Queue**：按 N6 把主张拆成两层。
+- **4.5 Posterior**：按 14.2 改写论点；target shift 的数值和量级解释放在附录 B，回应 Q5。
+- **Limitations**，包括以下几点：
+  - 只用了一个 Thinker、一个 Talker、两个方向；ACL60/60 只评测文本；
+  - 句级评测、每句重置队列，以及建议保留的那句一条时钟说明；
+  - 五 seed 平均后 En→Zh 不显著；
+  - 理论的适用范围：myopic、单元级、训练分布；
+  - 没有人工听测（审稿人 P2 建议做，本版不做）；
+  - FR 是手工设计的。
+
+### 15.4 附录（修改第 13 节）
+
+- **按你的要求不放失败案例**：删除 13.2 第 8 点和 13.3 的 "J Failure Analysis"。
+- **同时删除**：
+  - Zh→En 差距诊断、按方向的选择、power（Table 34、35）；
+  - Extensions that did not help；
+  - 测试时 refine（Table 20–22）和 Prop monotone。
+- **新增或扩充**：
+  - H.1：加入按 talk 重采样、无 envelope、word-aligned 三项敏感性分析，均给出 CI 和 p；
+  - F：加入三种时间轴的定义小表；
+  - B：加入 target shift 数值的量级解释。
+- **复现材料**（审稿人 P2）：摘要加脚注 "Code and models will be released upon acceptance"；附录 D、E、F 写到可以复现的程度。
+
+### 15.5 新增计算
+
+全部在已有输出上用 CPU 完成，不需要重新解码，也不需要 GPU：
+
+1. word-aligned 计时下的 E1、CI、Holm p。v13 只有一个 talker seed 有 word-aligned 数据，需要写明。
+2. 无 envelope 的 E1 的 CI 和 p。
+3. （可选）在 0 < q_k < Δ 的读上做分桶分析：τ(q) 与二值门做出不同决定的比例，以及这些读上的稳定性和风险。
+
+无论结果好坏都如实写入。第 1、2 项是审稿人的改分条件，建议做；第 3 项可选。
 
 ## 来源
 
