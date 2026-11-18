@@ -1033,6 +1033,91 @@ Hy-SimulMT（30B-A3B，输入语音、输出文本）没有自己的 Talker。�
 - QABC 只在 Zh→En m2 输给"接我们的 Talker"那一列（−0.46）。
 - 建议：两列都保留，以"接我们的 Talker"为主。只保留 Qwen3-TTS 那一列，等于给强基线换了一个更弱的 TTS，会被认为不公平。
 
+## 19. 第 7 轮：消融小节、Table 5/6 与核实结果（取代 18.1 中实验章和附录 F/G 的对应部分）
+
+### 19.1 决定
+
+- **Table 5 保留**，并加入两列计算代价：每读 Thinker 耗时 ms/read，以及计入计算后 LAAL 的增加 +CA，数据来自 v13 T31。
+- **原 Table 6 的规则对比删除**：
+  - 删除的原因是它对理论不利：在 dev 上，严格按 Thm 1 实现（−0.36/−0.47）、全局 argmin（−0.76/+0.21）和 Platt 重校准（−0.43/−0.97）都比部署的保守贪心规则差；块内延迟规则在测试集上也不显著（+0.19/+0.37）。审稿人会问"为什么严格的 Bayes 规则反而更差"。
+  - 原 Table 6 中计算代价那部分对我们有利：QABC 每读 57–59 ms，LA2 是 72–76 ms，TTB 是 132–136 ms，Vote 是 107–135 ms；+CA 只有 0.06–0.07 s。这部分并入 Table 5。
+  - 附录 T42 一并删除。全文不再比较"严格规则"和"部署规则"；Prop 5 只作为理论性质保留。
+- **原 4.6 并入 4.5**，标题改为 "Effect of Amortized Learning and Single-Pass Decoding"。方法 3.4 的证据是：主结果（单次解码可用），加上 Table 5 的计算代价。
+- **新的 4.6 Ablation Analysis 放两张表**。三篇参考论文都有带表格的消融小节：SEE 4.6 有 Table 4–6，Omni 4.5 有 Table 4–5，Hibiki 有 Table 4–5。
+
+### 19.2 新 4.6 Ablation Analysis（均为已有结果，不需要新实验）
+
+**Table 6：标签来源与训练长度**
+
+对应方法 3.3。指标为 RealSI 提交文本的 BLEU，取每个文本 LAAL 预算内的最佳点；数据来自 v13 T29。
+
+| 方向 | 变体 | ≤1.5 s | ≤2.0 s | ≤2.5 s | ≤3.0 s |
+|---|---|---|---|---|---|
+| En→Zh | full-context 标签（QABC_Δ，部署的 step 200） | 27.62 | 29.05 | 31.45 | 31.90 |
+| | consensus 标签（两次训练，mean ± sd） | 26.62 ± 2.23 | 28.28 ± 1.58 | 29.26 ± 0.83 | 30.31 ± 0.64 |
+| | 训练长度 step 200–800（mean ± sd） | 27.96 ± 0.35 | 29.72 ± 0.48 | 31.41 ± 0.12 | 31.88 ± 0.27 |
+| Zh→En | full-context 标签（step 200） | 20.31 | 21.51 | 21.51 | 23.32 |
+| | consensus 标签（两次训练，mean ± sd） | 18.48 ± 0.62 | 20.60 ± 0.53 | 21.71 ± 0.33 | 22.38 ± 0.62 |
+| | 训练长度 step 200–800（mean ± sd） | 20.10 ± 0.45 | 21.45 ± 0.22 | 22.42 ± 0.61 | 23.36 ± 0.32 |
+
+两段写法（段首为结论句）：
+
+- **¶Full-context labels outperform consensus labels.**
+  - 用同一 Thinker 的全上下文续写作标签，与 consensus 标签（多次采样输出之间一致的部分）比较。8 个格子中 7 个更高；Zh→En ≤2.5 s 一格 consensus 高 0.20，在一个 sd 以内。
+  - 这对应 3.3 的标签设计："后验学的是会不会被完整上下文改掉，而不是采样之间是否一致"。
+  - 比较时取的是部署所用的同一个 checkpoint（step 200）。不建议改用"四个 checkpoint 的均值"去和 consensus 比：那样 8 格都会更好，但口径是挑过的。
+- **¶The posterior is insensitive to training length.**
+  - 四个 checkpoint 的 sd 都在 0.12–0.61 之间，说明结果对训练长度不敏感，也说明按 dev 选 checkpoint 不是结论成立的前提。
+
+**Table 7：语速 r 的敏感性**
+
+对应方法 3.2。设置为 Δ = 0.5 s、b_0 = 0、一个 talker seed；指标为 ASR-BLEU（括号内为 segment LAAL）。数据来自 v13 T30，去掉 p 列。
+
+| 方向 | QABC_Δ（不用队列） | QABC，r×0.75 | QABC，r×1 | QABC，r×1.25 |
+|---|---|---|---|---|
+| En→Zh | 24.63 (1.30) | 25.59 (1.28)，+0.97 | 26.12 (1.29)，+1.49 | 27.15 (1.38)，+2.52 |
+| Zh→En | 18.65 (1.31) | 19.10 (1.31)，+0.45 | 19.74 (1.32)，+1.09 | 20.07 (1.40)，+1.42 |
+
+- **¶The queue gain holds across speech rates.**
+  - 三个语速下，队列项都带来正增益；r 越大，模型预测的队列越长，策略等得越多，增益也越大。
+  - r×1.25 时 LAAL 增加 0.08–0.09 s，图注要写明。
+  - 这对应 3.2 的队列模型，说明结论不依赖 r 的精确取值。
+
+### 19.3 实验章与正文浮动体（最终版）
+
+| 小节 | 内容 | 浮动体 |
+|---|---|---|
+| 4.1 Experimental Setup | 四段 | — |
+| 4.2 Offline S2ST | 离线参照；adapter 只学何时停 | Table 1 |
+| 4.3 Simultaneous S2ST | 句级 RealSI、长文 ACL60/60、主比较与 seed | Figure 2、Table 2、Table 3（不放 p） |
+| 4.4 Effect of the Queue-Aware Rule | QABC 对 QABC_Δ；同一草稿上的 QABC 对 LA2；只加队列的 LA2 | Table 4 |
+| 4.5 Effect of Amortized Learning and Single-Pass Decoding | TTB、QABC_Δ、QABC 分别对 LA2，加计算代价 | Table 5 |
+| 4.6 Ablation Analysis | 标签来源、训练长度、语速 r | Table 6、Table 7 |
+
+- 正文共 9 个浮动体（F1、F2、Table 1–7），与参考论文的 10–12 个接近。
+- 页数：去掉原 4.6 的 0.35 页，加上两张单栏小表约 0.45 页，仍在 8 页以内（原预算留有 0.3 页余量）。
+
+### 19.4 附录的相应变化（修改 18.1 的附录表）
+
+- **F**：保留 T19（oracle）、T18（测试时后验）、T43′（校准）。T29′ 已移到正文 Table 6。
+- **G**：只保留 T39 + 54（增益出现在被听到的时间轴上）。T30 已移到正文 Table 7；二值门已删除。
+- **E**：写明主结果的推理设置——Talker 用 block 语速（即 T1c 训练时的语速 token），history ban 8，不用积压加速，不用播放缓冲，不用 FR（见 19.5）。
+- 删除 T42（规则对比）和 T31（计算代价已进正文 Table 5）。
+- 附录剩约 8 张表，另有 2 张超参表和 1 个 Algorithm。
+
+### 19.5 只读核实的结果（只查了脚本和文档，没有跑实验）
+
+1. **FR 没有用于主结果。**
+   - FR 的文本规则（`--hygiene`、`--clean`）和积压加速（`--speed-policy queue`）都是需要手动打开的开关。
+   - 登记任务的生成脚本 `reports/qabc_v10/make_v10_jobs.py`（注明 "as v4"，即与登记的 s0 相同）调用的是 `si_thinker_stream --policy selfwait --wait-biases=1 --sw-queue-rate …`，没有打开这些开关；Talker 用的是 `--speed-policy block --history-ban 8`。
+   - 播放缓冲只出现在 `si_talk_timeline.py`（整场时间线，用于一条时钟和听感指标），登记任务没有调用它。
+   - 结论：**FR、积压加速和播放缓冲都从论文中删除**。v13 方法 §5.2 中 "then FR and the queue update" 改为只写队列更新；推理设置照实写入附录 E。
+2. **延迟档预算的出处**：`paper/s2st_comparison_plan_v1.zh-CN.md` 第 135 行记录，m1 = 1.18 s 是"从图上读"的。
+   - RealSI 的预算（1.18/1.98/2.46/2.98 s，Zh→En 为 1.18/1.92/2.40/2.98 s）读自 SimulS2ST-Omni 的 Fig. 3（beam 4）。
+   - ACL60/60 的预算（1.30/1.90/2.48/2.89 s）读自其 Fig. 5（v13 T5 表注已写明）。
+   - 附录 C.3 照此写明出处。
+3. **我们的延迟口径比 SimulEval 更严**：同一文档记录，在 QABC 的工作点上，我们的 segment LAAL（D1）比 SimulEval 的逐词 LAAL（D0w，在发出时计时、不含排队）高约 0.1 s。例如 En→Zh m1/m2/m3 为 1.13/1.77/2.25 对 1.00/1.67/2.17。所以与 SimulS2ST-Omni 分档的比较是保守的。附录 C.3 可以写一句；这个数据已有，不需要新实验。
+
 ## 来源
 
 - ICML 2027 Author Instructions：https://icml.cc/Conferences/2027/AuthorInstructions
