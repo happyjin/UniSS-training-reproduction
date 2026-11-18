@@ -3453,3 +3453,13 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 标注为探索性，不参与外推族选择。若之后选定的就是 R-t，这次运行即作为正式的 E1.2a。
 - **决定：** 诊断集的 test 部分在 M1 中不运行，留作 ID-1 测试；E1.0 和 E1.1 只用 dev 部分。
 - **决定：** 独立的说话人确认模型用本地缓存的 TitaNet-large（`cache/hf_v6`，nemo_diar 环境）。
+
+## 2026-11-19 00:55 布拉格 — Idea 2（CA-Kalman，卡 4–7）开工：预登记、额外下载、数据决定
+
+- **预登记：** `reports/mist_w3po_v1/voicecond_idea2_prereg.zh-CN.md`（见过的语料、合成配方、窗长规则、映射 M 的选择规则、r 的 90% 规则、EM 设置、六个方法、G2.0 / G2.2 的操作化定义），在抽背景、E2.0 和任何拟合之前提交。
+- **事故：** 共用下载器报 `FAIL zip integrity FSD50K.eval_audio.zip`。原因不是损坏：Zenodo 上的 FSD50K eval 是**分卷 zip**，`.zip` 只是第 2 卷（EOCD 显示 disk 1 / 共 2 卷），还缺 `FSD50K.eval_audio.z01`（3.2 GB）。新脚本 `experiments/mist_w3po_v1/scripts/idea2_extra_download.sh`（同样的原地分段下载、拒绝覆盖）把 `.z01` 下到 `data/open_voicecond_v1/idea2/raw/fsd50k/`，并把原 `.zip` 以符号链接放在旁边，之后用 `zip -s 0` 合并。Idea 1 和测试集代理用 FSD50K 时也需要这一卷。
+- **决定：** WenetSpeech 包（6.4 GB）里只有 lhotse cuts 清单和 whisper-fbank 特征的引用，没有音频（README 指向 HF 申请下载）；所以按方案下载 CN-Celeb v1（22 GB，同一脚本，排在 FSD50K 之后）。M1 的 EM 只用合成 train 流，CN-Celeb 从 E2.3 开始用（预登记 §0）。
+- **决定：** Common Voice zh-CN 从本地镜像 `s3_mirror/zeyangsong_data/asr.tar.zst` 解包（不再从 S3 拉）。排除 CoVoST 2 zh-CN→en test 划分中出现过的全部 805 个说话人及其语句。
+- **决定：** MUSAN music 的 `fma`、`fma-western-art` 两个子目录来源是 FMA，而 FMA 预定为 OOD-1 背景语料，所以 Idea 2 不用这两个子目录。
+- **决定：** AMI 只取 full-corpus ASR 划分训练会议的轮次时间统计（137 场会议、60143 个轮次；轮次时长中位数 2.6 s；重叠占说话时间 19%），dev / test 会议排除。
+- **决定（协调者转达用户：尽快）：** 先做约 10 h 先导（每个划分、每种语言的前 10% 条流，配方相同），在先导上跑预处理、E2.0 和第一遍线性 CA-Kalman 拿早期信号；完整 100 h 的合成在后台继续，G2.2 用完整数据判定。
