@@ -3408,3 +3408,19 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **延迟**：每路译音起点比原声晚 4.0 s（中→英）、3.0 s（英→中），均为中位数。
 - **听感上的主要问题**：解说连续、换人快，15–60% 的译音时间里有两路以上的译音同时在说，大部分是不同说话人的译音互相重叠。另外，英雄名和术语经常译错。
 - **试听**：`demo_packages/game_multispk_b_demo_v1`，已发布为私有 Artifact https://claude.ai/artifact/82QpumamwWEd8pA2SJaeQC 。每段是一个立体声 MP3（左原声、右译音），页面上可切换四种听法。
+
+## 2026-11-18 23:05 布拉格 — 电竞试听译音"闷"的原因分析
+
+- 报告：`reports/mist_w3po_v1/game_muffled_speech_analysis.zh-CN.md`（含图 `game_muffled_speech_fig1.png`）。
+- **结论**：主因是原声背景声（BGM、观众、游戏音效）进入了音色提示。它同时污染两环：
+  - BiCodec 的 32 个 global token，对应解码器，约占一半；
+  - Talker LM 生成的语义码，约占另一半。
+  - 结果是共振峰被抹平、噪声成分增多，不是缺高频。
+- **因果检验**（80 条配对，只换提示）：
+  - 去掉提示背景（HDemucs 人声）后，译音 SQUIM-PESQ 中→英 1.96 → 3.14，英→中 1.62 → 2.46；
+  - 往干净的 AMI 提示里混入电竞背景（−15 dB）后，3.17 → 2.35。
+- **2×2 拆分**（语义码 × global token）：global token 效应 +0.43 / +0.30，语义码效应 +0.49 / +0.39。
+- **工具**：从 download.pytorch.org 用 curl 下载了 torchaudio 官方 SQUIM 和 HDemucs 权重，放到 `cache/torch/hub/checkpoints`（Python 的 SSL 校验失败，属已知问题）。
+- **GPU**：卡 0 和卡 2 的占位程序按 PID 停掉，跑 6 组 Talker 和 BiCodec 解码，结束后由 guard 补回。
+  - AMI 两组首次运行时，因同卡另一任务在 vLLM 显存探测期间释放了显存而启动失败。改为单独重跑；失败目录改名为 `*.failed_meminit` 保留。
+- A/B 试听样例：`demo_packages/game_muffle_ab_examples_v1`。
