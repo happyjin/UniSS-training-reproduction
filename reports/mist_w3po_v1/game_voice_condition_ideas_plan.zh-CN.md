@@ -656,7 +656,115 @@ $$
 
 ---
 
-## 8. 主要参考（完整列表见 solutions 文档 §8、§9）
+## 8. 端到端版本（2026-11-19 用户要求：主方案改为端到端）
+
+### 8.0 "端到端"在本文的确切含义
+
+**定义：** 生成损失的梯度从 Talker 的输出，经过 Talker 本体（LoRA 或全参数）、条件模块（ZNE 层或卡尔曼层）、BiCodec 说话人编码器（LoRA），一直传到音频输入；所有可训练部分联合优化。
+
+**不训练的部分：** 流式分离器（Nemotron）和 Thinker（文本翻译）。它们决定"翻译什么、谁在说"，与"背景经音色泄漏"无关。论文里写成"end-to-end trainable speaker-conditioning and Talker"，不笼统声称"整个 S2ST 端到端"，以免夸大。
+
+**规模（已核实）：** Talker（T1c）是 Qwen2 架构的 1.5B 模型（hidden 1536、28 层、3.5 GB）。说话人编码器是 ECAPA + Perceiver + FSQ，规模很小。所以 4 张 H200 上做全参数或 LoRA 训练都足够。
+
+### 8.1 术语：Idea 1 是不是"老师教学生蒸馏"？
+
+**不是。把它叫作师生蒸馏会误导读者。**
+- 读者会以为有一个更大、更好的外部老师模型，于是把创新点理解成"又一种蒸馏"，这是一个拥挤的方向。
+- 而 ZNE 的核心是一个**有数学定义的算子**（Richardson 外推）加上**由误差界推出来的训练目标**，没有外部老师。
+
+端到端训练里有三种监督信号，必须分别命名：
+
+| 信号 | 是什么 | 准确叫法 | 是否"师生" |
+|---|---|---|---|
+| (a) 曲率正则 | 让编码器对"加背景"的响应沿放大路径近似线性，直接压低定理 1 余项里的常数 $M_2$ | **界最小化训练**（bound-tightening） | 否，没有老师；在真实带噪数据上自监督 |
+| (b) 干净反事实生成监督 | 在开源合成数据上，同一个冻结的 Talker 拿到**干净提示**时的输出，作为目标 | **特权信息学习**（LUPI，Vapnik & Vashist 2009；Lopez-Paz et al. ICLR 2016 统一了蒸馏与特权信息） | 形式上像：老师 = 同一模型 + 只有训练时才有的干净条件。必须明确写成"特权信息"，不能写成"大模型教小模型" |
+| (c) logit 外推的摊销（可选） | 把需要两路推理的 logit 外推，训练进单路模型 | **摊销推理**（amortization），类似引导蒸馏和 CCA（ICLR 2025） | 否，目标是同一模型在测试时也能算出的外推分布，只是把计算搬进权重 |
+
+**隐空间 ZNE 本身不需要任何蒸馏：** 它只多做一次编码器前向，Talker 仍然只跑一遍。(c) 只在想把 logit 变体也做成单路时才用。
+
+### 8.2 Idea 1 端到端：ZNE-in-the-loop
+
+**前向：**
+$$
+\hat u=\mathrm{ZNE}_\theta(y,\hat b)=2\phi_\theta(y)-\phi_\theta\big(y+(\sqrt2-1)\hat b\big),\qquad
+\hat g=\mathcal Q_{\rm ST}(\hat u),\qquad x\sim p_\psi(\cdot\mid\text{text},\text{src},\hat g)
+$$
+- $\phi_\theta$：BiCodec 说话人编码器加 LoRA；
+- $\mathcal Q_{\rm ST}$：FSQ 取整，用直通估计反传梯度；
+- $p_\psi$：Talker（LoRA 或全参数）；
+- 解码器冻结。若改用 E1.0 选出的 Möbius 族，前向公式相应替换。
+
+**损失：**
+$$
+\mathcal L=\underbrace{\mathrm{KL}\big(p_{\psi_0}(\cdot|\text{text},\text{src},g^\star)\,\big\|\,p_\psi(\cdot|\text{text},\text{src},\hat g)\big)}_{\text{(b) 特权信息：干净反事实，合成数据}}
++\lambda_c\underbrace{\big\|f_\theta(1)-2f_\theta(2)+f_\theta(3)\big\|^2}_{\text{(a) 曲率：压低 }M_2\text{，可用真实带噪数据}}
++\lambda_a\underbrace{\mathbb E_{\rm clean}\|\phi_\theta(s)-\phi_0(s)\|^2}_{\text{锚点：保持编码空间兼容}}
++\lambda_s\underbrace{\mathcal L_{\rm spk}(\hat u)}_{\text{说话人对比：防止塌缩}}
+$$
+其中 $f_\theta(t)=\phi_\theta(y+(\sqrt t-1)\hat b)$，二阶差分在 $t\in\{1,2,3\}$ 上计算。
+
+**为什么理论在训练后依然成立，而且更强：**
+- 定理 1 的偏差界是 $M_2/m!\cdot\prod\lambda_i$。曲率正则直接最小化 $M_2$ 的经验估计。当二阶差分趋于 0 时，ZNE 在放大路径上**精确成立**。
+- 所以训练目标是**从误差界推出来的**，提升可以解释为"ZNE 层消去一阶项，训练压低二阶项"。
+- 命题 7（只沿干扰方向外推，身份保持）不依赖训练，照样成立；锚点项保证干净输入上不变（对应命题 3 的无害性）。
+
+**关键消融（证明 novelty 来自 ZNE，而不是来自训练本身）：**
+1. 只做加噪提示微调，没有 ZNE 层：即 OZSpeech / DINO 式基线，有同样的数据和训练量；
+2. ZNE 层，不训练：即原来的免训练版；
+3. ZNE 层加 (b)，不加 (a)；
+4. 完整版：ZNE 层加 (a)、(b)、锚点。
+
+**预期：** 4 > 1 说明"把外推结构放进模型"带来了额外收益；4 > 3 说明界最小化的曲率正则有效。
+
+**训练数据（全部开源）：**
+- 干净反事实对：用 CoVoST 2 的源语音（S3：zh→en 10.4 h，en→zh 取 50 h 子集）和翻译文本，配上同一说话人的另一段录音作提示，再按电竞的 BVR 分布叠加 MUSAN 和 FSD50K 背景。老师目标由冻结的 Talker 在干净提示下生成（teacher forcing 下的语义码分布）。
+- 曲率正则：可以用 WenetSpeech 这类真实带噪开源数据（只需要 $\hat b$，不需要干净参考）。
+
+**成本：** 生成老师目标约 0.5 天；1.5B Talker 加编码器的 LoRA 在 4 卡上训练约 0.5–1 天。
+
+### 8.3 Idea 2 端到端：可微卡尔曼层（Structured End-to-End）
+
+**前向：** 窗口编码器 $f_\psi$（BiCodec 编码器加 LoRA，带方差头）和背景编码器 $h_\omega$ 输出观测 → **卡尔曼层**（闭式，可微）给出每个说话人的后验 $m_{j|k}$ → $\mathcal Q_{\rm ST}$ → Talker（LoRA 或全参数）。
+
+**损失：**
+$$
+\mathcal L=\underbrace{\mathrm{KL}\big(p_{\psi_0}(\cdot|g_j^\star)\,\|\,p_\psi(\cdot|\mathcal Q(m_{j|k}))\big)}_{\text{特权信息生成监督（合成多人流）}}
++\underbrace{\mathcal L_{\rm ML}}_{\text{卡尔曼精确边缘似然（真实带噪，自监督）}}
++\lambda_a\,\text{锚点}+\lambda_{\rm syn}\,\text{校准 NLL}
+$$
+梯度从 Talker 经过卡尔曼后验，传到两个观测编码器和状态空间参数 $(A,B,\rho,Q,R,S)$。
+
+**为什么还可解释：** 卡尔曼层的结构不变，定理 2.1 和 2.2 照样适用。学出来的 $A$、$B$、$\rho$ 仍有物理意义（背景如何作用于音色编码、背景的持续性），可以直接画出来分析。
+
+**关键消融：**
+- 用黑盒注意力池化代替卡尔曼层（同样端到端训练、同样的数据）；
+- 卡尔曼层去掉只含背景的观测流；
+- 完整版。
+
+**预期：** 结构化层优于黑盒池化，尤其在持续背景、首句和 OOD 条件下。这正是两个定理预测的。
+
+**训练数据：** §7 的 100 h 开源合成多人流（干净反事实对来自同一套合成）加 WenetSpeech 或 CN-Celeb 的真实带噪数据（似然项）。
+
+**成本：** 比非端到端的学习版多约 1–2 天，用于反传 Talker 的联合训练和调试。
+
+### 8.4 对时间表的影响
+
+| | 原方案（模块化） | 端到端主方案 |
+|---|---|---|
+| Idea 1 | 约 1–1.5 天出核心结果，约 3 天出正式结论 | 先用免训练版做 G1.0 和 G1.2（约 1–1.5 天，作为消融 2），再做端到端训练和评测（+2 天）。**约 3.5 天出核心结果，约 5 天出正式结论** |
+| Idea 2 | 线性版约 3 天，学习版约 5–6 天 | 线性版仍约 3 天（作为结构基线），端到端约 **6–7 天** |
+
+两条线仍各用 4 张卡并行。Talker 只有 1.5B，训练不会成为瓶颈。主要时间花在数据构造、生成老师目标和调试上。
+
+---
+
+## 9. 主要参考（完整列表见 solutions 文档 §8、§9）
+
+- 特权信息与摊销（§8 端到端版本用）：
+  - Vapnik & Vashist 2009（LUPI）；
+  - Lopez-Paz et al.，*Unifying Distillation and Privileged Information*，ICLR 2016；
+  - Meng et al.，*On Distillation of Guided Diffusion Models*，CVPR 2023；
+  - CCA（ICLR 2025）。
 
 - 零干扰外推和条件外推：
   - Temme, Bravyi, Gambetta（量子 ZNE，arXiv 1612.02058）；
