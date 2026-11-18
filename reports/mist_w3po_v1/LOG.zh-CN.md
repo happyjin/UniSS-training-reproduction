@@ -3484,3 +3484,12 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **对照：** HDemucs 人声提示（V）相对 O 为 +0.94 / +0.66；Z 比 V 低 0.84 / 0.59。
 - **结论：** 增益小但显著，远低于 G1.2 的 +0.3。按协调者的指示继续完成 E1.0，用诊断解释原因。
   - 该结果不参与外推族选择。
+
+## 2026-11-19 00:40 布拉格 — Idea 1：E1.2b（demo 10 段，R-t）提前启动；FSD50K 补全
+
+- **FSD50K：** `.z01` 下载完成（00:19），合并为 `raw/fsd50k/FSD50K.eval_audio.merged.zip`，`unzip -t` 通过（00:20）。
+  - 只把人群类和音效类的 686 个片段解压到 `data/open_voicecond_v1/idea1/fsd50k_eval/`。
+- **决定（用户要求尽快，卡 0–3 原本空闲）：** 不等外推族选择，先用 R-t 跑 E1.2b。
+  - 运行名 `game_b_{zh2en,en2zh}__t1c_zne_Rt`（及 `_tts2`），编排器目录 `logs/mist_w3po_v1/voicecond_idea1/game_*_zne_Rt`，`--cap135 --exclude 4 5 6 7`。
+  - 包装器 `voicecond/idea1_game_orch.py` 把 16 个 talk 作业换成 `idea1_si_infer_vo`（按提示文件 sha1 校验 token 表）；其余作业与 baseline B 完全相同。
+  - 若之后按规则选定 R-t，这次运行就是正式的 E1.2b；否则用选定的族重跑。两种情况都完整保留输出，供试听页使用。
