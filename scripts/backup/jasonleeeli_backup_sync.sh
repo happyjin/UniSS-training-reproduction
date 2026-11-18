@@ -6,16 +6,26 @@
 #      one s5cmd batch); failed uploads are retried next round if the file still exists.
 #
 #   setsid nohup bash scripts/backup/jasonleeeli_backup_sync.sh > /dev/null 2>&1 &
-#   state in /opt/dlami/nvme/jasonleeeli/s3_backup_sync; SKIP_ZIP=1 skips step 2
+#   state in /opt/dlami/nvme/jasonleeeli/s3_backup_sync_v2; step 2 runs only with SKIP_ZIP=0 (zip volumes: jasonleeeli_backup_zip.sh)
 set -u
 
 SRC=/opt/dlami/nvme/jasonleeeli
 DST=s3://stevehguo-ap-southeast-3/speech_model_backup/jasonleeeli/jasonleeeli_backup
 ZIP=s3://stevehguo-ap-southeast-3/speech_model_backup/jasonleeeli/jasonleeeli_backup.zip
-STATE=$SRC/s3_backup_sync
+STATE=${STATE:-$SRC/s3_backup_sync_v2}   # v2 (2026-11-18): fresh state after the 11-07 restore reset every mtime
+SIZE_ONLY=${SIZE_ONLY:-1}                # full pass compares size only (restored files have new mtimes but same content)
 INTERVAL=${INTERVAL:-300}
 WORKERS=${WORKERS:-256}
 S5=$SRC/tools/s5cmd_dl/bin/s5cmd
+# never uploaded (s5cmd --exclude in the full pass, find -path in the incremental rounds): backup state, pip caches,
+# temp dirs, and the eval wavs that can be rebuilt from AMI + *_speech/*_simul (stereo mixes, source cuts, voice prompts)
+EXCLUDES=('*s3_backup_sync/*' '*s3_backup_sync_v2/*' '*s3_backup_zip/*' '*s3_live_sync/*' '*.s5cmd_logs/*'
+          '*cache/pip/*' '*cache/pip_*' '*work/*_tmp/*'
+          '*/eval_outputs/*/talker/wav/*_stereo.wav' '*/eval_outputs/*/talker/src/*' '*/eval_outputs/*/talker_in_all/*'
+          '*/eval_outputs/*/talker_cands/wav/*_stereo.wav' '*/eval_outputs/*/talker_cands/src/*')
+S5_EXCL=(); FIND_EXCL=()
+for p in "${EXCLUDES[@]}"; do S5_EXCL+=(--exclude "$p"); FIND_EXCL+=(-not -path "$p"); done
+SYNC_OPTS=(); [ "$SIZE_ONLY" = 1 ] && SYNC_OPTS+=(--size-only)
 export AWS_REGION=ap-southeast-3 PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 mkdir -p "$STATE"
@@ -30,7 +40,7 @@ if [ ! -e "$STATE/full_ok" ]; then
     for attempt in 1 2 3; do
         t0=$(date +%s)
         log "full pass attempt $attempt: $SRC -> $DST ($WORKERS workers)"
-        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync --no-follow-symlinks --exclude 's3_backup_sync/*' --exclude 's3_backup_zip/*' \
+        nice -n 10 "$S5" --log error --numworkers "$WORKERS" sync "${SYNC_OPTS[@]}" --no-follow-symlinks "${S5_EXCL[@]}" \
             "$SRC/" "$DST/" > "$STATE/full_out.txt" 2>&1
         rc=$?
         fails=$(grep -c '^ERROR' "$STATE/full_out.txt")
@@ -44,7 +54,7 @@ fi
 
 # 2. zip of the tree (same content as the S3 copy), streamed and cut into 50 GiB volumes $ZIP.001, .002, ...
 #    (no local copy); restore: cat jasonleeeli_backup.zip.* > jasonleeeli_backup.zip, or open .zip.001 in 7-Zip
-if [ "${SKIP_ZIP:-0}" != 1 ] && [ ! -e "$STATE/zip_ok" ]; then
+if [ "${SKIP_ZIP:-1}" != 1 ] && [ ! -e "$STATE/zip_ok" ]; then
     t0=$(date +%s)
     log "zip: $SRC -> $ZIP.NNN (50 GiB volumes)"
     export S5 ZIP
@@ -69,7 +79,7 @@ while true; do
     while IFS= read -r -d '' f; do
         case "$f" in *'"'*|*$'\n'*) skipped=$((skipped + 1)); echo "$f" >> "$STATE/unsupported_names.txt"; continue ;; esac
         echo "cp --raw \"$f\" \"$DST/${f#"$SRC"/}\"" >> "$cmds"; n=$((n + 1))
-    done < <(nice -n 10 find "$SRC" -xdev \( -path "$STATE" -o -path "$SRC/s3_backup_zip" \) -prune -o -type f -newer "$STATE/stamp" -print0 2>/dev/null)
+    done < <(nice -n 10 find "$SRC" -xdev \( -path "$STATE" -o -path "$SRC/s3_backup_zip" \) -prune -o -type f -newer "$STATE/stamp" "${FIND_EXCL[@]}" -print0 2>/dev/null)
     r=0
     while IFS= read -r f; do
         [ -f "$f" ] || continue

@@ -15,8 +15,12 @@ DST=s3://stevehguo-ap-southeast-3/speech_model_backup/jasonleeeli/projects/UniSS
 STATE=$ROOT/s3_live_sync
 INTERVAL=${INTERVAL:-60}
 OUTSIDE_EVERY=${OUTSIDE_EVERY:-30}
-START=${START:-"2026-10-30 04:20:40"}
+START=${START:-"2026-10-30 04:20:40"}         # 2026-11-18 relaunch: START=now (catch-up is done by the full-tree sync)
 export AWS_REGION=ap-southeast-3 PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+S5=$ROOT/tools/s5cmd_dl/bin/s5cmd                 # no /usr/local/bin/s5cmd on the current server
+# same exclusions as jasonleeeli_backup_sync.sh: eval wavs rebuildable from AMI + *_speech/*_simul
+FIND_EXCL=(); for p in '*/eval_outputs/*/talker/wav/*_stereo.wav' '*/eval_outputs/*/talker/src/*' '*/eval_outputs/*/talker_in_all/*' \
+    '*/eval_outputs/*/talker_cands/wav/*_stereo.wav' '*/eval_outputs/*/talker_cands/src/*' '*.s5cmd_logs/*'; do FIND_EXCL+=(-not -path "$p"); done
 
 mkdir -p "$STATE"
 exec 9>"$STATE/lock"
@@ -38,7 +42,7 @@ while true; do
     while IFS= read -r -d '' f; do
         case "$f" in *'"'*|*$'\n'*) skipped=$((skipped + 1)); echo "$f" >> "$STATE/unsupported_names.txt"; continue ;; esac
         echo "cp --raw \"$f\" \"$DST/${f#"$SRC"/}\"" >> "$cmds"; n=$((n + 1))
-    done < <(nice -n 10 find "$SRC" -xdev -type f -newer "$STATE/stamp" -print0 2>/dev/null)
+    done < <(nice -n 10 find "$SRC" -xdev -type f -newer "$STATE/stamp" "${FIND_EXCL[@]}" -print0 2>/dev/null)
     r=0
     while IFS= read -r f; do
         [ -f "$f" ] || continue
@@ -47,7 +51,7 @@ while true; do
     : > "$STATE/retry.txt"
     if [ $((n + r)) -gt 0 ]; then
         t0=$(date +%s)
-        nice -n 10 ionice -c3 s5cmd --log error --numworkers 64 run "$cmds" > "$STATE/s5cmd_out.txt" 2>&1
+        nice -n 10 ionice -c3 "$S5" --log error --numworkers 64 run "$cmds" > "$STATE/s5cmd_out.txt" 2>&1
         rc=$?
         fails=$(grep -c '^ERROR' "$STATE/s5cmd_out.txt")
         grep '^ERROR "cp ' "$STATE/s5cmd_out.txt" | sed -E 's#^ERROR "cp --raw=true (.*) s3://stevehguo-ap-southeast-3/.*$#\1#' \
