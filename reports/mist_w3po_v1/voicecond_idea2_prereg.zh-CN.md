@@ -166,3 +166,16 @@ $z_k=s_{j(k)}+A n_k+\varepsilon_k$，$\varepsilon_k\sim\mathcal N(0,R/\pi_k)$；
 
 - 学习版（E2.3）：$\lambda_{\rm anc}=1$，$\lambda_{\rm syn}=0.1$；
 - 流式推理接口：`idea2_cakalman.py` 中的滤波器类按（窗口结束时刻、槽位、$\pi_k$、$z_k$、$v_k$）逐窗更新，可在任意时刻按槽位输出 32 个 token。之后用于电竞 demo 10 段（已有的 Nemotron 后验和 C2 窗口）与 OpenBroadcast-SI 的评测钩子，不在其上做任何选择。
+
+---
+
+## v1.1 修订（2026-11-19 01:00 布拉格，在构建任何合成流之前）
+
+- §1.1 Common Voice 的划分规则原写"sha1(client_id) 末位十六进制数 mod 10"，末位只有 16 个取值，mod 10 会让 0–5 的概率加倍、dev/test 只各占约 6%。改为与背景相同的规则：**int(sha1(client_id) 的十六进制全文, 16) mod 10**，0–7 train、8 dev、9 test。
+- 本地镜像中 Common Voice zh-CN 只有 train 划分的音频（29406 条、658 个说话人；去掉 CoVoST 2 test 的 30 个说话人后 628 个）。筛选规则不变。
+
+## v1.2 修订（2026-11-19 01:05 布拉格，在构建任何合成流之前；测试集代理提交 2563d6b94 之后）
+
+- 背景排除：`bench/HELDOUT_BACKGROUNDS.txt`（1560 个 FSD50K eval 片段）和 `HELDOUT_BACKGROUNDS_MUSAN.txt`；MUSAN 清单写出之前，直接套用该文件头登记的同一规则（`int(sha1('OpenBroadcast-SI-v1|' + 路径), 16) % 1000 < 150`，路径为 MUSAN tar 成员名或 `FSD50K.eval_audio/<fname>.wav`），所以结果与清单一致。
+- 语音排除：`bench/HELDOUT_SPEECH.txt` 中的 553 个 Common Voice 说话人（我的 CV 说话人池中有 1 个在内，已排除）及其全部语句；CoVoST 2 test 划分（两个方向）整体不用。
+- OOD-1 语料 FMA、DEMAND、ESC-50 整体不用（§0 的"不用"清单加上 ESC-50）。
