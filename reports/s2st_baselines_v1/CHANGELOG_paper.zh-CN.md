@@ -101,3 +101,30 @@
   - 最后三张小表（`app_calib`、`app_timeaxes`、`app_robust`）改用 `[H]`；H 节的表嵌在该段两句之间。现在最后一页是"文字—表—文字"连续排版。
   - 附录 E 的推理设置表和 F 节的两张大表试过 `[H]`，会在第 22–23 页留下 20–25% 的空白，所以仍用普通浮动。
 - **编译**：tectonic 编译通过，没有未定义的引用，也没有 Overfull；全文 24 页，正文严格在 8 页以内。
+
+## v16（2026-11-18，布拉格时间）
+
+按 `paper/bayes_simul_s2st_v16_revision_plan.zh-CN.md`（以第 6 节为准）修改。
+
+- **目录**：新建 `paper/bayes_simul_s2st_v16/`，由 v15 用 `cp -a` 复制得到，v15 不动。
+- **摘要与引言**：与 v15 逐字相同。
+- **外部系统不再使用我们的 Talker**
+  - 外部系统中只有 Hy-SimulMT 接过我们的 Talker，共 4 个点，其中 Zh→En 约 1.75 s 处 21.88 高于 QABC。
+  - 整个"Hy-SimulMT + 我们的 Talker"配置删除，包括：Table 2 的这一行、Figure 3 的曲线和图例、§4.1 和 §4.3 中的相关句子、附录 C.2 中的描述和 Fairness 段，以及补充 CSV（由新脚本 `experiments/s2st_baselines_v1/export_v16_supplement.py` 过滤）。
+  - Hy-SimulMT 只保留 + Qwen3-TTS 这一种配置。Table 2 中 Zh→En m2 的最高分改为 QABC（21.42）；§4.3 改为 "m1–m3 领先，m4 LocalAgreement 领先"。
+  - 策略基线（LA2、Hold-n、Vote、TTB）照旧共用我们的 Thinker 和 Talker，所有格子都保留。
+- **方法部分**：依据 v13 的 Remark 原文，为每个定义、定理、推论补写动机句和用途句（方案 6.3 的 T1–T7）：
+  - Proposition 1 之后改写为一段解释；
+  - Definition 2 之后、Definition 3 之前、Theorem 1 之后、Corollary 1 之后、Proposition 2 之后、Proposition 3 前后各补一句。
+  - 队列模型从 Assumption 环境改为普通段落 "Queue model."。这样附录中的两个假设成为 Assumption 1–2，正文按顺序引用；原来对 `ass:queue` 的引用都改为引用 Eq. (queue)。
+- **附录 A、B 的证明**
+  - 导言区加入 thmtools / thm-restate；正文的 Proposition 1–3、Theorem 1–2、Corollary 1 改为 `restatable`。
+  - 附录中每个结果先按同一编号重述，再写 `\begin{proof}…\end{proof}`，右侧自动出现 □。手写的 $\square$ 全部删除，共 11 个证明。
+  - Proposition 1 合成一个证明，分 (i)(ii)(iii) 三步。原来属于命题陈述的 Eq. (utt-post) 移到第 (i) 步，作为中间结果。
+  - 方框之后的说明另起一段，包括 "Content and stopping terms" 和 Lemma 1、Lemma 2 之后的说明句。
+- **修正一个从 v13 起就存在的排版问题**：摘要和引言的源文件直接写了 Unicode "→"，Times 字体没有这个字形，PDF 中箭头被丢掉（显示成 "EnZh"）。在导言区用 newunicodechar / DeclareUnicodeCharacter 把它映射为 `\rightarrow`，摘要和引言的源文件不动。
+- **篇幅与排版**
+  - 正文压缩：流程图缩到 0.6 倍版心宽；动机图的图注和结论框收紧；Table 2 表注精简；§3.1 "Simultaneous commitment" 段、Theorem 2 之后一句、结果部分两处和 Limitations 都做了精简。定义、命题、定理和新增的说明句都没有删。
+  - Table 1 改在 §3.4 开头插入，使其落在第 6 页顶部。浮动体分布：Table 1 在第 6 页，Table 2–4 在第 7 页，Figure 3 和 Table 5–6 在第 8 页。
+  - 附录 G、H 的开头句并入段落，避免第 25 页只剩两行。
+- **编译**：tectonic 编译通过，没有未定义的引用，也没有 Overfull；全文 24 页，正文结束于第 8 页（第 9 页从 Impact Statement 开始），每栏空白不超过 16%（参考文献末页除外）。
