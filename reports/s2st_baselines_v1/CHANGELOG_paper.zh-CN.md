@@ -68,3 +68,36 @@
   5. v13 "约 25 分钟"的训练时间找不到依据，正文已不写，附录 D 改用日志实测值：前 200 步每个 seed 用时 11–19 分钟，seed 0 跑满 800 步用时 42 分钟。
 - **核实后仍找不到、因而没有写的值**：T1c 选第 1,500 步的依据、标签生成的 GPU 小时、TTB 先验头的实际启动命令、vLLM 版本。
 - **编译检查**：tectonic 编译通过，没有未定义的引用，没有 Overfull；正文每栏空白不超过 18%，附录除最后一页外不超过 17%。
+
+## v15（2026-11-18，布拉格时间）
+
+按 `paper/bayes_simul_s2st_v15_revision_plan.zh-CN.md` 和用户第 10 轮的决定修改。
+
+- **目录**：新建 `paper/bayes_simul_s2st_v15/`，由 v14 用 `cp -a` 复制得到，v14 不动。
+- **摘要与引言**：摘要不变；引言只在第一段末尾加了 "(Figure~\ref{fig:motivation})"（用户同意）。
+- **Figure 1：新增动机图** `figures/motivation.tex`（TikZ，单栏，位于第 1 页右栏顶部），版式参照 SEE 的 Figure 1：
+  - 三栏分别为：每次立即提交整份草稿、LocalAgreement、QABC；每栏底部是红、橙、绿三色结论框。
+  - 例子是示意性的 Zh→En 句子，源语音用英文逐词注释，图注写明 "illustrative"。
+  - 插入点在 `main.tex` 中、引言之前。新增 TikZ 库 `patterns` 和宏包 `float`。
+  - 原有的流程图和曲线图编号依次顺延为 Figure 2、Figure 3。
+- **Table 1：恢复 v13 的完整离线表**（`table*`，共 15 行，含 ASR-BLEU、Text-BLEU、A.PCP、SIM-O 四组列）。表体逐字不改，只精简了表注，由 `experiments/s2st_baselines_v1/fill_paper_v15_body.py` 生成。
+- **Table 2：转置成单栏表**：
+  - 行为各系统，列为两个方向各四个延迟档；格子里只写分数，各点的延迟见补充 CSV。
+  - ACL60/60 作为表下方的小块，只有 Omni、LA2、QABC 三行。
+  - Vote 在 3 s 内只有一个工作点（En→Zh m4，28.32），因此不单列一行，改在表注中写明。
+  - 所有数值都与 v13 源表逐一核对。
+- **正文排版**：
+  - 导言区设置浮动参数：`topnumber 3`、`dbltopnumber 2`、`topfraction 0.85`、`dbltopfraction 0.8`、`textfraction 0.12`、`floatpagefraction 0.85`。
+  - 调整各浮动体的插入位置：Table 1 放在 §4.1 开头；曲线图放在 §4.2 末尾；Table 2–6 各自放在对应小节的开头。
+  - 第 7 页不再是纯浮动体页。第 5–8 页每栏空白 1–16%。
+- **篇幅压缩**：
+  - 流程图从 0.82 倍版心宽缩到 0.72 倍；
+  - 结果部分重写为 `results_v15.tex`，各段更紧凑；
+  - 结论压成两句（`conclusion_v15.tex`）；
+  - Related Work 删去两处冗余的句子成分。
+  - 方法部分不动。正文结束于第 8 页（Impact Statement 也在第 8 页）。
+- **附录**：
+  - 删除 v14 的 Table 9（TTB 的 17 维特征表），改成附录 C.2 正文中的一句完整列举；附录 D.4 的引用随之改为指向附录 C.2。
+  - 最后三张小表（`app_calib`、`app_timeaxes`、`app_robust`）改用 `[H]`；H 节的表嵌在该段两句之间。现在最后一页是"文字—表—文字"连续排版。
+  - 附录 E 的推理设置表和 F 节的两张大表试过 `[H]`，会在第 22–23 页留下 20–25% 的空白，所以仍用普通浮动。
+- **编译**：tectonic 编译通过，没有未定义的引用，也没有 Overfull；全文 24 页，正文严格在 8 页以内。
