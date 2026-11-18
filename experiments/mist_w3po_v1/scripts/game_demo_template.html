@@ -77,7 +77,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);lin
   <header>
     <div class="label">多说话人同传 · baseline B · 电竞解说原声</div>
     <h1>王者荣耀解说同传试听</h1>
-    <p class="lede">10 段真实赛事解说，每段截取 5 分钟连续原声：5 段中文解说译成英文，5 段英文解说译成中文。同传语音由多说话人同传 baseline B 实时生成：低延迟说话人分离，接联合双向 Thinker，再接 T1c Talker。每位解说各有一路译音，按原声中的时间位置播放。</p>
+    <p class="lede">10 段真实赛事解说，每段截取 5 分钟连续原声：5 段中文解说译成英文，5 段英文解说译成中文。同传语音由多说话人同传 baseline B 实时生成：低延迟说话人分离，接联合双向 Thinker，再接 T1c Talker。每位解说各有一路译音，按原声中的时间位置播放。默认左声道放原声、右声道放同传译音，建议戴耳机听。</p>
   </header>
 
   <section class="rack" aria-label="样本">
@@ -94,8 +94,8 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);lin
     <div class="controls">
       <button class="play" id="play" type="button">播放</button>
       <div class="seg" role="group" aria-label="听法" id="modes">
-        <button type="button" data-m="mix" aria-pressed="true">同传混音</button>
-        <button type="button" data-m="lr" aria-pressed="false">左原声 · 右译音</button>
+        <button type="button" data-m="lr" aria-pressed="true">左声道原声 · 右声道同传</button>
+        <button type="button" data-m="mix" aria-pressed="false">同传混音</button>
         <button type="button" data-m="tgt" aria-pressed="false">只听译音</button>
         <button type="button" data-m="src" aria-pressed="false">只听原声</button>
       </div>
@@ -120,7 +120,7 @@ const $ = id => document.getElementById(id);
 const S = DATA.samples, au = $("au");
 const SPK = i => `var(--s${((i % 8) + 8) % 8})`;
 const fmt = t => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`; };
-let cur = null, mode = "mix", ctx = null, g = null;
+let cur = null, mode = "lr", ctx = null, g = null;
 
 function cards() {
   for (const d of ["zh2en", "en2zh"]) {
