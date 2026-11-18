@@ -3493,3 +3493,25 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
   - 运行名 `game_b_{zh2en,en2zh}__t1c_zne_Rt`（及 `_tts2`），编排器目录 `logs/mist_w3po_v1/voicecond_idea1/game_*_zne_Rt`，`--cap135 --exclude 4 5 6 7`。
   - 包装器 `voicecond/idea1_game_orch.py` 把 16 个 talk 作业换成 `idea1_si_infer_vo`（按提示文件 sha1 校验 token 表）；其余作业与 baseline B 完全相同。
   - 若之后按规则选定 R-t，这次运行就是正式的 E1.2b；否则用选定的族重跑。两种情况都完整保留输出，供试听页使用。
+
+## 2026-11-19 00:45 布拉格 — OpenBroadcast-SI v1 开源全链路测试集：留出清单与构建决定
+
+- **留出清单（先提交，供两条线排除）：**
+  - `data/open_voicecond_v1/bench/HELDOUT_BACKGROUNDS.txt`：FSD50K eval 留出 1560 / 10231 条。规则：`sha1('OpenBroadcast-SI-v1|' + 路径) % 1000 < 150`（15%，固定）。
+  - MUSAN 音乐和噪声按同一规则，下载完成后写入 `HELDOUT_BACKGROUNDS_MUSAN.txt`。
+  - `HELDOUT_SPEECH.txt`：基准用到的 553 个 Common Voice 说话人（client_id）和 2609 条片段。任何版本的 Common Voice / CoVoST 训练数据都要排除这些说话人；原则上整个 CoVoST 2 test 划分都不用。**Idea 2 计划用 Common Voice zh 做干净说话人，必须按此清单排除。**
+  - OOD-1 的背景语料（FMA、DEMAND、ESC-50）整体保留给基准，两条线都不得使用。
+- **决定（en→zh 的说话人限制）：** CoVoST 2 en→zh test 每个说话人最多只有 3 条（9472 人：1 条 4959 人，2 条 2967 人，3 条 1546 人），无法拼 5 分钟、每人多句的流。
+  - 做法：en→zh 只用恰好 3 条的说话人，每条流 2–4 人、每人 3 句，流长 17–82 s（中位数 47 s），共 148 条、2.0 h。
+  - zh→en：用 test 中至少 8 条的说话人，每条流 2–4 人、最长约 5 分钟，共 37 条、2.0 h（流长 61–336 s，中位数 214 s）。
+  - 两个方向结构不同，报告中分开写，不合并。
+- **OOD-1 背景语料（协调者 2026-11-19 增加）：**
+  - 音乐床：FMA-small 的 Instrumental 类（逐曲 CC 许可；与 MUSAN 音乐同艺术家的曲目排除）；
+  - 人群/环境段：DEMAND 的 5 个人多的公共环境（PCAFETER、PRESTO、PSTATION、SPSQUARE、TMETRO，CC BY 4.0）；
+  - 音效：ESC-50 的 8 类（CC BY-NC 3.0），Freesound id 出现在 FSD50K 中的片段排除。
+  - 三者都已核实可下载，下载器 `scripts/voicecond_bench_download_ood.sh`。
+  - 注意：FMA 与 MUSAN 的 fma 子集同源于 Free Music Archive 网站，但不是同一语料发布，文件不重叠（同艺术家已排除），在文档中如实写明。
+- **事故：** OOD 下载器误启动两份，第二份按 PID 停掉；它下了一半的 `PCAFETER_16k.zip` 改名为 `*.partial_dup_instance` 保留，由第一份重新完整下载。
+- **流的构造：** 轮次长度、句间停顿、换人间隙（负值即重叠）都从 AMI train 统计中抽样（只用非犹豫、≥ 1 s 的段）。重叠占语音时间 7.5–8.2%（AMI 为 9.6%）。
+  - BVR：按电竞提示 BVR（444 条，中位数 −14.3 dB）的分位数 0.05–0.95 分层抽取。ID-2 和 OOD-1 用同一条流、同一个 BVR、同一份事件时间表，只换背景语料。
+- **GPU：** 停掉卡 3 的占位程序（PID 2733489、2736184），跑无背景版本的 Nemotron lowlat 分离器。
