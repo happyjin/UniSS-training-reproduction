@@ -3386,3 +3386,25 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **口径说明**：级联 Ali 的 tcpASR 按会议级统计量合并两种子为 16.16，`score_run` 的两种子均值为 15.91。论文 B/MIST 用的是合并口径（18.07），全表统一用合并口径。
 - **DiariST 官方指标补 X-Translator**（Ali test）：SAg / SAt 为 16.04 / 13.66。
 - **paper v14**：Table 1 改为系统对比，消融改用 tcpASR 标签，正文 §5.1 重写；摘要、引言、结论、Limitations 和附录 G.4 / G.5 同步更新。正文仍在 8 页内，详见 `paper/gstar_si_v14/CHANGELOG_v14.md`。
+
+## 2026-11-18 20:55 布拉格 — 电竞解说数据上的多说话人同传 baseline 试听
+
+- **数据**：kenxsong 的 HOK 电竞数据（`s3://…/domaindata_game/`）是 YouTube 真实赛事解说原声，包括中文→英文和英文→中文两个方向。
+  - 30 s 训练片段是把语音块拼接起来的，时间轴不连续；原始连续音频是 `source/<video>_partNN.wav`。
+  - pyannote 的统计：94% 的片段有不止一个说话人，重叠约 4.6%。
+  - 方案：`reports/mist_w3po_v1/game_multispk_demo_plan.zh-CN.md`。
+- **选段**：`data/game_select.py`，只用元数据（语音覆盖 × 说话人切换次数），不看系统输出。每个方向 5 段，每段 5 分钟，共 10 段。
+- **构建**：`data/game_build.py`。
+  - 截取 16 kHz 整段音频；用流水线的轮次转写和 GPT 译文做银标参考窗口。
+  - Nemotron lowlat 分离器在每段里找到 2–7 个说话人。C2 窗口：zh 136 个，en 95 个。
+- **运行**：baseline B（`joint_v8h6k s06000 + identity`，T1c Talker，两个 TTS 种子），通过 `scripts/game_orch.py` 和 `game_run.sh`（只替换集合定义）。
+- **事故**：`meeting_score.universe` 不认识新会议，导致 zh2en 评分失败，en2zh 文本分数被算成 0。
+  - 处理：`reports/gstar_si_v6/meeting_score.py` 只给 `g[ze]NN` 会议加一个回退分支，读 `data/game_esports_si_v1/<dir>/utts`，与 AliEval 回退同一做法，论文结果不变。
+  - 错误的 `score_text.json` 改名为 `*.bad_universe` 保留；重新评分；zh2en 的 T1c 编排器手动重启。
+- **分数**（银标参考、不分说话人的 BLEU：`evaluation/game_blind_bleu.py`）：
+  - tcpBLEU 不可用，因为银标说话人只在片段内有效，大部分参考对不上。
+  - 中→英：文本 11.9，ASR-BLEU 8.0 / 8.9（两个种子）。
+  - 英→中：文本 25.8，ASR-BLEU 21.7 / 21.6。
+- **延迟**：每路译音起点比原声晚 4.0 s（中→英）、3.0 s（英→中），均为中位数。
+- **听感上的主要问题**：解说连续、换人快，15–60% 的译音时间里有两路以上的译音同时在说，大部分是不同说话人的译音互相重叠。另外，英雄名和术语经常译错。
+- **试听**：`demo_packages/game_multispk_b_demo_v1`，已发布为私有 Artifact https://claude.ai/artifact/82QpumamwWEd8pA2SJaeQC 。每段是一个立体声 MP3（左原声、右译音），页面上可切换四种听法。

@@ -1,0 +1,249 @@
+<title>王者荣耀解说同传试听</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a broadcast-desk console - sample rack on top, one player deck with a two-lane timeline (source turns above, translation streams below) and paired caption columns. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#18202b; --muted:#5d6878; --line:#d9dfe7;
+  --accent:#2f54d6; --accent-ink:#ffffff; --soft:#e7ecf9;
+  --s0:#d2453c; --s1:#2b7bd8; --s2:#1f9a6a; --s3:#c47a12; --s4:#8b4fd0; --s5:#c23d8a; --s6:#4b8a99; --s7:#6f7783;
+  --display:"Saira Semi Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#98a3b3; --line:#2a3443;
+  --accent:#7b97ff; --accent-ink:#0f141b; --soft:#1e2840;
+  --s0:#f07a70; --s1:#69a8f5; --s2:#4fc99a; --s3:#e5a54a; --s4:#b58cf2; --s5:#ea78b9; --s6:#7fbccb; --s7:#a3abb7;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#98a3b3; --line:#2a3443;
+  --accent:#7b97ff; --accent-ink:#0f141b; --soft:#1e2840;
+  --s0:#f07a70; --s1:#69a8f5; --s2:#4fc99a; --s3:#e5a54a; --s4:#b58cf2; --s5:#ea78b9; --s6:#7fbccb; --s7:#a3abb7;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0;letter-spacing:.01em;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.note{font-size:13px;color:var(--muted);max-width:90ch}
+.label{font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.rack{display:flex;flex-direction:column;gap:14px}
+.group{display:flex;flex-direction:column;gap:8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px}
+.card{all:unset;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card:hover{border-color:var(--accent)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.card .id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.card .t{font-weight:500;font-size:14px;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card .m{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.deck{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.deckhead{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;justify-content:space-between}
+.deckhead h2{font-family:var(--display);font-size:22px;margin:0;line-height:1.25;text-wrap:balance;min-width:0}
+.deckhead a{color:var(--accent);font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.play{all:unset;cursor:pointer;background:var(--accent);color:var(--accent-ink);font-weight:700;border-radius:999px;padding:8px 20px;font-family:var(--display);font-size:16px;letter-spacing:.04em}
+.play:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:6px 13px;font-size:13px;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.time{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tl{position:relative;width:100%;cursor:pointer;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.tl canvas{display:block;width:100%;height:96px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.col{min-width:0;display:flex;flex-direction:column;gap:6px}
+.lines{height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--bg)}
+.ln{display:grid;grid-template-columns:52px 1fr;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;border-left:3px solid transparent}
+.ln:hover{background:var(--soft)}
+.ln.on{background:var(--soft)}
+.ln .ts{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
+.ln .tx{min-width:0;overflow-wrap:anywhere}
+.ln .rf{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.fallback{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">多说话人同传 · baseline B · 电竞解说原声</div>
+    <h1>王者荣耀解说同传试听</h1>
+    <p class="lede">10 段真实赛事解说，每段截取 5 分钟连续原声：5 段中文解说译成英文，5 段英文解说译成中文。同传语音由多说话人同传 baseline B 实时生成：低延迟说话人分离，接联合双向 Thinker，再接 T1c Talker。每位解说各有一路译音，按原声中的时间位置播放。</p>
+  </header>
+
+  <section class="rack" aria-label="样本">
+    <div class="group"><div class="label">中文解说 → 英文同传</div><div class="cards" id="cards-zh2en"></div></div>
+    <div class="group"><div class="label">英文解说 → 中文同传</div><div class="cards" id="cards-en2zh"></div></div>
+  </section>
+
+  <section class="deck" aria-label="播放器">
+    <div class="deckhead">
+      <h2 id="d-title"></h2>
+      <a id="d-link" href="#" target="_blank" rel="noopener">原视频</a>
+    </div>
+    <div class="stats" id="d-stats"></div>
+    <div class="controls">
+      <button class="play" id="play" type="button">播放</button>
+      <div class="seg" role="group" aria-label="听法" id="modes">
+        <button type="button" data-m="mix" aria-pressed="true">同传混音</button>
+        <button type="button" data-m="lr" aria-pressed="false">左原声 · 右译音</button>
+        <button type="button" data-m="tgt" aria-pressed="false">只听译音</button>
+        <button type="button" data-m="src" aria-pressed="false">只听原声</button>
+      </div>
+      <span class="time" id="time">0:00 / 0:00</span>
+    </div>
+    <div class="tl" id="tl" title="点击跳转"><canvas id="cv"></canvas></div>
+    <div class="legend" id="legend"></div>
+    <div class="cols">
+      <div class="col"><div class="label" id="h-src">原声（流水线转写，供对照）</div><div class="lines" id="l-src"></div></div>
+      <div class="col"><div class="label" id="h-tgt">同传译文（baseline B 实时输出）</div><div class="lines" id="l-tgt"></div></div>
+    </div>
+    <audio id="au" preload="metadata"></audio>
+    <p class="fallback" id="fb" hidden>此浏览器不支持声道重混，正在播放原始立体声：左声道是原声，右声道是译音。</p>
+  </section>
+
+  <p class="note" id="foot"></p>
+</div>
+
+<script>
+const DATA = __DATA__;
+const $ = id => document.getElementById(id);
+const S = DATA.samples, au = $("au");
+const SPK = i => `var(--s${((i % 8) + 8) % 8})`;
+const fmt = t => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`; };
+let cur = null, mode = "mix", ctx = null, g = null;
+
+function cards() {
+  for (const d of ["zh2en", "en2zh"]) {
+    const box = $("cards-" + d);
+    S.filter(s => s.dir === d).forEach(s => {
+      const b = document.createElement("button");
+      b.className = "card"; b.type = "button"; b.dataset.id = s.id; b.setAttribute("aria-pressed", "false");
+      b.innerHTML = `<span class="id">${s.id} · ${s.dir === "zh2en" ? "中→英" : "英→中"}</span>
+        <span class="t"></span><span class="m">${s.speakers} 位说话人 · ${s.streams} 段译音</span>`;
+      b.querySelector(".t").textContent = s.title || `视频 ${s.video}`;
+      b.onclick = () => { location.hash = s.id; };
+      box.appendChild(b);
+    });
+  }
+}
+
+function stats(s) {
+  const r = (DATA.stats || {})[s.id] || {};
+  const c = [`${s.speakers} 位说话人（分离器）`, `${s.windows} 个语音窗口`, `原视频第 ${s.part} 段 ${fmt(s.t0)} 起`];
+  if (r.asr_bleu != null) c.push(`ASR-BLEU ${r.asr_bleu.toFixed(1)}（银标）`);
+  if (r.text_bleu != null) c.push(`文本 BLEU ${r.text_bleu.toFixed(1)}（银标）`);
+  $("d-stats").innerHTML = c.map(x => `<span class="chip">${x}</span>`).join("");
+}
+
+function lines(box, arr, withRef) {
+  box.innerHTML = "";
+  arr.forEach((l, i) => {
+    const el = document.createElement("div");
+    el.className = "ln"; el.style.borderLeftColor = l.spk >= 0 ? SPK(l.spk) : "var(--line)";
+    el.innerHTML = `<span class="ts">${fmt(l.t)}</span><span class="tx"></span>`;
+    el.querySelector(".tx").textContent = l.text;
+    if (withRef && l.ref) { const r = document.createElement("span"); r.className = "rf"; r.textContent = "参考译文：" + l.ref; el.querySelector(".tx").appendChild(r); }
+    el.onclick = () => { au.currentTime = Math.max(0, l.t - 0.3); if (au.paused) start(); };
+    box.appendChild(el);
+  });
+}
+
+function legend(s) {
+  const ks = [...new Set([...s.src.map(l => l.spk), ...s.tgt.map(l => l.spk)].filter(k => k >= 0))].sort((a, b) => a - b);
+  $("legend").innerHTML = ks.map(k => `<span><i style="background:${SPK(k)}"></i>说话人 ${String.fromCharCode(65 + k)}</span>`).join("")
+    + `<span>上排：原声说话段 · 下排：各说话人的同传译音</span>`;
+}
+
+function load(id) {
+  const s = S.find(x => x.id === id) || S[0];
+  cur = s;
+  document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.id === s.id)));
+  $("d-title").textContent = `${s.id} · ${s.title || s.video}`;
+  $("d-link").href = `${s.url}&t=${Math.floor((s.part - 1) * 900 + s.t0)}s`;
+  const zh = s.dir === "zh2en";
+  $("h-src").textContent = zh ? "中文原声（流水线转写，供对照）" : "英文原声（流水线转写，供对照）";
+  $("h-tgt").textContent = zh ? "英文同传（baseline B 实时输出）" : "中文同传（baseline B 实时输出）";
+  stats(s); legend(s);
+  lines($("l-src"), s.src, true); lines($("l-tgt"), s.tgt, false);
+  au.pause(); au.src = s.audio; $("play").textContent = "播放";
+  draw();
+}
+
+function graph() {
+  if (ctx) return true;
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaElementSource(au), sp = ctx.createChannelSplitter(2), mg = ctx.createChannelMerger(2);
+    src.connect(sp);
+    g = {};
+    for (const [k, ch, out] of [["oL", 0, 0], ["oR", 0, 1], ["tL", 1, 0], ["tR", 1, 1]]) {
+      g[k] = ctx.createGain(); sp.connect(g[k], ch); g[k].connect(mg, 0, out);
+    }
+    mg.connect(ctx.destination); route(); return true;
+  } catch (e) { ctx = null; $("fb").hidden = false; return false; }
+}
+function route() {
+  if (!g) return;
+  const v = { mix: [0.3, 0.3, 1, 1], lr: [1, 0, 0, 1], tgt: [0, 0, 1, 1], src: [1, 1, 0, 0] }[mode];
+  ["oL", "oR", "tL", "tR"].forEach((k, i) => g[k].gain.value = v[i]);
+}
+function start() { graph(); if (ctx && ctx.state === "suspended") ctx.resume(); au.play().catch(() => {}); }
+
+$("play").onclick = () => { if (au.paused) start(); else au.pause(); };
+au.onplay = () => { $("play").textContent = "暂停"; tick(); };
+au.onpause = () => { $("play").textContent = "播放"; };
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  document.querySelectorAll("#modes button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  route();
+});
+
+function hl(box, arr, t) {
+  let k = -1;
+  for (let i = 0; i < arr.length; i++) if (arr[i].t <= t) k = i;
+  [...box.children].forEach((el, i) => {
+    const on = i === k && t <= arr[i].e + 2;
+    if (on && !el.classList.contains("on")) { el.classList.add("on"); box.scrollTop = el.offsetTop - box.clientHeight / 3; }
+    else if (!on) el.classList.remove("on");
+  });
+}
+
+function draw() {
+  const cv = $("cv"), r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, r.width * dpr); cv.height = 96 * dpr;
+  const c = cv.getContext("2d"), W = r.width, s = cur; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, 96);
+  if (!s) return;
+  const cs = getComputedStyle(document.documentElement), col = k => cs.getPropertyValue(`--s${((k % 8) + 8) % 8}`).trim();
+  const D = s.dur, x = t => 8 + (W - 16) * t / D;
+  c.fillStyle = cs.getPropertyValue("--muted").trim(); c.font = "11px " + cs.getPropertyValue("--mono");
+  c.fillText(s.dir === "zh2en" ? "中文原声" : "英文原声", 8, 14); c.fillText(s.dir === "zh2en" ? "英文同传" : "中文同传", 8, 58);
+  for (const [arr, y] of [[s.src, 20], [s.tgt, 64]]) for (const l of arr) {
+    c.fillStyle = l.spk >= 0 ? col(l.spk) : cs.getPropertyValue("--line").trim();
+    c.fillRect(x(l.t), y, Math.max(2, x(l.e) - x(l.t)), 20);
+  }
+  const t = au.currentTime || 0;
+  c.fillStyle = cs.getPropertyValue("--ink").trim(); c.fillRect(x(t) - 1, 4, 2, 88);
+  $("time").textContent = `${fmt(t)} / ${fmt(D)}`;
+  hl($("l-src"), s.src, t); hl($("l-tgt"), s.tgt, t);
+}
+function tick() { draw(); if (!au.paused) requestAnimationFrame(tick); }
+au.ontimeupdate = draw;
+$("tl").onclick = e => { const r = $("tl").getBoundingClientRect(); au.currentTime = Math.max(0, Math.min(cur.dur, (e.clientX - r.left - 8) / (r.width - 16) * cur.dur)); draw(); };
+window.addEventListener("resize", draw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", draw);
+window.addEventListener("hashchange", () => load(location.hash.slice(1)));
+
+$("foot").textContent = DATA.foot || "";
+cards();
+load(location.hash.slice(1));
+</script>

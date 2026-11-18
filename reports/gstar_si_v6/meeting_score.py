@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -45,6 +46,12 @@ AE = REPO / "data/alimeeting_eval_si_v1"   # v11 P0-2 clean set (test only)
 def universe(dr: str, meetings: set) -> dict:
     """meeting -> every annotated utterance [(record_id, speaker, begin, end, hesitation)] on that meeting's clock."""
     out = defaultdict(list)
+    game = {m for m in meetings if re.fullmatch(r"g[ze]\d\d", m)}   # game listening demo (game_orch.py): own data dir
+    for m in game:
+        f = REPO / "data/game_esports_si_v1" / ("en2zh" if m.startswith("ge") else "zh2en") / f"utts/{m}.jsonl"
+        for u in map(json.loads, open(f, encoding="utf-8")):
+            out[m].append((u["record_id"], u["speaker_id"], u["begin_s"], u["end_s"], u["hesitation"]))
+    meetings = set(meetings) - game
     if dr == "en2zh":
         import pyarrow.dataset as pads
         from experiments.uniss_qwen3_omni_v1.data_clean.build_ami_ms_rows import is_hesitation
