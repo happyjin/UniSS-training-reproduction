@@ -3424,3 +3424,19 @@ dev5 文本（chunk 协议文本 LAAL，秒；tcpBLEU）：
 - **GPU**：卡 0 和卡 2 的占位程序按 PID 停掉，跑 6 组 Talker 和 BiCodec 解码，结束后由 guard 补回。
   - AMI 两组首次运行时，因同卡另一任务在 vLLM 显存探测期间释放了显存而启动失败。改为单独重跑；失败目录改名为 `*.failed_meminit` 保留。
 - A/B 试听样例：`demo_packages/game_muffle_ab_examples_v1`。
+
+## 2026-11-19 00:20 布拉格 — 音色条件两条线同时启动（ZNE / CA-Kalman）
+
+- 方案：`reports/mist_w3po_v1/game_voice_condition_ideas_plan.zh-CN.md`。
+- **用户决定：**
+  - 训练、拟合和所有选择只用开源数据，电竞数据只做评测；
+  - 主方案改为端到端；
+  - 两条线同时进行，可以派多个代理加速。
+- **共享组件：**
+  - `experiments/mist_w3po_v1/voicecond/bicodec_phi.py`：量化前的 192 维编码 u、token、d-vector。在 12 段提示上与 `encode_wav_to_tokens` 逐 token 一致；
+  - 开源数据下载器 `scripts/voicecond_download.sh`，后台运行，下载到 `data/open_voicecond_v1/raw/`：MUSAN、FSD50K eval、AISHELL-3、LibriSpeech test/dev/train-clean-100/360，约 63 GB。
+- **核实：** Talker T1c 是 Qwen2 1.5B（hidden 1536、28 层），端到端训练成本低。
+- **执行代理：**
+  - Idea 1（卡 0–3）：M1 = 开源诊断集、预登记、E1.0（G1.0）、E1.1、E1.2（G1.2）；
+  - Idea 2（卡 4–7）：M1 = 预登记、100 h 开源合成多人流、预处理、E2.0（G2.0）、E2.2 线性 CA-Kalman（G2.2）；
+  - 两者都在 M1 处停下汇报，不做测试集运行，也不做端到端训练。
