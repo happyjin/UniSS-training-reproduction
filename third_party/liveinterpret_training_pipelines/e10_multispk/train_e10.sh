@@ -40,7 +40,17 @@ export SI_S4_MIN_SOURCE_MS=0 SI_S4_SEED=20261026
 export E10_POST_PERTURB=0.2 E10_SD_LR="${E10_SD_LR:-1e-4}"
 # ---- optimisation ----
 : "${PER_DEVICE_TRAIN_BATCH_SIZE:=8}"
-: "${GRADIENT_ACCUMULATION_STEPS:=1}"
+: "${NPROC_PER_NODE:=8}"
+if [[ -z "${GRADIENT_ACCUMULATION_STEPS:-}" ]]; then     # keep B's global batch on fewer cards (e.g. 4 x 8 x 2)
+    if [[ "${SMOKE:-0}" == 1 ]]; then
+        GRADIENT_ACCUMULATION_STEPS=1
+    else
+        : "${E10_GBS:=64}"
+        PER_STEP=$(( PER_DEVICE_TRAIN_BATCH_SIZE * NPROC_PER_NODE * ${NNODES:-1} ))
+        (( E10_GBS % PER_STEP == 0 )) || { echo "[e10] GBS ${E10_GBS} not divisible by ${PER_STEP}" >&2; exit 1; }
+        GRADIENT_ACCUMULATION_STEPS=$(( E10_GBS / PER_STEP ))
+    fi
+fi
 : "${LEARNING_RATE:=1.2e-5}"
 : "${MIN_LR:=2e-6}"
 : "${WARMUP_RATIO:=0.03}"
