@@ -4078,3 +4078,12 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 标记：TEACHER_DONE / TEACHER_FAILED_<step> 不变。
 - **未改 Idea 1 M3 的 11 个 bench_eval**（串行，纯 CPU）。CPU 已经打满，再加并行只会互相抢核，评测代码又不能中途改成 GPU 版，否则与已算出的 B 臂 CPU 结果不同口径。
 - 两个新脚本只做了 bash -n 和 DRY_RUN 检查。Idea 2 代理已收到通知（不要重启 v3）。
+
+## 2026-11-19 06:37–06:42 布拉格 — 老师目标链 v4 失败 → v5 → v6
+- v4 第 2 步失败（TEACHER_FAILED_table，已改名为 superseded_v4_TEACHER_FAILED_table）。原因：idea2_teacher_table.py 用系统 python3 运行，缺 numpy。这个写法从 v1–v3 继承而来。refs 这一步成功了（ustar.npz，535 个说话人）。
+- v5：表格改用 vllm_omni_030 的 python，生成 voice_gstar.jsonl（522 个说话人）。随后发现 free_card() 的循环变量 s 没有声明为 local，会覆盖分片变量。实际作业不受影响，因为命令行在 free_card 之前已拼好，错的只是日志里打印的分片号。v5 的外层 bash 已按 PID 停止。
+- v6（idea2_teacher_chain_v6.sh）：
+  - 修复：free_card 里的 s 改为 local。
+  - 接管 v5 已启动的 zh2en_train 分片 0–5，按 --output/--shard 匹配，不重复启动。
+  - 补启动其余 12 个分片。
+  - 06:42 起 18 个分片全部在 8 张卡上运行。成功的判定改为所有 part_<k>.jsonl 都存在。
