@@ -4458,3 +4458,8 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - **停止：** 20:28 布拉格，用户："就不做多说话人同传baseline验证"，所有组合改做单说话人验证。
   - 按 PID 停掉了：运行脚本、7 个编排器，以及它们的 talk / ASR / prep 作业和 VLLM EngineCore 子进程。核对后没有遗留的 EngineCore。
   - guard、gpu_watch、sync 以及其他代理的作业都没有动。所有数据和输出都保留，供改做单说话人流时复用。
+
+## 2026-11-19 20:50 布拉格 — 鲁棒第三波 G 组（负条件引导 Talker，单说话人 LA2 底座）：后端核对不通过，停止
+- 预登记 `robust_wave3_single_prereg.zh-CN.md`（G 组、变更 1、G 组实现细节、G 组结果）。代码 `voicecond/wave3_g_{cfg,run,noplaceholder,score}.py/.sh`（d4a37ce63）。
+- 实现：si_infer 不改，用 HF bf16 替身替换 vllm.LLM，每步 l⁺ + w(l⁺ − l⁻)，然后过 SIGuard 与 top-p，两臂共用随机数。没有用 vLLM 成对解码，因为 SIGuard 是逐请求处理器，两行也无法保证同一步调度。
+- w = 0 后端核对（dev 20 条/方向）：HF / vLLM 码长合并中位比 **0.9625**，门槛 [0.98, 1.02]，**不通过**（英→中 1.014，中→英 0.938）。按预登记 G 停止，正式运行未启动。卡 5 交还 guard。
