@@ -3902,3 +3902,9 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **OpenBroadcast-SI：** `scripts/idea2_bench_run.sh` 两个工作进程（每个方向一个），按测试集代理的 `VB_<cond>_<dir>_DONE` 标记依次跑 clean / ID-2 / OOD-1；运行名 `obsi_i2_<cond>_<dir>__t1c`，之后跑统一评测 `bench_eval`。
 - **OOD-3：** 子集文件和过滤后的 baseline 文本已生成（AMI zh→en 557 个窗口、en→zh 542、AliMeeting 654）；包装器 `voicecond/idea2_ood3_orch.py` 只替换集合定义（干跑确认链路用的是子集窗口和参考）；`scripts/idea2_ood3_run.sh` 等电竞重跑的 Talker 结束后，每个子集同时跑 B 和 shrink+Vfb 两个臂，再算块协议 LAAL、语音指标和 TitaNet 相似度。
 - **决定 / 事故：** 回退 V token 第一版用 CPU 上的 `game_muffle_analysis.demucs`，en→zh 短流回退多，太慢（约 5 s / 条）；改到 GPU。第一次改成分段的 `separate()`（补零到 10 s）后与 Idea 1 的 V 表相差很大（汉明 3–31），说明 token 对分离细节极敏感；最终用与 `demucs()` 完全相同的计算（整段一次、同样的归一）放到 GPU 上：电竞 40 个提示中汉明中位数 0（最大 5，GPU 浮点差异）。这是实现细节，定义不变。
+
+## 2026-11-19 03:56 布拉格 — Idea 2 端到端版本：预登记草案 v0 + 可行性检查
+
+- 文件：`reports/mist_w3po_v1/voicecond_idea2_e2e_prereg.zh-CN.md`（预登记草案 + 实现计划）。结构层改为收缩后验层（线性加性模型 G2.0 未通过）；损失 = 特权信息 KL + 干净条件无害 KL + 编码误差 + 锚点，权重按"初始量级相同"的固定规则；Talker 内容上下文用 CoVoST 2 train（排除 test 与留出说话人）合成约 50 h 新多人流。
+- **可行性（只查形状、梯度和成本，`e2e/feasibility_v1.json`）：** global token 嵌入对 FSQ 码的线性替代 $R^2=0.67$；初始 KL 0.29–0.32 nats / 位置；梯度到达 $\alpha,\beta,c$ 和 LoRA；单卡 16 × 578 token 一步 0.88 s、峰值 38.5 GiB。训练本身约 1 h（4 卡），教师目标生成约 2–3 h。
+- **决定：** 测试运行占满卡 4–7 期间不训练；先做 CPU 侧的数据准备（CoVoST 2 train 解包与合成）。训练前把草案定稿为 v1。
