@@ -4348,3 +4348,11 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - C_post 相对 C_runmean 60 s 只差 −1.4%：长时优势主要来自更干净的观测 + 累积，先验收缩只在早期起作用。
 - 下一步（按登记）：写端到端训练预登记。卡 4–7 的占位负载已由监督进程自动补回。
 - 14:04 CET：E10 训练（e10_thinker_v2）完整结束：1670/1670 步，无报错，12:47:59 UTC 结束，最后一步是 checkpoint-1670。接管脚本按字符串排序选 checkpoint，误选了 checkpoint-750；用它启动的 E10 dev 解码已按 PID 停止，输出改名为 `jdev_devz_e10.ckpt750_aborted_*` 保留。修复：改用 `sort -V`。另外，训练结束后守护脚本在卡 3、0、1 上拉起了占位程序，E10-0 的 En→Zh dev 有一片因此 OOM。修复：`eval_e10.py` 加 `--stop-placeholders`，并支持续跑（完整的分片保留，不完整的改名后重跑）和失败时不留孤儿进程。`resume_dev_eval.sh` 负责续跑：补完 E10-0 的 En→Zh dev，用 checkpoint-1670 跑 E10 的 dev 门槛，然后释放 slot A。dev 门槛的判据没有改。
+
+## 2026-11-19 14:25 布拉格 — Idea 6 端到端训练：预登记、训练器、冒烟
+
+- 预登记追加到 `voicecond_idea6_bayes_prereg.zh-CN.md` 的「端到端训练预登记」（提交 00c93b97f，先于任何训练）。只跑一个设置：C 初始化编码器 + 零初始化精度头 α_k，闭式后验，L = ‖m − u*‖² + 0.1·mean‖u_k − u*‖²，train 640 条流，4 卡 DDP，每卡 16，3000 步。
+- 训练器 `voicecond/idea6_e2e_train.py`，dev 评测 `voicecond/idea6_e2e_eval.py`（复用预检 A 的 run_stream），启动脚本 `voicecond/idea6_e2e_train_run.sh`（只做了 bash -n）。
+- 14:20 占训练槽 B（`slots/slotB.owner`，run idea6_e2e_main_v1；exclude_cards 已变为 `4 5 6 7`），按 PID 停掉卡 4 的占位监督进程 436635 和 worker 440452，在卡 4 上做冒烟。
+- 冒烟（`eval_outputs/mist_w3po_v1/idea6_e2e/smoke_s1/`）：单卡 20 步，损失有限。第 0 步训练器的 u_k 与预检 A 存的 u_C 最大差 1.4e-3（batch 组成不同带来的数值差），闭式后验与 numpy C_post 最大差 9e-5。单卡约 0.17 s/步，峰值 10.6 GiB。
+- 第 0 步检查点在 dev_en_0000、dev_zh_0005、dev_en_0017（8 个单元）上的 dev 等价检查：u_k 与预检 A 完全相同（差 0），E2E_post 与预检 A 的 C_post 误差最大差 8.1e-7（< 1e-4，通过）。
