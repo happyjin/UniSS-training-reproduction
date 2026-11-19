@@ -31,6 +31,23 @@ def _read_rec(ds, flat_index):
     return ds.indexes[fi].read(li)
 
 
+def _patch_jsonl_index():
+    """JsonlIndex opens its file lazily, but swift encodes a sample in the main process before the DataLoader forks,
+    so the workers inherit one open file description and race on its offset (seek + readline): torn lines,
+    UnicodeDecodeError (E10 first 4-GPU start, 2026-11-19). Reopen per process."""
+    from streaming_si.data import s4_streaming_dataset as M
+    orig_read = M.JsonlIndex.read
+
+    def read(self, i):
+        pid = os.getpid()
+        if self.__dict__.get("_e10_pid") != pid:
+            self._fp = None
+            self._e10_pid = pid
+        return orig_read(self, i)
+
+    M.JsonlIndex.read = read
+
+
 def _patch_dataset():
     from streaming_si.data import s4_streaming_dataset as M
     cls = M.S4StreamingDataset
@@ -137,6 +154,7 @@ def install():
     global _INSTALLED
     if _INSTALLED:
         return
+    _patch_jsonl_index()
     _patch_dataset()
     _patch_pipeline()
     _patch_model()

@@ -4313,3 +4313,4 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 用户决定：训练用卡 0–3（slot A）；训练中的验证叠加在训练卡上；checkpoint 只存 adapter（约 330 MB/个，不存约 2.8 GB 的优化器状态）；speech tokenizer 用 S3 上的 `speech_tokenizer_v3.batch.onnx`（已确认）。
 - 预登记：`reports/mist_w3po_v1/e10_liveinterpret_multispk_prereg.zh-CN.md`，在训练开始前写好。
 - 启动：`third_party/liveinterpret_training_pipelines/e10_multispk/takeover_slotA_train.sh`（detached）。它申领 slot A，按 PID 停掉卡 0–3 的占位程序，启动训练（GBS 64 = 8×4×GA2，约 1,670 步）；训练期间叠加跑 E10-0 的 dev 评测；训练结束后用最后一步跑 E10 的 dev 门槛评测，再释放 slot A。
+- 12:28 CET：第一次启动（e10_thinker_v1）在第 0 步失败。原因是 DataLoader 的多个 worker 共享了主进程打开的 jsonl 句柄，读到撕裂的行，报 UnicodeDecodeError。slot A 已按脚本释放。修复：在 `e10/patch.py` 里让 JsonlIndex 每个进程各自重新打开文件。`tests/check_loader_workers.py` 用 8 个 worker 验证：不加修复能复现，加上修复后 800 个样本全部正常。以 e10_thinker_v2 重新启动，设置不变。
