@@ -369,6 +369,12 @@ def main():
                         [{"spk": s["spk"], "text": s["text"], "write_ms": s["write_ms"], "n_tok": len(s["tokens"]),
                           "dur_ms": len(s["tokens"]) * 40, "wav": None} for s in res["segs"]])
                 row.update({k: res[k] for k in ("stop", "n_write", "n_wait", "n_text")}, segs=segs, error=None)
+                toks = [t for s in res["segs"] for t in s["tokens"]]
+                src_s, sp_s = wav16.size / SR, len(toks) / 25.0
+                # S5 collapse_ok (infer_s5_streaming_dynchunk): few distinct codes AND speech much longer than source
+                row.update(source_sec=round(src_s, 2), speech_sec=round(sp_s, 2), speech_tokens=len(toks),
+                           speech_uniq=round(len(set(toks)) / len(toks), 3) if toks else None,
+                           collapse=bool(toks) and len(set(toks)) / len(toks) < 0.3 and sp_s > 1.6 * src_s + 1.0)
             except Exception as e:  # noqa: BLE001
                 traceback.print_exc()
                 row.update(segs=[], error=f"{type(e).__name__}: {e}")
