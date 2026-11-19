@@ -4372,3 +4372,4 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - dev 自检（4 条合成 dev 流）：第 0 步 E2E 与 C_post 的 token 114/114 一致；第 3000 步 E2E 码误差与 dev 门槛最大差 2e-13，C_post 与预检 A 最大差 1e-6。通过。
 - 运行器 `voicecond/idea6_test_run.sh`（只做了 bash -n），14:51 脱离会话启动。18 个编排器（`obsi_i6{c,e}_*`、`idea2_ood3_i6{c,e}_*`）经 flock 每 20 s 启动一个，14:57 全部启动。编排器按 PID 停占位进程后放置作业，日志里有记录；E10 在卡 0 上的评测进程没动，我们的作业叠在旁边。
 - 每个单元的编排器结束后马上评测：bench_eval 同时最多 3 个；OOD-3 依次跑块协议 LAAL、measure、对 B / Idea 2 / Idea 1 C 的 compare、TitaNet 相似度。最后统一汇总（`voicecond/idea6_test_summary.py`）。
+- 16:15 CET：用户反映 E10 占 CPU 太多，拖慢了另一个任务。原因是 16 个 dev 解码进程按 PyTorch 默认各开约 236 个线程，机器负载约 600。处理：用 SIGSTOP 暂停整个 E10 dev 评测（续跑脚本、编排和 16 个解码进程），不丢进度，显存继续留在卡 0–3，slot A 继续持有。暂停的 PID 和恢复命令见 `e10_multispk/output/eval/PAUSED_20261119.txt`。之后启动的解码限制为 4 个 CPU 线程（`E10_THREADS`）。等用户通知后再恢复。

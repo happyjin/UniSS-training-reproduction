@@ -306,6 +306,9 @@ def main():
     ap.add_argument("--no_graph", action="store_true")
     ap.add_argument("--no_vocoder", action="store_true")
     a = ap.parse_args()
+    # torch defaults to one intra-op thread per core (192 here): 16 decoders = 236 threads each, load ~600, other
+    # users' jobs starved (2026-11-19). Cap the CPU threads per decoder.
+    torch.set_num_threads(int(os.environ.get("E10_THREADS", "4")))
     if str(UNISS) not in sys.path:
         sys.path.append(str(UNISS))
     cfg = SETS[a.set]

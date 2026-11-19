@@ -172,7 +172,7 @@ class Runner:
         n = f"{'jdev' if s.startswith('dev') else 'jtest'}_{s}_{a.mode}{tag}"
         raw = HERE / "output" / "eval" / n / "raw"
         K = len(self.slots)
-        dec = [(f"{k:02d}", f"CUDA_VISIBLE_DEVICES={{card}} {SIMULS2S} {HERE}/run_e10.py --mode {a.mode} "
+        dec = [(f"{k:02d}", f"CUDA_VISIBLE_DEVICES={{card}} OMP_NUM_THREADS=4 E10_THREADS=4 {SIMULS2S} {HERE}/run_e10.py --mode {a.mode} "
                             f"--set {S['run_set']} --windows {S['win']} --adapter {a.adapter} --out {raw} "
                             f"--shard {k} --num-shards {K} --seed {seed}") for k in range(K)]
         self.resume_decode(n, raw, K)
