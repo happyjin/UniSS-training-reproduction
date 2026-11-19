@@ -11,7 +11,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PIP=("${V}/bin/python" -m pip)
 C="${V}/constraints.txt"
 
-# CosyVoice3 flow / HiFT / CAM++ side (attach_speech_decoder's hint pins ruamel.yaml 0.17.40 for HyperPyYAML)
+# CosyVoice3 flow / HiFT / CAM++ side (attach_speech_decoder's hint pins ruamel.yaml 0.17.40 for HyperPyYAML);
+# cosyvoice.flow.flow_matching imports pkg_resources, which setuptools >= 81 no longer ships
+"${PIP[@]}" install 'setuptools<81'
 "${PIP[@]}" install -c "${C}" \
     HyperPyYAML==1.2.2 'ruamel.yaml==0.17.40' conformer==0.3.2 diffusers==0.29.0 omegaconf==2.3.0 \
     hydra-core==1.3.2 lightning==2.2.4 x-transformers inflect gdown matplotlib networkx pyworld wget \
