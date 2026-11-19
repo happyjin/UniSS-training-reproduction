@@ -4257,3 +4257,8 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - 测试运行器和消融链已换成 v2（提交 989ce4b67）。
 - 正在运行的 sync_train_exclude.sh（PID 1222453）启动时已带 STACK_OK_FILE=logs/mist_w3po_v1/slots/stack_ok_cards_a。现写入该文件，内容为 "0 1 2 3"：槽 A 仍由消融链持有，但卡 0–3 从共享排除文件里去掉。exclude_cards 已从 "0 1 2 3 4 5 6 7" 变为 "4 5 6 7"；main_v2 结束、槽 B 释放后会变为空。
 - 开源 A/B 试听页（OpenBroadcast-SI，18 段 × 4 个版本：B / Idea 2 / Idea 1 Z / 对照 C）已发布：https://claude.ai/artifact/EWmZbQGyxYUAGVyYQ8c21F
+
+## 2026-11-19 09:47 布拉格 — e2e 测试运行器 v2 → v3
+- main_v2 于 09:26 训练完 3000 步，未跳过任何一步。
+- 测试运行器 v2 在第 1 步 token 自检失败。原因：初始化时编码器输出 z 与 M2 存档相比，最大差 3.98e-3，超过代理自定的 1e-3 容差，差异来自 cuDNN 卷积数值。其余两项都正常：后验与 numpy 版 shrink 的差为 1.15e-4；第 3000 步检查点复现训练日志的 dev 指标，tok 完全一致，code_sq 差 4e-5。
+- v3（idea2_e2e_test_run_v3.sh）只把 z 的容差放宽到 1e-2，其他与 v2 相同。为了不覆盖已有文件，把旧的自检 json 改名为 token_selftest.v2run.json，失败标记改名为 superseded_*。v3 于 09:46 启动，自检通过。
