@@ -35,6 +35,15 @@ def throughput_overrides() -> None:
         fo.NEED["talk"] = ch["need_talk"] = float(os.environ["I6_NEED_TALK"])
     if os.environ.get("I6_OTHER_WINDOW_S"):
         fo.OTHER_WINDOW_S = ch["other_window_s"] = int(os.environ["I6_OTHER_WINDOW_S"])
+    # 16:20 Prague: an ASR shard often stays below VISIBLE["asr"] = 12 GiB (4.9-6.5 GiB seen), so its pending ledger entry
+    # (17.5 GiB) never gets a "visible" line and is charged to that card for every other owner until LEDGER_TTL_S (300 s);
+    # 4-5 such phantom entries per card blocked the empty cards
+    if os.environ.get("I6_VISIBLE_ASR"):
+        fo.VISIBLE["asr"] = ch["visible_asr"] = float(os.environ["I6_VISIBLE_ASR"])
+    if os.environ.get("I6_LEDGER_TTL_S"):
+        fo.LEDGER_TTL_S = ch["ledger_ttl_s"] = int(os.environ["I6_LEDGER_TTL_S"])
+    if os.environ.get("I6_MAX_CPU"):
+        fo.MAX_CPU = ch["max_cpu"] = int(os.environ["I6_MAX_CPU"])
     if ch:
         print(f"[idea6_test_orch] throughput overrides {ch}", flush=True)
 
