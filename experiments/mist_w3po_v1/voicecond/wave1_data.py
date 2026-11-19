@@ -342,12 +342,13 @@ def with_audio(d: str, split: str, rows: list[dict]) -> list[dict]:
 
 
 def train_clean(n_per_lang: int, tag: str) -> list[dict]:
-    """n_per_lang CoVoST 2 TRAIN clips per source language (held-out speakers excluded; <= 2 per speaker), ranked"""
+    """n_per_lang CoVoST 2 TRAIN clips per source language (held-out speakers excluded), ranked; per-speaker cap 2 for
+    en and 40 for zh (zh-CN train has only 22 speakers; v0 capped zh at 2 too and got 44 zh clips)"""
     held = held_speakers()
     out = []
     for d in DIRS:
         rows = rows_of(d, "train", ("client_id", "id", "sentence", "translation"))
-        sel = ranked_capped(rows, f"{tag}|{d}", 2, int(n_per_lang * 1.5), held)
+        sel = ranked_capped(rows, f"{tag}|{d}", 2 if d == "en2zh" else 40, int(n_per_lang * 1.5), held)
         out += [dict(r, dir=d) for r in with_audio(d, "train", sel)]
     return out
 
