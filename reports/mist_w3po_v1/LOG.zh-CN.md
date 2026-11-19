@@ -4048,3 +4048,13 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - v2 不会重启已有的运行目录，对 ami 只等待并做后处理；en 和 ali 由 v2 用新设置启动。
 - **事故：** v1 的日志因为 shell 变量作用域写到了 `/ood3_run.log`。已改名移到 `logs/mist_w3po_v1/voicecond_idea1/ood3_run_v1.log`。
 - **M3 基准的 12 个编排器：** 已有 9 个完成，其余 3 个各差 1 个 talk 作业，所以不重启。
+
+## 2026-11-19 05:59 布拉格 — Idea 2：按协调者 / 用户要求改为并行叠放（固定 KV 缓存）
+
+- **决定（协调者转达用户：卡利用率低，叠放非训练 GPU 作业）：** 之后我启动的每个编排器和 si_infer 都带 `SI_KV_CACHE_GIB=7.73 ORCH_TALK_PAIR_GAP_S=0 ORCH_LEDGER_VLLM_GAP_S=10`（提交 548113295：固定 KV 缓存、跳过 vLLM 内存剖析；容量与原来相同）。
+- 按 PID 停掉旧的顺序执行器（`idea2_bench_run.sh` 的 3 个 bash、`idea2_ood3_run.sh` 的 3 个 bash、`idea2_teacher_chain.sh`），正在跑的编排器（OpenBroadcast-SI 的 id2 zh→en、ood1 en→zh；OOD-3 的 en 两个臂）不动；旧执行器停之前都没有启动新的运行。
+- 新执行器（都已启动）：
+  - `idea2_bench_run_v2.sh`：6 个（条件，方向）并行；已完成的跳过（clean en→zh、id2 en→zh、ood1 zh→en），在跑的只等待并评测，未开始的 clean zh→en 现在建 token 并启动；
+  - `idea2_ood3_run_v2.sh`：子集并行、不再等电竞标记；ami 已完成，en 在跑，ali 的两个臂已启动；
+  - `idea2_teacher_chain_v2.sh`：si_infer 带固定 KV 缓存，引擎间隔 10 s；仍等全部测试标记。
+- 进度：OpenBroadcast-SI 已完成 3 / 6；OOD-3 完成 1 / 3（ami）。电竞完整参数重跑的汇总已存在（`game_summary_shrinkvfbF.json`）。
