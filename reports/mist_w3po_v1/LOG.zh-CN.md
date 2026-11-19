@@ -4215,3 +4215,25 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 两者 6 个单元的 no-harm 全部未通过（LAAL 或 BLEU）。
 - 对比冻结的 Idea 2：在 AliMeeting 上 Idea 2 BLEU +0.36、LAAL −0.034，AMI zh→en LAAL −0.011；Idea 1 的 Z 和 C 在这三项都更差。
 - 结论：Idea 1 不再作为方法主张，在论文里作为"训练式去噪编码器"强基线和"ZNE 结构无增益"的负结果。
+
+## 2026-11-19 08:42 布拉格 · Idea 2 端到端 main_v2 的测试准备完毕，运行器已在后台等待
+
+- **§8 检查：** main_v2 第 1000 步 dev KL1 相对第 0 步下降 44%（zh2en）和 49%（en2zh），高于 10%，不改用软嵌入重跑（协调者确认）。
+- **预登记测试补充**（追加到 `voicecond_idea2_e2e_prereg.zh-CN.md`）：只测第 3000 步的最终检查点，不在测试集上做选择；9 组测试集与 M2 相同；e2e 分别对 B 和对冻结的 shrink+Vfb 比较，两个种子，统计方法同 `idea2_test_summary`；门槛与 M2 相同，LAAL 按 "BLEU 优先于 LAAL"（超出量单独报告，不否决 BLEU 门槛）。
+- **新代码：**
+  - `voicecond/idea2_e2e_tokens.py`：沿用 M2 的特征缓存，只用训练后的编码器重算 z，再用训练后的 λ / log r 头和 c_lang 跑闭式后验；没有可用窗口的条目复用 M2 的 V 回退 ids；`selftest` 只用 cvt dev。
+  - `voicecond/idea2_e2e_export.py`：把 LoRA 以 fp32 合并进 T1c 的一份副本，存成 bf16，张量名与 T1c 相同。
+  - `voicecond/idea2_e2e_talker.py`：talk 作业只把 `--model` 换成导出的副本，其余走 M2 的覆盖路径。
+  - `voicecond/idea2_e2e_orch.py`：M2 的两个编排器，只替换覆盖模块字符串。
+  - `voicecond/idea2_e2e_test_summary.py`：生成汇总表。
+- **冒烟测试（只用 dev，用的是第 1000 步检查点，在 CPU 上跑，因为 8 张卡都在训练）：**
+  - token 路径：初始化时与冻结方法一致（CPU 数值差 z 3.8e-3、u 1.6e-3）；
+  - 导出：合并后的模型在 4 条 cvt dev 序列上与 PEFT 前向的 KL 约 0.001，而 T1c 与 PEFT 的 KL 是 0.012–0.024，合并后确实保留了 LoRA 的效果；
+  - 两个编排器的 dry run：bench 有 75 个作业，talk 命令换成了 e2e 包装；OOD-3 有 16 个 talk 作业；dry run 没有在磁盘上留下任何东西。
+- **运行器** `scripts/idea2_e2e_test_run.sh`（只做了 bash -n 和 DRY_RUN=1），08:40 起在后台运行（PID 1787689）。流程：
+  1. 等 main_v2 写出 DONE 并释放槽 B，再按 PID 停掉卡 4–7 上的占位进程；
+  2. 在卡 4 上用 cvt dev 做 GPU 检查：token selftest（初始化一致；与训练日志第 3000 步的 dev 记录一致）、导出（与 PEFT 对比 logits）、si_infer 在 6 条 dev 条目上用导出的模型生成；任何一项不过就停，不跑测试；
+  3. 在卡 4–7 上建 9 张 token 表；
+  4. 9 个编排器并行（`--exclude 0 1 2 3`，固定 KV 等参数同 M2），之后跑 bench_eval、OOD-3 的块协议 LAAL、measure、compare（对 B 和对 shrink+Vfb）、TitaNet 相似度；
+  5. 写出汇总 `test_summary_e2e_{bench,ood3}.json`。
+- 标记文件在 `logs/mist_w3po_v1/voicecond/idea2/e2e_test/`。预计 09:40 左右开始，约 2 h，13:00 前出汇总表。

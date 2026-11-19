@@ -99,3 +99,30 @@ $$\mathcal L=\underbrace{\mathrm{KL}\big(p_{0}(\cdot\mid g^\star)\,\|\,p_{\psi}(
 3. 冻结 T1c（与 T1c talk 作业相同的参数：`--speed-policy fixed --history-ban 8 --max-model-len 32768`，默认种子 20261021），音色 token 用 `idea1_si_infer_vo` 覆盖为 $g^\star$，`--dump-seq --dump-codes` 保存完整输入序列和语义码，作为两个 KL 项的教师强制序列。
 
 **训练不启动，等协调者在测试表出来之后确认。**
+
+---
+
+## 测试补充（2026-11-19 08:35 布拉格；main_v2 训练结束之前写定，只追加）
+
+训练与修复的记录见 `LOG.zh-CN.md`（main_v1 的 NaN 来自 cuDNN SDPA 反向，main_v2 关闭了这个后端并加了非有限步保护；损失、权重规则和设置都不变）。第 1000 步的 §8 检查：dev KL1 相对第 0 步下降 44%（zh2en）和 49%（en2zh），远高于 10%，主设置不改用软嵌入。
+
+**被测对象：** 只测 main_v2 第 3000 步的最终检查点（`ckpt_step03000.pt`），不看中间检查点，也不在测试集上做任何选择或调参。dev 曲线只作记录。
+
+**推理接口（与 M2 的 shrink+Vfb 完全相同，只换两处）：**
+1. 音色 token：用训练后的编码器、λ / log r 头和 c_lang 跑闭式收缩后验（R、Σ0、μ0、b_M 固定为完整拟合 sha1 25aaf6cd 的值），窗口、v~、槽位、π 和 t_commit 与 M2 相同（直接读 M2 的特征缓存，只用训练后的编码器重算窗口编码 z）；û = ŝ + b_M 经 FSQ 得到 32 个 token。没有可用窗口的条目按 M2 的规则走 V 回退，直接复用 M2 token 表里这些条目的 ids。
+2. Talker：把训练得到的 LoRA 以 fp32 合并进 T1c 的一份副本，再存成 bf16（`idea2_e2e_main_v2_export/talker_s03000/uniss`，原 T1c 不动）；只把 talk 作业的 `--model` 换成这个副本。
+3. 其余全部不变：B 的文本（`--speech-from`）、`--talker t1c`、`--speed-policy fixed --history-ban 8`、两个 TTS 种子、`SI_KV_CACHE_GIB=7.73`、`ORCH_TALK_PAIR_GAP_S=0`、`ORCH_LEDGER_VLLM_GAP_S=10`、`--cap135`、`--exclude 0 1 2 3`（卡 0–3 在跑消融）。
+
+**测试集与指标：** 与 M2 的 shrink+Vfb 表相同的 9 组。
+- OpenBroadcast-SI 的 ID-2、OOD-1、clean，两个方向，经 `voicecond_bench_orch` 跑、`bench_eval` 评；
+- OOD-3 的 ami、en、ali 三个子集，经 `idea2_ood3_orch` 跑，指标为块协议语音 LAAL、`idea1_speech_metrics`、TitaNet 相似度。
+- 运行名：`obsi_e2e_<cond>_<dir>__t1c{,_tts2}`、`idea2_ood3_e2e_<ss>__t1c{,_tts2}`。
+
+**比较：** e2e 对 B，以及 e2e 对冻结的 shrink+Vfb（M2 的 `obsi_i2_*` / `idea2_ood3_sv_*`），都用两个种子。统计方法与 `idea2_test_summary` 相同：两种子均值；按流（OOD-3 按条目）先做种子平均再配对，报告中位差、bootstrap 95% CI 和 Wilcoxon 检验；PESQ 族做 Holm 校正。
+
+**门槛（与 M2 相同）：**
+- tcpASR-BLEU 不低于对照（两种子均值）；
+- 相似度中位差不低于 −0.02；
+- 语音 LAAL 按用户认可的规则 "BLEU 优先于 LAAL"：LAAL 不大于对照算通过；小幅超出不否决 BLEU 门槛，但必须单独报告超出量，不得隐去。
+
+**冒烟测试只用 dev：** token 路径用 cvt dev 条目检查（初始化时与冻结方法一致；用检查点时与训练日志的 dev 编码误差和 token 恢复率一致）；合并后的 Talker 在 cvt dev 条目上检查能否加载并生成，并与 PEFT 前向的 logits 对比。不在任何测试条目上做冒烟。
