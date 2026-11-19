@@ -1,0 +1,106 @@
+<title>LiveInterpret 电竞试听</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --fg:#17191f; --muted:#5c6270; --line:#e1e4ea;
+  --accent:#2f5bd3; --accent-soft:#e8eefc;
+  --s1:#2f5bd3; --s2:#c2410c; --s3:#0f766e; --s4:#9333ea;
+  --s1-bg:#e8eefc; --s2-bg:#fdeee5; --s3-bg:#e3f4f1; --s4-bg:#f3e8fd;
+  --warn:#8a5a00; --warn-bg:#fff6dc;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12141a; --card:#1b1e26; --fg:#e8eaf0; --muted:#9aa1b0; --line:#2c303b;
+  --accent:#7b9cf0; --accent-soft:#232c45;
+  --s1:#8fa9f5; --s2:#f59e6b; --s3:#5cc8b6; --s4:#c99af5;
+  --s1-bg:#232c45; --s2-bg:#3a2619; --s3-bg:#16312d; --s4-bg:#2f2240;
+  --warn:#f2c46b; --warn-bg:#33290f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141a; --card:#1b1e26; --fg:#e8eaf0; --muted:#9aa1b0; --line:#2c303b;
+  --accent:#7b9cf0; --accent-soft:#232c45;
+  --s1:#8fa9f5; --s2:#f59e6b; --s3:#5cc8b6; --s4:#c99af5;
+  --s1-bg:#232c45; --s2-bg:#3a2619; --s3-bg:#16312d; --s4-bg:#2f2240;
+  --warn:#f2c46b; --warn-bg:#33290f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:1.6rem;margin:0;text-wrap:balance;letter-spacing:.01em}
+.lede{color:var(--muted);margin:0;max-width:68ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0}
+.fact b{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.fact span{font-size:.92rem}
+.note{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:.9rem}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 14px;font:inherit;font-size:.9rem;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.head h2{font-size:1.05rem;margin:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:500}
+.head .meta{color:var(--muted);font-size:.86rem;min-width:0}
+.head a{color:var(--accent)}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.players{grid-template-columns:1fr}}
+.pl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pl label{font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+audio{width:100%}
+.segs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.segs li{display:flex;gap:10px;align-items:baseline;min-width:0}
+.chip{flex:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.75rem;padding:1px 8px;border-radius:999px;font-weight:500}
+.s1{color:var(--s1);background:var(--s1-bg)}.s2{color:var(--s2);background:var(--s2-bg)}
+.s3{color:var(--s3);background:var(--s3-bg)}.s4{color:var(--s4);background:var(--s4-bg)}
+.txt{min-width:0;overflow-wrap:anywhere}
+details summary{cursor:pointer;color:var(--muted);font-size:.88rem}
+footer{color:var(--muted);font-size:.82rem}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>LiveInterpret 多说话人同传 · 电竞试听</h1>
+    <p class="lede">E10：LiveInterpret S5 的 Thinker 按多说话人方式微调（checkpoint-1670），Talker 保持冻结。8 段电竞解说窗口，每段都是 2–3 位解说交替说话。左边是原声，右边是模型生成的同传语音。</p>
+  </header>
+  <div class="facts">
+    <div class="fact"><b>模型</b><span>LiveInterpret S5 · E10 Thinker 微调 + 冻结 Talker</span></div>
+    <div class="fact"><b>声码</b><span>CosyVoice 解码器，按说话人因果取音色</span></div>
+    <div class="fact"><b>样本</b><span>中→英 4 段 · 英→中 4 段，每段 11–19 s</span></div>
+    <div class="fact"><b>检查</b><span>8/8 段正常出声，无报错，无重复崩坏</span></div>
+  </div>
+  <div class="note">译文音频是把模型输出的各段语音按顺序拼接（段间 0.15 s 停顿），没有按同传的实际时间轴对齐，所以总时长和原声不同。彩色标签是模型给每段译文打的说话人编号。</div>
+  <div class="tabs" role="group" aria-label="方向">
+    <button class="tab" data-f="all" aria-pressed="true">全部</button>
+    <button class="tab" data-f="zh2en" aria-pressed="false">中→英</button>
+    <button class="tab" data-f="en2zh" aria-pressed="false">英→中</button>
+  </div>
+  <main id="list" style="display:flex;flex-direction:column;gap:16px"></main>
+  <footer>原声来自 YouTube 公开电竞解说，只用于评测和试听，不参与任何训练。</footer>
+</div>
+
+<script>
+const ITEMS = __ITEMS__;
+const DIR = {zh2en:"中→英", en2zh:"英→中"};
+const list = document.getElementById("list");
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}
+function render(f){
+  list.innerHTML = ITEMS.filter(i=>f==="all"||i.dir===f).map(i=>{
+    const src = i.title ? esc(i.title) : (i.dir==="en2zh" ? "英文电竞解说" : "中文电竞解说");
+    const link = i.url ? ` · <a href="${esc(i.url)}" target="_blank" rel="noopener">原视频</a>` : "";
+    const segs = i.segs.map(s=>`<li><span class="chip s${s.spk}">S${s.spk}</span><span class="txt">${esc(s.text)}</span></li>`).join("");
+    return `<section class="card">
+      <div class="head"><h2>${esc(i.id)}</h2><span class="meta">${DIR[i.dir]} · ${src}${link} · 说话人 ${i.spks.map(s=>"S"+s).join(" / ")}</span></div>
+      <div class="players">
+        <div class="pl"><label>原声 · ${i.src_sec.toFixed(1)} s</label><audio controls preload="none" src="audio/${esc(i.id)}__src.mp3"></audio></div>
+        <div class="pl"><label>同传译文 · ${i.tgt_sec.toFixed(1)} s</label><audio controls preload="none" src="audio/${esc(i.id)}__tgt.mp3"></audio></div>
+      </div>
+      <details><summary>译文文本（${i.segs.length} 段）</summary><ul class="segs" style="margin-top:8px">${segs}</ul></details>
+    </section>`;
+  }).join("");
+  list.querySelectorAll("audio").forEach(a=>a.addEventListener("play",()=>list.querySelectorAll("audio").forEach(b=>{if(b!==a)b.pause()})));
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  render(b.dataset.f);
+}));
+render("all");
+</script>

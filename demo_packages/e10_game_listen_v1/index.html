@@ -1,0 +1,106 @@
+<title>LiveInterpret 电竞试听</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --fg:#17191f; --muted:#5c6270; --line:#e1e4ea;
+  --accent:#2f5bd3; --accent-soft:#e8eefc;
+  --s1:#2f5bd3; --s2:#c2410c; --s3:#0f766e; --s4:#9333ea;
+  --s1-bg:#e8eefc; --s2-bg:#fdeee5; --s3-bg:#e3f4f1; --s4-bg:#f3e8fd;
+  --warn:#8a5a00; --warn-bg:#fff6dc;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12141a; --card:#1b1e26; --fg:#e8eaf0; --muted:#9aa1b0; --line:#2c303b;
+  --accent:#7b9cf0; --accent-soft:#232c45;
+  --s1:#8fa9f5; --s2:#f59e6b; --s3:#5cc8b6; --s4:#c99af5;
+  --s1-bg:#232c45; --s2-bg:#3a2619; --s3-bg:#16312d; --s4-bg:#2f2240;
+  --warn:#f2c46b; --warn-bg:#33290f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141a; --card:#1b1e26; --fg:#e8eaf0; --muted:#9aa1b0; --line:#2c303b;
+  --accent:#7b9cf0; --accent-soft:#232c45;
+  --s1:#8fa9f5; --s2:#f59e6b; --s3:#5cc8b6; --s4:#c99af5;
+  --s1-bg:#232c45; --s2-bg:#3a2619; --s3-bg:#16312d; --s4-bg:#2f2240;
+  --warn:#f2c46b; --warn-bg:#33290f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:1.6rem;margin:0;text-wrap:balance;letter-spacing:.01em}
+.lede{color:var(--muted);margin:0;max-width:68ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0}
+.fact b{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.fact span{font-size:.92rem}
+.note{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:.9rem}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 14px;font:inherit;font-size:.9rem;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.head h2{font-size:1.05rem;margin:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:500}
+.head .meta{color:var(--muted);font-size:.86rem;min-width:0}
+.head a{color:var(--accent)}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.players{grid-template-columns:1fr}}
+.pl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pl label{font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+audio{width:100%}
+.segs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.segs li{display:flex;gap:10px;align-items:baseline;min-width:0}
+.chip{flex:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.75rem;padding:1px 8px;border-radius:999px;font-weight:500}
+.s1{color:var(--s1);background:var(--s1-bg)}.s2{color:var(--s2);background:var(--s2-bg)}
+.s3{color:var(--s3);background:var(--s3-bg)}.s4{color:var(--s4);background:var(--s4-bg)}
+.txt{min-width:0;overflow-wrap:anywhere}
+details summary{cursor:pointer;color:var(--muted);font-size:.88rem}
+footer{color:var(--muted);font-size:.82rem}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>LiveInterpret 多说话人同传 · 电竞试听</h1>
+    <p class="lede">E10：LiveInterpret S5 的 Thinker 按多说话人方式微调（checkpoint-1670），Talker 保持冻结。8 段电竞解说窗口，每段都是 2–3 位解说交替说话。左边是原声，右边是模型生成的同传语音。</p>
+  </header>
+  <div class="facts">
+    <div class="fact"><b>模型</b><span>LiveInterpret S5 · E10 Thinker 微调 + 冻结 Talker</span></div>
+    <div class="fact"><b>声码</b><span>CosyVoice 解码器，按说话人因果取音色</span></div>
+    <div class="fact"><b>样本</b><span>中→英 4 段 · 英→中 4 段，每段 11–19 s</span></div>
+    <div class="fact"><b>检查</b><span>8/8 段正常出声，无报错，无重复崩坏</span></div>
+  </div>
+  <div class="note">译文音频是把模型输出的各段语音按顺序拼接（段间 0.15 s 停顿），没有按同传的实际时间轴对齐，所以总时长和原声不同。彩色标签是模型给每段译文打的说话人编号。</div>
+  <div class="tabs" role="group" aria-label="方向">
+    <button class="tab" data-f="all" aria-pressed="true">全部</button>
+    <button class="tab" data-f="zh2en" aria-pressed="false">中→英</button>
+    <button class="tab" data-f="en2zh" aria-pressed="false">英→中</button>
+  </div>
+  <main id="list" style="display:flex;flex-direction:column;gap:16px"></main>
+  <footer>原声来自 YouTube 公开电竞解说，只用于评测和试听，不参与任何训练。</footer>
+</div>
+
+<script>
+const ITEMS = [{"id": "gz01_on_0001", "dir": "zh2en", "title": "[CN] 2025王者荣耀电竞世界杯小组赛第三天", "url": "https://www.youtube.com/watch?v=6iZxxympkuw", "src_sec": 18.1, "tgt_sec": 21.2, "spks": [1, 2], "segs": [{"spk": 1, "text": "So I found you."}, {"spk": 2, "text": "Pah."}, {"spk": 1, "text": "This Gan Jiang Mo Yan without him crystal would have blown up long ago."}, {"spk": 1, "text": "Maybe the next one has already started."}, {"spk": 1, "text": "I think the final of the PK might be a carol, but I think today's this B."}, {"spk": 1, "text": "Oh."}, {"spk": 1, "text": "Three I think if you're going to evaluate a most valuable player, it's definitely Zhong Dan."}, {"spk": 2, "text": "Right."}, {"spk": 2, "text": "Sorry."}, {"spk": 2, "text": "Too strong."}, {"spk": 2, "text": "This Gan Jiang Mo Yan."}]}, {"id": "gz01_on_0007", "dir": "zh2en", "title": "[CN] 2025王者荣耀电竞世界杯小组赛第三天", "url": "https://www.youtube.com/watch?v=6iZxxympkuw", "src_sec": 11.3, "tgt_sec": 16.3, "spks": [1], "segs": [{"spk": 1, "text": "A match win."}, {"spk": 1, "text": "But for black, they really are just one."}, {"spk": 1, "text": "It's too hard."}, {"spk": 1, "text": "It's hard."}, {"spk": 1, "text": "There's a shadow."}, {"spk": 1, "text": "There's a shadow."}, {"spk": 1, "text": "Two times."}, {"spk": 1, "text": "Two times."}, {"spk": 1, "text": "So I was taken away by the cat at the match point."}, {"spk": 1, "text": "Yeah."}, {"spk": 1, "text": "Okay, we're ready for the on-site interview."}, {"spk": 1, "text": "Let's go and listen."}]}, {"id": "gz02_on_0011", "dir": "zh2en", "title": "[中文] 2025 KPL年度总决赛 | 擂台赛 第1周 | 9月30日", "url": "https://www.youtube.com/watch?v=BAni16qR-cw", "src_sec": 15.94, "tgt_sec": 19.0, "spks": [1, 2], "segs": [{"spk": 1, "text": "Some, especially in that kind of situation where there's no good marksman."}, {"spk": 1, "text": "Wouldn't it be like a kind of a he's positioned like an enhanced version of the sponger."}, {"spk": 1, "text": "A little bit of that feeling."}, {"spk": 1, "text": "Yeah, a little bit of that feeling."}, {"spk": 1, "text": "You don't have to take too much of a hit."}, {"spk": 1, "text": "D. D. J. is a little bit like."}, {"spk": 1, "text": "Yeah, yeah, yeah, they're all quite similar."}, {"spk": 2, "text": "Yeah."}]}, {"id": "gz02_on_0024", "dir": "zh2en", "title": "[中文] 2025 KPL年度总决赛 | 擂台赛 第1周 | 9月30日", "url": "https://www.youtube.com/watch?v=BAni16qR-cw", "src_sec": 12.66, "tgt_sec": 13.7, "spks": [1], "segs": [{"spk": 1, "text": "The most critical wave."}, {"spk": 1, "text": "A very nice one."}, {"spk": 1, "text": "Just this wave."}, {"spk": 1, "text": "This wave."}, {"spk": 1, "text": "The first day of the broadcast pushed the professional players out, and then the deaf man came back with a one point."}, {"spk": 1, "text": "At this point, actually, the Weibo was pretty profitable."}]}, {"id": "ge01_on_0007", "dir": "en2zh", "title": "", "url": "https://www.youtube.com/watch?v=uf_zKa-OU8g", "src_sec": 18.5, "tgt_sec": 29.4, "spks": [1], "segs": [{"spk": 1, "text": "现在做任何事，"}, {"spk": 1, "text": "看起来NERVEX正在进入"}, {"spk": 1, "text": "有了那艘天地球飞船，"}, {"spk": 1, "text": "就不怕了，"}, {"spk": 1, "text": "对吧？"}, {"spk": 1, "text": "凯纳布拉斯，"}, {"spk": 1, "text": "覆盖撤退，"}, {"spk": 1, "text": "然后是一场美好的小风暴，"}, {"spk": 1, "text": "他们决定继续前进，"}, {"spk": 1, "text": "但特伦布尔凡人要做点工作，"}, {"spk": 1, "text": "奈特也和他在一起"}, {"spk": 1, "text": "第二个三脚架模型，"}, {"spk": 1, "text": "然后NERVEX终于开始行动了。"}, {"spk": 1, "text": "但后来他们又放弃了，"}, {"spk": 1, "text": "他们得到了两个成员，"}, {"spk": 1, "text": "但他们的耐力却减少了。"}]}, {"id": "ge01_on_0020", "dir": "en2zh", "title": "", "url": "https://www.youtube.com/watch?v=uf_zKa-OU8g", "src_sec": 18.84, "tgt_sec": 25.2, "spks": [1, 2], "segs": [{"spk": 2, "text": "是的"}, {"spk": 2, "text": "我其实可以去骑自行车了"}, {"spk": 2, "text": "他们已经进入太空了"}, {"spk": 2, "text": "小矮人就要来了。"}, {"spk": 2, "text": "这周"}, {"spk": 2, "text": "哦，"}, {"spk": 2, "text": "他们以为它在盒子里，"}, {"spk": 2, "text": "但奈特实际上躲开了这些麻烦的模型，"}, {"spk": 2, "text": "而且他们中的大多数都躲过了。"}, {"spk": 2, "text": "就像，"}, {"spk": 2, "text": "不，"}, {"spk": 2, "text": "不，"}, {"spk": 2, "text": "次级麻烦模型一样"}, {"spk": 2, "text": "没有好多少，"}, {"spk": 2, "text": "但他会回来的。"}, {"spk": 2, "text": "随着这个变得有点低，"}, {"spk": 2, "text": "这些超级精英小矮人也来了，"}, {"spk": 2, "text": "Sikinoya只是"}, {"spk": 1, "text": "所以"}]}, {"id": "ge02_on_0000", "dir": "en2zh", "title": "", "url": "https://www.youtube.com/watch?v=hT492cJyT9U", "src_sec": 18.14, "tgt_sec": 15.8, "spks": [3, 4], "segs": [{"spk": 3, "text": "继续这样下去。"}, {"spk": 4, "text": "而且，这场比赛。R.G.全球以非常深的英雄式投球而闻名。所以，我觉得他们对B.O.3和B.O.5都没意见，只要他们能保持势头。而且，当然，还有完美的击球技术。现在，让我们用我们的才华来展示吧。"}, {"spk": 4, "text": "当然，还有更多细节。"}]}, {"id": "ge04_on_0017", "dir": "en2zh", "title": "", "url": "https://www.youtube.com/watch?v=Eex-bDezs6E", "src_sec": 19.08, "tgt_sec": 21.1, "spks": [1, 2, 4], "segs": [{"spk": 4, "text": "是的，"}, {"spk": 4, "text": "但看起来，"}, {"spk": 4, "text": "高亮显示有点低，"}, {"spk": 4, "text": "需要小心"}, {"spk": 4, "text": "他们发现淡出了，"}, {"spk": 4, "text": "看起来他们要把他踢到一边。"}, {"spk": 4, "text": "Zing，"}, {"spk": 4, "text": "也就是说，"}, {"spk": 4, "text": "他会被选走，"}, {"spk": 4, "text": "V."}, {"spk": 2, "text": "是的"}, {"spk": 2, "text": "P."}, {"spk": 1, "text": "为王牌加油"}, {"spk": 1, "text": "除了N."}, {"spk": 2, "text": "V."}, {"spk": 2, "text": "他们只是回应而已，"}, {"spk": 1, "text": "他们仍然为王牌而自豪。"}, {"spk": 1, "text": "目前DOT上有六分钟时间，"}, {"spk": 1, "text": "还剩十秒。"}]}];
+const DIR = {zh2en:"中→英", en2zh:"英→中"};
+const list = document.getElementById("list");
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}
+function render(f){
+  list.innerHTML = ITEMS.filter(i=>f==="all"||i.dir===f).map(i=>{
+    const src = i.title ? esc(i.title) : (i.dir==="en2zh" ? "英文电竞解说" : "中文电竞解说");
+    const link = i.url ? ` · <a href="${esc(i.url)}" target="_blank" rel="noopener">原视频</a>` : "";
+    const segs = i.segs.map(s=>`<li><span class="chip s${s.spk}">S${s.spk}</span><span class="txt">${esc(s.text)}</span></li>`).join("");
+    return `<section class="card">
+      <div class="head"><h2>${esc(i.id)}</h2><span class="meta">${DIR[i.dir]} · ${src}${link} · 说话人 ${i.spks.map(s=>"S"+s).join(" / ")}</span></div>
+      <div class="players">
+        <div class="pl"><label>原声 · ${i.src_sec.toFixed(1)} s</label><audio controls preload="none" src="audio/${esc(i.id)}__src.mp3"></audio></div>
+        <div class="pl"><label>同传译文 · ${i.tgt_sec.toFixed(1)} s</label><audio controls preload="none" src="audio/${esc(i.id)}__tgt.mp3"></audio></div>
+      </div>
+      <details><summary>译文文本（${i.segs.length} 段）</summary><ul class="segs" style="margin-top:8px">${segs}</ul></details>
+    </section>`;
+  }).join("");
+  list.querySelectorAll("audio").forEach(a=>a.addEventListener("play",()=>list.querySelectorAll("audio").forEach(b=>{if(b!==a)b.pause()})));
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  render(b.dataset.f);
+}));
+render("all");
+</script>

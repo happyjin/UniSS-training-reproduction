@@ -4386,3 +4386,10 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
   - `obsi_i6c_ood1_en2zh` 编排器已完成，但 bench_eval 还没跑。
 - 其余 14 个单元没有完成。没有做汇总分析。
 - 停止后的显存：卡 0–3 上是 E10 的 16 个 simuls2s 评测（每卡约 65 GB）；卡 4–6 空着，卡 7 已由占位进程补回（66 GB），guard 会继续补满空卡。
+
+## 2026-11-19 16:45 布拉格 — 停止 Idea 6 完整测试；E10 LiveInterpret 电竞试听 demo
+
+- 用户："先不用做测评了吧，停止测评 … 确认目前这个LI的thinker-talker模型多说话人目前是能正常发声 … 做一个demo放几个电竞试听音频"。Idea 6 测试已按 PID 停止（见上一条停止说明，1104/1350 作业完成，输出全部保留）。
+- E10（e10_thinker_v2 checkpoint-1670，Talker 冻结）在 8 个电竞窗口上解码：中→英 gz01_on_0001/0007、gz02_on_0011/0024，英→中 ge01_on_0007/0020、ge02_on_0000、ge04_on_0017（都有 ≥ 2 位解说、8–20 s）。包装脚本 `experiments/mist_w3po_v1/voicecond/e10_game_demo_run.py` 只给 run_e10.py 加两个电竞 set，不改 E10 文件；卡 4、5 各 1 个进程，约 1 分钟。
+- 结果：8/8 正常出声，0 报错，0 个 collapse（语音 token 去重率 0.74–0.84）；说话人标签：中→英 2 段只有 S1（原声有 2 位），其余段 2–3 个标签。
+- 试听页 `demo_packages/e10_game_listen_v1/`，已发布 https://claude.ai/artifact/NYTNGwETRvgWgHneDCdrta 。
