@@ -374,3 +374,45 @@ f. **开源数据规则。** E10 的微调只用 AMI（CC BY 4.0）和 CosyVoice
 - B 的训练：`experiments/mist_w3po_v1/scripts/joint_stage1.sh`、`experiments/uniss_qwen3_omni_v1/training/pretrain_thinker_gstar.py`
 - 评测：`experiments/mist_w3po_v1/scripts/{joint_lib.sh, joint_test.sh, table1_lat.sh}`、`experiments.mist_w3po_v1.evaluation.table1_analysis`
 - 外部系统适配范例：`experiments/s2st_baselines_v1/{seamless_multispk/build_e7.py, xtranslator_multispk/build_e8.py}`、`reports/mist_w3po_v1/{e7_seamless_multispk_prereg, e9_cascade_multispk_results, multispk_s2st_baselines_prereg_v2}.zh-CN.md`
+
+---
+
+## 11. 实现记录（2026-11-19，代码已写完并冒烟，正式训练未启动）
+
+代码在 `third_party/liveinterpret_training_pipelines/e10_multispk/`，见该目录的 `README.zh-CN.md`。同事的 `custom/`、`pipelines/` 没有任何改动，所有改动都通过 swift 插件在运行时挂上。
+
+### 11.1 实现中相对 §5 的调整
+
+1. **不再做"一步只放一个说话人"的推迟。** 按 B 形式只训 Thinker，Talker 不参与训练，所以不存在训练和推理不一致的问题。现在完全保留 B 的截止时间（只是从 1 s 一读改成 640 ms 一步）。同一步出现多个说话人的情况，En→Zh 占 W 步的 12.1%（8,432/69,824），Zh→En 占 10.8%（8,378/77,637）。推理时在 tag 处切开，分段调用 Talker。
+2. **离线行照搬 B。** 从 B 的离线行中抽取窗口数 20% 的量（En→Zh 4,280，Zh→En 5,584），在最后一步一次写出。单说话人行用了 B 的全部池子（2,174 / 2,111）；B 自己也受同一个池子大小限制。
+3. **后验注入。** 第 j 个音频帧加上 `e10_sd_proj(post[j−13])`。这与 B 的 `post_until = t − 1040 ms` 规则在 640 ms 步长下完全等价，比 chunk 协议更保守，不会用到当时还不可用的帧。离线行也用同样的延迟。
+4. **说话人 tag** 复用了 S5 没用到的前 8 个 `<|dur:N|>` 行（id 248080–248087），tokenizer 和 embedding 都不用改。
+5. **学习率分组。** `E10_SD_LR = 1e-4` 只作用于 `e10_sd_proj`。8 个 tag 行和 4 个流式 token 行在 PEFT 里是同一个张量，所以用主学习率 1.2e-5；Adam 在 1,670 步里足以把这些行移动约一个行范数。
+6. **训练量改为 1.5 epoch**（约 1,670 步，GBS 64）。B 共训 6000×64 行，平均每个方向把它的行过了约 1.2–1.5 遍，1.5 epoch 最接近；原方案写的是 2 epoch。
+7. **采样与验证集。** 不用分层采样，和 B 一样均匀打乱。验证集用 AMI 官方 validation 窗口（与训练会议不重叠），`val_keys` 为空。
+8. **两个方向数量对齐**（像 B 一样各 48 万行的做法）：En→Zh 用循环排列补到和 Zh→En 一样多，各 35,631 条。唯一记录 63,570 条，估算序列长度中位数 132、p99 492、最大 678，没有超过 1024 的。
+9. **评测时的音色。** E10 按说话人用 B 的 `--causal` 规则（只用首次写出之前该 slot 单独说话的片段，最多 8 s；不够则用窗口开头到写出时刻的音频）。E10-0 用 S5 原生的滚动 2 s 参考。
+10. **环境 `simuls2s`。** 有三处和原计划不同：
+    - fla 0.5.2 在 Hopper GPU + Triton 3.4 上会拒绝执行 gated delta rule 的反向（梯度有误，fla #640），因此加装了 tilelang；
+    - causal-conv1d 编译失败，代码退回 torch 实现，结果正确，只是慢一些；
+    - setuptools 固定在 81 以下，因为 CosyVoice 依赖 `pkg_resources`。
+11. **speech tokenizer** 暂时用 S3 上的 `speech_tokenizer_v3.batch.onnx`，能正常工作。等用户确认正式文件后替换。
+
+### 11.2 冒烟结果（全部通过）
+
+| 检查 | 结果 |
+|---|---|
+| 数据管线（CPU，冒烟 60 条 + 全量 600 条） | tag 是单 token，指令正确，每块一个 tag，`spk_post` 行数等于 audio_pad 数，前 13 行为 0，与原始后验逐行对应 |
+| tuner（GPU） | 后验投影为零时与 checkpoint-29773 的 logits 差异为 0；trainable 是 402 个张量、121.95M 参数，没有任何 Talker 参数；后验投影和 tag 行有梯度；保存再加载后 logits 差异为 0 |
+| 训练 5 步（2 卡 ZeRO-2，冒烟数据） | 退出码 0，S5 分项指标与 `dec_macro_f1` 正常记录，eval 正常，adapter 带 `e10_metadata.json` 保存 |
+| 全量数据、每卡 batch 8 | 32 GiB/卡，单卡 GA=8 首步 37 s；估算 8 卡约 2 h、4 卡约 4 h；初始 text_loss 约 6（主要来自新的 tag 行） |
+| 解码（3 个 dev 窗口） | E10（5 步 adapter）能跑通但几乎没有输出，在预期之内；E10-0 能给出正常的同传译文、写出时刻和非静音语音 |
+| build 和打分 | `build_e10.py` 的两种说话人方式都正常，`score_run` 能读取输出 |
+| 评测编排 | `eval_e10.py` 的 dry run 列出完整的 E8 评测链 |
+
+### 11.3 正式运行前还要做
+
+1. 确认 GPU 安排：训练 4 卡或 8 卡，按多 agent 规则需要协商；
+2. 写预登记 `e10_liveinterpret_multispk_prereg.zh-CN.md`（§7 的要点，加上 §11.1 的调整）；
+3. 替换正式的 `speech_tokenizer_v3.onnx`；
+4. 训练取最后一步，过 §5.5 的 dev 门槛，然后测试集每个集合解码一次。
