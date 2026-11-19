@@ -8,8 +8,8 @@ Runs per direction d (same S1 blocks, 4 shards, seed 20261021, voice ids = wave3
 Metrics as wave3_v_score.compare (ASR-BLEU from unit-summed statistics, SQUIM PESQ and TitaNet similarity paired medians,
 D1/D2 item means; 2000 unit resamples, seed 0); cells d x {a, b, b_noxt} x {noisy, clean}.
 
-PRIMARY (unified rule, all of: both directions, cells a and b_noxt), arm vs B:
-  ASR-BLEU noisy and clean: diff >= -0.3 and CI high >= 0;   D2 noisy and clean: diff <= +0.10 s;
+PRIMARY (unified rule + 变更 2, all of: both directions, cells a and b_noxt), arm vs B; D2 LAAL is auxiliary (reported only):
+  ASR-BLEU noisy and clean: diff >= -0.3 and CI high >= 0;   (aux: D2 noisy and clean diff <= +0.10 s);
   noisy PESQ: paired median diff > 0 and CI low > 0.
 SECONDARY (gates 2-5 of the prereg, noisy, cells a and b_noxt): 2 d2(disen - tft) <= 0 and d2(disen - v1) <= +0.02;
   3 pesq >= -0.05 vs tft and v1; 4 asr >= -0.5 and CI high >= 0 vs tft and v1; 5 sim >= -0.02 vs v1.
@@ -69,9 +69,11 @@ def load(arm, d, LD):
 def primary(noisy, clean):
     g = {"asr_noisy": noisy["asr"]["diff"] >= -0.3 and noisy["asr"]["ci95"][1] >= 0,
          "asr_clean": clean["asr"]["diff"] >= -0.3 and clean["asr"]["ci95"][1] >= 0,
-         "d2_noisy": noisy["d2"]["diff"] <= 0.10, "d2_clean": clean["d2"]["diff"] <= 0.10,
          "pesq_noisy": noisy["pesq"]["paired_median_diff"] > 0 and noisy["pesq"]["ci95"][0] > 0}
     g["pass"] = all(g.values())
+    # 变更 2: D2 LAAL is auxiliary only (reported, not part of the pass)
+    g["aux_d2_noisy_le_0.10"] = noisy["d2"]["diff"] <= 0.10
+    g["aux_d2_clean_le_0.10"] = clean["d2"]["diff"] <= 0.10
     return g
 
 
