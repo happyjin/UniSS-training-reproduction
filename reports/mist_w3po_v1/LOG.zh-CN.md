@@ -3969,3 +3969,22 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 等 Idea 2 的 6 个 `I2_*_{DONE,FAILED}` 标记，以及 `M3_RUNS_{DONE,FAILED}`；
   - 然后生成到 `demo_packages/voicecond_bench_listen_ab_v1/`，完成标记 `LISTEN_AB_DONE`（失败时在 `logs/mist_w3po_v1/voicecond_bench/LISTEN_AB_FAILED`）；
   - 日志 `logs/mist_w3po_v1/voicecond_bench/listen_ab.log`。
+
+## 2026-11-19 布拉格（夜间自主）— Idea 2 全量参数版（shrinkvfbF）的电竞结果，试听页更新到版本 6（协调者）
+
+- **事故：** `idea2_game_summary.py` 统计 token 的一行要读 `ids_V`，但全量参数的 token 表里没有这个字段，导致 GAME_VFBF_FAILED。所有指标其实已经算完，只是汇总没写出来。
+  - 处理：脚本当时没在运行，做最小修复（缺这个字段时跳过该项统计），重新生成汇总；
+  - 原 FAILED 标记保留，另写一个 DONE 标记并附说明。
+- **shrinkvfbF 的结果**（两个种子平均，按流配对，相对 B）：
+
+  | 指标 | zh→en | en→zh |
+  |---|---|---|
+  | PESQ | +1.38 | +1.31 |
+  | 频谱对比度 | +1.75 dB | +2.27 dB |
+  | 盲测 BLEU | +1.03 | +0.03 |
+  | 语音 LAAL | +0.068 s | −0.016 s |
+  | TitaNet 身份 | +0.009 | +0.096 |
+
+  - 身份合并 +0.047 [0.026, 0.058]；回退的 44 条流 +0.039；
+  - 按严格规则，只有 zh→en 的 LAAL（+0.07 s）不通过，其余全部通过。
+- **决定：** 试听页上的"Idea 2"换成 shrinkvfbF（测试集上冻结使用的方法），版本 6，同一网址。

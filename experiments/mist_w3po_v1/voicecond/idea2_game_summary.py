@@ -120,7 +120,7 @@ def main():
         tok = [json.loads(l) for l in open(OUT / "tokens" / f"game_{d}_{a.tag}.jsonl")]
         r["tokens"] = {"n": len(tok), "no_obs": sum(t["n_win"] == 0 for t in tok),
                        "n_win_median": float(np.median([t["n_win"] for t in tok])),
-                       "ham_vs_V_median": float(np.median([sum(x != y for x, y in zip(t["ids"], t["ids_V"])) for t in tok]))}
+                       "ham_vs_V_median": (float(np.median([sum(x != y for x, y in zip(t["ids"], t["ids_V"])) for t in tok if "ids_V" in t])) if any("ids_V" in t for t in tok) else None)}
         S["dirs"][d] = r
     S["spksim"] = spksim(a.tag)
     out.write_text(json.dumps(S, indent=1))
