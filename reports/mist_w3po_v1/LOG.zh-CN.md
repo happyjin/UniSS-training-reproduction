@@ -4173,3 +4173,14 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **Idea 2 免训练版（shrink+Vfb）的延迟：** 用户："可以接受这个稍微多点延迟"。有 6/9 个集合的块协议 LAAL 超出严格门槛（+0.009 到 +0.088 s），按"BLEU 优先于 LAAL"接受。论文中如实写明这 6 项未通过严格门槛，并单独讨论 AMI en→zh 的 +0.088 s。
 - **Idea 4 / 增强版 Idea 4：** 三项预检全部未通过（idea4_prechecks.zh-CN.md），停止，不再继续。
 - **暂不开新 idea：** 下一步方向等 Idea 2 端到端 main_v2（约 09:45）的结果再定。这段时间卡 0–3 依次跑预注册 §4 的消融：attnpool → frozen_talker → constlam。
+
+## 2026-11-19 08:08 布拉格 · Idea 2 端到端预登记 §4 消融链在卡 0–3 启动
+
+- 协调者指示（用户决定卡继续用于 Idea 2，暂不开始新想法）：在卡 0–3 上依次跑 attnpool → frozen_talker → constlam。设置与 main_v2 完全相同（同一训练器及修复、同样的数据、种子 20261119、3000 步、4 卡 DDP），只换 `--ablation`。
+- 先用单卡各跑 10 步冒烟（`e2e_smoke/abl_*_s1`）：三种消融的损失都有限，检查点保存/加载往返一致。
+  - attnpool 初始 û = μ0 + b_M，输出层零初始化，所以第 1 步编码器梯度为 0，dev KL1 起点较高（约 0.78 / 1.03）；
+  - frozen_talker 的 KL2 恒为 0；
+  - constlam 的 λ 和 c 从 const 拟合初始化。
+- 链脚本 `scripts/idea2_e2e_ablation_chain.sh`（只做了 bash -n 和 DRY_RUN=1）。整条链只占一次槽 A，结束或出错时释放。每个运行开始前先等卡 0–3 上没有评测作业，再按 PID 停掉卡 0–3 上的占位进程；前一个运行写出 DONE 或失败后接着跑下一个。完成标记写在 `logs/mist_w3po_v1/voicecond/idea2/E2E_ABLATION_CHAIN_DONE`。
+- 08:04 启动：链 PID 1459570，第一个运行 `idea2_e2e_abl_attnpool_v1` 的 torchrun PID 1464679。约 2.0 s/步；每个运行约 1.85 h，整条链预计约 13:40 布拉格结束。
+- main_v2（卡 4–7）不受影响；它结束后卡 4–7 空出来，不自动迁移任何作业，由协调者决定。
