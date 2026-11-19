@@ -4299,3 +4299,11 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **决定（按预登记，不调参、不在测试集上挑组合）：** 冻结 shrink+Vfb 仍是 Idea 2 主系统（BLEU 8/9、PESQ 更高）；端到端版作为变体报告：dev KL 降 45–50%，但没有转化为更好的音质，反而以 PESQ 换取了 zh→en / OOD-3 的 BLEU。
 
 消融（只有 dev，第 3000 步 KL1 zh2en / en2zh；main 0.221 / 0.262）：attnpool 0.294 / 0.371（去掉收缩结构差 33–42%）；frozen_talker 第 2500 步 0.331 / 0.418（大部分 KL 收益来自 Talker LoRA）；constlam 第 1750 步 0.229 / 0.267，与 main 同期相当（自适应 λ 贡献很小）。frozen_talker 与 constlam 的最终值另记。
+
+## 2026-11-19 12:10 布拉格 — Idea 2 e2e 三个消融全部完成（第 3000 步 dev KL1 zh2en / en2zh）
+
+- main_v2：0.221 / 0.262
+- attnpool（去掉收缩结构）：0.294 / 0.371（+33% / +42%）
+- frozen_talker（Talker 不训练）：0.329 / 0.420（+49% / +60%）——KL 收益主要来自 Talker LoRA
+- constlam（固定 λ）：0.228 / 0.266（+3% / +2%）——自适应 λ 贡献很小
+frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 由守护进程换成无检查点占卡训练。消融只做 dev，不上测试集（端到端版本身在测试上不优于冻结版）。
