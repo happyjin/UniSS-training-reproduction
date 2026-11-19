@@ -32,13 +32,13 @@ if [ ! -e $I/aishell1.EXTRACTED ]; then
   run tar -xzf $TGZ -C $I/aishell1 --no-same-owner data_aishell/wav
   if [ -z "${DRY_RUN:-}" ]; then
     n=0; for t in $I/aishell1/data_aishell/wav/*.tar.gz; do tar -xzf $t -C $I/aishell1 --no-same-owner || { log "FAIL $t"; exit 1; }; n=$((n+1)); done
-    log "aishell1: $n speaker archives, $(ls $I/aishell1/wav/train $I/aishell1/wav/dev $I/aishell1/wav/test 2>/dev/null | grep -c '^S') speakers"
+    log "aishell1: $n speaker archives, $(ls $I/aishell1/train $I/aishell1/dev $I/aishell1/test 2>/dev/null | grep -c .^S.) speakers"
     date > $I/aishell1.EXTRACTED
   fi
 fi
 # 2. train_zh
 if [ ! -e $I/train_zh.BUILT ]; then
-  run env PYTHONPATH=. OMP_NUM_THREADS=1 $PYE -m experiments.mist_w3po_v1.voicecond.idea1_build_train --lang zh --speech $I/aishell1/wav \
+  run env PYTHONPATH=. OMP_NUM_THREADS=1 $PYE -m experiments.mist_w3po_v1.voicecond.idea1_build_train --lang zh --speech $I/aishell1 \
     --musan $I/musan/musan/music --fsd-audio $I/fsd50k_eval/FSD50K.eval_audio --fsd-gt $I/fsd50k_meta/FSD50K.ground_truth/eval.csv \
     --out $I/train_zh --n 20000 --procs 40 || { log "FAIL build train_zh"; exit 1; }
   [ -n "${DRY_RUN:-}" ] || date > $I/train_zh.BUILT
