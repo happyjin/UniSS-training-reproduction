@@ -218,6 +218,8 @@ def main() -> None:
     if a.summary:
         summary(a)
     else:
+        if a.worker is None or not 0 <= a.worker < a.num_workers:
+            raise SystemExit("--worker k (0 <= k < --num-workers) is required")
         worker(a)
 
 

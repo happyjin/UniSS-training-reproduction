@@ -17,10 +17,11 @@ mkdir -p $L
 if [ "$SMOKE" != 0 ]; then CARDS=0; PER_CARD=1; NW=1; PIDS=$L/route_smoke.pids; else NW=$(( 2 * PER_CARD )); fi
 [ -e "$PIDS" ] && [ "$DRY_RUN" != 1 ] && { log "refusing: $PIDS exists"; exit 1; }
 PROTECT=" 2726951 52045 1222453 $$ "
-stop_ph() {   # placeholders of card $1, by PID, argv re-checked
-  while read -r pid args; do
+stop_ph() {   # placeholders of card $1, by PID, argv re-checked (locals: do not clobber the caller's args)
+  local pid pargs a
+  while read -r pid pargs; do
     case "$PROTECT" in *" $pid "*) continue;; esac
-    case "$args" in *scripts/gpu_load/run_mist_workload.sh*|*scripts/gpu_load/train_mist_workload.py*) ;; *) continue;; esac
+    case "$pargs" in *scripts/gpu_load/run_mist_workload.sh*|*scripts/gpu_load/train_mist_workload.py*) ;; *) continue;; esac
     a=$(tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null)
     case "$a" in *scripts/gpu_load/*"--devices $1 "*) kill -TERM "$pid" 2>/dev/null && log "SIGTERM placeholder $pid card $1";; esac
   done < <(ps -eo pid=,args=)
