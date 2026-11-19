@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Wave 1 Thinker prechecks: start the cards-4-7 placeholder watcher (wave1_noplaceholder.sh), wait until the target
-# cards are empty, then start the wave1_thinker.py workers, at most PER_CARD per card (the second one on a card only
-# after the first has loaded B, so two loads never peak together). Worker k: logs/mist_w3po_v1/wave1/worker<k>.log.
+# cards have room, then start the wave1_thinker.py workers by free memory, at most PER_CARD per card (the next one on a
+# card only after the previous one has loaded B, so two loads never peak together). Worker k: logs/mist_w3po_v1/wave1/worker<k>.log.
 #   SMOKE=N   one worker on the first card of CARDS with --smoke N (PID file smoke.pids), nothing else
 #   DRY_RUN=1 print what would be started, start nothing
 #   CARDS="4 5 6 7" PER_CARD=2 W0=0  (worker ids W0, W0+1, ...)
@@ -32,34 +32,41 @@ else
   log "watcher started (pid $!)"
 fi
 
-used() { nvidia-smi -i "$1" --query-gpu=memory.used --format=csv,noheader,nounits | tr -d ' '; }
-for c in $CARDS; do
-  [ "$DRY_RUN" = 1 ] && { log "[dry] would wait for card $c < 3000 MiB (now $(used $c))"; continue; }
-  for _ in $(seq 1 120); do [ "$(used $c)" -lt 3000 ] && break; sleep 5; done
-  log "card $c: $(used $c) MiB used"
-done
-
-w=$W0
-declare -a FIRST
-for round in $(seq 1 $PER_CARD); do
+free_mib() { nvidia-smi -i "$1" --query-gpu=memory.free --format=csv,noheader,nounits | tr -d ' '; }
+# placement by free memory (cards are shared with other agents' jobs): a worker goes to a card of CARDS with
+# >= NEED_MIB free, no worker of ours still loading there and < PER_CARD of ours; until N_WORKERS are placed or DEADLINE s
+N_WORKERS=${N_WORKERS:-8}; [ "$SMOKE" != 0 ] && N_WORKERS=1
+NEED_MIB=${NEED_MIB:-72000}
+DEADLINE=${DEADLINE:-10800}
+declare -A LOADING NMINE
+w=$W0; placed=0; t0=$(date +%s)
+while [ $placed -lt $N_WORKERS ] && [ $(( $(date +%s) - t0 )) -lt $DEADLINE ]; do
   for c in $CARDS; do
-    if [ "$round" -gt 1 ] && [ "$DRY_RUN" != 1 ]; then   # wait for the first worker of this card to report "ready" (<= 15 min)
-      f=$L/worker${FIRST[$c]}.log
-      for _ in $(seq 1 180); do grep -q " ready on " "$f" 2>/dev/null && break; grep -q "Traceback" "$f" 2>/dev/null && break; sleep 5; done
+    [ $placed -ge $N_WORKERS ] && break
+    if [ -n "${LOADING[$c]:-}" ]; then
+      f=$L/worker${LOADING[$c]}.log; [ "$SMOKE" != 0 ] && f=$L/smoke_worker${LOADING[$c]}.log
+      if grep -q -E " ready on |Traceback" "$f" 2>/dev/null; then LOADING[$c]=""; else continue; fi
     fi
+    [ "${NMINE[$c]:-0}" -ge "$PER_CARD" ] && continue
+    fr=$(free_mib $c)
+    case "$fr" in ''|*[!0-9]*) continue;; esac
+    [ "$fr" -lt "$NEED_MIB" ] && continue
     args="--worker $w"; [ "$SMOKE" != 0 ] && args="$args --smoke $SMOKE"
     lf=$L/worker$w.log; [ "$SMOKE" != 0 ] && lf=$L/smoke_worker$w.log
     if [ -e "$lf" ]; then log "refusing: $lf exists"; exit 1; fi
     if [ "$DRY_RUN" = 1 ]; then
-      log "[dry] card $c worker $w: CUDA_VISIBLE_DEVICES=$c $PY -I experiments/mist_w3po_v1/voicecond/wave1_thinker.py $args > $lf"
+      log "[dry] card $c ($fr MiB free) worker $w: CUDA_VISIBLE_DEVICES=$c $PY -I experiments/mist_w3po_v1/voicecond/wave1_thinker.py $args > $lf"
     else
       env $ENVS CUDA_VISIBLE_DEVICES=$c setsid nohup $PY -I experiments/mist_w3po_v1/voicecond/wave1_thinker.py $args \
         > "$lf" 2>&1 < /dev/null 8>&- 9>&- &
       echo "$c $!" >> "$PIDS"
-      log "card $c: worker $w pid $!"
+      log "card $c ($fr MiB free): worker $w pid $!"
+      LOADING[$c]=$w
     fi
-    [ "$round" = 1 ] && FIRST[$c]=$w
-    w=$((w + 1))
+    NMINE[$c]=$(( ${NMINE[$c]:-0} + 1 ))
+    w=$((w + 1)); placed=$((placed + 1))
   done
+  [ $placed -lt $N_WORKERS ] && sleep 5
 done
+log "placed $placed of $N_WORKERS workers"
 log "launch done"
