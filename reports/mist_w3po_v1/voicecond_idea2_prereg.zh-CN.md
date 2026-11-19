@@ -259,3 +259,11 @@ $R_f=(L/0.5)R=4R$（重叠窗口按等效独立观测数）。窗口在结束时
 - 臂：B（baseline）、shrink、V（vocals 运行）、ZNE R-t，各两个 TTS 种子（运行存在的都算，缺的注明）。
 - **门槛：** 两个方向、两个种子合并，每个流先取两个种子的平均，$\mathrm{median}(\Delta)$，$\Delta=\mathrm{sim}_{\rm shrink}-\mathrm{sim}_B$，要求 ≥ −0.02。另报告以流为单位的 bootstrap 95% CI、每个方向和种子的结果，以及"先验均值音色"的流（首次输出时没有可用窗口，`n_win = 0`）和其余流分别的同一统计量。
 - 结果并入 `idea2_game_summary.py` 的输出。
+
+## v2.2 修订（2026-11-19 02:03 布拉格，在构建 token 表和运行之前；协调者决定）
+
+**变体 shrink+Vfb：** 与 shrink 完全相同（同一参数、同一后验、同一时刻），唯一区别：首次输出时该槽位**没有任何可用窗口**（`n_win = 0`，zh→en 25 个、en→zh 19 个流）的流，改用 V token（冻结编码器作用于 baseline 提示的 HDemucs 人声，即 Idea 1 的 `tokens/game_{dir}_V.jsonl`，按提示 sha1 核对），而不是先验均值。
+- 理由：先验均值音色的流身份明显变差（v2.1：−0.118）；V 是同一时刻已经可用的因果信息（只用 baseline 提示本身）。
+- 运行：`speech/game_b_{dir}__t1c_shrinkvfb{,_tts2}`，两个方向 × 两个种子，同顺序、同种子，只在卡 4–7；不运行 V 参照（归 Idea 1）。
+- 核对：非回退流的 token 与 shrink 逐位相同；抽查若干非回退流的生成语音是否与 shrink 一致（同 token、同种子）。
+- 评测与 v2 §G、v2.1 完全相同：配对 PESQ、对比度、平坦度、盲 ASR-BLEU（两种子）、语音 LAAL、TitaNet 相似度（合并、按方向、回退子集与其余流分开）。门槛与验收线不变；BLEU 与 LAAL 按严格规则如实报告。
