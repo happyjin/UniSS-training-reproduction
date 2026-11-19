@@ -22,3 +22,6 @@ OpenBroadcast-SI 上英→中翻译文本 BLEU 带噪比干净低 1.5–1.9；�
 - 用户："就不做多说话人同传 baseline 验证，所有组合全部换成单说话人验证非 qabc 我的方法，用 qabc 的 baseline 没有加我的方法的基线模型去做实验"。
 - **S2 取消；D0（多说话人 dev 上的 B / C）停止**，已建数据与输出保留。
 - **S1 改为单说话人基础模型**：QABC 论文中不含 QABC 方法的基线设置（论文表格 / results.json 中的基线行），先复现论文的一个基线数字再跑。该基线即后续所有鲁棒组合的验证底座。
+
+## S2 结果
+- 2026-11-19 20:28 CET：S2 取消（用户要求，不做多说话人同传 baseline 验证）。未启动任何任务、未生成 oracle 后验或窗口；已写脚本（s2_oracle_build.py、voicecond_bench_devor_orch.py、bench_devor_eval.py、s2_runs.sh）提交备查，未运行。
