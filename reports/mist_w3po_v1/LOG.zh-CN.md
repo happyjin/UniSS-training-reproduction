@@ -4395,3 +4395,9 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 试听页 `demo_packages/e10_game_listen_v1/`，已发布 https://claude.ai/artifact/NYTNGwETRvgWgHneDCdrta 。
 - 17:23 CET：用户决定先不做 E10 的测评（dev 门槛和测试都不跑），只确认 LiveInterpret 的 Thinker–Talker 在多说话人场景下能正常发声。已暂停的 E10 dev 评测进程全部按 PID 结束。电竞试听 demo：用 checkpoint-1670 解码了 B 电竞页的 6 段（gz01–03、ge01/02/04，各 5 分钟），界面和音频规格都与 B 页一致，版本可在 E10 和 B 之间切换。页面地址：https://claude.ai/artifact/Epz2hEbw86rzgG9KCBbng7 。164 个窗口中，2 个因 Talker 的 StaticCache 2048 上限报错，2 个复读到长度上限，页面上已如实说明。slot A 已释放。
 - 17:32 CET：E10 电竞 demo 的离线包已上传：`s3://stevehguo-ap-southeast-3/speech_model_backup/jasonleeeli/jasonleeeli_backup/projects/UniSS/demo_packages/game_multispk_e10_demo_offline_v1.zip`（31,419,437 字节；本地在 `demo_packages/game_multispk_e10_demo_offline_v1/`）。离线做法和 B 的离线包一样：本地打开时直接播放立体声。对比 B 的诊断：中→英的复读集中在 20.5 s 长窗口的最后一步，是 Thinker 贪心解码陷入循环（77 个窗口里 17 个写到 256 token 上限），E10 没有 B 那样的循环保护；Talker 收尾时有 2 段一直生成到 750 token 上限（约 30 s）；E10 的说话人切换每分钟 5–9 次，B 是 13–49 次。英→中文本 BLEU 与 B 相当，中→英明显低于 B（用银标参考、6 段、单个种子）。
+
+## 2026-11-19 18:25 布拉格 — Idea 7（失真–感知权衡）第 1 步机制检验：M1 成立、M2 不成立 → 按预登记不做第 2 步
+
+- 预登记 eee9ee586；脚本 `voicecond/idea7_mechanism.py`（只读已有测试输出）；v1 的 FD 因 sqrtm 数值问题为 NaN，v2 修正计算后重跑。
+- M1：后验均值类臂的展宽比低于 C（7/8 组）；M2：FD 与 PESQ 的组内排序只在 4/9 组一致（门槛 6/9），展宽比与 PESQ 在 9/9 组正相关；M3：逐条关系可忽略（ρ = −0.018）。
+- 结论：音色分布被压扁的现象真实，但不足以作为感知质量的可靠解释，最优传输修正不做。
