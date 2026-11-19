@@ -4123,3 +4123,11 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 仍然是同一个不保存检查点的训练程序，不是 gpu_keeper。
 - 实测：卡 4–7 在 06:37 起新 worker（还是 import Megatron 之后再分配的第一版），worker 启动后 33 s 就占住 64 GB，原来约 6 分钟。第二版把分配挪到 Megatron import 之前。
 - 测试：test_train_no_checkpoint 5/5 通过，test_workload_ignore_k8s 7/7 通过。正在运行的 worker 不受影响，新 worker 自动使用新代码。
+
+## 2026-11-19 07:47 布拉格 — Idea 4（干扰寄存器 + GMM 先验 + 单调证据门控）CPU 预检：三项全部不通过
+
+- 预登记（阈值在计算前写定，提交 `d9f85c333`）和结果见 `reports/mist_w3po_v1/idea4_prechecks.zh-CN.md`；数据 `eval_outputs/mist_w3po_v1/idea4_prechecks/summary.json`；脚本 `voicecond/idea4_prechecks.py`。只用 CPU，复用已存编码，只用 dev（Idea 1 诊断集 dev 1000 对、Idea 2 dev 80 条流）。
+- **检查 1 低秩：** $E(8)$ = 0.697 < 0.80，**不通过**。80% 能量要 18 维；去掉收缩（每对 λ）后残差 $E(8)$ = 0.49，要 40 维。残差与说话人子空间的重叠是随机的 6.6 倍。
+- **检查 2 混合结构：** BIC 选 K = 5，但 ARI(簇, 背景类别) = 0.089 < 0.3，**不通过**。簇对应 SNR（η² 0.47），不对应背景类型。
+- **检查 3 门控上界：** 第 60 s 时，SNR oracle 硬门控相对 Idea 2 软后验的误差只降 4.4% [3.5, 5.2]% < 10%，**不通过**。码误差理想 oracle 也只降 7.4%；第 8 s 时门控反而有害。
+- **决定（建议）：** 不实现增强版 Idea 4。残余误差是流级持续、高维、与身份纠缠的偏差，应交给学习式整体校正（Idea 2 端到端版本）。
