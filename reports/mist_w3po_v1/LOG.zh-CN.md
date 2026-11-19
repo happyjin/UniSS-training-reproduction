@@ -4192,3 +4192,26 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - token 恢复率：zh2en 8.8%，en2zh 6.2%（第 0 步约 6%）。
   - 编码误差：zh2en 59.0，en2zh 83.0。
   - 至今没有跳过任何一步（n_skipped = 0）。
+
+## 2026-11-19 08:35 布拉格 — Idea 1 M3（OpenBroadcast-SI）与 OOD-3 测试结果（协调者汇总）
+- 被测对象：Z = 端到端 ZNE 编码器，C = 同样训练的去噪对照。都只换音色 token，其余链路是 B；两个种子取平均。
+- PESQ（配对中位数差，Holm 校正后全部显著）：
+  - 带噪 ID-2 和 OOD-1：Z +1.24 到 +1.35，C +1.28 到 +1.42。
+  - clean：Z +0.28 / +0.33，C +0.26 / +0.33。
+  - 对比冻结的 Idea 2 shrink+Vfb：带噪集上是 +1.14 到 +1.17。
+- BLEU：
+  - Z 在 6 个 OpenBroadcast 单元全部 ≥ B（+0.16 到 +2.10）。
+  - C 在 ID-2 zh→en 上 −0.44。
+- LAAL：Z 在 ID-2 zh→en、OOD-1 en→zh、clean en→zh 三个单元超出严格门槛，幅度都 ≤ 0.012 s。
+- 身份：Z ID-2 zh→en 和 C clean zh→en 的 sim 中位数差是 NaN，属于计算问题，应修复后重算，不能当成未通过。
+- **H1（Z 在 OOD 上的增益大于 C，用 DiD 检验）：不成立。**
+  - PESQ DiD：zh→en +0.0003，p = 0.50；en→zh −0.005，p = 0.65。
+  - 码误差 DiD ≈ 0。
+  - 结论：ZNE 的外推结构没有带来额外收益，提升来自"在带噪提示上训练编码器"。
+- OOD-3：
+  - AMI zh→en：Z PESQ +1.19、LAAL +0.064；C PESQ +1.39、LAAL +0.065。
+  - AMI en→zh：Z PESQ +0.45、LAAL +0.046；C PESQ +0.46、LAAL +0.024。
+  - AliMeeting：Z BLEU −0.61，C BLEU −1.40；PESQ 分别 +0.37 / +0.32。
+  - 两者 6 个单元的 no-harm 全部未通过（LAAL 或 BLEU）。
+- 对比冻结的 Idea 2：在 AliMeeting 上 Idea 2 BLEU +0.36、LAAL −0.034，AMI zh→en LAAL −0.011；Idea 1 的 Z 和 C 在这三项都更差。
+- 结论：Idea 1 不再作为方法主张，在论文里作为"训练式去噪编码器"强基线和"ZNE 结构无增益"的负结果。
