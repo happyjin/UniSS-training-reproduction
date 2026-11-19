@@ -190,7 +190,7 @@ def main():
                     "excess_kurtosis": [round(float((P[:, i] ** 4).mean() - 3), 3) for i in range(10)]}
     # gate
     ratio = out_b["dev"]["median_ratio"]
-    res["G2.0"] = {"bias_ratio_dev": ratio, "bias_ok": ratio >= 0.2, "r2_dev": float(r2), "r2_ok": r2 >= 0.3,
+    res["G2.0"] = {"bias_ratio_dev": float(ratio), "bias_ok": bool(ratio >= 0.2), "r2_dev": float(r2), "r2_ok": bool(r2 >= 0.3),
                    "pass": bool(ratio >= 0.2 and r2 >= 0.3)}
     (od / "e20.json").write_text(json.dumps(res, indent=1))
     print(json.dumps({k: res[k] for k in ("L_chosen", "r", "bias", "r2", "G2.0")}, indent=1))

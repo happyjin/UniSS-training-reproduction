@@ -179,3 +179,7 @@ $z_k=s_{j(k)}+A n_k+\varepsilon_k$，$\varepsilon_k\sim\mathcal N(0,R/\pi_k)$；
 - 背景排除：`bench/HELDOUT_BACKGROUNDS.txt`（1560 个 FSD50K eval 片段）和 `HELDOUT_BACKGROUNDS_MUSAN.txt`；MUSAN 清单写出之前，直接套用该文件头登记的同一规则（`int(sha1('OpenBroadcast-SI-v1|' + 路径), 16) % 1000 < 150`，路径为 MUSAN tar 成员名或 `FSD50K.eval_audio/<fname>.wav`），所以结果与清单一致。
 - 语音排除：`bench/HELDOUT_SPEECH.txt` 中的 553 个 Common Voice 说话人（我的 CV 说话人池中有 1 个在内，已排除）及其全部语句；CoVoST 2 test 划分（两个方向）整体不用。
 - OOD-1 语料 FMA、DEMAND、ESC-50 整体不用（§0 的"不用"清单加上 ESC-50）。
+
+## v1.3 修订（2026-11-19 01:05 布拉格，在任何中文合成流构建之前）
+
+- AISHELL-3 的 `test/wav` 目录里除了 44 个只在测试集出现的说话人，还有 170 个**训练说话人**的少量语句（同一说话人 ID 同时出现在 train 和 test 目录）。§1.1"test 说话人"按目录划分会让说话人跨划分重叠。改为按说话人划分：只要在 train 目录出现过就归 train（其全部语句）；其余 44 个只在 test 目录出现的说话人按 sha1 排序，前 22 个 dev、后 22 个 test。按目录划分的旧索引改名为 `index/speakers_aishell3.jsonl.bad_split_by_folder`（未使用）。

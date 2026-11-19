@@ -161,7 +161,6 @@ def fit_em(streams, p: Params, dev, iters=30, tol=1e-6, log=print):
         A, B = _t(p.A, dev), _t(p.B, dev)
         Nz = Nv = Nq = 0
         LL = 0.0
-        terms_ss, terms_sn, terms_e = [], [], []
         stats = []
         for st in data:
             mean, cov, ll = posterior(p, st, dev)
@@ -181,7 +180,7 @@ def fit_em(streams, p: Params, dev, iters=30, tol=1e-6, log=print):
             v = _t(st.v, dev)
             acc["vn"] += v.T @ mn
             acc["nnv"] += Enn.sum(0)
-            stats.append((st, mean, cov, mn, Cnn, Enn))
+            red = {"v": v, "mn": mn, "Cnn": Cnn}
             Nv += K
             # dynamics
             if K > 1:
@@ -208,6 +207,13 @@ def fit_em(streams, p: Params, dev, iters=30, tol=1e-6, log=print):
                 acc["zn"] += ((pi[:, None] * (z - ms)).T @ mn[hk]) - (pi[:, None, None] * Csn).sum(0)
                 acc["nnz"] += (pi[:, None, None] * Enn[hk]).sum(0)
                 Nz += len(has)
+                Css = torch.zeros(D, D, dtype=torch.float64, device=dev)
+                for j in range(J):           # sum_k pi_k Cov(s_j): static per speaker
+                    Css += pi[jk == j].sum() * cov[j * D:(j + 1) * D, j * D:(j + 1) * D]
+                red.update({"hk": hk, "pi": pi, "z": z, "ms": ms, "Csn_w": (pi[:, None, None] * Csn).sum(0),
+                            "Cnn_w": (pi[:, None, None] * Cnn[hk]).sum(0), "Css_w": Css})
+            stats.append(red)
+            del mean, cov, Ctt
         # convergence
         p.hist.append(LL)
         log(f"[em] iter {it} loglik {LL:.6e} (Nz {Nz}, Nv {Nv})")
@@ -222,30 +228,16 @@ def fit_em(streams, p: Params, dev, iters=30, tol=1e-6, log=print):
         B_new = acc["vn"] @ torch.linalg.inv(acc["nnv"])
         ee = torch.zeros(D, D, dtype=torch.float64, device=dev)
         vv = torch.zeros(m, dtype=torch.float64, device=dev)
-        for st, mean, cov, mn, Cnn, Enn in stats:
-            K, J = st.K, st.J
-            o_n, o_t = J * D, J * D + r
-            v = _t(st.v, dev)
-            ev = v - mn @ B_new.T
+        for red in stats:
+            mn, Cnn = red["mn"], red["Cnn"]
+            ev = red["v"] - mn @ B_new.T
             vv += (ev * ev).sum(0) + torch.einsum("ar,krs,as->a", B_new, Cnn, B_new)
-            has = np.nonzero(st.j >= 0)[0]
-            if not len(has):
+            if "hk" not in red:
                 continue
-            hk = torch.as_tensor(has, device=dev)
-            jk = torch.as_tensor(st.j[has], device=dev)
-            pi = _t(st.pi[has], dev)
-            z = _t(st.z[has], dev)
-            ms = mean[:J * D].reshape(J, D)[jk]
-            Csn = cov[:J * D, o_n:o_n + r].reshape(J, D, r)[jk] + cov[:J * D, o_t:].reshape(J, D, K, r)[jk, :, hk, :]
-            e = z - ms - mn[hk] @ A_new.T
-            ee += (pi[:, None] * e).T @ e
-            # sum_k pi_k Cov(s_j): static per speaker
-            for j in range(J):
-                pj = pi[jk == j].sum()
-                ee += pj * cov[j * D:(j + 1) * D, j * D:(j + 1) * D]
-            ACnn = (pi[:, None, None] * Cnn[hk]).sum(0)
-            ee += A_new @ ACnn @ A_new.T
-            X = (pi[:, None, None] * Csn).sum(0) @ A_new.T
+            pi = red["pi"]
+            e = red["z"] - red["ms"] - mn[red["hk"]] @ A_new.T
+            ee += (pi[:, None] * e).T @ e + red["Css_w"] + A_new @ red["Cnn_w"] @ A_new.T
+            X = red["Csn_w"] @ A_new.T
             ee += X + X.T
         R_new = ee / Nz
         R_new = 0.5 * (R_new + R_new.T)

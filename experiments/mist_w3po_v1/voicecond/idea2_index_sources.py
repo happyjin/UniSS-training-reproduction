@@ -96,15 +96,20 @@ def speakers(tag: str):
         files = sorted(root.glob("**/wav/SSB*/*.wav"))
         with ProcessPoolExecutor(48) as ex:
             durs = list(ex.map(dur_of, files, chunksize=256))
-        by = {}
+        # AISHELL-3's test folder also holds a few utterances of 170 TRAIN speakers: split by speaker, not by folder.
+        # A speaker with any train utterance -> train (all his utterances); the 44 test-only speakers -> dev / test.
+        by, subs = {}, {}
         for p, d in zip(files, durs):
             if d > 0:
-                by.setdefault((p.parent.parent.parent.name, p.parent.name), []).append([str(p), d])
-        test_spk = sorted({s for (sub, s) in by if sub == "test"}, key=lambda s: hashlib.sha1(s.encode()).hexdigest())
+                by.setdefault(p.parent.name, []).append([str(p), d])
+                subs.setdefault(p.parent.name, set()).add(p.parent.parent.parent.name)
+        test_spk = sorted({s for s, ss in subs.items() if "train" not in ss}, key=lambda s: hashlib.sha1(s.encode()).hexdigest())
         half = set(test_spk[: len(test_spk) // 2])
-        for (sub, s), u in sorted(by.items()):
-            split = "train" if sub == "train" else ("dev" if s in half else "test")
-            rows.append({"spk": f"a3:{s}", "lang": "zh", "corpus": "aishell3", "subset": sub, "split": split, "utts": u})
+        for s, u in sorted(by.items()):
+            tr = "train" in subs[s]
+            split = "train" if tr else ("dev" if s in half else "test")
+            rows.append({"spk": f"a3:{s}", "lang": "zh", "corpus": "aishell3", "subset": "train" if tr else "test",
+                         "split": split, "utts": u})
     elif tag == "cv_zh":
         tdir = I2 / "cv_zh/asr/common_voice/transcript/zh-CN"
         val = list(csv.DictReader(open(tdir / "validated.tsv"), delimiter="\t", quoting=csv.QUOTE_NONE))
