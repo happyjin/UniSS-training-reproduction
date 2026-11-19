@@ -4002,3 +4002,24 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 每格依次是 zh→en / en→zh；
   - Z 与 C 基本持平：音质提升主要来自训练编码器本身，外推结构的额外贡献很小；它在 OOD 上是否有优势，要看 M3 的 H1 检验。
 - **决定：** 试听页（版本 8）的版本改为 B / Idea 2（shrinkvfbF）/ Idea 1 端到端 Z / 去噪对照 C / V。免训练版 ZNE 撤下，在页脚注明。
+
+## 2026-11-19 04:54 布拉格 — Idea 1 M3：分析脚本与 OOD-3 链路已挂好
+
+- **分析脚本** `voicecond/idea1_m3_analysis.py`，严格按预登记 v4 执行：
+  - **bench 子命令：**
+    - 严格硬门槛：tcpASR-BLEU、LAAL（另报 0.05 s 容差下的结论）、身份差 ≥ −0.02；
+    - PESQ 按流配对（两种子平均），对 6 个"条件 × 方向"单元做 Holm 校正；
+    - H1 = 孪生流上 (Z − C) 的 PESQ 差中差，统计量取均值，单侧 bootstrap，两个方向做 Holm 校正；
+    - 次要指标：对比度、SIM、编码误差的差中差；
+    - clean 无害表。
+  - **ood3 子命令：** 同样的门槛；另要求 PESQ 不显著变差。
+- **决定（统计量）：** 预登记没有写明 H1 用均值还是中位数，这里取**均值**（差中差的标准做法），中位数一并报告。
+- **后台链：**
+  - `scripts/idea1_m3_analysis.sh` 等待 `m3/M3_RUNS_{DONE,FAILED}` → 写出 `m3/test_summary.json` 和标记 `M3_ANALYSIS_DONE`；
+  - `scripts/idea1_ood3_run.sh` 等待 Idea 2 的 `OOD3_<集合>_DONE`，然后依次做：
+    1. B 提示的 HDemucs（GPU）；
+    2. Z / C 的 token 表（按提示文件 sha1 校验）；
+    3. 经 Idea 2 的 `idea2_ood3_orch.py --voice-override` 跑 `idea1_ood3_{z,c}_<集合>__t1c`（卡 0–3）；
+    4. LAAL、指标和 TitaNet（参照为 Idea 2 的槽位人声，只读）；
+    5. 写出 `m3/ood3_summary.json` 和标记 `OOD3_ANALYSIS_DONE`。
+  - B 组复用 Idea 2 的 `idea2_ood3_b_*`，已登记在协调文件里。

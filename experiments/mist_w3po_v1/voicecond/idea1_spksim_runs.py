@@ -62,7 +62,7 @@ def main() -> None:
                 rk = r["id"]
             else:
                 wid, k = r["id"].rsplit("__S", 1)
-                rk = f"{wid.split('_')[0]}_S{k}"
+                rk = f"{wid.rsplit('_on_', 1)[0]}_S{k}"
             rp = Path(a.ref_dir) / f"{rk}{a.ref_suffix}.wav"
             if not rp.exists():
                 continue

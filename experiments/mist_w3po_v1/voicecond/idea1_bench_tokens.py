@@ -69,7 +69,8 @@ def vocals(a) -> None:
 
 
 def vocals_gpu(a) -> None:
-    """the same recipe as game_muffle_analysis.demucs (exact length, no padding), one prompt at a time on cuda:0"""
+    """the same recipe as game_muffle_analysis.demucs (exact length, no padding), one prompt at a time on cuda:0;
+    with --items / --out: the prompts of that items file into <out>/<id>.wav instead of the benchmark set"""
     import soundfile as sf
     import torch
     import torchaudio.functional as AF
@@ -79,11 +80,14 @@ def vocals_gpu(a) -> None:
     h.load_state_dict(torch.load(CK / "hdemucs_high_trained.pt", map_location="cpu"))
     h = h.to("cuda:0").eval()
     n = done = 0
-    for c in CONDS:
-        for d in DIRS:
-            od = VOC / f"{c}_{d}"
+    if getattr(a, "items", None):
+        jobs = [(Path(a.out), {r["id"]: (Path(r["voice_audio"]) if Path(r["voice_audio"]).is_absolute() else REPO / r["voice_audio"])
+                               for r in map(json.loads, open(a.items, encoding="utf-8"))})]
+    else:
+        jobs = [(VOC / f"{c}_{d}", items(c, d)) for c in CONDS for d in DIRS]
+    for od, its in jobs:
             od.mkdir(parents=True, exist_ok=True)
-            for iid, p in items(c, d).items():
+            for iid, p in its.items():
                 n += 1
                 dst = od / f"{iid}.wav"
                 if dst.exists():
@@ -181,7 +185,9 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     v = sub.add_parser("vocals")
     v.add_argument("--procs", type=int, default=40)
-    sub.add_parser("vocals_gpu")
+    g = sub.add_parser("vocals_gpu")
+    g.add_argument("--items", default="")
+    g.add_argument("--out", default="")
     t = sub.add_parser("tokens")
     t.add_argument("--zne", required=True)
     t.add_argument("--ctrl", required=True)
