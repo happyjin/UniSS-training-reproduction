@@ -397,6 +397,24 @@ def summary() -> None:
             for c in ("noisy", "clean"):
                 D[f"{a}_{c}_vs_base"] = diff((a, c), ("base", c))
         S["dirs"][d] = D
+    # prereg change 2 (written after S1, before any T number): symmetric by direction. zh2en (the base loses there):
+    # noisy delta CI lower > 0 and recovery >= 40 % of T's OWN zh2en P2a loss (same backend, same protocol; a loss
+    # <= 0 leaves nothing to recover -> the condition fails); recovery against S1's 3.22 listed for reference.
+    # en2zh: noisy >= -0.2; clean >= -0.2 both directions. The original (wave-1 direction) gates are listed too.
+    lz = S["dirs"]["zh2en"]["p2a_loss"]["delta"]
+    G2 = {}
+    for a in ("p2b", "k3", "k7", "k8"):
+        e = S["dirs"]["zh2en"][f"{a}_noisy_vs_base"]
+        g = {"zh2en_noisy_ci_lower_gt0": e["ci"][0] > 0,
+             "zh2en_recovery": round(e["delta"] / lz, 3) if lz > 0 else None,
+             "zh2en_recovery_vs_S1_3.22": round(e["delta"] / 3.22, 3),
+             "en2zh_noisy_ge_-0.2": S["dirs"]["en2zh"][f"{a}_noisy_vs_base"]["delta"] >= -0.2,
+             "en2zh_clean_ge_-0.2": S["dirs"]["en2zh"][f"{a}_clean_vs_base"]["delta"] >= -0.2,
+             "zh2en_clean_ge_-0.2": S["dirs"]["zh2en"][f"{a}_clean_vs_base"]["delta"] >= -0.2}
+        g["zh2en_recovery_ge_0.4"] = lz > 0 and g["zh2en_recovery"] >= 0.4
+        g["pass"] = all(v for k, v in g.items() if isinstance(v, bool))
+        G2[a] = g
+    S["gates_change2"] = G2
     loss = S["dirs"]["en2zh"]["p2a_loss"]["delta"]
     G = {}
     for a in ("p2b", "k3", "k7", "k8"):
@@ -410,7 +428,7 @@ def summary() -> None:
             g["recovery_ge_0.4"] = g["recovery"] >= 0.4
         g["pass"] = all(v for k, v in g.items() if isinstance(v, bool))
         G[a] = g
-    S["gates"] = G
+    S["gates_original"] = G
     S["p2a_en2zh_loss"] = loss
     S["written"] = time.strftime("%Y-%m-%d %H:%M:%S %Z")
     op = OUT / "summary.json"
