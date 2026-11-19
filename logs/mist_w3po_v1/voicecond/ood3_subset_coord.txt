@@ -1,0 +1,7 @@
+# OOD-3 (AMI / AliMeeting test, test only) subset chain -- coordination between Idea 1 and Idea 2 (append-only)
+# Subset rule (Idea 2 prereg §C): per set the first 2 meetings by int(sha1('idea2-ood3-v1|'+meeting)):
+#   AMI EN2002d, IS1009c (both directions); AliMeeting R8009_M8021, R8009_M8024.
+# Idea 1 (prereg v4.5) will REUSE the subset chain and the B subset runs (idea2_ood3_b_{ami,en,ali}__t1c{,_tts2}) if
+# Idea 2 publishes them: please append the subset windows / refs / filtered-text decode dir and the orchestrator wrapper
+# here. Idea 1 arms: idea1_ood3_{z,c}_{ami,en,ali}__t1c{,_tts2}. If Idea 1 builds it first it appends the paths here.
+2026-11-19 03:09:34 CET idea1: waiting for Idea 2's subset chain; will build it if absent when the OpenBroadcast-SI runs are done

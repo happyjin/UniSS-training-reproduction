@@ -272,3 +272,75 @@ $$
 - 幂律重参数化：$x=\lambda^p$，$p$ 在 dev 的真实路径上拟合；节点 $\lambda\in\{1,\sqrt2\}$。
 - "经过 V 的外推"：节点 $\lambda\in\{0,1\}$，外推到 $\lambda^\star=1-1/\hat c$，$\hat c$ 取 dev 上 $c$ 的中位数。
 - 报告这两者在 $u$ 空间的误差中位数，与 V 对比。
+
+---
+
+## v4：M3 = 冻结编码器 Z 和 C 的测试评测
+
+2026-11-19 03:09 布拉格。协调者决定（用户夜间授权）。本节在任何测试集运行之前提交。
+
+### v4.1 冻结对象与推理设置
+
+**编码器（不再改动）：**
+
+| 编码器 | 文件 | sha1 |
+|---|---|---|
+| Z（ZNE-e2e） | `m2/zne/encoder.pt` | `f81f65f21818bb936242f7e371f7d5d8d768f90d` |
+| C（去噪编码器对照） | `m2/ctrl/encoder.pt` | `fce60570b701e5f18bd7d7fb2ffca7793e06c9bc` |
+
+**推理设置（固定）：**
+- 提示 $：baseline B 运行中该条目的音色提示文件，即 `talker_in_all/voice_{causal,fallback}/<id>.wav`；
+- $\hat b=y-\hat v$，$\hat v$ 由 HDemucs（`game_muffle_analysis.demucs`，CPU）对整段提示分离得到，长度不足处补零；
+- Z 的 token：$\mathcal Q\big(2\phi_Z(y)-\phi_Z(y+(\sqrt2-1)\hat b)\big)$；C 的 token：$\mathcal Q(\phi_C(y))$；
+- **全部条目都覆盖**，没有回退，也没有阈值。
+
+### v4.2 OpenBroadcast-SI v1（按 `voicecond_bench.zh-CN.md` 的钩子）
+
+- **条件：** ID-2、OOD-1、clean × zh→en、en→zh × 两个 TTS 种子。
+- **方式：** 复用 B 的文本解码，只重跑 Talker。
+  - sidecar 为 `{条目 id: 32 个 token}`，经 `scripts/voicecond_bench_orch.py --voice-override` 注入；
+  - 参数 `--cap135 --exclude 4 5 6 7`。
+- **运行名：** Z 为 `obsi_i1z_<条件>_<方向>__t1c`，C 为 `obsi_i1c_<条件>_<方向>__t1c`。
+- **评测：** `bench_eval`，指标为文档 §5 的全部指标，两个方向分开报告。
+
+### v4.3 门槛（与 Idea 2 测试预登记 §D 完全相同的严格规则，便于两条线可比）
+
+按方法、按测试集、按方向分别判定。
+
+- **硬门槛：**
+  - tcpASR-BLEU 两种子平均 ≥ B 的两种子平均；另报不分说话人的 ASR-BLEU；
+  - 语音 LAAL（分离器块协议，两种子平均）≤ B。另报 0.05 s 容差下的结论；
+  - 身份：按流配对的说话人相似度中位数差（方法 − B，两种子平均后）≥ −0.02。OpenBroadcast-SI 用 WavLM-SV（对干净 CoVoST 片段）。
+- **主质量指标：** 按流配对的 SQUIM-PESQ（两种子平均后）。报告中位数差、bootstrap 95% CI 和 Wilcoxon；每个方法在 6 个"条件 × 方向"上做 Holm 校正。
+- **clean 无害：** clean 条件上的硬门槛同上；PESQ 中位数差的 95% CI 上界 ≥ 0，即不得显著变差。
+
+### v4.4 主要假设 H1：Z − C 在 OOD-1 上大于在 ID-2 上
+
+- **主统计量（每个方向分别）：**
+
+2712446
+\mathrm{DiD}_m=\big(\mathrm{PESQ}_Z-\mathrm{PESQ}_C\big)_{\text{OOD-1},m}-\big(\mathrm{PESQ}_Z-\mathrm{PESQ}_C\big)_{\text{ID-2},m}
+2712446
+
+  - $ 为孪生流对（ID-2 与 OOD-1 的语音流逐条相同）；先取流内条目的均值，再对两个种子取平均。
+  - 对流做 bootstrap（10000 次，种子 0），取单侧 95% 下界；两个方向做 Holm 校正。
+  - 下界 > 0 → 支持 H1。
+- **次要（只报告）：**
+  - 同样的 DiD，用在对比度、说话人相似度和编码误差上；
+  - 编码误差 = $\|\hat u-\phi_0(y_{\rm clean})\|$，{\rm clean}$ 取 clean 孪生条件中同一条目 id、且时长相差不超过 0.1 s 的提示；报告覆盖率。
+
+### v4.5 OOD-3 无害（AMI / AliMeeting 测试集，只测）
+
+- **子集规则：** 与 Idea 2 预登记 §C 相同，按 `sha1('idea2-ood3-v1|' + 会议ID)` 从小到大取前 2 场。
+  - AMI：EN2002d、IS1009c，两个方向都用这两场；
+  - AliMeeting：R8009_M8021、R8009_M8024。
+- **对照：** B 用同一子集链路。
+  - 若 Idea 2 已发布子集链路和 B 子集运行（`idea2_ood3_b_*`），就直接复用，只读；
+  - 否则由本线构建，并在 `logs/mist_w3po_v1/voicecond/ood3_subset_coord.txt` 中登记，供 Idea 2 复用。
+- **运行名：** `idea1_ood3_{z,c}_{ami,en,ali}__t1c{,_tts2}`。
+- **门槛：** 同 v4.3 的硬门槛；身份用 TitaNet，参照为整段 HDemucs 人声中该槽位的全部单人片段（与 Idea 2 v2.1 的定义相同）。
+
+### v4.6 M2 的 demo 身份指标（补充，协调者要求）
+
+- TitaNet 对 Idea 2 定义的参照：整段 HDemucs 人声中，该槽位全部单人片段的拼接（`data/open_voicecond_v1/idea2/game/<方向>/spkref/<会议>_S<k>.wav`，只读）；
+- 与 B 按流配对。
