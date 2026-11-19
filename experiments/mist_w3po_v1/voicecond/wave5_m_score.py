@@ -6,6 +6,8 @@ Per direction x set (a: CoVoST 2 pairs; b: OB-SI dev single-speaker cuts; b_no_c
 text BLEU and ASR-BLEU (S1 convention: normalize_for_bleu, sacrebleu zh / 13a; wave2_s1_score.Bleu), D1 / D2 LAAL means
 (auxiliary, no gate); system differences with a paired bootstrap 95 % CI (2000, seed 0) over units = sentences (a) or
 single-speaker streams (b).
+Change 3: two Thinker-only reruns of the base (wave5/base_rerun{1,2}) join S1 as 3 base runs; text BLEU is judged
+against their mean, and a gain must also exceed the largest pairwise difference of the 3 base runs in that cell.
 Primary rule per arm vs base: (1) no BLEU degradation in every direction x {a, b} x condition, for text BLEU and ASR-BLEU:
 point >= -0.3 and CI upper >= 0; (2) at least one noisy cell (direction x {a, b, b_no_crosstalk}) with a text BLEU gain
 whose CI lower > 0. Secondary (reported): the original G1-G3 and Fishr - ERM.
@@ -27,6 +29,9 @@ from experiments.mist_w3po_v1.voicecond import wave2_s1_score as S  # noqa: E402
 ROOTS = {"base": REPO / "eval_outputs/mist_w3po_v1/wave2_S1",
          "erm": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_erm",
          "fishr": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_fishr"}
+RERUNS = {"base_r1": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun1",
+          "base_r2": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun2"}   # change 3: Thinker-only reruns of the base
+BASES = ("base", "base_r1", "base_r2")
 SEED = "20261021"
 NB = 2000
 
@@ -40,12 +45,16 @@ def cell(meta, pers, lang, set_, cond, keep):
     st, mean = {}, {}
     for sysn, per in pers.items():
         for kind in ("text", "asr"):
+            if kind == "asr" and f"asr{SEED}" not in per[ids[0]]:
+                continue
             hyp = [per[i]["hyp"] if kind == "text" else per[i][f"asr{SEED}"] for i in ids]
             x = bl.stats(hyp, [per[i]["ref"] for i in ids])
             U = np.zeros((len(units), x.shape[1]), dtype=np.int64)
             np.add.at(U, pu, x)
             st[(sysn, kind)] = U
         for k in ("d1", "d2"):
+            if f"{k}_{SEED}" not in per[ids[0]]:
+                continue
             s_, n_ = np.zeros(len(units)), np.zeros(len(units))
             for j, i in enumerate(ids):
                 v = per[i][f"{k}_{SEED}"]
@@ -64,9 +73,14 @@ def cell(meta, pers, lang, set_, cond, keep):
         return float((s_ * w).sum() / max((n_ * w).sum(), 1e-9))
     out = {"n_sentences": len(ids), "n_units": len(units)}
     for k in ("text", "asr", "d1", "d2"):
-        vals = {sysn: [val(sysn, k, w) for w in W] for sysn in pers}
+        have = [sysn for sysn in pers if (sysn, k) in st or (sysn, k) in mean]
+        vals = {sysn: [val(sysn, k, w) for w in W] for sysn in have}
         r = {sysn: round(v[0], 3) for sysn, v in vals.items()}
-        for x, y in (("erm", "base"), ("fishr", "base"), ("fishr", "erm")):
+        if k == "text" and all(b in vals for b in BASES):
+            vals["base_mean"] = list(np.mean([vals[b] for b in BASES], axis=0))
+            r["base_mean"] = round(vals["base_mean"][0], 3)
+            r["base_floor"] = round(max(abs(vals[x][0] - vals[y][0]) for i, x in enumerate(BASES) for y in BASES[i + 1:]), 3)
+        for x, y in (("erm", "base"), ("fishr", "base"), ("fishr", "erm"), ("erm", "base_mean"), ("fishr", "base_mean")):
             if x in vals and y in vals:
                 d = np.array(vals[x]) - np.array(vals[y])
                 r[f"{x}-{y}"] = [round(float(d[0]), 3), round(float(np.percentile(d[1:], 2.5)), 3),
@@ -91,6 +105,12 @@ def main() -> None:
             if not (root / f"talker_{d}_s{SEED}" / "asr_speech.jsonl").exists():
                 continue
             meta, pers[sysn] = S.load_dir(root, d, [SEED], LD)
+        for rn, rr in RERUNS.items():
+            bf = rr / f"thinker_{d}" / f"blocks_{d}_w1.jsonl"
+            if bf.exists():
+                blk = {r["id"]: "".join(b["text"] for b in r["blocks"]) for r in S.jl(bf)}
+                assert set(blk) >= set(meta), f"{rn} {d}: missing items"
+                pers[rn] = {i: {"hyp": blk[i], "ref": pers["base"][i]["ref"]} for i in meta}
         lang = S.LANG[d]
         ovl = {m["pair"] for m in meta.values() if m["set"] == "b" and m["ovl"]}
         res[d] = {}
@@ -100,16 +120,18 @@ def main() -> None:
     for arm in ("erm", "fishr"):
         if not all(arm in res[d]["a"]["clean"]["text"] for d in ("en2zh", "zh2en")):
             continue
-        k = f"{arm}-base"
-        nodeg = {f"{d}/{sub}/{c}/{m}": res[d][sub][c][m][k] for d in ("en2zh", "zh2en") for sub in ("a", "b")
-                 for c in ("clean", "noisy") for m in ("text", "asr")}
+        k, km = f"{arm}-base", f"{arm}-base_mean"
+        # change 3: text BLEU against the mean of the 3 base runs; ASR-BLEU only S1 has a Talker run
+        nodeg = {f"{d}/{sub}/{c}/{m}": res[d][sub][c][m][km if m == "text" else k] for d in ("en2zh", "zh2en")
+                 for sub in ("a", "b") for c in ("clean", "noisy") for m in ("text", "asr")}
         nd_ok = all(v[0] >= -0.3 and v[2] >= 0 for v in nodeg.values())
-        imp = {f"{d}/{sub}/noisy/text": res[d][sub]["noisy"]["text"][k] for d in ("en2zh", "zh2en")
-               for sub in ("a", "b", "b_no_crosstalk")}
-        imp_ok = any(v[1] > 0 for v in imp.values())
+        imp = {f"{d}/{sub}/noisy/text": res[d][sub]["noisy"]["text"][km] + [res[d][sub]["noisy"]["text"]["base_floor"]]
+               for d in ("en2zh", "zh2en") for sub in ("a", "b", "b_no_crosstalk")}
+        imp_ok = any(v[1] > 0 and v[0] > v[3] for v in imp.values())
         g = {"no_degradation": nd_ok, "no_degradation_failures": {x: v for x, v in nodeg.items() if not (v[0] >= -0.3 and v[2] >= 0)},
-             "improvement": imp_ok, "improvement_cells": {x: v for x, v in imp.items() if v[1] > 0},
-             "PASS": nd_ok and imp_ok}
+             "improvement": imp_ok, "improvement_cells_[d,lo,hi,floor]": {x: v for x, v in imp.items() if v[1] > 0},
+             "PASS": nd_ok and imp_ok,
+             "note": "Fishr penalty active only in the last ~800 of 2300 steps (anneal 1500, DomainBed default)"}
         if arm == "fishr" and "fishr-erm" in res["zh2en"]["a"]["noisy"]["text"]:
             g1 = res["zh2en"]["a"]["noisy"]["text"]["fishr-erm"]
             g2e = res["en2zh"]["b_no_crosstalk"]["noisy"]["text"]
