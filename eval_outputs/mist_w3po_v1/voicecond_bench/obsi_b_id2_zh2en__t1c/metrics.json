@@ -1,0 +1,1097 @@
+{
+ "cond": "id2",
+ "dir": "zh2en",
+ "name": "obsi_b_id2_zh2en__t1c",
+ "seeds": {
+  "obsi_b_id2_zh2en__t1c": {
+   "run": "obsi_b_id2_zh2en__t1c",
+   "tcp_text": {
+    "tcpBLEU_all": 18.53,
+    "tcpBLEU_ov": 18.46,
+    "tcpBLEU_1spk": 18.57,
+    "omitted_1spk": 0.0119,
+    "omitted_ov": 0.0135,
+    "inserted_1spk": 33,
+    "inserted_ov": 17
+   },
+   "tcp_asr": {
+    "tcpBLEU_all": 17.16,
+    "tcpBLEU_ov": 14.4,
+    "tcpBLEU_1spk": 18.34,
+    "omitted_1spk": 0.0119,
+    "omitted_ov": 0.027,
+    "inserted_1spk": 25,
+    "inserted_ov": 12
+   },
+   "blind_text": {
+    "corpus": 20.0,
+    "per_stream": {
+     "obz001": 10.43,
+     "obz002": 23.12,
+     "obz003": 23.25,
+     "obz004": 23.72,
+     "obz005": 19.76,
+     "obz006": 19.78,
+     "obz007": 26.79,
+     "obz008": 16.79,
+     "obz009": 19.79,
+     "obz010": 23.6,
+     "obz011": 16.24,
+     "obz012": 15.89,
+     "obz013": 14.11,
+     "obz014": 20.04,
+     "obz015": 22.04,
+     "obz016": 11.7,
+     "obz017": 23.68,
+     "obz018": 22.22,
+     "obz019": 22.12,
+     "obz020": 21.5,
+     "obz021": 15.72,
+     "obz022": 17.0,
+     "obz023": 18.15,
+     "obz024": 21.14,
+     "obz025": 21.92,
+     "obz026": 20.05,
+     "obz027": 16.74,
+     "obz028": 15.06,
+     "obz029": 19.38,
+     "obz030": 18.86,
+     "obz031": 17.47,
+     "obz032": 20.07,
+     "obz033": 22.92,
+     "obz034": 20.84,
+     "obz035": 18.2,
+     "obz036": 23.75,
+     "obz037": 8.38
+    },
+    "len_ratio": 0.94
+   },
+   "blind_asr": {
+    "corpus": 18.49,
+    "per_stream": {
+     "obz001": 10.21,
+     "obz002": 16.14,
+     "obz003": 23.31,
+     "obz004": 24.61,
+     "obz005": 21.0,
+     "obz006": 18.25,
+     "obz007": 28.53,
+     "obz008": 16.09,
+     "obz009": 19.38,
+     "obz010": 22.27,
+     "obz011": 14.03,
+     "obz012": 16.87,
+     "obz013": 4.11,
+     "obz014": 20.86,
+     "obz015": 21.54,
+     "obz016": 10.81,
+     "obz017": 23.12,
+     "obz018": 10.76,
+     "obz019": 21.34,
+     "obz020": 17.09,
+     "obz021": 12.49,
+     "obz022": 14.94,
+     "obz023": 16.61,
+     "obz024": 21.12,
+     "obz025": 22.95,
+     "obz026": 12.0,
+     "obz027": 15.86,
+     "obz028": 13.66,
+     "obz029": 21.71,
+     "obz030": 20.18,
+     "obz031": 7.02,
+     "obz032": 19.99,
+     "obz033": 21.79,
+     "obz034": 22.33,
+     "obz035": 17.37,
+     "obz036": 23.52,
+     "obz037": 8.58
+    },
+    "len_ratio": 1.01
+   },
+   "latency_chunk": {
+    "speech_laal": 6.32,
+    "speech_laal_ov": 6.091,
+    "speech_laal_1spk": 6.454,
+    "end_offset": 5.961,
+    "text_laal": 4.766,
+    "n_units": 790,
+    "file": "eval_outputs/mist_w3po_v1/voicecond_bench/obsi_b_id2_zh2en__t1c/lat_chunk_obsi_b_id2_zh2en__t1c.json"
+   },
+   "talker_items": {
+    "results": 1201,
+    "with_speech": 1201,
+    "errors": 0,
+    "speaker_assigned": 1199
+   },
+   "pesq": {
+    "mean": 2.0782,
+    "median": 1.9518,
+    "n": 1199
+   },
+   "sisdr": {
+    "mean": 15.3754,
+    "median": 16.091,
+    "n": 1199
+   },
+   "stoi": {
+    "mean": 0.9311,
+    "median": 0.9564,
+    "n": 1199
+   },
+   "contrast": {
+    "mean": 12.6384,
+    "median": 12.6133,
+    "n": 1201
+   },
+   "flatness": {
+    "mean": 0.0686,
+    "median": 0.0513,
+    "n": 1201
+   },
+   "sim": {
+    "mean": 0.8867,
+    "median": 0.9133,
+    "n": 1199
+   }
+  },
+  "obsi_b_id2_zh2en__t1c_tts2": {
+   "run": "obsi_b_id2_zh2en__t1c_tts2",
+   "tcp_text": {
+    "tcpBLEU_all": 18.53,
+    "tcpBLEU_ov": 18.46,
+    "tcpBLEU_1spk": 18.57,
+    "omitted_1spk": 0.0119,
+    "omitted_ov": 0.0135,
+    "inserted_1spk": 33,
+    "inserted_ov": 17
+   },
+   "tcp_asr": {
+    "tcpBLEU_all": 18.71,
+    "tcpBLEU_ov": 18.45,
+    "tcpBLEU_1spk": 18.81,
+    "omitted_1spk": 0.0139,
+    "omitted_ov": 0.027,
+    "inserted_1spk": 25,
+    "inserted_ov": 12
+   },
+   "blind_text": {
+    "corpus": 20.0,
+    "per_stream": {
+     "obz001": 10.43,
+     "obz002": 23.12,
+     "obz003": 23.25,
+     "obz004": 23.72,
+     "obz005": 19.76,
+     "obz006": 19.78,
+     "obz007": 26.79,
+     "obz008": 16.79,
+     "obz009": 19.79,
+     "obz010": 23.6,
+     "obz011": 16.24,
+     "obz012": 15.89,
+     "obz013": 14.11,
+     "obz014": 20.04,
+     "obz015": 22.04,
+     "obz016": 11.7,
+     "obz017": 23.68,
+     "obz018": 22.22,
+     "obz019": 22.12,
+     "obz020": 21.5,
+     "obz021": 15.72,
+     "obz022": 17.0,
+     "obz023": 18.15,
+     "obz024": 21.14,
+     "obz025": 21.92,
+     "obz026": 20.05,
+     "obz027": 16.74,
+     "obz028": 15.06,
+     "obz029": 19.38,
+     "obz030": 18.86,
+     "obz031": 17.47,
+     "obz032": 20.07,
+     "obz033": 22.92,
+     "obz034": 20.84,
+     "obz035": 18.2,
+     "obz036": 23.75,
+     "obz037": 8.38
+    },
+    "len_ratio": 0.94
+   },
+   "blind_asr": {
+    "corpus": 19.98,
+    "per_stream": {
+     "obz001": 9.87,
+     "obz002": 22.42,
+     "obz003": 25.66,
+     "obz004": 22.63,
+     "obz005": 20.71,
+     "obz006": 18.6,
+     "obz007": 24.41,
+     "obz008": 15.47,
+     "obz009": 19.85,
+     "obz010": 23.44,
+     "obz011": 15.3,
+     "obz012": 15.42,
+     "obz013": 13.44,
+     "obz014": 20.2,
+     "obz015": 23.24,
+     "obz016": 10.82,
+     "obz017": 24.26,
+     "obz018": 21.91,
+     "obz019": 21.6,
+     "obz020": 21.56,
+     "obz021": 17.72,
+     "obz022": 18.49,
+     "obz023": 15.45,
+     "obz024": 19.15,
+     "obz025": 22.92,
+     "obz026": 14.04,
+     "obz027": 16.71,
+     "obz028": 12.85,
+     "obz029": 23.67,
+     "obz030": 21.09,
+     "obz031": 13.67,
+     "obz032": 21.16,
+     "obz033": 16.34,
+     "obz034": 20.2,
+     "obz035": 17.26,
+     "obz036": 22.97,
+     "obz037": 8.05
+    },
+    "len_ratio": 0.954
+   },
+   "latency_chunk": {
+    "speech_laal": 6.329,
+    "speech_laal_ov": 6.105,
+    "speech_laal_1spk": 6.461,
+    "end_offset": 5.961,
+    "text_laal": 4.766,
+    "n_units": 790,
+    "file": "eval_outputs/mist_w3po_v1/voicecond_bench/obsi_b_id2_zh2en__t1c/lat_chunk_obsi_b_id2_zh2en__t1c_tts2.json"
+   },
+   "talker_items": {
+    "results": 1201,
+    "with_speech": 1201,
+    "errors": 0,
+    "speaker_assigned": 1199
+   },
+   "pesq": {
+    "mean": 2.0816,
+    "median": 1.9512,
+    "n": 1201
+   },
+   "sisdr": {
+    "mean": 15.5692,
+    "median": 16.4342,
+    "n": 1201
+   },
+   "stoi": {
+    "mean": 0.9318,
+    "median": 0.9576,
+    "n": 1201
+   },
+   "contrast": {
+    "mean": 12.6678,
+    "median": 12.5965,
+    "n": 1201
+   },
+   "flatness": {
+    "mean": 0.067,
+    "median": 0.0497,
+    "n": 1201
+   },
+   "sim": {
+    "mean": 0.8877,
+    "median": 0.9122,
+    "n": 1199
+   }
+  }
+ },
+ "per_stream": {
+  "obsi_b_id2_zh2en__t1c": {
+   "obz001": {
+    "stream": "s001",
+    "pesq": 2.8973,
+    "sisdr": 20.0987,
+    "stoi": 0.9865,
+    "contrast": 12.7706,
+    "flatness": 0.0794,
+    "sim": 0.9293,
+    "blind_asr": 10.21
+   },
+   "obz002": {
+    "stream": "s002",
+    "pesq": 1.5873,
+    "sisdr": 10.4692,
+    "stoi": 0.865,
+    "contrast": 11.9477,
+    "flatness": 0.0728,
+    "sim": 0.8747,
+    "blind_asr": 16.14
+   },
+   "obz003": {
+    "stream": "s003",
+    "pesq": 2.0408,
+    "sisdr": 15.2906,
+    "stoi": 0.9342,
+    "contrast": 12.7546,
+    "flatness": 0.0586,
+    "sim": 0.8897,
+    "blind_asr": 23.31
+   },
+   "obz004": {
+    "stream": "s004",
+    "pesq": 1.5657,
+    "sisdr": 15.2621,
+    "stoi": 0.9225,
+    "contrast": 11.5935,
+    "flatness": 0.0436,
+    "sim": 0.8481,
+    "blind_asr": 24.61
+   },
+   "obz005": {
+    "stream": "s005",
+    "pesq": 1.7534,
+    "sisdr": 12.5065,
+    "stoi": 0.9384,
+    "contrast": 11.5041,
+    "flatness": 0.0861,
+    "sim": 0.8894,
+    "blind_asr": 21.0
+   },
+   "obz006": {
+    "stream": "s006",
+    "pesq": 2.1009,
+    "sisdr": 16.0699,
+    "stoi": 0.9294,
+    "contrast": 13.406,
+    "flatness": 0.0901,
+    "sim": 0.9106,
+    "blind_asr": 18.25
+   },
+   "obz007": {
+    "stream": "s007",
+    "pesq": 2.4069,
+    "sisdr": 14.1903,
+    "stoi": 0.9356,
+    "contrast": 13.2715,
+    "flatness": 0.0714,
+    "sim": 0.8815,
+    "blind_asr": 28.53
+   },
+   "obz008": {
+    "stream": "s008",
+    "pesq": 1.5609,
+    "sisdr": 10.7585,
+    "stoi": 0.9056,
+    "contrast": 11.6818,
+    "flatness": 0.1702,
+    "sim": 0.8621,
+    "blind_asr": 16.09
+   },
+   "obz009": {
+    "stream": "s009",
+    "pesq": 1.9109,
+    "sisdr": 15.6818,
+    "stoi": 0.9194,
+    "contrast": 12.1682,
+    "flatness": 0.0788,
+    "sim": 0.8732,
+    "blind_asr": 19.38
+   },
+   "obz010": {
+    "stream": "s010",
+    "pesq": 2.435,
+    "sisdr": 14.3092,
+    "stoi": 0.9214,
+    "contrast": 14.6949,
+    "flatness": 0.0141,
+    "sim": 0.8621,
+    "blind_asr": 22.27
+   },
+   "obz011": {
+    "stream": "s011",
+    "pesq": 2.4238,
+    "sisdr": 19.3751,
+    "stoi": 0.9585,
+    "contrast": 14.0498,
+    "flatness": 0.0332,
+    "sim": 0.9085,
+    "blind_asr": 14.03
+   },
+   "obz012": {
+    "stream": "s012",
+    "pesq": 1.4932,
+    "sisdr": 10.6926,
+    "stoi": 0.8899,
+    "contrast": 11.7031,
+    "flatness": 0.0831,
+    "sim": 0.85,
+    "blind_asr": 16.87
+   },
+   "obz013": {
+    "stream": "s013",
+    "pesq": 1.3861,
+    "sisdr": 8.7821,
+    "stoi": 0.8715,
+    "contrast": 11.5405,
+    "flatness": 0.121,
+    "sim": 0.87,
+    "blind_asr": 4.11
+   },
+   "obz014": {
+    "stream": "s014",
+    "pesq": 3.0934,
+    "sisdr": 24.0578,
+    "stoi": 0.9902,
+    "contrast": 12.9729,
+    "flatness": 0.0363,
+    "sim": 0.9257,
+    "blind_asr": 20.86
+   },
+   "obz015": {
+    "stream": "s015",
+    "pesq": 1.8987,
+    "sisdr": 16.0118,
+    "stoi": 0.9439,
+    "contrast": 12.881,
+    "flatness": 0.0622,
+    "sim": 0.8835,
+    "blind_asr": 21.54
+   },
+   "obz016": {
+    "stream": "s016",
+    "pesq": 1.909,
+    "sisdr": 15.1244,
+    "stoi": 0.9567,
+    "contrast": 12.295,
+    "flatness": 0.0603,
+    "sim": 0.8718,
+    "blind_asr": 10.81
+   },
+   "obz017": {
+    "stream": "s017",
+    "pesq": 1.6968,
+    "sisdr": 9.5475,
+    "stoi": 0.8859,
+    "contrast": 12.7592,
+    "flatness": 0.071,
+    "sim": 0.8821,
+    "blind_asr": 23.12
+   },
+   "obz018": {
+    "stream": "s018",
+    "pesq": 2.048,
+    "sisdr": 16.5068,
+    "stoi": 0.9381,
+    "contrast": 13.5658,
+    "flatness": 0.0436,
+    "sim": 0.8983,
+    "blind_asr": 10.76
+   },
+   "obz019": {
+    "stream": "s019",
+    "pesq": 2.3196,
+    "sisdr": 19.916,
+    "stoi": 0.9753,
+    "contrast": 13.2957,
+    "flatness": 0.0381,
+    "sim": 0.9255,
+    "blind_asr": 21.34
+   },
+   "obz020": {
+    "stream": "s020",
+    "pesq": 3.0815,
+    "sisdr": 23.958,
+    "stoi": 0.983,
+    "contrast": 13.1,
+    "flatness": 0.0498,
+    "sim": 0.9106,
+    "blind_asr": 17.09
+   },
+   "obz021": {
+    "stream": "s021",
+    "pesq": 2.4395,
+    "sisdr": 20.1358,
+    "stoi": 0.9546,
+    "contrast": 13.723,
+    "flatness": 0.0232,
+    "sim": 0.8929,
+    "blind_asr": 12.49
+   },
+   "obz022": {
+    "stream": "s022",
+    "pesq": 2.7436,
+    "sisdr": 15.2841,
+    "stoi": 0.9039,
+    "contrast": 15.028,
+    "flatness": 0.0184,
+    "sim": 0.9194,
+    "blind_asr": 14.94
+   },
+   "obz023": {
+    "stream": "s023",
+    "pesq": 2.8632,
+    "sisdr": 21.0386,
+    "stoi": 0.9689,
+    "contrast": 14.734,
+    "flatness": 0.0158,
+    "sim": 0.9328,
+    "blind_asr": 16.61
+   },
+   "obz024": {
+    "stream": "s024",
+    "pesq": 1.9459,
+    "sisdr": 15.2337,
+    "stoi": 0.9271,
+    "contrast": 11.7491,
+    "flatness": 0.099,
+    "sim": 0.8848,
+    "blind_asr": 21.12
+   },
+   "obz025": {
+    "stream": "s025",
+    "pesq": 1.2134,
+    "sisdr": 4.1531,
+    "stoi": 0.7961,
+    "contrast": 11.0777,
+    "flatness": 0.1935,
+    "sim": 0.788,
+    "blind_asr": 22.95
+   },
+   "obz026": {
+    "stream": "s026",
+    "pesq": 2.083,
+    "sisdr": 15.8092,
+    "stoi": 0.9464,
+    "contrast": 12.5239,
+    "flatness": 0.0356,
+    "sim": 0.9311,
+    "blind_asr": 12.0
+   },
+   "obz027": {
+    "stream": "s027",
+    "pesq": 1.5091,
+    "sisdr": 8.0312,
+    "stoi": 0.8861,
+    "contrast": 10.9758,
+    "flatness": 0.097,
+    "sim": 0.8299,
+    "blind_asr": 15.86
+   },
+   "obz028": {
+    "stream": "s028",
+    "pesq": 1.7758,
+    "sisdr": 13.4243,
+    "stoi": 0.9237,
+    "contrast": 10.9276,
+    "flatness": 0.1577,
+    "sim": 0.8401,
+    "blind_asr": 13.66
+   },
+   "obz029": {
+    "stream": "s029",
+    "pesq": 2.7468,
+    "sisdr": 19.7576,
+    "stoi": 0.9815,
+    "contrast": 12.5477,
+    "flatness": 0.0355,
+    "sim": 0.8931,
+    "blind_asr": 21.71
+   },
+   "obz030": {
+    "stream": "s030",
+    "pesq": 2.1894,
+    "sisdr": 17.35,
+    "stoi": 0.9388,
+    "contrast": 13.1089,
+    "flatness": 0.0342,
+    "sim": 0.8674,
+    "blind_asr": 20.18
+   },
+   "obz031": {
+    "stream": "s031",
+    "pesq": 1.9125,
+    "sisdr": 10.5923,
+    "stoi": 0.8821,
+    "contrast": 12.1739,
+    "flatness": 0.0328,
+    "sim": 0.9333,
+    "blind_asr": 7.02
+   },
+   "obz032": {
+    "stream": "s032",
+    "pesq": 2.4626,
+    "sisdr": 18.5417,
+    "stoi": 0.9561,
+    "contrast": 13.6956,
+    "flatness": 0.0246,
+    "sim": 0.8974,
+    "blind_asr": 19.99
+   },
+   "obz033": {
+    "stream": "s033",
+    "pesq": 1.8326,
+    "sisdr": 13.6506,
+    "stoi": 0.9265,
+    "contrast": 12.61,
+    "flatness": 0.0519,
+    "sim": 0.8785,
+    "blind_asr": 21.79
+   },
+   "obz034": {
+    "stream": "s034",
+    "pesq": 1.5177,
+    "sisdr": 7.9614,
+    "stoi": 0.8488,
+    "contrast": 12.6607,
+    "flatness": 0.0989,
+    "sim": 0.8824,
+    "blind_asr": 22.33
+   },
+   "obz035": {
+    "stream": "s035",
+    "pesq": 2.2104,
+    "sisdr": 16.8612,
+    "stoi": 0.9691,
+    "contrast": 12.8098,
+    "flatness": 0.0851,
+    "sim": 0.9139,
+    "blind_asr": 17.37
+   },
+   "obz036": {
+    "stream": "s036",
+    "pesq": 1.9547,
+    "sisdr": 15.2312,
+    "stoi": 0.9396,
+    "contrast": 12.0845,
+    "flatness": 0.1126,
+    "sim": 0.8912,
+    "blind_asr": 23.52
+   },
+   "obz037": {
+    "stream": "s037",
+    "pesq": 1.5963,
+    "sisdr": 11.5423,
+    "stoi": 0.9007,
+    "contrast": 11.8507,
+    "flatness": 0.1179,
+    "sim": 0.8249,
+    "blind_asr": 8.58
+   }
+  },
+  "obsi_b_id2_zh2en__t1c_tts2": {
+   "obz001": {
+    "stream": "s001",
+    "pesq": 2.8796,
+    "sisdr": 19.2688,
+    "stoi": 0.9855,
+    "contrast": 12.6926,
+    "flatness": 0.0819,
+    "sim": 0.9269,
+    "blind_asr": 9.87
+   },
+   "obz002": {
+    "stream": "s002",
+    "pesq": 1.5698,
+    "sisdr": 10.337,
+    "stoi": 0.8522,
+    "contrast": 11.9216,
+    "flatness": 0.0838,
+    "sim": 0.8813,
+    "blind_asr": 22.42
+   },
+   "obz003": {
+    "stream": "s003",
+    "pesq": 1.9761,
+    "sisdr": 14.6953,
+    "stoi": 0.9395,
+    "contrast": 12.9058,
+    "flatness": 0.065,
+    "sim": 0.8719,
+    "blind_asr": 25.66
+   },
+   "obz004": {
+    "stream": "s004",
+    "pesq": 1.5979,
+    "sisdr": 15.3166,
+    "stoi": 0.9105,
+    "contrast": 11.6235,
+    "flatness": 0.0429,
+    "sim": 0.8604,
+    "blind_asr": 22.63
+   },
+   "obz005": {
+    "stream": "s005",
+    "pesq": 1.8218,
+    "sisdr": 13.0894,
+    "stoi": 0.943,
+    "contrast": 11.6925,
+    "flatness": 0.068,
+    "sim": 0.8851,
+    "blind_asr": 20.71
+   },
+   "obz006": {
+    "stream": "s006",
+    "pesq": 2.1208,
+    "sisdr": 16.2074,
+    "stoi": 0.9213,
+    "contrast": 13.4503,
+    "flatness": 0.0897,
+    "sim": 0.8939,
+    "blind_asr": 18.6
+   },
+   "obz007": {
+    "stream": "s007",
+    "pesq": 2.3176,
+    "sisdr": 14.4535,
+    "stoi": 0.9416,
+    "contrast": 13.1191,
+    "flatness": 0.0705,
+    "sim": 0.873,
+    "blind_asr": 24.41
+   },
+   "obz008": {
+    "stream": "s008",
+    "pesq": 1.5102,
+    "sisdr": 10.0068,
+    "stoi": 0.8935,
+    "contrast": 11.9095,
+    "flatness": 0.176,
+    "sim": 0.861,
+    "blind_asr": 15.47
+   },
+   "obz009": {
+    "stream": "s009",
+    "pesq": 1.9107,
+    "sisdr": 16.5554,
+    "stoi": 0.9242,
+    "contrast": 12.3362,
+    "flatness": 0.0684,
+    "sim": 0.8714,
+    "blind_asr": 19.85
+   },
+   "obz010": {
+    "stream": "s010",
+    "pesq": 2.615,
+    "sisdr": 17.9905,
+    "stoi": 0.9462,
+    "contrast": 14.7555,
+    "flatness": 0.0163,
+    "sim": 0.9032,
+    "blind_asr": 23.44
+   },
+   "obz011": {
+    "stream": "s011",
+    "pesq": 2.4435,
+    "sisdr": 19.8871,
+    "stoi": 0.96,
+    "contrast": 14.0352,
+    "flatness": 0.0329,
+    "sim": 0.9078,
+    "blind_asr": 15.3
+   },
+   "obz012": {
+    "stream": "s012",
+    "pesq": 1.5613,
+    "sisdr": 10.7279,
+    "stoi": 0.8981,
+    "contrast": 11.8363,
+    "flatness": 0.0709,
+    "sim": 0.842,
+    "blind_asr": 15.42
+   },
+   "obz013": {
+    "stream": "s013",
+    "pesq": 1.5112,
+    "sisdr": 10.3261,
+    "stoi": 0.8932,
+    "contrast": 11.5681,
+    "flatness": 0.1003,
+    "sim": 0.8639,
+    "blind_asr": 13.44
+   },
+   "obz014": {
+    "stream": "s014",
+    "pesq": 3.0185,
+    "sisdr": 23.9005,
+    "stoi": 0.9916,
+    "contrast": 12.7797,
+    "flatness": 0.0357,
+    "sim": 0.9225,
+    "blind_asr": 20.2
+   },
+   "obz015": {
+    "stream": "s015",
+    "pesq": 1.9338,
+    "sisdr": 17.0291,
+    "stoi": 0.9487,
+    "contrast": 13.0849,
+    "flatness": 0.0515,
+    "sim": 0.8883,
+    "blind_asr": 23.24
+   },
+   "obz016": {
+    "stream": "s016",
+    "pesq": 1.8207,
+    "sisdr": 15.4712,
+    "stoi": 0.9426,
+    "contrast": 12.0827,
+    "flatness": 0.0751,
+    "sim": 0.8615,
+    "blind_asr": 10.82
+   },
+   "obz017": {
+    "stream": "s017",
+    "pesq": 1.6968,
+    "sisdr": 11.1134,
+    "stoi": 0.8942,
+    "contrast": 12.73,
+    "flatness": 0.0701,
+    "sim": 0.8863,
+    "blind_asr": 24.26
+   },
+   "obz018": {
+    "stream": "s018",
+    "pesq": 2.0553,
+    "sisdr": 16.627,
+    "stoi": 0.9321,
+    "contrast": 13.5225,
+    "flatness": 0.0429,
+    "sim": 0.9005,
+    "blind_asr": 21.91
+   },
+   "obz019": {
+    "stream": "s019",
+    "pesq": 2.4645,
+    "sisdr": 20.9328,
+    "stoi": 0.9846,
+    "contrast": 13.2857,
+    "flatness": 0.0406,
+    "sim": 0.9238,
+    "blind_asr": 21.6
+   },
+   "obz020": {
+    "stream": "s020",
+    "pesq": 3.1581,
+    "sisdr": 24.2079,
+    "stoi": 0.985,
+    "contrast": 13.0612,
+    "flatness": 0.0451,
+    "sim": 0.9141,
+    "blind_asr": 21.56
+   },
+   "obz021": {
+    "stream": "s021",
+    "pesq": 2.4658,
+    "sisdr": 20.0836,
+    "stoi": 0.9532,
+    "contrast": 13.7475,
+    "flatness": 0.0233,
+    "sim": 0.9032,
+    "blind_asr": 17.72
+   },
+   "obz022": {
+    "stream": "s022",
+    "pesq": 2.8718,
+    "sisdr": 17.1936,
+    "stoi": 0.9202,
+    "contrast": 15.0773,
+    "flatness": 0.0169,
+    "sim": 0.9017,
+    "blind_asr": 18.49
+   },
+   "obz023": {
+    "stream": "s023",
+    "pesq": 2.8058,
+    "sisdr": 19.4987,
+    "stoi": 0.9735,
+    "contrast": 14.6532,
+    "flatness": 0.0179,
+    "sim": 0.9288,
+    "blind_asr": 15.45
+   },
+   "obz024": {
+    "stream": "s024",
+    "pesq": 1.8779,
+    "sisdr": 13.897,
+    "stoi": 0.9029,
+    "contrast": 11.6964,
+    "flatness": 0.1036,
+    "sim": 0.883,
+    "blind_asr": 19.15
+   },
+   "obz025": {
+    "stream": "s025",
+    "pesq": 1.2268,
+    "sisdr": 5.2644,
+    "stoi": 0.8025,
+    "contrast": 11.2353,
+    "flatness": 0.1767,
+    "sim": 0.7939,
+    "blind_asr": 22.92
+   },
+   "obz026": {
+    "stream": "s026",
+    "pesq": 2.0552,
+    "sisdr": 15.359,
+    "stoi": 0.9473,
+    "contrast": 12.4385,
+    "flatness": 0.0332,
+    "sim": 0.9255,
+    "blind_asr": 14.04
+   },
+   "obz027": {
+    "stream": "s027",
+    "pesq": 1.5579,
+    "sisdr": 9.0562,
+    "stoi": 0.9113,
+    "contrast": 11.0646,
+    "flatness": 0.0908,
+    "sim": 0.8443,
+    "blind_asr": 16.71
+   },
+   "obz028": {
+    "stream": "s028",
+    "pesq": 1.6545,
+    "sisdr": 13.1828,
+    "stoi": 0.9014,
+    "contrast": 10.9991,
+    "flatness": 0.168,
+    "sim": 0.8564,
+    "blind_asr": 12.85
+   },
+   "obz029": {
+    "stream": "s029",
+    "pesq": 2.8175,
+    "sisdr": 21.7471,
+    "stoi": 0.9876,
+    "contrast": 12.5154,
+    "flatness": 0.0345,
+    "sim": 0.9037,
+    "blind_asr": 23.67
+   },
+   "obz030": {
+    "stream": "s030",
+    "pesq": 2.0824,
+    "sisdr": 15.9262,
+    "stoi": 0.9278,
+    "contrast": 13.1058,
+    "flatness": 0.0418,
+    "sim": 0.8571,
+    "blind_asr": 21.09
+   },
+   "obz031": {
+    "stream": "s031",
+    "pesq": 2.0669,
+    "sisdr": 14.5929,
+    "stoi": 0.9261,
+    "contrast": 12.1857,
+    "flatness": 0.0306,
+    "sim": 0.9176,
+    "blind_asr": 13.67
+   },
+   "obz032": {
+    "stream": "s032",
+    "pesq": 2.3269,
+    "sisdr": 17.3643,
+    "stoi": 0.943,
+    "contrast": 13.7216,
+    "flatness": 0.0214,
+    "sim": 0.9004,
+    "blind_asr": 21.16
+   },
+   "obz033": {
+    "stream": "s033",
+    "pesq": 1.7823,
+    "sisdr": 13.0451,
+    "stoi": 0.9138,
+    "contrast": 12.6135,
+    "flatness": 0.0521,
+    "sim": 0.8946,
+    "blind_asr": 16.34
+   },
+   "obz034": {
+    "stream": "s034",
+    "pesq": 1.4293,
+    "sisdr": 7.1406,
+    "stoi": 0.8363,
+    "contrast": 12.2918,
+    "flatness": 0.1211,
+    "sim": 0.899,
+    "blind_asr": 20.2
+   },
+   "obz035": {
+    "stream": "s035",
+    "pesq": 2.2337,
+    "sisdr": 16.3826,
+    "stoi": 0.9617,
+    "contrast": 12.9547,
+    "flatness": 0.0803,
+    "sim": 0.9238,
+    "blind_asr": 17.26
+   },
+   "obz036": {
+    "stream": "s036",
+    "pesq": 1.9571,
+    "sisdr": 15.8803,
+    "stoi": 0.9537,
+    "contrast": 12.0728,
+    "flatness": 0.1185,
+    "sim": 0.9015,
+    "blind_asr": 22.97
+   },
+   "obz037": {
+    "stream": "s037",
+    "pesq": 1.6353,
+    "sisdr": 11.5172,
+    "stoi": 0.9025,
+    "contrast": 12.009,
+    "flatness": 0.1101,
+    "sim": 0.8444,
+    "blind_asr": 8.05
+   }
+  }
+ },
+ "summary": {
+  "tcpASR_BLEU": [
+   17.16,
+   18.71
+  ],
+  "blind_ASR_BLEU": [
+   18.49,
+   19.98
+  ],
+  "text_tcpBLEU": 18.53,
+  "text_blind_BLEU": 20.0,
+  "speech_LAAL_chunk": [
+   6.32,
+   6.329
+  ],
+  "EndOffset_chunk": [
+   5.961,
+   5.961
+  ],
+  "PESQ_median": [
+   1.9518,
+   1.9512
+  ],
+  "SI_SDR_median": [
+   16.091,
+   16.4342
+  ],
+  "contrast_median": [
+   12.6133,
+   12.5965
+  ],
+  "flatness_median": [
+   0.0513,
+   0.0497
+  ],
+  "SIM_mean": [
+   0.8867,
+   0.8877
+  ]
+ }
+}

@@ -3939,3 +3939,22 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **cvt 数据：** CoVoST 2 非测试划分（排除留出说话人）导出 23030 条；320 条 train 流（39.2 h）+ 24 条 dev 流（3.1 h）；教师条目每种语言 train 4000、dev 400。zh 源只有 104 个非测试说话人，总量 42.3 h，略少于计划的 50 h。
 - **代码：** 预处理脚本支持 `IDEA2_ROOT`（默认不变）；`idea2_gpu_pre_v2.sh` 增加 $\tilde v$；`idea2_teacher_chain.sh`（每张卡在启动作业前按 PID 停占位程序）。
 - 端到端预登记定稿 v1（`voicecond_idea2_e2e_prereg.zh-CN.md` 末尾），损失和规则不变。
+
+## 2026-11-19 03:45 布拉格 — OpenBroadcast-SI v1：baseline B 全部完成（3 个条件 × 2 个方向 × 2 个 TTS 种子）
+
+- 文档：`reports/mist_w3po_v1/voicecond_bench.zh-CN.md` §6。原始结果：`eval_outputs/mist_w3po_v1/voicecond_bench/obsi_b_*__t1c/metrics.json`。
+- **zh→en（长流）**，依次为 clean / ID-2 / OOD-1，斜杠前后是两个种子：
+  - tcpASR-BLEU：18.21/18.46，17.16/18.71，17.74/15.60；文本 tcpBLEU：18.49，18.53，18.73；
+  - SQUIM-PESQ 中位数：3.09，1.95，2.02；
+  - 说话人相似度：0.907，0.887，0.890；
+  - 语音 LAAL（块协议）：6.35，6.32，6.33 s。
+- **en→zh（短流）**，同样顺序：
+  - tcpASR-BLEU：35.40/35.50，33.38/33.31，33.72/33.90；文本 tcpBLEU：38.57，36.67，37.07；
+  - PESQ：3.18，1.91，1.97；
+  - 相似度：0.864，0.846，0.851；
+  - LAAL：5.13，5.23，5.20 s。
+- **按流配对，背景 − 无背景：** PESQ −0.74 至 −0.90，频谱对比度 −1.3 至 −1.4 dB，平坦度约翻倍，相似度约 −0.015（p < 1e-4）。
+  - 结论：开源数据复现了电竞上的"闷"，ID-2 与 OOD-1 程度相近。
+- **注意：** zh→en 的 ASR-BLEU 在两个 TTS 种子之间最多相差 2.1。所以"不低于基线"必须按流配对、两个种子都看，并给 bootstrap 区间。
+- **试听子集：** `demo_packages/voicecond_bench_listen_v1`。每个方向 3 条流（zh→en：s033、s035、s015；en→zh：s089、s128、s018），每条都有 ID-2、OOD-1、clean 三个版本；左声道原声、右声道 B 的同传。
+- **运行情况：** 分片偶尔因 vLLM 启动时显存不足失败，自动重试后全部完成；全程只用卡 0–3（`--exclude 4 5 6 7`）。

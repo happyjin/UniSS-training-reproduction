@@ -1,0 +1,1097 @@
+{
+ "cond": "ood1",
+ "dir": "zh2en",
+ "name": "obsi_b_ood1_zh2en__t1c",
+ "seeds": {
+  "obsi_b_ood1_zh2en__t1c": {
+   "run": "obsi_b_ood1_zh2en__t1c",
+   "tcp_text": {
+    "tcpBLEU_all": 18.73,
+    "tcpBLEU_ov": 17.94,
+    "tcpBLEU_1spk": 19.01,
+    "omitted_1spk": 0.0079,
+    "omitted_ov": 0.0169,
+    "inserted_1spk": 37,
+    "inserted_ov": 14
+   },
+   "tcp_asr": {
+    "tcpBLEU_all": 17.74,
+    "tcpBLEU_ov": 17.65,
+    "tcpBLEU_1spk": 17.59,
+    "omitted_1spk": 0.0079,
+    "omitted_ov": 0.0372,
+    "inserted_1spk": 26,
+    "inserted_ov": 12
+   },
+   "blind_text": {
+    "corpus": 20.14,
+    "per_stream": {
+     "ooz001": 13.44,
+     "ooz002": 25.95,
+     "ooz003": 24.18,
+     "ooz004": 21.5,
+     "ooz005": 21.87,
+     "ooz006": 20.36,
+     "ooz007": 23.26,
+     "ooz008": 15.49,
+     "ooz009": 18.08,
+     "ooz010": 23.8,
+     "ooz011": 15.82,
+     "ooz012": 17.26,
+     "ooz013": 17.61,
+     "ooz014": 20.94,
+     "ooz015": 22.05,
+     "ooz016": 12.1,
+     "ooz017": 23.83,
+     "ooz018": 20.16,
+     "ooz019": 21.57,
+     "ooz020": 21.58,
+     "ooz021": 16.64,
+     "ooz022": 15.28,
+     "ooz023": 15.42,
+     "ooz024": 19.84,
+     "ooz025": 21.93,
+     "ooz026": 20.51,
+     "ooz027": 17.01,
+     "ooz028": 15.93,
+     "ooz029": 16.65,
+     "ooz030": 19.46,
+     "ooz031": 17.62,
+     "ooz032": 19.94,
+     "ooz033": 21.14,
+     "ooz034": 23.21,
+     "ooz035": 17.8,
+     "ooz036": 25.04,
+     "ooz037": 10.22
+    },
+    "len_ratio": 0.942
+   },
+   "blind_asr": {
+    "corpus": 19.12,
+    "per_stream": {
+     "ooz001": 14.39,
+     "ooz002": 25.01,
+     "ooz003": 25.79,
+     "ooz004": 22.3,
+     "ooz005": 22.44,
+     "ooz006": 19.15,
+     "ooz007": 23.87,
+     "ooz008": 12.45,
+     "ooz009": 17.95,
+     "ooz010": 24.36,
+     "ooz011": 16.55,
+     "ooz012": 10.82,
+     "ooz013": 3.74,
+     "ooz014": 22.76,
+     "ooz015": 17.25,
+     "ooz016": 11.16,
+     "ooz017": 24.91,
+     "ooz018": 19.25,
+     "ooz019": 21.31,
+     "ooz020": 18.23,
+     "ooz021": 18.38,
+     "ooz022": 12.67,
+     "ooz023": 13.94,
+     "ooz024": 21.45,
+     "ooz025": 24.49,
+     "ooz026": 22.34,
+     "ooz027": 9.95,
+     "ooz028": 13.71,
+     "ooz029": 12.93,
+     "ooz030": 21.88,
+     "ooz031": 17.63,
+     "ooz032": 20.61,
+     "ooz033": 20.28,
+     "ooz034": 24.43,
+     "ooz035": 13.95,
+     "ooz036": 23.71,
+     "ooz037": 10.0
+    },
+    "len_ratio": 1.031
+   },
+   "latency_chunk": {
+    "speech_laal": 6.334,
+    "speech_laal_ov": 5.991,
+    "speech_laal_1spk": 6.533,
+    "end_offset": 6.002,
+    "text_laal": 4.758,
+    "n_units": 791,
+    "file": "eval_outputs/mist_w3po_v1/voicecond_bench/obsi_b_ood1_zh2en__t1c/lat_chunk_obsi_b_ood1_zh2en__t1c.json"
+   },
+   "talker_items": {
+    "results": 1226,
+    "with_speech": 1226,
+    "errors": 0,
+    "speaker_assigned": 1220
+   },
+   "pesq": {
+    "mean": 2.1409,
+    "median": 2.0213,
+    "n": 1226
+   },
+   "sisdr": {
+    "mean": 15.0479,
+    "median": 15.7777,
+    "n": 1226
+   },
+   "stoi": {
+    "mean": 0.9319,
+    "median": 0.9629,
+    "n": 1226
+   },
+   "contrast": {
+    "mean": 12.7052,
+    "median": 12.6942,
+    "n": 1226
+   },
+   "flatness": {
+    "mean": 0.0535,
+    "median": 0.0408,
+    "n": 1226
+   },
+   "sim": {
+    "mean": 0.8896,
+    "median": 0.9178,
+    "n": 1220
+   }
+  },
+  "obsi_b_ood1_zh2en__t1c_tts2": {
+   "run": "obsi_b_ood1_zh2en__t1c_tts2",
+   "tcp_text": {
+    "tcpBLEU_all": 18.73,
+    "tcpBLEU_ov": 17.94,
+    "tcpBLEU_1spk": 19.01,
+    "omitted_1spk": 0.0079,
+    "omitted_ov": 0.0169,
+    "inserted_1spk": 37,
+    "inserted_ov": 14
+   },
+   "tcp_asr": {
+    "tcpBLEU_all": 15.6,
+    "tcpBLEU_ov": 17.74,
+    "tcpBLEU_1spk": 14.92,
+    "omitted_1spk": 0.0079,
+    "omitted_ov": 0.027,
+    "inserted_1spk": 26,
+    "inserted_ov": 12
+   },
+   "blind_text": {
+    "corpus": 20.14,
+    "per_stream": {
+     "ooz001": 13.44,
+     "ooz002": 25.95,
+     "ooz003": 24.18,
+     "ooz004": 21.5,
+     "ooz005": 21.87,
+     "ooz006": 20.36,
+     "ooz007": 23.26,
+     "ooz008": 15.49,
+     "ooz009": 18.08,
+     "ooz010": 23.8,
+     "ooz011": 15.82,
+     "ooz012": 17.26,
+     "ooz013": 17.61,
+     "ooz014": 20.94,
+     "ooz015": 22.05,
+     "ooz016": 12.1,
+     "ooz017": 23.83,
+     "ooz018": 20.16,
+     "ooz019": 21.57,
+     "ooz020": 21.58,
+     "ooz021": 16.64,
+     "ooz022": 15.28,
+     "ooz023": 15.42,
+     "ooz024": 19.84,
+     "ooz025": 21.93,
+     "ooz026": 20.51,
+     "ooz027": 17.01,
+     "ooz028": 15.93,
+     "ooz029": 16.65,
+     "ooz030": 19.46,
+     "ooz031": 17.62,
+     "ooz032": 19.94,
+     "ooz033": 21.14,
+     "ooz034": 23.21,
+     "ooz035": 17.8,
+     "ooz036": 25.04,
+     "ooz037": 10.22
+    },
+    "len_ratio": 0.942
+   },
+   "blind_asr": {
+    "corpus": 16.97,
+    "per_stream": {
+     "ooz001": 13.5,
+     "ooz002": 26.15,
+     "ooz003": 24.83,
+     "ooz004": 22.03,
+     "ooz005": 21.37,
+     "ooz006": 18.62,
+     "ooz007": 20.55,
+     "ooz008": 4.42,
+     "ooz009": 17.3,
+     "ooz010": 25.92,
+     "ooz011": 16.14,
+     "ooz012": 18.02,
+     "ooz013": 16.36,
+     "ooz014": 22.21,
+     "ooz015": 14.78,
+     "ooz016": 10.47,
+     "ooz017": 13.44,
+     "ooz018": 14.0,
+     "ooz019": 23.63,
+     "ooz020": 21.73,
+     "ooz021": 19.12,
+     "ooz022": 15.71,
+     "ooz023": 14.48,
+     "ooz024": 21.45,
+     "ooz025": 21.67,
+     "ooz026": 21.41,
+     "ooz027": 15.46,
+     "ooz028": 13.93,
+     "ooz029": 10.86,
+     "ooz030": 23.4,
+     "ooz031": 17.27,
+     "ooz032": 19.98,
+     "ooz033": 13.96,
+     "ooz034": 8.88,
+     "ooz035": 8.25,
+     "ooz036": 15.54,
+     "ooz037": 10.19
+    },
+    "len_ratio": 1.021
+   },
+   "latency_chunk": {
+    "speech_laal": 6.335,
+    "speech_laal_ov": 5.99,
+    "speech_laal_1spk": 6.535,
+    "end_offset": 6.043,
+    "text_laal": 4.758,
+    "n_units": 791,
+    "file": "eval_outputs/mist_w3po_v1/voicecond_bench/obsi_b_ood1_zh2en__t1c/lat_chunk_obsi_b_ood1_zh2en__t1c_tts2.json"
+   },
+   "talker_items": {
+    "results": 1226,
+    "with_speech": 1226,
+    "errors": 0,
+    "speaker_assigned": 1220
+   },
+   "pesq": {
+    "mean": 2.154,
+    "median": 2.0311,
+    "n": 1225
+   },
+   "sisdr": {
+    "mean": 15.1432,
+    "median": 15.938,
+    "n": 1225
+   },
+   "stoi": {
+    "mean": 0.9332,
+    "median": 0.9629,
+    "n": 1225
+   },
+   "contrast": {
+    "mean": 12.7161,
+    "median": 12.7184,
+    "n": 1225
+   },
+   "flatness": {
+    "mean": 0.0528,
+    "median": 0.039,
+    "n": 1225
+   },
+   "sim": {
+    "mean": 0.8879,
+    "median": 0.9143,
+    "n": 1219
+   }
+  }
+ },
+ "per_stream": {
+  "obsi_b_ood1_zh2en__t1c": {
+   "ooz001": {
+    "stream": "s001",
+    "pesq": 3.0064,
+    "sisdr": 19.8853,
+    "stoi": 0.9872,
+    "contrast": 12.691,
+    "flatness": 0.0686,
+    "sim": 0.9276,
+    "blind_asr": 14.39
+   },
+   "ooz002": {
+    "stream": "s002",
+    "pesq": 1.7523,
+    "sisdr": 11.4734,
+    "stoi": 0.875,
+    "contrast": 12.4211,
+    "flatness": 0.0428,
+    "sim": 0.8861,
+    "blind_asr": 25.01
+   },
+   "ooz003": {
+    "stream": "s003",
+    "pesq": 1.9635,
+    "sisdr": 15.4075,
+    "stoi": 0.9381,
+    "contrast": 12.3178,
+    "flatness": 0.0782,
+    "sim": 0.8779,
+    "blind_asr": 25.79
+   },
+   "ooz004": {
+    "stream": "s004",
+    "pesq": 1.5019,
+    "sisdr": 13.0138,
+    "stoi": 0.9148,
+    "contrast": 11.9079,
+    "flatness": 0.0612,
+    "sim": 0.8554,
+    "blind_asr": 22.3
+   },
+   "ooz005": {
+    "stream": "s005",
+    "pesq": 2.0122,
+    "sisdr": 12.2584,
+    "stoi": 0.9482,
+    "contrast": 12.2045,
+    "flatness": 0.0427,
+    "sim": 0.9092,
+    "blind_asr": 22.44
+   },
+   "ooz006": {
+    "stream": "s006",
+    "pesq": 2.1512,
+    "sisdr": 15.7919,
+    "stoi": 0.9194,
+    "contrast": 13.5265,
+    "flatness": 0.0786,
+    "sim": 0.9123,
+    "blind_asr": 19.15
+   },
+   "ooz007": {
+    "stream": "s007",
+    "pesq": 2.1805,
+    "sisdr": 14.2468,
+    "stoi": 0.9224,
+    "contrast": 13.0798,
+    "flatness": 0.0738,
+    "sim": 0.8671,
+    "blind_asr": 23.87
+   },
+   "ooz008": {
+    "stream": "s008",
+    "pesq": 1.556,
+    "sisdr": 8.4714,
+    "stoi": 0.8741,
+    "contrast": 11.1513,
+    "flatness": 0.0991,
+    "sim": 0.881,
+    "blind_asr": 12.45
+   },
+   "ooz009": {
+    "stream": "s009",
+    "pesq": 1.9873,
+    "sisdr": 14.867,
+    "stoi": 0.9353,
+    "contrast": 12.2417,
+    "flatness": 0.0621,
+    "sim": 0.8766,
+    "blind_asr": 17.95
+   },
+   "ooz010": {
+    "stream": "s010",
+    "pesq": 2.5516,
+    "sisdr": 17.8121,
+    "stoi": 0.9461,
+    "contrast": 15.1218,
+    "flatness": 0.0119,
+    "sim": 0.9044,
+    "blind_asr": 24.36
+   },
+   "ooz011": {
+    "stream": "s011",
+    "pesq": 2.5702,
+    "sisdr": 20.1092,
+    "stoi": 0.9741,
+    "contrast": 13.8207,
+    "flatness": 0.0322,
+    "sim": 0.924,
+    "blind_asr": 16.55
+   },
+   "ooz012": {
+    "stream": "s012",
+    "pesq": 1.6438,
+    "sisdr": 10.8041,
+    "stoi": 0.8939,
+    "contrast": 12.0088,
+    "flatness": 0.0471,
+    "sim": 0.8697,
+    "blind_asr": 10.82
+   },
+   "ooz013": {
+    "stream": "s013",
+    "pesq": 1.7318,
+    "sisdr": 12.3452,
+    "stoi": 0.9154,
+    "contrast": 11.8406,
+    "flatness": 0.0348,
+    "sim": 0.8677,
+    "blind_asr": 3.74
+   },
+   "ooz014": {
+    "stream": "s014",
+    "pesq": 3.0771,
+    "sisdr": 24.3774,
+    "stoi": 0.9919,
+    "contrast": 12.8654,
+    "flatness": 0.0362,
+    "sim": 0.9155,
+    "blind_asr": 22.76
+   },
+   "ooz015": {
+    "stream": "s015",
+    "pesq": 2.0248,
+    "sisdr": 15.6304,
+    "stoi": 0.9674,
+    "contrast": 12.6837,
+    "flatness": 0.0434,
+    "sim": 0.9061,
+    "blind_asr": 17.25
+   },
+   "ooz016": {
+    "stream": "s016",
+    "pesq": 1.7397,
+    "sisdr": 14.8055,
+    "stoi": 0.9478,
+    "contrast": 11.9728,
+    "flatness": 0.0772,
+    "sim": 0.9004,
+    "blind_asr": 11.16
+   },
+   "ooz017": {
+    "stream": "s017",
+    "pesq": 1.6739,
+    "sisdr": 10.7737,
+    "stoi": 0.8982,
+    "contrast": 12.4855,
+    "flatness": 0.0495,
+    "sim": 0.9016,
+    "blind_asr": 24.91
+   },
+   "ooz018": {
+    "stream": "s018",
+    "pesq": 1.991,
+    "sisdr": 15.1132,
+    "stoi": 0.9243,
+    "contrast": 13.6119,
+    "flatness": 0.0358,
+    "sim": 0.9049,
+    "blind_asr": 19.25
+   },
+   "ooz019": {
+    "stream": "s019",
+    "pesq": 2.806,
+    "sisdr": 19.9102,
+    "stoi": 0.9868,
+    "contrast": 13.8502,
+    "flatness": 0.018,
+    "sim": 0.9327,
+    "blind_asr": 21.31
+   },
+   "ooz020": {
+    "stream": "s020",
+    "pesq": 3.114,
+    "sisdr": 23.549,
+    "stoi": 0.9859,
+    "contrast": 13.1386,
+    "flatness": 0.0417,
+    "sim": 0.9035,
+    "blind_asr": 18.23
+   },
+   "ooz021": {
+    "stream": "s021",
+    "pesq": 2.575,
+    "sisdr": 19.0327,
+    "stoi": 0.9531,
+    "contrast": 13.7332,
+    "flatness": 0.0196,
+    "sim": 0.9032,
+    "blind_asr": 18.38
+   },
+   "ooz022": {
+    "stream": "s022",
+    "pesq": 2.9213,
+    "sisdr": 18.2138,
+    "stoi": 0.9169,
+    "contrast": 15.0875,
+    "flatness": 0.0141,
+    "sim": 0.8947,
+    "blind_asr": 12.67
+   },
+   "ooz023": {
+    "stream": "s023",
+    "pesq": 2.9744,
+    "sisdr": 21.7832,
+    "stoi": 0.9829,
+    "contrast": 14.6961,
+    "flatness": 0.0158,
+    "sim": 0.9372,
+    "blind_asr": 13.94
+   },
+   "ooz024": {
+    "stream": "s024",
+    "pesq": 2.1493,
+    "sisdr": 15.1637,
+    "stoi": 0.9458,
+    "contrast": 12.3863,
+    "flatness": 0.0547,
+    "sim": 0.8805,
+    "blind_asr": 21.45
+   },
+   "ooz025": {
+    "stream": "s025",
+    "pesq": 1.5607,
+    "sisdr": 6.6415,
+    "stoi": 0.8068,
+    "contrast": 11.8976,
+    "flatness": 0.1614,
+    "sim": 0.7888,
+    "blind_asr": 24.49
+   },
+   "ooz026": {
+    "stream": "s026",
+    "pesq": 2.1528,
+    "sisdr": 15.0792,
+    "stoi": 0.9496,
+    "contrast": 12.8138,
+    "flatness": 0.036,
+    "sim": 0.9269,
+    "blind_asr": 22.34
+   },
+   "ooz027": {
+    "stream": "s027",
+    "pesq": 1.5415,
+    "sisdr": 7.4894,
+    "stoi": 0.8562,
+    "contrast": 11.075,
+    "flatness": 0.0796,
+    "sim": 0.8259,
+    "blind_asr": 9.95
+   },
+   "ooz028": {
+    "stream": "s028",
+    "pesq": 1.7508,
+    "sisdr": 13.5641,
+    "stoi": 0.9315,
+    "contrast": 10.9633,
+    "flatness": 0.1046,
+    "sim": 0.8489,
+    "blind_asr": 13.71
+   },
+   "ooz029": {
+    "stream": "s029",
+    "pesq": 2.7981,
+    "sisdr": 19.4863,
+    "stoi": 0.9694,
+    "contrast": 12.657,
+    "flatness": 0.0273,
+    "sim": 0.8651,
+    "blind_asr": 12.93
+   },
+   "ooz030": {
+    "stream": "s030",
+    "pesq": 1.986,
+    "sisdr": 14.3041,
+    "stoi": 0.9357,
+    "contrast": 12.6473,
+    "flatness": 0.0418,
+    "sim": 0.8705,
+    "blind_asr": 21.88
+   },
+   "ooz031": {
+    "stream": "s031",
+    "pesq": 2.164,
+    "sisdr": 9.5876,
+    "stoi": 0.8744,
+    "contrast": 12.3805,
+    "flatness": 0.0257,
+    "sim": 0.9204,
+    "blind_asr": 17.63
+   },
+   "ooz032": {
+    "stream": "s032",
+    "pesq": 2.3836,
+    "sisdr": 18.231,
+    "stoi": 0.939,
+    "contrast": 13.6991,
+    "flatness": 0.0277,
+    "sim": 0.8659,
+    "blind_asr": 20.61
+   },
+   "ooz033": {
+    "stream": "s033",
+    "pesq": 1.7791,
+    "sisdr": 12.7985,
+    "stoi": 0.9147,
+    "contrast": 12.5544,
+    "flatness": 0.0325,
+    "sim": 0.8701,
+    "blind_asr": 20.28
+   },
+   "ooz034": {
+    "stream": "s034",
+    "pesq": 1.5629,
+    "sisdr": 8.8381,
+    "stoi": 0.8638,
+    "contrast": 12.6841,
+    "flatness": 0.0909,
+    "sim": 0.876,
+    "blind_asr": 24.43
+   },
+   "ooz035": {
+    "stream": "s035",
+    "pesq": 2.3759,
+    "sisdr": 16.5893,
+    "stoi": 0.9705,
+    "contrast": 12.8113,
+    "flatness": 0.087,
+    "sim": 0.9126,
+    "blind_asr": 13.95
+   },
+   "ooz036": {
+    "stream": "s036",
+    "pesq": 2.0985,
+    "sisdr": 14.9507,
+    "stoi": 0.9536,
+    "contrast": 12.3396,
+    "flatness": 0.0834,
+    "sim": 0.9204,
+    "blind_asr": 23.71
+   },
+   "ooz037": {
+    "stream": "s037",
+    "pesq": 1.6747,
+    "sisdr": 6.8189,
+    "stoi": 0.8406,
+    "contrast": 12.251,
+    "flatness": 0.0742,
+    "sim": 0.7984,
+    "blind_asr": 10.0
+   }
+  },
+  "obsi_b_ood1_zh2en__t1c_tts2": {
+   "ooz001": {
+    "stream": "s001",
+    "pesq": 2.9818,
+    "sisdr": 20.3932,
+    "stoi": 0.9876,
+    "contrast": 12.6945,
+    "flatness": 0.0686,
+    "sim": 0.9361,
+    "blind_asr": 13.5
+   },
+   "ooz002": {
+    "stream": "s002",
+    "pesq": 1.6895,
+    "sisdr": 10.9884,
+    "stoi": 0.8801,
+    "contrast": 12.3477,
+    "flatness": 0.0426,
+    "sim": 0.882,
+    "blind_asr": 26.15
+   },
+   "ooz003": {
+    "stream": "s003",
+    "pesq": 1.9004,
+    "sisdr": 13.8937,
+    "stoi": 0.9248,
+    "contrast": 12.2146,
+    "flatness": 0.0776,
+    "sim": 0.8727,
+    "blind_asr": 24.83
+   },
+   "ooz004": {
+    "stream": "s004",
+    "pesq": 1.5646,
+    "sisdr": 13.5912,
+    "stoi": 0.9226,
+    "contrast": 11.9084,
+    "flatness": 0.0704,
+    "sim": 0.8435,
+    "blind_asr": 22.03
+   },
+   "ooz005": {
+    "stream": "s005",
+    "pesq": 2.0389,
+    "sisdr": 12.4433,
+    "stoi": 0.95,
+    "contrast": 12.1285,
+    "flatness": 0.042,
+    "sim": 0.8961,
+    "blind_asr": 21.37
+   },
+   "ooz006": {
+    "stream": "s006",
+    "pesq": 2.1396,
+    "sisdr": 15.1368,
+    "stoi": 0.9151,
+    "contrast": 13.5486,
+    "flatness": 0.0788,
+    "sim": 0.9054,
+    "blind_asr": 18.62
+   },
+   "ooz007": {
+    "stream": "s007",
+    "pesq": 2.3424,
+    "sisdr": 18.8264,
+    "stoi": 0.9572,
+    "contrast": 12.978,
+    "flatness": 0.075,
+    "sim": 0.8956,
+    "blind_asr": 20.55
+   },
+   "ooz008": {
+    "stream": "s008",
+    "pesq": 1.5956,
+    "sisdr": 10.7537,
+    "stoi": 0.9003,
+    "contrast": 11.3562,
+    "flatness": 0.092,
+    "sim": 0.8677,
+    "blind_asr": 4.42
+   },
+   "ooz009": {
+    "stream": "s009",
+    "pesq": 1.9566,
+    "sisdr": 15.3193,
+    "stoi": 0.9344,
+    "contrast": 12.1994,
+    "flatness": 0.0687,
+    "sim": 0.8792,
+    "blind_asr": 17.3
+   },
+   "ooz010": {
+    "stream": "s010",
+    "pesq": 2.6067,
+    "sisdr": 17.5758,
+    "stoi": 0.9542,
+    "contrast": 15.043,
+    "flatness": 0.0148,
+    "sim": 0.9122,
+    "blind_asr": 25.92
+   },
+   "ooz011": {
+    "stream": "s011",
+    "pesq": 2.5665,
+    "sisdr": 19.3333,
+    "stoi": 0.9691,
+    "contrast": 14.0643,
+    "flatness": 0.0283,
+    "sim": 0.9217,
+    "blind_asr": 16.14
+   },
+   "ooz012": {
+    "stream": "s012",
+    "pesq": 1.6262,
+    "sisdr": 11.0744,
+    "stoi": 0.8946,
+    "contrast": 11.9288,
+    "flatness": 0.0462,
+    "sim": 0.8509,
+    "blind_asr": 18.02
+   },
+   "ooz013": {
+    "stream": "s013",
+    "pesq": 1.7655,
+    "sisdr": 12.2558,
+    "stoi": 0.9201,
+    "contrast": 12.0861,
+    "flatness": 0.0329,
+    "sim": 0.8933,
+    "blind_asr": 16.36
+   },
+   "ooz014": {
+    "stream": "s014",
+    "pesq": 3.0878,
+    "sisdr": 24.1623,
+    "stoi": 0.9926,
+    "contrast": 12.8556,
+    "flatness": 0.0388,
+    "sim": 0.9167,
+    "blind_asr": 22.21
+   },
+   "ooz015": {
+    "stream": "s015",
+    "pesq": 2.0337,
+    "sisdr": 16.1435,
+    "stoi": 0.9671,
+    "contrast": 12.7662,
+    "flatness": 0.0466,
+    "sim": 0.9025,
+    "blind_asr": 14.78
+   },
+   "ooz016": {
+    "stream": "s016",
+    "pesq": 1.8931,
+    "sisdr": 14.184,
+    "stoi": 0.9466,
+    "contrast": 12.164,
+    "flatness": 0.0691,
+    "sim": 0.8761,
+    "blind_asr": 10.47
+   },
+   "ooz017": {
+    "stream": "s017",
+    "pesq": 1.6907,
+    "sisdr": 11.0631,
+    "stoi": 0.8968,
+    "contrast": 12.5807,
+    "flatness": 0.0515,
+    "sim": 0.9014,
+    "blind_asr": 13.44
+   },
+   "ooz018": {
+    "stream": "s018",
+    "pesq": 2.065,
+    "sisdr": 14.0546,
+    "stoi": 0.9207,
+    "contrast": 13.5381,
+    "flatness": 0.038,
+    "sim": 0.8919,
+    "blind_asr": 14.0
+   },
+   "ooz019": {
+    "stream": "s019",
+    "pesq": 2.9039,
+    "sisdr": 22.0429,
+    "stoi": 0.9885,
+    "contrast": 13.6933,
+    "flatness": 0.0176,
+    "sim": 0.9376,
+    "blind_asr": 23.63
+   },
+   "ooz020": {
+    "stream": "s020",
+    "pesq": 3.1097,
+    "sisdr": 23.496,
+    "stoi": 0.9869,
+    "contrast": 13.2384,
+    "flatness": 0.0415,
+    "sim": 0.9097,
+    "blind_asr": 21.73
+   },
+   "ooz021": {
+    "stream": "s021",
+    "pesq": 2.5974,
+    "sisdr": 19.7084,
+    "stoi": 0.9625,
+    "contrast": 13.7302,
+    "flatness": 0.0193,
+    "sim": 0.8967,
+    "blind_asr": 19.12
+   },
+   "ooz022": {
+    "stream": "s022",
+    "pesq": 2.9368,
+    "sisdr": 17.324,
+    "stoi": 0.9192,
+    "contrast": 15.2905,
+    "flatness": 0.0134,
+    "sim": 0.9116,
+    "blind_asr": 15.71
+   },
+   "ooz023": {
+    "stream": "s023",
+    "pesq": 3.1029,
+    "sisdr": 21.4093,
+    "stoi": 0.9714,
+    "contrast": 14.7392,
+    "flatness": 0.0176,
+    "sim": 0.9262,
+    "blind_asr": 14.48
+   },
+   "ooz024": {
+    "stream": "s024",
+    "pesq": 2.1216,
+    "sisdr": 15.8257,
+    "stoi": 0.9432,
+    "contrast": 12.334,
+    "flatness": 0.0532,
+    "sim": 0.8724,
+    "blind_asr": 21.45
+   },
+   "ooz025": {
+    "stream": "s025",
+    "pesq": 1.5164,
+    "sisdr": 6.2511,
+    "stoi": 0.8186,
+    "contrast": 12.0846,
+    "flatness": 0.1037,
+    "sim": 0.8105,
+    "blind_asr": 21.67
+   },
+   "ooz026": {
+    "stream": "s026",
+    "pesq": 2.1125,
+    "sisdr": 15.0544,
+    "stoi": 0.9507,
+    "contrast": 12.6908,
+    "flatness": 0.0344,
+    "sim": 0.9278,
+    "blind_asr": 21.41
+   },
+   "ooz027": {
+    "stream": "s027",
+    "pesq": 1.5979,
+    "sisdr": 7.1529,
+    "stoi": 0.8532,
+    "contrast": 11.159,
+    "flatness": 0.0826,
+    "sim": 0.8194,
+    "blind_asr": 15.46
+   },
+   "ooz028": {
+    "stream": "s028",
+    "pesq": 1.8011,
+    "sisdr": 14.869,
+    "stoi": 0.9532,
+    "contrast": 11.0217,
+    "flatness": 0.1044,
+    "sim": 0.8768,
+    "blind_asr": 13.93
+   },
+   "ooz029": {
+    "stream": "s029",
+    "pesq": 2.7657,
+    "sisdr": 19.8748,
+    "stoi": 0.9769,
+    "contrast": 12.653,
+    "flatness": 0.0235,
+    "sim": 0.8858,
+    "blind_asr": 10.86
+   },
+   "ooz030": {
+    "stream": "s030",
+    "pesq": 1.9982,
+    "sisdr": 14.3989,
+    "stoi": 0.9382,
+    "contrast": 12.8017,
+    "flatness": 0.0389,
+    "sim": 0.8608,
+    "blind_asr": 23.4
+   },
+   "ooz031": {
+    "stream": "s031",
+    "pesq": 2.257,
+    "sisdr": 9.3217,
+    "stoi": 0.8663,
+    "contrast": 12.2997,
+    "flatness": 0.0219,
+    "sim": 0.9148,
+    "blind_asr": 17.27
+   },
+   "ooz032": {
+    "stream": "s032",
+    "pesq": 2.3724,
+    "sisdr": 19.2114,
+    "stoi": 0.9416,
+    "contrast": 13.5893,
+    "flatness": 0.0263,
+    "sim": 0.8597,
+    "blind_asr": 19.98
+   },
+   "ooz033": {
+    "stream": "s033",
+    "pesq": 1.8384,
+    "sisdr": 14.2206,
+    "stoi": 0.9267,
+    "contrast": 12.5439,
+    "flatness": 0.0355,
+    "sim": 0.88,
+    "blind_asr": 13.96
+   },
+   "ooz034": {
+    "stream": "s034",
+    "pesq": 1.5893,
+    "sisdr": 8.0794,
+    "stoi": 0.8592,
+    "contrast": 12.666,
+    "flatness": 0.0905,
+    "sim": 0.8797,
+    "blind_asr": 8.88
+   },
+   "ooz035": {
+    "stream": "s035",
+    "pesq": 2.3883,
+    "sisdr": 17.0057,
+    "stoi": 0.9732,
+    "contrast": 12.758,
+    "flatness": 0.0837,
+    "sim": 0.919,
+    "blind_asr": 8.25
+   },
+   "ooz036": {
+    "stream": "s036",
+    "pesq": 2.1008,
+    "sisdr": 14.6361,
+    "stoi": 0.953,
+    "contrast": 12.2877,
+    "flatness": 0.0848,
+    "sim": 0.9261,
+    "blind_asr": 15.54
+   },
+   "ooz037": {
+    "stream": "s037",
+    "pesq": 1.7347,
+    "sisdr": 6.1047,
+    "stoi": 0.8314,
+    "contrast": 12.1369,
+    "flatness": 0.0713,
+    "sim": 0.7767,
+    "blind_asr": 10.19
+   }
+  }
+ },
+ "summary": {
+  "tcpASR_BLEU": [
+   17.74,
+   15.6
+  ],
+  "blind_ASR_BLEU": [
+   19.12,
+   16.97
+  ],
+  "text_tcpBLEU": 18.73,
+  "text_blind_BLEU": 20.14,
+  "speech_LAAL_chunk": [
+   6.334,
+   6.335
+  ],
+  "EndOffset_chunk": [
+   6.002,
+   6.043
+  ],
+  "PESQ_median": [
+   2.0213,
+   2.0311
+  ],
+  "SI_SDR_median": [
+   15.7777,
+   15.938
+  ],
+  "contrast_median": [
+   12.6942,
+   12.7184
+  ],
+  "flatness_median": [
+   0.0408,
+   0.039
+  ],
+  "SIM_mean": [
+   0.8896,
+   0.8879
+  ]
+ }
+}
