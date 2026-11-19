@@ -319,9 +319,9 @@ def main():
     if a.ids:
         keep = set(a.ids.split(","))
         W = [w for w in W if w["id"] in keep]
-    meetings = sorted({w["meeting"] for w in W})
-    mine = set(meetings[a.shard::a.num_shards])
-    W = sorted([w for w in W if w["meeting"] in mine], key=lambda w: (w["meeting"], w["start_s"]))
+    # contiguous shards of the (meeting, start) order: more shards than meetings, few meeting reloads per shard
+    W = sorted(W, key=lambda w: (w["meeting"], w["start_s"]))
+    W = W[a.shard * len(W) // a.num_shards: (a.shard + 1) * len(W) // a.num_shards]
     if a.limit:
         W = W[: a.limit]
 
