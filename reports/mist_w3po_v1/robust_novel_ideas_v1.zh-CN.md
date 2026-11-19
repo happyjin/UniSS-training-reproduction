@@ -206,3 +206,82 @@
 - Vision Transformers Need Registers，ICLR 2024：https://arxiv.org/abs/2309.16588；Don't Need Trained Registers †，NeurIPS 2025：https://arxiv.org/abs/2506.08010；Online Register †：https://arxiv.org/abs/2602.23702
 - PMRF，ICLR 2025：https://arxiv.org/abs/2410.00418；Distortion-Perception in Wasserstein Space，NeurIPS 2021：https://arxiv.org/abs/2107.02555；Autoguidance，NeurIPS 2024：https://arxiv.org/abs/2406.02507；Selective CFG in speech †：https://arxiv.org/abs/2509.19668
 - 带噪提示 TTS 相关：LauraTTS token 去噪 https://arxiv.org/abs/2505.13830；Noise-robust zero-shot TTS https://arxiv.org/abs/2406.05699
+
+---
+
+## 5. 与已测 6 个版本的组合：统一框架"背景锚定的零噪声外推"（v1.1 追加，2026-11-19）
+
+### 5.1 哪些旧版本能接进来
+
+| 已测版本 | 在新框架里的角色 | 能否提升新意 |
+|---|---|---|
+| Idea 1 C（去噪编码器） | 提供正条件 g⁺（音质最好的音色 token） | 组件，本身不新 |
+| Idea 1 Z（ZNE 外推） | **提供理论框架**：把引导解释为在输出 logit 空间做 Richardson 零噪声外推，权重由噪声水平算出 | **是**：H1 在编码器空间失败，这里换到 Talker/Thinker 的输出空间 |
+| Idea 2 冻结版（收缩后验） | 提供生成模型 z = λs + (1−λ)(c+b) 和每窗口的 λ（信噪比），用来**算外推权重** | **是**：λ 从"估音色"变成"定引导强度" |
+| Idea 5（层级共模背景，未上完整测试） | **估计背景锚** b̂：闭式 Schur 补联合后验，用话轮间隙和其他说话人 | **是**：作为音色估计器它太弱（−4.9%），作为负条件来源正好对口 |
+| Idea 6 C_post / E2E | 可选：逐窗口可靠度 α_k 作为 Thinker 侧的门控信号 | 弱，E2E 已证实过拟合 |
+| Idea 2 端到端版 | 不接：KL 目标和音质错位 | — |
+
+### 5.2 推导
+
+**(1) 背景感知的生成模型（Idea 2 + Idea 5）。** 第 k 个窗口、说话人 j 的音色编码：
+
+$$z_k = \lambda_k s_j + (1-\lambda_k)\,(c + b) + \varepsilon_k,\qquad s_j \sim \mathcal N(\mu_0,\Sigma_0),\; b \sim \mathcal N(0,\Sigma_b),\; \varepsilon_k \sim \mathcal N(0, R/\pi_k).$$
+
+话轮间隙窗口 λ_k = 0，直接观测 c + b。所有说话人的 s_j 与 b 的联合后验是闭式的（Idea 5 已实现的 Schur 补）：
+
+$$\Big(\Sigma_b^{-1} + \sum_j C_j G - \sum_j B_j^2\, G M_j^{-1} G\Big)\,\hat b \;=\; G\sum_j y^{b}_j - \sum_j B_j\, G M_j^{-1}\big(\Sigma_0^{-1}\mu_0 + G y^{s}_j\big).$$
+
+正条件 g⁺ = Q(C 编码器输出 或 ŝ_j)，负条件 g⁻ = Q(c + b̂)，Q 是 FSQ 量化。
+
+**(2) 引导 = 零噪声外推（Idea 1 Z 的理论搬到输出空间）。** 设条件里的背景占比为 σ ∈ [0,1]（σ = 1 − λ），Talker 每步的 logit 是 σ 的光滑函数：
+
+$$\ell(\sigma) = \ell(0) + a\,\sigma + O(\sigma^2).$$
+
+在两个已知噪声水平 σ⁺（去噪后的正条件）和 σ⁻（负条件；纯背景时 σ⁻ = 1）上各算一次，一阶 Richardson 外推到 σ = 0：
+
+$$\hat\ell(0) = \frac{\sigma^- \ell(\sigma^+) - \sigma^+ \ell(\sigma^-)}{\sigma^- - \sigma^+} = \ell(\sigma^+) + w\,\big[\ell(\sigma^+) - \ell(\sigma^-)\big],\qquad w = \frac{\sigma^+}{\sigma^- - \sigma^+}.$$
+
+这正是负条件 CFG 的形式，但 **w 不用调，而是由噪声水平算出**：
+- σ⁺ 由 Idea 2 的 λ 头给出原始噪声水平，再乘以去噪编码器在 dev 上测得的残差比 ρ（只在 dev 上测一次，固定）；
+- 干净说话人 σ⁺ → 0，w → 0，自动不引导；噪声大的说话人引导更强。
+
+**偏差–方差：** 外推的方差约为 (1 + w)² + w² 倍单次方差，σ⁺ 越接近 σ⁻ 越不稳定。可以加一个原始带噪提示（σ_raw）作为第三个点做二阶外推，并用它检验线性假设。
+
+**(3) Thinker 侧同理（候选 C）。** 窗口 k 的 logit：
+
+$$\hat\ell_T = \ell_T(x_k) + w_k\big[\ell_T(x_k) - \ell_T(x^{bg}_k)\big],\qquad w_k = \frac{1-\lambda_k}{1-(1-\lambda_k)} = \frac{1-\lambda_k}{\lambda_k},$$
+
+其中 x^bg 是本流等长的话轮间隙。干净窗口 λ_k → 1 时 w_k → 0，所以中→英这类不受噪声影响的情形**自动关闭**，不需要人为门控。
+
+**(4) 语速钳制保 LAAL（候选 B）。** 设 Talker 时长被放大 (1+ε)，单元 i 内第 m 个词的发声时刻为 t_m(1+ε)，则
+
+$$\Delta\mathrm{LAAL} \approx \varepsilon\cdot \mathbb E_i\Big[\tfrac{1}{|i|}\sum_m t_m\Big],$$
+
+与我们实测的"时长 +5% → LAAL +0.05–0.12 s"同量级。钳制：在中层隐状态上，沿语速方向 r（线性探针学得）把投影固定到文本期望值 r̂(text)：
+
+$$h \leftarrow h - \big(r^\top h - \hat r(\text{text})\big)\,r,$$
+
+使 ε ≈ 0，从而 ΔLAAL ≈ 0，且对引导造成的语速变化同样有效。
+
+**(5) 可选的训练版本（加分项）：**
+- 引导蒸馏：把两次前向蒸馏成一次，参考 On Distillation of Guided Diffusion Models（CVPR 2023），消除额外计算；
+- 对比式训练 C：让 g⁺ 与 g⁻ 在 Talker 输出分布上的 KL 更大，用 InfoNCE 形式推导，增强引导信号。
+
+### 5.3 新意
+
+单独的负条件 CFG、对比解码、测试时自适应都已有。组合后的新意在于：
+1. **引导权重有闭式来源：** 引导 = 零噪声外推，w 由贝叶斯模型估计的噪声水平决定，不调参，并给出偏差–方差分析；
+2. **负条件有贝叶斯来源：** 背景锚由多说话人共享背景的层级模型从话轮间隙在线估计；
+3. **一套公式同时用于翻译（Thinker）和合成（Talker）；**
+4. **延迟有显式约束（语速钳制）。**
+
+另外，之前的负结果（Idea 1 的 ZNE、Idea 5 的共模背景）在这里变成了有作用的组件，论文叙事更完整。
+
+### 5.4 预检（先验证核心假设：logit 对 σ 近似线性）
+
+- **线性检验：** 在 dev 上，用本流间隙噪声把干净提示混成 3–4 个已知 σ，看 Talker 每步 logit 随 σ 的变化能否被一次函数解释。门槛：R² ≥ 0.8。Thinker 侧同样检验。
+- **线性成立才做外推：** 在 dev 上比较 C 与 C + ZNE 引导（w 由公式算出，不扫参）的 PESQ、ASR-BLEU、相似度、LAAL（同时打开语速钳制）。
+- 线性不成立：外推框架的理论依据不足，退回普通负条件 CFG（固定 w = 1），或停止。
+
+**需要如实说明：** Idea 1 的 H1（编码器空间的 ZNE）没有得到支持；这里假设的是输出空间的线性，必须先过线性检验。
