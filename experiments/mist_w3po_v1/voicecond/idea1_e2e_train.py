@@ -77,7 +77,8 @@ def main() -> None:
     for d in a.data:
         S = np.load(Path(d) / "s.npy", mmap_mode="r")
         for i in range(0, S.shape[0], 256):
-            U0[off + i: off + i + 256] = P0.phi_wave([np.asarray(r, dtype=np.float64) for r in S[i:i + 256]])
+            batch = [np.asarray(r, dtype=np.float64) for r in S[i:i + 256]]
+            U0[off + i: off + i + len(batch)] = P0.phi_wave(batch)
         off += S.shape[0]
     np.save(out / "u0_targets.npy", U0)
     U0t = torch.from_numpy(U0).to(dev)
