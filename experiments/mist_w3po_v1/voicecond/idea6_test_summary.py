@@ -97,20 +97,22 @@ def ood3():
             nr, dr, tr = OOD3[ref]
             nn, nr = nn.format(ss), nr.format(ss)
             cf = OUT / f"compare_{new}_{tr}_{ss}.json"
-            if not cf.exists():
-                C[ss] = {"status": "missing", "compare": str(cf)}
-                continue
-            r = {"status": "ok"}
+            # 2026-11-19 17:50: the cross-arm compare (i6e vs i6c) is written by the runner only after all units; a
+            # missing compare file no longer drops the cell, only its speech block (BLEU / LAAL / sim / chrF still filled)
+            r = {"status": "ok" if cf.exists() else "ok_no_speech_compare"}
             bleu = {arm: [json.load(open(E / "decode" / f"{n}{sfx}" / "score_asr.json"))["tcpBLEU_all"] for sfx in ("", "_tts2")]
                     for arm, n in (("ref", nr), ("new", nn))}
             lat = {arm: [json.load(open(d / f"lat_chunk_{n}{sfx}.json"))["unit"]["speech_laal_online"]["all"]["mean"]
                          for sfx in ("", "_tts2")] for arm, n, d in (("ref", nr, dr), ("new", nn, dn))}
             r["tcpASR_BLEU"] = {**bleu, "diff_mean2": float(np.mean(bleu["new"]) - np.mean(bleu["ref"]))}
             r["speech_LAAL_chunk"] = {**lat, "diff_mean2": float(np.mean(lat["new"]) - np.mean(lat["ref"]))}
-            cmp = json.load(open(cf))
-            r["speech"] = {s: {k: {x: (cmp[f"{ss}_{s}"][k] or {}).get(x) for x in ("A_median", "B_median", "median_diff",
-                                                                                   "median_ci", "holm_p", "n")}
-                               for k in FAM} for s in ("s1", "s2")}
+            if cf.exists():
+                cmp = json.load(open(cf))
+                r["speech"] = {s: {k: {x: (cmp[f"{ss}_{s}"][k] or {}).get(x) for x in ("A_median", "B_median", "median_diff",
+                                                                                       "median_ci", "holm_p", "n")}
+                                   for k in FAM} for s in ("s1", "s2")}
+            else:
+                r["speech"] = None
             sm = {(arm, sfx): sims(f"{n}{sfx}") for arm, n in (("ref", nr), ("new", nn)) for sfx in ("", "_tts2")}
             if all(v is not None for v in sm.values()):
                 ids = sorted(set.intersection(*[set(v) for v in sm.values()]))
