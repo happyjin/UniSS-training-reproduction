@@ -4151,3 +4151,20 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - PESQ 全部显著提升（OpenBroadcast-SI 的 Holm p ≈ 0）；身份门槛全部通过；BLEU 只有 clean zh→en 低 0.025（严格判为未过，量级在种子噪声内）。
 - LAAL 在 6 个集合上变大 0.009–0.088 s（严格判为未过），最大是 AMI en→zh +0.088 s；OOD-1 zh→en、AMI zh→en、AliMeeting 变小。
 - 回退（V token）比例 0.3%–5.6%。
+
+## 2026-11-19 08:00 布拉格 · Idea 2 端到端 main_v1 在第 106 步出现 NaN：原因、修复、以 main_v2 重新启动
+
+- **现象：** main_v1 第 100 步正常（loss 0.682），第 106 步梯度范数为 NaN，此后所有量都是 NaN；第 250 步 dev 时 `torch.linalg.solve` 因参数已是 NaN 报 "singular"，4 个 rank 都退出（exit 1，07:36:56）。
+- **定位：** 在卡 0–3 上用相同种子和数据复现（`--debug-dump`）：第 106 步同样出现非有限梯度，只在 rank 1 的 batch 上，而且前向全部有限。把该步状态和 batch 在单卡上回放（`--replay`，逐张量检查 + `torch.autograd.set_detect_anomaly`）：
+  - 前向中 z_k、λ 头、log r（最大 0.05）、e^{-r}、精度和 A（最大 91）、solve、û、q_c、直通桥、学生 log p 全部有限；
+  - 反向时，学生 log p 的梯度仍然有限，从直通嵌入往下全是 NaN。异常检测给出的位置是 **`ScaledDotProductCudnnAttentionBackward0` 返回 NaN**，即 Talker（bf16、带 padding 的 batch）用 cuDNN SDPA 内核做反向时出了数值问题。
+  - 协调者怀疑的三点（log r 无界、精度矩阵病态、编码器梯度过大）都不是原因。
+- **修复（只改数值实现，损失、权重规则和设置不变）：**
+  1. 关闭 cuDNN SDPA 后端（`torch.backends.cuda.enable_cudnn_sdp(False)`），注意力改由 PyTorch 的 memory-efficient / math 内核计算，计算的是同一个注意力。回放同一 batch，梯度全部有限。
+  2. 加非有限步保护：任一项损失或梯度非有限时跳过该步更新并记录（`skipped` / `n_skipped`），连续 10 步非有限就中止，不再带着 NaN 继续跑；权重标定只统计有限的 batch。
+  3. 训练器新增 `--debug-dump` 和 `--replay` 两个调试选项。启动脚本支持卡 0–3（占槽 A），并新增 OUT / EXTRA 两个环境变量。
+- **偏离情况：** 没有偏离预登记（同一种子、数据、学习率和权重规则）。关闭 cuDNN 注意力内核和跳过非有限步都作为实现细节注明。
+- **main_v2：** 07:51 在卡 4–7 启动（占槽 B，启动脚本 PID 1350869，torchrun 1353334），输出 `eval_outputs/mist_w3po_v1/voicecond_idea2/e2e/idea2_e2e_main_v2/`，日志 `logs/mist_w3po_v1/voicecond/idea2/e2e_idea2_e2e_main_v2.log`。v1 的输出原样保留。
+  - 固定权重：w_code = 0.004476，w_anc = 0.09795（与 v1 几乎相同）。
+  - 前 170 步没有跳过任何一步。KL1：0.435（1–10 步）→ 0.396 → 0.344 → 0.292 → 0.264（131–170 步）；KL2 升到 0.026；编码误差 85.7 → 72.8；token 恢复率 6.5% → 7.4%；锚点项先升后降（5.1 → 0.25）；log r 均值在 0.02 以内。
+  - 约 2.0 s/步，峰值 14.8 GiB/卡；预计约 09:45 布拉格结束。
