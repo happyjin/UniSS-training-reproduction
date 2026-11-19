@@ -85,7 +85,7 @@ def cmd_asrin(a):
     with open(out, "x", encoding="utf-8") as fh:
         for r in jl(G / "rows.jsonl"):
             if r.get("wav"):
-                fh.write(json.dumps({"id": r["key"], "mode": "speech", "audio_path": r["wav"],
+                fh.write(json.dumps({"id": r["key"], "mode": "speech", "audio_path": str(Path(r["wav"]).resolve()),
                                      "tgt_lang": items[r["id"]]["tgt"], "audio_duration_seconds": r["dur_s"]}) + "\n")
 
 
