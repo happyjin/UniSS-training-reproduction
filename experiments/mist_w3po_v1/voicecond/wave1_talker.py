@@ -6,7 +6,9 @@ lin   P1a: per item, the 5 sigma-mix voice-token sets (prep tokens s000..s100) t
       l = h W_sem^T. Primary: the log-softmax over the 8192 semantic codes (the distribution the Talker samples from;
       per-step constants removed). Per (position, code) a line in sigma with intercept: R^2 = 1 - SS_res / SS_tot pooled
       over all positions, codes and items; quadratic share = SS of the orthogonal quadratic term / SS_tot.
-      Supplements: the same on the raw semantic logits, and weighted by the mean probability over sigma.
+      Supplements: the same on the raw semantic logits, and weighted by the mean probability over sigma. Primary run in
+      bf16 (the deployed Talker); --fp32 1 repeats it in fp32 to show the bf16 numerics floor (left-padding check:
+      fp32 batch vs single max logit diff 3e-4, bf16 0.5).
 feats P4a: the mid-layer (14 of 28: output of decoder layer 13) hidden state averaged over the code positions of every
       cvt train / dev teacher sequence (g*), with the sequence's rate = target text tokens / (n_codes * 0.02 s).
 gen   P1b / P4b / K7v: sampling exactly as si_infer's T1c talk job for a single final block (--speed-policy fixed
@@ -58,10 +60,10 @@ def log(s):
     print(f"{time.strftime('%F %T')} {s}", flush=True)
 
 
-def load_talker(dev):
+def load_talker(dev, dtype=torch.bfloat16):
     from transformers import AutoModelForCausalLM
     torch.backends.cuda.enable_cudnn_sdp(False)
-    m = AutoModelForCausalLM.from_pretrained(str(T1C), dtype=torch.bfloat16).to(dev).eval()
+    m = AutoModelForCausalLM.from_pretrained(str(T1C), dtype=dtype).to(dev).eval()
     assert m.config.num_hidden_layers == 2 * MID
     return m
 
@@ -98,7 +100,7 @@ def cmd_lin(a):
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     dev = torch.device("cuda:0")
     items = [json.loads(l) for l in open(a.items, encoding="utf-8")]
-    model = load_talker(dev)
+    model = load_talker(dev, torch.float32 if a.fp32 else torch.bfloat16)
     body = model.model
     Wsem = model.lm_head.weight[SEMANTIC_0:SEMANTIC_0 + 8192].float()
     x = torch.tensor(SIGMAS, dtype=torch.float64, device=dev) - 0.5
@@ -361,6 +363,7 @@ def main():
     s = sub.add_parser("lin")
     s.add_argument("--items", required=True)
     s.add_argument("--out", required=True)
+    s.add_argument("--fp32", type=int, default=0, help="1 = fp32 Talker (numerics supplement; primary = bf16 as deployed)")
     s = sub.add_parser("feats")
     s.add_argument("--out", required=True)
     s.add_argument("--sets", default="zh2en_train,en2zh_train,zh2en_dev,en2zh_dev")
