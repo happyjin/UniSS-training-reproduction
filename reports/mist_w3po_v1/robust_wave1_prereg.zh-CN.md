@@ -226,3 +226,19 @@
 **总判定：** K2（P2a 停止）、K3、K7、K8、K9 都不通过。按预登记，不改设置重试。
 - 主要原因是在这个设置下 Thinker 本身的文本噪声损失只有 0.2 BLEU，没有可收回的空间。
 - 输入侧的改动（K3 的偏移、K8 的 HDemucs 替换）反而伤害中→英或英→中。
+
+## D0 结果（2026-11-19 20:28 布拉格）：D0 运行按用户要求停止
+
+- **数据（已建好并保留）：** OpenBroadcast-SI dev 版，`data/open_voicecond_v1/bench_dev/{id2,clean}/{zh2en,en2zh}`；构建器 `voicecond/bench_dev_build.py`（c799551e9），19:27–19:35 建成。
+  - 语音：CoVoST 2 validation。zh 只用不在 Idea 2 任何训练划分里的 15 个说话人（82 个非留出说话人中有 67 个在 Idea 2 的 train 里）；每人的句子分成 4 份互不重叠的子集，一个说话人会出现在约 4 条流里。en 用每人恰好 3 句的说话人（与 test 规则相同）。
+  - 背景：MUSAN / FSD50K 中不在留出清单里的文件（无人声音乐 348 首，人群 410 条，音效和噪声 1071 条）。AMI 轮次统计和 BVR 分位数只读 test 的 `meta/stats.json`。
+  - 规模：zh→en 20 条流、1.01 h、706 句；C2 窗口 id2 458 个、clean 462 个。en→zh 40 条流、0.47 h、337 句、119 人；C2 窗口 245 / 248 个。
+  - 会议 ID：dbz/dbe（id2-dev）、dcz/dce（clean-dev）。窗口目录 `eval_outputs/mist_w3po_v1/data/windows_obsidev_*`。泄漏检查 `meta/leak_check.json` 全部为 0。
+- **运行（19:36 起，`d0_runs.sh`，45a5dc37e）：**
+  - 完成：B 的 4 个文本解码（`obsidev_b_<cond>_<dir>`）；I1C id2 zh→en（`obsidev_i1c_id2_zh2en__t1c`）的 Talker 全链和评测。
+    - 该评测的两个种子：tcpASR-BLEU 16.45 / 16.34，LAAL 6.341 / 6.347 s，PESQ 3.69 / 3.69，相似度 0.896 / 0.891。
+    - 这是单个臂，没有对应的 B 可比，不作任何结论。
+  - 停止时未完成：B 的 4 个 T1c 链（id2 zh→en 已到 ASR 之后，其余在 ASR 或 talk 阶段），以及 I1C 的 clean zh→en、clean en→zh、id2 en→zh。没有任何 B 的 metrics.json。
+- **停止：** 20:28 布拉格，用户："就不做多说话人同传baseline验证"，所有组合改做单说话人验证。
+  - 按 PID 停掉了：运行脚本、7 个编排器，以及它们的 talk / ASR / prep 作业和 VLLM EngineCore 子进程。核对后没有遗留的 EngineCore。
+  - guard、gpu_watch、sync 以及其他代理的作业都没有动。所有数据和输出都保留，供改做单说话人流时复用。
