@@ -1,0 +1,208 @@
+# 鲁棒多说话人同传：同时提升 BLEU 与音质、LAAL 不升的 novel idea（文献调研 v1）
+
+2026-11-19 布拉格。4 个文献检索代理并行调研（推理时鲁棒性 / 视觉"为任务服务的复原" / 语音大模型与语音翻译鲁棒性 / 生成侧引导与解耦），结合 Idea 1–7 的实验证据整理。
+
+**注意：** 部分文献只读到摘要或二手总结（文中标 †），立项前必须核实原文的公式与数字。
+
+---
+
+## 0. 出发点：我们已经知道什么
+
+| 证据 | 数字 | 含义 |
+|---|---|---|
+| 噪声只伤害英→中的**翻译文本** | 英→中文本 BLEU：干净 38.57，ID-2 36.67，OOD-1 37.07；中→英：18.49 / 18.53 / 18.73 | Thinker 侧有约 **+1.5–1.9 BLEU** 的上限空间，只在英→中 |
+| 音色发闷会降低 **ASR-BLEU** | OOD-1 中→英：B 17.74/15.60 → 音色去噪后 19.1（+2.45） | Talker 侧的音质改善能直接转化成 ASR-BLEU |
+| 英→中的"文本→ASR-BLEU"有约 3.2 分的固定损失 | 与噪声条件无关 | 中文合成可懂度是另一个独立瓶颈 |
+| 已测方法的"BLEU 下降"在种子噪声以内 | B 自己两种子差 0.05–2.14；方法差多为 −0.02 到 −0.28；逐窗口 chrF 无显著变差 | 门槛必须用多种子 + 逐窗口检验 |
+| 音色 token 改变 Talker 语速 → LAAL 漂移 | 时长 ±5%，LAAL −0.034 到 +0.12 s | LAAL 可以通过控制语速保持不变甚至降低 |
+| 一条流里的背景被所有说话人共享 | ICC 0.26（Idea 5） | 多说话人同传独有的结构，可以利用 |
+| 话轮之间存在纯背景窗口 | 非语音窗口与流残差余弦约 0.2 | 可以在线、因果地拿到"纯噪声参照" |
+| 码空间误差与音质反向 | 码误差 7.36 < 7.95 < 9.58，PESQ 排序正相反 | **所有门槛只能用真实输出指标**（PESQ、ASR-BLEU、相似度、LAAL） |
+| 后验均值压扁音色分布，但不能解释逐条音质 | Idea 7：M1 成立、M2 4/9 | 失真–感知 / 最优传输路线已有反面证据 |
+| SEEN（ACL 2026）已做"音频大模型编码器内投影掉噪声子空间" | — | Thinker 上直接做 SEEN 没有新意 |
+| 现有最强同传系统都没有抗噪评测 | Hibiki（ICML'25）、Hibiki-Zero（ICML'26）、SimulS2S-LLM（ACL'25）、Seed LiveInterpret 2.0 | **抗噪同传 + 评测集本身是空白** |
+
+**目标：** BLEU 和音质同时提升，LAAL 不变或更低（小幅上升可接受）；有顶会级新意；每个方法只跑一个设置，先做便宜的预检。
+
+---
+
+## 1. 统一主线：流背景锚（Stream Background Anchor）
+
+四个方向的代理各自独立得出同一个核心：**用每条流自己话轮之间的纯噪声间隙，在线估计一个所有说话人共享的背景表示，再把它同时用在 Thinker 和 Talker 上。**
+- 它利用的是多说话人流式同传独有的两个结构（共享背景、话轮间隙），离线单说话人系统没有这两样；
+- 它直接回应 SEE 论文自述的局限："需要事先采集部署环境的纯噪声录音"；
+- 已有的 Idea 5 证实了背景共享（ICC 0.26），提供了动机证据。
+
+下面的 idea A、C、D 是这条主线的三个落点，可以组成一篇论文；B 负责保住 LAAL。
+
+---
+
+## 2. 候选 idea（按"新意 × 能 work 的可能性"排序）
+
+### A. 流内噪声负条件引导 Talker（Noise-Negative Voice Guidance）★ 首选
+
+- **动机：** 音色去噪（C）已经把音质拉高，但仍残留"发闷"的成分，而且残差和身份纠缠，在 token 空间很难再分离（Idea 4/5/6/7）。与其继续"估得更准"，不如在生成时**主动推离"带噪音色"这个方向**。
+- **参考：**
+  - MM-Sonate †（arXiv 2601.01568, 2026）：用"噪声的说话人嵌入"代替无条件分支做 CFG，WER 3.17% → 2.06%；
+  - Stay on topic with Classifier-Free Guidance（ICML 2024, arXiv 2306.17806）：CFG 用于自回归语言模型；
+  - Dynamic Negative Guidance（ICLR 2025, arXiv 2410.14398）；
+  - Koel-TTS（EMNLP 2025, arXiv 2502.05236）。
+- **做法：** Talker 每步跑两条分支，batch=2 一起算：
+  - 正分支用去噪后的 32 个音色 token g_clean（C 的输出）；
+  - 负分支用本流的负参照 g_neg，二选一：原始带噪提示的 token，或日志器标为非语音的间隙编码出的 token；
+  - logits = l(g_clean) + w·[l(g_clean) − l(g_neg)]，w 只取一个固定值；BiCodec 解码器仍用 g_clean。
+  - 两个分支都是真实音色码，Talker 不需要重新训练。
+- **新意：** MM-Sonate 用的是通用白噪声，模型是非自回归 DiT；Koel-TTS 是去掉上下文，不是对比。**没找到用同一场景的背景作负条件、用于自回归编解码 LM 或 S2ST 的工作。**
+- **预期：** 音质 ↑；在声音发闷的地方 ASR-BLEU ↑。每步多一次 batch 内前向，解码阶段受显存带宽限制，单步约 +10–30% 耗时。引导可能改变语速，所以要和 B 一起用。
+- **风险：** 语音里 CFG 技巧常常失灵（arXiv 2509.19668 †），可能出现过度引导的伪影。
+- **预检：**
+  1. 先算 l(g_clean) 与 l(g_neg) 的逐步 KL，确认两个分支确实有差别；
+  2. 在 dev 上用一个固定 w（=1），比较 C 和 C + 引导的 PESQ、ASR-BLEU、tokens/s。门槛：PESQ ↑ 且 ASR-BLEU 不降、相似度 ≥ −0.02。
+
+### B. 与音色无关的语速钳制（Voice-Invariant Rate Clamp）★ 保 LAAL
+
+- **动机：** 我们实测到音色 token 会让 Talker 时长变化 ±5%，LAAL 漂移最多 +0.12 s。这是所有音色方法共同的延迟来源。
+- **参考：**
+  - Controlling Speaking Rate in Autoregressive TTS via Activation Steering †（SLT 2026, arXiv 2609.33810）：在中层找到"语速轴"，把投影钳到目标值，身份和自然度不受影响；
+  - VoXtream2 †（arXiv 2603.13518）。
+- **做法：** 用时间拉伸过的 Talker 数据学出语速轴。推理时，把隐状态在这个轴上的投影钳到"这段文本在 B 下的期望语速"，使音色 token 和 A 的引导都改变不了语速。
+- **新意：** 语速操控本身已有。新的是"让语速对音色条件不变"，并且以同传 LAAL 为目标。
+- **预期：** 不需要额外前向。消除 ±0.1 s 的漂移，可能让 LAAL 略降。
+- **风险：** 加速可能损失可懂度。
+- **预检：** 用线性探针从隐状态预测 tokens/s，看预测值随音色码的变化有多大；钳制后在 dev 上看 LAAL 和 ASR-BLEU。
+
+### C. 背景对比解码 Thinker（只在英→中打开）
+
+- **动机：** 噪声让英→中翻译文本掉 1.5–1.9 BLEU，这只能在 Thinker 上解决。SEEN 改的是编码器内部，我们改解码。
+- **参考：**
+  - VCD（CVPR 2024, arXiv 2311.16922）；
+  - Context-Aware Decoding（NAACL 2024, arXiv 2305.14739）；
+  - Audio-Aware Decoding †（arXiv 2506.07233）；
+  - Whisper-CD †（arXiv 2603.06193）；
+  - Contrastive Decoding（ACL 2023, arXiv 2210.15097）。
+- **做法：** 负分支用同一个流式窗口，但把语音换成本流里等长的纯背景间隙；和主分支 batch 在一起。logits = l_full − α·l_bg，只在主分支认为合理的 token 上生效（自适应可信截断）。用噪声能量分数门控，只在噪声大的窗口、只在英→中方向打开；α 只取一个值。
+- **新意：** 已有的音频对比解码针对的是幻觉，负条件用高斯噪声、静音或空白。**没找到用于语音翻译、并且用流内真实背景作负条件的工作。**
+- **预期：** 英→中 BLEU 收回一部分噪声损失。负分支并行计算，不额外读入音频，LAAL 基本不变。
+- **风险：** 减去先验可能伤害流畅度。
+- **预检：** 离线用已有的带噪英→中 dev 窗口，α=0.5 固定，比较翻译文本 BLEU。门槛：收回至少一半的噪声损失（≥ +0.8）。
+
+### D. 只在话轮间隙里更新的在线测试时自适应
+
+- **动机：** 背景在一条流里持续存在，并且被说话人共享；而话轮间隙不在出译文的关键路径上，可以拿来做免标签的自适应。
+- **参考：**
+  - EATA（ICML 2022, arXiv 2204.02610）；
+  - SAR（ICLR 2023, arXiv 2302.12400）；
+  - Test-Time Training on Video Streams（JMLR 2025, arXiv 2307.05014）；
+  - E-BATS †（NeurIPS 2025, arXiv 2506.07078）；
+  - DSUTA（arXiv 2406.11064）；
+  - SLM-TTA †（arXiv 2512.24739）。
+- **做法：**
+  - 每遇到一个间隙，就更新 Thinker 音频编码器输入端的一个很小的偏移量，免标签损失为：把间隙的特征对齐到训练时静音段的统计量；
+  - 这个偏移量在整条流里用 EMA 共享给所有说话人，同时也加在音色编码器之前；
+  - 用 EATA 式过滤和定期重置防止漂移。
+- **新意：** SLM-TTA 覆盖了语音翻译，但是按批次、不是流式；E-BATS 和 DSUTA 只做 ASR。**没有工作用话轮间隙作监督信号，也没有工作针对同传。**
+- **预期：** BLEU ↑（英→中）；音色编码器的输入更干净，所以音质也 ↑。更新在关键路径之外，LAAL 不变。
+- **风险：** 自适应漂移。
+- **预检：** 回放 3 条带噪 dev 流，看间隙特征是否向静音统计靠拢、英→中文本 BLEU 是否变化。
+
+### E. 干净特权的流式自蒸馏，包括"何时写出"的决策
+
+- **动机：** 带噪时 Thinker 不仅会翻错，还可能更晚写出。用"听干净音频的自己"当老师，同时教内容和时机。
+- **参考：**
+  - EchoDistill †（arXiv 2605.23954，QA 任务 +1.6–3.6 pp）；
+  - StableToken（arXiv 2509.22220）；
+  - 语音翻译一致性正则（NAACL 2024）。
+- **做法：**
+  - 用开源干净英→中训练数据，混入开源噪声（MUSAN、人群声、音乐）；
+  - 老师 = 冻结的 Thinker 在干净窗口上的输出；
+  - 学生用 LoRA 在带噪窗口上学习，蒸馏两样东西：每窗口的译文前缀（token 级 KL），以及提交/停止决策。
+  - 只用开源训练数据。
+- **新意：** 干净老师蒸馏本身已有（偏 QA 和 ASR）。**没有人用于同传，也没有人蒸馏提交决策。**
+- **预期：** BLEU ↑（英→中）；LAAL 持平或略降。对音质没有直接作用。
+- **风险：** 合成噪声和真实电竞/会议噪声不匹配。需要训练，成本中等。
+- **预检：** 在 dev 上算干净 vs 带噪窗口的 Thinker 输出 KL，看它是否和逐句 BLEU 下降相关，并且英→中大于中→英。
+
+### F. 按声学可靠度分配等待时间 + 用语速抵消等待
+
+- **动机：** 噪声大的窗口多等一会再写，能提高正确率；多花的延迟用 B 的语速控制补回来。
+- **参考：**
+  - REINA †（arXiv 2604.09916）；
+  - DiG-SST（AAAI）；
+  - EASiST（arXiv 2504.11809）；
+  - Dub-S2ST（EMNLP Findings 2025, arXiv 2505.20899）。
+- **做法：** 训练一个小头预测"干净–带噪输出差异"作为可靠度分数：可靠度低就多读，高就早写；总延迟预算由 Talker 的语速吸收。
+- **新意：** 还没有发表的读写策略以声学可靠度或信噪比为条件。
+- **风险：** 再分配不当反而让整体 LAAL 上升。
+- **预检：** 保持 BLEU 不变，把最噪 20% 和最干净 20% 窗口之间的等待时间对调，看效果。
+
+### G. 对下游任务友好的伪干净目标（一个前端同时服务 Thinker 和音色编码器）
+
+- **参考：** Rethinking Image Restoration for Object Detection（NeurIPS 2022）；Image-Adaptive YOLO（AAAI 2022, arXiv 2112.08088）；FeatEnHancer（ICCV 2023, arXiv 2308.03594）；When De-noising Hurts †（arXiv 2512.17562）。
+- **做法：** 训练目标不是干净音频，而是"干净音频 + 几步让 Thinker 翻译损失和音色损失都下降的定向扰动"。用这个目标训练一个因果前端，同时输入给 Thinker 和音色编码器。
+- **新意：** 语音领域还没有用"定向攻击"构造伪目标的做法，也没有用在音频大模型或 TTS 上。
+- **风险：** 前端会带来频谱伪影，而 SEEN 表明大模型对这类伪影敏感；因果前端还会增加约 20–40 ms 延迟。
+- **预检：** 对约 200 个 dev 片段构造伪目标，直接喂给 Thinker。如果 BLEU 不能超过干净时的 BLEU，就停止。
+
+### H. 背景"噪声寄存器"前缀（低优先级）
+
+- **参考：** Vision Transformers Need Registers（ICLR 2024）；Vision Transformers Don't Need Trained Registers †（NeurIPS 2025）；Online Register †（arXiv 2602.23702）。
+- **做法：** 把编码后的话轮间隙作为 KV 缓存前缀放在 Thinker 上下文里，让注意力用它"解释掉"噪声。
+- **风险：** 不训练的话，模型可能直接忽略这个前缀。
+- **预检：** 看前缀分到的注意力质量，以及带/不带前缀的 dev BLEU。
+
+---
+
+## 3. 不推荐的方向
+
+| 方向 | 不推荐的原因 |
+|---|---|
+| 后验均值 + 整流流 / 最优传输修正（PMRF, ICLR 2025；Freirich et al., NeurIPS 2021） | 我们的 Idea 7 已有反面证据（M2 4/9） |
+| Thinker 上直接做 SEEN、网络内特征去噪（CVPR 2019） | SEEN 已经做过，新意不足 |
+| AugMix 一致性 + WiSE-FT 插值 | 语音领域已经很拥挤（EchoDistill、Whisper 蒸馏、NAACL 2024），只适合当组件 |
+| 先转写再翻译（CoT-ST） | 会增加 LAAL，与目标冲突 |
+| 用翻译奖励训练增强前端 | 新意有，但重，并且增加 20–40 ms 延迟；可并入 G |
+| 用"差模型"引导 Talker（autoguidance, NeurIPS 2024） | ETTA 报告在音频上不稳定；作为 A 的备选 |
+
+---
+
+## 4. 建议的论文故事与执行顺序
+
+**论文主线：** 背景感知的抗噪多说话人同传。
+- 贡献 1：OpenBroadcast-SI 抗噪同传评测集。现有最强系统都没有抗噪评测，这本身是空白。
+- 贡献 2：流背景锚。从话轮间隙在线估计、所有说话人共享的背景表示，同时用于 Talker 的负条件引导（A）、Thinker 的对比解码（C）和间隙自适应（D）。
+- 贡献 3：语速钳制（B），使音色和鲁棒性改动不增加 LAAL。
+- 分析：码误差和音质反向、音色影响语速与延迟、少量会议做 BLEU 门槛不可靠等。
+
+**执行顺序（先做便宜的预检，每个只跑一个设置，门槛只用真实输出指标）：**
+1. **A + B 预检：** dev 上 Talker 引导 + 语速钳制，同时看 PESQ、ASR-BLEU、相似度、LAAL。GPU 用量小。
+2. **C 预检：** 离线在带噪英→中 dev 窗口上做对比解码，看翻译文本 BLEU。GPU 用量小。
+3. **D 预检：** 回放 3 条带噪 dev 流，验证间隙自适应的方向是否正确。
+4. 通过预检的方法组合起来，用多种子、扩展到更多场会议的 OOD-3 跑完整系统测试。
+
+**前置条件：**
+- 需要一个 **OpenBroadcast-SI 的 dev 版本**（不碰 test），用来做方法选择；
+- OOD-3 要扩到更多场会议，否则"不伤害"的结论站不住。
+
+**新意的边界（要如实写进论文）：** 负条件 CFG、对比解码、测试时自适应、语速操控都是已有的机制。我们的新意在于：
+1. 利用多说话人流式同传独有的"共享背景 + 话轮间隙"在线构造负参照和自适应信号；
+2. 用同一个背景表示同时改善翻译（Thinker）和合成（Talker）；
+3. 把延迟作为约束显式处理。
+
+立项前要对 A、C、D 再做一次全文级的文献核查，尤其是 MM-Sonate、Whisper-CD、SLM-TTA、EchoDistill。
+
+---
+
+## 参考文献（按出现顺序）
+
+- SEE / SEEN，ACL 2026：https://arxiv.org/abs/2601.07331
+- Hibiki，ICML 2025：https://arxiv.org/abs/2502.03382；Hibiki-Zero，ICML 2026：https://arxiv.org/abs/2602.11072；SimulS2S-LLM，ACL 2025：https://aclanthology.org/2025.acl-long.817；Seed LiveInterpret 2.0：https://arxiv.org/abs/2507.17527
+- MM-Sonate †：https://arxiv.org/abs/2601.01568；Koel-TTS：https://arxiv.org/abs/2502.05236；Stay on topic with CFG，ICML 2024：https://arxiv.org/abs/2306.17806；Dynamic Negative Guidance，ICLR 2025：https://arxiv.org/abs/2410.14398
+- Rate steering in AR TTS †，SLT 2026：https://arxiv.org/abs/2609.33810；VoXtream2 †：https://arxiv.org/abs/2603.13518
+- VCD，CVPR 2024：https://arxiv.org/abs/2311.16922；Context-Aware Decoding，NAACL 2024：https://arxiv.org/abs/2305.14739；Audio-Aware Decoding †：https://arxiv.org/abs/2506.07233；Whisper-CD †：https://arxiv.org/abs/2603.06193；Contrastive Decoding，ACL 2023：https://arxiv.org/abs/2210.15097
+- EATA，ICML 2022：https://arxiv.org/abs/2204.02610；SAR，ICLR 2023：https://arxiv.org/abs/2302.12400；TTT on Video Streams，JMLR 2025：https://arxiv.org/abs/2307.05014；E-BATS †，NeurIPS 2025：https://arxiv.org/abs/2506.07078；DSUTA：https://arxiv.org/abs/2406.11064；SLM-TTA †：https://arxiv.org/abs/2512.24739
+- EchoDistill †：https://arxiv.org/abs/2605.23954；StableToken：https://arxiv.org/abs/2509.22220
+- REINA †：https://arxiv.org/abs/2604.09916；EASiST：https://arxiv.org/abs/2504.11809；Dub-S2ST，EMNLP Findings 2025：https://arxiv.org/abs/2505.20899
+- Rethinking Image Restoration for Object Detection，NeurIPS 2022：https://proceedings.neurips.cc/paper_files/paper/2022/file/1cac8326ce3fbe79171db9754211530c-Paper-Conference.pdf；IA-YOLO，AAAI 2022：https://arxiv.org/abs/2112.08088；FeatEnHancer，ICCV 2023：https://arxiv.org/abs/2308.03594；When De-noising Hurts †：https://arxiv.org/abs/2512.17562
+- Vision Transformers Need Registers，ICLR 2024：https://arxiv.org/abs/2309.16588；Don't Need Trained Registers †，NeurIPS 2025：https://arxiv.org/abs/2506.08010；Online Register †：https://arxiv.org/abs/2602.23702
+- PMRF，ICLR 2025：https://arxiv.org/abs/2410.00418；Distortion-Perception in Wasserstein Space，NeurIPS 2021：https://arxiv.org/abs/2107.02555；Autoguidance，NeurIPS 2024：https://arxiv.org/abs/2406.02507；Selective CFG in speech †：https://arxiv.org/abs/2509.19668
+- 带噪提示 TTS 相关：LauraTTS token 去噪 https://arxiv.org/abs/2505.13830；Noise-robust zero-shot TTS https://arxiv.org/abs/2406.05699
