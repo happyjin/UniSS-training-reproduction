@@ -183,3 +183,69 @@ $z_k=s_{j(k)}+A n_k+\varepsilon_k$，$\varepsilon_k\sim\mathcal N(0,R/\pi_k)$；
 ## v1.3 修订（2026-11-19 01:05 布拉格，在任何中文合成流构建之前）
 
 - AISHELL-3 的 `test/wav` 目录里除了 44 个只在测试集出现的说话人，还有 170 个**训练说话人**的少量语句（同一说话人 ID 同时出现在 train 和 test 目录）。§1.1"test 说话人"按目录划分会让说话人跨划分重叠。改为按说话人划分：只要在 train 目录出现过就归 train（其全部语句）；其余 44 个只在 test 目录出现的说话人按 sha1 排序，前 22 个 dev、后 22 个 test。按目录划分的旧索引改名为 `index/speakers_aishell3.jsonl.bad_split_by_folder`（未使用）。
+
+---
+
+# 预登记 v2（M1b：收缩模型）
+
+2026-11-19 01:30 布拉格时间。在**任何收缩模型的拟合**、**任何 E2.2 结果**和**任何电竞运行**之前提交。
+
+- 背景：G2.0 在先导数据上未通过（$R^2(v\to\delta)=0.075$）；诊断显示背景的主要作用是把说话人编码向一个公共点收缩（$z^{\rm noisy}\approx0.63\,z^{\rm clean}+c$），与 Idea 1 的发现一致（编码器饱和，方案命题 10）。
+- 协调者决定（用户夜间授权"按最佳选项"）：改用收缩感知模型，先在先导数据上跑 E2.2 拿早期信号，完整 100 h 数据就绪后正式重跑。
+- v1 中与本节不冲突的设置（数据、划分、预处理、窗口 L = 2 s、映射 M = 只加偏置、先验 $\mu_0,\Sigma_0$、评测时间点、因果规则、首 8 s 定义、以流为簇的 bootstrap）全部沿用。
+
+## A. 模型
+
+- 观测：$z_k=\lambda_k\,s_j+(1-\lambda_k)\,c+\varepsilon_k$，$\varepsilon_k\sim\mathcal N(0,R/\pi_k)$，$j=j(k)$ 为分离器槽位（$\pi_k\ge0.3$）。
+- 收缩权重（每个窗口一个标量）：$\lambda_k=\sigma(\alpha+\beta^\top\tilde v_k)$。
+- $s_j$ 在窗口空间；训练目标 $s^\star_j=u^\star_j-b_M$（$b_M$ 为 E2.0 先导选定的偏置映射的偏置，即 $u^\star$ 在窗口空间的像）。输出 $\hat u=\hat s+b_M$。
+- **$c$ 的选择规则（先写好）：** 在 train 上同时拟合"全局 $c$"和"按语言 $c_{\rm en},c_{\rm zh}$"两个版本；若 $\|c_{\rm en}-c_{\rm zh}\|\ge0.2\,\bar\Delta$（$\bar\Delta=17.58$，E2.0 先导 train 两种语言说话人间距的平均），用按语言的版本（推理时语言已知），否则用全局 $c$。
+
+## B. 低维干扰摘要 $\tilde v_k$（5 维，固定）
+
+只用该窗口内的 HDemucs 估计（`idea2_feats2.py`）：64 带 mel 功率在窗口内的时间平均 $P_v$（人声）、$P_b$（背景）。
+- $\tilde v_{k,1}=10\log_{10}(\sum P_b/\sum P_v)$：窗口级背景对人声比（dB）；
+- $\tilde v_{k,1+g}=10\log_{10}(\mathrm{mean}_{G_g}P_b/\mathrm{mean}P_v)$，$g=1..4$，$G_g$ 为 mel 带 0–15、16–31、32–47、48–63；
+- 截断到 [−60, 40] dB，按 train 的均值和标准差标准化。
+
+## C. 拟合（只用开源合成流的 train 部分）
+
+- 样本：分离器窗口（$\pi_k\ge0.3$，不重叠，即跳步 = L = 2 s），其槽位按全流重叠匹配到真实说话人（`slot2spk`，匹配不到的窗口不用），目标 $s^\star_j$。
+- 目标函数：$\sum_k\pi_k\|z_k-\lambda_k s^\star_j-(1-\lambda_k)c\|^2$，对 $(\alpha,\beta,c)$ 用 L-BFGS（float64，最多 500 步）。初值 $\alpha=\mathrm{logit}(0.63)$、$\beta=0$、$c$ 取对应的闭式最优。
+- $R=\frac1N\sum_k\pi_k e_ke_k^\top$（残差加权协方差）。
+- **常数 $\lambda$ 版本**（"不用 $v$ 的收缩反解"）：同样拟合，但固定 $\beta=0$。
+- 先导：在先导 train 上拟合（早期信号）；正式：在完整 train 上重新拟合（G2.2 用后者）。
+
+## D. 推理（严格因果，跳步 0.5 s）
+
+给定 $\lambda_k$ 时模型是精确的线性高斯模型。每个槽位的后验（信息形式，等价于静态状态的卡尔曼滤波）：
+$$\Lambda_j=\Sigma_0^{-1}+\sum_{k}\pi_k\lambda_k^2R_f^{-1},\qquad \eta_j=\Sigma_0^{-1}\mu_0+R_f^{-1}\sum_k\pi_k\lambda_k\big(z_k-(1-\lambda_k)c\big),\qquad \hat s_j=\Lambda_j^{-1}\eta_j$$
+$R_f=(L/0.5)R=4R$（重叠窗口按等效独立观测数）。窗口在结束时刻加 1.04 s 后才可用。
+
+## E. 方法（E2.2）
+
+| # | 方法 | 定义 |
+|---|---|---|
+| 1 | 首 8 s 提示（现状） | 同 v1 §4.4 |
+| 2 | 滑动平均 | 同 v1 |
+| 3 | 中位数 | 同 v1 |
+| 4 | 只做先验收缩 | §D 中令 $\lambda_k\equiv1$、无 $c$，同一 $R_f$（完整模型的） |
+| 5 | 常数 $\lambda$ 收缩反解（不用 $v$） | §D，用 §C 常数 $\lambda$ 版本的参数 |
+| 6 | 完整收缩模型 | §D，用完整版本参数 |
+| 参照 | HDemucs 人声窗口的滑动平均（V 参照）；干净孪生滑动平均（oracle） | 不是方法 |
+
+## F. G2.2（改写）
+
+- 单元：累计 oracle 语音 ≥ 60 s 的（流，说话人）；60 s 时刻的编码误差 $e=\|\hat u-u^\star\|$。
+- **通过条件（两条都要）：** $\mathrm{median}(e_{6})-\mathrm{median}(e_{2})$ 和 $\mathrm{median}(e_{6})-\mathrm{median}(e_{1})$ 的 95% 以流为簇的 bootstrap CI（2000 次，种子 20261119）上界都 < 0。
+- 同时报告（不是门槛）：相对 V 参照的同一统计量；配对差值的中位数；token 恢复率；曲线 $e(t)$ 和平台拟合 $\overline{e^2}(t)=a+b/t$。
+- **理论预测（事先写下）：** 给定 $c$ 全局、$\lambda$ 可观测，$s$ 在每个窗口上可辨识；误差平台等于收缩模型本身的误差，所以完整模型的平台应低于滑动平均的平台。
+- 先导 test（8 条流）上的结果是早期信号；正式结论用完整数据的 test 划分。
+
+## G. 先导 G2.2 通过后的电竞 demo（OOD-2，只评测）
+
+- 10 段 demo（`data/game_esports_si_v1`，两个方向）：已有的 Nemotron lowlat 后验和 C2 窗口；HDemucs 按 §2 的方式处理整段原声；窗口编码、$\tilde v$、槽位与 $\pi$ 的计算与合成流完全相同。
+- 参数：先导 train 上拟合的完整模型（电竞数据不参与任何拟合或选择）。
+- 每个流（item）的 32 个 token = 该槽位在**该流首次输出时刻**（窗口起点 + 首个 block 的 write_ms）的后验均值经 $M$、FSQ 得到；用 `idea1_si_infer_vo.py`（按 baseline 提示文件 sha1 校验）覆盖 Talker 的音色 token，其余与 baseline B 完全相同（两个 TTS 种子、全部流、条目顺序一致），只在卡 4–7 上运行。
+- 指标：按流配对的 SQUIM-PESQ、频谱对比度和平坦度（相对 baseline B），盲 ASR-BLEU（`game_blind_bleu.py`），语音 LAAL。
+- 验收线（§7.2f）：PESQ 中位数提升 ≥ +0.5，对比度提升 ≥ +1.5 dB，BLEU 不降。
