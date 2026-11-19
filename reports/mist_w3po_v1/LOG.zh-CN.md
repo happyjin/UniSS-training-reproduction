@@ -3776,3 +3776,17 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 ## 2026-11-19 02:03 布拉格 — Idea 2：电竞 demo 加变体 shrink+Vfb（协调者决定）
 
 - **决定（协调者，用户夜间授权）：** 首次输出时没有可用窗口的 44 个流改用 V token（Idea 1 的 V 表，sha1 一致），其余与 shrink 相同；预登记 v2.2（运行之前提交）。运行名 `game_b_{dir}__t1c_shrinkvfb{,_tts2}`，卡 4–7（与正在运行的完整数据预处理同卡叠放，预处理每卡约 11 GB）。
+
+## 2026-11-19 布拉格（夜间自主）— Idea 2 收缩模型在电竞 demo 上的结果、试听页 A/B 上线（协调者）
+
+- **Idea 2（shrink）在 demo 10 段上的结果**（OOD，只评测；两个种子平均，按流配对，相对 B）：
+  - PESQ 中位数：zh→en +1.49，en→zh +1.71；
+  - 频谱对比度：+2.09 / +2.76 dB；
+  - 盲测 ASR-BLEU：zh→en 8.47 → 10.31，en→zh 21.69 → 21.55（−0.14，按严格规则不通过，在噪声范围内）；
+  - 语音 LAAL：约 +0.1 s；
+  - TitaNet 身份门槛（预登记 v2.1）：合并 +0.019，**通过**；但 zh→en 单独为 −0.03，44 条平均音色流为 −0.12。
+- **决定：**
+  - 新增变体 shrink+Vfb（预登记 v2.2）：没有窗口的流改用 HDemucs 人声提示的 token；
+  - 试听页现在先上线 A/B：https://claude.ai/artifact/82QpumamwWEd8pA2SJaeQC （版本 4，同一网址）。版本有 B / Idea 2 / Idea 1 ZNE / HDemucs 参照（目前只有 zh→en），切换时保持播放位置；
+  - 页脚如实写明上面的数字和注意事项。
+- **工具：** `scripts/build_game_demo_v2.py`、`scripts/game_demo_ab_template.html`；页面数据在 `demo_packages/game_multispk_ab_v2/`。
