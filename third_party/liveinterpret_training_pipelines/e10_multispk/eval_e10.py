@@ -127,7 +127,7 @@ class Runner:
 
     def one(self, s, tag, seed):
         a, S = self.a, SETS[s]
-        n = f"jtest_{s}_{a.mode}{tag}"
+        n = f"{'jdev' if s.startswith('dev') else 'jtest'}_{s}_{a.mode}{tag}"
         raw = HERE / "output" / "eval" / n / "raw"
         K = len(self.slots)
         dec = [(f"{k:02d}", f"CUDA_VISIBLE_DEVICES={{card}} {SIMULS2S} {HERE}/run_e10.py --mode {a.mode} "

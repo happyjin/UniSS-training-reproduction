@@ -4307,3 +4307,9 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - frozen_talker（Talker 不训练）：0.329 / 0.420（+49% / +60%）——KL 收益主要来自 Talker LoRA
 - constlam（固定 λ）：0.228 / 0.266（+3% / +2%）——自适应 λ 贡献很小
 frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 由守护进程换成无检查点占卡训练。消融只做 dev，不上测试集（端到端版本身在测试上不优于冻结版）。
+
+## 2026-11-19 12:25 CET E10（LiveInterpret S5 多说话人 baseline）开始训练
+
+- 用户决定：训练用卡 0–3（slot A）；训练中的验证叠加在训练卡上；checkpoint 只存 adapter（约 330 MB/个，不存约 2.8 GB 的优化器状态）；speech tokenizer 用 S3 上的 `speech_tokenizer_v3.batch.onnx`（已确认）。
+- 预登记：`reports/mist_w3po_v1/e10_liveinterpret_multispk_prereg.zh-CN.md`，在训练开始前写好。
+- 启动：`third_party/liveinterpret_training_pipelines/e10_multispk/takeover_slotA_train.sh`（detached）。它申领 slot A，按 PID 停掉卡 0–3 的占位程序，启动训练（GBS 64 = 8×4×GA2，约 1,670 步）；训练期间叠加跑 E10-0 的 dev 评测；训练结束后用最后一步跑 E10 的 dev 门槛评测，再释放 slot A。

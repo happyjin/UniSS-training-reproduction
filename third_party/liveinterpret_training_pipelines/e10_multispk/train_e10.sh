@@ -57,6 +57,9 @@ fi
 : "${NUM_TRAIN_EPOCHS:=1.5}"   # ~B's exposure: B saw each direction's rows ~1.2-1.5 times (6000 x 64 rows)
 : "${SAVE_STEPS:=250}"
 : "${SAVE_TOTAL_LIMIT:=20}"
+# adapter only (~330 MB: LoRA + 12 token rows + thinker_proj/fusion + e10_sd_proj); the DeepSpeed optimizer state
+# would add ~2.8 GB per checkpoint. Cost: no exact mid-run resume (a restart begins again from the S5 adapter).
+: "${SAVE_ONLY_MODEL:=true}"
 : "${VAL_INTERVAL:=250}"
 : "${VAL_BATCHES:=10}"
 : "${NPROC_PER_NODE:=8}"
