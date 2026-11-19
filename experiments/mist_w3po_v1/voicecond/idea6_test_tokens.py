@@ -259,7 +259,7 @@ def cmd_selftest(a):
                         de = max(de, abs(float(np.linalg.norm(ue - refs[spk][0])) - g["err"]["E2E_post"][ti]))
                         dc = max(dc, abs(float(np.linalg.norm(uc - refs[spk][0])) - g["err"]["C_post"][ti]))
         rep[tagck] = ({"tokens_identical": n_same, "n": n_tok, "pass": n_same == n_tok} if tagck == "step0" else
-                      {"E2E_err_maxabs_vs_dev_gate": de, "C_err_maxabs_vs_precheckA": dc, "pass": de <= 1e-4 and dc <= 1e-4})
+                      {"E2E_err_maxabs_vs_dev_gate": de, "C_err_maxabs_vs_precheckA": dc, "pass": bool(de <= 1e-4 and dc <= 1e-4)})
         print(json.dumps({tagck: rep[tagck]}), flush=True)
         del E
         torch.cuda.empty_cache()
