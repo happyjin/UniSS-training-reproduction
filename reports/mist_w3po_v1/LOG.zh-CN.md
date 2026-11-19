@@ -4113,3 +4113,13 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - 前 77 步：KL1 0.435（1–10 步）→ 0.402 → 0.393 → 0.361（51–77 步）；KL2 从 0 升到约 0.002；λ 均值约 0.51；token 恢复率约 6%（还没变化）。
 - 速度约 3.7 s/步（4 卡，每卡 16 条；比单卡 2.0 s/步慢，DDP 等最慢的卡），峰值显存 14.7 GiB/卡；dev（793 条 + 23 个合成 dev 单元）每次约 46 s。预计 3000 步约 3.2 h，约 10:45 布拉格结束。
 - 第 1000 步时按预登记 §8 检查 dev KL1 相对第 0 步的下降（日志里有 `kl1_rel_drop_vs_step0` 字段）；dev 第 0 步：zh2en KL1 0.402，en2zh KL1 0.520。
+
+## 2026-11-19 07:40 布拉格 — 占卡程序进卡加速（用户："为什么程序进入卡这么慢呢？想办法加速，不然容易被同事占领"）
+- 原因：占卡 worker 要先在 CPU 上构建并加载整个 Thinker，再 .cuda()，之后还要跑 8 步 warmup 才开始补显存。CPU 负载在 200 以上，这段时间里卡显示 5 MiB，例如卡 0 在 06:29:51 UTC 开始加载，到约 06:35 才占到 63 GB。同事的调度器只要看到 ≥90 GB 空闲就会抢卡。
+- 改动（scripts/gpu_load/train_mist_workload.py）：新增 --early-reserve-mib，默认 65536，可用环境变量 MIST_EARLY_RESERVE_MIB 覆盖，0 表示关闭。
+  - CUDA 一初始化、还没 import Megatron 和加载模型，就先分配这块 padding。
+  - 分配上限要保证仍有 ≥30 GiB 空闲留给模型和前几步，并且不超过原来的显存目标。
+  - 这块 padding 交给 MemoryFill，作为普通 padding：峰值标定会扣除它，warmup 结束后的第一次标定会自动调整它的大小；遇到 OOM 时先释放它。
+  - 仍然是同一个不保存检查点的训练程序，不是 gpu_keeper。
+- 实测：卡 4–7 在 06:37 起新 worker（还是 import Megatron 之后再分配的第一版），worker 启动后 33 s 就占住 64 GB，原来约 6 分钟。第二版把分配挪到 Megatron import 之前。
+- 测试：test_train_no_checkpoint 5/5 通过，test_workload_ignore_k8s 7/7 通过。正在运行的 worker 不受影响，新 worker 自动使用新代码。

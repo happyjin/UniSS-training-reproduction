@@ -62,6 +62,11 @@ def parse_args(argv=None):
     p.add_argument("--memory-chunk-mib", type=int, default=512)
     p.add_argument("--memory-window-steps", type=int, default=64, help="recent updates used for peak-memory calibration")
     p.add_argument("--warmup-steps", type=int, default=8, help="measure training peaks before filling memory")
+    p.add_argument("--early-reserve-mib", type=int, default=int(os.environ.get("MIST_EARLY_RESERVE_MIB", "65536")),
+                   help="padding allocated right after CUDA init, BEFORE the (slow, CPU-bound) Thinker load, so the card "
+                        "is visibly occupied within seconds; it is ordinary padding (counted in the peak calibration and "
+                        "resized by the first memory calibration), capped so >= 30 GiB stay free for the model and "
+                        "the first steps; 0 disables (env MIST_EARLY_RESERVE_MIB sets the default)")
     p.add_argument("--log-interval", type=int, default=10)
     p.add_argument("--wait-idle", action="store_true", help="wait instead of exiting when GPUs are busy")
     p.add_argument("--tolerate-keeper", action="store_true",
@@ -327,11 +332,27 @@ def backward_update(torch, model, batches, accumulation, device="cuda"):
 
 def train_worker(a):
     import torch
+
+    torch.cuda.set_device(0)  # parent pins this worker to one physical UUID
+    early = []
+    if a.early_reserve_mib > 0:
+        free, total = torch.cuda.mem_get_info()
+        cap = min(int(total * a.target_memory_percent / 100), total - a.min_free_mib * MIB)
+        if a.max_used_mib:
+            cap = min(cap, a.max_used_mib * MIB)
+        want = min(a.early_reserve_mib * MIB, free - 30 * 1024 * MIB, cap - (total - free))
+        held = 0
+        while want - held >= MIB:
+            size = min(want - held, a.memory_chunk_mib * MIB)
+            try:
+                early.append(torch.empty(size, dtype=torch.uint8, device="cuda"))
+            except torch.cuda.OutOfMemoryError:
+                break
+            held += size
+        log(f"GPU {a.worker}: early padding {held / MIB:.0f} MiB before the model load")
     from megatron.core.transformer.transformer_config import TransformerConfig
     from experiments.uniss_qwen3_omni_v1.training.pretrain_thinker_gstar import GStarRows
     from experiments.uniss_qwen3_omni_v1.training.thinker_gstar_model import METRIC_NAMES, ThinkerGStarModel
-
-    torch.cuda.set_device(0)  # parent pins this worker to one physical UUID
     torch.manual_seed(a.seed + a.worker)
     log(f"GPU {a.worker}: loading local Thinker; checkpoint saving disabled; independent training replica")
     config = TransformerConfig(num_layers=24, hidden_size=896, num_attention_heads=14, num_query_groups=2, bf16=True)
@@ -348,6 +369,7 @@ def train_worker(a):
     dataset = GStarRows(str(a.rows), n_rows, a.seed + a.worker, str(a.base), perturb_p=0.2, oracle=False)
     batches = training_batches(torch, dataset, a)
     fill = MemoryFill(torch, a)
+    fill.buffers = early  # early padding is ordinary padding from here on (peak calibration subtracts it; resized later)
     step, retries, started = 0, 0, time.monotonic()
     log(f"GPU {a.worker}: {json.dumps(model.trainable_report())}; rows={n_rows}; "
         f"micro_batch={a.micro_batch_size}; accumulation={a.grad_accum}; no checkpoints or exports")
