@@ -26,6 +26,16 @@ def main() -> None:
     if which == "bench":
         import voicecond_bench_orch as V
         V.HOOK = hook + "--via bench "
+        if "--exclude" in argv and argv[argv.index("--exclude") + 1] == "none":
+            # user 2026-11-19: evals may stack on training cards -> no card excluded; voicecond_bench_orch insists on an
+            # --exclude value, so "none" passes its check and is stripped before joint_orch parses the arguments
+            oj = V.J.main
+
+            def jmain(args):
+                i = args.index("--exclude")
+                assert args[i + 1] == "none"
+                return oj(args[:i] + args[i + 2:])
+            V.J.main = jmain
         sys.argv = [V.__file__] + argv
         print(f"[idea2 e2e orch] bench hook -> {V.HOOK}", flush=True)
         V.main()

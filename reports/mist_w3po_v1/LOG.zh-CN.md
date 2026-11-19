@@ -4237,3 +4237,17 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   4. 9 个编排器并行（`--exclude 0 1 2 3`，固定 KV 等参数同 M2），之后跑 bench_eval、OOD-3 的块协议 LAAL、measure、compare（对 B 和对 shrink+Vfb）、TitaNet 相似度；
   5. 写出汇总 `test_summary_e2e_{bench,ood3}.json`。
 - 标记文件在 `logs/mist_w3po_v1/voicecond/idea2/e2e_test/`。预计 09:40 左右开始，约 2 h，13:00 前出汇总表。
+
+## 2026-11-19 08:46 布拉格 · 按新规则（检查不停训练，可叠加在训练卡上）替换测试运行器和消融链
+
+- 用户新规则（原话："检查的时候不要停止训练，可以叠加在训练上进行检查"）：评测、冒烟测试和调试回放可以叠加在训练卡上（每卡 ≤ 135 GiB），真正的训练一律不停。取代原来"不叠加到训练卡"的规则。
+- **测试运行器：** 新文件 `scripts/idea2_e2e_test_run_v2.sh`，旧文件未改动。
+  - 不再排除卡 0–3：bench 用 `--exclude none`，由 `voicecond/idea2_e2e_orch.py` 在交给 joint_orch 之前去掉这个参数；OOD-3 不再传 `--exclude`；`--cap135` 保留。
+  - 启动条件不变：main_v2 写出 DONE，只测第 3000 步。
+  - 08:43 启动 v2（PID 1823401），之后按 PID 停掉 v1 的等待进程 1787689（它还没启动任何作业）。
+  - 注意：共享的 exclude_cards 由 sync_train_exclude.sh 按槽位文件生成。只要槽 A 还被占着，卡 0–3 就不会接到新的编排作业；这一点已报告给协调者。
+- **消融链：** 新文件 `scripts/idea2_e2e_ablation_chain_v2.sh`。
+  - 不再等卡 0–3 上的评测结束，前一个运行一结束就开下一个，与评测叠加；仍然只按 PID 停占位进程。
+  - 接管正在跑的 attnpool（torchrun 1464679，只等它结束，不重启），以及 v1 的槽 A 文件（追加一行 adopted 记录，槽位全程不释放）。之后依次跑 frozen_talker、constlam。
+  - 08:42 启动 v2（PID 1813633）。确认接管成功后，用 SIGKILL 停掉 v1 的 bash（1459570）：SIGTERM 会在当前子进程结束后触发 EXIT 陷阱、把槽 A 释放掉，所以用 SIGKILL。attnpool 的 torchrun 不受影响，继续运行。
+- 预计：消融链约 13:00–13:30 布拉格结束（attnpool 约 09:45 结束，frozen_talker 约 11:20，constlam 约 13:10）；测试汇总仍约 12:00。
