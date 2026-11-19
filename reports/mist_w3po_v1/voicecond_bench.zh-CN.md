@@ -143,4 +143,87 @@ FMA、DEMAND、ESC-50 整体保留给本基准。
 
 AMI 参照：重叠占语音时间 9.6%；换人处 56% 为重叠。
 
+## 3. 运行方式
+
+### 3.1 编排器包装（只替换集合定义）
+
+`scripts/voicecond_bench_orch.py` 的做法与 `game_orch.py` 相同，在本进程里把集合定义换掉，然后调用 `joint_orch.py`：
+
+- zh→en：内部用 `--set ali`，即 `final_test_orch` 的测试链；英文分词；`GSTAR_DATA` 指向本条件的数据目录；会话为 `mix`。
+- en→zh：内部用 `--set test`，即 `en2zh_orch` 的测试链；会话为 `ihm_mix`。
+
+参数：
+
+- 必须给 `--cond id2|ood1|clean --dir zh2en|en2zh`；
+- 必须给 `--exclude`：本代理和 Idea 1 用 `4 5 6 7`，Idea 2 用 `0 1 2 3`；
+- 其余参数原样传给 `joint_orch`，包括 decode 参数、Talker、`--cap135`、账本、评分和 C2 延迟。
+
+### 3.2 baseline B
+
+`scripts/voicecond_bench_run_b.sh` 与 `game_run.sh` 中的 B 完全相同：
+
+- Thinker：`joint_v8h6k merged s06000` + identity，window 1，`--cap135`；
+- 语音：冻结的 T1c Talker，两个 TTS 种子（20261021、20261109）；
+- 卡：`--exclude 4 5 6 7`；
+- 每条链：文本编排器 → T1c 编排器 → `bench_eval`；
+- 运行名：`obsi_b_<cond>_<dir>`（文本）、`obsi_b_<cond>_<dir>__t1c`（种子 1）、`…__t1c_tts2`（种子 2）；
+- 编排器目录：`logs/mist_w3po_v1/voicecond_bench/<cond>_<dir>{,_t1c}`；完成标记：`VB_<cond>_<dir>_DONE`。
+
+## 4. 给两条线的接口：只重跑 Talker，逐流替换音色 token
+
+**做法：** 复用 baseline B 的文本解码，只重跑 T1c Talker 链（prep → 8 个 talker 分片 × 2 个种子 → ASR → 评分 → C2 延迟）。每个 talker 作业由下面的模块代替原来的 `si_infer`：
+
+- `experiments.mist_w3po_v1.voicecond.bench_talker_override`
+- 它原样运行 `si_infer`，只把 `BiCodecTokenizer.encode_wav_to_tokens` 换掉：遇到 sidecar 中列出的条目，就返回 sidecar 给的 32 个 global token。
+- si_infer 用这 32 个 token 同时作为 LM 条件和解码器的 d-vector。
+
+**sidecar 格式**（json）：`{"<talker 条目 id>": [32 个整数 0–4095] | "<另一段 16 kHz wav 的路径>"}`
+
+- 条目 id 就是音色提示文件名的主干，也是 baseline 运行中 `speech/obsi_b_<cond>_<dir>__t1c/talker_in/items.jsonl` 的 `id`，例如 `obz001_on_0003__S2`。
+- 原始提示文件在 `talker_in_all/voice_{causal,fallback}/<id>.wav`。
+- 值为路径时，改为编码那段 wav（例如 HDemucs 人声）。
+- 不在 sidecar 中的条目保持原编码。
+- 退出时 talker 日志会打印 `[voice-override] … tokens N, wav N, original N`，用来核对覆盖了多少条。
+
+**为什么条目和种子不会变：** prep 是确定性的，输入是同一份 hyp、同一套窗口、同一份分离器结果，所以条目和块与 baseline 逐条相同。分片方式、`--seed`（种子 1 用默认的 20261021，种子 2 用 20261109）以及其余参数都不变。因此新运行与 B 的唯一差别就是被替换的音色 token。
+
+**命令示例**（Idea 1 用卡 0–3；Idea 2 改用 `--exclude 0 1 2 3`）：
+
+```bash
+cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
+. experiments/mist_w3po_v1/scripts/joint_lib.sh
+export PATH=/opt/dlami/nvme/jasonleeeli/venvs/vllm_omni_030/bin:$PATH
+B2=$JO/joint_v8h6k_20261113T073658Z/merged_s06000/thinker_merged
+C=id2; D=zh2en; N=obsi_zne_${C}_${D}__t1c          # 新运行名，不得与已有目录重名
+setsid nohup $PY scripts/voicecond_bench_orch.py --cond $C --dir $D --voice-override <sidecar.json> \
+  --base $B2 --run logs/mist_w3po_v1/<你的目录>/$N --name $N --ckpt - --speech-from obsi_b_${C}_${D} \
+  --talker t1c --window 1 --cap135 --exclude 4 5 6 7 < /dev/null > logs/mist_w3po_v1/<你的目录>/$N.launch.log 2>&1 9>&- &
+```
+
+先加 `--dry` 检查：每个 `__talk<k>` 作业的命令里都应出现 `bench_talker_override --voice-override`。
+
+## 5. 统一评测命令（任何运行都用它，结果可直接比较）
+
+```bash
+PYTHONPATH=. $PY -m experiments.mist_w3po_v1.voicecond.bench_eval --cond <c> --dir <d> --name <运行名，种子 1>
+```
+
+- 自动同时评 `<name>` 和 `<name>_tts2` 两个种子；只用 CPU。
+- 输出：`eval_outputs/mist_w3po_v1/voicecond_bench/<name>/metrics.json`（汇总、每个种子、每条流的均值，用于按流配对检验），以及 `items_<n>.jsonl`（逐条目）。
+- 表格：`python -m experiments.mist_w3po_v1.voicecond.bench_table <name> ...`
+
+各项指标：
+
+| 指标 | 定义 |
+|---|---|
+| tcpASR-BLEU | `decode/<n>/score_asr.json` 的 `tcpBLEU_all`（overlap_score，**真实 CV 说话人**）；另附 ov / 1spk |
+| 不分说话人的 ASR-BLEU | 每条流把所有输出段按时间（窗口起点 + 段起点）连成一篇，所有参考句按时间连成一篇，算语料级 BLEU（zh→en 用 13a 分词，en→zh 用 zh 分词）；文本也同样算一遍 |
+| 文本 tcpBLEU | `score_text.json` |
+| 语音 LAAL（主延迟） | 分离器块协议：在 `windows_obsi_<cond>_<dir>_c2g06_chunk_v1` 上跑 speech_latency_lit（zh→en 经 `on_refset --dr ali`，en→zh 经 `en2zh_lat`），取 `unit.speech_laal_online.all.mean`；EndOffset 为 `unit.speech_end_online.all.mean`，只作补充 |
+| SQUIM-PESQ / SI-SDR / STOI | torchaudio SQUIM objective，无参考，取每条 talker 流的前 20 s（与 `game_muffle_analysis.squim` 相同） |
+| 频谱对比度 / 平坦度 | `game_voice_texture.feats`：300–4000 Hz 的平坦度中位数，5 个倍频带对比度的均值 |
+| 说话人相似度 | WavLM-base-plus-SV（x-vector，与 BiCodec 无关，本机 `evaluation_models/wavlm-base-plus-sv`，即项目 SIM-O 用的模型）。计算该 talker 流的语音，与其真实说话人在本流中**干净 CoVoST 片段**的平均嵌入之间的余弦。条目 (窗口, 槽位) 分配给"槽位在该窗口内的分离器活动（> 0.5）与其语句重叠最多"的真实说话人；分配不上的条目只计数，不计分 |
+
+注：本机的 WavLM-Large 只有主干、没有说话人验证头；没有独立的 ECAPA 权重（BiCodec 内部的 ECAPA 不独立）；CAM++ 只有 X-Translator 带的中文版。所以选 wavlm-base-plus-sv，它与 BiCodec 相互独立。
+
 （以下各节在运行完成后填写。）
