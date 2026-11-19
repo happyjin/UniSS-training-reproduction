@@ -34,6 +34,60 @@ def laal(run, base):
     return json.load(open(p))["unit"]["speech_laal_online"]["all"]["mean"]
 
 
+def spksim(tag, n_boot=10000):
+    """prereg v2.1: TitaNet cosine to the whole-excerpt solo-frame HDemucs-vocals reference of the stream's slot"""
+    SP = OUT / "spksim"
+    arms = {"B": "", tag: f"_{tag}", "V": "_vocals", "ZNE_Rt": "_zne_Rt"}
+    load = lambda run: ({r["id"]: r["sim"] for r in map(json.loads, open(SP / f"{run}.jsonl"))}
+                        if (SP / f"{run}.jsonl").exists() else None)
+    res = {"per_run_median": {}, "missing_runs": [], "delta_vs_B": {}}
+    deltas = {}       # (dir, id) -> seed-averaged delta tag - B
+    noobs = {}
+    for d in ("zh2en", "en2zh"):
+        tok = {t["id"]: t for t in map(json.loads, open(OUT / "tokens" / f"game_{d}_{tag}.jsonl"))}
+        sims = {}
+        for arm, sfx in arms.items():
+            for sname, ssfx in (("s1", ""), ("s2", "_tts2")):
+                run = f"game_b_{d}__t1c{sfx}{ssfx}"
+                v = load(run)
+                if v is None:
+                    res["missing_runs"].append(run)
+                    continue
+                sims[(arm, sname)] = v
+                res["per_run_median"][run] = float(np.median(list(v.values())))
+        for arm in arms:
+            if arm == "B":
+                continue
+            for sname in ("s1", "s2"):
+                if (arm, sname) not in sims or ("B", sname) not in sims:
+                    continue
+                A, X = sims[("B", sname)], sims[(arm, sname)]
+                ids = sorted(set(A) & set(X))
+                dd = np.array([X[i] - A[i] for i in ids])
+                res["delta_vs_B"][f"{d}_{arm}_{sname}"] = {"n": len(ids), "median": float(np.median(dd)),
+                                                          "mean": float(dd.mean()), "share_pos": float((dd > 0).mean())}
+        if all((k, s) in sims for k in ("B", tag) for s in ("s1", "s2")):
+            ids = sorted(set.intersection(*[set(sims[(k, s)]) for k in ("B", tag) for s in ("s1", "s2")]))
+            for i in ids:
+                deltas[(d, i)] = 0.5 * ((sims[(tag, "s1")][i] - sims[("B", "s1")][i]) + (sims[(tag, "s2")][i] - sims[("B", "s2")][i]))
+                noobs[(d, i)] = tok[i]["n_win"] == 0 if i in tok else False
+    rng = np.random.default_rng(0)
+
+    def stat(keys):
+        v = np.array([deltas[k] for k in keys])
+        if len(v) == 0:
+            return None
+        bs = np.median(v[rng.integers(0, len(v), (n_boot, len(v)))], axis=1)
+        return {"n": len(v), "median": float(np.median(v)), "ci": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))],
+                "mean": float(v.mean())}
+    allk = sorted(deltas)
+    res["gate"] = {"all": stat(allk), "prior_mean_streams": stat([k for k in allk if noobs[k]]),
+                   "other_streams": stat([k for k in allk if not noobs[k]]),
+                   "zh2en": stat([k for k in allk if k[0] == "zh2en"]), "en2zh": stat([k for k in allk if k[0] == "en2zh"])}
+    res["gate"]["pass"] = bool(res["gate"]["all"] and res["gate"]["all"]["median"] >= -0.02)
+    return res
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default="shrink")
@@ -68,6 +122,7 @@ def main():
                        "n_win_median": float(np.median([t["n_win"] for t in tok])),
                        "ham_vs_V_median": float(np.median([sum(x != y for x, y in zip(t["ids"], t["ids_V"])) for t in tok]))}
         S["dirs"][d] = r
+    S["spksim"] = spksim(a.tag)
     out.write_text(json.dumps(S, indent=1))
     print(json.dumps(S, indent=1))
 
