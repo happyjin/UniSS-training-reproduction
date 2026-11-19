@@ -4023,3 +4023,18 @@ $\|\hat u-u^\star\|_2$ 的中位数：
     4. LAAL、指标和 TitaNet（参照为 Idea 2 的槽位人声，只读）；
     5. 写出 `m3/ood3_summary.json` 和标记 `OOD3_ANALYSIS_DONE`。
   - B 组复用 Idea 2 的 `idea2_ood3_b_*`，已登记在协调文件里。
+
+## 2026-11-19 05:00 布拉格 — GPU 叠加效率修复（用户提问：显存利用太低，非训练任务能否叠加）
+
+- **原因：**
+  - Talker 的启动被两条 60 s 间隔规则串行化：同卡 vLLM 启动间隔，以及按卡对计算的 Talker 间隔。这两条规则是为跨两卡并行（TP2）的大作业设计的；
+  - 大量 Talker 作业在 vLLM 显存探测时因断言失败（"Initial free memory < current free memory"）而重试。原因是 guard 在作业间隙拉起占位程序、编排器随即按 PID 停掉，一下释放大量显存，正好撞上别的引擎的探测窗口；
+  - 结果是卡上同时只挂着一两个约 14 GB 的作业。
+- **修复（提交 548113295，默认行为不变）：**
+  - `si_infer.py`：设了 `SI_KV_CACHE_GIB` 时，用 vLLM 的 `kv_cache_memory_bytes` 固定 KV 大小（7.73 GiB，与 gpu-mem 0.1 时的容量相同：289,472 对 289,600 tokens），跳过显存探测；
+  - `finalpost_dev_orch.py`：两条启动间隔可以用 `ORCH_TALK_PAIR_GAP_S` 和 `ORCH_LEDGER_VLLM_GAP_S` 覆盖；
+  - 在卡 0 上做了冒烟测试：日志显示"skipped memory profiling"，3 条输出正常。
+- **执行：**
+  - 两个执行代理从现在起新启动的编排器都带上 `SI_KV_CACHE_GIB=7.73 ORCH_TALK_PAIR_GAP_S=0 ORCH_LEDGER_VLLM_GAP_S=10`；
+  - 排队中的运行改为并行启动，仍保持每卡不超过 135 GiB；
+  - 已经在跑的编排器维持原设置，让它们跑完。
