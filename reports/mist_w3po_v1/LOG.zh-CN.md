@@ -3958,3 +3958,14 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **注意：** zh→en 的 ASR-BLEU 在两个 TTS 种子之间最多相差 2.1。所以"不低于基线"必须按流配对、两个种子都看，并给 bootstrap 区间。
 - **试听子集：** `demo_packages/voicecond_bench_listen_v1`。每个方向 3 条流（zh→en：s033、s035、s015；en→zh：s089、s128、s018），每条都有 ID-2、OOD-1、clean 三个版本；左声道原声、右声道 B 的同传。
 - **运行情况：** 分片偶尔因 vLLM 启动时显存不足失败，自动重试后全部完成；全程只用卡 0–3（`--exclude 4 5 6 7`）。
+
+## 2026-11-19 03:48 布拉格 — OpenBroadcast-SI 多系统 A/B 试听数据（协调者要求）
+
+- 脚本 `experiments/mist_w3po_v1/scripts/voicecond_bench_listen_ab.py`：
+  - 与 `voicecond_bench_listen_v1` 是同样的 18 段（每个方向 3 条流，每条流 3 个条件）；
+  - data.json 的格式与 `build_game_demo_v2.py` 相同，模板 `game_demo_ab_template.html` 不用改。标题中写明条件、方向和流号。
+- **分支（TTS 种子 1）：** B 为 `obsi_b_*__t1c`；idea2 为 `obsi_i2_*__t1c`；z 为 `obsi_i1z_*__t1c`；c 为 `obsi_i1c_*__t1c`。某个集合的运行若不完整（还没有 `talker/results.jsonl`），该分支在这个集合上跳过。
+- **等待器** `experiments/mist_w3po_v1/scripts/voicecond_bench_listen_ab_wait.sh` 已在后台启动：
+  - 等 Idea 2 的 6 个 `I2_*_{DONE,FAILED}` 标记，以及 `M3_RUNS_{DONE,FAILED}`；
+  - 然后生成到 `demo_packages/voicecond_bench_listen_ab_v1/`，完成标记 `LISTEN_AB_DONE`（失败时在 `logs/mist_w3po_v1/voicecond_bench/LISTEN_AB_FAILED`）；
+  - 日志 `logs/mist_w3po_v1/voicecond_bench/listen_ab.log`。
