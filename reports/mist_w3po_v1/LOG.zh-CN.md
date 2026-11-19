@@ -4463,3 +4463,16 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 预登记 `robust_wave3_single_prereg.zh-CN.md`（G 组、变更 1、G 组实现细节、G 组结果）。代码 `voicecond/wave3_g_{cfg,run,noplaceholder,score}.py/.sh`（d4a37ce63）。
 - 实现：si_infer 不改，用 HF bf16 替身替换 vllm.LLM，每步 l⁺ + w(l⁺ − l⁻)，然后过 SIGuard 与 top-p，两臂共用随机数。没有用 vLLM 成对解码，因为 SIGuard 是逐请求处理器，两行也无法保证同一步调度。
 - w = 0 后端核对（dev 20 条/方向）：HF / vLLM 码长合并中位比 **0.9625**，门槛 [0.98, 1.02]，**不通过**（英→中 1.014，中→英 0.938）。按预登记 G 停止，正式运行未启动。卡 5 交还 guard。
+
+## 2026-11-19 21:20 布拉格 — 鲁棒第二波 S1：单说话人基线 LA2（Δ=1 s）干净 vs 带噪
+- 预登记 `robust_wave2_diag_prereg.zh-CN.md` 的"S1 结果"一节；代码 `voicecond/wave2_s1_{prep,run,noplaceholder,score}`（1ddae3651）；输出 `eval_outputs/mist_w3po_v1/wave2_S1/`。
+- 变更（出数前）：系统由 QABC 改为论文的不带 QABC 的基线 LA2（用户要求）；只跑一个 TTS 种子 20261021（用户：探索阶段只用一个种子，不做参数探索）。
+- 复现（RealSI，只核对）：论文提交块 + 本次 Talker 得到 29.78 / 2.514 s 与 23.15 / 2.701 s，论文为 29.75 / 2.51 与 23.19 / 2.70，复现。Thinker 重跑不逐位一致（vLLM 贪心数值），文本 BLEU −0.26 / +0.19。
+- 干净 − 带噪文本 BLEU 损失：
+  - 英→中：CoVoST +0.24 [−2.10, 2.44]，OB-SI dev +2.81 [1.09, 4.54]；
+  - 中→英：CoVoST +3.22 [1.15, 5.22]，OB-SI dev +2.79 [0.79, 5.20]。
+  - ASR-BLEU 损失：英→中 −0.60 / +1.85，中→英 +3.48 / +1.93。
+  - D1 / D2 只慢 0–0.11 s。
+  - 输出 PESQ 掉 0.79–0.92，CI 都不含 0：T1c 用带噪源音频做音色提示，把噪声克隆进了译文语音。
+- 判读：单说话人损失 ≥ 0.5 BLEU（3/4 格），OB-SI 上与多说话人链损失同量级甚至更大，所以损失主要在翻译模型本身，不在多说话人链路。
+- GPU：卡 0–3（Thinker 卡 2、3，Talker / ASR 卡 0、1），20:33–21:15；watcher 已按 PID 停止，卡交还 guard。
