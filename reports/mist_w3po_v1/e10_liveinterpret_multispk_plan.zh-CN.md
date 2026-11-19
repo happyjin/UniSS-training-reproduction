@@ -396,7 +396,7 @@ f. **开源数据规则。** E10 的微调只用 AMI（CC BY 4.0）和 CosyVoice
     - fla 0.5.2 在 Hopper GPU + Triton 3.4 上会拒绝执行 gated delta rule 的反向（梯度有误，fla #640），因此加装了 tilelang；
     - causal-conv1d 编译失败，代码退回 torch 实现，结果正确，只是慢一些；
     - setuptools 固定在 81 以下，因为 CosyVoice 依赖 `pkg_resources`。
-11. **speech tokenizer** 暂时用 S3 上的 `speech_tokenizer_v3.batch.onnx`，能正常工作。等用户确认正式文件后替换。
+11. **speech tokenizer** 是用户 2026-11-19 确认的正式文件 `s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/cosyvoice3/speech_tokenizer_v3.batch.onnx`（本地副本与 S3 的分段 ETag `840fd747…-116` 一致），冒烟时已在用，不需要替换。
 
 ### 11.2 冒烟结果（全部通过）
 
@@ -414,5 +414,5 @@ f. **开源数据规则。** E10 的微调只用 AMI（CC BY 4.0）和 CosyVoice
 
 1. 确认 GPU 安排：训练 4 卡或 8 卡，按多 agent 规则需要协商；
 2. 写预登记 `e10_liveinterpret_multispk_prereg.zh-CN.md`（§7 的要点，加上 §11.1 的调整）；
-3. 替换正式的 `speech_tokenizer_v3.onnx`；
+3. ~~替换 speech tokenizer~~：已确认，当前用的就是正式文件；
 4. 训练取最后一步，过 §5.5 的 dev 门槛，然后测试集每个集合解码一次。

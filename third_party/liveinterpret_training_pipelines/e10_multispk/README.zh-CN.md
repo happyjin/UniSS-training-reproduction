@@ -9,7 +9,7 @@
 | 文件 | 作用 |
 |---|---|
 | `setup/setup_simuls2s.sh`、`setup/setup_simuls2s_part2.sh` | 建 venv `/opt/dlami/nvme/jasonleeeli/venvs/simuls2s`，版本记录在 `simuls2s.freeze.txt` |
-| `setup/fetch_assets.sh` | 下载 S4 底座、声码器 `speech_decoder/`、临时 speech tokenizer，并 clone CosyVoice（commit 074ca6d） |
+| `setup/fetch_assets.sh` | 下载 S4 底座、声码器 `speech_decoder/`、speech tokenizer，并 clone CosyVoice（commit 074ca6d） |
 | `build_li_records.py` | 把 B 的 AMI 窗口和截止时间标签转成 S5 的 `si-rw-m1-v0` 训练记录（640 ms 一步、带说话人 tag、两个方向数量对齐） |
 | `e10/common.py` | 共用常量与工具：说话人 tag（复用 `<|dur:1..25|>`，id 248080–248087）、指令、后验 13 帧延迟、B 的扰动 |
 | `e10/patch.py` | 运行时补丁：record 的指令与后验 → `spk_post` → collate → `e10_sd_proj` 注入音频帧 |
@@ -47,6 +47,6 @@ $PY e10_multispk/eval_e10.py --mode e10   --adapter <最后一步 checkpoint> --
 $PY e10_multispk/eval_e10.py --mode e10_0 --adapter checkpoints/p4mix_2n_20261117/checkpoint-29773 --sets ami,ali,en
 ```
 
-## 临时项
+## speech tokenizer
 
-- `speech_tokenizer_v3`：目前用的是 S3 上的 `speech_tokenizer_v3.batch.onnx`，冒烟时可以正常工作。拿到确认的文件后，设置 `E10_SPEECH_TOKENIZER=<路径>`，或给 `run_e10.py` 传 `--prompt_tokenizer`。
+- `speech_tokenizer_v3`：用户 2026-11-19 确认的正式文件 `s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/cosyvoice3/speech_tokenizer_v3.batch.onnx`（本地副本与 S3 的分段 ETag `840fd747…-116` 一致），`run_e10.py` 默认就用它（`checkpoints/cosyvoice3/speech_tokenizer_v3.batch.onnx`）；如需改用别的文件，设置 `E10_SPEECH_TOKENIZER=<路径>` 或传 `--prompt_tokenizer`。

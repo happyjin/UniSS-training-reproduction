@@ -22,7 +22,7 @@ fetch_dir "${B}/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_
 # CosyVoice3 flow / HiFT / CAM++ (the base dir has no speech_decoder/).
 fetch_dir "${B}/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si_4b/speech_decoder/" \
           "${CK}/speech_decoder"
-# Speech tokenizer for the source-voice flow prompt. TEMPORARY: batch variant until the user confirms the right file.
+# Speech tokenizer for the source-voice flow prompt. Confirmed by the user on 2026-11-19 (S3 multipart ETag 840fd747...-116).
 TOK="${CK}/cosyvoice3/speech_tokenizer_v3.batch.onnx"
 if [[ ! -e "${TOK}" ]]; then
     mkdir -p "$(dirname "${TOK}")"
