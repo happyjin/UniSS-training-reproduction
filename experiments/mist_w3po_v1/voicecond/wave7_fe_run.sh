@@ -8,7 +8,8 @@
 #   STAGE=process GPU=0 ARM=pseudo|clean                 NAME=<n>  front-end on the S1 items
 #   STAGE=rtf     GPU=0 ARM=pseudo                       NAME=<n>  real-time factor (exclusive card)
 #   STAGE=thinker GPU=0 ARM=.. DIR=en2zh                 NAME=<n>  si_thinker_stream la2 w1 on the processed items
-#   STAGE=talker  GPU=0 ARM=.. DIR=en2zh SHARD=k         NAME=<n>  si_infer + V1 C tokens, original items, 4 shards, seed 20261021
+#   STAGE=v1tok   GPU=0 ARM=.. DIR=en2zh                 NAME=<n>  V1 (C) voice tokens on the arm's own first writes
+#   STAGE=talker  GPU=0 ARM=.. DIR=en2zh SHARD=k         NAME=<n>  si_infer + the arm's V1 C tokens, original items, 4 shards, seed 20261021
 #   STAGE=asr     GPU=0 ARM=.. DIR=en2zh                 NAME=<n>  speech-only ASR of the arm's talker run
 #   DRY_RUN=1 prints the command only. Checked with bash -n / DRY_RUN only.
 set -uo pipefail
@@ -55,15 +56,19 @@ case "$STAGE" in
   talker)
     : "${ARM:?}" "${DIR:?}" "${SHARD:?}"
     CMD=("${VENV[@]}" SI_KV_CACHE_GIB=7.73 CUDA_VISIBLE_DEVICES=$GPU "$PYV" -m experiments.mist_w3po_v1.voicecond.idea1_si_infer_vo
-         --voice-override "eval_outputs/mist_w3po_v1/wave3_combos/V/tokens/tokens_v1_$DIR.jsonl"
+         --voice-override "$FE/eval_$ARM/tokens/tokens_v1_$DIR.jsonl"
          --model "$TALKER" --direction "$DIR" --window 1 --output "$FE/eval_$ARM/talker_$DIR" --shard "$SHARD" --num-shards 4
          --text-policy file --blocks-file "$FE/eval_$ARM/thinker_$DIR/blocks_${DIR}_w1.jsonl" --speed-policy block
          --gpu-mem 0.1 --items-file "$S1D/items_$DIR.jsonl" --seed 20261021) ;;
+  v1tok)
+    : "${ARM:?}" "${DIR:?}"
+    CMD=("${QENV[@]}" CUDA_VISIBLE_DEVICES=$GPU "$PYQ" -I experiments/mist_w3po_v1/voicecond/wave7_fe_v1tokens.py
+         --arm "$ARM" --dir "$DIR" --device cuda:0) ;;
   asr)
     : "${ARM:?}" "${DIR:?}"
     RUN=$FE/eval_$ARM/talker_$DIR
     CMD=(bash -c "set -e; $PYE reports/uniss_si_v4/speech_only.py '$RUN' && CUDA_VISIBLE_DEVICES=$GPU PYTHONPATH=. $PYE -m evaluation.asr_transcribe --input '$RUN/results_speechonly.jsonl' --output '$RUN/asr_speech.jsonl' --device cuda:0 --batch-size 4 && test -f '$RUN/asr_speech.jsonl'") ;;
-  *) echo "STAGE must be smoke, pseudo, train, process, rtf, thinker, talker or asr" >&2; exit 1 ;;
+  *) echo "STAGE must be smoke, v1tok, pseudo, train, process, rtf, thinker, talker or asr" >&2; exit 1 ;;
 esac
 
 if [ -n "${DRY_RUN:-}" ]; then printf '%q ' "${CMD[@]}"; echo; exit 0; fi
