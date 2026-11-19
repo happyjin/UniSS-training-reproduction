@@ -4262,3 +4262,18 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - main_v2 于 09:26 训练完 3000 步，未跳过任何一步。
 - 测试运行器 v2 在第 1 步 token 自检失败。原因：初始化时编码器输出 z 与 M2 存档相比，最大差 3.98e-3，超过代理自定的 1e-3 容差，差异来自 cuDNN 卷积数值。其余两项都正常：后验与 numpy 版 shrink 的差为 1.15e-4；第 3000 步检查点复现训练日志的 dev 指标，tok 完全一致，code_sq 差 4e-5。
 - v3（idea2_e2e_test_run_v3.sh）只把 z 的容差放宽到 1e-2，其他与 v2 相同。为了不覆盖已有文件，把旧的自检 json 改名为 token_selftest.v2run.json，失败标记改名为 superseded_*。v3 于 09:46 启动，自检通过。
+
+## 2026-11-19 09:53 布拉格 · constlam 消融提前到卡 4–7（与测试评测叠加），卡 0–3 的消融链换成只收尾 frozen_talker 的 v3
+
+- 协调者 / 用户：卡 4–7 空着，还没开训的任务现在就开。
+- **constlam：** 新脚本 `scripts/idea2_e2e_constlam_run.sh`（只做了 bash -n 和 DRY_RUN=1）。
+  - 运行名 `idea2_e2e_abl_constlam_v1`，设置与 main_v2 相同（同一训练器和修复、数据、种子、3000 步、4 卡 DDP）。
+  - 不占槽 B：占了会把 4–7 写进 exclude_cards，挡住测试编排器。
+  - 不等评测；启动前按 PID 停了卡 4、5 上的占位 supervisor。
+  - 09:49 启动（启动脚本 PID 2476629，torchrun 2479365），与 e2e 测试评测叠加。前 20 步正常（第 1 步 KL1 0.479，约 2.3–2.6 s/步）。
+- **消融链 v3：** 新脚本 `scripts/idea2_e2e_ablation_chain_v3.sh`（只做了 bash -n 和 DRY_RUN=1），PID 2473767。
+  - 接管 v2 的槽 A 文件，以及正在跑的 frozen_talker torchrun 2349396（只等它结束）；结束后写标记、释放槽 A，不再启动 constlam。
+  - 确认接管成功后，用 SIGKILL 停掉 v2 的 bash（1813633），这样槽 A 不会被提前释放。
+  - attnpool 已在 09:36 写出 DONE。
+- **e2e 测试：** 协调者写的 v3 运行器（z 容差放宽到 1e-2）已过 dev 检查：token selftest 中 z 差 4.0e-3、u 差 1.2e-4、检查点检查 3.8e-5，si_infer 冒烟正常。9 个编排器已在 09:49–09:50 启动。我没有改动 v3 运行器。
+- **预计：** frozen_talker 约 11:00–11:20 结束，constlam 约 12:00–12:15 结束，测试汇总约 12:00（均为布拉格时间）。
