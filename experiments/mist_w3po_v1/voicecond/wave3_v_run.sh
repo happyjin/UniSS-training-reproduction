@@ -3,7 +3,7 @@
 # voice tokens of arm V1/V2/V3 (wave3_v_tokens.py tables) put in by idea1_si_infer_vo.py; every other si_infer flag,
 # the shard layout (4 shards) and the seed (20261021) are those of S1's B talker (wave2_s1_run.sh), so arms pair with B.
 #   STAGE=tokens GPU=3 DIR=en2zh OUTD=<dir> [LIMIT=n] NAME=<n> bash wave3_v_run.sh
-#   STAGE=talker GPU=3 DIR=en2zh OUTD=<dir> TABLE=<tokens jsonl> [SHARD=0 NSHARDS=4] [ITEMS=..] NAME=<n> ...
+#   STAGE=talker GPU=3 DIR=en2zh OUTD=<dir> TABLE=<tokens jsonl>|none [SHARD=0 NSHARDS=4] [SEED=20261021] [ITEMS=..] NAME=<n> ...
 #   STAGE=asr    GPU=3 RUN=<si_infer output dir> NAME=<n> ...
 # Detached (setsid nohup, fds 8/9 closed); appends "card pid name" to $PIDS; stops the placeholders of the card by PID
 # (argv re-checked; never guard 2726951, gpu_watch 52045, sync 1222453). DRY_RUN=1 prints the command only.
@@ -32,11 +32,12 @@ case "$STAGE" in
          experiments/mist_w3po_v1/voicecond/wave3_v_tokens.py --dir "$DIR" --out "$OUTD" --device cuda:0 ${LIMIT:+--limit "$LIMIT"}) ;;
   talker)
     : "${DIR:?}" "${OUTD:?}" "${TABLE:?}"
-    CMD=("${VENV[@]}" SI_KV_CACHE_GIB=7.73 CUDA_VISIBLE_DEVICES=$GPU "$PYV" -m experiments.mist_w3po_v1.voicecond.idea1_si_infer_vo
-         --voice-override "$TABLE"
+    if [ "$TABLE" = none ]; then HOOK=(-m experiments.uniss_qwen3_omni_v1.evaluation.si_infer)   # B: no override
+    else HOOK=(-m experiments.mist_w3po_v1.voicecond.idea1_si_infer_vo --voice-override "$TABLE"); fi
+    CMD=("${VENV[@]}" SI_KV_CACHE_GIB=7.73 CUDA_VISIBLE_DEVICES=$GPU "$PYV" "${HOOK[@]}"
          --model "$TALKER" --direction "$DIR" --window 1 --output "$OUTD" --shard "${SHARD:-0}" --num-shards "${NSHARDS:-4}"
          --text-policy file --blocks-file "$BLK/thinker_$DIR/blocks_${DIR}_w1.jsonl" --speed-policy block --gpu-mem 0.1
-         --items-file "${ITEMS:-$DATA/items_$DIR.jsonl}" --seed 20261021) ;;
+         --items-file "${ITEMS:-$DATA/items_$DIR.jsonl}" --seed "${SEED:-20261021}") ;;
   asr)
     : "${RUN:?}"
     CMD=(bash -c "set -e; $PYE reports/uniss_si_v4/speech_only.py '$RUN' && CUDA_VISIBLE_DEVICES=$GPU PYTHONPATH=. $PYE -m evaluation.asr_transcribe --input '$RUN/results_speechonly.jsonl' --output '$RUN/asr_speech.jsonl' --device cuda:0 --batch-size 4 && test -f '$RUN/asr_speech.jsonl'") ;;
