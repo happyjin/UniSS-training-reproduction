@@ -4519,3 +4519,16 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 翻转普遍：目标位置约 14–15%，峰值在第 27–30 层约 20%；音频位置约 51%。翻转随 BVR 上升（ρ 0.36 / 0.50）。路由 margin 本来就极小（约 74% < 0.1），噪声不改变 margin。
 - 结论：路由会被噪声改变，但与翻译损失无关，路由 margin 方向停止。
 - 第一次启动有启动脚本 bug（工作进程没拿到 `--worker`，跑了 0 句），产物改名为 `*.superseded_v0_argsbug`；修复后同设置重跑。
+
+## 2026-11-20 00:50 布拉格 — 鲁棒第六波：音色解耦 Talker（DisenBooth 式）不通过
+- 预登记 `robust_wave6_disen_prereg.zh-CN.md`（实现细节 dc8988fcb、统一判定 3110c32a3、变更 2、导出诊断 afbce53e2；结果写在该文件的「结果」一节）。脚本为 `voicecond/wave6_{disen_train,export,export_diag,durtables,score}.py`、`wave6_run.sh`、`wave6_orch.sh`、`wave6_noplaceholder.sh`。
+- 训练：UniST pilot 行，T1c 序列，比例分块，C token 提示加背景混合，3000 步，卡 4–7。
+- 导出诊断：
+  - bf16 合并舍入让 NLL 升 0.06（fp32 合并逐位正确），评测继续；
+  - transformers 5 改写的 config 已改回 T1c 的 config 并重导。
+- 评测（卡 4–5）：
+  - 带噪 PESQ 对 B 显著 +1.1 到 +1.35；
+  - ASR-BLEU 全部退化：解耦臂中→英 −3.3 / −3.7，英→中 −1.3 / −0.4；T-ft 同向；
+  - D2 LAAL 慢 0.28–0.36 s；
+  - 时长变异相对 T-ft 只变 +3%（门槛 −50%）。
+- 判定：主判定不通过，次要门槛 1–4 不通过、5 通过。音质收益在不训练的 V1（C + T1c）上已经具备，而且 V1 的 ASR-BLEU 不降。停止，不改设置重试。
