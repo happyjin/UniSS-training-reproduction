@@ -249,3 +249,13 @@ $R_f=(L/0.5)R=4R$（重叠窗口按等效独立观测数）。窗口在结束时
 - 每个流（item）的 32 个 token = 该槽位在**该流首次输出时刻**（窗口起点 + 首个 block 的 write_ms）的后验均值经 $M$、FSQ 得到；用 `idea1_si_infer_vo.py`（按 baseline 提示文件 sha1 校验）覆盖 Talker 的音色 token，其余与 baseline B 完全相同（两个 TTS 种子、全部流、条目顺序一致），只在卡 4–7 上运行。
 - 指标：按流配对的 SQUIM-PESQ、频谱对比度和平坦度（相对 baseline B），盲 ASR-BLEU（`game_blind_bleu.py`），语音 LAAL。
 - 验收线（§7.2f）：PESQ 中位数提升 ≥ +0.5，对比度提升 ≥ +1.5 dB，BLEU 不降。
+
+## v2.1 修订（2026-11-19 01:58 布拉格，在计算任何说话人相似度之前；协调者决定）
+
+**电竞 demo 的身份保持门槛**（收缩反解会把编码推离中心，且有 44 个流在首次输出时只能用先验均值音色，所以上试听页之前必须检查身份）：
+- 模型：独立的说话人确认模型 TitaNet-large（`idea1_spksim.py` 中的本地 .nemo，nemo_diar 环境），与 BiCodec 的 ECAPA 无关；余弦相似度。
+- **参照（每个（片段，分离器槽位）一个，与流无关）：** 整段 300 s 原声的 HDemucs 人声（与 `idea2_demucs.separate` 相同的处理）中，该槽位**全部单人片段**（$p_k>0.5$ 且其他槽位 $<0.5$，每段 ≥ 0.4 s，与提示规则相同）拼接而成。用整段而不是提示，避免偏向 V。
+- 每个流：生成语音（`talker/results.jsonl` 的 speech_path）与其槽位参照的相似度。
+- 臂：B（baseline）、shrink、V（vocals 运行）、ZNE R-t，各两个 TTS 种子（运行存在的都算，缺的注明）。
+- **门槛：** 两个方向、两个种子合并，每个流先取两个种子的平均，$\mathrm{median}(\Delta)$，$\Delta=\mathrm{sim}_{\rm shrink}-\mathrm{sim}_B$，要求 ≥ −0.02。另报告以流为单位的 bootstrap 95% CI、每个方向和种子的结果，以及"先验均值音色"的流（首次输出时没有可用窗口，`n_win = 0`）和其余流分别的同一统计量。
+- 结果并入 `idea2_game_summary.py` 的输出。
