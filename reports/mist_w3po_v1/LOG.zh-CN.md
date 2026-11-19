@@ -4091,3 +4091,16 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 条数检查：zh2en_train 和 en2zh_train 各 4000/4000，两个 dev 各 400/400。
   - 内容检查：每个块都有 code_ids 和 label_from（即 dump-seq），没有任何 error；共 9.2 GB。
   - 端到端训练仍按约定暂缓，等测试表出来后由协调者确认。
+
+## 2026-11-19 07:20 布拉格 · Idea 2 端到端训练器与启动脚本（冒烟测试通过，主设置尚未启动）
+
+- 训练器 `experiments/mist_w3po_v1/voicecond/idea2_e2e_train.py`（按预登记 v1 §1–§6 主设置；`--ablation` 含 §4 的 attnpool / constlam / frozen_talker，暂不启动）。启动脚本 `scripts/idea2_e2e_train_run.sh`（只做了 bash -n 和 DRY_RUN=1）。
+- 数据：cvt 教师目标 train 7907 条（zh2en 3947、en2zh 3960），dev 793 条；没有可用窗口的条目（推理时走 V 回退）排除：train 53 + 40，dev 5 + 2。
+- 初始化等价检查：可训练编码器对窗口的输出与已存 z_mix 最大差 2.9e-6，闭式后验与 numpy 收缩方法最大差 7.6e-7（初始时就是冻结的 shrink 方法）；直通桥线性替代 R² = 0.668（与可行性检查一致）。
+- 冒烟测试（输出在 `eval_outputs/mist_w3po_v1/voicecond_idea2/e2e_smoke/`）：单卡 20 步、单卡 bs16 8 步计时、双卡 DDP 10 步；损失有限，检查点保存/加载往返一致（LoRA 112 个张量、编码器、头、c 全部 0 差）。单卡 bs16 约 2.0 s/步（编码器反向约占一半），峰值 14.5 GiB。
+- 实现细节（预登记未规定，需在报告中注明）：
+  1. 权重规则的前 50 个 batch 内 w_code、w_anc 尚未定义，取 0（只用两个 KL 训练），第 50 个 batch 后按规则固定；
+  2. 锚点项的 φ_0(s) 由冻结编码器副本在同一步同一 batch 上算，初始时严格为 0（预先计算的 φ_0 与在线计算有约 2e-7 的数值底噪，会让权重由底噪决定）；
+  3. 梯度裁剪 1.0 按参数组分别做（Talker 侧：LoRA + h_ω + c；编码器）：全局裁剪时编码器梯度（尤其锚点项，范数可达 1e5）会把 LoRA 梯度压到 Adam eps 以下，等于冻结 LoRA；
+  4. 编码器和后验用 fp32 / fp64（Talker bf16），保证初始等价；AdamW weight decay 0（与 Idea 1 训练器一致）；
+  5. 检查点每 500 步 + 最终（只含可训练部分和优化器状态），dev 每 250 步记录（预登记写的是只存最终、每 500 步记录；多存多记不影响训练，不做选择）。
