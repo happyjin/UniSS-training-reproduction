@@ -17,8 +17,31 @@ sys.path.insert(0, str(REPO / "scripts"))
 sys.path.insert(0, str(REPO / "experiments/mist_w3po_v1/scripts"))
 
 
+def throughput_overrides() -> None:
+    """2026-11-19 ~16:10 Prague (user: "尽可能每个gpu叠加多个测试任务"): optional env overrides of the placement constants
+    of finalpost_dev_orch, applied in this process only (unset = unchanged):
+      I6_LAUNCH_GAP_TALK / I6_LAUNCH_GAP_ASR  s between two launches of one round inside gpu_launch.lock (5 / 10); with 18
+                                              orchestrators the lock waits reached 750 s and the cards drained between rounds
+      I6_NEED_TALK                            GiB planned per talk job (24; measured 19-20: parent ~4 + EngineCore ~15)
+      I6_OTHER_WINDOW_S                       s over which other processes' memory is maxed for planning (180)"""
+    import os
+    import finalpost_dev_orch as fo
+    ch = {}
+    if os.environ.get("I6_LAUNCH_GAP_TALK"):
+        fo.LAUNCH_GAP_S["talk"] = ch["gap_talk"] = int(os.environ["I6_LAUNCH_GAP_TALK"])
+    if os.environ.get("I6_LAUNCH_GAP_ASR"):
+        fo.LAUNCH_GAP_S["asr"] = ch["gap_asr"] = int(os.environ["I6_LAUNCH_GAP_ASR"])
+    if os.environ.get("I6_NEED_TALK"):
+        fo.NEED["talk"] = ch["need_talk"] = float(os.environ["I6_NEED_TALK"])
+    if os.environ.get("I6_OTHER_WINDOW_S"):
+        fo.OTHER_WINDOW_S = ch["other_window_s"] = int(os.environ["I6_OTHER_WINDOW_S"])
+    if ch:
+        print(f"[idea6_test_orch] throughput overrides {ch}", flush=True)
+
+
 def main() -> None:
     which, argv = sys.argv[1], sys.argv[2:]
+    throughput_overrides()
     if which == "bench":
         import voicecond_bench_orch as V
         assert "--exclude" in argv and argv[argv.index("--exclude") + 1] == "none", "use --exclude none"
