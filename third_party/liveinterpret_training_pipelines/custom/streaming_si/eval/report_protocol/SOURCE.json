@@ -1,0 +1,18 @@
+{
+  "source_commit": "dfe4f887509131387315801943ce53f9fb24213e",
+  "source_prefix": "custom/streaming_si/inference/streaming_si_infer_pkg/",
+  "files": {
+    "asr_latency.py": "69740cd9657e9e5f838b44fe8eb198b8c379ca42d23c1374dfc3f48cc9edb975",
+    "comet_score.py": "8dfc9c3a20147e7462dabc4a13f445569ba49465ec76a71d3bb86a27d3c92007",
+    "make_report.py": "77035c25c1097dd3eb13a36d69055e1bf57fb27850fde11186c2ace6b9d1cbad",
+    "requirements-asr.txt": "dcef0097a04d96e5dd697200170be2a1c54bb12335c6306367d4b77d16ca6b2c"
+  },
+  "protocol": {
+    "asr_zh": "Qwen3-ASR-1.7B",
+    "asr_en": "Whisper-large-v3",
+    "timestamps": "Whisper-large-v3",
+    "normalization": "original norm with OpenCC t2s",
+    "comet": "Unbabel/wmt22-comet-da raw src/mt/ref batch32"
+  },
+  "provenance_limit": "Recovered original repository evaluator; configuration matches REPORT_开源S5.md. Nov7 producer commit was not recorded, so byte identity to that execution is not established."
+}

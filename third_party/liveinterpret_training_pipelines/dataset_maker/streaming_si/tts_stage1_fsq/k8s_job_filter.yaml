@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tts-stage1-filter
+  namespace: speech-h200
+  labels:
+    app: tts-stage1-fsq
+spec:
+  completionMode: Indexed
+  parallelism: 8
+  completions: 8
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: tts-stage1-fsq
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: filter
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -eu
+              python3 -m pip install -q boto3
+              cd /opt/tts_stage1_fsq
+              exec python3 filter_stage1.py --shard "${JOB_COMPLETION_INDEX}" --nshard 8 --workers 8
+          envFrom:
+            - secretRef:
+                name: aws-local-creds
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: ap-southeast-3
+          resources:
+            requests:
+              cpu: "4"
+              memory: 16Gi
+            limits:
+              cpu: "16"
+              memory: 64Gi
+          volumeMounts:
+            - name: code
+              mountPath: /opt/tts_stage1_fsq
+      volumes:
+        - name: code
+          configMap:
+            name: tts-stage1-fsq

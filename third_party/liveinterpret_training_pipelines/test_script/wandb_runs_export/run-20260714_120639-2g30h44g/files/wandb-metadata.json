@@ -1,0 +1,158 @@
+{
+  "os": "Linux-6.1.168-203.330.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-07-14T12:06:39.234412Z",
+  "args": [
+    "--external_plugins",
+    "/opt/dlami/nvme/zeyangsong/liveinterpret_training_pipelines/custom/plugin.py",
+    "--model",
+    "/opt/dlami/nvme/zeyangsong/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a",
+    "--model_type",
+    "qwen2_5_3b_omnispeak_a",
+    "--template",
+    "qwen_omnispeak",
+    "--dataset",
+    "bridge_alignment_speech_to_speech_translation",
+    "--load_from_cache_file",
+    "false",
+    "--remove_unused_columns",
+    "false",
+    "--tuner_type",
+    "full",
+    "--freeze_parameters_ratio",
+    "1.0",
+    "--trainable_parameters",
+    "model.bridge",
+    "model.talker.code_predictor",
+    "model.talker.codec_head",
+    "--trainable_parameters_regex",
+    "model\\.talker\\.model\\.layers\\.\\d+\\.",
+    "--torch_dtype",
+    "bfloat16",
+    "--attn_impl",
+    "sdpa",
+    "--deepspeed",
+    "zero2",
+    "--gradient_checkpointing",
+    "true",
+    "--num_train_epochs",
+    "5",
+    "--per_device_train_batch_size",
+    "32",
+    "--per_device_eval_batch_size",
+    "1",
+    "--gradient_accumulation_steps",
+    "1",
+    "--learning_rate",
+    "1e-5",
+    "--warmup_ratio",
+    "0.03",
+    "--max_length",
+    "4096",
+    "--split_dataset_ratio",
+    "0.01",
+    "--eval_steps",
+    "100",
+    "--save_steps",
+    "500",
+    "--save_total_limit",
+    "3",
+    "--logging_steps",
+    "10",
+    "--report_to",
+    "wandb",
+    "--run_name",
+    "bridge_concat-full-3b-lr1e-5-bs32x4-s2s",
+    "--dataloader_num_workers",
+    "0",
+    "--dataset_num_proc",
+    "1",
+    "--output_dir",
+    "/opt/dlami/nvme/zeyangsong/liveinterpret_training_pipelines/output/qwen_omnispeak_output/speech_to_speech_translation"
+  ],
+  "program": "/opt/dlami/nvme/zeyangsong/miniconda3/envs/liveinterpret/lib/python3.11/site-packages/swift/cli/sft.py",
+  "git": {
+    "commit": "81f1a94b5f82fe4d0e3b31da06aba8050810ee4d"
+  },
+  "email": "ktrain-user@tencent.com",
+  "root": "/opt/dlami/nvme/zeyangsong/liveinterpret_training_pipelines/output/qwen_omnispeak_output/wandb",
+  "host": "ip-172-16-170-56.ap-northeast-1.compute.internal",
+  "executable": "/opt/dlami/nvme/zeyangsong/miniconda3/envs/liveinterpret/bin/python3.11",
+  "cpu_count": 96,
+  "cpu_count_logical": 192,
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "gpu_count": 8,
+  "disk": {
+    "/": {
+      "total": "107294470144",
+      "used": "47006965760"
+    }
+  },
+  "memory": {
+    "total": "2147453689856"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-dac173d0-5dda-d104-8216-4bb2afed1828"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-270b6b5d-5a3e-bf8f-9720-19da058e9c71"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-fbb7b9e1-b4fa-5bbf-cae1-9a944a01e69d"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-ef20c1c7-9d6e-c8bc-0be0-0b023e435114"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-e12802d1-a16c-32ca-66f9-630486343d19"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-4dadce05-8e50-5cdc-7f03-c0c5b9edb57c"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-407172f7-20de-c4bc-f104-1c6f7796bf55"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-14d1004b-2646-f543-d794-dacb87d68c4d"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "trainium": {
+    "name": "Trainium",
+    "vendor": "AWS"
+  },
+  "writerId": "jk0xzrbdagjc35re10tpz8f977axy9bx"
+}

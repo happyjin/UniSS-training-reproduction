@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: tts-quarantine, namespace: ktrain-users}
+spec:
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-018b7d3289be4766a}
+  containers:
+    - name: q
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      envFrom: [{secretRef: {name: aws-jkt-creds}}]
+      env: [{name: AWS_DEFAULT_REGION, value: ap-southeast-3}]
+      command: ["python3", "-c"]
+      args:
+        - |
+          import os, re, shutil, boto3
+          R = '/opt/dlami/nvme/stevehguo/tts_omni'
+          Q = R + '/quarantine/sweep2_run1'
+          pat = re.compile(r'^shard-7\d{7}\.(jsonl|npy)$')
+          moved = []
+          for sub in ('manifest', 'codes'):
+              base = os.path.join(R, 'TTS_omni', sub)
+              if not os.path.isdir(base): continue
+              for lang in os.listdir(base):
+                  for fn in os.listdir(os.path.join(base, lang)):
+                      if pat.match(fn):
+                          dst = os.path.join(Q, sub, lang); os.makedirs(dst, exist_ok=True)
+                          shutil.move(os.path.join(base, lang, fn), os.path.join(dst, fn))
+                          moved.append(f'{sub}/{lang}/{fn}')
+          print('隔离文件数:', len(moved))
+          s3 = boto3.client('s3', region_name='ap-southeast-3')
+          P = 'speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/TTS_omni_quarantine/sweep2_run1'
+          for rel in moved:
+              s3.upload_file(os.path.join(Q, rel), 'stevehguo-ap-southeast-3', f'{P}/{rel}')
+          print('已上传到', P)
+      volumeMounts: [{name: nvme, mountPath: /opt/dlami/nvme}]
+  volumes: [{name: nvme, hostPath: {path: /opt/dlami/nvme, type: Directory}}]

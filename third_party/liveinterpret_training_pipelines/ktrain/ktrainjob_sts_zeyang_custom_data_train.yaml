@@ -1,0 +1,100 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+# 本任务实验：deepspeed 后端（ZeRO-2）+ SCENE=batch4_8_adapter
+#   （adapter + whole talker，thinker 冻结；reply_add），unist 全量数据，
+# 单节点 8×H200（hyperpod-i-08e3257c716579618）。
+#
+# 训练后端：deepspeed（超参唯一真源在 train_speech_to_speech_translation.sh 的 SCENE 分支）
+# 训练目标：model.thinker_adapter + model.talker（SCENE=batch4_8_adapter 推导）
+# 模型：zeyangsong_share 的 qwen2_5_3b_omnispeak_a
+#   （config.json 自带 use_upstream_talker_input: true，adapter 前向原生生效）。
+# 数据来源：
+#   —— manifest：FSX 直读（fsx://，不产生 sync Job）
+#   —— 音频 shards：S3（ap-northeast-1 跨区域）经 sync Job 同步到各节点 NVMe，
+#      launch_train.sh 的 wds 软链会优先指向 NVMe 落盘目录。
+# 注意：numNodes 必须等于 render-extra.affinity 白名单节点数（derive_sync_jobs.py 硬校验）。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: deferzhou
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-07d384c1277ead0cd"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  # 注意：如果训练节点大于2，GPU是H100以上的型号，一定要设置EFA
+  # EFA 的唯一入口是 render-extra 的 efa_devices_per_worker（见上方 annotation）。
+  numNodes: 1
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    # 训练后端： deepspeed 单机/ megatron 单机或多机 （超参不在本 yaml 设置，见 common_args.sh）
+    TRAIN_BACKEND: "deepspeed"
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    # zeyang 共享 checkpoint（config.json 自带 use_upstream_talker_input: true，
+    # adapter 前向由配置原生生效；脚本 TRAIN_TARGET=adapter 亦会显式开 env）
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    BRIDGE_ALIGNMENT_DATA: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/manifests/manifest-train-*.jsonl"
+    # batch4.8 场景预设（实现在 train_speech_to_speech_translation.sh 的 SCENE 分支，
+    # 唯一真源）：adapter + whole talker（thinker 冻结），LR 1e-5，
+    # constant_with_warmup，2 epochs，MAX_LENGTH 576，bs64×8×ga1
+    SCENE: "batch4_8_adapter"
+    # B/C parity 实验（2026-08-25）：common_args.sh 的 BACKEND_PARITY 分支
+    # （唯一真源）——禁两层 shuffle、seed/data_seed=42、顺序取前 #1899493 条
+    BACKEND_PARITY: "1"
+    ARTIFACT_AUDIO_SHARDS: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_backup/opt/dlami/nvme/zeyangsong/data/unist/"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    NUM_TRAIN_EPOCHS: "2"
+    # 只配 OUTPUT_DIR，不配 OUTPUT_ROOT（脚本内从 OUTPUT_ROOT 默认值派生），  需要每个人自己配置避免冲突
+    # 目录名记录本次实验身份：batch4.8 adapter+talker 场景
+    OUTPUT_DIR: "/nvme/output/sts_batch48_adapter"
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_API_KEY: "local-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"
+    WANDB_BASE_URL: "http://43.173.190.72:8080"
+    WANDB_PROJECT: "qwen_omnispeak_unist_scaling"
+    WANDB_EXP_NAME: "sts_batch48_adapter"
+    WANDB_MODE: "online"

@@ -1,0 +1,122 @@
+# =============================================================================
+# Anyscale Job: 数据预处理 (FSx 音频 -> 本地 JSONL -> S3)
+# =============================================================================
+# 单个 CPU head 节点 (8CPU-32GB, 见 compute_config.yaml) 上跑完整流程:
+#   1. 任务开始即全量预热 TTS_DATA_PATH / S2S_DATA_PATH / TTS_RAW_PATH_PREFIX
+#      下的音频数据到 FSx 缓存 (lfs hsm_restore, 按 AWS HSM-DRA 预加载方式).
+#   2. 各阶段 (TTS / S2S / bridge_alignment_joint) 由 maker 以 --num-workers
+#      占满所有 CPU 核心并行生成 JSONL, 临时写在节点本地 ephemeral-storage.
+#   3. 每个阶段结束后, 把该阶段结果上传到 S3:
+#        s3://anyscale-poc-v2-bucket-124355679795-ap-northeast-1/datasets/<TASK_NAME>/<stage>/
+#      其中 <stage> 为 text_to_speech / speech_to_speech_translation /
+#      bridge_alignment_joint, 各自独立目录.
+#   4. 最终按 PREWARM_TARGETS 把对应阶段 jsonl 引用的全部音频预热进 FSx (训练用).
+#
+# 时长过滤 (MAX_AUDIO_DURATION_SEC): 丢弃音频时长超长的样本 (目前 120s).
+# 分片 (SHARD_MAX_LINES>0): 每个阶段产物切分为多个 <name>_NNNNN.jsonl shard,
+#   便于训练 preprocess 并行读取; =0 时退化为单个 .jsonl 文件 (兼容旧行为).
+# SMALL_DATA_LIMIT>0: 小数据验证. SMALL_DATA_LIMIT=0: 全量处理.
+# =============================================================================
+
+image_uri: anyscale/image/warm-fsx:6
+
+working_dir: .
+excludes:
+  - ".git/**"
+  - "**/__pycache__/**"
+  - "**/*.pt"
+  - "**/*.ckpt"
+  - "**/*.safetensors"
+  # 仅保留 anyscale/data/prepare_data/ + dataset_maker/
+  - "anyscale/config/**"
+  - "anyscale/tools/**"
+  - "anyscale/train/**"
+  - "anyscale/torch_megatron/**"
+  - "anyscale/ray_megatron/**"
+  - "anyscale/data/*.sh"
+  - "anyscale/data/*.yaml"
+  - "anyscale/data/*.py"
+  - "anyscale/data/warm_fsx/**"
+  - "pipelines/**"
+  - "custom/**"
+  - "models/**"
+  - "data/**"
+  - "output/**"
+  - "*.md"
+  - "*.txt"
+
+max_retries: 0
+
+compute_config: tokyo-prepare-data-cpu
+
+env_vars:
+  PYTHONUNBUFFERED: "1"
+  SMALL_DATA_LIMIT: "0"
+  FORCE_UPDATE: "1"
+
+  # 时长过滤：丢弃音频时长超过该秒数的样本 (0 = 不过滤). 目前设为 120s.
+  # 该过滤是硬条件：未知时长 / 无法解析的音频一律不纳入训练数据.
+  MAX_AUDIO_DURATION_SEC: "120"
+
+  # 分片：每个阶段产出切分为每片最多 N 行的多个 shard 文件 (0 = 单文件, 兼容旧行为).
+  SHARD_MAX_LINES: "0"
+
+  # ---- 音频解析 / 时长硬过滤 ----
+  SAMPLING_RATE: "16000"          # TTS maker 写入采样率 (Hz)
+  LATENCY_BUDGET_MS: "2000"       # S2S maker 延迟预算 (ms)
+
+  # ---- 任务标识 / S3 上传目标 ----
+  # 任务名: 作为 S3 上的根目录 (datasets/<TASK_NAME>/<stage>/).
+  # 留空则 worker 用时间戳自动生成, 保证每次运行独立.
+  TASK_NAME: ""
+  # 结果上传目标桶 (ap-northeast-1 / Tokyo). 各阶段上传到
+  # s3://<S3_BUCKET>/datasets/<TASK_NAME>/<stage>/
+  S3_BUCKET: "anyscale-poc-v2-bucket-124355679795-ap-northeast-1"
+  S3_REGION: "ap-northeast-1"
+
+  # ---- 并发: 占满 head 节点所有 CPU 核心 ----
+  # maker 单次调用以 --num-workers 并行. 实际核数由 worker.sh 按 cgroup
+  # cpu quota/period 探测 (容器内 nproc 不可靠); 如需强制可设 PREP_PARALLEL.
+
+  # ---- 任务开始的全量预热 (full preload, 按 AWS HSM-DRA preload 方式) ----
+  # 在任务开始即对 TTS_DATA_PATH / S2S_DATA_PATH / TTS_RAW_PATH_PREFIX 下的
+  # 全部音频执行 lfs hsm_restore, 召回进 FSx 缓存, 使后续 maker 读热数据.
+  # lfs hsm_restore 单个调用最多带的文件数; 目录内文件超此值则拆多段批量调用.
+  PREWARM_DIR_BATCH: "2000"
+  # 全量预热生产者轮询目录就绪的间隔秒数.
+  PREWARM_POLL_INTERVAL: "15"
+  # 全量预热等待上限 (秒); 超时则 best-effort 继续 (后续可能冷读).
+  PREWARM_FULL_WAIT_TIMEOUT: "7200"
+
+  # 最终训练 jsonl 的音频文件总大小审计报告输出路径 (本地临时目录).
+  AUDIO_SIZE_REPORT: "/tmp/prepare_data/bridge_alignment_joint.audio_size_report.txt"
+
+  # bridge_alignment_joint 合并比例, 对应 merge 的 --inputs 顺序 (S2S, TTS).
+  # 默认 "1 5" => TTS 样本为 S2S 的 5 倍 (TTS:S2S = 5:1).
+  BRIDGE_RATIOS: "1 5"
+
+  # 最终预热: 主流程结束后把训练 jsonl 引用的全部音频预热进 FSX 缓存.
+  # PREWARM_TASK_JSONL:
+  #   "auto" = 预热 PREWARM_TARGETS 列出的本流程产物 (默认 bridge_alignment_joint),
+  #            支持 text_to_speech / speech_to_speech_translation / bridge_alignment_joint
+  #            任意逗号组合; 单/多文件形态由全局 SHARD_MAX_LINES 决定, 无需此处配置.
+  #   留空    = 跳过该步骤.
+  #   其它非空 = 直接作为 jsonl 文件或分片目录路径 (两者皆被支持, 可多次指定).
+  PREWARM_TASK_JSONL: "auto"
+  # 最终预热目标 (仅 PREWARM_TASK_JSONL=auto 时生效): 逗号分隔的产物名,
+  # 默认 "bridge_alignment_joint"; 例如 "bridge_alignment_joint,text_to_speech".
+  PREWARM_TARGETS: "bridge_alignment_joint"
+
+  # 最终预热并发度 / 轮询 / 超时
+  PREWARM_PARALLEL: "16"
+  PREWARM_PRODUCER_POLL: "15"
+  PREWARM_WAIT_TIMEOUT: "7200"
+
+  # worker.sh — 输入
+  TTS_RAW_PATH_PREFIX: "/mnt/fsx/"
+  # S3 镜像 (curated 数据) 在节点上的挂载点
+  FSX_MOUNT: "/mnt/fsx"
+  TTS_DATA_PATH: "/mnt/fsx/data/curated/task=tts/curation_version=v1"
+  S2S_DATA_PATH: "/mnt/fsx/data/curated/task=speech2speech/curation_version=v1"
+
+entrypoint: bash anyscale/data/prepare_data/worker.sh

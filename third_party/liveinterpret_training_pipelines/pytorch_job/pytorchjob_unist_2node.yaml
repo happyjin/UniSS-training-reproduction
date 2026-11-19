@@ -1,0 +1,343 @@
+# =============================================================================
+# Kubeflow PyTorchJob — unist S2S 桥接对齐 Megatron SFT（**双节点** 2×8 H200）
+#
+# 本文件是 pytorch_job/pytorchjob_unist_1node.yaml 的双节点对照组。
+# 两份文件**只允许**在以下三处不同，其余逐字一致（否则对比不成立）：
+#   1. 节点白名单：1 个 -> 2 个 hostname（且单节点那台是本白名单的子集）；
+#   2. Worker.replicas：无 Worker -> 1（Master 1 + Worker 1 = 2 == 白名单长度）；
+#   3. OUTPUT_DIR：unist_s2s_1node -> unist_s2s_2node（= wandb 实验名）。
+#
+# 并行度 / batch 不在 yaml 里设置（唯一真源是 common_args_megatron.sh 的
+# SCENE=dense：TP=1 PP=1 CP=1，MICRO_BATCH_SIZE=16，GLOBAL_BATCH_SIZE=1024）。
+# 两次训练 GBS 相同、MBS 相同，差别只在 DP：
+#   单节点  world=8  -> DP=8  -> grad_accum = 1024/(16*8) = 8
+#   双节点  world=16 -> DP=16 -> grad_accum = 1024/(16*16) = 4
+# 即两者在数学上等价（同一个 global batch），唯一变量是数据并行宽度，
+# 因此「每 step 耗时 / samples per second」的比值就是干净的分布式加速比。
+# 注意读数时要跳过前若干 step（含 dataset 首轮 map / codec cache 冷启动），
+# 只取稳态区间；两次运行的数据准备耗时不具可比性（NVMe 上的 HF datasets
+# 缓存会被第二次运行部分复用，而新加入的节点是冷的）。
+#
+# 数据来源、fsx:// scheme 语义、wds:// 路径如何靠挂载映射对齐 ——
+# 全部同 pytorchjob_unist_1node.yaml 文件头，那里有完整取证过程，不再重复。
+# =============================================================================
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+spec:
+  pytorchReplicaSpecs:
+    # ----- Master (rank 0) -----
+    Master:
+      replicas: 1
+      restartPolicy: Never  # 崩溃即终止，禁止重启/重试
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: speech-h200-sa
+          nodeSelector:
+            node.kubernetes.io/instance-type: ml.p5e.48xlarge
+          # 双节点白名单（2 个 hostname == Master.replicas + Worker.replicas）。
+          # 03e7d1f6 与单节点组用的是同一台，049e0c04 是上一轮 z5ht 的 Worker 节点，
+          # 两台都已验证 EFA / NVMe / FSX 正常，当前 GPU allocated = 0。
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: [hyperpod-i-03e7d1f6d95864e1a, hyperpod-i-0a3ebd369de798192]
+          volumes:
+            - name: s3all
+              persistentVolumeClaim:
+                claimName: speech-h200-s3-pvc
+                readOnly: true
+            - name: fsx
+              persistentVolumeClaim:
+                claimName: speech-h200-fsx-pvc
+                readOnly: true
+            - name: unist-audio-link
+              emptyDir: {}
+            - name: nvme
+              hostPath:
+                path: /opt/dlami/nvme
+                type: Directory
+            - name: launcher
+              configMap:
+                name: launch-train-script-__RUN_ID__
+                defaultMode: 0755
+            - name: workspace
+              emptyDir: {}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 64Gi
+          initContainers:
+            - name: mk-unist-audio-link
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              command:
+                - bash
+                - -c
+                - |
+                  mkdir -p /unist-link/audio/processed/shards/dataset=unist
+                  ln -sfn /fsx/zeyangsong/unist/converted/unist_qwen3_s2s_v2/speech/unist_bicodec_qwen3_v2                          "/unist-link/audio/processed/shards/dataset=unist/process_version=unist_bicodec_qwen3_v2"
+              volumeMounts:
+                - name: fsx
+                  mountPath: /fsx
+                  readOnly: true
+                - name: unist-audio-link
+                  mountPath: /unist-link
+          containers:
+            - name: pytorch
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              imagePullPolicy: IfNotPresent
+              command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+              env:
+                - name: TRAIN_SCRIPT
+                  value: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+                - name: TRAIN_BACKEND
+                  value: "megatron"
+                - name: CODE_PREFIX
+                  value: "deferzhou/liveinterpret_training_pipelines"
+                - name: NVME_MOUNT
+                  value: "/nvme"
+                - name: FSX_MOUNT
+                  value: "/fsx"
+                - name: MODEL_PATH
+                  value: "s3://iegg-speech-model-models/origin_models/custom_models/qwen2_5_3b_omnispeak_a"
+                - name: MODEL_TYPE
+                  value: "qwen2_5_3b_omnispeak_a"
+                - name: QWEN3_TTS_TOKENIZER
+                  value: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+                - name: BRIDGE_ALIGNMENT_DATA
+                  value: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/manifests/manifest-train-*.jsonl"
+                - name: ARTIFACT_AUDIO_SHARDS
+                  value: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/speech/unist_bicodec_qwen3_v2"
+                - name: OUTPUT_ROOT
+                  value: "/nvme/output"
+                - name: OUTPUT_DIR
+                  value: "/nvme/output/unist_s2s_2node"
+                - name: NCCL_IB_DISABLE
+                  value: "0"
+                - name: NCCL_SOCKET_IFNAME
+                  value: ^lo,docker0
+                - name: FI_PROVIDER
+                  value: efa
+                - name: NCCL_DEBUG
+                  value: INFO
+                - name: TORCH_NCCL_ASYNC_ERROR_HANDLING
+                  value: "1"
+                - name: TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC
+                  value: "300"
+                - name: FI_EFA_FORK_SAFE
+                  value: "1"
+                - name: FI_EFA_USE_DEVICE_RDMA
+                  value: "1"
+                - name: NCCL_DEBUG_SUBSYS
+                  value: INIT,NET,ENV
+                - name: PYTORCH_CUDA_ALLOC_CONF
+                  value: "expandable_segments:True"
+                - name: WANDB_API_KEY
+                  value: "local-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"
+                - name: WANDB_BASE_URL
+                  value: http://43.173.190.72:8080
+                # megatron-swift **不读** WANDB_PROJECT 环境变量，只认
+                # --wandb_project 命令行参数（默认 'megatron-swift'）。
+                # common_args_megatron.sh 已把这两个 env 转成命令行参数传下去。
+                - name: WANDB_PROJECT
+                  value: qwen_omnispeak_unist_scaling
+                - name: WANDB_EXP_NAME
+                  value: unist-s2s-2node
+                - name: WANDB_MODE
+                  value: online
+              resources:
+                requests:
+                  cpu: "135"
+                  memory: 1350Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+                limits:
+                  cpu: "150"
+                  memory: 1500Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+              volumeMounts:
+                - name: s3all
+                  mountPath: /s3all
+                  readOnly: true
+                - name: fsx
+                  mountPath: /fsx
+                  readOnly: true
+                - name: unist-audio-link
+                  mountPath: /unist
+                - name: nvme
+                  mountPath: /nvme
+                - name: launcher
+                  mountPath: /opt/launcher
+                - name: workspace
+                  mountPath: /local
+                - name: dshm
+                  mountPath: /dev/shm
+    # ----- Worker (rank 1) -----
+    # replicas 必须 = 白名单节点数 - 1（Master 占 1 个节点）= 1。
+    # 工件相关 env（MODEL_PATH / QWEN3_TTS_TOKENIZER / BRIDGE_ALIGNMENT_DATA /
+    # ARTIFACT_AUDIO_SHARDS / NVME_MOUNT / FSX_MOUNT）必须与 Master 逐字一致，
+    # derive_sync_jobs.py 会硬校验（A4），不一致直接 FATAL。
+    Worker:
+      replicas: 1
+      restartPolicy: Never  # 崩溃即终止，禁止重启/重试
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: speech-h200-sa
+          nodeSelector:
+            node.kubernetes.io/instance-type: ml.p5e.48xlarge
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: [hyperpod-i-03e7d1f6d95864e1a, hyperpod-i-0a3ebd369de798192]
+          volumes:
+            - name: s3all
+              persistentVolumeClaim:
+                claimName: speech-h200-s3-pvc
+                readOnly: true
+            - name: fsx
+              persistentVolumeClaim:
+                claimName: speech-h200-fsx-pvc
+                readOnly: true
+            - name: unist-audio-link
+              emptyDir: {}
+            - name: nvme
+              hostPath:
+                path: /opt/dlami/nvme
+                type: Directory
+            - name: launcher
+              configMap:
+                name: launch-train-script-__RUN_ID__
+                defaultMode: 0755
+            - name: workspace
+              emptyDir: {}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 64Gi
+          initContainers:
+            - name: mk-unist-audio-link
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              command:
+                - bash
+                - -c
+                - |
+                  mkdir -p /unist-link/audio/processed/shards/dataset=unist
+                  ln -sfn /fsx/zeyangsong/unist/converted/unist_qwen3_s2s_v2/speech/unist_bicodec_qwen3_v2                          "/unist-link/audio/processed/shards/dataset=unist/process_version=unist_bicodec_qwen3_v2"
+              volumeMounts:
+                - name: fsx
+                  mountPath: /fsx
+                  readOnly: true
+                - name: unist-audio-link
+                  mountPath: /unist-link
+          containers:
+            - name: pytorch
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              imagePullPolicy: IfNotPresent
+              command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+              env:
+                - name: TRAIN_SCRIPT
+                  value: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+                - name: TRAIN_BACKEND
+                  value: "megatron"
+                - name: CODE_PREFIX
+                  value: "deferzhou/liveinterpret_training_pipelines"
+                - name: NVME_MOUNT
+                  value: "/nvme"
+                - name: FSX_MOUNT
+                  value: "/fsx"
+                - name: MODEL_PATH
+                  value: "s3://iegg-speech-model-models/origin_models/custom_models/qwen2_5_3b_omnispeak_a"
+                - name: MODEL_TYPE
+                  value: "qwen2_5_3b_omnispeak_a"
+                - name: QWEN3_TTS_TOKENIZER
+                  value: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+                - name: BRIDGE_ALIGNMENT_DATA
+                  value: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/manifests/manifest-train-*.jsonl"
+                - name: ARTIFACT_AUDIO_SHARDS
+                  value: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/speech/unist_bicodec_qwen3_v2"
+                - name: OUTPUT_ROOT
+                  value: "/nvme/output"
+                - name: OUTPUT_DIR
+                  value: "/nvme/output/unist_s2s_2node"
+                - name: NCCL_IB_DISABLE
+                  value: "0"
+                - name: NCCL_SOCKET_IFNAME
+                  value: ^lo,docker0
+                - name: FI_PROVIDER
+                  value: efa
+                - name: NCCL_DEBUG
+                  value: INFO
+                - name: TORCH_NCCL_ASYNC_ERROR_HANDLING
+                  value: "1"
+                - name: TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC
+                  value: "300"
+                - name: FI_EFA_FORK_SAFE
+                  value: "1"
+                - name: FI_EFA_USE_DEVICE_RDMA
+                  value: "1"
+                - name: NCCL_DEBUG_SUBSYS
+                  value: INIT,NET,ENV
+                - name: PYTORCH_CUDA_ALLOC_CONF
+                  value: "expandable_segments:True"
+                - name: WANDB_API_KEY
+                  value: "local-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"
+                - name: WANDB_BASE_URL
+                  value: http://43.173.190.72:8080
+                # megatron-swift **不读** WANDB_PROJECT 环境变量，只认
+                # --wandb_project 命令行参数（默认 'megatron-swift'）。
+                # common_args_megatron.sh 已把这两个 env 转成命令行参数传下去。
+                - name: WANDB_PROJECT
+                  value: qwen_omnispeak_unist_scaling
+                - name: WANDB_EXP_NAME
+                  value: unist-s2s-2node
+                - name: WANDB_MODE
+                  value: online
+              resources:
+                requests:
+                  cpu: "135"
+                  memory: 1350Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+                limits:
+                  cpu: "150"
+                  memory: 1500Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+              volumeMounts:
+                - name: s3all
+                  mountPath: /s3all
+                  readOnly: true
+                - name: fsx
+                  mountPath: /fsx
+                  readOnly: true
+                - name: unist-audio-link
+                  mountPath: /unist
+                - name: nvme
+                  mountPath: /nvme
+                - name: launcher
+                  mountPath: /opt/launcher
+                - name: workspace
+                  mountPath: /local
+                - name: dshm
+                  mountPath: /dev/shm

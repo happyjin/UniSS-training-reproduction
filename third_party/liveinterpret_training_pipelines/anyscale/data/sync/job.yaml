@@ -1,0 +1,84 @@
+# =============================================================================
+# Anyscale Job: 通用 S3 / FSx / NVMe 同步
+# =============================================================================
+# 将 SYNC_SOURCE 同步到每个 worker node 的 SYNC_TARGET。
+# 幂等：TARGET 下存在 SYNC_MARKER 文件时跳过。
+#
+# 传输协议自动选择:
+#   - S3 相关 → aws s3 sync (需 AWS 凭证)
+#   - 纯本地 → rsync -a
+#
+# 示例:
+#   # 单组 S3 → NVMe (模型下发)
+#   SYNC_SOURCE=s3://bucket/models/llama
+#   SYNC_TARGET=/local/models/llama
+#
+#   # 多组 (空格分隔, 每组 "SRC|DST") — 一次任务同步多个源
+#   SYNC_SOURCES="s3://bucket/a|/local/models/a s3://bucket/b|/local/models/b"
+#
+#   # NVMe → S3 (checkpoint 归档)
+#   SYNC_SOURCE=/local/output/ckpt
+#   SYNC_TARGET=s3://bucket/checkpoints/
+#
+#   # FSx → NVMe (数据预热)
+#   SYNC_SOURCE=/mnt/fsx/data/raw
+#   SYNC_TARGET=/local/data/raw
+#
+# 提交:
+#   bash .claude/skills/anyscale-job-diagnose/scripts/submit_helper.sh \
+#       anyscale/data/sync/job.yaml
+# =============================================================================
+
+image_uri: anyscale/image/qwen3-omnispeak-d:18
+
+working_dir: .
+excludes:
+  - "models/**"
+  - "data/**"
+  - ".git/**"
+  - ".cache/**"
+  - "output/**"
+  - "**/__pycache__/**"
+  - "*.pt"
+  - "*.ckpt"
+  - "*.safetensors"
+  - "dataset_maker/*.jsonl"
+  - "dataset_maker/*.local.jsonl"
+  - "anyscale/config/**"
+  - "anyscale/tools/**"
+  - "anyscale/train/**"
+  - "anyscale/torch_megatron/**"
+  - "anyscale/ray_megatron/**"
+  - "anyscale/data/prepare_data/**"
+  - "anyscale/data/warm_fsx/**"
+  - "pipelines/**"
+  - "custom/**"
+  - "dataset_maker/**"
+  - "*.md"
+  - "*.txt"
+
+max_retries: 0
+
+compute_config: tokyo-sync:1
+
+env_vars:
+  PYTHONUNBUFFERED: "1"
+
+  # =========================================================================
+  # 同步参数 — 多组 "SRC|DST" 空格分隔，一次任务下发所有模型 + tokenizer
+  # 源/目标均带尾斜杠时，aws s3 sync 会把源目录内容平铺到目标目录
+  # =========================================================================
+
+  # 一次性同步 custom_models/ 下全部模型 (qwen2_5_3b/qwen2_5_7b/qwen3 × a~j)
+  # 以及 Qwen3-TTS-Tokenizer-12Hz 到每个节点 NVMe 的 models/ 目录
+  SYNC_SOURCES: >-
+    s3://iegg-speech-model-models/origin_models/custom_models/|/local/speech-language-model/liveinterpret_training_pipelines/models/
+    s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz|/local/speech-language-model/liveinterpret_training_pipelines/models/Qwen3-TTS-Tokenizer-12Hz
+  # S3 region (仅 S3 操作时使用)
+  SYNC_REGION: "ap-southeast-3"
+  # 幂等标记文件名 (写入各 TARGET 目录，存在则跳过)
+  # SYNC_MARKER: ".sync_done"
+  # 额外参数 (传递给 aws s3 sync / rsync)
+  # SYNC_OPTS: ""
+
+entrypoint: python3 anyscale/data/sync/dispatch.py

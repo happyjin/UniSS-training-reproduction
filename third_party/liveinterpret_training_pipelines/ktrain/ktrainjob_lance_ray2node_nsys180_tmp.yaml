@@ -1,0 +1,159 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# 本任务 = ktrainjob_lance_ray2node.yaml 的 nsys 性能分析变体：在第 N 个
+# optimizer step 用 nsys 抓一次完整的 forward+backward+optimizer 窗口
+# （cudaProfilerApi capture-range，配合 custom/nsys_step_profile.py +
+# custom/ray_nsight_patch.py，ray 双节点场景下 nsys 包裹的是 actor worker
+# 进程而不是 driver，见两个文件头部注释）。
+#
+# 与 ktrainjob_lance_ray2node.yaml 的唯一差异：新增 NSYS_PROFILE_STEP +
+# NSYS_OUTPUT_DIR。抓完目标 step 即可停止任务，不需要跑满全程。
+# 2026-09-09 晚：`ray_nsight_patch.py` 正在排查"actor 未被 nsys 包裹"的问题，
+# 期间把 NSYS_PROFILE_STEP 临时降到 30（原180），只为缩短每轮验证的等待
+# 时间（30步~5分钟 vs 180步~30分钟），复现的现象/根因跟具体step数值无关。
+# 排查完成后如需正式产出报告，记得改回一个进入稳态的 step（如180）。
+# 临时验证用，用完记录报告后即可删除本文件。
+#
+# 提交：bash .codebuddy/.codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_lance_ray2node_nsys180_tmp.yaml \
+#         --repo <repo> --launcher ktrain/launch_train_lance.sh \
+#         --aws-creds-secret aws-local-creds \
+#         --job-name-prefix lance-nsys180 \
+#         --task-deadline 'lance-train-source-uri=86400'
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, 
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-02848679822afbe3b", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # ray 框架：渲染为 KubeRay RayJob（head 0 GPU + 2 GPU worker）。
+  framework: ray
+  # 统一镜像：ray2 + nsys + liger（在 ray2 基座上叠 liger-kernel overlay）。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger
+  # RayJob entrypoint：等 16 GPU 凑齐 → 每个 GPU worker 跑 launcher NODE_PREP_ONLY →
+  # 派生 RAY_DEVICE_GROUPS → driver 钉第一个 GPU worker。LAUNCHER_PATH 指向 Lance 入口。
+  command: ["python", "/s3all/deferzhou/liveinterpret_training_pipelines/ktrain/ray_entrypoint.py"]
+  numNodes: 3
+  head:
+    cpu: "16"
+    memory: 64Gi
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    TRAIN_BACKEND: "deepspeed"
+    USE_RAY: "true"
+    RAY_CLUSTER_MODE: "kuberay"
+    LAUNCHER_PATH: "/opt/launcher/launch_train_lance.sh"
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    OUTPUT_DIR: "/nvme/output/lance_ray2node_nsys180"
+
+    # -------------------------------------------------------------------------
+    # 关键修复：绕开 ray 对训练actor的 OMP_NUM_THREADS 自动压制（同主 yaml）
+    # -------------------------------------------------------------------------
+    OMP_NUM_THREADS: "8"
+    DATASET_NUM_PROC: "135"
+    DATALOADER_NUM_WORKERS: "8"
+
+    # -------------------------------------------------------------------------
+    # nsys 性能分析：在第 N 个 optimizer step 抓一次完整窗口（当前=30，排查
+    # 用，缩短验证周期；正式产出报告时改回一个稳态 step，如180——见文件头）
+    # （custom/nsys_step_profile.py 的 HF TrainerCallback 驱动
+    # cudaProfilerStart/Stop；ray 模式下由 custom/ray_nsight_patch.py 把
+    # nsys 包裹在 actor worker 进程上，报告落盘 NSYS_OUTPUT_DIR）。
+    # -------------------------------------------------------------------------
+    NSYS_PROFILE_STEP: "30"
+    NSYS_OUTPUT_DIR: "/nvme/output/nsys/lance_ray2node_step30"
+
+    # -------------------------------------------------------------------------
+    # 数据源：Lance（v506 全表，precomputed mel + speaker embedding）
+    # -------------------------------------------------------------------------
+    LANCE_TRAIN_SOURCE_URI: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/unist_qwen3_s2s_v2/processed.lance"
+    LANCE_TRAIN_SOURCE_VERSION: "506"
+    LANCE_STORAGE_REGION: "ap-southeast-3"
+    LANCE_TRAIN_SHAPE: "B"
+    LANCE_TRAIN_TASK_FILTER: "split='train'"
+    LANCE_TRAIN_TASK_NAME: "unist_train_full_v506"
+    LANCE_USE_PRECOMPUTED_MEL: "1"
+    LANCE_USE_SPEAKER_EMBEDDING: "1"
+    LANCE_PREFETCH_AUDIO: "0"
+    LANCE_PREFETCH_FEATURES: "0"
+    LANCE_PREFETCH_SPEAKER: "1"
+    LANCE_DATALOADER_BATCH_RESOLVE: "1"
+    # 2026-09-10：临时改为 0（原 1）。排查 nsys 补丁时发现 =1 的进程隔离
+    # 子进程 IPC（custom/lance_lazy_batch_patch.py）在这次任务里死锁——
+    # 全部 16 个 rank（含未被 nsys 包裹的 15 个）都卡在 _show_dataset()
+    # 的 Lance resolver 子进程调用上，父进程等子进程回复、子进程却在等
+    # 父进程发消息，与本次 nsys 补丁改动无关（独立问题，待后续单独排查）。
+    # 此处临时关闭仅用于跑通 nsys 验证，不代表该死锁已修复。
+    LANCE_MAIN_PROCESS_ISOLATION: "0"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：GBS=4096（双节点16卡 → per_device 32 × 16 × ga8）
+    # -------------------------------------------------------------------------
+    SCENE: "batch4_8_adapter_cmp"
+    PER_DEVICE_TRAIN_BATCH_SIZE: "32"
+    PER_DEVICE_EVAL_BATCH_SIZE: "32"
+    GRADIENT_ACCUMULATION_STEPS: "8"
+    DEEPSPEED: "zero1"
+    USE_LIGER_KERNEL: "true"
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+    # ray + liger 兼容开关：swift/trainers/arguments.py 的 is_mp() 在 ray
+    # driver 场景会误判为 device_map 多卡模式，跟 liger 冲突报错，此开关绕过。
+    SWIFT_SINGLE_DEVICE_MODE: "1"
+    GROUP_BY_LENGTH: "false"
+
+    FILL_LOG_ENABLED: "1"
+    FILL_LOG_STEP_INTERVAL: "1"
+    MFU_LOG_ENABLED: "1"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_MODE: "disabled"
+    WANDB_PROJECT: "qwen_omnispeak_junyaoyang_profile"

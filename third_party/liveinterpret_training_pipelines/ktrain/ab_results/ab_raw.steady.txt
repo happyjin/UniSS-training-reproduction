@@ -1,0 +1,13 @@
+arm=A(raw parquet+wav online whisper)
+gpus=4 deepspeed=zero2 thinker-only
+steps_logged=43 warmup=5
+steady_median_s_per_it=20.0673465
+steady_mean_s_per_it=20.077832421052634
+steady_n=38
+last_step=43
+memory_GiB_last=35.54
+memory_GiB_max=35.54
+# NOTE: this number is NOT a valid data-format result -- step time is dominated by
+# ZeRO-2 gradient sync over 10GbE/TCP (no EFA). See DIAGNOSIS_20260818.md.
+# The full master log was overwritten by a stale `kubectl logs -f | tee` after the
+# pod was deleted; only this summary survives.

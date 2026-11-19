@@ -1,0 +1,143 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# streaming_si S3-w / S3（Talker 接入 thinker 语义，Emilia TTS 数据）·
+# torchrun + DeepSpeed ZeRO-2 · 数据从 S3 同步到各节点 NVMe。S1 用 ktrain/ktrainjob_streaming_si_s1.yaml。
+# （2026-10 改名前：本文件为 ktrainjob_streaming_si_s1_3node.yaml，S3-w / S3 即源项目的 S1-1w / S1-1a。）
+#
+# 两个阶段共用本 yaml（见 pipelines/streaming_si/train_tts.sh 头注释）：
+#   s3-w  桥接预热：只训 talker.thinker_proj + talker.fusion（10.5M）；
+#         MODEL_PATH = merge_stage_checkpoints.py 的产出（S2 thinker + S1 talker）
+#   s3    正式：训整个 talker（467M）；MODEL_PATH = s3-w 的最终 checkpoint（上传 S3 后填）
+# s3-w 跑完先验收再进 s3：
+#   python custom/streaming_si/scripts/s3w_bridge_gate.py --model <s3-w ckpt> --data <Emilia parquet 目录> --baseline <起点>
+#   要求 full 的 speech CE ≤ text_only（起点实测 text_only 3.50 / full 4.91）。
+#
+# 【数据】s3://.../open_data_0803_fortrain/TTS/emilia_fsq_v3/s1_emilia_fsq_v3/：2060 个 parquet、3810 万行、20.5 GiB。
+#   GROUP_BY_LENGTH=true 时 ktrain_entry.sh 在每个节点生成带 lengths 列的副本（s1_parquet_prep.py，约 4 分钟、
+#   约 21 GB，按内容缓存，s3 复用）。talker 序列长度 p50/p90/p99 = 219/477/780，随机组 batch 约 59% 是
+#   padding，分桶后约 2.4%。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_s3.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds --job-name-prefix si-s3
+#
+# 【提交前确认】白名单节点各空闲 8 卡且与 numNodes 一致、SI_STAGE 与 MODEL_PATH 配对、MAX_STEPS / 学习率。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-03e7d1f6d95864e1a", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # liger ops 需要 liger_kernel 包；基线镜像没有。
+  # 本镜像 = v9-ray2-nsys-liger + streaming-si 层，torch / TE / EFA 与基线镜像相同。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 2                  # = 白名单节点数（03e7 + 08e3）
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    # S3 桶产物目录按新阶段编号（2026-10 由 S1-1_init/ / S1-1w/ / S1-1a/ 改名）：
+    #   S3-w_init/ = S3-w 起点，S3-w/ = S3-w 产出，S3/ = S3 产出。
+    # S3-w：S2 checkpoint-25046 的 thinker + S1 checkpoint-148850 的 talker（merge_stage_checkpoints.py）
+    #   SI_STAGE: "s3-w"
+    #   MODEL_PATH: ".../trained_streaming_si_4b/S3-w_init/"
+    # S3：S3-w 最终 checkpoint-2500（2500 步，最终 loss 3.45）；产出在 .../S3/checkpoint-24809/
+    SI_STAGE: "s3"
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_si_4b/S3-w/checkpoint-2500/"
+    SI_S1_DATA: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/TTS/emilia_fsq_v3/s1_emilia_fsq_v3/"
+
+    # 输出子目录 s3w_tts/ 或 s3_tts/（改名前为 s1-1w/、s1-1a/）；多节点自动 --save_on_each_node。不要设 OUTPUT_DIR。
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si_s3_gbs4096_liger"
+
+    # -------------------------------------------------------------------------
+    # 训练参数（S3-w）
+    #   全局 batch 64×24 = 1536，1 epoch = 3810 万 / 1536 ≈ 24808 步。
+    #   源 S1-1w 用约 1/10 的分片训 1 epoch；这里全量数据随机打乱，MAX_STEPS 取 1 epoch 的约 10%。
+    #   lr 3e-4（源 S1-1w），只训 10.5M 的桥接参数，warmup 3%。
+    #   S1 每卡 32 时峰值显存 17.9 GiB；分桶后最坏一批（64 条 × 约 1200 token）仍远低于 141 GB。
+    # 改成 S3 时：SI_STAGE "s3"、MODEL_PATH 换成 s3-w 最终 checkpoint、LEARNING_RATE "1e-4"、
+    #   去掉 MAX_STEPS、NUM_TRAIN_EPOCHS "1"（约 2.5 万步）。
+    # -------------------------------------------------------------------------
+    # 当前为 S3：训整个 talker（467M），lr 1e-4，1 epoch 约 2.48 万步，warmup 3%（约 740 步）。
+    #   S3-w 每卡 64 实测峰值 29.7 GiB；S1 训整个 talker 每卡 32 时 17.9 GiB，每卡 64 余量充足。
+    # S3-w 原配置：LEARNING_RATE "3e-4"、MAX_STEPS "2500"
+    # 【本列 = S3 GBS4096 基线】相对 stevehguo 原版的改动：
+    #   numNodes 3→2、PER_DEVICE 64（GBS 1536）→ 256×GA1（GBS 4096）、加 profiler、LOGGING_STEPS=10。
+    # per_device 拆分刻意与 S1 各列一致（256×GA1），便于与 S1 文档横向参照。
+    PER_DEVICE_TRAIN_BATCH_SIZE: "256"
+    GRADIENT_ACCUMULATION_STEPS: "1"       # 256 × 1 × 16 = 4096
+    LEARNING_RATE: "1e-4"
+    WARMUP_RATIO: "0.03"
+    NUM_TRAIN_EPOCHS: "1"
+    LOGGING_STEPS: "10"     # 每 10 步一条指标，与 S1 / S2 文档同口径
+    SI_CODE_CHECK: "1"
+    SI_MODEL_TYPE: "streaming_si_4b"
+    # DeepSpeed 性能剖析：与 S1 / S2 各列同一个文件，保证 fwd/bwd latency 分解可横比。
+    # 实测开销可忽略（S1 的 A vs D 两列同配置、200 步仅差 1 秒）。
+    DEEPSPEED: "/s3all/__OWNER__/liveinterpret_training_pipelines/ktrain/deepspeed/zero2_prof.json"
+
+    # ---- 本列相对 S3 baseline 的唯一功能变量 ----
+    # S3 的 scope=talker（467M，model_type=qwen3），**正是 liger 唯一能挂上的架构**：
+    # 融合 RMSNorm + RoPE + SwiGLU（内存带宽型算子）。S1 的 B 列已验证有效。
+    #   挂载方式：custom/streaming_si/integration/liger_ops.py（绕过 swift 的 model_type 查表，
+    #   否则 streaming_si 必然 miss 且静默空转）
+    #   断言：ktrain_entry.sh 的 si_code_check 会断言 talker patch 真的挂上（必需），
+    #         thinker 的 qwen3_next patch 在 liger 0.5.10 不存在（可选，不断言）
+    STREAMING_SI_LIGER_OPS: "1"
+
+    # 【为什么本列不换 zero1】S3 baseline 的 wall_clock_breakdown 实测：
+    #   bwd_allreduce 86.41ms + optimizer_* 4.62ms ≈ 91ms / iter 2560ms = 3.6%
+    # 上限只有 3.6%，而 zero1 会把 optimizer state 从分片改成复制、**增加显存** ——
+    # S3 baseline 已占 87.23/141 GiB，为 3.6% 的上限冒 OOM 风险不值得。
+    # 另外 S2 的教训：省显存 ≠ 变快（FLCE 省 42 GiB 却慢 13.8%），所以这里严格单变量。
+    GROUP_BY_LENGTH: "true"
+    DATASET_NUM_PROC: "16"    # 每个 rank 都跑一遍 3810 万行的 Map；每节点 8 rank × 16 进程
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

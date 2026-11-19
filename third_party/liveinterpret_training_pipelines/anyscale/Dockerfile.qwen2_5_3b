@@ -1,0 +1,207 @@
+# =============================================================================
+# Qwen2.5-Omni-3B training image for Anyscale on AWS SageMaker HyperPod
+# Build: anyscale image build -n qwen2_5_3b_omnispeak_d -f anyscale/Dockerfile.qwen2_5_3b
+# Output: anyscale/image/qwen2_5_3b_omnispeak_d:<auto-version>
+#
+# Base:    Ray 2.56.0 + Python 3.12 + CUDA 12.8 (anyscale/ray:2.56.0-py312-cu128)
+# Frame:   ms-swift (git main) + transformers 4.57.6 + deepspeed 0.18.9
+# Attn:    FlashAttention 2 (FA3 NOT supported by Qwen2.5-Omni-3B)
+#
+# Layer map:
+#   L1  (root)  OS packages + CUDA 12.8 compiler + TE glue build tools
+#   L2  (root)  AWS EFA installer (libfabric / OpenMPI / aws-ofi-nccl)
+#   L3  (ray)   Python build toolchain + PyTorch 2.8 (cu128)
+#   L4  (ray)   training framework + Megatron + Transformer Engine
+#   L5  (ray)   audio / codec / dataset / logging libraries
+#   L6  (ray)   FlashAttention 2 wheel
+# =============================================================================
+
+FROM anyscale/ray:2.56.0-py312-cu128
+WORKDIR /home/ray
+
+# Anyscale's container builder rejects SHELL/COPY from the local build context,
+# so every install is done inline. These ENVs keep apt/pip quiet and reproducible.
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TORCH_CUDA_ARCH_LIST="8.0;8.9;9.0"
+
+# =============================================================================
+# Layer 1 (root) — OS packages + CUDA 12.8 compiler + TE glue build tools
+# =============================================================================
+USER root
+# Per-package rationale:
+#   build-essential         gcc/g++/make — compile flash-attn, TE glue, deepspeed custom ops
+#   git                     clone ms-swift from git in the framework layer
+#   curl                    download the AWS EFA installer tarball (Layer 2)
+#   ca-certificates         TLS trust for pip / git / curl to external hosts
+#   unzip                   extract the EFA installer archive
+#   pkg-config              locate system libs (libopenblas) at build time
+#   libopenblas-dev         BLAS backend used when building numpy/scipy
+#   ffmpeg                  decode audio/video in the Qwen2.5-Omni dataloader
+#   libsndfile1             WAV/FLAC/... reading (soundfile backend)
+#   sox                     audio resample / format conversion in dataset prep
+#   cuda-nvcc-12-8          nvcc — the base image ships CUDA 12.8 RUNTIME only (no compiler);
+#                           flash-attn / TE glue / deepspeed cpu-adam need it
+#   cuda-cudart-dev-12-8    cuda.h / cudart headers for CUDA extensions
+#   cuda-nvrtc-12-8         NVRTC for torch JIT / deepspeed ops
+#   libcurand-12-8          cuRAND runtime lib. NOTE: the slim CUDA apt source ships no
+#                           cuda-curand-dev-12-8 (apt would report "Unable to locate package"),
+#                           so we install the runtime pkg only (curand.h header absent by design)
+#   cmake                   build transformer_engine's local pytorch glue layer
+#   rsync                   transformer_engine wheel packaging
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        curl \
+        ca-certificates \
+        unzip \
+        pkg-config \
+        libopenblas-dev \
+        ffmpeg \
+        libsndfile1 \
+        sox \
+        cuda-nvcc-12-8 \
+        cuda-cudart-dev-12-8 \
+        cuda-nvrtc-12-8 \
+        libcurand-12-8 \
+        cmake \
+        rsync \
+    && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# Layer 2 (root) — AWS EFA installer (libfabric / OpenMPI / aws-ofi-nccl plugin)
+# =============================================================================
+# The base image ALREADY ships its own EFA stack, including the package
+# `libnccl-ofi` (aws-ofi-nccl 1.15), which owns /opt/amazon/ofi-nccl/...
+# The AWS EFA installer instead installs a DIFFERENT package, `libnccl-ofi-ngc-v3`
+# (aws-ofi-nccl 1.20), that provides the SAME files. dpkg refuses to overwrite a
+# file owned by another package name and aborts with:
+#   "trying to overwrite '...' which is also in package libnccl-ofi"
+# => we remove the base's `libnccl-ofi` BEFORE running the installer (the `|| true`
+#    makes it a safe no-op on any base image that doesn't carry it).
+# Separately, the installer's libfabric requires ibverbs-providers >= 59 but the
+# base ships 57, so we pre-upgrade rdma-core from the installer's own debs, then
+# invoke the installer with --skip-rdma-core to avoid a double install.
+# Verified to complete with rc=0 on anyscale/ray:2.56.0-py312-cu128.
+RUN cd /tmp \
+    && curl -fsSL -O https://efa-installer.amazonaws.com/aws-efa-installer-latest.tar.gz \
+    && tar -xf aws-efa-installer-latest.tar.gz \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+           ./aws-efa-installer/DEBS/UBUNTU2204/x86_64/rdma-core/*.deb \
+    && apt-get remove -y libnccl-ofi || true \
+    && cd aws-efa-installer \
+    && ./efa_installer.sh -y --skip-kmod --skip-limit-conf --skip-rdma-core --no-verify \
+    && rm -rf /tmp/aws-efa-installer /tmp/aws-efa-installer-latest.tar.gz \
+    && rm -rf /var/lib/apt/lists/*
+
+# After install the EFA net plugin lands at:
+#   /usr/local/lib/libnccl-net.so                 (what NCCL dlopens)
+#   /opt/amazon/ofi-nccl/lib/libnccl-net-ofi.so   (plugin implementation)
+#   /opt/amazon/efa/lib/libfabric.so
+# All MUST be on LD_LIBRARY_PATH, else NCCL silently falls back to TCP socket.
+ENV CUDA_HOME=/usr/local/cuda-12.8 \
+    PATH=/usr/local/cuda-12.8/bin:/opt/amazon/openmpi/bin:/opt/amazon/efa/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/local/lib:/opt/amazon/ofi-nccl/lib:/opt/amazon/openmpi/lib:/opt/amazon/efa/lib:${LD_LIBRARY_PATH:-} \
+    FI_PROVIDER=efa \
+    NCCL_PROTO=simple
+
+# All remaining layers run as the unprivileged `ray` user (the base image default).
+USER ray
+
+# =============================================================================
+# Layer 3 (ray) — Python build toolchain + PyTorch 2.8 (CUDA 12.8)
+# =============================================================================
+#   pip==25.3 / setuptools==80.9.0 / wheel==0.45.1   pinned, reproducible builders
+#   pybind11==3.0.1 / ninja==1.11.1.4 / packaging==25.0
+#       needed to build Python C++ extensions (flash-attn, TE glue) from source
+#   torch==2.8.0+cu128 / torchaudio / torchvision
+#       ML backbone, pulled from the PyTorch cu128 index
+RUN python -m pip install --upgrade pip==25.3 setuptools==80.9.0 wheel==0.45.1 \
+    && pip install pybind11==3.0.1 ninja==1.11.1.4 packaging==25.0 \
+    && pip install \
+        torch==2.8.0+cu128 \
+        torchaudio==2.8.0+cu128 \
+        torchvision==0.23.0+cu128 \
+        --extra-index-url https://download.pytorch.org/whl/cu128
+
+# =============================================================================
+# Layer 4 (ray) — training framework + Megatron + Transformer Engine
+# =============================================================================
+#   transformers==4.57.6     HF model + tokenizer loading for Qwen2.5-Omni
+#   tokenizers==0.22.1       pinned companion of transformers 4.57
+#   accelerate==1.10.1       device-parallelism primitives
+#   deepspeed==0.18.9        ZeRO-2/3 optimizer used by swift sft
+#   modelscope==1.37.1       model/dataset hub; swift dependency
+#   datasets==3.6.0          HF datasets for training input
+#   peft==0.15.2             LoRA / adapter support
+#   trl==0.17.0              sft/rlhf helpers used by swift
+#   ms-swift (git@main)      training entrypoint: `swift sft --use_ray/--use-megatron`
+#   megatron-core==0.17.0    Megatron-LM backend for --use-megatron
+#   mcore-bridge==1.4.1      patches Transformer Engine into Megatron
+#   transformer_engine[...]  REQUIRED by mcore-bridge (it does `import transformer_engine`
+#                           unconditionally). Install the prebuilt cu12 core wheel plus the
+#                           locally-built pytorch glue (--no-build-isolation, needs cmake/rsync).
+RUN pip install \
+        transformers==4.57.6 \
+        tokenizers==0.22.1 \
+        accelerate==1.10.1 \
+        deepspeed==0.18.9 \
+        modelscope==1.37.1 \
+        datasets==3.6.0 \
+        peft==0.15.2 \
+        trl==0.17.0 \
+    && pip install "ms-swift @ git+https://github.com/modelscope/ms-swift.git@main" \
+    && pip install \
+        megatron-core==0.17.0 \
+        mcore-bridge==1.4.1 \
+    && pip install --no-build-isolation \
+        "transformer_engine[pytorch,core_cu12]"
+
+# =============================================================================
+# Layer 5 (ray) — audio / codec / dataset / logging libraries
+# =============================================================================
+#   soundfile==0.13.1        read/write WAV (libsndfile python binding)
+#   librosa==0.11.0          audio feature extraction / resampling
+#   decord==0.6.0            efficient video decoding (Omni video input)
+#   qwen-omni-utils==0.0.9   official preprocessing for Qwen2.5-Omni
+#   qwen-tts==0.1.1          codec tokenizer (target_audio -> discrete tokens)
+#   pandas==2.3.3            tabular dataset handling
+#   einops==0.8.2            tensor rearrange (used by swift/TE)
+#   huggingface_hub==0.36.2  download models/datasets
+#   numpy==2.2.6             array backend (pinned for ABI compat with torch)
+#   scipy==1.16.3            DSP ops (resample) for audio pipeline
+#   wandb==0.27.0            experiment tracking
+#   swanlab==0.7.19          experiment tracking (alt backend)
+#   tensorboard==2.20.0      local training curves
+RUN pip install \
+        soundfile==0.13.1 \
+        librosa==0.11.0 \
+        decord==0.6.0 \
+        qwen-omni-utils==0.0.9 \
+        qwen-tts==0.1.1 \
+        pandas==2.3.3 \
+        einops==0.8.2 \
+        huggingface_hub==0.36.2 \
+        numpy==2.2.6 \
+        scipy==1.16.3 \
+        wandb==0.27.0 \
+        swanlab==0.7.19 \
+        tensorboard==2.20.0
+
+# =============================================================================
+# Layer 6 (ray) — FlashAttention 2
+# =============================================================================
+# Qwen2.5-Omni-3B supports FA2 only (FA3 unsupported). Prebuilt wheel for
+# Python 3.12 + CUDA 12.8 + PyTorch 2.8 (cxx11abiFALSE matches the torch wheel).
+RUN pip install \
+    https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post1/flash_attn-2.8.3.post1+cu12torch2.8cxx11abiFALSE-cp312-cp312-linux_x86_64.whl
+
+# (Optional) sanity check — uncomment to assert all key modules import at build time.
+# RUN python -c "import torch, transformers, swift, deepspeed, transformer_engine, \
+# flash_attn, soundfile, qwen_tts; print('[image-build] all imports OK')"
+
+# No ENTRYPOINT / CMD — Anyscale Job provides the entrypoint.

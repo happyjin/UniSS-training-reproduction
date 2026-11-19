@@ -1,0 +1,91 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# SimulS2ST-Omni Stage 3（流式轨迹微调：先合并 Stage 2 adapter，再挂新的 thinker / talker LoRA r8；
+# 延迟倍数 m ∈ {1..12}，1 epoch）· 双节点（16×H200）· torchrun + DDP
+#
+# 【数据】configs/stage3.yaml 读：
+#   data/s2st/dualcodec_rechunk_d_2kh     1000ms WAIT/WRITE 轨迹的 S2ST manifest + codes
+#   data/si_s4/audio                      源语音根（Stage 3 的源 dataset 不读音频，见 README §6，仍需存在）
+# 【起点】默认 OUTPUT_ROOT/checkpoint/stage2_multitask_full；也可直接接源项目训完的 Stage 2。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_simuls2st_omni_stage3_2node.yaml \
+#       --repo . --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix s2st-s3-2n \
+#       --deadline-sec 21600
+#
+# 【提交前确认】白名单节点（__NODE_1__ / __NODE_2__）、MODEL_PATH、SIMULS2ST_MAP_*、CODE_PREFIX / OUTPUT_ROOT / owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["__NODE_1__", "__NODE_2__"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 2
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/simuls2st_omni/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    SIMULS2ST_STAGE: "stage3"
+    # 官方 Qwen/Qwen2.5-Omni-3B（与 Stage 1/2 同一份）；Stage 2 的 adapter 与 talker 由 SIMULS2ST_MERGE_ADAPTERS_FROM 合入
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/Qwen2.5-Omni-3B/"
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/simuls2st_omni"
+    # 接源项目训完的 Stage 2（ap-northeast-1）：
+    # SIMULS2ST_MERGE_ADAPTERS_FROM: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/Qwen2.5_3B_DualCodec/stage2_multitask_full/"
+
+    SIMULS2ST_MAP_S2ST_STREAM: "data/s2st/dualcodec_rechunk_d_2kh s3://<bucket>/<key>/s2st/dualcodec_rechunk_d_2kh/"
+    SIMULS2ST_MAP_SI_AUDIO: "data/si_s4/audio s3://<bucket>/<key>/si_s4/audio/"
+
+    # 训练参数在 configs/stage3.yaml（token_budget 6144、lr 1e-4 -> 1e-5、1 epoch）。
+    # MAX_STEPS: "50"
+    # RESUME: "/nvme/output/__OWNER__/simuls2st_omni/checkpoint/stage3_streaming/checkpoint-N"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

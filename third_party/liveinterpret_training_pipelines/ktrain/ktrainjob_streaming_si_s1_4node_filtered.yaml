@@ -1,0 +1,117 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# streaming_si S1（Talker 发声预训练：文本 -> FSQ speech token，源项目 S1-0）·
+# torchrun + DeepSpeed ZeRO-2 · 数据从 S3 同步到各节点 NVMe
+#
+# s1：cond=text_only，训整个 talker；MODEL_PATH = 导出的基座（可与 S2 并行）。
+# 接入 thinker 语义的 S3-w / S3 用 ktrain/ktrainjob_streaming_si_s3.yaml（同一份 Emilia 数据）。
+#
+# 【数据（S3 实测 2026-09-29）】
+#   s3://stevehguo-ap-southeast-3/.../data_fortrain_1031version/TTS_FSQ_FILTERED/
+#   2060 个 parquet（fsq-EN-B*.parquet 等），20.5 GiB，同步到每个节点
+#   /nvme/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/TTS_FSQ_FILTERED/
+#   注意 parquet 在 emilia_fsq_v3/ 下一层的 s1_emilia_fsq_v3/ 里。
+#   数据必须是 v3 代 FSQ（CosyVoice3 tokenizer + 正确 mel 前端），旧代码本训错不会报错。
+#
+# 【链路】submit.sh 同步代码与数据 → launch_train.sh → pipelines/streaming_si/ktrain_entry.sh
+#        （转换 SI_S1_DATA 路径、按 SI_STAGE 分发）→ train_tts.sh → swift sft（torchrun numNodes×8）
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_s1.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix si-s1 \
+#       --task-deadline 'si-s1-data=21600'
+#
+# 【提交前确认】白名单节点（与 numNodes 一致）、MODEL_PATH 选 0.6B 还是 4B（见 env 注释）、CODE_PREFIX / OUTPUT_ROOT / owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-03e7d1f6d95864e1a", "hyperpod-i-08e3257c716579618", "hyperpod-i-09a68c454800140d6", "hyperpod-i-0a3ebd369de798192"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # streaming_si 镜像（ktrain/image/Dockerfile.streaming-si）：v9 + fla / causal-conv1d 加速核 + CosyVoice 声码器依赖，
+  # 0.6B 与 4B 两个变体通用（4B 的线性注意力走加速核）；torch / TE / EFA 与 v9 相同，训练行为不变。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 4                  # = 白名单节点数（4 台同型号 p5e）
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    # -------------------------------------------------------------------------
+    # 模型（HF 格式目录，export_base_models.sh 导出，已上传；两者都是未训练的基座，自带 speech_decoder/）：
+    #   base_streaming_si     Thinker Qwen3-0.6B + Talker 0.1B（1.89B 参数含 Voxtral 音频塔，4.9 GiB）
+    #   base_streaming_si_4b  Thinker Qwen3.5-4B + Talker 0.6B（6.32B 参数，13.1 GiB）
+    #   s1 用上面的基座。S3-w 的起点（merge_stage_checkpoints.py 合并 S2 thinker + S1 talker）见 ktrainjob_streaming_si_s3.yaml。
+    # -------------------------------------------------------------------------
+    # MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si/"
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si_4b/"
+
+    SI_STAGE: "s1"
+    SI_S1_DATA: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/TTS_FSQ_FILTERED/"
+
+    # 输出子目录 s1_tts/（2026-10 改名前为 s1-0/）；多节点自动 --save_on_each_node。不要设 OUTPUT_DIR。
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si"
+    # SI_EXTRA_ARGS: "--resume_from_checkpoint /nvme/output/__OWNER__/streaming_si/s1_tts/.../checkpoint-N"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：默认值在 train_tts.sh（每卡 32、lr 1e-4、2 epoch）。
+    # 源项目是单机 4 卡 × 32 = 全局 128；16 卡用默认值时全局 512（步数为源的 1/4）。
+    # 要与源对齐就改成 PER_DEVICE_TRAIN_BATCH_SIZE: "8"、去掉 LEARNING_RATE（16 × 8 = 128，lr 1e-4）。
+    #
+    # 当前取吞吐优先：4B 的 S1 在每卡 32 时显存仅约 22/140 GB、功耗未满，故每卡 64 → 全局 1024
+    # （约 7.4 万步）；lr 按 batch 平方根从 1e-4（全局 512）放大到 1.4e-4。
+    # 重启后看 train_speed(s/it)：低于 2 s/it 说明吞吐有提升，接近 2 就改回 32 / 1e-4。
+    # -------------------------------------------------------------------------
+    PER_DEVICE_TRAIN_BATCH_SIZE: "64"
+    LEARNING_RATE: "1.4e-4"
+    DATASET_NUM_PROC: "32"    # 数据集 Map 并行进程数（默认 4），缩短训练前预处理时间
+    # MAX_STEPS: "100"        # 首次试跑可打开
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

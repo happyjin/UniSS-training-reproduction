@@ -1,0 +1,58 @@
+# S4 同语言（src=tgt）直通评测 — 60 条四语 devtest（zh/en/ja/ko 各 15）
+#   口径：整段送 Voxtral encoder · greedy · tgt_lang=源语言 · reference=源转写
+#   看 S4 在"translate 指令 + 源语言=目标语言"时的零样本行为（转写/直通/跑偏）
+# 与 job_s4_noise_eval.yaml 同骨架，GPU 释放后自动排队执行。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s4-samelang-eval
+  namespace: speech-h200
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - {key: node-type, operator: Equal, value: gpu, effect: NoSchedule}
+      nodeSelector:
+        node.kubernetes.io/instance-type: ml.p5e.48xlarge
+      containers:
+        - name: eval
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -eu
+              W=/work
+              mkdir -p $W && cd $W
+              echo "[1/4] 下载 bundle..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/_eval_tmp/s4_samelang_bundle.tar - | tar xf -
+              echo "[2/4] 下载模型 S4_1031v2_ckpt93767..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 sync \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_si_4b_enzhjako/S4_1031v2_ckpt93767 \
+                $W/model --only-show-errors
+              echo "[3/4] 推理 60 条（整段 · greedy · tgt_lang=源语言）..."
+              cd $W/repo
+              /opt/venv/bin/python custom/streaming_si/inference/infer_s2st.py \
+                --model_dir $W/model \
+                --input_jsonl $W/input_samelang.jsonl \
+                --out_dir $W/out \
+                --no_vocoder --device cuda:0
+              echo "[4/4] 上传结果..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp $W/out/results.jsonl \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/_eval_tmp/s4_samelang_results.jsonl --only-show-errors
+              echo "EVAL_DONE"
+          env:
+            - {name: AWS_DEFAULT_REGION, value: "ap-southeast-3"}
+          envFrom:
+            - secretRef: {name: aws-local-creds}
+          resources:
+            requests: {cpu: "16", memory: "64Gi", nvidia.com/gpu: "1"}
+            limits: {cpu: "16", memory: "64Gi", nvidia.com/gpu: "1"}
+          volumeMounts:
+            - {name: work, mountPath: /work}
+      volumes:
+        - name: work
+          emptyDir: {sizeLimit: 200Gi}

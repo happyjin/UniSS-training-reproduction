@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: tts-omni-prep
+    owner: stevehguo
+  name: tts-omni-zhrerun
+  namespace: ktrain-users
+spec:
+  containers:
+  - command:
+    - bash
+    - /opt/raw/startup.sh
+    env:
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: all
+    - name: AWS_DEFAULT_REGION
+      value: ap-southeast-3
+    - name: NW
+      value: '16'
+    - name: NWT
+      value: '16'
+    - name: WORKER_START
+      value: '0'
+    - name: NGPU
+      value: '8'
+    - name: OMP_NUM_THREADS
+      value: '4'
+    - name: SHARED_GPU
+      value: '1'
+    - name: ONLY_KEYS
+      value: /opt/raw/zh_rerun_keys.txt
+    - name: SHARD_OFFSET_BASE
+      value: '80000000'
+    - name: LOG_TAG
+      value: rerun
+    - name: DONE_DIR
+      value: /opt/dlami/nvme/stevehguo/tts_omni/done_rerun
+    - name: SKIP_IDS_S3
+      value: s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/TTS_omni_meta/union_ids.npy
+    envFrom:
+    - secretRef:
+        name: aws-jkt-creds
+    image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+    name: worker
+    resources:
+      limits:
+        cpu: '70'
+        memory: 600Gi
+      requests:
+        cpu: '48'
+        memory: 300Gi
+    volumeMounts:
+    - mountPath: /opt/raw
+      name: code
+      readOnly: true
+    - mountPath: /opt/dlami/nvme
+      name: nvme
+    - mountPath: /dev/shm
+      name: shm
+  nodeSelector:
+    kubernetes.io/hostname: hyperpod-i-04ed14465ab855810
+  restartPolicy: OnFailure
+  volumes:
+  - configMap:
+      name: tts-omni-prep
+    name: code
+  - hostPath:
+      path: /opt/dlami/nvme
+      type: Directory
+    name: nvme
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 32Gi
+    name: shm

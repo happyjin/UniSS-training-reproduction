@@ -1,0 +1,24 @@
+# SimulS2ST-Omni 推理（流式同传 agent / 离线 TTS / VoiceBox + Vocos + DualCodec）额外依赖。
+# 训练不需要；在仓库 requirements.txt（torch 2.8 / transformers 4.57.3 / peft 0.15.2）之上安装：
+#   pip install -r custom/simuls2st_omni/requirements-infer.txt
+#   pip install -e vendor/SimulEval --no-deps        # SimulEval 钉在 536de825（vendor/ 内）
+#
+# 版本取自源项目 requirements.txt；标注「源缺」的是源清单漏掉、实测导入需要的包。
+# descript-audiotools 需要 protobuf<3.20：会把环境里的 protobuf 降到 3.19.6（tensorboard 随之降到 2.20），
+# 建议推理单独建环境。argbind / pyworld 需要从源码编译。
+descript-audiotools==0.7.2
+descript-audio-codec==1.0.0
+easydict==1.13
+pyworld==0.3.5
+json5>=0.9.0
+protobuf==3.19.6
+sacrebleu==2.6.0
+textgrid>=1.5
+pydub>=0.25.1
+websockets>=14.0,<16
+pedalboard>=0.9,<1
+setuptools==80.10.2          # 提供 pkg_resources（setuptools>=81 已移除）
+hyperpyyaml                  # 源缺：voicebox/runtime.py
+ruamel.yaml                  # 源缺：voicebox/util.py
+pandas==2.3.3                # 源缺（SimulEval 依赖，--no-deps 安装时需手动装）
+tornado                      # SimulEval 依赖

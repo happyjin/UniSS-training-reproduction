@@ -1,0 +1,91 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 实时同传推理服务（常驻，1×H200）
+#
+# 服务：custom/streaming_si/serve/server.py（S4 句级 S2ST 常驻进程）
+#   * 输入 = 一段已经切好的语音（切句由上游负责，服务不做 VAD）
+#   * 输出 = 译文 + 24kHz 合成语音
+#   * 接口 = WebSocket /v1/stream、HTTP POST /v1/translate、调试页 GET /
+#
+# 模型直接读 FSX（2026-10-20 已实测存在）：
+#   fsx://stevehguo/eval/models/s4_ck/            14GB，S4 checkpoint-24980，
+#                                                 已排除 global_step（32GB 优化器状态）；
+#                                                 speech_decoder/ 内含 flow + HiFT + CAM++
+#   fsx://stevehguo/eval/models/cosyvoice3/       speech_tokenizer_v3.onnx（源语音声学 prompt）
+# 不走 S3 同步：checkpoint 在 S3 上是 46.6GB（含优化器状态），且 tokenizer 只存在于 FSX。
+#
+# 【常驻】服务跑起来后 Pod 不退出，占 1 张 H200，直到：
+#   $ ktrain job stop <job-name>          # 或 delete
+#
+# 【连接】（在你自己的机器上执行）
+#   kubectl -n speech-h200 get pods | grep serve                      # 找 <job>-master-0
+#   kubectl -n speech-h200 port-forward pod/<job>-master-0 8000:8000
+#   浏览器打开 http://127.0.0.1:8000                                  # 拖入 wav 即可
+#   或 curl -s -X POST --data-binary @a.wav \
+#        "http://127.0.0.1:8000/v1/translate?tgt_lang=zh"
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_serve.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh --pvc speech-h200-s3-pvc \
+#       --job-name-prefix si-serve --aws-creds-secret aws-local-creds
+#   FSX 不要在 extra_volumes 里再挂：ktrain operator 会自动把 speech-h200-hp-fsx 挂到 /mnt/fsx，
+#   重复挂同一路径会让 operator 报 "Mount path conflict"、任务一直停在 Pending。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-0a3ebd369de798192"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "16Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 1
+  resources:
+    cpu: "32"
+    memory: 320Gi
+    gpu: 1
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/serve_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    S3ALL_MOUNT: "/s3all"
+
+    # S4 完整模型目录（fsx:// 由 launch_train.sh 转成 ${FSX_MOUNT}/<path>，不做同步）
+    MODEL_PATH: "fsx://stevehguo/eval/models/s4_ck"
+    # 源语音声学 prompt（情感 / 发声方式 / 录音质感跟随源音频）
+    COSYVOICE_SPEECH_TOKENIZER: "fsx://stevehguo/eval/models/cosyvoice3/speech_tokenizer_v3.onnx"
+
+    SERVE_PORT: "8000"
+    SERVE_DEVICE: "cuda:0"
+    # 推理参数用 server.py 的默认值（与评测口径一致：flow ODE 5 步、thinker greedy、
+    # talker top_k 25 / top_p 0.8）。要临时改就写在这里，例如：
+    # SERVE_EXTRA_ARGS: "--ode_steps 10 --max_audio_sec 20"
+    OMP_NUM_THREADS: "8"

@@ -1,0 +1,79 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 单卡跑测（推理 + 全部打分）
+#
+# 跑什么：pipelines/streaming_si/bench_entry.sh（SYSTEM=s4 = S4-offline 句级）
+#   1. 生成清单（全部 1193 句 + 1 条预热，预热只用于录 CUDA Graph，打分时剔除）
+#   2. infer_s2st.py 单卡串行推理（读 FSX 上的 s4_ck，写本项目自己的输出目录）
+#   3. ASR（Whisper-large-v3）/ UTMOS / 副语言（SIM-o、ESim、AutoPCP）
+#   4. 三个数据集各出一份 score_eval 报告（BLEU/chrF/COMET）
+#   5. 汇总成 summary.md，并与 README_self 的 S4-offline 基线逐项对照
+#
+# 只读复用 /mnt/fsx/stevehguo/eval 下的测试清单、模型与打分依赖（不写他的目录）；
+# 产物全部落在 /mnt/fsx/junyaoyang/infer_bench/<RUN_ID>/。
+#
+# 换卡（A10 / L40S）时只改 GPU_TAG + image + 节点白名单（或另写一份 yaml），
+# 文档按「一个模型一份、同文档内对比不同卡」的约定汇总。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_infer_bench.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh --pvc speech-h200-s3-pvc \
+#       --job-name-prefix bench-s4-h200 --aws-creds-secret aws-local-creds
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-0a3ebd369de798192", "hyperpod-i-07d384c1277ead0cd",
+                           "hyperpod-i-08e3257c716579618", "hyperpod-i-03e7d1f6d95864e1a",
+                           "hyperpod-i-09a68c454800140d6"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "16Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 1
+  resources:
+    cpu: "32"
+    memory: 320Gi
+    gpu: 1
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/bench_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    S3ALL_MOUNT: "/s3all"
+
+    SYSTEM: "s4"
+    GPU_TAG: "h200"
+    BENCH_EPOCHS: "1"
+    # LIMIT: "3"          # 冒烟用：只跑前 3 句（全量时注释掉）
+
+    # 推理默认参数（与 README_self 完全一致）：infer_s2st 默认值，flow ODE 5 步、
+    # thinker greedy、talker top_k 25 / top_p 0.8、开源语音声学 prompt、seed 0。
+    OMP_NUM_THREADS: "8"

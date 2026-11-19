@@ -1,0 +1,106 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# SimulS2ST-Omni Stage 1（talker warmup：thinker 冻结，talker 全参，Emilia DualCodec TTS，2 epoch）·
+# 双节点（2×6 = 12×H200；07d3 被 neuhao-test 占 2 卡）· torchrun + DDP（不用 DeepSpeed，见 pipelines/simuls2st_omni/README.md §5）
+#
+# 【链路】submit.sh 同步代码与数据 → launch_train.sh → pipelines/simuls2st_omni/ktrain_entry.sh
+#        （按 SIMULS2ST_MAP_* 在 NVMe 上拼出与源项目同构的目录树）→ train_stage1.sh → swift sft
+#
+# 【数据】阶段配置读 data/emilia/dualcodec（manifest/<LANG>/*.jsonl + codes/<LANG>/*.npy）。
+#        把它在 S3 上的位置填进 SIMULS2ST_MAP_EMILIA；同步落点 /nvme/<key>，入口软链成 data/emilia/dualcodec。
+# 【基座】MODEL_PATH = 官方 Qwen/Qwen2.5-Omni-3B（revision f75b40e3）。论文 §3.3 / 附录 B.1：thinker 与 talker
+#        从 Qwen2.5-Omni 初始化，talker 的 codec embedding / head 按 DualCodec 词表重新初始化（日志应出现
+#        "Re-initialised talker codec embedding/head: 8448 -> 16388"，首步 loss ≈ ln 16388 ≈ 9.7）。
+#        不要用 HA-SA-ki/SimulS2ST-Omni 的 offline/：那是作者训完的合并模型，talker 词表已是 16388，不会重新初始化。
+# 【产出】OUTPUT_ROOT/checkpoint/stage1_talker_warmup/（每节点一份），Stage 2 默认从这里接 talker。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_simuls2st_omni_stage1_2node.yaml \
+#       --repo . --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix s2st-s1-2n \
+#       --task-deadline 'simuls2st-map-emilia=43200'
+#
+# 【提交前确认】白名单节点（hostname 带 hyperpod- 前缀）每台空闲 GPU ≥ resources.gpu、CODE_PREFIX / OUTPUT_ROOT / owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  # 固定任务名（DNS-1035：只能小写字母、数字、连字符）；重提交前先 ktrain job delete
+  name: simuls2st-omni-stage1-2node
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-07d384c1277ead0cd", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # v9 镜像已含训练所需依赖（transformers 4.57.3 / peft 0.15.2 / torchvision / qwen-omni-utils）
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 2
+  # 每节点 6 卡 × 2 = 12 卡（07d3 仅剩 6 卡空闲）；cpu / memory 按 6/8 比例缩
+  resources:
+    cpu: "101"
+    memory: 1012Gi
+    gpu: 6
+  env:
+    TRAIN_SCRIPT: "pipelines/simuls2st_omni/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    # 必须与 resources.gpu 一致：launch_train.sh 未设置时默认导出 8，torchrun 会起 8 个进程而只有 6 张卡
+    NPROC_PER_NODE: "6"
+
+    SIMULS2ST_STAGE: "stage1"
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/Qwen2.5-Omni-3B/"
+    # 阶段配置：相对路径按 pipelines/simuls2st_omni/configs/ 解析。stage1_tb24k.yaml 相对源项目 stage1.yaml
+    # 只改 token_budget 24576 / max_batch_size 96 / max_talker_tokens_per_batch 65536；对拍时改回 stage1.yaml
+    SIMULS2ST_CONFIG: "stage1_tb24k.yaml"
+    # "<configs/stage1.yaml 里的相对路径> <S3 URI>"：第二个 token 由 submit.sh 同步到 /nvme/<key>
+    SIMULS2ST_MAP_EMILIA: "data/emilia/dualcodec s3://stevehguo-ap-southeast-3/speech_model_backup/emilia/dualcodec/"
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/simuls2st_omni"
+
+    # -------------------------------------------------------------------------
+    # 训练参数全部在 SIMULS2ST_CONFIG 指向的阶段配置里（lr 4e-4 -> 4e-5、2 epoch）。源按单机 8 卡写；
+    # 卡数变化时每步 batch 数随之变化、每 epoch 步数反比变化（学习率调度按步数自动缩放）。试跑可打开下面的覆盖项。
+    # -------------------------------------------------------------------------
+    # MAX_STEPS: "50"
+    # 续训：2026-10-09 第 5000 步 OOM（阈值 65536 过宽，已降到 40960）后从 checkpoint-4000 接上。
+    # 必须同一组白名单节点（checkpoint 在各节点本地 NVMe，每节点只有本节点 rank 的 rng_state）。跑完首段后注释掉。
+    RESUME: "/nvme/output/__OWNER__/simuls2st_omni/checkpoint/stage1_talker_warmup/checkpoint-4000"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

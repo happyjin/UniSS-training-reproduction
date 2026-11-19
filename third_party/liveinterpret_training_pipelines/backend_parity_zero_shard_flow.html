@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同一模型，两种命运 —— deepspeed ZeRO 8卡分片重组缺陷动画演示</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a30; --panel2:#0e1526; --line:#24304f;
+    --ok:#22c55e; --bad:#ef4444; --data:#38bdf8; --grad:#a78bfa; --hot:#fbbf24;
+    --txt:#dbe4f5; --dim:#8aa0c8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--txt); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:24px; min-height:100vh}
+  h1{font-size:22px; text-align:center; letter-spacing:1px}
+  .sub{text-align:center; color:var(--dim); font-size:13px; margin:6px 0 20px}
+  .sub b{color:var(--hot)}
+  .wrap{display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1320px; margin:0 auto}
+  .col{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; position:relative; overflow:hidden}
+  .col h2{font-size:16px; display:flex; align-items:center; gap:8px; margin-bottom:4px}
+  .col .tag{font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600}
+  .tag.ok{background:#122e1c; color:var(--ok); border:1px solid #1f5c35}
+  .tag.bad{background:#331113; color:var(--bad); border:1px solid #5c1f22}
+  .col .cap{color:var(--dim); font-size:12px; margin-bottom:12px}
+
+  /* 阶段条 */
+  .steps{display:flex; gap:6px; margin-bottom:14px}
+  .step{flex:1; text-align:center; font-size:11px; color:var(--dim); padding:6px 2px; border:1px solid var(--line); border-radius:8px; transition:all .35s; background:var(--panel2)}
+  .step.on{color:#081018; background:var(--hot); border-color:var(--hot); font-weight:700; transform:scale(1.06)}
+
+  /* 舞台 */
+  .stage{position:relative; height:300px; background:var(--panel2); border:1px dashed var(--line); border-radius:10px; overflow:hidden}
+  .gpus{position:absolute; left:0; right:0; bottom:12px; display:flex; justify-content:space-between; padding:0 14px}
+  .gpu{width:9.5%; text-align:center; font-size:10px; color:var(--dim); padding:8px 2px 4px; background:#0a1122; border:1px solid var(--line); border-radius:8px; transition:all .35s}
+  .gpu .ic{font-size:16px}
+  .gpu.hot{border-color:var(--hot); box-shadow:0 0 10px #fbbf2466; color:var(--hot)}
+
+  /* 参数条（adapter 6 段） */
+  .bar{position:absolute; left:50%; top:64px; transform:translateX(-50%); width:72%; height:26px; display:flex; border-radius:6px; overflow:hidden; border:1px solid #00000055; transition:opacity .3s}
+  .seg{height:100%; font-size:9px; color:#04101c; display:flex; align-items:center; justify-content:center; font-weight:700}
+  .s1{background:#60a5fa; flex:38}.s2{background:#34d399; flex:2}.s3{background:#f472b6; flex:30}.s4{background:#fbbf24; flex:2}.s5{background:#4ade80; flex:26}.s6{background:#c084fc; flex:2}
+
+  /* 分片小方块（右侧用） */
+  .shard{position:absolute; width:9.5%; height:22px; border-radius:5px; transition:all .7s cubic-bezier(.5,.1,.3,1); font-size:9px; color:#04101c; display:flex; align-items:center; justify-content:center; font-weight:700; opacity:0}
+  .grad-dot{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--grad); box-shadow:0 0 8px var(--grad); opacity:0; transition:all .6s}
+  .mixer{position:absolute; left:50%; bottom:86px; transform:translateX(-50%); width:120px; height:34px; border:1px solid var(--grad); border-radius:8px; color:var(--grad); font-size:11px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .4s; background:#1a1230}
+
+  /* 指标区 */
+  .metrics{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:14px}
+  .m{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center}
+  .m .k{font-size:11px; color:var(--dim)}
+  .m .v{font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; transition:color .3s}
+  .v.good{color:var(--ok)} .v.terrible{color:var(--bad)}
+  .spark{grid-column:1/4; height:86px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; position:relative; overflow:hidden}
+  .spark svg{position:absolute; inset:0; width:100%; height:100%}
+  .normwatch{margin-top:12px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px}
+  .normwatch .k{font-size:11px; color:var(--dim); margin-bottom:6px}
+  .normbar{height:20px; border-radius:5px; display:flex; overflow:hidden; border:1px solid #00000055}
+  .cell{width:2%; height:100%; background:var(--ok); transition:background .4s}
+  .verdict{position:absolute; top:12px; right:12px; font-size:12px; font-weight:800; padding:4px 12px; border-radius:6px; opacity:0; transform:rotate(6deg) scale(.6); transition:all .4s}
+  .verdict.show{opacity:1; transform:rotate(6deg) scale(1)}
+  .verdict.good{background:var(--ok); color:#04160b}
+  .verdict.bad{background:var(--bad); color:#1a0505}
+  .foot{max-width:1320px; margin:18px auto 0; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 18px}
+  .foot h3{font-size:14px; margin-bottom:8px}
+  .badges{display:flex; flex-wrap:wrap; gap:8px}
+  .badge{font-size:12px; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--dim)}
+  .badge b{color:var(--txt)}
+  .badge.ok b{color:var(--ok)} .badge.bad b{color:var(--bad)}
+  .concl{margin-top:10px; font-size:13px; line-height:1.7}
+  .concl b{color:var(--hot)}
+  .phase-label{text-align:center; font-size:12px; color:var(--hot); height:18px; margin-bottom:8px; font-weight:700}
+</style>
+</head>
+<body>
+<h1>同一模型，两种命运</h1>
+<div class="sub">deepspeed ZeRO（8 卡）adapter-only 训练卡死的根因：<b>参数分片 / all-gather 重组环节把权重逐步写乱</b>（动画循环演示）</div>
+
+<div class="wrap">
+  <!-- ============ 左：正确流程 ============ -->
+  <div class="col" id="colL">
+    <h2>✅ 正确流程 <span class="tag ok">DDP / megatron / 单卡 ZeRO</span></h2>
+    <div class="cap">梯度 all-reduce 求均值 → Adam 更新 → 参数正确累积（E4 / E6 / lium 实证）</div>
+    <div class="steps" id="stepsL">
+      <div class="step">前向<br>codec loss</div>
+      <div class="step">反向<br>求梯度</div>
+      <div class="step">all-reduce<br>梯度平均</div>
+      <div class="step">Adam<br>更新</div>
+      <div class="step">收敛<br>loss↓</div>
+    </div>
+    <div class="phase-label" id="phaseL">&nbsp;</div>
+    <div class="stage" id="stageL">
+      <div class="bar" id="barL">
+        <div class="seg s1">fc1.weight</div><div class="seg s2">b</div>
+        <div class="seg s3">fc2.weight</div><div class="seg s4">b</div>
+        <div class="seg s5">norm.weight</div><div class="seg s6">b</div>
+      </div>
+      <div class="mixer" id="mixer">÷ 8 平均</div>
+      <div class="gpus" id="gpusL"></div>
+      <div class="verdict good" id="verdictL">正常收敛</div>
+    </div>
+    <div class="metrics">
+      <div class="m"><div class="k">train loss</div><div class="v good" id="lossL">22.91</div></div>
+      <div class="m"><div class="k">codec token_acc</div><div class="v good" id="accL">0.08%</div></div>
+      <div class="m"><div class="k">grad_norm</div><div class="v good" id="gnL">44.7</div></div>
+      <div class="spark"><svg viewBox="0 0 300 86" preserveAspectRatio="none">
+        <polyline id="curveL" fill="none" stroke="#22c55e" stroke-width="2.5" points=""/>
+        <text x="8" y="16" fill="#8aa0c8" font-size="9">loss（megatron lium 实测轨迹）</text>
+      </svg></div>
+    </div>
+  </div>
+
+  <!-- ============ 右：错误流程 ============ -->
+  <div class="col" id="colR">
+    <h2>❌ 错误流程 <span class="tag bad">deepspeed ZeRO-1/2（8 卡）</span></h2>
+    <div class="cap">参数被 flatten 切成 8 片分存各 rank → step 后 all-gather <b style="color:var(--bad)">重组错位</b> → 权重逐步洗乱</div>
+    <div class="steps" id="stepsR">
+      <div class="step">前向<br>codec loss</div>
+      <div class="step">反向<br>求梯度</div>
+      <div class="step">切 8 片<br>分发</div>
+      <div class="step">各 rank<br>更新</div>
+      <div class="step">重组<br>⚠错位</div>
+      <div class="step">卡死<br>loss 平台</div>
+    </div>
+    <div class="phase-label" id="phaseR">&nbsp;</div>
+    <div class="stage" id="stageR">
+      <div class="bar" id="barR">
+        <div class="seg s1">fc1.weight</div><div class="seg s2">b</div>
+        <div class="seg s3">fc2.weight</div><div class="seg s4">b</div>
+        <div class="seg s5">norm.weight</div><div class="seg s6">b</div>
+      </div>
+      <div class="gpus" id="gpusR"></div>
+      <div class="verdict bad" id="verdictR">卡死：loss 平台</div>
+    </div>
+    <div class="metrics">
+      <div class="m"><div class="k">train loss</div><div class="v terrible" id="lossR">22.91</div></div>
+      <div class="m"><div class="k">codec token_acc</div><div class="v terrible" id="accR">0.09%</div></div>
+      <div class="m"><div class="k">grad_norm</div><div class="v terrible" id="gnR">49.7</div></div>
+      <div class="spark"><svg viewBox="0 0 300 86" preserveAspectRatio="none">
+        <polyline id="curveR" fill="none" stroke="#ef4444" stroke-width="2.5" points=""/>
+        <text x="8" y="16" fill="#8aa0c8" font-size="9">loss（deepspeed jc85 实测轨迹）</text>
+      </svg></div>
+    </div>
+    <div class="normwatch">
+      <div class="k">adapter.norm.weight（LayerNorm gain，初始全 1）：<b id="normState">完好</b></div>
+      <div class="normbar" id="normbar"></div>
+      <div class="k" style="margin-top:6px">jc85 ckpt-500 实测：mean≈0、std≈0.023 —— 从全 1 被洗成随机分布。<b style="color:var(--bad)">纯训练 500 步最大位移仅 0.05，物理上不可能达成</b>，唯有重组错位能解释。</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <h3>证据链（全部实测）</h3>
+  <div class="badges">
+    <span class="badge ok">E4：8卡 <b>纯 DDP</b> → 健康（loss 23→14 @60步，≈megatron）</span>
+    <span class="badge bad">E5：8卡 <b>ZeRO-1</b> → 卡死（与 zero2 逐位一致）</span>
+    <span class="badge ok">E6：单卡 <b>ZeRO-2</b> → 健康（分片退化为 no-op）</span>
+    <span class="badge bad">zero2 复验 → 与 jc85 <b>8 位小数逐位一致</b></span>
+    <span class="badge ok">单卡 HF + 手动 AdamW → 健康（main CE 15→3.5）</span>
+    <span class="badge">两侧可训练参数一致：<b>16.7875M（adapter-only）</b></span>
+  </div>
+  <div class="concl">
+    结论：单卡 ZeRO-2 正常 + 8 卡纯 DDP 正常 + 8 卡 ZeRO-1/2 卡死 —— 三点交集唯一指向
+    <b>deepspeed ZeRO 在 8 卡下的「参数分片 → optimizer.step → all-gather 重组」链路</b>把 adapter 权重反复写乱，
+    学习信号无法积累，loss 卡死在 22.9→~20 的平台。megatron 的 distributed optimizer 是另一套实现（重组正确），故正常。
+  </div>
+</div>
+
+<script>
+// ---------- 公共：GPU 格子 ----------
+function buildGPUs(id){
+  const g = document.getElementById(id);
+  for(let i=0;i<8;i++){
+    const d=document.createElement('div'); d.className='gpu';
+    d.innerHTML=`<div class="ic">🎛️</div>rank${i}`;
+    g.appendChild(d);
+  }
+  return [...g.children];
+}
+const gpusL=buildGPUs('gpusL'), gpusR=buildGPUs('gpusR');
+
+// ---------- 右侧：分片小方块 ----------
+const stageR=document.getElementById('stageR');
+const shardColors=['#60a5fa','#34d399','#f472b6','#fbbf24','#4ade80','#c084fc','#f87171','#93c5fd'];
+const shards=[];
+for(let i=0;i<8;i++){
+  const s=document.createElement('div');
+  s.className='shard'; s.style.background=shardColors[i];
+  s.textContent='片'+i;
+  stageR.appendChild(s); shards.push(s);
+}
+// norm.weight 噪点条
+const normbar=document.getElementById('normbar');
+const cells=[];
+for(let i=0;i<50;i++){const c=document.createElement('div');c.className='cell';normbar.appendChild(c);cells.push(c);}
+
+// ---------- 左侧：梯度点 ----------
+const stageL=document.getElementById('stageL');
+const dotsL=[];
+for(let i=0;i<8;i++){const d=document.createElement('div');d.className='grad-dot';stageL.appendChild(d);dotsL[i]=d;}
+
+// ---------- 数据 ----------
+const lossSeqL=[22.91,21.52,17.16,15.11,14.17,13.67,13.54], accSeqL=['0.08%','0.09%','0.27%','1.16%','2.72%','3.64%','4.18%'], gnSeqL=[44.7,24.3,6.8,3.2,3.0,2.2,9.2];
+const lossSeqR=[22.91,24.11,24.12,24.20,24.10,23.99,23.77], accSeqR=['0.09%','0.15%','0.16%','0.16%','0.16%','0.16%','0.17%'], gnSeqR=[49.7,3.16,3.21,3.48,4.35,4.84,4.22];
+
+function drawCurve(id,seq,min,max,color){
+  const pts=seq.map((v,i)=>`${8+i*(284/(seq.length-1))},${78-(v-min)/(max-min)*62}`).join(' ');
+  document.getElementById(id).setAttribute('points',pts);
+}
+drawCurve('curveL',lossSeqL,12,24); drawCurve('curveR',lossSeqR,12,24);
+
+// ---------- 阶段控制 ----------
+const stepsL=[...document.getElementById('stepsL').children];
+const stepsR=[...document.getElementById('stepsR').children];
+const phaseL=document.getElementById('phaseL'), phaseR=document.getElementById('phaseR');
+const barL=document.getElementById('barL'), barR=document.getElementById('barR');
+const mixer=document.getElementById('mixer');
+const verdictL=document.getElementById('verdictL'), verdictR=document.getElementById('verdictR');
+let round=0;
+
+function setOn(steps,i){ [...steps].forEach((s,j)=>s.classList.toggle('on',j===i)); }
+function text(id,t){document.getElementById(id).textContent=t;}
+function placeDot(d,x,y,op){d.style.left=x+'px';d.style.top=y+'px';d.style.opacity=op;}
+function placeShard(s,x,y,op,rot){s.style.left=x+'px';s.style.top=y+'px';s.style.opacity=op;s.style.transform=`rotate(${rot||0}deg)`;}
+
+// 布局常量
+const stageW=()=>stageR.clientWidth;
+const barTop=64, gpuTop=()=>stageR.clientHeight-52;
+
+// ---------- 左侧流程（6 阶段循环） ----------
+const phasesL=[
+  ()=>{text('phaseL','① 前向：batch → 模型 → codec loss');text('lossL','22.91');},
+  ()=>{text('phaseL','② 反向：codec loss 回流出梯度');dotsL.forEach((d,i)=>{const gx=gpusL[i].offsetLeft+gpusL[i].clientWidth/2;placeDot(d,gx,gpuTop()-30,1);});},
+  ()=>{text('phaseL','③ all-reduce：8 卡梯度求均值（不切开！）');mixer.style.opacity=1;
+       dotsL.forEach(d=>{placeDot(d,stageW()/2-6,stageL.clientHeight-130,1);});},
+  ()=>{text('phaseL','④ Adam 更新：参数整齐累积');mixer.style.opacity=0;dotsL.forEach(d=>d.style.opacity=0);
+       barL.style.boxShadow='0 0 18px #22c55e88';gpusL.forEach(g=>g.classList.add('hot'));},
+  ()=>{text('phaseL','⑤ 收敛：loss 稳步下降 ✓');
+       const i=round%lossSeqL.length;text('lossL',lossSeqL[i].toFixed(2));text('accL',accSeqL[i]);text('gnL',gnSeqL[i]);
+       barL.style.boxShadow='none';gpusL.forEach(g=>g.classList.remove('hot'));verdictL.classList.add('show');},
+  ()=>{verdictL.classList.remove('show');text('phaseL','（下一轮）');}
+];
+
+// ---------- 右侧流程（8 阶段循环） ----------
+let corruption=0;
+const phasesR=[
+  ()=>{text('phaseR','① 前向：batch → 模型 → codec loss（与左侧相同）');text('lossR','22.91');},
+  ()=>{text('phaseR','② 反向：梯度计算正常（grad_norm≈49.7）');},
+  ()=>{text('phaseR','③ ZeRO：adapter 参数被 flatten 切成 8 片');
+       barR.style.opacity=0;
+       shards.forEach((s,i)=>{const bx=stageW()*0.14+i*stageW()*0.09;placeShard(s,bx,barTop+2,1,0);});},
+  ()=>{text('phaseR','④ 分片分发到 8 个 rank 各自存储');
+       shards.forEach((s,i)=>{const gx=gpusR[i].offsetLeft;placeShard(s,gx,gpuTop()-34,1,0);gpusR[i].classList.add('hot');});},
+  ()=>{text('phaseR','⑤ 各 rank 只更新自己那片（optimizer.step）');},
+  ()=>{text('phaseR','⑥ all-gather 重组 —— 错位！片段顺序被打乱');
+       gpusR.forEach(g=>g.classList.remove('hot'));
+       const perm=[0,5,2,6,4,1,3,7]; // 打乱顺序
+       shards.forEach((s,i)=>{const j=perm[i];const bx=stageW()*0.14+j*stageW()*0.09;placeShard(s,bx,barTop+2,1,i%3===0?180:0);});},
+  ()=>{text('phaseR','⑦ 权重被洗乱：norm.weight 从全 1 → 随机分布');
+       corruption=Math.min(1,corruption+0.34);
+       const n=Math.floor(corruption*50);
+       cells.forEach((c,i)=>{c.style.background=i<n?`hsl(${Math.random()*360},70%,55%)`:'var(--ok)';});
+       text('normState',corruption>=1?'已洗乱（jc85 实测）':'正在被洗乱…');
+       shards.forEach(s=>s.style.opacity=0);},
+  ()=>{text('phaseR','⑧ 卡死：loss 平台 / acc 不升 / premature EOS 冲高');
+       const i=round%lossSeqR.length;text('lossR',lossSeqR[i].toFixed(2));text('accR',accSeqR[i]);text('gnR',gnSeqR[i]);
+       barR.style.opacity=1;verdictR.classList.add('show');},
+  ()=>{verdictR.classList.remove('show');text('phaseR','（下一轮——洗乱持续累积）');}
+];
+
+// ---------- 主循环 ----------
+let pl=0, pr=0;
+setInterval(()=>{ setOn(stepsL,pl%6===5?-1:pl%6===5?undefined:pl); },10); // noop 防误用
+function tickL(){ setOn(stepsL,Math.min(pl,4)); phasesL[pl](); pl=(pl+1)%phasesL.length; if(pl===0)round++; }
+function tickR(){ setOn(stepsR,Math.min(pr,5)); phasesR[pr](); pr=(pr+1)%phasesR.length; }
+setInterval(tickL,1700);
+setInterval(tickR,1700);
+tickL(); tickR();
+</script>
+</body>
+</html>

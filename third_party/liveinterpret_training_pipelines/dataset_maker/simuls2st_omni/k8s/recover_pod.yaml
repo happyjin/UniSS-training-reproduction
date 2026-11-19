@@ -1,0 +1,23 @@
+# 从 S3 版本历史恢复被覆盖的 TTS_omni shard（纯 CPU/网络，不申请 GPU）
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tts-omni-recover
+  namespace: ktrain-users
+  labels: {app: tts-omni-recover, owner: stevehguo}
+spec:
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-04ed14465ab855810}
+  containers:
+    - name: r
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["bash", "-c", "python3 -m pip install -q boto3 2>&1 | tail -1; python3 /opt/rec/recover_versions.py"]
+      env:
+        - {name: AWS_DEFAULT_REGION, value: ap-southeast-3}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      envFrom: [{secretRef: {name: aws-jkt-creds}}]
+      resources:
+        requests: {cpu: "8", memory: 32Gi}
+        limits: {cpu: "32", memory: 64Gi}
+      volumeMounts: [{name: rec, mountPath: /opt/rec, readOnly: true}]
+  volumes: [{name: rec, configMap: {name: tts-omni-recover}}]

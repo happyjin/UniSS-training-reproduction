@@ -1,0 +1,68 @@
+# =============================================================================
+# streaming_si 镜像：在现有 ktrain 训练镜像（p5-cuda12.8-torch2.8-te-v9）之上叠加一层
+# -----------------------------------------------------------------------------
+# 基础镜像已包含 streaming_si S1-S4 训练所需的全部依赖（torch 2.8 / transformers 4.57.3 /
+# peft 0.15.2 / ms-swift 4.4.0 / deepspeed / soundfile / EFA / AWS CLI），本层只补三类可选能力：
+#
+#   1. Qwen3.5 线性注意力加速核：flash-linear-attention + causal-conv1d
+#      （streaming_si_4b 训练必需；缺失时回退纯 torch 实现，正确但很慢）
+#   2. CosyVoice3 flow + HiFT 声码器：CosyVoice 官方仓库（固定 commit，含 Matcha-TTS 子模块）
+#      + 它在 flow/HiFT 链路上实际 import 的包（infer_s2st.py 合成波形用）
+#   3. 评测：sacrebleu
+#
+# 不重建基础层：torch / Transformer Engine / FlashAttention / EFA 与基础镜像逐字节相同，
+# 训练行为不变；新增包全部用 `-c` 约束核心库版本，pip 若要改动它们会直接失败而不是静默升级。
+#
+# 构建（context = ktrain/image/，只用到 requirements-streaming-si.txt；在 GPU 服务器或任意 x86_64 Docker 主机上）：
+#   bash ktrain/image/build_image_streaming_si.sh <tag>
+# =============================================================================
+ARG BASE_IMAGE=124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+FROM ${BASE_IMAGE}
+
+# CosyVoice 074ca6dc（2026-09 HEAD）/ Matcha-TTS dd9105b3：依赖清单按这两个 commit 逐文件核对
+ARG COSYVOICE_COMMIT=074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc
+ARG MATCHA_COMMIT=dd9105b34bf2be2230f4aa1e4769fb586a3c824e
+# causal-conv1d 在 PyPI 只有源码包；其 setup.py 会先按本机 torch 版本 / CUDA 主版本 / C++ ABI 去 GitHub Release
+# 取预编译 wheel。v1.5.2 有 cu12 + torch2.8 + cp312 的 wheel（两种 ABI 都有，已核实），失败时自动回退源码编译
+# （固定编 sm_62~sm_120 约 10 个架构，需 20~40 分钟，不读 TORCH_CUDA_ARCH_LIST）。
+ARG CAUSAL_CONV1D_VERSION=1.5.2
+ENV COSYVOICE_REPO=/opt/CosyVoice
+
+# ---- 0. 冻结核心库版本，作为本层所有 pip 安装的约束 ----
+RUN pip freeze | grep -iE '^(torch|torchaudio|torchvision|transformers|tokenizers|numpy|huggingface.hub|safetensors|packaging|peft|accelerate|datasets|deepspeed|ms.swift|einops|pyarrow|triton|flash.attn|transformer.engine[a-z_.-]*)==' \
+        > /opt/core-constraints.txt \
+    && echo "[core constraints]" && cat /opt/core-constraints.txt
+
+# ---- 1a. causal-conv1d（优先预编译 wheel；回退编译时需要 nvcc，基础镜像是 cudnn-devel，已有）----
+# 构建机不需要 GPU：wheel 按 torch/CUDA 版本选取，回退编译也不探测本机显卡
+RUN MAX_JOBS=8 pip install --no-build-isolation \
+        -c /opt/core-constraints.txt "causal-conv1d==${CAUSAL_CONV1D_VERSION}"
+
+# ---- 1b/2/3. 纯 Python 依赖（requirements-streaming-si.txt 为单一事实源）----
+COPY requirements-streaming-si.txt /tmp/requirements-streaming-si.txt
+RUN pip install -c /opt/core-constraints.txt -r /tmp/requirements-streaming-si.txt \
+    && rm -f /tmp/requirements-streaming-si.txt
+
+# ---- 2. CosyVoice 官方仓库（非 pip 包；infer_s2st.py 通过 COSYVOICE_REPO 挂到 sys.path）----
+RUN git clone --filter=blob:none https://github.com/FunAudioLLM/CosyVoice.git ${COSYVOICE_REPO} \
+    && cd ${COSYVOICE_REPO} && git checkout -q ${COSYVOICE_COMMIT} \
+    && git submodule update --init --recursive \
+    && git -C third_party/Matcha-TTS checkout -q ${MATCHA_COMMIT} \
+    && rm -rf .git third_party/Matcha-TTS/.git \
+    && echo "${COSYVOICE_COMMIT} matcha=${MATCHA_COMMIT}" > ${COSYVOICE_REPO}/COMMIT
+
+# ---- 校验 ----
+# (a) 核心库未被改动：与冻结时逐行一致
+# (b) 加速核可导入（transformers 的 is_*_available 需要 GPU，构建机无卡时只能校验导入本身）
+# (c) flow/HiFT 实例化链路的全部模块可导入（与 load_cosy_flow_hift 的导入面一致）
+RUN pip freeze | grep -iE '^(torch|torchaudio|torchvision|transformers|tokenizers|numpy|huggingface.hub|safetensors|packaging|peft|accelerate|datasets|deepspeed|ms.swift|einops|pyarrow|triton|flash.attn|transformer.engine[a-z_.-]*)==' \
+        | diff /opt/core-constraints.txt - \
+    && python -c "import fla, causal_conv1d; from fla.ops.gated_delta_rule import chunk_gated_delta_rule; from causal_conv1d import causal_conv1d_fn; print('fla', fla.__version__, '| causal_conv1d', causal_conv1d.__version__)" \
+    && PYTHONPATH=${COSYVOICE_REPO}:${COSYVOICE_REPO}/third_party/Matcha-TTS python -c "\
+import hyperpyyaml, onnxruntime, sacrebleu; \
+import cosyvoice.flow.flow, cosyvoice.flow.flow_matching, cosyvoice.flow.DiT.dit; \
+import cosyvoice.transformer.upsample_encoder, cosyvoice.hifigan.generator, cosyvoice.hifigan.f0_predictor; \
+print('cosyvoice flow/HiFT 导入 OK | onnxruntime', onnxruntime.__version__)" \
+    && python -c "import torch, transformers, peft, swift; print('torch', torch.__version__, '| transformers', transformers.__version__, '| peft', peft.__version__)"
+
+# No ENTRYPOINT / CMD — ktrain PyTorchJob 提供命令（与基础镜像一致）。

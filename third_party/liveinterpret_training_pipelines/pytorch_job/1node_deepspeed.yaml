@@ -1,0 +1,141 @@
+# =============================================================================
+# Kubeflow Training Operator PyTorchJob (kubeflow.org/v1) — pure kubectl.
+# Bridge-alignment DeepSpeed SFT (ZeRO-2) on H200 (ml.p5e.48xlarge, 8xGPU/node).
+# 训练规模：单节点（仅 Master，白名单 1 个 hostname，无 Worker）。
+#
+# 与 pytorchjob.yaml 的区别：
+#   * 后端：deepspeed ZeRO-2（非 megatron）
+#   * TRAIN_SCRIPT：train_speech_to_speech_translation.sh（非 _megatron.sh）
+#   * WANDB_PROJECT：qwen_omnispeak_s2s_translation_deepspeed
+#   * launcher ConfigMap name 带 __RUN_ID__（避免并发提交覆盖）
+#
+# 本文件是「任务配置的唯一真源」：镜像 / 命名空间 / 节点白名单 / 工件来源
+# 全部在此硬编码。提交与数据就绪门控由 skill（pytorchjob-ops）读取本文件后完成。
+# 容器路径 = /nvme/<s3-key>（NVMe hostPath 挂载在 /nvme，与 S3 key 1:1）。
+# WDS 音频经 /curated_audio -> /nvme/data 符号链接命中。
+# =============================================================================
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+spec:
+  pytorchReplicaSpecs:
+    # ----- Master (rank 0) -----
+    Master:
+      replicas: 1
+      restartPolicy: Never  # 崩溃即终止，禁止重启/重试
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: speech-h200-sa
+          nodeSelector:
+            node.kubernetes.io/instance-type: ml.p5e.48xlarge
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: [hyperpod-i-03e7d1f6d95864e1a]
+          volumes:
+            - name: s3all
+              persistentVolumeClaim:
+                claimName: speech-h200-s3-pvc
+                readOnly: true
+            - name: nvme
+              hostPath:
+                path: /opt/dlami/nvme
+                type: Directory
+            - name: launcher
+              configMap:
+                name: launch-train-script-__RUN_ID__
+                defaultMode: 0755
+            - name: workspace
+              emptyDir: {}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 64Gi
+          containers:
+            - name: pytorch
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              imagePullPolicy: IfNotPresent
+              command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+              env:
+                - name: TRAIN_SCRIPT
+                  value: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+                - name: TRAIN_BACKEND
+                  value: "deepspeed"
+                - name: CODE_PREFIX
+                  value: "deferzhou/liveinterpret_training_pipelines"
+                - name: NVME_MOUNT
+                  value: "/nvme"
+                - name: MODEL_PATH
+                  value: "s3://iegg-speech-model-models/origin_models/custom_models/qwen2_5_3b_omnispeak_a"
+                - name: MODEL_TYPE
+                  value: "qwen2_5_3b_omnispeak_a"
+                - name: QWEN3_TTS_TOKENIZER
+                  value: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+                - name: BRIDGE_ALIGNMENT_DATA
+                  value: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/manifests/manifest_version=common_voice_bidirectional_ms_swift_codec_20260727_v1/task=speech_to_speech_translation/split=train"
+                - name: ARTIFACT_AUDIO_SHARDS
+                  value: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=speech_chain_reference_zh_en_v2 s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=speech_chain_reference_v5 s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=clean_16k_mono_wav_ffmpeg_v1"
+                - name: OUTPUT_ROOT
+                  value: "/nvme/output"
+                - name: NCCL_IB_DISABLE
+                  value: "0"
+                - name: NCCL_SOCKET_IFNAME
+                  value: ^lo,docker0
+                - name: FI_PROVIDER
+                  value: efa
+                - name: NCCL_DEBUG
+                  value: INFO
+                - name: TORCH_NCCL_ASYNC_ERROR_HANDLING
+                  value: "1"
+                - name: TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC
+                  value: "300"
+                - name: FI_EFA_FORK_SAFE
+                  value: "1"
+                - name: FI_EFA_USE_DEVICE_RDMA
+                  value: "1"
+                - name: NCCL_DEBUG_SUBSYS
+                  value: INIT,NET,ENV
+                - name: PYTORCH_CUDA_ALLOC_CONF
+                  value: "expandable_segments:True"
+                - name: WANDB_API_KEY
+                  value: "local-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"
+                - name: WANDB_BASE_URL
+                  value: http://43.173.190.72:8080
+                - name: WANDB_PROJECT
+                  value: qwen_omnispeak_s2s_translation_deepspeed
+                - name: WANDB_MODE
+                  value: online
+              resources:
+                requests:
+                  cpu: "135"
+                  memory: 1350Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+                limits:
+                  cpu: "150"
+                  memory: 1500Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+              volumeMounts:
+                - name: s3all
+                  mountPath: /s3all
+                  readOnly: true
+                - name: nvme
+                  mountPath: /nvme
+                - name: launcher
+                  mountPath: /opt/launcher
+                - name: workspace
+                  mountPath: /local
+                - name: dshm
+                  mountPath: /dev/shm

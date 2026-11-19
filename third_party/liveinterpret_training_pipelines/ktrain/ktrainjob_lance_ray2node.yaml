@@ -1,0 +1,159 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# Lance 数据源 · 双节点 ray（2 node，16×H200）· deepspeed zero1 · liger ·
+# GBS=4096 · 内置 OMP_NUM_THREADS 修复
+#
+# 【重要：本 yaml 内置了一个关键性能修复，务必保留 OMP_NUM_THREADS 这行】
+# 历史问题：Lance + ray + 双节点这个组合曾稳态19.416s/it，反而比单机Lance
+# （18.517s/it）还慢，跟同架构WDS双节点明显快于WDS单机的方向相反。
+# 根因（源码验证）：ms-swift `swift/ray_utils/base.py` 的
+# `RayHelper._create_workers()` 给每个GPU训练actor声明
+# `num_cpus=0.01` → Ray 自身 `set_omp_num_threads_if_unset()`
+# （ray/_private/utils.py）在该env未被显式设置时，自动执行
+# `omp_num_threads = max(floor(0.01), 1) = 1`，把每个训练actor的
+# `OMP_NUM_THREADS` 压到1。Lance的`take_by_stable_rowid()`底层走
+# PyArrow/Rust实现，内部多线程列式解码/IO并发被这个1直接压掉；WDS音频
+# 读取是简单`os.pread`，不依赖OMP线程池，不受影响——这就是为什么只有
+# Lance受累，WDS不受影响。
+#
+# 修复：显式设置 OMP_NUM_THREADS=8，绕开该自动压制。实测稳态s/it从
+# 19.416降到9.44（↓52%），效果验证在4/8/16三个取值下基本等价（从1到
+# 任意>1的值是决定性跨越，不是"线程数越多越快"的渐进关系）。
+#
+# 副作用坑（务必保留 DATASET_NUM_PROC/DATALOADER_NUM_WORKERS 这两行）：
+# GNU `nproc`（不带--all）会读取 OMP_NUM_THREADS 直接返回其值
+# （`man nproc`），而 common_args.sh 的 `_get_container_cpus()` 用裸
+# `nproc` 探测host_cpus再给cgroup配额封顶——只设OMP_NUM_THREADS而不锁定
+# 这两个值，会导致 DATASET_NUM_PROC 被意外压到跟OMP_NUM_THREADS一样小，
+# 引入额外的CPU资源不足问题。
+#
+# 完整排查过程见 docs/LANCE_WDS_GBS4096_ZERO1_4WAY_200STEP_TRAINING_
+# METRICS.md 第6节；消融数据（noomp复现/omp4/omp8/omp16对比）见
+# docs/GBS512_GBS4096_BASELINE_ABCD_200STEP_TRAINING_METRICS.md 第2.4节。
+#
+# 提交：bash .codebuddy/skills/ktrain-job-ops/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_lance_ray2node.yaml \
+#         --repo <repo> --launcher ktrain/launch_train_lance.sh \
+#         --aws-creds-secret aws-local-creds \
+#         --task-deadline 'lance-train-source-uri=86400'
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, 
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-02848679822afbe3b", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # ray 框架：渲染为 KubeRay RayJob（head 0 GPU + 2 GPU worker）。
+  framework: ray
+  # 统一镜像：ray2 + nsys + liger（在 ray2 基座上叠 liger-kernel overlay）。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger
+  # RayJob entrypoint：等 16 GPU 凑齐 → 每个 GPU worker 跑 launcher NODE_PREP_ONLY →
+  # 派生 RAY_DEVICE_GROUPS → driver 钉第一个 GPU worker。LAUNCHER_PATH 指向 Lance 入口。
+  command: ["python", "/s3all/deferzhou/liveinterpret_training_pipelines/ktrain/ray_entrypoint.py"]
+  numNodes: 3
+  head:
+    cpu: "16"
+    memory: 64Gi
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    TRAIN_BACKEND: "deepspeed"
+    USE_RAY: "true"
+    RAY_CLUSTER_MODE: "kuberay"
+    LAUNCHER_PATH: "/opt/launcher/launch_train_lance.sh"
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    OUTPUT_DIR: "/nvme/output/lance_ray2node_zero1_gbs4096_liger"
+
+    # -------------------------------------------------------------------------
+    # 关键修复：绕开 ray 对训练actor的 OMP_NUM_THREADS 自动压制（见文件头说明）
+    # -------------------------------------------------------------------------
+    OMP_NUM_THREADS: "8"
+    DATASET_NUM_PROC: "135"
+    DATALOADER_NUM_WORKERS: "8"
+
+    # -------------------------------------------------------------------------
+    # 数据源：Lance（v506 全表，precomputed mel + speaker embedding）
+    # -------------------------------------------------------------------------
+    LANCE_TRAIN_SOURCE_URI: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/unist_qwen3_s2s_v2/processed.lance"
+    LANCE_TRAIN_SOURCE_VERSION: "506"
+    LANCE_STORAGE_REGION: "ap-southeast-3"
+    LANCE_TRAIN_SHAPE: "B"
+    LANCE_TRAIN_TASK_FILTER: "split='train'"
+    LANCE_TRAIN_TASK_NAME: "unist_train_full_v506"
+    LANCE_USE_PRECOMPUTED_MEL: "1"
+    LANCE_USE_SPEAKER_EMBEDDING: "1"
+    LANCE_PREFETCH_AUDIO: "0"
+    LANCE_PREFETCH_FEATURES: "0"
+    LANCE_PREFETCH_SPEAKER: "1"
+    LANCE_DATALOADER_BATCH_RESOLVE: "1"
+    LANCE_MAIN_PROCESS_ISOLATION: "1"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：GBS=4096（双节点16卡 → per_device 32 × 16 × ga8）
+    # -------------------------------------------------------------------------
+    SCENE: "batch4_8_adapter_cmp"
+    PER_DEVICE_TRAIN_BATCH_SIZE: "32"
+    PER_DEVICE_EVAL_BATCH_SIZE: "32"
+    GRADIENT_ACCUMULATION_STEPS: "8"
+    DEEPSPEED: "zero1"
+    USE_LIGER_KERNEL: "true"
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+    # ray + liger 兼容开关：swift/trainers/arguments.py 的 is_mp() 在 ray
+    # driver 场景会误判为 device_map 多卡模式，跟 liger 冲突报错，此开关绕过。
+    SWIFT_SINGLE_DEVICE_MODE: "1"
+    GROUP_BY_LENGTH: "false"
+
+    FILL_LOG_ENABLED: "1"
+    FILL_LOG_STEP_INTERVAL: "1"
+    MFU_LOG_ENABLED: "1"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_MODE: "disabled"
+    WANDB_PROJECT: "qwen_omnispeak_junyaoyang_profile"

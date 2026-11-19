@@ -1,0 +1,44 @@
+# S1 最新 checkpoint（s1_gl01_ck40000）四语评测：zh / en / ja / ko
+# 测试集 80 条：每语 20 条 = 普通 8 + 长文本 4 + 数字日期 8（针对长文本日韩、特殊数字日期崩坏的回归项）
+# 产物落在 FSx：/fsx/stevehguo/s1_eval/out/{results.jsonl, *.wav, scored.jsonl, summary.json}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: si-s1-eval
+  namespace: speech-h200
+spec:
+  restartPolicy: Never
+  containers:
+    - name: eval
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          set -u
+          E=/fsx/stevehguo/s1_eval
+          export AWS_DEFAULT_REGION=ap-southeast-3
+          export PYTHONPATH=$E/code/custom
+          export HF_HOME=/fsx/stevehguo/eval/hf
+          export COSYVOICE_REPO=/opt/CosyVoice
+          export CUDA_VISIBLE_DEVICES=0
+          /opt/venv/bin/python -c "import jiwer" 2>/dev/null || /opt/venv/bin/pip install -q jiwer
+          mkdir -p /nvme/s1_ck
+          aws s3 sync s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/s1_gl01_ck40000 /nvme/s1_ck --only-show-errors
+          echo "===== 开始合成 ====="
+          /opt/venv/bin/python $E/code/custom/streaming_si/inference/infer_tts.py \
+            --model_dir /nvme/s1_ck --input_jsonl $E/texts.jsonl --out_dir $E/out --device cuda:0
+          echo "===== 开始打分 ====="
+          /opt/venv/bin/python $E/score_s1_eval.py \
+            --results $E/out/results.jsonl --texts $E/texts.jsonl --out_dir $E/out --device cuda:0
+          echo S1_EVAL_DONE
+      resources:
+        requests: {cpu: "8", memory: 32Gi, nvidia.com/gpu: "1"}
+        limits:   {cpu: "8", memory: 32Gi, nvidia.com/gpu: "1"}
+      envFrom:
+        - secretRef: {name: aws-local-creds}
+      volumeMounts:
+        - {name: fsx, mountPath: /fsx}
+        - {name: nvme, mountPath: /nvme}
+  volumes:
+    - {name: fsx, persistentVolumeClaim: {claimName: speech-h200-fsx-pvc}}
+    - {name: nvme, hostPath: {path: /opt/dlami/nvme, type: Directory}}

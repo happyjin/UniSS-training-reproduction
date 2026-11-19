@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LiveInterpret · Streaming S2S</title>
+  <style>
+    :root{--bg:#f5f2ea;--panel:#fffdf7;--ink:#17211d;--muted:#68736d;--line:#d8d4c9;--accent:#087f5b;--soft:#dff3eb;--danger:#b42318;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Noto Sans SC",sans-serif}
+    main{width:min(1060px,calc(100% - 32px));margin:28px auto 48px}.top{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
+    h1{font-size:clamp(24px,4vw,38px);line-height:1.05;margin:0}.sub{color:var(--muted);margin-top:8px}.ready{font:12px var(--mono);padding:7px 10px;border:1px solid var(--line);background:var(--panel)}
+    .ready.ok{color:var(--accent);border-color:#8bc8b2}.grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px}.card{background:var(--panel);border:1px solid var(--line);padding:20px;box-shadow:0 7px 24px rgba(33,43,38,.05)}
+    h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 16px;color:var(--muted)}label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+    select,input[type=file],button{font:inherit}select,input[type=file]{width:100%;border:1px solid var(--line);background:white;padding:10px}
+    .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}button{border:1px solid var(--line);background:white;color:var(--ink);padding:10px 14px;cursor:pointer}button.primary{background:var(--accent);color:white;border-color:var(--accent)}button.recording{color:white;background:var(--danger);border-color:var(--danger)}button:disabled{opacity:.45;cursor:not-allowed}
+    audio{width:100%;height:38px;margin-top:12px}.status{min-height:48px;display:flex;align-items:center;padding:10px 12px;background:#f8f7f2;border:1px solid var(--line);font:13px var(--mono);color:var(--muted)}
+    .translation{min-height:112px;margin-top:12px;padding:14px;background:white;border:1px solid var(--line);font-size:20px;white-space:pre-wrap}.placeholder{color:#a5aaa7}
+    .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}.metric{padding:11px;border:1px solid var(--line);background:#faf9f5}.metric .name{font-size:11px;line-height:1.25;color:var(--muted);min-height:28px}.metric .value{font:700 19px var(--mono);margin-top:6px}.metric .unit{font-size:11px;color:var(--muted);font-weight:400}.note{margin-top:14px;color:var(--muted);font-size:12px}.progress{height:3px;background:#e5e2d9;margin-top:12px;overflow:hidden}.progress i{display:block;height:100%;width:35%;background:var(--accent);transform:translateX(-110%)}.busy .progress i{animation:load 1.1s infinite ease-in-out}@keyframes load{to{transform:translateX(310%)}}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}.top{align-items:start;flex-direction:column}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>Streaming S2S</h1><div class="sub">整段语音输入 · Thinker→Talker 在线生成 · PCM 到达即播放</div></div>
+    <div id="ready" class="ready">checking runtime…</div>
+  </div>
+  <div class="grid">
+    <section class="card">
+      <h2>Input</h2>
+      <label for="target">目标语言</label>
+      <select id="target"><option value="en">English</option><option value="zh">中文</option></select>
+      <label for="file">上传音频</label>
+      <input id="file" type="file" accept="audio/*">
+      <div class="actions">
+        <button id="record">开始录音</button>
+        <button id="run" class="primary" disabled>开始翻译</button>
+      </div>
+      <audio id="source" controls hidden></audio>
+      <div class="note">录音模式不使用 VAD；点击“停止录音”后得到完整输入，再点击“开始翻译”。</div>
+    </section>
+    <section id="resultCard" class="card">
+      <h2>Streaming output</h2>
+      <div id="status" class="status">请选择或录制一段音频</div>
+      <div class="progress"><i></i></div>
+      <div id="translation" class="translation placeholder">译文将在 Thinker 生成时逐步显示</div>
+      <audio id="output" controls hidden></audio>
+      <div class="metrics">
+        <div class="metric"><div class="name">服务端首文本</div><div id="mServerText" class="value">—</div></div>
+        <div class="metric"><div class="name">服务端首 PCM</div><div id="mServerPcm" class="value">—</div></div>
+        <div class="metric"><div class="name">服务端完整 WAV</div><div id="mComplete" class="value">—</div></div>
+        <div class="metric"><div class="name">点击→首文本</div><div id="mClientText" class="value">—</div></div>
+        <div class="metric"><div class="name">点击→开始播放</div><div id="mClientPlay" class="value">—</div></div>
+        <div class="metric"><div class="name">RTF</div><div id="mRtf" class="value">—</div></div>
+      </div>
+      <div id="detail" class="note">Input ready 从服务端完成音频预处理后开始计时；点击指标包含上传和网络。</div>
+    </section>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const file=$('file'),record=$('record'),run=$('run'),source=$('source'),output=$('output'),target=$('target');
+const card=$('resultCard'),statusEl=$('status'),translation=$('translation'),ready=$('ready'),detail=$('detail');
+let inputBlob=null,inputUrl=null,recording=null,submitAt=0,audioCtx=null,nextPlayAt=0,firstPlay=false,firstTextEvent=false,firstPcmEvent=false,playing=[],pcmChunks=[],pcmRate=24000,outputUrl=null;
+const metricIds={serverText:'mServerText',serverPcm:'mServerPcm',complete:'mComplete',clientText:'mClientText',clientPlay:'mClientPlay',rtf:'mRtf'};
+const ms=v=>v==null?'—':`${Number(v).toFixed(1)}<span class="unit"> ms</span>`;
+function setMetric(name,value,isMs=true){$(metricIds[name]).innerHTML=isMs?ms(value):(value==null?'—':Number(value).toFixed(3))}
+function resetMetrics(){Object.values(metricIds).forEach(id=>$(id).textContent='—')}
+function setStatus(text,busy=false){statusEl.textContent=text;card.classList.toggle('busy',busy)}
+function setInput(blob,name){inputBlob=blob;run.disabled=false;if(inputUrl)URL.revokeObjectURL(inputUrl);inputUrl=URL.createObjectURL(blob);source.src=inputUrl;source.hidden=false;setStatus(`${name} · ready`)}
+file.onchange=()=>{if(file.files[0])setInput(file.files[0],file.files[0].name)};
+
+function merge(chunks){let n=0;for(const c of chunks)n+=c.length;const out=new Float32Array(n);let o=0;for(const c of chunks){out.set(c,o);o+=c.length}return out}
+function resample(input,inRate,outRate){if(inRate===outRate)return input;const n=Math.max(1,Math.round(input.length*outRate/inRate)),out=new Float32Array(n),step=inRate/outRate;for(let i=0;i<n;i++){const p=i*step,j=Math.floor(p),f=p-j,a=input[j]||0,b=input[Math.min(j+1,input.length-1)]||a;out[i]=a+(b-a)*f}return out}
+function wavBlob(samples,sampleRate){const b=new ArrayBuffer(44+samples.length*2),v=new DataView(b),str=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};str(0,'RIFF');v.setUint32(4,36+samples.length*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sampleRate,true);v.setUint32(28,sampleRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,samples.length*2,true);for(let i=0;i<samples.length;i++){const x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}return new Blob([b],{type:'audio/wav'})}
+async function startRecording(){const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),ctx=new AudioContext(),src=ctx.createMediaStreamSource(stream),proc=ctx.createScriptProcessor(4096,1,1),chunks=[];proc.onaudioprocess=e=>chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));src.connect(proc);proc.connect(ctx.destination);recording={stream,ctx,src,proc,chunks,rate:ctx.sampleRate};record.textContent='停止录音';record.classList.add('recording');run.disabled=true;file.disabled=true;setStatus('recording…')}
+async function stopRecording(){const r=recording;recording=null;r.proc.disconnect();r.src.disconnect();r.stream.getTracks().forEach(t=>t.stop());await r.ctx.close();const samples=resample(merge(r.chunks),r.rate,16000);setInput(wavBlob(samples,16000),`recording ${(samples.length/16000).toFixed(1)}s`);record.textContent='开始录音';record.classList.remove('recording');file.disabled=false}
+record.onclick=async()=>{try{recording?await stopRecording():await startRecording()}catch(e){setStatus(`mic error: ${e.message}`);recording=null;record.classList.remove('recording');record.textContent='开始录音';file.disabled=false}};
+
+function b64Pcm(text){const raw=atob(text),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Int16Array(bytes.buffer)}
+async function ensureAudio(){if(!audioCtx)audioCtx=new AudioContext();await audioCtx.resume();nextPlayAt=Math.max(nextPlayAt,audioCtx.currentTime+.04)}
+function clearStreamingPlayback(){for(const src of playing)try{src.stop()}catch{}playing=[];if(audioCtx)nextPlayAt=audioCtx.currentTime+.04}
+function playPcm(event){const i16=b64Pcm(event.data),f32=new Float32Array(i16.length);for(let i=0;i<i16.length;i++)f32[i]=i16[i]/32768;pcmChunks.push(i16);pcmRate=event.sample_rate;const buf=audioCtx.createBuffer(1,f32.length,event.sample_rate);buf.getChannelData(0).set(f32);const src=audioCtx.createBufferSource();src.buffer=buf;src.connect(audioCtx.destination);const start=Math.max(nextPlayAt,audioCtx.currentTime+.015);src.onended=()=>{playing=playing.filter(item=>item!==src)};playing.push(src);src.start(start);nextPlayAt=start+buf.duration;if(!firstPlay){firstPlay=true;setMetric('clientPlay',performance.now()-submitAt+(start-audioCtx.currentTime)*1000)}}
+function outputBlob(){let n=0;for(const c of pcmChunks)n+=c.length;const f=new Float32Array(n);let o=0;for(const c of pcmChunks){for(let i=0;i<c.length;i++)f[o+i]=c[i]/32768;o+=c.length}return wavBlob(f,pcmRate)}
+function handleEvent(e){if(e.type==='started'){setStatus('Thinker / Talker generating…',true);detail.textContent=`输入音频 ${(e.input_audio_duration_ms/1000).toFixed(2)}s · 服务端计时已开始`}
+  else if(e.type==='translation'){if(!firstTextEvent){firstTextEvent=true;translation.classList.remove('placeholder');setMetric('clientText',performance.now()-submitAt);setMetric('serverText',e.server_elapsed_ms)}translation.textContent=e.text}
+  else if(e.type==='pcm'){if(!firstPcmEvent){firstPcmEvent=true;setMetric('serverPcm',e.server_elapsed_ms)}playPcm(e);setStatus('streaming PCM playback…',true)}
+  else if(e.type==='metrics'){const m=e.metrics;setMetric('serverText',m.input_ready_to_first_text_ms);setMetric('serverPcm',m.input_ready_to_first_pcm_ms);setMetric('complete',m.input_ready_to_complete_wav_ms);setMetric('rtf',m.rtf,false);detail.textContent=`输入 ${(m.input_audio_duration_ms/1000).toFixed(2)}s · 输出 ${m.output_audio_duration_ms==null?'—':(m.output_audio_duration_ms/1000).toFixed(2)+'s'} · ${m.generated_text_tokens} text tokens · ${m.generated_codec_frames} codec frames · compile ${Number(m.compile_warmup_ms).toFixed(1)}ms`}
+  else if(e.type==='done'){translation.classList.remove('placeholder');translation.textContent=e.translation||translation.textContent||'(empty translation)';if(pcmChunks.length){if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(outputBlob());output.src=outputUrl;output.hidden=false}setStatus('complete')}
+  else if(e.type==='error')throw new Error(e.error||'inference failed')}
+async function consumeSse(response){const reader=response.body.getReader(),decoder=new TextDecoder();let buf='';while(true){const {value,done}=await reader.read();buf+=decoder.decode(value||new Uint8Array(),{stream:!done});let cut;while((cut=buf.indexOf('\n\n'))>=0){const block=buf.slice(0,cut);buf=buf.slice(cut+2);for(const line of block.split('\n'))if(line.startsWith('data: '))handleEvent(JSON.parse(line.slice(6)))}if(done)break}}
+run.onclick=async()=>{if(!inputBlob||recording)return;run.disabled=true;record.disabled=true;file.disabled=true;resetMetrics();translation.textContent='等待 Thinker 首 token…';translation.classList.add('placeholder');output.hidden=true;pcmChunks=[];firstPlay=false;firstTextEvent=false;firstPcmEvent=false;submitAt=performance.now();setStatus('uploading / preparing input…',true);try{await ensureAudio();clearStreamingPlayback();const form=new FormData();form.append('audio',inputBlob,'input.wav');form.append('target_lang',target.value);const response=await fetch('/api/infer',{method:'POST',body:form});if(!response.ok){const e=await response.json();throw new Error(e.error||`HTTP ${response.status}`)}await consumeSse(response)}catch(e){setStatus(`error: ${e.message}`);card.classList.remove('busy')}finally{run.disabled=!inputBlob;record.disabled=false;file.disabled=false}};
+fetch('/health').then(r=>r.json()).then(x=>{ready.textContent=x.ready?'runtime ready':'runtime loading';ready.classList.toggle('ok',x.ready)}).catch(()=>{ready.textContent='runtime offline'});
+</script>
+</body>
+</html>

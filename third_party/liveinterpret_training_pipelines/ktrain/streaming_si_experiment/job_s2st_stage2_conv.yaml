@@ -1,0 +1,84 @@
+# curated S2ST Lance(v239) -> streaming_si stage2（P2）训练数据，按语言对分目录产出：
+#   s3://.../data_fortrain_1031version/Speech2Speech/<pair>/{p2_fsq_v3,p2_source_wav}/
+#
+# 每个 Pod 1 卡，卡内起 NPROC 个进程（音频解码是 CPU 串行段，单进程时 GPU 空转）。
+# 全局任务表 /fsx/stevehguo/lance_scan/tasks.txt 每行 "<pair>:<shard>"，
+# 第 w 个 worker 处理下标 w, w+NW, w+2*NW ...（NW = parallelism * NPROC）。
+# 已存在的目标 parquet 会跳过，所以中断后重跑、或加卡后用更大 parallelism 重提都能续跑。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s2st-stage2-conv
+  namespace: speech-h200
+spec:
+  parallelism: 5
+  completions: 5
+  completionMode: Indexed
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: OnFailure
+      # 5 个 Pod，每 Pod 独占 8 卡（一节点一个 Pod）；卡内 NPROC 个进程，按 j % 8 绑 GPU
+      containers:
+        - name: conv
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -u
+              /opt/venv/bin/python -c "import lance" 2>/dev/null || /opt/venv/bin/pip install -q pylance
+              /opt/venv/bin/python - <<'CHK' || /opt/venv/bin/pip install -q "onnxruntime-gpu==1.22.0"
+              import onnxruntime as ort, sys
+              sys.exit(0 if "CUDAExecutionProvider" in ort.get_available_providers() else 1)
+              CHK
+              S=/fsx/stevehguo/lance_scan/s2st_lance_to_stage2.py
+              T=/fsx/stevehguo/lance_scan/tasks.txt
+              OUT=s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech
+              NT=$(wc -l < "$T")
+              NPROC=${NPROC:-24}                 # 每 Pod 进程数 = 3/卡 × 8 卡
+              PAR=${PAR:-5}                      # 必须等于 spec.parallelism
+              GPUS=${GPUS:-8}                    # 每 Pod 的 GPU 数
+              NW=$(( NPROC * PAR ))
+              W0=$(( JOB_COMPLETION_INDEX * NPROC ))
+              for j in $(seq 0 $((NPROC-1))); do
+                W=$(( W0 + j ))
+                (
+                  export CUDA_VISIBLE_DEVICES=$(( j % GPUS ))
+                  for k in $(seq "$W" "$NW" $((NT-1))); do
+                    LINE=$(sed -n "$((k+1))p" "$T")
+                    PAIR=${LINE%%:*}
+                    SH=${LINE##*:}
+                    PQNAME=$(printf "fsq-train-%s-%05d.parquet" "$PAIR" "$SH")
+                    DST="$OUT/$PAIR/p2_fsq_v3/$PQNAME"
+                    if aws s3 ls "$DST" >/dev/null 2>&1; then
+                      echo "[skip] $LINE 已存在"
+                      continue
+                    fi
+                    mkdir -p "/nvme/s2st/w$W"
+                    echo "[run] $LINE"
+                    AWS_DEFAULT_REGION=ap-southeast-3 /opt/venv/bin/python "$S" convert \
+                      --manifest /fsx/stevehguo/s2st_manifest --pair "$PAIR" --shard "$SH" --nshards 1 \
+                      --chunk 256 --bs 16 --tmp-dir "/nvme/s2st/w$W" --out-prefix "$OUT"
+                  done
+                ) &
+              done
+              wait
+              echo "POD_${JOB_COMPLETION_INDEX}_DONE"
+          resources:
+            requests: {cpu: "64", memory: 256Gi, nvidia.com/gpu: "8"}
+            limits:   {cpu: "64", memory: 256Gi, nvidia.com/gpu: "8"}
+          env:
+            - {name: PAR, value: "5"}            # 与 spec.parallelism 保持一致
+            - {name: NPROC, value: "24"}         # 3 进程/卡 × 8 卡
+            - {name: GPUS, value: "8"}
+          envFrom:
+            - secretRef: {name: aws-local-creds}
+          volumeMounts:
+            - {name: fsx, mountPath: /fsx}
+            - {name: nvme, mountPath: /nvme}
+            - {name: s1, mountPath: /opt/tts_stage1_fsq}
+      volumes:
+        - {name: fsx, persistentVolumeClaim: {claimName: speech-h200-fsx-pvc}}
+        - {name: nvme, hostPath: {path: /opt/dlami/nvme, type: Directory}}
+        - {name: s1, configMap: {name: tts-stage1-fsq}}

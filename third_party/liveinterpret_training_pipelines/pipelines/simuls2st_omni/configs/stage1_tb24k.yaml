@@ -1,0 +1,88 @@
+# Stage 1: Talker warmup — 大 batch 变体（本仓库新增，不是源项目文件）
+#
+# 与 stage1.yaml（与源项目逐字相同，用于对拍）只差三个值：
+#   sampler.token_budget              16384 -> 24576
+#   sampler.max_batch_size               64 -> 96
+#   training.max_talker_tokens_per_batch 32768 -> 40960
+# 两组的切换点都在码长 253（24576/96 = 16384/64 = 256），绝大多数 batch 从 64 条变成 96 条。
+# 阈值必须一起提：它按 padding 后的完整 talker 长度（文本前缀 + 3 + 码长）计数，
+# 96 条的 batch 只要 padding 超过 341 就会超过 32768 被整批丢弃（skipped_long_seq）。
+# 但不能放太宽：65536 时「短语音 + 长文本」的极端 batch 全部参与计算，单卡峰值在第 5000 步
+# 冲破 139.8 GiB OOM（2026-10-09，rank 8）。40960（96 条时 padding ≤ 426）按显存曲线估算峰值约 120 GiB；
+# 超出的少量 batch 被跳过，看日志 skipped_long_seq 应接近 0。这一项不进采样计划指纹，改它可从旧 checkpoint 续训。
+# 学习率与调度不变（4e-4 -> 4e-5），全局 batch 相对源项目 8 卡 × 64 放大约 2.25 倍。
+#
+# 以下为源项目原注释：
+#
+# Stage 1: Talker warmup
+#
+# Thinker frozen, talker trained in full on unpaired TTS. The talker's codec
+# embedding and output head are re-initialised for the 16384-entry DualCodec
+# vocabulary plus 4 control tokens before training starts.
+#
+# Paper budget: 2 epochs, 416 A800 GPU-hours, lr 4e-4 -> 4e-5.
+
+stage: stage1
+
+model:
+  # Base weights. The released `offline/` merge is Qwen2.5-Omni-3B with the
+  # talker present, which is what this stack expects; the codec head is
+  # re-initialised regardless of what it contained.
+  path: models/SimulS2ST-Omni/offline
+  dtype: bf16
+
+data:
+  kind: tts
+  root: data/emilia/dualcodec
+  langs: [EN, ZH]
+  # Measured over the full 38.1M-sample corpus:
+  # threshold 3.125 keeps EN 86.9% / ZH 85.2% of hours, which reproduces the
+  # paper's emilia_en 40.7k h (= 46,828 x 0.869) and emilia_zh 42.5k h
+  # (= 49,919 x 0.852) to within rounding. Emilia itself pre-filters at 3.0,
+  # so anything below 3.0 is a no-op.
+  min_dnsmos: 3.125
+  min_codes: 8
+  # 30s at 12.5 codes/s. Longer clips are dropped rather than truncated, since a
+  # truncated code sequence no longer matches its transcript.
+  max_codes: 375
+  eval_samples: 512
+
+sampler:
+  # Budget is in talker tokens: batch size becomes budget // longest_in_batch,
+  # keeping peak activation flat. Stay under the trainer's skip thresholds below.
+  # 2x of the first run: peak activation was ~44GB at <=8k talker tokens
+  # against 143GB H200s, so 16k tokens lands near 100GB total.
+  token_budget: 24576
+  max_batch_size: 96
+
+training:
+  output_dir: outputs/checkpoint/stage1_talker_warmup
+  num_train_epochs: 2
+  learning_rate: 4.0e-4
+  # Paper anneals 4e-4 -> 4e-5, a 10x decay, which cosine to ~0 does not match;
+  # min_lr_ratio pins the floor at one tenth of peak.
+  lr_scheduler_type: cosine_with_min_lr
+  min_lr_ratio: 0.1
+  warmup_ratio: 0.02
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  gradient_accumulation_steps: 1
+  bf16: true
+  gradient_checkpointing: false
+  logging_steps: 20
+  save_steps: 2000
+  # Each checkpoint stores the full talker (~800MB); keep few.
+  save_total_limit: 3
+  eval_steps: 2000
+  # The collator tokenizes thinker text per sample on CPU; wider batches
+  # need more prefetch workers to keep the GPU fed.
+  dataloader_num_workers: 8
+  seed: 42
+  # Guards mirroring the trainer's skip logic. A batch exceeding these is
+  # discarded outright (counted as skipped_long_seq), not truncated.
+  max_seq_len: 2048
+  max_talker_seq_len: 2048
+  # Must stay above sampler.token_budget (16384) plus the +3 per-row
+  # prefix overhead; 32768 gives 2x headroom so budget-packed batches are
+  # never discarded as skipped_long_seq.
+  max_talker_tokens_per_batch: 40960

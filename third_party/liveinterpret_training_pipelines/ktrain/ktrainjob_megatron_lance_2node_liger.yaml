@@ -1,0 +1,152 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# Megatron 后端优化探索的起点基线：双节点 Megatron + Lance 数据源 + liger 融合
+# （GBS=4096，DP=16）。用于验证 training-optimization / training-metrics-report
+# 两个 skill 在 Megatron 链路上是否好用（deepspeed 链路已经跑通过一整套流程）。
+#
+# 组合自两份历史模板（旧分支 junyaoyang_gbs4096_profiling）：
+#   - 拓扑/框架/数据源：ktrainjob_sts_cmp200_megatron_2node.yaml
+#     （framework: pytorch + numNodes=2，torchrun 2×8，Lance v506 全表）
+#   - liger 开关：ktrainjob_junyaoyang_mg_gbs4096_liger_1node.yaml
+#
+# ⚠️ Megatron 后端的 liger 开关跟 deepspeed 不一样，容易踩坑：
+#   common_args.sh 的 megatron 分支**不读** USE_LIGER_KERNEL（该 env 只在
+#   deepspeed 分支里 export，never 传给 megatron sft），设了完全没用。
+#   真正在两个后端都生效的是 QWEN_OMNISPEAK_LIGER_OPS=1（modeling_qwen_
+#   omnispeak.py 直接读 os.environ，与后端无关），本文件只用这一个开关。
+#
+# GBS=4096：GLOBAL_BATCH_SIZE=4096 / MICRO_BATCH_SIZE=16，DP=16（双节点16卡）
+# → num_microbatches = 4096/(16×16) = 16（>=8，满足历史实验的口径要求）。
+# 整除校验：4096 % (16×16=256) = 0 ✓。
+#
+# 提交：bash <ktrain-job-ops skill>/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_megatron_lance_2node_liger.yaml \
+#         --repo <repo> --launcher ktrain/launch_train_lance.sh \
+#         --aws-creds-secret aws-local-creds \
+#         --job-name-prefix mg-lance-2n-liger \
+#         --task-deadline 'lance-train-source-uri=86400'
+# 注意：numNodes 必须等于 render-extra.affinity 白名单节点数（derive_sync_jobs.py 硬校验）。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-08e3257c716579618", "hyperpod-i-02848679822afbe3b"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # 统一镜像（含 nsys CLI + liger-kernel 0.5.10）——跟 deepspeed 链路那几次
+  # 实验用同一个 overlay 镜像，QWEN_OMNISPEAK_LIGER_OPS 是唯一区分开关。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-nsys-liger
+  command: ["bash", "-c", "/opt/launcher/launch_train_lance.sh"]
+  # EFA 的唯一入口是 render-extra 的 efa_devices_per_worker（见上方 annotation）。
+  numNodes: 2
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    TRAIN_BACKEND: "megatron"
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    # 全量 train split：Lance v506（mel+speaker+codes 均已预计算）。
+    LANCE_TRAIN_SOURCE_URI: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/unist_qwen3_s2s_v2/processed.lance"
+    LANCE_TRAIN_SOURCE_VERSION: "506"
+    LANCE_STORAGE_REGION: "ap-southeast-3"
+    LANCE_TRAIN_SHAPE: "B"
+    LANCE_USE_PRECOMPUTED_MEL: "1"
+    LANCE_USE_SPEAKER_EMBEDDING: "1"
+    LANCE_PREFETCH_AUDIO: "0"
+    LANCE_PREFETCH_FEATURES: "0"
+    LANCE_PREFETCH_SPEAKER: "1"
+    LANCE_TRAIN_TASK_FILTER: "split='train'"
+    # 2026-09-16 修正：之前误从旧 Megatron 模板照抄成 "unist_train"，导致
+    # manifest 文件名（lance_unist_train_v506.jsonl）跟已有的全量文件
+    # （lance_unist_train_full_v506_v506.jsonl）对不上，manifest 生成脚本
+    # 判定"无可复用"，从头重新生成了一份几乎一样大小（~11.8GB）的新文件——
+    # 完全没有必要，浪费时间还额外占用 NVMe 空间。跟 deepspeed 链路那几次
+    # 实验必须用同一个值，才能确保训练读的是同一份数据集，对照才有意义。
+    LANCE_TRAIN_TASK_NAME: "unist_train_full_v506"
+    SCENE: "batch4_8_adapter_cmp"
+
+    # ---- GBS=4096，DP=16（双节点16卡）→ num_microbatches=16 ----
+    GLOBAL_BATCH_SIZE: "4096"
+    MICRO_BATCH_SIZE: "16"
+
+    # ---- 本次实验变量：liger 融合开（Megatron 唯一生效的开关，见文件头注释）----
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+
+    # OVERLAP_GRAD_REDUCE=true：曾经必崩（Megatron 0.17+ grad-ready 不变量
+    # assert），根因是 `code_predictor.model.codec_embedding[-1]` 这个 embedding
+    # 结构性从不参与 backward（forward_teacher_forced 只用到 0..G-2 组），但
+    # `activate_parameters()` 仍把它标记为可训练。已修复：
+    # `modeling_qwen_omnispeak.py`（Qwen3CodePredictorTransformer.__init__ 里
+    # 冻结该 embedding）+ `custom/qwen_omnispeak/mcore_codec_embedding_freeze.py`
+    # （在 activate_parameters() 覆盖之后、wrap_model() 之前再冻结一次，防止被
+    # `--trainable_parameters visual.talker` 的 blanket 激活重新打开）。实测
+    # 稳定跑过 330+ 步不再触发 assert。
+    #
+    # ⚠️ 但 nsys 定量对比显示这个开关对速度**没有帮助**（s/it≈19s，跟不开时
+    # 几乎一样：AllGather 变快但 AllReduce 更慢，相互抵消，通信仍走的是大块
+    # AllReduce 而非 use_distributed_optimizer 理论上该用的分片 ReduceScatter，
+    # 根因未查清）。留着这个开关只是为了不再引入崩溃，不代表推荐开启；对比
+    # DeepSpeed（同规模纯 DP 场景下快 ~2 倍），Megatron 在当前 codec loss 的
+    # 架构约束（要求 PP=1、sequence_parallel=false，堵死了 TP/PP 相关的优化
+    # 空间）下暂无法追平，建议以 DeepSpeed 为该模型的主力训练后端。
+    OVERLAP_GRAD_REDUCE: "true"
+    # 诊断开关，零开销：一旦上面这个 grad-ready 问题以别的形式复现，会打印
+    # 出具体缺失的参数名（见 custom/megatron_grad_ready_diag.py），留着当双保险。
+    DIAG_GRAD_READY: "1"
+
+    OUTPUT_DIR: "/nvme/output/mg_lance_2node_liger_gbs4096"
+
+    # ---- MFU 本地记录：不采集（对齐 training-metrics-report skill §0，MFU 计算
+    #      方法未验证不作为指标，这里干脆不开，省掉无用的埋点开销）----
+    MFU_LOG_ENABLED: "0"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_MODE: "disabled"
+    WANDB_PROJECT: "qwen_omnispeak_junyaoyang_profile"

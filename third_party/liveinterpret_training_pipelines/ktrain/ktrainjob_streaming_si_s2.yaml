@@ -1,0 +1,141 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# streaming_si S2（S2TT：源音频 -> 译文，训 audio_proj + thinker）·
+# torchrun + DeepSpeed ZeRO-2 · 3 台机器的 UniST P2 数据从 S3 同步到各节点 NVMe
+#
+# S4-w / S4 阶段用 ktrain/ktrainjob_streaming_si_s4.yaml（数据变量完全相同）。
+#
+# 【数据（S3 实测 2026-09-29）】s3://stevehguo-ap-southeast-3/.../open_data_0803_fortrain/
+#   | 机器          | p2_fsq_v3（parquet） | p2_source_wav（tar） |
+#   |---------------|----------------------|----------------------|
+#   | machine_0     | 70 个，2.9 GiB       | 70 个，748 GiB       |
+#   | machine_1     | 64 个，2.6 GiB       | 64 个，673 GiB       |
+#   | machine_2     | 64 个，2.5 GiB       | 206 个，661 GiB      |
+#   三台 .cosy_version 均为 v3；parquet 与 tar 跨机器无重名；抽查每台首个 parquet，
+#   source_wav 引用的 tar 都在本机器目录。
+#   只同步 p2_fsq_v3/ 与 p2_source_wav/（p2_fsq*、p2_target_wav 等其他目录训练不用）。
+#   ktrain_entry.sh 在节点上用软链把三台机器合并成一个 parquet 目录 + 一个 tar 目录
+#   （数据集要求一个 tar 目录；合并时若 tar 或 parquet 重名直接报错）。
+#
+# 【磁盘】每个节点约 2.1 TiB（tar）+ 8 GiB（parquet）。
+#
+# 【链路】submit.sh 同步代码与数据 → launch_train.sh → pipelines/streaming_si/ktrain_entry.sh
+#        （转换路径、合并三台机器）→ train_st.sh → swift sft（torchrun numNodes×8）
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_s2.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix si-s2 \
+#       --task-deadline 'si-p2-wav-dirs=172800'
+#   （2.1 TiB 音频首次同步给 48h 上限；同一组节点上跑过 S2 后，S4-w / S4 不会重新同步。）
+#
+# 【提交前确认】白名单节点（与 numNodes 一致）、MODEL_PATH 选 0.6B 还是 4B（见 env 注释）、CODE_PREFIX / OUTPUT_ROOT / owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-07d384c1277ead0cd", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # streaming_si 镜像（ktrain/image/Dockerfile.streaming-si）：v9 + fla / causal-conv1d 加速核 + CosyVoice 声码器依赖，
+  # 0.6B 与 4B 两个变体通用（4B 的线性注意力走加速核）；torch / TE / EFA 与 v9 相同，训练行为不变。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 2                  # = 白名单节点数
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    # 模型：与 S1 用同一份基座（已上传）。0.6B / 4B 二选一
+    # MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si/"
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si_4b/"
+
+    SI_STAGE: "s2"
+    # 两个变量按顺序一一对应（第 i 个 parquet 目录配第 i 个 tar 目录）
+    SI_P2_DATA_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_fsq_v3/
+    SI_P2_WAV_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_source_wav/
+
+    # 输出子目录 s2_st/；多节点自动 --save_on_each_node。不要设 OUTPUT_DIR。
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si"
+    # SI_EXTRA_ARGS: "--resume_from_checkpoint /nvme/output/__OWNER__/streaming_si/s2_st/.../checkpoint-N"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：默认值在 train_st.sh（每卡 8、lr 1e-4、1 epoch）。
+    # 源项目是单机 4 卡 × 8 = 全局 32；16 卡用默认值时全局 128（步数为源的 1/4）。
+    # 要与源对齐可设每卡 2（显存利用率很低），或保留大 batch 并相应调学习率。
+    # -------------------------------------------------------------------------
+    # 按长度分桶（ktrain_entry.sh 给 parquet 加 lengths 列 + swift --group_by_length）：
+    # 随机组 batch 时约 59% 的计算花在 padding 上，分桶后同一 batch 内长度接近。
+    GROUP_BY_LENGTH: "true"
+    # 实测显存（随机组 batch）：每卡 8 → 26.9 GiB、每卡 24 → 44.9 GiB，约 18 GiB 固定 + 每 token 槽位约 3 MiB。
+    # 分桶后最坏一批：本数据最长 473 token → 48×473 外推约 88 GiB；口径允许的上限 641 token → 约 113 GiB
+    # （H200 141 GB）。HF 只把最长的一条样本换到第 1 个 batch，最坏的整批出现时间是随机的，余量按最坏情况留。
+    PER_DEVICE_TRAIN_BATCH_SIZE: "48"      # 全局 48×16 = 768，约 2.5 万步
+    # 每卡 24 / lr 1.7e-4 无 warmup 时前 50 步 loss 4.5 -> 9.6，大 batch 必须 warmup。
+    # 学习率按平方根缩放 1e-4×sqrt(768/128)≈2.45e-4，取偏保守的 2e-4
+    LEARNING_RATE: "2e-4"
+    WARMUP_RATIO: "0.03"                   # 约 750 步
+    # 样本口径（train_st.sh 默认值，这里显式写出）：源音频上限 30s、MAX_LENGTH 768，超长样本丢弃不截断。
+    # 本数据全量扫描：最长 25.0s（>20s 的 0.55% 在源口径 20s 下会被截音频），译文 >256 token 的 3 行
+    # 是复读几千字的坏数据，会被丢弃
+    SI_MAX_AUDIO_SEC: "30"
+    MAX_LENGTH: "768"
+    SI_DROP_OVERLONG: "1"
+    # 每个 rank 都要跑一遍 1928 万行的预处理，4 进程约 17 分钟；每节点 8 rank × 12 = 96 进程
+    DATASET_NUM_PROC: "12"
+    # 每卡 48 条，每条要解 FLAC + 算 mel，默认 4 个 worker 可能喂不饱 GPU
+    DATALOADER_NUM_WORKERS: "8"
+    # MAX_STEPS: "100"        # 首次试跑可打开
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

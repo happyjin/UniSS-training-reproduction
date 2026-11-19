@@ -1,0 +1,159 @@
+# =============================================================================
+# Kubeflow Training Operator PyTorchJob (kubeflow.org/v1) — pure kubectl.
+# Bridge-alignment Megatron SFT on H200 (ml.p5e.48xlarge, 8xGPU/node).
+# 训练规模：单节点（仅 Master，白名单 1 个 hostname，无 Worker）。
+#
+# 本文件是「任务配置的唯一真源」：镜像 / 命名空间 / 节点白名单 / 工件来源
+# 全部在此硬编码，不再依赖外部 artifacts.env（已删除，配置全部内联于此）。
+# 提交与数据就绪门控由 skill（.codebuddy/skills/pytorchjob-ops）读取本文件后完成：
+#   * 提交前把 repo 代码同步到 data bucket（容器经 S3 CSI 直接读，TRAIN_SCRIPT 即
+#     /s3all 下的 S3 路径；OUTPUT_ROOT 亦落在 /s3all）；
+#   * 本文件 env 中「模型/tokenizer/manifest/音频」以 s3://<bucket>/<key> 形式给出；
+#     skill 据此推导出 check/sync Job，先在节点 NVMe 检查，缺失的并行同步到
+#     NVMe hostPath；launch_train.sh 再把 s3:// 形式的工件路径转成 /nvme/<key>。
+#
+# 容器路径 = /nvme/<s3-key>（NVMe hostPath 挂载在 /nvme，与 S3 key 1:1），无隐式
+# 路径映射潜规则。WDS 音频经 /curated_audio -> /nvme/data 符号链接命中。
+#
+# 挂载说明：
+#   * 仅挂 /s3all（数据桶，承载代码/输出，可挂载）。模型桶
+#     iegg-speech-model-models 未被 S3 CSI 节点角色授权（s3:ListBucket Forbidden），
+#     故不挂 /s3models；模型/tokenizer 预先就绪于节点 NVMe，训练直接读 /nvme。
+#
+# 工件 S3 源（去掉 s3://<bucket>/ 头即为 /nvme 下的 key）：
+#   模型 + tokenizer : s3://iegg-speech-model-models/origin_models/...
+#   manifest + 音频  : s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/...
+# =============================================================================
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+spec:
+  pytorchReplicaSpecs:
+    # ----- Master (rank 0) -----
+    Master:
+      replicas: 1
+      restartPolicy: Never  # 崩溃即终止，禁止重启/重试
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: speech-h200-sa
+          nodeSelector:
+            node.kubernetes.io/instance-type: ml.p5e.48xlarge
+          # 节点白名单（kubernetes.io/hostname）：同步 Job 与训练 Pod 均按此调度。
+          # derive_sync_jobs.py 的 A3 校验要求
+          #   Master.replicas + Worker.replicas == len(白名单)
+          # 单节点：白名单 1 个 hostname，且不声明 Worker。
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: [hyperpod-i-03e7d1f6d95864e1a]
+          volumes:
+            - name: s3all
+              persistentVolumeClaim:
+                claimName: speech-h200-s3-pvc
+                readOnly: true
+            - name: nvme
+              hostPath:
+                path: /opt/dlami/nvme
+                type: Directory
+            - name: launcher
+              configMap:
+                name: launch-train-script
+                defaultMode: 0755
+            - name: workspace
+              emptyDir: {}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 64Gi
+          containers:
+            - name: pytorch
+              image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+              imagePullPolicy: IfNotPresent
+              command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+              env:
+                - name: TRAIN_SCRIPT
+                  value: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+                - name: TRAIN_BACKEND
+                  value: "megatron"
+                - name: CODE_PREFIX
+                  value: "deferzhou/liveinterpret_training_pipelines"
+                - name: NVME_MOUNT
+                  value: "/nvme"
+                - name: MODEL_PATH
+                  value: "s3://iegg-speech-model-models/origin_models/custom_models/qwen2_5_3b_omnispeak_a"
+                - name: MODEL_TYPE
+                  value: "qwen2_5_3b_omnispeak_a"
+                - name: QWEN3_TTS_TOKENIZER
+                  value: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+                - name: BRIDGE_ALIGNMENT_DATA
+                  value: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/manifests/manifest_version=common_voice_bidirectional_ms_swift_codec_20260727_v1/task=speech_to_speech_translation/split=train"
+                # 原音频 shards（与 manifest 分离），供 skill 派生 sync Job。
+                - name: ARTIFACT_AUDIO_SHARDS
+                  value: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=speech_chain_reference_zh_en_v2 s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=speech_chain_reference_v5 s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/processed/shards/dataset=common_voice_scripted_speech/process_version=clean_16k_mono_wav_ffmpeg_v1"
+                - name: OUTPUT_ROOT
+                  value: "/nvme/output"
+                - name: NCCL_IB_DISABLE
+                  value: "0"
+                - name: NCCL_SOCKET_IFNAME
+                  value: ^lo,docker0
+                - name: FI_PROVIDER
+                  value: efa
+                - name: NCCL_DEBUG
+                  value: INFO
+                - name: TORCH_NCCL_ASYNC_ERROR_HANDLING
+                  value: "1"
+                - name: TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC
+                  value: "300"
+                - name: FI_EFA_FORK_SAFE
+                  value: "1"
+                - name: FI_EFA_USE_DEVICE_RDMA
+                  value: "1"
+                - name: NCCL_DEBUG_SUBSYS
+                  value: INIT,NET,ENV
+                - name: PYTORCH_CUDA_ALLOC_CONF
+                  value: "expandable_segments:True"
+                - name: WANDB_API_KEY
+                  value: "local-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"
+                - name: WANDB_BASE_URL
+                  value: http://43.173.190.72:8080
+                - name: WANDB_PROJECT
+                  value: qwen_omnispeak_bridge_alignment_megatron
+                - name: WANDB_MODE
+                  value: online
+              resources:
+                requests:
+                  cpu: "135"
+                  memory: 1350Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+                limits:
+                  cpu: "150"
+                  memory: 1500Gi
+                  ephemeral-storage: "200Gi"
+                  nvidia.com/gpu: "8"
+                  vpc.amazonaws.com/efa: "32"
+              volumeMounts:
+                - name: s3all
+                  mountPath: /s3all
+                  readOnly: true
+                - name: nvme
+                  mountPath: /nvme
+                - name: launcher
+                  mountPath: /opt/launcher
+                - name: workspace
+                  mountPath: /local
+                - name: dshm
+                  mountPath: /dev/shm
+    # 单节点：不声明 Worker。derive_sync_jobs.py 的 A3 校验要求
+    #   Master.replicas + Worker.replicas == len(节点白名单)
+    # 多节点时在此恢复 Worker（replicas = 白名单节点数 - 1），并同步扩白名单。

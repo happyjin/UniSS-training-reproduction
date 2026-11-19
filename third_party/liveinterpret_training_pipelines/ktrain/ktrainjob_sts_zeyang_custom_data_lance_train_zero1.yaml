@@ -1,0 +1,142 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# 本任务 = AO（ray+deepspeed zero0+liger+Lance+GBS4096双节点）的 ZeRO-1 变体，
+# 用于跟 S 列（ray+deepspeed zero1+liger+**WDS**+GBS4096双节点）做单变量对照
+# ——**唯一变量 = 数据源（WDS→Lance）**，ZeRO stage/框架/拓扑/liger 全部与 S 对齐。
+#
+# 背景：AO 直接对比 S 慢了 35.6%（215.8 vs 335 样本/s），但 AO 同时换了两个变量
+# （zero1→zero0 + WDS→Lance），且 ray+zero0+WDS 这个中间态之前直接 OOM 崩了，
+# 没法拿来拆分两个变量各自的贡献。本任务把 ZeRO stage 改回 zero1（其余原样
+# 保留 AO 已验证可跑通的 Lance 配置），才能干净地回答"Lance 本身对 ray 拓扑
+# 到底有没有提升"。
+#
+# 与 AO 原始 yaml（ktrainjob_sts_zeyang_custom_data_lance_train.yaml）的唯一
+# 差异：DEEPSPEED zero0 → zero1。其余（per_device=32×ga8=GBS4096、
+# GROUP_BY_LENGTH=false、Lance数据源/mel/speaker预计算、liger、
+# SWIFT_SINGLE_DEVICE_MODE 兼容开关等）逐项对齐 AO，保证除 ZeRO stage 外
+# 无其他变量差异。
+#
+# 提交：bash .codebuddy/skills/ktrain-job-ops/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_sts_zeyang_custom_data_lance_train_zero1.yaml \
+#         --repo <repo> --launcher ktrain/launch_train_lance.sh \
+#         --aws-creds-secret aws-local-creds \
+#         --task-deadline 'lance-train-source-uri=86400'
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, 
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-02848679822afbe3b", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # ray 框架：渲染为 KubeRay RayJob（head 0 GPU + 2 GPU worker）。
+  framework: ray
+  # 统一镜像：ray2 + nsys + liger（在 ray2 基座上叠 liger-kernel overlay）。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger
+  # RayJob entrypoint：等 16 GPU 凑齐 → 每个 GPU worker 跑 launcher NODE_PREP_ONLY →
+  # 派生 RAY_DEVICE_GROUPS → driver 钉第一个 GPU worker。LAUNCHER_PATH 指向 Lance 入口。
+  command: ["python", "/s3all/deferzhou/liveinterpret_training_pipelines/ktrain/ray_entrypoint.py"]
+  numNodes: 3
+  head:
+    cpu: "16"
+    memory: 64Gi
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    TRAIN_BACKEND: "deepspeed"
+    USE_RAY: "true"
+    RAY_CLUSTER_MODE: "kuberay"
+    LAUNCHER_PATH: "/opt/launcher/launch_train_lance.sh"
+    # 与 AO 相同代码前缀（同一 commit 85b6d750，不重复同步不同代码）
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    # 目录名记录本次实验身份：zeyang data + Lance + 双节点 ray **zero1** + GBS4096 + liger
+    OUTPUT_DIR: "/nvme/output/sts_zeyang_lance_ray2n_gbs4096_liger_zero1"
+
+    # -------------------------------------------------------------------------
+    # 数据源：与 AO 完全一致（Lance v506 全表，两节点均已有本地数据，无需重新同步）
+    # -------------------------------------------------------------------------
+    LANCE_TRAIN_SOURCE_URI: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/unist_qwen3_s2s_v2/processed.lance"
+    LANCE_TRAIN_SOURCE_VERSION: "506"
+    LANCE_STORAGE_REGION: "ap-southeast-3"
+    LANCE_TRAIN_SHAPE: "B"
+    LANCE_TRAIN_TASK_FILTER: "split='train'"
+    LANCE_TRAIN_TASK_NAME: "unist_train_full_v506"
+    LANCE_USE_PRECOMPUTED_MEL: "1"
+    LANCE_USE_SPEAKER_EMBEDDING: "1"
+    LANCE_PREFETCH_AUDIO: "0"
+    LANCE_PREFETCH_FEATURES: "0"
+    LANCE_PREFETCH_SPEAKER: "1"
+    LANCE_DATALOADER_BATCH_RESOLVE: "1"
+    LANCE_MAIN_PROCESS_ISOLATION: "1"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：与 AO 完全一致，唯一改动 = DEEPSPEED zero0 → zero1（对齐 S 列）
+    # -------------------------------------------------------------------------
+    SCENE: "batch4_8_adapter_cmp"
+    # GBS=4096：双节点 16 卡 → per_device 32 × 16 × ga8（与 S 列同源同GBS同总步数）
+    PER_DEVICE_TRAIN_BATCH_SIZE: "32"
+    PER_DEVICE_EVAL_BATCH_SIZE: "32"
+    GRADIENT_ACCUMULATION_STEPS: "8"
+    # 唯一变量：zero1（对齐 S 列），而非 AO 的 zero0
+    DEEPSPEED: "zero1"
+    USE_LIGER_KERNEL: "true"
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+    # ray + liger 兼容开关（同 AO，见 AO yaml 头部注释的 is_mp() 根因分析）
+    SWIFT_SINGLE_DEVICE_MODE: "1"
+    # 与 AO 复刻实验一致：显式覆盖为 false，不依赖脚本默认值（该默认值在
+    # 85b6d750 提交里被改成了 true，会改变 micro-batch 组成，见
+    # docs/AO_REPRODUCTION_LOG.md 的复刻实验结论）
+    GROUP_BY_LENGTH: "false"
+
+    FILL_LOG_ENABLED: "1"
+    FILL_LOG_STEP_INTERVAL: "1"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_MODE: "disabled"
+    WANDB_PROJECT: "qwen_omnispeak_junyaoyang_profile"

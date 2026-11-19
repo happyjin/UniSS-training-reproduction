@@ -1,0 +1,158 @@
+# =============================================================================
+# Standalone Anyscale compute config — registered as `tokyo-g6`.
+# =============================================================================
+# Push a new version of this config:
+#   anyscale compute-config create -n tokyo-g6 -f anyscale/config/compute_config_g6.yaml
+#
+# Schema: https://docs.anyscale.com/reference/compute-config-api#computeconfig
+#
+# Purpose: a SMALL-SCALE multi-node single-GPU compute pool for dry-runs,
+# debugging, and Stage-0 ETL alongside the main `tokyo-h100` pool. Each
+# worker is one **ml.g6.4xlarge** node = **1× NVIDIA L4 24 GB** + 16 vCPU +
+# 64 GiB RAM + 1× 600 GB NVMe. There is no NVLink (L4 has only PCIe Gen4)
+# and no EFA on this instance size, so multi-node training falls back to
+# **NCCL over TCP eth0 (~25 Gbps)**. AllReduce is ~10–15× slower than P5 +
+# EFA at the same model size — fine for ZeRO-1 + large-grad-accum dry-runs,
+# NOT a substitute for the H100 pool on real training.
+#
+# Differences vs tokyo-h100:
+#   - worker instance_type:   16CPU-64GB-1xL4-24GB       (ml.g6.4xlarge)
+#                             [H100 was 192CPU-2048GB-8xH100-80GB]
+#   - GPUs per node:          1× NVIDIA L4 24GB          [H100 was 8× H100 80GB]
+#   - EFA request:            REMOVED                    [H100 was 32]
+#                             g6.4xlarge has 0 EFA NICs (only g6.8x and
+#                             larger expose EFA). NCCL must use TCP eth0.
+#   - cpu / memory request:   14000m / 56Gi              [H100 was 179400m / 1898Gi]
+#   - host NVMe hostPath:     KEPT but conditional (DirectoryOrCreate).
+#                             g6.4xlarge has 1× 600 GB NVMe instance store
+#                             on the host; whether it appears at
+#                             /opt/dlami/nvme depends on the HyperPod LCC
+#                             bootstrap. Mount is safe even if missing —
+#                             container ephemeral-storage (200Gi limit) is
+#                             the fallback.
+#   - min/max workers:        4 / 8                      [H100 was 2 / 2]
+#                             total GPU count = 4–8 (one per node).
+# =============================================================================
+
+cloud: anyscale-poc-tokyo-cloud
+cloud_resource: k8s-aws-v2-ap-northeast-1
+
+head_node:
+  instance_type: 8CPU-32GB
+  advanced_instance_config:
+    spec:
+      # Head pod ephemeral-storage budget. Same reasoning as tokyo-h100:
+      # the only non-GPU node in this k8s cluster reports
+      # `allocatable.ephemeral-storage = 89 GiB`. Request 80Gi to leave a
+      # ~9 GiB safety buffer for Anyscale agent containers and system caches.
+      containers:
+        - name: ray
+          resources:
+            requests:
+              ephemeral-storage: "80Gi"
+            limits:
+              ephemeral-storage: "80Gi"
+          volumeMounts:
+            - name: shared-efs
+              readOnly: true
+              mountPath: /mnt/shared_storage
+            - name: data-s3
+              mountPath: /data
+      volumes:
+        - name: shared-efs
+          persistentVolumeClaim:
+            readOnly: true
+            claimName: aigc-anyscale-efs-pvc
+        - name: data-s3
+          persistentVolumeClaim:
+            claimName: aigc-anyscale-s3-pvc
+
+worker_nodes:
+  - name: 1xl4-14cpu-56gb
+    instance_type: 16CPU-64GB-1xL4-24GB
+    # Multi-node, single-GPU-per-node. Total GPU count = min..max.
+    # Scheduling will land on ANY g6.4xlarge node in the cluster (no
+    # hostname whitelist) — `instance_type: 16CPU-64GB-1xL4-24GB` is enough
+    # to constrain candidates to ml.g6.4xlarge.
+    #
+    # Pinned min == max because NCCL / DeepSpeed process groups need a
+    # stable world size — elastic mid-training resize would break the
+    # AllReduce ring. To use 8 nodes instead, edit BOTH numbers below to
+    # 8 and re-run `anyscale compute-config create -n tokyo-g6 -f
+    # anyscale/config/compute_config_g6.yaml`. Total GPU count = 4 × 1 = 4.
+    min_nodes: 4
+    max_nodes: 4
+    market_type: ON_DEMAND
+    advanced_instance_config:
+      spec:
+        # ------------ NODE SELECTION ------------
+        # No node whitelist by design. The instance_type alone constrains
+        # candidates to ml.g6.4xlarge.
+        # ----------------------------------------
+        volumes:
+          - name: shared-efs
+            persistentVolumeClaim:
+              readOnly: true
+              claimName: aigc-anyscale-efs-pvc
+          - name: data-s3
+            persistentVolumeClaim:
+              claimName: aigc-anyscale-s3-pvc
+          # ------------ LOCAL NVME (best-effort) ------------
+          # g6.4xlarge has 1× 600 GB NVMe instance store. On HyperPod-
+          # bootstrapped nodes the LCC mounts it at /opt/dlami/nvme;
+          # on plain EKS nodegroup nodes this hostPath will be created
+          # empty (DirectoryOrCreate). Mount is always safe; if you need
+          # bulk space (e.g. checkpoint dumps), prefer S3 (`/data`) or
+          # EFS (`/mnt/shared_storage`) over /local on this small SKU.
+          - name: local-nvme
+            hostPath:
+              path: /opt/dlami/nvme
+              type: DirectoryOrCreate
+        containers:
+          - name: ray
+            resources:
+              limits:
+                nvidia.com/gpu: '1'
+                # 200Gi ephemeral-storage upper bound — same defense-in-depth
+                # backstop pattern used in tokyo-h100. g6.4xlarge total root
+                # disk on EKS is typically large enough; if a future Pending
+                # event reports "Insufficient ephemeral-storage", drop this
+                # to 100Gi or 50Gi to fit the actual node's allocatable.
+                ephemeral-storage: "200Gi"
+                # NOTE: NO `vpc.amazonaws.com/efa` request. ml.g6.4xlarge
+                # has 0 EFA NICs (EFA is only available on g6.8xlarge and
+                # larger). Requesting EFA here would leave the pod Pending
+                # forever waiting on the device-plugin. NCCL falls back to
+                # TCP over eth0 — set NCCL_SOCKET_IFNAME=eth0,
+                # NCCL_IB_DISABLE=1, NCCL_SOCKET_NTHREADS=4,
+                # NCCL_NSOCKS_PERTHREAD=4 in the training entrypoint to get
+                # the most out of the 25 Gbps Ethernet path.
+              requests:
+                # Leave 2 vCPU and ~8 GiB RAM headroom for Ray runtime,
+                # sidecar containers, and the kubelet itself. g6.4xlarge
+                # has 16 vCPU / 64 GiB total.
+                cpu: 14000m
+                memory: 56Gi
+                nvidia.com/gpu: '1'
+                ephemeral-storage: "200Gi"
+            volumeMounts:
+              - name: shared-efs
+                readOnly: true
+                mountPath: /mnt/shared_storage
+              - name: data-s3
+                mountPath: /data
+              - name: local-nvme
+                mountPath: /local
+        tolerations:
+          - key: nvidia.com/gpu
+            effect: NoSchedule
+            operator: Exists
+          - key: node.anyscale.com/accelerator-type
+            value: GPU
+            effect: NoSchedule
+            operator: Equal
+
+enable_cross_zone_scaling: false
+flags:
+  cloud_resource_strategy: availability
+auto_select_worker_config: false

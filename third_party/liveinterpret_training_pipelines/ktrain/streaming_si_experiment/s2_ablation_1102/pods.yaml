@@ -1,0 +1,61 @@
+# S2 回退根因消融（2026-11-02）：美西 speech-model-eks 两台 p5e 上的常驻工作 Pod。
+# 不走 ktrain：容器常驻，数据同步 / 训练 / checkpoint 上传都在容器里用脚本跑（见 run_group.sh）。
+# NVMe 子目录挂到 /nvme，使 s3://<bucket>/<key> -> /nvme/<key> 的约定与 ktrain 完全一致，
+# ktrain_entry.sh / train_st.sh 原样复用。
+#   kubectl --context speech-model-eks apply -f pods.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: si-abl-0d22
+  namespace: ktrain-users
+  labels: {app: si-s2-ablation, owner: stevehguo}
+spec:
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-0d2231f74fc63e232}
+  restartPolicy: Never
+  tolerations: [{key: nvidia.com/gpu, operator: Exists}]
+  containers:
+    - name: main
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait; done"]
+      env:
+        - {name: AWS_DEFAULT_REGION, value: ap-southeast-3}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      envFrom: [{secretRef: {name: aws-jkt-creds}}]
+      resources:
+        requests: {cpu: "170", memory: 1700Gi, nvidia.com/gpu: "8"}
+        limits: {cpu: "170", memory: 1700Gi, nvidia.com/gpu: "8"}
+      volumeMounts:
+        - {name: nvme, mountPath: /nvme}
+        - {name: shm, mountPath: /dev/shm}
+  volumes:
+    - {name: nvme, hostPath: {path: /opt/dlami/nvme/stevehguo/si_abl, type: DirectoryOrCreate}}
+    - {name: shm, emptyDir: {medium: Memory, sizeLimit: 128Gi}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: si-abl-04ed
+  namespace: ktrain-users
+  labels: {app: si-s2-ablation, owner: stevehguo}
+spec:
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-04ed14465ab855810}
+  restartPolicy: Never
+  tolerations: [{key: nvidia.com/gpu, operator: Exists}]
+  containers:
+    - name: main
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait; done"]
+      env:
+        - {name: AWS_DEFAULT_REGION, value: ap-southeast-3}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      envFrom: [{secretRef: {name: aws-jkt-creds}}]
+      # 与 tts-omni-merge（requests 32 CPU / 48Gi）共节点
+      resources:
+        requests: {cpu: "140", memory: 1600Gi, nvidia.com/gpu: "8"}
+        limits: {cpu: "140", memory: 1600Gi, nvidia.com/gpu: "8"}
+      volumeMounts:
+        - {name: nvme, mountPath: /nvme}
+        - {name: shm, mountPath: /dev/shm}
+  volumes:
+    - {name: nvme, hostPath: {path: /opt/dlami/nvme/stevehguo/si_abl, type: DirectoryOrCreate}}
+    - {name: shm, emptyDir: {medium: Memory, sizeLimit: 128Gi}}

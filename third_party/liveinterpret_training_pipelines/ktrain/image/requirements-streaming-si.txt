@@ -1,0 +1,30 @@
+# streaming_si 在基础镜像（requirements.txt）之上的附加依赖。Dockerfile.streaming-si 安装时加
+# `-c` 约束当前环境的 torch / transformers / numpy 等版本，保证这里的包不会连带升级核心库。
+#
+# 训练本身（S1-S4、streaming_si 变体）只用基础镜像已有的包；以下三组都是可选能力。
+
+# ---- 1. Qwen3.5 线性注意力加速核（streaming_si_4b 训练/推理）----
+# 没有时 qwen3_5_compat 回退纯 torch 实现：结果正确但很慢。transformers 4.57.3 要求 fla>=0.2.2。
+# causal-conv1d 只发布源码包，由 Dockerfile 在 CUDA devel 基座上单独编译（不在本文件）。
+flash-linear-attention==0.4.2
+fla-core==0.4.2
+
+# ---- 2. CosyVoice3 flow + HiFT 声码器（infer_s2st.py 合成 24kHz 波形）----
+# 只列 flow/HiFT 实例化链路实际 import 的包（CosyVoice 074ca6dc + Matcha-TTS dd9105b3 逐文件核对）。
+# 不装 CosyVoice 自带 requirements：它固定 torch 2.3.1 / transformers 4.51.3 / numpy 1.26，与训练栈冲突。
+HyperPyYAML==1.2.3            # 加载 cosyvoice3.yaml
+omegaconf==2.3.0              # flow_matching 的 cfm_params
+conformer==0.3.2              # matcha decoder
+diffusers==0.29.0             # matcha transformer（与 CosyVoice 相同版本）
+x-transformers==2.11.24       # CosyVoice3 的 DiT
+lightning==2.5.5              # matcha.utils.pylogger；2.2.4 要求 packaging<25，与基础镜像冲突
+hydra-core==1.3.2             # matcha.utils 包初始化会连带导入
+rich==13.9.4
+gdown==5.2.0
+wget==3.2
+matplotlib==3.10.3
+onnxruntime==1.22.0           # CosyVoice 的 cosyvoice.utils.onnx 顶层导入；CAM++ 说话人向量也用它（CPU）
+
+# ---- 3. 评测与验证 ----
+sacrebleu==2.5.1              # infer_s2st.py 的文本 BLEU
+pytest==8.4.2                 # build_image_streaming_si.sh 在镜像内跑 streaming_si 单测（基础镜像没有）

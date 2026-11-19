@@ -1,0 +1,21 @@
+# i-04ed1446 的 8 卡占位（stevehguo 自用）：该节点上跑着 si-noise-audit（共用 GPU、未申请资源）
+# 以及后续其他任务。此 Pod 挡住 Kueue/调度器把卡分给别人的任务。
+# 用完后删除本 Pod。
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stevehguo-gpu-hold-04ed
+  namespace: ktrain-users
+  labels: {app: stevehguo-gpu-hold, owner: stevehguo}
+  annotations:
+    purpose: "GPU hold on i-04ed for stevehguo's noise-audit & other tasks (shared-GPU usage); delete when done"
+spec:
+  restartPolicy: Always
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-04ed14465ab855810}
+  containers:
+    - name: hold
+      image: busybox
+      command: ["sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait; done"]
+      resources:
+        requests: {cpu: 100m, memory: 64Mi, nvidia.com/gpu: 8}
+        limits: {cpu: 500m, memory: 128Mi, nvidia.com/gpu: 8}

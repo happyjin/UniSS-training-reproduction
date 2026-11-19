@@ -1,0 +1,402 @@
+# lance-full-mel snapshot @ 2026-08-12T12:17:43Z
+
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kubeflow.org/v1","kind":"PyTorchJob","metadata":{"annotations":{},"labels":{"app":"lance-full-mel","owner":"pengzpzhao"},"name":"lance-full-mel","namespace":"curion"},"spec":{"pytorchReplicaSpecs":{"Master":{"replicas":1,"restartPolicy":"Never","template":{"metadata":{"labels":{"app":"lance-full-mel"}},"spec":{"affinity":{"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchLabels":{"app":"lance-full-mel"}},"topologyKey":"kubernetes.io/hostname"}]}},"containers":[{"command":["bash","-c","/opt/launcher/launch_train_lance_g6e.sh \\\n  --max_steps 100 \\\n  --save_strategy no \\\n  --save_steps 100000 \\\n  --save_total_limit 0 \\\n  --logging_steps 1 \\\n  --eval_steps 100000 \\\n  --split_dataset_ratio 0.0\n"],"env":[{"name":"TRAIN_SCRIPT","value":"pipelines/bridge_alignment/train_speech_to_speech_translation.sh"},{"name":"TRAIN_BACKEND","value":"deepspeed"},{"name":"CODE_PREFIX","value":"pengzpzhao/liveinterpret_training_pipelines"},{"name":"NVME_MOUNT","value":"/nvme"},{"name":"S3DATA_MOUNT","value":"/s3data"},{"name":"MEL_CODE_OVERLAY","value":"/opt/mel_overlay"},{"name":"MODEL_PATH","value":"/nvme/artifacts/model"},{"name":"MODEL_TYPE","value":"qwen2_5_3b_omnispeak_a"},{"name":"QWEN3_TTS_TOKENIZER","value":"/nvme/artifacts/qwen3_tts_tokenizer"},{"name":"QWEN3_TTS_SPEAKER_ENCODER","value":"/nvme/artifacts/speaker_encoder_base"},{"name":"G6E_SYNC_MODEL_TO_NVME","value":"0"},{"name":"LANCE_TRAIN_SOURCE_URI","value":"s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/test_full_input/processed.lance"},{"name":"LANCE_TRAIN_SOURCE_VERSION","value":"4"},{"name":"LANCE_TRAIN_SHAPE","value":"B"},{"name":"LANCE_USE_PRECOMPUTED_MEL","value":"1"},{"name":"LANCE_PREFETCH_AUDIO","value":"0"},{"name":"LANCE_TRAIN_TASK_FILTER","value":"direction='zh_en' AND target_audio_utmos_score\u003e=3.0"},{"name":"LANCE_TRAIN_TASK_NAME","value":"s2st_zh_en"},{"name":"LANCE_TRAIN_MAX_ROWS","value":"2000"},{"name":"QWEN_OMNISPEAK_USE_SPEAKER_PROMPT","value":"true"},{"name":"TRAIN_TARGET","value":"adapter"},{"name":"TALKER_TRAINING_SCOPE","value":"whole"},{"name":"UNFREEZE_TALKER_LAYERS","value":"0"},{"name":"UNFREEZE_THINKER","value":"1"},{"name":"GRADIENT_CHECKPOINTING","value":"true"},{"name":"LEARNING_RATE","value":"1e-5"},{"name":"CODEC_EOS_LOSS_WEIGHT","value":"10"},{"name":"CODEC_HISTORY_CORRUPTION_PROB","value":"0.05"},{"name":"BRIDGE_LOAD_FROM_CACHE_FILE","value":"false"},{"name":"OUTPUT_DIR","value":"/nvme/output/lance_full_mel"},{"name":"PER_DEVICE_TRAIN_BATCH_SIZE","value":"1"},{"name":"PER_DEVICE_EVAL_BATCH_SIZE","value":"1"},{"name":"GRADIENT_ACCUMULATION_STEPS","value":"1"},{"name":"DATALOADER_NUM_WORKERS","value":"0"},{"name":"MAX_LENGTH","value":"2048"},{"name":"SPLIT_DATASET_RATIO","value":"0.0"},{"name":"WANDB_MODE","value":"offline"},{"name":"NCCL_IB_DISABLE","value":"1"},{"name":"FI_PROVIDER","value":"tcp"},{"name":"NCCL_DEBUG","value":"WARN"},{"name":"PYTORCH_CUDA_ALLOC_CONF","value":"expandable_segments:True"},{"name":"NPROC_PER_NODE","value":"1"}],"image":"124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9","imagePullPolicy":"IfNotPresent","name":"pytorch","resources":{"limits":{"cpu":"3","memory":"28Gi","nvidia.com/gpu":"1"},"requests":{"cpu":"3","memory":"24Gi","nvidia.com/gpu":"1"}},"volumeMounts":[{"mountPath":"/s3data","name":"s3data","readOnly":true},{"mountPath":"/nvme","name":"nvme"},{"mountPath":"/opt/launcher","name":"launcher"},{"mountPath":"/opt/mel_overlay","name":"mel-overlay","readOnly":true},{"mountPath":"/dev/shm","name":"dshm"}]}],"nodeSelector":{"sagemaker.amazonaws.com/instance-group-name":"ig-g6e"},"serviceAccountName":"curion-runtime","volumes":[{"name":"s3data","persistentVolumeClaim":{"claimName":"speech-model-data-eks-s3-data-pvc","readOnly":true}},{"hostPath":{"path":"/opt/dlami/nvme","type":"DirectoryOrCreate"},"name":"nvme"},{"configMap":{"defaultMode":493,"name":"launch-train-lance-g6e-smoke"},"name":"launcher"},{"configMap":{"name":"lance-mel-train-overlay"},"name":"mel-overlay"},{"emptyDir":{"medium":"Memory","sizeLimit":"8Gi"},"name":"dshm"}]}}},"Worker":{"replicas":3,"restartPolicy":"Never","template":{"metadata":{"labels":{"app":"lance-full-mel"}},"spec":{"affinity":{"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchLabels":{"app":"lance-full-mel"}},"topologyKey":"kubernetes.io/hostname"}]}},"containers":[{"command":["bash","-c","/opt/launcher/launch_train_lance_g6e.sh \\\n  --max_steps 100 \\\n  --save_strategy no \\\n  --save_steps 100000 \\\n  --save_total_limit 0 \\\n  --logging_steps 1 \\\n  --eval_steps 100000 \\\n  --split_dataset_ratio 0.0\n"],"env":[{"name":"TRAIN_SCRIPT","value":"pipelines/bridge_alignment/train_speech_to_speech_translation.sh"},{"name":"TRAIN_BACKEND","value":"deepspeed"},{"name":"CODE_PREFIX","value":"pengzpzhao/liveinterpret_training_pipelines"},{"name":"NVME_MOUNT","value":"/nvme"},{"name":"S3DATA_MOUNT","value":"/s3data"},{"name":"MEL_CODE_OVERLAY","value":"/opt/mel_overlay"},{"name":"MODEL_PATH","value":"/nvme/artifacts/model"},{"name":"MODEL_TYPE","value":"qwen2_5_3b_omnispeak_a"},{"name":"QWEN3_TTS_TOKENIZER","value":"/nvme/artifacts/qwen3_tts_tokenizer"},{"name":"QWEN3_TTS_SPEAKER_ENCODER","value":"/nvme/artifacts/speaker_encoder_base"},{"name":"G6E_SYNC_MODEL_TO_NVME","value":"0"},{"name":"LANCE_TRAIN_SOURCE_URI","value":"s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/test_full_input/processed.lance"},{"name":"LANCE_TRAIN_SOURCE_VERSION","value":"4"},{"name":"LANCE_TRAIN_SHAPE","value":"B"},{"name":"LANCE_USE_PRECOMPUTED_MEL","value":"1"},{"name":"LANCE_PREFETCH_AUDIO","value":"0"},{"name":"LANCE_TRAIN_TASK_FILTER","value":"direction='zh_en' AND target_audio_utmos_score\u003e=3.0"},{"name":"LANCE_TRAIN_TASK_NAME","value":"s2st_zh_en"},{"name":"LANCE_TRAIN_MAX_ROWS","value":"2000"},{"name":"QWEN_OMNISPEAK_USE_SPEAKER_PROMPT","value":"true"},{"name":"TRAIN_TARGET","value":"adapter"},{"name":"TALKER_TRAINING_SCOPE","value":"whole"},{"name":"UNFREEZE_TALKER_LAYERS","value":"0"},{"name":"UNFREEZE_THINKER","value":"1"},{"name":"GRADIENT_CHECKPOINTING","value":"true"},{"name":"LEARNING_RATE","value":"1e-5"},{"name":"CODEC_EOS_LOSS_WEIGHT","value":"10"},{"name":"CODEC_HISTORY_CORRUPTION_PROB","value":"0.05"},{"name":"BRIDGE_LOAD_FROM_CACHE_FILE","value":"false"},{"name":"OUTPUT_DIR","value":"/nvme/output/lance_full_mel"},{"name":"PER_DEVICE_TRAIN_BATCH_SIZE","value":"1"},{"name":"PER_DEVICE_EVAL_BATCH_SIZE","value":"1"},{"name":"GRADIENT_ACCUMULATION_STEPS","value":"1"},{"name":"DATALOADER_NUM_WORKERS","value":"0"},{"name":"MAX_LENGTH","value":"2048"},{"name":"SPLIT_DATASET_RATIO","value":"0.0"},{"name":"WANDB_MODE","value":"offline"},{"name":"NCCL_IB_DISABLE","value":"1"},{"name":"FI_PROVIDER","value":"tcp"},{"name":"NCCL_DEBUG","value":"WARN"},{"name":"PYTORCH_CUDA_ALLOC_CONF","value":"expandable_segments:True"},{"name":"NPROC_PER_NODE","value":"1"}],"image":"124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9","imagePullPolicy":"IfNotPresent","name":"pytorch","resources":{"limits":{"cpu":"3","memory":"28Gi","nvidia.com/gpu":"1"},"requests":{"cpu":"3","memory":"24Gi","nvidia.com/gpu":"1"}},"volumeMounts":[{"mountPath":"/s3data","name":"s3data","readOnly":true},{"mountPath":"/nvme","name":"nvme"},{"mountPath":"/opt/launcher","name":"launcher"},{"mountPath":"/opt/mel_overlay","name":"mel-overlay","readOnly":true},{"mountPath":"/dev/shm","name":"dshm"}]}],"nodeSelector":{"sagemaker.amazonaws.com/instance-group-name":"ig-g6e"},"serviceAccountName":"curion-runtime","volumes":[{"name":"s3data","persistentVolumeClaim":{"claimName":"speech-model-data-eks-s3-data-pvc","readOnly":true}},{"hostPath":{"path":"/opt/dlami/nvme","type":"DirectoryOrCreate"},"name":"nvme"},{"configMap":{"defaultMode":493,"name":"launch-train-lance-g6e-smoke"},"name":"launcher"},{"configMap":{"name":"lance-mel-train-overlay"},"name":"mel-overlay"},{"emptyDir":{"medium":"Memory","sizeLimit":"8Gi"},"name":"dshm"}]}}}}}}
+  creationTimestamp: "2026-08-12T11:55:20Z"
+  generation: 1
+  labels:
+    app: lance-full-mel
+    owner: pengzpzhao
+  name: lance-full-mel
+  namespace: curion
+  resourceVersion: "4376138"
+  uid: b4cb12f1-3929-43bc-ac4b-7163f19cfa2e
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: Never
+      template:
+        metadata:
+          labels:
+            app: lance-full-mel
+        spec:
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: lance-full-mel
+                topologyKey: kubernetes.io/hostname
+          containers:
+          - command:
+            - bash
+            - -c
+            - |
+              /opt/launcher/launch_train_lance_g6e.sh \
+                --max_steps 100 \
+                --save_strategy no \
+                --save_steps 100000 \
+                --save_total_limit 0 \
+                --logging_steps 1 \
+                --eval_steps 100000 \
+                --split_dataset_ratio 0.0
+            env:
+            - name: TRAIN_SCRIPT
+              value: pipelines/bridge_alignment/train_speech_to_speech_translation.sh
+            - name: TRAIN_BACKEND
+              value: deepspeed
+            - name: CODE_PREFIX
+              value: pengzpzhao/liveinterpret_training_pipelines
+            - name: NVME_MOUNT
+              value: /nvme
+            - name: S3DATA_MOUNT
+              value: /s3data
+            - name: MEL_CODE_OVERLAY
+              value: /opt/mel_overlay
+            - name: MODEL_PATH
+              value: /nvme/artifacts/model
+            - name: MODEL_TYPE
+              value: qwen2_5_3b_omnispeak_a
+            - name: QWEN3_TTS_TOKENIZER
+              value: /nvme/artifacts/qwen3_tts_tokenizer
+            - name: QWEN3_TTS_SPEAKER_ENCODER
+              value: /nvme/artifacts/speaker_encoder_base
+            - name: G6E_SYNC_MODEL_TO_NVME
+              value: "0"
+            - name: LANCE_TRAIN_SOURCE_URI
+              value: s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/test_full_input/processed.lance
+            - name: LANCE_TRAIN_SOURCE_VERSION
+              value: "4"
+            - name: LANCE_TRAIN_SHAPE
+              value: B
+            - name: LANCE_USE_PRECOMPUTED_MEL
+              value: "1"
+            - name: LANCE_PREFETCH_AUDIO
+              value: "0"
+            - name: LANCE_TRAIN_TASK_FILTER
+              value: direction='zh_en' AND target_audio_utmos_score>=3.0
+            - name: LANCE_TRAIN_TASK_NAME
+              value: s2st_zh_en
+            - name: LANCE_TRAIN_MAX_ROWS
+              value: "2000"
+            - name: QWEN_OMNISPEAK_USE_SPEAKER_PROMPT
+              value: "true"
+            - name: TRAIN_TARGET
+              value: adapter
+            - name: TALKER_TRAINING_SCOPE
+              value: whole
+            - name: UNFREEZE_TALKER_LAYERS
+              value: "0"
+            - name: UNFREEZE_THINKER
+              value: "1"
+            - name: GRADIENT_CHECKPOINTING
+              value: "true"
+            - name: LEARNING_RATE
+              value: "1e-5"
+            - name: CODEC_EOS_LOSS_WEIGHT
+              value: "10"
+            - name: CODEC_HISTORY_CORRUPTION_PROB
+              value: "0.05"
+            - name: BRIDGE_LOAD_FROM_CACHE_FILE
+              value: "false"
+            - name: OUTPUT_DIR
+              value: /nvme/output/lance_full_mel
+            - name: PER_DEVICE_TRAIN_BATCH_SIZE
+              value: "1"
+            - name: PER_DEVICE_EVAL_BATCH_SIZE
+              value: "1"
+            - name: GRADIENT_ACCUMULATION_STEPS
+              value: "1"
+            - name: DATALOADER_NUM_WORKERS
+              value: "0"
+            - name: MAX_LENGTH
+              value: "2048"
+            - name: SPLIT_DATASET_RATIO
+              value: "0.0"
+            - name: WANDB_MODE
+              value: offline
+            - name: NCCL_IB_DISABLE
+              value: "1"
+            - name: FI_PROVIDER
+              value: tcp
+            - name: NCCL_DEBUG
+              value: WARN
+            - name: PYTORCH_CUDA_ALLOC_CONF
+              value: expandable_segments:True
+            - name: NPROC_PER_NODE
+              value: "1"
+            image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+            imagePullPolicy: IfNotPresent
+            name: pytorch
+            resources:
+              limits:
+                cpu: "3"
+                memory: 28Gi
+                nvidia.com/gpu: "1"
+              requests:
+                cpu: "3"
+                memory: 24Gi
+                nvidia.com/gpu: "1"
+            volumeMounts:
+            - mountPath: /s3data
+              name: s3data
+              readOnly: true
+            - mountPath: /nvme
+              name: nvme
+            - mountPath: /opt/launcher
+              name: launcher
+            - mountPath: /opt/mel_overlay
+              name: mel-overlay
+              readOnly: true
+            - mountPath: /dev/shm
+              name: dshm
+          nodeSelector:
+            sagemaker.amazonaws.com/instance-group-name: ig-g6e
+          serviceAccountName: curion-runtime
+          volumes:
+          - name: s3data
+            persistentVolumeClaim:
+              claimName: speech-model-data-eks-s3-data-pvc
+              readOnly: true
+          - hostPath:
+              path: /opt/dlami/nvme
+              type: DirectoryOrCreate
+            name: nvme
+          - configMap:
+              defaultMode: 493
+              name: launch-train-lance-g6e-smoke
+            name: launcher
+          - configMap:
+              name: lance-mel-train-overlay
+            name: mel-overlay
+          - emptyDir:
+              medium: Memory
+              sizeLimit: 8Gi
+            name: dshm
+    Worker:
+      replicas: 3
+      restartPolicy: Never
+      template:
+        metadata:
+          labels:
+            app: lance-full-mel
+        spec:
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: lance-full-mel
+                topologyKey: kubernetes.io/hostname
+          containers:
+          - command:
+            - bash
+            - -c
+            - |
+              /opt/launcher/launch_train_lance_g6e.sh \
+                --max_steps 100 \
+                --save_strategy no \
+                --save_steps 100000 \
+                --save_total_limit 0 \
+                --logging_steps 1 \
+                --eval_steps 100000 \
+                --split_dataset_ratio 0.0
+            env:
+            - name: TRAIN_SCRIPT
+              value: pipelines/bridge_alignment/train_speech_to_speech_translation.sh
+            - name: TRAIN_BACKEND
+              value: deepspeed
+            - name: CODE_PREFIX
+              value: pengzpzhao/liveinterpret_training_pipelines
+            - name: NVME_MOUNT
+              value: /nvme
+            - name: S3DATA_MOUNT
+              value: /s3data
+            - name: MEL_CODE_OVERLAY
+              value: /opt/mel_overlay
+            - name: MODEL_PATH
+              value: /nvme/artifacts/model
+            - name: MODEL_TYPE
+              value: qwen2_5_3b_omnispeak_a
+            - name: QWEN3_TTS_TOKENIZER
+              value: /nvme/artifacts/qwen3_tts_tokenizer
+            - name: QWEN3_TTS_SPEAKER_ENCODER
+              value: /nvme/artifacts/speaker_encoder_base
+            - name: G6E_SYNC_MODEL_TO_NVME
+              value: "0"
+            - name: LANCE_TRAIN_SOURCE_URI
+              value: s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/test_full_input/processed.lance
+            - name: LANCE_TRAIN_SOURCE_VERSION
+              value: "4"
+            - name: LANCE_TRAIN_SHAPE
+              value: B
+            - name: LANCE_USE_PRECOMPUTED_MEL
+              value: "1"
+            - name: LANCE_PREFETCH_AUDIO
+              value: "0"
+            - name: LANCE_TRAIN_TASK_FILTER
+              value: direction='zh_en' AND target_audio_utmos_score>=3.0
+            - name: LANCE_TRAIN_TASK_NAME
+              value: s2st_zh_en
+            - name: LANCE_TRAIN_MAX_ROWS
+              value: "2000"
+            - name: QWEN_OMNISPEAK_USE_SPEAKER_PROMPT
+              value: "true"
+            - name: TRAIN_TARGET
+              value: adapter
+            - name: TALKER_TRAINING_SCOPE
+              value: whole
+            - name: UNFREEZE_TALKER_LAYERS
+              value: "0"
+            - name: UNFREEZE_THINKER
+              value: "1"
+            - name: GRADIENT_CHECKPOINTING
+              value: "true"
+            - name: LEARNING_RATE
+              value: "1e-5"
+            - name: CODEC_EOS_LOSS_WEIGHT
+              value: "10"
+            - name: CODEC_HISTORY_CORRUPTION_PROB
+              value: "0.05"
+            - name: BRIDGE_LOAD_FROM_CACHE_FILE
+              value: "false"
+            - name: OUTPUT_DIR
+              value: /nvme/output/lance_full_mel
+            - name: PER_DEVICE_TRAIN_BATCH_SIZE
+              value: "1"
+            - name: PER_DEVICE_EVAL_BATCH_SIZE
+              value: "1"
+            - name: GRADIENT_ACCUMULATION_STEPS
+              value: "1"
+            - name: DATALOADER_NUM_WORKERS
+              value: "0"
+            - name: MAX_LENGTH
+              value: "2048"
+            - name: SPLIT_DATASET_RATIO
+              value: "0.0"
+            - name: WANDB_MODE
+              value: offline
+            - name: NCCL_IB_DISABLE
+              value: "1"
+            - name: FI_PROVIDER
+              value: tcp
+            - name: NCCL_DEBUG
+              value: WARN
+            - name: PYTORCH_CUDA_ALLOC_CONF
+              value: expandable_segments:True
+            - name: NPROC_PER_NODE
+              value: "1"
+            image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+            imagePullPolicy: IfNotPresent
+            name: pytorch
+            resources:
+              limits:
+                cpu: "3"
+                memory: 28Gi
+                nvidia.com/gpu: "1"
+              requests:
+                cpu: "3"
+                memory: 24Gi
+                nvidia.com/gpu: "1"
+            volumeMounts:
+            - mountPath: /s3data
+              name: s3data
+              readOnly: true
+            - mountPath: /nvme
+              name: nvme
+            - mountPath: /opt/launcher
+              name: launcher
+            - mountPath: /opt/mel_overlay
+              name: mel-overlay
+              readOnly: true
+            - mountPath: /dev/shm
+              name: dshm
+          nodeSelector:
+            sagemaker.amazonaws.com/instance-group-name: ig-g6e
+          serviceAccountName: curion-runtime
+          volumes:
+          - name: s3data
+            persistentVolumeClaim:
+              claimName: speech-model-data-eks-s3-data-pvc
+              readOnly: true
+          - hostPath:
+              path: /opt/dlami/nvme
+              type: DirectoryOrCreate
+            name: nvme
+          - configMap:
+              defaultMode: 493
+              name: launch-train-lance-g6e-smoke
+            name: launcher
+          - configMap:
+              name: lance-mel-train-overlay
+            name: mel-overlay
+          - emptyDir:
+              medium: Memory
+              sizeLimit: 8Gi
+            name: dshm
+status:
+  conditions:
+  - lastTransitionTime: "2026-08-12T11:55:20Z"
+    lastUpdateTime: "2026-08-12T11:55:20Z"
+    message: PyTorchJob lance-full-mel is created.
+    reason: PyTorchJobCreated
+    status: "True"
+    type: Created
+  - lastTransitionTime: "2026-08-12T11:55:27Z"
+    lastUpdateTime: "2026-08-12T11:55:27Z"
+    message: PyTorchJob lance-full-mel is running.
+    reason: PyTorchJobRunning
+    status: "True"
+    type: Running
+  replicaStatuses:
+    Master:
+      active: 1
+      selector: training.kubeflow.org/job-name=lance-full-mel,training.kubeflow.org/operator-name=pytorchjob-controller,training.kubeflow.org/replica-type=master
+    Worker:
+      active: 3
+      selector: training.kubeflow.org/job-name=lance-full-mel,training.kubeflow.org/operator-name=pytorchjob-controller,training.kubeflow.org/replica-type=worker
+  startTime: "2026-08-12T11:55:21Z"
+
+===== MASTER LOG (trainable + metrics) =====
+[launch-g6e] LANCE_PREFETCH_SPEAKER=1
+[s2s] SPEAKER=true
+[s2s] UPSTREAM_TALKER_INPUT=true
+[s2s] trainable_params=model.thinker_adapter model.talker model.thinker  regex=<none>
+{'loss': 23.13461685, 'grad_norm': 1262.24890137, 'learning_rate': 3.33e-06, 'eos_boundary_top1_acc': 0.0, 'premature_eos_top1_rate': 0.01282051, 'token_acc': 0.0, 'token_acoustic_token': 0.0025641, 'token_text_acc': 0.75806452, 'epoch': 0.0, 'global_step/max_steps': '1/100', 'elapsed_time': '29s', 'remaining_time': '47m 50s', 'memory(GiB)': 40.55, 'train_speed(s/it)': 28.993074}
+{'loss': 25.77516747, 'grad_norm': 1624.05419922, 'learning_rate': 6.67e-06, 'eos_boundary_top1_acc': 0.0, 'premature_eos_top1_rate': 0.0, 'token_acc': 0.0, 'token_acoustic_token': 0.01789709, 'token_text_acc': 0.51315789, 'epoch': 0.0, 'global_step/max_steps': '2/100', 'elapsed_time': '57s', 'remaining_time': '46m 20s', 'memory(GiB)': 43.67, 'train_speed(s/it)': 28.362944}
+{'loss': 23.91302681, 'grad_norm': 1238.00195312, 'learning_rate': 1e-05, 'eos_boundary_top1_acc': 0.0, 'premature_eos_top1_rate': 0.0060241, 'token_acc': 0.0, 'token_acoustic_token': 0.00722892, 'token_text_acc': 0.65432099, 'epoch': 0.01, 'global_step/max_steps': '3/100', 'elapsed_time': '1m 25s', 'remaining_time': '46m 1s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.460099}
+{'loss': 19.88141251, 'grad_norm': 1807.93530273, 'learning_rate': 1e-05, 'eos_boundary_top1_acc': 0.25, 'premature_eos_top1_rate': 0.38461538, 'token_acc': 0.00420168, 'token_acoustic_token': 0.01111111, 'token_text_acc': 0.87096774, 'epoch': 0.01, 'global_step/max_steps': '4/100', 'elapsed_time': '1m 54s', 'remaining_time': '45m 29s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.426059}
+{'loss': 17.72986603, 'grad_norm': 446.87869263, 'learning_rate': 9.99e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.75503356, 'token_acc': 0.01324503, 'token_acoustic_token': 0.0212528, 'token_text_acc': 0.64615385, 'epoch': 0.01, 'global_step/max_steps': '5/100', 'elapsed_time': '2m 22s', 'remaining_time': '44m 56s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.37434}
+{'loss': 16.17872238, 'grad_norm': 376.54885864, 'learning_rate': 9.98e-06, 'eos_boundary_top1_acc': 0.75, 'premature_eos_top1_rate': 0.23033708, 'token_acc': 0.01648352, 'token_acoustic_token': 0.07752809, 'token_text_acc': 0.875, 'epoch': 0.01, 'global_step/max_steps': '6/100', 'elapsed_time': '2m 50s', 'remaining_time': '44m 22s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.317977}
+{'loss': 15.78918648, 'grad_norm': 143.26499939, 'learning_rate': 9.96e-06, 'eos_boundary_top1_acc': 0.25, 'premature_eos_top1_rate': 0.4973545, 'token_acc': 0.01570681, 'token_acoustic_token': 0.04285714, 'token_text_acc': 0.75609756, 'epoch': 0.01, 'global_step/max_steps': '7/100', 'elapsed_time': '3m 18s', 'remaining_time': '43m 56s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.338961}
+{'loss': 16.13983917, 'grad_norm': 121.50661469, 'learning_rate': 9.93e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.87410072, 'token_acc': 0.0141844, 'token_acoustic_token': 0.08321343, 'token_text_acc': 0.56451613, 'epoch': 0.02, 'global_step/max_steps': '8/100', 'elapsed_time': '3m 47s', 'remaining_time': '43m 28s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.350265}
+{'loss': 14.30220985, 'grad_norm': 69.07579041, 'learning_rate': 9.91e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.90853659, 'token_acc': 0.01204819, 'token_acoustic_token': 0.05691057, 'token_text_acc': 0.8255814, 'epoch': 0.02, 'global_step/max_steps': '9/100', 'elapsed_time': '4m 15s', 'remaining_time': '42m 57s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.315093}
+{'loss': 15.72050858, 'grad_norm': 141.54856873, 'learning_rate': 9.87e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.63125, 'token_acc': 0.01234568, 'token_acoustic_token': 0.02395833, 'token_text_acc': 0.79012346, 'epoch': 0.02, 'global_step/max_steps': '10/100', 'elapsed_time': '4m 43s', 'remaining_time': '42m 24s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.264431}
+{'loss': 16.12579536, 'grad_norm': 83.7213974, 'learning_rate': 9.83e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.68220339, 'token_acc': 0.02083333, 'token_acoustic_token': 0.07033898, 'token_text_acc': 0.51388889, 'epoch': 0.02, 'global_step/max_steps': '11/100', 'elapsed_time': '5m 12s', 'remaining_time': '42m 1s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.323426}
+{'loss': 15.95157623, 'grad_norm': 69.6275177, 'learning_rate': 9.79e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.68918919, 'token_acc': 0.02212389, 'token_acoustic_token': 0.01951952, 'token_text_acc': 0.55769231, 'epoch': 0.02, 'global_step/max_steps': '12/100', 'elapsed_time': '5m 40s', 'remaining_time': '41m 32s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.317602}
+{'loss': 15.65114403, 'grad_norm': 55.78297806, 'learning_rate': 9.74e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.64705882, 'token_acc': 0.01612903, 'token_acoustic_token': 0.02374728, 'token_text_acc': 0.7, 'epoch': 0.03, 'global_step/max_steps': '13/100', 'elapsed_time': '6m 8s', 'remaining_time': '41m 5s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.328061}
+{'loss': 17.90509415, 'grad_norm': 81.24698639, 'learning_rate': 9.69e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.45833333, 'token_acc': 0.02272727, 'token_acoustic_token': 0.05648148, 'token_text_acc': 0.26415094, 'epoch': 0.03, 'global_step/max_steps': '14/100', 'elapsed_time': '6m 36s', 'remaining_time': '40m 34s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.300171}
+{'loss': 14.64606476, 'grad_norm': 58.01616669, 'learning_rate': 9.63e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.6, 'token_acc': 0.01824818, 'token_acoustic_token': 0.03432099, 'token_text_acc': 0.75, 'epoch': 0.03, 'global_step/max_steps': '15/100', 'elapsed_time': '7m 4s', 'remaining_time': '40m 2s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.255889}
+{'loss': 13.94649601, 'grad_norm': 47.76229858, 'learning_rate': 9.56e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.4280303, 'token_acc': 0.02985075, 'token_acoustic_token': 0.02373737, 'token_text_acc': 0.72307692, 'epoch': 0.03, 'global_step/max_steps': '16/100', 'elapsed_time': '7m 32s', 'remaining_time': '39m 35s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.269271}
+{'loss': 14.39278793, 'grad_norm': 44.97401047, 'learning_rate': 9.49e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.51923077, 'token_acc': 0.01893939, 'token_acoustic_token': 0.06, 'token_text_acc': 0.6984127, 'epoch': 0.03, 'global_step/max_steps': '17/100', 'elapsed_time': '8m 1s', 'remaining_time': '39m 7s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.275325}
+{'loss': 13.3649044, 'grad_norm': 46.83227539, 'learning_rate': 9.42e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.42307692, 'token_acc': 0.03787879, 'token_acoustic_token': 0.06717949, 'token_text_acc': 0.86666667, 'epoch': 0.04, 'global_step/max_steps': '18/100', 'elapsed_time': '8m 28s', 'remaining_time': '38m 35s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.228274}
+{'loss': 13.58680534, 'grad_norm': 37.19654846, 'learning_rate': 9.34e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.05864198, 'token_acc': 0.03353659, 'token_acoustic_token': 0.02407407, 'token_text_acc': 0.80769231, 'epoch': 0.04, 'global_step/max_steps': '19/100', 'elapsed_time': '8m 57s', 'remaining_time': '38m 10s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.270684}
+{'loss': 14.42099953, 'grad_norm': 52.78638458, 'learning_rate': 9.26e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.056, 'token_acc': 0.03937008, 'token_acoustic_token': 0.03333333, 'token_text_acc': 0.75384615, 'epoch': 0.04, 'global_step/max_steps': '20/100', 'elapsed_time': '9m 26s', 'remaining_time': '37m 43s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.281605}
+{'loss': 13.55702591, 'grad_norm': 45.18329239, 'learning_rate': 9.17e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.0729927, 'token_acc': 0.02877698, 'token_acoustic_token': 0.02944039, 'token_text_acc': 0.79710145, 'epoch': 0.04, 'global_step/max_steps': '21/100', 'elapsed_time': '9m 54s', 'remaining_time': '37m 15s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.292078}
+{'loss': 13.36473465, 'grad_norm': 50.51031113, 'learning_rate': 9.08e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.28832117, 'token_acc': 0.05755396, 'token_acoustic_token': 0.04963504, 'token_text_acc': 0.78787879, 'epoch': 0.04, 'global_step/max_steps': '22/100', 'elapsed_time': '10m 23s', 'remaining_time': '36m 47s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.297268}
+{'loss': 14.44898033, 'grad_norm': 90.23552704, 'learning_rate': 8.99e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.28571429, 'token_acc': 0.05704698, 'token_acoustic_token': 0.09251701, 'token_text_acc': 0.56521739, 'epoch': 0.05, 'global_step/max_steps': '23/100', 'elapsed_time': '10m 51s', 'remaining_time': '36m 18s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.283255}
+{'loss': 14.46966267, 'grad_norm': 66.06434631, 'learning_rate': 8.89e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.23357664, 'token_acc': 0.03597122, 'token_acoustic_token': 0.05012165, 'token_text_acc': 0.62162162, 'epoch': 0.05, 'global_step/max_steps': '24/100', 'elapsed_time': '11m 19s', 'remaining_time': '35m 51s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.297424}
+{'loss': 13.46333694, 'grad_norm': 53.01464081, 'learning_rate': 8.78e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.07086614, 'token_acc': 0.03875969, 'token_acoustic_token': 0.04593176, 'token_text_acc': 0.8, 'epoch': 0.05, 'global_step/max_steps': '25/100', 'elapsed_time': '11m 47s', 'remaining_time': '35m 22s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.292618}
+{'loss': 12.25028419, 'grad_norm': 70.87890625, 'learning_rate': 8.68e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.26818182, 'token_acc': 0.07142857, 'token_acoustic_token': 0.21151515, 'token_text_acc': 0.65384615, 'epoch': 0.05, 'global_step/max_steps': '26/100', 'elapsed_time': '12m 15s', 'remaining_time': '34m 53s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.282664}
+{'loss': 13.94316483, 'grad_norm': 65.29001617, 'learning_rate': 8.56e-06, 'eos_boundary_top1_acc': 0.75, 'premature_eos_top1_rate': 0.08125, 'token_acc': 0.06790123, 'token_acoustic_token': 0.02083333, 'token_text_acc': 0.76388889, 'epoch': 0.05, 'global_step/max_steps': '27/100', 'elapsed_time': '12m 44s', 'remaining_time': '34m 25s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.288059}
+{'loss': 13.26014233, 'grad_norm': 67.26678467, 'learning_rate': 8.45e-06, 'eos_boundary_top1_acc': 0.5, 'premature_eos_top1_rate': 0.0745614, 'token_acc': 0.07758621, 'token_acoustic_token': 0.02777778, 'token_text_acc': 0.82692308, 'epoch': 0.06, 'global_step/max_steps': '28/100', 'elapsed_time': '13m 12s', 'remaining_time': '33m 57s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.285199}
+{'loss': 14.22650146, 'grad_norm': 60.57531357, 'learning_rate': 8.33e-06, 'eos_boundary_top1_acc': 0.5, 'premature_eos_top1_rate': 0.06976744, 'token_acc': 0.1259542, 'token_acoustic_token': 0.03385013, 'token_text_acc': 0.58064516, 'epoch': 0.06, 'global_step/max_steps': '29/100', 'elapsed_time': '13m 41s', 'remaining_time': '33m 29s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.295742}
+{'loss': 12.63355255, 'grad_norm': 42.0158844, 'learning_rate': 8.21e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.07631579, 'token_acc': 0.11197917, 'token_acoustic_token': 0.07175439, 'token_text_acc': 0.74157303, 'epoch': 0.06, 'global_step/max_steps': '30/100', 'elapsed_time': '14m 9s', 'remaining_time': '33m 1s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.294471}
+{'loss': 12.5, 'grad_norm': 47.38039398, 'learning_rate': 8.08e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.06, 'token_acc': 0.10629921, 'token_acoustic_token': 0.068, 'token_text_acc': 0.72881356, 'epoch': 0.06, 'global_step/max_steps': '31/100', 'elapsed_time': '14m 53s', 'remaining_time': '33m 7s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 28.802739}
+{'loss': 12.81475163, 'grad_norm': 53.66298676, 'learning_rate': 7.95e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.12612613, 'token_acc': 0.14159292, 'token_acoustic_token': 0.05225225, 'token_text_acc': 0.67857143, 'epoch': 0.06, 'global_step/max_steps': '32/100', 'elapsed_time': '16m 29s', 'remaining_time': '35m 2s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 30.909899}
+{'loss': 11.98634529, 'grad_norm': 47.18287277, 'learning_rate': 7.82e-06, 'eos_boundary_top1_acc': 1.0, 'premature_eos_top1_rate': 0.07983193, 'token_acc': 0.11983471, 'token_acoustic_token': 0.08263305, 'token_text_acc': 0.85185185, 'epoch': 0.07, 'global_step/max_steps': '33/100', 'elapsed_time': '18m 5s', 'remaining_time': '36m 44s', 'memory(GiB)': 43.69, 'train_speed(s/it)': 32.889682}

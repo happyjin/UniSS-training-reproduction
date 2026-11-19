@@ -1,0 +1,103 @@
+{
+  "os": "Linux-6.1.168-203.330.amzn2023.x86_64-x86_64-with-glibc2.35",
+  "python": "CPython 3.12.13",
+  "startedAt": "2026-06-28T13:20:05.212009Z",
+  "args": [
+    "--node-ip-address=10.202.0.46",
+    "--node-manager-port=8912",
+    "--object-store-name=/tmp/ray/session_2026-06-28_13-15-30_744985_408/sockets/plasma_store",
+    "--raylet-name=/tmp/ray/session_2026-06-28_13-15-30_744985_408/sockets/raylet",
+    "--redis-address=None",
+    "--metrics-agent-port=6823",
+    "--logging-rotate-bytes=0",
+    "--logging-rotate-backup-count=5",
+    "--runtime-env-agent-port=6827",
+    "--gcs-address=ses-r5subjjqp4cnzsezygt4hxj7sf-head:6379",
+    "--session-name=session_2026-06-28_13-15-30_744985_408",
+    "--temp-dir=/tmp/ray",
+    "--webui=10.202.0.57:8265",
+    "--cluster-id=2f4a7032854df843d49ce922e93f7a37d4b1b382d71b257e6d3c9011",
+    "--worker-id=1d2821361bbc63b20e6ae33fd72d2ca07cd8d9bc18f179e125d1d040",
+    "--worker-launch-time-ms=1782652720736",
+    "--node-id=70497e0b52c4f94900c93afe1d389ae2961f6cceec9a1c70a50336a3",
+    "--runtime-env-hash=-1350649676"
+  ],
+  "program": "/home/ray/anaconda3/lib/python3.12/site-packages/ray/_private/workers/default_worker.py",
+  "email": "ktrain-user@tencent.com",
+  "root": "/local/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/wandb",
+  "host": "k-ff4d0f1a0244a0000",
+  "executable": "/home/ray/anaconda3/bin/python3.12",
+  "cpu_count": 96,
+  "cpu_count_logical": 192,
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "gpu_count": 8,
+  "disk": {
+    "/": {
+      "total": "321449263104",
+      "used": "50464665600"
+    }
+  },
+  "memory": {
+    "total": "2147453689856"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-0b9c55b7-3b88-a5bd-2143-af3b24818dc9"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-1d708325-8e32-5198-910a-0e70e12abdd5"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-4682776b-c98e-7027-e522-1143a17718aa"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-c41d4a35-6ba0-1e19-abdd-a3d4fd64dd86"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-d153ccaa-d171-a051-b4a9-1b64fbe8190b"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-f013f851-d616-f04b-4256-a80293f498ac"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-2c567ece-1402-378e-88cd-067cb25b8b9e"
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "memoryTotal": "85520809984",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-898a35a9-21f7-8b9a-ad9f-f56f49bdc295"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "lgadk68w0mephm0hedh27tx2orqqdddv"
+}

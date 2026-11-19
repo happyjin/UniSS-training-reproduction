@@ -1,0 +1,43 @@
+# 同语言对 manifest：按语言池去重采样（src=四语之一、tgt 为其他三语的翻译行），
+# 按 source_sample_id 去重后取 frac 比例，产出 pos/addr 分片清单并上传 S3。
+# 跑在 i-0aaea3b1ebac8d256（CPU 任务，约 15~25 分钟）。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: samelang-manifest
+  namespace: speech-h200
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeName: hyperpod-i-0aaea3b1ebac8d256
+      containers:
+        - name: manifest
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -eu
+              P=/opt/venv/bin/python
+              $P -c "import lance" 2>/dev/null || $P -m pip install -q pylance
+              $P /opt/samelang/same_lang_to_stage2.py manifest --lang all --frac 0.1 \
+                --out /tmp/samelang_manifest --nshards 24
+              # 幂等：已上传则覆盖（清单是确定性采样，重跑结果一致）
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp /tmp/samelang_manifest \
+                "$S3M" --recursive --only-show-errors
+              echo "MANIFEST_DONE"
+          env:
+            - {name: S3M, value: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/_samelang_manifest/"}
+            - {name: AWS_DEFAULT_REGION, value: "ap-southeast-3"}
+          envFrom:
+            - secretRef: {name: aws-local-creds}
+          resources:
+            requests: {cpu: "32", memory: "64Gi"}
+            limits: {cpu: "32", memory: "64Gi"}
+          volumeMounts:
+            - {name: samelang, mountPath: /opt/samelang}
+      volumes:
+        - name: samelang
+          configMap: {name: samelang-stage2}

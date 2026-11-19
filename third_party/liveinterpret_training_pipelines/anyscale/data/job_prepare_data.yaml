@@ -1,0 +1,87 @@
+# =============================================================================
+# Anyscale Job: 训练数据准备 (FSx → Worker NVMe, tokyo-h100:18)
+# =============================================================================
+# 目的：
+#   1. 在每个 worker 上从 /mnt/fsx/ 读取 TTS/S2S 原始数据并生成 JSONL。
+#   2. 按 TTS:S2S = 5:1 比例合并为 bridge_alignment_joint_v2.jsonl。
+#
+# 所有产物保存在 ${BASE_PATH} 下（/local/speech-language-model/…/）。
+# /mnt/fsx/ 已由 HyperPod LCC 挂载到 tokyo-h100:18 的所有 P5 节点。
+#
+# 使用 tokyo-etl:7（CPU-only on P5 节点）：
+#   - 数据预处理是 CPU/IO 密集型，Ray task 以 num_gpus=0 调度
+#   - 不请求 GPU/EFA 资源 → 可与训练 job 共享 P5 节点
+#   - 产物写入 P5 节点本地 NVMe（/local），后续训练 job 可直接复用
+#
+# Head 节点（m5.8xlarge, 无 GPU, 无 /mnt/fsx）仅负责：
+#   - 校验 AWS 凭证
+#   - dispatch_prepare_data.py 把 prepare_data_worker.sh 分发到各 worker
+#
+# Worker 节点（p5.48xlarge × 3, CPU-only Ray task, NVMe via /local）：
+#   - 从 FSx 直读 TTS/S2S parquet + 音频
+#   - 生成 JSONL → ${BASE_PATH}/datasets/jsonl/
+#
+# SMALL_DATA 模式：
+#   SMALL_DATA=1 时仅处理少量数据用于流程验证（--limit）。
+#   确认无误后将 SMALL_DATA 改为 "0" 进行全量处理。
+#
+
+# =============================================================================
+
+image_uri: anyscale/image/qwen3-omnispeak-d:18
+
+working_dir: .
+excludes:
+  - "models/**"
+  - "data/**"
+  - ".git/**"
+  - ".cache/**"
+  - "output/**"
+  - "**/__pycache__/**"
+  - "*.pt"
+  - "*.ckpt"
+  - "*.safetensors"
+  - "dataset_maker/*.jsonl"
+  - "dataset_maker/*.local.jsonl"
+
+max_retries: 0
+
+# ---------------------------------------------------------------------------
+# tokyo-etl:7 — CPU-only P5 集群 (min=2, 排除 0ad1ae+088f8ce, 挂载 FSx)
+# 数据预处理以 CPU-only Ray task 调度（num_gpus=0），可与训练 job 共享节点
+# 产物写入 /local（hostPath → /opt/dlami/nvme），供后续训练 job 使用
+# ---------------------------------------------------------------------------
+compute_config: tokyo-etl:7
+
+env_vars:
+  USE_RAY: "true"
+  RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES: "1"
+  RAY_DEDUP_LOGS: "0"
+  OMP_NUM_THREADS: "16"
+  DATASET_NUM_PROC: "8"
+  AUTO_ACTIVATE_CONDA: "false"
+  PYTHONUNBUFFERED: "1"
+  # SMALL_DATA=1: 小数据验证（默认）, =0: 全量处理
+  SMALL_DATA: "0"
+  # FORCE_RERUN=1: 强制重跑，仅删除本 job 自己的 jsonl 产物和 marker 重新生成
+  # （datasets/jsonl 下不属于本 job 的其它 jsonl 保留原样）
+  FORCE_RERUN: "1"
+  # 小数据模式参数（仅 SMALL_DATA=1 时生效）
+  SMALL_DATA_LIMIT: "1000"
+  # FSx 挂载根：S3 bucket 镜像挂载点。TTS maker 将样本里的 s3://<bucket>/<key>
+  # 音频路径自动改写为 ${FSX_MOUNT}/<key> 本地路径并校验存在，训练时才能读到原始音频。
+  FSX_MOUNT: "/mnt/fsx"
+
+# ---------------------------------------------------------------------------
+# Entrypoint:
+#   1. head_prepare_data.sh      — 校验 AWS 凭证 + 打印配置摘要
+#   2. dispatch_prepare_data.py  — Ray NodeAffinity 分发 worker 脚本
+#
+# Worker 执行 (prepare_data_worker.sh, 每个 P5 节点独立运行):
+#   a. TTS:  /mnt/fsx/.../task=tts/...            → ${BASE_PATH}/datasets/jsonl/text_to_speech.jsonl
+#   b. S2S:  /mnt/fsx/.../task=speech2speech/...    → ${BASE_PATH}/datasets/jsonl/speech_to_speech_translation.jsonl
+#   c. Merge TTS:S2S = 5:1 → bridge_alignment_joint.jsonl
+# ---------------------------------------------------------------------------
+entrypoint: |
+  bash anyscale/data/head_prepare_data.sh && \
+  python3 anyscale/data/dispatch_prepare_data.py

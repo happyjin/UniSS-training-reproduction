@@ -1,0 +1,126 @@
+# =============================================================================
+# TTS -> streaming_si stage1（S1）FSQ 数据生成：Indexed Job，多机多卡
+# =============================================================================
+# 数据生成是「尴尬并行」：每个 Pod 拿一个 --shard，互不通信、不用 torchrun/EFA。
+# 用 Indexed Job 让 k8s 直接把 $JOB_COMPLETION_INDEX 注入每个 Pod 当 shard 号。
+#
+# 提交前准备（一次性）：
+#   DIR=dataset_maker/streaming_si/tts_stage1_fsq
+#   kubectl -n speech-h200 create configmap tts-stage1-fsq \
+#       --from-file=tts_to_stage1.py=$DIR/tts_to_stage1.py \
+#       --from-file=fsq_encoder.py=$DIR/fsq_encoder.py \
+#       --from-file=run_tts_stage1.sh=$DIR/run_tts_stage1.sh --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl -n speech-h200 apply -f $DIR/k8s_stage1_fsq_job.yaml
+#
+# 改任务只改 env：SOURCE / LANG / NSHARD / parallelism / completions（三者一致）。
+# 进度：kubectl -n speech-h200 logs -l job-name=tts-stage1-fsq-<source> --tail=20 -f
+# 重跑：kubectl -n speech-h200 delete job <name> 后重新 apply（已产出的 parquet 会跳过）
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tts-stage1-fsq-ko-ko
+  namespace: speech-h200
+  labels:
+    app: tts-stage1-fsq
+    source: ko
+spec:
+  completionMode: Indexed
+  parallelism: 8           # 同时跑的 Pod 数（每 Pod 1 卡）
+  completions: 8
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: tts-stage1-fsq
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - key: node-type
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.kubernetes.io/instance-type
+                    operator: In
+                    values: ["ml.p5e.48xlarge", "ml.p5en.48xlarge"]
+      containers:
+        - name: worker
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -eu
+              # 镜像自带 onnxruntime（CPU EP）与 librosa/soundfile/ffmpeg；
+              # FSQ 编码必须走 CUDA EP，故补装 onnxruntime-gpu（版本与已有 ort 对齐）。
+              python3 - <<'PY' || true
+              import onnxruntime as ort, subprocess, sys
+              if 'CUDAExecutionProvider' not in ort.get_available_providers():
+                  subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q',
+                                         f'onnxruntime-gpu=={ort.__version__}'])
+              PY
+              # 镜像缺 boto3（S3 读写）
+              python3 -m pip install -q boto3
+              # Lance 数据源需要 pylance==9.0.1（8.0.1 读嵌套列会失败）
+              if [ "${SOURCE}" = "lance" ]; then python3 -m pip install -q "pylance==9.0.1"; fi
+              cd /opt/tts_stage1_fsq
+              # 每 Pod 1 卡、卡上跑 NPROC_PER_GPU 个进程（解码是 CPU 串行段，
+              # 单进程时 GPU 空转）。全局分片号 = Pod 序号 * NPROC_PER_GPU + 卡内序号。
+              export NSHARD SHARD_OFFSET=$((JOB_COMPLETION_INDEX * NPROC_PER_GPU))
+              export SOURCE LANG OUT_PREFIX FSQ_TOKENIZER TEXT_TOKENIZER
+              exec bash run_tts_stage1.sh "${NPROC_PER_GPU}" 1
+          envFrom:
+            - secretRef:
+                name: aws-local-creds
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: ap-southeast-3
+            - name: SOURCE
+              value: "ko"          # lance|emilia|yodas|wenet|iscslp|ko|hifitts
+            - name: LANG
+              value: "ko"
+            - name: NPROC_PER_GPU
+              value: "3"               # 每卡进程数（解码是 CPU 串行段，3 才能喂满 GPU）
+            - name: NSHARD
+              value: "24"              # 必须 == parallelism * completionsPerPod(即 NPROC_PER_GPU)
+            - name: BS
+              value: "32"
+            - name: TMP_DIR
+              value: "/nvme/tts_stage1_fsq"   # ISCSLP/hifitts 的 sqlite 索引与临时文件放 NVMe
+            # - name: TEXT_TOKENIZER   # 给定时额外写 lengths 列（Qwen 词表目录/s3）
+            #   value: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si_4b/"
+          resources:
+            # requests 压到最小（集群常常只剩零散的 CPU/GPU 碎片），limits 放宽松：
+            # 批处理是 CPU(解码)+GPU(FSQ) 混合负载，抢到多少用多少。
+            requests:
+              cpu: "6"
+              memory: 32Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "32"
+              memory: 128Gi
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: code
+              mountPath: /opt/tts_stage1_fsq
+            - name: nvme
+              mountPath: /nvme
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: code
+          configMap:
+            name: tts-stage1-fsq
+        - name: nvme
+          hostPath:
+            path: /opt/dlami/nvme
+            type: Directory
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi

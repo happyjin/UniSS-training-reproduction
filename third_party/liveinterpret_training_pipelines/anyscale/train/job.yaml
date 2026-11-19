@@ -1,0 +1,134 @@
+# =============================================================================
+# Anyscale Job: Qwen3-OmniSpeak Bridge Alignment (joint task, variant d)
+# =============================================================================
+
+# 提交脚本 (submit_helper.sh) 只在本机做的预检：
+#   1. aws sts get-caller-identity 校验本机 AWS 凭证是否可用（仅预检，不注入）
+#   2. shell 当前已 export 的训练超参白名单（用户单次实验入口）
+# 任务运行时的 AWS 凭证由 Anyscale cloud 的 IAM role 提供（节点 instance
+# profile / 云级 cross-account role），aws CLI 在节点上自动发现，无需 ~/.aws。
+# 详见 anyscale/train/dispatch_train.py (AWS_* 透传) 与 train_joint.sh (aws s3 sync)。
+#
+# 静态集群/框架环境变量（原 anyscale/env.cluster.sh + env.framework.sh）已直接
+# 写入下方 env_vars，不再需要 shell 脚本注入。
+# 路径变量（SOURCE_ROOT 等）仍有派生逻辑，保留在 env.paths.sh 中。
+#
+# 优先级（后到的覆盖前到的）：
+#   pipelines 默认值 < job.yaml env_vars < env.paths.sh < shell export
+# =============================================================================
+
+# Image built via:  anyscale image build -n qwen3-omnispeak-d -f anyscale/Dockerfile
+# Bump the :N suffix when you rebuild.
+#
+# v18 (2026-06-05): FlashAttention 3 (Hopper) added.
+#   - Layer 4b aggregates the cu13 toolchain (nvcc/ptxas/cicc/libdevice all
+#     13.0.88) so PTX ISA emitted by cicc matches what ptxas accepts.
+#   - Layer 4b also creates /usr/local/cuda/lib64 → lib (directory symlink)
+#     so torch.utils.cpp_extension.CUDAExtension's hard-coded
+#     `-L${CUDA_HOME}/lib64` link line resolves -lcudart correctly.
+#   - Layer 5 compiles only the FA3 kernels Qwen3-Omni actually uses:
+#     hdim=128 + bf16 + fwd/bwd + varlen + pack_gqa (5 nvcc targets, ~3 min
+#     compile vs 173 targets / ~42 min for the full kernel matrix).
+#   - Runtime fallback chain in pipelines/bridge_alignment/common_args.sh:
+#     flash_attention_3 → flash_attention_2 → sdpa.
+image_uri: anyscale/image/qwen2_5_3b_omnispeak_d:22
+
+# Project source uploaded as working_dir. The repo root (this directory,
+# `liveinterpret_training_pipelines/`) is the git repo itself; its parent
+# `speech-language-model/` is just a local container folder and is NOT
+# uploaded. Exclude everything heavy: pre-built JSONL/parquet/model dirs/git
+# history. Stays under the 100 MiB gzipped limit.
+working_dir: .
+excludes:
+  - "models/**"
+  - "data/**"
+  - ".git/**"
+  - ".cache/**"
+  - "output/**"
+  - "**/__pycache__/**"
+  - "*.pt"
+  - "*.ckpt"
+  - "*.safetensors"
+  - "dataset_maker/*.jsonl"
+  - "dataset_maker/*.local.jsonl"
+
+max_retries: 0
+
+# -----------------------------------------------------------------------------
+# Compute config — registered version `tokyo-h100-gpu:18`.
+#   Worker node affinity has NO whitelist/blacklist (no nodeAffinity). Anyscale
+#   is free to pick any 2 of the 4 p5.48xlarge nodes.
+#   Chosen over :20 (whitelist 05b89+088f8) because 05b89 had its EFA fully
+#   consumed by a stray `default/efa-server` pod, blocking the 2nd worker.
+#   YAML source-of-truth: anyscale/config/compute_config_h100.yaml
+# To push a new revision: edit compute_config_h100.yaml then run
+#   anyscale compute-config create -n tokyo-h100-gpu -f anyscale/config/compute_config_h100.yaml
+# (and bump the `:N` pin below).
+# -----------------------------------------------------------------------------
+compute_config: tokyo-h100-gpu:18
+
+# -----------------------------------------------------------------------------
+# env_vars:
+#   静态环境变量（原 env.cluster.sh + env.framework.sh 的去重合并）直接写入此处，
+#   不再经由 shell 脚本注入。路径变量（有 SOURCE_ROOT 派生逻辑）仍保留在
+#   env.paths.sh 中，由 entrypoint 的 source 加载。
+#
+#   注意：DEEPSPEED / ATTN_IMPL / TORCH_DTYPE 已在各管线 common_args.sh 中定义，
+#   此处不重复。
+#
+#   命令行 export 的同名变量会覆盖下面的值（anyscale CLI 规则）。
+# -----------------------------------------------------------------------------
+env_vars:
+  # 集群目录
+  # REPO_ROOT 不在此注入，交由 train_joint.sh 基于 SCRIPT_DIR 自动推算（指向
+  # working_dir 代码根目录）；数据/模型路径统一走 SOURCE_ROOT（NVMe）。
+  # REPO_ROOT: "/local/speech-language-model/liveinterpret_training_pipelines"
+  SOURCE_ROOT: "/local/speech-language-model/liveinterpret_training_pipelines" # 默认不修改
+  #训练任务入口
+  TRAIN_SCRIPT: "pipelines/bridge_alignment/train_joint.sh"
+
+  # ---- 训练数据 manifest 来源 (prepare_data 已上传到 S3) ----
+  # 直接粘贴 prepare_data 上传结果的 S3 前缀 (目录或单个 jsonl 文件均可), 训练
+  # worker 会先 aws s3 sync 再读取; 留空则回退到旧的 /local NVMe 路径.
+  # 例: s3://anyscale-poc-v2-bucket-124355679795-ap-northeast-1/datasets/<TASK_NAME>/bridge_alignment_joint/
+  # 验证 S3 manifest 训练链路: 指向 2026-07-15 prepare 任务上传结果.
+  BRIDGE_ALIGNMENT_DATA_S3: "s3://anyscale-poc-v2-bucket-124355679795-ap-northeast-1/datasets/prepare_20260715_034153/bridge_alignment_joint/"
+
+  # --- 集群通信 (来源: env.cluster.sh) ---
+  USE_RAY: "true"
+  RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES: "1"
+  RAY_DEDUP_LOGS: "0"
+  NCCL_DEBUG: "INFO"
+  NCCL_ASYNC_ERROR_HANDLING: "1"
+  NCCL_SOCKET_IFNAME: "^lo,docker0"
+  # --- OOM fix: NCCL timing & distributed init stability ---
+  NCCL_BLOCKING_WAIT: "1"
+  TORCH_DIST_INIT_TIMEOUT: "1800"
+  NCCL_TIMEOUT: "1800"
+  FI_EFA_USE_DEVICE_RDMA: "1"
+  FI_EFA_FORK_SAFE: "1"
+  RDMAV_FORK_SAFE: "1"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  # --- 框架运行时 (来源: env.framework.sh) ---
+  # OMP_NUM_THREADS: "16"
+  TORCH_CUDNN_SDPA_ENABLED: "0"
+  PYTHONUNBUFFERED: "1"
+  # --- Wandb (来源: env.framework.sh) ---
+  WANDB_API_KEY: "local-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"
+  WANDB_BASE_URL: "http://43.173.190.13:8080"
+  WANDB_DISABLED: "false"
+  WANDB_MODE: "online"
+
+# -----------------------------------------------------------------------------
+# Entrypoint chain (head pod orchestrates; actual training runs on workers):
+#   2. dispatch_train.py — pin the swift sft driver to worker[0] via Ray
+#                          NodeAffinity. Reason: head pod is 8CPU-32GB with
+#                          NO GPU; transformers TrainingArguments(bf16=True)
+#                          calls torch.cuda.is_bf16_supported() in
+#                          __post_init__ on the driver process and raises
+#                          if no GPU. Driver only consumes ~2 CPU on the
+#                          worker; ms-swift's --use_ray reserves GPUs for
+#                          the actual training tasks via ray.remote, so the
+#                          16-GPU DP+ZeRO topology is unchanged.
+# -----------------------------------------------------------------------------
+entrypoint: python3 anyscale/train/dispatch_train.py

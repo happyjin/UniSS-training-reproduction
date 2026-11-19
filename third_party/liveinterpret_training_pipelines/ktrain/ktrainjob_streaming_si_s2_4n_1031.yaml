@@ -1,0 +1,181 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# streaming_si S2（S2TT：源音频 -> 译文，训 audio_proj + thinker）·
+# torchrun + DeepSpeed ZeRO-2 · 4 节点 32 卡 · 中/英/日/韩四语 + 噪声负样本
+#
+# 由 ktrain/ktrainjob_streaming_si_s2.yaml 改出（该文件为 2 节点 zh/en 版）：
+#   - numNodes 2 -> 4，白名单换成 4 台目标节点
+#   - 数据加入 data_fortrain_1031version/Speech2Speech/ 的 10 个方向目录
+#     （en2zh zh2en en2ja ja2en en2ko ko2en ja2zh zh2ja ko2zh zh2ko）
+#     与 2 个噪声目录（negative_noise / negative_noise_dns5，tgt_lang 已随机化为
+#     eng/cmn/jpn/kor 均衡分布，2026-10-26 处理），叠加原 machine_0/1/2_shard。
+#   - LEARNING_RATE 2e-4 -> 2.8e-4（全局 batch 768 -> 1536，按 sqrt 缩放）
+#   - 数据加入 4 个同语言对目录（en2en zh2zh ja2ja ko2ko，2026-10-27 由
+#     same_lang_to_stage2.py 从 lance 翻译行构造：目标文本=源转写、目标音频=源音频
+#     的 FSQ、tgt_lang=src_lang）。采样口径：按语言池去重（source_sample_id）后取
+#     池行数 10%，en 904K / zh 2.87M / ja 2.31M / ko 2.01M ≈ 8.09M 行，约占新增后
+#     总量 8%。作用：src==tgt 时模型转写而非翻译（ASR 信号，稳定 encoder）。
+#     S4 若复用同批数据，同语言对在 joint 阶段教端到端语音直通（见 S4 yaml 注释）。
+#
+# 【数据体量（2026-10-26 实测 + 同语言对 8.09M）】合计 ~95.99M 行 / 音频+parquet ~10.9 TB：
+#   Speech2Speech 10 方向 79.06M 行 / 7.79 TB（wav tar）
+#   噪声 26,735 行 / 5.16 GB（negative_noise 4,351 + dns5 22,384）
+#   machine_0/1/2_shard 19.28M 行 / 2.24 TB（原 zh/en 数据，.cosy_version v3）
+#   tar 与 parquet 跨 30 个目录无重名（.cosy_version 元数据文件不参与合并 glob）。
+#   1 epoch @ 全局 1536 ≈ 57,200 步。
+#
+# 【磁盘】每节点需约 10.1 TB NVMe（tar+parquet）+ checkpoint 输出（4B ZeRO-2
+#   --save_on_each_node，每次保存每节点约百 GB 量级），提交前确认每节点空闲 ≥ 11 TB。
+#
+# 【噪声负样本口径】translation 为空 -> encode_st 目标只有 EOS（"噪声 -> 空输出"）；
+#   tgt_lang 随机覆盖 4 语避免模型把单一指令与静默输出绑定。S2 不要求 target_fsq
+#   非空（S4-w/S4 才丢弃空 fsq 行），噪声行在 S2 阶段全部可用。
+#
+# 【链路】submit.sh 同步代码与数据 → launch_train.sh → pipelines/streaming_si/ktrain_entry.sh
+#        （转换路径、合并 15 个数据目录）→ train_st.sh → swift sft（torchrun 4×8）
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_s2_4n_1031.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix si-s2gl \
+#       --task-deadline 'si-p2-wav-dirs=172800'
+#   （10.1 TB 首次同步给 48h 上限；实测约 3 GiB/s，单节点约 1 小时。）
+#
+# 【提交前确认】白名单 4 节点各空闲 8 卡、NVMe ≥ 11 TB、MODEL_PATH/CODE_PREFIX/owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-03e7d1f6d95864e1a", "hyperpod-i-08e3257c716579618",
+                           "hyperpod-i-09a68c454800140d6", "hyperpod-i-0a3ebd369de798192"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  # streaming_si 镜像（ktrain/image/Dockerfile.streaming-si）：v9 + fla / causal-conv1d 加速核 + CosyVoice 声码器依赖，
+  # 0.6B 与 4B 两个变体通用（4B 的线性注意力走加速核）；torch / TE / EFA 与 v9 相同，训练行为不变。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 4                  # = 白名单节点数
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    # 模型：与 S1 用同一份基座（已上传），S2/S1 是并行分支（S3 再 merge S2 thinker + S1 talker）
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/base_streaming_si_4b/"
+
+    SI_STAGE: "s2"
+    # 两个变量按顺序一一对应（第 i 个 parquet 目录配第 i 个 tar 目录）
+    # Speech2Speech 四语 10 方向 + 噪声 2 目录 + 同语言对 4 目录
+    SI_P2_DATA_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise_dns5/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_fsq_v3/
+    SI_P2_WAV_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise_dns5/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_source_wav/
+
+    # 输出子目录 s2_st/；多节点自动 --save_on_each_node。不要设 OUTPUT_DIR。
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si"
+    # SI_EXTRA_ARGS: "--resume_from_checkpoint /nvme/output/__OWNER__/streaming_si/s2_st/.../checkpoint-N"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：源项目单机 4 卡 × 8 = 全局 32；本配置 32 卡 × 每卡 48 = 全局 1536。
+    # -------------------------------------------------------------------------
+    # 按长度分桶（ktrain_entry.sh 给 parquet 加 lengths 列 + swift --group_by_length）：
+    # 随机组 batch 时约 59% 的计算花在 padding 上，分桶后同一 batch 内长度接近。
+    GROUP_BY_LENGTH: "true"
+    # 实测显存（随机组 batch，旧数据）：每卡 8 → 26.9 GiB、每卡 24 → 44.9 GiB，约 18 GiB 固定 + 每 token 槽位约 3 MiB。
+    # 分桶后最坏一批：口径上限 641 token → 约 113 GiB（H200 141 GB），四语数据同样受 SI_MAX_AUDIO_SEC=30 上限约束。
+    PER_DEVICE_TRAIN_BATCH_SIZE: "48"      # 全局 48×32 = 1536，1 epoch ≈ 57,200 步
+    # 学习率按平方根缩放：2e-4×sqrt(1536/768)≈2.83e-4，取 2.8e-4
+    LEARNING_RATE: "2.8e-4"
+    WARMUP_RATIO: "0.03"                   # 约 1700 步
+    # 样本口径（train_st.sh 默认值，这里显式写出）：源音频上限 30s、MAX_LENGTH 768，超长样本丢弃不截断。
+    SI_MAX_AUDIO_SEC: "30"
+    MAX_LENGTH: "768"
+    SI_DROP_OVERLONG: "1"
+    # 每个 rank 都要跑一遍 8790 万行的预处理（约为旧数据 19.3M 的 4.6 倍），4 进程约 80 分钟；
+    # 每节点 8 rank × 12 = 96 进程
+    DATASET_NUM_PROC: "12"
+    # 每卡 48 条，每条要解 FLAC + 算 mel，默认 4 个 worker 可能喂不饱 GPU
+    DATALOADER_NUM_WORKERS: "8"
+    # MAX_STEPS: "100"        # 首次试跑可打开
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

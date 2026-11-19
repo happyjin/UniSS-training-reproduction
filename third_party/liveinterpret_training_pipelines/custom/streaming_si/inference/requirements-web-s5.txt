@@ -1,0 +1,6 @@
+# Install alongside the S5 inference environment.
+Flask>=3.1,<4
+flask-sock>=0.7,<1
+gunicorn>=23,<24
+# Frozen VAD package used by the shared segmented adapter.
+silero-vad==6.2.3

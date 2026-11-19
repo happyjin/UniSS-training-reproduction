@@ -1,0 +1,40 @@
+{
+    "_comment": "= swift/config/zero1.json + 性能剖析。用 DEEPSPEED=ktrain/deepspeed/zero1_prof.json 启用。",
+    "_comment2": "flops_profiler 输出每步的 fwd/bwd FLOPs 与理论 TFLOPs；MFU 需自己拿 TFLOPs/峰值 算。",
+
+    "fp16": { "enabled": "auto", "loss_scale": 0, "loss_scale_window": 1000,
+              "initial_scale_power": 16, "hysteresis": 2, "min_loss_scale": 1 },
+    "bf16": { "enabled": "auto" },
+
+    "zero_optimization": {
+        "stage": 1,
+        "offload_optimizer": { "device": "none", "pin_memory": true },
+        "allgather_partitions": true,
+        "allgather_bucket_size": 2e8,
+        "overlap_comm": false,
+        "reduce_scatter": true,
+        "reduce_bucket_size": 2e8,
+        "contiguous_gradients": true
+    },
+
+    "gradient_accumulation_steps": "auto",
+    "gradient_clipping": "auto",
+    "steps_per_print": 2000,
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+
+    "_comment3": "true 时每一步打印 fwd/bwd/step 的秒数与占比分解。零精度影响，开销极小。",
+    "wall_clock_breakdown": true,
+
+    "_comment4": "DeepSpeed 官方算子的 FLOPs 统计。step=N 表示每 N 个 optimizer step 打印一次。",
+    "_comment5": "⚠️ 它靠 torch hook 逐 module 统计，遇到 Triton/自定义 kernel（liger、fla、causal_conv1d）",
+    "_comment6": "   要么统计不到、要么按公式估算偏差较大。首次跑务必核对量级是否合理。",
+    "flops_profiler": {
+        "enabled": true,
+        "profile_step": 20,
+        "module_depth": -1,
+        "top_modules": 3,
+        "detailed": true,
+        "output_file": null
+    }
+}

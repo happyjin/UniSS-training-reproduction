@@ -1,0 +1,120 @@
+# =============================================================================
+# Anyscale compute config — registered as `tokyo-sync`.
+# =============================================================================
+# Sync-only compute pool: CPU-only on a single pinned P5 H100 node.
+# Purpose: copy model weights + tokenizer from S3 to that node's NVMe (/local)
+#          so the training job won't hit "model path not found" if it lands
+#          on this node.
+#
+# Design notes:
+#   - worker instance_type 192CPU-2048GB-8xH100-80GB = p5.48xlarge, but we
+#     request NO nvidia.com/gpu / NO EFA → pure CPU/IO file copy, GPU stays
+#     free for real training.
+#   - nodeAffinity In [hyperpod-i-0ae359f42a68edf55] WHITELISTS exactly the
+#     node that is missing the model (verified 2026-07-05 via kubectl debug).
+#     The other 3 P5 nodes already have the model, so they are excluded.
+#   - local-nvme hostPath (/opt/dlami/nvme -> /local) is required so the
+#     sync lands on the same NVMe the training reads from.
+#   - GPU tolerations kept so the pod can be scheduled onto the GPU node.
+#
+# Push / update:
+#   anyscale compute-config create -n tokyo-sync -f anyscale/data/sync/compute_config.yaml
+# =============================================================================
+
+cloud: anyscale-poc-tokyo-cloud
+cloud_resource: k8s-aws-v2-ap-northeast-1
+
+head_node:
+  instance_type: 8CPU-32GB
+  advanced_instance_config:
+    spec:
+      containers:
+        - name: ray
+          resources:
+            requests:
+              ephemeral-storage: "80Gi"
+            limits:
+              ephemeral-storage: "80Gi"
+          volumeMounts:
+            - name: shared-efs
+              readOnly: true
+              mountPath: /mnt/shared_storage
+            - name: data-s3
+              mountPath: /data
+      volumes:
+        - name: shared-efs
+          persistentVolumeClaim:
+            readOnly: true
+            claimName: aigc-anyscale-efs-pvc
+        - name: data-s3
+          persistentVolumeClaim:
+            claimName: aigc-anyscale-s3-pvc
+
+worker_nodes:
+  - name: cpu-only-pinned-0ae359
+    instance_type: 192CPU-2048GB-8xH100-80GB
+    # CPU-only on the target P5 node: no GPU/EFA request.
+    min_nodes: 1
+    max_nodes: 1
+    market_type: ON_DEMAND
+    advanced_instance_config:
+      spec:
+        # ------------ NODE WHITELIST ------------
+        # Only the node missing the model gets synced.
+        # ------------------------------------------
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: In
+                      values:
+                        - hyperpod-i-0ae359f42a68edf55
+        volumes:
+          - name: shared-efs
+            persistentVolumeClaim:
+              readOnly: true
+              claimName: aigc-anyscale-efs-pvc
+          - name: data-s3
+            persistentVolumeClaim:
+              claimName: aigc-anyscale-s3-pvc
+          - name: fsx-data
+            persistentVolumeClaim:
+              claimName: aigc-anyscale-fsx-pvc
+          - name: local-nvme
+            hostPath:
+              path: /opt/dlami/nvme
+              type: DirectoryOrCreate
+        containers:
+          - name: ray
+            resources:
+              limits:
+                ephemeral-storage: "200Gi"
+              requests:
+                cpu: 179400m
+                memory: 1898Gi
+                ephemeral-storage: "200Gi"
+            volumeMounts:
+              - name: shared-efs
+                readOnly: true
+                mountPath: /mnt/shared_storage
+              - name: data-s3
+                mountPath: /data
+              - name: fsx-data
+                mountPath: /mnt/fsx
+              - name: local-nvme
+                mountPath: /local
+        tolerations:
+          - key: nvidia.com/gpu
+            effect: NoSchedule
+            operator: Exists
+          - key: node.anyscale.com/accelerator-type
+            value: GPU
+            effect: NoSchedule
+            operator: Equal
+
+enable_cross_zone_scaling: false
+flags:
+  cloud_resource_strategy: availability
+auto_select_worker_config: false

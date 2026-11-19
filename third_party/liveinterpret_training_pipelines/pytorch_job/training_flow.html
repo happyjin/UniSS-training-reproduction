@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyTorchJob(megatron) 训练流程 · NCCL 跨节点故障环节</title>
+<style>
+  body{margin:0;background:#0e1016;color:#e6eaf2;
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 30px;}
+  h1{font-size:20px;color:#fff;margin:0 0 3px;}
+  .sub{color:#8b93a7;font-size:12.5px;margin:0 0 14px;}
+  .note{color:#fbbf24;font-size:11.5px;background:#f59e0b;background-opacity:0.08;
+    border:1px solid #f59e0b;border-opacity:0.4;border-radius:8px;padding:8px 12px;margin:0 0 14px;line-height:1.6;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:#8b93a7;margin-bottom:6px;}
+  .legend .k{display:inline-flex;align-items:center;gap:6px;}
+  .legend .ln{width:26px;height:0;border-top:3px solid;display:inline-block;}
+  svg{width:100%;height:auto;display:block;}
+  text{font-family:inherit;}
+  .card{max-width:1180px;margin:18px auto 0;padding:14px 16px;border-radius:12px;
+    background:#ef4444;background-opacity:0.05;border:1px solid #ef4444;border-opacity:0.4;}
+  .card h2{margin:0 0 8px;font-size:15px;color:#fca5a5;}
+  .card ul{margin:0;padding-left:18px;color:#fecaca;font-size:12.5px;line-height:1.7;}
+  .card code{color:#fde68a;background:#00000040;padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PyTorchJob(megatron) 训练流程 · 一张图看懂（含故障环节）</h1>
+  <p class="sub">列 = 角色 ｜ 从上到下 = 时间顺序 ｜ 竖箭头 = 同一角色的下一步 ｜ 横箭头 = 跨机通讯（EFA）｜ Node0/Node1 各 8 卡：rank0~7 @ Node0、rank8~15 @ Node1</p>
+  <div class="note">⚠ 本图描述的是 <b>pytorch_job/submit.sh</b> 提交 Kubeflow <b>PyTorchJob</b>、在 <b>speech-h200-eks</b> 上跑 <b>ms-swift megatron sft</b> 的真实流程（Qwen-OmniSpeak：thinker 冻结、训 bridge+talker、MoE）。与 anyscale 的 <b>Ray / deepspeed</b> 训练流程无关——仅绘图风格（泳道+横箭头+放大图）借鉴 anyscale/swift_ray_train_flow.html。TP/PP/CP/EP 等并行参数在 <b>common_args_megatron.sh</b> 配置，不在任务 yaml。</div>
+
+  <div class="legend">
+    <span class="k"><i class="ln" style="border-color:#3b82f6"></i>提交/下发(单向)</span>
+    <span class="k"><i class="ln" style="border-color:#e879f9"></i>跨机互认(建进程组)</span>
+    <span class="k"><i class="ln" style="border-color:#a855f7"></i>全局同步(barrier·只传信号)</span>
+    <span class="k"><i class="ln" style="border-color:#34d399"></i>同机 NVLink(TP)</span>
+    <span class="k"><i class="ln" style="border-color:#fb923c"></i>跨机 EFA(DP all-reduce)</span>
+    <span class="k"><i class="ln" style="border-color:#22d3ee"></i>本步 → 下一步</span>
+    <span class="k"><i class="ln" style="border-color:#ef4444"></i>💥 故障点</span>
+  </div>
+
+<svg viewBox="0 0 1160 1420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="aBlue" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#3b82f6"/></marker>
+    <marker id="aPink" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L8,3.5 L0,7 Z" fill="#e879f9"/></marker>
+    <marker id="aGreen" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#34d399"/></marker>
+    <marker id="aOrange" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#fb923c"/></marker>
+    <marker id="aCyan" markerWidth="11" markerHeight="11" refX="7.5" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#22d3ee"/></marker>
+    <marker id="aPurple" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L8,3.5 L0,7 Z" fill="#a855f7"/></marker>
+    <marker id="aRed" markerWidth="11" markerHeight="11" refX="7.5" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#ef4444"/></marker>
+  </defs>
+
+  <!-- ===== 泳道背景 (4 列) ===== -->
+  <rect x="20"  y="60" width="150" height="1340" rx="12" fill="#64748b" fill-opacity="0.06" stroke="#64748b" stroke-opacity="0.5"/>
+  <rect x="180" y="60" width="150" height="1340" rx="12" fill="#f59e0b" fill-opacity="0.06" stroke="#f59e0b" stroke-opacity="0.5"/>
+  <rect x="345" y="60" width="560" height="1340" rx="12" fill="#3b82f6" fill-opacity="0.06" stroke="#3b82f6" stroke-opacity="0.5"/>
+  <rect x="920" y="60" width="220" height="1340" rx="12" fill="#8b5cf6" fill-opacity="0.06" stroke="#8b5cf6" stroke-opacity="0.5"/>
+
+  <!-- 列标题 -->
+  <text x="95" y="42" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="800">🖥️ submit.sh</text>
+  <text x="95" y="55" text-anchor="middle" fill="#8b93a7" font-size="9.5">kubectl 提交侧</text>
+  <text x="255" y="42" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="800">⚙️ launch_train.sh</text>
+  <text x="255" y="55" text-anchor="middle" fill="#8b93a7" font-size="9.5">每个 Pod 内都跑</text>
+  <text x="625" y="42" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="800">🟦 Node0 · 8 GPU（rank0~7）</text>
+  <text x="625" y="55" text-anchor="middle" fill="#8b93a7" font-size="9.5">hyperpod-i-0744d3e6ef1faa209（master）</text>
+  <text x="1030" y="42" text-anchor="middle" fill="#c4b5fd" font-size="12.5" font-weight="800">🟪 Node1 · 8 GPU</text>
+  <text x="1030" y="55" text-anchor="middle" fill="#8b93a7" font-size="9.5">hyperpod-i-0c2145627e71289cf（worker·r8~15）</text>
+
+  <!-- GPU 小方块 -->
+  <g font-size="10" font-weight="700" text-anchor="middle">
+    <rect x="360" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="380" y="86" fill="#6ee7b7">r0</text>
+    <rect x="406" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="426" y="86" fill="#6ee7b7">r1</text>
+    <text x="560" y="86" fill="#64748b" font-size="11">… r2 ~ r6 …</text>
+    <rect x="700" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="720" y="86" fill="#6ee7b7">r7</text>
+    <rect x="935" y="70" width="38" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="954" y="86" fill="#6ee7b7">r8</text>
+    <text x="1030" y="86" fill="#64748b" font-size="10">… r9~14 …</text>
+    <rect x="1088" y="70" width="42" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="1109" y="86" fill="#6ee7b7">r15</text>
+  </g>
+
+  <!-- 生命线 -->
+  <g stroke-dasharray="3,5" stroke-opacity="0.3">
+    <line x1="95"  y1="104" x2="95"  y2="1382" stroke="#64748b"/>
+    <line x1="255" y1="104" x2="255" y2="1382" stroke="#f59e0b"/>
+    <line x1="625" y1="104" x2="625" y2="1382" stroke="#3b82f6"/>
+    <line x1="1030" y1="104" x2="1030" y2="1382" stroke="#8b5cf6"/>
+  </g>
+
+  <!-- ============ ① kubectl 提交 PyTorchJob ============ -->
+  <text x="28" y="134" fill="#fff" font-size="13" font-weight="800">① kubectl 提交 PyTorchJob</text>
+  <rect x="35" y="146" width="120" height="74" rx="7" fill="#64748b" fill-opacity="0.25" stroke="#64748b"/>
+  <text x="95" y="165" text-anchor="middle" fill="#e6eaf2" font-size="9.5">submit.sh 依次：</text>
+  <text x="95" y="179" text-anchor="middle" fill="#9fb8e8" font-size="8.5">update-kubeconfig</text>
+  <text x="95" y="191" text-anchor="middle" fill="#9fb8e8" font-size="8.5">ns 打标(managed)</text>
+  <text x="95" y="203" text-anchor="middle" fill="#9fb8e8" font-size="8.5">apply SA·刷 ConfigMap</text>
+  <text x="95" y="215" text-anchor="middle" fill="#9fb8e8" font-size="8.5">sync_code→S3·apply</text>
+  <line x1="155" y1="183" x2="248" y2="183" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#aBlue)"/>
+  <text x="200" y="175" text-anchor="middle" fill="#93c5fd" font-size="8.5">下发</text>
+  <path d="M95,220 H255" stroke="#3b82f6" stroke-width="2.5" fill="none" marker-end="url(#aBlue)"/>
+  <path d="M95,220 H625" stroke="#3b82f6" stroke-width="2.5" fill="none" marker-end="url(#aBlue)"/>
+  <path d="M95,220 H1030" stroke="#3b82f6" stroke-width="2.5" fill="none" marker-end="url(#aBlue)" stroke-opacity="0.7"/>
+  <text x="520" y="214" text-anchor="middle" fill="#93c5fd" font-size="9.5">下发：镜像 / 硬件(8GPU+32EFA) / 白名单节点 / NCCL 环境变量</text>
+  <text x="520" y="228" text-anchor="middle" fill="#8b93a7" font-size="8">PyTorchJob CRD(kubeflow.org/v1)：Master+Worker 各 1 副本，affinity In: ...209 / ...89cf</text>
+
+  <!-- ============ ② k8s 调度 + 挂载 ============ -->
+  <text x="188" y="270" fill="#fff" font-size="13" font-weight="800">② k8s 调度 + 挂载</text>
+  <rect x="190" y="282" width="130" height="60" rx="7" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b"/>
+  <text x="255" y="301" text-anchor="middle" fill="#fde68a" font-size="9.5">白名单节点调度</text>
+  <text x="255" y="315" text-anchor="middle" fill="#8b93a7" font-size="8.5">Pod 无 AWS 凭证</text>
+  <text x="255" y="327" text-anchor="middle" fill="#8b93a7" font-size="8.5">→ 全走 CSI 驱动</text>
+  <path d="M255,342 V360 H625" stroke="#e879f9" stroke-width="2" fill="none" marker-end="url(#aPink)"/>
+  <path d="M255,342 V360 H1030" stroke="#e879f9" stroke-width="2" fill="none" marker-end="url(#aPink)" stroke-opacity="0.6"/>
+  <text x="640" y="354" text-anchor="middle" fill="#f0abfc" font-size="9">各 Pod 挂载相同卷</text>
+  <rect x="360" y="362" width="440" height="58" rx="8" fill="#3b82f6" fill-opacity="0.1" stroke="#3b82f6" stroke-opacity="0.6"/>
+  <text x="374" y="381" fill="#bfdbfe" font-size="10.5" font-weight="800">每个 Pod 挂载：</text>
+  <text x="374" y="399" fill="#9fb8e8" font-size="9">/s3all(S3 CSI·只读) ｜ /fsx(FSx CSI·只读) ｜ /nvme(hostPath·模型缓存) ｜ /local·/mnt/fsx·/dev/shm16Gi(emptyDir)</text>
+
+  <!-- ============ ③ launch_train.sh 启动 ============ -->
+  <text x="188" y="456" fill="#fff" font-size="13" font-weight="800">③ launch_train.sh 启动（Pod 内）</text>
+  <rect x="190" y="468" width="130" height="58" rx="7" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b"/>
+  <text x="255" y="487" text-anchor="middle" fill="#fde68a" font-size="9.5">两节点各跑一次</text>
+  <text x="255" y="501" text-anchor="middle" fill="#8b93a7" font-size="8.5">trap cleanup EXIT</text>
+  <text x="255" y="513" text-anchor="middle" fill="#8b93a7" font-size="8.5">删 /local/ktrain-code</text>
+  <path d="M255,526 V544 H625" stroke="#e879f9" stroke-width="2" fill="none" marker-end="url(#aPink)"/>
+  <path d="M255,526 V544 H1030" stroke="#e879f9" stroke-width="2" fill="none" marker-end="url(#aPink)" stroke-opacity="0.6"/>
+  <rect x="360" y="546" width="440" height="96" rx="8" fill="#3b82f6" fill-opacity="0.1" stroke="#3b82f6" stroke-opacity="0.6"/>
+  <text x="374" y="565" fill="#bfdbfe" font-size="10.5" font-weight="800">Node0 / Node1 各自：</text>
+  <text x="374" y="583" fill="#9fb8e8" font-size="9">① 模型/tokenizer/manifest 从 /s3all <tspan fill="#fde68a">cp → /nvme</tspan>（已存在则跳过，跨重启持久）</text>
+  <text x="374" y="601" fill="#9fb8e8" font-size="9">② 代码从 /s3all <tspan fill="#fde68a">cp → /local/ktrain-code</tspan>（临时，退出清理）</text>
+  <text x="374" y="619" fill="#9fb8e8" font-size="9">③ 不手动补 .py（QwenOmniSpeakLoader 回退到 custom/qwen_omnispeak/）｜ ④ 建 EFA 符号链接 <tspan fill="#fde68a">libnccl-net.so→libnccl-net-ofi.so</tspan></text>
+  <text x="374" y="637" fill="#9fb8e8" font-size="9">⑤ 设 NCCL 环境变量（NCCL_IB_DISABLE=0 / NCCL_SOCKET_IFNAME=eth0 / FI_PROVIDER=efa）；调 ms-swift megatron sft</text>
+
+  <!-- ============ ④ ms-swift megatron sft 入口 ============ -->
+  <text x="188" y="680" fill="#fff" font-size="13" font-weight="800">④ ms-swift megatron sft 入口</text>
+  <rect x="190" y="692" width="130" height="58" rx="7" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b"/>
+  <text x="255" y="711" text-anchor="middle" fill="#fde68a" font-size="9.5">读 common_args</text>
+  <text x="255" y="725" text-anchor="middle" fill="#8b93a7" font-size="8.5">+ train_joint</text>
+  <text x="255" y="737" text-anchor="middle" fill="#8b93a7" font-size="8.5">torchrun 拉起</text>
+  <path d="M255,750 V768 H625" stroke="#e879f9" stroke-width="2.5" fill="none" marker-start="url(#aPink)" marker-end="url(#aPink)"/>
+  <path d="M255,768 H1030" stroke="#e879f9" stroke-width="2.5" fill="none" marker-start="url(#aPink)" marker-end="url(#aPink)" stroke-opacity="0.7"/>
+  <rect x="360" y="770" width="440" height="56" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="789" fill="#bfdbfe" font-size="10.5" font-weight="800">common_args_megatron.sh + train_joint_megatron.sh</text>
+  <text x="374" y="807" fill="#9fb8e8" font-size="9">torchrun 拉起 16 进程（每节点 8）：rank0~7 @Node0，rank8~15 @Node1</text>
+  <text x="374" y="819" fill="#8b93a7" font-size="8.5">TP/PP/CP/EP 在此配（不在 pytorchjob.yaml）</text>
+
+  <!-- ============ ⑤ init_process_group(NCCL) ============ -->
+  <rect x="360" y="842" width="440" height="58" rx="8" fill="#34d399" fill-opacity="0.1" stroke="#34d399"/>
+  <text x="374" y="861" fill="#6ee7b7" font-size="12" font-weight="800">⑤ init_process_group(NCCL) · ✅ 成功</text>
+  <text x="374" y="880" fill="#a7f3d0" font-size="9.5">bootstrap 端口握手 + 建 default 进程组（16 卡跨机互认）</text>
+  <text x="374" y="894" fill="#8b93a7" font-size="8.5">成功标志：模型能跨 16 rank 构建、Epoch 0 能开始 ⇒ 初始化阶段通畅</text>
+  <path d="M800,866 H1030" stroke="#34d399" stroke-width="2.5" fill="none" marker-end="url(#aGreen)" stroke-opacity="0.7"/>
+  <text x="915" y="860" text-anchor="middle" fill="#6ee7b7" font-size="8.5">Node1 同建组</text>
+
+  <!-- ============ ⑥ 构建 MegatronGPTModel ============ -->
+  <rect x="360" y="916" width="440" height="72" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="935" fill="#bfdbfe" font-size="12" font-weight="800">⑥ 构建 MegatronGPTModel（从 /nvme）</text>
+  <text x="374" y="954" fill="#9fb8e8" font-size="9.5">读 safetensors（mmap，NVMe 可靠）｜ thinker 冻结；bridge+talker 可训练</text>
+  <text x="374" y="972" fill="#8b93a7" font-size="8.5">1054M / 2707M = 38.94% 可训练 ｜ TP=8 切分到同机 8 卡（sequence_parallel）</text>
+  <path d="M800,944 H1030" stroke="#a855f7" stroke-width="2.5" fill="none" marker-start="url(#aPurple)" marker-end="url(#aPurple)"/>
+  <text x="915" y="938" text-anchor="middle" fill="#c4b5fd" font-size="8">全局 barrier</text>
+
+  <!-- ============ ⑦ 数据集准备 + 编码 ============ -->
+  <rect x="360" y="1004" width="440" height="86" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1023" fill="#bfdbfe" font-size="12" font-weight="800">⑦ 数据集准备 + 编码（lazy per-sample）</text>
+  <text x="374" y="1042" fill="#9fb8e8" font-size="9.5">template.encode：文本→分词 ｜ 源音频→特征 ｜ <tspan fill="#fde68a" font-weight="700">目标音频→codec 码(target_audio)</tspan></text>
+  <text x="374" y="1060" fill="#9fb8e8" font-size="9">codec 编码走 CPU（QWEN3_TTS_TOKENIZER_DEVICE=cpu，避开 fork 子进程 CUDA 重初始化）</text>
+  <text x="374" y="1078" fill="#8b93a7" font-size="8.5">缓存 BRIDGE_ALIGNMENT_CODEC_CACHE；日志 [AUDIO_DUR] tgt=... 正常 ⇒ target_audio 流转 OK</text>
+  <path d="M800,1032 H1030" stroke="#a855f7" stroke-width="2.5" fill="none" marker-start="url(#aPurple)" marker-end="url(#aPurple)"/>
+  <text x="915" y="1026" text-anchor="middle" fill="#c4b5fd" font-size="8">全局 barrier</text>
+
+  <!-- ============ ⑧ 建 megatron 并行组 ============ -->
+  <rect x="360" y="1106" width="440" height="80" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1125" fill="#bfdbfe" font-size="12" font-weight="800">⑧ 建 megatron 并行组</text>
+  <text x="374" y="1144" fill="#9fb8e8" font-size="9.5">TP=8：同机 8 卡一组（NVLink）｜ DP/CP/EP：跨机（EFA）</text>
+  <text x="374" y="1162" fill="#9fb8e8" font-size="9">padding_free=false（逐样本 [B,T] 对齐，block-causal mask 1:1）｜ ATTENTION_BACKEND=unfused</text>
+  <path d="M420,1150 H700" stroke="#34d399" stroke-width="2.5" fill="none" marker-end="url(#aGreen)"/>
+  <text x="560" y="1146" text-anchor="middle" fill="#6ee7b7" font-size="8.5">TP 组·NVLink</text>
+  <path d="M800,1132 H1030" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#aOrange)"/>
+  <text x="912" y="1126" text-anchor="middle" fill="#fdba74" font-size="8.5">DP 组·跨机 EFA</text>
+
+  <!-- ============ ⑨ 训练循环 ============ -->
+  <text x="360" y="1218" fill="#fff" font-size="14" font-weight="800">⑨ 训练循环 · Epoch 0（每步重复；DP 划分已在 ⑧ 定好）</text>
+  <rect x="345" y="1230" width="470" height="150" rx="14" fill="none" stroke="#64748b" stroke-opacity="0.5" stroke-dasharray="6,5"/>
+
+  <rect x="360" y="1244" width="440" height="34" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1266" fill="#bfdbfe" font-size="10.5" font-weight="800">1 取 batch（逐样本收集 codec 字段 [B,T]/[B,T,G]）</text>
+  <rect x="360" y="1282" width="440" height="34" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1304" fill="#bfdbfe" font-size="10.5" font-weight="800">2 前向（thinker/bridge/talker，TP 同机；禁 torch.compile）</text>
+  <rect x="360" y="1320" width="440" height="34" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1342" fill="#bfdbfe" font-size="10.5" font-weight="800">3 反向（MoE 分组 GEMM 运行时执行）</text>
+  <line x1="580" y1="1354" x2="580" y2="1380" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 故障区：OOM 发生在未切分 talker/code-predictor 前向（长 codec 序列激活爆炸），NCCL 仅次生 -->
+  <rect x="356" y="1356" width="448" height="56" rx="10" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-width="2"/>
+  <text x="372" y="1378" fill="#fca5a5" font-size="11" font-weight="800">💥 故障点 = OOM（未切分 talker/code-predictor 长 codec 序列）</text>
+  <text x="372" y="1396" fill="#fecaca" font-size="9">rank8~15 在 step 内 forward 触发 CUDA OOM；NCCL Connection refused 仅次生 → 见下方放大图</text>
+  <path d="M800,1382 H1030" stroke="#ef4444" stroke-width="2.5" fill="none" marker-end="url(#aRed)"/>
+
+  <!-- Node1 训练区示意 -->
+  <rect x="932" y="1230" width="196" height="184" rx="10" fill="#8b5cf6" fill-opacity="0.05" stroke="#8b5cf6" stroke-opacity="0.35" stroke-dasharray="5,5"/>
+  <text x="1030" y="1256" text-anchor="middle" fill="#c4b5fd" font-size="11" font-weight="700">Node1（r8~15）</text>
+  <text x="1030" y="1274" text-anchor="middle" fill="#8b93a7" font-size="9">与 Node0 同跑</text>
+  <text x="1030" y="1288" text-anchor="middle" fill="#8b93a7" font-size="9">1~3 步 + 5~6 步</text>
+  <text x="1030" y="1312" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="700">💥 forward 阶段</text>
+  <text x="1030" y="1328" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="700">CUDA OOM 爆显存</text>
+  <text x="1030" y="1352" text-anchor="middle" fill="#fecaca" font-size="8.5">codec_len ~13600</text>
+  <text x="1030" y="1368" text-anchor="middle" fill="#fecaca" font-size="8.5">激活不被 TP 除</text>
+  <text x="1030" y="1388" text-anchor="middle" fill="#fecaca" font-size="8.5">无重算 → 140G 爆</text>
+
+  <!-- 阶段分隔线 -->
+  <g stroke="#2a2f3d" stroke-opacity="0.6" stroke-dasharray="2,4">
+    <line x1="25" y1="240" x2="1135" y2="240"/>
+    <line x1="25" y1="838" x2="1135" y2="838"/>
+  </g>
+</svg>
+
+<!-- ================= 故障放大图 ================= -->
+<h1 style="margin-top:36px;">🔬 故障放大：卡在 ⑨-4 跨机 EFA 梯度同步（DP all-reduce）</h1>
+<p class="sub">
+  报错发生在 <b style="color:#cbd5e1">训练循环内的跨节点 NCCL 集合通讯</b>，不是初始化阶段（⑤ init 已成功、模型跨 16 rank 构建、Epoch 0 已开始）｜
+  <span style="color:#6ee7b7">绿色 = 正常（跨机梯度同步成功）</span> ｜
+  <span style="color:#fca5a5">红色 = 故障（Connection refused）</span>
+</p>
+
+<svg viewBox="0 0 1160 660" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="dGreen" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#34d399"/></marker>
+    <marker id="dRed" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#ef4444"/></marker>
+    <marker id="dOrange" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#fb923c"/></marker>
+  </defs>
+
+  <!-- 左：正常 -->
+  <rect x="20" y="20" width="545" height="540" rx="12" fill="#34d399" fill-opacity="0.05" stroke="#34d399" stroke-opacity="0.4" stroke-dasharray="7,5"/>
+  <text x="292" y="48" text-anchor="middle" fill="#6ee7b7" font-size="15" font-weight="800">正常流程 ✓（跨机 EFA 同步）</text>
+  <text x="150" y="76" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="800">🟦 Node0（r0~7 · ...209）</text>
+  <text x="435" y="76" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="800">🟪 Node1（r8~15 · ...89cf）</text>
+  <line x1="150" y1="86" x2="150" y2="540" stroke="#6ee7b7" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+  <line x1="435" y1="86" x2="435" y2="540" stroke="#6ee7b7" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+
+  <rect x="60" y="110" width="180" height="60" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="150" y="130" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">本地反向完·得梯度</text>
+  <text x="150" y="146" text-anchor="middle" fill="#8b93a7" font-size="9">TP 组内 8 卡先</text>
+  <text x="150" y="158" text-anchor="middle" fill="#8b93a7" font-size="9">NVLink 环形累加</text>
+
+  <rect x="345" y="110" width="180" height="60" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="435" y="130" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">本地反向完·得梯度</text>
+  <text x="435" y="146" text-anchor="middle" fill="#8b93a7" font-size="9">Node1 的 8 卡</text>
+  <text x="435" y="158" text-anchor="middle" fill="#8b93a7" font-size="9">先 NVLink 环形累加</text>
+
+  <line x1="150" y1="170" x2="150" y2="210" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGreen)"/>
+  <line x1="435" y1="170" x2="435" y2="210" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGreen)"/>
+
+  <path d="M240,220 H345" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#dOrange)"/>
+  <path d="M435,250 H330" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#dOrange)" stroke-opacity="0.7"/>
+  <text x="292" y="214" text-anchor="middle" fill="#fdba74" font-size="9">Node0→Node1 梯度块</text>
+  <text x="292" y="244" text-anchor="middle" fill="#fdba74" font-size="9">Node1→Node0 梯度块</text>
+
+  <rect x="150" y="300" width="285" height="54" rx="8" fill="#34d399" fill-opacity="0.14" stroke="#34d399"/>
+  <text x="292" y="322" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="800">✓ 16 卡梯度全部平均 → 继续训练</text>
+  <text x="292" y="340" text-anchor="middle" fill="#8b93a7" font-size="9">跨机 NCCL 端口可达、握手成功</text>
+  <path d="M150,248 V290 H292" stroke="#34d399" stroke-width="2" stroke-dasharray="6,4" fill="none"/>
+  <path d="M435,278 V290 H300" stroke="#34d399" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#dGreen)"/>
+
+  <text x="292" y="400" text-anchor="middle" fill="#a7f3d0" font-size="10.5">依赖：跨机 EFA/RDMA 链路可达 + NCCL 监听端口开放</text>
+  <text x="292" y="420" text-anchor="middle" fill="#8b93a7" font-size="9">即 ...209 ↔ ...89cf 两节点之间的网络连通性</text>
+
+  <!-- 右：故障 -->
+  <rect x="595" y="20" width="545" height="540" rx="12" fill="#ef4444" fill-opacity="0.05" stroke="#ef4444" stroke-opacity="0.45"/>
+  <text x="867" y="48" text-anchor="middle" fill="#fca5a5" font-size="15" font-weight="800">故障流程 ✗（Connection refused）</text>
+  <text x="725" y="76" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="800">🟦 Node0（r0~7 · ...209 · 10.1.2.223）</text>
+  <text x="1010" y="76" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="800">🟪 Node1（r12~15 · ...89cf）</text>
+  <line x1="725" y1="86" x2="725" y2="540" stroke="#fca5a5" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+  <line x1="1010" y1="86" x2="1010" y2="540" stroke="#fca5a5" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+
+  <rect x="635" y="110" width="180" height="54" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="725" y="130" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">本地反向完·得梯度</text>
+  <text x="725" y="146" text-anchor="middle" fill="#8b93a7" font-size="9">等待跨机同步</text>
+  <text x="725" y="158" text-anchor="middle" fill="#8b93a7" font-size="9">master 进程存活·RESTARTS=0</text>
+
+  <rect x="920" y="110" width="180" height="54" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="1010" y="130" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">发起跨机连接</text>
+  <text x="1010" y="146" text-anchor="middle" fill="#8b93a7" font-size="9">connect Node0</text>
+  <text x="1010" y="158" text-anchor="middle" fill="#fca5a5" font-size="9">10.1.2.223:56853</text>
+
+  <path d="M1010,164 H725" stroke="#ef4444" stroke-width="2.5" fill="none" marker-end="url(#dRed)"/>
+  <text x="867" y="158" text-anchor="middle" fill="#fca5a5" font-size="9">connect refused ×35</text>
+
+  <rect x="635" y="206" width="180" height="70" rx="8" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444"/>
+  <text x="725" y="228" text-anchor="middle" fill="#fca5a5" font-size="10.5" font-weight="700">master 端口不可达</text>
+  <text x="725" y="244" text-anchor="middle" fill="#fecaca" font-size="9">NCCL 监听 socket 已不在</text>
+  <text x="725" y="258" text-anchor="middle" fill="#fecaca" font-size="9">（连接中途丢失后未重监听）</text>
+  <text x="725" y="270" text-anchor="middle" fill="#fecaca" font-size="9">master 卡在等集合通讯</text>
+
+  <rect x="920" y="206" width="180" height="70" rx="8" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444"/>
+  <text x="1010" y="228" text-anchor="middle" fill="#fca5a5" font-size="10.5" font-weight="700">DistBackendError</text>
+  <text x="1010" y="244" text-anchor="middle" fill="#fecaca" font-size="9">NCCL error · remote process</text>
+  <text x="1010" y="258" text-anchor="middle" fill="#fecaca" font-size="9">exited / network error</text>
+  <text x="1010" y="270" text-anchor="middle" fill="#fecaca" font-size="9">worker CrashLoopBackOff</text>
+
+  <rect x="660" y="320" width="335" height="80" rx="8" fill="#ef4444" fill-opacity="0.1" stroke="#ef4444"/>
+  <text x="827" y="344" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="800">✗ 训练卡死，首个 loss 永不产出</text>
+  <text x="827" y="364" text-anchor="middle" fill="#fecaca" font-size="9">两次独立 curated 提交都在同一对节点复现</text>
+  <text x="827" y="380" text-anchor="middle" fill="#fecaca" font-size="9">⇒ 稳定故障，非偶发网络抖动</text>
+  <text x="827" y="396" text-anchor="middle" fill="#fecaca" font-size="9">master 空转 / worker 循环重启</text>
+
+  <rect x="595" y="420" width="545" height="120" rx="8" fill="#000000" fill-opacity="0.35" stroke="#64748b" stroke-opacity="0.5"/>
+  <text x="612" y="444" fill="#fde68a" font-size="9.5" font-family="monospace">NCCL WARN socketPollConnect: connect to</text>
+  <text x="612" y="460" fill="#fde68a" font-size="9.5" font-family="monospace">  10.1.2.223&lt;56853&gt; returned Connection refused,</text>
+  <text x="612" y="476" fill="#fde68a" font-size="9.5" font-family="monospace">  exceeded error retry count after 35 attempts</text>
+  <text x="612" y="498" fill="#fca5a5" font-size="9.5" font-family="monospace">[rank12]: torch.distributed.DistBackendError:</text>
+  <text x="612" y="514" fill="#fca5a5" font-size="9.5" font-family="monospace">  NCCL error ... socketPollConnect: connect to</text>
+  <text x="612" y="530" fill="#fca5a5" font-size="9.5" font-family="monospace">  10.1.2.223&lt;56853&gt; returned Connection refused</text>
+
+  <!-- 底部根因/处理 -->
+  <rect x="20" y="570" width="1120" height="80" rx="10" fill="#ef4444" fill-opacity="0.07" stroke="#ef4444" stroke-opacity="0.5"/>
+  <text x="580" y="596" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="800">🔧 根因 = `...209`↔`...89cf` 跨节点 EFA/RDMA 链路掉线（infra/网络层）</text>
+  <text x="580" y="618" text-anchor="middle" fill="#fecaca" font-size="10.5">日志实锤：报错 IP 是 master pod IP（10.1.0.129，非节点 IP 10.1.5.86）；master 正确绑定 eth0 pod IP、EFA 正常（NET/Libfabric/GDRDMA）。</text>
+  <text x="580" y="638" text-anchor="middle" fill="#a7f3d0" font-size="10.5">可见 `Connection refused` 是 CrashLoopBackOff 死锁次生现象（worker 无法重连卡死的 master）。→ 故障时刻两节点曾同时 NotReady；反馈 infra 查跨节点 EFA/RDMA 链路；已加自愈 healer.sh 自动续跑；白名单固定不动。</text>
+</svg>
+
+</div>
+
+<!-- 故障结论卡片 -->
+<div class="card">
+  <h2>💥 故障结论（一句话定位）</h2>
+  <ul>
+    <li><b>发生在哪个环节：</b>⑨ 训练循环内 <b>step 的 forward 阶段</b>——未切分的 <b>talker 主干 + code-predictor</b>（replicated 子模块）处理<b>长 codec 序列</b>（<code>codec_len</code> 实测高达 ~13600，远超 <code>MAX_LENGTH=4096</code>），激活显存 ∝ 序列长度、不被 TP 除、又无激活重算 → 单卡 140G 在 <code>F.linear</code> 处 <code>torch.OutOfMemoryError: CUDA out of memory</code>。不是 NCCL 初始化/建组问题（init 成功、模型跨 16 rank 构建、<code>Epoch 0</code> 已开始、worker 正常 <code>[AUDIO_DUR]</code> 编码）。</li>
+    <li><b>失败顺序（全量日志实锤）：</b><b>先 OOM，再 NCCL <code>Connection refused</code> 次生级联</b>。rank8~15 在第一个 step 内逐一 OOM 退出后，其余存活 rank 与死 rank 做 NCCL 集合通讯（<code>add_version_to_work_dir → dist.broadcast_object_list</code> / 首次 DP all-reduce）时连不上已退出 rank 的 socket → <code>Connection refused</code>。这是 rank 死后的连锁，<b>不是根因、不存在死锁</b>（master 不「卡死」、worker 不「CrashLoopBackOff 死锁」，只是重连已死 peer 失败）。</li>
+    <li><b>并行配置本身正确：</b>TP=8 / PP=1 / CP=1 / EP=1 / DP=2 完全符合 2×8 H200（16 GPU），thinker（MoE）正确走 TP=8 切分 + 全量激活重算，显存受控。「模型切分后显存应该很少」对 thinker 成立；问题出在<b>未切分的 replicated talker/code-predictor 子模块缺激活重算</b>。</li>
+    <li><b>报错原文（OOM）：</b><code>[rank14]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.59 GiB. GPU 6 has a total capacity of 139.80 GiB of which 1.19 GiB is free</code> → traceback 经 <code>mcore_talker_loss.compute_codec_loss → talker.code_predictor.forward_teacher_forced → modeling_qwen_omnispeak.Qwen3CodePredictorTransformer.forward → transformers/qwen3 MLP down_proj → F.linear</code>。</li>
+    <li><b>节点/网络无关：</b>白名单两节点（<code>...209</code>/<code>...89cf</code>）健康、EFA/RDMA 链路正常；NCCL <code>Connection refused</code> 是 rank 死后的次生现象，非链路掉线、非 IP 错配、非 EFA 未生效。<b>白名单固定不动</b>，不靠换节点规避。</li>
+    <li><b>诊断纪律（按用户指令）：</b>一律<b>下载全量日志到本地</b>分析，禁止用命令过滤 cherry-pick、禁止先射箭再画靶；临时自愈/监控脚本（<code>healer.sh</code>/<code>monitor.sh</code>）已删除。此前误把 NCCL <code>Connection refused</code> 当根因、造了「节点 NotReady + 死锁 + healer」整套错误结论，已回滚更正。</li>
+    <li><b>修复：</b>对两个 replicated 前向加 <code>torch.utils.checkpoint.checkpoint(..., use_reentrant=False)</code> 激活重算（数学等价、梯度不变），把峰值激活显存与序列长度解耦：① <code>custom/qwen_omnispeak/mcore_talker_loss.py</code> 的 talker 主干前向；② <code>custom/qwen_omnispeak/modeling_qwen_omnispeak.py</code> 的 <code>Qwen3TtsCodePredictor.forward_teacher_forced</code> 内 code-predictor 前向。已 <code>sync_code</code> + 重新提交验证，待确认越过 OOM 点、产出首个 loss。</li>
+  </ul>
+</div>
+
+</body>
+</html>

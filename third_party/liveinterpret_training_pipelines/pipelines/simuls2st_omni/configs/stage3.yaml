@@ -1,0 +1,63 @@
+# Stage 3: Streaming trajectory finetuning
+#
+# The Stage 2 adapter is merged into the base weights, then fresh LoRA r8 goes
+# on both thinker and talker (the talker's list includes `thinker_to_talker_proj`,
+# the bridge layer; omitting it would leave the streaming alignment unlearnable).
+# Training uses the teacher trajectories with a uniformly sampled latency
+# multiplier m in {1..12}.
+#
+# Paper budget: 1 epoch, 176 A800 GPU-hours, lr 1e-4 -> 1e-5.
+
+stage: stage3
+
+model:
+  path: models/SimulS2ST-Omni/offline
+  dtype: bf16
+  # Stage 2 output; its adapters are merged into the base before the new LoRA
+  # is attached, matching how the released adapter was produced.
+  merge_adapters_from: outputs/checkpoint/stage2_multitask_full
+
+data:
+  kind: streaming
+  root: data/s2st/dualcodec_rechunk_d_2kh
+  si_root: data/si_s4/audio
+  directions: [en2zh, zh2en]
+  # Config D write groups on a 1s source grid. All twelve m settings come from
+  # one copy of the data: merging m adjacent 1000ms windows is integer arithmetic
+  # on window_idx.
+  latency_multipliers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  # 30s of target speech at 12.5 codes/s.
+  max_codes: 375
+  eval_samples: 512
+  seed: 42
+
+sampler:
+  # Talker rows are long here: every chunk contributes one mask slot per thinker
+  # token on top of its codes, so the budget is lower than Stage 2's.
+  token_budget: 6144
+  max_batch_size: 16
+
+training:
+  output_dir: outputs/checkpoint/stage3_streaming
+  num_train_epochs: 1
+  learning_rate: 1.0e-4
+  # Paper anneals 1e-4 -> 1e-5, a 10x decay.
+  lr_scheduler_type: cosine_with_min_lr
+  min_lr_ratio: 0.1
+  warmup_ratio: 0.02
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  gradient_accumulation_steps: 1
+  bf16: true
+  gradient_checkpointing: false
+  logging_steps: 20
+  # Stage 2 standing practice: a crash loses <= ~4 minutes of work.
+  save_steps: 200
+  save_total_limit: 3
+  eval_steps: 2000
+  dataloader_num_workers: 8
+  seed: 42
+  max_seq_len: 4096
+  max_talker_seq_len: 4096
+  # Must exceed sampler.token_budget plus per-row control overhead.
+  max_talker_tokens_per_batch: 16384

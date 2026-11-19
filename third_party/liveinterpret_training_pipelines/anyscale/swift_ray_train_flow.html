@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>初始化 → 训练 · 竖向泳道图</title>
+<style>
+  body{margin:0;background:#0e1016;color:#e6eaf2;
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 30px;}
+  h1{font-size:20px;color:#fff;margin:0 0 3px;}
+  .sub{color:#8b93a7;font-size:12.5px;margin:0 0 14px;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:#8b93a7;margin-bottom:6px;}
+  .legend .k{display:inline-flex;align-items:center;gap:6px;}
+  .legend .ln{width:26px;height:0;border-top:3px solid;display:inline-block;}
+  svg{width:100%;height:auto;display:block;}
+  text{font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>初始化 → 训练 · 一张图看懂</h1>
+  <p class="sub">列 = 角色 ｜ 从上到下 = 时间顺序 ｜ 竖箭头 = 同一角色的下一步 ｜ 横箭头 = 跨卡通讯 ｜ Node0 详画每步内部小流程，Node1 仅作示意（跨机对端）</p>
+  <div class="legend">
+    <span class="k"><i class="ln" style="border-color:#3b82f6"></i>调度下发(单向)</span>
+    <span class="k"><i class="ln" style="border-color:#e879f9"></i>全员会合</span>
+    <span class="k"><i class="ln" style="border-color:#a855f7"></i>全局同步(barrier/broadcast·只传信号或元信息)</span>
+    <span class="k"><i class="ln" style="border-color:#34d399"></i>同机 NVLink</span>
+    <span class="k"><i class="ln" style="border-color:#fb923c"></i>跨机 EFA</span>
+    <span class="k"><i class="ln" style="border-color:#22d3ee"></i>本步 → 下一步</span>
+  </div>
+
+<svg viewBox="0 0 1160 1782" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="aBlue" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#3b82f6"/></marker>
+    <marker id="aPink" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L8,3.5 L0,7 Z" fill="#e879f9"/></marker>
+    <marker id="aGreen" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#34d399"/></marker>
+    <marker id="aOrange" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#fb923c"/></marker>
+    <marker id="aCyan" markerWidth="11" markerHeight="11" refX="7.5" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#22d3ee"/></marker>
+    <marker id="aGray" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b93a7"/></marker>
+    <marker id="aPurple" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L8,3.5 L0,7 Z" fill="#a855f7"/></marker>
+  </defs>
+
+  <!-- ===== 泳道背景 (4 列) ===== -->
+  <rect x="20"  y="60" width="150" height="1722" rx="12" fill="#64748b" fill-opacity="0.06" stroke="#64748b" stroke-opacity="0.5"/>
+  <rect x="180" y="60" width="150" height="1722" rx="12" fill="#f59e0b" fill-opacity="0.06" stroke="#f59e0b" stroke-opacity="0.5"/>
+  <rect x="345" y="60" width="560" height="1722" rx="12" fill="#3b82f6" fill-opacity="0.06" stroke="#3b82f6" stroke-opacity="0.5"/>
+  <rect x="920" y="60" width="220" height="1722" rx="12" fill="#8b5cf6" fill-opacity="0.06" stroke="#8b5cf6" stroke-opacity="0.5"/>
+
+  <!-- 列标题 -->
+  <text x="95" y="42" text-anchor="middle" fill="#cbd5e1" font-size="13.5" font-weight="800">🖥️ Head</text>
+  <text x="95" y="55" text-anchor="middle" fill="#8b93a7" font-size="10">0 GPU·调度</text>
+  <text x="255" y="42" text-anchor="middle" fill="#fbbf24" font-size="13.5" font-weight="800">⚙️ 主控进程</text>
+  <text x="255" y="55" text-anchor="middle" fill="#8b93a7" font-size="10">钉 worker0·0 GPU</text>
+  <text x="625" y="42" text-anchor="middle" fill="#93c5fd" font-size="13.5" font-weight="800">🟦 Node0 · 8 GPU（详画：rank 0~7）</text>
+  <text x="625" y="55" text-anchor="middle" fill="#8b93a7" font-size="10">每一步内部小流程展开</text>
+  <text x="1030" y="42" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="800">🟪 Node1</text>
+  <text x="1030" y="55" text-anchor="middle" fill="#8b93a7" font-size="10">示意·rank 8~15</text>
+
+  <!-- GPU 小方块示意 -->
+  <g font-size="10" font-weight="700" text-anchor="middle">
+    <rect x="360" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="380" y="86" fill="#6ee7b7">r0</text>
+    <rect x="406" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="426" y="86" fill="#6ee7b7">r1</text>
+    <text x="560" y="86" fill="#64748b" font-size="11">… r2 ~ r6 …</text>
+    <rect x="700" y="70" width="40" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="720" y="86" fill="#6ee7b7">r7</text>
+    <rect x="935" y="70" width="38" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="954" y="86" fill="#6ee7b7">r8</text>
+    <text x="1030" y="86" fill="#64748b" font-size="10">… r9~14 …</text>
+    <rect x="1088" y="70" width="42" height="24" rx="5" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/><text x="1109" y="86" fill="#6ee7b7">r15</text>
+  </g>
+
+  <!-- 生命线 -->
+  <g stroke-dasharray="3,5" stroke-opacity="0.3">
+    <line x1="95"  y1="104" x2="95"  y2="1762" stroke="#64748b"/>
+    <line x1="255" y1="104" x2="255" y2="1762" stroke="#f59e0b"/>
+    <line x1="625" y1="104" x2="625" y2="1762" stroke="#3b82f6"/>
+    <line x1="1030" y1="104" x2="1030" y2="1762" stroke="#8b5cf6"/>
+  </g>
+
+  <!-- ============ ① Head 定规模、拉起主控 ============ -->
+  <text x="30" y="138" fill="#fff" font-size="13" font-weight="800">① 定规模</text>
+  <rect x="35" y="150" width="120" height="44" rx="7" fill="#64748b" fill-opacity="0.25" stroke="#64748b"/>
+  <text x="95" y="169" text-anchor="middle" fill="#e6eaf2" font-size="10">查活着的GPU数</text>
+  <text x="95" y="183" text-anchor="middle" fill="#8b93a7" font-size="9">16 卡 · 2 节点</text>
+  <line x1="155" y1="172" x2="248" y2="172" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#aBlue)"/>
+  <text x="202" y="164" text-anchor="middle" fill="#93c5fd" font-size="9">拉起</text>
+  <line x1="95" y1="194" x2="95" y2="214" stroke="#3b82f6" stroke-width="2"/>
+  <path d="M95,214 H625" stroke="#3b82f6" stroke-width="2.5" fill="none" marker-end="url(#aBlue)"/>
+  <path d="M95,214 H1030" stroke="#3b82f6" stroke-width="2.5" fill="none" marker-end="url(#aBlue)" stroke-opacity="0.7"/>
+  <text x="500" y="208" text-anchor="middle" fill="#93c5fd" font-size="10">下发：开几个进程·每节点几卡·插件代码</text>
+
+  <!-- ============ ② 主控拉起 16 进程 + 身份 ============ -->
+  <text x="188" y="272" fill="#fff" font-size="13" font-weight="800">② 拉起 16 进程</text>
+  <rect x="190" y="284" width="130" height="44" rx="7" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b"/>
+  <text x="255" y="303" text-anchor="middle" fill="#fde68a" font-size="10">创建 16 个进程</text>
+  <text x="255" y="317" text-anchor="middle" fill="#8b93a7" font-size="9">每进程绑 1 张卡</text>
+  <!-- 双向粉色箭头：主控 ↔ 16 卡建联（跨机互认 · 建 default 进程组） -->
+  <path d="M255,328 V348 H625" stroke="#e879f9" stroke-width="2.5" fill="none" marker-start="url(#aPink)" marker-end="url(#aPink)"/>
+  <path d="M255,348 H1030" stroke="#e879f9" stroke-width="2.5" fill="none" marker-start="url(#aPink)" marker-end="url(#aPink)" stroke-opacity="0.7"/>
+  <text x="640" y="342" text-anchor="middle" fill="#f0abfc" font-size="9.5" font-weight="700">跨机互认 · 同步各卡地址+编号</text>
+  <text x="640" y="356" text-anchor="middle" fill="#8b93a7" font-size="8">建 default 进程组 · 16 卡互认 · 仅此一次</text>
+
+
+  <!-- ============ ③ 加载模型配置 ============ -->
+  <rect x="360" y="384" width="440" height="70" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="403" fill="#bfdbfe" font-size="12" font-weight="800">③ 加载模型配置</text>
+  <!-- 内部小流程 -->
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="412" width="120" height="32" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="434" y="427" fill="#bfdbfe">读 config.json</text><text x="434" y="439" fill="#8b93a7" font-size="8">结构/超参</text>
+    <rect x="512" y="412" width="130" height="32" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="577" y="427" fill="#bfdbfe">目录无 .py → 用本地配置</text>
+    <rect x="660" y="412" width="128" height="32" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="724" y="427" fill="#bfdbfe">实例化 Config 对象</text><text x="724" y="439" fill="#8b93a7" font-size="8">含各子模块超参</text>
+    <path d="M494,428 H510" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+    <path d="M642,428 H658" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+  </g>
+  <line x1="580" y1="454" x2="580" y2="478" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ④ 加载模型权重 ============ -->
+  <rect x="360" y="480" width="440" height="86" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="499" fill="#bfdbfe" font-size="12" font-weight="800">④ 加载模型权重（构建网络 + 填权重）</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="508" width="96" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="422" y="523" fill="#bfdbfe">按 Config 建网络</text><text x="422" y="535" fill="#8b93a7" font-size="8">thinker/bridge/talker</text>
+    <rect x="482" y="508" width="96" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="530" y="523" fill="#bfdbfe">分片读 safetensors</text><text x="530" y="535" fill="#8b93a7" font-size="8">多个 shard</text>
+    <rect x="590" y="508" width="96" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="638" y="523" fill="#bfdbfe">权重灌入各层</text><text x="638" y="535" fill="#8b93a7" font-size="8">→ 显存</text>
+    <rect x="698" y="508" width="90" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="743" y="523" fill="#bfdbfe">按 rank 放卡</text><text x="743" y="535" fill="#8b93a7" font-size="8">对应 GPU</text>
+    <path d="M470,525 H480" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+    <path d="M578,525 H588" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+    <path d="M686,525 H696" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+  </g>
+  <foreignObject x="372" y="550" width="436" height="24">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#8b93a7;font-size:8.5px;font-family:inherit;line-height:1.3;text-align:center;">⚠ 若 config 含 auto_map 且缺 .py，此处会进入含跨卡同步的临界区 → 可能死锁（见下方放大图）</div>
+  </foreignObject>
+  <line x1="580" y1="566" x2="580" y2="590" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+  <!-- 临界区 barrier (全局同步·只传到齐信号) -->
+  <path d="M805,476 H1030" stroke="#a855f7" stroke-width="2.5" fill="none" marker-start="url(#aPurple)" marker-end="url(#aPurple)"/>
+  <text x="915" y="470" text-anchor="middle" fill="#c4b5fd" font-size="8">全局 barrier</text>
+  <text x="915" y="488" text-anchor="middle" fill="#8b93a7" font-size="7.5">同步到齐信号(不传数据)，死锁点</text>
+
+  <!-- ============ ⑤ 准备对话模板 ============ -->
+  <rect x="360" y="592" width="440" height="52" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="611" fill="#bfdbfe" font-size="12" font-weight="800">⑤ 准备对话模板</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="618" width="130" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="439" y="632" fill="#bfdbfe">选模板(qwen_omnispeak)</text>
+    <rect x="516" y="618" width="130" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="581" y="632" fill="#bfdbfe">设置多模态占位符</text>
+    <rect x="658" y="618" width="130" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="723" y="632" fill="#bfdbfe">挂上 model 引用</text>
+  </g>
+  <line x1="580" y1="644" x2="580" y2="668" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ⑥ 数据集加载 + 编码 ============ -->
+  <rect x="360" y="670" width="440" height="108" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="689" fill="#bfdbfe" font-size="12" font-weight="800">⑥ 数据集加载 + 编码 + 数据划分</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="696" width="98" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="423" y="711" fill="#a5f3fc" font-weight="700">文本→分词</text><text x="423" y="723" fill="#8b93a7" font-size="8">token id</text>
+    <rect x="484" y="696" width="104" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="536" y="711" fill="#bfdbfe" font-weight="700">源音频→提特征</text><text x="536" y="723" fill="#8b93a7" font-size="8">连续特征(听)</text>
+    <rect x="600" y="696" width="98" height="34" rx="5" fill="#f59e0b" fill-opacity="0.16" stroke="#f59e0b" stroke-opacity="0.7"/>
+    <text x="649" y="711" fill="#fde68a" font-weight="700">目标音频→码</text><text x="649" y="723" fill="#8b93a7" font-size="8">离散码(说·标签)</text>
+    <rect x="710" y="696" width="78" height="34" rx="5" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/>
+    <text x="749" y="711" fill="#bfdbfe">算长度</text><text x="749" y="723" fill="#8b93a7" font-size="8">供分桶</text>
+  </g>
+  <foreignObject x="372" y="742" width="436" height="24">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#9fb8e8;font-size:8.5px;font-family:inherit;line-height:1.3;">数据划分(DP=16 每卡取哪些样本)：map-style 本地按 seed+rank 切(✅本例·无通讯) ｜ packing/流式 → 需广播/分发切分结果(有通讯)</div>
+  </foreignObject>
+  <!-- 数据集加载临界区 barrier (全局同步·只传到齐信号) -->
+  <path d="M800,678 H1030" stroke="#a855f7" stroke-width="2.5" fill="none" marker-start="url(#aPurple)" marker-end="url(#aPurple)"/>
+  <text x="915" y="672" text-anchor="middle" fill="#c4b5fd" font-size="8">全局 barrier</text>
+  <foreignObject x="800" y="682" width="230" height="28">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#8b93a7;font-size:7.5px;font-family:inherit;line-height:1.3;text-align:center;">同步"到齐"信号：rank0 先读/预处理，<br/>其余等它完成再一起用（不传数据）</div>
+  </foreignObject>
+  <line x1="580" y1="778" x2="580" y2="802" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ⑦ 选定可训练的层 ============ -->
+  <rect x="360" y="804" width="440" height="52" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="823" fill="#bfdbfe" font-size="12" font-weight="800">⑦ 选定可训练的层</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="830" width="126" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="437" y="844" fill="#bfdbfe">冻结全部参数</text>
+    <rect x="512" y="830" width="150" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="587" y="844" fill="#bfdbfe">放开 bridge + talker 少数层</text>
+    <rect x="674" y="830" width="114" height="20" rx="4" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6" stroke-opacity="0.6"/><text x="731" y="844" fill="#8b93a7" font-size="8.5">仅改标记不重载权重</text>
+  </g>
+  <line x1="580" y1="856" x2="580" y2="880" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ⑧ 组装训练器 ============ -->
+  <rect x="360" y="882" width="440" height="52" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="901" fill="#bfdbfe" font-size="12" font-weight="800">⑧ 组装训练器（Trainer）</text>
+  <foreignObject x="372" y="912" width="436" height="22">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#9fb8e8;font-size:9.5px;font-family:inherit;line-height:1.3;">accelerate 包装 model/optimizer/dataloader，为 ⑨ 建并行子组做准备（本地为主，无新会合）</div>
+  </foreignObject>
+  <line x1="580" y1="934" x2="580" y2="958" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ⑨ 建通讯组 + 划 DP/TP 组 ============ -->
+  <rect x="360" y="960" width="440" height="104" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="979" fill="#bfdbfe" font-size="12" font-weight="800">⑨ 建 GPU 通讯组 + 划分 DP/TP 并行组</text>
+  <text x="374" y="998" fill="#9fb8e8" font-size="9.5">deepspeed 建数据并行组(new_group)：确定谁和谁做梯度同步（本例 DP=16）</text>
+  <text x="374" y="1016" fill="#8b93a7" font-size="8.5">同步：并行拓扑分组 + 通道拓扑；全员到齐才放行</text>
+  <path d="M800,1001 H1030" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#aOrange)"/>
+  <text x="905" y="995" text-anchor="middle" fill="#fdba74" font-size="8.5">跨机 EFA 建组</text>
+  <path d="M420,1046 H700" stroke="#34d399" stroke-width="2.5" fill="none" marker-end="url(#aGreen)"/>
+  <text x="560" y="1042" text-anchor="middle" fill="#6ee7b7" font-size="8.5">同机 NVLink 8 卡建组</text>
+  <line x1="580" y1="1064" x2="580" y2="1090" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- ============ ⑩ 训练循环 ============ -->
+  <text x="360" y="1080" fill="#fff" font-size="14" font-weight="800">⑩ 训练循环 · 每一步做什么（每步重复；数据划分已在 ⑥/⑨ 定好）</text>
+
+  <!-- 训练循环大外框 -->
+  <rect x="345" y="1096" width="470" height="596" rx="14" fill="none" stroke="#64748b" stroke-opacity="0.5" stroke-dasharray="6,5"/>
+
+  <!-- 1 取 batch -->
+  <rect x="360" y="1112" width="440" height="74" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1131" fill="#bfdbfe" font-size="11.5" font-weight="800">1 取一个 batch（按已定的划分，本卡拿自己那份）</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="374" y="1140" width="130" height="36" rx="6" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6"/>
+    <text x="439" y="1156" fill="#bfdbfe" font-weight="700">文本→分词</text><text x="439" y="1168" fill="#8b93a7" font-size="8">输入</text>
+    <rect x="516" y="1140" width="140" height="36" rx="6" fill="#3b82f6" fill-opacity="0.18" stroke="#3b82f6"/>
+    <text x="586" y="1156" fill="#bfdbfe" font-weight="700">源音频→提特征</text><text x="586" y="1168" fill="#8b93a7" font-size="8">输入(听)·连续特征</text>
+    <rect x="668" y="1140" width="120" height="36" rx="6" fill="#f59e0b" fill-opacity="0.18" stroke="#f59e0b"/>
+    <text x="728" y="1156" fill="#fde68a" font-weight="700">目标音频→码</text><text x="728" y="1168" fill="#8b93a7" font-size="8">标签(说)·离散码</text>
+  </g>
+  <line x1="580" y1="1186" x2="580" y2="1226" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 2 前向 -->
+  <rect x="360" y="1226" width="440" height="58" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1245" fill="#bfdbfe" font-size="11.5" font-weight="800">2 前向计算</text>
+  <g font-size="9" font-weight="700" text-anchor="middle">
+    <rect x="374" y="1254" width="80" height="24" rx="5" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6"/><text x="414" y="1270" fill="#bfdbfe">听/看</text>
+    <rect x="466" y="1254" width="80" height="24" rx="5" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6"/><text x="506" y="1270" fill="#bfdbfe">桥接</text>
+    <rect x="558" y="1254" width="80" height="24" rx="5" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6"/><text x="598" y="1270" fill="#bfdbfe">说话</text>
+    <rect x="650" y="1254" width="138" height="24" rx="5" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6"/><text x="719" y="1270" fill="#bfdbfe">出预测 · 算 loss</text>
+    <path d="M454,1324 H464" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+    <path d="M546,1324 H556" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+    <path d="M638,1324 H648" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aCyan)"/>
+  </g>
+  <line x1="580" y1="1284" x2="580" y2="1324" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 3 反向 -->
+  <rect x="360" y="1324" width="440" height="46" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1343" fill="#bfdbfe" font-size="11.5" font-weight="800">3 反向计算</text>
+  <text x="374" y="1360" fill="#9fb8e8" font-size="9.5">由 loss 逐层回传，算出各参数的梯度</text>
+  <line x1="580" y1="1370" x2="580" y2="1410" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 4 梯度同步 —— 用 Node0↔Node1 两列画 -->
+  <rect x="360" y="1410" width="440" height="72" rx="9" fill="#34d399" fill-opacity="0.1" stroke="#34d399"/>
+  <text x="374" y="1429" fill="#6ee7b7" font-size="11.5" font-weight="800">4 梯度同步：环形接力（同机 NVLink + 跨机 EFA）</text>
+  <foreignObject x="372" y="1444" width="436" height="22">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#a7f3d0;font-size:9px;font-family:inherit;line-height:1.3;">每卡把梯度切块沿环传给下一卡、边收边加；绕环两圈后每卡梯度都 = 16 卡平均</div>
+  </foreignObject>
+  <path d="M400,1468 H720" stroke="#34d399" stroke-width="2.5" fill="none" marker-end="url(#aGreen)"/>
+  <text x="560" y="1464" text-anchor="middle" fill="#6ee7b7" font-size="8.5">Node0 内 r0→r1→…→r7（NVLink）</text>
+  <path d="M800,1450 H1030" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#aOrange)"/>
+  <text x="912" y="1444" text-anchor="middle" fill="#fdba74" font-size="8.5">跨机 EFA</text>
+  <path d="M1030,1470 H800" stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#aOrange)" stroke-opacity="0.7"/>
+  <text x="912" y="1483" text-anchor="middle" fill="#fdba74" font-size="8.5" opacity="0.85">Node1 累加后回传</text>
+  <line x1="580" y1="1482" x2="580" y2="1522" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 5 参数更新 -->
+  <rect x="360" y="1522" width="440" height="46" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1541" fill="#bfdbfe" font-size="11.5" font-weight="800">5 参数更新</text>
+  <text x="374" y="1558" fill="#9fb8e8" font-size="9.5">用平均后的梯度更新可训练参数（bridge + talker 层）</text>
+  <line x1="580" y1="1568" x2="580" y2="1608" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#aCyan)"/>
+
+  <!-- 6 快照存盘 -->
+  <rect x="360" y="1608" width="440" height="46" rx="9" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="374" y="1627" fill="#bfdbfe" font-size="11.5" font-weight="800">6 快照存盘（每 N 步）</text>
+  <text x="374" y="1644" fill="#9fb8e8" font-size="9.5">主卡定期存快照、上报指标</text>
+
+  <!-- 循环回箭头 -->
+  <path d="M360,1654 H345 V1112 H358" stroke="#22d3ee" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#aCyan)"/>
+  <text x="336" y="1382" fill="#8b93a7" font-size="10" transform="rotate(-90 336 1382)">↺ 下一步</text>
+
+  <!-- Node1 示意说明（贯穿训练区） -->
+  <rect x="932" y="1096" width="196" height="596" rx="10" fill="#8b5cf6" fill-opacity="0.05" stroke="#8b5cf6" stroke-opacity="0.35" stroke-dasharray="5,5"/>
+  <text x="1030" y="1394" text-anchor="middle" fill="#c4b5fd" font-size="11" font-weight="700">Node1（r8~15）</text>
+  <text x="1030" y="1412" text-anchor="middle" fill="#8b93a7" font-size="9">与 Node0 完全相同</text>
+  <text x="1030" y="1426" text-anchor="middle" fill="#8b93a7" font-size="9">的 6 步并行执行</text>
+  <text x="1030" y="1448" text-anchor="middle" fill="#8b93a7" font-size="9">仅在第 4 步与 Node0</text>
+  <text x="1030" y="1462" text-anchor="middle" fill="#8b93a7" font-size="9">跨机同步梯度 ←→</text>
+
+  <!-- 主控收尾 -->
+  <path d="M360,1654 H255 V1722" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#aBlue)" stroke-opacity="0.5"/>
+  <rect x="195" y="1722" width="120" height="38" rx="7" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b"/>
+  <text x="255" y="1745" text-anchor="middle" fill="#fde68a" font-size="10">收尾：存盘/上报</text>
+
+  <!-- 阶段分隔横线 -->
+  <g stroke="#2a2f3d" stroke-opacity="0.6" stroke-dasharray="2,4">
+    <line x1="25" y1="232" x2="1135" y2="232"/>
+    <line x1="25" y1="346" x2="1135" y2="346"/>
+    <line x1="25" y1="1072" x2="1135" y2="1072"/>
+  </g>
+</svg>
+
+  <!-- ================= 死锁流程放大图 ================= -->
+  <h1 style="margin-top:36px;">🔬 死锁放大：卡在上方泳道图的 ③加载模型配置 / ④加载模型权重（get_model 内部）</h1>
+  <p class="sub">
+    该步被 ms-swift 的 <b style="color:#cbd5e1">safe_ddp_context 临界区</b>包裹，语义是"master 先执行、其余 rank 等待、完成后放行"（保护共享缓存写入）｜
+    <span style="color:#6ee7b7">绿色 = 正常流程（.py 存在）</span> ｜
+    <span style="color:#fca5a5">红色 = 死锁流程（.py 缺失，抛 OSError）</span>
+  </p>
+
+<svg viewBox="0 0 1160 620" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="dGreen" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#34d399"/></marker>
+    <marker id="dRed" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#ef4444"/></marker>
+    <marker id="dGray" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#8b93a7"/></marker>
+  </defs>
+
+  <!-- ===================== 左半：正常流程（文件存在） ===================== -->
+  <rect x="20" y="20" width="545" height="580" rx="12" fill="#34d399" fill-opacity="0.05" stroke="#34d399" stroke-opacity="0.4" stroke-dasharray="7,5"/>
+  <text x="292" y="48" text-anchor="middle" fill="#6ee7b7" font-size="15" font-weight="800">正常流程 ✓（文件存在）</text>
+
+  <!-- 两条角色列 -->
+  <text x="150" y="76" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="800">🟦 rank0（队长·先进）</text>
+  <text x="435" y="76" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="800">🟩 rank1~15（门口排队）</text>
+  <line x1="150" y1="86" x2="150" y2="580" stroke="#6ee7b7" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+  <line x1="435" y1="86" x2="435" y2="580" stroke="#6ee7b7" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+
+  <!-- rank1~15: 到门口排队等 -->
+  <rect x="345" y="100" width="180" height="46" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="435" y="118" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">① 进入 dist.barrier()</text>
+  <text x="435" y="132" text-anchor="middle" fill="#8b93a7" font-size="9">非 master 先阻塞，等 master 放行</text>
+
+  <!-- rank0: 进去读文件 -->
+  <rect x="60" y="164" width="180" height="50" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="150" y="182" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">② 独占执行临界区</text>
+  <text x="150" y="196" text-anchor="middle" fill="#8b93a7" font-size="9">get_cached_module_file 读 .py</text>
+  <text x="150" y="208" text-anchor="middle" fill="#8b93a7" font-size="9">成功 → 写入共享缓存</text>
+  <line x1="150" y1="146" x2="150" y2="164" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGray)"/>
+
+  <!-- rank0: 开门放行 (绿虚线横向) -->
+  <rect x="60" y="238" width="180" height="50" rx="8" fill="#34d399" fill-opacity="0.14" stroke="#34d399"/>
+  <text x="150" y="256" text-anchor="middle" fill="#6ee7b7" font-size="10.5" font-weight="700">③ 退出临界区</text>
+  <text x="150" y="270" text-anchor="middle" fill="#8b93a7" font-size="9">master 发出 dist.barrier()</text>
+  <text x="150" y="282" text-anchor="middle" fill="#8b93a7" font-size="9">→ 与①配对，放行等待者</text>
+  <line x1="150" y1="214" x2="150" y2="238" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGray)"/>
+  <!-- 开门信号 → 门口的人 (绿色虚线) -->
+  <path d="M240,262 H345 V146" stroke="#34d399" stroke-width="2.5" stroke-dasharray="6,4" fill="none" marker-end="url(#dGreen)"/>
+  <text x="300" y="254" text-anchor="middle" fill="#6ee7b7" font-size="9">barrier 配对成功</text>
+
+  <!-- rank1~15: 进去读缓存 -->
+  <rect x="345" y="308" width="180" height="46" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="435" y="326" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">④ 放行 → 读共享缓存</text>
+  <text x="435" y="340" text-anchor="middle" fill="#8b93a7" font-size="9">直接命中 rank0 写好的缓存</text>
+
+  <!-- 两列汇合 → 继续 -->
+  <rect x="150" y="386" width="290" height="44" rx="8" fill="#34d399" fill-opacity="0.14" stroke="#34d399"/>
+  <text x="295" y="407" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="800">✓ 16 卡全部加载完成 → 继续训练</text>
+  <text x="295" y="421" text-anchor="middle" fill="#8b93a7" font-size="9">进入/退出 barrier 数量对称、正确配对</text>
+  <path d="M150,288 V366 H290" stroke="#34d399" stroke-width="2" stroke-dasharray="6,4" fill="none"/>
+  <path d="M435,354 V366 H300" stroke="#34d399" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#dGreen)"/>
+
+  <text x="292" y="474" text-anchor="middle" fill="#a7f3d0" font-size="10">yield 正常返回 → master 的退出 barrier 与等待者的进入 barrier 成对匹配 → 全体放行</text>
+
+  <!-- ===================== 右半：死锁流程（文件缺失） ===================== -->
+  <rect x="595" y="20" width="545" height="580" rx="12" fill="#ef4444" fill-opacity="0.05" stroke="#ef4444" stroke-opacity="0.45"/>
+  <text x="867" y="48" text-anchor="middle" fill="#fca5a5" font-size="15" font-weight="800">死锁流程 ✗（文件缺失）</text>
+
+  <text x="725" y="76" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="800">🟦 rank0（队长·先进）</text>
+  <text x="1010" y="76" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="800">🟥 rank1~15（门口排队）</text>
+  <line x1="725" y1="86" x2="725" y2="580" stroke="#fca5a5" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+  <line x1="1010" y1="86" x2="1010" y2="580" stroke="#fca5a5" stroke-opacity="0.3" stroke-dasharray="3,5"/>
+
+  <!-- rank1~15: 门口排队 -->
+  <rect x="920" y="100" width="180" height="46" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="1010" y="118" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">① 进入 dist.barrier()</text>
+  <text x="1010" y="132" text-anchor="middle" fill="#8b93a7" font-size="9">非 master 阻塞，等 master 放行</text>
+
+  <!-- rank0: 进去读文件 → 读不到 -->
+  <rect x="635" y="164" width="180" height="50" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.7"/>
+  <text x="725" y="182" text-anchor="middle" fill="#bfdbfe" font-size="10.5" font-weight="700">② 独占执行临界区</text>
+  <text x="725" y="196" text-anchor="middle" fill="#fca5a5" font-size="9">get_cached_module_file 找不到 .py</text>
+  <text x="725" y="208" text-anchor="middle" fill="#fca5a5" font-size="9" font-weight="700">→ 抛 OSError</text>
+  <line x1="725" y1="146" x2="725" y2="164" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGray)"/>
+
+  <!-- rank0: 异常跳过退出 barrier -->
+  <rect x="635" y="238" width="180" height="62" rx="8" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444"/>
+  <text x="725" y="257" text-anchor="middle" fill="#fca5a5" font-size="10.5" font-weight="700">③ 异常沿 yield 抛出</text>
+  <text x="725" y="271" text-anchor="middle" fill="#fecaca" font-size="9">yield 无 try/finally 保护 →</text>
+  <text x="725" y="283" text-anchor="middle" fill="#fecaca" font-size="9" font-weight="700">退出 barrier 被跳过（未发出）</text>
+  <text x="725" y="295" text-anchor="middle" fill="#fecaca" font-size="9">master 未履行放行职责 ✗</text>
+  <line x1="725" y1="214" x2="725" y2="238" stroke="#ef4444" stroke-width="1.5" marker-end="url(#dRed)"/>
+
+  <!-- rank0 → 自己兜底成功 -->
+  <rect x="635" y="324" width="180" height="46" rx="8" fill="#34d399" fill-opacity="0.1" stroke="#34d399" stroke-opacity="0.6"/>
+  <text x="725" y="342" text-anchor="middle" fill="#6ee7b7" font-size="10.5" font-weight="700">try/except 兜底加载</text>
+  <text x="725" y="356" text-anchor="middle" fill="#8b93a7" font-size="9">改用本地类 → 唯独 rank0 走通</text>
+  <line x1="725" y1="300" x2="725" y2="324" stroke="#8b93a7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#dGray)"/>
+
+  <!-- 缺失的退出 barrier（红色叉） -->
+  <path d="M815,266 H905" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6,4" fill="none" opacity="0.5"/>
+  <text x="862" y="259" text-anchor="middle" fill="#fca5a5" font-size="9">退出 barrier 从未发出</text>
+  <text x="862" y="285" text-anchor="middle" fill="#ef4444" font-size="16" font-weight="800">✕</text>
+
+  <!-- rank1~15 永久卡死 -->
+  <rect x="920" y="300" width="180" height="62" rx="8" fill="#ef4444" fill-opacity="0.14" stroke="#ef4444"/>
+  <text x="1010" y="320" text-anchor="middle" fill="#fca5a5" font-size="10.5" font-weight="800">阻塞在进入 barrier 🔒</text>
+  <text x="1010" y="335" text-anchor="middle" fill="#fecaca" font-size="9">凑不齐 16 方 → 集合通讯永不返回</text>
+  <text x="1010" y="348" text-anchor="middle" fill="#fecaca" font-size="9">尚未执行 yield，不会触发 OSError</text>
+  <line x1="1010" y1="146" x2="1010" y2="300" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#dRed)"/>
+
+  <!-- 结局 -->
+  <rect x="700" y="404" width="335" height="52" rx="8" fill="#ef4444" fill-opacity="0.1" stroke="#ef4444"/>
+  <text x="867" y="425" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="800">✗ 15 卡阻塞在 NCCL 集合通讯 · GPU 自旋 100% · 50h 不恢复</text>
+  <text x="867" y="441" text-anchor="middle" fill="#fecaca" font-size="9">仅 rank0 加载完成（对应日志中唯一走通的 rank=0）</text>
+
+  <text x="867" y="482" text-anchor="middle" fill="#fecaca" font-size="10">根因：master 因 OSError 提前退出临界区、未发出退出 barrier → 15 个等待者的进入 barrier 无法配对</text>
+
+  <!-- 底部：修复 -->
+  <rect x="20" y="510" width="1120" height="72" rx="10" fill="#34d399" fill-opacity="0.07" stroke="#34d399" stroke-opacity="0.5"/>
+  <text x="580" y="535" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="800">🔧 修复：get_model 检测到目录缺 .py 时，清空 config.auto_map、直接 import 本地模型类</text>
+  <text x="580" y="557" text-anchor="middle" fill="#a7f3d0" font-size="10.5">→ from_pretrained 不再触发 get_class_from_dynamic_module，不进入 safe_ddp_context 临界区、不抛 OSError → 16 卡走同一确定路径</text>
+  <text x="580" y="573" text-anchor="middle" fill="#8b93a7" font-size="9.5">注：这不是框架低级 BUG —— .py 存在时临界区进入/退出 barrier 对称、完全正确；仅"config 残留 auto_map 但本地缺 .py"这一罕见前提才触发异常安全缺陷</text>
+</svg>
+
+</div>
+</body>
+</html>

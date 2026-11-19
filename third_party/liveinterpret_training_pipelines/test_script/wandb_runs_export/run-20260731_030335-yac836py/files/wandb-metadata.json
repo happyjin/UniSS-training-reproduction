@@ -1,0 +1,168 @@
+{
+  "os": "Linux-6.12.92-122.168.amzn2023.x86_64-x86_64-with-glibc2.34",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-07-31T03:03:35.875514Z",
+  "args": [
+    "--external_plugins",
+    "/opt/dlami/nvme/zeyangsong/projects/liveinterpret_training_pipelines/custom/plugin.py",
+    "--model",
+    "/opt/dlami/nvme/zeyangsong/projects/liveinterpret_training_pipelines/output/qwen_omnispeak_output/batch4.7/batch4.7-20260728-083603/stage2_adapter_talker/v0-20260728-124644/checkpoint-13900",
+    "--model_type",
+    "qwen2_5_3b_omnispeak_a",
+    "--template",
+    "qwen_omnispeak",
+    "--dataset",
+    "bridge_alignment_speech_to_speech_translation",
+    "--load_from_cache_file",
+    "true",
+    "--group_by_length",
+    "false",
+    "--remove_unused_columns",
+    "false",
+    "--callbacks",
+    "qwen_omnispeak_ar_eval",
+    "--tuner_type",
+    "full",
+    "--freeze_parameters_ratio",
+    "1.0",
+    "--trainable_parameters",
+    "model.thinker_adapter",
+    "model.talker",
+    "--torch_dtype",
+    "bfloat16",
+    "--attn_impl",
+    "flash_attention_2",
+    "--deepspeed",
+    "zero2",
+    "--gradient_checkpointing",
+    "true",
+    "--num_train_epochs",
+    "1",
+    "--per_device_train_batch_size",
+    "64",
+    "--per_device_eval_batch_size",
+    "64",
+    "--gradient_accumulation_steps",
+    "1",
+    "--learning_rate",
+    "1e-5",
+    "--lr_scheduler_type",
+    "constant_with_warmup",
+    "--warmup_ratio",
+    "0.03",
+    "--max_length",
+    "4096",
+    "--split_dataset_ratio",
+    "0.0005",
+    "--eval_strategy",
+    "steps",
+    "--eval_steps",
+    "1000",
+    "--save_steps",
+    "1000",
+    "--save_total_limit",
+    "3",
+    "--logging_steps",
+    "10",
+    "--report_to",
+    "wandb",
+    "--run_name",
+    "batch4.7-stage2.5-unist-20260731-030146-reply_add-adapter-talker-bs64x8-s2s",
+    "--dataloader_num_workers",
+    "16",
+    "--dataloader_persistent_workers",
+    "true",
+    "--dataset_num_proc",
+    "16",
+    "--output_dir",
+    "/opt/dlami/nvme/zeyangsong/projects/liveinterpret_training_pipelines/output/qwen_omnispeak_output/batch4.7/stage2.5_unist/batch4.7-stage2.5-unist-20260731-030146",
+    "--data_seed",
+    "42"
+  ],
+  "program": "/opt/dlami/nvme/zeyangsong/miniconda/envs/liveinterpret/lib/python3.11/site-packages/swift/cli/sft.py",
+  "git": {
+    "remote": "https://huggingface.co/Poookeman/liveinterpret_training_pipelines",
+    "commit": "decb1921b9295e00b2453ca080c3a5a0609a688f"
+  },
+  "email": "ktrain-user@tencent.com",
+  "root": "/opt/dlami/nvme/zeyangsong/projects/liveinterpret_training_pipelines/output/qwen_omnispeak_output/wandb",
+  "host": "ip-172-16-78-16.ap-southeast-3.compute.internal",
+  "executable": "/opt/dlami/nvme/zeyangsong/miniconda/envs/liveinterpret/bin/python3.11",
+  "cpu_count": 96,
+  "cpu_count_logical": 192,
+  "gpu": "NVIDIA H200",
+  "gpu_count": 8,
+  "disk": {
+    "/": {
+      "total": "107294470144",
+      "used": "39018176512"
+    }
+  },
+  "memory": {
+    "total": "2138853560320"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-40c3f644-37f2-29bb-a5ee-56e476d923d9"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-c18b6845-716d-970c-f367-159fc168d46d"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-21fdd1bc-a208-3eb8-2c83-7ae2ffa5f228"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-98b3b24e-fadf-c5b4-83f9-84db766f6cc4"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-35aa2ff9-b3e1-329e-dccb-5eedccf2781c"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-ec937e1a-2a03-acbd-362d-9295b2ff0b15"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-363a7dd7-64f8-3f15-3f60-48c7a1806add"
+    },
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-10ee1fc0-2402-d754-a752-3f78626f47bd"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "trainium": {
+    "name": "Trainium",
+    "vendor": "AWS"
+  },
+  "writerId": "jgi29bkyfhbb3yu79w7pcanic3c4lbst"
+}

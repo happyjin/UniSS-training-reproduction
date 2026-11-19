@@ -1,0 +1,55 @@
+# 把已有的 emilia_fsq_v3 英文（1140 个 parquet / 46,828 h）同样过一遍过滤，
+# 落到 TTS_FSQ_FILTERED/en/emilia_v3/ 下，与新数据一起进训练集。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tts-stage1-filter-v3en
+  namespace: speech-h200
+  labels:
+    app: tts-stage1-fsq
+spec:
+  completionMode: Indexed
+  parallelism: 4
+  completions: 4
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: tts-stage1-fsq
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: filter
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -eu
+              python3 -m pip install -q boto3
+              cd /opt/tts_stage1_fsq
+              exec python3 filter_stage1.py \
+                  --src-prefix "speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/TTS/emilia_fsq_v3/s1_emilia_fsq_v3" \
+                  --dst-prefix "speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/TTS_FSQ_FILTERED/en/emilia_v3" \
+                  --name-filter "fsq-EN-" \
+                  --shard "${JOB_COMPLETION_INDEX}" --nshard 4 --workers 8
+          envFrom:
+            - secretRef:
+                name: aws-local-creds
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: ap-southeast-3
+          resources:
+            requests:
+              cpu: "4"
+              memory: 16Gi
+            limits:
+              cpu: "16"
+              memory: 64Gi
+          volumeMounts:
+            - name: code
+              mountPath: /opt/tts_stage1_fsq
+      volumes:
+        - name: code
+          configMap:
+            name: tts-stage1-fsq

@@ -1,0 +1,1112 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>S5 L40S 完整报告</title><style>body{font:16px/1.65 system-ui,-apple-system,"Noto Sans CJK SC",sans-serif;color:#172235;max-width:1440px;margin:32px auto;padding:0 28px;background:#fafbfe}h1,h2,h3{line-height:1.35}h2{margin-top:44px;border-bottom:1px solid #d3dbea;padding-bottom:10px}a{color:#1753b8}table{border-collapse:collapse;display:block;overflow-x:auto;font-size:14px;margin:18px 0;background:white}td,th{border:1px solid #d9dfeb;padding:8px 12px;white-space:nowrap}th{background:#eaf0fa}code{background:#edf0f5;padding:2px 5px;border-radius:3px;overflow-wrap:anywhere}.toc{background:#edf2fa;padding:16px 24px;border-radius:8px}p,li{overflow-wrap:anywhere}@media print{body{font-size:11px;margin:0;padding:0}table{display:table;font-size:9px}td,th{padding:3px;white-space:normal}.toc{display:none}}</style></head><body><div class="toc">
+<ul>
+<li><a href="#s5-l40s-chunk">S5 在 L40S 上的 chunk、质量和真实首包延迟完整报告</a><ul>
+<li><a href="#1">1. 主要结论</a></li>
+<li><a href="#2">2. 固定模型、硬件和评测口径</a><ul>
+<li><a href="#_1">样本</a></li>
+</ul>
+</li>
+<li><a href="#3">3. 两种输入方式和计时</a></li>
+<li><a href="#4-1pcm">4. 1倍速首PCM完整结果</a></li>
+<li><a href="#5-640160">5. 为什么640→160不是延迟变成四分之一</a><ul>
+<li><a href="#160640">160与640的阶段统计</a></li>
+<li><a href="#_2">同一句逐次配对</a></li>
+<li><a href="#_3">两个相反例子（第一轮）</a></li>
+</ul>
+</li>
+<li><a href="#6-rtf">6. 文件加速输入RTF</a></li>
+<li><a href="#7-report">7. 质量对照（原REPORT库）</a><ul>
+<li><a href="#asr-bleu">ASR BLEU</a></li>
+<li><a href="#asr-comet">ASR COMET</a></li>
+<li><a href="#text-bleu">Text BLEU</a></li>
+</ul>
+</li>
+<li><a href="#8-1pcm">8. 按数据集的1倍速首PCM</a></li>
+<li><a href="#9">9. 正确性、输入节奏和局限</a></li>
+<li><a href="#10">10. 后续建议</a></li>
+<li><a href="#11-pcm">11. 逐轮首PCM延迟</a></li>
+<li><a href="#12">12. 已知边界与待办</a></li>
+<li><a href="#13">13. 代码与证据索引</a><ul>
+<li><a href="#_4">本地原始产物（未上传）</a></li>
+<li><a href="#_5">实时原始归档校验值</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<h1 id="s5-l40s-chunk">S5 在 L40S 上的 chunk、质量和真实首包延迟完整报告</h1>
+<p>日期：2026-11-16。状态：7档实时输入测试、6档质量评分均完成并归档；测试GPU已释放。本报告提交至推理分支；监控/调度脚本、原始音频和运行归档保留在本地。</p>
+<h2 id="1">1. 主要结论</h2>
+<ul>
+<li>640ms仍适合作为当前回归基线。固定160/320ms在1倍速输入下通常更早出声，但不是保持输出不变的无损加速，中英质量有明显下降。</li>
+<li>1920ms文件加速输入RTF最低；1倍速下首PCM的p50只比640低约0.165秒，p99高约2.996秒，不能据吞吐数字宣称更低端到端延迟。</li>
+<li>1280ms是新增的“两倍640”对照；p50只低约0.093秒，p99高约0.950秒，且未做ASR/BLEU/COMET评分。</li>
+<li>160→640ms的p95/p99有所改善，但部分语言组质量下降。尚未找到同时满足质量和延迟的统一替代配置。</li>
+<li>分布p50的差值不等于逐句延迟变化的中位数，也不意味着所有输入都更快。以下同时发布分布与配对结果。</li>
+</ul>
+<h2 id="2">2. 固定模型、硬件和评测口径</h2>
+<p>模型为自研S5：S4底座checkpoint-93767 + S5 adapter checkpoint-10000，不是Repro-Omni 3B，也不是原报告1920ms/retry3配置的原样复跑。</p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>本次设置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>硬件</td>
+<td>每档独占一张NVIDIA L40S，单请求串行</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>Pod申请3核、上限4核，OMP_NUM_THREADS=3</td>
+</tr>
+<tr>
+<td>推理</td>
+<td>bf16，seed0，retry0，ODE5，关闭profiler</td>
+</tr>
+<tr>
+<td>Thinker/Talker</td>
+<td>静态cache和原CUDA Graph配置启用；未增加小chunk捕获档位</td>
+</tr>
+<tr>
+<td>源chunk</td>
+<td>固定160/320/640/1280/1920ms，160→640/1920ms</td>
+</tr>
+<tr>
+<td>dynchunk</td>
+<td>每个VAD段首次WRITE前160ms，之后切到指定块长</td>
+</tr>
+<tr>
+<td>模型上下文</td>
+<td>Thinker/Talker各2048token容量；容量前重建，保留不超过约半容量</td>
+</tr>
+<tr>
+<td>源声学参考</td>
+<td>已收到源音频最近5秒，prompt最多2秒</td>
+</tr>
+<tr>
+<td>Flow/HiFT</td>
+<td>默认最多60秒目标音频的声学会话，尾部约2秒作参考</td>
+</tr>
+<tr>
+<td>VAD</td>
+<td>停顿1.2秒收段；soft20秒后寻找短停顿；hard30秒强制收段</td>
+</tr>
+<tr>
+<td>段间状态</td>
+<td>重置模型/声学状态；全局源位置与PCM offset连续</td>
+</tr>
+<tr>
+<td>资产I/O</td>
+<td>模型和输入音频在worker本地盘，输出WAV写本地盘</td>
+</tr>
+</tbody>
+</table>
+<p>源chunk是每次推进的新输入量，不是历史窗口大小。2048token也不能直接换算成固定秒数：音频、译文及speech token占用不同，且为下一次生成提前预留容量。</p>
+<p>原报告明确覆盖chunk1920ms，所以之前保留1920档方便对照，并没有“必须按640的三倍”的约束。核心接受80ms整数倍，1280ms本轮已补；网页选项未因此改变。</p>
+<h3 id="_1">样本</h3>
+<p>每档同90条记录，每轮859.843125秒源音频；不是1193条全量。</p>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>方向</th>
+<th style="text-align: right;">条数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RealSI</td>
+<td>英→中</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr>
+<td>RealSI</td>
+<td>中→英</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr>
+<td>ACL6060</td>
+<td>英→中</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>ACL6060</td>
+<td>英→日</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>FLEURS</td>
+<td>英→日</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>FLEURS</td>
+<td>中→日</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>FLEURS</td>
+<td>英→韩</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>FLEURS</td>
+<td>中→韩</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table>
+<p>40条中英与之前探针IDs一致；50条日韩目标来自既有报告demo的全部对应样本。未按本次结果挑样本。每组10–14条，只作为探针，不代表语言/数据集总体表现。</p>
+<h2 id="3">3. 两种输入方式和计时</h2>
+<p><strong>文件加速输入</strong>：同一进程先完整90条预热，再连续测两轮90条，输入按计算速度推进。含I/O RTF为逐句输入读取至WAV落盘active墙钟/源时长，不含冷加载、预热、评分和归档。</p>
+<p><strong>1倍速输入</strong>：独立生产线程按单调时钟每80ms送1280个16kHz采样，尾包按真实样本时长发送；推理阻塞时生产线程仍继续送包，在输入队列记录积压。EOF在真实源时长到达时发送。预热仍为完整90条加速输入，之后测两轮90条1倍速。</p>
+<p>真实首PCM延迟从服务端会话开始计时，包括会话构建、等待源音频、模型决策及实际合成；不含模型冷加载、网络传输和浏览器播放。未使用token摊派声码耗时，也未将源音频位置冒充墙钟。文件本身已预先读入模拟输入端；这是服务端实时流模拟，不是麦克风/公网/浏览器验收。</p>
+<p>p50为中位数、p95/p99为相应百分位数，均按线性插值。主表合并两轮180次观测；这仍是同90条重复测试，不是180条独立样本。逐轮结果见附录，不能直接相加两个分位数估计另一指标。</p>
+<h2 id="4-1pcm">4. 1倍速首PCM完整结果</h2>
+<p>单位秒。最后三列为相对640的分布百分位差值，负数表示更低。</p>
+<table>
+<thead>
+<tr>
+<th>chunk(ms)</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">p50</th>
+<th style="text-align: right;">p95</th>
+<th style="text-align: right;">p99</th>
+<th style="text-align: right;">Δp50</th>
+<th style="text-align: right;">Δp95</th>
+<th style="text-align: right;">Δp99</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">4.042</td>
+<td style="text-align: right;">11.042</td>
+<td style="text-align: right;">12.735</td>
+<td style="text-align: right;">-1.458</td>
+<td style="text-align: right;">-1.695</td>
+<td style="text-align: right;">-2.911</td>
+</tr>
+<tr>
+<td>320</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">3.735</td>
+<td style="text-align: right;">12.151</td>
+<td style="text-align: right;">12.877</td>
+<td style="text-align: right;">-1.765</td>
+<td style="text-align: right;">-0.585</td>
+<td style="text-align: right;">-2.769</td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">5.501</td>
+<td style="text-align: right;">12.737</td>
+<td style="text-align: right;">15.646</td>
+<td style="text-align: right;">+0.000</td>
+<td style="text-align: right;">+0.000</td>
+<td style="text-align: right;">+0.000</td>
+</tr>
+<tr>
+<td>1280</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">5.408</td>
+<td style="text-align: right;">12.767</td>
+<td style="text-align: right;">16.596</td>
+<td style="text-align: right;">-0.093</td>
+<td style="text-align: right;">+0.030</td>
+<td style="text-align: right;">+0.950</td>
+</tr>
+<tr>
+<td>1920</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">5.336</td>
+<td style="text-align: right;">12.756</td>
+<td style="text-align: right;">18.642</td>
+<td style="text-align: right;">-0.165</td>
+<td style="text-align: right;">+0.019</td>
+<td style="text-align: right;">+2.996</td>
+</tr>
+<tr>
+<td>160→640</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">5.265</td>
+<td style="text-align: right;">11.058</td>
+<td style="text-align: right;">12.743</td>
+<td style="text-align: right;">-0.236</td>
+<td style="text-align: right;">-1.679</td>
+<td style="text-align: right;">-2.903</td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">5.572</td>
+<td style="text-align: right;">11.043</td>
+<td style="text-align: right;">12.772</td>
+<td style="text-align: right;">+0.071</td>
+<td style="text-align: right;">-1.694</td>
+<td style="text-align: right;">-2.874</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-640160">5. 为什么640→160不是延迟变成四分之一</h2>
+<p>一次首PCM需经历：已到达音频→增量前端/源chunk→Thinker WAIT/WRITE→译文与Talker speech token→Flow hop/lookahead→HiFT PCM。源chunk只影响其中的调度和模型条件，不是整个链路的固定耗时。</p>
+<p>160ms更频繁地给模型一次决策机会，也改变了模型每次见到的输入分组、WRITE位置、译文和speech token；它不等于在同样输出上只减少等待。需要区分证据和推断：本次事件日志直接证明决策和出声位置变化，不能仅据日志把全部差异归因于某个kernel。</p>
+<h3 id="160640">160与640的阶段统计</h3>
+<p>这些是各阶段各自的中位数，不可相减或相加当作阶段耗时分解。</p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th style="text-align: right;">160墙钟p50</th>
+<th style="text-align: right;">640墙钟p50</th>
+<th style="text-align: right;">160源位置p50</th>
+<th style="text-align: right;">640源位置p50</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>首次WRITE</td>
+<td style="text-align: right;">2.785</td>
+<td style="text-align: right;">4.607</td>
+<td style="text-align: right;">2.688</td>
+<td style="text-align: right;">4.512</td>
+</tr>
+<tr>
+<td>首次文本事件</td>
+<td style="text-align: right;">2.953</td>
+<td style="text-align: right;">4.744</td>
+<td style="text-align: right;">2.688</td>
+<td style="text-align: right;">4.512</td>
+</tr>
+<tr>
+<td>首个speech token事件</td>
+<td style="text-align: right;">2.983</td>
+<td style="text-align: right;">4.775</td>
+<td style="text-align: right;">2.688</td>
+<td style="text-align: right;">4.512</td>
+</tr>
+<tr>
+<td>首次PCM</td>
+<td style="text-align: right;">4.042</td>
+<td style="text-align: right;">5.501</td>
+<td style="text-align: right;">3.392</td>
+<td style="text-align: right;">4.640</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_2">同一句逐次配对</h3>
+<p>比较相同ID、相同轮次，差值=当前档首PCM−640首PCM。</p>
+<table>
+<thead>
+<tr>
+<th>chunk</th>
+<th style="text-align: right;">更快次数 / 180</th>
+<th style="text-align: right;">更慢次数</th>
+<th style="text-align: right;">配对差值中位数(s)</th>
+<th style="text-align: right;">配对差值均值(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td style="text-align: right;">148</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">-0.791</td>
+<td style="text-align: right;">-1.356</td>
+</tr>
+<tr>
+<td>320</td>
+<td style="text-align: right;">124</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">-0.730</td>
+<td style="text-align: right;">-1.308</td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">+0.000</td>
+<td style="text-align: right;">+0.000</td>
+</tr>
+<tr>
+<td>1280</td>
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">137</td>
+<td style="text-align: right;">+0.051</td>
+<td style="text-align: right;">+0.092</td>
+</tr>
+<tr>
+<td>1920</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">123</td>
+<td style="text-align: right;">+0.035</td>
+<td style="text-align: right;">-0.240</td>
+</tr>
+<tr>
+<td>160→640</td>
+<td style="text-align: right;">121</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">-0.257</td>
+<td style="text-align: right;">-0.724</td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td style="text-align: right;">106</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">-0.121</td>
+<td style="text-align: right;">-0.560</td>
+</tr>
+</tbody>
+</table>
+<p>160ms有142/180次更早决定WRITE、148/180次更早出PCM，32次更慢。两档p50为4.042与5.501秒，差约−1.458秒；同一句配对差值的中位数仅−0.791秒。两种数都正确，表达不同。1920ms虽分布p50略低，但123/180次配对反而更慢，少数大幅提前的样本影响了总体分布；不能说所有句子都更快。</p>
+<h3 id="_3">两个相反例子（第一轮）</h3>
+<p><strong>acl6060_en2ja__sent_0362，源长11.304秒。</strong></p>
+<p>160/640首次WRITE的源位置为1.312/11.304秒；首次PCM墙钟为3.941/12.555秒。</p>
+<ul>
+<li>参考译文：この例では、言語モデルを微調整し、テキストをクラスに分類し、抽象度を低または高のクラスに分類します。</li>
+<li>160输出：この例では、言語モデルを微調整するために、テキストをクラスに分類します</li>
+<li>640输出：この例では、言語モデルを微調整して、テキストをクラスに分類します。例えば、抽象化をクラスに分類します。低レベルか高レベルかです。</li>
+</ul>
+<p>试听文件保留在本地原始归档，未随报告上传；对应样本ID见上文。</p>
+<p><strong>acl6060_en2ja__sent_0257，源长11.920秒。</strong></p>
+<p>160/640首次WRITE的源位置为9.792/4.512秒；首次PCM墙钟为11.083/5.461秒。</p>
+<ul>
+<li>参考译文：このシステムには、単純な学習ベースのテキスト分類モデルがあり、各入力コミットメッセージに対して、機能やバグフィックスなどの5つのラベルから選んで、1つを出力します。</li>
+<li>160输出：このシステムは、単純な学習ベースのテキスト分類モデルを持ち、5つのラベルのいずれかを出力します。例えば、フィーチャーやバグ修正などです。</li>
+<li>640输出：このシステムは、単純なランニングベースのテキスト分類モデルを採用しています。そして、機能やバグ修正など、5つのラベルのいずれかを出力します。各入力コミットメッセージについて</li>
+</ul>
+<p>试听文件保留在本地原始归档，未随报告上传；对应样本ID见上文。</p>
+<p>第一个例子里160确实更早出声，但译文缺少后面的分类内容；第二个例子160反而晚了约5.62秒。不存在单纯按chunk倍数缩放首包的规律。</p>
+<h2 id="6-rtf">6. 文件加速输入RTF</h2>
+<p>这测的是处理吞吐，不能替代第4节的真实等待首包。每档输出内容不同，不是严格相同生成工作量的kernel速度A/B。</p>
+<table>
+<thead>
+<tr>
+<th>chunk</th>
+<th style="text-align: right;">r1含I/O RTF</th>
+<th style="text-align: right;">r2含I/O RTF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td style="text-align: right;">0.6478</td>
+<td style="text-align: right;">0.6466</td>
+</tr>
+<tr>
+<td>320</td>
+<td style="text-align: right;">0.5133</td>
+<td style="text-align: right;">0.5141</td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td style="text-align: right;">0.3596</td>
+<td style="text-align: right;">0.3598</td>
+</tr>
+<tr>
+<td>1280</td>
+<td style="text-align: right;">未测</td>
+<td style="text-align: right;">未测</td>
+</tr>
+<tr>
+<td>1920</td>
+<td style="text-align: right;">0.3288</td>
+<td style="text-align: right;">0.3294</td>
+</tr>
+<tr>
+<td>160→640</td>
+<td style="text-align: right;">0.4515</td>
+<td style="text-align: right;">0.4524</td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td style="text-align: right;">0.4337</td>
+<td style="text-align: right;">0.4330</td>
+</tr>
+</tbody>
+</table>
+<p>160ms的RTF约0.647，比640约0.360更慢，同时首PCM更早。这并不矛盾：开始说话所需的输入/决策时间与整段处理能力是不同指标。</p>
+<h2 id="7-report">7. 质量对照（原REPORT库）</h2>
+<p>原恢复评测库提交dfe4f887509131387315801943ce53f9fb24213e，四个原文件SHA校验保持不变。英文目标Whisper-large-v3，中/日/韩目标Qwen3-ASR-1.7B；OpenCC t2s与原归一化，ja-mecab/ko-mecab、原wmt22-COMET，ASR batch1、COMET batch32。原报告ASR batch16与本次batch1不同，不声称环境逐字节一致。</p>
+<p>评分在加速输入第一轮90条上完成。进一步逐ID核对本次真实1倍速第一轮与此前已评分输出：6档各90条文本、speech token完全相同，保存WAV逐字节相同。因此这些分数对应同一输出内容；本次未重复运行ASR/COMET。1280没有之前已评分输出，质量留空。未包含Fluency服务链、音色相似度、完整人工听感。</p>
+<p>括号表示相对640差值，不将不同语言BLEU混成一个总分。</p>
+<h3 id="asr-bleu">ASR BLEU</h3>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>n</th>
+<th>160</th>
+<th>320</th>
+<th>640 baseline</th>
+<th>1280</th>
+<th>1920</th>
+<th>160→640</th>
+<th>160→1920</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>realsi_en2zh</td>
+<td>13</td>
+<td>22.21 (-10.81)</td>
+<td>14.77 (-18.25)</td>
+<td>33.02</td>
+<td>未评分</td>
+<td>30.38 (-2.64)</td>
+<td>32.91 (-0.11)</td>
+<td>29.96 (-3.06)</td>
+</tr>
+<tr>
+<td>realsi_zh2en</td>
+<td>13</td>
+<td>3.87 (-10.35)</td>
+<td>3.91 (-10.31)</td>
+<td>14.22</td>
+<td>未评分</td>
+<td>18.22 (+4.00)</td>
+<td>15.50 (+1.28)</td>
+<td>15.67 (+1.45)</td>
+</tr>
+<tr>
+<td>acl6060_en2zh</td>
+<td>14</td>
+<td>29.84 (-13.00)</td>
+<td>26.85 (-15.99)</td>
+<td>42.84</td>
+<td>未评分</td>
+<td>42.15 (-0.69)</td>
+<td>39.97 (-2.87)</td>
+<td>41.35 (-1.49)</td>
+</tr>
+<tr>
+<td>acl6060_en2ja</td>
+<td>10</td>
+<td>30.03 (-6.11)</td>
+<td>32.80 (-3.34)</td>
+<td>36.14</td>
+<td>未评分</td>
+<td>36.18 (+0.04)</td>
+<td>33.64 (-2.50)</td>
+<td>31.49 (-4.65)</td>
+</tr>
+<tr>
+<td>fleurs_en2ja</td>
+<td>10</td>
+<td>24.92 (-6.05)</td>
+<td>34.14 (+3.17)</td>
+<td>30.97</td>
+<td>未评分</td>
+<td>25.20 (-5.77)</td>
+<td>28.11 (-2.86)</td>
+<td>28.82 (-2.15)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ja</td>
+<td>10</td>
+<td>22.17 (-1.26)</td>
+<td>23.23 (-0.20)</td>
+<td>23.43</td>
+<td>未评分</td>
+<td>22.88 (-0.55)</td>
+<td>24.53 (+1.10)</td>
+<td>22.81 (-0.62)</td>
+</tr>
+<tr>
+<td>fleurs_en2ko</td>
+<td>10</td>
+<td>27.76 (+1.92)</td>
+<td>28.83 (+2.99)</td>
+<td>25.84</td>
+<td>未评分</td>
+<td>28.37 (+2.53)</td>
+<td>24.66 (-1.18)</td>
+<td>25.82 (-0.02)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ko</td>
+<td>10</td>
+<td>15.24 (-1.50)</td>
+<td>13.27 (-3.47)</td>
+<td>16.74</td>
+<td>未评分</td>
+<td>18.99 (+2.25)</td>
+<td>15.54 (-1.20)</td>
+<td>15.06 (-1.68)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="asr-comet">ASR COMET</h3>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>n</th>
+<th>160</th>
+<th>320</th>
+<th>640 baseline</th>
+<th>1280</th>
+<th>1920</th>
+<th>160→640</th>
+<th>160→1920</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>realsi_en2zh</td>
+<td>13</td>
+<td>0.6832 (-0.1130)</td>
+<td>0.6546 (-0.1416)</td>
+<td>0.7962</td>
+<td>未评分</td>
+<td>0.7962 (+0.0000)</td>
+<td>0.8023 (+0.0061)</td>
+<td>0.7934 (-0.0028)</td>
+</tr>
+<tr>
+<td>realsi_zh2en</td>
+<td>13</td>
+<td>0.5930 (-0.1159)</td>
+<td>0.6010 (-0.1079)</td>
+<td>0.7089</td>
+<td>未评分</td>
+<td>0.7194 (+0.0105)</td>
+<td>0.7090 (+0.0001)</td>
+<td>0.7085 (-0.0004)</td>
+</tr>
+<tr>
+<td>acl6060_en2zh</td>
+<td>14</td>
+<td>0.7042 (-0.1262)</td>
+<td>0.6824 (-0.1480)</td>
+<td>0.8304</td>
+<td>未评分</td>
+<td>0.8350 (+0.0046)</td>
+<td>0.7559 (-0.0745)</td>
+<td>0.7927 (-0.0377)</td>
+</tr>
+<tr>
+<td>acl6060_en2ja</td>
+<td>10</td>
+<td>0.8316 (-0.0258)</td>
+<td>0.8455 (-0.0119)</td>
+<td>0.8574</td>
+<td>未评分</td>
+<td>0.8802 (+0.0228)</td>
+<td>0.8480 (-0.0094)</td>
+<td>0.8427 (-0.0147)</td>
+</tr>
+<tr>
+<td>fleurs_en2ja</td>
+<td>10</td>
+<td>0.8960 (+0.0075)</td>
+<td>0.8853 (-0.0032)</td>
+<td>0.8885</td>
+<td>未评分</td>
+<td>0.8847 (-0.0038)</td>
+<td>0.8861 (-0.0024)</td>
+<td>0.8941 (+0.0056)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ja</td>
+<td>10</td>
+<td>0.8293 (-0.0525)</td>
+<td>0.8488 (-0.0330)</td>
+<td>0.8818</td>
+<td>未评分</td>
+<td>0.8743 (-0.0075)</td>
+<td>0.8547 (-0.0271)</td>
+<td>0.8516 (-0.0302)</td>
+</tr>
+<tr>
+<td>fleurs_en2ko</td>
+<td>10</td>
+<td>0.8552 (+0.0030)</td>
+<td>0.8561 (+0.0039)</td>
+<td>0.8522</td>
+<td>未评分</td>
+<td>0.8618 (+0.0096)</td>
+<td>0.8627 (+0.0105)</td>
+<td>0.8617 (+0.0095)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ko</td>
+<td>10</td>
+<td>0.7988 (-0.0169)</td>
+<td>0.7910 (-0.0247)</td>
+<td>0.8157</td>
+<td>未评分</td>
+<td>0.8501 (+0.0344)</td>
+<td>0.8135 (-0.0022)</td>
+<td>0.8099 (-0.0058)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="text-bleu">Text BLEU</h3>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>n</th>
+<th>160</th>
+<th>320</th>
+<th>640 baseline</th>
+<th>1280</th>
+<th>1920</th>
+<th>160→640</th>
+<th>160→1920</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>realsi_en2zh</td>
+<td>13</td>
+<td>23.10 (-10.05)</td>
+<td>15.62 (-17.53)</td>
+<td>33.15</td>
+<td>未评分</td>
+<td>30.39 (-2.76)</td>
+<td>32.48 (-0.67)</td>
+<td>30.13 (-3.02)</td>
+</tr>
+<tr>
+<td>realsi_zh2en</td>
+<td>13</td>
+<td>3.80 (-10.57)</td>
+<td>3.60 (-10.77)</td>
+<td>14.37</td>
+<td>未评分</td>
+<td>18.39 (+4.02)</td>
+<td>15.59 (+1.22)</td>
+<td>15.75 (+1.38)</td>
+</tr>
+<tr>
+<td>acl6060_en2zh</td>
+<td>14</td>
+<td>30.07 (-13.24)</td>
+<td>27.26 (-16.05)</td>
+<td>43.31</td>
+<td>未评分</td>
+<td>43.57 (+0.26)</td>
+<td>42.28 (-1.03)</td>
+<td>41.97 (-1.34)</td>
+</tr>
+<tr>
+<td>acl6060_en2ja</td>
+<td>10</td>
+<td>32.25 (-4.39)</td>
+<td>32.65 (-3.99)</td>
+<td>36.64</td>
+<td>未评分</td>
+<td>37.26 (+0.62)</td>
+<td>35.88 (-0.76)</td>
+<td>34.12 (-2.52)</td>
+</tr>
+<tr>
+<td>fleurs_en2ja</td>
+<td>10</td>
+<td>25.13 (-6.69)</td>
+<td>34.87 (+3.05)</td>
+<td>31.82</td>
+<td>未评分</td>
+<td>25.67 (-6.15)</td>
+<td>28.33 (-3.49)</td>
+<td>29.05 (-2.77)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ja</td>
+<td>10</td>
+<td>22.13 (-1.37)</td>
+<td>23.19 (-0.31)</td>
+<td>23.50</td>
+<td>未评分</td>
+<td>22.87 (-0.63)</td>
+<td>24.56 (+1.06)</td>
+<td>22.65 (-0.85)</td>
+</tr>
+<tr>
+<td>fleurs_en2ko</td>
+<td>10</td>
+<td>26.18 (-0.03)</td>
+<td>29.55 (+3.34)</td>
+<td>26.21</td>
+<td>未评分</td>
+<td>28.69 (+2.48)</td>
+<td>24.66 (-1.55)</td>
+<td>25.82 (-0.39)</td>
+</tr>
+<tr>
+<td>fleurs_zh2ko</td>
+<td>10</td>
+<td>15.85 (-2.22)</td>
+<td>13.52 (-4.55)</td>
+<td>18.07</td>
+<td>未评分</td>
+<td>17.82 (-0.25)</td>
+<td>15.99 (-2.08)</td>
+<td>15.69 (-2.38)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-1pcm">8. 按数据集的1倍速首PCM</h2>
+<p>每组为该组条数×2轮，不做跨语言混合归因。单元格为p50 / p95，秒。</p>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>n</th>
+<th>160</th>
+<th>320</th>
+<th>640 baseline</th>
+<th>1280</th>
+<th>1920</th>
+<th>160→640</th>
+<th>160→1920</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>realsi_en2zh</td>
+<td>26</td>
+<td>1.975 / 3.990</td>
+<td>1.645 / 2.456</td>
+<td>3.427 / 8.683</td>
+<td>3.383 / 8.835</td>
+<td>3.262 / 6.466</td>
+<td>3.331 / 5.535</td>
+<td>3.356 / 6.681</td>
+</tr>
+<tr>
+<td>realsi_zh2en</td>
+<td>26</td>
+<td>1.637 / 2.281</td>
+<td>1.560 / 3.185</td>
+<td>2.766 / 5.924</td>
+<td>3.140 / 5.122</td>
+<td>2.755 / 4.610</td>
+<td>3.031 / 6.408</td>
+<td>3.035 / 6.381</td>
+</tr>
+<tr>
+<td>acl6060_en2zh</td>
+<td>28</td>
+<td>1.723 / 4.116</td>
+<td>1.680 / 2.398</td>
+<td>3.203 / 5.959</td>
+<td>3.388 / 5.607</td>
+<td>3.766 / 5.664</td>
+<td>3.128 / 6.676</td>
+<td>3.227 / 6.717</td>
+</tr>
+<tr>
+<td>acl6060_en2ja</td>
+<td>20</td>
+<td>6.050 / 11.080</td>
+<td>7.127 / 13.308</td>
+<td>7.387 / 12.551</td>
+<td>8.481 / 13.245</td>
+<td>5.339 / 11.276</td>
+<td>6.066 / 11.087</td>
+<td>6.076 / 11.080</td>
+</tr>
+<tr>
+<td>fleurs_en2ja</td>
+<td>20</td>
+<td>7.515 / 11.902</td>
+<td>7.932 / 12.325</td>
+<td>6.142 / 12.340</td>
+<td>5.626 / 12.432</td>
+<td>5.336 / 7.182</td>
+<td>7.535 / 11.907</td>
+<td>7.509 / 11.910</td>
+</tr>
+<tr>
+<td>fleurs_zh2ja</td>
+<td>20</td>
+<td>5.758 / 13.582</td>
+<td>6.819 / 10.571</td>
+<td>7.125 / 15.480</td>
+<td>7.391 / 15.976</td>
+<td>7.330 / 10.009</td>
+<td>5.765 / 13.585</td>
+<td>5.755 / 13.587</td>
+</tr>
+<tr>
+<td>fleurs_en2ko</td>
+<td>20</td>
+<td>6.525 / 8.563</td>
+<td>6.960 / 12.756</td>
+<td>7.081 / 12.737</td>
+<td>8.484 / 12.795</td>
+<td>8.339 / 20.081</td>
+<td>6.523 / 8.575</td>
+<td>6.525 / 8.560</td>
+</tr>
+<tr>
+<td>fleurs_zh2ko</td>
+<td>20</td>
+<td>8.131 / 12.508</td>
+<td>7.505 / 12.519</td>
+<td>9.415 / 16.189</td>
+<td>7.462 / 18.893</td>
+<td>9.393 / 18.240</td>
+<td>8.144 / 12.516</td>
+<td>8.130 / 12.519</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9">9. 正确性、输入节奏和局限</h2>
+<ul>
+<li>7×90×2=1260次正式测量，0失败，全部EOS；实际PCM offset连续，24kHz WAV帧数与发送计数一致，残余mel为0。</li>
+<li>每档180次真实输入与同进程加速预热的文本、speech token、原始float PCM全部一致。另有6档90条与此前已评分产物的逐字节核对。</li>
+<li>每个测试先完整90条预热，冷启动和预热不混入正式首包。两轮重复样本，百分位对小样本和线性插值敏感；没有提供统计置信区间，不把小幅差异称为稳定收益。</li>
+<li>正式短句测量没有触发60秒目标声学窗口；不能据此证明长时跨窗口质量。清理后独立GPU回归另覆盖23组，其中强制Thinker重放2次、Talker重放4次、声学切窗6次。</li>
+<li>所有输入包的实际到达、排队均记录；没有通过暂停生产者让推理追赶。输出会积压输入，不能把计算时间与源位置两个分位数相加推算真实首包。</li>
+<li>单GPU单会话；未测多用户并发、网络抖动、麦克风设备、浏览器播放和真正端到端播放断粮。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>chunk</th>
+<th style="text-align: right;">输入到包迟到p99(ms)</th>
+<th style="text-align: right;">最大迟到(ms)</th>
+<th style="text-align: right;">输入处理排队p95(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td style="text-align: right;">0.199</td>
+<td style="text-align: right;">9.215</td>
+<td style="text-align: right;">1.096</td>
+</tr>
+<tr>
+<td>320</td>
+<td style="text-align: right;">0.187</td>
+<td style="text-align: right;">25.407</td>
+<td style="text-align: right;">0.762</td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td style="text-align: right;">0.188</td>
+<td style="text-align: right;">29.185</td>
+<td style="text-align: right;">0.809</td>
+</tr>
+<tr>
+<td>1280</td>
+<td style="text-align: right;">0.233</td>
+<td style="text-align: right;">9.878</td>
+<td style="text-align: right;">0.763</td>
+</tr>
+<tr>
+<td>1920</td>
+<td style="text-align: right;">0.177</td>
+<td style="text-align: right;">23.656</td>
+<td style="text-align: right;">0.723</td>
+</tr>
+<tr>
+<td>160→640</td>
+<td style="text-align: right;">0.158</td>
+<td style="text-align: right;">21.838</td>
+<td style="text-align: right;">0.887</td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td style="text-align: right;">0.207</td>
+<td style="text-align: right;">11.270</td>
+<td style="text-align: right;">0.866</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10">10. 后续建议</h2>
+<ol>
+<li>保留640作为现有默认和回归基线；160/320先查小chunk质量下降及WRITE过早/遗漏，再谈提速收益。</li>
+<li>将首文本、首speech token和首PCM分别优化；160→640虽更早WRITE，Flow/HiFT还需累积足够合成条件，不能把“首WRITE前小块”直接当成“首PCM前小块”。</li>
+<li>对1280补同90条质量评分后再决定是否值得全量；当前首包优势有限，不预设更优。</li>
+<li>若改Flow hop/lookahead或增加小chunk Graph，逐项A/B并复测质量，不同时改采样/ODE/窗口。</li>
+<li>最终候选再做1193条全量、真实麦克风/浏览器播放及长流切窗验收。</li>
+</ol>
+<h2 id="11-pcm">11. 逐轮首PCM延迟</h2>
+<p>单位秒，每轮为相同90条；主表为两轮合并180次观测。线性插值的分位数会随样本数变化，合并后的p95不等于两个p95的平均。</p>
+<table>
+<thead>
+<tr>
+<th>chunk</th>
+<th style="text-align: right;">r1 p50</th>
+<th style="text-align: right;">r1 p95</th>
+<th style="text-align: right;">r1 p99</th>
+<th style="text-align: right;">r2 p50</th>
+<th style="text-align: right;">r2 p95</th>
+<th style="text-align: right;">r2 p99</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td style="text-align: right;">4.035</td>
+<td style="text-align: right;">10.972</td>
+<td style="text-align: right;">12.628</td>
+<td style="text-align: right;">4.042</td>
+<td style="text-align: right;">10.972</td>
+<td style="text-align: right;">12.628</td>
+</tr>
+<tr>
+<td>320</td>
+<td style="text-align: right;">3.758</td>
+<td style="text-align: right;">11.827</td>
+<td style="text-align: right;">12.819</td>
+<td style="text-align: right;">3.735</td>
+<td style="text-align: right;">11.791</td>
+<td style="text-align: right;">12.823</td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td style="text-align: right;">5.495</td>
+<td style="text-align: right;">12.667</td>
+<td style="text-align: right;">15.584</td>
+<td style="text-align: right;">5.501</td>
+<td style="text-align: right;">12.652</td>
+<td style="text-align: right;">15.557</td>
+</tr>
+<tr>
+<td>1280</td>
+<td style="text-align: right;">5.408</td>
+<td style="text-align: right;">12.685</td>
+<td style="text-align: right;">16.296</td>
+<td style="text-align: right;">5.408</td>
+<td style="text-align: right;">12.664</td>
+<td style="text-align: right;">16.306</td>
+</tr>
+<tr>
+<td>1920</td>
+<td style="text-align: right;">5.336</td>
+<td style="text-align: right;">12.311</td>
+<td style="text-align: right;">18.460</td>
+<td style="text-align: right;">5.334</td>
+<td style="text-align: right;">12.129</td>
+<td style="text-align: right;">18.442</td>
+</tr>
+<tr>
+<td>160→640</td>
+<td style="text-align: right;">5.267</td>
+<td style="text-align: right;">10.989</td>
+<td style="text-align: right;">12.636</td>
+<td style="text-align: right;">5.265</td>
+<td style="text-align: right;">10.984</td>
+<td style="text-align: right;">12.636</td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td style="text-align: right;">5.579</td>
+<td style="text-align: right;">10.979</td>
+<td style="text-align: right;">12.634</td>
+<td style="text-align: right;">5.572</td>
+<td style="text-align: right;">11.007</td>
+<td style="text-align: right;">12.675</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12">12. 已知边界与待办</h2>
+<p>当前滑窗在单个VAD段内工作。VAD收段后，Thinker/Talker、Voxtral缓存及声学会话会重置；全局源位置和PCM偏移保留。跨VAD段持续保留Thinker语义上下文尚未实现，已列入TODO，不能把本报告的“真流式/有界窗口”理解为跨段语义连续性已完成。</p>
+<p>优先计划：让VAD声学收段与Thinker语义记忆分开；按完整交互边界保留近期上下文，正确重建KV和递归状态，不重复输出旧内容。Talker先保持分段重置，以防重新引入已观察到的长流重复/异常拉长。需要用跨句指代、术语复用、长停顿和长流重新验证连贯性及稳定性。</p>
+<ul>
+<li><a href="S5_STREAMING_INFERENCE_OPTIMIZATION.md">当前实现和TODO</a></li>
+<li><a href="S5_STREAMING_BENCH_RUNBOOK.md">启动、评测与回归手册</a></li>
+<li><a href="../custom/streaming_si/eval/report_protocol/README.md">原报告评测协议</a></li>
+</ul>
+<h2 id="13">13. 代码与证据索引</h2>
+<p>测试时基于HEAD <code>8a5e6a5</code> 加未提交补丁运行。核心推理补丁现已提交为 <code>8c0f7e23241cc8c5394550fed9b92c1a70309ed8</code>。已逐文件核对，下表核心运行文件与当时测试快照逐字节一致；后续提交只整理测试和文档，不能将整个源码归档的SHA当作单个Git提交SHA。</p>
+<p>真实输入的完整源码归档SHA256为 <code>cdac71bf61cbfda623e2f33fccdad7ec9724cdd688aaca4d4c639a02e990221f</code>。</p>
+<table>
+<thead>
+<tr>
+<th>核心文件（相对custom/streaming_si）</th>
+<th>测试源码SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inference/infer_s5_streaming_dynchunk.py</code></td>
+<td><code>c4209feb54515645b6f661746d385e149f6dcad9279f73caa44d864d86e70e75</code></td>
+</tr>
+<tr>
+<td><code>inference/s5_session.py</code></td>
+<td><code>ffe85fbf990f5e529761a44aced7b609ba3f98a3141367ef13d91a260331fff5</code></td>
+</tr>
+<tr>
+<td><code>inference/s5_segmenter.py</code></td>
+<td><code>038331e3f098bc50020f2572f66ea902d5f27ff8ec4a9ae3040663d37fe5c4ce</code></td>
+</tr>
+<tr>
+<td><code>inference/s5_pcm_decoder.py</code></td>
+<td><code>49d4d9c9e62777de65516deaa5a2c47dc5d5ca77285acd4bc9ab221d77988db6</code></td>
+</tr>
+<tr>
+<td><code>inference/s5_hift_stream.py</code></td>
+<td><code>f594e2f951c0781e4392e58a045a3bad9beeafc6045aa0a375b564a16c656e45</code></td>
+</tr>
+<tr>
+<td><code>model/model_si.py</code></td>
+<td><code>77f187b8161fb1b197eb2f1c0724760083ffd74322b3fe84dc1f47b1b626f4bf</code></td>
+</tr>
+<tr>
+<td><code>model/voxtral_compat.py</code></td>
+<td><code>113daa9fa9401a8e52e7e6fd9470bb0347852864877c2ec52d5e396dbf21e8ab</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">本地原始产物（未上传）</h3>
+<p>报告正文和所有成绩表可在Git中独立阅读。以下为本地取证位置，不是仓库网页链接，也不是推理运行依赖：</p>
+<ul>
+<li>实时输入：<code>/data/workspace/inference_profiles/20261116-s5-l40s-realtime/</code></li>
+<li>加速输入/质量：<code>/data/workspace/inference_profiles/20261116-s5-l40s-chunks/</code></li>
+<li>每档<code>&lt;mode&gt;/bench/</code>保存事件、实际到包/排队记录、逐句JSON、WAV、warmup、源码快照和日志。</li>
+<li><code>host-validation.json</code>检查1260次输出的EOS、残余mel、PCM offset、WAV帧数及归档SHA；<code>scored-output-crosscheck.json</code>记录已评分输出与实时输出的逐ID比较；<code>latency-analysis.json</code>记录阶段与配对统计。</li>
+</ul>
+<h3 id="_5">实时原始归档校验值</h3>
+<p>这些是保留在本地的归档校验值，不代表音频/日志已经上传。</p>
+<table>
+<thead>
+<tr>
+<th>chunk</th>
+<th>result.tgz SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td><code>a78e231edc8ab58e0cec0dae57c58d21c148a437984f903b91e1a601116396af</code></td>
+</tr>
+<tr>
+<td>320</td>
+<td><code>c9904cef78b0fe26595d50dbe204349397725614405aa4a329b4271768b44cc4</code></td>
+</tr>
+<tr>
+<td>640 baseline</td>
+<td><code>0219348d7af1f2231da6aa836e2b59022d363ea3b646d0e5526bece4d620494f</code></td>
+</tr>
+<tr>
+<td>1280</td>
+<td><code>46ad692decc36521352603198e8c7f27157192321c44bc1dbc71f8c6c68e496f</code></td>
+</tr>
+<tr>
+<td>1920</td>
+<td><code>91f12291f0439c28fcdfb7e0ec314900aa1fbd61c06d33fb04558023d569286a</code></td>
+</tr>
+<tr>
+<td>160→640</td>
+<td><code>ddfa03019089b3cc39404f03b836432d4cd247123b41f660f37c2d259351094f</code></td>
+</tr>
+<tr>
+<td>160→1920</td>
+<td><code>0606aad1f86a74863d25fddf98d133c369c6834b50af0987954854beea639cb4</code></td>
+</tr>
+</tbody>
+</table>
+<p>所有GPU Pod在归档校验后已删除。监控、部署、下载及归档脚本继续留在本地，不提交到推理分支。</p></body></html>

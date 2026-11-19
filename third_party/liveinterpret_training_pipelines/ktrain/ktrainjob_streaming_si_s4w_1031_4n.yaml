@@ -1,0 +1,117 @@
+# =============================================================================
+# S4-w（跨池桥接预热）：起点 = S3_1031 final（ckpt18607）
+# 只训 talker.thinker_proj + talker.fusion（10.5M），只算语音 loss
+# 4 节点 32 卡：每卡 16 × 32 = 全局 512，2500 步 ≈ 128 万样本
+# 跑完执行门 A：s4w_bridge_gate.py，要求 eng→cmn / cmn→eng 的 full speech CE
+# 都比 text_only 低 0.005 以上，通过后进 S4
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-03e7d1f6d95864e1a", "hyperpod-i-08e3257c716579618", "hyperpod-i-09a68c454800140d6", "hyperpod-i-0a3ebd369de798192"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 4
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    SI_STAGE: "s4-w"
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_si_4b/S3_1031_ckpt18607/"
+
+    # 与 s2_4n_1031 相同的 15 个目录 + 4 个同语言对（S4 教端到端语音直通）
+    SI_P2_DATA_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise_dns5/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2en/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2zh/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2ja/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2ko/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_fsq_v3/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_fsq_v3/
+    SI_P2_WAV_DIRS: >-
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/negative_noise_dns5/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/en2en/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/zh2zh/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ja2ja/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech/ko2ko/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_0_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_1_shard/p2_source_wav/
+      s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/open_data_0803_fortrain/machine_2_shard/p2_source_wav/
+
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si"
+
+    # S4-w：train_s2st.sh 默认口径（每卡 16、lr 3e-4、text_w=0、speech_w=1、cond_mode=full）
+    MAX_STEPS: "2500"
+    WARMUP_RATIO: "0.03"
+    GROUP_BY_LENGTH: "true"
+    DATASET_NUM_PROC: "12"
+    DATALOADER_NUM_WORKERS: "8"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

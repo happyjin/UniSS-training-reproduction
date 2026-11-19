@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: tts-omni-merge, namespace: ktrain-users, labels: {app: tts-omni-merge, owner: stevehguo}}
+spec:
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-04ed14465ab855810}
+  containers:
+    - name: m
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["bash","-c","python3 -m pip install -q boto3 2>&1 | tail -1; python3 /opt/m/merge_final.py"]
+      env: [{name: AWS_DEFAULT_REGION, value: ap-southeast-3},{name: PYTHONUNBUFFERED, value: "1"}]
+      envFrom: [{secretRef: {name: aws-jkt-creds}}]
+      resources: {requests: {cpu: "32", memory: 48Gi}, limits: {cpu: "48", memory: 96Gi}}
+      volumeMounts: [{name: m, mountPath: /opt/m, readOnly: true},{name: nvme, mountPath: /tmp/out}]
+  volumes: [{name: m, configMap: {name: tts-omni-merge}},{name: nvme, hostPath: {path: /opt/dlami/nvme/stevehguo/tts_omni_merge, type: DirectoryOrCreate}}]

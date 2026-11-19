@@ -1,0 +1,13 @@
+arm=B(Lance+offline mel)
+gpus=4 deepspeed=zero2 thinker-only
+steps_logged=16
+# per-step from elapsed_time/global_step deltas (correct metric)
+steady_median_s_per_it=68.5
+steady_mean_s_per_it=68.5
+steady_n=14 warmup=2
+last_step=16
+memory_GiB_last=35.38
+# NOTE: an earlier value of 57.567 came from swift's 'train_speed(s/it)', which is a
+# cumulative average, not per-step time. Do not use it.
+# NOTE: this number is NOT a valid data-format result -- step time is dominated by
+# ZeRO-2 gradient sync over 10GbE/TCP (no EFA). See DIAGNOSIS_20260818.md.

@@ -1,0 +1,60 @@
+# S4 最新 checkpoint（S4_1031v2_ckpt93767）噪声测试 — 复刻 s2_nosie_test 口径：
+#   MS-SNSD 51 条整段送 Voxtral encoder · greedy（top_p=0）· tgt_lang 按字母序轮转 en/zh/jp/ko
+#   --no_vocoder：只出译文与 speech token（噪声测试关注输出是否为空）
+# GPU 全忙时 Pod 会 Pending 排队，释放后自动执行；产物 results.jsonl 上传 S3。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s4-noise-eval
+  namespace: speech-h200
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - {key: node-type, operator: Equal, value: gpu, effect: NoSchedule}
+      nodeSelector:
+        node.kubernetes.io/instance-type: ml.p5e.48xlarge
+      containers:
+        - name: eval
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -eu
+              W=/work
+              mkdir -p $W && cd $W
+              echo "[1/4] 下载 bundle..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/_eval_tmp/s4_noise_bundle.tar - | tar xf -
+              echo "[2/4] 下载模型 S4_1031v2_ckpt93767..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 sync \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_si_4b_enzhjako/S4_1031v2_ckpt93767 \
+                $W/model --only-show-errors
+              echo "[3/4] 推理 51 条（整段 · greedy · tgt_lang 轮转）..."
+              cd $W/repo
+              /opt/venv/bin/python custom/streaming_si/inference/infer_s2st.py \
+                --model_dir $W/model \
+                --input_jsonl $W/input.jsonl \
+                --out_dir $W/out \
+                --no_vocoder --device cuda:0
+              echo "[4/4] 上传结果..."
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp $W/out/results.jsonl \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/_eval_tmp/s4_noise_results.jsonl --only-show-errors
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 cp $W/out/summary.json \
+                s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/_eval_tmp/s4_noise_summary.json --only-show-errors
+              echo "EVAL_DONE"
+          env:
+            - {name: AWS_DEFAULT_REGION, value: "ap-southeast-3"}
+          envFrom:
+            - secretRef: {name: aws-local-creds}
+          resources:
+            requests: {cpu: "16", memory: "64Gi", nvidia.com/gpu: "1"}
+            limits: {cpu: "16", memory: "64Gi", nvidia.com/gpu: "1"}
+          volumeMounts:
+            - {name: work, mountPath: /work}
+      volumes:
+        - name: work
+          emptyDir: {sizeLimit: 200Gi}

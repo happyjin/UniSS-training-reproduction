@@ -1,0 +1,173 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# streaming_si S5（流式同传 LoRA，源项目 S4；SI_S4_* 变量 / si_s4 数据目录沿用源项目命名）· torchrun + DeepSpeed ZeRO-2 ·
+# 数据：si_s4_rechunk_D（配置 D 重切分的 records）+ si_s4 的音频 tar，均从 S3 同步到各节点 NVMe
+#
+# 【为什么是 framework: pytorch 而不是 ray】
+# streaming_si 的训练脚本按 torchrun 设计，尚未适配 ms-swift 的 --use_ray；ray 框架下会被
+# swift 判成 torchrun 模式，与 Ray placement group 冲突。
+#
+# 【链路】
+#   submit.sh：同步代码 → 按 env 里的 s3:// 值派生同步 Job，把模型/数据同步到每个白名单节点的
+#              /nvme/<key> → 检查就绪 → ktrain job submit
+#   Pod 内：ktrain/launch_train.sh（转换 MODEL_PATH、导出 NNODES/NODE_RANK/MASTER_*）
+#          → pipelines/streaming_si/ktrain_entry.sh（转换 SI_* 路径、准备 S5 数据）
+#          → pipelines/streaming_si/train_simul.sh → swift sft（torchrun numNodes×8）
+#
+# 【S5 数据（S3 实测 2026-09-29）】
+#   records：s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4_rechunk_D/records/
+#            640ms train+val：en2zh 25.5 GiB、zh2en 22.7 GiB（jsonl，同步后直接用）
+#   音频：    rechunk_D 不含音频（其 README：用 si_s4/audio/_tars），302 个 tar 共 5.4 TiB，
+#            同步后在节点上解压到 /nvme/zeyangsong_share/si_s4/audio/{en2zh,zh2en}/
+#   val 划分与分层索引也要在节点上生成（产物里写死了路径，不能跨机器拷），落在
+#   /nvme/zeyangsong_share/si_s4_rechunk_D/_swift_prep/chunk_640ms/。
+#   rechunk_D 的 _idx/ 与 wr/ 是它自己重切分用的缓存，训练不需要，不同步。
+#
+# 【磁盘】每个节点约需 11 TiB NVMe：音频 tar 5.4 TiB + 解压后约 5.4 TiB + records 48 GiB。
+#   tar 解压后不要删：submit.sh 的就绪检查看的是 tar 目录，删了下次提交会重新同步 5.4 TiB。
+#   节点上若已有解压好的 si_s4 音频，改用 SI_S4_AUDIO_ROOT（见 env 注释），省掉 tar 同步与解压。
+#
+# 【首次在新节点上跑：先提交一次数据准备】
+#   多节点时各节点的准备耗时可能差几小时，先完成的节点会在 torchrun rendezvous 处超时，
+#   所以训练模式下 ktrain_entry.sh 只校验、不做耗时准备。流程：
+#     1) SI_PREP_ONLY 改成 "1" 提交：各节点并行解压 / 切 val / 建索引后退出（任务 Succeeded）
+#     2) 改回 "0" 再提交，开始训练
+#   之后在同一组节点上重跑（包括换 MODEL_PATH、改超参），直接第 2 步即可。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_streaming_si_s5.yaml \
+#       --repo <repo> --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix si-s5 \
+#       --task-deadline 'si-s4-audio-tars=259200'
+#   （5.4 TiB 跨区同步，给音频同步任务 72h 上限；任务名由 env 名派生。）
+#
+# 【提交前必须修改】
+#   1. affinity 白名单：换成分配给你的节点（numNodes 必须等于白名单节点数）
+#   2. MODEL_PATH：换成真实的 HF 格式模型目录（见 env 处注释）
+#   3. CODE_PREFIX / OUTPUT_ROOT / owner：用 __OWNER__ 占位符（submit.sh 自动替换为 owner 注解；sync_code.sh 会先清空 CODE_PREFIX
+#      再上传，指到别人的前缀会覆盖别人的代码）
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-07d384c1277ead0cd", "hyperpod-i-08e3257c716579618", "hyperpod-i-03e7d1f6d95864e1a"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # pytorch 框架：渲染为 PyTorchJob，每节点一个 Pod，swift 在 Pod 内拉起 torchrun（8 进程/节点）。
+  framework: pytorch
+  # streaming_si 镜像（ktrain/image/Dockerfile.streaming-si）：v9 + fla / causal-conv1d 加速核 + CosyVoice 声码器依赖，
+  # 0.6B 与 4B 两个变体通用（4B 的线性注意力走加速核）；torch / TE / EFA 与 v9 相同，训练行为不变。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  # pytorch 框架语义：numNodes = 训练节点数 = 白名单长度（无 head 节点）
+  numNodes: 3                  # = 白名单节点数
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    # 注意：s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/ 下的 base_* 是未训练基座，不能作为 S5 的起点。
+    # MODEL_PATH 要填 S4 训练产出的 checkpoint（或由源 .pth 转换的目录），上传后再提交。
+    #   本次 S4 最终产物（改名后的新编号）：.../trained_streaming_si_4b/S4/checkpoint-24980/
+    TRAIN_SCRIPT: "pipelines/streaming_si/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    # -------------------------------------------------------------------------
+    # 模型：S4 阶段（离线 S2ST joint）的 HF 格式模型目录（config.json / safetensors / tokenizer /
+    # voxtral_processor_config.json）。两种来源：
+    #   * 本仓库 train_s2st.sh s4 产出的 checkpoint-*（输出子目录 s4_s2st/，改名前为 s3_s2st/），上传到 S3
+    #   * 源项目的 S3 权重（= 本仓库 S4；已在桶里：model_checkpoint/1b_model_v7/s3_s2st_1024_talker8_step_45000.pth），
+    #     用 export_streaming_si.py 转成 HF 目录后上传：
+    #       python custom/streaming_si/scripts/export_streaming_si.py --thinker_dir <Qwen3-0.6B> \
+    #           --voxtral_dir <Voxtral-Mini-4B-Realtime-2602> \
+    #           --source_ckpt s3_s2st_1024_talker8_step_45000.pth --out_dir streaming_si_s3_step45000
+    #       aws s3 sync streaming_si_s3_step45000 s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/s3_s2st_step45000/
+    # 会被同步到 /nvme/<key>，launch_train.sh 自动转换路径。
+    # -------------------------------------------------------------------------
+    # 源项目 S3 权重转换版（旧起点）：.../streaming_si_swift/s3_s2st_step45000/
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/model_checkpoint/streaming_si_swift/trained_streaming_si_4b/S4/checkpoint-24980/"
+
+    # -------------------------------------------------------------------------
+    # 数据（S5，640ms 双方向）。每个含 s3:// 的变量派生一个同步 Job（derive_sync_jobs.py）。
+    #   SI_S4_RECORDS    rechunk_D 的 train / val（不同步 test 与其他 chunk 档）
+    #   SI_S4_AUDIO_TARS si_s4 的 302 个音频 tar；ktrain_entry.sh 解压到其上一级 audio/
+    # 节点上已有解压好的音频时：删掉 SI_S4_AUDIO_TARS，改设
+    #   SI_S4_AUDIO_ROOT: "/nvme/<已解压的 si_s4/audio 路径>"（须含 en2zh/ 与 zh2en/）
+    # -------------------------------------------------------------------------
+    SI_STAGE: "s5"
+    SI_S4_RECORDS: >-
+      s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4_rechunk_D/records/en2zh/chunk_640ms/train/
+      s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4_rechunk_D/records/en2zh/chunk_640ms/val/
+      s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4_rechunk_D/records/zh2en/chunk_640ms/train/
+      s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4_rechunk_D/records/zh2en/chunk_640ms/val/
+    SI_S4_AUDIO_TARS: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/si_s4/audio/_tars/"
+    CHUNK_MS: "640"
+    # 1 = 只准备数据（解压 / 切 val / 建索引）后退出；首次在新节点上先用 1 提交一次（见文件头）
+    SI_PREP_ONLY: "0"
+    SI_S4_PREP_WORKERS: "32"
+    SI_S4_INDEX_WORKERS: "64"
+
+    # -------------------------------------------------------------------------
+    # 输出：落在各节点 NVMe（本阶段子目录 s5_simul_default_640/，改名前为 s4_default_640/）；多节点时 ktrain_entry.sh 自动加
+    # --save_on_each_node，保证每个节点都有完整 checkpoint 可续训。不要设 OUTPUT_DIR。
+    # 续训：SI_EXTRA_ARGS: "--resume_from_checkpoint /nvme/output/__OWNER__/streaming_si/s5_simul_default_640/.../checkpoint-N"
+    # -------------------------------------------------------------------------
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/streaming_si"
+    # SI_EXTRA_ARGS: ""
+
+    # -------------------------------------------------------------------------
+    # 训练参数：默认值在 pipelines/streaming_si/train_simul.sh，这里只做本次运行的覆盖。
+    # 源项目是单机 8 卡 × 每卡 48 = 全局 384；当前 3 节点 24 卡取每卡 16，全局 batch 与学习率调度
+    # 和源一致（train_simul.sh 按 每卡 × 8 × NNODES 自动算采样计划的全局 batch）。
+    # 实验臂：S4_ARM: "prefix_drop" | "prefix_drop_control" 并设 S4_P_DROP（见 README 6.3）。
+    # -------------------------------------------------------------------------
+    PER_DEVICE_TRAIN_BATCH_SIZE: "16"
+    # MAX_STEPS: "100"        # 首次试跑可打开，确认链路后删掉
+
+    # REPORT_TO: "wandb"
+    # WANDB_API_KEY: "<你的 key>"
+    # WANDB_BASE_URL: "http://43.173.190.72:8080"
+    # WANDB_PROJECT: "streaming_si"
+    # WANDB_EXP_NAME: "si_s5_rechunkD_640"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

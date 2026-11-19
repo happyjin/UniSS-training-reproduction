@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tts-omni-sweep1
+  namespace: ktrain-users
+  labels: {app: tts-omni-prep, owner: stevehguo}
+spec:
+  restartPolicy: OnFailure
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-0188e1ba98aa87a12}
+  containers:
+    - name: worker
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["bash", "/opt/raw/startup.sh"]
+      env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: AWS_DEFAULT_REGION
+          value: ap-southeast-3
+        - name: NW
+          value: "16"
+        - name: NWT
+          value: "32"
+        - name: WORKER_START
+          value: "0"
+        - name: NGPU
+          value: "8"
+        - name: OMP_NUM_THREADS
+          value: "4"
+        - name: SHARED_GPU
+          value: "1"
+        - name: ONLY_KEYS
+          value: "/opt/raw/sweep_keys.txt"
+        - name: SHARD_OFFSET_BASE
+          value: "70000000"
+      envFrom:
+        - secretRef: {name: aws-jkt-creds}
+      resources:
+        requests: {cpu: "48", memory: 400Gi}
+        limits: {cpu: "180", memory: 700Gi}
+      volumeMounts:
+        - {name: code, mountPath: /opt/raw, readOnly: true}
+        - {name: nvme, mountPath: /opt/dlami/nvme}
+        - {name: shm, mountPath: /dev/shm}
+  volumes:
+    - {name: code, configMap: {name: tts-omni-prep}}
+    - {name: nvme, hostPath: {path: /opt/dlami/nvme, type: Directory}}
+    - {name: shm, emptyDir: {medium: Memory, sizeLimit: 32Gi}}

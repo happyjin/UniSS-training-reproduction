@@ -1,0 +1,235 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# 本任务 = 汇总实测最优参数的生产训练配置（**性能导向，不参与任何数学结果对照**）。
+#
+# 采用的优化项与实测依据（详见 docs/TRAINING_METRICS_MERGED.md 第 3 章）：
+#   1) 数据源 WDS/FSX → Lance v506 全表（launcher 换 launch_train_lance.sh）
+#      —— 同后端同拓扑 200 步墙钟提速 1.15–1.51×：单机 deepspeed 15m57s→10m46s、
+#         双节点 ray 9m11s→6m4s、双节点 megatron 11m21s→9m2s、
+#         双节点直连 8m59s→7m49s、单机 megatron 18m6s→15m26s
+#   2) SCENE batch4_8_adapter → batch4_8_adapter_cmp（adapter+whole talker、
+#      thinker 冻结、LR 1e-5、constant_with_warmup、warmup 0.03、2 epochs、
+#      max_length 576、eval/save=1000、split 0.0005 均由预设给出）
+#   3) DeepSpeed 引擎 zero0（纯 DDP，无优化器/梯度分片通信）—— **脚本默认**：
+#      双节点实测 zero1 12.22 → zero0 11.57 s/it（−5.3%）、tokens/s +5.7%
+#   4) per_device 64 —— 单机 GBS=4096 方案（64 × 8 卡 × ga8）；zero0 每卡保留完整
+#      优化器状态（≈21.6 GiB）+ 不分片梯度，激活随 per_device 线性放大：
+#      双节点 zero0 + per_device=32 实测 100.04 GiB，单机 per_device=64 的激活约为其
+#      2 倍，推算峰值 ~160 GiB > 141 GiB 上限，**OOM 风险高**；失败即回退
+#      per_device=32 / ga8（GBS=2048，实测 98.26→101.11 GiB 稳定）
+#   5) ga 8 —— **本文件覆盖**（预设 1）：GBS = 64 × 8(DP) × 8 = **4096**
+#      （≈9,364 步 / 2 epochs，warmup ≈281 步，与 GBS=4096 对照族 P–V 同口径）
+#   6) DataLoader 8 workers × prefetch 2（Q/rank=16）—— **脚本默认**：
+#      队列膝点在 Q=0→1 之间（Q=0 FillRate 0.889 / Q=1 已 0.998），
+#      Q=1/4/32/64/128/256 的 tokens/s 差 ≤0.7%
+#   7) DATASET_NUM_PROC 全核 135 —— **脚本默认**（= CONTAINER_CPUS）
+#   8) 归约环境显式 NCCL_NVLS_ENABLE=0（走 ring/tree 软件归约）
+#
+# 只写「与脚本默认值不同」的项。以下项由预设 / common_args 给出，本文件不重复设置：
+#   LEARNING_RATE=1e-5、LR_SCHEDULER_TYPE=constant_with_warmup、WARMUP_RATIO=0.03、
+#   MAX_LENGTH=576、NUM_TRAIN_EPOCHS=2、EVAL_STEPS/SAVE_STEPS=1000、
+#   LOGGING_STEPS=10、SPLIT_DATASET_RATIO=0.0005、GROUP_BY_LENGTH=false、
+#   LAZY_TOKENIZE=true、DEEPSPEED=zero0、DATALOADER_PERSISTENT_WORKERS=true、
+#   DATALOADER_CPU_BIND=1（绑核模块默认开）、MFU_LOG_ENABLED=1（埋点默认开）、
+#   DATALOADER_NUM_WORKERS=8（= CONTAINER_CPUS/(2×LWS) = 135/16 动态派生）、
+#   DATALOADER_PREFETCH_FACTOR=2、DATASET_NUM_PROC=135（= CONTAINER_CPUS 全核）。
+#
+# ⚠ 前置依赖：上述默认值来自 2026-09-04 对两个训练脚本的改动（SCENE 预设不再
+#   硬编码 DATALOADER_NUM_WORKERS / DATALOADER_PERSISTENT_WORKERS /
+#   DATASET_NUM_PROC，common_args.sh 的 DEEPSPEED 默认改 zero0、
+#   DATALOADER_PREFETCH_FACTOR 默认改 2）。这批改动**尚未提交**，提交任务前必须
+#   先 sync_code 同步到 CODE_PREFIX，否则旧脚本默认会回退为
+#   zero2 / 16 workers / prefetch 8 / DATASET_NUM_PROC=16。
+#
+# 训练参数归属声明（2026-09-04 用户指示）：本轮实验的**优化参数直接落在任务
+# yaml**（见「训练参数」块），与团队「训练参数只进训练脚本」的默认纪律不同——
+# 这批 env 均为 train_speech_to_speech_translation.sh / common_args.sh
+# 里 `: "${X:=default}"` 形式的可覆盖项，不是新增超参。
+#
+# 拓扑：**双节点 ray + deepspeed zero0**，GBS=4096
+#   —— numNodes=3 = head(0 GPU) + 2 workers（ray 框架语义）；白名单长度 = workers 数 = 2。
+#   —— worker 节点：
+#       * hyperpod-i-02848679822afbe3b（0284）：GPU 0/8、无污点；
+#         **Lance v506 全表 6.2 TiB 已在本地**（19,177,206 行）。
+#       * hyperpod-i-08e3257c716579618（08e3）：GPU 0/8、无污点、DiskPressure=False；
+#         2026-09-04 已清理，nodefs used 17.97 TiB / free 9.57 TiB。
+#         该节点原只有 1.7 TiB 半截表，故 LANCE_TRAIN_SOURCE_URI 用 **s3://**，
+#         由 submit.sh 的 `aws s3 sync --size-only` 补齐到 6.2 TiB 后再训练
+#         （0284 侧已存在、size-only 直接跳过；08e3 侧需下载）。
+#   —— per_device 取 32 而非 64 的原因（显存实测，非推测）：
+#       单机 zero0 + per_device=64 → `torch.OutOfMemoryError: Tried to allocate
+#       43.70 GiB；进程已占 100.68 GiB，卡上仅剩 39.11 GiB`（任务 0d3m，2026-09-04）。
+#       峰值显存只与 per_device（每卡一次前向的样本数）有关、与节点数无关，
+#       故双节点沿用 64 会复现同一 OOM。按 GBS=4096 目标取
+#       **32 × 16 卡 × ga8 = 4096**，与 GBS=4096 对照族（P–V）的 64×8×ga8 同 GBS、
+#       同总步数 9364、同 warmup ≈281 步，loss 可直接横比。
+#
+# 提交：bash .codebuddy/skills/ktrain-job-ops/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_sts_zeyang_custom_data_lance_train.yaml \
+#         --repo <repo> --launcher ktrain/launch_train_lance.sh \
+#         --aws-creds-secret aws-local-creds \
+#         --task-deadline 'lance-train-source-uri=86400'
+# 注意：numNodes = head + workers（ray 语义），白名单长度 = workers 数。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: deferzhou
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, 
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-02848679822afbe3b", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # ray 框架：渲染为 KubeRay RayJob（head 0 GPU + 2 GPU worker）。
+  framework: ray
+  # 统一镜像：ray2 + nsys + **liger**（在 ray2 基座上叠 liger-kernel overlay）。
+  # 不能只取 -ray2（无 liger）或 -nsys-liger（无 ray/raylet，KubeRay 探针不过）。
+  # liger 由 env USE_LIGER_KERNEL 开关，immutable tag，改镜像必须换 tag。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger
+  # RayJob entrypoint：等 16 GPU 凑齐 → 每个 GPU worker 跑 launcher NODE_PREP_ONLY →
+  # 派生 RAY_DEVICE_GROUPS → driver 钉第一个 GPU worker。LAUNCHER_PATH 指向 Lance 入口。
+  command: ["python", "/s3all/deferzhou/liveinterpret_training_pipelines/ktrain/ray_entrypoint.py"]
+  # EFA 的唯一入口是 render-extra 的 efa_devices_per_worker（见上方 annotation）。
+  # ray 框架语义：numNodes = head(0 GPU) + workers = 1 + 2 = 3。
+  numNodes: 3
+  # head 只要轻量资源（GCS/dashboard + entrypoint driver），与 worker 共节点调度。
+  head:
+    cpu: "16"
+    memory: 64Gi
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    # 训练后端： deepspeed 单机/ megatron 单机或多机
+    TRAIN_BACKEND: "deepspeed"
+    # Ray 调度开关 + KubeRay 模式标识（launch_train.sh 据此走单 driver 直跑分支，
+    # 不做 ray start 集群引导；RAY_DEVICE_GROUPS 由 ray_entrypoint.py 按活集群派生）。
+    USE_RAY: "true"
+    RAY_CLUSTER_MODE: "kuberay"
+    # ray_entrypoint 默认调 launch_train.sh；改走 Lance 入口（含 NODE_PREP_ONLY）。
+    LAUNCHER_PATH: "/opt/launcher/launch_train_lance.sh"
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    # zeyang 共享 checkpoint（config.json 自带 use_upstream_talker_input: true，
+    # adapter 前向由配置原生生效；脚本 TRAIN_TARGET=adapter 亦会显式开 env）
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    # 只配 OUTPUT_DIR，不配 OUTPUT_ROOT（脚本内从 OUTPUT_ROOT 默认值派生），  需要每个人自己配置避免冲突
+    # 目录名记录本次实验身份：zeyang data + Lance + 双节点 ray zero0 + GBS4096 + liger
+    OUTPUT_DIR: "/nvme/output/sts_zeyang_lance_ray2n_gbs4096_liger"
+
+    # -------------------------------------------------------------------------
+    # 数据源切换：FSX manifest + S3 WDS shards → Lance v506 全表
+    #   （原 BRIDGE_ALIGNMENT_DATA / ARTIFACT_AUDIO_SHARDS 在 Lance 通路不再使用，已移除）
+    #   —— 用 s3:// 而非本地路径：两个 worker 节点都必须有全表，
+    #      0284 已有（size-only 跳过）、08e3 需补齐（首次约 30–40 min）。
+    #   —— filter=split='train' 对齐原 manifest-train-*.jsonl（不含 dev/test）
+    #   —— Shape B：启动时由 Lance 直接生成指针 JSONL，不落 FSX
+    # -------------------------------------------------------------------------
+    LANCE_TRAIN_SOURCE_URI: "s3://iegg-speech-model-data-124355679795-ap-southeast-3-an/data/audio/lance/unist_qwen3_s2s_v2/processed.lance"
+    LANCE_TRAIN_SOURCE_VERSION: "506"
+    LANCE_STORAGE_REGION: "ap-southeast-3"
+    LANCE_TRAIN_SHAPE: "B"
+    LANCE_TRAIN_TASK_FILTER: "split='train'"
+    LANCE_TRAIN_TASK_NAME: "unist_train_full_v506"
+    # 离线 mel / speaker 已入表，训练时不重算；AUDIO/FEATURES 预取会物化全表，禁止
+    LANCE_USE_PRECOMPUTED_MEL: "1"
+    LANCE_USE_SPEAKER_EMBEDDING: "1"
+    LANCE_PREFETCH_AUDIO: "0"
+    LANCE_PREFETCH_FEATURES: "0"
+    LANCE_PREFETCH_SPEAKER: "1"
+    # 批量 take + 主进程 lance 隔离（pylance 非 fork-safe，主进程不加载 pylance 才能多 worker）
+    LANCE_DATALOADER_BATCH_RESOLVE: "1"
+    LANCE_MAIN_PROCESS_ISOLATION: "1"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：只写与脚本默认值不同的项
+    # -------------------------------------------------------------------------
+    # SCENE=batch4_8_adapter_cmp：adapter + whole talker（thinker 冻结）；
+    #   LR 1e-5 / constant_with_warmup / warmup 0.03 / 2 epochs / max_length 576 /
+    #   eval-save 1000 / split 0.0005 / DEEPSPEED=zero0 由预设与 common_args 给出
+    SCENE: "batch4_8_adapter_cmp"
+    # GBS=4096：双节点 16 卡 → per_device 32 × 16 × ga8
+    #   （与 GBS=4096 对照族 P–V 的 64×8×ga8 同 GBS、同总步数 9364、同 warmup ≈281，
+    #    loss 可直接横比；per_device 取 32 而非 64 的显存依据见文件头）
+    PER_DEVICE_TRAIN_BATCH_SIZE: "32"
+    PER_DEVICE_EVAL_BATCH_SIZE: "32"
+    # ga 不影响峰值显存，只改梯度累积次数；GBS = 32 × 16(DP) × 8 = 4096
+    GRADIENT_ACCUMULATION_STEPS: "8"
+    # 纯 DDP：省去优化器状态与梯度的 all-gather/scatter 通信（实测比 zero1 快 5.3%）
+    DEEPSPEED: "zero0"
+    # liger-kernel 融合算子（Triton RMSNorm/RoPE/SwiGLU/融合 CE）：
+    #   实测跨后端稳态提速 9–10%（zero2 侧 28.65→26.37 s/it；megatron 侧 40.63→36.59 s/it）
+    USE_LIGER_KERNEL: "true"
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+    # ray + liger 兼容开关（有源码依据，非试错猜测）：
+    #   swift/trainers/arguments.py:245 的校验 `if is_mp() and self.use_liger_kernel: raise`
+    #   中 is_mp() = 「本进程可见 GPU 数 ÷ local_world_size ≥ 2」（swift/utils/env.py:64-75）。
+    #   ray 单 driver 直跑模式下 driver 可见全部 16 张 GPU、而参数解析阶段 local_world_size=1，
+    #   → 16 // 1 ≥ 2 → is_mp()=True，被误判为 device_map 模型并行，liger 遂被拒绝
+    #   （swift 自己在 sft_args.py:254/289 用 `is_mp() and not self.use_ray` 给 ray 开了豁免，
+    #    唯独 arguments.py:245 这处漏了，属 swift 侧缺口）。
+    #   置 SWIFT_SINGLE_DEVICE_MODE=1 让 is_mp() 直接返回 False（env.py:69），绕过该误判。
+    #   16 个 ray actor 各自只见 1 张卡、is_mp() 本就为 False，故此 env 只修正 driver 侧校验。
+    SWIFT_SINGLE_DEVICE_MODE: "1"
+    # 复刻校正（2026-09-06，junyaoyang）：本文件头部注释声称 GROUP_BY_LENGTH=false
+    # 由预设/common_args 给出，但 common_args.sh 里这条默认值是本次"合并整理"提交
+    # （85b6d750，2026-09-04 22:29）才新增的，且改成了默认 true——AO 原始实验运行
+    # 时该行不存在，实际生效值是更早期（master）的 false。为还原 AO 当时的真实
+    # 实验条件，此处显式覆盖为 false，不依赖当前脚本默认值。
+    GROUP_BY_LENGTH: "false"
+
+    # 不设 max_steps / TRAIN_STEP_LIMIT：保持 epochs=2 派生的完整 LR 日程与 warmup horizon
+    # 不设 BACKEND_PARITY：全量 train split + 双层 shuffle 开（设了只取前 1/10，口径不同）
+    # 观测埋点（不影响数学）：填充率写入 ${OUTPUT_DIR}/fill_log.jsonl
+    FILL_LOG_ENABLED: "1"
+    FILL_LOG_STEP_INTERVAL: "1"
+
+
+    NCCL_IB_DISABLE: "0"
+    # 归约环境对齐（G/CN/CV 实验结论 + FOUR_WAY 四任务统一）：禁用 NVLS，走 ring/tree 软件归约
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_API_KEY: "local-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"
+    WANDB_BASE_URL: "http://43.173.190.72:8080"
+    WANDB_PROJECT: "qwen_omnispeak_unist_scaling"
+    WANDB_EXP_NAME: "sts_zeyang_lance_ray2n_gbs4096_liger"
+    WANDB_MODE: "online"

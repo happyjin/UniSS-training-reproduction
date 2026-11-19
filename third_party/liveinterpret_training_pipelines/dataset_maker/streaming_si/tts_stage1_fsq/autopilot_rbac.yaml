@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tts-autopilot
+  namespace: speech-h200
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tts-autopilot
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "nodes", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "jobs/status"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: ["kubeflow.org"]
+    resources: ["pytorchjobs"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: ["ktrain.oit-svc.com"]
+    resources: ["ktrainjobs"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tts-autopilot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tts-autopilot
+subjects:
+  - kind: ServiceAccount
+    name: tts-autopilot
+    namespace: speech-h200
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tts-stage1-autopilot
+  namespace: speech-h200
+  labels:
+    app: tts-stage1-fsq
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 172800
+  template:
+    metadata:
+      labels:
+        app: tts-stage1-fsq
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: tts-autopilot
+      containers:
+        - name: autopilot
+          image: python:3.11-slim
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -eu
+              pip install -q boto3
+              # python kubernetes client 会拒绝 `nvidia.com/gpu` 这类扩展资源名，
+              # 故所有 k8s 操作走 kubectl
+              python3 -c "import urllib.request; urllib.request.urlretrieve('https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl', '/usr/local/bin/kubectl')"
+              chmod +x /usr/local/bin/kubectl
+              cd /opt/tts_stage1_fsq
+              exec python3 autopilot.py
+          envFrom:
+            - secretRef:
+                name: aws-local-creds
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: ap-southeast-3
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          volumeMounts:
+            - name: code
+              mountPath: /opt/tts_stage1_fsq
+      volumes:
+        - name: code
+          configMap:
+            name: tts-stage1-fsq

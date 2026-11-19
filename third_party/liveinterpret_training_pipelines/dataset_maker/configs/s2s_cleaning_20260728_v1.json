@@ -1,0 +1,50 @@
+{
+  "schema_version": "liveinterpret.s2s_cleaning_config.v1",
+  "quality": {
+    "min_utmos": 2.5,
+    "min_ecapa_similarity": 0.4,
+    "missing_score_policy": "reject"
+  },
+  "structural": {
+    "expected_codec_groups": 16,
+    "codec_frame_ms": 80,
+    "codec_duration_tolerance_frames": 1,
+    "min_source_duration_ms": 500,
+    "min_target_duration_ms": 500
+  },
+  "rules": {
+    "01_shorter_silence_collapse": {
+      "enabled": true,
+      "min_codec_frames": 100,
+      "min_main_repeat_ratio": 0.75,
+      "min_full_frame_repeat_ratio": 0.4,
+      "max_residual_unique_mean": 15.0
+    },
+    "02_long_trailing_silence": {
+      "enabled": true,
+      "frame_hz": 12,
+      "low_energy_rms": 0.001,
+      "min_trailing_silence_seconds": 1.0,
+      "near_silence_fraction": 0.95
+    },
+    "03_very_short_text_long_audio": {
+      "enabled": true,
+      "max_english_words": 5,
+      "max_chinese_characters": 10,
+      "min_target_duration_ms": 8000
+    },
+    "04_target_much_longer_than_source": {
+      "enabled": true,
+      "min_target_source_duration_ratio": 5.0
+    },
+    "05_target_much_shorter_than_source": {
+      "enabled": true,
+      "max_target_source_duration_ratio": 0.2
+    },
+    "previous_30s_generation_cap": {
+      "enabled": true,
+      "min_target_duration_ms": 29000,
+      "min_codec_frames": 350
+    }
+  }
+}

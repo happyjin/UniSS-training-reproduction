@@ -1,0 +1,32 @@
+# S4 FLEURS 官方 test 全量评测（en_us 647 + cmn_hans_cn 945）— 常驻工作 Pod
+#   kubectl --context arn:aws:eks:ap-southeast-3:124355679795:cluster/speech-h200-eks apply -f pod_s4_fleurs_fulltest.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: s4-fleurs-fulltest
+  namespace: speech-h200
+  labels: {app: s4-fleurs-fulltest, owner: stevehguo}
+spec:
+  restartPolicy: Never
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-07e7a9b74bdcbb8b0}
+  tolerations: [{key: nvidia.com/gpu, operator: Exists}]
+  containers:
+    - name: main
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait; done"]
+      env:
+        - {name: AWS_DEFAULT_REGION, value: ap-southeast-3}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+        - {name: HF_HOME, value: /work/hf}
+      envFrom: [{secretRef: {name: aws-local-creds}}]
+      resources:
+        requests: {cpu: "100", memory: 900Gi, nvidia.com/gpu: "8"}
+        limits: {cpu: "100", memory: 900Gi, nvidia.com/gpu: "8"}
+      volumeMounts:
+        - {name: work, mountPath: /work}
+        - {name: shm, mountPath: /dev/shm}
+  volumes:
+    - name: work
+      hostPath: {path: /opt/dlami/nvme/stevehguo/fleurs_fulltest, type: DirectoryOrCreate}
+    - name: shm
+      emptyDir: {medium: Memory, sizeLimit: 64Gi}

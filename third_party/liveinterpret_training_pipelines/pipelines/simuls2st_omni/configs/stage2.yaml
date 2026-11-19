@@ -1,0 +1,114 @@
+# Stage 2: Multitask joint pretraining
+#
+# Thinker gets LoRA r32; the talker continues full-parameter from Stage 1. Five
+# tasks are mixed between batches at the paper's ratio.
+#
+# Paper Table 8: 30k steps, Tok/GPU 6.4k, 136 A800·h, lr 1e-4 -> 2e-5.
+
+stage: stage2
+
+model:
+  path: models/SimulS2ST-Omni/offline
+  dtype: bf16
+  # Talker weights carried over from Stage 1. Point this at the Stage 1 output
+  # (or a specific checkpoint-N) once that run finishes.
+  init_talker_from: outputs/checkpoint/stage1_talker_warmup
+
+data:
+  kind: multitask
+  # Paper ratio ASR : S2TT : MT : TTS : S2ST = 0.2 : 1 : 0.5 : 1 : 1.5
+  weights:
+    s2tt_asr: 0.2
+    s2tt_translate: 1.0
+    t2t_translate: 0.5
+    tts_unpaired: 1.0
+    s2s_translate: 1.5
+  # Probability of rewriting an S2TT sample's target as its source transcript,
+  # which the paper uses to compensate for the small ASR pool.
+  s2tt_to_asr_prob: 0.1
+  sample_seed: 42
+
+  # Unique hours/counts = paper Stage 2 consumption (30k × 8 × 6400 ×
+  # mix / 4.2, converted with Table 2 tok/h). Uniform draw from our pools.
+  # S2ST is 3.8kh unique instead of the paper's 2.1kh repeated 1.78×.
+  sources:
+    tts_unpaired:
+      root: data/emilia/dualcodec
+      langs: [EN, ZH]
+      min_dnsmos: 3.125
+      min_codes: 8
+      max_codes: 375
+      max_hours: 7231
+    s2tt_asr:
+      # LibriSpeech 960h (en) + Common Voice 17 (en/zh) + WenetSpeech L (zh).
+      max_hours: 702
+      manifests:
+        - data/manifests/asr_librispeech
+        - data/manifests/asr_common_voice
+        - data/manifests/s2tt_wenetspeech
+      roots:
+        asr_librispeech: data/asr/librispeech
+        asr_common_voice: data/asr/common_voice
+        s2tt_wenetspeech: data/wenetspeech/audio_tar
+    s2tt_translate:
+      # GigaST + CoVoST-2 en↔zh. MuST-C en-zh is added once the OpenDataLab
+      # dump is on disk (s2tt_mustc / data/s2tt/mustc).
+      max_hours: 3087
+      manifests:
+        - data/manifests/s2tt_gigast
+        - data/manifests/s2tt_covost
+      roots:
+        s2tt_gigast: data/gigaspeech
+        s2tt_covost: data/s2tt/covost/hf
+      # Rewrite this share of S2TT targets as their source transcript, which the
+      # paper uses to compensate for the small ASR pool.
+      asr_prob: 0.1
+    t2t_translate:
+      max_samples: 1513589
+      manifests:
+        - data/manifests/mt_wmt17
+      roots: {}
+    s2s_translate:
+      # Offline collapse of si_s4_rechunk_D DualCodec (12.86kh / 6.65M
+      # sentence clips). Not phase3v2 sessions, not the old 134k pack.
+      root: data/s2st/dualcodec_rechunk_d
+      si_root: data/si_s4/audio
+      max_codes: 375
+      max_hours: 3800
+
+  eval_samples: 512
+
+sampler:
+  # Paper Tok/GPU 6.4k. H200 + checkpointing can hold more per step so
+  # wall-clock drops; total tokens stay 30k×8×6400 = 1.536B, so
+  # max_steps = 30000×6400/8192.
+  token_budget: 8192
+  max_batch_size: 32
+
+training:
+  output_dir: outputs/checkpoint/stage2_multitask_full
+  max_steps: 23438
+  learning_rate: 1.0e-4
+  # Paper anneals 1e-4 -> 2e-5; min_lr_ratio 0.2 pins that floor.
+  lr_scheduler_type: cosine_with_min_lr
+  min_lr_ratio: 0.2
+  warmup_ratio: 0.01
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  gradient_accumulation_steps: 1
+  bf16: true
+  # Dual-head activations need recompute even on 143 GB once the pack is
+  # at the paper 6.4k token budget.
+  gradient_checkpointing: true
+  logging_steps: 20
+  save_steps: 200
+  save_total_limit: 3
+  eval_steps: 500
+  dataloader_num_workers: 4
+  seed: 42
+  # Rows longer than this are dropped rather than truncated.
+  max_seq_len: 1536
+  max_talker_seq_len: 2048
+  # Must exceed sampler.token_budget plus per-row talker prefix/eos.
+  max_talker_tokens_per_batch: 16384
+  max_thinker_tokens_per_batch: 16384

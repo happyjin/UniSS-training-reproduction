@@ -1,0 +1,63 @@
+# =============================================================================
+# Anyscale compute config — registered as `tokyo-prepare-data-cpu`.
+# =============================================================================
+# 用途: prepare_data 全流程在单个 CPU head 节点上运行 (生成 jsonl + 预热 FSx),
+# 不再使用 P5/GPU 节点. 节点规格与 anyscale/config/compute_config_h100.yaml 的
+# head 节点完全一致 (8CPU-32GB, 仅挂载 fsx / s3 / efs, 无 NVMe / 无 GPU).
+#
+# 关键点:
+#   1. 数据预处理是 CPU/IO 密集型, 不需要 GPU, 因此用 8CPU-32GB 的通用 CPU 节点
+#      即可, 成本远低于 P5. 单个 head 节点跑全流程, 无需 worker 节点.
+#   2. 镜像用 anyscale/image/warm-fsx:<N> (预装 lustre-client, 提供 lfs 二进制,
+#      以及 ffmpeg / soundfile 等音频解析依赖). 该镜像基于 anyscale/ray slim
+#      (无 CUDA), 在 CPU 节点上同样可用.
+#   3. 预热 (lfs hsm_restore) 走 HSM ioctl, 需要 securityContext.privileged: true.
+#      Anyscale 仅允许在 head 上 privileged, 因此 head-only 模式天然满足.
+#   4. 挂载要求 (用户指定): 必须挂载 fsx (音频源/预热目标) 与 S3 (结果上传
+#      目标桶). EFS 一并挂载 (与 h100 head 保持一致, 便于读共享存储).
+#   5. 产出 jsonl 临时存放在节点本地 ephemeral-storage (容器可写层), 一个阶段
+#      结束即上传到 S3; 节点本身无 NVMe, 故不再挂载 local-nvme.
+# =============================================================================
+
+cloud: anyscale-poc-tokyo-cloud
+cloud_resource: k8s-aws-v2-ap-northeast-1
+
+head_node:
+  instance_type: 8CPU-32GB
+  advanced_instance_config:
+    spec:
+      containers:
+        - name: ray
+          # lfs hsm_restore 需要 HSM ioctl (privileged). 与 h100 head 的
+          # 8CPU-32GB 规格保持一致, 仅额外加 privileged.
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              ephemeral-storage: "80Gi"
+            limits:
+              ephemeral-storage: "80Gi"
+          volumeMounts:
+            - name: shared-efs
+              readOnly: true
+              mountPath: /mnt/shared_storage
+            - name: data-s3
+              mountPath: /data
+            - name: fsx-data
+              mountPath: /mnt/fsx
+      volumes:
+        - name: shared-efs
+          persistentVolumeClaim:
+            readOnly: true
+            claimName: aigc-anyscale-efs-pvc
+        - name: data-s3
+          persistentVolumeClaim:
+            claimName: aigc-anyscale-s3-pvc
+        - name: fsx-data
+          persistentVolumeClaim:
+            claimName: aigc-anyscale-fsx-pvc
+
+enable_cross_zone_scaling: false
+flags:
+  cloud_resource_strategy: availability
+auto_select_worker_config: false

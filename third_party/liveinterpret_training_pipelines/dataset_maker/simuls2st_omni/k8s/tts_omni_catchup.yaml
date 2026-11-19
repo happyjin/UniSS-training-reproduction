@@ -1,0 +1,72 @@
+# TTS_omni 补跑：全局分区模数曾设为 48 但只部署了 40 个 worker（id 0-39），
+# id 40-47 对应的 192 项从未处理。这里用残差筛选精确定位这批项。
+# shard 编号从 50000000 起，避免与既有 shard 重名覆盖。
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tts-omni-catchup
+  namespace: ktrain-users
+  labels:
+    app: tts-omni-prep
+    owner: stevehguo
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    kubernetes.io/hostname: hyperpod-i-04ed14465ab855810
+  containers:
+    - name: worker
+      image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+      command: ["bash", "/opt/raw/startup.sh"]
+      env:
+        - name: AWS_DEFAULT_REGION
+          value: ap-southeast-3
+        - name: NW
+          value: "32"
+        - name: NWT
+          value: "32"           # 在筛选后的子集内分区
+        - name: WORKER_START
+          value: "0"
+        - name: NGPU
+          value: "8"
+        - name: OMP_NUM_THREADS
+          value: "4"
+        - name: RESIDUE_MOD
+          value: "48"
+        - name: RESIDUE_MIN
+          value: "40"
+        - name: RESIDUE_MAX
+          value: "47"
+        - name: SHARD_OFFSET_BASE
+          value: "50000000"
+      envFrom:
+        - secretRef:
+            name: aws-jkt-creds
+      resources:
+        requests:
+          cpu: "120"
+          memory: 400Gi
+          nvidia.com/gpu: 8
+        limits:
+          cpu: "190"
+          memory: 1200Gi
+          nvidia.com/gpu: 8
+      volumeMounts:
+        - name: code
+          mountPath: /opt/raw
+          readOnly: true
+        - name: nvme
+          mountPath: /opt/dlami/nvme
+        - name: shm
+          mountPath: /dev/shm
+  volumes:
+    - name: code
+      configMap:
+        name: tts-omni-prep
+    - name: nvme
+      hostPath:
+        path: /opt/dlami/nvme
+        type: Directory
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 32Gi

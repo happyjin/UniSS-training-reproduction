@@ -1,0 +1,85 @@
+# 同语言对 convert：读源音频 blob -> FSQ 编码（目标语音=源语音）-> parquet + tar 上传
+#   s3://.../Speech2Speech/{en2en,zh2zh,ja2ja,ko2ko}/{p2_fsq_v3,p2_source_wav}/
+#
+# 与 job_s2st_stage2_conv.yaml 同构：每 Pod 1 卡内 NPROC 进程（3/卡），断点续跑
+# （目标 parquet 已存在则跳过）。任务表 4 语言 x 24 分片 = 96 项。
+# 跑在 i-0aaea3b1ebac8d256（8 卡）；预计 1.5~2 小时。
+# 前置：job_samelang_manifest.yaml 已完成（S3 上有 _samelang_manifest/）。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: samelang-conv
+  namespace: speech-h200
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeName: hyperpod-i-0aaea3b1ebac8d256
+      containers:
+        - name: conv
+          image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-streaming-si-v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -u
+              P=/opt/venv/bin/python
+              $P -m pip install -q "pylance==9.0.1" "onnxruntime-gpu==1.22.0" 2>&1 | tail -1
+              OUT=s3://stevehguo-ap-southeast-3/speech_model_backup/stevehguo/data_fortrain/data_fortrain_1031version/Speech2Speech
+              S3M=$OUT/_samelang_manifest
+              M=/nvme/samelang_manifest
+              mkdir -p "$M"
+              AWS_DEFAULT_REGION=ap-southeast-3 aws s3 sync "$S3M" "$M" --only-show-errors
+              test -f "$M/summary.json" || { echo "manifest 缺失，先跑 job_samelang_manifest"; exit 1; }
+              T=/nvme/tasks.txt
+              for L in en zh ja ko; do for S in $(seq 0 23); do echo "${L}2${L}:$S"; done; done > "$T"
+              NT=$(wc -l < "$T")
+              NPROC=${NPROC:-24}                 # 3 进程/卡 x 8 卡
+              GPUS=${GPUS:-8}
+              for j in $(seq 0 $((NPROC-1))); do
+                (
+                  export CUDA_VISIBLE_DEVICES=$(( j % GPUS ))
+                  for k in $(seq $j $NPROC $((NT-1))); do
+                    LINE=$(sed -n "$((k+1))p" "$T")
+                    PAIR=${LINE%%:*}
+                    SH=${LINE##*:}
+                    LANG=${PAIR%%2*}
+                    PQNAME=$(printf "fsq-train-%s-%05d.parquet" "$PAIR" "$SH")
+                    DST="$OUT/$PAIR/p2_fsq_v3/$PQNAME"
+                    if AWS_DEFAULT_REGION=ap-southeast-3 aws s3 ls "$DST" >/dev/null 2>&1; then
+                      echo "[skip] $LINE 已存在"
+                      continue
+                    fi
+                    mkdir -p "/nvme/samelang/w$j"
+                    echo "[run] $LINE"
+                    AWS_DEFAULT_REGION=ap-southeast-3 $P /opt/samelang/same_lang_to_stage2.py convert \
+                      --lang "$LANG" --shard "$SH" --nshards 24 \
+                      --manifest "$M" --chunk 256 --bs 32 \
+                      --tmp-dir "/nvme/samelang/w$j" --out-prefix "$OUT"
+                  done
+                ) &
+              done
+              wait
+              echo "POD_DONE"
+          env:
+            - {name: NPROC, value: "48"}      # 6 进程/卡 x 8 卡：IO 等待型负载
+                                               # （实测 24 进程时 GPU 50% / CPU 12%），
+                                               # 瓶颈在每进程串行 S3 IO，并发流翻倍直接翻倍吞吐
+            - {name: GPUS, value: "8"}
+          envFrom:
+            - secretRef: {name: aws-local-creds}
+          resources:
+            requests: {cpu: "150", memory: "256Gi", nvidia.com/gpu: "8"}
+            limits: {cpu: "150", memory: "256Gi", nvidia.com/gpu: "8"}
+          volumeMounts:
+            - {name: samelang, mountPath: /opt/samelang}
+            - {name: s1, mountPath: /opt/tts_stage1_fsq}
+            - {name: nvme, mountPath: /nvme}
+      volumes:
+        - name: samelang
+          configMap: {name: samelang-stage2}
+        - name: s1
+          configMap: {name: tts-stage1-fsq}
+        - name: nvme
+          hostPath: {path: /opt/dlami/nvme, type: Directory}

@@ -1,0 +1,111 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# SimulS2ST-Omni Stage 2（多任务：thinker LoRA r32 + talker 全参；ASR : S2TT : MT : TTS : S2ST =
+# 0.2 : 1 : 0.5 : 1 : 1.5，按步抽任务，23438 步）· 双节点（16×H200）· torchrun + DDP
+#
+# 【数据】configs/stage2.yaml 读下列相对路径，每一项填一个 SIMULS2ST_MAP_*（S3 位置以实际为准）：
+#   data/emilia/dualcodec                 TTS（与 Stage 1 相同）
+#   data/manifests/{asr_librispeech, asr_common_voice, s2tt_wenetspeech, s2tt_gigast, s2tt_covost, mt_wmt17}
+#   data/asr/librispeech  data/asr/common_voice  data/wenetspeech/audio_tar  data/gigaspeech  data/s2tt/covost/hf
+#   data/s2st/dualcodec_rechunk_d         离线 S2ST（manifest + codes）
+#   data/si_s4/audio                      S2ST 源语音（manifest 的 source_audio 相对它）
+#   不想映射某个语料时，复制 configs/stage2.yaml 删掉对应 source，并用 SIMULS2ST_CONFIG 指向副本
+#   （任务配比会随之变化）。
+# 【起点】默认 OUTPUT_ROOT/checkpoint/stage1_talker_warmup（同一组节点上的 Stage 1 产出）；
+#        也可直接接源项目训完的 Stage 1（见 SIMULS2ST_INIT_TALKER_FROM 注释）。
+#
+# 【提交】
+#   bash .codebuddy/training-ops-plugin/skills/ktrain-job-ops/scripts/submit.sh \
+#       --yaml ktrain/ktrainjob_simuls2st_omni_stage2_2node.yaml \
+#       --repo . --launcher ktrain/launch_train.sh \
+#       --aws-creds-secret aws-local-creds \
+#       --job-name-prefix s2st-s2-2n \
+#       --deadline-sec 43200
+#
+# 【提交前确认】白名单节点（__NODE_1__ / __NODE_2__）、MODEL_PATH、全部 SIMULS2ST_MAP_*、CODE_PREFIX / OUTPUT_ROOT / owner。
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: stevehguo
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, "no_metrics_sidecar": true,
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["__NODE_1__", "__NODE_2__"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  framework: pytorch
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9
+  command: ["bash", "-c", "/opt/launcher/launch_train.sh"]
+  numNodes: 2
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/simuls2st_omni/ktrain_entry.sh"
+    CODE_PREFIX: "__OWNER__/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+
+    SIMULS2ST_STAGE: "stage2"
+    # 官方 Qwen/Qwen2.5-Omni-3B（与 Stage 1 同一份）；talker 由 SIMULS2ST_INIT_TALKER_FROM 指向的 Stage 1 产物覆盖
+    MODEL_PATH: "s3://stevehguo-ap-southeast-3/speech_model_backup/Qwen2.5-Omni-3B/"
+    OUTPUT_ROOT: "/nvme/output/__OWNER__/simuls2st_omni"
+    # 接源项目训完的 Stage 1（ap-northeast-1，跨区同步约 0.8 GB）：
+    # SIMULS2ST_INIT_TALKER_FROM: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/Qwen2.5_3B_DualCodec/stage1_talker_warmup/"
+
+    SIMULS2ST_MAP_EMILIA: "data/emilia/dualcodec s3://<bucket>/<key>/emilia/dualcodec/"
+    SIMULS2ST_MAP_M_ASR_LS: "data/manifests/asr_librispeech s3://<bucket>/<key>/manifests/asr_librispeech/"
+    SIMULS2ST_MAP_M_ASR_CV: "data/manifests/asr_common_voice s3://<bucket>/<key>/manifests/asr_common_voice/"
+    SIMULS2ST_MAP_M_WENET: "data/manifests/s2tt_wenetspeech s3://<bucket>/<key>/manifests/s2tt_wenetspeech/"
+    SIMULS2ST_MAP_M_GIGAST: "data/manifests/s2tt_gigast s3://<bucket>/<key>/manifests/s2tt_gigast/"
+    SIMULS2ST_MAP_M_COVOST: "data/manifests/s2tt_covost s3://<bucket>/<key>/manifests/s2tt_covost/"
+    SIMULS2ST_MAP_M_WMT17: "data/manifests/mt_wmt17 s3://<bucket>/<key>/manifests/mt_wmt17/"
+    SIMULS2ST_MAP_A_LS: "data/asr/librispeech s3://<bucket>/<key>/asr/librispeech/"
+    SIMULS2ST_MAP_A_CV: "data/asr/common_voice s3://<bucket>/<key>/asr/common_voice/"
+    SIMULS2ST_MAP_A_WENET: "data/wenetspeech/audio_tar s3://<bucket>/<key>/wenetspeech/audio_tar/"
+    SIMULS2ST_MAP_A_GIGA: "data/gigaspeech s3://<bucket>/<key>/gigaspeech/"
+    SIMULS2ST_MAP_A_COVOST: "data/s2tt/covost/hf s3://<bucket>/<key>/s2tt/covost/hf/"
+    SIMULS2ST_MAP_S2ST: "data/s2st/dualcodec_rechunk_d s3://<bucket>/<key>/s2st/dualcodec_rechunk_d/"
+    SIMULS2ST_MAP_SI_AUDIO: "data/si_s4/audio s3://<bucket>/<key>/si_s4/audio/"
+
+    # 训练参数在 configs/stage2.yaml（token_budget 8192、lr 1e-4 -> 2e-5、23438 步、梯度检查点开）。
+    # 源按单机 8 卡写：16 卡时每步的样本量翻倍而步数不变，总 token 是源的 2 倍；要对齐源的总 token，
+    # 试跑后把 MAX_STEPS 设为 11719。
+    # MAX_STEPS: "11719"
+    # RESUME: "/nvme/output/__OWNER__/simuls2st_omni/checkpoint/stage2_multitask_full/checkpoint-N"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"

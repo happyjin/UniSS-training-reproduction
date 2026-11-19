@@ -1,0 +1,21 @@
+# i-04ed1446 GPU 占位：tts-omni-rebal 以共用方式（不申请 GPU）在这台跑 28 个 worker，
+# 显存 50~100GB/卡。catchup 结束后 k8s 会认为 8 卡全空，这个 Pod 让账面与实际一致，
+# 避免其他任务被调度上来 OOM。tts-omni-rebal 跑完后必须删除本 Pod。
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tts-omni-gpu-hold
+  namespace: ktrain-users
+  labels: {app: tts-omni-prep, owner: stevehguo}
+  annotations:
+    purpose: "GPU hold for tts-omni-rebal (shared-GPU workers on this node); delete when tts-omni-rebal finishes"
+spec:
+  restartPolicy: Always
+  nodeSelector: {kubernetes.io/hostname: hyperpod-i-04ed14465ab855810}
+  containers:
+    - name: hold
+      image: busybox
+      command: ["sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait; done"]
+      resources:
+        requests: {cpu: 100m, memory: 64Mi, nvidia.com/gpu: 8}
+        limits: {cpu: 500m, memory: 128Mi, nvidia.com/gpu: 8}

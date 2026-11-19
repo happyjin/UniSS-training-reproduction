@@ -1,0 +1,47 @@
+# =============================================================================
+# FSx 缓存预热专用镜像 — 含 lustre-client（lfs hsm_restore）+ 音频解析依赖
+# =============================================================================
+# 基镜像：anyscale/ray:2.55.1-slim-py312（Ubuntu 22.04，无 CUDA）
+# https://docs.aws.amazon.com/fsx/latest/LustreGuide/preload-file-contents-hsm-dra.html
+# =============================================================================
+
+FROM anyscale/ray:2.55.1-slim-py312
+
+# ---- 安装 Lustre 客户端用户态工具（lfs） ----
+# lfs 通过 ioctl 与宿主机 Lustre 内核模块通信，容器共享宿主机内核。
+# /mnt/fsx 在宿主机已是 Lustre 挂载（内核模块由宿主机提供），因此镜像
+# 只需用户态 lfs 二进制，无需在镜像内安装 lustre-client-modules / linux-aws 内核。
+# lfs hsm_restore 需要 privileged（已在 compute_config 设置 securityContext.privileged: true）。
+# 构建环境必须能访问 FSx apt 仓库（S3）；拉不到 lustre-client 时直接失败，
+# 不再静默生成"缺 lfs 却构建成功"的镜像（那会导致预热悄悄 no-op）。
+USER root
+
+RUN set -eux; \
+    apt-get update && apt-get install -y --no-install-recommends curl gnupg; \
+    curl -fsSL https://fsx-lustre-client-repo-public-keys.s3.amazonaws.com/fsx-ubuntu-public-key.asc \
+        | gpg --dearmor -o /usr/share/keyrings/fsx-ubuntu-public-key.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/fsx-ubuntu-public-key.gpg] https://fsx-lustre-client-repo.s3.amazonaws.com/ubuntu jammy main" \
+        > /etc/apt/sources.list.d/fsxlustreclientrepo.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends lustre-client-utils; \
+    rm -rf /var/lib/apt/lists/*; \
+    which lfs && lfs --version
+
+# ---- 安装音频解析依赖（覆盖所有格式） ----
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Python 依赖（全部烤进镜像，禁止在 sh 脚本里 pip install） ----
+#   - soundfile        : 读 wav/flac/ogg 音频头 (maker + warm_fsx 审计)
+#   - pandas           : maker 读 manifest / parquet 索引
+#   - pyarrow          : maker 读 parquet (row-group)
+#   - imageio-ffmpeg   : 兜底定位 ffmpeg 二进制 (maker 时长解析)
+#   - awscli           : worker 上传结果到 S3 (aws s3 cp/sync)
+#   - shardio 是仓库 dataset_maker/ 下的本地模块, 由 maker 通过 sys.path 导入,
+#     不是 pip 包, 不要加到这里.
+RUN pip install --no-cache-dir \
+    soundfile pandas pyarrow imageio-ffmpeg awscli
+
+# 保持 root — lfs hsm_restore 需要 root 权限
+# 配合 compute_config 中 securityContext.privileged: true 使用

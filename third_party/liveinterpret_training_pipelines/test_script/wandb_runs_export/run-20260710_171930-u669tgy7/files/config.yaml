@@ -1,0 +1,1788 @@
+_name_or_path:
+    value: /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a
+_thinker_is_full_omni:
+    value: true
+_wandb:
+    value:
+        cli_version: 0.28.0
+        e:
+            299dz3v41w25top8fsvqy17wuk3jnmip:
+                args:
+                    - --external_plugins
+                    - /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/custom/plugin.py
+                    - --model
+                    - /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a
+                    - --model_type
+                    - qwen2_5_3b_omnispeak_a
+                    - --template
+                    - qwen_omnispeak
+                    - --dataset
+                    - bridge_alignment_speech_to_speech_translation
+                    - --load_from_cache_file
+                    - "false"
+                    - --remove_unused_columns
+                    - "false"
+                    - --tuner_type
+                    - full
+                    - --freeze_parameters_ratio
+                    - "1.0"
+                    - --trainable_parameters
+                    - model.thinker_adapter
+                    - --trainable_parameters_regex
+                    - model\.talker\.model\.layers\.\d+\.
+                    - --torch_dtype
+                    - bfloat16
+                    - --attn_impl
+                    - flash_attention_2
+                    - --deepspeed
+                    - zero2
+                    - --gradient_checkpointing
+                    - "true"
+                    - --num_train_epochs
+                    - "5"
+                    - --per_device_train_batch_size
+                    - "16"
+                    - --per_device_eval_batch_size
+                    - "16"
+                    - --gradient_accumulation_steps
+                    - "2"
+                    - --learning_rate
+                    - "1e-4"
+                    - --warmup_ratio
+                    - "0.03"
+                    - --max_length
+                    - "4096"
+                    - --split_dataset_ratio
+                    - "0.01"
+                    - --eval_steps
+                    - "100"
+                    - --save_steps
+                    - "500"
+                    - --save_total_limit
+                    - "3"
+                    - --logging_steps
+                    - "10"
+                    - --report_to
+                    - wandb
+                    - --run_name
+                    - qwen2_5_3b_omnispeak_a-full_add-unfreeze_28-s2s-20260710_171801
+                    - --dataloader_num_workers
+                    - "0"
+                    - --dataset_num_proc
+                    - "1"
+                    - --output_dir
+                    - /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/upstream_full_add_unfreeze_28_s2s
+                    - --resume_from_checkpoint
+                    - /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/upstream_full_add_unfreeze_28_s2s/v0-20260710-152347/checkpoint-500
+                cpu_count: 96
+                cpu_count_logical: 192
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "107294470144"
+                        used: "65418776576"
+                email: ktrain-user@tencent.com
+                executable: /opt/dlami/nvme/zeyangsong/miniconda3/envs/liveinterpret/bin/python3.11
+                git:
+                    commit: 85d9d61f5ab3dc67b0196a8dfdb0d8e1de025433
+                gpu: NVIDIA H100 80GB HBM3
+                gpu_count: 8
+                gpu_nvidia:
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-0b9c55b7-3b88-a5bd-2143-af3b24818dc9
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-1d708325-8e32-5198-910a-0e70e12abdd5
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-4682776b-c98e-7027-e522-1143a17718aa
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-c41d4a35-6ba0-1e19-abdd-a3d4fd64dd86
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-d153ccaa-d171-a051-b4a9-1b64fbe8190b
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-f013f851-d616-f04b-4256-a80293f498ac
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-2c567ece-1402-378e-88cd-067cb25b8b9e
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "85520809984"
+                      name: NVIDIA H100 80GB HBM3
+                      uuid: GPU-898a35a9-21f7-8b9a-ad9f-f56f49bdc295
+                host: ip-172-16-153-225.ap-northeast-1.compute.internal
+                memory:
+                    total: "2147453689856"
+                os: Linux-6.1.168-203.330.amzn2023.x86_64-x86_64-with-glibc2.34
+                program: /opt/dlami/nvme/zeyangsong/miniconda3/envs/liveinterpret/lib/python3.11/site-packages/swift/cli/sft.py
+                python: CPython 3.11.15
+                root: /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/wandb
+                startedAt: "2026-07-10T17:19:30.774615Z"
+                trainium:
+                    name: Trainium
+                    vendor: AWS
+                writerId: 299dz3v41w25top8fsvqy17wuk3jnmip
+        m:
+            - "1": train/global_step
+              "6":
+                - 3
+              "7": []
+            - "2": '*'
+              "5": 1
+              "6":
+                - 1
+              "7": []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 30
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+                - 98
+            "2":
+                - 1
+                - 5
+                - 11
+                - 30
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+                - 98
+            "3":
+                - 7
+                - 13
+                - 19
+                - 62
+                - 66
+            "4": 3.11.15
+            "5": 0.28.0
+            "6": 4.57.3
+            "9":
+                "1": transformers_trainer
+            "12": 0.28.0
+            "13": linux-x86_64
+acc_strategy:
+    value: token
+accelerator_config:
+    value:
+        dispatch_batches: false
+        even_batches: true
+        gradient_accumulation_kwargs: null
+        non_blocking: false
+        split_batches: false
+        use_seedable_sampler: true
+accept_hidden_layer:
+    value: last
+adafactor:
+    value: false
+adam_beta1:
+    value: 0.9
+adam_beta2:
+    value: 0.95
+adam_epsilon:
+    value: 1e-08
+adapter_dropout:
+    value: 0
+adapter_hidden_size:
+    value: null
+add_cross_attention:
+    value: false
+aligner_lr:
+    value: null
+architectures:
+    value:
+        - QwenOmniSpeakForConditionalGeneration
+auto_find_batch_size:
+    value: false
+average_tokens_across_devices:
+    value: true
+bad_words_ids:
+    value: null
+batch_eval_metrics:
+    value: false
+begin_suppress_tokens:
+    value: null
+bf16:
+    value: true
+bf16_full_eval:
+    value: false
+bos_token_id:
+    value: null
+bridge_config:
+    value:
+        _name_or_path: ""
+        add_cross_attention: false
+        architectures: null
+        bad_words_ids: null
+        begin_suppress_tokens: null
+        bos_token_id: null
+        bridge_type: mlp
+        chunk_size_feed_forward: 0
+        cross_attention_hidden_size: null
+        decoder_start_token_id: null
+        diversity_penalty: 0
+        do_sample: false
+        dtype: null
+        early_stopping: false
+        encoder_no_repeat_ngram_size: 0
+        eos_token_id: null
+        exponential_decay_length_penalty: null
+        finetuning_task: null
+        forced_bos_token_id: null
+        forced_eos_token_id: null
+        id2label:
+            "0": LABEL_0
+            "1": LABEL_1
+        intermediate_size: 6144
+        is_decoder: false
+        is_encoder_decoder: false
+        label2id:
+            LABEL_0: 0
+            LABEL_1: 1
+        length_penalty: 1
+        max_length: 20
+        min_length: 0
+        model_type: qwen_omnispeak_bridge
+        no_repeat_ngram_size: 0
+        num_beam_groups: 1
+        num_beams: 1
+        num_query_tokens: 64
+        num_return_sequences: 1
+        output_attentions: false
+        output_hidden_states: false
+        output_scores: false
+        pad_token_id: null
+        prefix: null
+        problem_type: null
+        qformer_dropout: 0
+        qformer_num_heads: 16
+        qformer_num_layers: 2
+        remove_invalid_values: false
+        repetition_penalty: 1
+        return_dict: true
+        return_dict_in_generate: false
+        rms_norm_eps: 1e-06
+        sep_token_id: null
+        suppress_tokens: null
+        talker_hidden_size: 2048
+        task_specific_params: null
+        temperature: 1
+        tf_legacy_loss: false
+        thinker_hidden_size: 2048
+        tie_encoder_decoder: false
+        tie_word_embeddings: true
+        tokenizer_class: null
+        top_k: 50
+        top_p: 1
+        torchscript: false
+        typical_p: 1
+        use_bfloat16: false
+callbacks:
+    value: []
+check_model:
+    value: true
+chunk_size_feed_forward:
+    value: 0
+codec_bos_id:
+    value: 2149
+codec_eos_id:
+    value: 2150
+codec_language_id:
+    value:
+        chinese: 2055
+        english: 2050
+        french: 2061
+        german: 2053
+        italian: 2070
+        japanese: 2058
+        korean: 2064
+        portuguese: 2071
+        russian: 2069
+        spanish: 2054
+codec_mask_id:
+    value: 2148
+codec_nothink_id:
+    value: 2155
+codec_pad_id:
+    value: 2148
+codec_think_bos_id:
+    value: 2156
+codec_think_eos_id:
+    value: 2157
+codec_think_id:
+    value: 2154
+cross_attention_hidden_size:
+    value: null
+data_seed:
+    value: 42
+dataloader_drop_last:
+    value: false
+dataloader_num_workers:
+    value: 0
+dataloader_persistent_workers:
+    value: false
+dataloader_pin_memory:
+    value: true
+dataloader_prefetch_factor:
+    value: null
+ddp_backend:
+    value: null
+ddp_broadcast_buffers:
+    value: null
+ddp_bucket_cap_mb:
+    value: null
+ddp_find_unused_parameters:
+    value: null
+ddp_timeout:
+    value: 18000000
+debug:
+    value: []
+decoder_start_token_id:
+    value: null
+deepspeed:
+    value:
+        bf16:
+            enabled: auto
+        fp16:
+            enabled: auto
+            hysteresis: 2
+            initial_scale_power: 16
+            loss_scale: 0
+            loss_scale_window: 1000
+            min_loss_scale: 1
+        gradient_accumulation_steps: auto
+        gradient_clipping: auto
+        steps_per_print: 2000
+        train_batch_size: auto
+        train_micro_batch_size_per_gpu: auto
+        wall_clock_breakdown: false
+        zero_optimization:
+            allgather_bucket_size: 2e+08
+            allgather_partitions: true
+            contiguous_gradients: true
+            offload_optimizer:
+                device: none
+                pin_memory: true
+            overlap_comm: false
+            reduce_bucket_size: 2e+08
+            reduce_scatter: true
+            stage: 2
+disable_tqdm:
+    value: false
+diversity_penalty:
+    value: 0
+do_eval:
+    value: true
+do_predict:
+    value: false
+do_sample:
+    value: false
+do_train:
+    value: false
+ds3_gather_for_generation:
+    value: true
+dtype:
+    value: bfloat16
+early_stop_interval:
+    value: null
+early_stopping:
+    value: false
+enable_channel_loss:
+    value: false
+enable_dft_loss:
+    value: false
+encoder_no_repeat_ngram_size:
+    value: 0
+eos_token_id:
+    value: 151645
+eval_accumulation_steps:
+    value: null
+eval_dataset:
+    value: []
+eval_dataset_args:
+    value: null
+eval_delay:
+    value: 0
+eval_do_concat_batches:
+    value: true
+eval_generation_config:
+    value: null
+eval_limit:
+    value: null
+eval_metric:
+    value: null
+eval_on_start:
+    value: false
+eval_steps:
+    value: 100
+eval_strategy:
+    value: steps
+eval_use_evalscope:
+    value: false
+eval_use_gather_object:
+    value: false
+exponential_decay_length_penalty:
+    value: null
+extra_eval_args:
+    value: null
+finetuning_task:
+    value: null
+forced_bos_token_id:
+    value: null
+forced_eos_token_id:
+    value: null
+fp16:
+    value: false
+fp16_backend:
+    value: auto
+fp16_full_eval:
+    value: false
+fp16_opt_level:
+    value: O1
+fsdp:
+    value: []
+fsdp_config:
+    value:
+        min_num_params: 0
+        xla: false
+        xla_fsdp_grad_ckpt: false
+        xla_fsdp_v2: false
+fsdp_min_num_params:
+    value: 0
+fsdp_transformer_layer_cls_to_wrap:
+    value: null
+full_add_layout:
+    value: false
+full_determinism:
+    value: false
+galore_cos_threshold:
+    value: 0.4
+galore_gamma_proj:
+    value: 2
+galore_optim_per_parameter:
+    value: false
+galore_proj_bits:
+    value: 4
+galore_proj_group_size:
+    value: 256
+galore_proj_quant:
+    value: false
+galore_proj_type:
+    value: std
+galore_quantization:
+    value: false
+galore_queue_size:
+    value: 5
+galore_rank:
+    value: 128
+galore_scale:
+    value: 1
+galore_target_modules:
+    value: null
+galore_update_proj_gap:
+    value: 50
+galore_with_embedding:
+    value: false
+generation_config:
+    value: null
+generation_max_length:
+    value: null
+generation_num_beams:
+    value: null
+gradient_accumulation_steps:
+    value: 2
+gradient_checkpointing:
+    value: false
+gradient_checkpointing_kwargs:
+    value: null
+greater_is_better:
+    value: false
+group_by_length:
+    value: false
+half_precision_backend:
+    value: auto
+hidden_size:
+    value: 2048
+hidden_state_selection:
+    value: last
+hub_always_push:
+    value: false
+hub_model_id:
+    value: null
+hub_private_repo:
+    value: null
+hub_revision:
+    value: null
+hub_strategy:
+    value: every_save
+hub_token:
+    value: <HUB_TOKEN>
+id2label:
+    value:
+        "0": LABEL_0
+        "1": LABEL_1
+ignore_data_skip:
+    value: false
+include_for_metrics:
+    value: []
+include_inputs_for_metrics:
+    value: false
+include_num_input_tokens_seen:
+    value: "no"
+include_tokens_per_second:
+    value: false
+is_decoder:
+    value: false
+is_encoder_decoder:
+    value: false
+jit_mode_eval:
+    value: false
+keys_to_ignore_at_inference:
+    value:
+        - past_key_values
+label_names:
+    value: null
+label_smoothing_factor:
+    value: 0
+label2id:
+    value:
+        LABEL_0: 0
+        LABEL_1: 1
+learning_rate:
+    value: 0.0001
+length_column_name:
+    value: length
+length_penalty:
+    value: 1
+liger_kernel_config:
+    value: null
+lisa_activated_layers:
+    value: 0
+lisa_step_interval:
+    value: 20
+load_best_model_at_end:
+    value: false
+local_rank:
+    value: 0
+log_level:
+    value: passive
+log_level_replica:
+    value: warning
+log_on_each_node:
+    value: true
+logging_dir:
+    value: /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/upstream_full_add_unfreeze_28_s2s/v4-20260710-171826/runs
+logging_first_step:
+    value: true
+logging_nan_inf_filter:
+    value: true
+logging_steps:
+    value: 10
+logging_strategy:
+    value: steps
+loss_type:
+    value: null
+lr_scheduler_kwargs:
+    value: null
+lr_scheduler_type:
+    value: cosine
+max_epochs:
+    value: null
+max_grad_norm:
+    value: 1
+max_length:
+    value: 20
+max_shard_size:
+    value: 5GB
+max_steps:
+    value: -1
+metric_for_best_model:
+    value: loss
+min_length:
+    value: 0
+model/num_parameters:
+    value: 6750180608
+model_type:
+    value: qwen_omnispeak
+mp_parameters:
+    value: ""
+neftune_noise_alpha:
+    value: null
+no_cuda:
+    value: false
+no_repeat_ngram_size:
+    value: 0
+num_beam_groups:
+    value: 1
+num_beams:
+    value: 1
+num_return_sequences:
+    value: 1
+num_train_epochs:
+    value: 5
+optim:
+    value: adamw_torch_fused
+optim_args:
+    value: null
+optim_target_modules:
+    value: null
+optimizer:
+    value: null
+output_attentions:
+    value: false
+output_dir:
+    value: /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/upstream_full_add_unfreeze_28_s2s/v4-20260710-171826
+output_hidden_states:
+    value: false
+output_scores:
+    value: false
+overwrite_output_dir:
+    value: false
+pad_token_id:
+    value: 151643
+parallelism_config:
+    value: null
+past_index:
+    value: -1
+per_device_eval_batch_size:
+    value: 16
+per_device_train_batch_size:
+    value: 16
+per_gpu_eval_batch_size:
+    value: null
+per_gpu_train_batch_size:
+    value: null
+predict_with_generate:
+    value: false
+prediction_loss_only:
+    value: false
+prefix:
+    value: null
+problem_type:
+    value: null
+project:
+    value: huggingface
+push_to_hub:
+    value: false
+push_to_hub_model_id:
+    value: null
+push_to_hub_organization:
+    value: null
+push_to_hub_token:
+    value: <PUSH_TO_HUB_TOKEN>
+ray_scope:
+    value: last
+remove_invalid_values:
+    value: false
+remove_unused_columns:
+    value: false
+repetition_penalty:
+    value: 1
+report_to:
+    value:
+        - wandb
+residual_loss_enabled:
+    value: true
+residual_loss_weight:
+    value: 1
+restore_callback_states_from_checkpoint:
+    value: false
+resume_from_checkpoint:
+    value: /opt/dlami/nvme/speech-language-model/liveinterpret_training_pipelines/output/qwen_omnispeak_output/upstream_full_add_unfreeze_28_s2s/v0-20260710-152347/checkpoint-500
+resume_only_model:
+    value: false
+return_dict:
+    value: true
+return_dict_in_generate:
+    value: false
+router_aux_loss_coef:
+    value: 0
+run_name:
+    value: qwen2_5_3b_omnispeak_a-full_add-unfreeze_28-s2s-20260710_171801
+safe_serialization:
+    value: true
+save_on_each_node:
+    value: false
+save_only_model:
+    value: false
+save_safetensors:
+    value: true
+save_steps:
+    value: 500
+save_strategy:
+    value: steps
+save_total_limit:
+    value: 3
+seed:
+    value: 42
+sep_token_id:
+    value: null
+skip_memory_metrics:
+    value: true
+sortish_sampler:
+    value: false
+speaker_embedding_dim:
+    value: 2048
+speaker_encoder_sample_rate:
+    value: 24000
+suppress_tokens:
+    value: null
+talker_config:
+    value:
+        _name_or_path: ""
+        add_cross_attention: false
+        architectures: null
+        attention_bias: false
+        attention_dropout: 0
+        bad_words_ids: null
+        begin_suppress_tokens: null
+        bos_token_id: null
+        chunk_size_feed_forward: 0
+        code_predictor_has_codec_embedding: true
+        code_predictor_head_dim: 128
+        code_predictor_hidden_size: 1024
+        code_predictor_intermediate_size: 3072
+        code_predictor_num_attention_heads: 16
+        code_predictor_num_key_value_heads: 8
+        code_predictor_num_layers: 5
+        code_predictor_vocab_size: 2048
+        codec_vocab_size: 3072
+        cross_attention_hidden_size: null
+        decoder_start_token_id: null
+        diversity_penalty: 0
+        do_sample: false
+        dtype: null
+        early_stopping: false
+        encoder_no_repeat_ngram_size: 0
+        eos_token_id: null
+        exponential_decay_length_penalty: null
+        finetuning_task: null
+        forced_bos_token_id: null
+        forced_eos_token_id: null
+        head_dim: 128
+        hidden_act: silu
+        hidden_size: 2048
+        id2label:
+            "0": LABEL_0
+            "1": LABEL_1
+        initializer_range: 0.02
+        intermediate_size: 6144
+        is_decoder: false
+        is_encoder_decoder: false
+        label2id:
+            LABEL_0: 0
+            LABEL_1: 1
+        layer_selection_indices: null
+        layer_selection_mode: full_28
+        layer_types:
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+            - full_attention
+        length_penalty: 1
+        max_length: 20
+        max_position_embeddings: 32768
+        max_window_layers: 28
+        min_length: 0
+        model_type: qwen3_tts_talker
+        no_repeat_ngram_size: 0
+        num_attention_heads: 16
+        num_beam_groups: 1
+        num_beams: 1
+        num_code_groups: 15
+        num_hidden_layers: 28
+        num_key_value_heads: 8
+        num_return_sequences: 1
+        original_num_hidden_layers: 28
+        output_attentions: false
+        output_hidden_states: false
+        output_scores: false
+        pad_token_id: null
+        position_id_per_seconds: 13
+        prefix: null
+        problem_type: null
+        remove_invalid_values: false
+        repetition_penalty: 1
+        return_dict: true
+        return_dict_in_generate: false
+        rms_norm_eps: 1e-06
+        rope_parameters:
+            rope_theta: 1e+06
+            rope_type: default
+        rope_scaling: null
+        rope_theta: 1e+06
+        sep_token_id: null
+        sliding_window: null
+        spk_id: 0
+        spk_is_dialect: false
+        suppress_tokens: null
+        task_specific_params: null
+        temperature: 1
+        text_hidden_size: 2048
+        text_vocab_size: 151936
+        tf_legacy_loss: false
+        tie_encoder_decoder: false
+        tie_word_embeddings: false
+        tokenizer_class: null
+        top_k: 50
+        top_p: 1
+        torchscript: false
+        tts_bos_token_id: 151672
+        tts_eos_token_id: 151673
+        tts_pad_token_id: 151671
+        typical_p: 1
+        use_bfloat16: false
+        use_cache: true
+        use_sliding_window: false
+        vocab_size: 151936
+talker_model_id:
+    value: models/Qwen3-TTS-12Hz-1.7B-Base
+task_specific_params:
+    value: null
+temperature:
+    value: 1
+tf_legacy_loss:
+    value: false
+tf32:
+    value: null
+thinker_config:
+    value:
+        _name_or_path: models/Qwen2.5-Omni-3B
+        add_cross_attention: false
+        architectures:
+            - Qwen2_5OmniModel
+        audio_end_token_id: 151648
+        audio_start_token_id: 151647
+        audio_token_id: 151646
+        audio_token_index: 151646
+        bad_words_ids: null
+        begin_suppress_tokens: null
+        bos_token_id: null
+        chunk_size_feed_forward: 0
+        cross_attention_hidden_size: null
+        decoder_start_token_id: null
+        diversity_penalty: 0
+        do_sample: false
+        dtype: bfloat16
+        early_stopping: false
+        enable_audio_output: true
+        enable_talker: true
+        encoder_no_repeat_ngram_size: 0
+        eos_token_id: null
+        exponential_decay_length_penalty: null
+        finetuning_task: null
+        forced_bos_token_id: null
+        forced_eos_token_id: null
+        id2label:
+            "0": LABEL_0
+            "1": LABEL_1
+        image_token_id: 151655
+        image_token_index: 151655
+        is_decoder: false
+        is_encoder_decoder: false
+        label2id:
+            LABEL_0: 0
+            LABEL_1: 1
+        length_penalty: 1
+        max_length: 20
+        min_length: 0
+        model_type: qwen2_5_omni
+        no_repeat_ngram_size: 0
+        num_beam_groups: 1
+        num_beams: 1
+        num_return_sequences: 1
+        output_attentions: false
+        output_hidden_states: false
+        output_scores: false
+        pad_token_id: null
+        prefix: null
+        problem_type: null
+        remove_invalid_values: false
+        repetition_penalty: 1
+        return_dict: true
+        return_dict_in_generate: false
+        sep_token_id: null
+        suppress_tokens: null
+        talker_config:
+            _attn_implementation_autoset: true
+            _name_or_path: Qwen2.5-Omni-3B/talker
+            add_cross_attention: false
+            architectures:
+                - Qwen2OmniTalkerForConditionalGeneration
+            attention_dropout: 0
+            audio_end_token_id: 151648
+            audio_start_token_id: 151647
+            audio_token_index: 151646
+            bad_words_ids: null
+            begin_suppress_tokens: null
+            bos_token_id: null
+            chunk_size_feed_forward: 0
+            cross_attention_hidden_size: null
+            decoder_start_token_id: null
+            diversity_penalty: 0
+            do_sample: false
+            dtype: bfloat16
+            early_stopping: false
+            embedding_size: 2048
+            encoder_no_repeat_ngram_size: 0
+            eos_token_id: null
+            exponential_decay_length_penalty: null
+            finetuning_task: null
+            forced_bos_token_id: null
+            forced_eos_token_id: null
+            head_dim: 64
+            hidden_act: silu
+            hidden_size: 896
+            id2label:
+                "0": LABEL_0
+                "1": LABEL_1
+            image_token_index: 151655
+            init_std: 0.02
+            initializer_range: 0.02
+            intermediate_size: 4864
+            is_decoder: false
+            is_encoder_decoder: false
+            label2id:
+                LABEL_0: 0
+                LABEL_1: 1
+            layer_types:
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+                - full_attention
+            length_penalty: 1
+            max_length: 20
+            max_position_embeddings: 32768
+            max_window_layers: 28
+            min_length: 0
+            model_type: qwen2_5_omni_talker
+            no_repeat_ngram_size: 0
+            num_attention_heads: 14
+            num_beam_groups: 1
+            num_beams: 1
+            num_hidden_layers: 24
+            num_key_value_heads: 2
+            num_return_sequences: 1
+            output_attentions: false
+            output_hidden_states: false
+            output_scores: false
+            pad_token_id: null
+            position_id_per_seconds: 25
+            prefix: null
+            problem_type: null
+            remove_invalid_values: false
+            repetition_penalty: 1
+            return_dict: true
+            return_dict_in_generate: false
+            rms_norm_eps: 1e-06
+            rope_scaling:
+                mrope_section:
+                    - 16
+                    - 16
+                    - 0
+                rope_type: default
+                type: default
+            rope_theta: 1e+06
+            seconds_per_chunk: 2
+            sep_token_id: null
+            sliding_window: null
+            spatial_merge_size: 2
+            suppress_tokens: null
+            task_specific_params: null
+            temperature: 1
+            tf_legacy_loss: false
+            tie_encoder_decoder: false
+            tie_word_embeddings: false
+            tokenizer_class: null
+            top_k: 50
+            top_p: 1
+            torchscript: false
+            tts_codec_end_token_id: 8294
+            tts_codec_mask_token_id: 8296
+            tts_codec_pad_token_id: 8292
+            tts_codec_start_token_id: 8293
+            tts_text_end_token_id: 151861
+            tts_text_pad_token_id: 151859
+            tts_text_start_token_id: 151860
+            typical_p: 1
+            use_bfloat16: false
+            use_cache: true
+            use_sliding_window: false
+            video_token_index: 151656
+            vision_end_token_id: 151653
+            vision_start_token_id: 151652
+            vocab_size: 8448
+        task_specific_params: null
+        temperature: 1
+        tf_legacy_loss: false
+        thinker_config:
+            _attn_implementation_autoset: true
+            _name_or_path: Qwen2.5-Omni-3B/thinker
+            add_cross_attention: false
+            architectures:
+                - Qwen2OmniNaViTThinkerForConditionalGeneration
+            audio_config:
+                _attn_implementation_autoset: true
+                _name_or_path: ""
+                activation_dropout: 0
+                activation_function: gelu
+                add_cross_attention: false
+                architectures: null
+                attention_dropout: 0
+                bad_words_ids: null
+                begin_suppress_tokens: null
+                bos_token_id: null
+                chunk_size_feed_forward: 0
+                cross_attention_hidden_size: null
+                d_model: 1280
+                decoder_start_token_id: null
+                diversity_penalty: 0
+                do_sample: false
+                dropout: 0
+                dtype: bfloat16
+                early_stopping: false
+                encoder_attention_heads: 20
+                encoder_ffn_dim: 5120
+                encoder_layerdrop: 0
+                encoder_layers: 32
+                encoder_no_repeat_ngram_size: 0
+                eos_token_id: null
+                exponential_decay_length_penalty: null
+                finetuning_task: null
+                forced_bos_token_id: null
+                forced_eos_token_id: null
+                id2label:
+                    "0": LABEL_0
+                    "1": LABEL_1
+                init_std: 0.02
+                initializer_range: 0.02
+                is_decoder: false
+                is_encoder_decoder: false
+                label2id:
+                    LABEL_0: 0
+                    LABEL_1: 1
+                length_penalty: 1
+                max_length: 20
+                max_source_positions: 1500
+                min_length: 0
+                model_type: qwen2_5_omni_audio_encoder
+                n_window: 100
+                no_repeat_ngram_size: 0
+                num_beam_groups: 1
+                num_beams: 1
+                num_hidden_layers: 32
+                num_mel_bins: 128
+                num_return_sequences: 1
+                output_attentions: false
+                output_dim: 2048
+                output_hidden_states: false
+                output_scores: false
+                pad_token_id: null
+                prefix: null
+                problem_type: null
+                remove_invalid_values: false
+                repetition_penalty: 1
+                return_dict: true
+                return_dict_in_generate: false
+                scale_embedding: false
+                sep_token_id: null
+                suppress_tokens: null
+                task_specific_params: null
+                temperature: 1
+                tf_legacy_loss: false
+                tie_encoder_decoder: false
+                tie_word_embeddings: true
+                tokenizer_class: null
+                top_k: 50
+                top_p: 1
+                torchscript: false
+                typical_p: 1
+                use_bfloat16: false
+            audio_end_token_id: 151648
+            audio_start_token_id: 151647
+            audio_token_index: 151646
+            bad_words_ids: null
+            begin_suppress_tokens: null
+            bos_token_id: 151644
+            chunk_size_feed_forward: 0
+            cross_attention_hidden_size: null
+            decoder_start_token_id: null
+            diversity_penalty: 0
+            do_sample: false
+            dtype: bfloat16
+            early_stopping: false
+            encoder_no_repeat_ngram_size: 0
+            eos_token_id: 151645
+            exponential_decay_length_penalty: null
+            finetuning_task: null
+            forced_bos_token_id: null
+            forced_eos_token_id: null
+            id2label:
+                "0": LABEL_0
+                "1": LABEL_1
+            ignore_index: -100
+            image_token_index: 151655
+            init_std: 0.02
+            initializer_range: 0.02
+            is_decoder: false
+            is_encoder_decoder: false
+            label2id:
+                LABEL_0: 0
+                LABEL_1: 1
+            length_penalty: 1
+            max_length: 20
+            min_length: 0
+            model_type: qwen2_5_omni_thinker
+            no_repeat_ngram_size: 0
+            num_beam_groups: 1
+            num_beams: 1
+            num_return_sequences: 1
+            output_attentions: false
+            output_hidden_states: false
+            output_scores: false
+            pad_token_id: 151643
+            position_id_per_seconds: 25
+            prefix: null
+            problem_type: null
+            remove_invalid_values: false
+            repetition_penalty: 1
+            return_dict: true
+            return_dict_in_generate: false
+            seconds_per_chunk: 2
+            sep_token_id: null
+            suppress_tokens: null
+            task_specific_params: null
+            temperature: 1
+            text_config:
+                _name_or_path: ""
+                add_cross_attention: false
+                architectures: null
+                attention_dropout: 0
+                bad_words_ids: null
+                begin_suppress_tokens: null
+                bos_token_id: null
+                chunk_size_feed_forward: 0
+                cross_attention_hidden_size: null
+                decoder_start_token_id: null
+                diversity_penalty: 0
+                do_sample: false
+                dtype: bfloat16
+                early_stopping: false
+                encoder_no_repeat_ngram_size: 0
+                eos_token_id: null
+                exponential_decay_length_penalty: null
+                finetuning_task: null
+                forced_bos_token_id: null
+                forced_eos_token_id: null
+                hidden_act: silu
+                hidden_size: 2048
+                id2label:
+                    "0": LABEL_0
+                    "1": LABEL_1
+                init_std: 0.02
+                initializer_range: 0.02
+                intermediate_size: 11008
+                is_decoder: false
+                is_encoder_decoder: false
+                label2id:
+                    LABEL_0: 0
+                    LABEL_1: 1
+                layer_types:
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                    - full_attention
+                length_penalty: 1
+                max_length: 20
+                max_position_embeddings: 32768
+                max_window_layers: 70
+                min_length: 0
+                model_type: qwen2_5_omni_text
+                no_repeat_ngram_size: 0
+                num_attention_heads: 16
+                num_beam_groups: 1
+                num_beams: 1
+                num_hidden_layers: 36
+                num_key_value_heads: 2
+                num_return_sequences: 1
+                output_attentions: false
+                output_hidden_states: false
+                output_scores: false
+                pad_token_id: 151643
+                prefix: null
+                problem_type: null
+                remove_invalid_values: false
+                repetition_penalty: 1
+                return_dict: true
+                return_dict_in_generate: false
+                rms_norm_eps: 1e-06
+                rope_scaling:
+                    mrope_section:
+                        - 16
+                        - 24
+                        - 24
+                    rope_type: default
+                    type: default
+                rope_theta: 1e+06
+                sep_token_id: null
+                sliding_window: null
+                suppress_tokens: null
+                task_specific_params: null
+                temperature: 1
+                tf_legacy_loss: false
+                tie_encoder_decoder: false
+                tie_word_embeddings: false
+                tokenizer_class: null
+                top_k: 50
+                top_p: 1
+                torchscript: false
+                typical_p: 1
+                use_bfloat16: false
+                use_cache: false
+                use_sliding_window: false
+                vocab_size: 151936
+            tf_legacy_loss: false
+            tie_encoder_decoder: false
+            tie_word_embeddings: true
+            tokenizer_class: null
+            top_k: 50
+            top_p: 1
+            torchscript: false
+            typical_p: 1
+            use_bfloat16: false
+            user_token_id: 872
+            video_token_index: 151656
+            vision_config:
+                _attn_implementation_autoset: true
+                _name_or_path: ""
+                add_cross_attention: false
+                architectures: null
+                bad_words_ids: null
+                begin_suppress_tokens: null
+                bos_token_id: null
+                chunk_size_feed_forward: 0
+                cross_attention_hidden_size: null
+                decoder_start_token_id: null
+                depth: 32
+                diversity_penalty: 0
+                do_sample: false
+                dtype: bfloat16
+                early_stopping: false
+                embed_dim: 1280
+                encoder_no_repeat_ngram_size: 0
+                eos_token_id: null
+                exponential_decay_length_penalty: null
+                finetuning_task: null
+                forced_bos_token_id: null
+                forced_eos_token_id: null
+                fullatt_block_indexes:
+                    - 7
+                    - 15
+                    - 23
+                    - 31
+                hidden_act: silu
+                hidden_size: 1280
+                id2label:
+                    "0": LABEL_0
+                    "1": LABEL_1
+                in_channels: 3
+                in_chans: 3
+                init_std: 0.02
+                initializer_range: 0.02
+                intermediate_size: 3420
+                is_decoder: false
+                is_encoder_decoder: false
+                label2id:
+                    LABEL_0: 0
+                    LABEL_1: 1
+                length_penalty: 1
+                max_length: 20
+                min_length: 0
+                model_type: qwen2_5_omni_vision_encoder
+                no_repeat_ngram_size: 0
+                num_beam_groups: 1
+                num_beams: 1
+                num_heads: 16
+                num_return_sequences: 1
+                out_hidden_size: 2048
+                output_attentions: false
+                output_hidden_states: false
+                output_scores: false
+                pad_token_id: null
+                patch_size: 14
+                prefix: null
+                problem_type: null
+                remove_invalid_values: false
+                repetition_penalty: 1
+                return_dict: true
+                return_dict_in_generate: false
+                sep_token_id: null
+                spatial_merge_size: 2
+                spatial_patch_size: 14
+                suppress_tokens: null
+                task_specific_params: null
+                temperature: 1
+                temporal_patch_size: 2
+                tf_legacy_loss: false
+                tie_encoder_decoder: false
+                tie_word_embeddings: true
+                tokenizer_class: null
+                tokens_per_second: 25
+                top_k: 50
+                top_p: 1
+                torchscript: false
+                typical_p: 1
+                use_bfloat16: false
+                window_size: 112
+            vision_end_token_id: 151653
+            vision_start_token_id: 151652
+            vision_token_id: 151654
+        tie_encoder_decoder: false
+        tie_word_embeddings: true
+        token2wav_config:
+            _attn_implementation_autoset: true
+            _name_or_path: ""
+            add_cross_attention: false
+            architectures: null
+            bad_words_ids: null
+            begin_suppress_tokens: null
+            bigvgan_config:
+                _attn_implementation_autoset: true
+                _name_or_path: ""
+                add_cross_attention: false
+                architectures: null
+                bad_words_ids: null
+                begin_suppress_tokens: null
+                bos_token_id: null
+                chunk_size_feed_forward: 0
+                cross_attention_hidden_size: null
+                decoder_start_token_id: null
+                diversity_penalty: 0
+                do_sample: false
+                dtype: null
+                early_stopping: false
+                encoder_no_repeat_ngram_size: 0
+                eos_token_id: null
+                exponential_decay_length_penalty: null
+                finetuning_task: null
+                forced_bos_token_id: null
+                forced_eos_token_id: null
+                id2label:
+                    "0": LABEL_0
+                    "1": LABEL_1
+                is_decoder: false
+                is_encoder_decoder: false
+                label2id:
+                    LABEL_0: 0
+                    LABEL_1: 1
+                length_penalty: 1
+                max_length: 20
+                mel_dim: 80
+                min_length: 0
+                model_type: qwen2_5_omni_bigvgan
+                no_repeat_ngram_size: 0
+                num_beam_groups: 1
+                num_beams: 1
+                num_return_sequences: 1
+                output_attentions: false
+                output_hidden_states: false
+                output_scores: false
+                pad_token_id: null
+                prefix: null
+                problem_type: null
+                remove_invalid_values: false
+                repetition_penalty: 1
+                resblock_dilation_sizes:
+                    - - 1
+                      - 3
+                      - 5
+                    - - 1
+                      - 3
+                      - 5
+                    - - 1
+                      - 3
+                      - 5
+                resblock_kernel_sizes:
+                    - 3
+                    - 7
+                    - 11
+                return_dict: true
+                return_dict_in_generate: false
+                sep_token_id: null
+                suppress_tokens: null
+                task_specific_params: null
+                temperature: 1
+                tf_legacy_loss: false
+                tie_encoder_decoder: false
+                tie_word_embeddings: true
+                tokenizer_class: null
+                top_k: 50
+                top_p: 1
+                torchscript: false
+                typical_p: 1
+                upsample_initial_channel: 1536
+                upsample_kernel_sizes:
+                    - 11
+                    - 7
+                    - 4
+                    - 4
+                    - 4
+                    - 4
+                upsample_rates:
+                    - 5
+                    - 3
+                    - 2
+                    - 2
+                    - 2
+                    - 2
+                use_bfloat16: false
+                use_bias_at_final: false
+            bos_token_id: null
+            chunk_size_feed_forward: 0
+            cross_attention_hidden_size: null
+            decoder_start_token_id: null
+            dit_config:
+                _attn_implementation_autoset: true
+                _name_or_path: ""
+                add_cross_attention: false
+                architectures: null
+                bad_words_ids: null
+                begin_suppress_tokens: null
+                block_size: 24
+                bos_token_id: null
+                chunk_size_feed_forward: 0
+                cross_attention_hidden_size: null
+                decoder_start_token_id: null
+                depth: 22
+                dim: 1024
+                diversity_penalty: 0
+                do_sample: false
+                dropout: 0.1
+                dtype: float32
+                early_stopping: false
+                emb_dim: 512
+                enc_attention_channels: 64
+                enc_channels:
+                    - 256
+                    - 256
+                    - 256
+                    - 256
+                    - 768
+                enc_dilations:
+                    - 1
+                    - 2
+                    - 3
+                    - 4
+                    - 1
+                enc_dim: 128
+                enc_emb_dim: 192
+                enc_global_context: true
+                enc_kernel_sizes:
+                    - 5
+                    - 3
+                    - 3
+                    - 3
+                    - 1
+                enc_lin_neurons: 192
+                enc_res2net_scale: 2
+                enc_se_channels: 64
+                encoder_no_repeat_ngram_size: 0
+                eos_token_id: null
+                exponential_decay_length_penalty: null
+                ff_mult: 2
+                finetuning_task: null
+                forced_bos_token_id: null
+                forced_eos_token_id: null
+                head_dim: 64
+                heads: 16
+                hidden_size: 1024
+                id2label:
+                    "0": LABEL_0
+                    "1": LABEL_1
+                is_decoder: false
+                is_encoder_decoder: false
+                label2id:
+                    LABEL_0: 0
+                    LABEL_1: 1
+                length_penalty: 1
+                look_ahead_layers:
+                    - 10
+                look_backward_layers:
+                    - 0
+                    - 20
+                max_length: 20
+                max_position_embeddings: 32768
+                mel_dim: 80
+                min_length: 0
+                model_type: qwen2_5_omni_dit
+                no_repeat_ngram_size: 0
+                num_attention_heads: 16
+                num_beam_groups: 1
+                num_beams: 1
+                num_embeds: 8193
+                num_hidden_layers: 22
+                num_return_sequences: 1
+                output_attentions: false
+                output_hidden_states: false
+                output_scores: false
+                pad_token_id: null
+                prefix: null
+                problem_type: null
+                remove_invalid_values: false
+                repeats: 2
+                repetition_penalty: 1
+                return_dict: true
+                return_dict_in_generate: false
+                rope_theta: 10000
+                sep_token_id: null
+                suppress_tokens: null
+                task_specific_params: null
+                temperature: 1
+                tf_legacy_loss: false
+                tie_encoder_decoder: false
+                tie_word_embeddings: true
+                tokenizer_class: null
+                top_k: 50
+                top_p: 1
+                torchscript: false
+                typical_p: 1
+                use_bfloat16: false
+            diversity_penalty: 0
+            do_sample: false
+            dtype: bfloat16
+            early_stopping: false
+            encoder_no_repeat_ngram_size: 0
+            eos_token_id: null
+            exponential_decay_length_penalty: null
+            finetuning_task: null
+            forced_bos_token_id: null
+            forced_eos_token_id: null
+            id2label:
+                "0": LABEL_0
+                "1": LABEL_1
+            is_decoder: false
+            is_encoder_decoder: false
+            label2id:
+                LABEL_0: 0
+                LABEL_1: 1
+            length_penalty: 1
+            max_length: 20
+            min_length: 0
+            model_type: qwen2_5_omni_token2wav
+            no_repeat_ngram_size: 0
+            num_beam_groups: 1
+            num_beams: 1
+            num_return_sequences: 1
+            output_attentions: false
+            output_hidden_states: false
+            output_scores: false
+            pad_token_id: null
+            prefix: null
+            problem_type: null
+            remove_invalid_values: false
+            repetition_penalty: 1
+            return_dict: true
+            return_dict_in_generate: false
+            sep_token_id: null
+            suppress_tokens: null
+            task_specific_params: null
+            temperature: 1
+            tf_legacy_loss: false
+            tie_encoder_decoder: false
+            tie_word_embeddings: true
+            tokenizer_class: null
+            top_k: 50
+            top_p: 1
+            torchscript: false
+            typical_p: 1
+            use_bfloat16: false
+        tokenizer_class: null
+        top_k: 50
+        top_p: 1
+        torchscript: false
+        typical_p: 1
+        use_bfloat16: false
+        video_token_id: 151656
+        video_token_index: 151656
+        vision_end_token_id: 151653
+        vision_start_token_id: 151652
+thinker_family:
+    value: qwen2_5_omni
+thinker_model_id:
+    value: models/Qwen2.5-Omni-3B
+thinker_signal_type:
+    value: hidden_plus_embed
+tie_codec_embeddings:
+    value: false
+tie_encoder_decoder:
+    value: false
+tie_word_embeddings:
+    value: true
+tokenizer_class:
+    value: null
+top_k:
+    value: 50
+top_p:
+    value: 1
+torch_compile:
+    value: false
+torch_compile_backend:
+    value: null
+torch_compile_mode:
+    value: null
+torch_empty_cache_steps:
+    value: null
+torchdynamo:
+    value: null
+torchscript:
+    value: false
+tpu_metrics_debug:
+    value: false
+tpu_num_cores:
+    value: null
+trackio_space_id:
+    value: trackio
+train_dataloader_shuffle:
+    value: true
+transformers_version:
+    value: 4.57.3
+tuner_backend:
+    value: peft
+tuner_type:
+    value: full
+typical_p:
+    value: 1
+use_bfloat16:
+    value: false
+use_cpu:
+    value: false
+use_flash_ckpt:
+    value: false
+use_galore:
+    value: false
+use_legacy_prediction_loop:
+    value: false
+use_liger_kernel:
+    value: false
+use_logits_to_keep:
+    value: null
+use_mps_device:
+    value: false
+use_speaker_prompt:
+    value: false
+use_upstream_talker_input:
+    value: true
+variant:
+    value: A
+vit_gradient_checkpointing:
+    value: false
+vit_lr:
+    value: null
+warmup_ratio:
+    value: 0.03
+warmup_steps:
+    value: 0
+weight_decay:
+    value: 0.1

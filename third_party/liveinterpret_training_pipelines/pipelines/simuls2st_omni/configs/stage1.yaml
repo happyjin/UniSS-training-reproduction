@@ -1,0 +1,72 @@
+# Stage 1: Talker warmup
+#
+# Thinker frozen, talker trained in full on unpaired TTS. The talker's codec
+# embedding and output head are re-initialised for the 16384-entry DualCodec
+# vocabulary plus 4 control tokens before training starts.
+#
+# Paper budget: 2 epochs, 416 A800 GPU-hours, lr 4e-4 -> 4e-5.
+
+stage: stage1
+
+model:
+  # Base weights. The released `offline/` merge is Qwen2.5-Omni-3B with the
+  # talker present, which is what this stack expects; the codec head is
+  # re-initialised regardless of what it contained.
+  path: models/SimulS2ST-Omni/offline
+  dtype: bf16
+
+data:
+  kind: tts
+  root: data/emilia/dualcodec
+  langs: [EN, ZH]
+  # Measured over the full 38.1M-sample corpus:
+  # threshold 3.125 keeps EN 86.9% / ZH 85.2% of hours, which reproduces the
+  # paper's emilia_en 40.7k h (= 46,828 x 0.869) and emilia_zh 42.5k h
+  # (= 49,919 x 0.852) to within rounding. Emilia itself pre-filters at 3.0,
+  # so anything below 3.0 is a no-op.
+  min_dnsmos: 3.125
+  min_codes: 8
+  # 30s at 12.5 codes/s. Longer clips are dropped rather than truncated, since a
+  # truncated code sequence no longer matches its transcript.
+  max_codes: 375
+  eval_samples: 512
+
+sampler:
+  # Budget is in talker tokens: batch size becomes budget // longest_in_batch,
+  # keeping peak activation flat. Stay under the trainer's skip thresholds below.
+  # 2x of the first run: peak activation was ~44GB at <=8k talker tokens
+  # against 143GB H200s, so 16k tokens lands near 100GB total.
+  token_budget: 16384
+  max_batch_size: 64
+
+training:
+  output_dir: outputs/checkpoint/stage1_talker_warmup
+  num_train_epochs: 2
+  learning_rate: 4.0e-4
+  # Paper anneals 4e-4 -> 4e-5, a 10x decay, which cosine to ~0 does not match;
+  # min_lr_ratio pins the floor at one tenth of peak.
+  lr_scheduler_type: cosine_with_min_lr
+  min_lr_ratio: 0.1
+  warmup_ratio: 0.02
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  gradient_accumulation_steps: 1
+  bf16: true
+  gradient_checkpointing: false
+  logging_steps: 20
+  save_steps: 2000
+  # Each checkpoint stores the full talker (~800MB); keep few.
+  save_total_limit: 3
+  eval_steps: 2000
+  # The collator tokenizes thinker text per sample on CPU; wider batches
+  # need more prefetch workers to keep the GPU fed.
+  dataloader_num_workers: 8
+  seed: 42
+  # Guards mirroring the trainer's skip logic. A batch exceeding these is
+  # discarded outright (counted as skipped_long_seq), not truncated.
+  max_seq_len: 2048
+  max_talker_seq_len: 2048
+  # Must stay above sampler.token_budget (16384) plus the +3 per-row
+  # prefix overhead; 32768 gives 2x headroom so budget-packed batches are
+  # never discarded as skipped_long_seq.
+  max_talker_tokens_per_batch: 32768

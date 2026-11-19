@@ -1,0 +1,121 @@
+# =============================================================================
+# KtrainJob (ktrain.oit-svc.com/v1alpha2) — 经 ktrain CLI 提交，H200 集群。
+#
+# WDS 数据源 · 双节点 ray（2 node，16×H200）· deepspeed zero1 · liger ·
+# GBS=4096
+#
+# 对齐关系：这是 Lance 双节点版（ktrainjob_lance_ray2node.yaml）的 WDS
+# 变体，唯一差异 = 数据源（Lance→WDS），其余（ray框架/zero1/liger/GBS4096/
+# per_device=32×ga8/GROUP_BY_LENGTH=false/SWIFT_SINGLE_DEVICE_MODE）逐项
+# 对齐。WDS 读音频走简单 os.pread，不依赖 OMP/BLAS 多线程池，因此**不需要**
+# Lance版那个 OMP_NUM_THREADS 修复（该问题是 Lance 底层 PyArrow/Rust
+# 多线程IO并发被压制导致，WDS 不受影响，详见 lance_ray2node.yaml 头部
+# 说明与 docs/LANCE_WDS_GBS4096_ZERO1_4WAY_200STEP_TRAINING_METRICS.md
+# 第6节）。
+#
+# 历史来源：整合自 ktrainjob_sts_zeyang_custom_data_train_zero1_ray2n.yaml
+# （对齐 lance-zero1-cagi 的 WDS 版本，任务名 S 列历史数据）。
+#
+# 提交：bash .codebuddy/skills/ktrain-job-ops/scripts/submit.sh \
+#         --yaml ktrain/ktrainjob_wds_ray2node.yaml \
+#         --repo <repo> --launcher ktrain/launch_train.sh \
+#         --aws-creds-secret aws-local-creds
+# =============================================================================
+apiVersion: ktrain.oit-svc.com/v1alpha2
+kind: KtrainJob
+metadata:
+  name: __JOB_NAME__
+  namespace: speech-h200
+  annotations:
+    ktrain.oit-svc.com/owner: junyaoyang
+    ktrain.oit-svc.com/render-extra: >-
+      {"hyperpod": true, 
+       "efa_devices_per_worker": 32,
+       "tolerations": [{"key": "node-type", "operator": "Equal", "value": "gpu", "effect": "NoSchedule"}],
+       "node_selector": {"node.kubernetes.io/instance-type": "ml.p5e.48xlarge"},
+       "affinity": {
+         "nodeAffinity": {
+           "requiredDuringSchedulingIgnoredDuringExecution": {
+             "nodeSelectorTerms": [{"matchExpressions": [
+               {"key": "kubernetes.io/hostname", "operator": "In",
+                "values": ["hyperpod-i-02848679822afbe3b", "hyperpod-i-08e3257c716579618"]}
+             ]}]
+           }
+         }
+       },
+       "extra_volumes": [
+         {"name": "s3all", "persistentVolumeClaim": {"claimName": "speech-h200-s3-pvc", "readOnly": true}},
+         {"name": "nvme", "hostPath": {"path": "/opt/dlami/nvme", "type": "Directory"}}
+       ],
+       "extra_volume_mounts": [
+         {"name": "s3all", "mountPath": "/s3all", "readOnly": true},
+         {"name": "nvme", "mountPath": "/nvme"}
+       ],
+       "shm_size": "64Gi"
+      }
+spec:
+  # ray 框架：渲染为 KubeRay RayJob（head 0 GPU + 2 GPU worker），对齐 Lance 双节点版。
+  framework: ray
+  # 统一镜像：ray2 + nsys + liger（跟 Lance 双节点版完全一致的镜像）。
+  image: 124355679795.dkr.ecr.ap-southeast-3.amazonaws.com/ktrain/speech-language-model:p5-cuda12.8-torch2.8-te-v9-ray2-nsys-liger
+  # ray_entrypoint 默认走 WDS 入口 launch_train.sh（非 Lance 的 launch_train_lance.sh）。
+  command: ["python", "/s3all/deferzhou/liveinterpret_training_pipelines/ktrain/ray_entrypoint.py"]
+  numNodes: 3
+  head:
+    cpu: "16"
+    memory: 64Gi
+  resources:
+    cpu: "135"
+    memory: 1350Gi
+    gpu: 8
+  env:
+    TRAIN_SCRIPT: "pipelines/bridge_alignment/train_speech_to_speech_translation.sh"
+    TRAIN_BACKEND: "deepspeed"
+    USE_RAY: "true"
+    RAY_CLUSTER_MODE: "kuberay"
+    # 不设 LAUNCHER_PATH：ray_entrypoint 默认走 /opt/launcher/launch_train.sh（WDS 入口）。
+    CODE_PREFIX: "deferzhou/liveinterpret_training_pipelines"
+    NVME_MOUNT: "/nvme"
+    FSX_MOUNT: "/mnt/fsx"
+    MODEL_PATH: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_share/liveinterpret_training_pipelines/models/qwen2_5_3b_omnispeak_a/"
+    MODEL_TYPE: "qwen2_5_3b_omnispeak_a"
+    QWEN3_TTS_TOKENIZER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-Tokenizer-12Hz"
+    QWEN3_TTS_SPEAKER_ENCODER: "s3://iegg-speech-model-models/origin_models/Qwen3-TTS-12Hz-1.7B-Base"
+    OUTPUT_DIR: "/nvme/output/wds_ray2node_zero1_gbs4096_liger"
+
+    # -------------------------------------------------------------------------
+    # 数据源：WDS（FSX manifest + S3 音频 shards）
+    # -------------------------------------------------------------------------
+    BRIDGE_ALIGNMENT_DATA: "fsx://zeyangsong/unist/converted/unist_qwen3_s2s_v2/manifests/manifest-train-*.jsonl"
+    ARTIFACT_AUDIO_SHARDS: "s3://aigc-anyscale-hyperpod-124355679795-ap-northeast-1-an/zeyangsong_backup/opt/dlami/nvme/zeyangsong/data/unist/"
+
+    # -------------------------------------------------------------------------
+    # 训练参数：GBS=4096（双节点16卡 → per_device 32 × 16 × ga8），与 Lance 双节点版对齐
+    # -------------------------------------------------------------------------
+    SCENE: "batch4_8_adapter_cmp"
+    PER_DEVICE_TRAIN_BATCH_SIZE: "32"
+    PER_DEVICE_EVAL_BATCH_SIZE: "32"
+    GRADIENT_ACCUMULATION_STEPS: "8"
+    DEEPSPEED: "zero1"
+    USE_LIGER_KERNEL: "true"
+    QWEN_OMNISPEAK_LIGER_OPS: "1"
+    SWIFT_SINGLE_DEVICE_MODE: "1"
+    GROUP_BY_LENGTH: "false"
+
+    FILL_LOG_ENABLED: "1"
+    FILL_LOG_STEP_INTERVAL: "1"
+    MFU_LOG_ENABLED: "1"
+
+    NCCL_IB_DISABLE: "0"
+    NCCL_NVLS_ENABLE: "0"
+    NCCL_SOCKET_IFNAME: "^lo,docker0"
+    FI_PROVIDER: "efa"
+    NCCL_DEBUG: "INFO"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: "300"
+    FI_EFA_FORK_SAFE: "1"
+    FI_EFA_USE_DEVICE_RDMA: "1"
+    NCCL_DEBUG_SUBSYS: "INIT,NET,ENV"
+    PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    WANDB_MODE: "disabled"
+    WANDB_PROJECT: "qwen_omnispeak_junyaoyang_profile"

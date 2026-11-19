@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Streaming SI · 流式同声传译</title>
+<style>
+:root {
+  --bg:#1e1e20; --p1:#2a2a2e; --p2:#35353b; --p3:#40404a;
+  --bd:#55555e; --bd2:#7a7a85;
+  --fg:#ececef; --mu:#9a9aa0; --dim:#8a8a92;
+  --u:#7fc5e0; --a:#e5b57a; --danger:#d84545; --ok:#7ad88a; --wait:#8a8a92;
+  --serif:'Georgia','Times New Roman',serif; --mono:'SF Mono',Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{height:100vh;background:var(--bg);color:var(--fg);font-family:var(--serif);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.app{max-width:900px;width:100%;height:calc(100vh - 40px);display:flex;flex-direction:column;padding:20px 24px;background:var(--p1);border:1px solid var(--bd);overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;flex-shrink:0;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.brand h1{font-size:1.15rem;font-weight:700;font-style:italic;color:#fff}
+.brand .sub{font-size:.72rem;color:var(--mu);font-style:italic}
+.topright{display:flex;gap:8px;align-items:center}
+.btn{padding:5px 10px;font-size:.75rem;cursor:pointer;background:var(--p2);border:1px solid var(--bd);color:var(--fg);font-family:var(--serif);font-style:italic;display:inline-flex;align-items:center;gap:5px}
+.btn:hover:not(:disabled){background:var(--p3);border-color:var(--bd2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.danger{color:var(--danger);border-color:#6a3a3a}
+.btn.danger:hover:not(:disabled){background:var(--danger);border-color:var(--danger);color:#fff}
+.btn svg{width:12px;height:12px;fill:currentColor}
+.mini-sel{padding:5px 8px;font-size:.72rem;background:var(--p2);border:1px solid var(--bd);color:var(--fg);font-family:var(--serif);font-style:italic;outline:none}
+.mini-sel:focus{border-color:var(--bd2)}
+.status{display:inline-flex;align-items:center;gap:10px;padding:5px 10px;font-size:.65rem;font-family:var(--mono);background:var(--p2);border:1px solid var(--bd);transition:opacity .3s}
+.status.hidden{opacity:0;pointer-events:none}
+.status .row{display:inline-flex;gap:5px;white-space:nowrap}
+.status .lab{color:var(--mu);font-style:italic}
+
+.chat{flex:1;overflow-y:auto;padding:12px 0;min-height:0;display:flex;flex-direction:column;gap:18px;scrollbar-width:none}
+.chat::-webkit-scrollbar{display:none}
+.msg{display:flex;flex-direction:column;gap:6px;animation:fi .25s ease}
+.msg.user{align-items:flex-end}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.meta{font-size:.72rem;font-style:italic;color:var(--mu)}
+.msg.user .meta{color:var(--u)}
+.bubble{max-width:82%;padding:10px 13px;background:var(--p2);border:1px solid var(--bd);font-size:.9rem;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.msg.user .bubble{background:var(--p3)}
+.bubble.err{color:var(--danger);border-color:#6a3a3a}
+.bubble.typing::after{content:'▌';color:var(--u);animation:blink .9s step-end infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+
+/* 读写策略时间线 */
+.policy{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;max-width:82%}
+.step{width:16px;height:16px;font-size:.55rem;font-family:var(--mono);display:flex;align-items:center;justify-content:center;border:1px solid var(--bd)}
+.step.w{background:#3a4a52;color:var(--u);border-color:#4d6570}
+.step.t{background:var(--p2);color:var(--wait)}
+.legend{font-size:.62rem;color:var(--mu);font-family:var(--mono);margin-top:4px;display:flex;gap:12px}
+.legend i{font-style:normal;padding:0 4px;border:1px solid var(--bd)}
+.legend i.w{background:#3a4a52;color:var(--u)}
+.legend i.t{background:var(--p2);color:var(--wait)}
+
+.player{display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 10px;background:var(--p2);border:1px solid var(--bd);max-width:82%}
+.player audio{filter:invert(.92) hue-rotate(180deg)}
+.player .dl{color:var(--mu);text-decoration:none;font-family:var(--mono);font-size:.9rem;padding:0 4px;flex-shrink:0}
+.player .dl:hover{color:var(--u)}
+.player button{width:24px;height:24px;background:var(--p3);border:1px solid var(--bd);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.player button:hover{border-color:var(--bd2)}
+.player svg{width:11px;height:11px;fill:currentColor}
+.bar{flex:1;height:3px;background:var(--p3);position:relative}
+.bar>i{position:absolute;left:0;top:0;height:100%;background:var(--u);width:0}
+.ptime{font-size:.62rem;font-family:var(--mono);color:var(--mu);flex-shrink:0}
+
+.composer{display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--bd);flex-shrink:0}
+.composer button{width:34px;height:34px;background:var(--p2);border:1px solid var(--bd);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.composer button:hover:not(:disabled){background:var(--p3);border-color:var(--bd2)}
+.composer button:disabled{opacity:.4;cursor:not-allowed}
+.composer button.primary{background:var(--u);border-color:var(--u);color:#1e1e20}
+.composer button.rec{background:var(--danger);border-color:var(--danger);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.composer svg{width:15px;height:15px;fill:currentColor}
+.hint{flex:1;font-size:.75rem;color:var(--mu);font-style:italic;padding:0 4px}
+.hint b{color:var(--fg);font-style:normal;font-family:var(--mono);font-size:.72rem}
+input[type=file]{display:none}
+.empty{margin:auto;text-align:center;color:var(--mu);font-style:italic;font-size:.85rem;line-height:2}
+.empty code{font-family:var(--mono);font-size:.75rem;color:var(--a);font-style:normal}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div>
+        <h1>Streaming SI</h1>
+        <div class="sub">simultaneous speech-to-speech translation · WAIT / WRITE policy</div>
+      </div>
+    </div>
+    <div class="topright">
+      <select class="mini-sel" id="chunkSel" title="初始源音频 chunk"><option value="640" selected>初始 640ms</option><option value="1280">初始 1280ms</option><option value="1920">初始 1920ms</option><option value="2560">初始 2560ms</option></select>
+      <select class="mini-sel" id="afterChunkSel" title="首个 WRITE 后的源音频 chunk"><option value="">固定 chunk</option><option value="640">WRITE后 640ms</option><option value="1280">WRITE后 1280ms</option><option value="1920">WRITE后 1920ms</option><option value="2560">WRITE后 2560ms</option></select>
+      <select class="mini-sel" id="langSel" title="源语言自动识别；选择目标语言"></select>
+      <div class="status hidden" id="stat">
+        <div class="row"><span class="lab">text</span><span id="tt">—</span></div>
+        <div class="row"><span class="lab">audio</span><span id="ta">—</span></div>
+        <div class="row"><span class="lab">W/T</span><span id="tw">—</span></div>
+      </div>
+      <button class="btn" id="cfgBtn" title="模型信息">info</button>
+    </div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="empty" id="empty">
+      点 <b>麦克风</b> 开始 —— 音频<b>实时</b>送入模型，边听边译<br>
+      模型自主决定 <code>WAIT</code>（继续听）/ <code>WRITE</code>（立刻开口）<br>
+      <span style="font-size:.75rem">或用 <b>文件</b> 上传整段音频对照 · Thinker 窗 (32,16)</span><br>
+      <span style="font-size:.72rem;color:var(--a)">建议戴耳机：外放时译音会被麦克风重新采集，可能产生回授啸叫</span>
+    </div>
+  </div>
+
+  <div class="composer">
+    <input type="file" id="fileIn" accept="audio/*">
+    <button id="fileBtn" title="上传音频">
+      <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
+    </button>
+    <button id="recBtn" title="录音">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+    </button>
+    <div class="hint" id="hint">target: <b id="hintLang">English</b> · chunk <b id="hintChunk">640ms</b></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const chat = $('chat'), langSel = $('langSel'), stat = $('stat');
+let CFG = {chunk_ms: 640, out_sr: 24000, langs: []};
+let busy = false, aborter = null;
+let actx = null, playQueue = [], nextPlayTime = 0;
+
+// ---------- 配置 ----------
+async function loadConfig() {
+  CFG = await fetch('/config').then(r => r.json());
+  langSel.innerHTML = CFG.langs.map(l => `<option value="${l.code}">→ ${l.label}</option>`).join('');
+  $('chunkSel').value = String(CFG.chunk_ms);
+  $('afterChunkSel').value = CFG.chunk_ms_after_write == null ? '' : String(CFG.chunk_ms_after_write);
+  syncHint();
+}
+function chunkSettings() {
+  return {chunk_ms: Number($('chunkSel').value), chunk_ms_after_write: $('afterChunkSel').value ? Number($('afterChunkSel').value) : null};
+}
+function lockSettings(on) {
+  $('chunkSel').disabled = $('afterChunkSel').disabled = langSel.disabled = on;
+}
+function syncHint() {
+  if (!$('hintLang')) {
+    $('hint').innerHTML = 'target: <b id="hintLang"></b> · chunk <b id="hintChunk"></b>';
+  }
+  const selected = chunkSettings();
+  $('hintChunk').textContent = selected.chunk_ms + (selected.chunk_ms_after_write ? '→' + selected.chunk_ms_after_write : '') + 'ms';
+  const opt = CFG.langs.find(l => l.code === langSel.value);
+  $('hintLang').textContent = opt ? opt.label : langSel.value;
+}
+langSel.onchange = syncHint;
+$('chunkSel').onchange = $('afterChunkSel').onchange = syncHint;
+$('cfgBtn').onclick = () => {
+  const selected = chunkSettings();
+  alert(`GPU: ${CFG.gpu_name || CFG.device}\ndtype: ${CFG.dtype}\nadapter: ${CFG.adapter}\nchunk: ${selected.chunk_ms}${selected.chunk_ms_after_write ? '→' + selected.chunk_ms_after_write : ''} ms\n分段: ${CFG.segmentation}\n源参考: ${CFG.reference_policy}，长度 ${CFG.prompt_sec}s，刷新间隔 ${CFG.reference_refresh_sec}s\n源采样率: ${CFG.src_sr} Hz\n输出采样率: ${CFG.out_sr} Hz\n\nS5 真流式；默认不按VAD清空上下文，源声学参考随处理进度滚动。`);
+};
+
+// ---------- 音频播放（顺序拼接，模拟真实同传播放）----------
+function ensureCtx() {
+  if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); nextPlayTime = 0; }
+  return actx;
+}
+function b64ToInt16(b64) {
+  const raw = atob(b64);
+  const n = raw.length >> 1;
+  const out = new Int16Array(n);
+  for (let i = 0; i < n; i++) {
+    let v = (raw.charCodeAt(i * 2 + 1) << 8) | raw.charCodeAt(i * 2);
+    out[i] = v >= 32768 ? v - 65536 : v;
+  }
+  return out;
+}
+function playPcm(b64, sr, sink) {
+  const ctx = ensureCtx();
+  const i16 = b64ToInt16(b64);
+  if (sink) sink.push(i16);                 // 累积用于事后重播
+  const buf = ctx.createBuffer(1, i16.length, sr);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < i16.length; i++) ch[i] = i16[i] / 32768;
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.connect(ctx.destination);
+  const t = Math.max(ctx.currentTime, nextPlayTime);
+  src.start(t);
+  nextPlayTime = t + buf.duration;
+  playQueue.push(src);
+  return buf;
+}
+
+// 把累积的 int16 段拼成 WAV Blob，交给 <audio> 重播
+function pcmToWavUrl(chunks, sr) {
+  let total = 0;
+  for (const c of chunks) total += c.length;
+  if (!total) return null;
+  const buf = new ArrayBuffer(44 + total * 2);
+  const dv = new DataView(buf);
+  const wstr = (off, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)); };
+  wstr(0, 'RIFF'); dv.setUint32(4, 36 + total * 2, true); wstr(8, 'WAVE');
+  wstr(12, 'fmt '); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  wstr(36, 'data'); dv.setUint32(40, total * 2, true);
+  let off = 44;
+  for (const c of chunks) for (let i = 0; i < c.length; i++, off += 2) dv.setInt16(off, c[i], true);
+  return URL.createObjectURL(new Blob([buf], {type: 'audio/wav'}));
+}
+
+// 在译文下方插入可重播播放器 + 下载
+function addReplayer(parent, chunks, sr, label) {
+  const url = pcmToWavUrl(chunks, sr);
+  if (!url) return;
+  let total = 0;
+  for (const c of chunks) total += c.length;
+  const box = document.createElement('div');
+  box.className = 'player';
+  box.innerHTML = `<audio controls src="${url}" style="height:30px;flex:1;min-width:0"></audio>`
+    + `<span class="ptime">${(total / sr).toFixed(2)}s</span>`
+    + `<a class="dl" href="${url}" download="${label || 'translation'}.wav" title="下载">↓</a>`;
+  parent.appendChild(box);
+  chat.scrollTop = chat.scrollHeight;
+}
+function stopAudio() {
+  for (const s of playQueue) { try { s.stop(); } catch (e) {} }
+  playQueue = [];
+  if (actx) { actx.close().catch(() => {}); actx = null; nextPlayTime = 0; }
+}
+
+// ---------- 打字机渐显 ----------
+// ⚠️ 纯**呈现层**平滑：模型一次 WRITE 会吐出约 58 字符（实测均值），整段瞬间
+// 塞进 DOM 会有明显顿挫感。这里把它按字符排队渐显，视觉上连续。
+// **不改变任何真实延迟**——TTFT / LAAL 仍由服务端按模型真实 WRITE 时刻统计。
+class Typewriter {
+  constructor(el, cps = 45) {
+    this.el = el;
+    this.queue = '';        // 待显示字符
+    this.shown = '';        // 已显示
+    this.timer = null;
+    this.interval = 1000 / cps;
+    this.flushed = false;
+  }
+  push(text) {
+    if (this.flushed) { this.shown += text; this.el.textContent = this.shown; return; }
+    this.queue += text;
+    this._tick();
+  }
+  _tick() {
+    if (this.timer || !this.queue.length) return;
+    this.el.classList.add('typing');
+    this.timer = setInterval(() => {
+      if (!this.queue.length) {
+        clearInterval(this.timer); this.timer = null;
+        this.el.classList.remove('typing');
+        return;
+      }
+      // 积压多时一次多吐几个字符，避免落后于语音
+      const n = this.queue.length > 120 ? 4 : (this.queue.length > 50 ? 2 : 1);
+      this.shown += this.queue.slice(0, n);
+      this.queue = this.queue.slice(n);
+      this.el.textContent = this.shown;
+      chat.scrollTop = chat.scrollHeight;
+    }, this.interval);
+  }
+  // 会话结束：立刻显示全部剩余文本（不让动画拖尾）
+  flush(finalText) {
+    this.flushed = true;
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    this.el.classList.remove('typing');
+    this.shown = finalText != null ? finalText : (this.shown + this.queue);
+    this.queue = '';
+    this.el.textContent = this.shown;
+    chat.scrollTop = chat.scrollHeight;
+  }
+}
+
+// ---------- 消息渲染 ----------
+function addMsg(role, text) {
+  $('empty')?.remove();
+  const m = document.createElement('div');
+  m.className = 'msg ' + role;
+  m.innerHTML = `<div class="meta">${role === 'user' ? 'source' : 'translation'}</div>`;
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.textContent = text || '';
+  m.appendChild(b);
+  chat.appendChild(m);
+  chat.scrollTop = chat.scrollHeight;
+  return {msg: m, bubble: b};
+}
+function addPolicy(parent) {
+  const p = document.createElement('div');
+  p.className = 'policy';
+  parent.appendChild(p);
+  const lg = document.createElement('div');
+  lg.className = 'legend';
+  lg.innerHTML = '<span><i class="w">W</i> write</span><span><i class="t">·</i> wait</span>';
+  parent.appendChild(lg);
+  return p;
+}
+
+// ---------- 主流程：上传音频并流式接收 ----------
+async function runTranslate(blob) {
+  if (busy) return;
+  busy = true; $('recBtn').disabled = true; $('fileBtn').disabled = true;
+  lockSettings(true);
+  stat.classList.remove('hidden');
+  $('tt').textContent = '—'; $('ta').textContent = '—'; $('tw').textContent = '—';
+  stopAudio();
+
+  const url = URL.createObjectURL(blob);
+  const u = addMsg('user', '');
+  u.bubble.innerHTML = `<audio controls src="${url}" style="width:280px;height:32px"></audio>`;
+
+  const a = addMsg('assistant', '');
+  const typer = new Typewriter(a.bubble);
+  const policy = addPolicy(a.msg);
+  let full = '', nW = 0, nT = 0;
+  const filePcm = [];
+
+  const b64 = await new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result.split(',')[1]);
+    fr.readAsDataURL(blob);
+  });
+
+  aborter = new AbortController();
+  try {
+    const resp = await fetch('/translate', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({audio: b64, target_lang: langSel.value, ...chunkSettings()}),
+      signal: aborter.signal
+    });
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let acc = '';
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      acc += dec.decode(value, {stream: true});
+      const parts = acc.split('\n\n');
+      acc = parts.pop();
+      for (const part of parts) {
+        if (!part.startsWith('data: ')) continue;
+        const ev = JSON.parse(part.slice(6));
+        if (ev.type === 'decision') {
+          const s = document.createElement('div');
+          const isW = ev.action === 'write';
+          s.className = 'step ' + (isW ? 'w' : 't');
+          s.textContent = isW ? 'W' : '·';
+          s.title = `step ${ev.source_step}: ${ev.action}`;
+          policy.appendChild(s);
+          isW ? nW++ : nT++;
+          $('tw').textContent = `${nW}/${nT}`;
+        } else if (ev.type === 'text') {
+          full += ev.text;
+          typer.push(ev.text);
+          chat.scrollTop = chat.scrollHeight;
+        } else if (ev.type === 'audio') {
+          playPcm(ev.pcm, ev.sr || CFG.out_sr, filePcm);
+        } else if (ev.type === 'stat') {
+          if (ev.text_ttft != null) $('tt').textContent = ev.text_ttft + 'ms';
+          if (ev.audio_ttft != null) $('ta').textContent = ev.audio_ttft + 'ms';
+        } else if (ev.type === 'error') {
+          typer.flush(ev.message);
+          a.bubble.classList.add('err');
+        } else if (ev.type === 'done') {
+          full = ev.text || full;
+          typer.flush(full);
+          addReplayer(a.msg, filePcm, CFG.out_sr, 'translation');
+          if (ev.terminal_status) {
+            const st = document.createElement('div');
+            st.className = 'legend';
+            const bad = ev.terminal_status !== 'thinker_eos';
+            st.innerHTML = `<span style="color:${bad ? 'var(--danger)' : 'var(--ok)'}">${ev.terminal_status}</span>`
+              + `<span>src ${ev.source_sec}s${ev.source_fully_consumed ? '' : ' (未读完)'}</span>`
+              + `<span>queue_max ${ev.queue_delay_max}s</span>`
+              + (ev.replay_count ? `<span>replay ${ev.replay_count}</span>` : '')
+              + (ev.drain_steps ? `<span>drain ${ev.drain_steps}</span>` : '');
+            a.msg.appendChild(st);
+            chat.scrollTop = chat.scrollHeight;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') { typer.flush(String(e)); a.bubble.classList.add('err'); }
+  } finally {
+    busy = false; aborter = null;
+    lockSettings(false);
+    $('recBtn').disabled = false; $('fileBtn').disabled = false;
+  }
+}
+
+// ---------- 文件上传（整段模式，用于对照）----------
+$('fileBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = e => { const f = e.target.files[0]; if (f) runTranslate(f); e.target.value = ''; };
+
+// ---------- 真流式：麦克风 PCM 实时推送 ----------
+let ws = null, micCtx = null, micNode = null, micStream = null, micSink = null, live = false;
+let closingNormally = false;   // 主动关闭中 → 抑制 onerror 误报弹窗
+let wsEverOpen = false;        // 连接是否成功建立过 → 区分真/假错误
+let liveMsg = null, livePolicy = null, liveText = '', livePcm = [], liveTyper = null;
+
+function wsUrl() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${proto}://${location.host}/ws/simul`;
+}
+
+function setLiveUI(on) {
+  live = on;
+  lockSettings(on);
+  $('recBtn').classList.toggle('rec', on);
+  $('fileBtn').disabled = on;
+  if (on) {
+    $('hint').innerHTML = '<b style="color:var(--danger)">● LIVE</b> 边听边译 — 再点麦克风表示讲完';
+  } else {
+    syncHint();
+  }
+}
+
+async function startLive() {
+  if (busy) return;
+  stopAudio();
+  closingNormally = false;   // 新会话：恢复真错误告警
+  wsEverOpen = false;
+  liveText = '';
+  livePcm = [];
+  $('empty')?.remove();
+  stat.classList.remove('hidden');
+  $('tt').textContent = '—'; $('ta').textContent = '—'; $('tw').textContent = '—';
+
+  // 1) 麦克风 —— 直接用 16k AudioContext，避免重采样误差
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,    // 抑制「扬声器→麦克风」的声学回授
+        noiseSuppression: true,
+        autoGainControl: false,    // 关 AGC：它会在静音段抬高增益，放大回授
+      }
+    });
+  } catch (e) {
+    alert('无法访问麦克风: ' + e);
+    return;
+  }
+  micCtx = new (window.AudioContext || window.webkitAudioContext)({sampleRate: CFG.src_sr});
+
+  // 2) WebSocket
+  ws = new WebSocket(wsUrl());
+  ws.binaryType = 'arraybuffer';
+
+  liveMsg = addMsg('assistant', '');
+  liveTyper = new Typewriter(liveMsg.bubble);
+  livePolicy = addPolicy(liveMsg.msg);
+  let nW = 0, nT = 0;
+
+  ws.onopen = () => {
+    wsEverOpen = true;
+    ws.send(JSON.stringify({type: 'start', target_lang: langSel.value, ...chunkSettings()}));
+    const src = micCtx.createMediaStreamSource(micStream);
+    // ScriptProcessor 兼容性最好；4096 帧 @16k ≈ 256ms
+    micNode = micCtx.createScriptProcessor(4096, 1, 1);
+    micNode.onaudioprocess = ev => {
+      if (!ws || ws.readyState !== 1) return;
+      const f32 = ev.inputBuffer.getChannelData(0);
+      const i16 = new Int16Array(f32.length);
+      for (let i = 0; i < f32.length; i++) {
+        let v = Math.max(-1, Math.min(1, f32[i]));
+        i16[i] = v < 0 ? v * 32768 : v * 32767;
+      }
+      ws.send(i16.buffer);
+    };
+    src.connect(micNode);
+    // ⚠️ 绝不能 micNode.connect(destination) —— 那会把麦克风直接监听回放到
+    // 扬声器，与译音一起形成正反馈回路，产生持续数秒、与人声混在一起的自激
+    // 啸叫（"滴……"）。浏览器 echoCancellation 拦不住它，因为这是 WebAudio
+    // 图内部的直连，绕过了声学 AEC。
+    // ScriptProcessor 必须有下游才会触发 onaudioprocess（Chrome 的要求），
+    // 所以接一个增益为 0 的 GainNode 当"接地"：回调照跑，声音不输出。
+    micSink = micCtx.createGain();
+    micSink.gain.value = 0;
+    micNode.connect(micSink);
+    micSink.connect(micCtx.destination);
+    setLiveUI(true);
+  };
+
+  ws.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === 'decision') {
+      const s = document.createElement('div');
+      const isW = ev.action === 'write';
+      s.className = 'step ' + (isW ? 'w' : 't');
+      s.textContent = isW ? 'W' : '·';
+      s.title = `step ${ev.source_step}: ${ev.action}`;
+      livePolicy.appendChild(s);
+      isW ? nW++ : nT++;
+      $('tw').textContent = `${nW}/${nT}`;
+      chat.scrollTop = chat.scrollHeight;
+    } else if (ev.type === 'text') {
+      liveText += ev.text;
+      liveTyper.push(ev.text);
+      chat.scrollTop = chat.scrollHeight;
+    } else if (ev.type === 'audio') {
+      playPcm(ev.pcm, ev.sr || CFG.out_sr, livePcm);
+    } else if (ev.type === 'onset') {
+      // VAD 确认讲者开口 —— 延迟基准已校正到这一刻
+      $('tt').title = $('ta').title = '自 VAD 检出开口起算';
+      const badge = document.createElement('div');
+      badge.className = 'legend';
+      badge.innerHTML = `<span style="color:var(--ok)">▶ 开口 @ ${ev.offset_sec}s</span>`
+        + `<span>延迟从此刻起算</span>`;
+      liveMsg.msg.appendChild(badge);
+      chat.scrollTop = chat.scrollHeight;
+    } else if (ev.type === 'stat') {
+      if (ev.text_ttft != null) $('tt').textContent = ev.text_ttft + 'ms';
+      if (ev.audio_ttft != null) $('ta').textContent = ev.audio_ttft + 'ms';
+    } else if (ev.type === 'progress') {
+      // 实时率：rtf<1 说明推理跟得上
+      const warn = ev.rtf > 1 ? 'style="color:var(--danger)"' : '';
+      $('hint').innerHTML = `<b style="color:var(--danger)">● LIVE</b> `
+        + `${ev.fed_sec}s · <b ${warn}>RTF ${ev.rtf}</b>`
+        + (ev.pending_sec > 0.2 ? ` · buf ${ev.pending_sec}s` : '');
+    } else if (ev.type === 'error') {
+      liveTyper.flush(ev.message);
+      liveMsg.bubble.classList.add('err');
+      stopLive(true);
+    } else if (ev.type === 'done') {
+      // 会话结束：立刻补全剩余文本，不让渐显动画拖尾
+      liveText = ev.text || liveText;
+      liveTyper.flush(liveText);
+      addReplayer(liveMsg.msg, livePcm, CFG.out_sr, 'live_translation');
+      if (ev.terminal_status) {
+        const st = document.createElement('div');
+        st.className = 'legend';
+        const bad = ev.terminal_status !== 'thinker_eos';
+        st.innerHTML = `<span style="color:${bad ? 'var(--danger)' : 'var(--ok)'}">${ev.terminal_status}</span>`
+          + `<span>src ${ev.source_sec}s</span>`
+          + (ev.speech_onset_sec != null ? `<span>开口 @${ev.speech_onset_sec}s</span>` : '')
+          + `<span>RTF ${ev.rtf}</span>`
+          + `<span>queue_max ${ev.queue_delay_max}s</span>`
+          + (ev.replay_count ? `<span>replay ${ev.replay_count}</span>` : '');
+        liveMsg.msg.appendChild(st);
+        chat.scrollTop = chat.scrollHeight;
+      }
+      stopLive(true);
+    }
+  };
+
+  ws.onclose = () => { if (live) stopLive(true); };
+  // 正常收尾（点讲完 → stop → done → close）与页面刷新都会触发 onerror，
+  // 无条件弹窗是误报。判据：只有「连接从未成功建立」才提示用户。
+  // 不能用 readyState 判断 —— onerror 触发时它通常已是 CLOSING/CLOSED。
+  ws.onerror = () => {
+    if (closingNormally) return;         // 自己主动关的
+    if (!wsEverOpen) {                   // 压根没连上 = 真错误
+      alert('无法连接到服务端，请确认服务在运行（端口 7860）');
+    }
+    stopLive(true);
+  };
+}
+
+function stopLive(fromServer) {
+  // 先停麦克风采集
+  if (micNode) { try { micNode.disconnect(); } catch (e) {} micNode = null; }
+  if (micSink) { try { micSink.disconnect(); } catch (e) {} micSink = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (micCtx) { micCtx.close().catch(() => {}); micCtx = null; }
+  // 用户点「讲完」：送 stop 让服务端 finalize + drain 把剩余内容译完。
+  // 同传没有「丢弃已听内容」的语义，所以这里绝不能直接关连接。
+  if (!fromServer && ws && ws.readyState === 1) {
+    closingNormally = true;        // 从这一刻起的 error/close 都是预期的
+    ws.send(JSON.stringify({type: 'stop'}));
+    $('hint').innerHTML = '<b>draining…</b> 正在译完剩余内容';
+    $('recBtn').classList.remove('rec');
+    $('recBtn').disabled = true;
+    lockSettings(true);
+    return;                                     // 等 done 再收 ws
+  }
+  closingNormally = true;
+  if (ws) {
+    try { if (ws.readyState === 1) ws.send(JSON.stringify({type: 'end'})); } catch (e) {}
+    try { ws.close(); } catch (e) {}
+    ws = null;
+  }
+  $('recBtn').disabled = false;
+  setLiveUI(false);
+}
+
+// 唯一的控制：开始 / 讲完。没有打断按钮。
+$('recBtn').onclick = () => { live ? stopLive(false) : startLive(); };
+
+// 页面卸载时通知服务端收工，避免留下占锁的僵尸会话
+window.addEventListener('beforeunload', () => {
+  closingNormally = true;
+  try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'end'})); } catch (e) {}
+});
+
+loadConfig();
+</script>
+</body>
+</html>
