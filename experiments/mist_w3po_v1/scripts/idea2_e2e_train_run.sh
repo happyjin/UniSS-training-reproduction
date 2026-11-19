@@ -10,7 +10,8 @@
 #      free_card, local loop variables), waits for their memory to be released.
 #   4. torchrun --nproc_per_node 4; on exit releases the slot (owner file renamed slotB.released_<UTC>) and writes
 #      <out>/LAUNCHER_RC. Refuses an existing output directory.
-#   [CARDS=4,5,6,7] [RUN=idea2_e2e_main_v1] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/idea2_e2e_train_run.sh
+# v2 (2026-11-19 ~08:00 Prague): CARDS=0,1,2,3 claims slot A the same way; OUT / EXTRA (extra trainer flags, debug runs).
+#   [CARDS=4,5,6,7] [RUN=idea2_e2e_main_v1] [OUT=<dir>] [EXTRA=<flags>] [DRY_RUN=1] bash experiments/mist_w3po_v1/scripts/idea2_e2e_train_run.sh
 # Detached: setsid nohup bash ... > logs/mist_w3po_v1/voicecond/idea2/e2e_<RUN>.launcher.log 2>&1 < /dev/null 9>&- &
 # Checked with bash -n and DRY_RUN=1 only.
 set -uo pipefail
@@ -19,7 +20,8 @@ J=/opt/dlami/nvme/jasonleeeli
 VB=$J/venvs/vllm_omni_030/bin
 CARDS=${CARDS:-4,5,6,7}
 RUN=${RUN:-idea2_e2e_main_v1}
-OUT=eval_outputs/mist_w3po_v1/voicecond_idea2/e2e/$RUN
+OUT=${OUT:-eval_outputs/mist_w3po_v1/voicecond_idea2/e2e/$RUN}
+EXTRA=${EXTRA:-}
 LOGD=logs/mist_w3po_v1/voicecond/idea2
 SL=logs/mist_w3po_v1/slots
 PORT=${PORT:-29651}
@@ -55,20 +57,22 @@ free_card() {
   done
 }
 
-OWN=""
-if [ "$CARDS" = "4,5,6,7" ]; then
-  if [ -e $SL/slotB.owner ]; then log "slot B already owned: $(sed -n 1,2p $SL/slotB.owner | tr '\n' ' ')"; exit 1; fi
-  if [ -n "${DRY_RUN:-}" ]; then log "[dry] would claim slot B ($SL/slotB.owner)"
+OWN=""; SLOT=""
+[ "$CARDS" = "4,5,6,7" ] && SLOT=B
+[ "$CARDS" = "0,1,2,3" ] && SLOT=A
+if [ -n "$SLOT" ]; then
+  if [ -e $SL/slot$SLOT.owner ]; then log "slot $SLOT already owned: $(sed -n 1,2p $SL/slot$SLOT.owner | tr '\n' ' ')"; exit 1; fi
+  if [ -n "${DRY_RUN:-}" ]; then log "[dry] would claim slot $SLOT ($SL/slot$SLOT.owner)"
   else
-    T=$SL/.slotB.owner.new_$$
-    ( set -o noclobber; printf 'who: Idea 2 e2e training executor (voicecond, run %s)\ntask: Idea 2 end-to-end training (prereg v1 main setting, 4-GPU DDP, 3000 steps) on cards %s; released by renaming to slotB.released_<UTC>\nutc: %s\n' \
-      "$RUN" "$CARDS" "$(date -u +%FT%TZ)" > $T ) && command mv -n $T $SL/slotB.owner && [ ! -e $T ] || { log "slot claim failed"; exit 1; }
-    OWN=$SL/slotB.owner
-    log "claimed slot B; exclude_cards will become '4 5 6 7' within 10 s"
+    T=$SL/.slot$SLOT.owner.new_$$
+    ( set -o noclobber; printf 'who: Idea 2 e2e training executor (voicecond, run %s)\ntask: Idea 2 end-to-end training (prereg v1 main setting, 4-GPU DDP, 3000 steps) on cards %s; released by renaming to slot%s.released_<UTC>\nutc: %s\n' \
+      "$RUN" "$CARDS" "$SLOT" "$(date -u +%FT%TZ)" > $T ) && command mv -n $T $SL/slot$SLOT.owner && [ ! -e $T ] || { log "slot claim failed"; exit 1; }
+    OWN=$SL/slot$SLOT.owner
+    log "claimed slot $SLOT; exclude_cards will include cards $CL within 10 s"
   fi
 fi
 release() {
-  [ -n "$OWN" ] && [ -e "$OWN" ] && grep -q "run $RUN" "$OWN" && command mv -n "$OWN" $SL/slotB.released_$(date -u +%Y%m%dT%H%M%SZ) && log "slot B released"
+  [ -n "$OWN" ] && [ -e "$OWN" ] && grep -q "run $RUN" "$OWN" && command mv -n "$OWN" $SL/slot$SLOT.released_$(date -u +%Y%m%dT%H%M%SZ) && log "slot $SLOT released"
 }
 
 log "waiting until cards $CL hold no eval / non-placeholder process"
@@ -92,7 +96,7 @@ fi
 CMD="env TZ=Europe/Prague TMPDIR=$J/work/mist_w3po_v1/tmp HF_HOME=$J/cache/huggingface TORCH_HOME=$J/cache/torch XDG_CACHE_HOME=$J/cache \
 PATH=$VB:$PATH OMP_NUM_THREADS=8 TOKENIZERS_PARALLELISM=false PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
 CUDA_VISIBLE_DEVICES=$CARDS $VB/torchrun --nproc_per_node 4 --master_port $PORT \
--m experiments.mist_w3po_v1.voicecond.idea2_e2e_train --out $OUT --ablation main"
+-m experiments.mist_w3po_v1.voicecond.idea2_e2e_train --out $OUT --ablation main $EXTRA"
 log "launch: $CMD"
 if [ -n "${DRY_RUN:-}" ]; then log "[dry] done"; exit 0; fi
 bash -c "$CMD" > $LOGD/e2e_$RUN.log 2>&1

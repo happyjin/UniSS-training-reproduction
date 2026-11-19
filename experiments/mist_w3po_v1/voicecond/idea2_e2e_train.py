@@ -282,6 +282,13 @@ def main():
     ap.add_argument("--enc-chunk", type=int, default=256)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--load-check", default="", help="smoke only: load this checkpoint and compare dev outputs")
+    ap.add_argument("--debug-dump", default="", help="debug: on the first non-finite step dump state + batch per rank, exit")
+    ap.add_argument("--replay", default="", help="debug: replay a --debug-dump step on this card with anomaly detection")
+    ap.add_argument("--replay-rank", type=int, default=0)
+    ap.add_argument("--skip-dev0", type=int, default=0, help="debug only: no step-0 dev pass")
+    ap.add_argument("--max-bad", type=int, default=10, help="abort after this many consecutive non-finite steps")
+    ap.add_argument("--sdp-cudnn", type=int, default=0,
+                    help="1 = allow the cuDNN SDPA kernel (v1 default; its backward returned NaN at step 106 of main_v1)")
     a = ap.parse_args()
 
     ddp = "RANK" in os.environ
@@ -310,6 +317,11 @@ def main():
 
     torch.manual_seed(SEED)
     np.random.seed(SEED)
+    if not a.sdp_cudnn:
+        # main_v1 diverged at step 106: ScaledDotProductCudnnAttentionBackward0 (Talker, bf16, padded batch) returned NaN
+        # for one rank's batch although the forward was finite (replay with anomaly detection). The cuDNN SDPA backend
+        # is disabled; PyTorch falls back to the memory-efficient / math kernels (same attention, numerics only).
+        torch.backends.cuda.enable_cudnn_sdp(False)
     log(f"[cfg] {json.dumps(vars(a))} world={world} bs_per_gpu={bs} global_bs={bs * world}")
     assert hashlib.sha1((FIT / "full.npz").read_bytes()).hexdigest() == FIT_SHA1
     pf = ShrinkParams.load(FIT / "full.npz")
@@ -421,29 +433,44 @@ def main():
                     outs.append(P._u_from_ref(r))
         return torch.cat(outs).reshape(len(win), 192)
 
+    DBG = {"on": False, "fwd": [], "bwd": []}
+
+    def watch(name, x):
+        """debug (--replay): forward finiteness of x and, in backward, finiteness of its gradient"""
+        if not DBG["on"] or x is None:
+            return x
+        DBG["fwd"].append((name, bool(torch.isfinite(x).all()), float(x.detach().abs().max())))
+        if x.requires_grad:
+            x.register_hook(lambda g, n=name: DBG["bwd"].append(
+                (n, bool(torch.isfinite(g).all()), float(g.detach().float().abs().nan_to_num(posinf=1e300).max()))))
+        return x
+
     def posterior(z, vt, pi, wit, lang, B):
         """closed-form contraction posterior per item -> u_hat (B, 192) fp64, lambda, log r"""
         if a.ablation == "attnpool":
             return head(z, vt, pi, wit, B), None, None
         lg, lr_ = head(vt)
         lam, er = torch.sigmoid(lg).double(), torch.exp(-lr_.double())
+        watch("lam_logit", lg), watch("log_r", lr_), watch("lam", lam), watch("exp_neg_r", er)
         c = c_lang.double()[lang[wit]]
         pid = pi.double()
         y = z.double() - (1 - lam)[:, None] * c
         A = torch.zeros(B, dtype=torch.float64, device=dev).index_add(0, wit, pid * lam * lam * er)
         Y = torch.zeros(B, 192, dtype=torch.float64, device=dev).index_add(0, wit, (pid * lam * er)[:, None] * y)
+        watch("prec_sum_A", A), watch("Y", Y)
         prec = S0i[None] + A[:, None, None] * Rfi[None]
         rhs = (S0i @ mu0)[None] + Y @ Rfi.T
-        return torch.linalg.solve(prec, rhs) + bM, lam, lr_
+        sol = watch("solve", torch.linalg.solve(prec, rhs))
+        return sol + bM, lam, lr_
 
     def st_embed(u):
         uf = u.float().reshape(-1, 32, 6)
-        qc = P.fsq.bound(uf) / 2
+        qc = watch("q_c", P.fsq.bound(uf) / 2)
         with torch.no_grad():
             _, g = P.fsq(uf.detach())
             g = g.reshape(-1, 32).long()
         e = emb.weight[GLOBAL_0 + g] + ((qc - qc.detach()).to(torch.bfloat16) @ Wst.T)
-        return e, g
+        return watch("ste_embed", e), g
 
     def sem_logp(embeds, mask, bi, pos):
         hs = body(inputs_embeds=embeds, attention_mask=mask).last_hidden_state
@@ -470,9 +497,10 @@ def main():
         win = bt["win"].to(dev, non_blocking=True)
         wit, vt, pi = bt["wit"].to(dev), bt["vt"].to(dev), bt["pi"].to(dev)
         lang, ustar, gstar = bt["lang"].to(dev), bt["ustar"].to(dev), bt["gstar"].to(dev)
-        z = phi(win, grad=train)
+        z = watch("z_k", phi(win, grad=train))
         tick("phi")
         u, lam, lr_ = posterior(z, vt, pi, wit, lang, B)
+        watch("u_hat", u)
         base = emb(ids)
         with torch.no_grad():
             if use_lora:
@@ -487,6 +515,7 @@ def main():
         M = len(bi)
         if use_lora:
             ls = sem_logp(torch.cat([stu, base]), torch.cat([mask, mask]), torch.cat([bi, bi + B]), torch.cat([pos, pos]))
+            watch("student_logp", ls)
             k1, k2 = seq_kl(lt, ls[:M], bi, B), seq_kl(lt, ls[M:], bi, B)
         else:
             ls = sem_logp(stu, mask, bi, pos)
@@ -501,7 +530,7 @@ def main():
             za = P._u_from_ref(bt["anc"].to(dev)).reshape(B, 192)
             key = torch.tensor(bt["anc_key"], device=dev)
             za0 = phi0(bt["anc"].to(dev)).reshape(B, 192)
-            res["anc"] = ((za - za0) ** 2).sum(1).mean().double()
+            res["anc"] = ((watch("anchor_phi", za) - za0) ** 2).sum(1).mean().double()
             res["anc_vs_pre"] = float(((za0 - A0[key]) ** 2).sum(1).mean())
         return res
 
@@ -630,11 +659,63 @@ def main():
             du.append(float(np.abs(u[k].cpu().numpy() - (m + pf.bM)).max()))
         return {"z_maxabs": float((z - z0).abs().max()), "z_scale": float(z0.abs().mean()), "u_maxabs_vs_numpy": max(du)}
 
+    groups = {"lora": lora_params, "head_c": head_params}
+    groups.update({f"enc.{k}": list(m.parameters()) for k, m in enc_mods.items()})
+
+    def group_flags():
+        return {k: bool(all(torch.isfinite(p.grad).all() for p in ps if p.grad is not None)) for k, ps in groups.items()}
+
+    def trainable_state():
+        return {"encoder": {k: {n: v.detach().cpu().clone() for n, v in m.state_dict().items()} for k, m in enc_mods.items()},
+                "head": {n: v.detach().cpu().clone() for n, v in head.state_dict().items()},
+                "c_lang": c_lang.detach().cpu().clone(),
+                "lora": {n: v.detach().cpu().clone() for n, v in get_peft_model_state_dict(model).items()} if use_lora else None}
+
+    def load_trainable(st):
+        for k, m in enc_mods.items():
+            m.load_state_dict(st["encoder"][k])
+        head.load_state_dict(st["head"])
+        with torch.no_grad():
+            c_lang.copy_(st["c_lang"].to(dev))
+        if use_lora:
+            set_peft_model_state_dict(model, st["lora"])
+
+    if a.replay:
+        d = torch.load(Path(a.replay) / f"rank{a.replay_rank}.pt", map_location="cpu", weights_only=False)
+        load_trainable(d["state"])
+        wts.update(d["wts"])
+        dsr = Items(tr_items, CV, prompts)
+        bt = collate([dsr[(i, d["sampler_step"])] for i in d["idx"]], tr_items)
+        log(f"[replay] step {d['step']} rank {a.replay_rank}: {len(d['idx'])} items, local grad flags in the run "
+            f"{json.dumps(d['flags'])}, weights {json.dumps({k: wts[k] for k in ('code', 'anc')})}")
+        for anomaly in (False, True):
+            DBG.update(on=True, fwd=[], bwd=[])
+            opt.zero_grad(set_to_none=True)
+            try:
+                with torch.autograd.set_detect_anomaly(anomaly):
+                    r = forward(bt, train=True)
+                    loss = r["kl1"] + r["kl2"] + wts["code"] * r["code"] + wts["anc"] * r["anc"]
+                    log(f"[replay anomaly={anomaly}] loss {float(loss):.6g} kl1 {float(r['kl1']):.6g} kl2 {float(r['kl2']):.6g} "
+                        f"code {float(r['code']):.6g} anc {float(r['anc']):.6g}")
+                    loss.backward()
+            except Exception as e:  # noqa: BLE001
+                log(f"[replay anomaly={anomaly}] exception: {type(e).__name__}: {str(e)[:2000]}")
+            log(f"[replay anomaly={anomaly}] forward (name, finite, max|x|): {DBG['fwd']}")
+            log(f"[replay anomaly={anomaly}] backward order (name, grad finite, max|g|): {DBG['bwd']}")
+            log(f"[replay anomaly={anomaly}] param grad finite per group: {json.dumps(group_flags())}")
+            bad = [n for n, p in model.named_parameters() if p.grad is not None and not torch.isfinite(p.grad).all()]
+            log(f"[replay anomaly={anomaly}] non-finite LoRA grads: {len(bad)} {bad[:6]}")
+            for k, m in enc_mods.items():
+                bad = [n for n, p in m.named_parameters() if p.grad is not None and not torch.isfinite(p.grad).all()]
+                log(f"[replay anomaly={anomaly}] non-finite grads in {k}: {len(bad)} {bad[:8]}")
+        return
+
     if a.ablation == "main":
         log("[init_check] " + json.dumps(init_check()))
-    rec0 = dev_rec(0)
+    rec0 = dev_rec(0) if not a.skip_dev0 else {"step": 0, "dev": {}}
     log("[dev] " + json.dumps(rec0))
     dev_kl1_0 = {k: v["kl1"] for k, v in rec0["dev"].items()}
+    n_bad, n_bad_run, n_calib = 0, 0, 0
     if rank == 0:
         jl = open(out / "train_log.jsonl", "x", encoding="utf-8")
         jl.write(json.dumps(rec0) + "\n")
@@ -661,6 +742,7 @@ def main():
         for p in all_params:
             if p.grad is None:
                 p.grad = torch.zeros_like(p)
+        loc_flags = group_flags()
         if ddp:
             flat = torch.cat([p.grad.reshape(-1).float() for p in all_params])
             dist.all_reduce(flat)
@@ -674,18 +756,46 @@ def main():
         # gradient (incl. the anchor term) scale the LoRA gradients below Adam's eps
         gn = float(torch.nn.utils.clip_grad_norm_(main_params, CLIP))
         gn_enc = float(torch.nn.utils.clip_grad_norm_(enc_params, CLIP))
-        opt.step()
-        sched.step()
-        step += 1
         terms = torch.stack([r["kl1"].detach(), r["kl2"].detach(), r["code"].detach(), r["anc"].detach(),
                              r["tok"].detach().double(), loss.detach().double()])
         if ddp:
             dist.all_reduce(terms)
             terms /= world
+        # non-finite guard (same decision on every rank: gradients and loss terms are all-reduced): skip the update
+        ok = math.isfinite(gn) and math.isfinite(gn_enc) and bool(torch.isfinite(terms).all())
+        if not ok:
+            n_bad, n_bad_run = n_bad + 1, n_bad_run + 1
+            bad_ranks = torch.tensor([0.0 if all(loc_flags.values()) else 1.0], device=dev)
+            if ddp:
+                dist.all_reduce(bad_ranks)
+            log(f"[nonfinite] step {step + 1}: update skipped (total {n_bad}, consecutive {n_bad_run}); grad_norm {gn} "
+                f"enc {gn_enc}; terms {terms.tolist()}; ranks with non-finite local grads {int(bad_ranks)}; "
+                f"rank0 local flags {json.dumps(loc_flags)}")
+            if a.debug_dump:
+                dd = Path(a.debug_dump)
+                dd.mkdir(parents=True, exist_ok=True)
+                torch.save({"step": step + 1, "sampler_step": step, "idx": bt["idx"], "flags": loc_flags, "wts": wts,
+                            "state": trainable_state(), "terms_local": [float(r[k]) for k in ("kl1", "kl2", "code", "anc")]},
+                           dd / f"rank{rank}.pt")
+                log(f"[debug] dumped state and batch of step {step + 1} to {dd}; exiting")
+                if ddp:
+                    dist.barrier()
+                    dist.destroy_process_group()
+                return
+            opt.zero_grad(set_to_none=True)
+            if n_bad_run >= a.max_bad:
+                raise SystemExit(f"{n_bad_run} consecutive non-finite steps: abort")
+        else:
+            n_bad_run = 0
+            opt.step()
+        sched.step()
+        step += 1
         if step <= a.calib:
-            calib += terms[[0, 2, 3]]
+            if ok:
+                calib += terms[[0, 2, 3]]
+                n_calib += 1
             if step == a.calib:
-                m = calib / a.calib
+                m = calib / n_calib
                 wts["code"] = float(m[0] / m[1])
                 wts["anc"] = float(m[0] / m[2]) if float(m[2]) > 0 else float("inf")
                 wts["calib"] = {"kl1_mean": float(m[0]), "code_mean": float(m[1]), "anc_mean": float(m[2]), "batches": a.calib}
@@ -698,6 +808,7 @@ def main():
             rec = {"step": step, "loss": float(terms[5]), "kl1": float(terms[0]), "kl2": float(terms[1]),
                    "code": float(terms[2]), "anc": float(terms[3]), "tok": float(terms[4]),
                    "w_code": wts["code"], "w_anc": wts["anc"], "grad_norm": gn, "grad_norm_enc": gn_enc,
+                   "skipped": int(not ok), "n_skipped": n_bad,
                    "lr": sched.get_last_lr()[0], "lr_enc": sched.get_last_lr()[1], "nwin": r["nwin"],
                    "anc_phi0_vs_precomputed": r["anc_vs_pre"],
                    "s_step": round(now - t_last, 3), "s_data": round(t_data, 3), "s_avg": round((now - t_start) / step, 3),
