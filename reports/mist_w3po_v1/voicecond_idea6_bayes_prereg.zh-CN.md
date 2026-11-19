@@ -134,3 +134,47 @@
 - α（全部 dev 窗口）：均值 0.76，标准差 0.87；分位数 p5 −0.56、p50 0.70、p95 2.29；每窗口平均 α 的标准差 0.40；各维平均 α 在 −0.13 到 2.26 之间。精度头学到了整体放大精度，窗口间也有一定差异。
 - 记录用的中间检查点（只记录，不做选择）：60 s 相对 C_post 的差为 500 步 −5.5%、1000 步 −4.6%、1500 步 −3.8%、2000 步 −3.4%、2500 步 −3.5%；60 s 中位数在 7.32–7.36 之间。train 上的后验误差均值从约 8.9 降到约 6.0，dev 上的收益却在 500 步后就开始回落：主要是对训练说话人的过拟合，没有学到可迁移的似然。
 - 按判定：Idea 6 端到端主线停止，不改设置重试。
+
+## 完整系统测试预登记（2026-11-19 14:50 布拉格；写于接触任何测试条目之前，只追加）
+
+用户："一起测试，用后四卡叠加并行跑，尽量叠加满gpu。然后给我结果统计和分析"。端到端 dev 门槛未通过，但用户要求两个臂都做完整系统测试。测试只用于评测，不做任何选择或调参。
+
+**被测的两个臂（各只有一个设置）：**
+- `C_post`：预检 A 的设置。C 编码器逐 2 s 窗口编码 u_C,k，闭式后验，R_C 取 pilot train 估计（`idea6_precheckA/R_C.npz`），先验取 full.npz（sha1 25aaf6cd），λ = 1、c = 0。
+- `E2E_post`：`idea6_e2e_main_v1` 第 3000 步的最终检查点（编码器 + 精度头 α_k），只测这一个检查点。
+
+**推理接口：** 与 Idea 2 冻结 shrink+Vfb（M2）的 token 表完全相同，只换音色估计 û。
+- 窗口、槽位、π、t_commit 全部直接读 M2 的特征缓存（`streams_cache/<dir>_<key>/<m>.npz`）；
+- 可用窗口的规则不变：本槽位、end + 1.04 s ≤ t_commit；
+- 没有可用窗口的条目沿用 M2 的 V 回退 ids；
+- 有可用窗口的条目：用两个臂各自的编码器重算这些窗口的 u_k（E2E 还有 α_k），走闭式后验得到 û（提示空间），再经 FSQ 量化成 32 个 id。
+- Talker 不变：T1c；`--speed-policy fixed --history-ban 8`；B 的文本（`--speech-from`）；两个 TTS 种子；`SI_KV_CACHE_GIB=7.73`、`ORCH_TALK_PAIR_GAP_S=0`、`ORCH_LEDGER_VLLM_GAP_S=10`、`--cap135`；`--exclude 0 1 2 3`（卡 0–3 归 E10）。
+
+**测试集：** 与 M2 相同的 9 组。
+- OpenBroadcast-SI 的 ID-2 / OOD-1 / clean × zh2en / en2zh：经 `voicecond_bench_orch` 跑、`bench_eval` 评；
+- OOD-3 的 ami / en / ali：经 `idea2_ood3_orch` 跑；指标为块协议语音 LAAL、`idea1_speech_metrics`、TitaNet 相似度（M2 的槽位参考）。
+- 运行名：`obsi_i6c_<cond>_<dir>__t1c{,_tts2}`、`obsi_i6e_...`、`idea2_ood3_i6c_<ss>__t1c{,_tts2}`、`idea2_ood3_i6e_...`。
+
+**比较：** 每个臂分别对比
+- B（`obsi_b_*` / `idea2_ood3_b_*`）；
+- Idea 2 冻结方法（`obsi_i2_*` / `idea2_ood3_sv_*`）；
+- Idea 1 C（`obsi_i1c_*` / `idea1_ood3_c_*`）；
+- 另外直接比较 E2E_post 与 C_post。
+
+**统计：** 与 `idea2_test_summary` 相同。
+- 两个种子取均值；
+- 按流（OpenBroadcast-SI）或按条目（OOD-3）先做种子平均，再配对；报告中位差、bootstrap 95% CI、Wilcoxon；
+- PESQ、SI-SDR、contrast、flatness 各自作为一个检验族，在每个比较内跨 6 组做 Holm 校正；OOD-3 用 `idea1_speech_metrics compare` 自带的 Holm。
+
+**门槛（与 M2 相同，主要对照为 B；对其他对照同样报告）：**
+- tcpASR-BLEU 的两种子均值不低于对照；
+- 相似度配对中位差 ≥ −0.02；
+- 语音 LAAL 按 "BLEU 优先于 LAAL"：报告是否不大于对照，超出量单独列出，不否决 BLEU 门槛。
+
+**新增（今天发现 2 场会议的语料 BLEU 种子噪声很大，见 LOG「C 伤害诊断」）：** OOD-3 的逐窗口 chrF 作为无害证据。
+- 方法与 `idea6_diag_harm.py` 相同：窗口 ASR 文本对时间上重叠的参考句；两种子均值；配对 Wilcoxon；对所有（臂 × 对照 × 子集）一起做 Holm。
+- 无害的定义：没有 Holm 显著（p < 0.05）的负向 chrF 差。
+
+**只在 dev 上做的冒烟检查（不碰任何测试条目）：** 在 Idea 2 合成 dev 流上，用测试用的 token 构建代码路径检查两件事：
+- (a) 第 0 步检查点下，E2E_post 的 token 与 C_post 完全一致；
+- (b) 第 3000 步检查点下，E2E_post 的码误差与 dev 门槛结果一致（≤ 1e-4）。
