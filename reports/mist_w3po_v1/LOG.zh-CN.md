@@ -4314,3 +4314,10 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 预登记：`reports/mist_w3po_v1/e10_liveinterpret_multispk_prereg.zh-CN.md`，在训练开始前写好。
 - 启动：`third_party/liveinterpret_training_pipelines/e10_multispk/takeover_slotA_train.sh`（detached）。它申领 slot A，按 PID 停掉卡 0–3 的占位程序，启动训练（GBS 64 = 8×4×GA2，约 1,670 步）；训练期间叠加跑 E10-0 的 dev 评测；训练结束后用最后一步跑 E10 的 dev 门槛评测，再释放 slot A。
 - 12:28 CET：第一次启动（e10_thinker_v1）在第 0 步失败。原因是 DataLoader 的多个 worker 共享了主进程打开的 jsonl 句柄，读到撕裂的行，报 UnicodeDecodeError。slot A 已按脚本释放。修复：在 `e10/patch.py` 里让 JsonlIndex 每个进程各自重新打开文件。`tests/check_loader_workers.py` 用 8 个 worker 验证：不加修复能复现，加上修复后 800 个样本全部正常。以 e10_thinker_v2 重新启动，设置不变。
+
+## 2026-11-19 12:35 布拉格 — Idea 5（跨说话人共模背景）CPU 预检：C1 通过，C2 不通过 → 停止
+
+- 预登记 f1dd01330（任何数字之前）；脚本 `experiments/mist_w3po_v1/voicecond/idea5_prechecks.py`，48 进程，约 3 分钟。
+- C1：同流跨说话人残差余弦 0.24 vs 异流 −0.01，p = 0.0002，ICC 0.26 → 共享背景真实存在。
+- C2：层级后验相对 Idea 2 的 60 s 码误差 −4.9% [CI −6.9%, −3.6%]，未达 −10%；oracle-b 上界 −14.4%。按登记停止。
+- 结论：免训练后验这一族（Idea 2 / 4 / 5）在码误差上已接近天花板；剩余误差主要是与身份纠缠的单说话人残差。
