@@ -70,12 +70,25 @@ def features(data, d, m, cache, P, model, dev):
     return out
 
 
-def v_tokens(P, prompt: Path, vdir: Path):
-    """Idea 1's V: HDemucs vocals of the prompt (game_muffle_analysis.demucs), saved at 16 kHz, tokenizer file path"""
-    from experiments.mist_w3po_v1.evaluation.game_muffle_analysis import demucs, read16
+def demucs_exact(model, x, dev):
+    """game_muffle_analysis.demucs, computed identically (whole signal, one pass, prompt mean / std) but on `dev`"""
+    import torchaudio.functional as AF
+    y = AF.resample(torch.from_numpy(x).to(dev), SR, 44100)
+    y = torch.stack([y, y])[None]
+    ref = y.mean(1)
+    m, s = ref.mean(), ref.std() + 1e-8
+    with torch.no_grad():
+        st = model((y - m) / s)[0] * s + m
+    return AF.resample(st[3].mean(0), 44100, SR).cpu().numpy().astype(np.float32)
+
+
+def v_tokens(P, prompt: Path, vdir: Path, model=None, dev=None):
+    """Idea 1's V: HDemucs vocals of the prompt (game_muffle_analysis.demucs computation, on the GPU), saved at 16 kHz,
+    then the tokenizer's file path (phi_path)."""
+    from experiments.mist_w3po_v1.evaluation.game_muffle_analysis import read16
     vp = vdir / f"{prompt.stem}.wav"
     if not vp.exists():
-        _, voc = demucs(read16(prompt))
+        voc = demucs_exact(model, read16(prompt), dev)
         vdir.mkdir(parents=True, exist_ok=True)
         tmp = vdir / f".{prompt.stem}.partial.wav"
         sf.write(str(tmp), voc, SR)
@@ -145,7 +158,7 @@ def main():
              "pi_sum": float(f["pi"][sel].sum()), "fallback": len(sel) == 0}
         if len(sel) == 0:
             r["ids_shrink"] = [int(v) for v in ids]
-            ids = v_tokens(P, p, vdir)
+            ids = v_tokens(P, p, vdir, model, dev)
         r["ids"] = [int(v) for v in ids]
         rows.append(r)
     TOK.mkdir(parents=True, exist_ok=True)
