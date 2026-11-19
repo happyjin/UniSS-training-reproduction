@@ -21,6 +21,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ref-dir", required=True)
     ap.add_argument("--ref-suffix", default="")
+    ap.add_argument("--key-mode", default="stream", choices=["stream", "meeting_slot"],
+                    help="meeting_slot: reference <ref dir>/<meeting>_S<k>.wav for stream <meeting>_on_<w>__S<k> "
+                         "(Idea 2's demo definition: HDemucs vocals of all solo runs of the slot over the excerpt)")
     ap.add_argument("--runs", nargs="+", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--device", default="cuda:0")
@@ -55,13 +58,18 @@ def main() -> None:
         for r in rows:
             if not r.get("speech_path") or r.get("error") not in (None, "None"):
                 continue
-            rp = Path(a.ref_dir) / f"{r['id']}{a.ref_suffix}.wav"
+            if a.key_mode == "stream":
+                rk = r["id"]
+            else:
+                wid, k = r["id"].rsplit("__S", 1)
+                rk = f"{wid.split('_')[0]}_S{k}"
+            rp = Path(a.ref_dir) / f"{rk}{a.ref_suffix}.wav"
             if not rp.exists():
                 continue
-            if r["id"] not in refs:
-                refs[r["id"]] = emb(rp)
+            if rk not in refs:
+                refs[rk] = emb(rp)
             try:
-                sims[r["id"]] = float(emb(r["speech_path"]) @ refs[r["id"]])
+                sims[r["id"]] = float(emb(r["speech_path"]) @ refs[rk])
             except Exception:  # noqa: BLE001
                 continue
         per[label] = sims
