@@ -309,7 +309,7 @@ def main():
     if str(UNISS) not in sys.path:
         sys.path.append(str(UNISS))
     cfg = SETS[a.set]
-    out = Path(a.out)
+    out = Path(a.out).resolve()   # wav paths in the raw rows must be absolute
     out.mkdir(parents=True, exist_ok=True)
     part = out / f"part_{a.shard:02d}.jsonl"
     if part.exists():
