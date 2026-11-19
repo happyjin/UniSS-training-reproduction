@@ -12,6 +12,9 @@ for p in (_CUSTOM, _HERE):
         sys.path.insert(0, p)
 
 importlib.import_module("streaming_si.integration.register_streaming_si").register_all()
+# custom/plugin.py also installs this: it moves the model's `outputs.metrics` (text/decision/boundary losses and the
+# decision confusion cells behind dec_macro_f1) into swift's train/eval logs
+importlib.import_module("token_accuracy_metrics").install_qwen_omnispeak_accuracy_patch()
 
 from e10 import patch as _patch  # noqa: E402
 from e10 import tuner as _tuner  # noqa: E402

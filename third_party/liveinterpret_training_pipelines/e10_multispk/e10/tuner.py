@@ -251,7 +251,7 @@ def _sd_lr_optimizer():
                 if p.requires_grad:
                     (sd if "e10_sd_proj" in n else other).append((n, p))
             groups = []
-            for lr, ps in ((sd_lr, sd), (args.learning_rate, other)):
+            for lr, ps in ((args.learning_rate, other), (sd_lr, sd)):   # group 0 = the logged learning rate
                 for wd in (0.0, args.weight_decay):
                     sel = [p for n, p in ps if (n in decay) == (wd > 0)]
                     if sel:
