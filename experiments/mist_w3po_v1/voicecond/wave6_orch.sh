@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Robust wave 6 orchestrator (reports/mist_w3po_v1/robust_wave6_disen_prereg.zh-CN.md). Modelled on wave3_v_orch.sh.
 # 0. waits for TRAIN_DONE of both arms; exports each (wave6_export.py, logits check) and an identity export; the identity
-#    export and T1c must give identical codes in si_infer (8 noisy CoVoST items, raw voice ids, one shard) -> else FAILED;
+#    export must reproduce T1c's HF logits exactly (else FAILED); its si_infer codes vs T1c on 8 items are reported only;
 # 1. talkers: {tft, disen} x {en2zh, zh2en} x shards 0..3 with wave3's V1 C-token table (S1 blocks, seed 20261021);
 # 2. gate-1 duration runs: {t1c, tft, disen} x {raw, c, v2, cclean} x dirs on the 300 noisy CoVoST items (1 shard);
 # 3. ASR of the 4 main runs; SQUIM PESQ + TitaNet similarity -> wave6_disen/metrics/;
@@ -81,7 +81,7 @@ if [ ! -e $W/eval/identity/model/export_check.json ]; then
     --out $W/eval/identity/model --check 5 > logs/mist_w3po_v1/wave6/export_identity.log 2>&1 || fail "export identity"
   log "export identity: $(cat $W/eval/identity/model/export_check.json | tr -d '\n ')"
 fi
-head -8 $W/durtest/items_a_noisy_en2zh.jsonl > $W/eval/identity/items8.jsonl
+[ -s $W/eval/identity/items8.jsonl ] || head -8 $W/durtest/items_a_noisy_en2zh.jsonl > $W/eval/identity/items8.jsonl
 for m in t1c identity; do
   M=$T1C; [ $m = identity ] && M=$W/eval/identity/model
   out=$W/eval/identity/si_$m
@@ -92,16 +92,16 @@ for m in t1c identity; do
   p=$(lastpid); while alive $p; do sleep 10; done
   [ -s $out/part_0.jsonl ] || fail "ident $m produced nothing"
 done
-$PYE - <<EOF || fail "identity export differs from T1c in si_infer"
+grep -q '"max_abs_diff": 0.0' $W/eval/identity/model/export_check.json || fail "identity export: HF logits differ from T1c"
+# report only: a new model path compiles fresh in vLLM, so sampled codes can differ by kernel-level noise
+# (v0 diagnosis: T1c vs T1c rerun 8/8 from the compile cache; T1c-config identity copies 7/8, tied and untied alike)
+$PYE - <<EOF >> $W/eval/identity/si_check.txt
 import json
 a = {r["id"]: r.get("codes") for r in map(json.loads, open("$W/eval/identity/si_t1c/part_0.jsonl"))}
 b = {r["id"]: r.get("codes") for r in map(json.loads, open("$W/eval/identity/si_identity/part_0.jsonl"))}
-same = sum(a[i] == b.get(i) for i in a)
-print(f"identity check: {same}/{len(a)} items with identical code counts")
-txt = {r["id"]: r.get("blocks") for r in map(json.loads, open("$W/eval/identity/si_t1c/part_0.jsonl"))}
-assert same == len(a) == 8
+print(f"identity si_infer: {sum(a[i] == b.get(i) for i in a)}/{len(a)} items with identical code counts")
 EOF
-log "identity check passed"
+log "identity check: HF exact; $(tail -1 $W/eval/identity/si_check.txt)"
 
 # 1 + 2. talker queue
 declare -A JOBPID

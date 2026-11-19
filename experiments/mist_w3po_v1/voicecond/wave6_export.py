@@ -53,28 +53,36 @@ def main() -> None:
                 lin.weight.data = (lin.weight.data.float() + dW.to(dev)).to(torch.bfloat16)
         if sd["disen"] is not None:
             sig = torch.sigmoid(sd["disen"]["m"].float()).to(dev)
-    # untie: output head keeps the original embedding; input rows of the voice vocabulary scaled by sigma(m)
-    model.config.tie_word_embeddings = False
-    if hasattr(model.config, "get_text_config"):
-        try:
-            model.config.get_text_config().tie_word_embeddings = False
-        except Exception:
-            pass
-    head = torch.nn.Linear(E0.shape[1], E0.shape[0], bias=False, dtype=torch.bfloat16, device=dev)
-    head.weight = torch.nn.Parameter(E0.clone())
-    model.lm_head = head
-    new_in = E0.clone()
-    if sig is not None:
+    # disen only: untie (the output head keeps the original embedding) and scale the input rows of the voice vocabulary by
+    # sigma(m); tft and identity stay tied, exactly as T1c. The config written is T1c's own config.json with only
+    # tie_word_embeddings changed (transformers 5's save_pretrained rewrites it in a new format: rope_parameters, layer_types,
+    # dtype, which vLLM read differently in the v0 identity check).
+    untie = sig is not None
+    if untie:
+        head = torch.nn.Linear(E0.shape[1], E0.shape[0], bias=False, dtype=torch.bfloat16, device=dev)
+        head.weight = torch.nn.Parameter(E0.clone())
+        new_in = E0.clone()
         rows = slice(W.GLOBAL_0, W.GLOBAL_0 + 4096)
         new_in[rows] = (new_in[rows].float() * sig).to(torch.bfloat16)
-    model.model.embed_tokens.weight = torch.nn.Parameter(new_in)
+        model.config.tie_word_embeddings = False
+        model.lm_head = head
+        model.model.embed_tokens.weight = torch.nn.Parameter(new_in)
     out.mkdir(parents=True)
     model.save_pretrained(str(out), safe_serialization=True)
     for f in ("tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt", "generation_config.json"):
         if (W.TALKER / f).exists():
             shutil.copy2(W.TALKER / f, out / f)
-    cfg = json.loads((out / "config.json").read_text())
-    assert cfg.get("tie_word_embeddings") is False, cfg.get("tie_word_embeddings")
+    cfg = json.loads((W.TALKER / "config.json").read_text())
+    cfg["tie_word_embeddings"] = not untie
+    (out / "config.json").write_text(json.dumps(cfg, indent=2))
+    from safetensors import safe_open
+    with safe_open(str(out / "model.safetensors"), "pt") as fh:
+        keys = set(fh.keys())
+        if untie:
+            assert "lm_head.weight" in keys and torch.equal(fh.get_tensor("lm_head.weight").to(dev), E0)
+            assert not torch.equal(fh.get_tensor("model.embed_tokens.weight").to(dev), E0)
+        else:
+            assert torch.equal(fh.get_tensor("model.embed_tokens.weight").to(dev), E0)
 
     # ---- check against the training-time forward
     rep = {"ckpt": a.ckpt, "identity": a.identity, "sigma_mean": float(sig.mean()) if sig is not None else 1.0,
