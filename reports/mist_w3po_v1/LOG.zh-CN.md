@@ -4251,3 +4251,9 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 接管正在跑的 attnpool（torchrun 1464679，只等它结束，不重启），以及 v1 的槽 A 文件（追加一行 adopted 记录，槽位全程不释放）。之后依次跑 frozen_talker、constlam。
   - 08:42 启动 v2（PID 1813633）。确认接管成功后，用 SIGKILL 停掉 v1 的 bash（1459570）：SIGTERM 会在当前子进程结束后触发 EXIT 陷阱、把槽 A 释放掉，所以用 SIGKILL。attnpool 的 torchrun 不受影响，继续运行。
 - 预计：消融链约 13:00–13:30 布拉格结束（attnpool 约 09:45 结束，frozen_talker 约 11:20，constlam 约 13:10）；测试汇总仍约 12:00。
+
+## 2026-11-19 09:00 布拉格 — 允许在训练卡上叠加评测（用户："检查的时候不要停止训练，可以叠加在训练上进行检查"）
+- 新规则：检查和评测可以叠加在训练卡上（单卡总量 ≤ 135 GiB），不为检查停止训练。此规则取代 2026-11-07 / 11-11 的"训练卡上不叠加任何任务"。占卡程序仍不叠加到训练卡上。
+- 测试运行器和消融链已换成 v2（提交 989ce4b67）。
+- 正在运行的 sync_train_exclude.sh（PID 1222453）启动时已带 STACK_OK_FILE=logs/mist_w3po_v1/slots/stack_ok_cards_a。现写入该文件，内容为 "0 1 2 3"：槽 A 仍由消融链持有，但卡 0–3 从共享排除文件里去掉。exclude_cards 已从 "0 1 2 3 4 5 6 7" 变为 "4 5 6 7"；main_v2 结束、槽 B 释放后会变为空。
+- 开源 A/B 试听页（OpenBroadcast-SI，18 段 × 4 个版本：B / Idea 2 / Idea 1 Z / 对照 C）已发布：https://claude.ai/artifact/EWmZbQGyxYUAGVyYQ8c21F
