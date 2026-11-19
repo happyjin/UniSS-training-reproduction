@@ -60,6 +60,27 @@ SEEDS = (("", 0), ("_tts2", 20261109))
 ASR_SHARDS = 4
 
 
+def stop_placeholders(card, log):
+    """takeover_slotA_train.sh's rule: SIGTERM the train_mist_workload supervisor (ppid 1, --devices <card>) and its
+    children, by PID; slot-A cards only."""
+    import os
+    import signal
+    if str(card) not in ("0", "1", "2", "3"):
+        return
+    ps = subprocess.run(["ps", "-eo", "pid=,ppid=,args="], capture_output=True, text=True).stdout.splitlines()
+    rows = [(int(p), int(pp), a) for p, pp, a in (l.split(None, 2) for l in ps if len(l.split(None, 2)) == 3)]
+    for pid, ppid, args in rows:
+        if ppid == 1 and "train_mist_workload.py" in args and f"--devices {card} " in args + " ":
+            kids = [p for p, pp, _ in rows if pp == pid]
+            log(f"card {card}: stop placeholder supervisor {pid} (children {kids})")
+            for p in [pid] + kids:
+                try:
+                    os.kill(p, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            time.sleep(15)
+
+
 class Runner:
     def __init__(self, a):
         self.a = a
@@ -103,11 +124,13 @@ class Runner:
             for k, c in todo:
                 print(f"[DRY] {key}.{k}: {c.format(card=self.slots[0])}")
             return
-        free, running = list(self.slots), []
+        free, running, failed = list(self.slots), [], []
         while todo or running:
-            while todo and free:
+            while todo and free and not failed:
                 k, c = todo.pop(0)
                 card = free.pop(0)
+                if self.a.stop_placeholders:
+                    stop_placeholders(card, self.log)
                 fh = open(self.logd / f"{key}.{k}.log", "a")
                 p = subprocess.Popen(["bash", "-lc", f"cd {REPO}; {c.format(card=card)}"], stdout=fh,
                                      stderr=subprocess.STDOUT)
@@ -121,9 +144,28 @@ class Runner:
                     free.append(card)
                     if p.returncode:
                         self.log(f"FAILED {key}.{k} rc={p.returncode}")
-                        raise SystemExit(1)
-                    self.mark(f"{key}.{k}")
+                        failed.append(k)
+                    else:
+                        self.mark(f"{key}.{k}")
+            if failed and not running:     # let the started jobs finish (no orphans), then stop
+                raise SystemExit(1)
             time.sleep(5)
+
+    def resume_decode(self, n, raw, K):
+        """A shard with part + stats is complete (mark it); a part without stats is an aborted shard: set it aside
+        (rename) so run_e10 can redo it."""
+        for k in range(K):
+            part, stats = raw / f"part_{k:02d}.jsonl", raw / f"part_{k:02d}.stats.json"
+            if self.done(f"{n}.decode.{k:02d}") or not part.exists():
+                continue
+            if stats.exists():
+                self.log(f"{n}: shard {k:02d} complete on disk -> marked")
+                self.mark(f"{n}.decode.{k:02d}")
+            else:
+                dst = part.with_name(part.name + time.strftime(".incomplete_%Y%m%dT%H%M%SZ", time.gmtime()))
+                self.log(f"{n}: shard {k:02d} incomplete -> {dst.name}")
+                if self.a.run:
+                    part.rename(dst)
 
     def one(self, s, tag, seed):
         a, S = self.a, SETS[s]
@@ -133,6 +175,7 @@ class Runner:
         dec = [(f"{k:02d}", f"CUDA_VISIBLE_DEVICES={{card}} {SIMULS2S} {HERE}/run_e10.py --mode {a.mode} "
                             f"--set {S['run_set']} --windows {S['win']} --adapter {a.adapter} --out {raw} "
                             f"--shard {k} --num-shards {K} --seed {seed}") for k in range(K)]
+        self.resume_decode(n, raw, K)
         self.parallel(f"{n}.decode", dec)
         system = "LiveInterpret S5 (E10)" if a.mode == "e10" else "LiveInterpret S5 (E10-0)"
         builds = [(n, "own" if a.mode == "e10" else "relabel")]
@@ -182,6 +225,8 @@ def main():
     ap.add_argument("--procs-per-gpu", type=int, default=4)
     ap.add_argument("--stagger", type=float, default=20.0, help="s between process starts (vLLM-style memory race)")
     ap.add_argument("--run", action="store_true", help="execute (default: print the commands)")
+    ap.add_argument("--stop-placeholders", action="store_true",
+                    help="before each launch on card c (0-3 only), stop that card's no-checkpoint placeholder by PID")
     a = ap.parse_args()
     a.adapter = str(Path(a.adapter).resolve())
     r = Runner(a)

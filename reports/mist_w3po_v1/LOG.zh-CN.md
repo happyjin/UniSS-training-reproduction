@@ -4347,3 +4347,4 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 单窗口：C 12.62 vs 冻结编码器 + b_M 15.99（配对 −3.07 [−3.37, −2.81]）。
 - C_post 相对 C_runmean 60 s 只差 −1.4%：长时优势主要来自更干净的观测 + 累积，先验收缩只在早期起作用。
 - 下一步（按登记）：写端到端训练预登记。卡 4–7 的占位负载已由监督进程自动补回。
+- 14:04 CET：E10 训练（e10_thinker_v2）完整结束：1670/1670 步，无报错，12:47:59 UTC 结束，最后一步是 checkpoint-1670。接管脚本按字符串排序选 checkpoint，误选了 checkpoint-750；用它启动的 E10 dev 解码已按 PID 停止，输出改名为 `jdev_devz_e10.ckpt750_aborted_*` 保留。修复：改用 `sort -V`。另外，训练结束后守护脚本在卡 3、0、1 上拉起了占位程序，E10-0 的 En→Zh dev 有一片因此 OOM。修复：`eval_e10.py` 加 `--stop-placeholders`，并支持续跑（完整的分片保留，不完整的改名后重跑）和失败时不留孤儿进程。`resume_dev_eval.sh` 负责续跑：补完 E10-0 的 En→Zh dev，用 checkpoint-1670 跑 E10 的 dev 门槛，然后释放 slot A。dev 门槛的判据没有改。

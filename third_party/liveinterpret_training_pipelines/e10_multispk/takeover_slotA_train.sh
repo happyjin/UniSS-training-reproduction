@@ -82,7 +82,7 @@ if [ -z "$DRY" ]; then
   while kill -0 "$(cat "$PIDF")" 2>/dev/null; do sleep 60; done
   grep -q "Traceback" "$OUT/$RUN_LABEL.log" && fail "training log has a Traceback"
 fi
-LAST=$(ls -d "$OUT/$RUN_LABEL"/v*/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
+LAST=$(ls -d "$OUT/$RUN_LABEL"/v*/checkpoint-* 2>/dev/null | sort -V | tail -1)   # numeric by step (was lexical: picked 750 of 1670)
 [ -n "$DRY" ] && LAST=${LAST:-$OUT/$RUN_LABEL/v0-XXXX/checkpoint-LAST}
 [ -n "$LAST" ] && [ -e "$LAST/e10_metadata.json" -o -n "$DRY" ] || fail "no final E10 checkpoint"
 log "last checkpoint $LAST"
