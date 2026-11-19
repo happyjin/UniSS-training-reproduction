@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from scipy.linalg import sqrtm
 from scipy.stats import spearmanr
 
 REPO = Path(__file__).resolve().parents[3]
@@ -47,9 +46,17 @@ def clean():
     return lw.location_, lw.covariance_, np.linalg.inv(lw.covariance_), str(p.relative_to(REPO))
 
 
+def _psd_sqrt(S):
+    w, V = np.linalg.eigh((S + S.T) / 2)
+    return (V * np.sqrt(np.clip(w, 0, None))) @ V.T
+
+
 def fd(mu1, S1, mu2, S2):
-    c = sqrtm(S1 @ S2)
-    return float(((mu1 - mu2) ** 2).sum() + np.trace(S1 + S2 - 2 * np.real(c)))
+    """Frechet distance; tr((S1^1/2 S2 S1^1/2)^1/2) via symmetric eigendecompositions (v1 used scipy sqrtm on S1 @ S2,
+    which returned NaN for the near-singular token covariances)"""
+    r = _psd_sqrt(S1)
+    w = np.linalg.eigvalsh(r @ S2 @ r)
+    return float(((mu1 - mu2) ** 2).sum() + np.trace(S1) + np.trace(S2) - 2 * np.sqrt(np.clip(w, 0, None)).sum())
 
 
 def pesq_items(run_paths):
