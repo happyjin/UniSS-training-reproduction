@@ -4,7 +4,7 @@
 #   loss       : text 1 / speech 0 / decision 1 (SI_SPEECH_LOSS_WEIGHT=0: the Talker never runs)
 #   trainable  : Thinker LoRA (r64/a128 of the S5 adapter) + 12 token rows + e10_sd_proj   (SI_S4_TRAIN_SCOPE=thinker)
 #   optimiser  : lr 1.2e-5 -> 2e-6 cosine (the S5 adapter's run), warmup 3 %; e10_sd_proj at 1e-4 (B's new-module lr)
-#   batch      : 8 GPUs x 8 = 64 (B's GBS); 2 epochs over the direction-balanced records; last step is used (as B)
+#   batch      : 8 GPUs x 8 = 64 (B's GBS); 1.5 epochs (~1670 steps) over the balanced records; last step (as B)
 # Foreground only (no setsid/nohup here); a formal run is wrapped by launch_e10_detached.sh.
 #
 #   DRY_RUN=1 bash e10_multispk/train_e10.sh                       # print the swift command, run nothing
@@ -44,7 +44,7 @@ export E10_POST_PERTURB=0.2 E10_SD_LR="${E10_SD_LR:-1e-4}"
 : "${LEARNING_RATE:=1.2e-5}"
 : "${MIN_LR:=2e-6}"
 : "${WARMUP_RATIO:=0.03}"
-: "${NUM_TRAIN_EPOCHS:=2}"
+: "${NUM_TRAIN_EPOCHS:=1.5}"   # ~B's exposure: B saw each direction's rows ~1.2-1.5 times (6000 x 64 rows)
 : "${SAVE_STEPS:=250}"
 : "${SAVE_TOTAL_LIMIT:=20}"
 : "${VAL_INTERVAL:=250}"
