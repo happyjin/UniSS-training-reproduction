@@ -86,7 +86,8 @@ def window_refs(ss):
     refs = defaultdict(list)
     for r in jl(OD / f"{ss}_ref.jsonl"):
         for u in r["utts"]:
-            refs[r["meeting"]].append((r["start_s"] + u["begin_s"], r["start_s"] + u["end_s"], u["ref"]))
+            txt = u["ref"] if "ref" in u else u["zh"]          # en subset (AMI en->zh): target-language field is zh
+            refs[r["meeting"]].append((r["start_s"] + u["begin_s"], r["start_s"] + u["end_s"], txt))
     out = {}
     for w in jl(OD / f"{ss}_win.jsonl"):
         a, b = w["start_s"], w["start_s"] + w["dur_ms"] / 1000
