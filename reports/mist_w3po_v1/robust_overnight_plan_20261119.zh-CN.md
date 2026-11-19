@@ -1,0 +1,29 @@
+# 鲁棒新论文 夜间计划与决策记录（2026-11-19 夜 → 11-20 白天，布拉格）
+
+用户授权："夜间到明天白天我想让你帮我多跑一些几个 idea，看看哪些 work，如果有需要我点头的你帮我按照最优选择去选"。规则：
+- 每一步先预登记，一个设置、一个种子、不扫参；
+- 不让卡空着；
+- 每个决策都写在本文件和 LOG 里，附理由；
+- 早上用中文汇报。
+
+## 当前在跑
+| 线 | 卡 | 预登记 | 内容 |
+|---|---|---|---|
+| 第五波主线 M | 0–3 | `robust_wave5_prereg.zh-CN.md` | Fishr 双向 Thinker LoRA vs ERM-LoRA |
+| 第六波 D | 4–7 | `robust_wave6_disen_prereg.zh-CN.md` | 音色解耦 Talker vs 普通 LoRA（T-ft） |
+| 第七波 FE | 等卡；先做 CPU 准备 | `robust_wave7_taskfe_prereg.zh-CN.md` | 任务驱动伪干净前端 vs 普通增强前端 |
+
+## 决策树（预先写定）
+1. **卡的接力：** 哪组先进入评测、腾出训练卡，第七波 FE 就先上那组卡生成伪目标并训练。评测只叠加在评测卡上，不叠在训练卡上。
+2. **M 出结果后：**
+   - Fishr 通过 G1 → 用 Fishr 的 Thinker 补跑整链（ASR-BLEU、LAAL）。若干净输入掉分接近 0.3 的门槛，再加 WiSE-FT α = 0.5 的评测。α 是预先固定的组件，不是扫参。
+   - Fishr 不过、但 ERM 相对底座提升明显 → 记录为"收益来自数据增强"，不再试 Fishr 的同族方法（Fish / SAGM），把卡让给 FE 和后续组合。
+   - 两臂都没有提升 → Thinker 侧的训练路线在本设置下停止。
+3. **D 出结果后：**
+   - 解耦臂通过 → 与 V2 冻结后验的音色 token 组合评测（不再训练）。
+   - 不通过 → 音色侧以 V2 为最终方案。
+4. **早上的组合（如果条件允许）：** 选出的 Thinker（Fishr 或底座）+ 选出的前端（FE 或无）+ 选出的 Talker（解耦或 T1c）+ V2 token，在 dev 上跑两个方向的完整系统：ASR-BLEU、LAAL、PESQ、相似度。
+5. **选择规则：** BLEU 优先于 LAAL（memory `bleu-before-laal-selection`）；流畅度或延迟上的改动不能降低 ASR-BLEU（memory `fluency-must-not-lower-asr-bleu`）。
+
+## 决策日志
+- 2026-11-19 深夜：开第七波 FE（用户确认伪目标不算蒸馏）；执行者先写代码、做 CPU 准备，等卡再上 GPU。
