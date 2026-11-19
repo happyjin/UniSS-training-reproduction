@@ -4373,3 +4373,16 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 运行器 `voicecond/idea6_test_run.sh`（只做了 bash -n），14:51 脱离会话启动。18 个编排器（`obsi_i6{c,e}_*`、`idea2_ood3_i6{c,e}_*`）经 flock 每 20 s 启动一个，14:57 全部启动。编排器按 PID 停占位进程后放置作业，日志里有记录；E10 在卡 0 上的评测进程没动，我们的作业叠在旁边。
 - 每个单元的编排器结束后马上评测：bench_eval 同时最多 3 个；OOD-3 依次跑块协议 LAAL、measure、对 B / Idea 2 / Idea 1 C 的 compare、TitaNet 相似度。最后统一汇总（`voicecond/idea6_test_summary.py`）。
 - 16:15 CET：用户反映 E10 占 CPU 太多，拖慢了另一个任务。原因是 16 个 dev 解码进程按 PyTorch 默认各开约 236 个线程，机器负载约 600。处理：用 SIGSTOP 暂停整个 E10 dev 评测（续跑脚本、编排和 16 个解码进程），不丢进度，显存继续留在卡 0–3，slot A 继续持有。暂停的 PID 和恢复命令见 `e10_multispk/output/eval/PAUSED_20261119.txt`。之后启动的解码限制为 4 个 CPU 线程（`E10_THREADS`）。等用户通知后再恢复。
+
+## 2026-11-19 16:35 布拉格 — Idea 6 完整系统测试按用户要求停止（"先不用做测评了吧，停止测评"）
+
+- 16:33–16:35 按 PID 停掉了以下进程：运行器 v2 的 bash、占位 watcher v2、重启脚本残留的子 shell、15 个仍在运行的编排器，以及 16 个运行中的作业会话（talk/asr、VLLM EngineCore 子进程）和运行器会话中的评测进程（包括 v1 遗留的 bench_eval）。之后没有残留的 EngineCore 或作业进程。guard、gpu_watch、sync 和 E10 进程都没动。
+- 所有输出都保留，没有删除任何东西。
+- 停止时的进度：作业 1104/1350 ok，170 等待，约 76 运行中（按 status.json 统计）。
+- 编排器已完成（events/DONE）的运行目录：`obsi_i6c_ood1_en2zh__t1c`、`obsi_i6c_ood1_zh2en__t1c`、`obsi_i6e_clean_en2zh__t1c`、`idea2_ood3_i6c_ami__t1c`。
+- 评测已完成的单元：
+  - bench_eval：`obsi_i6c_ood1_zh2en__t1c`、`obsi_i6e_clean_en2zh__t1c`（metrics.json 在 `voicecond_bench/`）；
+  - OOD-3 ami 的 C_post：LAAL、measure、compare、相似度都已完成（标记 `I6_c_ood3_ami_DONE`）。
+  - `obsi_i6c_ood1_en2zh` 编排器已完成，但 bench_eval 还没跑。
+- 其余 14 个单元没有完成。没有做汇总分析。
+- 停止后的显存：卡 0–3 上是 E10 的 16 个 simuls2s 评测（每卡约 65 GB）；卡 4–6 空着，卡 7 已由占位进程补回（66 GB），guard 会继续补满空卡。
