@@ -936,8 +936,13 @@ def main() -> None:
         print(f"bayes voice memory: {len(bayes_memory.state)} talks, {bayes_memory.stats}", flush=True)
 
     # 2. The talker, a round of blocks at a time.
+    # SI_KV_CACHE_GIB (default unset = unchanged): fixed KV-cache size, which makes vLLM skip the memory-profiling step
+    # that fails when other processes on the card release memory during it (2026-11-19 stacking fix; 7.73 GiB = the
+    # KV size the 0.1 gpu-mem setting gives on an H200, so scheduling capacity is unchanged)
+    _kvb = os.environ.get("SI_KV_CACHE_GIB")
+    _kv = {"kv_cache_memory_bytes": int(float(_kvb) * 2 ** 30)} if _kvb else {}
     talker = LLM(model=args.model, gpu_memory_utilization=args.gpu_mem, max_model_len=args.max_model_len, seed=args.seed,
-                 logits_processors=[SIGuard])
+                 logits_processors=[SIGuard], **_kv)
     gate = None
     if args.cover_gate:   # scheme 2's inference rule (experiments/mist_w3po_v1/talker/cover_gate.py)
         from experiments.mist_w3po_v1.talker.cover_gate import CoverGate

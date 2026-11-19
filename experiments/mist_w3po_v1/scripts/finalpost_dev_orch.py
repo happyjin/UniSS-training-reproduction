@@ -69,7 +69,7 @@ HEADROOM = 8.0
 PLAN_MARGIN = 12.0
 OTHER_WINDOW_S = 180
 VISIBLE_WAIT_S = 300
-TALK_PAIR_GAP_S = 60
+TALK_PAIR_GAP_S = int(os.environ.get("ORCH_TALK_PAIR_GAP_S", "60"))   # env override: 2026-11-19 stacking fix
 LAUNCH_GAP_S = {"dec": 15, "talk": 5, "asr": 10}
 MAX_CPU = 8
 TICK_S = 10
@@ -80,7 +80,7 @@ def now() -> float:
 
 
 LEDGER_TTL_S = 300          # a pending entry counts until its "visible" line or this age
-LEDGER_VLLM_GAP_S = 60      # no new vLLM start on a card with a pending vLLM start younger than this
+LEDGER_VLLM_GAP_S = int(os.environ.get("ORCH_LEDGER_VLLM_GAP_S", "60"))      # no new vLLM start on a card with a pending vLLM start younger than this
 
 
 def ledger_append(path: str, rec: dict) -> None:
