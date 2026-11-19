@@ -4058,3 +4058,7 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - `idea2_ood3_run_v2.sh`：子集并行、不再等电竞标记；ami 已完成，en 在跑，ali 的两个臂已启动；
   - `idea2_teacher_chain_v2.sh`：si_infer 带固定 KV 缓存，引擎间隔 10 s；仍等全部测试标记。
 - 进度：OpenBroadcast-SI 已完成 3 / 6；OOD-3 完成 1 / 3（ami）。电竞完整参数重跑的汇总已存在（`game_summary_shrinkvfbF.json`）。
+
+## 2026-11-19 05:59 布拉格 — Idea 2：教师目标生成改为立即叠放（协调者决定）
+
+- **决定（协调者）：** 教师目标生成是推理，现在就在卡 4–7 上与测试编排器叠放（固定 KV 缓存，每卡 ≤ 135 GiB），不再等测试标记。`idea2_teacher_chain_v2.sh`（还在等待、未用卡）按 PID 停掉，改为 `idea2_teacher_chain_v3.sh`（只等 cvt 的 CPU 构建）。已启动：第 1 步 cvt 流预处理。训练仍等协调者确认。
