@@ -4104,3 +4104,12 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   3. 梯度裁剪 1.0 按参数组分别做（Talker 侧：LoRA + h_ω + c；编码器）：全局裁剪时编码器梯度（尤其锚点项，范数可达 1e5）会把 LoRA 梯度压到 Adam eps 以下，等于冻结 LoRA；
   4. 编码器和后验用 fp32 / fp64（Talker bf16），保证初始等价；AdamW weight decay 0（与 Idea 1 训练器一致）；
   5. 检查点每 500 步 + 最终（只含可训练部分和优化器状态），dev 每 250 步记录（预登记写的是只存最终、每 500 步记录；多存多记不影响训练，不做选择）。
+
+## 2026-11-19 07:27 布拉格 · Idea 2 端到端主设置训练已启动（卡 4–7）
+
+- 运行名 `idea2_e2e_main_v1`，07:18 由 `scripts/idea2_e2e_train_run.sh` 脱离会话启动（启动脚本 PID 1079356，torchrun 1084796）；启动时卡 4–7 上没有任何评测作业，只停了 4 个占位进程（按 PID）；占用训练槽 B（`logs/mist_w3po_v1/slots/slotB.owner`，exclude_cards 已变为 `4 5 6 7`），训练结束时自动释放。
+- 输出 `eval_outputs/mist_w3po_v1/voicecond_idea2/e2e/idea2_e2e_main_v1/`（train_log.jsonl、train.log、ckpt_step*.pt），日志 `logs/mist_w3po_v1/voicecond/idea2/e2e_idea2_e2e_main_v1.log`。
+- 第 50 个 batch 后固定的权重：**w_code = 0.004471，w_anc = 0.09658**（前 50 个 batch 均值：KL1 0.404、编码误差 90.4、锚点 4.18；锚点项在只用 KL 训练的这 50 步里从 0 涨到约 11.5，权重生效后回落到 3–7）。
+- 前 77 步：KL1 0.435（1–10 步）→ 0.402 → 0.393 → 0.361（51–77 步）；KL2 从 0 升到约 0.002；λ 均值约 0.51；token 恢复率约 6%（还没变化）。
+- 速度约 3.7 s/步（4 卡，每卡 16 条；比单卡 2.0 s/步慢，DDP 等最慢的卡），峰值显存 14.7 GiB/卡；dev（793 条 + 23 个合成 dev 单元）每次约 46 s。预计 3000 步约 3.2 h，约 10:45 布拉格结束。
+- 第 1000 步时按预登记 §8 检查 dev KL1 相对第 0 步的下降（日志里有 `kl1_rel_drop_vs_step0` 字段）；dev 第 0 步：zh2en KL1 0.402，en2zh KL1 0.520。
