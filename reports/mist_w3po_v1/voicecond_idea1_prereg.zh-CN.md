@@ -192,3 +192,83 @@
 | test | 114 | 68 | 176 |
 
 5. §2 的"见过的语料"相应改为：MUSAN music 的 hd-classical / jamendo / rfm（无人声），以及 FSD50K eval 的 9 个类别（去掉留出部分）。
+
+---
+
+## v3：M2 = 端到端 ZNE-in-the-loop（编码器阶段）
+
+2026-11-19 01:20 布拉格。协调者决定（用户授权按最优选项决定）：免训练 ZNE 到此为止，作为负结果和机制分析保留。本节在任何训练之前提交；除本节写明的内容外，§1–§7 不变。
+
+### v3.1 训练什么
+
+- **可训练：** BiCodec 说话人编码器的全部参数，约 990 万：ECAPA-TDNN 887 万、Perceiver 99 万、`project_in` 774。
+- **冻结：** mel 前端、FSQ、解码器和 Talker 全部冻结。
+- **选全量微调而不是 LoRA，理由：**
+  - 模型小，全量微调的显存和存储代价都可以忽略；
+  - ECAPA 是 Conv1d 加 BatchNorm 结构，LoRA 需要自写卷积适配器，引入额外的设计自由度；
+  - 与冻结的 Talker 和解码器的兼容性由下面的干净锚点项约束，不依赖低秩限制。
+- **BN 和 dropout 一律用 eval 模式**：BN 用冻结的运行统计量，dropout 关闭。只更新权重。
+
+### v3.2 两个模型（同数据、同步数、同参数、同优化器）
+
+记 $\phi_0$ 为原编码器（冻结），$\phi_\theta$ 为微调后的编码器，$u_0^\star=\phi_0(s)$，$y_t=y+(\sqrt t-1)\hat b$，$\hat b=y-\hat v$（HDemucs）。
+
+**(Z) ZNE-e2e：**
+
+$$
+L=\big\|\,2\phi_\theta(y_1)-\phi_\theta(y_2)-u_0^\star\big\|^2+1.0\,\|\phi_\theta(s)-u_0^\star\|^2+0.1\,\|\phi_\theta[1,2,4]\|^2
+$$
+
+- 曲率项是 $t\in\{1,2,4\}$ 上的二阶均差：$\phi_\theta[1,2,4]=\dfrac{\frac{\phi_\theta(y_4)-\phi_\theta(y_2)}{2}-\big(\phi_\theta(y_2)-\phi_\theta(y_1)\big)}{3}$；
+- 推理：$\hat u=2\phi_\theta(y)-\phi_\theta(y+(\sqrt2-1)\hat b)$。
+
+**(C) 去噪编码器对照：**
+
+$$
+L=\|\phi_\theta(y)-u_0^\star\|^2+1.0\,\|\phi_\theta(s)-u_0^\star\|^2
+$$
+
+- 推理：$\hat u=\phi_\theta(y)$。
+
+**两者共用的设置：**
+- 范数为 $u$ 空间（32×6）的逐维均方；
+- AdamW，学习率 5e−5，前 200 步线性预热，然后余弦衰减到 0；共 6000 步，每批 32 对；
+- 权重衰减 0，梯度裁剪 1.0，fp32，随机种子 20261119；
+- 只保存最终检查点。不做早停，不按验证结果挑检查点。
+- 训练中每 1000 步在 ID-1 dev 的 200 对上记录损失，只作记录。
+- 每个方法只跑这一个设置，不扫参。
+
+### v3.3 训练数据（全部开源；新的 train 划分）
+
+- **英文语音：** LibriSpeech train-clean-100，251 个说话人。LibriSpeech 的划分本身按说话人互斥，与 ID-1 的 dev-clean / test-clean 不重叠。
+- **中文语音：** AISHELL-1（OpenSLR 33，Apache 2.0），全部 400 个说话人。
+  - 原因：AISHELL-3 的 test/wav 目录里有 170 个训练说话人（Idea 2 的发现）。ID-1 中文的 214 个说话人已经覆盖了 AISHELL-3 的 218 人中的 214 人，所以 AISHELL-3 里不存在与 ID-1 不重叠的说话人。
+- **对 M1 的影响：** ID-1 中文的 214 个说话人其实大多是 AISHELL-3 的"训练说话人"。M1 没有任何训练，所以不受影响。
+  - 但 BiCodec 本身的预训练数据（Spark-TTS 的 VoxBox）可能包含 AISHELL-3 和 LibriSpeech；这一点对所有方法相同，只影响绝对数值，不影响对比。
+- **背景：** 只用 dev 奇偶池（即 ID-1 dev 用的同一批文件），背景类别和构成与 §2 相同。
+  - 已排除基准的全部留出文件，也不用 MUSAN 的 fma 子集；
+  - ID-1 test 的背景文件（test 奇偶池）不进入训练。
+- **规模：** 每种语言 20000 对 = 4 类背景 × 5 档 BVR × 1000，每对 6 s；BVR 规则同 §2（电竞五分位档内抽样）。
+- **分离：** $\hat v$ 由 HDemucs 在 GPU 上算（`hdemucs_high`，与 `demucs()` 相同的归一化和 16k↔44.1k 重采样）。
+- **存储：** $s$、$y$、$\hat v$ 存成 float16 的 npy，放在 `data/open_voicecond_v1/idea1/train_{en,zh}/`。
+
+### v3.4 评测（M2 范围；不跑 OOD、基准和电竞测试片段）
+
+1. **ID-1 test**（中英各 500 对，说话人和背景文件与训练都不重叠）：
+   - 对比组：raw、V（$\phi_0(\hat v)$）、R-t（免训练）、C、Z、oracle；
+   - 指标：$\|\hat u-u_0^\star\|$、token 对 $g_0^\star$ 的汉明距离和完全恢复率、只用解码器重合成（干净语义码）的 SQUIM PESQ / 对比度 / 平坦度。
+2. **E1.2a（80 条配对流）：** Z 和 C 相对 O、V；指标同 §6.2。
+3. **E1.2b（demo 10 段，两个种子，全部流）：** Z 和 C 相对 baseline B；指标同 §6.3。
+4. **参照组：** HDemucs 人声提示（V）在 demo 全部流、两个种子上跑一遍，作为试听页的参照，并报告其 demo 数值（不设门槛）。
+
+**门槛 G2a（demo 全部流，按方法分别判定；相对 baseline B，同种子配对）：**
+- 两个方向合并的配对 SQUIM-PESQ 中位数提升 ≥ +0.5；
+- 频谱对比度中位数提升 ≥ +1.5 dB；
+- 每个方向两种子平均的不分说话人 ASR-BLEU 不低于 baseline B；
+- 另报：语音 LAAL（两种子平均，容差 0.05 s）、平坦度，以及分方向的结果。
+
+### v3.5 可选（只报告，不设门槛，≤ 1 h，只用开源 dev）
+
+- 幂律重参数化：$x=\lambda^p$，$p$ 在 dev 的真实路径上拟合；节点 $\lambda\in\{1,\sqrt2\}$。
+- "经过 V 的外推"：节点 $\lambda\in\{0,1\}$，外推到 $\lambda^\star=1-1/\hat c$，$\hat c$ 取 dev 上 $c$ 的中位数。
+- 报告这两者在 $u$ 空间的误差中位数，与 V 对比。

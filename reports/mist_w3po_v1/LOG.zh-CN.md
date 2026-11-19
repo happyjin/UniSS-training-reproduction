@@ -3694,3 +3694,15 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 先在小样本上做 E2.2 拿早期信号，100 h 全量数据就绪后再正式拟合；
   - 若过线，直接在 demo 的 10 段上生成 token 并跑 Talker（两个种子），检验试听验收（OOD-2，只评测）。
 - **AISHELL-3 注意：** `test/wav` 文件夹里混有 170 个训练说话人，必须按说话人划分。已通知 Idea 1。
+
+## 2026-11-19 01:21 布拉格 — Idea 1 M2 启动：预登记 v3（端到端 ZNE-in-the-loop 与去噪编码器对照）
+
+- **协调者决定：** 免训练 ZNE 停止，作为负结果和机制分析保留；进入 M2。
+- 预登记 v3 已追加到 `voicecond_idea1_prereg.zh-CN.md`。
+- **决定：全量微调**说话人编码器（约 990 万参数），不用 LoRA。理由：模型小；ECAPA 是 Conv1d 加 BN，LoRA 要自写适配器；与冻结模块的兼容由干净锚点项约束。BN 和 dropout 用 eval 模式。
+- **决定：中文训练语音改用 AISHELL-1**（400 个说话人，Apache 2.0），不用 AISHELL-3。
+  - 原因（Idea 2 的发现）：AISHELL-3 的 test/wav 含 170 个训练说话人，而 ID-1 中文已用了其中 214 人，剩下与 ID-1 不重叠的只有 4 人。
+  - 对 M1 的影响：ID-1 中文说话人"不全是测试说话人"，但 M1 没有训练，不受影响。
+  - 新脚本 `scripts/idea1_fetch_aishell1.sh` 后台下载，两个镜像共 12 路并行。
+- **决定：训练背景用 dev 奇偶池**（与 ID-1 dev 同一批文件），ID-1 test 的背景文件不进入训练。
+- **步骤 4 已启动：** 参照组 V（HDemucs 人声提示）在 demo 全部流、两个种子上跑，运行名 `game_b_{zh2en,en2zh}__t1c_vocals`，用 `idea1_tokens.py --mode V` 生成 token 表。
