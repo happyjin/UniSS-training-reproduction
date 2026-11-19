@@ -267,3 +267,40 @@ $R_f=(L/0.5)R=4R$（重叠窗口按等效独立观测数）。窗口在结束时
 - 运行：`speech/game_b_{dir}__t1c_shrinkvfb{,_tts2}`，两个方向 × 两个种子，同顺序、同种子，只在卡 4–7；不运行 V 参照（归 Idea 1）。
 - 核对：非回退流的 token 与 shrink 逐位相同；抽查若干非回退流的生成语音是否与 shrink 一致（同 token、同种子）。
 - 评测与 v2 §G、v2.1 完全相同：配对 PESQ、对比度、平坦度、盲 ASR-BLEU（两种子）、语音 LAAL、TitaNet 相似度（合并、按方向、回退子集与其余流分开）。门槛与验收线不变；BLEU 与 LAAL 按严格规则如实报告。
+
+---
+
+# 预登记 v3（M2：测试）
+
+2026-11-19 03:20 布拉格时间。在任何测试集运行（OpenBroadcast-SI 的 ID-2 / OOD-1 / clean、AMI / AliMeeting 测试子集）之前提交。**这些测试集上不做任何选择、调参或修改。**
+
+## A. 冻结的方法：shrink+Vfb
+
+- 参数：完整 100 h train 划分上重新拟合的收缩模型 `eval_outputs/mist_w3po_v1/voicecond_idea2/shrink_fit_all/full.npz`，**sha1 = 25aaf6cd7f6a69b1e7972b947459d1217744e037**（109056 个窗口；按语言收缩中心，$\|c_{\rm en}-c_{\rm zh}\|=4.03\ge3.56$；先验 $\mu_0,\Sigma_0$ 和偏置 $b_M$ 来自 `e20_all`）。
+- 推理（固定）：窗长 2 s、跳步 0.5 s；Nemotron lowlat 会议级后验，$\pi_{\min}=0.3$；窗口在结束 + 1.04 s 后可用；$R_f=4R$；收缩中心按**源语言**（zh→en 用 zh，en→zh 用 en；AMI 中文配音的 zh→en 用 zh；AliMeeting 用 zh）；每个流取首次输出时刻（窗口起点 + 首个 block 的 write_ms）的后验均值 → $+b_M$ → FSQ。
+- 回退（v2.2）：首次输出时该槽位没有可用窗口的流，用 V token（baseline 提示的 HDemucs 人声经分词器编码）。
+- 代码：`idea2_stream_tokens.py`（token 表与 sidecar）；Talker 覆盖用各测试集文档规定的钩子；除音色 token 外与 baseline B 完全相同（文本、窗口、分离器、两个 TTS 种子 20261021 / 20261109、条目顺序）。
+
+## B. 测试集与运行
+
+| 层 | 数据 | 运行 | 对照 |
+|---|---|---|---|
+| ID-1 | Idea 2 合成 test 划分（80 条流） | 已完成（正式 G2.2，编码误差层面） | — |
+| ID-2 / OOD-1 / clean | OpenBroadcast-SI v1，两个方向 | `obsi_i2_<cond>_<dir>__t1c{,_tts2}`，`scripts/voicecond_bench_orch.py --voice-override <sidecar>`，卡 4–7 | 测试集代理的 baseline B `obsi_b_<cond>_<dir>__t1c{,_tts2}`；统一评测 `bench_eval` |
+| OOD-2 | 电竞 demo 10 段（只评测，先导参数的结果已在试听页） | 完整参数重跑 `game_b_<dir>__t1c_shrinkvfbF{,_tts2}`（试听页一致性） | baseline B |
+| OOD-3（无害） | AMI test（中文配音 zh→en、英文 en→zh）、AliMeeting test（zh→en） | 子集，见 §C | 同一子集链路上重跑的 B |
+
+## C. OOD-3 子集（规则先写定）
+
+- 全集 Talker 成本过高（约 2.1 万个流，约 10 h 以上的 4 卡时间），所以每个集合取 2 场会议：按 `int(sha1('idea2-ood3-v1|' + 会议ID), 16)` 从小到大取前 2 个。结果：**AMI：EN2002d、IS1009c**（两个方向用同样两场）；**AliMeeting：R8009_M8021、R8009_M8024**。
+- 两个臂走完全相同的子集链路：子集窗口文件、子集参考文件、按窗口过滤的同一份 baseline 文本（`--speech-from` 指向过滤后的文本目录），B 不覆盖 token，shrink+Vfb 覆盖 token；运行名 `idea2_ood3_{b,sv}_{ami,en,ali}__t1c{,_tts2}`。这样 BLEU 和 LAAL 在同一子集、同一流程上可比。
+
+## D. 指标与门槛（方案 §1.4 + 身份门槛；严格规则）
+
+- 主指标：生成语音的 SQUIM-PESQ（按流配对）。次指标：频谱对比度、平坦度、SI-SDR、说话人相似度。
+- **硬门槛（每个测试集、每个方向分别判定，严格，不设容差）：**
+  - ASR-BLEU（两个 TTS 种子的平均）不低于 baseline B 的两种子平均；在 OpenBroadcast-SI 上同时看 tcpASR-BLEU 和不分说话人的 ASR-BLEU（主看 tcp），电竞和 OOD-3 用各自链路的 ASR-BLEU；
+  - 语音 LAAL（分离器块协议；两种子平均）不大于 baseline B。
+  - 身份：按流配对的说话人相似度中位数差（方法 − B，两种子平均后）≥ −0.02。OpenBroadcast-SI 用其文档规定的 WavLM-SV（对干净 CoVoST 片段）；电竞沿用 TitaNet（v2.1）；OOD-3 用 TitaNet，参照为整段 HDemucs 人声中该槽位的全部单人片段（与 v2.1 相同的定义）。
+- 统计：按流配对；Wilcoxon、bootstrap 95% CI；每个测试集的主 PESQ 比较做 Holm 校正。结果全部如实报告，包括未通过的门槛。
+- en→zh 的 OpenBroadcast-SI 是短流（首句阶段），预期回退比例高；两个方向分开报告。
