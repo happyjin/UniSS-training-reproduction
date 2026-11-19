@@ -96,3 +96,23 @@ si_infer 在每句第一次写出时，把"截至此刻听到的源音频"送进
   - K8 的两个参照臂（纯 HDemucs、α = 0.5）取消，只跑 α*。
   - G 组的 w = 0 臂是对照，不是参数探索，保留。
   - 判定里"另一种子组合上确认"一句作废。
+
+## G 组实现细节（2026-11-19 20:52 布拉格，写于任何 G 正式运行与数字之前；只追加）
+- **后端：HF transformers（bf16）**，代码 `voicecond/wave3_g_cfg.py`。没有用 vLLM 成对解码，原因有两个：
+  - SIGuard 是逐请求的 AdapterLogitsProcessor，看不到配对行；
+  - 两行必须每一步都排进同一个 batch，并且要喂同一个采样 token，vLLM 保证不了。
+- 做法：si_infer 本身不改。用替身替换 `vllm.LLM`，接口相同（`generate(reqs, params)`）；其余全部照旧，包括前端、S1 的块、语速 token、提示、逐块种子 20261021 + 1000·n_it + r、守卫参数、解码和时间线。
+- **每一步：**
+  1. 原始 logit l = l(g⁺) + w·[l(g⁺) − l(g⁻)]（g⁻ 行喂同样的已采样 token）；
+  2. 再过该请求自己的 `make_si_guard`（参数与 vLLM 逻辑处理器相同）；
+  3. 温度 0.7、top-p 0.8（按 vLLM 规则）；
+  4. 均匀数来自只由 `SamplingParams.seed` 播种的生成器，所以两臂共用随机数。
+  - w = 0 时只算 g⁺ 行。
+- **g⁺：** C 编码器作用于 si_infer 写出的本句提示（与 idea1_tokens ctrl 相同，u = φ_C(y)）。这组 token 同时送给 BiCodec 解码器。
+- **g⁻：**
+  - 带噪条件：本句 3 s 纯背景间隙（wave1 manifest `gap`）的 C token；
+  - 干净孪生：它自己的间隙，即 3 s 数字静音。C 在静音上给出有限 token，已核对。
+- **数据：** S1 items 中数据集 (a) 的 600 条/方向（`wave3_combos/G/data/items_<dir>.jsonl`，干净 300 + 带噪 300），单 shard。
+- **说话人相似度：** TitaNet-large 余弦，输出纯语音对本句干净源语音（wave1 manifest `clean`）。
+- **w = 0 后端核对：** 每方向 20 个 dev 条目（si_infer `--limit 20` 的均匀抽取）。每条目 HF w0 总码数 / vLLM si_infer（同一 C 音色）总码数，两个方向合并取中位比，须在 [0.98, 1.02] 内，否则 G 停止。
+- **打分：** `voicecond/wave3_g_score.py`。ASR 用 S1 的纯语音协议；PESQ 用 `wave2_s1_score.py pesq`；单种子，按句配对，2000 次 bootstrap。
