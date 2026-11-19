@@ -54,3 +54,41 @@
 - 用户："语音 LAAL 最多慢 0.1 s 也不一定，这个当辅助，主要还是 bleu 值和语音 pesq 提升就可以"。
 - 统一判定中的第 2 条（D2 LAAL ≤ +0.10 s）**不再作为门槛**，只作为辅助指标照列。
 - 主判定 = 第 1 条（BLEU 不退化）加第 3 条（语音通路看 PESQ 显著提升，Thinker / 前端看带噪 BLEU 显著提升）。
+
+## 实现细节（执行者追加，2026-11-19 23:05 布拉格，写于任何评测数字之前；只追加）
+- **脚本：**
+  - 公共部件：`voicecond/wave7_fe_common.py`（可微 log-mel、前端、损失、混合）；
+  - 训练句清单：`wave7_fe_data.py`；伪目标：`wave7_fe_pseudo.py`；
+  - 前端训练：`wave7_fe_train.py`；评测：`wave7_fe_eval.py`（process / rtf / score）；
+  - 启动器：`wave7_fe_run.sh`；占位进程 watcher：`wave7_fe_noplaceholder.sh`。
+  - 输出 `eval_outputs/mist_w3po_v1/wave7/FE/`，日志 `logs/mist_w3po_v1/wave7/`。
+- **训练句：**
+  - 取第五波主线已裁好的 CoVoST 2 train 句（`wave5/M/data/rows_<dir>.jsonl`：已排除 HELDOUT 说话人，经 trim_norm），按 sha1("20261119|w7fe|sel|<dir>|<id>") 排序，每方向取前 5000 句；HELDOUT 说话人在本脚本里再断言一次。
+  - 中→英 5000 句来自 7004 句、22 位说话人（CoVoST zh-CN train 只有这么多说话人），6.66 h；英→中 5000 句、2296 位说话人，6.53 h。
+- **可微 log-mel：**
+  - 按 `WhisperFeatureExtractor._torch_extract_fbank_features` 逐步重写，不做 detach，padding 方式与处理器一致（padding=True，补零到 batch 最长，丢最后一帧）。
+  - 与处理器的 `input_features` 对比：CPU 上 3 个 batch 和 2 个单句，最大差 **0.0**，attention mask 逐位相同；GPU 冒烟最大差 ≤ **6.7e-5**（GPU 与 CPU 的 STFT 数值差）。
+  - 运行时每个 microbatch 都会把这个差写进记录。
+- **伪目标（与预登记一致）：**
+  - ε = 0.1 × 整句 RMS，步长 ε/3，3 步 signed gradient，起点就是 x_clean，投影到 ε 球并限幅到 ±0.99。
+  - 一个 microbatch 的损失 = 各句平均 CE 之和，所以每句的梯度符号只由它自己决定。
+  - HF bf16，参考译文教师强制，提示同 si_thinker_stream 的基础提示。
+  - 先按时长排序，再每 8 句组成一个 microbatch（mb = 8，影响的只有 padding）。
+  - 以 float32 wav 保存。16 个分片 / 方向，用 O_EXCL 认领。
+  - 冒烟（GPU，2 句 / 方向）：扰动最大值恰好等于 ε；CE 变化 0.956 → 0.870、1.894 → 1.889、0.178 → 0.125、2.985 → **3.164**（固定步长的 signed 步可能越过最低点，这是预登记的设置，不改）。正式运行会统计 CE 上升的句子比例。
+- **前端：**
+  - 共 2.61 M 参数，输出层零初始化，所以初始时 mask ≡ 1，内部重建误差 9e-8。
+  - 因果性检验：在第 20000 个样本处改动输入，最早受影响的输出在第 19715 个样本（向前看 285 个样本，不超过一帧 512 个样本 = 32 ms）。
+- **训练（两臂相同）：**
+  - 每步 batch 16，从两个方向合并的 1 万句中按 sha1 抽句，再按同一哈希取 4 s 片段（不足 4 s 的补零，补零部分不计损失）；
+  - 0.2 的概率为干净样本（目标 = x_clean），其余从 {music, crowd, sfx} 均匀选一种（第五波的单层配方，随机数为 w7fe）；
+  - 目标与混合信号乘同一个限幅增益；
+  - Adam lr 3e-4（恒定），梯度范数裁剪 5，fp32，20000 步；只存最终权重。
+  - CPU 冒烟 3 步通过。
+- **评测：**
+  - 前端处理 S1 的全部 items → `si_thinker_stream la2 w1`（vLLM，gpu-mem 0.85）→ 文本 BLEU，与 S1 的底座 blocks 对比，也做两臂互比。
+  - 再把该臂的 blocks 配上**原始** items（音色提示是原始音频，用第三波 V1 的 C token 表），跑 si_infer：4 个 shard、种子 20261021，与第三波 V1 完全相同 → ASR-BLEU 与 D2 / D1 LAAL 和 V1 配对比较。
+  - 主判定按变更 1、变更 2：BLEU 不退化，且至少一个带噪单元的文本 BLEU 显著提升；LAAL 照列，不作门槛。
+  - 判定单元为 (a) 与 (b) 无串音子集（无串音 = 同一对的干净和带噪都没有串音，与 S1 相同），两个方向，干净和带噪。
+- **RTF：** 在一张卡上实测离线 RTF，以及逐帧流式（每 256 个样本调用一次，卷积上下文和 GRU 状态延续）的单帧耗时。
+- **卡：** 只用卡 6–7（协调方分配）。卡 0–5 不碰。
