@@ -281,7 +281,12 @@ def speak(model, speaker, prompter, w, res, wav16, sessions, out_dir, a, stats):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--mode", choices=["e10", "e10_0"], required=True)
-    ap.add_argument("--set", choices=sorted(SETS), required=True)
+    ap.add_argument("--set", choices=sorted(SETS) + ["custom"], required=True)
+    ap.add_argument("--data", help="--set custom: data root (relative to UniSS) with session_audio/ and diar/")
+    ap.add_argument("--sess", help="--set custom: session_audio subdir (ihm_mix -> <m>.Mix-Headset.wav, else <m>.wav)")
+    ap.add_argument("--diar", default="nemotron_lowlat", help="--set custom: diar subdir")
+    ap.add_argument("--tgt", choices=["en", "zh"], help="--set custom: target language")
+    ap.add_argument("--meetings", default="", help="comma-separated meetings to decode (all windows of each)")
     ap.add_argument("--windows", required=True)
     ap.add_argument("--adapter", required=True)
     ap.add_argument("--model_dir", default=str(LI / "checkpoints/S4_1031v2_ckpt93767"))
@@ -311,7 +316,12 @@ def main():
     torch.set_num_threads(int(os.environ.get("E10_THREADS", "4")))
     if str(UNISS) not in sys.path:
         sys.path.append(str(UNISS))
-    cfg = SETS[a.set]
+    if a.set == "custom":
+        if not (a.data and a.sess and a.tgt):
+            raise SystemExit("--set custom needs --data, --sess and --tgt")
+        cfg = dict(tgt=a.tgt, data=a.data, sess=a.sess, diar=a.diar)
+    else:
+        cfg = SETS[a.set]
     out = Path(a.out).resolve()   # wav paths in the raw rows must be absolute
     out.mkdir(parents=True, exist_ok=True)
     part = out / f"part_{a.shard:02d}.jsonl"
@@ -322,6 +332,9 @@ def main():
     if a.ids:
         keep = set(a.ids.split(","))
         W = [w for w in W if w["id"] in keep]
+    if a.meetings:
+        keep = set(a.meetings.split(","))
+        W = [w for w in W if w["meeting"] in keep]
     # contiguous shards of the (meeting, start) order: more shards than meetings, few meeting reloads per shard
     W = sorted(W, key=lambda w: (w["meeting"], w["start_s"]))
     W = W[a.shard * len(W) // a.num_shards: (a.shard + 1) * len(W) // a.num_shards]

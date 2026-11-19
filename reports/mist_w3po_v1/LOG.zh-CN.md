@@ -4393,3 +4393,4 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - E10（e10_thinker_v2 checkpoint-1670，Talker 冻结）在 8 个电竞窗口上解码：中→英 gz01_on_0001/0007、gz02_on_0011/0024，英→中 ge01_on_0007/0020、ge02_on_0000、ge04_on_0017（都有 ≥ 2 位解说、8–20 s）。包装脚本 `experiments/mist_w3po_v1/voicecond/e10_game_demo_run.py` 只给 run_e10.py 加两个电竞 set，不改 E10 文件；卡 4、5 各 1 个进程，约 1 分钟。
 - 结果：8/8 正常出声，0 报错，0 个 collapse（语音 token 去重率 0.74–0.84）；说话人标签：中→英 2 段只有 S1（原声有 2 位），其余段 2–3 个标签。
 - 试听页 `demo_packages/e10_game_listen_v1/`，已发布 https://claude.ai/artifact/NYTNGwETRvgWgHneDCdrta 。
+- 17:23 CET：用户决定先不做 E10 的测评（dev 门槛和测试都不跑），只确认 LiveInterpret 的 Thinker–Talker 在多说话人场景下能正常发声。已暂停的 E10 dev 评测进程全部按 PID 结束。电竞试听 demo：用 checkpoint-1670 解码了 B 电竞页的 6 段（gz01–03、ge01/02/04，各 5 分钟），界面和音频规格都与 B 页一致，版本可在 E10 和 B 之间切换。页面地址：https://claude.ai/artifact/Epz2hEbw86rzgG9KCBbng7 。164 个窗口中，2 个因 Talker 的 StaticCache 2048 上限报错，2 个复读到长度上限，页面上已如实说明。slot A 已释放。
