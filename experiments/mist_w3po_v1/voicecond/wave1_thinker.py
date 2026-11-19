@@ -61,6 +61,7 @@ import torch
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
+sys.path.insert(1, str(REPO / "third_party/Megatron-LM"))   # thinker_gstar_model imports megatron.core (PYTHONPATH of make_eval_jobs.ENV)
 os.chdir(REPO)
 OUT = REPO / "eval_outputs/mist_w3po_v1/wave1_K2K3K5"
 DATA = OUT / "data"
