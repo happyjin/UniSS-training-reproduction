@@ -3726,3 +3726,25 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 与 baseline 提示的 token 汉明距离中位数 32/32（和 Idea 1 一样，token 对输入极敏感）。
   - 表：`eval_outputs/mist_w3po_v1/voicecond_idea2/tokens/game_{zh2en,en2zh}_shrink.jsonl`（另存常数 $\lambda$ 和 V 参照的 token，供分析）。
 - **运行：** `scripts/idea2_game_run.sh`（PID 1534529）用 Idea 1 的包装器 `idea1_game_orch.py`（只换 talk 作业，按提示 sha1 校验），与 baseline B 同文本、同参数、两个 TTS 种子，`--exclude 0 1 2 3`；运行名 `game_b_{zh2en,en2zh}__t1c_shrink{,_tts2}`。结束后写 `GAME_TALKER_DONE`（放行完整数据预处理），再算 PESQ / 对比度 / 平坦度（相对 Idea 1 已测的 baseline B 文件）和盲 ASR-BLEU。
+
+## 2026-11-19 01:28 布拉格 — Idea 1 M2：训练数据与可选分析
+
+- **英文训练集：** `data/open_voicecond_v1/idea1/train_en`，20000 对。
+  - LibriSpeech train-clean-100 的 251 个说话人；背景只用 dev 奇偶池（music 137 / crowd 94 / sfx 182）。
+- **GPU HDemucs**（`idea1_hdemucs_gpu.py`，卡 0，约 5 分钟）：增益 c 中位数 0.44，κ 0.005，‖e‖/‖b̂‖ 0.73。
+  - 与 CPU 版 `demucs()` 在诊断集上的结果（0.46）一致。
+- **中文：** AISHELL-1 还在下载。
+  - 流水线 `scripts/idea1_m2_pipeline.sh`：下载完成后解压，然后构建训练集、跑 HDemucs，最后启动两个训练。
+  - 评测链 `scripts/idea1_m2_eval.sh` 已在后台等待训练结束。
+- **可选分析（只用开源 dev，只报告）：**
+  - 幂律指数 p 中位数 0.37（IQR 0.29–0.48）。
+  - 误差中位数：V 为 8.23。下面三种外推都比 V 差，也比原始提示（10.69）差：
+
+| 估计量 | 误差中位数 | 胜过 V 的比例 |
+|---|---|---|
+| 幂律 R-t（权重 8.3 / −7.3） | 13.15 | 0.2% |
+| 经过 V 的线性外推（ĉ = 0.457，λ* = −1.19） | 12.72 | — |
+| 经过 V 的幂律外推 | 26.4 | — |
+
+  - 原因：外推权重太大，把分离误差放大了。
+  - 结果文件 `voicecond_idea1/m2_optional/powerlaw_throughV_dev.json`。
