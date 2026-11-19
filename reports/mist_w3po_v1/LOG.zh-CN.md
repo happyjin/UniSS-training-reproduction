@@ -3932,3 +3932,10 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - clean 条件下的编码偏移中位数：Z 3.16 / 3.58，C 3.04 / 3.46，大于 ID-1 上的 2.37。需要看 clean 无害门槛。
 - **基准运行：** `scripts/idea1_m3_run.sh` 按 60 s 间隔依次启动 12 个编排器（`obsi_i1{z,c}_<条件>_<方向>__t1c`，卡 0–3）。dry 检查确认每个运行的 16 个 talk 作业都带有 override。
 - **OOD-3：** 协调文件 `logs/mist_w3po_v1/voicecond/ood3_subset_coord.txt`。若 Idea 2 发布了子集链路，就复用；否则基准跑完后由本线构建。
+
+## 2026-11-19 03:44 布拉格 — Idea 2 端到端：cvt 数据建成，预登记定稿 v1，教师目标链在后台等待
+
+- **决定（协调者）：** 现在做端到端的 CPU 准备；教师目标生成做成后台链，等 M2 测试运行在卡 4–7 上全部结束（bench `I2_*`、`OOD3_*`、`GAME_VFBF_*` 标记）才用卡；训练等协调者在测试表出来后确认。
+- **cvt 数据：** CoVoST 2 非测试划分（排除留出说话人）导出 23030 条；320 条 train 流（39.2 h）+ 24 条 dev 流（3.1 h）；教师条目每种语言 train 4000、dev 400。zh 源只有 104 个非测试说话人，总量 42.3 h，略少于计划的 50 h。
+- **代码：** 预处理脚本支持 `IDEA2_ROOT`（默认不变）；`idea2_gpu_pre_v2.sh` 增加 $\tilde v$；`idea2_teacher_chain.sh`（每张卡在启动作业前按 PID 停占位程序）。
+- 端到端预登记定稿 v1（`voicecond_idea2_e2e_prereg.zh-CN.md` 末尾），损失和规则不变。

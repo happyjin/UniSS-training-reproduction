@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO))
 from experiments.mist_w3po_v1.voicecond.idea2_diarize import stream_list  # noqa: E402
 from experiments.mist_w3po_v1.voicecond.idea2_feats import melpow  # noqa: E402
 
-I2 = REPO / "data/open_voicecond_v1/idea2"
+I2 = Path(__import__("os").environ.get("IDEA2_ROOT", str(REPO / "data/open_voicecond_v1/idea2")))   # IDEA2_ROOT: e.g. the cvt root
 SR, HOP = 16000, 0.5
 
 

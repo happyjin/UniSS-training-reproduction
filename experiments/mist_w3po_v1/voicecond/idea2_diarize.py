@@ -18,7 +18,7 @@ import torch
 
 REPO = Path(__file__).resolve().parents[3]
 MODEL = REPO / "pretrained_models/Nemotron-3-Diarization/Nemotron-3-Diarization.nemo"
-I2 = REPO / "data/open_voicecond_v1/idea2"
+I2 = Path(__import__("os").environ.get("IDEA2_ROOT", str(REPO / "data/open_voicecond_v1/idea2")))   # IDEA2_ROOT: e.g. the cvt root
 LOWLAT = (264, 264, 9, 4, 222)   # spkcache_len, fifo_len, chunk_len, chunk_right_context, spkcache_update_period
 N_PILOT = {"train": 32, "dev": 4, "test": 4}
 

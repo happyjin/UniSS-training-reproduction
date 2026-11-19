@@ -81,3 +81,21 @@ $$\mathcal L=\underbrace{\mathrm{KL}\big(p_{0}(\cdot\mid g^\star)\,\|\,p_{\psi}(
 
 - ID-1：合成 test 上的编码误差和 token 恢复率；
 - 生成语音：电竞 demo（只评测）、OpenBroadcast-SI 的 ID-2 / OOD-1 / clean、OOD-3 子集；对照 baseline B 和冻结的 shrink+Vfb。
+
+---
+
+## v1 定稿（2026-11-19 03:44 布拉格；任何训练之前；只补充数据统计和实现细节，损失、权重规则、设置和评测不变）
+
+**数据（已建成，`data/open_voicecond_v1/idea2/cvt/`，`idea2_build_cvt.py`）：**
+- 来源：CoVoST 2 的**非测试**划分（zh-CN→en 的 train + validation；en→zh-CN 的 train 与 validation），从未读取 test 划分；`HELDOUT_SPEECH.txt` 的说话人全部排除。
+  - zh 源：按 `int(sha1(client_id),16) % 10` 划分，0–7 train、8–9 dev：84 / 20 个说话人，14.2 / 4.1 h 语音；
+  - en 源：train 划分中 ≥ 8 条的说话人按 sha1 取前 700 个（每人 ≤ 20 条，实得 697 人、16.2 h）；validation 中 ≥ 5 条的说话人取 80 个（每人 ≤ 5 条，0.7 h）作 dev。
+- 多人流：与 v1 合成配方相同（背景用 train / dev 部分，留出背景已排除），train 320 条（zh 120、en 200，39.2 h），dev 24 条（3.1 h），共 42.3 h（计划约 50 h；zh 源只有 104 个非测试说话人，不再加大）。
+- 教师条目：未截断、≥ 1.5 s 的段，按 sha1 排序，每种语言 train 4000、dev 400；条目音频是带背景的混合段（与部署时 Talker 看到的源一致），文本是 CoVoST 人工译文，单块（final）。
+
+**教师目标（`scripts/idea2_teacher_chain.sh`，后台等待 M2 测试运行全部结束才用卡 4–7）：**
+1. cvt 流的预处理（分离器、HDemucs、2 s 窗口、$v$、$\tilde v$），与主数据相同；
+2. cvt 说话人的 $u^\star$ 和 $g^\star$（干净 6 s 提示的中心）；
+3. 冻结 T1c（与 T1c talk 作业相同的参数：`--speed-policy fixed --history-ban 8 --max-model-len 32768`，默认种子 20261021），音色 token 用 `idea1_si_infer_vo` 覆盖为 $g^\star$，`--dump-seq --dump-codes` 保存完整输入序列和语义码，作为两个 KL 项的教师强制序列。
+
+**训练不启动，等协调者在测试表出来之后确认。**
