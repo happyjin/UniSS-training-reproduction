@@ -17,7 +17,7 @@
    - 把 B 用的 AMI 窗口和 MT 目标文本按同样的 deadline 规则转成 LI-S5 的 `si-rw-m1-v0` 训练记录。
    - 在增量文本里加 `<|spk k|>`。不新增词表：复用 tokenizer 里已有、但 S5 没用到的 `<|dur:*|>` 行。
    - 把 Nemotron lowlat 后验因果地加到 audio_pad 嵌入上。两者都是 80 ms 一帧，可以逐帧对齐。
-   - 从 checkpoint-29773 出发，按 joint scope 训练 LoRA。
+   - 从 checkpoint-29773 出发，**按 B 的方式只训 Thinker**（`SI_S4_TRAIN_SCOPE=thinker`、`SI_SPEECH_LOSS_WEIGHT=0`），Talker 冻结不动（2026-11-19 用户决定，见 §9）。
    - 推理时按说话人分路，每个说话人用自己的参考音合成，评测链与 B、E7、E8、E9 完全相同。
 4. **E10-0（零样本，外部系统式）兼做可行性冒烟。** 不训练，直接把 checkpoint-29773 当外部系统跑在线窗口，说话人用因果重标（同 E7/E8）。它的数据可以放附录；主表放不放，需要你决定（§9）。
 5. **需要你拍板的事**集中在 §9：
@@ -160,7 +160,12 @@
    - 最后一步无法再推迟时允许混合，推理侧对此有兜底（§5.4）。
    - 推迟和混合各发生多少次，记入数据审计。
 3. **结束标记。** `translation_eos` 标在最后一个 W 步；`source_stream_done` 标在最后一个源步；尾部 WAIT 按 `steps_until_thinker_eos` 的约定处理。
-4. **目标语音**（Talker 监督，joint scope 必需）
+4. **目标语音：按 B 形式（thinker scope，speech 权重 0）不需要。**
+   - `target_codec_codes` 只写占位码：每个 W 步 1 帧，用来通过 loader 的 span 平铺校验（`codec_len_mismatch` / `span_not_complete`）。
+   - speech 权重为 0 时 `answer_mask=None`，Talker 不参与前向（`modeling_streaming_si.py:241-244`），所以占位码不进入任何计算。冒烟时要核对这一点。
+   - 下面这段只在改回 joint scope 时才用，保留作备选：
+
+   **（备选，joint scope 才需要）目标语音**（Talker 监督）
    - 用 Fun-CosyVoice3-0.5B 零样本克隆，逐块合成。这就是 LI-S5 声码器所在的模型族，CosyVoice 仓库现成可用。
    - 参考音：该说话人在本场会议训练集里最长的单独发声片段，≤8 s，筛选规则同 B 的 voice rule。训练标签允许非因果；推理侧仍然严格因果。
    - 再用 LI-S5 自带的 `dataset_maker/streaming_si/tts_stage1_fsq/fsq_encoder.py` 把合成音重新编码成 v3 FSQ 25 Hz。README §4.1 警告旧码本"训错不报错"，所以必须用同一个编码器。
@@ -222,7 +227,7 @@
 |---|---|---|
 | 入口 | `pipelines/streaming_si/train_simul.sh`，加 `--adapters <checkpoint-29773> --external_plugins <li_ms_patch.py>` | 从 0 步开始，只加载 adapter，与同事的续训方式相同 |
 | MODEL_PATH | S4 底座 `S4_1031v2_ckpt93767` | adapter 的 `base_model_name_or_path` |
-| scope | `SI_S4_TRAIN_SCOPE=joint`；损失权重 text 1 / speech 1 / decision 1 | Talker 的条件就是 Thinker hidden，只训 Thinker 会让 Talker 看到的分布漂移（§9-c） |
+| scope | `SI_S4_TRAIN_SCOPE=thinker`；损失权重 text 1 / speech 0 / decision 1。可训练的是 Thinker LoRA、4 个流式 token 行、8 个 spk 行和 `sd_proj`；Talker LoRA、`thinker_proj`、`fusion` 冻结 | 与 B 相同：Thinker 在多说话人数据上训练，Talker 保持单说话人版本。这是 LI-S5 代码原生支持的模式（prefix-drop 实验臂用的就是它）。风险是 Talker 吃的是 Thinker hidden，见 §5.5 的门槛 |
 | LoRA | r64、α128、dropout 0，目标正则与 checkpoint 相同 | 与 adapter 结构一致才能加载 |
 | lr | 1.2e-5，cosine 退到 2e-6，warmup 3%；`sd_proj` 和 8 个 spk 行 1e-4 | 前者同 checkpoint；后者同 B 的新模块 |
 | batch | 8×H200，每卡 8，GBS 64 | 同 B 的 GBS |
@@ -273,7 +278,9 @@
 - spk token 输出率 ≥ 95%；
 - 和 E10-0 比，tcpASR-BLEU 不下降。
 
-任一项不达标，**停下来汇报**，不调参重训（no-hparam-sweeps 规则）。
+另加一项 thinker-only 专用的门槛：Talker 的输入分布是否漂移。用 dev 上"ASR-BLEU 与文本 BLEU 的差"衡量，与 E10-0 相比，差距扩大不超过 2 BLEU。
+
+任一项不达标，**停下来汇报**，不调参重训（no-hparam-sweeps 规则）。是否改用 joint，由用户决定。
 
 ---
 
@@ -312,7 +319,7 @@
 | T0 | 新建 venv（ms-swift 4.4.0 / transformers 4.57.3 / peft 0.15.2 / CosyVoice 依赖 / silero-vad / onnxruntime），下载底座（13 GB）和声码器（1.4 GB） | 1–2 h | CPU/网络 |
 | T1 | E10-0 冒烟（3 个 dev 窗口）和 `build_e10.py` 的格式验证 | 1 h | 1 卡 |
 | T2 | `build_li_records.py`：块、deadline、步、spk、审计（不含 TTS） | 0.5 天 | CPU |
-| T3 | 目标语音：CosyVoice3 克隆、FSQ 编码、ASR 质检，约 49.5k 窗 | 4–8 h | 8 卡（无 checkpoint 的负载，可随时按 PID 停） |
+| ~~T3~~ | ~~目标语音合成~~：按 B 形式只训 Thinker 后取消 | 0 | — |
 | T4 | `li_ms_patch.py` 加单测，再用 tiny 模型跑 3 步冒烟 | 0.5 天 | CPU 和 1 卡 |
 | T5 | E10 训练，约 1,550 步 | ≤1 h | 8 卡 |
 | T6 | dev 门槛（§5.5），然后写正式预登记 | 1 h | 8 卡 |
@@ -322,7 +329,25 @@
 
 ---
 
-## 9. 风险与需要你决定的事项
+## 9. 决定记录（2026-11-19 用户回复）
+
+- **a. venv**：新建，名为 `simuls2s`。
+- **b. 数据重叠**：用户确认 LI-S5 的训练数据没有用过 AMI、AliMeeting 和 DiariST。
+- **c. 训练方式**：按 B 的方式只训 Thinker，Talker 冻结（§5.3）。目标语音合成（原 T3）取消。
+- **d. E10-0**：只放附录。
+- **e. 分块**：640 ms（沿用推荐）。
+
+**仍然缺的资产**（2026-11-19 核对）
+
+| 资产 | 状态 |
+|---|---|
+| S4 底座（13 GB） | 在 S3，可读，未下载 |
+| 声码器 `speech_decoder/`（flow / hift / campplus / yaml，1.4 GB） | 在 S3 `base_streaming_si_4b/speech_decoder/`，可读，未下载 |
+| `speech_tokenizer_v3.onnx`（源语音 prompt 用；推理默认开启，缺了会硬失败） | S3 上只有 `stevehguo/model_checkpoint/cosyvoice3/speech_tokenizer_v3.batch.onnx`（969 MB），与代码是否兼容未核对。备选：从开源的 Fun-CosyVoice3-0.5B 下载官方的 `speech_tokenizer_v3.onnx` |
+| CosyVoice 官方代码仓库（`--recursive`，含 Matcha-TTS） | 本机没有，需要 git clone |
+| venv `simuls2s` | 待建。按 `requirements.txt` 安装 torch 2.8 cu128、ms-swift 4.4.0、transformers 4.57.3、peft 0.15.2、deepspeed 0.18.9，另加 flash-attn、flash-linear-attention、causal-conv1d（Qwen3.5 在 GPU 上必需，requirements 里没列）、onnxruntime |
+
+## 9′. 原风险与待决事项（保留原文）
 
 a. **新 venv。** 按 memory，只能用你允许的 venv。LI-S5 需要 ms-swift 4.4.0 和 transformers 4.57.3，和现有的 uniss-train、vllm_omni_030 都不兼容。建议新建 `venvs/liveinterpret_s5`。请确认。
 
