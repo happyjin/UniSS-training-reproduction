@@ -4062,3 +4062,19 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 ## 2026-11-19 05:59 布拉格 — Idea 2：教师目标生成改为立即叠放（协调者决定）
 
 - **决定（协调者）：** 教师目标生成是推理，现在就在卡 4–7 上与测试编排器叠放（固定 KV 缓存，每卡 ≤ 135 GiB），不再等测试标记。`idea2_teacher_chain_v2.sh`（还在等待、未用卡）按 PID 停掉，改为 `idea2_teacher_chain_v3.sh`（只等 cvt 的 CPU 构建）。已启动：第 1 步 cvt 流预处理。训练仍等协调者确认。
+
+## 2026-11-19 06:17 布拉格 — 非训练任务叠卡并行（用户："0-3，4-7显存还有大量空余，非训练任务的话尽量叠满显存跑，并行加快速度"）
+- 现状：8 张卡显存只用了 5–65 GB/141 GB，但 CPU 负载 244/192 已经打满。主要消耗：两个 bench_eval，每个 32 进程、每进程约 1.8 核，按设计只用 CPU（SQUIM、WavLM-SV）；另有 8 个 cvt 分离进程。所以 CPU 密集的评测再加并行也不会更快，可挪到 GPU 上叠加的是推理阶段。
+- **Idea 1 OOD-3 → `idea1_ood3_run_v3.sh`**（v2 PID 269919 已按 PID 停止。停止时它正在等 ami 编排器，编排器本身未动）：
+  - 改动 1：三个子集并行，不再按 ami → en → ali 串行。
+  - 改动 2：Z/C 编排器的启动条件，从 Idea 2 整个子集标记 OOD3_<ss>_DONE，改为 Idea 2 的 B 臂已有 talker_in/items.jsonl（120 s 不再变动）且 decode/idea2_ood3_<ss>_txt 已存在。OOD3_<ss>_DONE 只在说话人相似度这一步之前等待。
+  - 改动 3：所有编排器启动共用一把 flock 锁，间隔 60 s（与 v2 相同）。
+  - 不变：输入、flags、输出、标记和最终分析都与 v2 相同。
+  - 状态：05:16 UTC 起 en、ali 已开始做人声分离。
+- **Idea 2 老师目标生成 → `idea2_teacher_chain_v4.sh`**（v3 外层 bash PID 297196 已按 PID 停止。预处理子进程 idea2_gpu_pre_v2.sh PID 297212 继续跑、未重跑，v4 等它退出且出现 PRE_ALL_DONE）：
+  - 第 3 步分片：由「卡 4–7 共 8 片」改为「8 张卡共 18 片」。zh2en_train 与 en2zh_train 各 8 片（每片 500 条），两个 dev 集各 1 片（400 条）。按开始时的空闲显存轮流分配，每卡不超过 3 片，约 45 GB。
+  - 其余设置：固定 KV（7.73 GiB），引擎间隔 10 s，flags 与 v3 相同。
+  - 输出：仍写到 teacher_out/<set>/part_<k>.jsonl，只是 part 数变了，下游必须用 glob 读取 part_*.jsonl。
+  - 标记：TEACHER_DONE / TEACHER_FAILED_<step> 不变。
+- **未改 Idea 1 M3 的 11 个 bench_eval**（串行，纯 CPU）。CPU 已经打满，再加并行只会互相抢核，评测代码又不能中途改成 GPU 版，否则与已算出的 B 臂 CPU 结果不同口径。
+- 两个新脚本只做了 bash -n 和 DRY_RUN 检查。Idea 2 代理已收到通知（不要重启 v3）。
