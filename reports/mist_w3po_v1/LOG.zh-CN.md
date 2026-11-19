@@ -3707,7 +3707,7 @@ $\|\hat u-u^\star\|_2$ 的中位数：
 - **决定：训练背景用 dev 奇偶池**（与 ID-1 dev 同一批文件），ID-1 test 的背景文件不进入训练。
 - **步骤 4 已启动：** 参照组 V（HDemucs 人声提示）在 demo 全部流、两个种子上跑，运行名 `game_b_{zh2en,en2zh}__t1c_vocals`，用 `idea1_tokens.py --mode V` 生成 token 表。
 
-## 2026-11-19 01:45 布拉格 — Idea 2 M1b：收缩模型先导 E2.2 通过（早期信号）
+## 2026-11-19 01:21 布拉格 — Idea 2 M1b：收缩模型先导 E2.2 通过（早期信号）
 
 - 预登记 v2（提交 26fe09f0f，在拟合之前）：$z_k=\lambda_k s_j+(1-\lambda_k)c+\varepsilon_k$，$\lambda_k=\sigma(\alpha+\beta^\top\tilde v_k)$，$\tilde v$ 为 5 维 HDemucs 窗口摘要；在先导 train 上加权最小二乘拟合（10925 个不重叠窗口）。
 - **决定（按预登记规则）：** $\|c_{\rm en}-c_{\rm zh}\|=4.58\ge3.52$ → 按语言的收缩中心。拟合的 $\lambda$ 均值 0.52（p10 0.34，p90 0.71）；目标函数：常数 $\lambda$ 142.5 → 完整 133.7。
@@ -3716,3 +3716,13 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 完整 − 常数 $\lambda$ = +0.16 [−2.08, +0.51]、完整 − V = +0.24 [−0.75, +1.13]：**收益几乎全部来自收缩反解本身，$\tilde v$ 没有带来可检出的额外收益**；与 V 参照持平。
   - 平台拟合 $\sqrt a$：滑动平均 14.3，完整 10.4，干净孪生 5.5，与"平台低于滑动平均"的预测一致。
 - **决定：** 按协调者的指示，先导 G2.2 通过后直接跑电竞 demo（OOD-2，只评测）；完整数据的预处理推迟到 Talker 跑完以后，避免与 vLLM 争卡（`idea2_full_chain.sh` 停掉，改为 v2：CPU 部分照常，GPU 部分等电竞 Talker 结束的标记）。
+
+## 2026-11-19 01:27 布拉格 — Idea 2 M1b：电竞 demo（OOD-2，只评测）token 已算好，Talker 在卡 4–7 上运行
+
+- **核实：** C2 窗口的分离器后验（`windows_game_*_c2g06_v1/post/*.npy`）全部是整段 Nemotron lowlat 后验的切片（231/231 个窗口逐位一致），所以条目 id 里的 `__S<k>` 就是整段的槽位 k−1。
+- **token：** `idea2_game_tokens.py`，先导 train 拟合的完整收缩模型（电竞数据不参与任何拟合或选择）；每段 300 s 原声做 HDemucs、窗口编码和 $\tilde v$；每个流取首次输出时刻的后验（窗口结束 + 1.04 s 之前可用的窗口）。
+  - 中→英 276 个流：首次输出时可用窗口数中位数 35；有 25 个流在首次输出时该槽位还没有任何可用窗口，按预登记输出先验均值（"平均音色"）。
+  - 英→中 168 个流：中位数 116.5；19 个流没有可用窗口。
+  - 与 baseline 提示的 token 汉明距离中位数 32/32（和 Idea 1 一样，token 对输入极敏感）。
+  - 表：`eval_outputs/mist_w3po_v1/voicecond_idea2/tokens/game_{zh2en,en2zh}_shrink.jsonl`（另存常数 $\lambda$ 和 V 参照的 token，供分析）。
+- **运行：** `scripts/idea2_game_run.sh`（PID 1534529）用 Idea 1 的包装器 `idea1_game_orch.py`（只换 talk 作业，按提示 sha1 校验），与 baseline B 同文本、同参数、两个 TTS 种子，`--exclude 0 1 2 3`；运行名 `game_b_{zh2en,en2zh}__t1c_shrink{,_tts2}`。结束后写 `GAME_TALKER_DONE`（放行完整数据预处理），再算 PESQ / 对比度 / 平坦度（相对 Idea 1 已测的 baseline B 文件）和盲 ASR-BLEU。
