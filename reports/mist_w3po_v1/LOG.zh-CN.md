@@ -3834,7 +3834,7 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 完整模型 − V：+0.10 [−0.42, +0.45]，与 V 持平。
 - **下一步（决定）：** Idea 2 写测试预登记 v3（参数固定为全量训练集上的拟合结果）。开源评测集就绪后，在 ID-2、OOD-1 和无背景对照上各跑一次 shrink+Vfb；再在 AMI 和 AliMeeting 测试集上做无害检验（OOD-3）；同时开始准备端到端版本（§8.3）。
 
-## 2026-11-19 03:20 布拉格 — Idea 2 M2 开始：测试预登记 v3
+## 2026-11-19 03:06 布拉格 — Idea 2 M2 开始：测试预登记 v3
 
 - **决定（协调者，用户夜间授权）：** 冻结方法 = shrink+Vfb，参数为完整 train 拟合（`shrink_fit_all/full.npz`，sha1 25aaf6cd…）；测试：OpenBroadcast-SI 的 ID-2 / OOD-1 / clean（两方向两种子，测试集钩子），电竞 demo 用完整参数重跑（试听页一致性），OOD-3 无害检验。
 - **决定（最佳选项）：** OOD-3 全集约 2.1 万个流，Talker 成本过高；按预登记的 sha1 规则每集取 2 场会议（AMI EN2002d、IS1009c；AliMeeting R8009_M8021、R8009_M8024），B 与 shrink+Vfb 走同一子集链路，保证 BLEU / LAAL 可比。
@@ -3895,3 +3895,10 @@ $\|\hat u-u^\star\|_2$ 的中位数：
   - 在 OpenBroadcast-SI 的 ID-2、OOD-1 和无背景对照上运行，并做 AMI / AliMeeting 无害检验；
   - 主假设：Z−C 在 OOD-1 上大于在 ID-2 上；
   - Idea 1 用卡 0–3，Idea 2 同时用卡 4–7。
+
+## 2026-11-19 03:32 布拉格 — Idea 2 M2：测试运行已全部启动
+
+- **电竞 demo 完整参数重跑：** `scripts/idea2_game_run_vfbF.sh`，运行名 `game_b_{zh2en,en2zh}__t1c_shrinkvfbF{,_tts2}`；token 表 `tokens/game_{dir}_shrinkvfbF.jsonl`（sha1 25aaf6cd 的参数；回退流 25 / 19 个，与先导参数版相同）。
+- **OpenBroadcast-SI：** `scripts/idea2_bench_run.sh` 两个工作进程（每个方向一个），按测试集代理的 `VB_<cond>_<dir>_DONE` 标记依次跑 clean / ID-2 / OOD-1；运行名 `obsi_i2_<cond>_<dir>__t1c`，之后跑统一评测 `bench_eval`。
+- **OOD-3：** 子集文件和过滤后的 baseline 文本已生成（AMI zh→en 557 个窗口、en→zh 542、AliMeeting 654）；包装器 `voicecond/idea2_ood3_orch.py` 只替换集合定义（干跑确认链路用的是子集窗口和参考）；`scripts/idea2_ood3_run.sh` 等电竞重跑的 Talker 结束后，每个子集同时跑 B 和 shrink+Vfb 两个臂，再算块协议 LAAL、语音指标和 TitaNet 相似度。
+- **决定 / 事故：** 回退 V token 第一版用 CPU 上的 `game_muffle_analysis.demucs`，en→zh 短流回退多，太慢（约 5 s / 条）；改到 GPU。第一次改成分段的 `separate()`（补零到 10 s）后与 Idea 1 的 V 表相差很大（汉明 3–31），说明 token 对分离细节极敏感；最终用与 `demucs()` 完全相同的计算（整段一次、同样的归一）放到 GPU 上：电竞 40 个提示中汉明中位数 0（最大 5，GPU 浮点差异）。这是实现细节，定义不变。
