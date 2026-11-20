@@ -4561,3 +4561,16 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 训练脚本 `voicecond/wave8_aul_train.py`：第五波 ERM 加上 LA2"认同但错误"单元的 unlikelihood（λ = 1），world 4，卡 4–7，端口 29631。
 - 冒烟：每步 13–16 s，每步约 11/31 个样本有负样本，ℓ_UL 约 1.0。
 - 正式训练 07:57 启动（pid 1282229）。训练后的链条 `wave8_aul_chain.sh`（pid 1283955）：aul_wise05 在卡 4–5、aul 在卡 6–7 评测，然后打分。
+
+## 2026-11-20 08:50 布拉格 — 鲁棒第九波（音色锚定 Thinker）：实现、smoke、A 臂启动
+- 预登记 `robust_wave9_anchor_prereg.zh-CN.md`，含"变更 1"（C 臂推迟，第 2 条改为对 erm_wise05 的增量，加大微批）和实现说明，均写在任何评测数字之前。
+- 代码 `voicecond/wave9_*`：
+  - common：锚定 id 151808–152063，串音增强；
+  - anchor_fit：PCA 前 8 维 + 32 分位箱，拟合集为 7004+7004 条干净训练音频；
+  - anchor_table：dev 条目的锚定表；
+  - si_thinker_anchor：包装脚本，替换 vllm.LLM.generate，用 token-id prompt，共享脚本不改；
+  - train：第五波 ERM，加串音和锚定嵌入行；
+  - merge：WiSE 时连同锚定行一起合并；
+  - score：新增 b_xt / b_xt_in1s / b_xt_after1s 单元和翻转率。
+- 包装验证：prompt id 与文本路径相同；整套运行与 S1 逐条相同 94.9% / 89.3%，与底座重跑的 93.0% / 90.3% 相当。
+- smoke：mb 32 每步 3.8 s，峰值 78 GiB；mb 16 每步 6.1 s。正式训练 08:50 在卡 0–1 启动（pid 1864493）；链条 `wave9_chain.sh` pid 1865257。
