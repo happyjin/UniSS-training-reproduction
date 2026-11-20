@@ -4599,3 +4599,10 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 第 2 条（对 erm_wise05，b_xt）：四个单元都为负。b_xt_in1s 上为 −1.7 到 −3.3，说明 dev 中第一秒内的串音污染了 u。
 - 翻转率比 E 低 0.02–0.03，与底座持平；LAAL 变化不大。
 - 不跑组合，不跑 C 臂；卡 0–1 交还。详见预登记"结果"一节。
+
+## 2026-11-20 13:35 布拉格 — 鲁棒第十波（TIES 合并两个单方向 LoRA + WiSE 0.5）结果：没有增量，只放附录
+- 预登记 `robust_wave10_ties_prereg.zh-CN.md` 的"结果"一节；输出在 `eval_outputs/mist_w3po_v1/wave10/{run_*,merged_ties_wise05,eval_ties_wise05,summary.json,mechanism.json}`，日志在 `logs/mist_w3po_v1/wave10/`。
+- 训练：每个方向单卡，2300 步，mb 32，约 2.3 h。合并和评测链共 27 min。
+- 第 1 条（相对底座）通过：所有单元不退化，5 个带噪单元显著提升。
+- 第 2 条（相对 ERM-WiSE）不通过：没有显著增量；zh2en (a) 带噪 text −2.21 [−4.23, −0.13]。D2 LAAL 相对底座在 ±0.06 s 以内。
+- 机理：两个方向的任务向量近似正交（cos 0.017）；trim 后的重叠和符号冲突都在随机水平，所以"方向间干扰"这个假设不成立。
