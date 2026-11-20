@@ -157,3 +157,9 @@
   - 第十七波原波照常评测、照常报告（uniss-2b 的执行者负责）。卡 4–5 归 uniss-2b 的 ncwi_erm；本波等第十七波原波交还卡 6–7 后自动上，链条 pid 3766228。
 - **18:30 CET ctrl_pool_base 结果：判定"随噪声自适应的保守度"成立（只在英→中）。** 总提交量相同、但不随噪声变化的预算，比 CV-LA 低：英→中 b 带噪 −0.79，b 无串音带噪 −1.56（CI 下界都 > 0，D1 差 ≤ 0.02 s）。中→英没有差别。决策：CV-LA 留在组合里，定位为"零参数、随噪声自适应的提交保守度"。
 - **18:05–18:10 CET 决策（第十四波失败之后）：** 组合底座仍用 CoVoST 的 ERM-WiSE；NCWI 改用 CoVoST 端点（ncwi_erm，由 uniss-2b 跑）；第十七波 b 在 CoVoST 数据上重训编码器 LoRA（见 robust_wave17b_enclora_covost_prereg）。
+- **19:15 CET 第十六波 NCWI（噪声条件的权重插值）结果：不通过，主系统 Thinker 仍为固定 α = 0.5 的 ERM-WiSE。** 详见 `robust_wave16_ncwi_prereg.zh-CN.md` 的结果一、结果二。
+  - ncwi_erm（变更 B，CoVoST ERM 端点，对 erm_wise05）：FAIL。3 个伤害单元：zh2en/a/noisy text −2.32 [−4.08, −0.56]、ASR −1.86；zh2en/b/clean ASR −1.57。没有增益单元。
+  - UniST 端点组（对 unist_wise05）：按规则判为 PASS（5 个增益单元，如 en2zh/a/noisy +3.25 [+1.02, +5.74]），但 16 个箱里 12 个选了 α = 0。增益来自退回底座，避开了失败的 unist_wise05；相对底座的统一规则不过（zh2en/a/clean −1.98）。不作为方法有效的证据。
+  - 诊断：每箱约 75 句时，句级 BLEU 太嘈杂，α* 在交叉拟合的两半之间跳动；前 1 s 的 b̂ 与真实 BVR 的相关只有 0.30–0.45（AUC 约 0.68）。
+  - 实现上：vLLM 加载的 Qwen3-Omni 整模型类不支持 LoRA，所以两组都按预登记的退路，每个 α* 合并一个副本。
+  - ncwi_erm 曾在 18:42 与组合臂 C 在卡 0 上冲突；已按 PID 停掉，改在卡 1、2、4、5 上续跑；watcher 已改为每秒检查。卡 0–5 已交还 guard。
