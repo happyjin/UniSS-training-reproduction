@@ -61,3 +61,4 @@
 - 2026-11-20 06:52：**完整系统 ERM-WiSE + V1 + T1c 通过**。12 个单元的 ASR-BLEU 全部为正（+0.41 到 +5.11），带噪 PESQ +1.19 到 +1.42（CI 下界 > 1.06），相似度不降，LAAL ±0.08 s。
   - **决策：** 这是目前的候选主系统。卡 4–7 交还 guard 跑占位。
   - Fishr 出结果后用同一规则对比；Fishr 若不优于 ERM-WiSE，主系统 Thinker 就定为 ERM-WiSE。论文的新意需要另外论证：Fishr 若无额外贡献，"不变性"就不能作为卖点。
+- 2026-11-20 07:55：用户说"开始"，开第八波 Agreement-Unlikelihood（预登记 `robust_wave8_aul_prereg.zh-CN.md`），卡 4–7。它和 ERM 完全相同，只多一项：LA2 的两次草稿"认同但错误"时，对那个单元做 unlikelihood 惩罚（λ = 1）。之后同样做 WiSE-FT 0.5。比较对象：底座和 ERM-WiSE。
