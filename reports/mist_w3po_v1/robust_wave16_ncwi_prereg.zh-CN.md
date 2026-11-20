@@ -124,3 +124,18 @@
 - **主判定：** 与 4.2 相同，参照改为 erm_wise05。
   - 没有任何 (a)/(b) 单元的 text BLEU 或 ASR-BLEU 点估计 < −0.3 且 CI 上界 < 0；
   - 至少一个单元 text 增益的 CI 下界 > 0，且超过噪声底。
+
+### 变更 B 的实现说明（2026-11-20 18:09 CET，写在任何 ncwi_erm 数字之前）
+- **UniST 组的 LoRA 路径已退到合并路径（18:05 CET）。** 原因不是一致性不够，而是引擎起不来：vLLM 实际加载的是整个 `Qwen3OmniMoeForConditionalGeneration`（vllm-omni 的外壳），报 "does not support LoRA yet"。只有其中 Thinker 子类声明了 LoRA 支持。4 个 LoRA Thinker 都在约 1 分钟内退出，`agree.json` 记为未通过，按第 3 节写好的规则整体改走合并路径。所以本波实际用的都是"每个 α* 合并一个模型、按箱分组跑"，数值上与端点副本同一种合并。
+- **ncwi_erm 的文件都是副本，不改正在运行的 UniST 组的脚本：**
+  - `wave16e_fit.py`：调用 `wave16_fit.py`，只把端点换成 `wave5/M/eval_erm_wise05`（α = 0.5）和 `wave5/M/eval_erm`（α = 1）；α = 0 仍是 3 次底座。b̂ 直接读 `wave16/noise`，两半划分相同，所以箱边界相同；脚本断言边界和各箱条目数与 `wave16/fit/fit.json` 完全一致。
+  - 适配器：`wave16_make_lora.py`，输入 `wave5/M/run_erm`，对 `wave5/M/merged_erm_wise05` 做重新合并自检。
+  - `wave16e_tools.py`、`wave16e_eval.sh`、`wave16e_orch.sh`：分别由 `wave16_tools.py`、`wave16_eval.sh`、`wave16_orch.sh` v2 用 sed 生成。根目录是 `wave16/erm`，日志在 `logs/mist_w3po_v1/wave16/erm`，PIDS 和 STOP 文件独立；一致性参照改为 `eval_erm_wise05`；合并退路的 α = 0.5、1 用 `wave5/M/merged_erm_wise05`、`merged_erm`。
+  - LoRA 路径照写好的流程先试一次。预计同样起不来，约 1 分钟后退到合并路径；保留这一步，是为了与 UniST 组的流程完全相同。
+  - `wave16e_score.py`：系统为 base（3 次）、erm_wise05、erm、ncwi，主判定以 erm_wise05 为参照，规则与 4.2 相同。
+    - 自检：erm_wise05 相对底座须与 `summary_erm_wise05.json` 一致；凡是 `wave5/M/summary.json` 里也有的数值都须一致。
+    - 用旧系统冒烟过（临时把 ncwi 换成 fishr）：两项自检都通过，分别是 180 个值加门，以及 312 个值。
+- **卡：**
+  - 等 UniST 组的 GPU 部分结束（它的 watcher STOP 出现，且它的进程都已退出）才上卡。Thinker 先用卡 1、2（NCWI），一致性自检用卡 0、3；合并退路的通道和 Talker 用卡 0–3。
+  - 卡 4–5：`extracards` 在 `combo/ctrl_pool_base/DONE` 出现前一律不给（按主会话 18:15 的更正，这条同时加到了 UniST 组的 `wave16_tools.py`）；出现后，仍按 ≥ 60 / ≥ 125 GB 的规则判断。卡 6–7 不用。
+- 等待脚本 `wave16e_wait.sh`（setsid nohup）先在 CPU 上做拟合和适配器转换，再等卡。
