@@ -126,3 +126,8 @@
 - CommonVoice_EN 中有 94498 条，源文本与 CoVoST dev/test 的某句相同。Common Voice 的同一句话会由不同的人朗读，所以文本相同的录音也可能来自训练集说话人；这里一律排除，以防测试文本泄漏进训练。
 - HELDOUT_SPEECH 中的 2609 个 clip 都能在 CoVoST dev/test 的 id 中找到，所以已经按文本覆盖。553 个说话人无法比对，因为 UniST 没有说话人字段。
 - 断言全部通过：选中的行不在测试文本库中，不满足留出条件，也没有空文本。
+
+### 实现说明补记（2026-11-20 16:24 CET，追加）
+- 按主会话的分工变更，完整系统组合改由会话 uniss-de 负责。本会话不启动 `wave14_combo_orch.sh`，也不跑任何组合或测试，两条主判定都过时也一样。
+- 链条 `wave14_chain.sh`（pid 2047792）只做到训练 → WiSE → 合并 → 两条评测 → 打分，本来就不会启动组合，所以不需要停任何进程。
+- 已提交的 `wave14_combo_orch.sh`、`wave14_combo_score.py`、`wave14_combo_noplaceholder.sh` 只是备好的副本（卡 0–3），从未运行过，留给 uniss-de 参考。
