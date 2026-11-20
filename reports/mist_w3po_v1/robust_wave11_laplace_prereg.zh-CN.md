@@ -37,3 +37,38 @@
 
 ## 卡与时间
 - 卡 0–1（第九波结束后空出）。Fisher 约 2 × 512 次前向加反向，约 30–40 分钟；合并在 CPU 上约 10 分钟；评测约 1.5 小时。
+
+## 实现说明与实现修正（2026-11-20 12:05 CET 起，写在任何冒烟、Fisher、合并和评测数字之前；只追加）
+- **Fisher 脚本：** `voicecond/wave11_fisher.py`（新文件，复用 `wave5_m_train.py` 的 `Sampler`、prompt 和标签掩码，不改原文件）。
+  - **样本的具体取法（预登记只规定了 sha1 键）：** 第 i 条（0..511）是第五波 ERM 训练流中的一个样本。k = sha1("20261120|w11|fisher|c|i")（F_n 用 `|n|`），步 s = k mod 2300，环境内 slot m = (k // 2300) mod 8，slot j = 8e + m，然后取 `Sampler.sample(s, j)`。所以行号、噪声文件、BVR 和混合方式都与 ERM 当时看到的样本逐个相同。
+    - F_c：i < 256 取 e = 0（zh→en clean），i ≥ 256 取 e = 4（en→zh clean）。
+    - F_n：e = i // 64，按 `wave5_m_train.ENVS` 的顺序，8 个环境各 64 条，其中包括两个 clean 环境（它们本来就属于训练混合）。
+    - 这个映射会产生少量重复的 (s, j)：F_c 有 5 对，F_n 有 3 对。按预登记 N = 512 不去重，照实记录。
+  - **对整个权重矩阵求梯度：** 每个被适配的 Linear 旁边挂一个全零的 fp32 矩阵 D，前向为 out = base(x) [+ (alpha/r)·b a x] + (D x).to(bf16)。D = 0 时前向完全不变，而 ∂L/∂D 就是该点处的 ∂L/∂W。q/k/v/o × 48 层，共 9.06 亿个元素。
+  - **W0：** LoRA 关掉（`enabled = False`），即严格的底座。
+  - **W_e：** 底座 + ERM LoRA 不合并（a、b 为 fp32，α = 1），和训练时的前向完全相同，不用 bf16 合并后的副本。
+  - 逐样本做前向和反向：batch 1，`thinker.eval()`，`use_cache=False`，不开梯度检查点（eval 模式下 HF 本来也不用），SDPA 和专家实现都用默认值（只做一阶反向，不需要第五波 Fishr 的 math SDPA 和 eager 专家）。
+  - CE 按目标 token 取平均，与训练相同。梯度平方用 fp32 累加，最后除以 N。出现非有限梯度直接报错退出，不跳过样本。
+  - 输出 `eval_outputs/mist_w3po_v1/wave11/fisher/F_{c,n}.pt`、`.json` 和 `.samples.jsonl`（每条样本记 i、s、j、id、CE），拒绝覆盖。
+  - 显存分配器加 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`，只减少碎片，不改数值。
+- **合并脚本：** `voicecond/wave11_laplace_merge.py`。
+  - Δ = (alpha/rank)·B A 用 fp32 计算；Λ = F_n / (F_c + F_n)，F_c + F_n = 0 的元素取 0.5。
+  - W* = W0 + Λ⊙Δ 在 fp32 中计算，再转回 bf16，与 `wave5_m_merge.py` 相同。没有被适配权重的文件硬链接自原版，拒绝覆盖。
+  - 辅助统计写在 `merged_laplace.laplace_merge.json`（放在模型目录旁边，不放进模型目录）：
+    - Λ 的全局均值，以及逐层、逐投影类型的均值；
+    - 全局分位数（1/5/10/25/50/75/90/95/99%），用 [0,1] 上 10⁴ 个 bin 的直方图求，分辨率 10⁻⁴；
+    - 有效步长 ‖Λ⊙Δ‖/‖Δ‖，分全局、逐层和逐投影；
+    - Λ 与 |Δ| 的 Pearson 相关，在全部元素上用流式和精确计算；
+    - Spearman 相关，在固定子样本上算（每个矩阵 2×10⁴ 个元素，seed 0）；
+    - 另报 F_c + F_n = 0 的比例、Λ = 0 / 1 的比例，以及 F_c、F_n 的均值。
+  - **自检（玩具张量，已过）：** F_c = F_n 时 Λ 全为 0.5；F_c = F_n = 0 时取 0.5；手算的四个值一致；F_c = F_n 时合并后的 bf16 权重与 WiSE 0.5 逐位相同。
+- **评测链：** `wave11_eval.sh` / `wave11_eval_orch.sh`，复制自第十波，只改了：
+  - 输出路径 `eval_outputs/mist_w3po_v1/wave11/` 和日志路径 `logs/mist_w3po_v1/wave11/`；
+  - 卡号：卡 0 跑 F_c、en2zh 和 4 个 en2zh Talker 分片，卡 1 跑 F_n、zh2en 和 4 个 zh2en Talker 分片；
+  - 新增 `fisher_c` 和 `fisher_n` 两个阶段，编排器按 Fisher（两卡并行）→ 合并（CPU）→ Thinker → Talker → ASR 的顺序跑。
+  - Thinker、Talker、ASR 的命令与第十波逐字相同，包括 vllm_omni_030/bin 在 PATH 上和 SI_KV_CACHE_GIB=7.73。
+  - 占位守护用自己的副本 `wave11_noplaceholder.sh`，有自己的 PIDS 和 STOP 文件（`logs/mist_w3po_v1/wave11/w11_workers.pids`、`w11_noplaceholder.stop`），只认 wave11_* / si_thinker_stream / si_infer / asr_transcribe 进程。
+- **打分：** `voicecond/wave11_score.py`，复制自 `wave10_score.py`，系统为 base、erm_wise05、laplace，第 1、2 条规则与第十波（即本预登记）逐字相同：
+  - 第 1 条：text BLEU 相对 3 次底座均值，ASR-BLEU 相对 S1；
+  - 第 2 条：增量只看 text BLEU；"超过噪声底"指该单元 laplace − erm_wise05 的点估计大于 3 次底座两两之差的最大值；"没有退化"同时查 text BLEU 和 ASR-BLEU。
+  - **自检（已过）：** 在现有输出上复算 erm_wise05 相对底座，与 `summary_erm_wise05.json` 对比 180 个数（点估计、CI、底座均值、噪声底），全部逐位一致，门判定也一致。
