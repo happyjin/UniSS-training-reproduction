@@ -13,6 +13,10 @@ file is modified) with two orthogonal switches added:
                          reads <= t); the final read commits v0's whole draft, as LA2. Same Thinker, same reads, at most
                          as many committed units per read as CV-LA; the only difference is WHERE the cut falls (CV-LA:
                          at a cross-view disagreement; budget: wherever the count runs out).
+  --budget-pool-meta <meta_<dir>.jsonl>  with budget: noise-blind equal-latency control. The clean and noisy copies of
+                         a sentence (same meta "set" and "pair", same reads) both get B_t = ceil((B_t^clean + B_t^noisy)/2),
+                         so the total commit volume per sentence pair equals CV-LA's (up to the ceil) but no longer
+                         depends on the noise condition.
 
   NCWI (wave 16) per-request LoRA, optional:
   --assign <assign_<dir>.jsonl> --lora-root <dir>  vLLM multi-LoRA (enable_lora, max_loras 8, rank 16, qkv_proj/o_proj,
@@ -62,11 +66,27 @@ def load_budget(path: Path, items) -> None:
         it["budget"] = b
 
 
+def pool_budget(meta_path: Path, items) -> None:
+    """noise-blind budget: both copies (clean, noisy) of a sentence get ceil of the mean of their two CV-LA budgets"""
+    meta = {m["id"]: m for m in map(json.loads, open(meta_path, encoding="utf-8"))}
+    groups = {}
+    for it in items:
+        m = meta[it["id"]]
+        groups.setdefault((m["set"], m["pair"]), []).append(it)
+    for k, g in groups.items():
+        assert len(g) == 2 and {meta[x["id"]]["cond"] for x in g} == {"clean", "noisy"}, k
+        assert sorted(g[0]["budget"]) == sorted(g[1]["budget"]), k
+        pooled = {t: -(-(g[0]["budget"][t] + g[1]["budget"][t]) // 2) for t in g[0]["budget"]}
+        for x in g:
+            x["budget_cvla"], x["budget"] = x["budget"], dict(pooled)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--second-view", choices=("none", "enh", "same", "budget"), required=True)
     ap.add_argument("--views", default="")
     ap.add_argument("--budget-from", default="")
+    ap.add_argument("--budget-pool-meta", default="")
     ap.add_argument("--assign", default="")
     ap.add_argument("--lora-root", default="")
     ap.add_argument("--const-alpha", type=float, default=None)
@@ -109,6 +129,8 @@ def main() -> None:
         load_views(Path(args.views), items)
     if sv == "budget":
         load_budget(Path(args.budget_from), items)
+        if args.budget_pool_meta:
+            pool_budget(Path(args.budget_pool_meta), items)
 
     # NCWI: per-item alpha* -> LoRARequest (same adapter for both views of an item)
     lora_kw, alpha_of, reqs = {}, {}, {}
@@ -225,7 +247,7 @@ def main() -> None:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
     st = dict(st)
     st.update(second_view=sv, thinker=args.thinker, assign=args.assign, lora_root=args.lora_root, const_alpha=args.const_alpha,
-              views=args.views, budget_from=args.budget_from, items=len(items), seconds=round(time.time() - t0, 1),
+              views=args.views, budget_from=args.budget_from, budget_pool_meta=args.budget_pool_meta, items=len(items), seconds=round(time.time() - t0, 1),
               items_sha1=hashlib.sha1(open(args.items_file, "rb").read()).hexdigest())
     out.with_suffix(".combo.json").write_text(json.dumps(st), encoding="utf-8")
     print(f"{tag}: {len(items)} sentences, {time.time() - t0:.0f}s -> {out}", flush=True)

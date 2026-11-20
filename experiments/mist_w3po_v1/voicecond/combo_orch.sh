@@ -100,6 +100,7 @@ thinker_args() {   # $1 = direction ; echoes the switch arguments of combo_si_th
   echo --second-view; echo "${SV:?SV needed when THINKER_FROM is unset}"
   [ "$SV" = enh ] && { echo --views; echo "$W15/views/$d"; }
   [ "$SV" = budget ] && { echo --budget-from; echo "${BUDGET_FROM:?}/thinker_$d/blocks_${d}_w1.jsonl"; }
+  [ "$SV" = budget ] && [ -n "${BUDGET_POOL:-}" ] && { echo --budget-pool-meta; echo "eval_outputs/mist_w3po_v1/wave2_S1/data/meta_$d.jsonl"; }
   return 0
 }
 if [ -n "${THINKER_FROM:-}" ]; then
