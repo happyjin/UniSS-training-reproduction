@@ -151,3 +151,7 @@
     - 结合 17:12 的等延迟对照，CV-LA 的增益归因于"保守提交"，不作为"跨视角信息"的贡献；
     - 组合与测试由 uniss-de 负责，本执行者不启动；
     - 卡 4–5 在 16:21（g1）和 18:02（g2）两次 touch STOP 交还 guard。
+- **18:10 CET 决策：开第十七波 b（编码器 LoRA 改用 CoVoST 加噪数据重训，卡 6–7），预登记 `robust_wave17b_enclora_covost_prereg.zh-CN.md`。**
+  - 理由：第十四波 UniST-ERM-WiSE 两条主判定都失败。UniST 的源音频是 BiCodec 重建的，这对只训练编码器的第十七波混淆最大。
+  - 第十七波 b 只换数据（第五波 ERM 的同一份数据和 sampler），是"LoRA 加在编码器上还是加在文本层上"的干净对照。规则 2 的参照从 unist_wise05 换成 CoVoST 的 erm_wise05。
+  - 第十七波原波照常评测、照常报告（uniss-2b 的执行者负责）。卡 4–5 归 uniss-2b 的 ncwi_erm；本波等第十七波原波交还卡 6–7 后自动上，链条 pid 3766228。
