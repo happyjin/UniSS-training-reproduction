@@ -1,0 +1,149 @@
+"""Robust wave 16 NCWI helpers (reports/mist_w3po_v1/robust_wave16_ncwi_prereg.zh-CN.md, section 3), CPU only.
+
+  agree     the alpha-0.5 LoRA run (wave16/eval_lora05) against the merged unist_wise05 (wave14/eval_unist_wise05):
+            share of items with identical full text and with identical blocks (text + write time), per direction; the
+            LoRA path is accepted iff both shares reach the smallest pairwise share among wave 5's 3 base runs (S1,
+            base_rerun1, base_rerun2) in both directions, and both NCWI LoRA outputs (wave16/eval_ncwi) are complete.
+            Writes --out json; exit 0 = accepted, 3 = rejected.
+  groups    merged fallback: per direction and distinct alpha*, the subset items file
+            wave16/eval_ncwi_merged/parts/items_<dir>_a<alpha>.jsonl (S1 order) and one line
+            "<dir> <alpha> <model> <items file> <n>" (model: alpha 0 the base, 0.5 / 1 wave 14's merged copies, else
+            wave16/merged_a<alpha>).
+  assemble  merged fallback: the per-alpha blocks files -> wave16/eval_ncwi_merged/thinker_<dir>/blocks_<dir>_w1.jsonl in
+            S1 order; every item exactly once, from the part of its own alpha*.
+  wisejson  write wave16/adapters_a<alpha>/adapters_final.json (run_unist's json with alpha 32 * alpha).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[3]
+M = REPO / "eval_outputs/mist_w3po_v1/wave16"
+W14 = REPO / "eval_outputs/mist_w3po_v1/wave14"
+S1 = REPO / "eval_outputs/mist_w3po_v1/wave2_S1"
+BASE_RUNS = {"S1": S1, "r1": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun1",
+             "r2": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun2"}
+QWEN3 = "pretrained_models/Qwen3-Omni-30B-A3B-Instruct"
+DIRS = ("en2zh", "zh2en")
+
+
+def jl(p):
+    return [json.loads(x) for x in open(p, encoding="utf-8") if x.strip()]
+
+
+def blocks(root: Path, d: str) -> dict:
+    return {r["id"]: r["blocks"] for r in jl(root / f"thinker_{d}" / f"blocks_{d}_w1.jsonl")}
+
+
+def shares(x: dict, y: dict, ids) -> tuple:
+    txt = sum("".join(b["text"] for b in x[i]) == "".join(b["text"] for b in y[i]) for i in ids) / len(ids)
+    blk = sum(x[i] == y[i] for i in ids) / len(ids)
+    return round(txt, 4), round(blk, 4)
+
+
+def agree(a) -> int:
+    out = Path(a.out)
+    if out.exists():
+        raise SystemExit(f"拒绝覆盖已有输出: {out}")
+    res, ok = {}, True
+    for d in DIRS:
+        ids = [r["id"] for r in jl(S1 / "data" / f"items_{d}.jsonl")]
+        r = {}
+        try:
+            nc = blocks(M / "eval_ncwi", d)
+            r["ncwi_complete"] = set(nc) == set(ids)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            r["ncwi_complete"] = False; r["ncwi_error"] = str(e)
+        try:
+            lo = blocks(M / "eval_lora05", d)
+            assert set(lo) == set(ids), f"{len(set(ids) - set(lo))} missing"
+            ref = blocks(W14 / "eval_unist_wise05", d)
+            assert set(ref) == set(ids)
+            r["lora05_vs_unist_wise05_[text,blocks]"] = list(shares(lo, ref, ids))
+        except (FileNotFoundError, AssertionError, json.JSONDecodeError) as e:
+            r["lora05_error"] = str(e)
+        B = {k: blocks(v, d) for k, v in BASE_RUNS.items()}
+        pw = {f"{x}-{y}": list(shares(B[x], B[y], ids)) for x, y in (("S1", "r1"), ("S1", "r2"), ("r1", "r2"))}
+        r["base_pairwise_[text,blocks]"] = pw
+        thr = (min(v[0] for v in pw.values()), min(v[1] for v in pw.values()))
+        r["threshold_[text,blocks]"] = list(thr)
+        got = r.get("lora05_vs_unist_wise05_[text,blocks]")
+        r["pass"] = bool(r["ncwi_complete"] and got and got[0] >= thr[0] and got[1] >= thr[1])
+        ok &= r["pass"]
+        res[d] = r
+    res["lora_path_accepted"] = ok
+    with open(out, "x", encoding="utf-8") as fh:
+        json.dump(res, fh, ensure_ascii=False, indent=1)
+    print(json.dumps(res), flush=True)
+    return 0 if ok else 3
+
+
+def model_of(al: float) -> str:
+    return {0.0: str(REPO / QWEN3), 0.5: str(W14 / "merged_unist_wise05"),
+            1.0: str(W14 / "merged_unist")}.get(al, str(M / f"merged_a{al:.4f}"))
+
+
+def groups(a) -> int:
+    P = M / "eval_ncwi_merged" / "parts"
+    P.mkdir(parents=True, exist_ok=True)
+    for d in DIRS:
+        al = {r["id"]: round(float(r["alpha"]), 4) for r in jl(M / "fit" / f"assign_{d}.jsonl")}
+        items = jl(S1 / "data" / f"items_{d}.jsonl")
+        assert set(al) == {it["id"] for it in items}
+        for x in sorted(set(al.values())):
+            f = P / f"items_{d}_a{x:.4f}.jsonl"
+            sub = [it for it in items if al[it["id"]] == x]
+            if f.exists():
+                assert jl(f) == sub, f"{f} exists with other content"
+            else:
+                with open(f, "x", encoding="utf-8") as fh:
+                    fh.writelines(json.dumps(it, ensure_ascii=False) + "\n" for it in sub)
+            print(d, f"{x:.4f}", model_of(x), f, len(sub))
+    return 0
+
+
+def assemble(a) -> int:
+    for d in DIRS:
+        al = {r["id"]: round(float(r["alpha"]), 4) for r in jl(M / "fit" / f"assign_{d}.jsonl")}
+        items = jl(S1 / "data" / f"items_{d}.jsonl")
+        got = {}
+        for x in sorted(set(al.values())):
+            for r in jl(M / "eval_ncwi_merged" / "parts" / f"thinker_{d}_a{x:.4f}" / f"blocks_{d}_w1.jsonl"):
+                assert r["id"] not in got and al[r["id"]] == x, (d, x, r["id"])
+                got[r["id"]] = r
+        miss = [it["id"] for it in items if it["id"] not in got]
+        assert not miss, f"{d}: {len(miss)} items missing, e.g. {miss[:3]}"
+        o = M / "eval_ncwi_merged" / f"thinker_{d}"
+        o.mkdir(parents=True, exist_ok=True)
+        with open(o / f"blocks_{d}_w1.jsonl", "x", encoding="utf-8") as fh:
+            fh.writelines(json.dumps(got[it["id"]], ensure_ascii=False) + "\n" for it in items)
+        print(d, "assembled", len(items), flush=True)
+    return 0
+
+
+def wisejson(a) -> int:
+    x = round(float(a.alpha), 4)
+    src = json.load(open(W14 / "run_unist" / "adapters_final.json"))
+    assert src["alpha"] == 32.0 and src["rank"] == 16, src
+    src.update({"arm": f"ncwi_a{x:.4f}", "alpha": 32.0 * x,
+                "wise_ft": f"W0 + {x}*(W_unist - W0): LoRA alpha x {x}, adapters = wave14/run_unist/adapters_final.pt"})
+    with open(M / f"adapters_a{x:.4f}" / "adapters_final.json", "x") as fh:
+        json.dump(src, fh)
+    print(json.dumps(src))
+    return 0
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cmd", choices=("agree", "groups", "assemble", "wisejson"))
+    ap.add_argument("--out", default="")
+    ap.add_argument("--alpha", default="")
+    a = ap.parse_args()
+    sys.exit({"agree": agree, "groups": groups, "assemble": assemble, "wisejson": wisejson}[a.cmd](a))
+
+
+if __name__ == "__main__":
+    main()
