@@ -193,8 +193,10 @@ def main() -> None:
     torch.backends.cuda.enable_cudnn_sdp(False)
     torch.backends.cuda.enable_math_sdp(True)
     n_env, n_glob = len(ENVS), len(ENVS) * PER_ENV
+    t_end = time.time()
     for s, mbs, aul, gen in dl:
         ts = time.time()
+        t_wait = ts - t_end
         for g in opt.param_groups:
             g["lr"] = lr_at(s)
         # ---- AUL: two greedy drafts per sample, eval mode, no grad
@@ -238,6 +240,7 @@ def main() -> None:
         dist.all_reduce(cnt)
         n_neg_g, n_aul_g = int(cnt[0].item()), int(cnt[1].item())
         ul_sum = torch.zeros((), device=dev)
+        tu = time.time()
         if negs:
             texts = [x["head"] + join(x["ref_units"][: x["j"]], x["zh"]) for x in negs]
             inp = proc(text=texts, audio=[x["wav_long"] for x in negs], return_tensors="pt", padding=True)
@@ -260,6 +263,8 @@ def main() -> None:
                                                "p": round(pv, 4)}, ensure_ascii=False) + "\n")
                 examples.flush()
         dist.all_reduce(ul_sum)
+        torch.cuda.synchronize(dev)
+        t_ul, tc = time.time() - tu, time.time()
         # ---- CE, identical to wave 5 ERM
         ce_env = torch.zeros(n_env, device=dev)
         cnt_env = torch.zeros(n_env, device=dev)
@@ -278,14 +283,22 @@ def main() -> None:
             cnt_env.index_add_(0, env, torch.ones_like(ce_i))
             (ce_i.sum() / n_glob * world).backward()
             del out_
-        bad = torch.zeros((), device=dev)
+        torch.cuda.synchronize(dev)
+        t_ce, ta = time.time() - tc, time.time()
+        # gradient averaging: one all-reduce of the flattened gradients instead of one per tensor (same sums)
         for p_ in params:
             if p_.grad is None:
                 p_.grad = torch.zeros_like(p_)
-            dist.all_reduce(p_.grad)
-            p_.grad /= world
-            bad += (~torch.isfinite(p_.grad)).sum()
-        dist.all_reduce(bad)
+        flat = torch.cat([p_.grad.reshape(-1) for p_ in params])
+        dist.all_reduce(flat)
+        flat /= world
+        bad = (~torch.isfinite(flat)).sum()
+        o_ = 0
+        for p_ in params:
+            n_ = p_.numel()
+            p_.grad.copy_(flat[o_: o_ + n_].view_as(p_.grad))
+            o_ += n_
+        del flat
         if bad.item() > 0:
             log(f"step {s}: non-finite gradient ({int(bad.item())} entries), step skipped")
         else:
@@ -297,13 +310,15 @@ def main() -> None:
         if rank == 0:
             rec = {"step": s, "lr": lr_at(s), "ce": float(sum(ce_e) / n_env), "ce_env": ce_e,
                    "ul": float(ul_sum.item() / n_neg_g) if n_neg_g else None, "n_neg": n_neg_g, "n_aul": n_aul_g,
-                   "skipped": bool(bad.item() > 0), "gen_sec": round(t_gen, 1), "step_sec": round(time.time() - ts, 1),
+                   "skipped": bool(bad.item() > 0), "gen_sec": round(t_gen, 1),
+                   "ul_sec": round(t_ul, 1), "ce_sec": round(t_ce, 1), "ar_opt_sec": round(time.time() - ta, 1), "mb": a.mb, "wait_sec": round(t_wait, 1), "step_sec": round(time.time() - ts, 1),
                    "sec": round(time.time() - t0, 1), "mem_gib": round(torch.cuda.max_memory_allocated(dev) / 2**30, 1)}
             metrics.write(json.dumps(rec) + "\n")
             metrics.flush()
             if s % 10 == 0 or s < 5:
                 log(json.dumps(rec))
         done = s + 1
+        t_end = time.time()
         if a.max_steps_run and done - start >= a.max_steps_run:
             log(f"smoke stop after {done - start} steps")
             break
