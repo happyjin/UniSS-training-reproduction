@@ -144,6 +144,11 @@ def extracards(a) -> int:
     import subprocess
     q = lambda args: [[x.strip() for x in ln.split(",")] for ln in subprocess.run(
         ["nvidia-smi", *args, "--format=csv,noheader,nounits"], capture_output=True, text=True, check=True).stdout.splitlines() if ln.strip()]
+    blk = REPO / "eval_outputs/mist_w3po_v1/combo/ctrl_pool_base/DONE"
+    if not blk.exists():   # coordinator 18:15 CET: uniss-de's ctrl_pool_base holds cards 4-5 until this flag appears
+        print(f"cards 4-5 reserved for ctrl_pool_base until {blk.relative_to(REPO)} exists -> none", file=sys.stderr)
+        print("")
+        return 0
     gpus = {u: (int(i), float(t), float(us)) for i, u, t, us in q(["--query-gpu=index,uuid,memory.total,memory.used"])}
     apps = q(["--query-compute-apps=gpu_uuid,pid,used_memory"])
     ok = []
