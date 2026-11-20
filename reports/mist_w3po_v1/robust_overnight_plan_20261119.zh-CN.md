@@ -63,3 +63,4 @@
   - Fishr 出结果后用同一规则对比；Fishr 若不优于 ERM-WiSE，主系统 Thinker 就定为 ERM-WiSE。论文的新意需要另外论证：Fishr 若无额外贡献，"不变性"就不能作为卖点。
 - 2026-11-20 07:55：用户说"开始"，开第八波 Agreement-Unlikelihood（预登记 `robust_wave8_aul_prereg.zh-CN.md`），卡 4–7。它和 ERM 完全相同，只多一项：LA2 的两次草稿"认同但错误"时，对那个单元做 unlikelihood 惩罚（λ = 1）。之后同样做 WiSE-FT 0.5。比较对象：底座和 ERM-WiSE。
 - 2026-11-20 08:00：第八波 AUL 冒烟通过（每步约 15 s，约 37% 的 AUL 样本有"认同但错误"的负样本）。第一次冒烟发现 UL 前向在左填充下取错位置，已修正，记录在预登记"实现说明与实现修正"一节。07:57 在卡 4–7 启动 2300 步正式训练，预计 17:30 前后训完；之后由 `wave8_aul_chain.sh` 自动做 WiSE 0.5、评测和打分。
+- 2026-11-20 08:45：用户要求开 idea 2，开第九波"音色锚定的 Thinker"（预登记 `robust_wave9_anchor_prereg.zh-CN.md`）。两臂：锚定臂 A（V1 编码器 u 离散为 8 个 token 放进 prompt）和对照臂 C（同样的串音增强，不加锚定）。A 先在卡 0–1 训练，C 等 Fishr 评测结束后在卡 2–3 训练。
