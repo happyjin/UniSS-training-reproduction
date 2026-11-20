@@ -33,3 +33,28 @@
 - **H4 成立：** 训练子集上 erm − base ≥ +3.0，且 CI 下界 > 0（训练集明显变好，而 dev 变差）。
 - 几条可以同时成立。全部只用于理解原因和写论文的分析部分，不改主系统。
 - 辅助：WiSE 在离线和提交两部分各自的变化，说明为什么减半能把干净掉分拿回来。
+
+## 实现说明（2026-11-20 13:35 CET，写在任何数字之前）
+- **离线翻译怎么取：** oracle 输出（`blocks_<dir>_w1_oraclecommit.jsonl`）每行带 `drafts`，最后一个 draft 的 t ≥ 音频时长，就是整句听完后的最终 draft。
+  - 第三波 base 的 oracle 输出已核对：zh2en 2012 行、en2zh 1274 行，每行都有 t ≥ dur 的最后 draft，且 blocks 拼接 == 最后 draft（逐行相同）。所以"离线 BLEU"= oracle 输出的 text BLEU，不必另跑 `--windows` 大于最长音频的离线运行。
+  - 注意：这个最终 draft 以已提交前缀为条件；oracle 提交的前缀本身就是同一 prompt 下整句音频贪心续写的前缀（temperature 0），因此它和无前缀的离线翻译只差分词 / 批次带来的数值差异。照预登记把它当作离线翻译。
+- **base 的 oracle：** 复用第三波 `wave3_combos/D/oracle_<dir>`。已核对：它用的 items 文件就是 S1 的 `wave2_S1/data/items_<dir>.jsonl`（条目集合与 S1 的 LA2 输出完全相同）；第十二波 (a) 单元的 600 条 items 是它的逐字段相同子集；`si_thinker_stream.py` 自 10-29 起没有改动，口径一致；底座即默认 `--thinker`。
+- **新运行一律只跑 (a) 单元：** items 用 `wave12/data/items_<dir>_a.jsonl`（每方向 600 行 = 300 对 × 干净/带噪），窗口 1 s，gpu-mem 0.85。
+  - oracle：`--policy oracle`，`--thinker` 分别为 `wave5/M/merged_erm`、`merged_erm_wise05`，两个方向，共 4 个运行。
+  - LA2：`--policy la2`，`--thinker wave13/merged_dzh`，zh2en，1 个运行。
+  - dzh 合并：`wave5_m_merge.py --adapters wave10/run_zh2en/adapters_final.pt`（rank 16、alpha 32，scale 2.0，即 α = 1），输出 `wave13/merged_dzh`。
+- **训练子集（H4）：** 对 `wave5/M/data/rows_zh2en.jsonl` 的行号 i（0 起），按 int(sha1("20261120|w13|train|i")) 升序取前 600 行（i 用行号，与第六波 `h(f"...|{i}")` 的约定一致）。
+  - 音频为 `clips/zh2en/<id>.wav`（干净），dur_ms 从 wav 读，参考译文为行的 `ref`，id 为 `t_clean__<id>`，写成 `wave13/data/items_zh2en_train600.jsonl`（字段同 S1 items）。
+  - 跑 base（默认 Thinker）和 erm（`merged_erm`）两个 LA2 运行，窗口 1 s。只作诊断，不用于训练或选择。
+  - 这个子集没有底座的 3 次运行，所以不算噪声底。
+- **打分（`wave13_score.py`）：** 第五波口径，`wave2_s1_score.Bleu`（normalize_for_bleu，sacrebleu zh / 13a），单元为句子（(a) 的 stream），配对 bootstrap 2000 次，seed 0，95% CI 取 2.5 / 97.5 百分位。
+  - 离线 / oracle：erm − base、erm_wise05 − base，base 为第三波的单次运行。
+  - LA2 的 base 一律用 3 次底座均值（S1、base_rerun1、base_rerun2；第五波 erm − base_mean = −3.63 的口径），同时给出相对 S1 单次运行的数作敏感性，并报告噪声底。
+  - 提交损失 = oracle BLEU − LA2 BLEU（同一系统，同一单元）。"erm 的提交损失比 base 多"= (erm_or − erm_la2) − (base_or − base_la2_mean)，在同一组 bootstrap 重采样上算 CI；用 S1 的版本作敏感性。
+  - 自检：erm / erm_wise05 的 LA2 和 erm − base_mean 必须与 `wave5/M/summary.json` 相同，否则不出结果；base 的 oracle zh2en/a 干净必须等于第三波 `oracle.json` 的 35.385（两位小数）。
+- **判读的落地：**
+  - H1、H2 都看 zh2en/a/clean。H1 的"多 ≥ 2.0"看点估计。
+  - H3："erm 掉分"用第五波的 −3.63。若 dzh − base_mean 的点估计在 (−2.0, −0.3) 之间，记为"不确定"（规则两条都不满足）。
+  - H4：训练子集上 erm − base 的点估计 ≥ +3.0，且 CI 下界 > 0。
+  - 其余单元（en2zh 对照、带噪）只列表，不参与判读。
+- **卡：** 卡 0–1（guard 占位）。用自己的 watcher `wave13_noplaceholder.sh`（PIDS `logs/mist_w3po_v1/wave13/w13_workers.pids`，STOP `w13_noplaceholder.stop`）。编排 `wave13_eval_orch.sh` 在两张卡上串行跑 7 个运行。卡 2–3 在本波不需要。不碰卡 4–7。
