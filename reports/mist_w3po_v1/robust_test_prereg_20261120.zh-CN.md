@@ -153,3 +153,44 @@
 - TTS 种子：只用一个种子 20261021，与探索阶段相同。
 - 判定规则：沿用 dev 的统一规则，或者另外写定。
 - OOD-3 和 OpenBroadcast-SI 单说话人测试集已于 2026-11-20 生成并核对（第 3、4、4a 节）。到写入时，还没有任何系统在它们上面跑过。
+
+## 6. 系统列表、主判定、报告格式（2026-11-20 19:45 CET 补写；写在任何测试数字之前，到此时没有任何系统在任何测试集上跑过）
+### 6.1 比较的系统（事先写定；每个系统在每个测试集上只跑一次）
+| 名称 | Thinker | 提交策略 | 音色 | Talker | 来源（dev 上的对应） |
+|---|---|---|---|---|---|
+| **B** | 基础 Qwen3-Omni-30B-A3B-Instruct | LA2，读窗 1 s（`si_thinker_stream --policy la2 --windows 1`） | 原音色（本句源音频前 max(首次写出, 1 s)） | T1c export_1500 | wave2 S1 底座协议 |
+| **EW_v1** | ERM-WiSE（`wave5/M/merged_erm_wise05`） | LA2 w1（`si_thinker_stream`） | V1 token（`wave5_m_v1tokens.py`） | T1c | 第五波全系统 ew_v1 |
+| **C_v1**（全系统） | ERM-WiSE | CV-LA（`combo_si_thinker --second-view enh`，DeepFilterNet3 因果增强视角，`wave15_enh_views.py` 同一实现） | V1 | T1c | 组合臂 C |
+| EW_b、C_b（消融，同次运行顺带产出） | 同上 | 同上 | 原音色 | T1c | ew_b、C_b |
+
+- Talker 的参数与 dev 完全相同：`si_infer --window 1 --text-policy file --speed-policy block --gpu-mem 0.1`，`SI_KV_CACHE_GIB=7.73`，4 个分片，种子 20261021（只用一个 TTS 种子，与探索阶段相同）。
+- **条件系统 CE**：Thinker 换成第十七波 b 的 enc_cv_wise05，其余同 C_v1。只有同时满足以下两条才测：(1) 第十七波 b 两条主判定都通过；(2) dev 上 CE 组合臂通过全系统规则（与臂 C 相同的规则 1）。满足时用本节完全相同的协议，每个测试集只跑一次，并在本文件追加启动记录，写在 CE 的任何测试数字之前；不满足就不测，也不在测试集上做任何 CE 相关的计算。
+- 不测的：NCWI、UniST 底座、第十七波 enc（都在 dev 上没通过）；CV-LA 的两个 dev 对照（ctrl_budget、ctrl_pool）只是机理分析，不进测试。
+
+### 6.2 测试集与单元
+- 每个方向合并成一个 items 文件，评测一次：`eval_outputs/mist_w3po_v1/test_robust/data/items_<dir>.jsonl` 和 `meta_<dir>.jsonl`。
+  - RealSI 干净 / 带噪：id 加前缀 `rsc__` / `rsn__`（原 id 相同，必须区分），set = realsi，cond = clean / noisy，pair = 原 id，rec = 录音号。
+  - OOD-3 与 OBSI：沿用 `ood_single_v1` 的 id 和 meta（set = ood3_en / ood3_ali / ood3_ami / obsi，cond = real / clean / id2 / ood1）。
+  - 条目数：英→中 346 × 2 + 185 + 585 × 3 = 2632；中→英 431 × 2 + 853 + 394 + 678 × 3 = 4143。
+- **单元（cell）：** 方向 × {realsi/clean, realsi/noisy, obsi/clean, obsi/id2, obsi/ood1, ood3_en（英→中）, ood3_ali（中→英）, ood3_ami（中→英，单列）}。
+  - OBSI 英→中的主表排除 pair e031_0004（第 4a 节），含它的结果放附录。
+- **bootstrap 单位：**
+  - RealSI 按句（stream = 句 id）。理由：基线协议里每句单独评测，句子之间没有任何状态传递；每个方向只有 10 段录音，按录音分块只剩 10 个块，CI 没有意义。按录音分块的 CI 作为辅助一并报告。
+  - OBSI 和 OOD-3 按 meta 的 stream（会议:说话人）分块。
+  - 2000 次重采样，seed 0；ASR-BLEU 和 text BLEU 用单元内充分统计量求和（同 `wave3_v_score.compare` / `combo_score.text_compare`）。
+
+### 6.3 指标
+- **主指标：** ASR-BLEU（论文协议：`reports/uniss_si_v4/speech_only.py` → `evaluation.asr_transcribe --batch-size 4`）。
+- **辅助：** Thinker text BLEU；语音 LAAL（主延迟，逐单元；D1 / D2 用 `laal_defs.sentence_defs`，与 dev 相同）；PESQ（SQUIM，前 20 s）；说话人相似度（TitaNet-large，对同 pair 的干净孪生版本；OOD-3 没有干净孪生，对本句源音频）。
+- RealSI 干净版另列论文基线对照列（29.75 / 2.51 s，23.19 / 2.70 s），表中 B 用本次重跑的数字作主。
+
+### 6.4 主判定（写定）
+1. **C_v1 相对 B，不退化：** 所有主表单元（ood3_ami 除外）× 两个方向，ASR-BLEU 差的点估计 ≥ −0.3 且 CI 上界 ≥ 0。
+2. **C_v1 相对 B，带噪提升：** 带噪单元（realsi/noisy、obsi/id2、obsi/ood1）中，至少一个方向的一个单元 ASR-BLEU 差的 CI 下界 > 0。
+- 两条都满足，记为"全系统在测试集上成立"。
+- **报告但不作门槛：** C_v1 相对 EW_v1（CV-LA 的测试增量）；EW_v1 相对 B（ERM-WiSE + V1 的测试增量）；C_v1 相对 C_b（V1 的贡献）；各系统的 LAAL 差、PESQ 配对中位数差、相似度差；ood3_ami；含 e031_0004 的 OBSI 英→中。
+- 判定只用 6.2 定义的单元和统计，不另挑子集，不改阈值。
+
+### 6.5 实现与资源
+- 编排：`experiments/mist_w3po_v1/voicecond/test_orch.sh`（combo_orch.sh 的副本，换成测试数据根；watcher POLL = 1；launch 前等占位离开，最多 120 s）。打分：`test_score.py`。
+- 卡：B 用卡 0–1，EW 用卡 2–3，C 用卡 4–5；卡 6–7 留给第十七波 b 训练，不碰。
