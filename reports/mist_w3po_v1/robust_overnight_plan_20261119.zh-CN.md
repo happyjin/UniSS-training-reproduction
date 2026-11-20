@@ -114,3 +114,6 @@
   - H4：训练子集上 erm − base 为 +13.31 [+11.19, +15.63]，训练集明显变好而 dev 变差。
   - WiSE 在 zh2en 干净上比 erm 高 3.97：离线 +2.18，提交损失少 1.79。
   - 卡 0–1 已交还 guard。详见 `robust_wave13_cleandrop_diag_prereg.zh-CN.md` 的"结果"一节和 `eval_outputs/mist_w3po_v1/wave13/summary.json`。
+- **15:30 CET 决策：开始第十四波**（ERM-WiSE 只把训练数据换成 UniST pilot，见 `robust_wave14_unist_prereg.zh-CN.md`），卡 0–3。
+  - 依据：第十三波确认中→英掉分来自 CoVoST 中→英数据太窄；用户要求卡不要空置，并授权按最优选择决定。
+  - 卡 4–7：AUL 评测已在约 15:23 结束，正在打分（CPU）。已要求执行者在不需要跑组合时立刻交还卡。
