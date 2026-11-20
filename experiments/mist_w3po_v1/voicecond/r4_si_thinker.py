@@ -36,6 +36,21 @@ sys.path.insert(0, str(REPO))
 
 def worker(card: str, model: str, gpu_mem: float, seed: int, conn) -> None:
     os.environ["CUDA_VISIBLE_DEVICES"] = card
+    if os.environ.get("R4_FAKE"):            # CPU logic test only: deterministic fake drafts, no model
+        conn.send("ready")
+        while True:
+            prompts = conn.recv()
+            if prompts is None:
+                break
+            out = []
+            for pr in prompts:
+                a = pr["multi_modal_data"]["audio"][0]
+                k = len(a) // 16000
+                tag = "A" if "merged" in model else "B"
+                noisy = float(abs(a).mean()) > 0.02
+                out.append(" ".join(f"w{j}" for j in range(k + 2)) + (f" {tag}{k}" if noisy else ""))
+            conn.send(out)
+        return
     from vllm import LLM, SamplingParams
     from experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream import THINKER_EOS
     llm = LLM(model=model, gpu_memory_utilization=gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
