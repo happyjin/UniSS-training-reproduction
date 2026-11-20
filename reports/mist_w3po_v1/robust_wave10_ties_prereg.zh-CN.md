@@ -37,3 +37,28 @@
 ## 卡与时间
 - 等第五波 Fishr 评测结束（`eval_fishr/EVAL_DONE`，约 11:30），而且卡 2–3 上没有第五波进程后开始。
 - 两个 LoRA 并行训练约 5–7 小时，合并（CPU）加评测约 1.5 小时。
+
+## 实现说明与实现修正（2026-11-20 09:05 CET 起，写在任何冒烟、训练和评测数字之前；只追加）
+- **训练脚本：** `voicecond/wave10_dir_train.py`，是 `wave5_m_train.py` 的副本（原文件正被运行中的任务使用，不改）。只改了这几处：
+  - `--direction zh2en|en2zh` 只保留该方向 4 个环境的 slot（zh2en 为 j // 8 = 0..3，en2zh 为 4..7）；行号和噪声仍用 `"20261119|w5m|row|s|j"`、`"20261119|w5m|mix|s|j"`，所以样本与 ERM 中该方向的样本逐个相同；
+  - 全局批量 32（world 1），损失为这 32 个样本的平均 CE；
+  - `--arm` 固定为 erm；日志里的 CE 只对本方向 4 个环境取平均；`adapters_final.json` 记下方向。
+  - 其余全部沿用 ERM 路径：同一个 `torch.manual_seed(20261119)`，所以两个方向的 LoRA A 初值与 ERM 相同（B = 0）；第 0–43 层检查点，最后 4 层 eager 专家，全局只开 math SDPA，2300 步余弦，每 500 步存 resume。
+- **梯度尺度（事实记录）：** ERM 的损失是 64 个样本的平均，所以某个方向对 ERM 梯度的贡献是本波单方向梯度的一半。AdamW 对梯度整体缩放近似不变，学习率仍是 1e-4，不另调。
+- **微批量与并行度：** 第五波 ERM 是 world 2、每卡 32 个样本、微批量 8。本波每个方向 world 1，微批量按冒烟取 32（峰值 < 约 130 GiB）否则 16，只影响梯度累积和 padding。
+- **显存分配器：** 启动时加 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`，只减少碎片，不改数值。
+- **TIES 合并：** `voicecond/wave10_ties_merge.py`。
+  - 按预登记的写法逐个被适配矩阵做：trim 在每个矩阵内取 |τ_d| 前 20%（用 topk 精确保留 ⌈0.2n⌉ 个元素）。原论文是把整个任务向量拉平后统一取前 20%，本波按预登记逐矩阵做，这一点照实记录。
+  - 符号和为 0 的元素记 0；τ 用 fp32 计算，加到 bf16 权重后再转回 bf16（同 `wave5_m_merge.py`）。
+  - W = W0 + 0.5·τ*（λ = 1）；没有被适配权重的文件硬链接自原版，拒绝覆盖。统计量写在合并目录旁边的 `merged_ties_wise05.ties_merge.json`，不放进模型目录。
+  - 自检：玩具张量的结果与手算一致。
+- **机理测量：** `voicecond/wave10_mech.py`（CPU）。
+  - "逐层"指把该层 q/k/v/o 四个矩阵拼在一起算；另外按投影类型、按全部层各算一次。
+  - 符号冲突比例 = trim 后两个方向都保留的元素中符号相反的比例；另报占两者并集的比例。
+  - 额外报 cos(Δ_erm, τ*)，只作参考。
+  - 自检：三个输入都用 ERM 的适配器时，余弦为 1，冲突为 0。
+- **打分：** `voicecond/wave10_score.py`，复制自 `wave5_m_score.py`，只保留 base、erm_wise05、ties_wise05 三个系统。
+  - 第 1 条与第五波统一规则逐字相同。
+  - 第 2 条中"超过噪声底"指：该单元 ties_wise05 − erm_wise05 的点估计大于 3 次底座两两之差的最大值；增量只看 text BLEU；"没有退化"同时查 text BLEU 和 ASR-BLEU。
+  - 自检：在现有输出上复算 erm_wise05 相对底座，数字与 `summary_erm_wise05.json` 一致。
+- **评测链：** `wave10_eval.sh` / `wave10_eval_orch.sh`，复制自第五波，只改输出路径（`eval_outputs/mist_w3po_v1/wave10/`）和日志路径（`logs/mist_w3po_v1/wave10/`）。en2zh 用卡 3，zh2en 用卡 2。占位守护用自己的副本 `wave10_noplaceholder.sh`，有自己的 PIDS 和 STOP 文件。
