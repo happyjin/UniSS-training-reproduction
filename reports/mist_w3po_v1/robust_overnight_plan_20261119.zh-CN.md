@@ -97,3 +97,8 @@
   - 相对 erm_wise05：没有带噪单元的 CI 下界 > 0；zh2en/a/noisy 的 text −2.15 [−3.95, −0.30]、ASR −2.20 [−3.85, −0.56]，属于有害单元。
   - Λ 均值 0.499，有效步长 0.553，corr(Λ, |Δ|) 约为 0.09。
   - 按预登记不跑完整系统组合，主系统 Thinker 仍为 ERM-WiSE。卡 0–1 空出，交还 guard 跑占位。详情见 `robust_wave11_laplace_prereg.zh-CN.md` 的"结果"一节和 `eval_outputs/mist_w3po_v1/wave11/summary.json`。
+- **12:55 CET 第十二波诊断（ERM 的 zh2en 干净掉分是不是过拟合）结果：按预登记记为"不支持过拟合"。**
+  - 做法：ERM 的 500 / 1000 / 1500 / 2000 步和 final 检查点，都用 α = 1 合并，只跑 Thinker 的 (a) 单元（卡 0–1，12:39–12:53）。
+  - zh2en 干净（相对 3 次底座均值）：−2.18、−2.70、−1.50、−2.94、−3.63。1500 步回升 1.21，不单调；final − 500 为 −1.46 [−3.87, +0.54]；500 步时 CI 上界 +0.37，不算显著掉分。
+  - 事实：500 步（约 2.3 个 epoch）的点估计已有 final 的 60%。en2zh 干净在各检查点都为正（+1.90 到 +3.71）；zh2en 带噪 +0.19 到 +1.11，都不显著。
+  - 主系统不变（仍为 ERM-WiSE）。卡 0–1 已交还 guard（watcher STOP 12:53）。详见 `robust_wave12_overfit_diag_prereg.zh-CN.md` 的"结果"一节和 `eval_outputs/mist_w3po_v1/wave12/summary.json`。
