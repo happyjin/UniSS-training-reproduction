@@ -207,3 +207,14 @@
   - 续跑 2 如果已经看到两份 ASR 并完成打分（DONE），续跑 3 就不再做什么；
   - 否则由续跑 3 写 EVAL_DONE 和 NCWI_ROOT，再打分。
 - 卡 0、3（组合臂 C）、6、7 都没有用。
+
+### 实现说明更正 5：watcher 改为每秒检查（2026-11-20 19:01 CET）
+- **根因**（主会话 19:00，uniss-de 查到）：guard 把显存占用低于 100 GB 的卡当作空闲，空闲 5 s 后就补上约 116 GB 的占位。旧 watcher 每 5 s 才清一次，Talker 或 Thinker 预热时会被挤爆。18:46 那 3 组 Thinker 启动失败、续跑 2 里卡 2 起不来，都与此一致。
+- **做法：**
+  - 写了新脚本 `wave16_noplaceholder_v2.sh`：`wave16_noplaceholder.sh` 的副本，只把 POLL 的默认值从 5 改成 1。
+  - 先起新 watcher（pid 177140，PIDS 仍是 `w16e_workers.pids`，STOP 文件为 `w16e_p1_noplaceholder.stop`），再按 PID 停掉旧的两个（63498、143293）。正在运行的脚本都没有就地改。
+- **核查：** 这一轮没有因此失败的分片：
+  - zh2en 的 4 个 Talker 分片都正常结束，results 2012/2012，ASR 已完成；
+  - en2zh 的 4 个分片（卡 2、5）在运行中，日志里没有 OOM；
+  - 另外补查了 UniST 组：results 和 ASR 都齐全（en2zh 1274/1274，zh2en 2012/2012）。
+- 结束时由我 touch `w16e_p1_noplaceholder.stop`，把卡交还 guard。
