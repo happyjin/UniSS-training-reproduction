@@ -62,3 +62,9 @@
   - 第 2 条中"超过噪声底"指：该单元 ties_wise05 − erm_wise05 的点估计大于 3 次底座两两之差的最大值；增量只看 text BLEU；"没有退化"同时查 text BLEU 和 ASR-BLEU。
   - 自检：在现有输出上复算 erm_wise05 相对底座，数字与 `summary_erm_wise05.json` 一致。
 - **评测链：** `wave10_eval.sh` / `wave10_eval_orch.sh`，复制自第五波，只改输出路径（`eval_outputs/mist_w3po_v1/wave10/`）和日志路径（`logs/mist_w3po_v1/wave10/`）。en2zh 用卡 3，zh2en 用卡 2。占位守护用自己的副本 `wave10_noplaceholder.sh`，有自己的 PIDS 和 STOP 文件。
+- **冒烟（10:31–10:33 CET，各 15 步，`wave10/smoke_*_mb32`，不计入结果）：**
+  - 微批量 32 能装下：峰值显存 zh2en 75.6 GiB、en2zh 74.1 GiB（远低于约 130 GiB），所以取 **mb = 32**；
+  - 速度：zh2en 3.64 s/步、en2zh 3.53 s/步（第 5 步起的平均）。2300 步约 2.3 h，比预估的 5–7 h 短，因为每步只有 32 个样本，而且单卡没有 all-reduce。
+  - 第 0 步各环境的交叉熵与第五波 ERM 第 0 步对应环境的值接近，但不逐位相同（zh2en 1.384/1.135/0.944/1.224，ERM 为 1.399/1.138/0.944/1.214）。这说明样本相同，差异来自 bf16 下微批量 32 和 8 的 padding 不同，按上文属于允许的范围。
+  - 实现修正：第一次 zh2en 冒烟用端口 29631，该端口已被别的任务占用（EADDRINUSE），没有开始训练。日志改名为 `w10_smoke_zh2en_mb32.superseded_v0_port.log` 保留，然后换端口 29657 重跑。正式运行用 29657 和 29658。
+- **正式训练：** 10:33 CET 起，zh2en 在卡 2（pid 3025833），en2zh 在卡 3（pid 3027341），各 2300 步，mb 32。
