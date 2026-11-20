@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ncwi_erm (change B): sed copy of wave16_eval.sh with root wave16/erm, logs wave16/erm, PIDS w16e_workers.pids.
+# ncwi_erm (change B; v2 18:55 CET: per-card wait for placeholder release, <=120 s): sed copy of wave16_eval.sh with root wave16/erm, logs wave16/erm, PIDS w16e_workers.pids.
 # Robust wave 16 NCWI evaluation launcher (copy of wave14_eval.sh; v2 16:25 CET: cards 4-5 allowed for stacking; own paths, logs and PIDS;
 # reports/mist_w3po_v1/robust_wave16_ncwi_prereg.zh-CN.md sections 3-4):
 #   STAGE=thinker_lora GPU=0 ROOTN=eval_ncwi|eval_lora05 DIR=en2zh [CONST=0.5]
@@ -75,7 +75,25 @@ if [ "$GPU" != "-" ]; then
       case "$a" in *scripts/gpu_load/*"--devices $g "*) kill -TERM "$pid" 2>/dev/null && echo "SIGTERM placeholder $pid card $g";; esac
     done < <(ps -eo pid=,args=)
   done
-  sleep 8
+  # v2 (coordinator 18:50 CET): instead of a fixed 8 s, wait up to 120 s per card until no gpu_load process runs on it
+  # and its free memory (nvidia-smi) covers the stage (Thinker 125000 MiB, Talker / ASR 30000 MiB); else refuse to start.
+  case "$STAGE" in thinker_*) NEED=125000;; *) NEED=30000;; esac
+  for g in ${GPU//,/ }; do
+    t0=$(date +%s)
+    while :; do
+      ph=$(ps -eo pid=,args= | awk -v g="$g" '{s = 0; d = 0
+             for (i = 2; i <= 5 && i <= NF; i++) if ($i ~ /scripts\/gpu_load\/(train_mist_workload\.py|run_mist_workload\.sh)$/) s = 1
+             for (j = 2; j < NF; j++) if ($j == "--devices" && $(j + 1) == g) d = 1
+             if (s && d) print $1}' | tr '\n' ' ')
+      free=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits -i "$g" | tr -d ' ')
+      [ -z "$ph" ] && [ "${free:-0}" -ge "$NEED" ] && break
+      if [ $(( $(date +%s) - t0 )) -ge 120 ]; then
+        echo "card $g not ready after 120 s (gpu_load pids: ${ph:-none}; free ${free} MiB < ${NEED} needed?) -- not starting $STAGE" >&2; exit 1
+      fi
+      sleep 5
+    done
+    echo "card $g ready: no gpu_load process, free ${free} MiB (need ${NEED})"
+  done
 fi
 setsid nohup "${CMD[@]}" > "$LOGF" 2>&1 < /dev/null 8>&- 9>&- &
 echo "${GPU/-/none} $! $NAME" >> "$PIDS"
