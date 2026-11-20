@@ -78,7 +78,7 @@
   - 事实记录：F_n 是在 W_e 处、在 ERM 自己的训练样本上算的。ERM 对这些样本已经拟合得较好（zh→en 只有 7004 行，2300 步里每行平均出现约 2.6 次），所以 F_n 的量级可能整体小于 F_c，Λ 整体偏向 0。这是预登记方法本身的性质，不做任何修正或缩放。
 - **正式运行：** 编排器 `wave11_eval_orch.sh`（ARM=laplace CA=0 CB=1），用 setsid nohup 脱离会话，日志 `logs/mist_w3po_v1/wave11/w11_orch.log`。
 
-## 结果（2026-11-20 12:35 CET；只追加）
+## 结果（2026-11-20 12:29 CET；只追加）
 - **运行：** Fisher 11:49–12:01 CET（F_c 在卡 0，650 s；F_n 在卡 1，668 s）→ 合并 12:01–12:03（CPU）→ Thinker 12:03–12:07 → Talker 12:07–12:15 → ASR 12:15–12:27，`EVAL_DONE`。行数完整：en2zh 1274/1274，zh2en 2012/2012。打分 `eval_outputs/mist_w3po_v1/wave11/summary.json`。
 - **结论：第 1 条通过，第 2 条不通过，记为"Laplace 合并对 WiSE 无增量"，只作分析。** 不跑完整系统组合，主系统 Thinker 仍为 ERM-WiSE。
 - **第 1 条（laplace 相对底座）：通过。**
