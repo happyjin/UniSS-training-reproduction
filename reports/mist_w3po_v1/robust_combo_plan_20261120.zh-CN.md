@@ -227,3 +227,11 @@
   - 但每句提交多少要随噪声变化，这一点在英→中有用：总预算相同时，按噪声分配比平均分配好 0.8–1.6 BLEU。在中→英看不出差别。
   - 所以 CV-LA 在论文中的定位是："用增强视角的一致性，零参数地估计每句该保守多少"。
 - **决策：** CV-LA 留在组合里，以"随噪声自适应的提交保守度"的定位进入；"跨视角信息"的说法不再使用。
+
+## 组合臂 C：ERM-WiSE + CV-LA + V1 + T1c（18:31 CET 预登记，写在本臂任何数字之前）
+- **背景：** 第十四波失败后，底座改为 CoVoST 的 ERM-WiSE（wave5/M/merged_erm_wise05）。第十六波 ncwi_erm 还没出结果。臂 C 先跑起来：NCWI 不通过时，C 就是最终的全系统；通过时，C 是全系统的"−NCWI"消融。
+- **配置：** `ARM=C SV=enh BASE=eval_outputs/mist_w3po_v1/wave5/M/merged_erm_wise05`，链条同组合方案第 3 节：Thinker → 原音色 T1c → V1 → ASR → PESQ / 相似度。卡 0、3（当时只有占位）。
+- **判定（写定）：**
+  1. 全系统规则（第五波原规则，与 combo_score 的 primary 相同）：C_v1 对 B，ASR-BLEU 不退化，且带噪 PESQ 提升。
+  2. CV-LA 在主底座上的贡献：C_v1 对 ew_v1（第五波 ERM-WiSE 全系统）。没有任何 a/b 单元的 ASR-BLEU 差 < −0.3 且 CI 上界 < 0；至少一个带噪单元 Thinker text 差的 CI 下界 > 0。
+  3. 辅助：LAAL（D1、D2）差。预期 CV-LA 会带来 +0.2–0.6 s，按"BLEU 优先于延迟"的规则只报告。
