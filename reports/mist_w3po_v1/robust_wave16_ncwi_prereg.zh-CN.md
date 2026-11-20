@@ -177,3 +177,24 @@
   4. en2zh/b_no_crosstalk/noisy 的 ASR-BLEU −2.80 [−5.22, −0.37] 显著变差。它不在 4.2 不伤判定的范围内（只看 a、b），照实列出。
   5. 带噪单元的 D2 LAAL 慢了 0.07–0.18 s（CI 都在 0 以上）。
 - **结论：** 按预登记规则判为 PASS，但不能作为 NCWI 有效的证据，因为端点 unist_wise05 本身失败了。决定性的检验是变更 B 的 ncwi_erm。
+
+### 实现说明更正 3：ncwi_erm 的卡位冲突与续跑（2026-11-20 18:53 CET，写在任何 ncwi_erm 数字之前）
+- **出了什么事：**
+  - ncwi_erm 第一轮 18:30 开始。LoRA 路径与 UniST 组一样起不来，18:33 改走合并路径，合并 12 个副本，15 个 (方向, α*) 组分到卡 0–5 的 6 个通道上。
+  - 18:46 链条停在 "merged part en2zh a0.5926: 0 of 167 rows"。15 组里有 3 组在启动时失败：
+    - en2zh a0.5926（卡 3）和 zh2en a0.2304（卡 3）是 CUDA OOM，当时卡上出现了别的进程；
+    - en2zh a1.0000（卡 0）是 vLLM 初始化时 `aten::new_empty` 失败，紧跟在同卡上一组之后。
+  - 主会话 18:50 指出：uniss-de 的组合臂 C 从 18:47 起在卡 0、3 上跑（到 `combo/C/DONE` 为止）。我 18:42 的 thinker_merged_zh2en_a0.3813 落在卡 0，挤爆了它的 Talker；我这边的 OOM 很可能也是同一个冲突。对组合臂 C 造成的影响，在此照实记录。
+- **续跑 1**（`wave16e_resume.sh`，18:48）：只重跑这 3 组，分到卡 0、1、2。它违反了"卡 0、3 不用"的更正，所以 18:50 按 PID 停掉了：
+  - 停了续跑脚本 21045 和卡 0 上的 thinker 23568。它的 EngineCore 子进程随之退出，事后核对卡 0 上只剩组合臂 C 的进程。
+  - 被停的 en2zh a0.5926 其实已经写完了 167 行（停的时候正在拆引擎）。它跑在不该用的卡上，所以输出改名为 `parts/thinker_en2zh_a0.5926.superseded_v2`，日志改名为 `*.superseded_v2`，不用，重跑。
+  - 卡 1、2 上的两组（zh2en a0.2304 pid 31143，en2zh a1.0000 pid 39903）不受影响，继续跑，由续跑 2 接管。
+- **启动脚本 v2**（`wave16e_eval.sh`，写新文件再 mv）：停掉卡上的占位后，不再固定等 8 s，而是每张卡最多等 120 s，直到满足以下两条才启动；120 s 内不满足就拒绝启动：
+  - 卡上没有 `scripts/gpu_load/` 的 train_mist_workload.py / run_mist_workload.sh 进程（按 argv 字段匹配，不会匹配到检查命令自身）；
+  - nvidia-smi 的空闲显存够这一阶段用：Thinker 125000 MiB，Talker / ASR 30000 MiB。
+- **续跑 2**（`wave16e_resume2.sh`，18:51 起，setsid nohup）：
+  - 只用卡 1、2、4、5。卡 4–5 由 extracards 当场核准：ctrl_pool_base 已结束，卡上只有占位。卡 0、3、6、7 不用。
+  - en2zh a0.5926 在卡 4 重跑，并等卡 1、2 上的两组跑完；
+  - 然后检查行数、拼装，Talker（zh2en 分片在卡 1、4，en2zh 分片在卡 2、5），ASR（zh2en 卡 1，en2zh 卡 2），打分；
+  - 有自己的 watcher STOP 文件，结束时 touch。
+- 第一轮的 `ORCH_FAILED` / `CHAIN16E_FAILED` 改名为 `*.superseded_v1`。
