@@ -1,7 +1,7 @@
 """Robust R7 (reports/mist_w3po_v1/robust_r7_noiseexcess_prereg.zh-CN.md): noise-excess token selection.
 Copy of r5_train.py (same paired iterator: the wave 14 batch and the same rows without background) with ONE change, the
 loss: per target token, CE_c from a no-grad forward of the clean copy and CE_n from the noisy copy (same model); mask
-m_t = 1[CE_n,t - CE_c,t > 0]; per-sample loss = sum_t m_t CE_n,t / n_target_tokens(sample); mean over the global batch.
+m_t = 1[CE_n,t - CE_c,t > 0] (0 on clean-env slots); per-sample loss = sum_t m_t CE_n,t / n_target_tokens(sample); mean over the global batch.
 No surgery. LoRA, optimiser, schedule, seed, steps, global batch are wave 14's. Logs the selected share per env.
 
 --- r5_train.py docstring ---
@@ -289,8 +289,11 @@ def main() -> None:
             tok_c, sel_c = tok_ce(mb_c, False)
             tok_n, sel = tok_ce(mb_n, True)
             assert torch.equal(sel, sel_c)
-            m = (tok_n.detach() - tok_c > 0).float()
             bidx = sel.nonzero()[:, 0]
+            # clean-env slots: both copies are the same audio, so the excess is 0 by definition (prereg 3); numerically the
+            # two forwards differ slightly (different microbatch contents), so these tokens are masked out explicitly
+            noisy_slot = torch.tensor([ENVS[int(e)][1] != "clean" for e in mb_n["env"]], device=dev)
+            m = ((tok_n.detach() - tok_c > 0) & noisy_slot[bidx]).float()
             nb = sel.shape[0]
             ntok = sel.sum(1).float()
             loss_i = torch.zeros(nb, device=dev).index_add(0, bidx, m * tok_n) / ntok
