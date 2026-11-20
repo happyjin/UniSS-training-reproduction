@@ -28,7 +28,10 @@ from experiments.mist_w3po_v1.voicecond import wave2_s1_score as S  # noqa: E402
 
 ROOTS = {"base": REPO / "eval_outputs/mist_w3po_v1/wave2_S1",
          "erm": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_erm",
-         "fishr": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_fishr"}
+         "fishr": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_fishr",
+         # change 4: fixed WiSE-FT alpha 0.5 of an arm (W0 + 0.5 (W_arm - W0)), same chain
+         "erm_wise05": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_erm_wise05",
+         "fishr_wise05": REPO / "eval_outputs/mist_w3po_v1/wave5/M/eval_fishr_wise05"}
 RERUNS = {"base_r1": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun1",
           "base_r2": REPO / "eval_outputs/mist_w3po_v1/wave5/base_rerun2"}   # change 3: Thinker-only reruns of the base
 BASES = ("base", "base_r1", "base_r2")
@@ -80,7 +83,8 @@ def cell(meta, pers, lang, set_, cond, keep):
             vals["base_mean"] = list(np.mean([vals[b] for b in BASES], axis=0))
             r["base_mean"] = round(vals["base_mean"][0], 3)
             r["base_floor"] = round(max(abs(vals[x][0] - vals[y][0]) for i, x in enumerate(BASES) for y in BASES[i + 1:]), 3)
-        for x, y in (("erm", "base"), ("fishr", "base"), ("fishr", "erm"), ("erm", "base_mean"), ("fishr", "base_mean")):
+        for x, y in (("erm", "base"), ("fishr", "base"), ("fishr", "erm"), ("erm", "base_mean"), ("fishr", "base_mean"),
+                     ("erm_wise05", "base"), ("erm_wise05", "base_mean"), ("fishr_wise05", "base"), ("fishr_wise05", "base_mean")):
             if x in vals and y in vals:
                 d = np.array(vals[x]) - np.array(vals[y])
                 r[f"{x}-{y}"] = [round(float(d[0]), 3), round(float(np.percentile(d[1:], 2.5)), 3),
@@ -117,7 +121,7 @@ def main() -> None:
         for sub, set_, keep in (("a", "a", lambda m: True), ("b", "b", lambda m: True),
                                 ("b_no_crosstalk", "b", lambda m, o=ovl: m["pair"] not in o)):
             res[d][sub] = {c: cell(meta, pers, lang, set_, c, keep) for c in ("clean", "noisy")}
-    for arm in ("erm", "fishr"):
+    for arm in ("erm", "fishr", "erm_wise05", "fishr_wise05"):
         if not all(arm in res[d]["a"]["clean"]["text"] for d in ("en2zh", "zh2en")):
             continue
         k, km = f"{arm}-base", f"{arm}-base_mean"
