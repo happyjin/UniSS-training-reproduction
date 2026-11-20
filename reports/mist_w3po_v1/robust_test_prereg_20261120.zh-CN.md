@@ -202,3 +202,15 @@
   - C：`ARM=C TK=combo SV=enh BASE=wave5/M/merged_erm_wise05 RUNS="b v1"`，卡 4–5（先在 CPU 上生成增强视角；得到 C_b、C_v1）。
 - 为测试数据根加的改动（默认行为不变）：`wave5_m_v1tokens.py`、`wave15_enh_views.py`、`wave3_v_spksim.py` 读环境变量 S1_DATA；spksim 在 S1_DATA 下对没有干净孪生的条目（OOD-3）用本句源音频作参照（见 6.3）。
 - 卡时估计：每个系统约 1.5–2 h 墙钟 × 2 卡（Thinker 约 10–15 min，Talker 每个 run 约 25 min，ASR 约 30 min，PESQ / 相似度约 15 min），合计约 10–12 卡时；预计约 21:45–22:15 CET 全部完成。
+
+## 变更 1：去掉 OOD-3 三个子集（20:45 CET，用户决定，只追加）
+- **用户原话：** "不要跑 alimeeting，这个是多说话人的数据，还有 overlap。ami 也不要跑，这个也是多说话 diarization 的数据，而且有 overlap。"
+- **范围：** OOD-3 的 en（AMI 原声）、ami（AMI 中文配音）、ali（AliMeeting）三个子集全部移出测试，不进主表、附录或判定。en 子集也是 AMI 录音，按同一理由一起移出。
+- **透明说明：**
+  - 变更时 Thinker 文本 BLEU 的点估计已经算出：ali 上 EW / C 相对 B 都约 −2.6，en +0.8 / +1.0，ami −0.6 / +0.2。
+  - 去掉的理由是数据性质，与结果无关：这些是多说话人会议数据，有重叠，不符合本线"单说话人"的范围。论文里如实写明这次变更。
+  - 已经跑完的这部分输出保留在 `test_robust/<ARM>/` 中，不删除，也不打分。
+- **剩下的测试集：** RealSI 干净 / 带噪，以及 OBSI 单说话人 clean / id2 / ood1。
+  - OBSI 的片段取自多说话人流，但每个片段都是去掉串音后的单人 utterance，所以保留。
+- **判定：** 第 6.4 节的规则不变，只是单元集合里去掉了 ood3_*。
+- **打分：** 用户要求先快速验证，所以先报点估计（ASR-BLEU、text BLEU、D1、PESQ 中位数差），bootstrap 放到最终表再做。
