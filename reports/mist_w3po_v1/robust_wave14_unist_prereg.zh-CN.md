@@ -131,3 +131,4 @@
 - 按主会话的分工变更，完整系统组合改由会话 uniss-de 负责。本会话不启动 `wave14_combo_orch.sh`，也不跑任何组合或测试，两条主判定都过时也一样。
 - 链条 `wave14_chain.sh`（pid 2047792）只做到训练 → WiSE → 合并 → 两条评测 → 打分，本来就不会启动组合，所以不需要停任何进程。
 - 已提交的 `wave14_combo_orch.sh`、`wave14_combo_score.py`、`wave14_combo_noplaceholder.sh` 只是备好的副本（卡 0–3），从未运行过，留给 uniss-de 参考。
+- 2026-11-20 17:34 CET 训练结束：2300 步全部完成，没有跳过的步，总用时 7167 s（平均 3.12 s/步），峰值显存 69.9 GiB/卡，最后一步 CE 0.652。17:35 链条已做好 WiSE 副本（alpha 16），两条评测并行启动：unist_wise05 在卡 0–1，unist 在卡 2–3。
