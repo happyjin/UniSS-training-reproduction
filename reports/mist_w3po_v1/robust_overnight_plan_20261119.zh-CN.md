@@ -188,3 +188,7 @@
   - 原因：句级池化的 InfoNCE 太容易（第 0 步正例余弦 0.89、top-1 0.94），学习主要是把负例余弦从 0.45 压到 0.01（均匀性，改了编码器输出几何），帧级不变性没有信号。
   - 规则教训：D-U 同域，enc_wise05 在 D-U 干净上的提升就是风格偏移；新方案的"干净不退化"改以底座为参照，在预登记里写明。
   - 卡 4、5：R4 的等待脚本因遗留的 `r4.stop` 没能启动 orch；改名后 22:53 CET 手动启动 R4（规则不变）。详见 `robust_r2_contrast_prereg.zh-CN.md` 结果一节。
+- **23:05 CET 夜间新方案 R5、R6 预登记并挂上等待链（都只跑一个设置，判断规则改为以底座为参照的三轴 + (b) 上不差于 ERM，见 `rx_score.py`）：**
+  - **R5 配对梯度手术**（`robust_r5_gradsurgery_prereg.zh-CN.md`；PCGrad NeurIPS 2020 / OGD AISTATS 2020）：每步对同一批样本算带噪梯度 g_n 和干净梯度 g_c，只沿与 g_c 正交的方向更新（一阶下不改变干净输入上的损失，即不拟合参考风格）。文本层 LoRA，卡 1、2、3、7，`r5_chain.sh`（pid 4028710）等 R1 链结束后自动开跑，约 3.8 h 训练。
+  - **R6 干净零空间编码器 LoRA**（`robust_r6_cleannull_prereg.zh-CN.md`；AlphaEdit ICLR 2025 / Adam-NSCL CVPR 2021）：LoRA 输入投影到干净激活协方差的零空间（干净能量 ≤ 1%），从结构上保证干净输入的表示不变。卡 0、6，`r6_chain.sh`（pid 4028711）等 R3 链结束后自动开跑（零空间估计 → 训练约 2.5 h）。
+  - 代码只做了 py_compile、bash -n、DRY_RUN 和 R5 数据迭代器的一次 CPU 检查；`rx_score.py` 在 R2 的输出上复现了 R2 的 summary 数字。
