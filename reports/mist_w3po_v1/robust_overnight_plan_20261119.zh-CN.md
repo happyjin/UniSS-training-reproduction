@@ -127,7 +127,7 @@
   - 第十六波 NCWI：先在 CPU 上实现，等第十四波评测完成后用卡 0–3；
   - 第十七波感知层 LoRA：卡 6–7。
   - 失败的方法不用 UniST 重跑（理由见方案第 1 节）。
-- **16:30 CET 测试数据决策（RealSI 带噪版已生成，`data/open_voicecond_v1/realsi_noisy_v1/`，commit 17f601c08，核对通过）：**
+- **16:21 CET 测试数据决策（RealSI 带噪版已生成，`data/open_voicecond_v1/realsi_noisy_v1/`，commit 17f601c08，核对通过）：**
   - 三类背景按 OpenBroadcast-SI id2 / dev (a) 的同一协议叠加在一条时间线上，不另做"每句一类"的 v2。理由：与 dev 带噪协议一致，且"只生成一次"。按主导层（约 88% 音乐）的分组结果只作辅助分析，不作主判定。
   - 测试表的底座用本次重跑的数字。论文的 29.75 / 23.19 只作对照列，因为 Thinker 重跑不逐位一致。
   - OOD-3 的 ami 子集（中文是配音合成语音）单列一行，不进主表。主表用真实语音：OOD-3 en / ali、OBSI 单说话人。
