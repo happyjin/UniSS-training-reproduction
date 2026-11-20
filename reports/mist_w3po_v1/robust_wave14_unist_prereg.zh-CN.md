@@ -37,3 +37,50 @@
 
 ## 卡与时间
 - 卡 0–3。数据构建（CPU）约 30 分钟，训练预计 2–3 小时，评测约 1.5 小时。
+
+## 实现说明（2026-11-20 15:50 CET，写在任何数据统计、训练和评测数字之前）
+1. **并行方式（按主会话 15:35 的指示改为 8 卡）：** 第八波已结束，卡 4–7 已交还，所以训练用卡 0–7，world 8，每个 rank 8 条，`--mb 8`，一个微批。全局批量仍是 64；每个 slot j 的样本仍由 "20261119|w5m|row|s|j" 和 "20261119|w5m|mix|s|j" 决定，与 world 无关。world 只决定 slot 落在哪个 rank 上（rank r 取 (j % 8) % W == r 的 slot），各 rank 的梯度相加后除以 world，所以损失仍是 64 条样本的平均 CE。论证同第八波实现修正 2。冒烟如果显示 world 8 比 world 4 / `--mb 16` 更慢，或者显存不够，就退回卡 0–3、world 4、`--mb 16`，并在这里补记。
+2. **数据（`experiments/mist_w3po_v1/voicecond/wave14_data.py`）：**
+   - manifest 每行自带 `source_audio` 的绝对路径（`parts/train-XXXXX/source_audio/<全局序号>_<id>.flac`，16 kHz 单声道 PCM16），直接用这个字段，不靠文件名去推。
+   - 方向：`src_lang` 为 cmn 的行算 zh2en，eng 的行算 en2zh；源文本用 `transcription`，参考译文用 `translation`；两者任一为空就丢弃，同第五波。
+   - 已知事实：pilot manifest 里所有行的 `audio_origin` 都是 `bicodec_reconstructed`，即源音频是 BiCodec 重建的语音，不是原始录音。这一点照实记录；按预登记仍用这份数据。
+   - 处理顺序：先做排除，再按 sha1("20261120|w14|<dir>|<id>") 升序取前 120000 条，然后过 trim_norm，失败的丢弃（第五波也是先取行再丢 trim_norm 失败的）。
+   - 输出 `eval_outputs/mist_w3po_v1/wave14/data/{rows_<dir>.jsonl, clips/<dir>/<id>.wav, stats.json}`，字段与第五波一致。UniST 没有说话人字段，`spk` 记为 null。
+3. **重叠判定：**
+   - 文本归一化：NFKC，转小写，只保留 `str.isalnum()` 为真的字符（字母、数字、汉字），去掉其余所有标点和空白；判定为完全相等。
+   - 测试/评测文本库的来源：
+     - CoVoST 2 两个方向的 dev（HF validation）和 test 全集的 `sentence` 与 `translation`；
+     - S1 的 `wave2_S1/data/*.jsonl` 和 `wave1_K2K3K5/data/*.jsonl`；
+     - OpenBroadcast-SI 的 bench 和 bench_dev 下全部 json/jsonl；
+     - Idea 2 cvt 的 index 和 refs/*/info.json；
+     - Idea 2 ood3 的 *.jsonl；
+     - RealSI 的 json；
+     - ACL 60/60 dev 的 jsonl；
+     - AliMeeting（alimeeting_si_v1、alimeeting_eval_si_v1、diarist_alimeeting_refs_v1）的 json/jsonl；
+     - AMI（ami_multispk_si_v1 顶层和 index 下的 jsonl）；
+     - 电竞（game_esports_si_v1 下全部 json/jsonl）。
+   - 取文本的方式偏保守：取这些文件里的所有字符串值（递归），只跳过含 "/" 的路径和形如 id 的无空格 token（只由字母、数字和 `_.:-` 组成，且含数字或下划线）。所以译文字段一旦和 UniST 的源文本相同，也会触发排除。每一类来源分别计入 stats.json，一行命中多类时每类都计。
+   - 音频文件名和 Common Voice clip id 无法比对：UniST 的 id 是它自己的内部序号（例如 CommonVoice_EN_0000499569），manifest 里也没有原始文件名或 client_id，所以对 CommonVoice_EN 只能靠文本比对。按上面的文本库，CoVoST dev/test 两个方向全集都在其中。
+   - bench/HELDOUT_SPEECH.txt：说话人对不上，因为 UniST 没有说话人字段，这一点在 stats.json 中写明。它列出的 clip 都是 CV test 的条目，由 CoVoST test 文本覆盖；在 CoVoST dev/test 中找不到的 clip 数也会写进 stats.json。
+   - UniST 留出验证句：crc32(id 的 UTF-8 字节) % 50 == 0 的行排除。
+   - 构建完成后断言：选中的每一行都不在文本库中，也不满足 crc32 留出条件。
+4. **训练：**
+   - `wave14_train.py` 是 `wave5_m_train.py` 的副本，只改了 DATA 目录（另加说明文字），arm 用 erm。
+   - 启动用 `wave14_run.sh`，watcher 是 `wave14_noplaceholder.sh`，有自己的 PIDS 和 STOP 文件。
+   - 整条链由 `wave14_chain.sh`（setsid nohup）自动接续：训练 → WiSE → 合并 → 评测 → 打分。
+5. **WiSE：**
+   - `run_unist_wise05/adapters_final.pt` 是 `run_unist/adapters_final.pt` 的硬链接。
+   - json 与 `wave5/M/run_erm_wise05/adapters_final.json` 同格式，alpha 为 16，即 W0 + 0.5·Δ。
+6. **评测：**
+   - `wave14_eval.sh` / `wave14_eval_orch.sh` 是第十波的副本。每个 arm 用 4 张卡：unist_wise05 用卡 0–3，unist 用卡 4–7，两条并行。
+   - Thinker：en2zh 在第一张卡，zh2en 在第二张卡。
+   - Talker：每个方向 4 个分片（种子 20261021，`--num-shards 4`），分片 0–1 和 2–3 分到两张卡上，结果与在一张卡上跑相同。
+   - ASR：在第一、二张卡上。
+7. **打分（`wave14_score.py`，`wave10_score.py` 的副本）：**
+   - 系统：base（S1 + 2 次 Thinker 重跑）、erm_wise05、unist_wise05、unist。
+   - 第 1 条：同第五波统一规则。text 对 3 次底座的均值，ASR-BLEU 对 S1。不降的范围是方向 × {a, b} × {干净, 带噪}。增益看方向 × {a, b, b_no_crosstalk} × 带噪的 text，要求 CI 下界 > 0 且点估计大于该单元的底座噪声底（3 次底座两两差的最大值）。
+   - 第 2 条：
+     - 增量的单元范围是方向 × {a, b, b_no_crosstalk} × {干净, 带噪}，看 text 的 unist_wise05 − erm_wise05，要求 CI 下界 > 0 且点估计大于该单元的噪声底；
+     - 不伤的范围是方向 × {a, b} × {干净, 带噪} × {text, ASR}，不能有点估计 < −0.3 且 CI 上界 < 0 的单元。
+   - unist（α = 1）只报告相对底座和相对 erm_wise05 的差，不设门；zh2en/a/clean 单独列出。
+   - 自检：复算 erm_wise05 相对底座的结果，须与 `wave5/M/summary_erm_wise05.json` 完全一致。
