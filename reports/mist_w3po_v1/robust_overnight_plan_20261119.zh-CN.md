@@ -155,3 +155,5 @@
   - 理由：第十四波 UniST-ERM-WiSE 两条主判定都失败。UniST 的源音频是 BiCodec 重建的，这对只训练编码器的第十七波混淆最大。
   - 第十七波 b 只换数据（第五波 ERM 的同一份数据和 sampler），是"LoRA 加在编码器上还是加在文本层上"的干净对照。规则 2 的参照从 unist_wise05 换成 CoVoST 的 erm_wise05。
   - 第十七波原波照常评测、照常报告（uniss-2b 的执行者负责）。卡 4–5 归 uniss-2b 的 ncwi_erm；本波等第十七波原波交还卡 6–7 后自动上，链条 pid 3766228。
+- **18:30 CET ctrl_pool_base 结果：判定"随噪声自适应的保守度"成立（只在英→中）。** 总提交量相同、但不随噪声变化的预算，比 CV-LA 低：英→中 b 带噪 −0.79，b 无串音带噪 −1.56（CI 下界都 > 0，D1 差 ≤ 0.02 s）。中→英没有差别。决策：CV-LA 留在组合里，定位为"零参数、随噪声自适应的提交保守度"。
+- **18:05–18:10 CET 决策（第十四波失败之后）：** 组合底座仍用 CoVoST 的 ERM-WiSE；NCWI 改用 CoVoST 端点（ncwi_erm，由 uniss-2b 跑）；第十七波 b 在 CoVoST 数据上重训编码器 LoRA（见 robust_wave17b_enclora_covost_prereg）。
