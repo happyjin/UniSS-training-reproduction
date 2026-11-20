@@ -75,3 +75,7 @@ R4 对某个适配器"有效"，需要同时满足：
 
 ## 结果
 （待追加）
+
+## 启动记录（2026-11-20 22:53 CET，只追加）
+- R2 于 22:31 CET 写 DONE，`r4_wait.sh` 按规则 exec 了 `r4_orch.sh`，但 orch 因 21:45 CET（变更 1 时期）遗留的 `logs/mist_w3po_v1/r4/r4.stop` 立即退出，没有启动任何作业。
+- 已把遗留文件改名为 `r4.stop.superseded_stale_change1`，22:53 CET 手动以 `CA=4 CB=5` 启动 `r4_orch.sh`（pid 3890894，watcher 3890896）。流程、规则、门槛都不变。
