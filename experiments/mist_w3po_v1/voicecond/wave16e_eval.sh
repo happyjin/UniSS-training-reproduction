@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ncwi_erm (change B; v2 18:55 CET: per-card wait for placeholder release, <=120 s): sed copy of wave16_eval.sh with root wave16/erm, logs wave16/erm, PIDS w16e_workers.pids.
+# ncwi_erm (change B; v2 18:51 CET: per-card wait for placeholder release, <=120 s; v3 18:58 CET: placeholders the guard restarts during the wait are stopped too): sed copy of wave16_eval.sh with root wave16/erm, logs wave16/erm, PIDS w16e_workers.pids.
 # Robust wave 16 NCWI evaluation launcher (copy of wave14_eval.sh; v2 16:25 CET: cards 4-5 allowed for stacking; own paths, logs and PIDS;
 # reports/mist_w3po_v1/robust_wave16_ncwi_prereg.zh-CN.md sections 3-4):
 #   STAGE=thinker_lora GPU=0 ROOTN=eval_ncwi|eval_lora05 DIR=en2zh [CONST=0.5]
@@ -87,6 +87,11 @@ if [ "$GPU" != "-" ]; then
              if (s && d) print $1}' | tr '\n' ' ')
       free=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits -i "$g" | tr -d ' ')
       [ -z "$ph" ] && [ "${free:-0}" -ge "$NEED" ] && break
+      for p in $ph; do   # v3: the guard restarts placeholders within seconds -- stop each new one (PID, argv re-checked)
+        case "$PROTECT" in *" $p "*) continue;; esac
+        a=$(tr '\0' ' ' < /proc/$p/cmdline 2>/dev/null)
+        case "$a" in *scripts/gpu_load/*"--devices $g "*) kill -TERM "$p" 2>/dev/null && echo "SIGTERM placeholder $p card $g (wait loop)";; esac
+      done
       if [ $(( $(date +%s) - t0 )) -ge 120 ]; then
         echo "card $g not ready after 120 s (gpu_load pids: ${ph:-none}; free ${free} MiB < ${NEED} needed?) -- not starting $STAGE" >&2; exit 1
       fi
