@@ -70,6 +70,19 @@ launch() {   # card name cmd... ; prints pid (DRY_RUN: prints the command to std
       done < <(ps -eo pid=,args=)
     done
     sleep 8
+    # 18:50 CET fix (arm C failed: a 126 GB placeholder still held card 0 when its Talker started): wait until no
+    # gpu_load process remains on card g (re-SIGTERM any respawn), at most 120 s
+    local k
+    for k in $(seq 1 24); do
+      local left=""
+      while read -r pid args; do
+        case "$PROTECT" in *" $pid "*) continue;; esac
+        case "$args" in *scripts/gpu_load/*"--devices $g "*) left="$left $pid"; kill -TERM "$pid" 2>/dev/null;; esac
+      done < <(ps -eo pid=,args=)
+      [ -z "$left" ] && break
+      sleep 5
+    done
+    [ -n "${left:-}" ] && log "WARNING: placeholders still on card $g after 120 s:$left" >&2
   fi
   setsid nohup "$@" > "$lf" 2>&1 < /dev/null 8>&- 9>&- &
   local p=$!

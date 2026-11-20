@@ -235,3 +235,4 @@
   1. 全系统规则（第五波原规则，与 combo_score 的 primary 相同）：C_v1 对 B，ASR-BLEU 不退化，且带噪 PESQ 提升。
   2. CV-LA 在主底座上的贡献：C_v1 对 ew_v1（第五波 ERM-WiSE 全系统）。没有任何 a/b 单元的 ASR-BLEU 差 < −0.3 且 CI 上界 < 0；至少一个带噪单元 Thinker text 差的 CI 下界 > 0。
   3. 辅助：LAAL（D1、D2）差。预期 CV-LA 会带来 +0.2–0.6 s，按"BLEU 优先于延迟"的规则只报告。
+- **18:48 CET 臂 C 第一次运行在 Talker 阶段失败**（18:38，卡 0 只剩 5.77 GiB：占位还没释放，同时 ncwi_erm 的一个 Thinker 也放到了卡 0）。Thinker 输出没有问题，目录改名为 `combo/C.superseded_talker_race`。launch() 改为最多等 120 秒，直到这张卡上没有 gpu_load 进程。18:47 复用 Thinker 输出重启臂 C（卡 0、3），已通知 uniss-2b 避开卡 0、3。
