@@ -4574,3 +4574,16 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
   - score：新增 b_xt / b_xt_in1s / b_xt_after1s 单元和翻转率。
 - 包装验证：prompt id 与文本路径相同；整套运行与 S1 逐条相同 94.9% / 89.3%，与底座重跑的 93.0% / 90.3% 相当。
 - smoke：mb 32 每步 3.8 s，峰值 78 GiB；mb 16 每步 6.1 s。正式训练 08:50 在卡 0–1 启动（pid 1864493）；链条 `wave9_chain.sh` pid 1865257。
+
+## 2026-11-20 10:40 布拉格 — 鲁棒第五波主线 M（Fishr 双向 LoRA vs ERM-LoRA）结果：两臂都不通过，Fishr 与 ERM 分不开
+- 预登记 `robust_wave5_prereg.zh-CN.md`：主线 M 节，加上实现细节、步数调整、变更 1–3 和「主线 M 结果」。
+- 训练：每臂 2 卡，2300 步，8 个环境，CoVoST 2 train 双向 + 单层背景。ERM 用 6.5 h，Fishr 用 11.3 h。
+  - Fishr 惩罚 ×λ 约 1.6e-3，交叉熵约 0.68，惩罚只在最后约 800 步生效。
+- 评测：S1 同一条链；文本 BLEU 对 3 次底座运行的均值。
+- **两臂都不通过：** 干净中→英 (a) 文本 BLEU 掉分，ERM −3.63 [−6.39, −1.14]，Fishr −2.46 [−5.03, +0.08]。
+- **带噪提升确实存在：**
+  - 英→中 (b) ERM +3.09、Fishr +3.22（噪声底 0.46）；
+  - 中→英 (b) ERM +2.29。
+  - 这些收益来自带噪微调本身。
+- Fishr 对 ERM 没有任何单元显著；G1 / G3 不通过。
+- 输出：`eval_outputs/mist_w3po_v1/wave5/M/{run_*,merged_*,eval_*,summary.json}`；日志 `logs/mist_w3po_v1/wave5/m_*`。
