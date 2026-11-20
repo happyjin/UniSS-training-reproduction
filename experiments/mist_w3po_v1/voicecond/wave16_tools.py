@@ -136,13 +136,53 @@ def wisejson(a) -> int:
     return 0
 
 
+def extracards(a) -> int:
+    """cards 4 / 5 a wave-16 job may stack on now (coordinator 16:15 CET): no training process on the card (a
+    no-checkpoint placeholder, scripts/gpu_load/, does not count -- the launcher stops it by PID) and effective free memory
+    = total - used + the placeholders' memory >= --min-gb (nvidia-smi). Cards 6-7 (wave 17 training) are never listed.
+    Prints the eligible cards space-separated (maybe nothing) and one diagnostic line per card to stderr."""
+    import subprocess
+    q = lambda args: [[x.strip() for x in ln.split(",")] for ln in subprocess.run(
+        ["nvidia-smi", *args, "--format=csv,noheader,nounits"], capture_output=True, text=True, check=True).stdout.splitlines() if ln.strip()]
+    gpus = {u: (int(i), float(t), float(us)) for i, u, t, us in q(["--query-gpu=index,uuid,memory.total,memory.used"])}
+    apps = q(["--query-compute-apps=gpu_uuid,pid,used_memory"])
+    ok = []
+    for card in (4, 5):
+        u = next(k for k, v in gpus.items() if v[0] == card)
+        _, tot, used = gpus[u]
+        ph, train, other = 0.0, [], []
+        for gu, pid, mem in apps:
+            if gu != u:
+                continue
+            try:
+                cmd = open(f"/proc/{pid}/cmdline", "rb").read().replace(b"\0", b" ").decode(errors="replace")
+            except OSError:
+                cmd = ""
+            if "scripts/gpu_load/" in cmd:
+                ph += float(mem)
+            elif any(t in cmd for t in ("torch.distributed.run", "torchrun", "_train.py", "train_")):
+                train.append(pid)
+            else:
+                other.append(pid)
+        free = (tot - used + ph) / 1024
+        good = not train and free >= a.min_gb
+        print(f"card {card}: free {free:.1f} GB (placeholders {ph / 1024:.1f} GB), training {train}, other {other} -> "
+              f"{'eligible' if good else 'no'}", file=sys.stderr)
+        if good:
+            ok.append(str(card))
+    print(" ".join(ok))
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=("agree", "groups", "assemble", "wisejson"))
+    ap.add_argument("cmd", choices=("agree", "groups", "assemble", "wisejson", "extracards"))
     ap.add_argument("--out", default="")
     ap.add_argument("--alpha", default="")
+    ap.add_argument("--min-gb", type=float, default=60.0)
     a = ap.parse_args()
-    sys.exit({"agree": agree, "groups": groups, "assemble": assemble, "wisejson": wisejson}[a.cmd](a))
+    sys.exit({"agree": agree, "groups": groups, "assemble": assemble, "wisejson": wisejson,
+              "extracards": extracards}[a.cmd](a))
 
 
 if __name__ == "__main__":

@@ -8,6 +8,12 @@
 #      per (dir, alpha*) item group on 4 card lanes, wave16_tools.py assemble -> root eval_ncwi_merged.
 #   3. Talker 2 dirs x 4 shards (en2zh 0,1 card 0 / 2,3 card 2; zh2en 0,1 card 1 / 2,3 card 3), speech-only ASR (en2zh
 #      card 0, zh2en card 1) -> <root>/EVAL_DONE, wave16/NCWI_ROOT = the root's name.
+# v2 (16:25 CET, coordinator's speed-up): cards 4-5 are stacked on when wave16_tools.py extracards clears them at that
+# moment (no training process; free memory incl. killable placeholders >= 60 GB for Talker shards, >= 125 GB for a
+# Thinker lane of the merged fallback); cards 6-7 never. Talker: zh2en shards on cards 1,3 + extras (one each when both
+# extras are free), en2zh shards on cards 0,2; each direction's ASR starts as soon as its own 4 shards are done (per-
+# direction pipeline; same --num-shards 4, so outputs are unchanged). ASR itself is not split: Whisper sorts and batches
+# the whole file by duration, so a split would change the batches.
 # A failed stage writes wave16/ORCH_FAILED and exits 1.   (run in the foreground of wave16_wait.sh)
 # Checked with bash -n only.
 set -uo pipefail
@@ -23,6 +29,7 @@ fail() { log "FAILED: $*"; echo "$*" > "$M/ORCH_FAILED"; exit 1; }
 launch() { local o; o=$(env "$@" bash "$E" 2>&1) || fail "launch $*: $o"; echo "$o" | sed 's/^/  /' >&2; echo "$o" | grep -o 'pid [0-9]*$' | awk '{print $2}'; }
 waitp() { for p in "$@"; do while kill -0 "$p" 2>/dev/null; do sleep 20; done; done; }
 nrows() { wc -l < "$1" 2>/dev/null || echo 0; }
+extras() { "$PYQ" "$TOOLS" extracards --min-gb "$1" 2>> "$LOGD/extracards.log"; }
 for d in en2zh zh2en; do [ -s "$M/fit/assign_$d.jsonl" ] || fail "no fit/assign_$d.jsonl"; done
 [ -d "$M/lora" ] || fail "no lora adapters"
 
@@ -61,14 +68,18 @@ else
     [ -s "$m_/model.safetensors.index.json" ] || [ -s "$m_/config.json" ] || fail "model $m_ missing"
   done
   # 4 card lanes, jobs round-robin, each lane sequential
-  i=0; lanes=("" "" "" "")
+  CARDS=(0 1 2 3 $(extras 125))
+  log "thinker lanes on cards ${CARDS[*]}"
+  NL=${#CARDS[@]}
+  i=0; lanes=(); for c in "${CARDS[@]}"; do lanes+=(""); done
   while read -r d al model items n; do
-    lanes[$((i % 4))]+="$d|$al|$model|$items;"; i=$((i + 1))
+    lanes[$((i % NL))]+="$d|$al|$model|$items;"; i=$((i + 1))
   done < "$M/groups.txt"
   lp=()
-  for c in 0 1 2 3; do
+  for li in "${!CARDS[@]}"; do
+    c=${CARDS[$li]}
     (
-      IFS=';' read -ra jobs <<< "${lanes[$c]}"
+      IFS=';' read -ra jobs <<< "${lanes[$li]}"
       for j in "${jobs[@]}"; do
         [ -n "$j" ] || continue
         IFS='|' read -r d al model items <<< "$j"
@@ -91,16 +102,23 @@ for d in en2zh zh2en; do
   n=$(nrows "$ROOT/thinker_$d/blocks_${d}_w1.jsonl"); m=$(nrows eval_outputs/mist_w3po_v1/wave2_S1/data/items_$d.jsonl)
   [ "$n" = "$m" ] || fail "thinker $d ($ROOTN): $n of $m rows"
 done
-log "phase 3: talker on $ROOTN"
-ps_=()
-for k in 0 1 2 3; do
-  if [ "$k" -lt 2 ]; then ge=0; gz=1; else ge=2; gz=3; fi
-  ps_+=($(launch STAGE=talker GPU=$ge ROOTN=$ROOTN DIR=en2zh SHARD=$k)); sleep 20
-  ps_+=($(launch STAGE=talker GPU=$gz ROOTN=$ROOTN DIR=zh2en SHARD=$k)); sleep 20
-done
-waitp "${ps_[@]}"
-log "asr"
-p1=$(launch STAGE=asr GPU=0 ROOTN=$ROOTN DIR=en2zh); p2=$(launch STAGE=asr GPU=1 ROOTN=$ROOTN DIR=zh2en); waitp $p1 $p2
+X=$(extras 60)
+ZC=(1 3 $X); EC=(0 2)
+log "phase 3: talker on $ROOTN; zh2en shards on cards ${ZC[*]}, en2zh on ${EC[*]}; ASR per direction when its shards finish"
+pipe() {   # $1 = direction, $2 = ASR card, rest = shard cards
+  local d=$1 ga=$2; shift 2; local cs=("$@") ps_=() k p
+  for k in 0 1 2 3; do
+    ps_+=($(launch STAGE=talker GPU=${cs[$((k % ${#cs[@]}))]} ROOTN=$ROOTN DIR=$d SHARD=$k)) || exit 1; sleep 20
+  done
+  waitp "${ps_[@]}"
+  log "talker $d done; asr $d on card $ga"
+  p=$(launch STAGE=asr GPU=$ga ROOTN=$ROOTN DIR=$d) || exit 1
+  waitp $p
+}
+pipe zh2en 1 "${ZC[@]}" & pz=$!
+sleep 10
+pipe en2zh 0 "${EC[@]}" & pe=$!
+wait $pz; wait $pe
 for d in en2zh zh2en; do [ -s "$ROOT/talker_${d}_s20261021/asr_speech.jsonl" ] || fail "asr $d"; done
 date > "$ROOT/EVAL_DONE"
 echo "$ROOTN" > "$M/NCWI_ROOT"

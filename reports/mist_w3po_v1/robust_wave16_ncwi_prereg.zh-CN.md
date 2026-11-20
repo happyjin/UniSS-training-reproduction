@@ -98,3 +98,17 @@
 
 ## 进度
 - 2026-11-20 16:05 CET 启动等待脚本 `wave16_wait.sh`（setsid nohup，pid 2380461，日志 `logs/mist_w3po_v1/wave16/wait.log`）。它等第十四波的 `CHAIN_DONE` 和第十四波进程退出，之后自动拟合、在卡 0–3 上评测、打分。
+
+### 实现说明更正 2：提速（2026-11-20 16:27 CET，按主会话 16:15 的要求；仍在任何端点和评测数字之前）
+- **可以叠到卡 4–5。** 每到需要卡的阶段，`wave16_tools.py extracards` 用 nvidia-smi 当场判断卡 4、5 能不能用：
+  - 卡上不能有训练进程（torchrun、`*_train.py` 之类）。guard 的无检查点占位（`scripts/gpu_load/`）不算训练，它占的显存算作可用，启动前照常按 PID 停掉；
+  - Talker 分片要求可用显存 ≥ 60 GB；合并退路的 Thinker（`--gpu-mem 0.85`，约 122 GB）要求 ≥ 125 GB；
+  - 卡 6–7（第十七波训练）永远不用。`wave16_eval.sh` 只接受卡 0–5。每次判断的结果记在 `logs/mist_w3po_v1/wave16/extracards.log`。
+- **Talker 和 ASR：**
+  - zh2en 的 4 个分片放在卡 1、3 加上可用的额外卡（卡 4、5 都可用时每卡一个），en2zh 的 4 个分片放在卡 0、2；
+  - 每个方向自己的 4 个分片一跑完，就在该方向的卡上（en2zh 卡 0，zh2en 卡 1）开始 ASR，不再等另一个方向。
+  - `--num-shards` 仍是 4，种子不变，所以输出与原来的分法相同。
+- **ASR 不拆分：** Whisper（zh2en 的 ASR）在整份文件内按时长排序后组批，拆开会改变批次组成，进而可能改变转写。为了与 unist_wise05 的 ASR 口径完全一致，不拆。按第五波的耗时（Thinker 约 4 分钟，Talker 约 8 分钟，zh2en ASR 约 13 分钟），LoRA 路径全程约 25–30 分钟，在 45 分钟以内。
+- **合并退路：** Thinker 的通道数为卡 0–3 加上当时 ≥ 125 GB 可用的卡 4、5，最多 6 个通道。
+- **第一阶段**（4 个 LoRA Thinker）仍在卡 0–3，每个约 4 分钟，不再拆。
+- **怎么换的：** 等待脚本 `wave16_wait.sh`（pid 2380461）没有写死卡号，所以没有动它。它还在等第十四波，尚未调用编排脚本。`wave16_orch.sh` 和 `wave16_eval.sh` 都是先写成新文件、检查 `bash -n`，再用 mv 替换；替换时两者都不在运行，旧版本在 git 的 f6cc54b36 里。

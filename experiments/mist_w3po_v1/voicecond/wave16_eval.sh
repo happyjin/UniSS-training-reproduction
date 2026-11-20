@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Robust wave 16 NCWI evaluation launcher (copy of wave14_eval.sh; own paths, logs and PIDS;
+# Robust wave 16 NCWI evaluation launcher (copy of wave14_eval.sh; v2 16:25 CET: cards 4-5 allowed for stacking; own paths, logs and PIDS;
 # reports/mist_w3po_v1/robust_wave16_ncwi_prereg.zh-CN.md sections 3-4):
 #   STAGE=thinker_lora GPU=0 ROOTN=eval_ncwi|eval_lora05 DIR=en2zh [CONST=0.5]
 #         wave16_si_thinker_ncwi (base Qwen3-Omni + per-request LoRA from fit/assign_<dir>.jsonl) -> <root>/thinker_<dir>
@@ -60,7 +60,8 @@ mkdir -p "$LOGD"
 LOGF=$LOGD/w16_eval_$NAME.log
 [ -e "$LOGF" ] && { echo "拒绝覆盖已有日志: $LOGF" >&2; exit 1; }
 if [ "$GPU" != "-" ]; then
-  case " 0 1 2 3 " in *" $GPU "*) ;; *) echo "wave 16 runs on cards 0-3 only (got $GPU)" >&2; exit 1;; esac
+  # cards 0-3; 4-5 only when wave16_tools.py extracards cleared them (coordinator 16:15 CET); never 6-7 (wave 17 training)
+  case " 0 1 2 3 4 5 " in *" $GPU "*) ;; *) echo "wave 16 runs on cards 0-5 only (got $GPU)" >&2; exit 1;; esac
 fi
 if [ -n "${DRY_RUN:-}" ]; then printf '%q ' "${CMD[@]}"; echo; exit 0; fi
 if [ "$GPU" != "-" ]; then
