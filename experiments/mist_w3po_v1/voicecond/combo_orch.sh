@@ -99,7 +99,7 @@ if [ -z "$DRY" ]; then
   [ -e "$R" ] && die "arm root exists: $R (refuse to overwrite)"
   [ -e "$STOP" ] && { echo "STOP exists: $STOP" >&2; exit 1; }
   mkdir -p "$R"
-  STOP=$STOP setsid nohup bash experiments/mist_w3po_v1/voicecond/combo_noplaceholder.sh > "$LOGD/${ARM}_noplaceholder.log" 2>&1 < /dev/null 8>&- 9>&- &
+  POLL=${WATCH_POLL:-1} STOP=$STOP setsid nohup bash experiments/mist_w3po_v1/voicecond/combo_noplaceholder.sh > "$LOGD/${ARM}_noplaceholder.log" 2>&1 < /dev/null 8>&- 9>&- &
   log "orch $$ arm $ARM; watcher $!"
   env | grep -E '^(ARM|CARDS|SV|BASE|NCWI|BUDGET_FROM|THINKER_FROM|RAW_FROM|SELFCHECK_REF|THINKER_ONLY|NO_V1)=' | sort > "$R/config.env"
   git rev-parse HEAD >> "$R/config.env"
