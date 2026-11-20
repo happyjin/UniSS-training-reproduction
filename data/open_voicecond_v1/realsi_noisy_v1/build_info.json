@@ -1,0 +1,1224 @@
+{
+ "git_rev": "5333e85599ccef5e2410cda7bd555f16ad0706dc",
+ "script": "experiments/mist_w3po_v1/voicecond/realsi_noisy_build.py",
+ "script_sha1": "e12ab2ec9821b3650b49a6b08e0b92534f351729",
+ "units": "si_infer.realsi_items (paper LA2 baseline units)",
+ "n": {
+  "en2zh": 346,
+  "zh2en": 431
+ },
+ "bvr_source": "data/open_voicecond_v1/bench/meta/stats.json bvr_db.values (OpenBroadcast-SI statistic)",
+ "bvr_seed": "OpenBroadcast-SI-v1|realsi:bvr:<dir>",
+ "bg_seed": "OpenBroadcast-SI-v1|realsi:bg:<dir>:<vid>",
+ "lead_in_s": 2.5,
+ "pools": {
+  "bed": "bench/bgsrc/pools.json[musan_music]",
+  "amb": "bench/bgsrc/pools.json[fsd_crowd]",
+  "sfx": "bench/bgsrc/pools.json[fsd_sfx_musan_noise]"
+ },
+ "ducking": "none",
+ "limiter": "whole mixture <= 0.99",
+ "heldout_check": {
+  "id2_pool_files": 324,
+  "not_in_heldout_lists": [],
+  "fails_heldout_rule": [],
+  "intersection_with_idea2_background_index": {
+   "train": 0,
+   "test": 0,
+   "dev": 0
+  },
+  "idea2_index_sizes": {
+   "train": 1393,
+   "test": 187,
+   "dev": 165
+  },
+  "note": "idea2 index = the only background source of every robust-line training run (wave1_data.bg_pools 'train' for CoVoST-noisy ERM / wave5 / wave14 UniST / wave17; 'dev' for dev (a) noisy); idea1 (V1 voice encoder) pools drop held-out files by construction (idea1_build_diag.bg_pools(held))"
+ },
+ "background_files_used": 294,
+ "licences_used": [
+  "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)",
+  "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)",
+  "http://creativecommons.org/licenses/by-nc/3.0/",
+  "http://creativecommons.org/licenses/by/3.0/",
+  "http://creativecommons.org/licenses/sampling+/1.0/",
+  "http://creativecommons.org/publicdomain/zero/1.0/"
+ ],
+ "background_files": [
+  {
+   "src": "FSD50K.eval_audio/107619.wav",
+   "licence": "http://creativecommons.org/licenses/sampling+/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/109074.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/110113.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/117592.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/119026.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/128150.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/134935.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/142348.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/153149.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/154399.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/161405.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/161679.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/161684.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/161685.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/161996.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/166417.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/17206.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/173335.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/174283.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/174290.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/182274.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/185034.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/189765.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/191201.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/192002.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/1923.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/201899.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/207481.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/218463.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/218484.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/222671.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/235519.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/238933.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/239596.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/244291.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/249151.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/251931.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/25270.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/254082.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/25527.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/255856.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/255977.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/266191.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/319400.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/321810.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/325493.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/326366.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/327400.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/331621.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/340357.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/34395.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/346898.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/348321.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/349714.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/351778.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/352719.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/353185.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/361341.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/369419.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/371002.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/376367.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/37789.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/379115.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/380349.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/385946.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/388423.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/389170.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/39065.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/39066.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/391449.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/396270.wav",
+   "licence": "http://creativecommons.org/licenses/by-nc/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/398485.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/399303.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/399652.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/400590.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/402732.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/403570.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/408601.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/414023.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/414283.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/420670.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/425909.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/49781.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/50291.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/50295.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/57771.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/60930.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/72838.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/72846.wav",
+   "licence": "http://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/82090.wav",
+   "licence": "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+   "src": "FSD50K.eval_audio/86047.wav",
+   "licence": "http://creativecommons.org/licenses/sampling+/1.0/"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0007.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0023.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0029.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0035.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0050.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0051.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0058.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0070.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma-western-art/music-fma-wa-0078.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0001.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0003.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0010.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0011.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0035.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0037.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0041.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0054.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0058.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0114.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0121.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/fma/music-fma-0123.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0011.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0015.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0017.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0024.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0028.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0029.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0035.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0055.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0060.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0063.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0066.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/hd-classical/music-hd-0072.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0001.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0005.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0008.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0047.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0053.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0156.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0177.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0188.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/jamendo/music-jamendo-0201.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0011.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0013.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0020.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0028.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0029.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0053.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0066.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0075.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0079.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0089.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0097.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0100.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0113.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0120.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0121.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0123.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0125.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0126.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0134.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0137.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0141.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0143.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/music/rfm/music-rfm-0146.wav",
+   "licence": "MUSAN (see musan LICENSE; CC BY 4.0 per OpenSLR 17)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0013.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0016.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0026.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0035.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0038.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0043.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0049.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0064.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0081.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0085.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0086.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0095.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0098.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0099.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0100.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0101.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0105.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0114.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0116.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0117.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0125.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0126.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0132.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0137.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0144.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0147.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0163.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0176.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0180.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0181.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0187.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0188.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0197.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0198.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0203.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0205.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0206.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0217.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0226.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0228.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0230.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0233.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0235.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0236.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0240.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0242.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0246.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0259.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0270.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0273.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0277.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0300.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0310.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0313.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0319.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0332.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0335.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0356.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0358.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0362.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0367.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0368.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0369.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0370.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0378.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0381.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0392.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0399.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0401.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0409.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0416.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0428.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0433.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0435.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0443.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0459.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0475.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0479.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0481.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0482.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0489.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0493.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0506.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0511.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0518.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0521.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0538.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0556.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0566.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0575.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0584.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0585.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0588.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0594.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0596.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0598.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0607.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0608.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0610.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0612.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0626.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0662.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0670.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0677.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0679.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0680.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0684.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0686.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0692.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0705.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0713.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0718.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0730.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0748.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0750.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0767.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0773.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0780.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0783.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0788.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0793.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0809.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0810.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0822.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/free-sound/noise-free-sound-0840.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0000.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0012.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0021.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0026.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0028.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0031.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0037.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0040.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0045.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0049.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0051.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0065.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  },
+  {
+   "src": "musan/noise/sound-bible/noise-sound-bible-0075.wav",
+   "licence": "MUSAN noise (CC BY 4.0 / public domain per ANNOTATIONS)"
+  }
+ ]
+}

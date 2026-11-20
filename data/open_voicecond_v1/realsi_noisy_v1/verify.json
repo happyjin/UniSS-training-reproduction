@@ -1,0 +1,297 @@
+{
+ "heldout_check": {
+  "id2_pool_files": 324,
+  "not_in_heldout_lists": [],
+  "fails_heldout_rule": [],
+  "intersection_with_idea2_background_index": {
+   "train": 0,
+   "test": 0,
+   "dev": 0
+  },
+  "idea2_index_sizes": {
+   "train": 1393,
+   "test": 187,
+   "dev": 165
+  },
+  "note": "idea2 index = the only background source of every robust-line training run (wave1_data.bg_pools 'train' for CoVoST-noisy ERM / wave5 / wave14 UniST / wave17; 'dev' for dev (a) noisy); idea1 (V1 voice encoder) pools drop held-out files by construction (idea1_build_diag.bg_pools(held))"
+ },
+ "en2zh": {
+  "n": 346,
+  "n_expected": 346,
+  "ids_match_realsi_items": true,
+  "ids_match_items_files": true,
+  "refs_match": true,
+  "clean_cut_bitexact_vs_realsi_items": "346/346",
+  "lengths_equal": "346/346",
+  "bvr_from_files_max_abs_dev_from_target_db": 5e-05,
+  "limiter_applied": 2,
+  "peak_max": 0.99,
+  "peak_over_0.99": 0,
+  "bvr_quantiles_db": {
+   "target": {
+    "5": -32.79,
+    "10": -27.65,
+    "25": -21.02,
+    "50": -14.28,
+    "75": -11.05,
+    "90": -7.72,
+    "95": -6.77
+   },
+   "realised_from_files": {
+    "5": -32.79,
+    "10": -27.65,
+    "25": -21.02,
+    "50": -14.28,
+    "75": -11.05,
+    "90": -7.72,
+    "95": -6.77
+   },
+   "speech_active_frames": {
+    "5": -33.27,
+    "10": -28.65,
+    "25": -22.03,
+    "50": -15.35,
+    "75": -11.92,
+    "90": -8.82,
+    "95": -7.67
+   },
+   "obsi_statistic_q05_q95": {
+    "5": -32.54,
+    "10": -27.52,
+    "25": -20.99,
+    "50": -14.29,
+    "75": -11.05,
+    "90": -7.72,
+    "95": -6.79
+   }
+  },
+  "ks_target_vs_obsi_q05_q95": {
+   "stat": 0.0034,
+   "p": 1.0
+  },
+  "dominant_layer_counts": {
+   "music": 303,
+   "crowd": 41,
+   "sfx": 2
+  },
+  "layer_share_mean": {
+   "music": 0.8031,
+   "crowd": 0.1393,
+   "sfx": 0.0575
+  },
+  "spot_check": [
+   {
+    "id": "en2zh-08-sci_025",
+    "dur_s": 7.67,
+    "clean_rms_dbfs": -16.59,
+    "noisy_rms_dbfs": -17.52,
+    "noisy_peak": 0.9344,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -11.707
+   },
+   {
+    "id": "en2zh-04-fin_027",
+    "dur_s": 9.84,
+    "clean_rms_dbfs": -21.65,
+    "noisy_rms_dbfs": -21.79,
+    "noisy_peak": 0.5107,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -25.016
+   },
+   {
+    "id": "en2zh-05-law_022",
+    "dur_s": 16.86,
+    "clean_rms_dbfs": -29.82,
+    "noisy_rms_dbfs": -30.25,
+    "noisy_peak": 0.3121,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -12.43
+   },
+   {
+    "id": "en2zh-08-sci_031",
+    "dur_s": 8.98,
+    "clean_rms_dbfs": -17.62,
+    "noisy_rms_dbfs": -19.3,
+    "noisy_peak": 0.9585,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -9.71
+   },
+   {
+    "id": "en2zh-03-edu_034",
+    "dur_s": 5.37,
+    "clean_rms_dbfs": -21.02,
+    "noisy_rms_dbfs": -21.24,
+    "noisy_peak": 0.5874,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -5.813
+   },
+   {
+    "id": "en2zh-04-fin_000",
+    "dur_s": 1.82,
+    "clean_rms_dbfs": -21.06,
+    "noisy_rms_dbfs": -21.55,
+    "noisy_peak": 0.5456,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -17.213
+   },
+   {
+    "id": "en2zh-07-ent_024",
+    "dur_s": 5.51,
+    "clean_rms_dbfs": -20.99,
+    "noisy_rms_dbfs": -21.01,
+    "noisy_peak": 0.5428,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -34.071
+   },
+   {
+    "id": "en2zh-09-sport_041",
+    "dur_s": 5.2,
+    "clean_rms_dbfs": -33.57,
+    "noisy_rms_dbfs": -32.98,
+    "noisy_peak": 0.1888,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -7.332
+   }
+  ]
+ },
+ "zh2en": {
+  "n": 431,
+  "n_expected": 431,
+  "ids_match_realsi_items": true,
+  "ids_match_items_files": true,
+  "refs_match": true,
+  "clean_cut_bitexact_vs_realsi_items": "431/431",
+  "lengths_equal": "431/431",
+  "bvr_from_files_max_abs_dev_from_target_db": 6e-05,
+  "limiter_applied": 24,
+  "peak_max": 0.99,
+  "peak_over_0.99": 0,
+  "bvr_quantiles_db": {
+   "target": {
+    "5": -32.78,
+    "10": -27.69,
+    "25": -21.03,
+    "50": -14.29,
+    "75": -11.04,
+    "90": -7.72,
+    "95": -6.77
+   },
+   "realised_from_files": {
+    "5": -32.78,
+    "10": -27.69,
+    "25": -21.03,
+    "50": -14.29,
+    "75": -11.04,
+    "90": -7.72,
+    "95": -6.77
+   },
+   "speech_active_frames": {
+    "5": -34.42,
+    "10": -28.53,
+    "25": -21.8,
+    "50": -15.45,
+    "75": -11.81,
+    "90": -8.96,
+    "95": -7.76
+   },
+   "obsi_statistic_q05_q95": {
+    "5": -32.54,
+    "10": -27.52,
+    "25": -20.99,
+    "50": -14.29,
+    "75": -11.05,
+    "90": -7.72,
+    "95": -6.79
+   }
+  },
+  "ks_target_vs_obsi_q05_q95": {
+   "stat": 0.0031,
+   "p": 1.0
+  },
+  "dominant_layer_counts": {
+   "music": 369,
+   "crowd": 57,
+   "sfx": 5
+  },
+  "layer_share_mean": {
+   "music": 0.8001,
+   "crowd": 0.1433,
+   "sfx": 0.0566
+  },
+  "spot_check": [
+   {
+    "id": "zh2en-07-ent_045",
+    "dur_s": 4.71,
+    "clean_rms_dbfs": -19.68,
+    "noisy_rms_dbfs": -19.34,
+    "noisy_peak": 0.99,
+    "frac_samples_over_0.98": 1.3e-05,
+    "bvr_target_db": -7.189
+   },
+   {
+    "id": "zh2en-09-sport_032",
+    "dur_s": 3.95,
+    "clean_rms_dbfs": -31.63,
+    "noisy_rms_dbfs": -30.89,
+    "noisy_peak": 0.2496,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -6.589
+   },
+   {
+    "id": "zh2en-10-art_009",
+    "dur_s": 6.09,
+    "clean_rms_dbfs": -22.66,
+    "noisy_rms_dbfs": -23.33,
+    "noisy_peak": 0.4198,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -17.218
+   },
+   {
+    "id": "zh2en-07-ent_050",
+    "dur_s": 8.38,
+    "clean_rms_dbfs": -22.09,
+    "noisy_rms_dbfs": -21.92,
+    "noisy_peak": 0.8534,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -12.134
+   },
+   {
+    "id": "zh2en-06-env_008",
+    "dur_s": 5.94,
+    "clean_rms_dbfs": -24.7,
+    "noisy_rms_dbfs": -24.81,
+    "noisy_peak": 0.4664,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -17.271
+   },
+   {
+    "id": "zh2en-08-sci_030",
+    "dur_s": 3.91,
+    "clean_rms_dbfs": -32.05,
+    "noisy_rms_dbfs": -32.41,
+    "noisy_peak": 0.2388,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -16.024
+   },
+   {
+    "id": "zh2en-10-art_024",
+    "dur_s": 5.04,
+    "clean_rms_dbfs": -23.77,
+    "noisy_rms_dbfs": -24.12,
+    "noisy_peak": 0.4107,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -8.767
+   },
+   {
+    "id": "zh2en-01-tech_050",
+    "dur_s": 8.15,
+    "clean_rms_dbfs": -25.09,
+    "noisy_rms_dbfs": -25.09,
+    "noisy_peak": 0.5005,
+    "frac_samples_over_0.98": 0.0,
+    "bvr_target_db": -35.512
+   }
+  ]
+ },
+ "PASS": true
+}
