@@ -92,3 +92,8 @@
   - 卡 0–1 改跑第十一波"干净锚定的 Laplace 后验合并"（预登记 `robust_wave11_laplace_prereg.zh-CN.md`）。
   - 它无需新训练，有闭式解，直接针对 ERM 干净掉分和 WiSE 标量 α 的局限，符合"推理期 / 贝叶斯 / 闭式"的偏好。
   - 第十波 TIES 约 12:55 训完，不需要挪卡。
+- **12:35 CET 第十一波（干净锚定的 Laplace 合并）结果：第 1 条通过，第 2 条不通过，记为"Laplace 合并对 WiSE 无增量"，只作分析。**
+  - 相对底座：所有单元无退化；5 个带噪单元显著提升，例如 zh2en/b +4.09 [+1.98, +6.34]、en2zh/b +3.39 [+1.62, +5.19]。
+  - 相对 erm_wise05：没有带噪单元的 CI 下界 > 0；zh2en/a/noisy 的 text −2.15 [−3.95, −0.30]、ASR −2.20 [−3.85, −0.56]，属于有害单元。
+  - Λ 均值 0.499，有效步长 0.553，corr(Λ, |Δ|) 约为 0.09。
+  - 按预登记不跑完整系统组合，主系统 Thinker 仍为 ERM-WiSE。卡 0–1 空出，交还 guard 跑占位。详情见 `robust_wave11_laplace_prereg.zh-CN.md` 的"结果"一节和 `eval_outputs/mist_w3po_v1/wave11/summary.json`。

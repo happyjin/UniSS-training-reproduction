@@ -1,0 +1,240 @@
+{
+ "method": "laplace (Fisher-weighted WiSE), Lambda = F_n / (F_c + F_n), 0.5 where F_c + F_n = 0",
+ "fc": "eval_outputs/mist_w3po_v1/wave11/fisher/F_c.pt",
+ "fn": "eval_outputs/mist_w3po_v1/wave11/fisher/F_n.pt",
+ "adapters": "eval_outputs/mist_w3po_v1/wave5/M/run_erm/adapters_final.pt",
+ "elements": 905969664,
+ "fisher_sum_zero_frac": 0.0,
+ "lambda_eq0_frac": 0.0,
+ "lambda_eq1_frac": 0.0,
+ "mean_Fc": 1.6164039814045836e-06,
+ "mean_Fn": 1.1136863384214345e-06,
+ "lambda_mean": 0.49927760754606537,
+ "lambda_quantiles_(hist_1e-4)": {
+  "q01": 0.1279,
+  "q05": 0.2355,
+  "q10": 0.2941,
+  "q25": 0.3915,
+  "q50": 0.5,
+  "q75": 0.6095,
+  "q90": 0.7045,
+  "q95": 0.7583,
+  "q99": 0.8531
+ },
+ "effective_step_||lam*d||/||d||": 0.5532459192040923,
+ "pearson_lambda_absdelta": 0.09166295192122016,
+ "spearman_lambda_absdelta_subsample": 0.0760589316830116,
+ "spearman_subsample_n": 3840000,
+ "per_proj": {
+  "k_proj": {
+   "lambda_mean": 0.5075015129767058,
+   "eff_step": 0.5504970036351451
+  },
+  "o_proj": {
+   "lambda_mean": 0.4790649290107476,
+   "eff_step": 0.5359255804447873
+  },
+  "q_proj": {
+   "lambda_mean": 0.5209847063292303,
+   "eff_step": 0.5716172757067326
+  },
+  "v_proj": {
+   "lambda_mean": 0.47909834013264513,
+   "eff_step": 0.5092628784948099
+  }
+ },
+ "per_layer": {
+  "0": {
+   "lambda_mean": 0.30031,
+   "eff_step": 0.31426
+  },
+  "1": {
+   "lambda_mean": 0.32805,
+   "eff_step": 0.3407
+  },
+  "2": {
+   "lambda_mean": 0.39558,
+   "eff_step": 0.42175
+  },
+  "3": {
+   "lambda_mean": 0.38009,
+   "eff_step": 0.39739
+  },
+  "4": {
+   "lambda_mean": 0.40248,
+   "eff_step": 0.43231
+  },
+  "5": {
+   "lambda_mean": 0.42245,
+   "eff_step": 0.44425
+  },
+  "6": {
+   "lambda_mean": 0.43554,
+   "eff_step": 0.46149
+  },
+  "7": {
+   "lambda_mean": 0.43656,
+   "eff_step": 0.45703
+  },
+  "8": {
+   "lambda_mean": 0.45418,
+   "eff_step": 0.4688
+  },
+  "9": {
+   "lambda_mean": 0.40754,
+   "eff_step": 0.43005
+  },
+  "10": {
+   "lambda_mean": 0.47896,
+   "eff_step": 0.50713
+  },
+  "11": {
+   "lambda_mean": 0.43748,
+   "eff_step": 0.45755
+  },
+  "12": {
+   "lambda_mean": 0.43411,
+   "eff_step": 0.45401
+  },
+  "13": {
+   "lambda_mean": 0.43762,
+   "eff_step": 0.46272
+  },
+  "14": {
+   "lambda_mean": 0.41881,
+   "eff_step": 0.44766
+  },
+  "15": {
+   "lambda_mean": 0.46739,
+   "eff_step": 0.50716
+  },
+  "16": {
+   "lambda_mean": 0.48017,
+   "eff_step": 0.50238
+  },
+  "17": {
+   "lambda_mean": 0.50151,
+   "eff_step": 0.52953
+  },
+  "18": {
+   "lambda_mean": 0.49922,
+   "eff_step": 0.5514
+  },
+  "19": {
+   "lambda_mean": 0.50333,
+   "eff_step": 0.52878
+  },
+  "20": {
+   "lambda_mean": 0.52677,
+   "eff_step": 0.55683
+  },
+  "21": {
+   "lambda_mean": 0.52754,
+   "eff_step": 0.55711
+  },
+  "22": {
+   "lambda_mean": 0.56395,
+   "eff_step": 0.58988
+  },
+  "23": {
+   "lambda_mean": 0.53868,
+   "eff_step": 0.56177
+  },
+  "24": {
+   "lambda_mean": 0.54824,
+   "eff_step": 0.57446
+  },
+  "25": {
+   "lambda_mean": 0.54114,
+   "eff_step": 0.56631
+  },
+  "26": {
+   "lambda_mean": 0.54535,
+   "eff_step": 0.57813
+  },
+  "27": {
+   "lambda_mean": 0.6017,
+   "eff_step": 0.62259
+  },
+  "28": {
+   "lambda_mean": 0.56033,
+   "eff_step": 0.57986
+  },
+  "29": {
+   "lambda_mean": 0.58271,
+   "eff_step": 0.60952
+  },
+  "30": {
+   "lambda_mean": 0.5817,
+   "eff_step": 0.61068
+  },
+  "31": {
+   "lambda_mean": 0.58773,
+   "eff_step": 0.61879
+  },
+  "32": {
+   "lambda_mean": 0.59664,
+   "eff_step": 0.62775
+  },
+  "33": {
+   "lambda_mean": 0.59463,
+   "eff_step": 0.61825
+  },
+  "34": {
+   "lambda_mean": 0.60273,
+   "eff_step": 0.61869
+  },
+  "35": {
+   "lambda_mean": 0.59836,
+   "eff_step": 0.62059
+  },
+  "36": {
+   "lambda_mean": 0.56763,
+   "eff_step": 0.59662
+  },
+  "37": {
+   "lambda_mean": 0.53627,
+   "eff_step": 0.5666
+  },
+  "38": {
+   "lambda_mean": 0.50507,
+   "eff_step": 0.53927
+  },
+  "39": {
+   "lambda_mean": 0.4955,
+   "eff_step": 0.54421
+  },
+  "40": {
+   "lambda_mean": 0.46511,
+   "eff_step": 0.48319
+  },
+  "41": {
+   "lambda_mean": 0.51455,
+   "eff_step": 0.55927
+  },
+  "42": {
+   "lambda_mean": 0.46583,
+   "eff_step": 0.49729
+  },
+  "43": {
+   "lambda_mean": 0.51187,
+   "eff_step": 0.5568
+  },
+  "44": {
+   "lambda_mean": 0.47464,
+   "eff_step": 0.57133
+  },
+  "45": {
+   "lambda_mean": 0.66841,
+   "eff_step": 0.69425
+  },
+  "46": {
+   "lambda_mean": 0.58914,
+   "eff_step": 0.63204
+  },
+  "47": {
+   "lambda_mean": 0.45173,
+   "eff_step": 0.49799
+  }
+ }
+}

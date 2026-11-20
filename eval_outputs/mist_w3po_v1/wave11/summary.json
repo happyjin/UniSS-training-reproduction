@@ -1,0 +1,1333 @@
+{
+ "systems": {
+  "base": "eval_outputs/mist_w3po_v1/wave2_S1",
+  "erm_wise05": "eval_outputs/mist_w3po_v1/wave5/M/eval_erm_wise05",
+  "laplace": "eval_outputs/mist_w3po_v1/wave11/eval_laplace"
+ },
+ "seed": "20261021",
+ "en2zh": {
+  "a": {
+   "clean": {
+    "n_sentences": 300,
+    "n_units": 300,
+    "text": {
+     "base": 38.073,
+     "erm_wise05": 40.407,
+     "laplace": 40.004,
+     "base_r1": 38.379,
+     "base_r2": 38.382,
+     "base_mean": 38.278,
+     "base_floor": 0.309,
+     "laplace-base": [
+      1.931,
+      0.069,
+      3.888
+     ],
+     "laplace-base_mean": [
+      1.726,
+      -0.156,
+      3.621
+     ],
+     "laplace-erm_wise05": [
+      -0.403,
+      -1.847,
+      1.064
+     ],
+     "erm_wise05-base": [
+      2.334,
+      0.195,
+      4.638
+     ],
+     "erm_wise05-base_mean": [
+      2.129,
+      -0.03,
+      4.379
+     ]
+    },
+    "asr": {
+     "base": 31.729,
+     "erm_wise05": 33.285,
+     "laplace": 33.495,
+     "laplace-base": [
+      1.766,
+      0.146,
+      3.352
+     ],
+     "laplace-erm_wise05": [
+      0.21,
+      -1.001,
+      1.58
+     ],
+     "erm_wise05-base": [
+      1.556,
+      0.119,
+      3.005
+     ]
+    },
+    "d1": {
+     "base": 2.526,
+     "erm_wise05": 2.495,
+     "laplace": 2.519,
+     "laplace-base": [
+      -0.006,
+      -0.083,
+      0.065
+     ],
+     "laplace-erm_wise05": [
+      0.025,
+      -0.046,
+      0.097
+     ],
+     "erm_wise05-base": [
+      -0.031,
+      -0.118,
+      0.051
+     ]
+    },
+    "d2": {
+     "base": 3.238,
+     "erm_wise05": 3.208,
+     "laplace": 3.236,
+     "laplace-base": [
+      -0.002,
+      -0.075,
+      0.067
+     ],
+     "laplace-erm_wise05": [
+      0.029,
+      -0.032,
+      0.09
+     ],
+     "erm_wise05-base": [
+      -0.031,
+      -0.119,
+      0.051
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 300,
+    "n_units": 300,
+    "text": {
+     "base": 37.835,
+     "erm_wise05": 39.482,
+     "laplace": 39.62,
+     "base_r1": 38.042,
+     "base_r2": 38.13,
+     "base_mean": 38.002,
+     "base_floor": 0.295,
+     "laplace-base": [
+      1.786,
+      -0.18,
+      3.794
+     ],
+     "laplace-base_mean": [
+      1.618,
+      -0.347,
+      3.587
+     ],
+     "laplace-erm_wise05": [
+      0.139,
+      -0.971,
+      1.329
+     ],
+     "erm_wise05-base": [
+      1.647,
+      -0.339,
+      3.541
+     ],
+     "erm_wise05-base_mean": [
+      1.48,
+      -0.492,
+      3.314
+     ]
+    },
+    "asr": {
+     "base": 32.325,
+     "erm_wise05": 32.822,
+     "laplace": 33.238,
+     "laplace-base": [
+      0.913,
+      -0.62,
+      2.427
+     ],
+     "laplace-erm_wise05": [
+      0.416,
+      -0.596,
+      1.478
+     ],
+     "erm_wise05-base": [
+      0.497,
+      -1.117,
+      2.052
+     ]
+    },
+    "d1": {
+     "base": 2.61,
+     "erm_wise05": 2.563,
+     "laplace": 2.561,
+     "laplace-base": [
+      -0.049,
+      -0.134,
+      0.036
+     ],
+     "laplace-erm_wise05": [
+      -0.002,
+      -0.067,
+      0.058
+     ],
+     "erm_wise05-base": [
+      -0.047,
+      -0.136,
+      0.043
+     ]
+    },
+    "d2": {
+     "base": 3.318,
+     "erm_wise05": 3.25,
+     "laplace": 3.262,
+     "laplace-base": [
+      -0.057,
+      -0.133,
+      0.023
+     ],
+     "laplace-erm_wise05": [
+      0.012,
+      -0.051,
+      0.072
+     ],
+     "erm_wise05-base": [
+      -0.068,
+      -0.159,
+      0.021
+     ]
+    }
+   }
+  },
+  "b": {
+   "clean": {
+    "n_sentences": 337,
+    "n_units": 119,
+    "text": {
+     "base": 37.776,
+     "erm_wise05": 39.491,
+     "laplace": 40.788,
+     "base_r1": 37.665,
+     "base_r2": 38.043,
+     "base_mean": 37.828,
+     "base_floor": 0.377,
+     "laplace-base": [
+      3.012,
+      0.92,
+      5.359
+     ],
+     "laplace-base_mean": [
+      2.96,
+      0.863,
+      5.351
+     ],
+     "laplace-erm_wise05": [
+      1.297,
+      -0.242,
+      3.121
+     ],
+     "erm_wise05-base": [
+      1.715,
+      -0.173,
+      3.705
+     ],
+     "erm_wise05-base_mean": [
+      1.663,
+      -0.161,
+      3.614
+     ]
+    },
+    "asr": {
+     "base": 34.026,
+     "erm_wise05": 34.111,
+     "laplace": 35.227,
+     "laplace-base": [
+      1.201,
+      -0.557,
+      3.099
+     ],
+     "laplace-erm_wise05": [
+      1.116,
+      -0.361,
+      2.55
+     ],
+     "erm_wise05-base": [
+      0.085,
+      -1.585,
+      1.733
+     ]
+    },
+    "d1": {
+     "base": 2.511,
+     "erm_wise05": 2.508,
+     "laplace": 2.535,
+     "laplace-base": [
+      0.023,
+      -0.055,
+      0.11
+     ],
+     "laplace-erm_wise05": [
+      0.027,
+      -0.027,
+      0.083
+     ],
+     "erm_wise05-base": [
+      -0.004,
+      -0.085,
+      0.08
+     ]
+    },
+    "d2": {
+     "base": 3.163,
+     "erm_wise05": 3.153,
+     "laplace": 3.175,
+     "laplace-base": [
+      0.012,
+      -0.058,
+      0.088
+     ],
+     "laplace-erm_wise05": [
+      0.022,
+      -0.028,
+      0.074
+     ],
+     "erm_wise05-base": [
+      -0.011,
+      -0.087,
+      0.067
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 337,
+    "n_units": 119,
+    "text": {
+     "base": 34.97,
+     "erm_wise05": 39.19,
+     "laplace": 38.554,
+     "base_r1": 35.429,
+     "base_r2": 35.098,
+     "base_mean": 35.166,
+     "base_floor": 0.46,
+     "laplace-base": [
+      3.584,
+      1.736,
+      5.439
+     ],
+     "laplace-base_mean": [
+      3.388,
+      1.625,
+      5.186
+     ],
+     "laplace-erm_wise05": [
+      -0.635,
+      -2.452,
+      1.056
+     ],
+     "erm_wise05-base": [
+      4.22,
+      2.045,
+      6.29
+     ],
+     "erm_wise05-base_mean": [
+      4.024,
+      1.909,
+      6.074
+     ]
+    },
+    "asr": {
+     "base": 32.173,
+     "erm_wise05": 34.31,
+     "laplace": 33.164,
+     "laplace-base": [
+      0.992,
+      -0.832,
+      2.719
+     ],
+     "laplace-erm_wise05": [
+      -1.145,
+      -2.571,
+      0.276
+     ],
+     "erm_wise05-base": [
+      2.137,
+      0.24,
+      3.986
+     ]
+    },
+    "d1": {
+     "base": 2.62,
+     "erm_wise05": 2.568,
+     "laplace": 2.551,
+     "laplace-base": [
+      -0.069,
+      -0.145,
+      0.012
+     ],
+     "laplace-erm_wise05": [
+      -0.017,
+      -0.088,
+      0.054
+     ],
+     "erm_wise05-base": [
+      -0.052,
+      -0.136,
+      0.033
+     ]
+    },
+    "d2": {
+     "base": 3.253,
+     "erm_wise05": 3.233,
+     "laplace": 3.226,
+     "laplace-base": [
+      -0.027,
+      -0.091,
+      0.043
+     ],
+     "laplace-erm_wise05": [
+      -0.006,
+      -0.072,
+      0.061
+     ],
+     "erm_wise05-base": [
+      -0.021,
+      -0.091,
+      0.051
+     ]
+    }
+   }
+  },
+  "b_no_crosstalk": {
+   "clean": {
+    "n_sentences": 164,
+    "n_units": 98,
+    "text": {
+     "base": 38.978,
+     "erm_wise05": 41.472,
+     "laplace": 40.154,
+     "base_r1": 38.804,
+     "base_r2": 39.442,
+     "base_mean": 39.075,
+     "base_floor": 0.638,
+     "laplace-base": [
+      1.175,
+      -1.306,
+      3.909
+     ],
+     "laplace-base_mean": [
+      1.079,
+      -1.373,
+      3.813
+     ],
+     "laplace-erm_wise05": [
+      -1.318,
+      -2.846,
+      0.246
+     ],
+     "erm_wise05-base": [
+      2.493,
+      0.323,
+      4.871
+     ],
+     "erm_wise05-base_mean": [
+      2.397,
+      0.281,
+      4.782
+     ]
+    },
+    "asr": {
+     "base": 35.387,
+     "erm_wise05": 36.554,
+     "laplace": 36.445,
+     "laplace-base": [
+      1.057,
+      -1.259,
+      3.553
+     ],
+     "laplace-erm_wise05": [
+      -0.109,
+      -1.445,
+      1.394
+     ],
+     "erm_wise05-base": [
+      1.167,
+      -0.759,
+      3.326
+     ]
+    },
+    "d1": {
+     "base": 2.498,
+     "erm_wise05": 2.452,
+     "laplace": 2.455,
+     "laplace-base": [
+      -0.043,
+      -0.147,
+      0.058
+     ],
+     "laplace-erm_wise05": [
+      0.003,
+      -0.059,
+      0.074
+     ],
+     "erm_wise05-base": [
+      -0.046,
+      -0.152,
+      0.056
+     ]
+    },
+    "d2": {
+     "base": 3.138,
+     "erm_wise05": 3.102,
+     "laplace": 3.084,
+     "laplace-base": [
+      -0.054,
+      -0.147,
+      0.043
+     ],
+     "laplace-erm_wise05": [
+      -0.018,
+      -0.079,
+      0.039
+     ],
+     "erm_wise05-base": [
+      -0.035,
+      -0.134,
+      0.066
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 164,
+    "n_units": 98,
+    "text": {
+     "base": 37.022,
+     "erm_wise05": 40.149,
+     "laplace": 40.236,
+     "base_r1": 37.815,
+     "base_r2": 36.948,
+     "base_mean": 37.261,
+     "base_floor": 0.867,
+     "laplace-base": [
+      3.214,
+      0.686,
+      5.729
+     ],
+     "laplace-base_mean": [
+      2.974,
+      0.591,
+      5.344
+     ],
+     "laplace-erm_wise05": [
+      0.087,
+      -1.63,
+      1.823
+     ],
+     "erm_wise05-base": [
+      3.127,
+      0.577,
+      5.627
+     ],
+     "erm_wise05-base_mean": [
+      2.887,
+      0.437,
+      5.249
+     ]
+    },
+    "asr": {
+     "base": 34.037,
+     "erm_wise05": 35.565,
+     "laplace": 35.231,
+     "laplace-base": [
+      1.194,
+      -1.459,
+      3.709
+     ],
+     "laplace-erm_wise05": [
+      -0.334,
+      -2.149,
+      1.443
+     ],
+     "erm_wise05-base": [
+      1.529,
+      -1.23,
+      4.23
+     ]
+    },
+    "d1": {
+     "base": 2.548,
+     "erm_wise05": 2.474,
+     "laplace": 2.428,
+     "laplace-base": [
+      -0.121,
+      -0.208,
+      -0.041
+     ],
+     "laplace-erm_wise05": [
+      -0.046,
+      -0.118,
+      0.022
+     ],
+     "erm_wise05-base": [
+      -0.075,
+      -0.174,
+      0.018
+     ]
+    },
+    "d2": {
+     "base": 3.168,
+     "erm_wise05": 3.131,
+     "laplace": 3.095,
+     "laplace-base": [
+      -0.073,
+      -0.148,
+      -0.005
+     ],
+     "laplace-erm_wise05": [
+      -0.036,
+      -0.101,
+      0.025
+     ],
+     "erm_wise05-base": [
+      -0.037,
+      -0.116,
+      0.042
+     ]
+    }
+   }
+  }
+ },
+ "zh2en": {
+  "a": {
+   "clean": {
+    "n_sentences": 300,
+    "n_units": 300,
+    "text": {
+     "base": 33.226,
+     "erm_wise05": 33.491,
+     "laplace": 33.335,
+     "base_r1": 33.075,
+     "base_r2": 33.163,
+     "base_mean": 33.155,
+     "base_floor": 0.152,
+     "laplace-base": [
+      0.109,
+      -1.972,
+      2.12
+     ],
+     "laplace-base_mean": [
+      0.18,
+      -1.873,
+      2.168
+     ],
+     "laplace-erm_wise05": [
+      -0.156,
+      -1.887,
+      1.631
+     ],
+     "erm_wise05-base": [
+      0.264,
+      -1.58,
+      1.97
+     ],
+     "erm_wise05-base_mean": [
+      0.336,
+      -1.408,
+      1.983
+     ]
+    },
+    "asr": {
+     "base": 30.495,
+     "erm_wise05": 31.236,
+     "laplace": 30.552,
+     "laplace-base": [
+      0.057,
+      -1.823,
+      1.951
+     ],
+     "laplace-erm_wise05": [
+      -0.684,
+      -2.291,
+      0.96
+     ],
+     "erm_wise05-base": [
+      0.741,
+      -0.944,
+      2.422
+     ]
+    },
+    "d1": {
+     "base": 3.008,
+     "erm_wise05": 3.05,
+     "laplace": 3.103,
+     "laplace-base": [
+      0.095,
+      -0.001,
+      0.199
+     ],
+     "laplace-erm_wise05": [
+      0.053,
+      -0.012,
+      0.122
+     ],
+     "erm_wise05-base": [
+      0.042,
+      -0.056,
+      0.139
+     ]
+    },
+    "d2": {
+     "base": 3.856,
+     "erm_wise05": 3.91,
+     "laplace": 3.913,
+     "laplace-base": [
+      0.057,
+      -0.03,
+      0.149
+     ],
+     "laplace-erm_wise05": [
+      0.003,
+      -0.055,
+      0.057
+     ],
+     "erm_wise05-base": [
+      0.054,
+      -0.039,
+      0.147
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 300,
+    "n_units": 300,
+    "text": {
+     "base": 30.008,
+     "erm_wise05": 34.904,
+     "laplace": 32.754,
+     "base_r1": 30.355,
+     "base_r2": 29.834,
+     "base_mean": 30.066,
+     "base_floor": 0.521,
+     "laplace-base": [
+      2.747,
+      0.311,
+      4.967
+     ],
+     "laplace-base_mean": [
+      2.689,
+      0.265,
+      4.954
+     ],
+     "laplace-erm_wise05": [
+      -2.15,
+      -3.95,
+      -0.305
+     ],
+     "erm_wise05-base": [
+      4.897,
+      2.325,
+      7.342
+     ],
+     "erm_wise05-base_mean": [
+      4.839,
+      2.234,
+      7.261
+     ]
+    },
+    "asr": {
+     "base": 27.016,
+     "erm_wise05": 31.97,
+     "laplace": 29.767,
+     "laplace-base": [
+      2.751,
+      0.764,
+      4.728
+     ],
+     "laplace-erm_wise05": [
+      -2.203,
+      -3.851,
+      -0.56
+     ],
+     "erm_wise05-base": [
+      4.954,
+      2.911,
+      7.077
+     ]
+    },
+    "d1": {
+     "base": 3.053,
+     "erm_wise05": 3.131,
+     "laplace": 3.175,
+     "laplace-base": [
+      0.122,
+      0.026,
+      0.224
+     ],
+     "laplace-erm_wise05": [
+      0.044,
+      -0.034,
+      0.122
+     ],
+     "erm_wise05-base": [
+      0.078,
+      -0.015,
+      0.179
+     ]
+    },
+    "d2": {
+     "base": 3.878,
+     "erm_wise05": 3.956,
+     "laplace": 3.98,
+     "laplace-base": [
+      0.102,
+      0.013,
+      0.196
+     ],
+     "laplace-erm_wise05": [
+      0.023,
+      -0.051,
+      0.094
+     ],
+     "erm_wise05-base": [
+      0.079,
+      -0.011,
+      0.172
+     ]
+    }
+   }
+  },
+  "b": {
+   "clean": {
+    "n_sentences": 706,
+    "n_units": 59,
+    "text": {
+     "base": 27.948,
+     "erm_wise05": 29.002,
+     "laplace": 29.162,
+     "base_r1": 27.624,
+     "base_r2": 27.941,
+     "base_mean": 27.838,
+     "base_floor": 0.324,
+     "laplace-base": [
+      1.215,
+      0.098,
+      2.157
+     ],
+     "laplace-base_mean": [
+      1.325,
+      0.273,
+      2.195
+     ],
+     "laplace-erm_wise05": [
+      0.161,
+      -1.19,
+      1.573
+     ],
+     "erm_wise05-base": [
+      1.054,
+      -0.376,
+      2.275
+     ],
+     "erm_wise05-base_mean": [
+      1.164,
+      -0.257,
+      2.37
+     ]
+    },
+    "asr": {
+     "base": 25.274,
+     "erm_wise05": 26.825,
+     "laplace": 26.27,
+     "laplace-base": [
+      0.996,
+      -0.191,
+      2.278
+     ],
+     "laplace-erm_wise05": [
+      -0.555,
+      -1.782,
+      0.698
+     ],
+     "erm_wise05-base": [
+      1.551,
+      0.349,
+      2.902
+     ]
+    },
+    "d1": {
+     "base": 3.054,
+     "erm_wise05": 3.066,
+     "laplace": 3.071,
+     "laplace-base": [
+      0.017,
+      -0.051,
+      0.088
+     ],
+     "laplace-erm_wise05": [
+      0.004,
+      -0.057,
+      0.063
+     ],
+     "erm_wise05-base": [
+      0.012,
+      -0.046,
+      0.075
+     ]
+    },
+    "d2": {
+     "base": 3.874,
+     "erm_wise05": 3.875,
+     "laplace": 3.893,
+     "laplace-base": [
+      0.018,
+      -0.044,
+      0.082
+     ],
+     "laplace-erm_wise05": [
+      0.017,
+      -0.043,
+      0.076
+     ],
+     "erm_wise05-base": [
+      0.001,
+      -0.049,
+      0.054
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 706,
+    "n_units": 59,
+    "text": {
+     "base": 25.156,
+     "erm_wise05": 28.744,
+     "laplace": 29.232,
+     "base_r1": 25.083,
+     "base_r2": 25.191,
+     "base_mean": 25.143,
+     "base_floor": 0.107,
+     "laplace-base": [
+      4.076,
+      1.972,
+      6.322
+     ],
+     "laplace-base_mean": [
+      4.089,
+      1.984,
+      6.345
+     ],
+     "laplace-erm_wise05": [
+      0.488,
+      -1.046,
+      2.166
+     ],
+     "erm_wise05-base": [
+      3.589,
+      1.466,
+      5.985
+     ],
+     "erm_wise05-base_mean": [
+      3.601,
+      1.455,
+      6.002
+     ]
+    },
+    "asr": {
+     "base": 23.345,
+     "erm_wise05": 26.138,
+     "laplace": 26.465,
+     "laplace-base": [
+      3.12,
+      1.261,
+      6.468
+     ],
+     "laplace-erm_wise05": [
+      0.328,
+      -1.35,
+      3.176
+     ],
+     "erm_wise05-base": [
+      2.793,
+      0.026,
+      6.424
+     ]
+    },
+    "d1": {
+     "base": 3.084,
+     "erm_wise05": 3.098,
+     "laplace": 3.094,
+     "laplace-base": [
+      0.01,
+      -0.055,
+      0.078
+     ],
+     "laplace-erm_wise05": [
+      -0.004,
+      -0.068,
+      0.058
+     ],
+     "erm_wise05-base": [
+      0.014,
+      -0.054,
+      0.084
+     ]
+    },
+    "d2": {
+     "base": 3.856,
+     "erm_wise05": 3.902,
+     "laplace": 3.897,
+     "laplace-base": [
+      0.041,
+      -0.025,
+      0.106
+     ],
+     "laplace-erm_wise05": [
+      -0.005,
+      -0.073,
+      0.057
+     ],
+     "erm_wise05-base": [
+      0.045,
+      -0.022,
+      0.111
+     ]
+    }
+   }
+  },
+  "b_no_crosstalk": {
+   "clean": {
+    "n_sentences": 298,
+    "n_units": 58,
+    "text": {
+     "base": 30.741,
+     "erm_wise05": 29.388,
+     "laplace": 31.449,
+     "base_r1": 30.25,
+     "base_r2": 30.622,
+     "base_mean": 30.538,
+     "base_floor": 0.492,
+     "laplace-base": [
+      0.707,
+      -0.866,
+      2.139
+     ],
+     "laplace-base_mean": [
+      0.911,
+      -0.562,
+      2.299
+     ],
+     "laplace-erm_wise05": [
+      2.06,
+      -0.398,
+      4.787
+     ],
+     "erm_wise05-base": [
+      -1.353,
+      -4.744,
+      1.222
+     ],
+     "erm_wise05-base_mean": [
+      -1.149,
+      -4.37,
+      1.424
+     ]
+    },
+    "asr": {
+     "base": 28.015,
+     "erm_wise05": 28.454,
+     "laplace": 28.946,
+     "laplace-base": [
+      0.931,
+      -0.501,
+      3.008
+     ],
+     "laplace-erm_wise05": [
+      0.492,
+      -0.945,
+      2.063
+     ],
+     "erm_wise05-base": [
+      0.439,
+      -1.08,
+      2.46
+     ]
+    },
+    "d1": {
+     "base": 3.005,
+     "erm_wise05": 3.017,
+     "laplace": 3.064,
+     "laplace-base": [
+      0.059,
+      -0.038,
+      0.16
+     ],
+     "laplace-erm_wise05": [
+      0.048,
+      -0.029,
+      0.124
+     ],
+     "erm_wise05-base": [
+      0.011,
+      -0.065,
+      0.099
+     ]
+    },
+    "d2": {
+     "base": 3.867,
+     "erm_wise05": 3.859,
+     "laplace": 3.892,
+     "laplace-base": [
+      0.025,
+      -0.065,
+      0.115
+     ],
+     "laplace-erm_wise05": [
+      0.033,
+      -0.034,
+      0.097
+     ],
+     "erm_wise05-base": [
+      -0.008,
+      -0.077,
+      0.07
+     ]
+    }
+   },
+   "noisy": {
+    "n_sentences": 298,
+    "n_units": 58,
+    "text": {
+     "base": 29.592,
+     "erm_wise05": 31.775,
+     "laplace": 32.009,
+     "base_r1": 29.538,
+     "base_r2": 29.701,
+     "base_mean": 29.611,
+     "base_floor": 0.163,
+     "laplace-base": [
+      2.417,
+      0.321,
+      4.345
+     ],
+     "laplace-base_mean": [
+      2.398,
+      0.293,
+      4.318
+     ],
+     "laplace-erm_wise05": [
+      0.234,
+      -1.254,
+      1.997
+     ],
+     "erm_wise05-base": [
+      2.183,
+      0.151,
+      3.841
+     ],
+     "erm_wise05-base_mean": [
+      2.164,
+      0.12,
+      3.809
+     ]
+    },
+    "asr": {
+     "base": 27.396,
+     "erm_wise05": 29.738,
+     "laplace": 28.548,
+     "laplace-base": [
+      1.152,
+      -0.595,
+      2.786
+     ],
+     "laplace-erm_wise05": [
+      -1.19,
+      -2.57,
+      0.408
+     ],
+     "erm_wise05-base": [
+      2.341,
+      0.521,
+      4.104
+     ]
+    },
+    "d1": {
+     "base": 3.115,
+     "erm_wise05": 3.13,
+     "laplace": 3.073,
+     "laplace-base": [
+      -0.043,
+      -0.124,
+      0.042
+     ],
+     "laplace-erm_wise05": [
+      -0.058,
+      -0.143,
+      0.029
+     ],
+     "erm_wise05-base": [
+      0.015,
+      -0.073,
+      0.106
+     ]
+    },
+    "d2": {
+     "base": 3.888,
+     "erm_wise05": 3.928,
+     "laplace": 3.852,
+     "laplace-base": [
+      -0.036,
+      -0.114,
+      0.047
+     ],
+     "laplace-erm_wise05": [
+      -0.076,
+      -0.159,
+      0.003
+     ],
+     "erm_wise05-base": [
+      0.04,
+      -0.04,
+      0.124
+     ]
+    }
+   }
+  }
+ },
+ "gates": {
+  "laplace": {
+   "rule1_no_degradation": true,
+   "rule1_no_degradation_failures": {},
+   "rule1_improvement": true,
+   "rule1_improvement_cells_[d,lo,hi,floor]": {
+    "en2zh/b/noisy/text": [
+     3.388,
+     1.625,
+     5.186,
+     0.46
+    ],
+    "en2zh/b_no_crosstalk/noisy/text": [
+     2.974,
+     0.591,
+     5.344,
+     0.867
+    ],
+    "zh2en/a/noisy/text": [
+     2.689,
+     0.265,
+     4.954,
+     0.521
+    ],
+    "zh2en/b/noisy/text": [
+     4.089,
+     1.984,
+     6.345,
+     0.107
+    ],
+    "zh2en/b_no_crosstalk/noisy/text": [
+     2.398,
+     0.293,
+     4.318,
+     0.163
+    ]
+   },
+   "rule1_PASS": true,
+   "rule2_increment": false,
+   "rule2_increment_cells_[d,lo,hi,floor]": {},
+   "rule2_all_noisy_text_vs_erm_wise05_[d,lo,hi,floor]": {
+    "en2zh/a/noisy/text": [
+     0.139,
+     -0.971,
+     1.329,
+     0.295
+    ],
+    "en2zh/b/noisy/text": [
+     -0.635,
+     -2.452,
+     1.056,
+     0.46
+    ],
+    "en2zh/b_no_crosstalk/noisy/text": [
+     0.087,
+     -1.63,
+     1.823,
+     0.867
+    ],
+    "zh2en/a/noisy/text": [
+     -2.15,
+     -3.95,
+     -0.305,
+     0.521
+    ],
+    "zh2en/b/noisy/text": [
+     0.488,
+     -1.046,
+     2.166,
+     0.107
+    ],
+    "zh2en/b_no_crosstalk/noisy/text": [
+     0.234,
+     -1.254,
+     1.997,
+     0.163
+    ]
+   },
+   "rule2_no_harm": false,
+   "rule2_harm_cells": {
+    "zh2en/a/noisy/text": [
+     -2.15,
+     -3.95,
+     -0.305
+    ],
+    "zh2en/a/noisy/asr": [
+     -2.203,
+     -3.851,
+     -0.56
+    ]
+   },
+   "rule2_PASS": false,
+   "VERDICT": "NO_INCREMENT (rule 1 only: Laplace merge has no increment over WiSE; analysis only)"
+  },
+  "erm_wise05": {
+   "rule1_no_degradation": true,
+   "rule1_no_degradation_failures": {},
+   "rule1_improvement": true,
+   "rule1_improvement_cells_[d,lo,hi,floor]": {
+    "en2zh/b/noisy/text": [
+     4.024,
+     1.909,
+     6.074,
+     0.46
+    ],
+    "en2zh/b_no_crosstalk/noisy/text": [
+     2.887,
+     0.437,
+     5.249,
+     0.867
+    ],
+    "zh2en/a/noisy/text": [
+     4.839,
+     2.234,
+     7.261,
+     0.521
+    ],
+    "zh2en/b/noisy/text": [
+     3.601,
+     1.455,
+     6.002,
+     0.107
+    ],
+    "zh2en/b_no_crosstalk/noisy/text": [
+     2.164,
+     0.12,
+     3.809,
+     0.163
+    ]
+   },
+   "rule1_PASS": true
+  }
+ }
+}
