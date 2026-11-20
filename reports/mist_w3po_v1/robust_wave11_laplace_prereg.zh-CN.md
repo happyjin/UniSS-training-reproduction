@@ -72,3 +72,8 @@
   - 第 1 条：text BLEU 相对 3 次底座均值，ASR-BLEU 相对 S1；
   - 第 2 条：增量只看 text BLEU；"超过噪声底"指该单元 laplace − erm_wise05 的点估计大于 3 次底座两两之差的最大值；"没有退化"同时查 text BLEU 和 ASR-BLEU。
   - **自检（已过）：** 在现有输出上复算 erm_wise05 相对底座，与 `summary_erm_wise05.json` 对比 180 个数（点估计、CI、底座均值、噪声底），全部逐位一致，门判定也一致。
+- **冒烟（11:47–11:49 CET，各 12 条，`wave11/fisher_smoke/`，不写 Fisher，不计入结果）：**
+  - F_c 在卡 0、F_n 在卡 1，都跑通。峰值显存 70.1 GiB（模型加 D、D 的梯度和 Fisher 累加器，3 × 3.6 GB），预热后约 1.5 s/条，512 条约 13 分钟。
+  - 逐样本 CE 合理：F_c 在 W0 的 zh→en clean 上为 0.28–2.43；F_n 在 W_e 的同一环境上为 0.009–0.72。
+  - 事实记录：F_n 是在 W_e 处、在 ERM 自己的训练样本上算的。ERM 对这些样本已经拟合得较好（zh→en 只有 7004 行，2300 步里每行平均出现约 2.6 次），所以 F_n 的量级可能整体小于 F_c，Λ 整体偏向 0。这是预登记方法本身的性质，不做任何修正或缩放。
+- **正式运行：** 编排器 `wave11_eval_orch.sh`（ARM=laplace CA=0 CB=1），用 setsid nohup 脱离会话，日志 `logs/mist_w3po_v1/wave11/w11_orch.log`。
