@@ -4587,3 +4587,8 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
   - 这些收益来自带噪微调本身。
 - Fishr 对 ERM 没有任何单元显著；G1 / G3 不通过。
 - 输出：`eval_outputs/mist_w3po_v1/wave5/M/{run_*,merged_*,eval_*,summary.json}`；日志 `logs/mist_w3po_v1/wave5/m_*`。
+
+## 2026-11-20 10:33 布拉格 — 鲁棒第十波（两个单方向 LoRA，TIES 合并 + WiSE 0.5）开始训练
+- 预登记 `robust_wave10_ties_prereg.zh-CN.md`，含"实现说明与实现修正"一节。
+- 脚本：`voicecond/wave10_{dir_train,run,noplaceholder,ties_merge,mech,eval,eval_orch,score}`。训练脚本是第五波 ERM 的副本，只多一个 `--direction`；样本与 ERM 中该方向的样本相同。
+- 冒烟：mb 32，峰值 76 GiB，每步 3.6 s。正式训练 10:33 开始，zh2en 在卡 2（pid 3025833），en2zh 在卡 3（pid 3027341）。评测链 `wave10_eval_orch.sh` pid 3030912。
