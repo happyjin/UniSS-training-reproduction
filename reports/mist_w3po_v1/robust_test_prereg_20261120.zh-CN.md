@@ -214,3 +214,15 @@
   - OBSI 的片段取自多说话人流，但每个片段都是去掉串音后的单人 utterance，所以保留。
 - **判定：** 第 6.4 节的规则不变，只是单元集合里去掉了 ood3_*。
 - **打分：** 用户要求先快速验证，所以先报点估计（ASR-BLEU、text BLEU、D1、PESQ 中位数差），bootstrap 放到最终表再做。
+
+## 变更 2：所有训练部件必须用同一批 UniST 数据（20:47 CET，用户决定，写在任何 UniST 系统的测试数字之前）
+- **用户原话：** "目前训练是 unist 数据训练的吧？为什么要改用 CoVoST 训练呢？需要都用同一批 unist 的数据训练才行。"
+- **处理：**
+  - 第十七波 b（CoVoST 编码器 LoRA）已在 20:47 按 PID 停止（链 3766228、torchrun 614614，训练到约第 1400 步），watcher STOP 已 touch。它不进任何结果。
+  - 主张系统改为只含 UniST 训练部件的系统。已跑的 EW / C（CoVoST 训练的 ERM-WiSE）只作参照，不作主张。
+- **新增系统（各只跑一次，协议同第 6 节，Talker / V1 / ASR / PESQ / 相似度都相同）：**
+  - **UE**（主张系统）：wave17/merged_enc_wise05（UniST 数据、只训练音频编码器的 LoRA，α = 0.5）+ CV-LA + V1 + T1c。同次还得到原音色版 UE_b。
+    - 为什么选它作主张系统（写在数字之前）：dev 上它是 UniST 系统里最好的。相对底座没有显著退化，4 个点估计低于 −0.3，但都不显著；相对 unist_wise05 通过第 2 条。
+  - **UW**：wave14/merged_unist_wise05（UniST 数据、文本层 LoRA，α = 0.5）+ CV-LA + V1 + T1c，以及 UW_b。它在 dev 上第 1 条有显著退化，作为对照一起报告。
+- **判定：** 第 6.4 节的规则不变，把 C 换成 UE（UE_v1 对 B）。UW_v1 对 B、UE_v1 对 UW_v1、UE_v1 对 C_v1（UniST 与 CoVoST 训练的差别）都只报告。按用户要求先报点估计，bootstrap 放到最终表再做。
+- **卡：** UE 用卡 6–7，UW 用卡 0–1（B 已跑完）。增强视角复用 `test_robust/views/`。

@@ -16,7 +16,7 @@ cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 : "${ARM:?}" "${CARDS:?}" "${TK:?}" "${RUNS:?}"
 read -ra CA <<< "$CARDS"; NC=${#CA[@]}
 [ "$NC" -ge 2 ] || { echo "CARDS needs >= 2 cards" >&2; exit 1; }
-for c in "${CA[@]}"; do case " 0 1 2 3 4 5 " in *" $c "*) ;; *) echo "bad card $c (test uses cards 0-5 only)" >&2; exit 1;; esac; done
+for c in "${CA[@]}"; do case " 0 1 2 3 4 5 6 7 " in *" $c "*) ;; *) echo "bad card $c" >&2; exit 1;; esac; done
 read -ra RU <<< "$RUNS"
 DRY=${DRY_RUN:-}
 M=eval_outputs/mist_w3po_v1/test_robust
