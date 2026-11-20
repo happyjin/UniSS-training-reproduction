@@ -100,13 +100,18 @@ def main() -> None:
                 for r in jl(p):
                     if r["id"] in meta:
                         rows.setdefault(r["id"], r)
-            R[s] = rows
+            if rows:
+                R[s] = rows
+            else:
+                print(f"note: system {s} has no rows for {d}; dropped")
         for st in ("u", "b"):
             for cond in ("clean", "noisy"):
                 ids = sorted(i for i, m in meta.items() if m["set"] == st and m["cond"] == cond and all(i in R[s] for s in R))
                 n_all = sum(1 for m in meta.values() if m["set"] == st and m["cond"] == cond)
                 res["cells"][f"{d}/{st}/{cond}"] = {"n_all": n_all, **{s: cell(R[s], ids, ref, dur, lang) for s in R}}
     M, E = a.method, a.erm
+    systems = {s: v for s, v in systems.items() if all(s in res["cells"][c] for c in res["cells"])}
+    assert "base" in systems and M in systems and E in systems, systems.keys()
     allok = True
     n_better = 0
     for d in ("en2zh", "zh2en"):

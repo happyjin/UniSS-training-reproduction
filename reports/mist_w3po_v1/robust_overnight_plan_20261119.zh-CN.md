@@ -192,3 +192,4 @@
   - **R5 配对梯度手术**（`robust_r5_gradsurgery_prereg.zh-CN.md`；PCGrad NeurIPS 2020 / OGD AISTATS 2020）：每步对同一批样本算带噪梯度 g_n 和干净梯度 g_c，只沿与 g_c 正交的方向更新（一阶下不改变干净输入上的损失，即不拟合参考风格）。文本层 LoRA，卡 1、2、3、7，`r5_chain.sh`（pid 4028710）等 R1 链结束后自动开跑，约 3.8 h 训练。
   - **R6 干净零空间编码器 LoRA**（`robust_r6_cleannull_prereg.zh-CN.md`；AlphaEdit ICLR 2025 / Adam-NSCL CVPR 2021）：LoRA 输入投影到干净激活协方差的零空间（干净能量 ≤ 1%），从结构上保证干净输入的表示不变。卡 0、6，`r6_chain.sh`（pid 4028711）等 R3 链结束后自动开跑（零空间估计 → 训练约 2.5 h）。
   - 代码只做了 py_compile、bash -n、DRY_RUN 和 R5 数据迭代器的一次 CPU 检查；`rx_score.py` 在 R2 的输出上复现了 R2 的 summary 数字。
+- **23:10 CET R7 噪声超额词元选择**（`robust_r7_noiseexcess_prereg.zh-CN.md`；RHO-1 NeurIPS 2024）：同一模型在配对干净输入上的词元损失作参照，只在 CE_n − CE_c > 0（噪声抬高了损失）的词元上回传；干净时也学不好的词元（风格、知识）不训练。文本层 LoRA，卡 4、5，`r7_chain.sh` 等 R4 链结束后自动开跑。判断规则同 R5。
