@@ -1,0 +1,82 @@
+{
+ "git_rev": "ff3a3f36d77178013ae98f77bed4b5a599b6251e",
+ "script": "experiments/mist_w3po_v1/voicecond/ood_single_build.py",
+ "script_sha1": "1fc378be01dac209f9bde20482baaaaf35b34321",
+ "stats": {
+  "ood3_en": {
+   "dir": "en2zh",
+   "utts": 715,
+   "drop_crosstalk": 254,
+   "drop_ref_not_target_language": 2,
+   "kept": 185,
+   "kept_s": 691.4,
+   "drop_short": 218,
+   "drop_hesitation": 56,
+   "full_timeline": "ami_ihm",
+   "full_timeline_utts": 1827,
+   "meetings": [
+    "EN2002d",
+    "IS1009c"
+   ]
+  },
+  "ood3_ali": {
+   "dir": "zh2en",
+   "utts": 1602,
+   "drop_short": 304,
+   "kept": 853,
+   "kept_s": 2096.5,
+   "drop_crosstalk": 430,
+   "drop_hesitation": 15,
+   "full_timeline": "ali",
+   "full_timeline_utts": 1632,
+   "meetings": [
+    "R8009_M8021",
+    "R8009_M8024"
+   ]
+  },
+  "ood3_ami": {
+   "dir": "zh2en",
+   "utts": 1201,
+   "kept": 394,
+   "kept_s": 1389.0,
+   "drop_short": 468,
+   "drop_crosstalk": 339,
+   "full_timeline": "ami_dub",
+   "full_timeline_utts": 1420,
+   "meetings": [
+    "EN2002d",
+    "IS1009c"
+   ]
+  },
+  "obsi_zh2en": {
+   "dir": "zh2en",
+   "windows": 1326,
+   "kept": 678,
+   "kept_s": 3475.8,
+   "drop_crosstalk": 648,
+   "per_condition": 678,
+   "conditions": [
+    "clean",
+    "id2",
+    "ood1"
+   ]
+  },
+  "obsi_en2zh": {
+   "dir": "en2zh",
+   "windows": 1283,
+   "kept": 585,
+   "kept_s": 3076.0,
+   "drop_crosstalk": 698,
+   "per_condition": 585,
+   "conditions": [
+    "clean",
+    "id2",
+    "ood1"
+   ]
+  }
+ },
+ "rules": {
+  "ood3": "not hesitation, >= 1 s, reference non-empty and in the target language, no other-speaker utterance overlapping in the full meeting timeline",
+  "obsi": "no other-speaker turn overlapping in the meeting; clean / id2 / ood1 one-to-one"
+ }
+}
