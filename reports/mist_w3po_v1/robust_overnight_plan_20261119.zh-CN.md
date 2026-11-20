@@ -173,3 +173,7 @@
   - NCWI（ncwi_erm）不通过：有 3 个伤害单元，没有增益单元，α* 两半拟合不稳定。按组合方案 D2，NCWI 退出组合。UniST 组 12/16 个箱的 α* = 0，不能当作方法有效的证据。
   - 第十七波 enc_wise05 第 1 条不通过，相对 ERM-WiSE 明显更弱，不进组合。CoVoST 版（第十七波 b）19:20 在卡 6–7 开始冒烟，夜里出结果；若通过，再按 D1 加一个组合臂。
   - 因此臂 C（ERM-WiSE + CV-LA + V1 + T1c）就是当前的全系统候选，消融相对 ew_v1（去掉 CV-LA）和 C_b（去掉 V1）。等它出分后补写测试预登记，写在任何测试数字之前。
+- **21:47 CET 启动 R1（抵消风格的任务向量差 τ_noisy − τ_clean）：** 预登记 `robust_r1_taskdiff_prereg.zh-CN.md`。
+  - τ_clean 在同一批 UniST 数据、同样的参考译文、同样的随机数下训练，只是所有样本都不加噪；部署 θ_base + (τ_noisy − τ_clean)，系数 1。
+  - 用户要求用 4 卡：卡 1、2、3、7，world 4，每个 rank 16 条。
+  - 链 `r1_chain.sh`（pid 2938078）先等 test_robust 的 UE / UW 测试跑完、交还卡 1 和 7，再训练约 2 h。之后合并，并在 devU + bench_dev (b) 上只跑 Thinker，评测 base / unist / unist_wise05 / r1，给出点估计。
