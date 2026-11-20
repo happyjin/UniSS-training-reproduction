@@ -24,7 +24,7 @@
 - en2zh 干净作为对照照列。
 - 辅助：zh2en 带噪随步数的曲线，看带噪增益是否早于干净掉分出现。
 
-## 实现说明（2026-11-20 13:05 CET，写在任何数字之前）
+## 实现说明（2026-11-20 12:38 CET，写在任何数字之前）
 - **适配器提取**：resume_XXXXX.pt 是 `{step, adapters, opt, ema, ema_n}`，只取 `adapters`（384 个 fp32 张量，键和形状与 adapters_final.pt 相同），存为 `eval_outputs/mist_w3po_v1/wave12/ckpt_XXXXX/adapters.pt`，并按 adapters_final.json 的格式写 `adapters.json`（rank 16，alpha 32，即 α = 1，scale = 2.0；step 取 resume 里的 step）。脚本 `experiments/mist_w3po_v1/voicecond/wave12_extract.py`（CPU）。
 - **合并**：原样用 `wave5_m_merge.py`，输出 `wave12/merged_ckpt_XXXXX`。合并日志的 scale 应为 2.0。
 - **final 复用**：`wave5/M/eval_erm` 的 Thinker 输出由 `wave5/M/merged_erm` 产生（合并日志 scale 2.0，即 α = 1；vLLM 日志 model = merged_erm）。直接复用其 (a) 单元的 blocks，不重跑。
