@@ -1,0 +1,185 @@
+{
+ "seed": "20261120|devU",
+ "pool": 3000,
+ "n": 300,
+ "test_sources": {
+  "covost_dev_test": {
+   "files": 32,
+   "strings": 81211,
+   "clip_ids": 40803
+  },
+  "s1_dev": {
+   "files": 9,
+   "strings": 2204,
+   "errors": {}
+  },
+  "obsi_bench": {
+   "files": 724,
+   "strings": 103235,
+   "errors": {}
+  },
+  "idea2_cvt": {
+   "files": 537,
+   "strings": 45632,
+   "errors": {}
+  },
+  "ood3": {
+   "files": 9,
+   "strings": 6833,
+   "errors": {}
+  },
+  "realsi": {
+   "files": 20,
+   "strings": 4795,
+   "errors": {}
+  },
+  "acl6060": {
+   "files": 3,
+   "strings": 935,
+   "errors": {}
+  },
+  "alimeeting": {
+   "files": 44,
+   "strings": 42329,
+   "errors": {}
+  },
+  "ami": {
+   "files": 2,
+   "strings": 114505,
+   "errors": {}
+  },
+  "esports": {
+   "files": 37983,
+   "strings": 409516,
+   "errors": {}
+  },
+  "heldout_speech": {
+   "speakers": 553,
+   "clips": 2609,
+   "clips_found_in_covost_dev_test": 2609,
+   "clips_not_found": 0,
+   "speaker_match": "not possible: the UniST manifest has no speaker / client_id field",
+   "clip_match": "UniST ids are internal sequence numbers (e.g. CommonVoice_EN_0000499569) with no original filename; held-out clips are covered through the CoVoST test texts"
+  }
+ },
+ "per_dir": {
+  "zh2en": {
+   "heldout_rows": 13602,
+   "overlap_train_src": 166,
+   "eligible": 13436,
+   "pool_trimmed_ok": 2650,
+   "selected": 300,
+   "minutes": 26.53,
+   "corpus_mix": {
+    "emilia_zh": 287,
+    "HQ-Conversations": 9,
+    "NCSSD_R_ZH": 4
+   }
+  },
+  "en2zh": {
+   "heldout_rows": 16388,
+   "overlap_covost_dev_test": 1918,
+   "overlap_test_any": 2078,
+   "overlap_idea2_cvt": 115,
+   "overlap_obsi_bench": 170,
+   "overlap_s1_dev": 7,
+   "overlap_train_src": 966,
+   "overlap_ami": 64,
+   "overlap_esports": 36,
+   "overlap_ood3": 22,
+   "overlap_realsi": 10,
+   "overlap_alimeeting": 31,
+   "eligible": 13344,
+   "pool_trimmed_ok": 2555,
+   "selected": 300,
+   "minutes": 25.93,
+   "corpus_mix": {
+    "CommonVoice_EN": 99,
+    "emilia_zh": 89,
+    "DailyTalk": 13,
+    "VCTK": 12,
+    "LibriSpeech": 9,
+    "EN_B00083_S00627": 1,
+    "EN_B00058_S06412": 1,
+    "EN_B00048_S07576": 1,
+    "EN_B00048_S06782": 1,
+    "EN_B00043_S01170": 1,
+    "EN_B00043_S01812": 1,
+    "EN_B00083_S09185": 1,
+    "EN_B00048_S07352": 1,
+    "EN_B00048_S07349": 1,
+    "EN_B00048_S09418": 1,
+    "EN_B00058_S04516": 1,
+    "EN_B00048_S06903": 1,
+    "EN_B00058_S08967": 1,
+    "EN_B00052_S08540": 1,
+    "EN_B00058_S04419": 1,
+    "EN_B00058_S02902": 1,
+    "EN_B00055_S07611": 1,
+    "EN_B00058_S04360": 1,
+    "EN_B00048_S07735": 1,
+    "EN_B00083_S01879": 1,
+    "EN_B00048_S03561": 1,
+    "EN_B00013_S07032": 1,
+    "EN_B00083_S06339": 1,
+    "EN_B00023_S02488": 1,
+    "EN_B00013_S06242": 1,
+    "EN_B00058_S04438": 1,
+    "EN_B00048_S09971": 1,
+    "EN_B00052_S08650": 1,
+    "EN_B00058_S04759": 1,
+    "EN_B00055_S01849": 1,
+    "EN_B00043_S02119": 1,
+    "EN_B00048_S02181": 1,
+    "EN_B00048_S06571": 1,
+    "EN_B00104_S01947": 1,
+    "EN_B00043_S02261": 1,
+    "EN_B00058_S07332": 1,
+    "EN_B00048_S07798": 1,
+    "EN_B00048_S07697": 1,
+    "EN_B00048_S03591": 1,
+    "EN_B00058_S05992": 1,
+    "EN_B00048_S07215": 1,
+    "EN_B00097_S09005": 1,
+    "EN_B00013_S05764": 1,
+    "EN_B00058_S04180": 1,
+    "EN_B00058_S08334": 1,
+    "EN_B00043_S02059": 1,
+    "EN_B00043_S00525": 1,
+    "EN_B00058_S00894": 1,
+    "EN_B00048_S05797": 1,
+    "EN_B00058_S06603": 1,
+    "EN_B00083_S00088": 1,
+    "EN_B00043_S01797": 1,
+    "EN_B00031_S08796": 1,
+    "EN_B00083_S06839": 1,
+    "EN_B00048_S09820": 1,
+    "EN_B00048_S06858": 1,
+    "EN_B00058_S02970": 1,
+    "EN_B00013_S06591": 1,
+    "EN_B00048_S08255": 1,
+    "EN_B00058_S02257": 1,
+    "EN_B00058_S03635": 1,
+    "EN_B00083_S04013": 1,
+    "EN_B00104_S06099": 1,
+    "EN_B00048_S00634": 1,
+    "EN_B00058_S01434": 1,
+    "EN_B00052_S09682": 1,
+    "EN_B00048_S05931": 1,
+    "EN_B00058_S04178": 1,
+    "EN_B00048_S07219": 1,
+    "EN_B00043_S02167": 1,
+    "EN_B00091_S09427": 1,
+    "EN_B00048_S04069": 1,
+    "EN_B00043_S00714": 1,
+    "EN_B00058_S04249": 1,
+    "EN_B00058_S02356": 1,
+    "EN_B00048_S01994": 1,
+    "EN_B00058_S04494": 1,
+    "EN_B00083_S09321": 1
+   }
+  }
+ },
+ "git": "ada21441eea741f92fad012157f22ef92c58069e",
+ "noise": "Idea 2 background index split 'dev' via wave1_data.bg_pools (training uses 'train'; HELDOUT_BACKGROUNDS* asserted absent)"
+}
