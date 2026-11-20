@@ -107,3 +107,12 @@
   - 串行做完 enc_wise05、enc 和机理作业约 1 h；
   - 训练到 16:14 CET 是第 360 步，每步 4.05 s，预计 18:25 CET 结束；
   - 所以预计 19:30 CET 前后出结果，仍在 21:00 之前。
+
+### 实现说明 9：watcher 改为每秒检查（2026-11-20 19:00 CET）
+- **起因：** 主会话 19:00 CET 提醒：guard 把显存占用低于 100 GB 的卡视为空闲，5 秒后补上约 116 GB 的占位进程，Talker 预热时可能因此 OOM。
+- **处理：**
+  - 用同一个 `wave17_noplaceholder.sh` 启动了新进程，脚本内容没有改动，只加了环境变量 `POLL=1`，已用 /proc/environ 核对。新 watcher 的 pid 是 174780，日志 `noplaceholder_poll1.log`。
+  - 之后按 PID 停掉了旧 watcher 2191759（每 5 秒检查一次），停之前复查了 argv。
+- **核对：** enc_wise05 和 enc 的 16 个 Talker 分片日志里没有 OOM、CUDA error 或 Traceback。四个系统 × 方向的分片行数都与条目数相同（en2zh 1274，zh2en 2012），enc_wise05 的 ASR 也完整。没有分片需要重跑。
+- **训练：** 18:18 CET 结束，用时约 2.48 h。
+- **评测进度：** enc_wise05 评测在 18:19–18:46 CET 完成，enc 评测从 18:46 CET 起（19:00 时在做 ASR）。
