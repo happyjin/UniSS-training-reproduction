@@ -46,3 +46,38 @@
 ## 风险（事先写明）
 - dev 流的真实串音可能出现在第一秒内，这时 u 被污染。照实报告，并在 b_xt 中按"串音是否在 1 s 内"分组列出。
 - 合成串音（CoVoST 朗读语音）和真实会议串音存在域差。
+
+## 变更 1（用户，2026-11-20 09:00）
+写在任何评测数字之前。
+- **对照臂 C 推迟：** 现在只训练锚定臂 A（卡 0–1）。卡 2–3 在 Fishr 结束后给别的实验，本波不用。C 只在 A 通过后再跑，作为论文的消融。
+- **主判定第 2 条改为相对已有 erm_wise05 的增量**（eval_outputs/mist_w3po_v1/wave5/M/eval_erm_wise05，同链、同 Talker）：
+  - A_wise05 − erm_wise05 在 b_xt（任一方向，带噪或干净至少一个单元）上 text BLEU 的 CI 下界 > 0，且点估计超过该单元的噪声底（3 次底座运行两两差的最大值）；
+  - 在 a 和 b_noxt（所有方向 × 干净/带噪）上，点估计 ≥ −0.3，或 CI 上界 ≥ 0。
+  - **注意：** 这个增量混合了"串音增强"和"锚定"两部分贡献（erm_wise05 两者都没有）。两者的拆分要等以后跑 C 臂。C 跑出来后，评分脚本把原来的第 2 条（A_wise05 − C_wise05）作为 rule2C 报告。
+- **微批：** 每卡微批（--mb）从 8 提高，让 2 卡尽快跑完。全局批量仍是 64，只改梯度累积的切分，不是超参数。smoke 先试 mb 32（每个 rank 一次前向）和 mb 16，取峰值显存 < ~130 GiB 时最大的那个；两者的 sec/step 记在下面。
+- 其余不变。
+
+## 实现说明与实现修正（写在任何评测数字之前）
+1. **锚定 token 的 id：** Thinker 词表 152064 行。tokenizer 能产生的最大 id 是 151675（含 33 个 added tokens，len = 151676）。取最后 256 行 **151808–152063**：第 k 维（k = 0..7）的第 b 箱 → 151808 + 32k + b。断言 tokenizer 的词表和 added tokens 都在 151808 以下，并抽查编码结果（wave9_common.check_unused）。lm_head 是独立张量（thinker.lm_head.weight，不与 embed_tokens 共享），不动它。
+2. **PCA 与分箱**（wave9_anchor_fit.py → eval_outputs/mist_w3po_v1/wave9/anchor/pca_bins.npz + fit.json，固定，训练和评测共用）：
+   - 拟合集：第五波全部 7004 条 zh2en 训练行，加按 sha1("20261120|w9|pca|<id>") 排序的前 7004 条 en2zh 训练行。两个方向 1:1，与训练批次的方向比例一致。
+   - u = C(干净音频前 1.0 s)：BiCodecPhi.phi_wave，含 BiCodec 的音量归一化，并把参考片段平铺到 6 s，与 V1 的计算相同。展平成 192 维，float64。
+   - PCA 用中心化后的 SVD，取前 8 个主成分，解释方差合计 37.4%（0.085/0.069/0.051/0.042/0.038/0.034/0.029/0.027）。每个主成分的符号定为"绝对值最大的载荷为正"。
+   - 每维 31 个内部箱边界取训练投影的 k/32 分位数。每箱 437–438 条，分布均匀。
+3. **u 的输入：** 训练时用最终混合音频（串音 + 背景噪声之后）的 float32 前 16000 个采样点。评测时用 si_thinker_stream 读到的条目音频（sf.read float32 → 声道平均 → [0, dur_ms·16)）的前 16000 个采样点。不足 1 s 的条目用整段，由 phi_wave 平铺。评测条目的锚定预先算成表 wave9/anchor/table_<dir>.jsonl（en2zh 1274 条，zh2en 2012 条，第一秒全部互不相同）。
+4. **推理包装**（wave9_si_thinker_anchor.py，共享的 si_thinker_stream 一字未改）：
+   - 在进程内替换 vllm.LLM.generate，然后调用 si_thinker_stream.main()，所以 LA2/w1 的代码路径就是原脚本本身。
+   - 每个 prompt 的处理：先用 tokenizer.encode(文本 prompt) 得到 id，在 <|audio_end|> 之后插入 8 个锚定 id，以 prompt_token_ids + 同一份 multi_modal_data 送入 vLLM。vLLM 允许 id ≤ 模型词表 − 1。
+   - 条目由 prompt 音频第一秒 float32 字节的 sha1 找到；锚定本来就只由这一秒决定。
+   - 验证结果（见下面"包装验证"）。正式评测时不做 check 调用（--anchor-check 0），以免多出来的调用改变 vLLM 的前缀缓存状态。
+5. **嵌入行：** 256 行是 fp32 的可训练参数，初始化为 tokenizer 可产生的行（0..151675）的均值（bf16 → fp32 后取均值）。前向时由 embed_tokens 上的 forward hook 把锚定位置的嵌入换成这些行。与 LoRA 在同一个 AdamW 组（lr 1e-4 余弦、wd 0、不裁剪）。锚定位置的 label 为 IGNORE。
+6. **串音的随机数和细节**（wave9_common.crosstalk）：
+   - 随机数：rng = random.Random(sha1("20261120|w9|xt|s|j"))。第一个数 < 0.5 时加串音；然后按 int(rng.random()·n) 抽同方向的行，直到说话人不同；再依次抽起点 U[1.0 s, 0.8·dur] 和 SIR U(−5, 10) dB。
+   - SIR 定义在两段完整片段的 active RMS（bench_build.active_rms_db，30 dB 门限）之间。
+   - 干扰从起点放到目标结束为止，截断，不循环。之后做 0.99 峰值限幅。
+   - 干净环境同样会有串音。第五波背景噪声的 BVR 用混合信号的能量计算，第五波的随机数不变。
+   - 冒烟前在 CPU 上抽查：约 0.5 的样本有串音，起点 ≥ 1.0 s，不同说话人。HELDOUT 说话人在构造 Sampler 时断言不出现。
+7. **WiSE 0.5（A 臂）：** LoRA 的 alpha 减半，与第五波 run_erm_wise05 相同。锚定行写入合并副本 embed_tokens 的 151808–152063 行，值为 E0 + 0.5(E_A − E0)，E0 = 训练初始化（均值行），也就是 A 臂"微调前"模型的取值（wave9_merge.py，断言 lm_head 逐位不变）。
+8. **训练脚本**（wave9_train.py）：复制第五波 ERM 路径（lam 0），删掉 Fishr 代码，其余不变：最后 4 层 eager experts，全局 math SDPA，0..43 层梯度检查点。这些都与第五波 ERM 的实际运行相同。
+9. **翻转率：** b_xt 上每条的 LA2 读取 t_k（不含最后一次强制提交的读取）。前一次和本次草稿都超出已提交前缀 n_k（t_k 之前写出的块的单元数）时记为一对；两者在第 n_k 个单元上不同记为翻转。翻转率 = 翻转数 / 对数，按 stream 做 bootstrap。
+10. **b_xt 的分组：** b_xt = dev 中 meta "ovl" 为真的轮次。b_xt_in1s = 另一说话人的参考轮次与切段的 [start, start + 1 s] 重叠（u 被污染）；其余为 b_xt_after1s。两组都单列。第 1 条主判定的提升单元沿用第五波的 {a, b, b_no_crosstalk}，b_xt 只作为第 2 条的单元，不进第 1 条。
