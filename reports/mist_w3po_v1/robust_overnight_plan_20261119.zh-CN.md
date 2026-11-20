@@ -193,3 +193,5 @@
   - **R6 干净零空间编码器 LoRA**（`robust_r6_cleannull_prereg.zh-CN.md`；AlphaEdit ICLR 2025 / Adam-NSCL CVPR 2021）：LoRA 输入投影到干净激活协方差的零空间（干净能量 ≤ 1%），从结构上保证干净输入的表示不变。卡 0、6，`r6_chain.sh`（pid 4028711）等 R3 链结束后自动开跑（零空间估计 → 训练约 2.5 h）。
   - 代码只做了 py_compile、bash -n、DRY_RUN 和 R5 数据迭代器的一次 CPU 检查；`rx_score.py` 在 R2 的输出上复现了 R2 的 summary 数字。
 - **23:10 CET R7 噪声超额词元选择**（`robust_r7_noiseexcess_prereg.zh-CN.md`；RHO-1 NeurIPS 2024）：同一模型在配对干净输入上的词元损失作参照，只在 CE_n − CE_c > 0（噪声抬高了损失）的词元上回传；干净时也学不好的词元（风格、知识）不训练。文本层 LoRA，卡 4、5，`r7_chain.sh` 等 R4 链结束后自动开跑。判断规则同 R5。
+- **00:35 CET R1（任务向量差 τ_noisy − τ_clean）结果：按预登记规则无效，但"部分有效"。** 减掉 τ_clean 后，(b) 干净不再下降（unist_wise05 −0.78 / −2.37 → r1 −0.10 / −0.17 对底座），长度比回到底座，(b) 带噪 +0.56 / +1.57；但不变性只保住一部分（英→中 u 差距比底座差 0.56，(b) 差距不如 ERM）。cos(τ_noisy, τ_clean) = 0.75，印证 UniST 适配的大部分是与噪声无关的共同分量。详见 R1 预登记结果一节。卡 1、2、3、7 由 R5 链自动接手（00:27 冒烟）。
+- **00:30 CET R4 修复：** 自检作业因工作进程是 daemon、vLLM 无法起子进程而挂起 1.5 h（卡 4、5 空闲）。修复 `r4_si_thinker.py` 后以 `r4_orch_v2.sh` 续跑（复用已完成的对照），规则不变；R7 链继续等 R4 结束。

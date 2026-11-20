@@ -121,10 +121,16 @@ def main() -> None:
     for name in need:
         parent, child = ctx.Pipe()
         p = ctx.Process(target=worker, args=(ca if name == "base" else cb, QWEN3 if name == "base" else args.adapter,
-                                             args.gpu_mem, args.seed, child), daemon=True)
+                                             args.gpu_mem, args.seed, child), daemon=False)   # vLLM spawns EngineCore children
         p.start()
         W[name] = (p, parent)
     for name, (p, conn) in W.items():
+        while not conn.poll(10):
+            if not p.is_alive():
+                for q, _ in W.values():
+                    if q.is_alive():
+                        q.terminate()
+                raise SystemExit(f"r4 worker {name} died before ready (exit {p.exitcode})")
         assert conn.recv() == "ready", name
     print(f"r4 workers ready: {list(W)}", flush=True)
 
@@ -199,6 +205,8 @@ def main() -> None:
     print("r4 thinker:", json.dumps(st), flush=True)
     for k, (p, conn) in W.items():
         p.join(timeout=120)
+        if p.is_alive():
+            p.terminate()
 
 
 if __name__ == "__main__":

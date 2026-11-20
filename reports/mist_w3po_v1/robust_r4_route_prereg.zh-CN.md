@@ -79,3 +79,11 @@ R4 对某个适配器"有效"，需要同时满足：
 ## 启动记录（2026-11-20 22:53 CET，只追加）
 - R2 于 22:31 CET 写 DONE，`r4_wait.sh` 按规则 exec 了 `r4_orch.sh`，但 orch 因 21:45 CET（变更 1 时期）遗留的 `logs/mist_w3po_v1/r4/r4.stop` 立即退出，没有启动任何作业。
 - 已把遗留文件改名为 `r4.stop.superseded_stale_change1`，22:53 CET 手动以 `CA=4 CB=5` 启动 `r4_orch.sh`（pid 3890894，watcher 3890896）。流程、规则、门槛都不变。
+
+## 变更 3（2026-11-21 00:30 CET，写于任何 R4e / R4w 数字之前）：自检作业挂起，修复后续跑
+- v1 的对照（ref_base / ref_enc / ref_uni，各 600 条）在 22:53–23:00 CET 正常完成。自检作业 `sc_base`（23:00 起）挂起 1.5 h，卡 4、5 实际空闲：
+  - `r4_si_thinker.py` 的两个工作进程是 daemon 进程，vLLM 要在其中再起 EngineCore 子进程，报 "daemonic processes are not allowed to have children"；
+  - 主进程一直在等 "ready"，没有退出。
+- **修复：** 工作进程改为 daemon=False；等待 ready 时检查工作进程是否存活，死了就退出；结束时 join 超时则 terminate。
+- 已按 PID 停掉 orch 3890894、两个挂起的 sc_base 进程和 watcher；失败的输出和日志改名 `*.superseded_daemon_bug`。
+- 00:28 CET 启动 `r4_orch_v2.sh`（= v1 去掉已完成的对照步骤，复用 ref_*），pid 868715。自检门槛、R4e / R4w、规则都不变。
