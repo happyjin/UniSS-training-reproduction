@@ -194,3 +194,11 @@
 ### 6.5 实现与资源
 - 编排：`experiments/mist_w3po_v1/voicecond/test_orch.sh`（combo_orch.sh 的副本，换成测试数据根；watcher POLL = 1；launch 前等占位离开，最多 120 s）。打分：`test_score.py`。
 - 卡：B 用卡 0–1，EW 用卡 2–3，C 用卡 4–5；卡 6–7 留给第十七波 b 训练，不碰。
+
+### 6.6 启动记录（只追加；写在任何测试数字之前）
+- **19:47 CET：** 合并测试数据已生成（`test_data_build.py`，`test_robust/data/build.json`：英→中 2632 条 4.18 h，中→英 4143 条 5.47 h）。三个系统同时启动，每个系统只跑这一次：
+  - B：`ARM=B TK=stream RUNS=b`，卡 0–1；
+  - EW：`ARM=EW TK=stream BASE=wave5/M/merged_erm_wise05 RUNS="b v1"`，卡 2–3（得到 EW_b、EW_v1）；
+  - C：`ARM=C TK=combo SV=enh BASE=wave5/M/merged_erm_wise05 RUNS="b v1"`，卡 4–5（先在 CPU 上生成增强视角；得到 C_b、C_v1）。
+- 为测试数据根加的改动（默认行为不变）：`wave5_m_v1tokens.py`、`wave15_enh_views.py`、`wave3_v_spksim.py` 读环境变量 S1_DATA；spksim 在 S1_DATA 下对没有干净孪生的条目（OOD-3）用本句源音频作参照（见 6.3）。
+- 卡时估计：每个系统约 1.5–2 h 墙钟 × 2 卡（Thinker 约 10–15 min，Talker 每个 run 约 25 min，ASR 约 30 min，PESQ / 相似度约 15 min），合计约 10–12 卡时；预计约 21:45–22:15 CET 全部完成。

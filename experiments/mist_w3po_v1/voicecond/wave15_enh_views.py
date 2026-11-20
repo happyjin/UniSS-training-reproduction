@@ -103,7 +103,9 @@ def main() -> None:
     out = Path(a.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
-    items = [json.loads(l) for l in open(REPO / f"eval_outputs/mist_w3po_v1/wave2_S1/data/items_{a.direction}.jsonl",
+    # S1_DATA (robust final test, 2026-11-20): another data root with the same items_<dir>.jsonl layout; default unchanged
+    data = Path(__import__("os").environ.get("S1_DATA", str(REPO / "eval_outputs/mist_w3po_v1/wave2_S1/data")))
+    items = [json.loads(l) for l in open(data / f"items_{a.direction}.jsonl",
                                          encoding="utf-8")]
     if a.limit:
         items = items[: a.limit]

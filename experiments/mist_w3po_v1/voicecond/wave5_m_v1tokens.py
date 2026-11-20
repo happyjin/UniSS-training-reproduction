@@ -41,7 +41,9 @@ def main() -> None:
     from experiments.mist_w3po_v1.voicecond.idea1_zne import read_mono64
     Pc = load_encoder(BiCodecPhi(a.device), str(CKPT_C))
     Pc.model.eval()
-    items = [json.loads(l) for l in open(S1 / "data" / f"items_{a.dir}.jsonl", encoding="utf-8")]
+    # S1_DATA (robust final test, 2026-11-20): another data root with the same items_<dir>.jsonl layout; default unchanged
+    data = Path(__import__("os").environ.get("S1_DATA", str(S1 / "data")))
+    items = [json.loads(l) for l in open(data / f"items_{a.dir}.jsonl", encoding="utf-8")]
     blocks = {r["id"]: r["blocks"] for r in map(json.loads, open(a.blocks, encoding="utf-8"))}
     rows = []
     for it in items:

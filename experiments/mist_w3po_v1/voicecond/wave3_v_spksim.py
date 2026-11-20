@@ -44,8 +44,10 @@ def main() -> None:
         e = e[0].float().cpu().numpy()
         return e / (np.linalg.norm(e) + 1e-9)
 
-    meta = {r["id"]: r for r in map(json.loads, open(S1 / "data" / f"meta_{a.dir}.jsonl", encoding="utf-8"))}
-    audio = {r["id"]: r["audio"] for r in map(json.loads, open(S1 / "data" / f"items_{a.dir}.jsonl", encoding="utf-8"))}
+    # S1_DATA (robust final test, 2026-11-20): another data root with the same {items,meta}_<dir>.jsonl layout; default unchanged
+    data = Path(__import__("os").environ.get("S1_DATA", str(S1 / "data")))
+    meta = {r["id"]: r for r in map(json.loads, open(data / f"meta_{a.dir}.jsonl", encoding="utf-8"))}
+    audio = {r["id"]: r["audio"] for r in map(json.loads, open(data / f"items_{a.dir}.jsonl", encoding="utf-8"))}
     clean = {(r["set"], r["pair"]): i for i, r in meta.items() if r["cond"] == "clean"}
     refs = {}
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -53,7 +55,7 @@ def main() -> None:
     with open(out, "x", encoding="utf-8") as fh:
         for r in map(json.loads, open(Path(a.run) / "results.jsonl", encoding="utf-8")):
             mm = meta[r["id"]]
-            ci = clean[(mm["set"], mm["pair"])]
+            ci = clean.get((mm["set"], mm["pair"]), r["id"]) if "S1_DATA" in __import__("os").environ else clean[(mm["set"], mm["pair"])]  # no clean twin (OOD-3): own source
             p = r.get("speech_path")
             s = None
             if p and Path(p).exists() and sf.info(p).frames > 1600:
