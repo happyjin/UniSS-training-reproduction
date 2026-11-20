@@ -4592,3 +4592,10 @@ frozen_talker 11:41 完成并释放 slot A，constlam 12:07 完成；卡 0–7 �
 - 预登记 `robust_wave10_ties_prereg.zh-CN.md`，含"实现说明与实现修正"一节。
 - 脚本：`voicecond/wave10_{dir_train,run,noplaceholder,ties_merge,mech,eval,eval_orch,score}`。训练脚本是第五波 ERM 的副本，只多一个 `--direction`；样本与 ERM 中该方向的样本相同。
 - 冒烟：mb 32，峰值 76 GiB，每步 3.6 s。正式训练 10:33 开始，zh2en 在卡 2（pid 3025833），en2zh 在卡 3（pid 3027341）。评测链 `wave10_eval_orch.sh` pid 3030912。
+
+## 2026-11-20 11:40 布拉格 — 鲁棒第九波（音色锚定 Thinker）结果：两条主判定都不通过
+- run_A 训练 2300 步，用时 2.36 h（mb 32）。链条自动完成 WiSE 0.5 合并（LoRA alpha 减半，锚定行 E0 + 0.5ΔE，lm_head 不变）、评测和打分，见 `wave9/summary.json`。
+- 第 1 条（对底座）：带噪提升成立，但 zh2en (a) 干净 −0.51，不通过。
+- 第 2 条（对 erm_wise05，b_xt）：四个单元都为负。b_xt_in1s 上为 −1.7 到 −3.3，说明 dev 中第一秒内的串音污染了 u。
+- 翻转率比 E 低 0.02–0.03，与底座持平；LAAL 变化不大。
+- 不跑组合，不跑 C 臂；卡 0–1 交还。详见预登记"结果"一节。
