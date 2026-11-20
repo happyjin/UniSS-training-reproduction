@@ -71,3 +71,26 @@
 ### 7. 自动衔接（`wave17_chain.sh`，setsid nohup）
 - 流程：等训练的 torchrun 退出 → 检查 adapters_final → 建 WiSE 副本 → 评测 enc_wise05（卡 6–7）→ 评测 enc（卡 6–7）→ 跑 mech 作业（卡 6–7）→ touch STOP，把卡交还 guard → `wave17_mech_score.py` → 等第十四波的 `eval_unist_wise05/EVAL_DONE` 出现（等待脚本自动衔接；若第十四波写了 CHAIN_FAILED 或 EVAL_FAILED，就停下并记录）→ `wave17_score.py` → CHAIN_DONE。
 - 链条本身不停任何进程；占位进程由 launcher 和 watcher 按 PID 停，并在 kill 前复查 argv。
+
+### 实现说明补记（2026-11-20 15:54 CET）
+- **冒烟**（`wave17/smoke`，卡 6–7，`--mb 32`，6 步，15:48–15:49 CET，不留 checkpoint）：
+  - 构建断言全部通过：256 个 adapter 张量，5.24 M 参数，文本层没有可训练参数；
+  - 第一步两个 rank 上编码器 LoRA-b 的梯度范数都是 7.54e-2（> 0），梯度确实到达了编码器；
+  - 峰值显存 78.8 GiB/卡，装得下；
+  - 所以正式训练取 `--mb 32`，每个 rank 一个微批，没有梯度累积。
+- **机理检验的 600 条：** `wave17_items.py` 已建好 `eval_outputs/mist_w3po_v1/wave17/data/items_zh2en_train600.jsonl`。其中 289 条在 2300 步中至少被 Sampler 抽中一次，311 条从未被抽中。
+- **其余脚本：** `wave17_merge.py`、`wave17_eval.sh`、`wave17_eval_orch.sh`、`wave17_score.py`、`wave17_mech_score.py`、`wave17_chain.sh` 都只用 bash -n、DRY_RUN 或 py_compile 检查过。
+  - `wave17_score.py` 在现有数据上跑过一次自检，输出写到 scratchpad，没有 enc 的数字：erm_wise05 相对底座的 180 个数值和门与第五波完全一致。
+  - `wave17_mech_score.py` 的分解代码用第十三波的 erm 当作"enc"试跑过一次，输出写到 scratchpad：复现了第十三波的离线 −2.77、LA2 −3.63，说明代码路径正确。这不是第十七波的结果。
+
+## 训练进度
+- 2026-11-20 15:49:53 CET 启动 `run_enc`：卡 6–7，world 2，`--mb 32`，每个 rank 12 个 worker，torchrun 的 pid 是 2212086。watcher 的 pid 是 2191759。链条 `wave17_chain.sh` 的 pid 是 2246267（15:52 CET 起）。
+- 第 4 步的 CE 与冒烟第 4 步一致（1.00120），同一批样本得到确认。第 10–30 步平均每步 3.8 s，2300 步约 2.4 h，预计 18:15 CET 前后结束。
+- 之后链条自动接续：
+  - WiSE 副本，然后合并（CPU，只重写一个分片）；
+  - enc_wise05 评测，约 1.5 h；
+  - enc 评测，约 1.5 h；
+  - 机理检验的 Thinker 作业，约 0.7 h；
+  - touch STOP；
+  - 打分，需要第十四波的 unist_wise05 dev 输出，按第十四波的进度应在 19:30 CET 前后出来。
+- 预计 22:00 CET 前后出结果。
