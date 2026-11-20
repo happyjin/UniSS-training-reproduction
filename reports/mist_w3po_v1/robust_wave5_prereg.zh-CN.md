@@ -231,3 +231,12 @@
   - 收益（英→中 (b)、中→英 (b) 带噪，+2 到 +3 BLEU）来自带噪数据上的 LoRA 微调本身，ERM 也有；
   - Fishr 在默认 λ 下惩罚量级约为损失的 0.2%，而且只作用于最后约 800 步，与 ERM 分不开；
   - 两臂都让干净的 CoVoST 中→英掉了 2.5–3.6 BLEU。（WiSE α = 0.5 对此的处理见变更 4 和「ERM-WiSE 结果」。）
+
+## 变更 5（2026-11-20 10:50 CET，写在任何 fishr_wise05 评测数字之前）
+- 用户："如果没效果就换思路，不要调参数"。fishr_wise05 的补评**取消**。
+- **Fishr 结论：对 ERM 没有增量。** 所有单元上 Fishr 与 ERM 的差都不显著；λ 乘上惩罚只占损失的约 0.2%，而且只在最后约 800 步生效。
+- 主系统仍是 **ERM-WiSE**（`run_erm_wise05`）。
+- 执行记录：
+  - 等待脚本 `voicecond/wave5_m_wise_wait.sh`（pid 3036579）10:34 启动，按 PID 停止时还在等卡，评测没有开始，没有任何 fishr_wise05 的评测目录、日志或数字。
+  - `run_fishr_wise05/adapters_final.json`（alpha 16，适配器指向 run_fishr）保留。
+  - 主线 M 的 watcher 已用 stop 文件停掉（10:43）。
