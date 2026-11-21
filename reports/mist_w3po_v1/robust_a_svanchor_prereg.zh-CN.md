@@ -20,7 +20,7 @@
 ## 3. 方法（一个设置，不扫参）
 - **输入**：x = [TitaNet-large(带噪提示段)（192 维，L2 归一化，前向与 `wave3_v_spksim.emb` 相同），flatten(φ_V1(带噪提示段))（192 维，V1 连续 pre-bound 码）]，按训练集均值 / 标准差标准化。
 - **模型**：û = φ_V1 + reshape(MLP(x), 32×6)；MLP 384 → 1024 → 1024 → 192，GELU，dropout 0.1，最后一层零初始化（第 0 步 û 恰好等于 V1 的码）。
-- **损失**：mean ‖d(û) − d(u*)‖² + 0.1 · mean ‖û − u*‖²（后者在 pre-bound 码空间）。d(u) = `speaker_encoder.project(flatten(project_out(clip(bound(u), −2, 1) / 2 · scale)))`，即去掉 round 的 `detokenize`（与 `k5_soft.d_cont` 同一条仿射通路，可微；两边都用 bound 后未 round 的码）。脚本先检查：等级中心代入时与 `speaker_encoder.detokenize(ids)` 最大绝对差 ≤ 1e−5。
+- **损失**：batch 平均的 ‖d(û) − d(u*)‖²（d-vector 上的平方 L2 范数，对维度求和）+ 0.1 · MSE(û, u*)（对 32×6 pre-bound 码逐元素平均，与 V1 的损失同一定义）。（10:55 CET 澄清，早于任何真实数字：CPU 冒烟测试〔300 对，只查代码能跑〕发现初稿代码把 d 项也按逐元素平均，与上面"平方范数"的写法不一致，按本行定义改正。）d(u) = `speaker_encoder.project(flatten(project_out(clip(bound(u), −2, 1) / 2 · scale)))`，即去掉 round 的 `detokenize`（与 `k5_soft.d_cont` 同一条仿射通路，可微；两边都用 bound 后未 round 的码）。脚本先检查：等级中心代入时与 `speaker_encoder.detokenize(ids)` 最大绝对差 ≤ 1e−5。
 - **训练数据**：voicecond Idea 1 训练对（`data/open_voicecond_v1/idea1/train_en` + `train_zh`，各 20000 对，6 s 片段；与 V1 对照臂同一数据；与 S1 dev 说话人不相交）。u* = φ0（冻结 BiCodec）在**同一段**干净片段上的码。
 - **提示段裁剪（唯一选择，写在数字之前）**：部署时提示是源音频前 max(首次写出, 1 s)，S1 dev 提示 10–90% 分位为 2–4 s（中位数 3 s），而训练片段都是 6 s。为让 TitaNet 输入的时长分布与部署一致，每个训练对**一次性**抽一个裁剪（种子 20261119）：长度 L ~ U[1.5, 4.5] s，起点 ~ U[0, 6 s − L]；带噪 y 与干净 s 用同一裁剪；TitaNet、φ_V1、u* 都在这段上算（φ 内部照常音量归一化并平铺到 6 s）。之后不再换裁剪（TitaNet 预先算好）。
 - **优化**：AdamW，lr 1e−3，weight decay 0.01，batch 256，5000 步（约 32 个 epoch），200 步线性预热后余弦到 0，梯度裁剪 1.0，fp32，种子 20261119；只存最后的权重。每 500 步在 200 个 ID-1 diag 监控对（V1 训练日志用的同一批，同样裁剪，种子 + 1）上记录损失与 d-vector 余弦，**只记录，不选点**。

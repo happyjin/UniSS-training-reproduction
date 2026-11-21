@@ -4,7 +4,8 @@ estimator, ONE setting, then the S1 dev precheck and the token tables.
           the training-set mean / std
   model   u_hat = phi_V1 + reshape(MLP(x), 32x6); MLP 384 -> 1024 -> 1024 -> 192, GELU, dropout 0.1, last layer
           zero-initialised (u_hat = V1's code at step 0)
-  loss    mean_j |d(u_hat) - d(u*)|^2 + 0.1 mean |u_hat - u*|^2 (pre-bound code); d(u) = speaker_encoder.project(
+  loss    mean_j ||d(u_hat_j) - d(u*_j)||^2 (squared L2 norm over the d-vector) + 0.1 MSE(u_hat, u*) (mean over the
+          32x6 pre-bound code, as V1's loss); d(u) = speaker_encoder.project(
           flatten(project_out(clip(bound(u), -2, 1) / 2 * scale))) = detokenize with the round removed (k5_soft.d_cont,
           differentiable); u* = phi_0(clean crop) (training), phi_0(clean-twin prompt) (dev)
   optim   AdamW lr 1e-3, weight decay 0.01, batch 256, 5000 steps, 200 warm-up steps then cosine to 0, clip 1.0, fp32,
@@ -81,7 +82,7 @@ def main() -> None:
     def d_ids(ids):
         t = torch.as_tensor(np.asarray(ids), dtype=torch.long, device=dev)
         with torch.no_grad():
-            return se.detokenize(t[:, :, None])
+            return se.detokenize(t[:, None, :])   # (B, 1, 32) as BiCodecTokenizer.detokenize / d1ts_tokens
 
     def digits(ids):
         ids = np.asarray(ids)
@@ -118,8 +119,8 @@ def main() -> None:
     cos = torch.nn.functional.cosine_similarity
 
     def loss_fn(uh, u, du):
-        ld = ((d_soft(uh) - du) ** 2).mean()
-        lc = ((uh - u) ** 2).mean()
+        ld = ((d_soft(uh) - du) ** 2).sum(1).mean()    # squared L2 norm in d-vector space, mean over the batch
+        lc = ((uh - u) ** 2).mean()                    # code-space MSE over the 32 x 6 pre-bound code (as V1's mse)
         return ld + W_CODE * lc, ld, lc
 
     def monitor(step):

@@ -82,7 +82,7 @@ def main() -> None:
         n = len(V)
         stats[d] = {"n": n, "v1_id_mismatch_rows": mv, "oracle_id_mismatch_rows": mo}
         print(json.dumps(stats[d]), flush=True)
-        if mv > 0.05 * n or mo > 0.05 * n:
+        if not a.limit and (mv > 0.05 * n or mo > 0.05 * n):   # smoke (--limit) only records
             sys.exit(f"V1 / oracle ids not reproduced ({d}): {stats[d]}")
         with open(out / f"codes_dev_{d}.npz", "xb") as fh:
             np.savez(fh, v1=np.stack(V).astype(np.float32), u0=np.stack(U).astype(np.float32),
