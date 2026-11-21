@@ -157,10 +157,14 @@ def main() -> None:
             x = x + d.unsqueeze(-1)
             wav = m.decoder(x).detach().squeeze().cpu().numpy()
             if sanity and stats["decodes"] < 5:
-                ref = orig_dec(self, tokens)
-                diff = float(np.abs(np.asarray(ref) - wav).max())
-                print(f"[k5 sanity] decode {key}: max abs diff to hard decode {diff:.3g}", flush=True)
-                assert diff <= 1e-4, diff
+                # the gate is on the decoder condition (exact); the waveform differs at ~1e-4 even between two hard
+                # decodes (non-deterministic GPU kernels), so it is printed with that floor, not asserted
+                dh = m.speaker_encoder.detokenize(torch.as_tensor(g, dtype=torch.long, device=d.device)[None, None])
+                dd = float((d - dh).abs().max())
+                assert dd <= 1e-6, f"k5 sanity: d-vector differs from detokenize by {dd}"
+                ref1, ref2 = np.asarray(orig_dec(self, tokens)), np.asarray(orig_dec(self, tokens))
+                print(f"[k5 sanity] decode {key}: d-vector max abs diff {dd:.3g}; waveform max abs diff to hard decode "
+                      f"{float(np.abs(ref1 - wav).max()):.3g} (hard vs hard {float(np.abs(ref1 - ref2).max()):.3g})", flush=True)
             stats["decodes"] += 1
             return wav
 
