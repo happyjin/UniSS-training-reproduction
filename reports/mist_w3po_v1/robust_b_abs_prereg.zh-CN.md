@@ -121,3 +121,25 @@ S1 dev 带噪条目（en2zh 637、zh2en 1006）：
 2. `BiCodecPhi.d_vector` 对 (B, 32) 输入的形状处理与 `detokenize` 期望不一致（A 也遇到过），搜索脚本里改用 `se.detokenize(ids.reshape(1, 1, 32))`（与 `d1ts_tokens` 相同）；在 CPU 冒烟测试（2 行，输出放 scratch，不作为结果）里发现，早于任何真实数字。
 3. `b_abs_precheck.py` 的 `--smoke` 只用于这次冒烟；正式运行检查全部行齐全（通过）。
 4. 其余与预登记一致：一个设置，没有扫参，没有重跑。
+
+## 确认运行（测量确认，不是新方法；2026-11-21 11:45 CET 写，早于本节任何数字）
+目的：判断上面第 3 条（ASR-BLEU）的不过是"可懂度真的下降"还是单个 TTS 种子 / 单次运行的测量噪声。不改任何方法设置：B、V1、AbS 用已有的 token 表（B = 无覆盖；V1 = `wave3_combos/V/tokens/tokens_v1_<d>.jsonl`；AbS = `b_abs/tokens/tokens_abs_<d>.jsonl`），不重跑搜索。上面的原判定（not_established）保持不变，本节结果只作附加确认。
+
+### 1. CPU：种子 1（已有输出）的配对 bootstrap
+- 对 S1 dev 全部格（en2zh / zh2en × {a, b, b_noxt} × {带噪, 干净}），用 `wave3_v_score.compare` 原样（单位 = stream，2000 次重采样，种子 0）算：ASR-BLEU AbS − V1、AbS − B（语料 BLEU 差，单位求和的充分统计量）；ECAPA2 与 TitaNet 相似度 AbS − V1（单位内条目差的均值 → 单位中位数，及其 95% CI）。
+- 输入与 `b_abs_score.py` 相同（B、V1 的 TitaNet / SQUIM 在 `wave3_combos/V/metrics`，ECAPA2 在 `a_sv/metrics`；AbS 在 `b_abs/metrics`）。
+
+### 2. GPU：第二个 TTS 种子 20261022
+- B（`si_infer`，无覆盖）、V1、AbS（`idea1_si_infer_vo --voice-override <同一 token 表>`）× 两个方向 × 4 分片，其余参数与 `b_abs_orch.sh` / `wave3_v_run.sh` 完全相同（同一 Thinker 文本块、T1c Talker、`--window 1 --text-policy file --speed-policy block --gpu-mem 0.1`、`SI_KV_CACHE_GIB=7.73`），只把 `--seed` 改为 20261022。
+- 然后同一流程：speech-only ASR（`asr_speech.jsonl`）、SQUIM PESQ（`wave2_s1_score.py pesq`）、TitaNet（`wave3_v_spksim`）、ECAPA2（`a_sv_ecapa2_spksim`）。
+- 只用卡 4–7：en2zh 分片 0,1 → 卡 4、2,3 → 卡 6；zh2en 分片 0,1 → 卡 5、2,3 → 卡 7；每卡 3 臂 × 2 分片 = 6 个 Talker 同时（固定 KV，跳过显存 profiling），同卡相邻启动间隔 45 s。脚本 `experiments/mist_w3po_v1/voicecond/b_abs_seed2_orch.sh`（setsid nohup，fds 8/9 关闭；先 `bash -n` 与 `DRY_RUN=1`），watcher 复用 `b_abs_noplaceholder.sh`（POLL=1，PIDS/STOP 指向新日志目录）；占位只按 PID 停，启动前最多等 120 s 直到卡上没有 gpu_load 进程；不碰 2726951 / 52045 / 1222453。拒绝覆盖已有输出。
+- 输出 `eval_outputs/mist_w3po_v1/b_abs_seed2/`，日志 `logs/mist_w3po_v1/b_abs_seed2/`。评分 `experiments/mist_w3po_v1/voicecond/b_abs_seed2_score.py`。
+
+### 3. 报告（每格，B / V1 / AbS）
+- 种子 1、种子 2、两种子均值：ASR-BLEU、ECAPA2 / TitaNet 收回比例、PESQ 中位数。两种子均值 = 两个种子各自格值（语料 BLEU、中位数、收回比例）的算术平均；每个种子的收回比例用**该种子自己的 B** 带噪 / 干净中位数作分母和基线。
+- 只报告（不入判读）：种子 2 的同样 bootstrap CI；两种子合并的 ASR-BLEU AbS − V1 CI（每个单位把两种子的充分统计量相加后同样重采样单位）。
+
+### 4. 事先写定的判读
+- 若 **AbS 两种子均值 ASR-BLEU ≥ V1 两种子均值 − 0.3 在全部 8 个主格**（en2zh / zh2en × {a, b} × {带噪, 干净}）**且** 原先不过的三格（zh2en a 带噪、zh2en b 干净、en2zh b 带噪）中种子 1 的 AbS − V1 ASR-BLEU bootstrap 95% CI 都包含 0 → 记"**种子 1 的 ASR 不足未得到确认**"（原判定照旧，这是附加确认结果）；
+- 否则 → 记"**ASR 下降得到确认**"。
+- 一次运行，不扫参，不因结果重跑。
