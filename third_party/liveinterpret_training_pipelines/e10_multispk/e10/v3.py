@@ -15,7 +15,8 @@ What changes against E10 v1/v2 (e10.patch / e10.tuner, left untouched):
   * decision loss only on streaming records: offline / sd records keep their text loss but their wait/W labels are
     masked (B's offline rows never train an empty output on a prefix; v1/v2 expanded them into wait trajectories).
 
-The placeholder position uses the unused `<|pause:1|>` row; its embedding is always overwritten.
+The slot position holds the unused `<|pause:1|>` row's embedding plus the projector output (zero at init; a pure
+zero vector at a position blows up RMSNorm gradients, see fill_slots).
 """
 from __future__ import annotations
 
@@ -253,7 +254,10 @@ def fill_slots(model, tokens, h, posts, ns, slot_id):
         v = spk_vectors(model, posts[b], n)
         if out is None:
             out = h.clone()
-        out[b, idx] = v.to(out.dtype)
+        # slot = the slot token's own embedding + the projector (zero at init). A pure zero vector (B's literal
+        # form) feeds RMSNorm a zero input: smoke test gave |grad spk_proj| ~2e16, which global clipping turns into
+        # a near-zero step for every other parameter.
+        out[b, idx] = h[b, idx] + v.to(out.dtype)
     return h if out is None else out
 
 

@@ -97,9 +97,11 @@ def causal_voice(sessions, w, k, write_ms, wav16):
 
 
 # ---------------------------------------------------------------------------------------------------- decoding
-def sample_delta(embeds, run, tok_emb, pick, stops, extra_allow, *, ban_above, max_tokens):
-    """S5 sample_delta with the speaker tags allowed inside a delta."""
-    delta, out, term = [], None, None
+def sample_delta(embeds, run, tok_emb, pick, stops, extra_allow, *, ban_above, max_tokens, guard=None):
+    """S5 sample_delta with the speaker tags allowed inside a delta. guard(delta) -> cut length or None (v3: B's
+    decode-time loop guard / budget); a cut ends the delta, the cut tokens stay in the Thinker cache but are not
+    output (B drops them from its committed text)."""
+    delta, out, term, cut = [], None, None, None
     for _ in range(max(0, int(max_tokens))):
         logits, out = run()
         t = pick(logits, 1.0, 0.0, ban_above=ban_above, allow=tuple(stops) + tuple(extra_allow))
@@ -108,9 +110,15 @@ def sample_delta(embeds, run, tok_emb, pick, stops, extra_allow, *, ban_above, m
             break
         delta.append(t)
         embeds.append(tok_emb(t))
+        if guard is not None:
+            cut = guard(delta)
+            if cut is not None:
+                break
     if delta and term is None:
         _, out = run()
-    return delta, out, term
+    if cut is not None:
+        return delta, out, term, cut
+    return delta, out, term, None
 
 
 @torch.inference_mode()
@@ -119,6 +127,8 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
     from streaming_si.model.model_si import TalkerStreamState
     from e10.common import delayed_post, instruction
     from e10.patch import add_sd
+    from e10 import v3 as V3
+    is_v3 = a.mode == "e10v3"
     wait_id, write_id, chunk_id, src_end_id = ids
     dev = a.device
     audio_pad = int(model.config.audio_ids[0])
@@ -133,7 +143,15 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
     mel = mel_fn(torch.from_numpy(wav16), sr=SR).unsqueeze(0).to(dev)
     t_mel = mel.size(-1)
     sp = torch.from_numpy(delayed_post(post, t_mel // 8)) if a.mode == "e10" else None
-    embeds = [emb(torch.tensor([tok.encode(instruction(tgt, a.mode == "e10"), add_special_tokens=False)],
+    if is_v3:   # B's speaker stream: block vectors, each placed once its lowlat posterior exists (e10.v3)
+        n_fr = t_mel // 8
+        pfull = np.zeros((max(1, n_fr + V3.K), 8), dtype=np.float32)
+        if post is not None:
+            m = min(len(post), len(pfull))
+            pfull[:m] = np.asarray(post, dtype=np.float32)[:m, :8]
+        S = V3.spk_vectors(model, torch.from_numpy(pfull), (len(pfull) + V3.K - 1) // V3.K).to(dtype) \
+            + tok_emb(int(model.config.e10v3_slot_id))[0].to(dtype)          # = training (e10.v3.fill_slots)
+    embeds = [emb(torch.tensor([tok.encode(instruction(tgt, a.mode != "e10_0"), add_special_tokens=False)],
                                device=dev))]
     run = ThinkerRunner(model, embeds, use_cache=True, graph=not a.no_graph)
     chunk_mel = a.chunk_ms // 10
@@ -141,6 +159,7 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
     torch.manual_seed(a.seed)
     pos, fpos, vcache, src_done, tail, n_text, i = 0, 0, None, False, 0, 0, 0
     segs, cur, stop, n_write, n_wait = [], None, "max_steps", 0, 0
+    committed, n_guard = [], 0
     n_steps = int(np.ceil(t_mel / chunk_mel))
     while True:
         b = min(t_mel, pos + chunk_mel)
@@ -153,9 +172,17 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
                 f = feats[0]
                 if sp is not None:
                     f = add_sd(model, f, sp[fpos: fpos + f.size(0)])
-                fpos += f.size(0)
                 pad = torch.full((1, f.size(0)), audio_pad, device=dev)
-                embeds.append(model.inject_audio_features(pad, emb(pad), [f]).to(dtype))
+                ea = model.inject_audio_features(pad, emb(pad), [f]).to(dtype)
+                if is_v3:
+                    parts, prev = [], 0
+                    for after, j in V3.slots_in_run(fpos, f.size(0), V3.STREAM_DELAY):
+                        parts += [ea[:, prev:after], S[j][None, None]]
+                        prev = after
+                    parts.append(ea[:, prev:])
+                    ea = torch.cat([x for x in parts if x.size(1)], dim=1)
+                fpos += f.size(0)
+                embeds.append(ea)
         if is_last and not src_done:
             embeds.append(tok_emb(src_end_id))
             src_done = True
@@ -170,14 +197,27 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
         term = None
         if dec == write_id:
             n_write += 1
-            delta, out, term = sample_delta(embeds, run, tok_emb, _pick, (chunk_id, eos_id, wait_id),
-                                            spk_ids if a.mode == "e10" else (), ban_above=ban_above,
-                                            max_tokens=a.max_text_tokens - n_text)
+            guard = None
+            if is_v3 and a.loop_guard_k > 0:
+                from experiments.mist_w3po_v1.evaluation.loop_guard import guard as bguard
+                budget = int(a.budget_tps * (b * 10) / 1000) + a.budget_slack
+
+                def guard(d, _c=committed, _b=budget):
+                    new, why = bguard(list(d), _c, a.loop_guard_k, a.loop_guard_maxp, _b)
+                    return len(new) if why else None
+            delta, out, term, cut = sample_delta(embeds, run, tok_emb, _pick, (chunk_id, eos_id, wait_id),
+                                                 spk_ids if a.mode != "e10_0" else (), ban_above=ban_above,
+                                                 max_tokens=a.max_text_tokens - n_text, guard=guard)
             n_text += len(delta)
+            full_len = len(delta)
+            if cut is not None:
+                n_guard += 1
+                delta = delta[:cut]
+            committed += delta
             if delta:
                 hid = model.pick_bridge_hidden(out)
                 L = hid.size(1)
-                base = L - len(delta)
+                base = L - full_len
                 groups, gk = [], cur
                 for j, t in enumerate(delta):          # split at speaker tags
                     if t in spk_of:
@@ -222,7 +262,7 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
                                                 top_k=a.talker_top_k, top_p=a.talker_top_p))
     if segs:
         segs[-1]["tokens"] += [int(x) for x in rest]
-    return {"segs": segs, "stop": stop, "n_write": n_write, "n_wait": n_wait, "n_text": n_text}
+    return {"segs": segs, "stop": stop, "n_write": n_write, "n_wait": n_wait, "n_text": n_text, "n_guard": n_guard}
 
 
 def vocode(model, speaker, prompter, tokens, ref16, a):
@@ -241,7 +281,7 @@ def speak(model, speaker, prompter, w, res, wav16, sessions, out_dir, a, stats):
     segs = res["segs"]
     wav_dir = out_dir / "wav" / w["id"]
     pieces = [None] * len(segs)
-    if a.mode == "e10":   # one decode per speaker with B's causal voice
+    if a.mode in ("e10", "e10v3"):   # one decode per speaker with B's causal voice
         by = defaultdict(list)
         for n, s in enumerate(segs):
             if s["tokens"]:
@@ -280,7 +320,7 @@ def speak(model, speaker, prompter, w, res, wav16, sessions, out_dir, a, stats):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mode", choices=["e10", "e10_0"], required=True)
+    ap.add_argument("--mode", choices=["e10", "e10_0", "e10v3"], required=True)
     ap.add_argument("--set", choices=sorted(SETS) + ["custom"], required=True)
     ap.add_argument("--data", help="--set custom: data root (relative to UniSS) with session_audio/ and diar/")
     ap.add_argument("--sess", help="--set custom: session_audio subdir (ihm_mix -> <m>.Mix-Headset.wav, else <m>.wav)")
@@ -310,6 +350,11 @@ def main():
     ap.add_argument("--prompt_sec", type=float, default=8.0)
     ap.add_argument("--no_graph", action="store_true")
     ap.add_argument("--no_vocoder", action="store_true")
+    # e10v3: baseline B's decode-time loop guard (experiments/mist_w3po_v1/evaluation/loop_guard.py, B's settings)
+    ap.add_argument("--loop_guard_k", type=int, default=6)
+    ap.add_argument("--loop_guard_maxp", type=int, default=12)
+    ap.add_argument("--budget_tps", type=float, default=25.0)
+    ap.add_argument("--budget_slack", type=int, default=50)
     a = ap.parse_args()
     # torch defaults to one intra-op thread per core (192 here): 16 decoders = 236 threads each, load ~600, other
     # users' jobs starved (2026-11-19). Cap the CPU threads per decoder.
@@ -341,8 +386,12 @@ def main():
     if a.limit:
         W = W[: a.limit]
 
-    from e10 import patch
-    patch.install()
+    if a.mode == "e10v3":
+        from e10 import v3 as V3
+        V3.install()
+    else:
+        from e10 import patch
+        patch.install()
     from e10.common import spk_token_ids
     from e10.load import load_e10_model, load_s5
     from streaming_si.inference.infer_s2st import CampplusSpeaker, load_wav16
@@ -353,6 +402,13 @@ def main():
     t0 = time.time()
     if a.mode == "e10":
         model, tok, ids = load_e10_model(a.model_dir, a.adapter, device=a.device)
+        spk_ids = spk_token_ids(tok)
+    elif a.mode == "e10v3":
+        from e10.load import load_base
+        meta = json.load(open(os.path.join(a.adapter, V3.V3_METADATA)))
+        chain = [d for d in meta["merges"].split(",") if d] + [a.adapter]
+        base, tok, ids = load_base(a.model_dir, device=a.device)
+        model = V3.load_v3_chain(base, chain, V3.slot_id(tok)).eval()
         spk_ids = spk_token_ids(tok)
     else:
         model, tok, ids = load_s5(a.model_dir, a.adapter, device=a.device)
@@ -376,15 +432,16 @@ def main():
             try:
                 wav16 = load_wav16(w["audio"])
                 pp = (w.get("post") or {}).get("lowlat")
-                post = np.load(pp) if (a.mode == "e10" and pp) else None
-                if a.mode == "e10" and post is None:
+                post = np.load(pp) if (a.mode != "e10_0" and pp) else None
+                if a.mode != "e10_0" and post is None:
                     stats["windows_without_post"] += 1
                 res = translate_window(model, tok, ids, spk_ids, mel_fn, wav16, cfg["tgt"], post, a)
                 segs = (speak(model, speaker, prompter, w, res, wav16, sessions, out, a, stats)
                         if not a.no_vocoder else
                         [{"spk": s["spk"], "text": s["text"], "write_ms": s["write_ms"], "n_tok": len(s["tokens"]),
                           "dur_ms": len(s["tokens"]) * 40, "wav": None} for s in res["segs"]])
-                row.update({k: res[k] for k in ("stop", "n_write", "n_wait", "n_text")}, segs=segs, error=None)
+                row.update({k: res[k] for k in ("stop", "n_write", "n_wait", "n_text", "n_guard")}, segs=segs,
+                           error=None)
                 toks = [t for s in res["segs"] for t in s["tokens"]]
                 src_s, sp_s = wav16.size / SR, len(toks) / 25.0
                 # S5 collapse_ok (infer_s5_streaming_dynchunk): few distinct codes AND speech much longer than source
