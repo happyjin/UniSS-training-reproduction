@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# K2 step 2 (reports/mist_w3po_v1/robust_k2_w2map_prereg.zh-CN.md): W2 arm on S1 dev, cards 2 and 3 only.
-#   1. W2 token tables (k2_tokens.py on GPU, same prompts / sha1 as wave3_combos/V V1 tables) -> $R/tokens/
+# K2 step 2 (reports/mist_w3po_v1/robust_k2_w2map_prereg.zh-CN.md): W2 arm on S1 dev, cards 4 and 5 only (2026-11-21 07:40 CET: cards 2, 3 went to K1 training).
+#   1. W2 token tables (k2_tokens.py on GPU cards 4/5, same prompts / sha1 as wave3_combos/V V1 tables) -> $R/tokens/
 #   2. T1c Talker with the W2 tokens (idea1_si_infer_vo, S1 flags of wave3_v_run.sh, seed 20261021, 4 shards, 2 per card)
 #      -> $R/w2/talker_<d>
 #   3. speech-only ASR, 4. SQUIM PESQ (CPU) + TitaNet similarity -> $R/metrics/w2_<d>_{squim,spksim}.jsonl
@@ -12,7 +12,9 @@
 # DRY_RUN=1 prints the commands. Checked with bash -n / DRY_RUN only.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
-CA=(2 3); NC=2
+read -ra CA <<< "${CARDS:-4 5}"; NC=${#CA[@]}
+for c in "${CA[@]}"; do case " 4 5 " in *" $c "*) ;; *) echo "card $c not allowed for K2 (cards 1,2,3,7 = K1 training)" >&2; exit 1;; esac; done
+[ "$NC" -ge 1 ] || exit 1
 DRY=${DRY_RUN:-}
 R=eval_outputs/mist_w3po_v1/k2
 LOGD=logs/mist_w3po_v1/k2

@@ -44,7 +44,7 @@ T(x) = μ_c + A(x − μ_v)，A = Σ_v^{-1/2}(Σ_v^{1/2} Σ_c Σ_v^{1/2})^{1/2} 
 - **判据（W2 vs V1，每个方向的 a 与 b_noxt 两组）：** 带噪相似度高于 V1；干净相似度不低于 V1；ASR-BLEU 不低于 V1 超过 0.3；PESQ 不低于 V1 超过 0.1。四组（2 方向 × {a, b_noxt}）全过 = K2 成立；部分通过如实报告。b 组另报。
 
 ### 资源与产物
-- Talker 评测只用卡 2、3；每次启动前按 PID 停掉该卡的占位（`scripts/gpu_load/`），≤ 120 s 等到无残留；自带 POLL=1 的占位清除 watcher。
+- Talker 评测只用卡 2、3（07:40 CET 协调者改为卡 4、5：卡 2、3 归 K1 训练）；每次启动前按 PID 停掉该卡的占位（`scripts/gpu_load/`），≤ 120 s 等到无残留；自带 POLL=1 的占位清除 watcher。
 - 产物 `eval_outputs/mist_w3po_v1/k2/`，日志 `logs/mist_w3po_v1/k2/`。
 
 ---
