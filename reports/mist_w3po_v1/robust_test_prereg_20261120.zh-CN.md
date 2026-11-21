@@ -248,3 +248,16 @@
 - **PESQ：** 带噪中位数从约 2.0 提升到约 3.5–4.0，各系统相同。
 - UW 在 RealSI 中→英上最好（+2.42 / +4.86），D1 只多 0.1–0.2 s，但 OBSI 中→英 clean −0.91。
 - 结论与 v3 分析一致：真实语音上的噪声差距由 UniST 训练缩小；干净输入上的偏移仍在。正是 R1–R3 要解决的问题。
+
+## 变更 3：在测试集上加 AbS 音色（2026-11-21 14:20 CET，用户同意"要跑"；写在任何 AbS 测试数字之前，只追加）
+- **依据：** dev 上 AbS 身份收回 82% / 78%（ECAPA2 / TitaNet），ASR 下降的分析见 `robust_talker_asr_drop_analysis_20261121.zh-CN.md`：不是 Talker 未训练所致，AbS-C 的 STOI 机制不成立，所以测试只跑 AbS，不跑 AbS-C。
+- **系统 UE_abs：** 与 UE_v1 完全相同（同一 Thinker 输出 `UE/thinker_<d>`，同一提示文件 `UE/tokens/prompts`，同一 T1c Talker，种子 20261021），只把 32 个全局 token 换成 AbS 搜索结果。搜索与 `robust_b_abs_prereg` 第 2 节逐字相同：起点为 UE 的 V1 token（`UE/tokens/tokens_v1_<d>.jsonl`），效用为 TitaNet(重合成) 与 TitaNet(提示) 的余弦，预算 4 轮 × 16 次。没有 oracle，所以不记录 dcos / 重合成音频。脚本 `test_abs_search.py`（由 `b_abs_search.py` 只改数据来源）。
+- **范围：** RealSI 干净 / 带噪，OBSI clean / id2 / ood1；OOD-3 按变更 1 排除；OBSI 英→中主单元去掉 e031_0004。单种子，只跑一次，不重跑。
+- **比较：** UE_abs 对 UE_v1（已有，主比较），UE_abs 对 B_b（已有）；UE_b 只报告。ECAPA2 相似度对 B_b、UE_b、UE_v1 补算（已有输出，只是新指标）。
+- **指标：** ASR-BLEU（按 stream 配对 bootstrap，2000 次，种子 0）；Talker 内容错误率 TER（ASR 对 Thinker 文本）；ECAPA2 相似度（主，身份）、TitaNet 相似度（搜索用的编码器，只报告）；SQUIM PESQ 中位数；D1；搜索耗时中位数 / p90（首次写出前的额外延迟，不计入 D1）。
+- **身份收回比例：** (系统带噪相似度中位数 − B_b 带噪) / (B_b 干净 − B_b 带噪)；RealSI 带噪对 RealSI 干净，OBSI id2 / ood1 对 OBSI clean。
+- **判定（写定；两条都满足才记为"AbS 在测试集上成立"）：**
+  1. **身份：** 6 个带噪单元（2 方向 × RealSI 带噪、OBSI id2、OBSI ood1）中，至少 4 个单元的 ECAPA2 配对中位数差 UE_abs − UE_v1 的 CI 下界 > 0，且没有任何单元（10 个主单元）CI 上界 < 0。
+  2. **可懂度非劣：** 10 个主单元里，ASR-BLEU 差 UE_abs − UE_v1 的 CI 下界都 ≥ −1.0。界值 1.0 = dev 上单种子的运行波动（V1 0.8、B 1.07 BLEU），事先写定。
+- **只报告：** UE_abs 对 B_b 按第 6.4 节两条规则的结果；PESQ 差（某单元中位数差 < −0.1 时标出）；去掉 Talker 失控条目后的 ASR-BLEU（失控事先定义为：ASR 转写的词元数 > 3 × Thinker 文本词元数 + 10；中文按字，英文按词）。
+- **卡：** 只用卡 4–7（卡 0–3 归另一个 session）。
