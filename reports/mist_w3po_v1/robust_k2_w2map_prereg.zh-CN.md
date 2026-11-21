@@ -1,0 +1,48 @@
+# K2 预登记：V1 音色码的 W2 最优传输闭式修正（Talker 身份）
+
+2026-11-21 07:25 CET（布拉格），写于任何 K2 数字之前。来源：`robust_review_v5_20261121.zh-CN.md` 第 1.2 节、第 4 节 K2；用户 07:20 CET 决定 K1–K3 同时开始。
+
+## 与 voicecond Idea 7 的重叠（归属待用户决定）
+voicecond Idea 7（`voicecond_idea7_perception_prereg.zh-CN.md`）第 2 步就是"最优传输修正"。当时因 M2（用 PESQ 解释）不通过而没做；Idea 7 的 M1 已定性看到后验均值类臂被压扁。K2 用的是**身份**（说话人相似度）而不是 PESQ，并且先做逐条可证伪的预检。K2 的结果归 robust 论文还是 voicecond 论文由用户决定；本文件只记录方法与结果。
+
+## 问题与假设
+V1 = voicecond Idea 1 的去噪编码器对照臂（`eval_outputs/mist_w3po_v1/voicecond_idea1/m2/ctrl/encoder.pt`，损失 ‖φ(y) − u*‖² + ‖φ(s) − u*‖²，u* = 冻结编码器 φ₀(s)）。V1 解决了带噪 PESQ，但说话人相似度只收回 13–59%，干净输入上还略降。假设：V1 是 MMSE（后验均值）估计，码向平均音色收缩（失真–感知权衡，Blau & Michaeli 2018）。Freirich et al.（NeurIPS 2021）：W2 意义下最优的"感知"估计 = 后验均值再经过从后验均值分布到真实分布的最优传输映射；高斯近似下为闭式仿射映射。
+
+## 码空间
+所有统计都在 BiCodec 全局码的 pre-bound 连续码 u ∈ R^{32×6}（展平为 192 维，`bicodec_phi.py` 的 φ）上做；部署时 T(u) 之后照 V1 原样走 FSQ（bound + round）得到 32 个全局 token。
+
+## 第 1 步：CPU 预检（先做，可证伪）
+
+### (a) 展宽比（主判据之一）
+数据：voicecond Idea 1 的 dev 对（`data/open_voicecond_v1/idea1/diag_{en,zh}`，manifest `split == "dev"`，每语言 500 对；英 40 位、中 107 位说话人）。v_i = φ_V1(y_i)（带噪提示），u*_i = φ₀(s_i)（干净）。
+- 说话人间协方差：每语言内按说话人求均值，Σ_b = Σ_spk n_spk (m_spk − m_lang)(m_spk − m_lang)ᵀ / N，两语言合并（各自以本语言均值为中心）。
+- **展宽比 = tr Σ_b(v) / tr Σ_b(u*)**。另报（不入判据）：分语言的比值、总协方差的比值、V1 在干净输入上的比值 tr Σ_b(φ_V1(s)) / tr Σ_b(u*)。
+
+### (b) 逐条收缩与身份损失的相关（主判据之二）
+- 收缩（投影式）：ρ_i = ⟨v_i − μ, u*_i − μ⟩ / ‖u*_i − μ‖²，μ = 该组干净码 u* 的均值。ρ < 1 = 向均值收缩。另报径向比 r_i = ‖v_i − μ‖ / ‖u*_i − μ‖。
+- **主检验（Talker 输出上的身份损失）：** S1 dev（`eval_outputs/mist_w3po_v1/wave2_S1/data`）的全部带噪条目（两方向，a 与 b 集合）。v_i = V1 编码器在该条的语音提示上的码（`wave3_combos/V/tokens/prompts/<d>/<id>_voice.wav`，即 V1 Talker 实际用的提示；先核对 FSQ 后 token 与 `tokens_v1_<d>.jsonl` 一致）；u*_i = φ₀(配对干净条目的音频截到同样长度)；μ = 本方向所有干净配对码的均值。身份损失 L_i = sim(V1 输出, 干净配对条) − sim(V1 输出, 带噪条)（TitaNet，`wave3_combos/V/metrics/v1_<d>_spksim.jsonl`，已有，种子 20261021）。预测：Spearman(ρ_i, L_i) < 0（收缩越多，损失越大）。两方向合并检验，另报分方向。
+- 附带（不入判据）：voicecond dev 对上 Spearman(ρ_i, cos(v_i, u*_i))（码级身份）。
+- 已知混杂：收缩和损失都随噪声强度增大，相关可部分来自噪声强度；预检只问"收缩是否存在且与身份损失同向"，不能单独证明因果，由第 2 步的 Talker 评测回答。
+
+### 停止规则（预先写定）
+- 展宽比 ≥ 0.9 → 停止并报告（收缩不足以解释身份损失）；
+- 或主检验 Spearman 不显著（双侧 p ≥ 0.05）或符号为正 → 停止并报告；
+- 两项都通过 → 做第 2 步。
+
+## 第 2 步（仅当预检通过）：闭式 W2 映射 + S1 dev Talker 评测
+
+### 映射（无自由参数，单一设置）
+T(x) = μ_c + A(x − μ_v)，A = Σ_v^{-1/2}(Σ_v^{1/2} Σ_c Σ_v^{1/2})^{1/2} Σ_v^{-1/2}（对称特征分解求矩阵平方根；数值上给协方差加 1e-6·tr(Σ)/192 的对角项）。
+- **只用 voicecond 训练集**（`data/open_voicecond_v1/idea1/train_{en,zh}`，各 20000 对，6 s），不用 dev/test。
+- **按源语言各拟合一个 T**（部署时方向已知：英→中的提示是英语，中→英是中文）。
+- **"V1 码分布" = V1 编码器的输入分布下的码**：V1 训练时输入就是带噪 y 与干净 s 各半，部署（S1）也是带噪 / 干净各半；Freirich 的定理中映射的源分布是"部署输入分布下的后验均值的分布"。所以 Σ_v、μ_v 取 {φ_V1(y_k)} ∪ {φ_V1(s_k)}（每对两个码），Σ_c、μ_c 取 {u*_k}（`ctrl/u0_targets.npy`，即 φ₀(s_k)，与上式同权）。只用带噪码拟合会在干净输入上过度展开，不作为备选、不做扫描。
+- CPU 计算训练码（40000 × 2 次编码）；如 CPU 太慢，改在卡 2/3 上算（同一计算，结果无差别）。
+
+### 评测（照 wave3 V 组）
+- S1 dev，a / b / b_noxt × 带噪 / 干净 × 两方向；臂：原始音色 B（`wave2_S1/talker_<d>_s20261021`）、V1（`wave3_combos/V/v1`）、新臂 W2（T1c Talker，`idea1_si_infer_vo.py` 覆盖 token，与 V1 同一提示、同一 sha1，种子 20261021，4 分片）。
+- 指标：ASR-BLEU（speech-only 协议）、SQUIM PESQ 中位数、TitaNet 相似度中位数（相对干净源），点估计，不做 bootstrap。
+- **判据（W2 vs V1，每个方向的 a 与 b_noxt 两组）：** 带噪相似度高于 V1；干净相似度不低于 V1；ASR-BLEU 不低于 V1 超过 0.3；PESQ 不低于 V1 超过 0.1。四组（2 方向 × {a, b_noxt}）全过 = K2 成立；部分通过如实报告。b 组另报。
+
+### 资源与产物
+- Talker 评测只用卡 2、3；每次启动前按 PID 停掉该卡的占位（`scripts/gpu_load/`），≤ 120 s 等到无残留；自带 POLL=1 的占位清除 watcher。
+- 产物 `eval_outputs/mist_w3po_v1/k2/`，日志 `logs/mist_w3po_v1/k2/`。
