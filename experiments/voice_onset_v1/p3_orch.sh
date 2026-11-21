@@ -11,6 +11,7 @@
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
 DRY=${DRY_RUN:-}
+ARMS=${ARMS:-hmo mbr}   # prereg change 18:45: all onsets j = 0 -> UE_hmo == UE_mbr, run ARMS=mbr
 T=eval_outputs/mist_w3po_v1/test_robust
 UE=$T/UE
 H=$T/UE_hmo
@@ -70,7 +71,7 @@ waitp() { for p in "$@"; do case "$p" in ''|*[!0-9]*) continue;; esac; while kil
 
 [ -s $MODEL ] || die "no model $MODEL"
 if [ -z "$DRY" ]; then
-  for x in $H/hmo $M/mbr $R/summary.json; do [ -e $x ] && { echo "exists: $x (refuse to overwrite)" >&2; exit 1; }; done
+  for x in $M/mbr $R/summary.json; do [ -e $x ] && { echo "exists: $x (refuse to overwrite)" >&2; exit 1; }; done
   [ -e .tmp/b_abs_pyshim/einx/__init__.py ] || { echo "pyshim missing" >&2; exit 1; }
   mkdir -p "$LOGD" $R $H/metrics $M/metrics $H/tokens $M/tokens
   [ -e "$STOP" ] && { echo "STOP exists: $STOP" >&2; exit 1; }
@@ -85,33 +86,36 @@ if [ -z "$DRY" ] && [ ! -s $H/targets_zh2en.jsonl ]; then
 fi
 log "decide done"
 
-# 1. V1 tokens on the delayed prompts
+# 1. V1 tokens on the delayed prompts (hmo arm only)
 ps_=(); k=0
 for d in en2zh zh2en; do
+  case " $ARMS " in *" hmo "*) ;; *) continue;; esac
   g=$((4 + k)); k=$((k + 1))
   ps_+=("$(launch $g v1tok_$d env PYTHONPATH=. S1_DATA="$S1_DATA" CUDA_VISIBLE_DEVICES=$g "$PYQ" -I experiments/mist_w3po_v1/voicecond/wave5_m_v1tokens.py \
     --dir "$d" --blocks "$H/data/blocks_${d}_w1.jsonl" --out-root "$H")")
 done
 waitp "${ps_[@]}"
-for d in en2zh zh2en; do [ -n "$DRY" ] || [ -s $H/tokens/tokens_v1_$d.jsonl ] || die "no V1 tokens $d"; done
+case " $ARMS " in *" hmo "*) for d in en2zh zh2en; do [ -n "$DRY" ] || [ -s $H/tokens/tokens_v1_$d.jsonl ] || die "no V1 tokens $d"; done;; esac
 log "v1 tokens done"
 
 # 2. search, both arms
 ps_=()
 for k in 0 1 2 3; do
   g=$((4 + k))
-  ps_+=("$(launch $g search_hmo_$k env CUDA_VISIBLE_DEVICES=$g "${SENV[@]}" $PYN -m experiments.voice_onset_v1.p3_search \
-    --tokens-root $H/tokens --targets $H --dirs en2zh zh2en --shard $k --num-shards 4 --out $H/search --device cuda:0)")
+  case " $ARMS " in *" hmo "*) ps_+=("$(launch $g search_hmo_$k env CUDA_VISIBLE_DEVICES=$g "${SENV[@]}" $PYN -m experiments.voice_onset_v1.p3_search \
+    --tokens-root $H/tokens --targets $H --dirs en2zh zh2en --shard $k --num-shards 4 --out $H/search --device cuda:0)");; esac
   ps_+=("$(launch $g search_mbr_$k env CUDA_VISIBLE_DEVICES=$g "${SENV[@]}" $PYN -m experiments.voice_onset_v1.p3_search \
     --tokens-root $UE/tokens --targets $M --dirs en2zh zh2en --shard $k --num-shards 4 --out $M/search --device cuda:0)")
 done
 waitp "${ps_[@]}"
 if [ -z "$DRY" ]; then
-  for X in $H $M; do for d in en2zh zh2en; do for k in 0 1 2 3; do [ -s $X/search/search_${d}_$k.jsonl ] || die "missing $X search_${d}_$k"; done; done; done
-  $PYQ -I - "$H" "$M" <<'PY' || die "merge"
+  for arm in $ARMS; do X=$H; [ $arm = mbr ] && X=$M; for d in en2zh zh2en; do for k in 0 1 2 3; do [ -s $X/search/search_${d}_$k.jsonl ] || die "missing $X search_${d}_$k"; done; done; done
+  $PYQ -I - "$H" "$M" "$ARMS" <<'PY' || die "merge"
 import json, sys
 from pathlib import Path
 for root, arm in ((Path(sys.argv[1]), "hmo"), (Path(sys.argv[2]), "mbr")):
+    if arm not in sys.argv[3].split():
+        continue
     for d in ("en2zh", "zh2en"):
         tg = [json.loads(l) for l in open(root / f"targets_{d}.jsonl") if l.strip()]
         rows = [json.loads(l) for k in range(4) for l in open(root / "search" / f"search_{d}_{k}.jsonl") if l.strip()]
@@ -127,7 +131,7 @@ log "search done"
 # 3. Talker, both arms (4 jobs per card)
 COMMON=(--model $TALKER --window 1 --text-policy file --speed-policy block --gpu-mem 0.1 --seed 20261021)
 ps_=(); k=0
-for arm in hmo mbr; do
+for arm in $ARMS; do
   X=$H; BL=$H/data; [ $arm = mbr ] && { X=$M; BL=$UE/thinker_; }
   for d in en2zh zh2en; do for s in 0 1 2 3; do
     g=$((4 + s))
@@ -140,13 +144,13 @@ for arm in hmo mbr; do
   done; done
 done
 waitp "${ps_[@]}"
-for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
+for arm in $ARMS; do X=$H; [ $arm = mbr ] && X=$M
   for d in en2zh zh2en; do for s in 0 1 2 3; do [ -n "$DRY" ] || [ -s $X/$arm/talker_$d/part_$s.jsonl ] || die "talker $arm $d $s"; done; done; done
 log "talkers done"
 
 # 4. ASR + metrics
 ps_=(); k=0
-for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
+for arm in $ARMS; do X=$H; [ $arm = mbr ] && X=$M
   for d in en2zh zh2en; do
     g=$((4 + k % 4)); k=$((k + 1)); O=$X/$arm/talker_$d
     ps_+=("$(launch $g asr_${arm}_$d bash -c "set -e; $PYE reports/uniss_si_v4/speech_only.py '$O' && CUDA_VISIBLE_DEVICES=$g PYTHONPATH=. $PYE -m evaluation.asr_transcribe --input '$O/results_speechonly.jsonl' --output '$O/asr_speech.jsonl' --device cuda:0 --batch-size 4 && test -f '$O/asr_speech.jsonl'")")
@@ -154,7 +158,7 @@ for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
 done
 waitp "${ps_[@]}"
 ps_=(); k=0
-for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
+for arm in $ARMS; do X=$H; [ $arm = mbr ] && X=$M
   for d in en2zh zh2en; do
     O=$X/$arm/talker_$d; [ -n "$DRY" ] || [ -s $O/asr_speech.jsonl ] || die "asr $arm $d"
     g=$((4 + k % 4)); k=$((k + 1))
@@ -167,7 +171,7 @@ for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
   done
 done
 waitp "${ps_[@]}"
-for arm in hmo mbr; do X=$H; [ $arm = mbr ] && X=$M
+for arm in $ARMS; do X=$H; [ $arm = mbr ] && X=$M
   for d in en2zh zh2en; do for m in spksim squim; do [ -n "$DRY" ] || [ -s $X/metrics/${arm}_${d}_$m.jsonl ] || die "no $m $arm $d"; done
   [ -n "$DRY" ] || [ -s $X/metrics/ecapa2_${arm}_${d}_spksim.jsonl ] || die "no ecapa2 $arm $d"; done; done
 log "metrics done"

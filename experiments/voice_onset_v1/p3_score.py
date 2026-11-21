@@ -37,6 +37,12 @@ PAIRS = [("UE_hmo", "UE_abs"), ("UE_mbr", "UE_abs"), ("UE_hmo", "UE_mbr"), ("UE_
          ("UE_v1", "B_b"), ("UE_b", "B_b")]
 
 
+# prereg change 18:45 CET: all deployed onsets j = 0 on the test -> UE_hmo == UE_mbr (one arm run); alias when no hmo run
+if not (T / "UE_hmo" / "hmo").exists():
+    SYS["UE_hmo"] = SYS["UE_mbr"]
+    PAIRS.remove(("UE_hmo", "UE_mbr"))
+
+
 def sysd(name, ev):
     root, run, ef = SYS[name]
     r = T / root
