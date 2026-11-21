@@ -5,3 +5,4 @@
 # Idea 2 publishes them: please append the subset windows / refs / filtered-text decode dir and the orchestrator wrapper
 # here. Idea 1 arms: idea1_ood3_{z,c}_{ami,en,ali}__t1c{,_tts2}. If Idea 1 builds it first it appends the paths here.
 2026-11-19 03:09:34 CET idea1: waiting for Idea 2's subset chain; will build it if absent when the OpenBroadcast-SI runs are done
+2026-11-19 04:54:03 CET idea1: will REUSE Idea 2's subset chain + B arm (idea2_ood3_b_*); Z/C arms idea1_ood3_{z,c}_<ss>__t1c via voicecond/idea2_ood3_orch.py --voice-override, launched after OOD3_<ss>_DONE by scripts/idea1_ood3_run.sh (cards 0-3); TitaNet vs data/open_voicecond_v1/idea2/spkref/ood3_<ss> (read only); outputs eval_outputs/mist_w3po_v1/voicecond_idea1/m3/ood3/
