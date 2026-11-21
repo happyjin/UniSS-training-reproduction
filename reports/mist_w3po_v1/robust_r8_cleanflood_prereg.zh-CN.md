@@ -1,0 +1,36 @@
+# 鲁棒 R8：以配对干净损失为逐句"洪水位"的编码器 LoRA（Clean-Anchored Flooding）预登记
+
+2026-11-21 03:40 CET（布拉格）写，早于本方法的任何训练或评测数字。夜间执行者按用户授权设计。约束同 R5：只用同一批 UniST 训练数据；不做蒸馏（目标是参考译文；干净分支是同一个正在训练的模型在同一句干净音频上的损失值，只作为一个标量水位，不作为软标签或伪标签）；不用 QABC 组件；一个模型两个方向；一个设置不扫参；点估计；dev 只用 D-U + bench_dev (b)。
+
+## 1. 动机（来自 R6 的结果）
+R6 把编码器 LoRA 的输入限定在干净激活的零空间里，D-U 干净确实不变（英→中 52.22 对底座 52.26），但 D-U **带噪反而比干净高**（差距 +2.49 / +2.96）：适配器学到了"一听到噪声就换成 UniST 风格"的条件式偏移。结构约束只保护了干净输入，偏移从"所有输入"挪到了"带噪输入"上。
+
+所以光有结构不够，目标本身也要表达"不变性"：带噪输入的损失应当**降到与同一句干净输入相同的水平，而不是更低**。超过这个水平的下降只能来自对参考风格的拟合（干净输入做不到，带噪输入凭什么能做到）。
+
+## 2. 文献
+- **Do We Need Zero Training Loss After Achieving Zero Training Error?（Flooding，Ishida et al., ICML 2020）：** 损失低于洪水位 b 时反向（梯度上升），L' = |L − b| + b。
+- **Out-of-Distribution Generalization via Risk Extrapolation（V-REx，Krueger et al., ICML 2021）：** 让不同环境的风险相等。
+- **新意：** Flooding 的水位是全局常数超参；这里的水位是**每句自己的配对干净损失**（同一模型、同一参考），没有超参。它把 V-REx 的"环境间风险相等"落到逐句配对上，并且只朝"不比干净更好"的方向约束。没有看到用配对干净损失作逐句洪水位、以防止鲁棒适配学到条件式输出偏移的先例。
+
+## 3. 方法（一个设置）
+- **代码：** `voicecond/r8_enc_train.py`：数据迭代器同 R5 / R7（每步同一批 64 个位置的带噪版与干净版）；LoRA 位置同第十七波（音频编码器 32 层自注意力 q/k/v/out_proj，rank 16，alpha 32，b 初始化为 0，fp32；文本层冻结）。
+- **损失：** 对第 i 句，CE_n,i = 带噪版的逐句平均词元交叉熵（有梯度），b_i = 干净版的逐句平均交叉熵（no_grad，同一个当前模型）；
+  - L_i = |CE_n,i − b_i| + b_i（Flooding 形式）：CE_n > b 时正常下降，CE_n < b 时梯度反向，把带噪损失推回干净水平；
+  - 干净环境的槽位两路输入相同，按定义不训练（L_i 记 0）；
+  - 全局批量取平均（尺度同 ERM）。
+- 其余与第十七波逐项相同：8 个环境、sha1 行键和混噪键；AdamW lr 1e-4，betas (0.9, 0.999)，wd 0，余弦到 0，2300 步，全局批量 64，种子 20261119，不裁剪梯度。
+- **卡：** 0、6（R6 交卡后），world 2，每 rank 32 条，微批量按冒烟取最大（32、16、8）。
+- **记录（只记录）：** 每步带噪句中 CE_n < b 的比例（被"推回"的比例）、两路平均 CE。
+- **最终系统：** r8_wise05，WiSE α = 0.5（alpha 减半为 16），`wave17_merge.py`（不改）合并。
+
+## 4. 评测与判断规则
+- **数据：** `r1/data`（D-U set u + bench_dev set b），si_thinker_stream la2 w1，--gpu-mem 0.85，只新跑 r8_wise05（英→中卡 0，中→英卡 6）。
+- **对照：** base（`r1/eval_base`）；ERM 对照 enc_wise05（`r3/eval_enc_wise05/devU` + `wave17/eval_enc_wise05`）；另报 r6_wise05。
+- **判断规则：** 与 R5 预登记第 5 节逐字相同（`rx_score.py`，method = r8_wise05，ERM = enc_wise05）。另外报告（不作判定）：D-U 上的差距是否不再显著为正（|差距| 是否比 R6 小）。
+
+## 5. 运行
+- `voicecond/r8_chain.sh`（脱离会话）：等 R6 链结束、两卡只剩占位 → 自己的 watcher（`rx_noplaceholder.sh`，POLL 1 s）→ 冒烟 → 训练 → WiSE 副本 → 合并 → 两个 Thinker → STOP → 打分 → `r8/DONE`（失败写 `r8/FAILED`）。占位只按 PID 停，启动前等卡上没有 gpu_load 进程（最多 120 s）。不碰 guard 2726951、gpu_watch 52045、sync 1222453，只用卡 0、6。
+- 输出 `eval_outputs/mist_w3po_v1/r8/`，日志 `logs/mist_w3po_v1/r8/`。
+
+## 结果
+（待追加）
