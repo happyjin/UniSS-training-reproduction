@@ -74,7 +74,7 @@
 - p3_decide 在测试集上的开口**全部是 j = 0**（英→中 2447 条、中→英 2896 条，`UE_hmo/decide_stats.json`）。所以 UE_hmo 的块与 UE 完全相同，目标（τ 处的后验均值）与 UE_mbr 完全相同，**UE_hmo ≡ UE_mbr**。
 - 只跑一个臂（mbr）。打分时 UE_hmo 取 UE_mbr 的结果，判定规则不变（实质上是 UE_mbr 对 UE_abs），"UE_hmo 对 UE_mbr"这一对删去。
 
-## P3 测试结果（2026-11-21 19:35 CET，只追加）
+## P3 测试结果（2026-11-21 19:32 CET，只追加）
 - **运行：** 18:47–19:32 CET，只用卡 4–7，单种子，一次跑完，没有失败，没有重跑。只跑了 mbr 臂（UE_hmo ≡ UE_mbr）。输出 `eval_outputs/voice_onset_v1/p3/summary.json`。英→中 RealSI 干净在所有系统里去掉了 health_003。
 - **判定：不成立。** 第 1 条不通过：6 个带噪单元中没有一个的 ECAPA2 差 CI 下界 > 0；英→中 RealSI 干净和 OBSI clean 两格 CI 上界 < 0。第 2 条通过：ASR 都不低于 −1.0。第 3 条：D2 没有超过 +0.5 s 的单元。
 
