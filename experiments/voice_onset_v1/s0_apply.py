@@ -1,4 +1,4 @@
-"""voice_onset_v1: apply a player (none / r0 / s2) to an si_infer talker run (reports/voice_onset_v1/S0_S1_S2_prereg.zh-CN.md).
+"""voice_onset_v1: apply a player (none / dip = cut move only, release at once / r0 / s2) to an si_infer talker run (reports/voice_onset_v1/S0_S1_S2_prereg.zh-CN.md).
 Writes one row per item {id, D1, D2, NP_in, PT_in, PT_all, NC, n_pause, EndOffset, n_seg} (ms for D1 / D2) and, for the ids
 in --wav-ids, the listening wav <wav-dir>/<id>.wav. CPU, multiprocessing.
     qwen3omni PYTHONPATH=. python -m experiments.voice_onset_v1.s0_apply --run <talker_dir> --dir en2zh --policy r0 --out <jsonl>
@@ -28,7 +28,7 @@ def _one(args):
     r, lang = args
     PO = _G["PO"]
     it = PO.Item(r, lang)
-    pol = {"none": None, "r0": PO.r0, "s2": _G.get("s2")}[_G["policy"]]
+    pol = {"none": None, "dip": None, "r0": PO.r0, "s2": _G.get("s2")}[_G["policy"]]
     segs = PO.simulate(it, pol, dip=_G["policy"] != "none")
     m = PO.metrics(it, segs)
     if r["id"] in _G["wav_ids"]:
@@ -40,7 +40,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
     ap.add_argument("--dir", required=True, choices=list(LANG))
-    ap.add_argument("--policy", required=True, choices=("none", "r0", "s2"))
+    ap.add_argument("--policy", required=True, choices=("none", "dip", "r0", "s2"))
     ap.add_argument("--model", default="")
     ap.add_argument("--out", required=True)
     ap.add_argument("--wav-ids", default="")

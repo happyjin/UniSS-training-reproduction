@@ -20,7 +20,7 @@ while [ ! -e "$STOP" ] && [ $(( $(date +%s) - t0 )) -lt "$MAX_S" ]; do
     while read -r c p _; do
       [ -n "${p:-}" ] || continue
       a=$(tr '\0' ' ' < /proc/$p/cmdline 2>/dev/null)
-      case "$a" in *sst_hsmm_v1*|*combo_si_thinker*|*voice_onset_v1*|*si_infer*|*asr_transcribe*|*wave5_m_v1tokens*|*wave3_v_spksim*|*speech_only*) cards="$cards${c//,/ } ";; esac
+      case "$a" in *sst_hsmm_v1*|*combo_si_thinker*|*torch.distributed.run*sst_hsmm*|*voice_onset_v1*|*si_infer*|*asr_transcribe*|*wave5_m_v1tokens*|*wave3_v_spksim*|*speech_only*) cards="$cards${c//,/ } ";; esac
     done < "$PIDS"
   fi
   if [ "$cards" != " " ]; then
