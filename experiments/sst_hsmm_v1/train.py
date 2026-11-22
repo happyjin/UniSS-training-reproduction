@@ -3,8 +3,9 @@ HSMM gate g_psi by the exact tilted marginal likelihood of the speech-timeline l
 
 Step s, slot j = 0..15 (16 samples / step; rank r takes the slots with j % world == r): direction ("en2zh", "zh2en")[j % 2],
 row = sha1("20261122|hsmm|row|s|j") mod n_rows(dir), audio mixed on the fly (mix.Mixer, key "20261122|hsmm|mix|s|j",
-clean with p 0.5). Per sample: prefix forward (model.emissions, graph kept) -> lattice on CPU (gate on CPU) ->
-loss = -(1/n) log Z, backward scaled by 1/16; gradients all-reduced (sum) over ranks; AdamW (LoRA lr 1e-4, gate 1e-3,
+clean with p 0.5). A rank's samples share one prefix forward (model.prefix_batch_multi / emissions_multi, graph kept;
+speed only) -> per sample lattice on CPU (gate on CPU; prereg change 4: forced waits pay log(1 - w)) -> loss = -(1/n) log Z,
+summed x 1/16, one backward; gradients all-reduced (sum, LoRA as one flat buffer) over ranks; AdamW (LoRA lr 1e-4, gate 1e-3,
 betas 0.9/0.999, wd 0), 100 warmup steps, cosine to 0; no clipping. lam_L, lam_P, gate bias init and steps from
 eval_outputs/sst_hsmm_v1/p0/summary.json. Saves adapters + gate every 500 steps and at the end.
     torchrun --nproc_per_node 8 -m experiments.sst_hsmm_v1.train --out eval_outputs/sst_hsmm_v1/p1/train
@@ -90,25 +91,36 @@ def main():
         for g, b in zip(opt.param_groups, base_lr):
             g["lr"] = b * lr_at(s)
         stats = torch.zeros(4, device=dev)          # loss sum, samples, mismatches, tokens
+        # all of this rank's slots in ONE prefix forward (speed only; per-sample losses unchanged), one backward
+        srows, swavs = [], []
         for j in my_slots:
             d = ("en2zh", "zh2en")[j % 2]
             r = rows[d][h(f"{SEED}|hsmm|row|{s}|{j}") % len(rows[d])]
             wav = sf.read(r["audio"], dtype="float32")[0]
             wav, _, _ = mixer.mix(wav, f"{SEED}|hsmm|mix|{s}|{j}", p_clean=0.5)
-            inp, pos = MD.prefix_batch(proc, head, r, wav)
-            if inp is None:
-                stats[2] += 1
-                continue
-            lp, lw = MD.emissions(thinker, inp, pos, dev)
-            tot, _ = H.lattice(lp.cpu(), lw.cpu(), r["g"], [int(round(x / 100)) for x in r["d_ms"]], r["punct"], r["X"],
-                               lam_L, lam_P, gate)
-            loss = -tot / len(r["tok"])
-            (loss / SLOTS).backward()
-            stats[0] += float(loss); stats[1] += 1; stats[3] += len(r["tok"])
+            srows.append(r); swavs.append(wav)
+        inp, meta = MD.prefix_batch_multi(proc, head, srows, swavs)
+        stats[2] += len(srows) - len(meta)
+        if meta:
+            total = 0.0
+            for jj, lp, lw in MD.emissions_multi(thinker, inp, meta, dev):
+                r = srows[jj]
+                tot, _ = H.lattice(lp.cpu(), lw.cpu(), r["g"], [int(round(x / 100)) for x in r["d_ms"]], r["punct"], r["X"],
+                                   lam_L, lam_P, gate)
+                loss = -tot / len(r["tok"])
+                total = total + loss / SLOTS
+                stats[0] += float(loss); stats[1] += 1; stats[3] += len(r["tok"])
+            total.backward()
         for p in lora_p:
             if p.grad is None:
                 p.grad = torch.zeros_like(p)
-            dist.all_reduce(p.grad)
+        flat_l = torch.cat([p.grad.reshape(-1) for p in lora_p])     # one all-reduce for all LoRA grads
+        dist.all_reduce(flat_l)
+        k = 0
+        for p in lora_p:
+            n_ = p.numel()
+            p.grad.copy_(flat_l[k: k + n_].view_as(p))
+            k += n_
         gg = [p.grad if p.grad is not None else torch.zeros_like(p) for p in gate.parameters()]
         flat = torch.cat([x.reshape(-1) for x in gg]).to(dev)
         dist.all_reduce(flat)

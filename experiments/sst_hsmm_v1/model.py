@@ -102,3 +102,60 @@ def emissions(thinker, inp, pos, dev):
     lsm = torch.log_softmax(head(h).float(), dim=-1)
     ids = inp["input_ids"][b, pos.to(dev) + 1]
     return lsm.gather(-1, ids[..., None])[..., 0], lsm[..., WAIT]
+
+
+def prefix_batch_multi(proc, head, rows: list, wavs: list):
+    """several samples' prefix batches in ONE processor call (one forward; speed only, same per-sample math as
+    prefix_batch). -> (inp, [(row index, offset, pos (C_j, n_j))]) for the samples whose tokens match; (None, []) if none."""
+    keep = list(range(len(rows)))
+    while keep:
+        texts, auds = [], []
+        for j in keep:
+            r, w = rows[j], wavs[j]
+            C, X = r["C"], r["X"]
+            auds += [w[: min(c * 16000, X * 16)] for c in range(1, C + 1)]
+            texts += [head[r["dir"]] + r["ref"] + "<|im_end|>"] * C
+        inp = proc(text=texts, audio=auds, return_tensors="pt", padding=True)
+        ids = inp["input_ids"]
+        meta, bad, off = [], [], 0
+        for j in keep:
+            r = rows[j]
+            n, C = len(r["tok"]), r["C"]
+            pos, ok = [], True
+            for b in range(off, off + C):
+                t = ids[b].tolist()
+                st = max(i for i, x in enumerate(t) if x == IM_START) + 3
+                if t[st: st + n] != r["tok"]:
+                    ok = False
+                    break
+                pos.append(list(range(st - 1, st - 1 + n)))
+            if ok:
+                meta.append((j, off, torch.tensor(pos)))
+            else:
+                bad.append(j)
+            off += C
+        if not bad:
+            return inp, meta
+        keep = [j for j in keep if j not in bad]
+    return None, []
+
+
+def emissions_multi(thinker, inp, meta, dev):
+    """one forward for prefix_batch_multi's batch -> [(row index, lp_tok (C_j, n_j), lp_wait (C_j, n_j))]"""
+    inp = {k: (v.to(dev) if torch.is_tensor(v) else v) for k, v in inp.items()}
+    head = thinker.lm_head
+    thinker.lm_head = nn.Identity()
+    try:
+        out = thinker(**inp, output_router_logits=False, use_cache=False)
+    finally:
+        thinker.lm_head = head
+    hid = out.logits
+    res = []
+    for j, off, pos in meta:
+        C, n = pos.shape
+        b = (off + torch.arange(C, device=dev))[:, None].expand(C, n)
+        p = pos.to(dev)
+        lsm = torch.log_softmax(head(hid[b, p]).float(), dim=-1)
+        ids = inp["input_ids"][b, p + 1]
+        res.append((j, lsm.gather(-1, ids[..., None])[..., 0], lsm[..., WAIT]))
+    return res

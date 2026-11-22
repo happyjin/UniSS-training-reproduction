@@ -10,7 +10,8 @@ Chunk c (time t_c = c, or X / 1000 for the last chunk), tokens swept in order: t
   emission    log p(y_i) - log(1 - P_wait)
   pause       started and s <= -0.3 and f = 0 -> cost lam_P
   update      s <- max(s, 0) + d_i, f <- p_i;   latency cost lam_L * min(t_c + s, X)
-a state that does not write waits: prob 1 - w, then s <- max(s - 1, -3) at the chunk boundary. Last chunk: every
+a state that does not write waits: prob 1 - w (also when c < g_i: forced wait, prereg change 4), then s <- max(s - 1, -3)
+at the chunk boundary. Last chunk: every
 remaining token is written (w = 1, no transition term). All-written states are absorbed.
 loss(sample) = -(1/n) log sum_z exp(score(z))   (exact forward, log space, autograd).
 viterbi(...) = the same lattice in max-plus with uniform transitions (P0c); returns the chunk of every token.
@@ -102,6 +103,14 @@ def lattice(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate | No
         gt = gate.table(c / C, dev) if (gate is not None and not uniform and not last) else None
         for i in range(n):
             if not last and c < g[i]:
+                # prereg change 4: a forced wait (token not yet writable) still pays its transition log(1 - w)
+                if not uniform and lp_wait is not None and A[i] is not empty:
+                    lwt = lp_wait[c - 1, i]
+                    l1 = torch.log1p(-torch.exp(lwt).clamp(max=1 - 1e-6))
+                    z = (l1 - lwt) + (gt[:, :, 1 if i > 0 else 0] if gt is not None else 0.0)
+                    if not torch.is_tensor(z) or z.dim() == 0:
+                        z = torch.as_tensor(z, device=dev).expand(S, 2)
+                    A[i] = A[i] + F.logsigmoid(-z)
                 continue
             cur = A[i]
             if last or uniform:
