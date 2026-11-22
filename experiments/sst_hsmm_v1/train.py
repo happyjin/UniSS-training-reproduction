@@ -54,6 +54,7 @@ def main():
     rank, world = dist.get_rank(), dist.get_world_size()
     lr_ = int(os.environ.get("LOCAL_RANK", 0))
     torch.cuda.set_device(lr_)
+    torch.set_num_threads(4)              # CPU lattice: avoid 192-thread oversubscription x 8 ranks
     dev = f"cuda:{lr_}"
     out = Path(a.out)
     p0 = json.load(open(P0))

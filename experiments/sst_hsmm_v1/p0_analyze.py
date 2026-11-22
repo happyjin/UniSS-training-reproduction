@@ -92,6 +92,7 @@ def _vit(args):
     out = {}
     dbin = [int(round(x / 100)) for x in row["d_ms"]]
     import torch
+    torch.set_num_threads(1)
     lpt = torch.tensor(lp, dtype=torch.float32)
     for lL, lP in itertools.product(LAM_L, LAM_P):
         sc, path = H.lattice(lpt, None, row["g"], dbin, row["punct"], row["X"], lL, lP, None, viterbi=True, uniform=True)
