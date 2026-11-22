@@ -212,3 +212,21 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - 整个网格的代理都在 5.33–5.76 s，没有一组达到 LA2 − 0.3 s。
 
 **含义：** 语音层延迟主要由语速积压决定（每 token 约 333–346 ms），λ_L 的作用很小。P2 门槛中"D2 降 0.2 s"一条有不通过的风险。按预登记不改 λ、不扫参，继续 P1。
+
+## 变更 2（2026-11-22 18:55 CET，P1a 训练中，任何 P2 数字之前）
+
+**原因：** 3.5 没写清 P2 的音色、分片、播放器和评分口径。对照 `wave17/eval_enc_wise05` 用的是源语音色、无卡尔曼/AbS；要做到只差 Thinker 一处，P2 必须与它同口径。
+
+**P2 口径（替代 3.5 中未定义的部分）：**
+
+- **数据：** `wave2_S1/data`（即 `eval_enc_wise05/data`）的 items/meta：en2zh 1274 条、zh2en 2012 条，共 3286 条；set a/b × clean/noisy 全部。
+- **NEW Thinker：** `p1/merged` + `p1/train/gate_final.pt`，`e2e_si_thinker`，SST_TOKMS = en2zh 345.6、zh2en 332.5（P0 summary）。每方向把 items 文件按行序切成 4 个连续分片，8 张卡各跑一片，按原行序拼回 `blocks_<dir>_w1.jsonl`。
+- **音色：** 源语音色（`si_infer`，不加 voice override），与对照相同。卡尔曼 + AbS 只在 P3 测试中使用。
+- **Talker：** T1c，`--window 1 --text-policy file --speed-policy block --gpu-mem 0.1`，种子默认 20261021，4 分片——与对照逐项相同，只换块文件。
+- **ASR：** `speech_only.py` + `evaluation.asr_transcribe`（asr_speech.jsonl），与对照相同。
+- **播放：** NEW 和对照都过 `s0_apply --policy dip`（只做切点前移、立即放）。D2、NP_in、NC、PT_in、EndOffset 全部取自播放器输出；文本 LAAL（D1）也取自同一输出。
+- **评分（每方向，合并 a/b 和 clean/noisy）：** 两系统都有结果的 id；ASR-BLEU 用 `wave3_v_score.compare`（unit = stream，2000 次 bootstrap，种子 0）；D2 为逐条均值差；NP_in、NC 为逐条均值的相对变化。
+- **GO：** 两个方向**都**满足：ASR-BLEU 差 ≥ −0.5（点估计）、D2 差 ≤ −0.2 s、NP_in 相对变化 ≤ −30%。任一方向任一条不满足即 NO-GO：停下写报告，不调参、不改 λ、不重训。
+- **辅助（只报告）：** NC、PT_in、EndOffset、D1、Thinker 文本 BLEU，以及分 cell（set × cond）的同样指标。
+
+**P1b：** 只在 P2 GO 之后考虑；是否可恢复 T1c 配方在那时检查并记录。
