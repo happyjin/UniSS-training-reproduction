@@ -58,6 +58,7 @@ def main():
     ap.add_argument("--steps", type=int, nargs="+", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--procs", type=int, default=64)
+    ap.add_argument("--p1-root", default=str(P1), help="P1 run root (train/ckpt_*.pt, diag/ckpt_*/em)")
     a = ap.parse_args()
     out = Path(a.out)
     if out.exists():
@@ -75,8 +76,9 @@ def main():
             g.net[2].bias.data.fill_(float(p0["P0b"]["gate_bias_init"]))
             gs, em = g.state_dict(), P0 / "em"
         else:
-            gs = torch.load(P1 / "train" / f"ckpt_{step:05d}.pt", map_location="cpu", weights_only=False)["gate"]
-            em = P1 / "diag" / f"ckpt_{step:05d}" / "em"
+            root = Path(a.p1_root)
+            gs = torch.load(root / "train" / f"ckpt_{step:05d}.pt", map_location="cpu", weights_only=False)["gate"]
+            em = root / "diag" / f"ckpt_{step:05d}" / "em"
         files = sorted(em.glob("*.npz"))
         jobs = []
         for f in files:
