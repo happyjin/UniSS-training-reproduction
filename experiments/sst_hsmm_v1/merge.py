@@ -15,7 +15,7 @@ from pathlib import Path
 import torch
 from safetensors.torch import load_file, save_file
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[2]   # experiments/sst_hsmm_v1/merge.py (the copy kept [3])
 BASE = REPO / "eval_outputs/mist_w3po_v1/wave17/merged_enc_wise05"   # sst_hsmm_v1: the UE Thinker is the base
 
 
