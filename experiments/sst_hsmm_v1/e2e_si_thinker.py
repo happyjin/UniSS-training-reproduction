@@ -115,7 +115,8 @@ def main():
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     llm = LLM(model=a.thinker, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
-              seed=a.seed, tensor_parallel_size=1, logits_processors=[HSMMGate])
+              seed=a.seed, tensor_parallel_size=1,
+              logits_processors=["experiments.sst_hsmm_v1.e2e_si_thinker:HSMMGate"])   # FQCN: safe under spawn too
     t0, r = time.time(), 0
     while any(not it["done"] for it in items):
         live = [it for it in items if not it["done"]]
