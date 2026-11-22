@@ -4,7 +4,8 @@ HSMM gate g_psi by the exact tilted marginal likelihood of the speech-timeline l
 Step s, slot j = 0..15 (16 samples / step; rank r takes the slots with j % world == r): direction ("en2zh", "zh2en")[j % 2],
 row = sha1("20261122|hsmm|row|s|j") mod n_rows(dir), audio mixed on the fly (mix.Mixer, key "20261122|hsmm|mix|s|j",
 clean with p 0.5). A rank's samples share one prefix forward (model.prefix_batch_multi / emissions_multi, graph kept;
-speed only) -> per sample lattice on CPU (gate on CPU; prereg change 4: forced waits pay log(1 - w)) -> loss = -(1/n) log Z,
+speed only) -> per sample lattice on CPU (gate on CPU; prereg change 4: forced waits pay log(1 - w); change 5: the
+end-of-turn token <|im_end|> is the last target token, g = C) -> loss = -(1/n) log Z,
 summed x 1/16, one backward; gradients all-reduced (sum, LoRA as one flat buffer) over ranks; AdamW (LoRA lr 1e-4, gate 1e-3,
 betas 0.9/0.999, wd 0), 100 warmup steps, cosine to 0; no clipping. lam_L, lam_P, gate bias init and steps from
 eval_outputs/sst_hsmm_v1/p0/summary.json. Saves adapters + gate every 500 steps and at the end.
@@ -105,8 +106,8 @@ def main():
             total = 0.0
             for jj, lp, lw in MD.emissions_multi(thinker, inp, meta, dev):
                 r = srows[jj]
-                tot, _ = H.lattice(lp.cpu(), lw.cpu(), r["g"], [int(round(x / 100)) for x in r["d_ms"]], r["punct"], r["X"],
-                                   lam_L, lam_P, gate)
+                tot, _ = H.lattice(lp.cpu(), lw.cpu(), r["g"] + [r["C"]], [int(round(x / 100)) for x in r["d_ms"]] + [0],
+                                   r["punct"] + [1], r["X"], lam_L, lam_P, gate, eos=True)   # prereg change 5: + <|im_end|>
                 loss = -tot / len(r["tok"])
                 total = total + loss / SLOTS
                 stats[0] += float(loss); stats[1] += 1; stats[3] += len(r["tok"])

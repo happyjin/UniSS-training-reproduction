@@ -13,6 +13,9 @@ Chunk c (time t_c = c, or X / 1000 for the last chunk), tokens swept in order: t
 a state that does not write waits: prob 1 - w (also when c < g_i: forced wait, prereg change 4), then s <- max(s - 1, -3)
 at the chunk boundary. Last chunk: every
 remaining token is written (w = 1, no transition term). All-written states are absorbed.
+eos (prereg change 5): the caller appends the end-of-turn token <|im_end|> as token n-1 with g = C, d = 0, p = 1; it is
+written only in the last chunk, pays no pause cost, and every earlier chunk in which all real tokens are written pays
+the forced wait log(1 - w) of the end token (the model learns to wait, not to write, once it has said what it heard).
 loss(sample) = -(1/n) log sum_z exp(score(z))   (exact forward, log space, autograd).
 viterbi(...) = the same lattice in max-plus with uniform transitions (P0c); returns the chunk of every token.
 """
@@ -76,7 +79,8 @@ def _write_targets(src: torch.Tensor, dbin: int, viterbi: bool):
     return torch.where(onehot, comb, tgt)
 
 
-def lattice(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate | None, viterbi=False, uniform=False):
+def lattice(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate | None, viterbi=False, uniform=False,
+            eos=False):
     """lp_tok, lp_wait: (C, n) log p(y_i) and log P_wait at pass c (row c - 1). g: chunk lower bounds (1-based).
     dbin: token durations in 100 ms bins (ints). punct: 0/1. Returns (score, path-or-None).
     score = log sum (forward) or max (viterbi) over all paths; uniform: transitions 0 (P0c). No in-place ops on graph
@@ -127,7 +131,7 @@ def lattice(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate | No
                 lw, l1w = F.logsigmoid(z), F.logsigmoid(-z)
                 em = lp_tok[c - 1, i] - l1
             src = cur + lw + em + E[c - 1, i]
-            if i > 0:
+            if i > 0 and not (eos and i == n - 1):     # prereg change 5: the end token pays no pause cost
                 src = src - pen
             tgt = _write_targets(src, int(dbin[i]), viterbi) - lat
             f2 = int(punct[i])

@@ -3,6 +3,8 @@ Per checkpoint (step 0 = p0/em + the gate at its initial bias; step k = p1/diag/
 P0b's 1200 held-out items: tilted loss / token (lambda 0.5 / 0.5, the checkpoint's gate), emission NLL / token at the last
 chunk and at chunk g_i, mean P_wait and median l over writable non-final positions, and the Viterbi path under the
 model's own transitions (Thinker + gate): latency proxy, in-phrase pauses, mean (chunk - g_i). By direction x condition.
+Change 5 checkpoints: the end token is in the lattice (tilted loss includes it, / real tokens); NLL, path stats on real
+tokens only; nll_eos = -log p(<|im_end|>) at the last chunk.
     qwen3omni OMP_NUM_THREADS=1 PYTHONPATH=. python -m experiments.sst_hsmm_v1.p1_diag_score --steps 0 500 1000 --out <json>
 """
 from __future__ import annotations
@@ -36,18 +38,23 @@ def _one(job):
     key, r, f = job
     z = np.load(f)
     lp, lw = z["lp_tok"].astype(np.float32), z["lp_wait"].astype(np.float32)
-    C, n = lp.shape
+    C, ne = lp.shape
+    n = len(r["tok"])
+    eos = ne == n + 1                   # prereg change 5 emissions carry <|im_end|> as the last column (p0/em do not)
     dbin = [int(round(x / 100)) for x in r["d_ms"]]
+    g, db, pu = (r["g"] + [C], dbin + [0], r["punct"] + [1]) if eos else (r["g"], dbin, r["punct"])
     gate = _G["gate"]
-    tot, _ = H.lattice(torch.tensor(lp), torch.tensor(lw), r["g"], dbin, r["punct"], r["X"], LAM_L, LAM_P, gate)
-    _, path = H.lattice(torch.tensor(lp), torch.tensor(lw), r["g"], dbin, r["punct"], r["X"], LAM_L, LAM_P, gate, viterbi=True)
+    tot, _ = H.lattice(torch.tensor(lp), torch.tensor(lw), g, db, pu, r["X"], LAM_L, LAM_P, gate, eos=eos)
+    _, path = H.lattice(torch.tensor(lp), torch.tensor(lw), g, db, pu, r["X"], LAM_L, LAM_P, gate, viterbi=True, eos=eos)
+    path = path[:n]
     lat, pauses = H.path_stats(path, dbin, r["punct"], r["X"])
     pw, ell = [], []
     for i, gi in enumerate(r["g"]):
         for c in range(gi, C):
             pw.append(float(np.exp(lw[c - 1, i])))
             ell.append(float(np.log1p(-min(np.exp(lw[c - 1, i]), 1 - 1e-6)) - lw[c - 1, i]))
-    return key, {"tilted": float(-tot) / n, "nll_last": float(-lp[C - 1].mean()),
+    return key, {"tilted": float(-tot) / n, "nll_last": float(-lp[C - 1, :n].mean()),
+                 "nll_eos": float(-lp[C - 1, n]) if eos else None,
                  "nll_g": float(-np.mean([lp[gi - 1, i] for i, gi in enumerate(r["g"])])),
                  "pw": pw, "ell": ell, "lat": lat, "pauses": pauses,
                  "dchunk": float(np.mean([c - gi for c, gi in zip(path, r["g"])]))}
@@ -96,6 +103,8 @@ def main():
             ell = np.concatenate([v["ell"] for v in vs]) if vs else np.array([])
             sr[gk] = {"n": len(vs), **{k: round(float(np.mean([v[k] for v in vs])), 4)
                                        for k in ("tilted", "nll_last", "nll_g", "lat", "pauses", "dchunk")},
+                      "nll_eos": (round(float(np.mean([v["nll_eos"] for v in vs])), 4) if vs and vs[0]["nll_eos"] is not None
+                                  else None),
                       "p_wait_mean": round(float(pw.mean()), 4) if len(pw) else None,
                       "ell_median": round(float(np.median(ell)), 3) if len(ell) else None}
         sr["gate_bias"] = round(float(gs["net.2.bias"]), 4)

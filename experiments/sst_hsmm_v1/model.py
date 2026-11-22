@@ -71,7 +71,8 @@ def build_thinker(dev, lora: bool):
 def prefix_batch(proc, head, row: dict, wav):
     """row: data row (dir, ref, tok, X/C); wav: float32 16 kHz source (clean or mixed). -> processor inputs, positions"""
     C, X = row["C"], row["X"]
-    n = len(row["tok"])
+    tg = row["tok"] + [IM_END]          # prereg change 5: the end-of-turn token is the last target token
+    n = len(tg)
     pre = [wav[: min(c * 16000, X * 16)] for c in range(1, C + 1)]
     text = head[row["dir"]] + row["ref"] + "<|im_end|>"
     inp = proc(text=[text] * C, audio=pre, return_tensors="pt", padding=True)
@@ -80,7 +81,7 @@ def prefix_batch(proc, head, row: dict, wav):
     for b in range(C):
         r = ids[b].tolist()
         st = max(i for i, t in enumerate(r) if t == IM_START) + 3
-        if r[st: st + n] != row["tok"]:
+        if r[st: st + n] != tg:
             return None, None
         pos.append(list(range(st - 1, st - 1 + n)))
     return inp, torch.tensor(pos)
@@ -120,12 +121,13 @@ def prefix_batch_multi(proc, head, rows: list, wavs: list):
         meta, bad, off = [], [], 0
         for j in keep:
             r = rows[j]
-            n, C = len(r["tok"]), r["C"]
+            tg = r["tok"] + [IM_END]        # prereg change 5
+            n, C = len(tg), r["C"]
             pos, ok = [], True
             for b in range(off, off + C):
                 t = ids[b].tolist()
                 st = max(i for i, x in enumerate(t) if x == IM_START) + 3
-                if t[st: st + n] != r["tok"]:
+                if t[st: st + n] != tg:
                     ok = False
                     break
                 pos.append(list(range(st - 1, st - 1 + n)))
