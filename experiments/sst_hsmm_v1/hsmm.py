@@ -195,3 +195,82 @@ def path_laal(path, dbin, punct, X_ms, ref_len=None):
         f, started = int(punct[i]), True
         d.append((t_c + s) * 1000.0)
     return laal(d, X_ms, max(len(d), ref_len or 0)) / 1000.0, pauses
+
+
+def lattice_risk(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate | None, beta=1.0, eos=True):
+    """prereg change 7: exact expected cost under the policy pi_beta (write prob sigmoid(beta * (l + gate))) on the same
+    speech-timeline lattice, by the expectation semiring in log space: every state carries A = log P (policy mass) and
+    Q = log (P * M) (M = mean accumulated cost, >= 0). cost = sum_i -log p~(y_i) (detached, p~ = token prob renormalised
+    without wait) + lam_L * min(t_c + s, X) per written token + lam_P per pause (the end token: no pause cost).
+    A token with c < g_i is not writable and waits with probability 1 (the read just ends; no mass is lost).
+    Returns E[cost] (scalar tensor; gradients flow to lp_wait and the gate only)."""
+    C, n = lp_tok.shape
+    dev = lp_tok.device
+    X = X_ms / 1000.0
+    s_pos = s_of_bins(dev).clamp_min(0.0)
+    empty = torch.full((S, 2), NEG, device=dev)
+    A = [empty] * (n + 1)
+    Q = [empty] * (n + 1)
+    init = torch.full((S, 2), NEG, device=dev)
+    init[K0, 0] = 0.0
+    A[0] = init
+    pen = torch.zeros(S, 2, device=dev)
+    pen[: PAUSE_K + 1, 0] = lam_P
+    lpt = lp_tok.detach()
+    doneA, doneQ = [], []
+
+    def addcost(a, q, k):            # P*M -> P*(M + k), k >= 0 (tensor broadcastable or float)
+        k = torch.as_tensor(k, device=dev, dtype=a.dtype)
+        return torch.logaddexp(q, a + torch.log(k.clamp_min(1e-30))) if bool((k > 0).any()) else q
+
+    for c in range(1, C + 1):
+        last = c == C
+        t_c = X if last else float(c)
+        lat = lam_L * torch.clamp(t_c + s_pos, max=X)
+        gt = gate.table(c / C, dev) if (gate is not None and not last) else None
+        for i in range(n):
+            if not last and c < g[i]:
+                continue                                     # not writable: waits with prob 1
+            if A[i] is empty:
+                continue
+            curA, curQ = A[i], Q[i]
+            l1 = torch.log1p(-torch.exp(lp_wait[c - 1, i]).clamp(max=1 - 1e-6))
+            cem = -(lpt[c - 1, i] - l1.detach())              # -log p~(y_i), detached
+            if last:
+                lw, l1w = 0.0, None
+            else:
+                z = (l1 - lp_wait[c - 1, i]) + (gt[:, :, 1 if i > 0 else 0] if gt is not None else 0.0)
+                if not torch.is_tensor(z) or z.dim() == 0:
+                    z = torch.as_tensor(z, device=dev).expand(S, 2)
+                lw, l1w = F.logsigmoid(beta * z), F.logsigmoid(-beta * z)
+            sA, sQ = curA + lw, curQ + lw
+            k = cem.clamp_min(0.0) + (pen if (i > 0 and not (eos and i == n - 1)) else 0.0)
+            sQ = addcost(sA, sQ, k if torch.is_tensor(k) and k.dim() else torch.full((S, 2), float(k), device=dev))
+            tA = _write_targets(sA, int(dbin[i]), False)
+            tQ = _write_targets(sQ, int(dbin[i]), False)
+            tQ = torch.logaddexp(tQ, tA + torch.log(lat.clamp_min(1e-30)))
+            f2 = int(punct[i])
+            uA = torch.stack([A[i + 1][:, 0], A[i + 1][:, 1]], 1)
+            uQ = torch.stack([Q[i + 1][:, 0], Q[i + 1][:, 1]], 1)
+            cA, cQ = torch.logaddexp(uA[:, f2], tA), torch.logaddexp(uQ[:, f2], tQ)
+            A[i + 1] = torch.stack([cA, uA[:, 1]], 1) if f2 == 0 else torch.stack([uA[:, 0], cA], 1)
+            Q[i + 1] = torch.stack([cQ, uQ[:, 1]], 1) if f2 == 0 else torch.stack([uQ[:, 0], cQ], 1)
+            if last:
+                A[i], Q[i] = empty, empty
+            else:
+                A[i], Q[i] = curA + l1w, curQ + l1w
+        doneA.append(torch.logsumexp(A[n].reshape(-1), 0))
+        doneQ.append(torch.logsumexp(Q[n].reshape(-1), 0))
+        A[n], Q[n] = empty, empty
+        if not last:
+            for i in range(n):
+                for arr in (A, Q):
+                    a = arr[i]
+                    if a is empty:
+                        continue
+                    low = torch.logsumexp(a[:10], dim=0)
+                    head = torch.logaddexp(a[10], low)
+                    arr[i] = torch.cat([head[None], a[11:], torch.full((10, 2), NEG, device=dev)], 0)
+    PA = torch.logsumexp(torch.stack(doneA), 0)
+    PQ = torch.logsumexp(torch.stack(doneQ), 0)
+    return torch.exp(PQ - PA)
