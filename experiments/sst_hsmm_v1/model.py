@@ -161,3 +161,30 @@ def emissions_multi(thinker, inp, meta, dev):
         ids = inp["input_ids"][b, p + 1]
         res.append((j, lsm.gather(-1, ids[..., None])[..., 0], lsm[..., WAIT]))
     return res
+
+
+def emissions_multi_dis(thinker, inp, meta, dev):
+    """as emissions_multi, plus dis (C_j, n_j): 1.0 where the greedy non-wait token != the target token (prereg change 8)"""
+    inp = {k: (v.to(dev) if torch.is_tensor(v) else v) for k, v in inp.items()}
+    head = thinker.lm_head
+    thinker.lm_head = nn.Identity()
+    try:
+        out = thinker(**inp, output_router_logits=False, use_cache=False)
+    finally:
+        thinker.lm_head = head
+    hid = out.logits
+    res = []
+    for j, off, pos in meta:
+        C, n = pos.shape
+        b = (off + torch.arange(C, device=dev))[:, None].expand(C, n)
+        p = pos.to(dev)
+        lsm = torch.log_softmax(head(hid[b, p]).float(), dim=-1)
+        ids = inp["input_ids"][b, p + 1]
+        lt = lsm.gather(-1, ids[..., None])[..., 0]
+        lw = lsm[..., WAIT]
+        with torch.no_grad():
+            mx = lsm.detach().clone()
+            mx[..., WAIT] = -float("inf")
+            dis = (mx.argmax(-1) != ids).float()
+        res.append((j, lt, lw, dis))
+    return res

@@ -2,7 +2,7 @@
 what the HSMM lets it write. Read r: prompt = wave5 / si_thinker_stream head with the audio heard so far + the text
 committed so far; greedy decoding with the HSMMGate logits processor: the wait token's logit gets -g_psi(s, f, started,
 c/C) and the request writes the next token iff P(write) = 1 - P'(wait) >= 0.5 (else the wait token, a stop token, ends
-the read); s / f / started follow hsmm's dynamics with the mean speech duration per non-punctuation token (p0 summary)
+the read); SST_BLOCK_S (prereg change 8) adds the Talker per-block overhead to the state of a read's first token; s / f / started follow hsmm's dynamics with the mean speech duration per non-punctuation token (p0 summary)
 for every written token and s <- max(s - 1, -3) between reads. The last read (audio = the whole source) may not wait and
 generates to the end of the turn. Output <out>/blocks_<dir>_w1.jsonl in si_infer's --text-policy file format.
 SST_RULE=survival (prereg change 6): the pending token is written when S * (1 - w) <= 0.5, S = its survival (product of
@@ -56,11 +56,15 @@ def gate_value(s, f, st, cf):
     return float(np.tanh(W1 @ x + b1) @ W2.T + b2)
 
 
+BLOCK_S = float(os.environ.get("SST_BLOCK_S", "0.0"))   # prereg change 8 (P5): Talker per-block overhead; 0 = unchanged
+
+
 def advance(s, f, st, toks):
+    """toks = the tokens written so far in THIS read (the first one starts a block: speech at max(s, BLOCK_S))"""
     G = _gate()
-    for t in toks:
+    for k, t in enumerate(toks):
         p = t in G["punct"]
-        s = max(s, 0.0) + (0.0 if p else G["tok_s"])
+        s = max(s, BLOCK_S if k == 0 else 0.0) + (0.0 if p else G["tok_s"])
         s = min(s, 8.0)
         f, st = int(p), 1
     return s, f, st

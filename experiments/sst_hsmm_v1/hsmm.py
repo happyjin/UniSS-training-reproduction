@@ -274,3 +274,95 @@ def lattice_risk(lp_tok, lp_wait, g, dbin, punct, X_ms, lam_L, lam_P, gate: Gate
     PA = torch.logsumexp(torch.stack(doneA), 0)
     PQ = torch.logsumexp(torch.stack(doneQ), 0)
     return torch.exp(PQ - PA)
+
+
+def _wt_batch(src: torch.Tensor, dbin: int, kf: int):
+    """src (B, S, 2) log-mass by source (s, f) -> (B, S) at the target bin, s' = max(s, s(kf)) + d (f merged); kf >= K0"""
+    B = src.shape[0]
+    hi = S - 1
+    low = torch.logsumexp(src[:, :kf].reshape(B, -1), 1)          # (B,) below the floor -> floor + d
+    pos = torch.logsumexp(src[:, kf:], dim=-1)                     # (B, S - kf): bin kf + j -> kf + j + d (clamped)
+    m = kf + dbin
+    if m >= hi:
+        out = torch.cat([torch.full((B, hi), NEG, device=src.device, dtype=src.dtype), torch.logsumexp(pos, 1)[:, None]], 1)
+    else:
+        out = torch.cat([torch.full((B, m), NEG, device=src.device, dtype=src.dtype), pos[:, : hi - m],
+                         torch.logsumexp(pos[:, hi - m:], 1)[:, None]], 1)
+    onehot = torch.arange(S, device=src.device) == min(m, hi)
+    return torch.where(onehot, torch.logaddexp(out, low[:, None]), out)
+
+
+def lattice_risk_block(lp_tok, lp_wait, dis, g, dbin, punct, X_ms, gate: Gate | None, ob: int, beta=1.0, eos=True):
+    """prereg change 8 (P5): the policy pi_beta of lattice_risk on the same speech-timeline lattice, with the block bit b
+    (b = 1 after a write in the current chunk; every chunk boundary resets b = 0) and the Talker per-block overhead ob bins:
+    a block's first token (b = 0) starts its speech at max(s, ob) -> s' = max(s, ob) + d_i and pauses iff started, f = 0,
+    s <= -0.3 + ob; a continuing token (b = 1): s' = max(s, 0) + d_i (no pause possible). Three expected costs by the
+    expectation semiring (channel 0: A = log P; channels 1..3: log P*M_k):
+      q: sum over real tokens of dis[c-1, i] (1 if the prefix model's greedy non-wait token at chunk c != y_i, detached)
+      L: sum over real tokens of min(t_c + s', X)      P: number of pauses (real tokens only; the end token pays nothing)
+    Returns tensor (E[q], E[L], E[P]) (gradients to lp_wait and the gate only). lp_tok: shape only.
+    Checked against brute-force path enumeration (max abs error < 1e-6)."""
+    C, n = lp_tok.shape
+    dev = lp_tok.device
+    X = X_ms / 1000.0
+    n_real = n - 1 if eos else n
+    s_pos = s_of_bins(dev).clamp_min(0.0)
+    E = torch.full((4, S, 2, 2), NEG, device=dev)                  # (channel, s, f, b)
+    T = [E] * (n + 1)
+    t0 = E.clone(); t0[0, K0, 0, 0] = 0.0
+    T[0] = t0
+    kk = torch.arange(S, device=dev)
+    pm = torch.zeros(S, 2, 2, dtype=torch.bool, device=dev)        # pause on writing (f = 0 only)
+    pm[:, 0, 0] = kk <= PAUSE_K + ob
+    pm[:, 0, 1] = kk <= PAUSE_K
+    msk = torch.zeros(2, 1, S, 2, 2, dtype=torch.bool, device=dev)
+    msk[0, :, :, 0, 1] = True
+    msk[1, :, :, 1, 1] = True
+    ch = torch.arange(4, device=dev)[:, None, None, None]
+    disd = dis.detach().float()
+    done = []
+    for c in range(1, C + 1):
+        last = c == C
+        t_c = X if last else float(c)
+        loglat = torch.log(torch.clamp(t_c + s_pos, max=X).clamp_min(1e-6))
+        gt = gate.table(c / C, dev) if (gate is not None and not last) else None
+        for i in range(n):
+            if not last and c < g[i]:
+                continue
+            if T[i] is E:
+                continue
+            cur = T[i]
+            real = i < n_real
+            if last:
+                s_ = cur
+            else:
+                l1 = torch.log1p(-torch.exp(lp_wait[c - 1, i]).clamp(max=1 - 1e-6))
+                z = (l1 - lp_wait[c - 1, i]) + (gt[:, :, 1 if i > 0 else 0] if gt is not None else 0.0)
+                if not torch.is_tensor(z) or z.dim() == 0:
+                    z = torch.as_tensor(z, device=dev).expand(S, 2)
+                lw, l1w = F.logsigmoid(beta * z), F.logsigmoid(-beta * z)
+                s_ = cur + lw[None, :, :, None]
+            if real and float(disd[c - 1, i]) > 0:
+                s_ = torch.where(ch == 1, torch.logaddexp(s_, s_[0:1]), s_)
+            if real and i > 0:
+                s_ = torch.where((ch == 3) & pm[None], torch.logaddexp(s_, s_[0:1]), s_)
+            d_ = int(dbin[i])
+            tg = torch.logaddexp(_wt_batch(s_[..., 0], d_, K0 + ob), _wt_batch(s_[..., 1], d_, K0))     # (4, S)
+            if real:
+                tg = torch.cat([tg[0:2], torch.logaddexp(tg[2], tg[0] + loglat)[None], tg[3:4]], 0)
+            M = msk[int(punct[i])]
+            T[i + 1] = torch.where(M, torch.logaddexp(T[i + 1], tg[:, :, None, None]), T[i + 1])
+            T[i] = E if last else cur + l1w[None, :, :, None]
+        if T[n] is not E:
+            done.append(torch.logsumexp(T[n].reshape(4, -1), 1))
+        T[n] = E
+        if not last:
+            for i in range(n):
+                if T[i] is E:
+                    continue
+                a = torch.logsumexp(T[i], dim=-1)                  # b reset: (4, S, 2); drain 1 s
+                a = torch.cat([torch.logaddexp(a[:, 10], torch.logsumexp(a[:, :10], 1))[:, None], a[:, 11:],
+                               torch.full((4, 10, 2), NEG, device=dev)], 1)
+                T[i] = torch.stack([a, torch.full_like(a, NEG)], -1)
+    D = torch.logsumexp(torch.stack(done), 0)
+    return torch.exp(D[1:] - D[0])
