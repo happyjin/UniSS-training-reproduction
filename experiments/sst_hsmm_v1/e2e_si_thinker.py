@@ -9,7 +9,7 @@ SST_RULE=survival (prereg change 6): the pending token is written when S * (1 - 
 1 - w over the reads it has already waited, reset to 1 after every written token); the read-final wait's 1 - w is
 recomputed in the main process from vLLM's raw logprob of the wait token (raw = before logits processors). threshold
 (default) = the original rule (S = 1).
-SST_CTRL=<control.json> (prereg change 11, P6): Gate2 (multiplier-conditioned, no c/C) + per-item online primal-dual
+SST_CTRL=<control.json> (prereg change 11, P6; change 13: "lag": "speech" -> playback-queue lag, updates only after t > L*): Gate2 (multiplier-conditioned, no c/C) + per-item online primal-dual
 control of lam_L: after every non-final read, lag = t - W / rho (W = non-punctuation tokens written so far, rho = the
 direction's tokens per source second), log lam_L <- clip(log lam_L + eta * (lag - L*), log LAM_LO, log LAM_HI); lam_P fixed.
     SST_GATE=<gate_final.pt> SST_TOKMS=<ms> <vllm_omni_030 python> -m experiments.sst_hsmm_v1.e2e_si_thinker \
@@ -148,7 +148,7 @@ def main():
         x = x.mean(axis=1)[: int(r["dur_ms"]) * 16]
         items.append({"id": r["id"], "audio": x, "dur_ms": len(x) // 16, "committed": "", "blocks": [], "done": False,
                       "s": 0.0, "f": 0, "st": 0, "surv": 1.0, "reads": [],
-                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0})
+                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0, "seg": [], "pend": 0.0})
     proc = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
@@ -190,10 +190,21 @@ def main():
             it["reads"].append({"t": it["t"], "n_tok": len(toks), **({"surv": round(it["surv"], 4)} if RULE == "survival" else {}),
                                 **({"lamL": round(math.exp(it["lgL"]), 5)} if CTRL else {})})
             if CTRL and not it["final"]:                         # change 11: online primal-dual update of lam_L
-                it["W"] += sum(1 for x in toks if x not in _gate()["punct"])
+                nw = sum(1 for x in toks if x not in _gate()["punct"])
+                it["W"] += nw
                 c = CTRL[a.direction]
-                lag = it["t"] / 1000.0 - it["W"] / c["rho"]
-                it["lgL"] = min(max(it["lgL"] + CTRL["eta"] * (lag - c["Lstar"]), math.log(CTRL["lam_lo"])), math.log(CTRL["lam_hi"]))
+                if CTRL.get("lag") == "speech":                  # change 13: speech lag over the playback queue
+                    if nw:
+                        st_ = max(it["t"] + CTRL["ob_ms"], it["pend"]); it["pend"] = st_ + nw * CTRL["tokms"][a.direction]
+                        it["seg"].append((st_, it["pend"], nw))
+                    Wp = sum(n * min(max((it["t"] - s0) / max(s1 - s0, 1e-9), 0.0), 1.0) for s0, s1, n in it["seg"])
+                    lag = it["t"] / 1000.0 - Wp / c["rho"]
+                    upd = it["t"] / 1000.0 > c["Lstar"]          # before L* a lag below the setpoint is unavoidable
+                else:
+                    lag = it["t"] / 1000.0 - it["W"] / c["rho"]
+                    upd = True
+                if upd:
+                    it["lgL"] = min(max(it["lgL"] + CTRL["eta"] * (lag - c["Lstar"]), math.log(CTRL["lam_lo"])), math.log(CTRL["lam_hi"]))
             if text or it["final"]:
                 it["blocks"].append({"write_ms": it["t"], "text": text, "final": it["final"]})
                 it["committed"] += text
