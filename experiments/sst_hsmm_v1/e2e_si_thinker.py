@@ -9,6 +9,9 @@ SST_RULE=survival (prereg change 6): the pending token is written when S * (1 - 
 1 - w over the reads it has already waited, reset to 1 after every written token); the read-final wait's 1 - w is
 recomputed in the main process from vLLM's raw logprob of the wait token (raw = before logits processors). threshold
 (default) = the original rule (S = 1).
+SST_CTRL=<control.json> (prereg change 11, P6): Gate2 (multiplier-conditioned, no c/C) + per-item online primal-dual
+control of lam_L: after every non-final read, lag = t - W / rho (W = non-punctuation tokens written so far, rho = the
+direction's tokens per source second), log lam_L <- clip(log lam_L + eta * (lag - L*), log LAM_LO, log LAM_HI); lam_P fixed.
     SST_GATE=<gate_final.pt> SST_TOKMS=<ms> <vllm_omni_030 python> -m experiments.sst_hsmm_v1.e2e_si_thinker \
         --thinker <merged dir> --direction en2zh --items-file <jsonl> --out <dir>
 """
@@ -36,6 +39,7 @@ PUNCT = re.compile(r"^[\s，。,.!?！？；;：:、…\"“”'‘’()（）�
 _G = {}
 RULE = os.environ.get("SST_RULE", "threshold")
 assert RULE in ("threshold", "survival"), RULE
+CTRL = json.load(open(os.environ["SST_CTRL"])) if os.environ.get("SST_CTRL") else None
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
 
@@ -43,6 +47,7 @@ def _gate():
     if "W" not in _G:
         st = torch.load(os.environ["SST_GATE"], map_location="cpu")
         _G["W"] = [st[k].double().numpy() for k in ("net.0.weight", "net.0.bias", "net.2.weight", "net.2.bias")]
+        _G["skip"] = st["skip.weight"].double().numpy().reshape(-1) if "skip.weight" in st else None
         from transformers import AutoTokenizer
         tok = AutoTokenizer.from_pretrained(QWEN3)
         _G["punct"] = {i for i in range(len(tok)) if PUNCT.match(tok.decode([i]) or "x")}
@@ -50,8 +55,12 @@ def _gate():
     return _G
 
 
-def gate_value(s, f, st, cf):
-    W1, b1, W2, b2 = _gate()["W"]
+def gate_value(s, f, st, cf, zL=0.0, zP=0.0):
+    G = _gate()
+    W1, b1, W2, b2 = G["W"]
+    if G["skip"] is not None:                                  # Gate2 (change 11): (s, f, started, z_L, z_P), no c/C
+        x = np.array([s / 8.0, f, st, zL, zP])
+        return float(np.tanh(W1 @ x + b1) @ W2.T + b2 + G["skip"] @ x)
     x = np.array([s / 8.0, f, st, cf])
     return float(np.tanh(W1 @ x + b1) @ W2.T + b2)
 
@@ -70,6 +79,14 @@ def advance(s, f, st, toks):
     return s, f, st
 
 
+def lam_args(lgL):
+    """change 11: z features of the item's current lam_L and the fixed lam_P"""
+    def z(lg):
+        lo, hi = math.log(CTRL["lam_lo"]), math.log(CTRL["lam_hi"])
+        return (lg - 0.5 * (lo + hi)) / (0.5 * (hi - lo))
+    return {"zL": z(lgL), "zP": z(math.log(CTRL["lamP"]))}
+
+
 def p_wait_gated(lp_wait_raw, g):
     """P'(wait) after the gate shift: p e^-g / (1 - p + p e^-g), p = raw P_wait (log-space safe)"""
     a = lp_wait_raw - g
@@ -78,13 +95,13 @@ def p_wait_gated(lp_wait_raw, g):
     return math.exp(a - m) / (math.exp(a - m) + math.exp(b - m))
 
 
-def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0):
+def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0, zL=0.0, zP=0.0):
     def proc(output_ids, logits):
         if final:
             logits[WAIT] = -math.inf
             return logits
         s, f, st = advance(s0, f0, started, output_ids)
-        logits[WAIT] = logits[WAIT] - gate_value(s, f, st, cfrac)
+        logits[WAIT] = logits[WAIT] - gate_value(s, f, st, cfrac, zL, zP)
         pw = torch.softmax(logits.float(), dim=-1)[WAIT]
         surv = surv0 if len(output_ids) == 0 else 1.0        # survival of the pending token (1 after a write)
         if surv * pw >= 1.0 - TAU:
@@ -130,7 +147,8 @@ def main():
         assert sr == 16000, r["audio"]
         x = x.mean(axis=1)[: int(r["dur_ms"]) * 16]
         items.append({"id": r["id"], "audio": x, "dur_ms": len(x) // 16, "committed": "", "blocks": [], "done": False,
-                      "s": 0.0, "f": 0, "st": 0, "surv": 1.0, "reads": []})
+                      "s": 0.0, "f": 0, "st": 0, "surv": 1.0, "reads": [],
+                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0})
     proc = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
@@ -153,7 +171,8 @@ def main():
                                          logprobs=0 if (RULE == "survival" and not final) else None,
                                          extra_args={"hsmm": {"s0": it["s"], "f0": it["f"], "started": it["st"],
                                                               "cfrac": (r + 1) / C, "final": final,
-                                                              "surv0": it["surv"] if RULE == "survival" else 1.0}}))
+                                                              "surv0": it["surv"] if RULE == "survival" else 1.0,
+                                                              **(lam_args(it["lgL"]) if CTRL else {})}}))
         res = llm.generate(prompts, params, use_tqdm=False)
         for it, rr in zip(live, res):
             o = rr.outputs[0]
@@ -168,7 +187,13 @@ def main():
                     it["surv"] = (1.0 if toks else it["surv"]) * pw
                 else:
                     it["surv"] = 1.0
-            it["reads"].append({"t": it["t"], "n_tok": len(toks), **({"surv": round(it["surv"], 4)} if RULE == "survival" else {})})
+            it["reads"].append({"t": it["t"], "n_tok": len(toks), **({"surv": round(it["surv"], 4)} if RULE == "survival" else {}),
+                                **({"lamL": round(math.exp(it["lgL"]), 5)} if CTRL else {})})
+            if CTRL and not it["final"]:                         # change 11: online primal-dual update of lam_L
+                it["W"] += sum(1 for x in toks if x not in _gate()["punct"])
+                c = CTRL[a.direction]
+                lag = it["t"] / 1000.0 - it["W"] / c["rho"]
+                it["lgL"] = min(max(it["lgL"] + CTRL["eta"] * (lag - c["Lstar"]), math.log(CTRL["lam_lo"])), math.log(CTRL["lam_hi"]))
             if text or it["final"]:
                 it["blocks"].append({"write_ms": it["t"], "text": text, "final": it["final"]})
                 it["committed"] += text

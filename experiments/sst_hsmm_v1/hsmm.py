@@ -366,3 +366,40 @@ def lattice_risk_block(lp_tok, lp_wait, dis, g, dbin, punct, X_ms, gate: Gate | 
                 T[i] = torch.stack([a, torch.full_like(a, NEG)], -1)
     D = torch.logsumexp(torch.stack(done), 0)
     return torch.exp(D[1:] - D[0])
+
+
+# ---- prereg change 11 (P6): multiplier-conditioned gate ----
+LAM_LO, LAM_HI = 0.003, 1.0                     # log-uniform range of lam_L, lam_P during training
+
+
+def lam_z(lam: float) -> float:
+    """log lam -> [-1, 1] over [LAM_LO, LAM_HI]"""
+    lo, hi = math.log(LAM_LO), math.log(LAM_HI)
+    return (math.log(lam) - 0.5 * (lo + hi)) / (0.5 * (hi - lo))
+
+
+class Gate2(nn.Module):
+    """g_psi(s, f, started, z_L, z_P) = MLP(x) + w . x  (5 -> 32 -> 1 tanh MLP, last layer and skip zero-initialised;
+    z = lam_z(lam) of the sample's multipliers, held in self.z; no c/C (non-causal)). Same table() API as Gate."""
+    def __init__(self, bias0: float = 0.0):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(5, 32), nn.Tanh(), nn.Linear(32, 1))
+        nn.init.zeros_(self.net[2].weight)
+        nn.init.constant_(self.net[2].bias, bias0)
+        self.skip = nn.Linear(5, 1, bias=False)
+        nn.init.zeros_(self.skip.weight)
+        self.z = (0.0, 0.0)
+
+    def forward(self, x):
+        return self.net(x) + self.skip(x)
+
+    def table(self, cfrac: float, device) -> torch.Tensor:
+        """-> (S, 2 f, 2 started) gate values at the current self.z (cfrac ignored)"""
+        s = s_of_bins(device)
+        feats = []
+        for f in (0, 1):
+            for st in (0, 1):
+                feats.append(torch.stack([s / 8.0, torch.full_like(s, float(f)), torch.full_like(s, float(st)),
+                                          torch.full_like(s, float(self.z[0])), torch.full_like(s, float(self.z[1]))], -1))
+        g = self(torch.stack(feats, 0))[..., 0]
+        return g.view(2, 2, S).permute(2, 0, 1)

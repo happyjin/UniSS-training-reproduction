@@ -391,3 +391,28 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - N = `test_robust/UE_mbr/mbr`：wave17 Thinker + 卡尔曼 / AbS 音色，即之前的主系统。
   - B_b、N 复用已有输出，同一测试集、同一 Talker 与种子，只在本次统一用 dip 播放器重新评分。
 - 并行方式：P5′ 先跑 Thinker（gpu-mem 0.85，同 dev）；P5 等 P5′ 的 Thinker 阶段结束后再跑自己的 Thinker，gpu-mem 0.6（只影响 KV 缓存大小，不改解码规则），与 P5′ 的后续阶段叠在同一批卡上。
+
+## 变更 11（2026-11-23 20:50 CET，P6：以乘子为输入的策略 + 推理时在线原始-对偶控制；用户确认"开始这个方法"，任何 P6 数字之前）
+
+**动机：** 见 `P3_report_test_20261123.zh-CN.md` 第 6 节和用户版分析。
+1. P5′ 门控几乎是常数，状态没有用上；
+2. 期望与阈值解码错位，运行点不受控；
+3. 固定阈值在域外语音（RealSI en2zh）上写得过晚；
+4. 门控用了 c/C，即整句总时长，属于非因果特征。
+
+**方法（单一设置，不扫参；数据、P1a 自身译文、优化器、步数、β、lattice_risk_block、OB、q、翻译损失同变更 8）：**
+
+1. **热启动：** P1a 的 `adapters_final.pt`（建在 N 的 Thinker `merged_enc_wise05` 上）。
+2. **门控 Gate2**（`hsmm.Gate2`）：输入 (s/8, f, started, z_L, z_P)，z = log λ 线性映射到 [−1, 1]（λ 范围 [0.003, 1]）；去掉 c/C；结构为 MLP(5→32→1, tanh) + 线性旁路。初始化：最后一层与旁路为 0，偏置 = P1a 门控在 (s 0, f 0, started 1, c/C 0.5) 处的值，起点策略 = P1a。
+3. **训练（`train_risk4.py`）：** 每个样本 λ_L、λ_P 独立按对数均匀抽取（sha1 键 "20261123|p6|lamL|s|j"、"…lamP…"）；损失 q/n + λ_L·L + λ_P·P + 翻译 NLL。没有预算，没有对偶上升；1000 步。
+4. **推理（`e2e_si_thinker`，`SST_CTRL`）：** 阈值 0.5、`SST_BLOCK_S=0.2` 不变。
+   - 每条语音的 λ_L 在线更新：每个非最后一读后算 lag = t − W/ρ（W = 已写出的非标点 token 数，ρ = 该方向训练数据每秒源语音的非标点参考 token 数），log λ_L ← clip(log λ_L + 0.5·(lag − L*), log 0.003, log 1)。
+   - λ_L 初值、λ_P 固定值都取范围的几何中点 0.0548。
+5. **设定点 L\*（`p6_control.py`，P6 训练前已算好，`p6/control.json`）：**
+   - 在 dev 上对已有 5 个 HSMM 系统（P2、P2′、P2″、P2‴、P2⁗）按方向拟合 D2差 = a + b·lag，取 D2差 = −0.10 s（变更 8 的目标）对应的 lag。
+   - en2zh：L* 1.775（拟合 R² 0.9991），ρ 2.337；zh2en：L* 1.949（R² 0.9987），ρ 3.002。
+   - 对照 N 自身的 lag 为 1.909 / 1.995，只报告。
+
+**P2⁗′（dev，`p2g`）门槛：** 同变更 6 的帕累托门槛。**P3（测试，`p3g`）：** 同 P3‴ 规则，dev GO 才跑。不通过：报告，不调参。
+
+代码：`hsmm.Gate2`、`train_risk4.py`、`p6_control.py`、`e2e_si_thinker`（SST_CTRL）、`p6_orch.sh`、`p2g_orch.sh`、`p3g_orch.sh`、`p3g_chain.sh`。
