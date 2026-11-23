@@ -5,6 +5,8 @@ and NEW (eval_outputs/sst_hsmm_v1/p3: HSMM Thinker + Kalman/AbS voice + T1c), al
 playout metrics by s_score.boot. Cells as voice_onset_v1 P3 (health_003 dropped, OBSI en2zh without e031_0004).
 Rules NEW vs N per cell (10 cells): (1) ASR diff >= -0.3 and CI high >= 0 in all 10; (2) D2 diff < 0 in >= 8;
 (3) NP_in rel <= -30% in >= 8; (4) NC rel <= -50% in >= 8. Identity CI low >= -0.01: reported only.
+--root p3c --rules pareto (prereg changes 6 / 7, P3''): NEW = <root>; rules (2) D2 diff <= +0.05 in >= 8 cells,
+(3) NP_in rel <= -25% in >= 8, (4) NC reported only; (1) unchanged.
     qwen3omni PYTHONPATH=. python -m experiments.sst_hsmm_v1.p3_score --out eval_outputs/sst_hsmm_v1/p3/summary.json
 """
 from __future__ import annotations
@@ -67,7 +69,11 @@ def pair(meta, ref, items, X, Y, lang):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
+    ap.add_argument("--root", default="p3", help="NEW run dir under eval_outputs/sst_hsmm_v1 (p3c for P3'')")
+    ap.add_argument("--rules", choices=("orig", "pareto"), default="orig")
     a = ap.parse_args()
+    global R
+    R = REPO / "eval_outputs/sst_hsmm_v1" / a.root
     out = Path(a.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
@@ -88,13 +94,15 @@ def main():
             res["cells"][f"{d}/{cell}"] = cres
     C = {k: c["NEW_vs_N"] for k, c in res["cells"].items()}
     r1 = [[k, m["asr"]["diff"], m["asr"]["ci95"]] for k, m in C.items() if not (m["asr"]["diff"] >= -0.3 and m["asr"]["ci95"][1] >= 0)]
-    r2 = [k for k, m in C.items() if m["d2"]["diff"] < 0]
-    r3 = [k for k, m in C.items() if m["NP_in"]["rel"] <= -0.30]
+    par = a.rules == "pareto"
+    r2 = [k for k, m in C.items() if (m["d2"]["diff"] <= 0.05 if par else m["d2"]["diff"] < 0)]
+    r3 = [k for k, m in C.items() if m["NP_in"]["rel"] <= (-0.25 if par else -0.30)]
     r4 = [k for k, m in C.items() if m["NC"]["rel"] <= -0.50]
     idb = [[k, m["sim"]["ci95"][0]] for k, m in C.items() if m["sim"]["ci95"][0] < -0.01]
     v = {"R1_asr_failing": r1, "R2_d2_lower_cells": len(r2), "R3_np_in_cells": len(r3), "R4_nc_cells": len(r4),
          "identity_ci_low_below_-0.01": idb,
-         "pass": {"R1": not r1, "R2": len(r2) >= 8, "R3": len(r3) >= 8, "R4": len(r4) >= 8}}
+         "pass": {"R1": not r1, "R2": len(r2) >= 8, "R3": len(r3) >= 8, **({} if par else {"R4": len(r4) >= 8})},
+         "rules": a.rules}
     v["NEW_established"] = all(v["pass"].values())
     res["verdict"] = v
     out.parent.mkdir(parents=True, exist_ok=True)
