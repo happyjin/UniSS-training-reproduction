@@ -28,6 +28,7 @@ TOKS = {"en2zh": 0.3456, "zh2en": 0.3325}
 LAM = (0.5, 0.5)
 _G = {}
 RULE = "threshold"
+LAT = "proxy"                       # --lat laal: LAAL-form latency (hsmm.path_laal) instead of path_stats' absolute mean
 
 
 def _init(gs):
@@ -85,14 +86,16 @@ def _one(job):
         c = r["g"][k]
         wfirst.append(1.0 if c >= C else 1 / (1 + math.exp(-(ell[c - 1, k] + gval(0.0, 0, int(k > 0), c / C)))))
     dbin = [int(round(x / 100)) for x in r["d_ms"]]
-    lat_g, pau_g = H.path_stats(path, dbin, r["punct"], r["X"])
+    PS = H.path_laal if LAT == "laal" else H.path_stats
+    lat_g, pau_g = PS(path, dbin, r["punct"], r["X"])
     g, db, pu = (r["g"] + [C], dbin + [0], r["punct"] + [1]) if eos else (r["g"], dbin, r["punct"])
     _, vp = H.lattice(torch.tensor(lp, dtype=torch.float32), torch.tensor(lw, dtype=torch.float32), g, db, pu, r["X"],
                       LAM[0], LAM[1], _G["gate"], viterbi=True, eos=eos)
     vp = vp[:n]
-    lat_v, pau_v = H.path_stats(vp, dbin, r["punct"], r["X"])
+    lat_v, pau_v = PS(vp, dbin, r["punct"], r["X"])
+    lat_e, pau_e = PS(list(r["g"]), dbin, r["punct"], r["X"])          # earliest possible: every token at g_i
     nf = [c < C for c in path]
-    return {"dir": r["dir"], "lat_g": lat_g, "pau_g": pau_g, "lat_v": lat_v, "pau_v": pau_v,
+    return {"dir": r["dir"], "lat_g": lat_g, "pau_g": pau_g, "lat_v": lat_v, "pau_v": pau_v, "lat_e": lat_e, "pau_e": pau_e,
             "early_g": float(np.mean([c < gi for c, gi in zip(path, r["g"])])),
             "dch_g": float(np.mean([c - gi for c, gi in zip(path, r["g"])])),
             "dch_v": float(np.mean([c - gi for c, gi in zip(vp, r["g"])])),
@@ -107,9 +110,10 @@ def main():
     ap.add_argument("--procs", type=int, default=64)
     ap.add_argument("--rule", choices=("threshold", "survival"), default="threshold",
                     help="threshold: inference rule (w >= 0.5); survival: write when the pending token's survival <= 0.5")
+    ap.add_argument("--lat", choices=("proxy", "laal"), default="proxy")
     a = ap.parse_args()
-    global RULE
-    RULE = a.rule
+    global RULE, LAT
+    RULE, LAT = a.rule, a.lat
     if Path(a.out).exists():
         raise SystemExit(f"拒绝覆盖已有输出: {a.out}")
     rows = {}
@@ -135,7 +139,7 @@ def main():
             v = [x for x in per if d == "all" or x["dir"] == d]
             wf = np.concatenate([x["wfirst"] for x in v])
             out[d] = {"n": len(v), **{k: round(float(np.mean([x[k] for x in v])), 4) for k in
-                      ("lat_g", "lat_v", "pau_g", "pau_v", "early_g", "dch_g", "dch_v", "nonfinal_g", "nonfinal_v")},
+                      ("lat_g", "lat_v", "lat_e", "pau_e", "pau_g", "pau_v", "early_g", "dch_g", "dch_v", "nonfinal_g", "nonfinal_v")},
                       "wfirst_ge_0.5": round(float((wf >= 0.5).mean()), 4),
                       "wfirst_0.1_0.5": round(float(((wf >= 0.1) & (wf < 0.5)).mean()), 4),
                       "wfirst_lt_0.1": round(float((wf < 0.1).mean()), 4),

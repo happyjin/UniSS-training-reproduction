@@ -175,3 +175,23 @@ def path_stats(path, dbin, punct, X_ms):
         f, started = int(punct[i]), True
         lat.append(min(t_c + s, X))
     return (sum(lat) / max(len(lat), 1)), pauses
+
+
+def path_laal(path, dbin, punct, X_ms, ref_len=None):
+    """LAAL-form version of path_stats (analysis only): d_i = time token i has been spoken (t_c + backlog after it, not
+    capped), LAAL of Papi et al. over tokens (si_metrics.laal: tau cutoff, |Y| = max(n, ref_len)) -> (seconds, pauses)"""
+    from experiments.uniss_qwen3_omni_v1.evaluation.si_metrics import laal
+    X = X_ms / 1000.0
+    s, f, started, d, pauses = 0.0, 0, False, [], 0
+    prev_c = 1
+    C = math.ceil(X_ms / 1000)
+    for i, c in enumerate(path):
+        while prev_c < c:
+            s = max(s - 1.0, -3.0); prev_c += 1
+        t_c = X if c == C else float(c)
+        if started and s <= -0.3 + 1e-9 and f == 0:
+            pauses += 1
+        s = max(s, 0.0) + 0.1 * dbin[i]
+        f, started = int(punct[i]), True
+        d.append((t_c + s) * 1000.0)
+    return laal(d, X_ms, max(len(d), ref_len or 0)) / 1000.0, pauses

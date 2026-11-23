@@ -4,6 +4,8 @@ T1c, source voice). Both played with s0_apply --policy dip (rows in p2/play/{new
 PT_in / EndOffset from the player. ASR-BLEU from asr_speech.jsonl via wave3_v_score.compare (unit = stream, 2000 resamples,
 seed 0); playout metrics: stream-bootstrap mean difference (s_score.boot). Pooled per direction (sets a/b x clean/noisy)
 = the gate; per cell = diagnostics. GO iff both directions: ASR diff >= -0.5, D2 diff <= -0.2 s, NP_in rel <= -30%.
+--root p2b --rules pareto (prereg change 6, P2'): NEW = <root>; GO iff both directions: ASR diff >= -0.5, D2 diff <= +0.05 s,
+NP_in rel <= -25%.
     qwen3omni PYTHONPATH=. python -m experiments.sst_hsmm_v1.p2_score --out eval_outputs/sst_hsmm_v1/p2/summary.json
 """
 from __future__ import annotations
@@ -26,6 +28,7 @@ DATA = REPO / "eval_outputs/mist_w3po_v1/wave2_S1/data"
 DIRS = ("en2zh", "zh2en")
 PM = ("NP_in", "PT_in", "PT_all", "NC", "n_pause", "EndOffset")
 SYS = {"new": (R, R / "play"), "ctrl": (CTRL, R / "play")}
+RULES = {"orig": (-0.5, -0.2, -0.30), "pareto": (-0.5, 0.05, -0.25)}     # asr diff >=, d2 diff <=, NP_in rel <=
 
 
 def load(name, d):
@@ -60,7 +63,12 @@ def pair(meta, ref, items, X, Y, lang):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
+    ap.add_argument("--root", default="p2", help="NEW run dir under eval_outputs/sst_hsmm_v1 (p2b for P2')")
+    ap.add_argument("--rules", choices=tuple(RULES), default="orig")
     a = ap.parse_args()
+    root = REPO / "eval_outputs/sst_hsmm_v1" / a.root
+    SYS["new"], SYS["ctrl"] = (root, root / "play"), (CTRL, root / "play")
+    ta, td, tn = RULES[a.rules]
     out = Path(a.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
@@ -78,10 +86,11 @@ def main():
         for cell in sorted({f"{meta[i]['set']}/{meta[i]['cond']}" for i in items}):
             it = [i for i in items if f"{meta[i]['set']}/{meta[i]['cond']}" == cell]
             res["cells"][f"{d}/{cell}"] = pair(meta, ref, it, X, Y, lang)
-        g = {"asr": bool(c["asr"]["diff"] >= -0.5), "d2": bool(c["d2"]["diff"] <= -0.2), "np_in": bool(c["NP_in"]["rel"] <= -0.30)}
+        g = {"asr": bool(c["asr"]["diff"] >= ta), "d2": bool(c["d2"]["diff"] <= td), "np_in": bool(c["NP_in"]["rel"] <= tn)}
         verdict[d] = {**g, "asr_diff": c["asr"]["diff"], "d2_diff": c["d2"]["diff"], "np_in_rel": round(c["NP_in"]["rel"], 4),
                       "nc_rel": round(c["NC"]["rel"], 4), "pass": bool(all(g.values()))}
     verdict["GO"] = all(verdict[d]["pass"] for d in DIRS)
+    verdict["rules"] = {"name": a.rules, "asr_ge": ta, "d2_le": td, "np_in_rel_le": tn}
     res["verdict"] = verdict
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "x", encoding="utf-8") as fh:
