@@ -416,3 +416,9 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 **P2⁗′（dev，`p2g`）门槛：** 同变更 6 的帕累托门槛。**P3（测试，`p3g`）：** 同 P3‴ 规则，dev GO 才跑。不通过：报告，不调参。
 
 代码：`hsmm.Gate2`、`train_risk4.py`、`p6_control.py`、`e2e_si_thinker`（SST_CTRL）、`p6_orch.sh`、`p2g_orch.sh`、`p3g_orch.sh`、`p3g_chain.sh`。
+
+## 变更 12（2026-11-23 22:25 CET，P6 训练第约 900 步，任何 P6 dev / 测试数字之前）
+
+- 应用户要求，P6 的测试集（P3g）**不论 dev 门槛结果如何都跑**；dev 判定照常报告，但不用于挑选。
+- `p3g_report.sh` = `p3g_orch.sh` 去掉 GO 检查；等 p2g 的 Thinker 阶段结束后再启动自己的 Thinker（`--gpu-mem 0.6`），与 p2g 后续阶段叠加。其余设置不变。
+- 关于训练量：风险训练沿用 P5 / P5′ 的 1000 步 × 16 条（P4 预生成的 16000 条 P1a rollout，约 1.3 万条不同语句，约为 4 万条训练池的 1/3 个 epoch），以便与 P5 / P5′ 同预算对比。
