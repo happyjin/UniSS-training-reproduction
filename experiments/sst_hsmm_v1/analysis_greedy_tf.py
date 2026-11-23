@@ -4,6 +4,7 @@ decision rule of e2e_si_thinker (per 1 s read, token i is written iff w = sigmoi
 the read ends at the first wait; s follows the mean token duration SST_TOKMS; last read writes everything) and compares
 it with the lattice's Viterbi path (model's own transitions). Separates the decision-rule mismatch from exposure to
 the model's own prefix (which teacher forcing removes).
+--rule survival: a candidate decision rule consistent with the semi-Markov hazard (median write time), analysis only.
     qwen3omni OMP_NUM_THREADS=1 PYTHONPATH=. python -m experiments.sst_hsmm_v1.analysis_greedy_tf --steps 0 2500 --out <json>
 """
 from __future__ import annotations
@@ -26,6 +27,7 @@ DATA = REPO / "eval_outputs/sst_hsmm_v1/data"
 TOKS = {"en2zh": 0.3456, "zh2en": 0.3325}
 LAM = (0.5, 0.5)
 _G = {}
+RULE = "threshold"
 
 
 def _init(gs):
@@ -52,6 +54,7 @@ def _one(job):
     tok_s = TOKS[r["dir"]]
     # greedy replay of the inference rule
     s, fl, st, i, path, wfirst = 0.0, 0, 0, 0, [], []
+    surv = 1.0                      # --rule survival: P(pending token not yet written) under the HSMM hazard
     for c in range(1, C + 1):
         if c == C:
             path += [C] * (n - i)
@@ -61,7 +64,12 @@ def _one(job):
             w = 1 / (1 + math.exp(-(ell[c - 1, i] + gv)))
             if c == r["g"][i]:
                 wfirst.append(w)
-            if w < 0.5:
+            if RULE == "survival":
+                if surv * (1 - w) > 0.5:      # write at the median of the token's write-time distribution
+                    surv *= 1 - w
+                    break
+                surv = 1.0
+            elif w < 0.5:
                 break
             path.append(c)
             p = r["punct"][i]
@@ -97,7 +105,11 @@ def main():
     ap.add_argument("--steps", type=int, nargs="+", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--procs", type=int, default=64)
+    ap.add_argument("--rule", choices=("threshold", "survival"), default="threshold",
+                    help="threshold: inference rule (w >= 0.5); survival: write when the pending token's survival <= 0.5")
     a = ap.parse_args()
+    global RULE
+    RULE = a.rule
     if Path(a.out).exists():
         raise SystemExit(f"拒绝覆盖已有输出: {a.out}")
     rows = {}
