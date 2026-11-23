@@ -36,6 +36,7 @@ PUNCT = re.compile(r"^[\s，。,.!?！？；;：:、…\"“”'‘’()（）�
 _G = {}
 RULE = os.environ.get("SST_RULE", "threshold")
 assert RULE in ("threshold", "survival"), RULE
+TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
 
 def _gate():
@@ -82,7 +83,7 @@ def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0):
         logits[WAIT] = logits[WAIT] - gate_value(s, f, st, cfrac)
         pw = torch.softmax(logits.float(), dim=-1)[WAIT]
         surv = surv0 if len(output_ids) == 0 else 1.0        # survival of the pending token (1 after a write)
-        if surv * pw >= 0.5:
+        if surv * pw >= 1.0 - TAU:
             w = logits[WAIT].clone()
             logits[:] = -math.inf
             logits[WAIT] = w
