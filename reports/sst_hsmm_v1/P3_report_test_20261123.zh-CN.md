@@ -79,3 +79,15 @@ P5 vs N：
 
 - `eval_outputs/sst_hsmm_v1/p3e/summary.json`（P5）、`eval_outputs/sst_hsmm_v1/p3f/summary.json`（P5′）；
 - 日志 `logs/sst_hsmm_v1/p3e_report.log`、`p3f_report.log`。
+
+## 6. 问题诊断（2026-11-23 20:10 CET，只用已有输出，无新运行）
+
+- **门控网络几乎是常数。** `p5b/train/gate_final.pt`：g(s, f, started, c/C) ≈ −27.2 到 −28.0。
+  - 积压 s 从 −1 变到 +1，g 只变 0.01；c/C 从 0.1 变到 1，g 变 −0.9。
+  - 也就是说，lattice 里依赖状态（语音积压、标点）的写出策略，在推理时没有被门控网络用上。写出决策几乎完全由 Thinker LoRA 的 wait 概率决定，而这个概率看不到语音积压。
+- **c/C 用到了整句总时长**（`e2e_si_thinker`：C = ceil(dur_ms / 1000)），属于非因果特征，需要去掉。它对结果影响不大（见上），且方向是越到句末越倾向等待。
+- **RealSI en2zh 写得晚与句长无关。** 最后一读前写出的字符比例按时长分组：
+  - RealSI：< 6 s 0.18、6–10 s 0.27、10–15 s 0.30；
+  - OBSI：< 6 s 0.39、6–10 s 0.51。
+  - 同样长度下 RealSI 也只有 OBSI 的一半左右，说明原因在语音域（真实自发语音），不在长度：Thinker 在域外语音上 wait 概率偏高，而固定阈值没有校准。
+- **LA2（N）为什么不受影响：** 局部一致（连续两次假设的公共前缀）是相对判据，不依赖概率绝对值，所以对域变化天然稳健。
