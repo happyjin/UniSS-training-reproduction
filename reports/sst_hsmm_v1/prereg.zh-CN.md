@@ -381,3 +381,13 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 **P2⁗（dev）门槛：** 同变更 6 的帕累托门槛，对照不变。**P3⁗（测试）：** 同 P3‴ 规则，NEW 的 Thinker = P5′ 模型。不通过：报告，不调参。
 
 输出：`eval_outputs/sst_hsmm_v1/p5b/`、`p2f/`、`p3f/`；日志 `logs/sst_hsmm_v1/p5b*`、`p2f*`、`p3f*`。代码：`train_risk3.py`（= train_risk2 + 相对预算）、`p5b_orch.sh`、`p2f_orch.sh`、`p3f_orch.sh`、`p3f_chain.sh`。
+
+## 变更 10（2026-11-23 18:30 CET，只报告的测试；用户要求"跑一下两边的测试并行跑，然后和之前关键结果对比"，任何测试数字之前）
+
+- dev 门槛 P2‴、P2⁗ 都是 NO-GO。应用户要求，P5（`p3e`）与 P5′（`p3f`）两个模型照 P3 流程跑测试集，**只报告，不作选择、不据此调参**。两个模型都报告，不挑好的那个。
+- 流程、单元、播放器、评分与 P3‴ / P3⁗ 相同（`p3e_report.sh`、`p3f_report.sh` = 原编排去掉 GO 检查）。
+- 对比对象：
+  - B_b = `test_robust/B/b`：基座 Thinker + LA2 流式策略 + T1c，无鲁棒训练、无音色技巧。这是"什么技巧都没用"的基线。
+  - N = `test_robust/UE_mbr/mbr`：wave17 Thinker + 卡尔曼 / AbS 音色，即之前的主系统。
+  - B_b、N 复用已有输出，同一测试集、同一 Talker 与种子，只在本次统一用 dip 播放器重新评分。
+- 并行方式：P5′ 先跑 Thinker（gpu-mem 0.85，同 dev）；P5 等 P5′ 的 Thinker 阶段结束后再跑自己的 Thinker，gpu-mem 0.6（只影响 KV 缓存大小，不改解码规则），与 P5′ 的后续阶段叠在同一批卡上。
