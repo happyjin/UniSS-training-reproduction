@@ -42,6 +42,7 @@ assert RULE in ("threshold", "survival"), RULE
 CTRL = json.load(open(os.environ["SST_CTRL"])) if os.environ.get("SST_CTRL") else None
 GUARD = os.environ.get("SST_GUARD", "") == "1"   # change 14 (P7): HSMM proposes, local agreement verifies, pause-imminent override
 CONTENT = os.environ.get("SST_CONTENT", "")      # change 16 (P8): content Thinker (N's wave17) on a second card; HSMM model = timing only
+OVER = os.environ.get("SST_OVER", "full")              # change 17: "agree" = override commits only LCP(content draft, HSMM proposal)
 PAUSE_S = 0.7                                     # change 14: s <= 0.7 now -> s - 1 <= -0.3 at the next read = a pause (lattice rule)
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
@@ -220,7 +221,13 @@ def main():
                 while k < len(d) and k < len(prev) and d[k] == prev[k]:
                     k += 1
                 over = it["st"] == 1 and it["s"] <= PAUSE_S and len(p_) > 0
-                kk = min(len(p_), len(d)) if over else min(k, len(p_))
+                if over and OVER == "agree":                 # change 17: cross-model agreement instead of the full proposal length
+                    j = 0
+                    while j < len(d) and j < len(p_) and d[j] == p_[j]:
+                        j += 1
+                    kk = max(min(k, len(p_)), j)
+                else:
+                    kk = min(len(p_), len(d)) if over else min(k, len(p_))
                 it.setdefault("n_over", 0); it["n_over"] += int(over and kk > min(k, len(p_)))
                 k = kk
                 if k < len(d):
