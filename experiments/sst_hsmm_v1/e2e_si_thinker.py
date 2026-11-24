@@ -40,6 +40,8 @@ _G = {}
 RULE = os.environ.get("SST_RULE", "threshold")
 assert RULE in ("threshold", "survival"), RULE
 CTRL = json.load(open(os.environ["SST_CTRL"])) if os.environ.get("SST_CTRL") else None
+GUARD = os.environ.get("SST_GUARD", "") == "1"   # change 14 (P7): HSMM proposes, local agreement verifies, pause-imminent override
+PAUSE_S = 0.7                                     # change 14: s <= 0.7 now -> s - 1 <= -0.3 at the next read = a pause (lattice rule)
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
 
@@ -140,6 +142,7 @@ def main():
     from vllm import LLM, SamplingParams
     from experiments.uniss_qwen3_omni_v1.training.e2_batch import inference_instruction
     zh = a.direction.endswith("zh")
+    zh_tgt = zh
     tgt = "cmn" if zh else "eng"
     items = []
     for r in map(json.loads, open(a.items_file, encoding="utf-8")):
@@ -148,7 +151,7 @@ def main():
         x = x.mean(axis=1)[: int(r["dur_ms"]) * 16]
         items.append({"id": r["id"], "audio": x, "dur_ms": len(x) // 16, "committed": "", "blocks": [], "done": False,
                       "s": 0.0, "f": 0, "st": 0, "surv": 1.0, "reads": [],
-                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0, "seg": [], "pend": 0.0})
+                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0, "seg": [], "pend": 0.0, "draft": []})
     proc = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
@@ -173,11 +176,34 @@ def main():
                                                               "cfrac": (r + 1) / C, "final": final,
                                                               "surv0": it["surv"] if RULE == "survival" else 1.0,
                                                               **(lam_args(it["lgL"]) if CTRL else {})}}))
-        res = llm.generate(prompts, params, use_tqdm=False)
+        if GUARD:                                        # change 14: unconstrained greedy draft (WAIT masked) per non-final read
+            dl = [it for it in live if not it["final"]]
+            dprompts = [pr for it, pr in zip(live, prompts) if not it["final"]]
+            dparams = [SamplingParams(temperature=0.0, max_tokens=64, stop_token_ids=[THINKER_EOS],
+                                      extra_args={"hsmm": {"s0": 0.0, "f0": 0, "started": 0, "cfrac": 0.0, "final": True}}) for _ in dl]
+            res_all = llm.generate(prompts + dprompts, params + dparams, use_tqdm=False)
+            res, dres = res_all[: len(prompts)], {id(it): x for it, x in zip(dl, res_all[len(prompts):])}
+        else:
+            res = llm.generate(prompts, params, use_tqdm=False)
+        tkz = llm.get_tokenizer() if GUARD else None
         for it, rr in zip(live, res):
             o = rr.outputs[0]
             toks = [x for x in o.token_ids if x not in (WAIT, THINKER_EOS)]
             text = o.text
+            if GUARD and not it["final"]:
+                prev = it["draft"]
+                k = 0
+                while k < len(toks) and k < len(prev) and toks[k] == prev[k]:
+                    k += 1
+                over = it["st"] == 1 and it["s"] <= PAUSE_S and len(toks) > 0
+                if not over and k < len(toks):
+                    while k > 0 and ("\ufffd" in tkz.decode(toks[:k]) or (not zh_tgt and not tkz.decode([toks[k]]).startswith((" ", ",", ".", "!", "?", ";", ":")))):
+                        k -= 1                               # no partial characters / words
+                    toks = toks[:k]
+                    text = tkz.decode(toks) if k else ""
+                it.setdefault("n_over", 0); it["n_over"] += int(over and k < len(toks))
+                d = [x for x in dres[id(it)].outputs[0].token_ids if x not in (WAIT, THINKER_EOS)]
+                it["draft"] = d[len(toks):] if d[: len(toks)] == toks else []
             it["s"], it["f"], it["st"] = advance(it["s"], it["f"], it["st"], toks)
             if RULE == "survival" and not it["final"]:
                 ids = list(o.token_ids)
@@ -217,7 +243,7 @@ def main():
     with open(out, "x", encoding="utf-8") as fh:
         for it in items:
             blocks = [b for b in it["blocks"] if b["text"].strip() or b["final"]]
-            fh.write(json.dumps({"id": it["id"], "translation": it["committed"], "blocks": blocks, "reads": it["reads"]},
+            fh.write(json.dumps({"id": it["id"], "translation": it["committed"], "blocks": blocks, "reads": it["reads"], **({"n_over": it.get("n_over", 0)} if GUARD else {})},
                                 ensure_ascii=False) + "\n")
     print(out, len(items), flush=True)
 
