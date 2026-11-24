@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import os
 import sys
 import time
@@ -39,6 +40,8 @@ P4 = REPO / "eval_outputs/sst_hsmm_v1/p4"
 SLOTS, WARM, SAVE_EVERY, STEPS = 16, 50, 250, 1000
 LR, KAPPA = 1e-4, 1.0
 DIRS = ("en2zh", "zh2en")
+TOKMS = {"en2zh": 345.6, "zh2en": 332.5}
+PUNCT = re.compile(r"^[\s，。,.!?！？；;：:、…\"“”'‘’()（）《》\-—]+$")     # = e2e_si_thinker.PUNCT
 SEED = 20261125
 
 
@@ -84,6 +87,8 @@ def main():
     refs = {d: {r["id"]: r for r in map(json.loads, open(DATA / f"train_{d}.jsonl", encoding="utf-8"))} for d in DIRS}
     samples = {(x["s"], x["j"]): x for x in map(json.loads, open(P4 / "samples.jsonl", encoding="utf-8"))}
     proc, head = MD.processor_and_heads()
+    tk = proc.tokenizer
+    punct_ids = {i for i in range(len(tk)) if PUNCT.match(tk.decode([i]) or "x")}
     torch.manual_seed(SEED)                               # identical LoRA init on every rank
     thinker, names = MD.build_thinker(dev, lora=True)
     layers = [m for m in thinker.modules() if isinstance(m, L.LoRALinear)]
@@ -109,7 +114,9 @@ def main():
         for j in my_slots:
             x = samples[(s, j)]
             rr = dict(refs[x["dir"]][x["row"]])
-            rr["g"] = [1] * len(rr["tok"])
+            pu = [int(i in punct_ids) for i in rr["tok"]]            # = train_risk own_row, on the reference tokens
+            dd = int(round(TOKMS[rr["dir"]] / 100))
+            rr.update(g=[1] * len(rr["tok"]), punct=pu, dbin=[0 if p_ else dd for p_ in pu])
             rows.append(rr)
             wavs.append(sf.read(x["wav"], dtype="float32")[0])
         terms = []
