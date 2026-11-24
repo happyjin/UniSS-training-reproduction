@@ -41,6 +41,7 @@ RULE = os.environ.get("SST_RULE", "threshold")
 assert RULE in ("threshold", "survival"), RULE
 CTRL = json.load(open(os.environ["SST_CTRL"])) if os.environ.get("SST_CTRL") else None
 GUARD = os.environ.get("SST_GUARD", "") == "1"   # change 14 (P7): HSMM proposes, local agreement verifies, pause-imminent override
+CONTENT = os.environ.get("SST_CONTENT", "")      # change 16 (P8): content Thinker (N's wave17) on a second card; HSMM model = timing only
 PAUSE_S = 0.7                                     # change 14: s <= 0.7 now -> s - 1 <= -0.3 at the next read = a pause (lattice rule)
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
@@ -155,9 +156,20 @@ def main():
     proc = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
+    devs = os.environ.get("SST_DEVS", "").split(",") if CONTENT else []
+    if CONTENT:
+        assert GUARD and len(devs) == 2, "SST_CONTENT needs SST_GUARD=1 and SST_DEVS=a,b"
+        os.environ["CUDA_VISIBLE_DEVICES"] = devs[0]
     llm = LLM(model=a.thinker, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
               seed=a.seed, tensor_parallel_size=1,
               logits_processors=["experiments.sst_hsmm_v1.e2e_si_thinker:HSMMGate"])   # FQCN: safe under spawn too
+    llm_c = None
+    if CONTENT:                                          # change 16: second engine on the second card
+        os.environ["CUDA_VISIBLE_DEVICES"] = devs[1]
+        llm_c = LLM(model=CONTENT, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
+                    seed=a.seed, tensor_parallel_size=1)
+        from concurrent.futures import ThreadPoolExecutor
+        pool = ThreadPoolExecutor(2)
     t0, r = time.time(), 0
     while any(not it["done"] for it in items):
         live = [it for it in items if not it["done"]]
@@ -176,7 +188,17 @@ def main():
                                                               "cfrac": (r + 1) / C, "final": final,
                                                               "surv0": it["surv"] if RULE == "survival" else 1.0,
                                                               **(lam_args(it["lgL"]) if CTRL else {})}}))
-        if GUARD:                                        # change 14: unconstrained greedy draft (WAIT masked) per non-final read
+        if CONTENT:                                      # change 16: HSMM proposal (non-final) || content draft / final (all), in parallel
+            nf = [it for it in live if not it["final"]]
+            fh_ = pool.submit(llm.generate, [pr for it, pr in zip(live, prompts) if not it["final"]],
+                              [pa for it, pa in zip(live, params) if not it["final"]], use_tqdm=False) if nf else None
+            cparams = [SamplingParams(temperature=0.0, max_tokens=160 if it["final"] else 64, stop_token_ids=[THINKER_EOS]) for it in live]
+            fc_ = pool.submit(llm_c.generate, prompts, cparams, use_tqdm=False)
+            hmap = {id(it): x for it, x in zip(nf, fh_.result() if fh_ else [])}
+            cres = fc_.result()
+            dres = {id(it): x for it, x in zip(live, cres)}
+            res = [hmap.get(id(it)) or dres[id(it)] for it in live]
+        elif GUARD:                                      # change 14: unconstrained greedy draft (WAIT masked) per non-final read
             dl = [it for it in live if not it["final"]]
             dprompts = [pr for it, pr in zip(live, prompts) if not it["final"]]
             dparams = [SamplingParams(temperature=0.0, max_tokens=64, stop_token_ids=[THINKER_EOS],
@@ -190,7 +212,23 @@ def main():
             o = rr.outputs[0]
             toks = [x for x in o.token_ids if x not in (WAIT, THINKER_EOS)]
             text = o.text
-            if GUARD and not it["final"]:
+            if CONTENT and not it["final"]:                  # change 16: commit a prefix of the CONTENT draft
+                d = [x for x in dres[id(it)].outputs[0].token_ids if x not in (WAIT, THINKER_EOS)]
+                prev, p_ = it["draft"], toks
+                k = 0
+                while k < len(d) and k < len(prev) and d[k] == prev[k]:
+                    k += 1
+                over = it["st"] == 1 and it["s"] <= PAUSE_S and len(p_) > 0
+                kk = min(len(p_), len(d)) if over else min(k, len(p_))
+                it.setdefault("n_over", 0); it["n_over"] += int(over and kk > min(k, len(p_)))
+                k = kk
+                if k < len(d):
+                    while k > 0 and ("\ufffd" in tkz.decode(d[:k]) or (not zh_tgt and not tkz.decode([d[k]]).startswith((" ", ",", ".", "!", "?", ";", ":")))):
+                        k -= 1
+                toks = d[:k]
+                text = tkz.decode(toks) if k else ""
+                it["draft"] = d[k:]
+            elif GUARD and not it["final"]:
                 prev = it["draft"]
                 k = 0
                 while k < len(toks) and k < len(prev) and toks[k] == prev[k]:
