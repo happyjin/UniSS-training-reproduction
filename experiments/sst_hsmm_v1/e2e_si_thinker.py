@@ -45,6 +45,7 @@ CONTENT = os.environ.get("SST_CONTENT", "")      # change 16 (P8): content Think
 OVER = os.environ.get("SST_OVER", "full")              # change 17: "agree" = override commits only LCP(content draft, HSMM proposal)
 PAUSE_S = 0.7                                     # change 14: s <= 0.7 now -> s - 1 <= -0.3 at the next read = a pause (lattice rule)
 HEAD = os.environ.get("SST_HEAD", "")              # change 18 (P10): write head on the frozen translator's distribution (headfeat)
+HEAD2 = os.environ.get("SST_HEAD2", "")            # change 19 (P11): WriteHead2 (+ agreement with the previous read's draft, + z_L, z_P)
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
 
@@ -64,9 +65,9 @@ def _head(dev):
     """change 18: WriteHead (SST_HEAD) + punctuation ids on the logits' device, cached per device"""
     key = ("head", str(dev))
     if key not in _G:
-        from experiments.sst_hsmm_v1.headfeat import WriteHead
-        h = WriteHead()
-        h.load_state_dict(torch.load(HEAD, map_location="cpu"))
+        from experiments.sst_hsmm_v1.headfeat import WriteHead, WriteHead2
+        h = WriteHead2() if HEAD2 else WriteHead()
+        h.load_state_dict(torch.load(HEAD2 or HEAD, map_location="cpu"))
         h.to(dev).eval()
         _G[key] = (h, torch.tensor(sorted(_gate()["punct"]), device=dev))
     return _G[key]
@@ -112,17 +113,23 @@ def p_wait_gated(lp_wait_raw, g):
     return math.exp(a - m) / (math.exp(a - m) + math.exp(b - m))
 
 
-def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0, zL=0.0, zP=0.0):
+def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0, zL=0.0, zP=0.0, prev=(), prevlp=(), has_prev=False):
     def proc(output_ids, logits):
         if final:
             logits[WAIT] = -math.inf
             return logits
         s, f, st = advance(s0, f0, started, output_ids)
-        if HEAD:                                             # change 18: P(write) = sigmoid(head(features) + gate)
+        if HEAD or HEAD2:                                    # change 18: P(write) = sigmoid(head(features) + gate)
             h, pidx = _head(logits.device)
             with torch.no_grad():
-                from experiments.sst_hsmm_v1.headfeat import head_feats
-                z = float(h(head_feats(torch.log_softmax(logits.float(), dim=-1), pidx))) + gate_value(s, f, st, cfrac, zL, zP)
+                from experiments.sst_hsmm_v1.headfeat import head_feats, prev_feats_online
+                x = head_feats(torch.log_softmax(logits.float(), dim=-1), pidx)
+                if HEAD2:                                    # change 19: + previous-draft agreement (3) + (z_L, z_P)
+                    lg = logits.float().clone()
+                    lg[WAIT] = -math.inf
+                    pf = prev_feats_online(int(lg.argmax()), len(output_ids), output_ids, prev, prevlp, has_prev)
+                    x = torch.cat([x, torch.tensor(pf + [zL, zP], dtype=x.dtype, device=x.device)])
+                z = float(h(x)) + gate_value(s, f, st, cfrac, zL, zP)
             if 1.0 / (1.0 + math.exp(-max(min(z, 50.0), -50.0))) > TAU:
                 logits[WAIT] = -math.inf
             else:
@@ -177,7 +184,7 @@ def main():
         x = x.mean(axis=1)[: int(r["dur_ms"]) * 16]
         items.append({"id": r["id"], "audio": x, "dur_ms": len(x) // 16, "committed": "", "blocks": [], "done": False,
                       "s": 0.0, "f": 0, "st": 0, "surv": 1.0, "reads": [],
-                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0, "seg": [], "pend": 0.0, "draft": []})
+                      "lgL": math.log(CTRL["lam0"]) if CTRL else 0.0, "W": 0, "seg": [], "pend": 0.0, "draft": [], "draft_lp": []})
     proc = Qwen3OmniMoeProcessor.from_pretrained(QWEN3)
     conv = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": inference_instruction()[tgt]}]}]
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
@@ -188,7 +195,8 @@ def main():
     kv = {"kv_cache_memory_bytes": int(float(os.environ["SST_KV_GIB"]) * 2 ** 30)} if os.environ.get("SST_KV_GIB") else {}   # fixed KV: no profiling race
     llm = LLM(model=a.thinker, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
               seed=a.seed, tensor_parallel_size=1, **kv,
-              logits_processors=["experiments.sst_hsmm_v1.e2e_si_thinker:HSMMGate"])   # FQCN: safe under spawn too
+              logits_processors=["experiments.sst_hsmm_v1.e2e_si_thinker:HSMMGate"],
+              **({"logprobs_mode": "processed_logprobs"} if HEAD2 else {}))   # change 19: draft log-probs after the WAIT mask   # FQCN: safe under spawn too
     llm_c = None
     if CONTENT:                                          # change 16: second engine on the second card
         os.environ["CUDA_VISIBLE_DEVICES"] = devs[1]
@@ -213,7 +221,9 @@ def main():
                                          extra_args={"hsmm": {"s0": it["s"], "f0": it["f"], "started": it["st"],
                                                               "cfrac": (r + 1) / C, "final": final,
                                                               "surv0": it["surv"] if RULE == "survival" else 1.0,
-                                                              **(lam_args(it["lgL"]) if CTRL else {})}}))
+                                                              **(lam_args(it["lgL"]) if CTRL else {}),
+                                                              **({"prev": list(it["draft"]), "prevlp": list(it["draft_lp"]), "has_prev": r > 0}
+                                                                 if HEAD2 and not final else {})}}))
         if CONTENT:                                      # change 16: HSMM proposal (non-final) || content draft / final (all), in parallel
             nf = [it for it in live if not it["final"]]
             fh_ = pool.submit(llm.generate, [pr for it, pr in zip(live, prompts) if not it["final"]],
@@ -227,7 +237,7 @@ def main():
         elif GUARD:                                      # change 14: unconstrained greedy draft (WAIT masked) per non-final read
             dl = [it for it in live if not it["final"]]
             dprompts = [pr for it, pr in zip(live, prompts) if not it["final"]]
-            dparams = [SamplingParams(temperature=0.0, max_tokens=64, stop_token_ids=[THINKER_EOS],
+            dparams = [SamplingParams(temperature=0.0, max_tokens=64, stop_token_ids=[THINKER_EOS], logprobs=0 if HEAD2 else None,
                                       extra_args={"hsmm": {"s0": 0.0, "f0": 0, "started": 0, "cfrac": 0.0, "final": True}}) for _ in dl]
             res_all = llm.generate(prompts + dprompts, params + dparams, use_tqdm=False)
             res, dres = res_all[: len(prompts)], {id(it): x for it, x in zip(dl, res_all[len(prompts):])}
@@ -272,8 +282,13 @@ def main():
                     toks = toks[:k]
                     text = tkz.decode(toks) if k else ""
                 it.setdefault("n_over", 0); it["n_over"] += int(over and k < len(toks))
-                d = [x for x in dres[id(it)].outputs[0].token_ids if x not in (WAIT, THINKER_EOS)]
-                it["draft"] = d[len(toks):] if d[: len(toks)] == toks else []
+                do = dres[id(it)].outputs[0]
+                pairs = [(x, do.logprobs[q][x].logprob if (HEAD2 and do.logprobs) else 0.0)
+                         for q, x in enumerate(do.token_ids) if x not in (WAIT, THINKER_EOS)]
+                d = [x for x, _ in pairs]
+                ok_ = d[: len(toks)] == toks
+                it["draft"] = d[len(toks):] if ok_ else []
+                it["draft_lp"] = [v for _, v in pairs[len(toks):]] if ok_ else []   # change 19
             it["s"], it["f"], it["st"] = advance(it["s"], it["f"], it["st"], toks)
             if RULE == "survival" and not it["final"]:
                 ids = list(o.token_ids)
