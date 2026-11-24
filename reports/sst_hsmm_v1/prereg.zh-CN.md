@@ -545,3 +545,15 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   3. 选点：门槛通过者中 ASR 最高的；都不通过时，取 dd ≤ +0.3 的点中 ASR 最高的；仍没有则取 dd 最小的。
   4. 选中的控制器写入 control_chosen.json，测试 p3o 只跑一次，只报告。
 - **门槛：** 与之前相同的帕累托门槛（ASR ≥ −0.5，D2 ≤ +0.05，NP_in ≤ −25%）。单一模型设置，不调其他超参。
+
+## 变更 20（2026-11-24 19:05 CET，N 的翻译模型在测试集上的离线上限；只报告，写于任何数字之前）
+
+- **更正：** N（test_robust/UE）= wave17 + combo_si_thinker（LA2，加上增强音频视角的一致性约束）。之前报告里"N = wave17 自带等待策略"的说法有误，应以此为准。
+- **做法（offline_ceiling.py，ceil_orch.sh）：**
+  - wave17 merged_enc_wise05 读入完整测试音频，不做同传；
+  - 提示词与 e2e_si_thinker 相同，贪心解码，最多 256 个 token；
+  - 按 p3_score 的格子、EXCL、DROP 计算文本 BLEU，并与 N 的流式译文比较（combo_score.text_compare）。
+- **用途：** 估计"只改变提交过程（LA2 的时机）"最多还能提升多少 BLEU。
+  - 离线与 N 的差距小：BLEU 只能持平，收益主要在 LAAL；
+  - 差距大：可求导 LA（变更 21）在 BLEU 上有空间。
+- 不用于任何选择或调参。
