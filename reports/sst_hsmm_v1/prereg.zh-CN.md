@@ -487,3 +487,4 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - 末读：由内容模型写完（160 token）。HSMM 状态、语音滞后控制器都按实际写出的 token 更新。
 - 并行：8 个分片分两轮，每轮 4 个任务 × 2 张卡，`--gpu-mem 0.5`，可与 P7′ 后续阶段叠加。
 - 流程：dev p2k → 测试 p3k（不论判定都跑）。
+- **变更 16 补注（08:30 CET）：** p2k 的 en2zh 分片 2、3 启动时与 P7′ 后续阶段同卡，vLLM 显存测算出错（No available memory for the cache blocks），p2k / p3k 失败。重跑为 p2l / p3l，只改一处：固定 KV 缓存 7 GiB（SST_KV_GIB），跳过测算。方法设置不变。

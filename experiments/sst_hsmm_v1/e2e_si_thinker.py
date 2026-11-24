@@ -160,14 +160,15 @@ def main():
     if CONTENT:
         assert GUARD and len(devs) == 2, "SST_CONTENT needs SST_GUARD=1 and SST_DEVS=a,b"
         os.environ["CUDA_VISIBLE_DEVICES"] = devs[0]
+    kv = {"kv_cache_memory_bytes": int(float(os.environ["SST_KV_GIB"]) * 2 ** 30)} if os.environ.get("SST_KV_GIB") else {}   # fixed KV: no profiling race
     llm = LLM(model=a.thinker, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
-              seed=a.seed, tensor_parallel_size=1,
+              seed=a.seed, tensor_parallel_size=1, **kv,
               logits_processors=["experiments.sst_hsmm_v1.e2e_si_thinker:HSMMGate"])   # FQCN: safe under spawn too
     llm_c = None
     if CONTENT:                                          # change 16: second engine on the second card
         os.environ["CUDA_VISIBLE_DEVICES"] = devs[1]
         llm_c = LLM(model=CONTENT, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
-                    seed=a.seed, tensor_parallel_size=1)
+                    seed=a.seed, tensor_parallel_size=1, **kv)
         from concurrent.futures import ThreadPoolExecutor
         pool = ThreadPoolExecutor(2)
     t0, r = time.time(), 0
