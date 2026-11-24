@@ -44,6 +44,7 @@ GUARD = os.environ.get("SST_GUARD", "") == "1"   # change 14 (P7): HSMM proposes
 CONTENT = os.environ.get("SST_CONTENT", "")      # change 16 (P8): content Thinker (N's wave17) on a second card; HSMM model = timing only
 OVER = os.environ.get("SST_OVER", "full")              # change 17: "agree" = override commits only LCP(content draft, HSMM proposal)
 PAUSE_S = 0.7                                     # change 14: s <= 0.7 now -> s - 1 <= -0.3 at the next read = a pause (lattice rule)
+HEAD = os.environ.get("SST_HEAD", "")              # change 18 (P10): write head on the frozen translator's distribution (headfeat)
 TAU = float(os.environ.get("SST_TAU", "0.5"))     # write iff (survival-weighted) P(write) > TAU; 0.5 = prereg rule (post-hoc curve A only)
 
 
@@ -57,6 +58,18 @@ def _gate():
         _G["punct"] = {i for i in range(len(tok)) if PUNCT.match(tok.decode([i]) or "x")}
         _G["tok_s"] = float(os.environ["SST_TOKMS"]) / 1000.0
     return _G
+
+
+def _head(dev):
+    """change 18: WriteHead (SST_HEAD) + punctuation ids on the logits' device, cached per device"""
+    key = ("head", str(dev))
+    if key not in _G:
+        from experiments.sst_hsmm_v1.headfeat import WriteHead
+        h = WriteHead()
+        h.load_state_dict(torch.load(HEAD, map_location="cpu"))
+        h.to(dev).eval()
+        _G[key] = (h, torch.tensor(sorted(_gate()["punct"]), device=dev))
+    return _G[key]
 
 
 def gate_value(s, f, st, cf, zL=0.0, zP=0.0):
@@ -105,6 +118,17 @@ def make_hsmm(s0, f0, started, cfrac, final, surv0=1.0, zL=0.0, zP=0.0):
             logits[WAIT] = -math.inf
             return logits
         s, f, st = advance(s0, f0, started, output_ids)
+        if HEAD:                                             # change 18: P(write) = sigmoid(head(features) + gate)
+            h, pidx = _head(logits.device)
+            with torch.no_grad():
+                from experiments.sst_hsmm_v1.headfeat import head_feats
+                z = float(h(head_feats(torch.log_softmax(logits.float(), dim=-1), pidx))) + gate_value(s, f, st, cfrac, zL, zP)
+            if 1.0 / (1.0 + math.exp(-max(min(z, 50.0), -50.0))) > TAU:
+                logits[WAIT] = -math.inf
+            else:
+                logits[:] = -math.inf
+                logits[WAIT] = 0.0
+            return logits
         logits[WAIT] = logits[WAIT] - gate_value(s, f, st, cfrac, zL, zP)
         pw = torch.softmax(logits.float(), dim=-1)[WAIT]
         surv = surv0 if len(output_ids) == 0 else 1.0        # survival of the pending token (1 after a write)
