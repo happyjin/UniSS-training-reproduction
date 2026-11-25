@@ -10,7 +10,7 @@ import sacrebleu
 REPO = Path(__file__).resolve().parents[2]
 S = REPO / "eval_outputs/sst_hsmm_v1"
 DATA = REPO / "eval_outputs/mist_w3po_v1/wave2_S1/data"
-FAM = {"n1": ("h8n1", "h7"), "n2": ("h8n2", "h7")}
+FAM = {"n1": ("h8n1", "h9"), "n2": ("h8n2", "h9")}
 THETAS = ("0.80", "0.90", "0.95", "0.98")
 
 

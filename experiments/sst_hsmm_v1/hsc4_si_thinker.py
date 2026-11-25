@@ -1,4 +1,4 @@
-"""sst_hsmm_v1 prereg change 31: HSC4 = end-to-end differentiable input-driven HSMM (hsmm_neural, h7 params). A copy of
+"""sst_hsmm_v1 prereg change 31: HSC4 = ONE end-to-end differentiable input-driven HSMM for both directions (hsmm_joint, h9 params). A copy of
 hsc3_si_thinker.py (not modified); --variant:
   n1  commit = max(min(agreed, LCP(d0, d1)), n + kH)      (N base kept)
   n2  commit = n + kH                                      (pure posterior: agreement / cross-view only as evidence)
@@ -217,7 +217,7 @@ def main() -> None:
     from experiments.sst_hsmm_v1 import hsmm_commit2 as HC
     if args.mode == "hsc":
         assert args.params and args.theta is not None, "--mode hsc needs --params and --theta"
-        from experiments.sst_hsmm_v1 import hsmm_neural as HN
+        from experiments.sst_hsmm_v1 import hsmm_joint as HN
         HP = HN.NParams(json.load(open(args.params))["dirs"][args.direction]["params"])
     UNIT_S = 0.25 if zh else 0.35
 
@@ -316,7 +316,7 @@ def main() -> None:
                         r_t, vad_t = HN.rel_vad(it["audio"][(t_ - 1000) * 16: t_ * 16], it["v1"][t_][-16000:])
                         for i_, o_ in obs.items():
                             hh = it["H"].setdefault(i_, ([], []))
-                            hh[1].append(HN.inputs_vec(r_t, vad_t, len(hh[0]), t_)); hh[0].append(o_)
+                            hh[1].append(HN.inputs_vec(r_t, vad_t, len(hh[0]), t_, zh)); hh[0].append(o_)
                         P_ = [HN.posterior_stable(it["H"][i_][0], it["H"][i_][1], HP) for i_ in range(n, len(draft))]
                         th_ = args.theta
                         if it["qend"] <= t_ / 1000.0 + 0.3:
