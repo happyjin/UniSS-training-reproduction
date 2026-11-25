@@ -1,6 +1,7 @@
 """prereg change 28 (HSC theta): ONE theta for both directions = the one whose dev char-weighted mean write time is closest
 (mean over the two directions of |HSC - SVC-JM|) to SVC-JM on dev (dv2/svcjm_*), on all common dev items (iso-latency with
 SVC-JM). Text BLEU per theta is reported (information only, not used). Writes h2/theta.json; refuses to overwrite."""
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ from pathlib import Path
 import sacrebleu
 
 REPO = Path(__file__).resolve().parents[2]
-E = REPO / "eval_outputs/sst_hsmm_v1/h2"
+E = REPO / "eval_outputs/sst_hsmm_v1/h2"   # --root h4 for HSC2 (change 29)
 JM = REPO / "eval_outputs/sst_hsmm_v1/dv2"
 NN = REPO / "eval_outputs/sst_hsmm_v1/dv"
 DATA = REPO / "eval_outputs/mist_w3po_v1/wave2_S1/data"
@@ -29,6 +30,9 @@ def wt(X, ks):
 
 
 def main():
+    global E
+    ap = argparse.ArgumentParser(); ap.add_argument("--root", default="h2"); a = ap.parse_args()
+    E = REPO / "eval_outputs/sst_hsmm_v1" / a.root
     out = E / "theta.json"
     if out.exists():
         sys.exit(f"拒绝覆盖: {out}")
