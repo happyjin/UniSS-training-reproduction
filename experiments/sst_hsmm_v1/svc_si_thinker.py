@@ -147,7 +147,8 @@ def main() -> None:
     assert sv == "enh" and not args.assign, "SVC: --second-view enh, no NCWI"
     from vllm.lora.request import LoRARequest
     vreq = LoRARequest("sap_verifier", 1, str(Path(args.verifier).resolve()))
-    lora_kw = dict(enable_lora=True, max_loras=1, max_lora_rank=16, lora_target_modules=["qkv_proj", "o_proj"])
+    lora_kw = dict(enable_lora=True, max_loras=1, max_lora_rank=16, lora_target_modules=["qkv_proj", "o_proj"],
+                   hf_overrides={"architectures": ["Qwen3OmniMoeThinkerForConditionalGeneration"]})   # = k1_si_thinker
     if args.assign:
         for r in map(json.loads, open(args.assign, encoding="utf-8")):
             al = round(float(args.const_alpha if args.const_alpha is not None else r["alpha"]), 4)
