@@ -1,6 +1,6 @@
 """sst_hsmm_v1 prereg change 38: a copy of hsc9_si_thinker.py (not modified) that, with --samples K > 0, adds per non-final read one wave17
 request (raw view, same prompt and committed prefix, no LoRA) with n = K sampled continuations (--samp-temp, top_p 0.95, --samp-max
-tokens, seed from item id / read) and stores rec["cons"]: for every uncommitted draft position i, the share of samples whose units agree
+tokens, seed from item id / read) and stores rec["cons"] (used as an HSMM observation when --params holds hsmm_cons params, change 38-2): for every uncommitted draft position i, the share of samples whose units agree
 with the draft through i (lcp > i), counted over the samples that reach i (an EOS-ended sample always counts; a truncated sample's last
 unit does not), -1 if none reaches i. The commit decision itself is unchanged (posterior from --params).
 Was: sst_hsmm_v1 prereg change 36: a copy of hsc8_si_thinker.py (not modified) that also stores lp0 / lps (from n) on every non-final read in
@@ -242,6 +242,10 @@ def main() -> None:
         else:
             from experiments.sst_hsmm_v1 import hsmm_joint as HN
             HP = HN.NParams(prm_)
+            if "cb_U" in prm_["E"]:      # change 38-2: HSC6 + K-sample consistency emission (hsmm_cons)
+                from experiments.sst_hsmm_v1 import hsmm_cons as HCO
+                HP = HCO.CParams(prm_)
+                assert args.samples > 0, "consistency params need --samples > 0"
         print("posterior module:", HN.__name__, flush=True)
     UNIT_S = 0.25 if zh else 0.35
 
@@ -366,6 +370,8 @@ def main() -> None:
                         t_ = it["t"]
                         r_t, vad_t = HN.rel_vad(it["audio"][(t_ - 1000) * 16: t_ * 16], it["v1"][t_][-16000:])
                         for i_, o_ in obs.items():
+                            if type(HP).__name__ == "CParams":
+                                o_ = o_ + (HCO.cbin(cons_[i_ - n]) if 0 <= i_ - n < len(cons_) else HCO.CB_NA,)
                             hh = it["H"].setdefault(i_, ([], []))
                             hh[1].append(HN.inputs_vec(r_t, vad_t, len(hh[0]), t_, zh)); hh[0].append(o_)
                         P_ = [HN.posterior_stable(it["H"][i_][0], it["H"][i_][1], HP) for i_ in range(n, len(draft))]
