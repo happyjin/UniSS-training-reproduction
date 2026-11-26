@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# prereg change 42-2: P0-ES rerun with VLLM_BATCH_INVARIANT=1 = es_orch.sh (change 41) with every hsc13 job under BI=1 and outputs es2 / es2b.
+# prereg change 42-2: P0-ES rerun with VLLM_BATCH_INVARIANT=1 (+ --enforce-eager, change 42-1b) = es_orch.sh (change 41) with every hsc13 job under BI=1 and outputs es2 / es2b.
 # Was: prereg change 41 (P0-ES): parameter-space exploration precheck of the drafter LoRA.
 #  1. es_make members (8 antithetic pairs, sigma $SIG) -> $E/members
 #  2. phase 1: 8 hsc13 jobs (2 directions x 4 groups; group g = base + p{2g}_pos/neg + p{2g+1}_pos/neg) on cards 0-7, p3h8 policy,
@@ -29,7 +29,7 @@ fi
 job() {   # card name out drafters names direction
   launch $1 $2 "${VENV[@]}" VLLM_BATCH_INVARIANT=1 CUDA_VISIBLE_DEVICES=$1 $PYV -m experiments.sst_hsmm_v1.hsc13_si_thinker --mode hsc --variant n2 --samples 0 \
     --params $PRM --theta 0.75 --verifier $VER --second-view enh --views $D0/e1/views/$6 --thinker $NTH --direction $6 --gpu-mem 0.6 \
-    --drafters "$4" --names "$5" --items-file $DATA/items_$6.jsonl --out $3
+    --drafters "$4" --names "$5" --items-file $DATA/items_$6.jsonl --out $3 --enforce-eager
 }
 phase1() {   # E sigma
   local E=$1 SIG=$2 ps_=() ci=0 g d dr nm

@@ -1006,6 +1006,7 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   任一方向报错（不支持本模型 / LoRA / MoE）或不满足 → 批次不变模式不可用，记录，不重跑 P0-ES。
 - 42-2（42-1 通过才运行）：es2 = es_orch.sh 的拷贝，所有 hsc13 作业加 VLLM_BATCH_INVARIANT=1，其余（σ 0.01、种子、成员、A / B 划分、
   适应度 F、G0-ES / P0-ES 判据、σ 0.03 一次重跑规则）与 change 41 完全相同。另报告：各作业的 base 是否一致、成员效应 A / B 相关。
+  （若按 42-1b 以 eager 模式通过，42-2 的所有作业同样加 --enforce-eager。）
 - 42-1 结果（15:40 CET）：BI 开的 4 个作业在引擎初始化时报错（torch.compile + CUDA graph 下“forward 中修改 buffer 不允许，请用 eager 模式”）；
   BI 关的对照 C 正常（65 / 64 s）。即：批次不变模式与编译 / CUDA graph 不兼容，并非模型不支持。
 - **42-1b（补登记，任何 BI 数字之前）**：只做一次修正重测——A、B 加 enforce_eager（hsc13 --enforce-eager），C 不变（正常编译模式，速度对照）；
