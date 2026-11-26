@@ -94,6 +94,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--data", default="", help="dir with items_<d>.jsonl carrying the reference (default <root>/data)")
     a = ap.parse_args()
     if Path(a.out).exists():
         raise SystemExit(f"refuse to overwrite {a.out}")
@@ -105,7 +106,7 @@ def main() -> None:
         tk = "zh" if zh else "13a"
         sb = lambda h, r: sacrebleu.sentence_bleu(h, [r], tokenize=tk).score  # noqa: E731
         sc = lambda h, r: sacrebleu.sentence_chrf(h, [r]).score  # noqa: E731
-        items = {r["id"]: r for r in map(json.loads, open(Path(a.root) / "data" / f"items_{d}.jsonl", encoding="utf-8"))}
+        items = {r["id"]: r for r in map(json.loads, open(Path(a.data or Path(a.root) / "data") / f"items_{d}.jsonl", encoding="utf-8"))}
         base, forks = {}, defaultdict(list)
         for f in sorted(glob.glob(str(Path(a.root) / f"run_{d}_*" / f"blocks_{d}_w1.jsonl"))):
             for r in map(json.loads, open(f, encoding="utf-8")):
