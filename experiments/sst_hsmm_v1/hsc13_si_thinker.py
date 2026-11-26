@@ -177,6 +177,7 @@ def main() -> None:
     ap.add_argument("--drafter", default="", help="unused in hsc13 (see --drafters)")
     ap.add_argument("--drafters", required=True, help="comma list of PEFT dirs; 'none' = no LoRA")
     ap.add_argument("--names", required=True, help="comma list of member names (same length)")
+    ap.add_argument("--enforce-eager", action="store_true", help="change 42-1b: no torch.compile / CUDA graphs (VLLM_BATCH_INVARIANT needs it)")
     ap.add_argument("--fork-reads", type=int, default=0)
     ap.add_argument("--fork-k", type=int, default=4)
     ap.add_argument("--fork-temp", type=float, default=1.0)
@@ -257,7 +258,7 @@ def main() -> None:
                                          {"type": "text", "text": instruction}]}]
     head = processor.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     llm = LLM(model=args.thinker, gpu_memory_utilization=args.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
-              seed=args.seed, tensor_parallel_size=1, **lora_kw)
+              seed=args.seed, tensor_parallel_size=1, enforce_eager=args.enforce_eager, **lora_kw)
     params = SamplingParams(temperature=0.0, max_tokens=160, stop_token_ids=[THINKER_EOS], logprobs=1)
     tok = processor.tokenizer
     LHALF = math.log(0.5)
