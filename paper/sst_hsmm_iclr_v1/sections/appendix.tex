@@ -125,7 +125,7 @@ This is a simplification of Weitzman's reservation-value rule~\citep{weitzman197
 The single scalar $\kappa$ prices the delay of each blocked position.
 On the development set it reduces \zhen{} proxy latency by 0.061\,s at $-0.18$ BLEU.
 In \enzh{} it is no better than lowering $\theta$.
-A same-engine comparison against a plain lower threshold in \zhen{} is still running and will be added.
+In \zhen{}, a plain lower threshold reaches the same development BLEU only 0.02\,s later (from separate runs), so in both directions the rule acts as a lower threshold.
 
 \section{Full Results}
 \label{app:full}
@@ -206,4 +206,8 @@ The following designs were registered, run, and did not improve the system:
   \item \textbf{Training the drafter to stop at the support boundary}, i.e.\ using the verifier as translator, is 0.6--0.8\,s slower (\cref{tab:main}).
   \item \textbf{Token-level reinforcement learning} with counterfactual branching, and \textbf{evolution strategies}, were tried for the drafter. Pre-checks showed that the pipeline is chaotic under floating-point perturbation: null branches differ in 1.6--2.5\% of units, which swamps the learning signal.
   \item \textbf{Character-exact evidence}: marginalising the drafter's first-token probability over tokens compatible with a healed prefix changed neither BLEU nor latency.
+  \item \textbf{A source-future adapter on the drafter}: a LoRA trained to translate full utterances and, at a random read, to transcribe the heard audio and continue with the next second of source speech; the HSMM was refitted on its rollouts.
+  At a fixed threshold it commits 0.31\,s earlier on development data and 0.34\,s earlier on test data, so source anticipation does let content settle sooner.
+  Its development BLEU rose by 0.9--3.7 points, but \enzh{} test ASR-BLEU fell by 2.5 points at the same threshold, and the loss is concentrated on the broadcast streams (text BLEU $-1.9$ to $-2.3$) rather than on real interpreting ($-0.4$ to $+0.5$).
+  The translation term was supervised by training references in the development set's style, which most likely pulled the drafter's wording away from the test references.
 \end{itemize}
