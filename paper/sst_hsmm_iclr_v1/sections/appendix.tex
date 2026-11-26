@@ -1,0 +1,209 @@
+\section{Training Implementation Details and Hyperparameters}
+\label{app:hparams}
+
+\paragraph{Drafter and decoding.}
+The drafter is the thinker of Qwen3-Omni-30B-A3B fine-tuned for zh$\leftrightarrow$en S2ST~\citep{uniss2025}.
+A noise-robust low-rank adapter on its audio encoder, trained on noisy UniST audio, is merged with interpolation weight 0.5~\citep{wortsman2022robust}.
+The drafter is frozen in all experiments of this paper.
+Drafts are decoded greedily with vLLM; the raw-view prompt and the enhanced-view prompt are batched at the same read.
+Units are Chinese characters for Chinese output and whitespace-delimited words for English output.
+Reads are $\Delta = 1$\,s apart; the last read covers the remainder of the utterance.
+
+\paragraph{Support verifier.}
+Low-rank adapter with rank 16 and scaling 32 on the query, key, value and output projections of all 48 text layers; audio encoder frozen.
+AdamW, learning rate $10^{-4}$, 50 warm-up steps, cosine decay, 1{,}000 steps of 16 sentences on 8 GPUs (about 56 minutes on H200), seed 20261125.
+All reads of a sentence are teacher-forced in one batch.
+The waiting token of the backbone is masked out.
+At inference, the adapter is served as a LoRA request on the same engine as the drafter.
+Confidence bins for $s_{i,t}$ and $c_{i,t}$ use the smallest token probability in the unit, with thresholds 0.9 and 0.5.
+
+\paragraph{HSMM.}
+$\phi_0$ and $\phi$ are multilayer perceptrons $5 \rightarrow 16 \rightarrow 1$ with $\tanh$ activations.
+Inputs are $[r_t, e_t, (t - t^0_i)/10, t/10, \ell]$.
+$r_t$ is the mean over 20\,ms frames of the new second of the energy ratio between enhanced and raw audio, clipped to $[0,1]$; near-silent frames count as 1, so $r_t$ is low when the enhancer removes much energy.
+$e_t$ is the share of raw frames above $-40$\,dBFS.
+Emission features are $[1, r_t, r_t^2, \ell]$, and $[1, \ell]$ for drafter confidence.
+Further constants: $D_{\max} = 16$ reads, $\epsilon = 10^{-3}$, $\beta = 1$.
+Emissions are initialised uniformly.
+Training uses Adam with learning rate $10^{-2}$, mini-batches of 4{,}096 position sequences, 60 epochs and seed 20261125.
+Rollouts come from LA-2+CV on 3{,}000 noisy UniST sentences per direction, merged across directions into one training set.
+The training-time filtering posterior agrees with the online implementation to $4 \times 10^{-7}$.
+Fitting runs on CPU in minutes.
+
+\paragraph{Operating points.}
+$\theta$ is selected on the development set with a fixed rule.
+Among configurations whose BLEU is within 0.30 of a reference configuration, we take the one with the lowest proxy speech delay.
+The quality point uses $\theta = 0.75$ in both directions.
+The latency point uses $\theta = 0.60$ for \enzh{} and $\theta = 0.75$ with the blocking-aware rule ($\kappa = 0.10$, \cref{app:blocking}) for \zhen{}.
+
+\paragraph{Boundary healing.}
+Token boundaries are the character offsets at which the drafter's tokenizer splits the current draft.
+The rolled-back span is enforced through vLLM structured decoding (a pattern that must start with the span) and is removed from the output.
+
+\paragraph{Talker rate.}
+The talker accepts a discrete speaking-rate token.
+\ours{} rows raise it by one step globally and by three steps for the block written after the source has ended.
+All other systems use the default rate policy.
+
+\section{Data and Benchmarks}
+\label{app:data}
+
+\paragraph{Training data.}
+UniST zh$\leftrightarrow$en rows~\citep{uniss2025} whose source and target speech pass automatic transcription checks, with source durations of 3--15\,s.
+Rows whose source or target text overlaps any evaluation or test source are removed.
+We take 20{,}000 rows per direction for the verifier and a disjoint held-out pool for development.
+Each training sample stays clean with probability 0.5; otherwise one background type (music, crowd or sound effects) is mixed in.
+The background-to-voice ratio is sampled from quantiles of an open development benchmark, never from test data.
+
+\paragraph{Support times.}
+Source and target words are time-aligned with a forced aligner, and target words are linked to source words by a word aligner.
+The support time of a target word is the earliest prefix after which the backbone's log-probability of the word stays within $\log 2$ of its final value.
+It is never earlier than the moment its high-confidence source links have been heard.
+A reference token is supported at read $\rho_j = \lceil \text{support time} / \Delta \rceil$, made monotone by a running maximum.
+
+\paragraph{Development set.}
+646 \enzh{} and 1{,}000 \zhen{} held-out spontaneous UniST sentences, each in a clean and a noisy version: 1{,}292 and 2{,}000 items.
+
+\paragraph{Test sets.}
+RealSI~\citep{cheng2024realsi}: 346 \enzh{} and 431 \zhen{} sentences, clean and mixed with held-out backgrounds.
+One \enzh{} clean sentence on which the drafter degenerates into repetition is removed for all systems.
+OpenBroadcast-SI (OBSI): CoVoST~2 test speech~\citep{wang2020covost2}, concatenated into streams of 2--4 speakers and scored on 585 (\enzh{}) and 678 (\zhen{}) windows per condition.
+The \emph{id-noise} condition mixes held-out clips of MUSAN-style music and noise and FSD50K events, background types seen in training.
+The \emph{ood-noise} condition uses instrumental FMA-small music, DEMAND crowded environments and ESC-50 sound effects, corpora never used in training.
+All three OBSI conditions share the same speech.
+
+\section{Proof of Proposition~\ref{prop:threshold}}
+\label{app:proof}
+
+Let $\pi \in [0,1]$ be the posterior probability that $Y = 1$.
+Because the evidence is conditionally i.i.d.\ given $Y$ and revision of a non-surviving unit occurs at a constant rate, $\pi$ is a sufficient statistic.
+Its one-step transition does not depend on time.
+Committing costs $C(\pi) = \kappa(1 - \pi)$.
+Waiting costs $\lambda$, followed by either a revision, which ends the problem at no further cost, or a new posterior $\pi'$.
+
+Fix any policy $\sigma$, that is, a map from observation histories to actions.
+Conditioned on $Y$, its expected total cost $J_\sigma(Y)$ does not depend on the prior.
+Hence its expected cost under prior $\pi$, $J_\sigma(\pi) = \pi J_\sigma(1) + (1-\pi) J_\sigma(0)$, is affine in $\pi$.
+The optimal value $V(\pi) = \inf_\sigma J_\sigma(\pi)$ is an infimum of affine functions and therefore concave.
+The same argument applies to the continuation value $W(\pi)$, the infimum over policies that wait at the first step.
+By the Bellman equation $V(\pi) = \min\{C(\pi), W(\pi)\}$, it is optimal to commit exactly on the set $\mathcal{S} = \{\pi : C(\pi) \le W(\pi)\}$.
+The function $W - C$ is concave, being concave minus affine.
+Moreover $W(1) \ge \lambda > 0 = C(1)$.
+The super-level set $\{\pi : W(\pi) - C(\pi) \ge 0\}$ of a concave function is an interval, and this one contains $1$, so $\mathcal{S} = [\theta^\star, 1]$ for some $\theta^\star$.
+Since $W$ does not depend on time under stationarity and an unbounded horizon, $\theta^\star$ is constant.
+The optimal policy commits at the first read with $\pi \ge \theta^\star$.
+This is the one-sided version of the classical Bayes solution to sequential testing~\citep{wald1948optimum,degroot1970optimal,shiryaev1978optimal}. \hfill$\square$
+
+When evidence quality changes over time, or the horizon is finite, $W$ depends on time and the optimal threshold may drift.
+The HSMM absorbs part of this non-stationarity through the age and time inputs of its hazard and the reliability inputs of its emissions.
+Coupling between units, for example through the shared playback queue or blocked positions, also violates the assumptions.
+\Cref{app:blocking} and \cref{tab:anatomy} test such couplings.
+
+\section{Voice and Talker Pipeline}
+\label{app:voice}
+
+All systems except B condition the talker on a voice prompt chosen at the first write.
+A speaker-embedding posterior is computed by a closed-form isotropic Kalman update~\citep{kalman1960new} over per-second TitaNet embeddings~\citep{koluguri2022titanet}.
+Each segment embedding is projected by a learned linear residual map and weighted by a learned, reliability-dependent precision.
+This filter was trained end to end in earlier work of ours on open LibriSpeech and AISHELL-1 mixtures.
+Its posterior mean at the first write is the target of an analysis-by-synthesis search over the talker's global voice tokens~\citep{wang2025spark}.
+The search scores re-synthesised candidates by cosine similarity to the target.
+The same model also contains a learned onset gate; we do not use it, because it learned never to wait.
+Compared with a target computed from the whole prompt, the Kalman target gives equal or slightly lower speaker similarity (by at most 0.01).
+The similarity and PESQ gains over B in \cref{app:full} come mainly from the search, which is identical for all non-B rows.
+B uses the source speech as the voice prompt.
+
+\section{Blocking-Aware Threshold}
+\label{app:blocking}
+
+Waiting on an uncertain position also delays every position behind it.
+Let $j$ be the first position after the threshold cut~\eqref{eq:rule}.
+Let $b_j$ be the number of consecutive positions after $j$ whose posterior clears $\theta$.
+The blocking-aware rule additionally commits $j$ together with these $b_j$ positions, and then continues, if
+$\pi_{j,t} \ge \max\{0.5,\ 1 - \kappa(1 + b_j)\}$.
+This is a simplification of Weitzman's reservation-value rule~\citep{weitzman1979optimal} for the case where the next read resolves a position with constant probability.
+The single scalar $\kappa$ prices the delay of each blocked position.
+On the development set it reduces \zhen{} proxy latency by 0.061\,s at $-0.18$ BLEU.
+In \enzh{} it is no better than lowering $\theta$.
+A same-engine comparison against a plain lower threshold in \zhen{} is still running and will be added.
+
+\section{Full Results}
+\label{app:full}
+
+\begin{table}[h]
+\centering
+\caption{All metrics on the test set, averaged over five conditions; differences to B (first row of each block: absolute B values).
+LAAL$_s$/LAAL$_t$: speech/text LAAL (s); EO: EndOffset (s); NP/PT: within-utterance pauses per utterance and their total duration (s); Sim: ECAPA2 speaker similarity; PESQ: SQUIM estimate.
+Sim and PESQ differences are medians of paired differences.}
+\label{tab:full}
+\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{lccccccccc}
+\toprule
+System & ASR-BLEU & BLEU & LAAL$_s$ & LAAL$_t$ & EO & NP & PT & Sim & PESQ \\
+\midrule
+\tabinput{generated/tab_full.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Absolute ASR-BLEU / speech LAAL (s) of B per condition.}
+\label{tab:babs}
+\small
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llccccc}
+\toprule
+& & \multicolumn{2}{c}{RealSI} & \multicolumn{3}{c}{OBSI} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-7}
+System & Dir. & clean & noisy & clean & id noise & ood noise \\
+\midrule
+\tabinput{generated/tab_cells_b.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Latency Anatomy}
+\label{app:anatomy}
+
+\begin{table}[h]
+\centering
+\caption{Where latency remains and why richer commit rules do not remove it (development set; \enzh{} / \zhen{} where two values are given).}
+\label{tab:anatomy}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.30\linewidth}p{0.62\linewidth}}
+\toprule
+\multicolumn{2}{l}{\textit{Timeline of a unit under \ours{} (without healing)}} \\
+first correct $\rightarrow$ settled & 0.07--0.15\,s \\
+settled $\rightarrow$ committed & same read 44\% / 49\%; one read later 48\% / 42\%; $\ge$2 reads 8\% / 9\%; mean 0.56 / 0.52\,s \\
+committed only at the final read & 36\% / 38\% of units \\
+\midrule
+\multicolumn{2}{l}{\textit{Attempts to save the extra read}} \\
+more certificates & distance to draft end, sampled-continuation consistency ($K{=}6$), correlation-aware emissions: held-out AUC changes from $-0.010$ to $+0.022$; no test gain \\
+denser reads (0.5\,s) & speech LAAL $-0.95$\,s but BLEU $-9$ to $-10$: the next second of audio is genuinely informative \\
+queue-aware threshold & commits only when the playback queue would otherwise idle: fewer pauses, speech LAAL $+0.13$ to $+0.22$\,s \\
+regret-based commit & early commits are costly when wrong (sentence BLEU $-6$ to $-8$ for non-surviving units); harm is predictable only at AUC 0.69--0.74 \\
+lower $\theta$ & moves along the curve at roughly 0.3--0.5\,s per BLEU point \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Development Log and Negative Results}
+\label{app:negative}
+
+Every change was registered in a dated log before its numbers were computed.
+The test sets were scored only for registered configurations.
+The following designs were registered, run, and did not improve the system:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Unsupervised HSMMs with per-direction parameters} were replaced by one joint model, to satisfy the single-model constraint; neither was calibrated without anchoring.
+  \item \textbf{Correlation-aware emissions}: a joint categorical over the certificate tuple, conditioned on the previous read's evidence. ECE fell from 0.310 to 0.208, but AUC dropped by 0.010.
+  \item \textbf{A risk-budget prefix rule} allowed commitment across a single low-posterior dip. Development BLEU fell by 2.6--3.9: the dips are real revision points.
+  \item \textbf{Queue-aware commitment} commits only when the playback queue would otherwise idle. It gives fewer pauses but 0.13--0.22\,s more speech LAAL.
+  \item \textbf{Sampled-continuation consistency} ($K = 6$ samples per read) runs in real time, with per-read 95th-percentile overhead of 236--286\,ms. AUC on anticipated units rose by only 0.010--0.015.
+  \item \textbf{Regret-based commitment and half-second reads}: see \cref{tab:anatomy}.
+  \item \textbf{Training the drafter to stop at the support boundary}, i.e.\ using the verifier as translator, is 0.6--0.8\,s slower (\cref{tab:main}).
+  \item \textbf{Token-level reinforcement learning} with counterfactual branching, and \textbf{evolution strategies}, were tried for the drafter. Pre-checks showed that the pipeline is chaotic under floating-point perturbation: null branches differ in 1.6--2.5\% of units, which swamps the learning signal.
+  \item \textbf{Character-exact evidence}: marginalising the drafter's first-token probability over tokens compatible with a healed prefix changed neither BLEU nor latency.
+\end{itemize}

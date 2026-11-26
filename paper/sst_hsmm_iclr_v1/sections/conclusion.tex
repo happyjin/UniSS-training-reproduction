@@ -1,0 +1,19 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We recast prefix commitment in re-translation as filtering of a latent settledness state from unreliable certificates, with an input-driven HSMM whose training is anchored to survival so that a single threshold is the right rule.
+With a support verifier and boundary healing, \ours{} reaches the quality of a conservative cross-view system at the latency of local agreement, using one bidirectional model.
+The remaining avoidable latency is one informative read after a unit settles; drafters that carry more predictive information about upcoming speech~\citep{gloeckle2024better} are the natural next step.
+
+\paragraph{Limitations.}
+One language pair, one drafter family and 1\,s reads; earlier commitment adds pauses; latency is computed on a simulated playback timeline without a listening test.
+
+\paragraph{Ethics statement.}
+Simultaneous translation that clones the speaker's voice can be misused for impersonation.
+Our voice pipeline only conditions on the current speaker's own speech.
+All training data are openly licensed corpora, and the test sets are used for evaluation only.
+
+\paragraph{Reproducibility statement.}
+\Cref{app:hparams} lists all hyperparameters, \cref{app:data} the data construction, and \cref{app:proof} the proof of \cref{prop:threshold}.
+Every design change was registered in a dated log before its results were computed (\cref{app:negative}).
+We will release code, the trained verifier and HSMM, and the benchmark construction scripts.

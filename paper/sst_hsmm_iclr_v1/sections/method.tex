@@ -1,0 +1,179 @@
+\section{Problem Setting}
+\label{sec:setting}
+
+A source utterance arrives as a waveform $\bm{x}$ and is read in chunks of $\Delta$ seconds.
+At read $t \in \{1,\dots,T\}$ the system has heard $\bm{x}_{\le t\Delta}$.
+The drafter $f$, a speech LLM, returns a draft $\hat{\bm{y}}^{(t)} = (\hat{y}^{(t)}_1,\dots,\hat{y}^{(t)}_{L_t})$, a sequence of $L_t$ translation units (characters for Chinese output, words for English output).
+The system keeps a committed length $n_t$ that never decreases.
+The committed prefix $\hat{\bm{y}}^{(t)}_{1:n_t}$ is sent to the talker, which turns it into speech that is played as soon as earlier speech has finished.
+Every later draft is forced to start with the committed prefix.
+At the last read $T$ all remaining units are committed.
+We say that position $i$ of draft $t$ \emph{survives} when $\hat{\bm{y}}^{(t)}_{1:i}$ equals the prefix of the final translation $\hat{\bm{y}}^{(T)}_{1:i}$; committing a non-surviving prefix produces speech that the final translation contradicts.
+
+Local agreement with two drafts (LA-2)~\citep{liu2020low,polak2022cuni} sets
+$n_t = \max\{n_{t-1}, \operatorname{lcp}(\hat{\bm{y}}^{(t)}, \hat{\bm{y}}^{(t-1)})\}$, where $\operatorname{lcp}$ is the length of the longest common prefix.
+With a second acoustic view, the draft $\hat{\bm{y}}'^{(t)}$ of the drafter on a speech-enhanced copy of the audio~\citep{schroeter2023deepfilternet}, the cross-view variant (LA-2+CV) additionally caps the commitment at $\operatorname{lcp}(\hat{\bm{y}}^{(t)}, \hat{\bm{y}}'^{(t)})$.
+Both rules are deterministic in agreement events: they cannot weigh evidence by reliability, and each added check can only delay commitment.
+
+\section{Anchored Stability Commitment}
+\label{sec:method}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >=Latex, node distance=3.2mm,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=2.5pt, minimum height=9mm, text width=14mm},
+  ours/.style={box, fill=blue!8, draw=blue!60!black},
+  arr/.style={->, semithick}]
+\node[box, text width=12.5mm] (x) {read $t$\\raw/enh.};
+\node[box, right=of x] (d) {drafter $f$\\$\hat{\bm{y}}^{(t)}, \hat{\bm{y}}'^{(t)}$};
+\node[ours, above=2.5mm of d] (g) {verifier $g$\\(\S\ref{sec:cert})};
+\node[box, right=of d, text width=16mm] (c) {certificates\\$a, v, s, c$};
+\node[ours, right=of c, text width=16mm] (h) {anchored HSMM\\$\pi_{i,t}$ (\S\ref{sec:hsmm}--\ref{sec:anchor})};
+\node[box, above=2.5mm of h, text width=17mm, minimum height=6mm] (u) {inputs $\bm{u}_t$};
+\node[ours, right=of h, text width=13mm] (r) {commit\\$\pi \ge \theta$ (\S\ref{sec:rule})};
+\node[ours, right=of r, text width=13mm] (k) {healing\\(\S\ref{sec:heal})};
+\node[box, right=of k, text width=11mm] (t) {talker\\speech};
+\draw[arr] (x) -- (d); \draw[arr] (x.north) |- (g.west); \draw[arr] (d) -- (c); \draw[arr] (g.east) -| (c.north);
+\draw[arr] (c) -- (h); \draw[arr] (u) -- (h); \draw[arr] (h) -- (r); \draw[arr] (r) -- (k); \draw[arr] (k) -- (t);
+\draw[arr, dashed] (k.south) -- ++(0,-4.5mm) -| node[pos=0.22, below]{healed forced prefix for read $t{+}1$} (d.south);
+\end{tikzpicture}
+\caption{\ours{} at one read. A frozen drafter writes drafts from a raw and an enhanced view; four certificates per position and acoustic inputs are filtered by an HSMM anchored to survival; the longest prefix with $\pi_{i,t} \ge \theta$ is committed. Blue: our components.}
+\label{fig:overview}
+\end{figure}
+
+\ours{} replaces the agreement rule by three learned parts and one decoding step (\cref{fig:overview}).
+The drafter $f$ is never modified, and its draft from the raw view is the only source of committed content.
+
+\subsection{Certificates of Settledness, Including a Speech-Support Verifier}
+\label{sec:cert}
+
+A position is committable when its content will not change any more.
+No single observable says so, but several observables are correlated with it.
+For every uncommitted position $i \in \{n_{t-1}+1,\dots,L_t\}$ of draft $t$ we collect four categorical certificates.
+\emph{Temporal agreement} $a_{i,t} \in \{0,1\}$ indicates whether $\hat{\bm{y}}^{(t)}_{1:i} = \hat{\bm{y}}^{(t-1)}_{1:i}$, the event used by LA-2.
+\emph{Cross-view agreement} $v_{i,t} \in \{0,1\}$ indicates whether $\hat{\bm{y}}^{(t)}_{1:i} = \hat{\bm{y}}'^{(t)}_{1:i}$.
+\emph{Drafter confidence} $c_{i,t} \in \{0,1,2\}$ bins the smallest token probability that $f$ assigned inside unit $i$.
+The fourth certificate answers a question that neither drafter view can answer: has the heard speech already expressed the content of position $i$, or is the drafter anticipating it?
+
+Two drafts that complete a sentence alike agree whether or not the speaker has said it.
+We therefore train a support verifier $g$, a low-rank adapter~\citep{hu2022lora} on the drafter's backbone that is shared by both translation directions.
+Its training data are references with a speech timeline.
+For a training pair with reference tokens $(r_1,\dots,r_m)$, a forced aligner and a word aligner give every reference token $r_j$ the earliest read $\rho_j$ at which the source speech supports it (\cref{app:data}).
+At read $t$, the supported reference prefix has length $k_t = |\{j : \rho_j \le t\}|$.
+The verifier is trained to emit exactly this prefix followed by the end-of-turn token $\langle\mathrm{eot}\rangle$:
+\begin{equation}
+\mathcal{L}_{g} = -\frac{1}{\sum_t (k_t+1)} \sum_{t=1}^{T} \Big[\sum_{j=1}^{k_t} \log p_g\big(r_j \mid \bm{x}_{\le t\Delta}, \bm{r}_{<j}\big) + \log p_g\big(\langle\mathrm{eot}\rangle \mid \bm{x}_{\le t\Delta}, \bm{r}_{\le k_t}\big)\Big],
+\label{eq:sap}
+\end{equation}
+with the full reference as the target at the final read; no other model's outputs are used.
+At inference, $g$ continues the committed prefix greedily on the raw view and stops where support ends.
+Its output $\hat{\bm{y}}^{\mathrm{sup}(t)}$ gives $s_{i,t} = 0$ if $i > \operatorname{lcp}(\hat{\bm{y}}^{(t)}, \hat{\bm{y}}^{\mathrm{sup}(t)})$, and otherwise one of three bins of $g$'s smallest token probability in unit $i$.
+As a translator $g$ is $0.6$--$0.8$\,s too slow (\cref{tab:main}); as a certificate it supplies what agreement lacks.
+
+\subsection{An Input-Driven Hidden Semi-Markov Model of Settledness}
+\label{sec:hsmm}
+
+The four certificates disagree often, and how much each one can be trusted depends on the audio.
+When the enhancer removes a lot of energy from the new second, cross-view disagreement is mostly an artefact of enhancement; on clean speech it signals real ambiguity.
+We therefore model each position with a latent state and let acoustic inputs modulate both the state dynamics and the emissions.
+
+Position $i$ first appears in draft $t^0_i$.
+From then on it is in state $z_{i,t} \in \{\Ust, \Sst\}$, unsettled or settled, and $\Sst$ is absorbing.
+The switch time $D_i \in \{0,1,\dots\}$ counts the reads after first appearance before the position settles; $D_i = 0$ means that it is settled at first appearance.
+Exogenous inputs $\bm{u}_t \in \mathbb{R}^{5}$ describe read $t$.
+They are the reliability $r_t \in [0,1]$, the mean frame-level ratio of enhanced to raw energy in the new chunk; the voiced share $e_t$; the age of the position $t - t^0_i$; the read index $t$; and the translation direction $\ell \in \{0,1\}$.
+The duration prior is a discrete hazard model,
+\begin{equation}
+P(D_i = 0) = \sigma\big(\phi_0(\bm{u}_{t^0_i})\big), \qquad
+P(D_i = d) = \big(1 - \sigma(\phi_0(\bm{u}_{t^0_i}))\big) \prod_{k=1}^{d-1}\big(1 - \eta_{i,k}\big)\, \eta_{i,d}, \quad d \ge 1,
+\label{eq:hazard}
+\end{equation}
+where $\eta_{i,k} = \sigma(\phi(\bm{u}_{t^0_i + k}))$ is the probability of settling at the $k$-th read after first appearance, $\sigma$ is the logistic function, and $\phi_0, \phi$ are small multilayer perceptrons.
+
+Given the state, the certificates are emitted independently, with logits that are linear in reliability features $\bm{\psi}_t = [1, r_t, r_t^2, \ell]^\top$:
+\begin{equation}
+p(v_{i,t} \mid z_{i,t}, \bm{u}_t) = \operatorname{softmax}\big(\mathbf{W}^{v}_{z_{i,t}} \bm{\psi}_t\big)_{v_{i,t}},
+\label{eq:emission}
+\end{equation}
+and likewise for $s_{i,t}$ with $\mathbf{W}^{s}_{z}$.
+The drafter confidence $c_{i,t}$ uses $\mathbf{W}^{c}_{z}[1,\ell]^\top$.
+Temporal agreement compares two consecutive drafts, so it is emitted by the state at the previous read.
+A position that was already settled must agree: $p(a_{i,t} = 1 \mid z_{i,t-1} = \Sst) = 1 - \epsilon$ with a small constant $\epsilon$, while under $\Ust$ the agreement probability is again of the form~\eqref{eq:emission}.
+This determinism constraint is what makes $\Sst$ mean ``content fixed'' rather than ``evidence looks good''.
+Training sequences of positions that are never committed early end with the agreement observed at the final read, which reveals whether the position survived.
+
+Writing $\bm{o}_{i,t} = (a_{i,t}, v_{i,t}, s_{i,t}, c_{i,t})$, the filtering posterior is an exact sum over switch times,
+\begin{equation}
+\pi_{i,t} = P\big(z_{i,t} = \Sst \mid \bm{o}_{i,t^0_i:t}, \bm{u}\big)
+= \frac{\sum_{d=0}^{t - t^0_i} P(D_i = d)\, \Lambda_{i,t}(d)}{\sum_{d=0}^{t - t^0_i} P(D_i = d)\, \Lambda_{i,t}(d) + P(D_i > t - t^0_i)\, \Lambda_{i,t}(\infty)},
+\label{eq:posterior}
+\end{equation}
+where $\Lambda_{i,t}(d)$ is the likelihood of the observations from $t^0_i$ to $t$ when the switch happens $d$ reads after first appearance: $\Ust$-emissions before the switch and $\Sst$-emissions after it.
+Durations are truncated at $D_{\max}$ reads.
+The cost per position and read is $O(D_{\max})$, negligible next to a drafter call.
+The same model serves both directions; $\ell$ enters only as an input.
+
+\subsection{Anchored End-to-End Training}
+\label{sec:anchor}
+
+All parameters $\Theta = \{\phi_0, \phi, \mathbf{W}^{a}, \mathbf{W}^{v}, \mathbf{W}^{s}, \mathbf{W}^{c}\}$ are trained by back-propagation through the forward recursion.
+We collect rollouts of the drafter under LA-2+CV on open training audio with simulated noise; this gives a set $\mathcal{I}$ of draft positions, each with its certificate sequence.
+The generative part of the objective is the exact marginal log-likelihood $\log p_\Theta(\bm{o}_i \mid \bm{u})$, obtained by summing~\eqref{eq:hazard} against the emissions over all switch times.
+Its gradient equals the expected complete-data gradient (Fisher's identity), so maximising it is a gradient form of EM~\citep{dempster1977em} that lives in the same graph as the networks $\phi_0, \phi$.
+
+Maximum likelihood alone fails here.
+The model may let the absorbing state explain any cluster of evidence, and it picks the most coherent one, ``verifier-supported and agreed across views''.
+Positions that agree across reads but not across views are then explained as $\Ust$, and the posterior becomes pessimistic and miscalibrated (\cref{sec:calib}).
+Richer emission structures only redistribute mass; the state itself must be tied to the quantity the decision needs.
+
+We anchor it with the survival labels that the rollouts provide for free.
+For every pair $(i,t)$ in which position $i$ is uncommitted at a non-final read $t$, let $\varsigma_{i,t} = 1$ if the prefix $\hat{\bm{y}}^{(t)}_{1:i}$ survives to the final translation and $0$ otherwise.
+Committed reads are excluded because committed text survives by construction.
+The training objective is
+\begin{equation}
+\mathcal{L}(\Theta) = -\sum_{i \in \mathcal{I}} \log p_\Theta(\bm{o}_i \mid \bm{u})
+\;-\; \beta \sum_{(i,t) \in \mathcal{A}} \Big[\varsigma_{i,t} \log \pi_{i,t} + (1 - \varsigma_{i,t}) \log (1 - \pi_{i,t})\Big],
+\label{eq:anchor}
+\end{equation}
+where $\mathcal{A}$ is the set of labelled pairs and $\pi_{i,t}$ is the filtering posterior~\eqref{eq:posterior}.
+This is the exact quantity used online, computed in the same graph by a cumulative log-sum-exp over switch times.
+The second term is a hybrid generative--discriminative objective~\citep{bishop2007generative}.
+It does not replace the HSMM by a classifier: duration prior, reliability-dependent emissions and the determinism constraint keep their roles.
+The term only fixes the meaning of $\Sst$.
+The labels come from the policy's own rollouts on training data, not from a teacher model.
+
+\subsection{Commitment as Optimal Stopping}
+\label{sec:rule}
+
+With a calibrated settledness posterior, the commit rule can be simple:
+\begin{equation}
+n_t = n_{t-1} + \max\big\{k \ge 0 : \pi_{n_{t-1}+j,\,t} \ge \theta \ \text{ for all } 1 \le j \le k\big\},
+\label{eq:rule}
+\end{equation}
+that is, the longest uncommitted run whose posterior clears a threshold $\theta$; temporal and cross-view agreement enter only as evidence and no longer as hard caps.
+We rely on a single threshold because, for a well-calibrated posterior, richer rules have little room to help.
+The following proposition makes this precise.
+
+\begin{proposition}[Threshold optimality under homogeneous evidence]
+\label{prop:threshold}
+Consider one unit whose survival $Y \in \{0,1\}$ is unknown.
+At each read the committer either commits, paying $\kappa > 0$ if $Y = 0$, or waits, paying $\lambda > 0$ and receiving new evidence.
+Assume the evidence is conditionally i.i.d.\ given $Y$, that a non-surviving unit may be revealed by revision at a constant rate, and that the horizon is unbounded.
+Then a constant $\theta^\star \in [0,1]$ exists such that committing at the first read with $P(Y = 1 \mid \text{evidence}) \ge \theta^\star$ is Bayes-optimal.
+\end{proposition}
+
+The proof (\cref{app:proof}) shows that the continuation value is concave in the posterior while the commit cost $\kappa(1-\pi)$ is linear and vanishes at $\pi = 1$, so the stopping region is an interval $[\theta^\star, 1]$, a one-sided analogue of the optimality of the sequential probability ratio test~\citep{wald1948optimum}.
+The proposition explains why anchoring matters, since the threshold is optimal only on a calibrated survival posterior, and why queue-aware, blocking-aware and regret-based rules hardly improve on~\eqref{eq:rule} (\cref{sec:anatomy}).
+$\theta$ is selected once on a development set and sets the operating point.
+
+\subsection{Boundary Healing for Subword Drafters}
+\label{sec:heal}
+
+Commitment operates on characters and words, whereas the drafter writes subword tokens.
+When $n_t$ ends inside a token, for instance after the first character of a two-character Chinese token, the next draft must continue from a token split the drafter never saw in training, and its continuations are markedly worse.
+Boundary healing~\citep{lundberg2023tokenhealing} keeps the commitment but repairs the next prompt.
+Let $b \le n_t$ be the character offset of the last token boundary of the draft that precedes the commitment end.
+The next read forces only the prefix up to $b$ into the prompts of the drafter, both views, and of the verifier.
+Decoding is then constrained by structured decoding so that the first generated characters reproduce the rolled-back span between $b$ and the commitment end, and those characters are stripped from the output.
+The drafter continues from its canonical tokenization, the committed speech is unchanged, and commit times are unaffected; character-level marginalisation~\citep{vieira2025characters,phan2025exact} would be an exact alternative.

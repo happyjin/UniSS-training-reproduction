@@ -8,7 +8,7 @@ Maximum likelihood alone attaches the latent state to the wrong cluster of evide
 Under homogeneous evidence, committing the longest prefix whose posterior clears a single threshold is the Bayes-optimal stopping rule.
 A boundary-healing step stops commitments that end inside a subword token from corrupting the next draft.
 We evaluate on real interpreting speech and on clean and noisy broadcast-style streams, in both English--Chinese directions, with one bidirectional model.
-The method raises ASR-BLEU by 1.4 and 2.7 points over local agreement at comparable speech latency.
+On the same drafter, the method raises ASR-BLEU by 1.0 (\enzh{}) and 1.3 (\zhen{}) points over local agreement at comparable speech latency, and by 1.4 and 2.7 points over a local-agreement system with the base drafter.
 Against a strong cross-view agreement system, it matches translation quality while speaking 0.30--0.47\,s earlier.
 An anatomy of the remaining delay shows that the commit layer is close to its information limit.
 Most avoidable latency is a single read of waiting after a unit has settled, and that read carries information no richer commit rule recovers.

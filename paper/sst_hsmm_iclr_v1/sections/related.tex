@@ -1,0 +1,25 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Read/write policies.}
+Fixed policies such as wait-$k$~\citep{ma2019stacl} read a constant lead before each write.
+Adaptive policies learn when to write through monotonic attention~\citep{arivazhagan2019monotonic,ma2020mma}.
+The Hidden Markov Transformer~\citep{zhang2023hmt} treats the moment of each target token as a latent variable.
+Other policies use cross-attention for offline speech models~\citep{papi2023attention,papi2023alignatt,papi2024streamatt} or prompt and fine-tune LLMs~\citep{koshkin2024transllama,ouyang2025taf,cheng2025liveinterpret}.
+We instead keep a full-sentence speech LLM frozen and decide how much of its revisable draft to commit, as in re-translation with local agreement~\citep{arivazhagan2020retranslation,liu2020low,polak2022cuni,machacek2023turning}.
+HMT learns when to write inside the translator; \ours{} infers, from outside a frozen drafter, whether drafted content has settled.
+
+\paragraph{Simultaneous speech-to-speech translation.}
+SimulS2ST systems include StreamSpeech~\citep{zhang2024streamspeech}, Seamless~\citep{seamless2023}, Hibiki~\citep{labiausse2025hibiki} and LLM-based systems~\citep{deng2025simuls2s}.
+Speech LLMs with an integrated talker~\citep{xu2025qwen3omni,uniss2025} make re-translation attractive, because quality comes from an unmodified offline model.
+For speech output, committed text also waits for the talker and earlier audio.
+We therefore measure length-adaptive average lagging~\citep{papi2022over} on the playback timeline.
+
+\paragraph{Latent-state models, calibration and stopping.}
+HSMMs model explicit durations~\citep{yu2010hsmm}, and input-output HMMs let exogenous inputs drive transitions and emissions~\citep{bengio1995iohmm}; both are classically fitted with EM~\citep{dempster1977em,rabiner1989tutorial}.
+Hybrid generative--discriminative objectives combine the two likelihoods~\citep{bishop2007generative}.
+We use one to fix the meaning of a latent state whose filtering posterior feeds a decision.
+Posterior thresholds solve sequential decisions with linear waiting cost~\citep{wald1948optimum,degroot1970optimal,shiryaev1978optimal}, but only on calibrated posteriors~\citep{guo2017calibration}.
+Prompts that end inside a subword token are a known problem.
+It is addressed by character- and byte-level marginalisation~\citep{vieira2025characters,phan2025exact} and by token healing~\citep{lundberg2023tokenhealing}.
+Commitment in re-translation creates such prompts at every read.

@@ -1,0 +1,178 @@
+\section{Experiments}
+\label{sec:exp}
+
+\subsection{Setup}
+\label{sec:setup}
+
+\paragraph{System.}
+The drafter is a Qwen3-Omni thinker~\citep{xu2025qwen3omni} fine-tuned for S2ST~\citep{uniss2025}, with a noise-robust encoder adapter merged by weight interpolation~\citep{wortsman2022robust}.
+Reads are $\Delta = 1$\,s apart, and DeepFilterNet3~\citep{schroeter2023deepfilternet} produces the enhanced view.
+The UniSS talker speaks the committed text with a voice prompt chosen by analysis-by-synthesis (\cref{app:voice}), and a playback simulator plays it without extra buffering.
+Drafter, verifier and HSMM are each one model for both directions; hyperparameters are in \cref{app:hparams}.
+
+\paragraph{Data.}
+Training uses open data only: 20{,}000 noisy UniST~\citep{uniss2025} pairs per direction for the verifier, and LA-2+CV rollouts on 3{,}000 further noisy sentences per direction for the HSMM.
+$\theta$ is selected on held-out spontaneous UniST sentences, clean and noisy.
+The test benchmark has five conditions per direction.
+RealSI~\citep{cheng2024realsi} provides real interpreting-style speech from ten domains, both clean and mixed with held-out noise.
+OpenBroadcast-SI (OBSI) is built from CoVoST~2 test speech~\citep{wang2020covost2}, concatenated into multi-speaker broadcast-style streams.
+It comes in three conditions: clean; \emph{id} noise, which uses held-out clips of the background types seen in training; and \emph{ood} noise, which uses background corpora never used in training.
+The test sets were used only for final evaluation.
+\Cref{app:data} gives sizes and construction.
+
+\paragraph{Metrics.}
+Quality is ASR-BLEU, using Whisper-large-v3~\citep{radford2023robust} for English and Paraformer~\citep{gao2023funasr} for Chinese, with sacreBLEU~\citep{post2018call}; we also report text BLEU.
+The primary latency metric is speech LAAL~\citep{papi2022over}, computed from each unit's playback start on the computed playback timeline.
+We also report EndOffset (source end to output end) and within-utterance pauses (NP).
+Speaker similarity (ECAPA2~\citep{thienpondt2023ecapa2}) and PESQ (SQUIM~\citep{kumar2023squim}) are in \cref{app:full}.
+Numbers are means over the five conditions of a direction, with paired bootstrap intervals~\citep{koehn2004statistical}.
+
+\paragraph{Baselines.}
+\textbf{B} uses the backbone without the robust adapter, LA-2 and the source voice.
+All other systems share drafter, talker, voice and playback, and differ only in the commit policy.
+\textbf{LA-2} and \textbf{LA-2+CV} (\cref{sec:setting}); LA-2+CV was the strongest prior configuration of this drafter.
+\textbf{Verifier as translator} speaks $g$'s own draft.
+\textbf{Hard gates} commit beyond LA-2 where the verifier supports the text, capped by cross-view agreement, or where drafter and verifier are both confident.
+\textbf{HSMM, unanchored} is trained by maximum likelihood alone, with its best dev rule.
+
+\subsection{Main Results}
+\label{sec:main}
+
+\begin{table}[t]
+\centering
+\caption{Test results, mean of five conditions per direction; LAAL is speech LAAL (s).
+Rows below B differ only in the commit policy.
+\ours{} rows include healing and a faster talker rate ($\le$0.02\,s LAAL effect, \cref{tab:abl}).}
+\label{tab:main}
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{\enzh{}} & \multicolumn{3}{c}{\zhen{}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Commit policy & ASR-BLEU$\uparrow$ & BLEU$\uparrow$ & LAAL$\downarrow$ & ASR-BLEU$\uparrow$ & BLEU$\uparrow$ & LAAL$\downarrow$ \\
+\midrule
+\tabinput{generated/tab_main.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Does filtering beat combining certificates by rules?}
+\Cref{tab:main} and \cref{fig:frontier} show that it does.
+Every hard combination of the same certificates lands on one curve.
+The cross-view constraint buys quality with latency, while a support-gated rule buys latency with quality.
+The unanchored HSMM falls on the same curve.
+\ours{} at $\theta = 0.75$ sits above it.
+In both directions it reaches the ASR-BLEU of LA-2+CV, while its speech LAAL is 0.47\,s (\enzh{}) and 0.30\,s (\zhen{}) lower, close to that of B.
+Against LA-2 on the same drafter it gains 1.02 and 1.28 ASR-BLEU at $-0.11$ and $+0.07$\,s; against B, 1.43 and 2.70 at $-0.09$ and $+0.03$\,s.
+This confirms the premise of \cref{sec:hsmm}: weighing certificates by their reliability lets the commit layer keep the quality of the conservative rule without paying its delay.
+
+\paragraph{Is the gain an operating point or a better curve?}
+The dev-selected latency point is 0.34\,s (\enzh{}, $\theta = 0.60$) and 0.04\,s (\zhen{}, blocking-aware threshold, \cref{app:blocking}) earlier than B, and still 0.93 and 2.48 ASR-BLEU better.
+Every other system is dominated by one of the two \ours{} points, except the slow verifier-as-translator and the \zhen{} support gate, which is 0.13\,s earlier but 0.53 ASR-BLEU lower (\cref{fig:frontier}).
+The curve itself has shifted.
+
+\begin{table}[t]
+\centering
+\caption{Per-condition differences to B: $\Delta$ASR-BLEU / $\Delta$speech LAAL (s).
+Bold marks a 95\% paired bootstrap interval that excludes zero.
+Absolute B values are in \cref{app:full}.}
+\label{tab:cells}
+\small
+\setlength{\tabcolsep}{3.2pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llccccc}
+\toprule
+& & \multicolumn{2}{c}{RealSI} & \multicolumn{3}{c}{OBSI} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-7}
+System & Dir. & clean & noisy & clean & id noise & ood noise \\
+\midrule
+\tabinput{generated/tab_cells.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Where does it help?}
+ASR-BLEU improves in all 20 system--condition pairs of \cref{tab:cells}, most in noisy conditions (up to $+4.5$).
+The latency point is earlier than B in every \enzh{} condition, including real interpreting speech, and in four of five \zhen{} conditions.
+Noisy RealSI \zhen{}, fast spontaneous speech in real noise, remains the hardest case: the posterior stays cautious and trades $+4.3$ to $+4.5$ ASR-BLEU for 0.14--0.24\,s.
+
+\subsection{Anchoring Makes the Posterior Usable}
+\label{sec:calib}
+
+\begin{table}[t]
+\centering
+\caption{Posterior calibration on held-out training rollouts (54{,}285 uncommitted position--reads; survival 0.48). Right: survival of positions with $\pi_{i,t} < 0.1$ after $k$ observed reads.}
+\label{tab:calib}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccc}
+\toprule
+& & & & \multicolumn{4}{c}{Low-$\pi$ survival after $k$ reads} \\
+\cmidrule(lr){5-8}
+HSMM training & ECE$\downarrow$ & AUC$\uparrow$ & mean $\pi$ & $k{=}1$ & $k{=}2$ & $k{=}3$ & $k{\ge}4$ \\
+\midrule
+Maximum likelihood & 0.310 & 0.727 & 0.18 & 0.31 & 0.40 & 0.47 & 0.51 \\
+Anchored (\cref{eq:anchor}) & \textbf{0.084} & \textbf{0.744} & 0.42 & 0.16 & 0.23 & 0.32 & 0.38 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Does maximum likelihood learn the state the decision needs?}
+It does not (\cref{tab:calib}).
+The unanchored posterior averages 0.18 while 48\% of positions survive.
+Positions below 0.1 survive 31--51\% of the time, more so the longer they have been observed, because each read repeats correlated evidence.
+Survival is also flat (0.71--0.74) for posteriors between 0.3 and 0.7, so no threshold works, and the unanchored HSMM must fall back to the agreement rule.
+Correlation-aware emissions lowered ECE only to 0.21 and lost AUC (\cref{app:negative}).
+Anchoring cuts ECE to 0.084, raises AUC, and moves positions that agree across reads but not across views from $\pi \approx 0.02$ to $\pi \approx 0.7$.
+Only then does the pure threshold~\eqref{eq:rule} become the best rule on dev, as \cref{prop:threshold} predicts.
+
+\subsection{Boundary Healing}
+\label{sec:healres}
+
+\paragraph{Do sub-token commitments hurt?}
+They do, in \enzh{}, where 8.6\% of non-final commitments end inside a multi-character token.
+On dev, healing raises BLEU from 58.62 to 59.26 at unchanged proxy latency (2.817 vs.\ 2.801\,s); snapping commitments back to the boundary gives the same BLEU but delays speech, because it withholds ready characters.
+On test, healing adds 0.56 ASR-BLEU in \enzh{} (\cref{tab:abl}); its decoding constraint never failed in 525 uses.
+English word units never end inside a token, so the \zhen{} differences are run-to-run noise (about 0.1--0.15 ASR-BLEU).
+Any re-translation system with a subword drafter must reconcile commit units with tokens, or the commit rule silently damages the drafts it relies on.
+
+\subsection{Anatomy of the Remaining Latency}
+\label{sec:anatomy}
+
+\paragraph{How close is the commit layer to its limit?}
+A unit is written correctly and stable within 0.15\,s, but about half of the units then wait one more read before commitment (\cref{tab:anatomy}, \cref{app:anatomy}); this read is the controllable latency.
+Extra certificates, denser reads, queue-aware thresholds and regret-based commitment all failed to save it.
+Half-second reads cut speech LAAL by almost a second but cost 9--10 BLEU: the next second of audio really decides whether a guess is right.
+Within the drafter's anticipations the posterior reaches AUC $\approx 0.8$, and no further certificate added more than 0.02.
+With \cref{prop:threshold}, a calibrated threshold is thus close to the best a commit layer can do with a frozen drafter.
+Further gains must come from the drafter, and the information exists: given the true source text so far, the frozen drafter ranks the next second's first source token in its top five 58.6\% (English) and 38.2\% (Chinese) of the time, against 17.3\% and 6.3\% for a frequency prior.
+
+\subsection{Ablation Analysis}
+\label{sec:abl}
+
+\begin{table}[t]
+\centering
+\caption{Test ablations: differences to B, mean of five conditions (ASR: ASR-BLEU; LAAL: speech, s; EO: EndOffset, s; NP: pauses per utterance).}
+\label{tab:abl}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccccc}
+\toprule
+& \multicolumn{4}{c}{\enzh{}} & \multicolumn{4}{c}{\zhen{}} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+Variant & ASR & LAAL & EO & NP & ASR & LAAL & EO & NP \\
+\midrule
+\tabinput{generated/tab_abl.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:abl} removes components one at a time.
+\textbf{Anchoring} matters most: against the matching configuration (no healing, default rate), the unanchored HSMM is 0.12\,s later at equal ASR-BLEU in \enzh{} and 0.43 ASR-BLEU lower at equal latency in \zhen{}.
+\textbf{Healing} adds 0.56 ASR-BLEU in \enzh{} at no latency cost.
+\textbf{The talker rate}, a playback-layer setting reported only for fair comparison, shortens EndOffset by 0.14--0.29\,s and moves speech LAAL by at most 0.02\,s.
+\textbf{The threshold} trades as expected: $\theta = 0.80$ is 0.10--0.13\,s later than $0.75$ for $+0.08$ and $+0.38$ ASR-BLEU.
+Two extensions did not help: a distance-to-draft-end input raised held-out AUC from 0.744 to 0.766 yet made the test system slower and worse, and refitting on the policy's own rollouts made \zhen{} slower.
+The commit layer lacks information, not capacity (\cref{sec:anatomy}).
+Pauses are the price of earlier commitment: the certificate-based policies add 0.15--0.31 within-utterance pauses per utterance relative to B, because shorter commitments leave the playback queue empty more often.
