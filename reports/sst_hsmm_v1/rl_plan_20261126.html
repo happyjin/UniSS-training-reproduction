@@ -74,6 +74,7 @@ td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:n
 .decide{display:flex;flex-direction:column;gap:10px}
 .dq{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:4px}
 .dq .rec{font-size:13px;color:var(--accent)}
+.dq .rec.ok{color:var(--good)}
 code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px;border-radius:3px}
 @media (max-width:520px){h1{font-size:24px}.wrap{padding-block:24px 48px;gap:36px}}
 </style>
@@ -162,7 +163,7 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
     <li class="item"><span class="k">F1</span><div><b>断流时长代价替换停顿次数</b><span class="new">改奖励</span><br>在播放队列代理里计算 Σ max(0, gap − 0.3 s)，直接对齐 PT_in；同时保留次数。连续量在每个分叉上都有差别，比计数致密。已验证代理可用：NPrec 与实测 NP 相差 ≤0.17。</div></li>
     <li class="item"><span class="k">F2</span><div><b>均匀到达奖励</b><span class="new">改奖励</span><br>惩罚零提交读（当前 28–33%）和过小的提交块。起草者能学的手段是更顺序的译法（尤其 zh2en 的语序），让稳定前缀每读都增长一点。这正是“停顿只能靠更均匀写出的 thinker 解决”的那条路。</div></li>
     <li class="item"><span class="k">F3</span><div><b>提交终点吸附到短语边界</b><span class="new">推理期</span><br>当 SAP 停止点或标点离提交终点不超过 1 个单元时对齐到边界。几乎不增加 LAAL，减少断词和碎片韵律。11-25 分析里列为 E4，尚未运行。</div></li>
-    <li class="item"><span class="k">F4</span><div><b>Talker 韵律上下文</b><span class="new">推理期，需工程核查</span><br>把未提交草稿作为不念出的右侧上下文交给 talker，改善碎片的韵律和断词，目标是缩小 zh2en 的 ASR 与文本 BLEU 差。需要先确认 talker 能否接收不念出的文本。它不进 RL。</div></li>
+    <li class="item"><span class="k">F4</span><div><b>Talker 韵律上下文</b><span class="new">已核查，可做</span><br>把未提交草稿作为不念出的右侧上下文交给 talker，改善碎片的韵律和断词。核查结果：推理开关 <code>si_infer.py --lookahead</code> 与训练开关 <code>pretrain_si.py --si-lookahead-max</code> 都已存在；当前 talker T1c 没有用前瞻训练。10-22 训练过的前瞻 talker T1L（3 单元前瞻）在旧 LA2 流水线上 zh2en 低延迟 +0.5 ASR-BLEU，en2zh 无效，6 单元变差。T1L 权重不在本机，S3 上有 export_600（3.7 GB）。p3h8 的结果文件存有每读草稿，前瞻文本可离线导出，不用重跑 thinker。它不进 RL。</div></li>
     <li class="item"><span class="k">F5</span><div><b>尾块加速</b><span class="new">已完成</span><br>U1T3：EndOffset −0.14 | −0.29 s，其余持平，作为播放层附加单独列出。</div></li>
   </ul>
   <p class="verdict">目标函数建议写成：在 BLEU ≥ p3h8 − 0.3 且 ≥ B_b 的约束下，最小化 D2；断流时长作为第二约束“不高于 p3h8”，用对偶变量自适应，而不是固定权重。这样流畅度不会再被时延项挤掉，也不会反过来让策略为少停顿而过度等待（Stage 7A 的教训）。</p>
@@ -185,13 +186,52 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
 </section>
 
 <section>
+  <h2>新颖性：与已发表工作的区别、借鉴来源</h2>
+  <p class="verdict">结论：与已发表的同传论文不同，因为没有工作在概率提交者之下训练起草者，也没有工作把不可撤回提交和语音时序放进 RL 奖励。但每个组件在其他领域都有近邻，按现在的写法，审稿人会看成“已知工具组合用于一个小任务”。对 ICLR 来说还不够。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>组成</th><th>借鉴自</th><th>最近的已有工作</th><th>我们的区别</th><th>新颖性</th></tr></thead>
+    <tbody>
+      <tr><td>信息设计对数评分</td><td>贝叶斯劝说（Kamenica &amp; Gentzkow 2011，AER）；Prover–Verifier Games（Kirchner et al. 2024）</td><td>校准奖励 RLCR（arXiv 2507.16806）、Rewarding Doubt（arXiv 2503.02623），用 Brier / 对数评分奖励模型自报的置信度</td><td>评分者是外部的闭式贝叶斯提交者；被评分的是起草者的行为证据，而不是自报置信；提交不可撤回，正确性要等未来音频才揭晓</td><td class="bad">中。最强的一项，但“期望对数评分 = −H(Y|E)”是教科书结论，需要更深的定理</td></tr>
+      <tr><td>为“被接受”训练起草者</td><td>投机解码</td><td>RCSD（arXiv 2610.29527）用 GRPO 以接受率为奖励训练 drafter；Learning to Draft（ICLR 2026）用 RL 调草稿树</td><td>投机解码的验证者当场判定；我们的验证者是对未来证据的后验，判错后无法撤回</td><td class="bad">中低。审稿人一定会提这条线</td></tr>
+      <tr><td>读级分叉 GRPO</td><td>VinePPO（中间状态蒙特卡洛价值）、RUDDER（NeurIPS 2019，信用重分配）</td><td>同左</td><td>分叉点在流式时间轴上，续跑走真实提交规则</td><td class="bad">低。工程性</td></tr>
+      <tr><td>提交者共同适应</td><td>RL Tango（验证器共训）、PVG 交替训练、势博弈（Monderer &amp; Shapley 1996）</td><td>同左</td><td>验证器是闭式精确滤波，不是另一个 RL 策略</td><td class="bad">低到中</td></tr>
+      <tr><td>质量约束</td><td>约束 RL / 拉格朗日（RCPO，ICLR 2019）</td><td>同左</td><td>无</td><td class="bad">低</td></tr>
+      <tr><td>同传 RL 本身</td><td>—</td><td>SeqPO-SiMT、HPO、SimPOTrans（arXiv 2610.35042）、Dynamic Lagging（arXiv 2609.05799）、PDO、Hibiki-Zero、LiveInterpret 2.0</td><td>它们都是模型自己决定写或等，或用确定性 LCP；没有独立的概率提交者，也没有语音时序奖励</td><td class="ok">任务内区别清楚</td></tr>
+    </tbody>
+  </table></div>
+  <h3>达到 ICLR 需要补的三件事</h3>
+  <ul class="list">
+    <li class="item"><span class="k">N1</span><div><b>把问题提升为通用问题</b>：“由贝叶斯提交者不可撤回地提交的流式生成”。同传只是一个实例；同一框架也覆盖文本同传、实时字幕、流式 ASR。</div></li>
+    <li class="item"><span class="k">N2</span><div><b>非平凡的理论</b>：例如起草者在贝叶斯提交者下的最优策略刻画（信息设计中的凹化），对数评分奖励与真实质量–时延价值之间的界，交替更新的收敛；I2 再给出停顿与时延的 O(1/V) / O(V) 折中。</div></li>
+    <li class="item"><span class="k">N3</span><div><b>至少两个任务 + 强基线</b>：在同一 thinker 上复现 SeqPO 式整段 GRPO 与 PDO 式 LCP 奖励作对照，并做去掉提交者、去掉对数评分、去掉分叉的消融。</div></li>
+  </ul>
+  <p class="note">时间：ICLR 2027 的投稿截止通常在 9 月底到 10 月初，已经过了。下一个同级别的是 ICML 2027，截止通常在 1 月底，大约还有 8 周。</p>
+</section>
+
+<section>
+  <h2>三个候选 idea 与并行方式</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Idea</th><th>核心</th><th>借鉴</th><th>针对</th><th>风险</th></tr></thead>
+    <tbody>
+      <tr><td><b>I1</b> 可验证起草<br><span class="tag">DTC-RL 核心</span></td><td>起草者通过对数评分让提交者能分辨猜对与猜错；理论用信息设计的凹化刻画最优起草</td><td>贝叶斯劝说、Prover–Verifier Games、校准奖励</td><td>D2、BLEU（猜测存活 75–80% 的瓶颈）</td><td>与校准奖励和投机解码 RL 的区别要讲清；P0' 不过则失去主创新</td></tr>
+      <tr><td><b>I2</b> 防断流起草</td><td>把停顿看成播放缓冲下溢（视频卡顿）；用 Lyapunov drift-plus-penalty 把 BLEU 与时延约束变成虚拟队列，按读给奖励。F1/F2 由此有了理论依据</td><td>视频自适应码率（BOLA，INFOCOM 2016；Pensieve，SIGCOMM 2017）、Lyapunov 约束 RL（Chow et al.，NeurIPS 2018）</td><td>NP_in、PT_in、EndOffset</td><td>提交者侧的缓冲规则以前失败过（第 3 轮空余规则、“队列忙时不提交”），所以必须作用在起草者上；P0 流畅度不过则不做</td></tr>
+      <tr><td><b>I3</b> 面向未来稳健的起草</td><td>采样多个源语音的可能续写，奖励在大多数续写下都成立的译文前缀，学习口译员的泛化与切分策略</td><td>极小极大遗憾、基于世界模型的想象回报（Dreamer）、TAF（推理期未来采样）</td><td>D2、BLEU（少依赖单一猜测）</td><td>需要源侧续写采样器（文本 LM，不是目标端教师，不属于蒸馏，但要你确认）；与 TAF 区别在训练期；工程量最大</td></tr>
+    </tbody>
+  </table></div>
+  <p class="verdict">可以同时跑。三者共用一套“流式 + 提交者 + 分叉”的 rollout 环境和同一个 GRPO 训练器，只换奖励。第一阶段的预检查共用同一批分叉数据：8 张卡约半天，同时跑 P0、P0'（I1）、P0 流畅度（I2），以及 F3 和 F4 推理。第二阶段只训练通过预检查的 idea：两个 idea 各用 4 张卡并行，每个比独占 8 卡慢约一倍；单个 idea 都验证有效后，再训练 I1+I2 组合作为最终系统，同时得到论文需要的消融。</p>
+</section>
+
+<section>
   <h2>需要你决定</h2>
   <div class="decide">
     <div class="dq"><b>1. 句中草稿用 LoRA、句末读用冻结 wave17？</b><span class="rec">建议：接受。末读冻结保 BLEU；LoRA 只有一个，仍是单一双向模型。</span></div>
     <div class="dq"><b>2. 质量奖励只用 BLEU，还是 BLEU + COMET？</b><span class="rec">建议：BLEU 作约束，COMET 只做监控，先不进奖励，避免奖励被评测模型钻空子。</span></div>
     <div class="dq"><b>3. 先做 P0 / P0' / P0 流畅度（约半天，不训练）？</b><span class="rec">建议：先做，同时跑 F3（推理期吸附）。</span></div>
-    <div class="dq"><b>4. 把流畅度（F1 断流时长 + F2 均匀到达）作为第二约束写进奖励？</b><span class="rec">建议：写进，但以 P0 流畅度通过为前提。</span></div>
-    <div class="dq"><b>5. 是否核查并尝试 F4（talker 韵律上下文）？</b><span class="rec">建议：先只做工程核查（talker 是否支持不念出的上下文），不占训练卡。</span></div>
+    <div class="dq"><b>4. 把流畅度（F1 断流时长 + F2 均匀到达）作为第二约束写进奖励？</b><span class="rec ok">已同意（11-26）。以 P0 流畅度通过为前提。</span></div>
+    <div class="dq"><b>5. 核查 F4（talker 韵律上下文）？</b><span class="rec ok">已同意并完成核查（见 F4）。</span></div>
+    <div class="dq"><b>6. 从 S3 恢复 T1L，在 p3h8 的草稿上跑 F4 测试（推理期，约 1 h、2 张卡）？</b><span class="rec">建议：做，可与预检查同时跑。</span></div>
+    <div class="dq"><b>7. 三个候选 idea 中，哪些进入共享预检查？</b><span class="rec">建议：I1 + I2 必做；I3 在未来采样器的数据问题确认后再加。</span></div>
+    <div class="dq"><b>8. 为了通用性，是否加一个文本同传任务（开放数据训练、公开基准测试）？</b><span class="rec">建议：加。这是 ICLR 级论文必需的第二个任务；它与“所有训练用同一份 UniST 数据”的规则冲突，需要你确认。</span></div>
   </div>
 </section>
 
