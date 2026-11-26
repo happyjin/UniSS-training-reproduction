@@ -123,6 +123,19 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
     </tbody>
   </table></div>
   <p class="note">F4 补充：前瞻本身（T1L 有 / 无前瞻之差）只有 −0.03 | +0.07；10 月旧流水线上 zh2en +0.5 的收益在 p3h8 的块上不复现。结合 change 39，碎片韵律不是当前 ASR-BLEU 的主要损失来源。F3（边界吸附）因此未运行。</p>
+  <h3>P0-ES：参数空间探索预检查（change 41）</h3>
+  <p class="note">16 个成员（8 对 ±σε，σ = 0.01，只扰动草稿 LoRA 的 B），每个成员内部贪心；同样 500 条 / 方向；A 半（偶数条）估计 ES 方向，B 半（奇数条）检验。F = Σ方向（−D2 + 0.4 × BLEU）。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>检查</th><th>结果</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>G0-ES：成员改变的条目比例</td><td class="num">0.52</td><td class="ok">通过（≥ 0.2）</td></tr>
+      <tr><td>成员对基线的 D2 / 零提交读（平均）</td><td class="num">−0.014 | −0.001 s；−0.006 | +0.002</td><td class="ok">不自我惩罚（token 分叉为 +0.09 s、+8 点）</td></tr>
+      <tr><td>成员效应 A / B 两半的相关</td><td class="num">0.18</td><td class="bad">信号低于噪声</td></tr>
+      <tr><td>ES 一步 θ1：A 半 / B 半 ΔF</td><td class="num">+0.33 / −0.28（90% 区间 [−0.78, +0.20]）</td><td class="bad">不通过；反方向在 B 半 +0.15</td></tr>
+      <tr><td>护栏：zh2en B 半断流 / BLEU</td><td class="num">+0.18 s / −0.50</td><td class="bad">不满足</td></tr>
+    </tbody>
+  </table></div>
+  <p class="verdict">机制得到验证，效果没有：参数空间扰动确实不像 token 采样那样自我惩罚，但每个成员的效应（D2 ±0.05 s、BLEU ±1）在 250 条 / 方向上被噪声淹没，ES 方向拟合的是 A 半的噪声。另一个重要发现：同一模型只因 vLLM 批次组成不同，就有 14–19% 的条目提交轨迹不同。一致性提交者把浮点级差异放大成不同的提交轨迹，这也是以前各轮测试里 ±0.05 s 级别差异的一部分来源。</p>
   <p class="verdict">按登记规则，P0 和 P0 流畅度都没过，读级分叉 GRPO 不进入 P1。原因是结构性的：采样的 d0 有约 80% 与贪心不同，而另一视角 d1 仍是贪心，两视角一致长度从 0.77–0.81 降到 0.41–0.45，该读少提交 0.9–1.5 个单元（只有 2% 的分叉多提交），下一读也更少。在“读间一致 + 视角一致”的提交者下，token 级探索会自我惩罚，强化学习只会学到“贴近贪心”。信息设计项 P0' 有信号，尤其 zh2en。</p>
 </section>
 
@@ -239,7 +252,7 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
 </section>
 
 <section id="next">
-  <h2>新方向：参数空间探索（P0 失败后的提议，未登记、未运行）</h2>
+  <h2>参数空间探索（P0 失败后的提议；已按 change 41 预检查，未通过）</h2>
   <p>P0 说明问题出在探索方式，不在奖励。提交者奖励的是“自洽”：同一模型在相邻两读、两个视角上给出相同的草稿。token 级采样在每读、每个视角独立加噪，正好破坏自洽，所以探索得到的轨迹几乎总是提交更少。</p>
   <ul class="list">
     <li class="item"><span class="k">E1</span><div><b>进化策略（ES）优化草稿 LoRA</b>：每个种群成员是对 LoRA 加一次随机扰动的模型，成员内部仍用贪心解码，所以读间、视角间天然一致；奖励用整条句子的代理量（BLEU 约束、D2、断流、对数评分 S）。只需前向，不需要反向传播。借鉴 OpenAI ES（Salimans et al. 2017）、参数空间噪声探索（Plappert et al.，ICLR 2018）、ES 微调 LLM（Qiu et al.，ICML 2026，种群约 30）。成本：P0 显示每 125 条的流式 rollout 约 2 分钟 / 卡，vLLM 一个引擎可同时服务多个 LoRA 成员。</div></li>
@@ -251,8 +264,10 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
 <section>
   <h2>需要你决定</h2>
   <div class="decide">
-    <div class="dq"><b>9. P0 失败后：是否转向参数空间探索（ES），先跑 P0-ES 预检查（约 1 小时、不训练）？</b><span class="rec">建议：做。它直接回应 P0 暴露的问题，也是更有一般性的 ICLR 论点。</span></div>
-    <div class="dq"><b>10. F3（提交边界吸附）还跑吗？</b><span class="rec">建议：暂不跑。F4 和 change 39 都说明碎片韵律不是瓶颈，F3 还会略增时延。</span></div>
+    <div class="dq"><b>11. 先测 vLLM 批次不变模式（VLLM_BATCH_INVARIANT=1）是否能让贪心流水线确定、速度是否可接受（约 15 分钟）？</b><span class="rec">建议：做。它决定以后所有比较的噪声底线；若可用，再在低噪声下重跑一次 P0-ES（约 25 分钟，同样判据）。</span></div>
+    <div class="dq"><b>12. 若确定性修好后 ES 仍不通过：起草者强化学习线收尾？</b><span class="rec">建议：收尾，把三条机制性结果（token 探索自我惩罚、参数探索不惩罚但信噪比不足、一致性提交对浮点噪声的混沌放大）写成分析，主系统保持 p3h8。</span></div>
+    <div class="dq"><b>9. 转向参数空间探索（ES），先跑 P0-ES？</b><span class="rec ok">已同意并完成：不通过（见上）。</span></div>
+    <div class="dq"><b>10. F3（提交边界吸附）还跑吗？</b><span class="rec ok">不跑（11-26 同意）。</span></div>
     <div class="dq"><b>1. 句中草稿用 LoRA、句末读用冻结 wave17？</b><span class="rec ok">已同意（11-26）。</span></div>
     <div class="dq"><b>2. 质量奖励只用 BLEU，还是 BLEU + COMET？</b><span class="rec ok">已同意（11-26）。</span></div>
     <div class="dq"><b>3. 先做 P0 / P0' / P0 流畅度（约半天，不训练）？</b><span class="rec ok">已完成：P0 不通过（见上）。</span></div>
