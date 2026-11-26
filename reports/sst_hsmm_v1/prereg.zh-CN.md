@@ -1037,3 +1037,4 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - 数据：edev en2zh 全部 1292 条（开放 dev），4 片 × 3 变体。度量：语料 BLEU、代理 D2、断流、切在 token 中间的提交比例。
 - 判据（相对同引擎 base）：语料 BLEU ≥ +0.3 且代理 D2 ≤ +0.03 s → 通过。两者都通过取 BLEU 高者（差 < 0.1 取 D2 低者）。
 - 通过则用该变体按 p3h8 完整流程测试一次（RealSI / OBSI，talker T1c + U1T3 语速，全指标对 B_b 与 p3h8），只测这一次。
+- 补记（17:15 CET，P0-K 结果之后、测试之前）：输出目录名 p3k 已被 change 16 占用，测试输出改为 p3hk（p3hk_report.sh）；同一 talker 语速配置的对照是 p3ts_u1t3。
