@@ -1,0 +1,26 @@
+
+== en2zh  (len@q = draft units / final units at t/X≈q; first_at_final = share of units first drafted correctly at the final read)
+sys  cell             len@0.5        len@0.75  first_at_final      queue_wait      zero_reads units_per_commit   gap>0.3s: median p75 share>0.6s
+B_b  rsc               0.513           0.739           0.250           0.213           0.300           5.057   0.82 1.45 0.66
+NEW  rsc               0.497           0.731           0.284           0.196           0.318           4.745   0.82 1.67 0.70
+B_b  rsn               0.502           0.729           0.265           0.189           0.308           5.212   0.82 1.54 0.70
+NEW  rsn               0.507           0.747           0.296           0.169           0.335           4.535   0.82 1.64 0.71
+B_b  obclean           0.627           0.885           0.171           0.087           0.278           3.526   0.78 1.38 0.63
+NEW  obclean           0.627           0.892           0.171           0.093           0.295           3.593   0.68 1.34 0.62
+B_b  obid2             0.591           0.889           0.188           0.079           0.260           3.717   0.76 1.33 0.63
+NEW  obid2             0.567           0.881           0.190           0.077           0.295           3.598   0.76 1.43 0.66
+B_b  obood1            0.610           0.892           0.177           0.084           0.263             nan   0.74 1.30 0.61
+NEW  obood1            0.582           0.892           0.194           0.077           0.300             nan   0.74 1.38 0.67
+
+== zh2en  (len@q = draft units / final units at t/X≈q; first_at_final = share of units first drafted correctly at the final read)
+sys  cell             len@0.5        len@0.75  first_at_final      queue_wait      zero_reads units_per_commit   gap>0.3s: median p75 share>0.6s
+B_b  rsc               0.526           0.742           0.200           0.221           0.213           3.260   0.66 1.18 0.56
+NEW  rsc               0.524           0.758           0.259           0.159           0.292           2.796   0.76 1.51 0.69
+B_b  rsn               0.521           0.738           0.195           0.249           0.217           3.353   0.72 1.28 0.61
+NEW  rsn               0.543           0.771           0.278           0.145           0.331           2.891   0.82 1.67 0.71
+B_b  obclean           0.558           0.884           0.224           0.215           0.232           3.048   0.72 1.21 0.60
+NEW  obclean           0.556           0.879           0.232           0.183           0.281           2.596   0.78 1.56 0.66
+B_b  obid2             0.538           0.862           0.208           0.213           0.197           2.816   0.66 1.04 0.56
+NEW  obid2             0.544           0.907           0.243           0.157           0.277           2.671   0.78 1.54 0.66
+B_b  obood1            0.529           0.864           0.215           0.220           0.203           2.912   0.64 1.04 0.54
+NEW  obood1            0.535           0.883           0.246           0.175           0.286           2.644   0.82 1.54 0.71
