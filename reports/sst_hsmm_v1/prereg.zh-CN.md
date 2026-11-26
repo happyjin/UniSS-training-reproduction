@@ -946,3 +946,13 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   （= 同数据的 HSC6），而不是 h14（h14 的最终拟合见过全部 e1 条目，含 20% 留出，比较会偏向 h14）；GO 当 AUC_cons ≥ AUC_ref + 0.010
   且 ECE_cons ≤ 0.10。测试 p3h11 用 hsc10（同样每读 6 条采样）。实时性门槛 38-0 已通过（每读 p95：en2zh 236 ms、zh2en 286 ms；
   额外 p95 82 / 91 ms）。
+
+## change 39（第 1 步：talker 尾块加速，2026-11-26 10:27 CET，任何数字之前登记；用户 11-26 批准）
+- 依据（diag_p3h8/ratesim）：只重排时间轴的模拟显示，尾块加速 1.2× / 1.35× 使 EndOffset −0.37..−0.80 s、D2 ≈ 0、停顿 0；
+  整体加速 1.1× 使 D2 −0.06..−0.07 s、停顿 +0.10..+0.12。真实语速与可懂度需重新合成实测。
+- 做法（纯推理）：复用 p3h8 的 thinker 块与音色 token，只重跑 Talker T1c 及其后的评测（ASR / TitaNet / ECAPA2 / PESQ / dip 播放器 / p3_score）。
+  语速 token 为源/目标时长比的 0.1 步进（e2_batch.speed_token），用 si_infer 的 --speed-policy queue --queue-shift-per-s 0（关闭排队加速）
+  + --final-shift K（只对句子最后一块，即源结束后写出的块，加 K 档）。三个配置：
+  T2 = final-shift 2（尾块约 1.2×）；T4 = final-shift 4（约 1.4×）；U1T3 = --speed-shift 1 + final-shift 3（全局约 +0.1、尾块约 +0.3）。
+- 报告：相对 B_b 全指标，并与 p3h8 并列；判据（报告用）：ASR-BLEU 相对 p3h8 不降超过 0.3 的配置中，取 EndOffset 最低者；PESQ / sim 一并报告。
+  这是播放层改动，单独列出，不作为方法主贡献。
