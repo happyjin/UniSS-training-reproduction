@@ -1,0 +1,56 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2026_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{enumitem}
+\usepackage[capitalise]{cleveref}
+
+\newtheorem{proposition}{Proposition}
+\newcommand{\ours}{\textsc{Asc}}
+\newcommand{\Sst}{\mathsf{S}}
+\newcommand{\Ust}{\mathsf{U}}
+\newcommand{\enzh}{En$\rightarrow$Zh}
+\newcommand{\zhen}{Zh$\rightarrow$En}
+
+\title{Commit What Has Settled: Anchored Hidden Semi-Markov\\Filtering for Simultaneous Speech Translation}
+
+% Authors must not appear in the submitted version.
+\author{Anonymous authors\\
+Paper under double-blind review}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/intro}
+\input{sections/related}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\bibliography{references}
+\bibliographystyle{iclr2026_conference}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

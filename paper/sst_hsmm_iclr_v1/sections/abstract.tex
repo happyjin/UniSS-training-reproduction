@@ -1,0 +1,15 @@
+\begin{abstract}
+Large speech language models translate well offline, and the simplest way to use them simultaneously is re-translation: after every new chunk of audio the model re-drafts the whole output, and a commit rule decides which prefix of the draft is spoken, irrevocably.
+The dominant rule, local agreement, commits whatever two consecutive drafts share.
+It equates agreement with correctness, so it speaks anticipations that are later revised; when further checks are added as hard constraints, it waits too long.
+We instead treat commitment as Bayesian filtering of a latent per-unit state, \emph{settled} or not, observed through several unreliable certificates: agreement across reads, agreement between a raw and an enhanced view of the audio, a learned speech-support verifier, and the drafter's own confidence.
+The filter is an input-driven hidden semi-Markov model whose emissions depend on the acoustic reliability of each read, trained end to end through the forward algorithm.
+Maximum likelihood alone attaches the latent state to the wrong cluster of evidence and yields a badly miscalibrated posterior, so we anchor training with a discriminative term on the filtering posterior itself; this lowers the expected calibration error from 0.31 to 0.08.
+Under homogeneous evidence, committing the longest prefix whose posterior clears a single threshold is the Bayes-optimal stopping rule.
+A boundary-healing step stops commitments that end inside a subword token from corrupting the next draft.
+We evaluate on real interpreting speech and on clean and noisy broadcast-style streams, in both English--Chinese directions, with one bidirectional model.
+The method raises ASR-BLEU by 1.4 and 2.7 points over local agreement at comparable speech latency.
+Against a strong cross-view agreement system, it matches translation quality while speaking 0.30--0.47\,s earlier.
+An anatomy of the remaining delay shows that the commit layer is close to its information limit.
+Most avoidable latency is a single read of waiting after a unit has settled, and that read carries information no richer commit rule recovers.
+\end{abstract}
