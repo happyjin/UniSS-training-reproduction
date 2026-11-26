@@ -109,6 +109,23 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
   </div>
 </section>
 
+<section id="results">
+  <h2>11-26 下午的运行结果（change 40）</h2>
+  <p class="note">e1 前 500 条 / 方向（UniST 训练音频，不训练、不选择），p3h8 策略，每条 2 个分叉读 × 4 个采样，共 1000 组 / 方向。格式 en2zh | zh2en。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>预检查</th><th>结果</th><th>门槛</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>G0 组内有差异</td><td class="num">0.539 | 0.518</td><td class="num">≥ 0.5</td><td class="ok">通过</td></tr>
+      <tr><td>P0 时延上界（最优分叉 ΔD2 / 分叉读；更好的组）</td><td class="num">−0.034 | −0.030 s；12.5% | 10.9%</td><td class="num">≤ −0.05 s 且 ≥ 25%</td><td class="bad">不通过</td></tr>
+      <tr><td>P0 流畅度（Δ断流；Δ零提交读）</td><td class="num">−0.023 | −0.017 s；−2.4 | −1.8 点</td><td class="num">≤ −0.05 s 或 ≤ −3 点</td><td class="bad">不通过</td></tr>
+      <tr><td>P0'（S 有差异；Spearman(S, chrF) 中位数）</td><td class="num">0.97 | 0.97；0.00 | +0.35</td><td class="num">≥ 0.5 且 ≥ 0</td><td class="ok">通过</td></tr>
+      <tr><td>F4 前瞻 talker（T1L + 前瞻 3 对 T1c，ASR-BLEU）</td><td class="num">−0.17 | −0.42</td><td class="num">≥ +0.3 才开前瞻</td><td class="bad">不采用，保留 T1c</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">F4 补充：前瞻本身（T1L 有 / 无前瞻之差）只有 −0.03 | +0.07；10 月旧流水线上 zh2en +0.5 的收益在 p3h8 的块上不复现。结合 change 39，碎片韵律不是当前 ASR-BLEU 的主要损失来源。F3（边界吸附）因此未运行。</p>
+  <p class="verdict">按登记规则，P0 和 P0 流畅度都没过，读级分叉 GRPO 不进入 P1。原因是结构性的：采样的 d0 有约 80% 与贪心不同，而另一视角 d1 仍是贪心，两视角一致长度从 0.77–0.81 降到 0.41–0.45，该读少提交 0.9–1.5 个单元（只有 2% 的分叉多提交），下一读也更少。在“读间一致 + 视角一致”的提交者下，token 级探索会自我惩罚，强化学习只会学到“贴近贪心”。信息设计项 P0' 有信号，尤其 zh2en。</p>
+</section>
+
 <section>
   <h2>流畅度归因：Thinker 还是 Talker</h2>
   <p class="note">p3h8 对 B_b 的差值，格式为 en2zh | zh2en，每方向 5 个测试 cell 的平均。</p>
@@ -221,17 +238,29 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--bg);padding:0 4px
   <p class="verdict">可以同时跑。三者共用一套“流式 + 提交者 + 分叉”的 rollout 环境和同一个 GRPO 训练器，只换奖励。第一阶段的预检查共用同一批分叉数据：8 张卡约半天，同时跑 P0、P0'（I1）、P0 流畅度（I2），以及 F3 和 F4 推理。第二阶段只训练通过预检查的 idea：两个 idea 各用 4 张卡并行，每个比独占 8 卡慢约一倍；单个 idea 都验证有效后，再训练 I1+I2 组合作为最终系统，同时得到论文需要的消融。</p>
 </section>
 
+<section id="next">
+  <h2>新方向：参数空间探索（P0 失败后的提议，未登记、未运行）</h2>
+  <p>P0 说明问题出在探索方式，不在奖励。提交者奖励的是“自洽”：同一模型在相邻两读、两个视角上给出相同的草稿。token 级采样在每读、每个视角独立加噪，正好破坏自洽，所以探索得到的轨迹几乎总是提交更少。</p>
+  <ul class="list">
+    <li class="item"><span class="k">E1</span><div><b>进化策略（ES）优化草稿 LoRA</b>：每个种群成员是对 LoRA 加一次随机扰动的模型，成员内部仍用贪心解码，所以读间、视角间天然一致；奖励用整条句子的代理量（BLEU 约束、D2、断流、对数评分 S）。只需前向，不需要反向传播。借鉴 OpenAI ES（Salimans et al. 2017）、参数空间噪声探索（Plappert et al.，ICLR 2018）、ES 微调 LLM（Qiu et al.，ICML 2026，种群约 30）。成本：P0 显示每 125 条的流式 rollout 约 2 分钟 / 卡，vLLM 一个引擎可同时服务多个 LoRA 成员。</div></li>
+    <li class="item"><span class="k">E2</span><div><b>ICLR 角度</b>：命题“在自洽型提交者（LocalAgreement、视角一致、自一致性投票）下，动作空间探索的期望提交长度随采样熵按几何速率衰减，策略梯度被‘降熵’项主导；参数空间探索的成员内部输出相关，没有这一偏差”。P0 的分叉数据就是这个命题的第一份实证。这比原方案的组件 (2) 更有一般性，也适用于同传以外的自一致性验证场景。</div></li>
+    <li class="item"><span class="k">E3</span><div><b>预检查 P0-ES（约 1 小时，不训练）</b>：16 个随机 LoRA 扰动成员（固定 σ，对称成对），每个成员在同一 500 条 / 方向上贪心跑 p3h8 流程；看成员间（D2、BLEU、断流）的差异是否远大于零，以及最优成员相对基线是否落在质量–时延前沿之外。</div></li>
+  </ul>
+</section>
+
 <section>
   <h2>需要你决定</h2>
   <div class="decide">
-    <div class="dq"><b>1. 句中草稿用 LoRA、句末读用冻结 wave17？</b><span class="rec">建议：接受。末读冻结保 BLEU；LoRA 只有一个，仍是单一双向模型。</span></div>
-    <div class="dq"><b>2. 质量奖励只用 BLEU，还是 BLEU + COMET？</b><span class="rec">建议：BLEU 作约束，COMET 只做监控，先不进奖励，避免奖励被评测模型钻空子。</span></div>
-    <div class="dq"><b>3. 先做 P0 / P0' / P0 流畅度（约半天，不训练）？</b><span class="rec">建议：先做，同时跑 F3（推理期吸附）。</span></div>
+    <div class="dq"><b>9. P0 失败后：是否转向参数空间探索（ES），先跑 P0-ES 预检查（约 1 小时、不训练）？</b><span class="rec">建议：做。它直接回应 P0 暴露的问题，也是更有一般性的 ICLR 论点。</span></div>
+    <div class="dq"><b>10. F3（提交边界吸附）还跑吗？</b><span class="rec">建议：暂不跑。F4 和 change 39 都说明碎片韵律不是瓶颈，F3 还会略增时延。</span></div>
+    <div class="dq"><b>1. 句中草稿用 LoRA、句末读用冻结 wave17？</b><span class="rec ok">已同意（11-26）。</span></div>
+    <div class="dq"><b>2. 质量奖励只用 BLEU，还是 BLEU + COMET？</b><span class="rec ok">已同意（11-26）。</span></div>
+    <div class="dq"><b>3. 先做 P0 / P0' / P0 流畅度（约半天，不训练）？</b><span class="rec ok">已完成：P0 不通过（见上）。</span></div>
     <div class="dq"><b>4. 把流畅度（F1 断流时长 + F2 均匀到达）作为第二约束写进奖励？</b><span class="rec ok">已同意（11-26）。以 P0 流畅度通过为前提。</span></div>
     <div class="dq"><b>5. 核查 F4（talker 韵律上下文）？</b><span class="rec ok">已同意并完成核查（见 F4）。</span></div>
-    <div class="dq"><b>6. 从 S3 恢复 T1L，在 p3h8 的草稿上跑 F4 测试（推理期，约 1 h、2 张卡）？</b><span class="rec">建议：做，可与预检查同时跑。</span></div>
-    <div class="dq"><b>7. 三个候选 idea 中，哪些进入共享预检查？</b><span class="rec">建议：I1 + I2 必做；I3 在未来采样器的数据问题确认后再加。</span></div>
-    <div class="dq"><b>8. 为了通用性，是否加一个文本同传任务（开放数据训练、公开基准测试）？</b><span class="rec">建议：加。这是 ICLR 级论文必需的第二个任务；它与“所有训练用同一份 UniST 数据”的规则冲突，需要你确认。</span></div>
+    <div class="dq"><b>6. 从 S3 恢复 T1L，在 p3h8 的草稿上跑 F4 测试（推理期，约 1 h、2 张卡）？</b><span class="rec ok">已完成：不采用（见上）。</span></div>
+    <div class="dq"><b>7. 三个候选 idea 中，哪些进入共享预检查？</b><span class="rec ok">已同意；I1、I2 的共享预检查已跑。</span></div>
+    <div class="dq"><b>8. 为了通用性，是否加一个文本同传任务（开放数据训练、公开基准测试）？</b><span class="rec ok">已同意。UniST data2 带源文本和词级时刻，文本任务可以用同一份 UniST 训练数据，只是输入换成按时刻到达的源文本；待主方法确定后再做。</span></div>
   </div>
 </section>
 
