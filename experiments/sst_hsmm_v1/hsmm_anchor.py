@@ -202,6 +202,7 @@ def main():
     ap.add_argument("--pre-out", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--ref", default=str(REPO / "eval_outputs/sst_hsmm_v1/h9/params.json"))
+    ap.add_argument("--no-gate", action="store_true", help="change 46: report the precheck but always fit (refit for a new drafter)")
     a = ap.parse_args()
     for f in (a.pre_out, a.out):
         if Path(f).exists():
@@ -230,7 +231,7 @@ def main():
            "filter_check": chk, "n_train": len(train), "beta": BETA}
     Path(a.pre_out).write_text(json.dumps(res, indent=1))
     print("precheck GO" if go else "precheck NO-GO", flush=True)
-    if not go:
+    if not go and not a.no_gate:
         sys.exit(3)
     pall, hall, chk2 = fit([(o, u, y) for _, o, u, y in seqs])
     out = {"lmax": LMAX, "eps": EPS, "joint": True, "anchored": True, "beta": BETA, "params": pall, "hist": hall,
