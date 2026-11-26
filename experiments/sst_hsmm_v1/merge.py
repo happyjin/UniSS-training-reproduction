@@ -23,12 +23,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--adapters", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--scale-mult", type=float, default=1.0, help="multiply the LoRA delta (change 47: 0.5)")
     a = ap.parse_args()
     out = Path(a.out)
     if out.exists():
         raise SystemExit(f"拒绝覆盖已有输出: {out}")
     meta = json.load(open(Path(a.adapters).with_suffix(".json")))
-    scale = meta["alpha"] / meta["rank"]
+    scale = meta["alpha"] / meta["rank"] * a.scale_mult
     st = torch.load(a.adapters, map_location="cpu")
     delta = {}
     for k in st:

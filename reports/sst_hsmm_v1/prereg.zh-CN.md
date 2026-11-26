@@ -1084,3 +1084,10 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - 选点：pick_h10 规则（参照 = wave17 heal@0.75 / base@0.75 的 edev 数，BLEU ≥ 参照 − 0.30 中代理 D2 最低）。
 - **阶段 3（测试）：** 不论 dev 判定，按 p3hk 流程测试一次选中配置（输出 p3d3），全指标相对 B_b，并列 p3hk、p3hk2。dev 判定写在测试数字之前。
 - 停止条件：阶段 0 NO-GO；或阶段 1 训练发散（CE_a 末 100 步均值 > 初始 1.5 倍）→ 停止并报告。
+
+## change 47（D3 诊断 + D3 LoRA×0.5 合并 = 方案 S1，2026-11-26 22:20 CET，任何 S1 数字之前登记；用户 11-26 21:55 批准，并授权今晚到 11-27 白天依次跑约 8 个方案）
+- **诊断：** wave2_S1 dev（a = CoVoST/CV 朗读，b = UniST-Emilia；开放数据，非测试）整句离线贪心解码（offline_ceiling 同提示），模型 d3/merged 与 d3s05/merged；wave17 用已有 devoff。按子集报告 BLEU 与译文长度比。只做诊断，不参与选点。
+- **S1：** 把 D3 的 LoRA 增量按 0.5 缩放合并到 wave17（merge.py --scale-mult 0.5，单一设置，不扫）→ d3s05/merged。
+  其余与 change 46 阶段 2–3 完全相同：h1 shards 上 rollout、hsmm_anchor 重拟合（h14 设置，--no-gate）、edev 网格（en2zh heal@0.75–0.60，zh2en base@0.75–0.60）、
+  判定与选点规则同 change 46（wave17 参照同 d3_analyze；插值范围外时额外报告是否全面优于 wave17 同 θ 点）、测试 p3d3s05（不论 dev 判定）。
+- **有效标准（测试）：** 与 p3hk / p3hk2 前沿比较：同 θ 下相对 wave17（p3hk2 en2zh heal@0.60）的 ASR-BLEU 损失 < 0.7 且 D2 更低，或在两方向都位于 p3hk–p3hk2 连线之上。否则判为无效，进入下一个方案。
