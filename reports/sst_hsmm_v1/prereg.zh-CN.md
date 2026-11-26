@@ -1108,3 +1108,18 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - **使用：** 只在非最后一读挂 P2F LoRA（hsc17 --draft-lora），最后一读用 wave17（change 48 的忠实收尾）。HSMM 在 P2F 合并模型的 rollout 上重拟合（h14 设置，--no-gate）；另做 wave2_S1 dev 整句离线解码诊断（不参与选点）。
 - **dev / 选点 / 测试：** 同 change 48（edev 网格、drafter_analyze、pick_h10），测试 p3p2fff 不论 dev 判定。有效标准同 change 47。
 - 顺序：S2 测试结束后自动开始训练（chain_ff.sh）。
+
+## change 48 结果与在线校准预筛（2026-11-27 00:40 CET，记录于此以便后续登记引用）
+- S2（p3d3s05ff）测试相对 B_b：en2zh ASR −0.173、D2 −0.457；zh2en +2.015、−0.313。对 S1：BLEU +0.04 / +0.12，时延收益少 0.12 / 0.10 s → 忠实收尾基本无效；损失来自中途提交的错误预判（RealSI en2zh −1.2）。
+- 在线校准（按语流用下一读修订情况估计 logit 偏移）开发集预筛：d3s05 edev 上前半段偏移与后半段最终存活残差相关 0.056，三分位残差 −0.014 / 0.003 / 0.025 → 信号太弱，不实现（NO-GO，不占测试）。
+
+## change 50（方案 S4：跨模型一致上限 CMA，2026-11-27 00:45 CET，任何 S4 数字之前登记；夜间自主授权）
+- **动机：** 预判 drafter 在 OOD（RealSI）上提交了错误预判；单一阈值/重拟合无法区分。借鉴 TAF（Ouyang et al., NAACL 2025）"不同预测者一致才可信"的思路：预判草稿中只有原 wave17 草稿也同样给出的前缀才允许提交。
+- **方法（hsc18 --cma --lora-final）：** 引擎 = wave17 + S1 的 D3 LoRA×0.5（d3/peft/a0.5000，所有读都挂，等同 S1 的 drafter）；每个非最后读额外一个 wave17 原模型原始音频提示（同 healed 前缀）；
+  后验阈值切点之后 cut = min(cut, max(n, LCP(d0, d_base)))。HSMM 参数 d3s05/h（S1 的拟合）。不训练。
+- **dev / 选点 / 测试：** edev 网格（en2zh heal@0.75–0.60，zh2en base@0.75–0.60），drafter_analyze，pick_h10，测试 p3d3cma（不论 dev）。
+- **有效标准：** 相对 S1（同 drafter、同 θ）BLEU 回升 ≥ 0.5 且 D2 增加 < 回升 BLEU × 0.3 s/BLEU（即优于沿 wave17 前沿的交换率），或满足 change 47 标准。
+
+## change 51（S5：S1 在质量工作点 θ0.75 的测试，2026-11-27 00:45 CET，登记于任何 S5 数字之前）
+- **动机：** edev BLEU 对适配后的 drafter 有偏（S1/S2/D3 都选到 θ0.60），无法判断预判在"BLEU 优先"下是否优于 p3hk。按与 p3hk 相同的 θ 直接测：en2zh heal@0.75、zh2en base@0.75，drafter = d3s05/merged，参数 d3s05/h。只测这一点，不扫。
+- **有效标准：** 两方向 ASR-BLEU 不低于 p3hk −0.3 且 D2 低于 p3hk ≥ 0.15 s（即在质量端优于 p3hk）。
