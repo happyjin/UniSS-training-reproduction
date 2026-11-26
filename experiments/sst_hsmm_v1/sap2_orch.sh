@@ -17,6 +17,7 @@ if [ -z "$DRY" ]; then
   mkdir -p $LOGD $R
   git rev-parse HEAD > $R/commit.txt
   log "orch $$: SAP2 (change 37-4)"
+  if [ -d logs/sst_hsmm_v1/t2pre ]; then until grep -q "^exit" logs/sst_hsmm_v1/t2pre/p5.log 2>/dev/null; do sleep 30; done; fi   # CPU pre-run
   [ -s $D/data2/train_zh2en.jsonl ] || { PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.data2 --procs 96 > $LOGD/data2.log 2>&1 || die "data2"; }
   log "data2: $(tail -n 2 $LOGD/data2.log | tr '\n' ' ' | cut -c1-300)"
   [ -s $D/p5/samples.jsonl ] || { OMP_NUM_THREADS=1 PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.risk_prep2 --out $D/p5 --procs 96 > $LOGD/p5.log 2>&1 || die "p5"; }
