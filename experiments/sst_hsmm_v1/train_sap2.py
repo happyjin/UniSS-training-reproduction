@@ -1,4 +1,4 @@
-"""sst_hsmm_v1 prereg change 37-4: SAP2 = train_sap.py (not modified) with data2 rows (80000 / direction) and p5 samples (risk_prep2: e1 rows
+"""sst_hsmm_v1 prereg change 37-4: SAP2 = train_sap.py (not modified) with data2 rows (80000 / direction) and p5sap2 samples (risk_prep2: e1 rows
 excluded), 4000 steps, checkpoints every 1000, output adapters as before. Was: sst_hsmm_v1 prereg change 24: SAP = supported-prefix training of a bidirectional LoRA on wave17 (pure LA2 / combo inference).
 Per sample (the p4 noisy UniST mixtures, step s slot j, reference row with the speech-timeline support chunk g_i of every token):
 teacher-forced prefix forward at every read c = 1..C (audio <= c s) over the REFERENCE + <|im_end|>; WAIT masked;
@@ -31,7 +31,7 @@ from experiments.sst_hsmm_v1 import model as MD  # noqa: E402
 from experiments.uniss_streaming_p2st_traj_v1.training import lora as L  # noqa: E402
 
 DATA = REPO / "eval_outputs/sst_hsmm_v1/data2"
-P4 = REPO / "eval_outputs/sst_hsmm_v1/p5"
+P4 = REPO / "eval_outputs/sst_hsmm_v1/p5sap2"
 SLOTS, WARM, SAVE_EVERY, STEPS = 16, 50, 1000, 4000
 LR = 1e-4
 DIRS = ("en2zh", "zh2en")

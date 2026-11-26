@@ -51,8 +51,8 @@ def main():
     ap.add_argument("--procs", type=int, default=48)
     a = ap.parse_args()
     out = Path(a.out)
-    if (out / "samples.jsonl").exists():
-        raise SystemExit(f"拒绝覆盖已有输出: {out}/samples.jsonl")
+    if out.exists():   # change 37 fix: the whole output dir must be new (the first run wrote into the older P5 dir eval_outputs/sst_hsmm_v1/p5)
+        raise SystemExit(f"拒绝覆盖已有输出目录: {out}")
     p4 = {(x["s"], x["j"]): x["row"] for x in map(json.loads, open(REPO / "eval_outputs/sst_hsmm_v1/p4/samples.jsonl"))}
     e1rows = set()
     for d in ("en2zh", "zh2en"):

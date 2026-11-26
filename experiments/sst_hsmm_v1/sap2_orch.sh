@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# prereg change 37-4 SAP2 (copy of t_orch.sh): data2 (CPU) -> risk_prep2 -> p5 (CPU) -> 3-step torchrun smoke of train_sap2 (t2/smoke)
+# prereg change 37-4 SAP2 (copy of t_orch.sh): data2 (CPU) -> risk_prep2 -> p5sap2 (CPU) -> 3-step torchrun smoke of train_sap2 (t2/smoke)
 # -> 4000-step train_sap2 (t2/train) -> wave16_make_lora alpha 1 -> v2/lora/a1.0000 -> t2/DONE. Cards 0-7. Refuses outputs.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
@@ -20,7 +20,7 @@ if [ -z "$DRY" ]; then
   if [ -d logs/sst_hsmm_v1/t2pre ]; then until grep -q "^exit" logs/sst_hsmm_v1/t2pre/p5.log 2>/dev/null; do sleep 30; done; fi   # CPU pre-run
   [ -s $D/data2/train_zh2en.jsonl ] || { PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.data2 --procs 96 > $LOGD/data2.log 2>&1 || die "data2"; }
   log "data2: $(tail -n 2 $LOGD/data2.log | tr '\n' ' ' | cut -c1-300)"
-  [ -s $D/p5/samples.jsonl ] || { OMP_NUM_THREADS=1 PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.risk_prep2 --out $D/p5 --procs 96 > $LOGD/p5.log 2>&1 || die "p5"; }
+  [ -s $D/p5sap2/samples.jsonl ] || { OMP_NUM_THREADS=1 PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.risk_prep2 --out $D/p5sap2 --procs 96 > $LOGD/p5.log 2>&1 || die "p5"; }
   log "p5: $(tail -n 2 $LOGD/p5.log | tr '\n' ' ' | cut -c1-300)"
   start_watcher
 fi
