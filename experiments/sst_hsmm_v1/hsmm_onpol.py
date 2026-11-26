@@ -1,6 +1,7 @@
 """sst_hsmm_v1 prereg change 36 (HSC6-on-policy): the HSC6 model / objective of hsmm_anchor.py (not modified), refitted on the union of
 the N-policy rollouts (h1/roll_*) and rollouts of the deployed policy itself (hsc9_si_thinker n2 theta 0.75 on h14, h20/roll_*), i.e. one
-DAgger-style aggregation step. In an on-policy record ("P" present) the per-read commit count is n_new (the policy's own cut), not cv_new.
+DAgger-style aggregation step. The per-read commit count is cv_new in both record kinds (the thinker stores len(new) as cv_new and N's cut as
+n_new; the first version used n_new for on-policy records, which broke the lp0 alignment), so the walk is hsmm_anchor.walk unchanged.
 Precheck on the held-out (sha1 % 5 == 0) on-policy instances only: GO if ECE_new <= ECE_h14 and AUC_new >= AUC_h14 - 0.005.
     <qwen3omni python> -m experiments.sst_hsmm_v1.hsmm_onpol fit --roots 'eval_outputs/sst_hsmm_v1/h1/roll_*,eval_outputs/sst_hsmm_v1/h20/roll_*' \
         --onpol-root 'eval_outputs/sst_hsmm_v1/h20/roll_*' --pre-out eval_outputs/sst_hsmm_v1/h20/precheck.json --out eval_outputs/sst_hsmm_v1/h20/params.json"""
@@ -16,46 +17,7 @@ sys.path.insert(0, str(REPO))
 from experiments.sst_hsmm_v1 import hsmm_anchor as HA  # noqa: E402
 
 
-def walk(blocks_path, zh, relv, held):
-    """hsmm_anchor.walk with the commit count = n_new for on-policy records"""
-    from experiments.uniss_qwen3_omni_v1.evaluation.si_thinker_stream import units
-    seqs, inst = [], []
-    for line in open(blocks_path, encoding="utf-8"):
-        r = json.loads(line)
-        RV = relv.get(r["id"])
-        if RV is None:
-            continue
-        ho = held(r["id"])
-        fin = units(r["translation"], zh)
-        n, prev, H = 0, None, {}
-        for x in r["drafts"][:-1]:
-            if "lp0" not in x:
-                continue
-            d0 = units(x["draft"], zh); d1 = units(x["draft_v1"], zh); ds = units(x["draft_sap"], zh)
-            lp0 = [0.0] * n + x["lp0"]; lps = [0.0] * n + x["lps"]
-            rr, vv = RV.get(x["t"], (1.0, 1.0))
-            ok = HA.H2.lcp(d0, fin)
-            c = x["n_new"] if "P" in x else x["cv_new"]
-            for i, o in HA.H2.observations(d0, prev, d1, ds, lp0, lps, n).items():
-                h = H.setdefault(i, ([], [], []))
-                h[1].append(HA.inputs_vec(rr, vv, len(h[0]), x["t"], zh)); h[0].append(o)
-                y = int(i < ok) if i >= n + c else -1
-                h[2].append(y)
-                if ho and y >= 0:
-                    inst.append((list(h[0]), list(h[1]), y, len(h[0])))
-            for i in range(n, n + c):
-                if i in H:
-                    seqs.append((r["id"],) + H.pop(i))
-            n += c
-            prev = d0
-        fx = r["drafts"][-1]
-        dfin = units(fx["draft"], zh)
-        rr, vv = RV.get(fx["t"], (1.0, 1.0))
-        for i, o in HA.H2.final_observations(dfin, prev, n).items():
-            if i in H:
-                h = H[i]; h[1].append(HA.inputs_vec(rr, vv, len(h[0]), fx["t"], zh)); h[0].append(o); h[2].append(-1)
-        seqs += [(r["id"],) + v for v in H.values()]
-    return seqs, inst
+walk = HA.walk
 
 
 def main():

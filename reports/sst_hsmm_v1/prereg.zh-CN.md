@@ -903,3 +903,7 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - 预检查（CPU，留出 sha1%5==0 的 on-policy 实例）：GO 当 ECE_new ≤ ECE_h14 且 AUC_new ≥ AUC_h14 − 0.005；NO-GO 则本轮止于此。
 - dev：n2 θ ∈ {0.65, 0.70, 0.75, 0.80}（params h20）；pick_h8 只在该族内按同一规则选（赤字 ≤ 0.30 vs HSC2，最小代理语音延迟）；测试 p3h9。
 - 成功标准：相对 p3h8，两向 D2 更低或持平（±0.02）且 ASR 不低于 p3h8 −0.3、≥ B_b；NP_in 不升高。
+- change 36 补记（03:20 CET，测试数字出来前）：首版 hsmm_onpol 把 on-policy 记录的提交数取为 n_new，但思考器里 n_new 存的是 N 的切点、
+  实际提交数存在 cv_new（与 hsmm_anchor.walk 一致）→ lp0 对齐越界、拟合失败（rollout 本身完好）。改为直接复用 hsmm_anchor.walk，
+  从拟合步续跑（hf2_chain.sh）。同一原因更正 change 35 诊断里的比例：实际提交/LA2 单元 en2zh RealSI-clean 2.61/3.83 = 68%、
+  OBSI-clean 1.91/1.80 = 106%；zh2en 1.41/1.97 = 72%、1.07/1.17 = 91% —— “RealSI 提交比例显著偏低”的结论不变。
