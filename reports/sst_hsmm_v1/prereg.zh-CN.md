@@ -907,3 +907,20 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   实际提交数存在 cv_new（与 hsmm_anchor.walk 一致）→ lp0 对齐越界、拟合失败（rollout 本身完好）。改为直接复用 hsmm_anchor.walk，
   从拟合步续跑（hf2_chain.sh）。同一原因更正 change 35 诊断里的比例：实际提交/LA2 单元 en2zh RealSI-clean 2.61/3.83 = 68%、
   OBSI-clean 1.91/1.80 = 106%；zh2en 1.41/1.97 = 72%、1.07/1.17 = 91% —— “RealSI 提交比例显著偏低”的结论不变。
+
+## change 37（调整后的方案 A，2026-11-26 08:20 CET，任何数字之前登记；用户 11-26 批准“开始完整调整后的方案A”）
+- 依据（diag_p3h8）：RealSI 上被等待的主要是“草稿两读一致、SAP 未支持”的单元（AU），占比 RealSI 0.18–0.21、最终存活约 75%、
+  存活者 SAP 晚 1.4–1.7 读才支持；UniST-Emilia（h20 rollout）同样出现（0.13/0.16，1.41/1.43 读）；而选 θ 的 dev（wave2_S1）
+  是 Common Voice 朗读语音（0.10/0.10，1.15/1.28 读）→ dev 不代表自发语音。e1（HSMM 训练条目）= p4 = SAP 训练样本。
+- 37-1 自发语音 dev（edev）：UniST 留出行（data/items_<d>.jsonl，从未进入 SAP / HSMM 训练），en2zh 只取源为 EN_B* / emilia* 的行，
+  zh2en 全部（99% Emilia），clean + noisy；DeepFilterNet3 视角（wave15_enh_views.py，S1_DATA=edev/data）。
+- 37-2 预检查 sap_lag（GPU，先报数字再决定）：在 edev（留出）和 SAP 训练样本（p4，自发语音行，每方向 600）上，每读 c（1 s）
+  从 audio[:c] 生成贪心草稿（wave17+SAP；wave17 单独作参照），不带已提交前缀。真值覆盖 = #{token: g_i ≤ c}/n，SAP 覆盖 =
+  草稿 token 数 / 全音频草稿 token 数；滞后 L = Σ_{c<C}(真值覆盖 − SAP 覆盖)（读，= 两条覆盖曲线的平均水平距离），并分正负部分。
+  GO（用更多数据重训 SAP）当 L_ho ≥ 0.25 读 且 L_ho − L_tr ≥ 0.10（两方向 × clean/noisy 平均）；否则不重训，带数据向用户汇报（方案第 4 步）。
+- 37-3 对照（无论预检查结果）：p3h8 配置（h14、旧 SAP、n2）在 edev 上跑 θ ∈ {0.65, 0.70, 0.75, 0.80}：检验在朗读语音上选的 θ0.75 对自发语音是否合适。
+- 37-4 若 GO：SAP2 = SAP 同目标同代码，数据 4×（每方向 80k UniST 行：沿用 data.py 同一 sha1 排序与过滤、排除留出行，按 p4 方式混噪），
+  4000 步；仍是 wave17 上一个双向 LoRA。随后 N 策略 rollout（验证器 SAP2，e1 条目）→ hsmm_anchor 拟合（GO 规则同 h14）→ 新 params；
+  edev 上 SAP2 族 n2 θ ∈ {0.65, 0.70, 0.75, 0.80}；在 edev 上于“对照族 ∪ SAP2 族”中选：两方向 BLEU ≥ p3h8 配置（θ0.75）− 0.30，
+  取平均代理语音延迟最小；测试 p3h10（p3h8 流程）；若选中对照族 θ0.75（= p3h8）则不重复测试。
+- 成功标准：p3h10 相对 p3h8 两方向 D2 更低（尤其 RealSI cells），ASR ≥ p3h8 − 0.3 且 ≥ B_b，NP_in 不升高。
