@@ -1143,3 +1143,16 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   按 chrF 共识在贪心 + 样本中选 d0，其 token 与 log-prob 照常进入 HSMM；增强视图、SAP 验证器不变；最后一读同 S6。单一设置。
 - **测试：** p3hkc，与 p3hk、p3hkm 对比；无 dev 选点。
 - **有效标准：** 相对 p3hk 两方向平均 ASR-BLEU ≥ +0.3 且 D2 不增加超过 0.05 s；或 D2 降低 ≥ 0.1 s 且 BLEU 不降。
+
+## change 54（方案 S8：预判一致性证书 AAC，2026-11-27 04:41 CET，任何 S8 数字之前登记；夜间自主授权）
+- **动机：** S3 显示 P2F 的中途草稿在 zh2en 更早收敛到最终结构，但在 en2zh（尤其 RealSI）错误预判多。直接用预判草稿提交会说出错误预判（D3 / S1 / S2 / S5 同一问题）；硬上限 CMA（S4）又把正确预判一起删掉。
+  改为**把预判当证据而不当输出**：提交的文本始终是 wave17 的忠实草稿 d0；P2F 适配器对同一读另起草一次，"预判草稿与忠实草稿在位置 i 前一致"作为 HSMM 的第 5 个证书（软证据，可靠性随声学输入变化），由锚定训练学会它对"已稳定"的似然比。
+  思路借自 TAF（Ouyang et al., NAACL 2025，多个预测者一致才可信），但作为贝叶斯滤波里的观测，而不是投票或硬规则。
+- **方法（hsmm_p2f / hsc21）：** pb ∈ {1 = i < LCP(d0, d_p2f)，0 = 在 P2F 草稿内但不一致，2 = P2F 草稿在 i 之前结束，NA = 最后一读 / 无 P2F 草稿}；每个状态 U / S 一个分类发射，logit 对 [1, r, r², z] 线性（同 v / sq）。
+  其余结构、目标（β = 1 锚定）、输入、先验、确定性约束与 HSC6 完全相同。P2F 提示与 d0 用同一 healed 提示、音频和采样参数，同一引擎（max_loras 2）。
+- **训练：** wave17 的 N 策略 rollout（h1 分片，hsc21_roll --p2f-lora p2f/peft/a1.0000，记录 draft_p2f）→ hsmm_p2f fit。80/20 预检（参照 = 同数据 pb 掩码；AUC ≥ +0.010 且 ECE ≤ 0.10 为 GO）**只报告、不拦截** → 全量拟合。
+  P2F 适配器沿用 S3（同一个双向模型）；只重新训练 HSMM。无蒸馏，只用开放 UniST rollout。
+- **dev / 选点：** edev 上 hsc21 网格 en2zh heal@0.75..0.60、zh2en base@0.75..0.60；drafter_analyze 的 pick_h10 规则（参照 wave17 heal_0.75 / base_0.75，BLEU ≥ 参照 −0.30 中 D2 最低）。drafter 是 wave17，所以 UniST 适配 drafter 的 edev 偏差不适用。
+- **测试：** p3aac（不论 dev 判定）= wave17 + hsc21 + aac/h/params.json + 选定 spec，其余同 p3d3_report.sh。
+- **有效标准（BLEU 优先，相对 B_b 的 5 cell 平均）：** 每个方向满足 (i) ASR-BLEU ≥ p3hk −0.2 且 D2 ≤ p3hk −0.10 s，或 (ii) 比 p3hk–p3hk2 连线（外推）高 ≥ 0.2 BLEU。两方向都满足 = 有效；只一个方向 = 单方向有效。
+- **顺序：** S7 队列（pid 199559）结束后自动开始（queue_s8.sh → s8_pipe.sh，TAG aac）。
