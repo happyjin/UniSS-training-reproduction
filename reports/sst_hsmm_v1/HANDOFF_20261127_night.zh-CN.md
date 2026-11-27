@@ -53,3 +53,7 @@
 
 - 关键机制发现（change 62，`en2zh_analysis/a11_draft_cmp.py`）：预判起草器的时延收益几乎全部来自已听到内容的前缀一致性（E1 每读多提交约 2 个单位，其中只有 0.15 个超出 p3hk 草稿）。EGA / CCA 的预判尾部本身没有用。
 - 等结果：各链路结束会生成 `pvx/CHAIN_<m>_DONE`（q1 / r1 / s2 / k1）和 `pv5/CHAIN_g2_DONE`。之后用 `pv8_final.sh`（NEWS = p3pfg2 p3pfq1 p3pfr1 p3pfs2 p3pfk1，EXTRA_SYS 加上 pfs2 / pfk1 的名字）算 COMET 和表格。
+- **00:37 CET：HCG v2（p3pfg2）测试结果，相对 p3hk：**
+  - zh2en：ASR +0.79，D2 −0.113 s，文本 BLEU +0.89，比连线高 +1.15，**有效**；是目前 zh2en 最好的结果，S1 为 +0.61。
+  - en2zh：ASR −0.64，D2 −0.053 s，文本 BLEU −2.20，比连线低 −0.53，无效。
+  - 判定脚本：scratchpad 下 `verdict.py`。
