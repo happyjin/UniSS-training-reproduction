@@ -1214,7 +1214,7 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - **共同约束：** 一个双向模型；无师生蒸馏（目标只来自参考译文 + 对齐，用户 11-27 同意使用对齐工具）；只用开放数据训练或拟合；RealSI / OBSI 只测试。允许按方向采用不同的推理设置（用户 11-27 同意）。
 - **change 56 补记（17:50 CET，H3 任何质量 / 时延数字之前）：** H3 冒烟（3 句 × 2 方向）显示门控 0 / 26 读触发：wave17 对截断音频的转写总以句号结尾，原规则把"以句末标点结尾"判为闭合，门控失效（例："We want to know if he's been talking to your."）。已停掉尚未开始计算的 pfh3（按 PID，输出改名 *_pv3inert，未产生任何 dev 结果），规则改为：去掉转写末尾标点后看最后一个词；中文句末语气词（了吗呢吧啊呀嘛）视为闭合；英文 PRON 只有物主 / 关系代词（Poss=Yes / PronType=Rel）视为未闭合（"Thank you." 不算）。其余不变，重新冒烟后再跑 pfh3。
 
-## change 57（en2zh 根因修正：A 测量 + B1 / B2，2026-11-27 21:10 CET，任何 B1 / B2 方法数字之前登记；用户批准"1 执行，2 都跑，3 改写正确就可以"）
+## change 57（en2zh 根因修正：A 测量 + B1 / B2，2026-11-27 20:50 CET，任何 B1 / B2 方法数字之前登记；用户批准"1 执行，2 都跑，3 改写正确就可以"）
 - 依据：reports/sst_hsmm_v1/en2zh_failure_analysis_20261127.zh-CN.md。
 - **A 测量修正：**
   - pf_analyze 默认改用官方测试 BLEU（wave2_s1_score.Bleu / normalize_for_bleu），`--bleu raw` 只用于复现旧结果。选点和筛选规则不变（两个 dev 集都要满足）。
