@@ -231,6 +231,7 @@ def main() -> None:
     ap.add_argument("--verifier", required=True, help="PEFT adapter dir of the SAP LoRA (alpha 1)")
     ap.add_argument("--shadow-final", action="store_true", help="C1: unprefixed whole-audio greedy draft on the final read")
     ap.add_argument("--draft-tag", action="store_true", help="E1: horizon-tagged heads (p2ft_tags) for the drafter prompts")
+    ap.add_argument("--tag-set", default="p2ft", choices=("p2ft", "h1", "mono"), help="plan v3: heads of --draft-tag (h1_tags for h1 / mono)")
     ap.add_argument("--ctr-cert", action="store_true", help="B1: counterfactual previous-audio score of d0 -> rec[ctr]")
     ap.add_argument("--bnd-cut", action="store_true", help="B2: boundary-aligned audio cut of non-final reads")
     ap.add_argument("--bias-redraft", type=float, default=0.0, help="A1: bias (nats) for accepting the previous draft")
@@ -321,8 +322,12 @@ def main() -> None:
                                          {"type": "text", "text": instruction}]}]
     head = processor.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     if args.draft_tag:                                               # E1
-        from experiments.sst_hsmm_v1.p2ft_tags import tagged_heads
-        hp_, hc_ = tagged_heads(processor)
+        if args.tag_set == "p2ft":
+            from experiments.sst_hsmm_v1.p2ft_tags import tagged_heads
+            hp_, hc_ = tagged_heads(processor)
+        else:                                                        # plan v3: H1 / H4
+            from experiments.sst_hsmm_v1.h1_tags import heads as h1_heads
+            hp_, hc_ = h1_heads(processor, args.tag_set)
         head_p, head_c = hp_[args.direction], hc_[args.direction]
         assert dreq is not None, "--draft-tag needs --draft-lora"
     assert not (args.bias_redraft > 0 and args.mid_mbr > 0), "A1 and mid-MBR are separate methods"
@@ -908,7 +913,7 @@ def main() -> None:
     for fh in fhs.values():
         fh.close()
     st = dict(st)
-    st.update(method=f"HSMM {args.variant} (change 45 variants)", hsc22=dict(shadow=args.shadow_final, tag=args.draft_tag, ctr=args.ctr_cert, bnd=args.bnd_cut, a1=args.bias_redraft, util=args.mbr_util, sentcut=args.sentcut, tmap=args.theta_map), variants=VARS, fork_reads=args.fork_reads, fork_k=args.fork_k, fork_temp=args.fork_temp, fork_top_p=args.fork_top_p, forks=len(forks), variant=args.variant, params=args.params, theta=args.theta, verifier=args.verifier, second_view=sv, thinker=args.thinker, assign=args.assign, lora_root=args.lora_root, const_alpha=args.const_alpha,
+    st.update(method=f"HSMM {args.variant} (change 45 variants)", hsc22=dict(shadow=args.shadow_final, tag=args.draft_tag, tag_set=args.tag_set, ctr=args.ctr_cert, bnd=args.bnd_cut, a1=args.bias_redraft, util=args.mbr_util, sentcut=args.sentcut, tmap=args.theta_map), variants=VARS, fork_reads=args.fork_reads, fork_k=args.fork_k, fork_temp=args.fork_temp, fork_top_p=args.fork_top_p, forks=len(forks), variant=args.variant, params=args.params, theta=args.theta, verifier=args.verifier, second_view=sv, thinker=args.thinker, assign=args.assign, lora_root=args.lora_root, const_alpha=args.const_alpha,
               views=args.views, budget_from=args.budget_from, budget_pool_meta=args.budget_pool_meta, items=len(items), seconds=round(time.time() - t0, 1),
               items_sha1=hashlib.sha1(open(args.items_file, "rb").read()).hexdigest())
     (Path(args.out) / f"job_{args.direction}.combo.json").write_text(json.dumps(st), encoding="utf-8")

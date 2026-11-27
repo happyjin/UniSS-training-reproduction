@@ -1196,3 +1196,19 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - C1 的 r_t 分位点取自 B0 θ0.75 的全部非最后读；α 按方向合并两个 dev 集。
   - 执行：三条队列（lane1：B1 → A2 → D2 → C2；lane2：B2 → A1 → D1 → E1；lane3：C1），共享卡池；E1 训练 4 卡（09:38 开始）。
   - B0 同时是 hsc22 的首次 GPU 运行。
+
+## change 56（plan v3：H1 / H3 / H4 + E1·D1，2026-11-27 17:40 CET，任何 change 56 方法数字之前登记；用户批准"你来安排 8 卡"）
+- 方案：reports/sst_hsmm_v1/plan_v3_20261127.zh-CN.md（第 11 节为用户决定）。H2 按用户决定不做（推理 3× 算力不可用）。
+- **流程（与 change 55 相同）：** 每个方法只有一个设置；rollout + 重拟合（需要时）→ dev（edev + cvdev，只跑 Thinker，代理 D2，pf_analyze 选点，相对 B0）→ 测试 p3<TAG>，不论 dev 结果。dev 筛选判定只记录、不砍测试；测试判定标准同 change 55（相对 p3hk，两方向分别判定；单方向有效也报告）。zh2en 另与 D1 / E1 比较。COMET 辅助。有效者补配对 bootstrap。
+- **数据准备（已完成，只有训练数据统计，无任何方法结果）：** h1h4_prep → eval_outputs/sst_hsmm_v1/h1h4（E1 的 4 万训练行全部匹配）。
+  - H1 视野可达比例（训练数据，所有非最后读平均）：en2zh Δ0 0.47 / Δ1s 0.62；zh2en 0.48 / 0.62（Δ∞ = 1.0）。
+  - H4 Kendall τ：最单调 30% 的门槛 en2zh 0.963、zh2en 0.949；中位数 0.889 / 0.889；10% 分位 0.60 / 0.61。预检查一通过。
+- **方法与唯一设置：**
+  - **H1 限定预判视野：** train_h1（train_p2ft 的副本）：完整音频 → 整句参考（TAG_C）；截断音频（随机读 c）→ 参考前缀，前缀 = cm ≤ 1000c + 1000 ms 的 token（cm = support_omni_ms 的单调闭包），加 TAG_H。种子 20261129，1000 步，lr 1e-4，16 slot，4 卡。推理：所有读挂 LoRA，非最后读 TAG_H、最后读 TAG_C（hsc22 --draft-tag --tag-set h1）；rollout 同配置，重拟合 hsmm_anchor。
+  - **H4 自然顺句标记：** train_h4：只用完整音频；τ ≥ 本方向 70% 分位的行加 TAG_M，其余用原指令；种子 20261130，其余同 H1。推理：所有读挂 LoRA、都用 TAG_M（--tag-set mono）；rollout + 重拟合 hsmm_anchor。预检查二（训练后，只报告）：cvdev 上 TAG_M 整句离线解码 BLEU 相对无 LoRA 的 wave17 下降 > 0.5 时，在报告中标注"顺句代价过大"，但仍按流程跑完测试（用户要求每个方法都测试）。
+  - **H3 句法门控的选择性预判：** 起草 = E1（p2ft LoRA + p2ft 标记），HSMM 参数 = pfe1/h/params.json（不重拟合）。每个非最后读多一次 wave17 转写请求（"Transcribe this speech."，同一音频）；对转写的最后一个词做 Stanza 词性标注（en / zh），最后一个词的 UPOS ∈ {ADP, DET, SCONJ, CCONJ, AUX, PART, ADJ, NUM, PRON} 视为句法未闭合；未闭合时 cut = min(cut, max(n, sv0))（sv0 = 草稿与 SAP 草稿的 LCP，即音频支持的部分），即不提交超出音频证据的预判单元。与方案第 4.1 节的差别：方案写"作为 HSMM 发射"，这里改成硬门控（不重拟合，省时间），在报告中注明。
+  - **E1·D1（工程项）：** E1 起草 + D1 的可提交度 MBR（--draft-lora p2ft --draft-tag --mid-mbr 6 --mbr-util support），rollout + 重拟合 hsmm_anchor。两方向都跑，主要看 zh2en。
+  - **H5（有条件）：** 只有当 dev 上的时延分解显示识别滞后 ≥ 0.3 s 时才做；否则不做，并在报告中给出分解结果。
+  - **H6（组合）：** 只有 H1 和 H3 在同一方向都通过 dev 筛选时，才跑 H1 起草 + H3 门控（用 H1 的 HSMM 参数）。
+- **执行：** H1 / H4 训练各 4 卡并行（train_orch4.sh / train_orch4x.sh，卡池），推理用 work-stealing lane（pf_lane_lib2.sh 的 run），共享 8 卡卡池。
+- **共同约束：** 一个双向模型；无师生蒸馏（目标只来自参考译文 + 对齐，用户 11-27 同意使用对齐工具）；只用开放数据训练或拟合；RealSI / OBSI 只测试。允许按方向采用不同的推理设置（用户 11-27 同意）。
