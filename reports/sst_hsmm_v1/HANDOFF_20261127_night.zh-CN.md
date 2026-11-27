@@ -41,3 +41,15 @@
 
 - 分析脚本：scratchpad 下 `g0split.py`（按参考是否含英文拆分 G0）。
 - 等待脚本：scratchpad 下 `px_wait2.sh`，比 px_wait.sh 多一个 FILES 环境变量。
+
+## 进度记录（00:26 CET 更新）
+| 轮次 | 方法 | 状态 |
+|---|---|---|
+| 2 | C2' HCG v2（pfg2） | dev 不过（en2zh 同设置 −3.26）；测试 p3pfg2 运行中 |
+| 4 | EGA（pfq1，change 60） | G0 通过（41.33）；dev 不过（ΔD2 +0.02/+0.07）；测试运行中 |
+| 5 | CCA（pfr1，change 61） | dev 不过；测试运行中 |
+| 6 | SAA 流式，越过 G0（pfs2，change 62） | rollout 中 |
+| 7 | HCD token 级视野对比解码（pfk1，change 63） | 冒烟通过（zh2en 34 个草稿改道 10 次，en2zh 0 次）；rollout 中 |
+
+- 关键机制发现（change 62，`en2zh_analysis/a11_draft_cmp.py`）：预判起草器的时延收益几乎全部来自已听到内容的前缀一致性（E1 每读多提交约 2 个单位，其中只有 0.15 个超出 p3hk 草稿）。EGA / CCA 的预判尾部本身没有用。
+- 等结果：各链路结束会生成 `pvx/CHAIN_<m>_DONE`（q1 / r1 / s2 / k1）和 `pv5/CHAIN_g2_DONE`。之后用 `pv8_final.sh`（NEWS = p3pfg2 p3pfq1 p3pfr1 p3pfs2 p3pfk1，EXTRA_SYS 加上 pfs2 / pfk1 的名字）算 COMET 和表格。
