@@ -209,5 +209,13 @@ The following designs were registered, run, and did not improve the system:
   \item \textbf{A source-future adapter on the drafter}: a LoRA trained to translate full utterances and, at a random read, to transcribe the heard audio and continue with the next second of source speech; the HSMM was refitted on its rollouts.
   At a fixed threshold it commits 0.31\,s earlier on development data and 0.34\,s earlier on test data, so source anticipation does let content settle sooner.
   Its development BLEU rose by 0.9--3.7 points, but \enzh{} test ASR-BLEU fell by 2.5 points at the same threshold, and the loss is concentrated on the broadcast streams (text BLEU $-1.9$ to $-2.3$) rather than on real interpreting ($-0.4$ to $+0.5$).
-  The translation term was supervised by training references in the development set's style, which most likely pulled the drafter's wording away from the test references.
+  Whole-utterance decoding on held-out read speech explains the loss: outputs grow 3--5\% longer because the adapter keeps continuing past the end of complete audio, i.e.\ the model cannot tell truncated from finished input.
+  Halving the adapter, decoding the final read with the base drafter, capping commitments by agreement with the base drafter, and moving to the quality threshold all stay on or below the base drafter's quality--latency curve.
+  \item \textbf{A prefix-to-full translation adapter} (partial audio $\rightarrow$ full reference), used only on non-final reads, gives a direction-dependent result.
+  On \zhen{} it matches the quality point's ASR-BLEU ($+0.10$; per-condition 95\% intervals all include 0) with speech LAAL lower in all five conditions (mean $-0.12$\,s; interval excludes 0 in four).
+  On \enzh{}, where clause order changes most, its drafts are revised more often and ASR-BLEU falls by 0.8.
+  \item \textbf{Anticipation as evidence}: agreement between the prefix-to-full draft and the base draft as a fifth emission, with the base draft still the committed text.
+  It raises held-out AUC by 0.024 but worsens ECE to 0.124; on test it is $-0.55$ ASR-BLEU on \enzh{}, with the whole loss on the broadcast streams.
+  The reliability of anticipation learned in-domain does not transfer.
+  \item \textbf{Minimum-Bayes-risk drafting} (chrF utility, greedy plus 6--8 samples): at the final read only it changes a third of the tails but not ASR-BLEU ($+0.08$ / $-0.02$); at every read it adds 0.33--0.42 ASR-BLEU at 0.12--0.14\,s more speech LAAL, which is on the same quality--latency curve.
 \end{itemize}
