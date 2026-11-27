@@ -1294,5 +1294,5 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - 草稿 = 头部 + 尾部；头部 token 的 log-prob 来自 base，尾部来自 LoRA，照常喂给 HSMM。头部为空时（没有新内容）该读由 LoRA 单独写，同 hsc22。最后一读用 base。
   - **尾部 LoRA 的选择规则（事先确定）：** C1（c1tr）和 SAA（c2tr）中 G0 en2zh 官方 BLEU 较高的一个，相等取 SAA。
 - **G0-EGA：** 整句离线，头部 = wave17 自己的整句贪心译文（即 G0 的参考解码），去掉末尾句末标点，LoRA 续写（`dev_offline_ega.py`）。门槛同 G0（en2zh ≥ wave17 − 0.5）。它测的是完整输入上尾部的过度生成。
-- 通过后跑流式（TAG pfe1，测试 p3pfe1），链路 `pvx_chain.sh`（rollout + 重拟合 hsmm_anchor + 官方 BLEU dev 选 θ + 测试）。判定规则不变。
+- 通过后跑流式（TAG pfq1，测试 p3pfq1；登记时误写成已被 E1 占用的 pfe1，23:28 更正，此时无任何 EGA 数字），链路 `pvx_chain.sh`（rollout + 重拟合 hsmm_anchor + 官方 BLEU dev 选 θ + 测试）。判定规则不变。
 - **新颖点：** 把每个草稿在推理期拆成"忠实的头部"和"预判的尾部"，分界点由 base 自己的结束概率（内容耗尽信号）决定。风格漂移只可能出现在预判内容上，不需要训练。和 SAA 构成一组："已听到的内容由 base 决定，只在未听到处预判"，SAA 在训练目标上实现，EGA 在解码上实现。
