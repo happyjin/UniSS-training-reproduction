@@ -879,3 +879,13 @@
 ## 组合实验总结（change 55，9 个方法）— 2026-11-27 15:00 CET
 - 报告：reports/sst_hsmm_v1/portfolio_20261127_report.zh-CN.md；总表（所有指标 + COMET）：reports/sst_hsmm_v1/portfolio_20261127_tables.zh-CN.md。
 - 两个方向都有效 0 个；单方向有效（zh2en）D1、E1；无效 A1、A2、B1、B2、C1、C2、D2。下一步等用户决定。
+
+## change 56（plan v3）第 0 步：dev 上的时延分解 — 2026-11-27 17:05 CET
+- 脚本 experiments/sst_hsmm_v1/pv3_stage0.py → eval_outputs/sst_hsmm_v1/pv3/stage0.json；B0（wave17 + h14）edev θ0.75，只用 dev。
+- 对每个最终单元：超出按比例单调时刻的稳定滞后 excess = 重排部分（参考译文在该相对位置的内容，其 OmniAlign 证据何时听到，减去单调时刻）+ 其余部分（证据听到后到草稿稳定 = 识别 + 犹豫 + 读的量化）。
+  | 方向 | excess | 重排 | 其余 | 其余 − 0.5 s 量化 |
+  |---|---|---|---|---|
+  | en2zh | 1.01 s | 0.35 s | 0.66 s | 0.16 s |
+  | zh2en | 1.06 s | 0.35 s | 0.71 s | 0.21 s |
+- 每 1 s 读一次，单元平均在证据到达后约 0.5 s 才会被下一读看到；扣掉这部分，识别 + 犹豫只剩 0.16–0.21 s < 0.3 s → **按登记 H5 不做**。
+- 观察（不在本轮方法内，只记录）：读间隔量化（约 0.5 s）是 excess 中最大的单项；缩短读间隔会成比例增加每秒的模型调用。
