@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# plan v3 (change 56): after lanes 9-11 are done -> COMET dump (CPU) + wmt22-comet-da (1 pool card) for every system of the final table
+# plan v3 (change 56): after lanes 9-12 are done -> COMET dump (CPU) + wmt22-comet-da (1 pool card) for every system of the final table
 # -> pv3_table.py -> reports/sst_hsmm_v1/pv3_20261127_tables.zh-CN.md, then touches pv3/FINAL_DONE. Refuses existing outputs.
 set -uo pipefail
 cd /opt/dlami/nvme/jasonleeeli/projects/UniSS
@@ -15,7 +15,7 @@ SYSL="p3hk p3hk2 p3x p3d3s05 p3p2fxff p3pfd1 p3pfe1 p3pfh1 p3pfh3 p3pfh4 p3pfe1d
 if [ -z "$DRY" ]; then
   for x in $R $LOGD; do [ -e $x ] && { echo "exists: $x" >&2; exit 1; }; done
   mkdir -p $LOGD
-  until [ -e $D0/PV3_LANE9_DONE ] && [ -e $D0/PV3_LANE10_DONE ] && [ -e $D0/PV3_LANE11_DONE ]; do sleep 60; done
+  until [ -e $D0/PV3_LANE9_DONE ] && [ -e $D0/PV3_LANE10_DONE ] && [ -e $D0/PV3_LANE11_DONE ] && [ -e $D0/PV3_LANE12_DONE ]; do sleep 60; done
   for s in $SYSL; do [ -e $D0/$s ] || die "missing test root $s"; done
   mkdir -p $R
   PYTHONPATH=. $PYQ -m experiments.sst_hsmm_v1.pf_comet_dump --out $R/dump.jsonl $SYSL > $LOGD/dump.log 2>&1 || die "dump"

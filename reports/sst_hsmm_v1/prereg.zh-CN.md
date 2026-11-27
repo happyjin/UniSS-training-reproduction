@@ -1212,4 +1212,4 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - **H6（组合）：** 只有 H1 和 H3 在同一方向都通过 dev 筛选时，才跑 H1 起草 + H3 门控（用 H1 的 HSMM 参数）。
 - **执行：** H1 / H4 训练各 4 卡并行（train_orch4.sh / train_orch4x.sh，卡池），推理用 work-stealing lane（pf_lane_lib2.sh 的 run），共享 8 卡卡池。
 - **共同约束：** 一个双向模型；无师生蒸馏（目标只来自参考译文 + 对齐，用户 11-27 同意使用对齐工具）；只用开放数据训练或拟合；RealSI / OBSI 只测试。允许按方向采用不同的推理设置（用户 11-27 同意）。
-- **change 56 补记（17:55 CET，H3 任何质量 / 时延数字之前）：** H3 冒烟（3 句 × 2 方向）显示门控 0 / 26 读触发：wave17 对截断音频的转写总以句号结尾，原规则把"以句末标点结尾"判为闭合，门控失效（例："We want to know if he's been talking to your."）。已停掉尚未开始计算的 pfh3（按 PID，输出改名 *_pv3inert，未产生任何 dev 结果），规则改为：去掉转写末尾标点后看最后一个词；中文句末语气词（了吗呢吧啊呀嘛）视为闭合；英文 PRON 只有物主 / 关系代词（Poss=Yes / PronType=Rel）视为未闭合（"Thank you." 不算）。其余不变，重新冒烟后再跑 pfh3。
+- **change 56 补记（17:50 CET，H3 任何质量 / 时延数字之前）：** H3 冒烟（3 句 × 2 方向）显示门控 0 / 26 读触发：wave17 对截断音频的转写总以句号结尾，原规则把"以句末标点结尾"判为闭合，门控失效（例："We want to know if he's been talking to your."）。已停掉尚未开始计算的 pfh3（按 PID，输出改名 *_pv3inert，未产生任何 dev 结果），规则改为：去掉转写末尾标点后看最后一个词；中文句末语气词（了吗呢吧啊呀嘛）视为闭合；英文 PRON 只有物主 / 关系代词（Poss=Yes / PronType=Rel）视为未闭合（"Thank you." 不算）。其余不变，重新冒烟后再跑 pfh3。
