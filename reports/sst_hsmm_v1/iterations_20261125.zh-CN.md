@@ -873,5 +873,9 @@
 - 工具：pf_comet_dump.py + pf_comet_score.py（venvs/comet），结果在 eval_outputs/sst_hsmm_v1/pf_comet2（共 14 个系统，含 LA-2；各系统共有的 5 个 test cell 条目，en2zh 2442 条、zh2en 2893 条）；逐 cell 平均后再对 cell 平均，与 collect.py 一致。
 - ASR-COMET 相对 B_b（en2zh / zh2en）：N +0.0147 / +0.0208，LA-2 +0.0089 / +0.0152，p3hk +0.0164 / +0.0222，p3hk2 +0.0112 / +0.0204；A1 +0.0099 / +0.0163，A2 +0.0154 / +0.0214，B1 +0.0155 / +0.0221，B2 +0.0137 / +0.0200，C1 +0.0137 / +0.0213，C2 +0.0132 / +0.0171，D1 +0.0132 / +0.0227，D2 +0.0119 / +0.0195，**E1 +0.0218 / +0.0294**。
 - COMET 排序与 ASR-BLEU 大体一致，唯一明显的例外是 E1：ASR-COMET 在两个方向都最高，配对 bootstrap（pf_comet_pair.py）相对 p3hk 在 zh2en RealSI（+0.021 / +0.019）和 en2zh OBSI clean / ood1（+0.010 / +0.009）显著更高；而官方 ASR-BLEU en2zh 低 1.79。
-- 核查：官方文本 BLEU 先归一化（去标点、按字切分）。E1 的 LoRA 用 UniST 数据训练，输出改用全角标点并更意译；原始 sacrebleu 把与参考一致的全角标点算作匹配，所以 E1 en2zh OBSI clean 的文本 BLEU 按原始口径只比 p3hk 低 1.8，按官方口径低 6.1。抽查到漏译（例："南方四所学校之间的激烈竞争"→"有激烈的竞争关系"），而 COMET 对漏译不敏感（已知弱点）。
+- 核查：官方文本 BLEU 先归一化（去标点、按字切分）。E1 的 LoRA 用 UniST 数据训练，输出改用全角标点并更意译；原始 sacrebleu 把与参考一致的全角标点算作匹配，所以 E1 en2zh OBSI clean 的文本 BLEU 按原始口径只比 p3hk 低 1.8，按官方口径低 6.1。抽查到漏译（例："南方四所学校之间的激烈竞争"→"有激烈的竞争关系"），而 COMET 对漏译的惩罚通常偏弱。
 - 结论：按预注册 BLEU 优先，判定不变；E1 的 COMET 优势不能当作质量更好的证据，要确认需要人工或独立评测。
+
+## 组合实验总结（change 55，9 个方法）— 2026-11-27 15:00 CET
+- 报告：reports/sst_hsmm_v1/portfolio_20261127_report.zh-CN.md；总表（所有指标 + COMET）：reports/sst_hsmm_v1/portfolio_20261127_tables.zh-CN.md。
+- 两个方向都有效 0 个；单方向有效（zh2en）D1、E1；无效 A1、A2、B1、B2、C1、C2、D2。下一步等用户决定。
