@@ -13,7 +13,7 @@ STOP=$LOGD/watcher.stop
 source experiments/sst_hsmm_v1/lib.sh
 TR=($PYQ -m torch.distributed.run --nproc-per-node 8 --master-port $PORT)
 if [ -z "$DRY" ]; then
-  for x in $R/smoke $R/train $R/merged $R/peft; do [ -e $x ] && { echo "exists: $x (refuse to overwrite)" >&2; exit 1; }; done
+  for x in $R $LOGD; do [ -e $x ] && { echo "exists: $x (refuse to reuse; pick a new TAG)" >&2; exit 1; }; done
   mkdir -p $LOGD $R
   if [ -n "${WAIT:-}" ]; then log "$TAG train $$: waiting for $WAIT"; until [ -e "$WAIT" ]; do sleep 30; done; sleep 30; fi
   git rev-parse HEAD > $R/commit_train.txt

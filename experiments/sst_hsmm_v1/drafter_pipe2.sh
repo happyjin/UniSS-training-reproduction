@@ -27,6 +27,7 @@ source experiments/sst_hsmm_v1/lib.sh
 [ -n "${STOP_AFTER_FIT:-}" ] || [ -f "$REP" ] || { echo "missing $REP" >&2; exit 1; }
 if [ -z "$DRY" ]; then
   for x in $R/off $H $R/dev $D0/p3$TAG; do [ -e $x ] && { echo "exists: $x (refuse to overwrite)" >&2; exit 1; }; done
+  [ -e $LOGD ] && { echo "exists: $LOGD (pick a new TAG)" >&2; exit 1; }
   mkdir -p $LOGD $R
   if [ -n "${WAIT:-}" ]; then
     log "$TAG $$: waiting for $WAIT"
