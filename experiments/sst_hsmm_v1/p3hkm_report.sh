@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# change 52 (S6): test p3hkm = p3hk config (wave17, h14, heal@0.75) with hsc19 --final-mbr 8 (made from p3d3_report.sh).
+# change 52 (S6): test p3hkm = p3hk config (wave17, h14, heal@0.75) with hsc19b --final-mbr 8 (MBR samples keep the healed-prefix constraint) (made from p3d3_report.sh).
 # prereg change 46 stage 3: test p3d3 = p3hk2_report.sh with the D3 drafter (d3/merged), its refitted HSMM (d3/h/params.json) and the dev-selected spec per direction (d3/dev/choice.json); output p3d3.
 # prereg change 45 test p3hk2 = p3hk_report.sh with hsc16 and the dev-selected spec per direction (en2zh heal@0.60, zh2en pandora@0.75@0.10); output p3hk2.
 # Was: prereg change 44 test p3hk = p3h8_report.sh with the Thinker step = hsc15_si_thinker --variants heal (token-healing prompts, change 44) and the talker speed
@@ -81,7 +81,7 @@ fi
 # 1. HSMM Thinker, 8 shards
 ps_=(); g=0
 for d in en2zh zh2en; do for k in 0 1 2 3; do
-  ps_+=("$(launch $g thinker_${d}_$k "${VENV[@]}" CUDA_VISIBLE_DEVICES=$g $PYV -m experiments.sst_hsmm_v1.hsc19_si_thinker --mode hsc --variant $VAR --samples 0 --variants ${VSPEC[$d]} --params eval_outputs/sst_hsmm_v1/h14/params.json --final-mbr 8 --theta $THETA --verifier $P1/lora/a1.0000 \
+  ps_+=("$(launch $g thinker_${d}_$k "${VENV[@]}" CUDA_VISIBLE_DEVICES=$g $PYV -m experiments.sst_hsmm_v1.hsc19b_si_thinker --mode hsc --variant $VAR --samples 0 --variants ${VSPEC[$d]} --params eval_outputs/sst_hsmm_v1/h14/params.json --final-mbr 8 --theta $THETA --verifier $P1/lora/a1.0000 \
     --second-view enh --views $T/views/$d --thinker $NTH --direction $d --gpu-mem 0.6 \
     --items-file $R/data/items_${d}_$k.jsonl --out $R/thinker_${d}_$k)")
   g=$((g + 1)); [ -n "$DRY" ] || sleep 40
