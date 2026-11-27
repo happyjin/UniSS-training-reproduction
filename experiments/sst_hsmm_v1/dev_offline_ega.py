@@ -49,7 +49,8 @@ def gen(a):
     head = proc.apply_chat_template([conv], add_generation_prompt=True, tokenize=False)[0]
     llm = LLM(model=WAVE17, gpu_memory_utilization=a.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
               seed=20261124, tensor_parallel_size=1, enable_lora=True, max_loras=1, max_lora_rank=16,
-              lora_target_modules=["qkv_proj", "o_proj"])
+              lora_target_modules=["qkv_proj", "o_proj"],
+              hf_overrides={"architectures": ["Qwen3OmniMoeThinkerForConditionalGeneration"]})   # as hsc22 (LoRA needs the Thinker class)
     lora = os.environ.get("OFF_LORA") or str(Path(os.environ["OFF_MODEL"]).parent / "peft/a1.0000")   # pv4_g0.sh passes OFF_MODEL=<TR>/merged
     assert (Path(lora) / "adapter_config.json").exists(), lora
     lreq = LoRARequest("draft_lora", 1, str(Path(lora).resolve()))
