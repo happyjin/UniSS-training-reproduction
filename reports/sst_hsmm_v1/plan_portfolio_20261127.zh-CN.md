@@ -136,3 +136,11 @@
 - Ouyang et al. 2025. Anticipating Future with Large Language Model for Simultaneous Machine Translation (TAF). NAACL. https://arxiv.org/abs/2410.22499
 - InfiniSST 2025. https://arxiv.org/abs/2503.02969 ；StreamUni 2025. https://arxiv.org/abs/2507.07803
 - Farquhar et al. 2024. Detecting hallucinations in large language models using semantic entropy. Nature. https://pmc.ncbi.nlm.nih.gov/articles/PMC11186750
+
+## 8. 你的决定（2026-11-27 09:16 CET）
+1. **不能在测试集上调参。** C1 / C2 不做测试时在线自适应：
+   - C1 改为离线版：影子终稿只在 dev（edev + 开放域外 dev）上用来得到提交错误标签，用共形风险控制在 dev 上校准一个固定 θ（或按可观测声学条件分组的 θ），测试时固定不变。
+   - C2 改为在开放域外 dev 上做 MAP 适配（UniST 拟合作先验），测试时固定参数。
+2. **允许开放的域外 dev 集**（如 CoVoST dev 语流），只用于筛选和校准，不用于训练；使用前与 OBSI / RealSI 查重。
+3. **允许 COMET** 作为辅助指标（与 ASR-BLEU 一起报告；选择仍按 BLEU 优先）。
+4. **9 个方法全部跑完整流程**（需要的训练 + rollout / 拟合 + dev + 测试），不按筛选结果砍掉测试；筛选结果只用于判定和组合。
