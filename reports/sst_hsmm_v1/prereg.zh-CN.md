@@ -1330,3 +1330,21 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - 结论：预判起草器的时延收益几乎全部来自"已听到内容的译文更早定型"（前缀一致，不再把前缀当完整句子收尾），而不是提交预测出来的未来内容。EGA 的头部仍是 base 的收尾式译文，所以拿不到收益。
 - **方法：** SAA 起草器（c2tr，hsc22 `--draft-lora`，无标记，最后一读用 base，同 change 59 的原定服务方式）直接跑流式。TAG pfs2，测试 p3pfs2；pfs1 已被 change 59 的链路名占用但没有产出。判定规则不变。
 - **偏离说明：** SAA 的 G0 为 −0.88，未达到 −0.5 门槛，按 change 57 本应停止。门槛是我设的代理指标，只衡量整句风格漂移；上面的机制分析表明，时延收益来自前缀一致性，G0 测不到这一点，而 SAA 是目前风格漂移最小的预判起草器（E1 −4.45）。为验证"风格漂移小 + 保留前缀一致性"能否在测试上过判定，跑这一次，结果单独标注为"越过 G0"。C1（−1.16）不跑，避免对同一族方法多次尝试。
+
+## change 63（第 7 轮：HCD token 级视野对比解码，00:21 CET，任何 HCD 数字之前登记；夜间自主授权）
+- **依据：** change 62 的机制分析。预判起草器的时延收益来自"已听到内容的译文不按完整句收尾、更早定型"。要在 base 的措辞下得到这种行为，就要在每个 token 上把"视野效应"转移给 base，同时不带入 adapter 的风格。
+- **HCD（hsc27 = hsc22 副本加 `--hcd`，不训练）：** 每个非最后读、两个起草视图，都按融合分数贪心解码：
+
+  s(x) = log p_base(x) + λ·(log p_P(x) − log p_C(x))，λ = 1
+
+  - p_base 是 base Thinker 加普通提示词；p_P 和 p_C 是 E1 adapter（p2ft）分别加"音频在说话人说完之前停止"和"音频完整"两种标记。三者都基于同一个（healed）已提交前缀加已生成文本。
+  - adapter 的语体和人名漂移同时出现在 p_P 和 p_C 中，相减后抵消，只有视野效应（截断处不要收尾）转移给 base。
+  - 最后一读用 base 加普通提示词。
+- **推测式实现：**
+  - base 先给出贪心续写（logprobs 20）。P 和 C 对这段续写打分（prompt_logprobs 1），并给出续写之后下一个 token 的分布（logprobs 20）。
+  - 在第一个满足"P 的 top-1 p1 ≠ base 的 token b，且 s(p1) > s(b)"的位置改用 p1，然后由 base 从这里重新续写。最多 6 轮，之后接受最后一段续写。
+  - 未知的 log-prob：log p_base(p1) 不在 top-20 时取 top-20 的最小值；log p_C(p1) 不知道时取 C 的 top-1 值。后者是上界，偏保守，引导会少一些。
+  - 候选必须保持 healed 后缀，不能以半个字符结尾。HSMM 看到的 token log-prob 用 base 的。
+- 无 G0（最后一读是 base，草稿并非单一 adapter 生成）。冒烟（`pv9_hcdsmoke.sh`）通过后跑流式：TAG pfk1，测试 p3pfk1，链路 `pvx_chain.sh`。判定规则不变。
+- **新颖点：** 把 adapter 当作"视野差分"，而不是生成器。差分抵消了微调带来的风格偏移，只把"不在截断处收尾"转移给 base；这是 classifier-free guidance / contrastive decoding 在同时翻译视野上的应用。
+- **与 HCG v2（change 58）的区别：** HCG v2 在 adapter 的整句候选之间重排序，措辞仍是 adapter 的。HCD 逐 token 由 base 主导，只在视野差分足够大处改道。
