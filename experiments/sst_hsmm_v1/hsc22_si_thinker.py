@@ -231,6 +231,7 @@ def main() -> None:
     ap.add_argument("--verifier", required=True, help="PEFT adapter dir of the SAP LoRA (alpha 1)")
     ap.add_argument("--shadow-final", action="store_true", help="C1: unprefixed whole-audio greedy draft on the final read")
     ap.add_argument("--draft-tag", action="store_true", help="E1: horizon-tagged heads (p2ft_tags) for the drafter prompts")
+    ap.add_argument("--syn-gate", action="store_true", help="plan v3 H3: syntax gate (wave17 transcript + Stanza UPOS of the last word)")
     ap.add_argument("--tag-set", default="p2ft", choices=("p2ft", "h1", "mono"), help="plan v3: heads of --draft-tag (h1_tags for h1 / mono)")
     ap.add_argument("--ctr-cert", action="store_true", help="B1: counterfactual previous-audio score of d0 -> rec[ctr]")
     ap.add_argument("--bnd-cut", action="store_true", help="B2: boundary-aligned audio cut of non-final reads")
@@ -330,6 +331,23 @@ def main() -> None:
             hp_, hc_ = h1_heads(processor, args.tag_set)
         head_p, head_c = hp_[args.direction], hc_[args.direction]
         assert dreq is not None, "--draft-tag needs --draft-lora"
+    if args.syn_gate:                                                # plan v3 H3
+        import os
+        sys.path.insert(0, "/opt/dlami/nvme/jasonleeeli/pylibs/stanza_v1")
+        os.environ.setdefault("STANZA_RESOURCES_DIR", "/opt/dlami/nvme/jasonleeeli/cache/stanza_resources")
+        import stanza
+        SYN = stanza.Pipeline("zh-hans" if args.direction == "zh2en" else "en", processors="tokenize,pos", use_gpu=False,
+                              verbose=False, tokenize_no_ssplit=True, download_method=None)
+        SYN_OPEN = {"ADP", "DET", "SCONJ", "CCONJ", "AUX", "PART", "ADJ", "NUM", "PRON"}
+        conv_g = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": "Transcribe this speech."}]}]
+        HASR = processor.apply_chat_template([conv_g], add_generation_prompt=True, tokenize=False)[0]
+
+        def syn_open(t_):
+            t_ = t_.strip()
+            if not t_ or t_[-1] in ".?!。？！":
+                return False
+            ws_ = [w_ for s_ in SYN(t_).sentences for w_ in s_.words if w_.upos != "PUNCT"]
+            return bool(ws_) and ws_[-1].upos in SYN_OPEN
     assert not (args.bias_redraft > 0 and args.mid_mbr > 0), "A1 and mid-MBR are separate methods"
     assert not args.sentcut or args.mid_mbr > 0, "--sentcut needs --mid-mbr"
     llm = LLM(model=args.thinker, gpu_memory_utilization=args.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
@@ -576,6 +594,13 @@ def main() -> None:
                         prompts.append({"prompt": head, "multi_modal_data": {"audio": AUD[k]}})
                         hk.append(k)
                         owners.append(it)
+            gk = []
+            if args.syn_gate:                                         # H3: source transcript of this read
+                for k, it in enumerate(live):
+                    if it["t"] < it["dur_ms"]:
+                        prompts.append({"prompt": HASR, "multi_modal_data": {"audio": AUD[k]}})
+                        gk.append(k)
+                        owners.append(it)
             qk = []
             if args.sentcut:
                 for k, it in enumerate(live):
@@ -604,8 +629,9 @@ def main() -> None:
             sps += [mbrp(live[k_], args.final_mbr, f"mbr|{live[k_]['id']}") for k_ in mk]
             sps += [params] * len(hk)
             sps += [cutp(live[k_]) for k_ in qk]
+            sps += [params] * len(gk)
             lrq = ([dq(o) for o in live] + [dq(live[k_]) for k_ in vk] + [vreq] * len(sk) + [None] * len(ck) + [None] * len(bk)
-                   + [dq(live[k_]) for k_ in nk] + [dq(live[k_]) for k_ in mk] + [None] * len(hk) + [dq(live[k_]) for k_ in qk])
+                   + [dq(live[k_]) for k_ in nk] + [dq(live[k_]) for k_ in mk] + [None] * len(hk) + [dq(live[k_]) for k_ in qk] + [None] * len(gk))
             assert len(lrq) == len(prompts) == len(sps), (len(lrq), len(prompts), len(sps))
             results = llm.generate(prompts, sps, use_tqdm=False, lora_request=lrq)
             o_ = nv + len(sk)
@@ -615,6 +641,7 @@ def main() -> None:
             resm = {k: results[o_ + j] for j, k in enumerate(mk)}; o_ += len(mk)
             resh = {k: results[o_ + j] for j, k in enumerate(hk)}; o_ += len(hk)
             resq = {k: results[o_ + j] for j, k in enumerate(qk)}; o_ += len(qk)
+            resg = {k: results[o_ + j] for j, k in enumerate(gk)}; o_ += len(gk)
             assert o_ == len(results)
         res1 = {k: results[len(live) + j] for j, k in enumerate(vk)}
         ress = {k: results[len(live) + len(vk) + j] for j, k in enumerate(sk)}
@@ -831,6 +858,17 @@ def main() -> None:
                             st["cma_units_removed"] = st.get("cma_units_removed", 0) + max(0, cut - max(n, Lb_))
                             cut = min(cut, max(n, Lb_))
                             rec["cma"] = Lb_ - n
+                    if args.syn_gate and args.mode != "rollout" and k in resg:      # H3: no beyond-evidence commit while open
+                        tr_ = resg[k].outputs[0].text
+                        op_ = syn_open(tr_)
+                        cap_ = max(n, sv0)
+                        rec["syn"] = [tr_[-60:], int(op_), int(cut), int(cap_)]
+                        st["syn_reads"] = st.get("syn_reads", 0) + 1
+                        st["syn_open"] = st.get("syn_open", 0) + int(op_)
+                        if op_:
+                            st["syn_capped"] = st.get("syn_capped", 0) + int(cut > cap_)
+                            st["syn_units_removed"] = st.get("syn_units_removed", 0) + max(0, cut - cap_)
+                            cut = min(cut, cap_)
                     rec.update(sv0=sv0)
                     rec.update(draft_sap=join(ds, zh), sv=svl, n_new=max(0, n_cut - n))
                     st["hsc_extra_units"] += max(0, cut - max(n_cut, n))
@@ -913,7 +951,7 @@ def main() -> None:
     for fh in fhs.values():
         fh.close()
     st = dict(st)
-    st.update(method=f"HSMM {args.variant} (change 45 variants)", hsc22=dict(shadow=args.shadow_final, tag=args.draft_tag, tag_set=args.tag_set, ctr=args.ctr_cert, bnd=args.bnd_cut, a1=args.bias_redraft, util=args.mbr_util, sentcut=args.sentcut, tmap=args.theta_map), variants=VARS, fork_reads=args.fork_reads, fork_k=args.fork_k, fork_temp=args.fork_temp, fork_top_p=args.fork_top_p, forks=len(forks), variant=args.variant, params=args.params, theta=args.theta, verifier=args.verifier, second_view=sv, thinker=args.thinker, assign=args.assign, lora_root=args.lora_root, const_alpha=args.const_alpha,
+    st.update(method=f"HSMM {args.variant} (change 45 variants)", hsc22=dict(shadow=args.shadow_final, tag=args.draft_tag, tag_set=args.tag_set, syn=args.syn_gate, ctr=args.ctr_cert, bnd=args.bnd_cut, a1=args.bias_redraft, util=args.mbr_util, sentcut=args.sentcut, tmap=args.theta_map), variants=VARS, fork_reads=args.fork_reads, fork_k=args.fork_k, fork_temp=args.fork_temp, fork_top_p=args.fork_top_p, forks=len(forks), variant=args.variant, params=args.params, theta=args.theta, verifier=args.verifier, second_view=sv, thinker=args.thinker, assign=args.assign, lora_root=args.lora_root, const_alpha=args.const_alpha,
               views=args.views, budget_from=args.budget_from, budget_pool_meta=args.budget_pool_meta, items=len(items), seconds=round(time.time() - t0, 1),
               items_sha1=hashlib.sha1(open(args.items_file, "rb").read()).hexdigest())
     (Path(args.out) / f"job_{args.direction}.combo.json").write_text(json.dumps(st), encoding="utf-8")
