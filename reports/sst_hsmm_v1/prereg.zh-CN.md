@@ -1240,3 +1240,22 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - **change 57 补记（21:08 CET）：** v3 改写了 291 行（297 个片段）。新抽 100 行核对，5 行有错（5%），达到 ≤ 5% 门槛，B1 开始训练（train_b1 = train_p2ft 的副本，en2zh 参考换成 b1prep/v3，种子 20261132）。
   - 错误类型：名字边界漏了一个音译字，3 行（"法 Farmerville""Ruggedo 多""Rolando 多"）；同一句里两个名字只换了一个，1 行（"Highgate Middlesex 的海盖特"）；只覆盖半个名字，1 行（"AlmaAta 木图"）。
   - 另有 1 行是 OmniAlign 把 "Dodger" 对到"杰克"，替换后与源句一致，不计为错误。
+
+## change 58（第 2 轮：C1 完整输入不变的预判适配器 + C2 视野对比引导，2026-11-27 21:40 CET，任何 C1 / C2 结果之前登记；用户 21:25 授权夜间按最佳选项自主决定，最多 8 轮）
+- **依据：**
+  - 根因分析：预判 LoRA 把 UniST 的译文风格带进了每一句。
+  - B2 的训练监测（训练指标，不是方法结果）：完整音频上对 base 的 KL_a 在第 500 步升到 0.35（E1 约 0.07）。只遮掉已听到 token 的损失，挡不住风格漂移。
+- **C1 完整输入不变的预判适配器（train_c1 = train_b2 副本）：**
+  - 损失 = B2 的未听到 token CE + β·KL(p_adapter ‖ p_base)，KL 取完整音频样本全部参考位置的 token 均值，β = 1，base 用同一次前向、关闭 adapter 得到。
+  - 种子 20261133，其余同 B2。推理同 B2 / S3：无标记，非最后读挂 LoRA，最后一读用 base。
+  - G0 用无标记提示词，通过才跑流式（TAG pfi1，测试 p3pfi1）。
+- **C2 HCG 视野对比引导（推理期，不训练；hsc23 = hsc22 副本）：**
+  - 起草器 = E1 的 p2ft adapter。
+  - 每个非最后读的候选：adapter + TAG_P 贪心、4 个 TAG_P 采样（--mid-mbr 4）、base + 原指令贪心。
+  - 每个候选的续写 y 在三种条件下做 teacher forcing 打分（prompt log-prob）：base + 原指令、adapter + TAG_P、adapter + TAG_C。
+  - 选 argmax log p_base(y) + λ[log p_P(y) − log p_C(y)]，λ = 1。直观上，两个标记共有的 adapter 风格在比值里抵消，只留下预判证据，再乘到 base 的分布上。
+  - 最后一读用 base + 原指令，不挂 adapter。
+  - 冒烟：每个方向 3 个 edev 句，检查 blocks 和 hcg 统计。之后跑流式：rollout + 重拟合 hsmm_anchor → dev（官方 BLEU）→ 测试 p3pfg1。
+  - C2 不训练 LoRA，所以不过 G0。
+- **判定：** 同 change 56/57（相对 p3hk + 连线，两方向分别判定）。
+- **后续轮次：** 每轮先分析上一轮结果，再在 prereg 中登记下一轮方法（change 59+）。每个方法一个设置；无蒸馏；只用开放数据。
