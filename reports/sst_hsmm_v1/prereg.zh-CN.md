@@ -1197,7 +1197,7 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - 执行：三条队列（lane1：B1 → A2 → D2 → C2；lane2：B2 → A1 → D1 → E1；lane3：C1），共享卡池；E1 训练 4 卡（09:38 开始）。
   - B0 同时是 hsc22 的首次 GPU 运行。
 
-## change 56（plan v3：H1 / H3 / H4 + E1·D1，2026-11-27 17:40 CET，任何 change 56 方法数字之前登记；用户批准"你来安排 8 卡"）
+## change 56（plan v3：H1 / H3 / H4 + E1·D1，2026-11-27 16:50 CET，任何 change 56 方法数字之前登记；用户批准"你来安排 8 卡"）
 - 方案：reports/sst_hsmm_v1/plan_v3_20261127.zh-CN.md（第 11 节为用户决定）。H2 按用户决定不做（推理 3× 算力不可用）。
 - **流程（与 change 55 相同）：** 每个方法只有一个设置；rollout + 重拟合（需要时）→ dev（edev + cvdev，只跑 Thinker，代理 D2，pf_analyze 选点，相对 B0）→ 测试 p3<TAG>，不论 dev 结果。dev 筛选判定只记录、不砍测试；测试判定标准同 change 55（相对 p3hk，两方向分别判定；单方向有效也报告）。zh2en 另与 D1 / E1 比较。COMET 辅助。有效者补配对 bootstrap。
 - **数据准备（已完成，只有训练数据统计，无任何方法结果）：** h1h4_prep → eval_outputs/sst_hsmm_v1/h1h4（E1 的 4 万训练行全部匹配）。
