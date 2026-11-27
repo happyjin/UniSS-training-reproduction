@@ -1213,3 +1213,23 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - **执行：** H1 / H4 训练各 4 卡并行（train_orch4.sh / train_orch4x.sh，卡池），推理用 work-stealing lane（pf_lane_lib2.sh 的 run），共享 8 卡卡池。
 - **共同约束：** 一个双向模型；无师生蒸馏（目标只来自参考译文 + 对齐，用户 11-27 同意使用对齐工具）；只用开放数据训练或拟合；RealSI / OBSI 只测试。允许按方向采用不同的推理设置（用户 11-27 同意）。
 - **change 56 补记（17:50 CET，H3 任何质量 / 时延数字之前）：** H3 冒烟（3 句 × 2 方向）显示门控 0 / 26 读触发：wave17 对截断音频的转写总以句号结尾，原规则把"以句末标点结尾"判为闭合，门控失效（例："We want to know if he's been talking to your."）。已停掉尚未开始计算的 pfh3（按 PID，输出改名 *_pv3inert，未产生任何 dev 结果），规则改为：去掉转写末尾标点后看最后一个词；中文句末语气词（了吗呢吧啊呀嘛）视为闭合；英文 PRON 只有物主 / 关系代词（Poss=Yes / PronType=Rel）视为未闭合（"Thank you." 不算）。其余不变，重新冒烟后再跑 pfh3。
+
+## change 57（en2zh 根因修正：A 测量 + B1 / B2，2026-11-27 21:10 CET，任何 B1 / B2 方法数字之前登记；用户批准"1 执行，2 都跑，3 改写正确就可以"）
+- 依据：reports/sst_hsmm_v1/en2zh_failure_analysis_20261127.zh-CN.md。
+- **A 测量修正：**
+  - pf_analyze 默认改用官方测试 BLEU（wave2_s1_score.Bleu / normalize_for_bleu），`--bleu raw` 只用于复现旧结果。选点和筛选规则不变（两个 dev 集都要满足）。
+  - 已用新 BLEU 重算 change 55/56 的 13 个方法（eval_outputs/sst_hsmm_v1/pv4/rescore，只报告；旧结论不改）。
+  - 新增离线门槛 G0：LoRA 起草器训练完后，先在 wave2_S1 dev 上做整句离线解码，提示词与最后一读相同，按官方 BLEU 计分。en2zh 不低于 wave17 − 0.5 才进入流式 rollout / dev / 测试；不通过则只报告、不跑流式。zh2en 只报告。
+- **B1 保留英文术语的训练目标（E1 配方）：**
+  - 只改写 E1 的 2 万行 en2zh 训练参考（UniST 同一批行）。罕见英文专有名词保持拉丁字母，规则只在开放的 cvdev（CoVoST，300 句）上校准。改写依赖 UniST 已有的 OmniAlign 对齐。zh2en 行不动。
+  - 前置条件：改写必须"正确"。从被改写的行里随机抽 100 行人工核对，机械错误（名字被切开、替换了非名字、片段不完整）≤ 5% 才训练；否则修正规则再抽一次新样本，仍不通过就不跑 B1 并报告。
+  - 第一版规则（b1_rewrite.py）抽查 60 行，错误约 22%，判为不通过，正在改规则。
+  - 训练：train_p2ft 的副本，数据换成改写后的 en2zh 行，种子 20261132，其余同 E1。推理同 E1（--draft-tag，最后一读挂 LoRA + TAG_C）。
+- **B2 只学预判（P2F/S3 配方）：**
+  - train_b2（train_p2f 的副本）：截断样本仍以整句参考作为 teacher-forcing 目标，但交叉熵只在"未听到"的 token 上平均（cm > 1000c 的 token 加上 <|im_end|>，cm 来自 h1h4/prep.jsonl）。
+  - 完整音频样本留在 batch 里只做监测（CE_a、对 base 的 KL_a），不回传梯度。
+  - 种子 20261131，1000 步，lr 1e-4，16 slot，4 卡。发散检查同前（CE_a 后 100 步均值 ≤ 1.5 × 前 20 步）。
+  - 推理同 S3：不加标记，非最后读挂 LoRA，最后一读用 base。
+  - G0 用无标记提示词做整句离线解码。
+- **流式流程与判定：** 同 change 56（rollout + 重拟合 hsmm_anchor → dev → 测试 p3pfb1t / p3pfb2，两方向都跑；判定相对 p3hk + 连线，规则不变），dev 选点用新的官方 BLEU。
+- **共同约束：** 一个双向模型；无师生蒸馏（目标只来自参考译文 + 对齐）；只用开放数据训练、拟合、校准（cvdev 为开放数据）；RealSI / OBSI 只测试。

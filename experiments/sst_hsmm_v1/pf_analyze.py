@@ -4,6 +4,7 @@ drafter_analyze.metrics (corpus BLEU, mean proxy D2 via p0rl_analyze.playback) o
 Selection (prereg change 55): among the method's specs with BLEU >= B0(mode@0.75) BLEU - 0.30 on BOTH devsets, the lowest mean D2
 (over devsets); none -> the highest mean BLEU. Screening (recorded only): at the chosen spec, on BOTH devsets, BLEU >= B0 frontier
 BLEU at equal D2 + 0.30, or D2 <= B0 frontier D2 at equal BLEU - 0.10 s (linear interpolation, inside the B0 range).
+Change 57 (A): BLEU = the official test BLEU (wave2_s1_score.Bleu, normalize_for_bleu) unless --bleu raw.
     python3 -m experiments.sst_hsmm_v1.pf_analyze --root <method root> --ref eval_outputs/sst_hsmm_v1/pfb0 --out <choice.json>
 """
 from __future__ import annotations
@@ -22,9 +23,11 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 from experiments.sst_hsmm_v1.p0rl_analyze import playback  # noqa: E402
 from experiments.voice_onset_v1.playout import si_units  # noqa: E402
+from experiments.mist_w3po_v1.voicecond.wave2_s1_score import Bleu  # noqa: E402
 
 D0 = REPO / "eval_outputs/sst_hsmm_v1"
 MODE = {"en2zh": "heal", "zh2en": "base"}
+BLEU_KIND = "official"
 
 
 def load(root, ds, d):
@@ -43,8 +46,13 @@ def metrics(rows, items, ids, d):
     R = {}
     for s, X in rows.items():
         st = [playback(X[i]["blocks"], lang, items[i]["dur_ms"], len(si_units(items[i]["translation"], lang))) for i in ids]
-        R[s] = {"bleu": float(sacrebleu.corpus_bleu([X[i]["translation"] for i in ids], [[items[i]["translation"] for i in ids]],
-                                                    tokenize="zh" if zh else "13a").score),
+        if BLEU_KIND == "official":          # change 57 A: the test metric (normalize_for_bleu: no punctuation, Latin split)
+            bl = Bleu(lang)
+            bleu = bl.score(bl.stats([X[i]["translation"] for i in ids], [items[i]["translation"] for i in ids]))
+        else:                                # changes 55/56 (raw sacrebleu); kept only to reproduce old choice files
+            bleu = sacrebleu.corpus_bleu([X[i]["translation"] for i in ids], [[items[i]["translation"] for i in ids]],
+                                         tokenize="zh" if zh else "13a").score
+        R[s] = {"bleu": float(bleu),
                 "d2": float(np.nanmean([x[0] for x in st])), "n": len(ids)}
     return R
 
@@ -63,7 +71,11 @@ def main():
     ap.add_argument("--ref", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--items", default="", help="JSON {devset: items dir}; default edev/data, cvdev/data")
+    ap.add_argument("--bleu", choices=("official", "raw"), default="official",
+                    help="change 57 A: official = the test BLEU (default); raw = sacrebleu as in changes 55/56")
     a = ap.parse_args()
+    global BLEU_KIND
+    BLEU_KIND = a.bleu
     if Path(a.out).exists():
         raise SystemExit(f"refuse to overwrite {a.out}")
     idirs = {"edev": D0 / "edev/data", "cvdev": D0 / "cvdev/data"}
