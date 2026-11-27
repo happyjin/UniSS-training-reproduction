@@ -342,12 +342,19 @@ def main() -> None:
         conv_g = [{"role": "user", "content": [{"type": "audio", "audio": "x.wav"}, {"type": "text", "text": "Transcribe this speech."}]}]
         HASR = processor.apply_chat_template([conv_g], add_generation_prompt=True, tokenize=False)[0]
 
-        def syn_open(t_):
-            t_ = t_.strip()
-            if not t_ or t_[-1] in ".?!。？！":
+        SYN_FINAL_ZH = set("了吗呢吧啊呀嘛")
+
+        def syn_open(t_):          # the transcript of a cut read always ends in "." / "。": strip end punctuation, judge the last word
+            t_ = t_.strip().rstrip(".?!,;:。？！，、；：…\"'”’) ")
+            if not t_:
                 return False
             ws_ = [w_ for s_ in SYN(t_).sentences for w_ in s_.words if w_.upos != "PUNCT"]
-            return bool(ws_) and ws_[-1].upos in SYN_OPEN
+            if not ws_ or ws_[-1].text in SYN_FINAL_ZH:
+                return False
+            w_ = ws_[-1]
+            if w_.upos == "PRON" and args.direction == "en2zh":     # English: only possessive / relative pronouns wait for a head
+                return any(f_ in (w_.feats or "") for f_ in ("Poss=Yes", "PronType=Rel"))
+            return w_.upos in SYN_OPEN
     assert not (args.bias_redraft > 0 and args.mid_mbr > 0), "A1 and mid-MBR are separate methods"
     assert not args.sentcut or args.mid_mbr > 0, "--sentcut needs --mid-mbr"
     llm = LLM(model=args.thinker, gpu_memory_utilization=args.gpu_mem, max_model_len=8192, limit_mm_per_prompt={"audio": 1},
