@@ -1405,3 +1405,49 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
   - 否则跑流式：TAG pfo1，测试 p3pfo1，链路 pvx_chain.sh。
 - **诚实预期：** 按 v1 的经验，base-open 入选率可能很高。若不退化，预期 en2zh 接近 p3hk，zh2en 的提升会部分丢失。这个结果本身也说明 HCG v2 的收益依赖"只在预判候选中选择"。
 - 判定规则不变。
+
+## change 67（TAF-S：对源语音的未来采样并投票，作为 HSMM 提交的否决；2026-11-28 14:55 CET，用户批准"一起开始"；任何该方法数字之前登记）
+- **依据：**
+  - 方案：`plan_bleu_both_dirs_20261128.zh-CN.md`；
+  - 诊断：`en2zh_stream_gap_20261128.zh-CN.md`，en2zh 损失来自语序，87% 的重排要到最后一读才出现；
+  - 文献：Ouyang et al., NAACL 2025（TAF）。
+- **方法（hsc30 = hsc22 副本加 `--taf K`，只作用于非最后读，K = 8）：**
+  1. 同一 Thinker（wave17，无 LoRA）用 "Transcribe this speech." 转写当前音频前缀（与 H3 相同的提示）。去掉末尾标点和空白。
+  2. 纯文本模式下把转写当作原始文本前缀续写 K 条，到句末为止：T 0.9，top-p 0.95，最多 24 token，遇 . ? ! 。 ？ ！ 停止（保留），种子 sha1("taf|id|t")。
+  3. 每条"转写 + 续写"由同一 Thinker 在文本翻译提示下贪心翻译。提示词："Translate the following English text into Chinese. Reply with the Chinese translation only."，zh2en 对称。助手前缀为已提交的 healed 前缀，约束与语音草稿相同（`pp`）。
+  4. 投票：对每条未来译文，计算与语音草稿 d0 的单位 LCP；vote = 第 ⌈K/2⌉ 大的 LCP（K = 8 时为第 4 大，即 ≥ 50% 支持；无效译文算不支持）。
+  5. 提交：cut = min(HSMM cut, max(n, vote))。只增加否决；最后一读不变。
+- **固定设置：** K = 8，阈值 50%，T 0.9。不扫参。
+- **预检查（都在开发集，不过关不跑流式）：**
+  - **P0 实时性：** edev 每个方向 shard 0 的前 8 句，分别跑带和不带 `--taf`（θ 0.75），记录每轮墙钟时间。GO：带 TAF 的每轮 p95 ≤ 1.0 s。不满足时一次性改为 K = 4 重测；仍不满足就停止并汇报。
+  - **P1 区分能力：** edev shard 0 + cvdev shard 0，两个方向，θ 0.75，`--taf 8 --taf-shadow --shadow-final`（只记录否决，不执行）。
+    - 存活定义：在 HSMM 于非最后读提交的单位 j（n ≤ j < cut）中，j < LCP(草稿, 最后一读的完整音频无前缀贪心译文)。
+    - GO：两个方向上，被否决单位的存活率都比未被否决的低 ≥ 0.15，且否决单位占已提交单位 ≤ 30%。
+- **流式（P0、P1 都过）：**
+  - TAG pft1：pf_pipe2，ROLL=0，FIT=none，PRM=h14，ONLINE=hsc30，XF="--taf 8"，默认网格，开发集按 pf_analyze 选工作点；
+  - 测试 p3pft1；判定规则不变（change 55），同时报 COMET。
+- **预测：**
+  - 否决集中在 en2zh 的重排位置和 zh2en 的块尾；
+  - 开发集会选到不高于 p3hk 的 θ；
+  - 两个方向的文本 BLEU 在同等时延下都上升。
+- **风险：** 噪声上的转写错误；文本模式和语音模式用词不一致导致否决过多（P1 直接测）；计算量。
+
+## change 68（会话上下文 Thinker；2026-11-28 14:55 CET，用户批准同上；任何该方法数字之前登记）
+- **方法（hsc30 `--ctx 3`）：**
+  - 指令后附加："For reference, the translation of the preceding speech in this conversation: <ctx>"。<ctx> 为同一会话前 3 句**系统自己的最终译文**（不用参考）；zh 直接拼接，en 用空格拼接。所有读取（含最后一读和 SAP 提示）都用带上下文的头。
+  - 会话键 = id 去掉最后一个 "_<n>"，按 n 排序。
+  - 调度：一句的前一句完成后才开始，每句有自己的时钟（第一读在它自己的 1000 ms），时延定义不变。
+  - 会话按 ≤ 60 句连续切块，只影响调度和上下文边界。RealSI 会话 ≤ 57 句，不受影响。
+  - 被测试分片切开的会话，后一分片的第一句没有上下文（每个方向最多 3 句）。
+- **对计划的更正（写在任何数字之前）：**
+  - OBSI 的测试会话和开放开发集 bench_dev，都是不相关 CommonVoice 句子的拼接，不是连贯讲话。
+  - 5 个测试格里只有 RealSI（clean / noisy）是连贯会话。没有连贯的开放开发集，所以预检查改为"不伤害"检查。
+- **预检查（不伤害）：**
+  - cvdev + edev 按文件顺序，每 10 句连续成一个伪会话（与 OBSI 测试的"无关上下文"同性质）。
+  - 整句离线（完整音频、贪心）带上下文 vs 不带，用官方 BLEU。
+  - GO：两个方向上，两个开发集的平均 ΔBLEU ≥ −0.3。
+- **流式（GO 后）：** TAG pfx1，ONLINE=hsc30，XF="--ctx 3"，其余同 change 67；测试 p3pfx1；判定规则不变，同时报 COMET。
+- **预测：**
+  - 收益只出现在 RealSI 两格，OBSI 三格约为 0；
+  - 5 格平均能否过线，取决于 RealSI 上的幅度。
+- **消融：** pfx1 有效时，再补"B_b + 上下文"（只报告）。
