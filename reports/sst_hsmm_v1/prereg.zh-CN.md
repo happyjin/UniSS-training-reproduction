@@ -1367,3 +1367,41 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - TAG pfg3，测试 p3pfg3，链路 `pvx_chain.sh`。判定规则不变。
 - **性质：** 第 1 轮（B1 数据修正）和第 2 轮（HCG）的组合，用来检验 HCG 的 en2zh 损失能否由术语修正收回。不算新的独立方法。
 - **理论补充（适用于 HCD 和 HCG）：** base 隐含"输入完整"的假设，即 p_base ≈ p(y | x, 完整)。由贝叶斯，p(y | x, 未完) = p(y | x, 完整) · p(y | x, 未完) / p(y | x, 完整)，其中的比值用 adapter 的 p_P / p_C 估计。所以 λ = 1 是贝叶斯一致的取值，不是调出来的参数。
+
+## change 65（反向配对 en2zh adapter，2026-11-28 07:30 CET，用户 07:xx 批准"1和2一起跑"；任何该方法数字之前登记）
+- **依据：** `reports/sst_hsmm_v1/en2zh_overnight_diagnosis_20261128.zh-CN.md`。
+  - adapter 的用词偏离 base 的幅度两个方向相同；英文里这种偏离不伤参考命中，中文里伤（HCG 提前文本对参考精度 en2zh −3.6，zh2en ±0）。
+  - 原因是 UniST en2zh 的中文目标是翻译体书面语（"觉得:认为" 0.29），而 UniST zh2en 一侧的中文是真人原话（0.85）。
+- **数据 rev（`rev_prep.py`，只用 UniST 训练数据，不碰测试）：**
+  - 行：UniST zh2en 时序行（`data/unist_simul_v1`，源语言 cmn），筛选与 data.py 相同：
+    - 在 v2 质量索引内；
+    - 不是 UniST 留出行（W14.held_out）；
+    - 中文转写和英文译文都不与评测/测试文本重合（W14.norm）；
+    - 英文目标语音 3–15 s；
+    - 排除 `data/train_zh2en.jsonl` 已用的 20000 行。
+    - 按 sha1("20261128|rev|<id>") 排序，取前 20000 行。
+  - 输入音频：UniST 自带的英文目标语音，由它的 BiCodec 码（target_bicodec + bicodec_global，`data/raw/UniST` 训练分片，来自项目 S3 备份）用仓库内 BiCodec 解码，16 kHz；逐行核对 raw id。
+  - 目标：原始中文转写，只删除纯语气词"呃""嗯"，并清理由此产生的重复或句首标点；用 Thinker 分词。
+  - 样本：与 p4 相同的 16000 个 (s, j) 槽位。en2zh 槽位的行 = rev[h("20261123|risk|row|s|j") mod 20000]（与 p4 同一抽样规则）；加噪用同一个键 "20261123|risk|mix|s|j"（mix.Mixer，p_clean 0.5）。zh2en 槽位与 p4 完全相同。
+- **训练（`train_p2ft_rev.py` = train_p2ft.py 副本，只把 en2zh 槽位换成 rev）：**
+  - 其余不变：P/C 标记、1000 步、种子 20261128、学习率、4 卡 train_orch4.sh、发散检查、merge、peft a1。
+  - TAG revtr。
+- **使用：** HCG v2（hsc24，`--draft-tag --mid-mbr 4 --mbr-util hcg`，λ = 1），adapter 换成 revtr，两个方向都跑。TAG pfv1，测试 p3pfv1，链路 pvx_chain.sh。
+- **G0：** 照常跑整句离线 G0（wave2_S1 dev，OFFMOD dev_offline_tag），只报告，不作门槛。理由同 change 64：HCG 的最后一读是 base，草稿只用 adapter 的候选。G0 用来直接检验反向配对是否消除了整句用词漂移。
+- **预期：**
+  - G0 en2zh 接近 w17（≥ 40.81）；
+  - HCG en2zh 提前文本对参考的精度不再下降；
+  - zh2en 应与 HCG v2 相近，因为 zh2en 数据相同，只是重新训练。
+- 判定规则不变。
+- **风险：** 输入是合成英文语音，和真人语音存在域差；英文侧是翻译体（只作输入）。
+- **新颖性定位：** 诊断加修复，与 HCG 合写。"原文方向数据"的思路在 MT 文献中已有，不当作独立的新方法。
+
+## change 66（HCG-open，2026-11-28 07:30 CET，用户批准同上；任何该方法数字之前登记）
+- **方法：** hsc28 = hsc24 副本加 `--hcg-open`。每个非最后读，在 HCG v2 的候选池（TAG_P 贪心 + 4 个 TAG_P 样本）中再加 1 个候选：base 普通提示词的贪心草稿（同一 healed 前缀约束），去掉句末收尾（末尾 EOS、空白、。！？.!?、半个字符，与 EGA 相同）。所有候选用同一个按 token 平均的分数 [log p_base + λ(log p_P − log p_C)]，λ = 1。adapter 为 p2ft，与 HCG v2 相同。
+- **更正（诊断报告 2.1 节）：** HCG v2 的 hcg_base_chosen = 0 是设计决定的，不是数据结果。v2 的候选池本来就没有 base 候选，因为 v1 冒烟时 base 自己的贪心候选（按总和打分，带收尾）在 26 读里赢了 25 读，方法退化成 base。诊断报告里"原因是 base 候选总在句末收尾"的说法不对，已在报告中更正。
+- **冒烟和退化规则（写在冒烟之前）：**
+  - edev 每个方向 20 句（`pv10_opensmoke.sh`）。
+  - 如果两个方向上 base-open 候选的入选率都 ≥ 90%，HCG-open 等同于 base 起草器（≈ EGA 的头部，已测过 ≈ p3hk），不再跑流式，记为退化（`pv10/OPEN_DEGENERATE`）。
+  - 否则跑流式：TAG pfo1，测试 p3pfo1，链路 pvx_chain.sh。
+- **诚实预期：** 按 v1 的经验，base-open 入选率可能很高。若不退化，预期 en2zh 接近 p3hk，zh2en 的提升会部分丢失。这个结果本身也说明 HCG v2 的收益依赖"只在预判候选中选择"。
+- 判定规则不变。
