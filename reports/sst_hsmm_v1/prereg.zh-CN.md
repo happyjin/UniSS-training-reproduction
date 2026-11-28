@@ -1348,3 +1348,22 @@ L = −(1/n) · log Σ_z exp( Σ log w/(1−w) 转移 + Σ 发射 − λ_L Σ mi
 - 无 G0（最后一读是 base，草稿并非单一 adapter 生成）。冒烟（`pv9_hcdsmoke.sh`）通过后跑流式：TAG pfk1，测试 p3pfk1，链路 `pvx_chain.sh`。判定规则不变。
 - **新颖点：** 把 adapter 当作"视野差分"，而不是生成器。差分抵消了微调带来的风格偏移，只把"不在截断处收尾"转移给 base；这是 classifier-free guidance / contrastive decoding 在同时翻译视野上的应用。
 - **与 HCG v2（change 58）的区别：** HCG v2 在 adapter 的整句候选之间重排序，措辞仍是 adapter 的。HCD 逐 token 由 base 主导，只在视野差分足够大处改道。
+
+## change 64（第 8 轮：HCG v2 + 保留术语的预判 adapter，01:10 CET，任何该方法数字之前登记；夜间自主授权）
+- **前几轮结果（测试 / dev）：**
+  - **HCG v2（p3pfg2）测试**，相对 p3hk：
+    - zh2en：ASR +0.79，D2 −0.113 s，比连线高 +1.15，有效。
+    - en2zh：ASR −0.64，D2 −0.053 s，比连线低 −0.53，无效。
+  - **en2zh 损失拆分**（官方式 BLEU，5 个 cell 合并）：
+    - 参考含英文术语的 579 句：文本 −5.23，ASR −1.24；其余句子：文本 −1.35，ASR −0.66。
+    - 术语保留率 11.1%，p3hk 为 18.8%。
+    - 结论：HCG v2 的候选来自 E1 adapter，大约一半的 en2zh 损失是术语音译。
+  - **SAA 流式（pfs2）dev**：en2zh 同设置 −1.37，D2 +0.03 s，没有时延收益。已听到部分锚定在只看到前缀的 base 上，把 base 的收尾习惯也保留了。
+  - **HCD（pfk1）dev**：
+    - zh2en：首次通过 dev 筛选，同 D2 下 +0.55 / +0.56。
+    - en2zh：同 D2 下 +0.10 / +0.30，D2 −0.03 s。
+    - 测试照常进行。
+- **方法：** HCG v2（hsc24，`--mid-mbr 4 --mbr-util hcg`，λ = 1，候选 = TAG_P 贪心 + 4 个 TAG_P 样本，打分 = 按 token 平均的 [log p_base + λ(log p_P − log p_C)]，最后一读用 base）。adapter 换成 b1tr：E1 配方加 B1 保留术语参考，带同样的 P/C 标记，G0 为 38.43，E1 为 36.86。不跑 G0，因为 HCG 的最后一读是 base，与 change 58 相同。
+- TAG pfg3，测试 p3pfg3，链路 `pvx_chain.sh`。判定规则不变。
+- **性质：** 第 1 轮（B1 数据修正）和第 2 轮（HCG）的组合，用来检验 HCG 的 en2zh 损失能否由术语修正收回。不算新的独立方法。
+- **理论补充（适用于 HCD 和 HCG）：** base 隐含"输入完整"的假设，即 p_base ≈ p(y | x, 完整)。由贝叶斯，p(y | x, 未完) = p(y | x, 完整) · p(y | x, 未完) / p(y | x, 完整)，其中的比值用 adapter 的 p_P / p_C 估计。所以 λ = 1 是贝叶斯一致的取值，不是调出来的参数。
