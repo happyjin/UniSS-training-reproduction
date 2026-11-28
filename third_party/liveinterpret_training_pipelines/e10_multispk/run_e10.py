@@ -159,7 +159,7 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
     torch.manual_seed(a.seed)
     pos, fpos, vcache, src_done, tail, n_text, i = 0, 0, None, False, 0, 0, 0
     segs, cur, stop, n_write, n_wait = [], None, "max_steps", 0, 0
-    committed, n_guard = [], 0
+    committed, n_guard, n_forced, since_write = [], 0, 0, 0
     n_steps = int(np.ceil(t_mel / chunk_mel))
     while True:
         b = min(t_mel, pos + chunk_mel)
@@ -189,6 +189,14 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
         logits, out = run()
         allow = (wait_id, write_id, eos_id) if src_done else (wait_id, write_id)
         dec = _pick(logits, 1.0, 0.0, ban_above=ban_above, allow=allow)
+        if not src_done and (a.write_threshold is not None or a.max_wait_steps > 0):
+            if a.write_threshold is not None:   # write when p(W | {wait, W}) >= tau instead of argmax
+                lw = logits.float().reshape(-1)[[wait_id, write_id]].softmax(-1)
+                dec = write_id if float(lw[1]) >= a.write_threshold else wait_id
+            if dec == wait_id and a.max_wait_steps > 0 and since_write + 1 >= a.max_wait_steps:
+                dec = write_id                  # waited max_wait_steps chunks in a row: force a write step
+                n_forced += 1
+        since_write = 0 if dec == write_id else since_write + 1
         if dec == eos_id:
             stop = "eos"
             break
@@ -262,7 +270,8 @@ def translate_window(model, tok, ids, spk_ids, mel_fn, wav16, tgt, post, a):
                                                 top_k=a.talker_top_k, top_p=a.talker_top_p))
     if segs:
         segs[-1]["tokens"] += [int(x) for x in rest]
-    return {"segs": segs, "stop": stop, "n_write": n_write, "n_wait": n_wait, "n_text": n_text, "n_guard": n_guard}
+    return {"segs": segs, "stop": stop, "n_write": n_write, "n_wait": n_wait, "n_text": n_text, "n_guard": n_guard,
+            "n_forced": n_forced}
 
 
 def vocode(model, speaker, prompter, tokens, ref16, a):
@@ -350,6 +359,11 @@ def main():
     ap.add_argument("--prompt_sec", type=float, default=8.0)
     ap.add_argument("--no_graph", action="store_true")
     ap.add_argument("--no_vocoder", action="store_true")
+    # latency fixes (2026-11-28, reports/mist_w3po_v1/e10v3_latency_analysis.zh-CN.md): decoding only
+    ap.add_argument("--write_threshold", type=float, default=None,
+                    help="write when p(<|W|>) among {wait, W} >= tau (default: argmax)")
+    ap.add_argument("--max_wait_steps", type=int, default=0,
+                    help="force a write step after this many consecutive 640 ms waits (0 = off)")
     # e10v3: baseline B's decode-time loop guard (experiments/mist_w3po_v1/evaluation/loop_guard.py, B's settings)
     ap.add_argument("--loop_guard_k", type=int, default=6)
     ap.add_argument("--loop_guard_maxp", type=int, default=12)
@@ -440,7 +454,7 @@ def main():
                         if not a.no_vocoder else
                         [{"spk": s["spk"], "text": s["text"], "write_ms": s["write_ms"], "n_tok": len(s["tokens"]),
                           "dur_ms": len(s["tokens"]) * 40, "wav": None} for s in res["segs"]])
-                row.update({k: res[k] for k in ("stop", "n_write", "n_wait", "n_text", "n_guard")}, segs=segs,
+                row.update({k: res[k] for k in ("stop", "n_write", "n_wait", "n_text", "n_guard", "n_forced")}, segs=segs,
                            error=None)
                 toks = [t for s in res["segs"] for t in s["tokens"]]
                 src_s, sp_s = wav16.size / SR, len(toks) / 25.0
